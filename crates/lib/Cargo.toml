@@ -1,0 +1,30 @@
+[package]
+name = "arcanist"
+version = "0.0.1"
+description = "Gentoo Linux mangling library"
+authors = ["Tim Harder <radhermit@gmail.com>"]
+license = "MIT"
+edition = "2018"
+autotests = false
+
+[lib]
+name = "arcanist"
+path = "src/lib.rs"
+crate-type = ["rlib", "dylib"]
+
+[[test]]
+name = "integration"
+path = "tests/lib.rs"
+
+[dependencies]
+indexmap = "1.7.0"
+once_cell = "1.8.0"
+peg = "0.7"
+regex = "1"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "atom"
+harness = false
