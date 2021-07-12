@@ -171,7 +171,7 @@ impl Ord for Version {
                 return cmp;
             }
 
-            // dotted components were equal so compare single letter suffixes
+            // dotted components were equal so compare letter suffixes
             cmp = self_letter.cmp(&other_letter);
             if cmp != Ordering::Equal {
                 return cmp;
