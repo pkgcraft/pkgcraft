@@ -110,7 +110,6 @@ peg::parser!{
                 };
 
                 if slot_op.is_some() && !eapi.has("slot_ops") {
-                    // TODO: use custom error to allow dynamic string?
                     return Err("slot operators are supported in >= EAPI 5");
                 }
 
@@ -128,7 +127,6 @@ peg::parser!{
                         _ => Err("invalid blocker"),
                     }
                 } else {
-                    // TODO: use custom error to allow dynamic string?
                     return Err("blockers are supported in >= EAPI 2");
                 }
             }
@@ -153,7 +151,6 @@ peg::parser!{
                 if eapi.has("use_deps") {
                     return Ok(use_deps);
                 } else {
-                    // TODO: use custom error to allow dynamic string?
                     return Err("use deps are supported in >= EAPI 2");
                 }
             }
@@ -165,7 +162,6 @@ peg::parser!{
                 if eapi.has("use_dep_defaults") {
                     return Ok(s);
                 } else {
-                    // TODO: use custom error to allow dynamic string?
                     return Err("use dep defaults are supported in >= EAPI 4");
                 }
             }
@@ -177,7 +173,6 @@ peg::parser!{
                 if eapi.has("subslots") {
                     return Ok(s);
                 } else {
-                    // TODO: use custom error to allow dynamic string?
                     return Err("subslots are supported in >= EAPI 5");
                 }
             }
