@@ -145,6 +145,8 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("8", Some(&EAPI7), None)
 });
 
+pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
+
 pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
     let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
     eapis.insert("0", &EAPI0);
@@ -159,10 +161,6 @@ pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(
     eapis
 });
 
-pub fn latest() -> &'static Eapi {
-    KNOWN_EAPIS.last().unwrap().1
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -175,17 +173,17 @@ mod tests {
 
     #[test]
     fn test_ordering() {
-        assert!(*EAPI0 < *latest());
+        assert!(*EAPI0 < **EAPI_LATEST);
         assert!(*EAPI0 <= *EAPI0);
         assert!(*EAPI0 == *EAPI0);
         assert!(*EAPI0 >= *EAPI0);
-        assert!(*latest() > *EAPI0);
+        assert!(**EAPI_LATEST > *EAPI0);
     }
 
     #[test]
     fn test_has() {
         assert!(!EAPI0.has("use_deps"));
-        assert!(latest().has("use_deps"));
+        assert!(EAPI_LATEST.has("use_deps"));
     }
 
     #[test]

@@ -171,7 +171,7 @@ impl FromStr for Atom {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parser::pkg::atom(s, eapi::latest())
+        parser::pkg::atom(s, eapi::EAPI_LATEST)
     }
 }
 
