@@ -268,7 +268,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ordering() {
+    fn test_cmp() {
         let op_map: HashMap<&str, Ordering> = [
             ("<", Ordering::Less),
             ("=", Ordering::Equal),
@@ -294,24 +294,37 @@ mod tests {
             let op = op_map[v[1]];
             match op {
                 Ordering::Equal => {
-                    assert_eq!(
-                        v1.partial_cmp(&v2), Some(op), "failed comparing {}", expr);
-                    assert_eq!(
-                        v2.partial_cmp(&v1), Some(op), "failed comparing {}", expr);
+                    assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
+                    assert_eq!(v2.cmp(&v1), op, "failed comparing {}", expr);
                 },
                 Ordering::Less => {
-                    assert_eq!(
-                        v1.partial_cmp(&v2), Some(op), "failed comparing {}", expr);
-                    assert_eq!(
-                        v2.partial_cmp(&v1), Some(Ordering::Greater), "failed comparing {}", expr);
+                    assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
+                    assert_eq!(v2.cmp(&v1), Ordering::Greater, "failed comparing {}", expr);
                 },
                 Ordering::Greater => {
-                    assert_eq!(
-                        v1.partial_cmp(&v2), Some(op), "failed comparing {}", expr);
-                    assert_eq!(
-                        v2.partial_cmp(&v1), Some(Ordering::Less), "failed comparing {}", expr);
+                    assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
+                    assert_eq!(v2.cmp(&v1), Ordering::Less, "failed comparing {}", expr);
                 },
             }
+        }
+    }
+
+    #[test]
+    fn test_sorting() {
+        for (unsorted, expected) in [
+                // all equal versions shouldn't be sorted
+                ("0 00 0-r0 0-r00", "0 00 0-r0 0-r00"),
+                ("1.0.2 1.0.2-r0 1.000.2", "1.0.2 1.0.2-r0 1.000.2"),
+                ("3 2 1 0", "0 1 2 3"),
+                ] {
+            let mut versions: Vec<Version> = unsorted.split(" ")
+                .map(|s| Version::from_str(s).unwrap())
+                .collect();
+            versions.sort();
+            let sorted: Vec<String> = versions.iter()
+                .map(|v| format!("{}", v))
+                .collect();
+            assert_eq!(sorted.join(" "), expected);
         }
     }
 }
