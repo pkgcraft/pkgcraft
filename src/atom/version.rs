@@ -119,24 +119,22 @@ impl Ord for Version {
 
         // if dotted strings differ, then perform comparisons on them
         if self_parts[0] != other_parts[0] {
-            // split dotted strings into components
-            let mut self_ver_parts: Vec<&str> = self_parts[0].split(".").collect();
-            let mut other_ver_parts: Vec<&str> = other_parts[0].split(".").collect();
-
-            // get the last character from the last string
-            let last = |parts: &mut Vec<&str>| {
-                let s = parts.last_mut().unwrap();
+            // separate letter suffix from version string
+            let split = |s: &'a str| -> (Option<char>, &'a str) {
                 match s.chars().last().unwrap() {
                     c @ 'a'..='z' => {
-                        *s = &s[..s.len() - 1];
-                        Some(c)
+                        (Some(c), &s[..s.len() - 1])
                     },
-                    _ => None,
+                    _ => (None, &s),
                 }
             };
 
             // pull letter suffixes for later comparison
-            let letters = (last(&mut self_ver_parts), last(&mut other_ver_parts));
+            let (self_letter, self_str) = split(self_parts[0]);
+            let (other_letter, other_str) = split(other_parts[0]);
+            // split dotted version string into components
+            let self_ver_parts: Vec<&str> = self_str.split(".").collect();
+            let other_ver_parts: Vec<&str> = other_str.split(".").collect();
 
             // iterate through the components
             for (v1, v2) in self_ver_parts.iter().zip(other_ver_parts.iter()) {
@@ -174,7 +172,7 @@ impl Ord for Version {
             }
 
             // dotted components were equal so compare single letter suffixes
-            cmp = letters.0.cmp(&letters.1);
+            cmp = self_letter.cmp(&other_letter);
             if cmp != Ordering::Equal {
                 return cmp;
             }
