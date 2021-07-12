@@ -57,21 +57,18 @@ impl PartialEq<str> for Revision {
     }
 }
 
-impl PartialOrd for Revision {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // parsing shouldn't fail when using grammar-parsed values
-        let rev_num: u32 = self.value.parse().unwrap();
-        let other_num: u32 = other.value.parse().unwrap();
-        rev_num.partial_cmp(&other_num)
-    }
-}
-
 impl Ord for Revision {
     fn cmp(&self, other: &Self) -> Ordering {
         // parsing shouldn't fail when using grammar-parsed values
         let rev_num: u32 = self.value.parse().unwrap();
         let other_num: u32 = other.value.parse().unwrap();
         rev_num.cmp(&other_num)
+    }
+}
+
+impl PartialOrd for Revision {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
     }
 }
 
