@@ -264,11 +264,11 @@ mod tests {
                 ("<a/b-r0-1-r2", "a", "b-r0", Some(Operator::LT), version("1-r2")),
                 ("<=a/b-1", "a", "b", Some(Operator::LE), version("1")),
                 ("=a/b-1-r1", "a", "b", Some(Operator::EQ), version("1-r1")),
+                ("=a/b-3*", "a", "b", Some(Operator::EG), version("3")),
+                ("=a/b-3-r1*", "a", "b", Some(Operator::EG), version("3-r1")),
                 ("~a/b-0-r1", "a", "b", Some(Operator::IR), version("0-r1")),
                 (">=a/b-2", "a", "b", Some(Operator::GE), version("2")),
                 (">a/b-3-r0", "a", "b", Some(Operator::GT), version("3-r0")),
-                ("=a/b-3*", "a", "b", Some(Operator::EG), version("3")),
-                ("=a/b-3-r1*", "a", "b", Some(Operator::EG), version("3-r1")),
                 ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);
