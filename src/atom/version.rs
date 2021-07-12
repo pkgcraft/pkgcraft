@@ -225,18 +225,22 @@ impl PartialOrd for Version {
 
             // One version has more suffixes than the other, use its last
             // suffix to determine ordering.
-            if self_suffixes_len > other_suffixes_len {
-                let m = SUFFIX_REGEX.captures(self_suffixes[self_suffixes_len - 1]).unwrap();
-                match m.name("suffix").unwrap().as_str() {
-                    "_p" => return Some(Ordering::Greater),
-                    _ => return Some(Ordering::Less),
-                }
-            } else if self_suffixes_len < other_suffixes_len {
-                let m = SUFFIX_REGEX.captures(other_suffixes[other_suffixes_len - 1]).unwrap();
-                match m.name("suffix").unwrap().as_str() {
-                    "_p" => return Some(Ordering::Less),
-                    _ => return Some(Ordering::Greater),
-                }
+            match self_suffixes_len.cmp(&other_suffixes_len) {
+                Ordering::Equal => (),
+                Ordering::Greater => {
+                    let m = SUFFIX_REGEX.captures(self_suffixes[self_suffixes_len - 1]).unwrap();
+                    match m.name("suffix").unwrap().as_str() {
+                        "_p" => return Some(Ordering::Greater),
+                        _ => return Some(Ordering::Less),
+                    }
+                },
+                Ordering::Less => {
+                    let m = SUFFIX_REGEX.captures(other_suffixes[other_suffixes_len - 1]).unwrap();
+                    match m.name("suffix").unwrap().as_str() {
+                        "_p" => return Some(Ordering::Less),
+                        _ => return Some(Ordering::Greater),
+                    }
+                },
             }
         }
 
