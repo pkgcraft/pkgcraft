@@ -172,6 +172,11 @@ mod tests {
     }
 
     #[test]
+    fn latest() {
+        assert!(**EAPI_LATEST == **KNOWN_EAPIS.last().unwrap().1);
+    }
+
+    #[test]
     fn test_ordering() {
         assert!(*EAPI0 < **EAPI_LATEST);
         assert!(*EAPI0 <= *EAPI0);
