@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use arcanist::atom;
@@ -29,6 +31,13 @@ fn bench_parse_unversioned(c: &mut Criterion) {
         let flags: Vec<String> = (0..100).map(|s| s.to_string()).collect();
         let s = format!("cat/pkg[{}]", &flags.join(","));
         b.iter(|| atom::parse(&s, &eapi::EAPI5));
+    });
+
+    c.bench_function("atom-sorting", |b| {
+        let mut atoms: Vec<atom::Atom> = (0..100).map(|s| {
+            atom::Atom::from_str(&format!("=cat/pkg-{}", s)).unwrap()
+            }).collect();
+        b.iter(|| atoms.sort());
     });
 }
 
