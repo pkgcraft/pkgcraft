@@ -116,13 +116,13 @@ fn rev_cmp(rev1: &Option<Revision>, rev2: &Option<Revision>) -> Ordering {
     }
 }
 
-impl PartialOrd for Version {
-    fn partial_cmp<'a>(&'a self, other: &'a Self) -> Option<Ordering> {
+impl Ord for Version {
+    fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
         let mut cmp: Ordering;
 
         // if versions are equal, comparing revisions suffices
         if self.base == other.base {
-            return Some(rev_cmp(&self.revision, &other.revision));
+            return rev_cmp(&self.revision, &other.revision);
         }
 
         // split versions into dotted strings and lists of suffixes
@@ -151,7 +151,7 @@ impl PartialOrd for Version {
                         let v2_stripped = rstrip(v2, '0');
                         cmp = v1_stripped.cmp(&v2_stripped);
                         if cmp != Ordering::Equal {
-                            return Some(cmp);
+                            return cmp;
                         }
                     },
                     _ => {
@@ -159,7 +159,7 @@ impl PartialOrd for Version {
                         let v2_int: u32 = v2.parse().unwrap();
                         cmp = v1_int.cmp(&v2_int);
                         if cmp != Ordering::Equal {
-                            return Some(cmp);
+                            return cmp;
                         }
                     },
                 }
@@ -167,7 +167,7 @@ impl PartialOrd for Version {
 
             cmp = self_ver_parts.len().cmp(&other_ver_parts.len());
             if cmp != Ordering::Equal {
-                return Some(cmp);
+                return cmp;
             }
 
             // get the last character from the last string
@@ -182,7 +182,7 @@ impl PartialOrd for Version {
             // dotted components were equal so compare single letter suffixes
             cmp = last(&self_ver_parts).cmp(&last(&other_ver_parts));
             if cmp != Ordering::Equal {
-                return Some(cmp);
+                return cmp;
             }
         }
 
@@ -208,7 +208,7 @@ impl PartialOrd for Version {
                 // if suffixes differ, use them for comparison
                 cmp = s1.cmp(&s2);
                 if cmp != Ordering::Equal {
-                    return Some(cmp);
+                    return cmp;
                 }
 
                 // otherwise use the suffix versions for comparison
@@ -216,7 +216,7 @@ impl PartialOrd for Version {
                 let v2: u32 = m2.name("version").unwrap().as_str().parse().unwrap_or_default();
                 cmp = v1.cmp(&v2);
                 if cmp != Ordering::Equal {
-                    return Some(cmp);
+                    return cmp;
                 }
             }
 
@@ -227,22 +227,28 @@ impl PartialOrd for Version {
                 Ordering::Greater => {
                     let m = SUFFIX_REGEX.captures(self_suffixes[self_suffixes_len - 1]).unwrap();
                     match m.name("suffix").unwrap().as_str() {
-                        "_p" => return Some(Ordering::Greater),
-                        _ => return Some(Ordering::Less),
+                        "_p" => return Ordering::Greater,
+                        _ => return Ordering::Less,
                     }
                 },
                 Ordering::Less => {
                     let m = SUFFIX_REGEX.captures(other_suffixes[other_suffixes_len - 1]).unwrap();
                     match m.name("suffix").unwrap().as_str() {
-                        "_p" => return Some(Ordering::Less),
-                        _ => return Some(Ordering::Greater),
+                        "_p" => return Ordering::Less,
+                        _ => return Ordering::Greater,
                     }
                 },
             }
         }
 
         // finally compare the revisions
-        return Some(rev_cmp(&self.revision, &other.revision));
+        return rev_cmp(&self.revision, &other.revision);
+    }
+}
+
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
     }
 }
 
