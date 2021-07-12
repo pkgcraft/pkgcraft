@@ -2,13 +2,13 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
-use self::parser::ParseError;
 use self::version::Version;
 use crate::eapi;
 
 mod parser;
 mod version;
 
+pub type ParseError = ::peg::error::ParseError<::peg::str::LineCol>;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Blocker {
@@ -163,10 +163,8 @@ impl PartialOrd for Atom {
     }
 }
 
-// TODO: error handling
-//pub fn parse(s: &str, eapi: &'static eapi::Eapi) -> Result<Atom, ParseError> {
-pub fn parse(s: &str, eapi: &'static eapi::Eapi) -> Atom {
-    parser::pkg::atom(s, &eapi).unwrap()
+pub fn parse(s: &str, eapi: &'static eapi::Eapi) -> Result<Atom, ParseError> {
+    parser::pkg::atom(s, &eapi)
 }
 
 impl FromStr for Atom {
@@ -180,7 +178,6 @@ impl FromStr for Atom {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::eapi;
     use crate::macros::opt_str;
 
     #[test]
@@ -197,7 +194,7 @@ mod tests {
                 "!cat/pkg",
                 "!!<cat/pkg-4",
                 ] {
-            atom = parse(&s, &eapi::latest());
+            atom = Atom::from_str(&s).unwrap();
             assert_eq!(format!("{}", atom), s);
         }
     }
@@ -212,7 +209,7 @@ mod tests {
                 (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
                 (">cat/pkg-4-r1:0=", "cat/pkg"),
                 ] {
-            atom = parse(&s, &eapi::latest());
+            atom = Atom::from_str(&s).unwrap();
             assert_eq!(atom.key(), key);
         }
     }
@@ -227,7 +224,7 @@ mod tests {
                 (">=cat/pkg-r1-2-r3", opt_str!("2-r3")),
                 (">cat/pkg-4-r1:0=", opt_str!("4-r1")),
                 ] {
-            atom = parse(&s, &eapi::latest());
+            atom = Atom::from_str(&s).unwrap();
             assert_eq!(atom.fullver(), fullver);
         }
     }
@@ -242,7 +239,7 @@ mod tests {
                 (">cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
                 (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
                 ] {
-            atom = parse(&s, &eapi::latest());
+            atom = Atom::from_str(&s).unwrap();
             assert_eq!(atom.cpv(), cpv);
         }
     }

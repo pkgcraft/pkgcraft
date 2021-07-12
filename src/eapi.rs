@@ -57,8 +57,7 @@ impl Eapi {
         }
     }
 
-    // TODO: return Result for error handling
-    pub fn atom(&'static self, s: &str) -> atom::Atom {
+    pub fn atom(&'static self, s: &str) -> Result<atom::Atom, atom::ParseError> {
         atom::parse(s, &self)
     }
 
@@ -192,12 +191,12 @@ mod tests {
     #[test]
     fn test_atom_parsing() {
         let mut atom;
-        atom = EAPI0.atom("cat/pkg");
+        atom = EAPI0.atom("cat/pkg").unwrap();
         assert_eq!(atom.category, "cat");
         assert_eq!(atom.package, "pkg");
         assert_eq!(format!("{}", atom), "cat/pkg");
 
-        atom = EAPI1.atom("cat/pkg:0");
+        atom = EAPI1.atom("cat/pkg:0").unwrap();
         assert_eq!(atom.category, "cat");
         assert_eq!(atom.package, "pkg");
         assert_eq!(atom.slot.as_ref().unwrap(), "0");

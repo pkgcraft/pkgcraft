@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::utils::rstrip;
-use super::parser::ParseError;
+use super::ParseError;
 use super::parser::pkg::version as parse;
 
 static SUFFIX_REGEX: Lazy<Regex> = Lazy::new(|| {

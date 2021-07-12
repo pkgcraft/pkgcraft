@@ -5,8 +5,6 @@ use crate::atom::version::{Revision, Version};
 use crate::eapi::Eapi;
 use crate::macros::vec_str;
 
-pub type ParseError = ::peg::error::ParseError<::peg::str::LineCol>;
-
 peg::parser!{
     pub grammar pkg() for str {
         // EAPI 0
@@ -222,12 +220,11 @@ peg::parser!{
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom::{Atom, Blocker, Operator};
+    use crate::atom::{Atom, Blocker, Operator, ParseError};
     use crate::atom::version::Version;
     use crate::eapi;
     use crate::macros::opt_str;
 
-    use super::*;
     use super::pkg::atom as parse;
 
     #[test]
