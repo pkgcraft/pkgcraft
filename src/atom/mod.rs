@@ -13,7 +13,7 @@ pub type ParseError = ::peg::error::ParseError<::peg::str::LineCol>;
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Blocker {
     Strong, // !!cat/pkg
-    Weak, // !cat/pkg
+    Weak,   // !cat/pkg
 }
 
 impl fmt::Display for Blocker {
@@ -183,17 +183,17 @@ mod tests {
     fn test_fmt() {
         let mut atom: Atom;
         for s in [
-                "cat/pkg",
-                "<cat/pkg-4",
-                "<=cat/pkg-4-r1",
-                "=cat/pkg-4-r1",
-                "=cat/pkg-4*",
-                "~cat/pkg-4",
-                ">=cat/pkg-r1-2-r3",
-                ">cat/pkg-4-r1:0=",
-                "!cat/pkg",
-                "!!<cat/pkg-4",
-                ] {
+            "cat/pkg",
+            "<cat/pkg-4",
+            "<=cat/pkg-4-r1",
+            "=cat/pkg-4-r1",
+            "=cat/pkg-4*",
+            "~cat/pkg-4",
+            ">=cat/pkg-r1-2-r3",
+            ">cat/pkg-4-r1:0=",
+            "!cat/pkg",
+            "!!<cat/pkg-4",
+        ] {
             atom = Atom::from_str(&s).unwrap();
             assert_eq!(format!("{}", atom), s);
         }
@@ -203,15 +203,15 @@ mod tests {
     fn test_atom_key() {
         let mut atom: Atom;
         for (s, key) in [
-                ("cat/pkg", "cat/pkg"),
-                ("<cat/pkg-4", "cat/pkg"),
-                ("<=cat/pkg-4-r1", "cat/pkg"),
-                ("=cat/pkg-4", "cat/pkg"),
-                ("=cat/pkg-4*", "cat/pkg"),
-                ("~cat/pkg-4", "cat/pkg"),
-                (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
-                (">cat/pkg-4-r1:0=", "cat/pkg"),
-                ] {
+            ("cat/pkg", "cat/pkg"),
+            ("<cat/pkg-4", "cat/pkg"),
+            ("<=cat/pkg-4-r1", "cat/pkg"),
+            ("=cat/pkg-4", "cat/pkg"),
+            ("=cat/pkg-4*", "cat/pkg"),
+            ("~cat/pkg-4", "cat/pkg"),
+            (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
+            (">cat/pkg-4-r1:0=", "cat/pkg"),
+        ] {
             atom = Atom::from_str(&s).unwrap();
             assert_eq!(atom.key(), key);
         }
@@ -221,15 +221,15 @@ mod tests {
     fn test_atom_fullver() {
         let mut atom: Atom;
         for (s, fullver) in [
-                ("cat/pkg", None),
-                ("<cat/pkg-4", opt_str!("4")),
-                ("<=cat/pkg-4-r1", opt_str!("4-r1")),
-                ("=cat/pkg-4", opt_str!("4")),
-                ("=cat/pkg-4*", opt_str!("4")),
-                ("~cat/pkg-4", opt_str!("4")),
-                (">=cat/pkg-r1-2-r3", opt_str!("2-r3")),
-                (">cat/pkg-4-r1:0=", opt_str!("4-r1")),
-                ] {
+            ("cat/pkg", None),
+            ("<cat/pkg-4", opt_str!("4")),
+            ("<=cat/pkg-4-r1", opt_str!("4-r1")),
+            ("=cat/pkg-4", opt_str!("4")),
+            ("=cat/pkg-4*", opt_str!("4")),
+            ("~cat/pkg-4", opt_str!("4")),
+            (">=cat/pkg-r1-2-r3", opt_str!("2-r3")),
+            (">cat/pkg-4-r1:0=", opt_str!("4-r1")),
+        ] {
             atom = Atom::from_str(&s).unwrap();
             assert_eq!(atom.fullver(), fullver);
         }
@@ -239,15 +239,15 @@ mod tests {
     fn test_atom_cpv() {
         let mut atom: Atom;
         for (s, cpv) in [
-                ("cat/pkg", "cat/pkg"),
-                ("<cat/pkg-4", "cat/pkg-4"),
-                ("<=cat/pkg-4-r1", "cat/pkg-4-r1"),
-                ("=cat/pkg-4", "cat/pkg-4"),
-                ("=cat/pkg-4*", "cat/pkg-4"),
-                ("~cat/pkg-4", "cat/pkg-4"),
-                (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
-                (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
-                ] {
+            ("cat/pkg", "cat/pkg"),
+            ("<cat/pkg-4", "cat/pkg-4"),
+            ("<=cat/pkg-4-r1", "cat/pkg-4-r1"),
+            ("=cat/pkg-4", "cat/pkg-4"),
+            ("=cat/pkg-4*", "cat/pkg-4"),
+            ("~cat/pkg-4", "cat/pkg-4"),
+            (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
+            (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
+        ] {
             atom = Atom::from_str(&s).unwrap();
             assert_eq!(atom.cpv(), cpv);
         }

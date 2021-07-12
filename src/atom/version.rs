@@ -1,13 +1,13 @@
-use std::cmp::{Ordering, min};
+use std::cmp::{min, Ordering};
 use std::fmt;
 use std::str::FromStr;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::utils::rstrip;
-use super::ParseError;
 use super::parser::pkg::version as parse;
+use super::ParseError;
+use crate::utils::rstrip;
 
 static SUFFIX_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$").unwrap()
@@ -16,10 +16,10 @@ static SUFFIX_REGEX: Lazy<Regex> = Lazy::new(|| {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Suffix {
     Alpha, // _alpha
-    Beta, // _beta
-    Pre, // _pre
-    Rc, // _rc
-    P, // _p
+    Beta,  // _beta
+    Pre,   // _pre
+    Rc,    // _rc
+    P,     // _p
 }
 
 impl FromStr for Suffix {
@@ -252,7 +252,6 @@ impl FromStr for Version {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -276,18 +275,18 @@ mod tests {
         ].iter().cloned().collect();
 
         for expr in [
-                ("0 = 0"),
-                ("0 = 0-r0"),
-                ("1.0.2 = 1.0.2-r0"),
-                ("1.0.2-r0 = 1.000.2"),
-                ("1.000.2 = 1.00.2-r0"),
-                ("0-r0 = 0-r00"),
-                ("0_beta01 = 0_beta001"),
-                ("0.1 < 0.11"),
-                ("0_alpha1 < 0_alpha2"),
-                ("0.01 > 0.001"),
-                ("0_alpha2-r1 > 0_alpha1-r2"),
-                ] {
+            ("0 = 0"),
+            ("0 = 0-r0"),
+            ("1.0.2 = 1.0.2-r0"),
+            ("1.0.2-r0 = 1.000.2"),
+            ("1.000.2 = 1.00.2-r0"),
+            ("0-r0 = 0-r00"),
+            ("0_beta01 = 0_beta001"),
+            ("0.1 < 0.11"),
+            ("0_alpha1 < 0_alpha2"),
+            ("0.01 > 0.001"),
+            ("0_alpha2-r1 > 0_alpha1-r2"),
+        ] {
             let v: Vec<&str> = expr.split(" ").collect();
             let v1 = Version::from_str(v[0]).unwrap();
             let v2 = Version::from_str(v[2]).unwrap();
