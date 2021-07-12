@@ -120,46 +120,47 @@ impl fmt::Display for Atom {
     }
 }
 
+impl Ord for Atom {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let mut cmp: Ordering;
+
+        cmp = self.category.cmp(&other.category);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+
+        cmp = self.package.cmp(&other.package);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+
+        cmp = self.version.cmp(&other.version);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+
+        cmp = self.block.cmp(&other.block);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+
+        cmp = self.slot.cmp(&other.slot);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+
+        cmp = self.subslot.cmp(&other.subslot);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+
+        self.use_deps.cmp(&other.use_deps)
+    }
+}
+
 impl PartialOrd for Atom {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let mut cmp: Option<Ordering>;
-
-        cmp = self.category.partial_cmp(&other.category);
-        if cmp != Some(Ordering::Equal) {
-            return cmp;
-        }
-
-        cmp = self.package.partial_cmp(&other.package);
-        if cmp != Some(Ordering::Equal) {
-            return cmp;
-        }
-
-        cmp = self.version.partial_cmp(&other.version);
-        if cmp != Some(Ordering::Equal) {
-            return cmp;
-        }
-
-        cmp = self.block.partial_cmp(&other.block);
-        if cmp != Some(Ordering::Equal) {
-            return cmp;
-        }
-
-        cmp = self.slot.partial_cmp(&other.slot);
-        if cmp != Some(Ordering::Equal) {
-            return cmp;
-        }
-
-        cmp = self.subslot.partial_cmp(&other.subslot);
-        if cmp != Some(Ordering::Equal) {
-            return cmp;
-        }
-
-        cmp = self.use_deps.partial_cmp(&other.use_deps);
-        if cmp != Some(Ordering::Equal) {
-            return cmp;
-        }
-
-        Some(Ordering::Equal)
+        Some(self.cmp(&other))
     }
 }
 
