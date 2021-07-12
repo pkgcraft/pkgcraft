@@ -203,7 +203,7 @@ peg::parser!{
                     Some(s) => {
                         Some(Version {
                             base: s.to_string(),
-                            revision: rev.and_then(|s| Some(Revision{value: s.to_string()})),
+                            revision: Revision::new(rev),
                         })
                     },
                 };

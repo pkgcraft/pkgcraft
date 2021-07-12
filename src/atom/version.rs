@@ -39,80 +39,68 @@ impl FromStr for Suffix {
 
 #[derive(Debug, Eq, Hash)]
 pub struct Revision {
-    pub value: String
+    pub value: Option<String>,
+    int: u32,
+}
+
+impl Revision {
+    pub fn new(s: Option<&str>) -> Revision {
+        match &s {
+            Some(s) => {
+                // parsing shouldn't fail when using grammar-parsed values
+                let int: u32 = s.parse().unwrap();
+                Revision { value: Some(s.to_string()), int: int }
+            },
+            None => Revision { value: None, int: 0 },
+        }
+    }
 }
 
 impl PartialEq for Revision {
     fn eq(&self, other: &Self) -> bool {
-        // parsing shouldn't fail when using grammar-parsed values
-        let rev_num: u32 = self.value.parse().unwrap();
-        let other_num: u32 = other.value.parse().unwrap();
-        rev_num == other_num
+        self.int == other.int
     }
 }
 
 impl PartialEq<str> for Revision {
     fn eq(&self, other: &str) -> bool {
-        self.value == other
+        match &self.value {
+            Some(s) => s == other,
+            None => "0" == other,
+        }
     }
 }
 
 impl Ord for Revision {
     fn cmp(&self, other: &Self) -> Ordering {
-        // parsing shouldn't fail when using grammar-parsed values
-        let rev_num: u32 = self.value.parse().unwrap();
-        let other_num: u32 = other.value.parse().unwrap();
-        rev_num.cmp(&other_num)
+        self.int.cmp(&other.int)
     }
 }
 
 impl PartialOrd for Revision {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
+        self.int.partial_cmp(&other.int)
     }
 }
 
 impl fmt::Display for Revision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.value)
+        match &self.value {
+            Some(s) => write!(f, "-r{}", s),
+            None => Ok(()),
+        }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Version {
     pub base: String,
-    pub revision: Option<Revision>,
+    pub revision: Revision,
 }
 
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut s = self.base.clone();
-        if let Some(rev) = &self.revision {
-            s.push_str(&format!("-r{}", rev));
-        }
-        write!(f, "{}", s)
-    }
-}
-
-// compare two optional revisions
-fn rev_cmp(rev1: &Option<Revision>, rev2: &Option<Revision>) -> Ordering {
-    match (&rev1, &rev2) {
-        (Some(r1), Some(r2)) => r1.cmp(&r2),
-        (None, None) => Ordering::Equal,
-        (None, Some(r2)) => {
-            if r2 == "0" {
-                Ordering::Equal
-            } else {
-                Ordering::Less
-            }
-        },
-        (Some(r1), None) => {
-            if r1 == "0" {
-                Ordering::Equal
-            } else {
-                Ordering::Greater
-            }
-        },
+        write!(f, "{}{}", self.base, self.revision)
     }
 }
 
@@ -122,7 +110,7 @@ impl Ord for Version {
 
         // if versions are equal, comparing revisions suffices
         if self.base == other.base {
-            return rev_cmp(&self.revision, &other.revision);
+            return self.revision.cmp(&other.revision);
         }
 
         // split versions into dotted strings and lists of suffixes
@@ -242,7 +230,7 @@ impl Ord for Version {
         }
 
         // finally compare the revisions
-        return rev_cmp(&self.revision, &other.revision);
+        return self.revision.cmp(&other.revision);
     }
 }
 
@@ -259,7 +247,7 @@ impl FromStr for Version {
         let (ver, rev) = parse(s)?;
         Ok(Version {
             base: ver.to_string(),
-            revision: rev.and_then(|s| Some(Revision {value: s.to_string()})),
+            revision: Revision::new(rev),
         })
     }
 }
