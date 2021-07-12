@@ -178,12 +178,16 @@ peg::parser!{
         // public pkg atom parsing method
         pub rule atom(eapi: &'static Eapi) -> Atom
             = block:blocks(eapi)? op:version_op()? cat:category() "/" pkg:package()
-                    ver_rev:ver_str()? slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)? {?
-                // version operator existence must match version string existence
-                if op.is_none() && !ver_rev.is_none() {
-                    return Err("missing version operator");
-                } else if !op.is_none() && ver_rev.is_none() {
-                    return Err("missing version");
+                    ver_rev:ver_str()? glob:"*"? slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)? {?
+                // verify version operator and string usage
+                let mut ver_op = op.clone();
+                match (op, ver_rev, glob) {
+                    (Some(_), None, _) => return Err("missing version"),
+                    (None, Some(_), _) => return Err("missing version operator"),
+                    // globbed versions must use '=' operator
+                    (Some(Operator::EQ), Some(_), Some(_)) => ver_op = Some(Operator::EG),
+                    (Some(_), Some(_), Some(_)) => return Err("invalid version operator"),
+                    _ => (),
                 }
 
                 // unwrap conditionals
@@ -205,7 +209,7 @@ peg::parser!{
                     category: cat.to_string(),
                     package: pkg.to_string(),
                     block: block,
-                    op: op,
+                    op: ver_op,
                     version: version,
                     slot: slot.and_then(|s| Some(s.to_string())),
                     subslot: subslot.and_then(|s| Some(s.to_string())),
@@ -237,6 +241,10 @@ mod tests {
                 "a/b-0", "<a/b-1-1",
                 // version operator with missing version
                 "~a/b", "~a/b-r1", ">a/b", ">=a/b-r1",
+                // '*' suffix can only be used with the '=' operator
+                ">=a/b-0*",
+                // '*' suffix can only be used with valid version strings
+                "=a/b-0.*", "=a/b-0-r*",
                 ] {
             assert!(parse(&s, &eapi::EAPI0).is_err(), "{} didn't fail", s);
         }
@@ -259,6 +267,8 @@ mod tests {
                 ("~a/b-0-r1", "a", "b", Some(Operator::IR), version("0-r1")),
                 (">=a/b-2", "a", "b", Some(Operator::GE), version("2")),
                 (">a/b-3-r0", "a", "b", Some(Operator::GT), version("3-r0")),
+                ("=a/b-3*", "a", "b", Some(Operator::EG), version("3")),
+                ("=a/b-3-r1*", "a", "b", Some(Operator::EG), version("3-r1")),
                 ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);

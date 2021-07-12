@@ -25,27 +25,15 @@ impl fmt::Display for Blocker {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub enum Operator {
-    LT, // <
-    LE, // <=
-    EQ, // =
-    IR, // ~
-    GE, // >=
-    GT, // >
-}
-
-impl fmt::Display for Operator {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Operator::LT => write!(f, "<"),
-            Operator::LE => write!(f, "<="),
-            Operator::EQ => write!(f, "="),
-            Operator::IR => write!(f, "~"),
-            Operator::GE => write!(f, ">="),
-            Operator::GT => write!(f, ">"),
-        }
-    }
+    LT, // <cat/pkg-1
+    LE, // <=cat/pkg-1
+    EQ, // =cat/pkg-1
+    EG, // =cat/pkg-1*
+    IR, // ~cat/pkg-1
+    GE, // >=cat/pkg-1
+    GT, // >cat/pkg-1
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -91,12 +79,17 @@ impl fmt::Display for Atom {
             s.push_str(&format!("{}", block));
         }
 
-        // append operator
-        if let Some(op) = &self.op {
-            s.push_str(&format!("{}", op));
+        // append operator and version
+        match &self.op {
+            Some(Operator::LT) => s.push_str(&format!("<{}", self.cpv())),
+            Some(Operator::LE) => s.push_str(&format!("<={}", self.cpv())),
+            Some(Operator::EQ) => s.push_str(&format!("={}", self.cpv())),
+            Some(Operator::EG) => s.push_str(&format!("={}*", self.cpv())),
+            Some(Operator::IR) => s.push_str(&format!("~{}", self.cpv())),
+            Some(Operator::GE) => s.push_str(&format!(">={}", self.cpv())),
+            Some(Operator::GT) => s.push_str(&format!(">{}", self.cpv())),
+            None => s.push_str(&self.cpv()),
         }
-
-        s.push_str(&self.cpv());
 
         // append slot data
         if let Some(slot) = &self.slot {
@@ -130,6 +123,11 @@ impl Ord for Atom {
         }
 
         cmp = self.package.cmp(&other.package);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+
+        cmp = self.op.cmp(&other.op);
         if cmp != Ordering::Equal {
             return cmp;
         }
@@ -189,6 +187,7 @@ mod tests {
                 "<cat/pkg-4",
                 "<=cat/pkg-4-r1",
                 "=cat/pkg-4-r1",
+                "=cat/pkg-4*",
                 "~cat/pkg-4",
                 ">=cat/pkg-r1-2-r3",
                 ">cat/pkg-4-r1:0=",
@@ -207,6 +206,9 @@ mod tests {
                 ("cat/pkg", "cat/pkg"),
                 ("<cat/pkg-4", "cat/pkg"),
                 ("<=cat/pkg-4-r1", "cat/pkg"),
+                ("=cat/pkg-4", "cat/pkg"),
+                ("=cat/pkg-4*", "cat/pkg"),
+                ("~cat/pkg-4", "cat/pkg"),
                 (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
                 (">cat/pkg-4-r1:0=", "cat/pkg"),
                 ] {
@@ -222,6 +224,9 @@ mod tests {
                 ("cat/pkg", None),
                 ("<cat/pkg-4", opt_str!("4")),
                 ("<=cat/pkg-4-r1", opt_str!("4-r1")),
+                ("=cat/pkg-4", opt_str!("4")),
+                ("=cat/pkg-4*", opt_str!("4")),
+                ("~cat/pkg-4", opt_str!("4")),
                 (">=cat/pkg-r1-2-r3", opt_str!("2-r3")),
                 (">cat/pkg-4-r1:0=", opt_str!("4-r1")),
                 ] {
@@ -235,9 +240,12 @@ mod tests {
         let mut atom: Atom;
         for (s, cpv) in [
                 ("cat/pkg", "cat/pkg"),
-                (">cat/pkg-4", "cat/pkg-4"),
-                (">cat/pkg-4-r1", "cat/pkg-4-r1"),
-                (">cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
+                ("<cat/pkg-4", "cat/pkg-4"),
+                ("<=cat/pkg-4-r1", "cat/pkg-4-r1"),
+                ("=cat/pkg-4", "cat/pkg-4"),
+                ("=cat/pkg-4*", "cat/pkg-4"),
+                ("~cat/pkg-4", "cat/pkg-4"),
+                (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
                 (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
                 ] {
             atom = Atom::from_str(&s).unwrap();
