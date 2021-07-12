@@ -98,34 +98,34 @@ impl fmt::Display for Version {
 }
 
 // compare two optional revisions
-fn rev_cmp(rev1: &Option<Revision>, rev2: &Option<Revision>) -> Option<Ordering> {
+fn rev_cmp(rev1: &Option<Revision>, rev2: &Option<Revision>) -> Ordering {
     match (&rev1, &rev2) {
-        (Some(r1), Some(r2)) => r1.partial_cmp(&r2),
+        (Some(r1), Some(r2)) => r1.cmp(&r2),
+        (None, None) => Ordering::Equal,
         (None, Some(r2)) => {
             if r2 == "0" {
-                Some(Ordering::Equal)
+                Ordering::Equal
             } else {
-                Some(Ordering::Less)
+                Ordering::Less
             }
         },
         (Some(r1), None) => {
             if r1 == "0" {
-                Some(Ordering::Equal)
+                Ordering::Equal
             } else {
-                Some(Ordering::Greater)
+                Ordering::Greater
             }
         },
-        (None, None) => Some(Ordering::Equal),
     }
 }
 
 impl PartialOrd for Version {
     fn partial_cmp<'a>(&'a self, other: &'a Self) -> Option<Ordering> {
-        let mut cmp: Option<Ordering>;
+        let mut cmp: Ordering;
 
         // if versions are equal, comparing revisions suffices
         if self.base == other.base {
-            return rev_cmp(&self.revision, &other.revision);
+            return Some(rev_cmp(&self.revision, &other.revision));
         }
 
         // split versions into dotted strings and lists of suffixes
@@ -152,25 +152,25 @@ impl PartialOrd for Version {
                     ("0", _) | (_, "0") => {
                         let v1_stripped = rstrip(v1, '0');
                         let v2_stripped = rstrip(v2, '0');
-                        cmp = v1_stripped.partial_cmp(&v2_stripped);
-                        if cmp != Some(Ordering::Equal) {
-                            return cmp;
+                        cmp = v1_stripped.cmp(&v2_stripped);
+                        if cmp != Ordering::Equal {
+                            return Some(cmp);
                         }
                     },
                     _ => {
                         let v1_int: u32 = v1.parse().unwrap();
                         let v2_int: u32 = v2.parse().unwrap();
-                        cmp = v1_int.partial_cmp(&v2_int);
-                        if cmp != Some(Ordering::Equal) {
-                            return cmp;
+                        cmp = v1_int.cmp(&v2_int);
+                        if cmp != Ordering::Equal {
+                            return Some(cmp);
                         }
                     },
                 }
             }
 
-            cmp = self_ver_parts.len().partial_cmp(&other_ver_parts.len());
-            if cmp != Some(Ordering::Equal) {
-                return cmp;
+            cmp = self_ver_parts.len().cmp(&other_ver_parts.len());
+            if cmp != Ordering::Equal {
+                return Some(cmp);
             }
 
             // get the last character from the last string
@@ -183,9 +183,9 @@ impl PartialOrd for Version {
             };
 
             // dotted components were equal so compare single letter suffixes
-            cmp = last(&self_ver_parts).partial_cmp(&last(&other_ver_parts));
-            if cmp != Some(Ordering::Equal) {
-                return cmp;
+            cmp = last(&self_ver_parts).cmp(&last(&other_ver_parts));
+            if cmp != Ordering::Equal {
+                return Some(cmp);
             }
         }
 
@@ -209,17 +209,17 @@ impl PartialOrd for Version {
                 let s2 = Suffix::from_str(m2.name("suffix").unwrap().as_str()).unwrap();
 
                 // if suffixes differ, use them for comparison
-                cmp = s1.partial_cmp(&s2);
-                if cmp != Some(Ordering::Equal) {
-                    return cmp;
+                cmp = s1.cmp(&s2);
+                if cmp != Ordering::Equal {
+                    return Some(cmp);
                 }
 
                 // otherwise use the suffix versions for comparison
                 let v1: u32 = m1.name("version").unwrap().as_str().parse().unwrap_or_default();
                 let v2: u32 = m2.name("version").unwrap().as_str().parse().unwrap_or_default();
-                cmp = v1.partial_cmp(&v2);
-                if cmp != Some(Ordering::Equal) {
-                    return cmp;
+                cmp = v1.cmp(&v2);
+                if cmp != Ordering::Equal {
+                    return Some(cmp);
                 }
             }
 
@@ -245,7 +245,7 @@ impl PartialOrd for Version {
         }
 
         // finally compare the revisions
-        return rev_cmp(&self.revision, &other.revision);
+        return Some(rev_cmp(&self.revision, &other.revision));
     }
 }
 
