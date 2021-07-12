@@ -7,24 +7,6 @@ use crate::macros::vec_str;
 
 peg::parser!{
     pub grammar pkg() for str {
-        // EAPI 0
-
-        rule version_op() -> Operator
-            = s:$(quiet!{
-                ("<" "="?) / "=" / "~" / (">" "="?)
-            } / expected!("version operator")
-            ) {?
-                match s {
-                    "<" => Ok(Operator::LT),
-                    "<=" => Ok(Operator::LE),
-                    "=" => Ok(Operator::EQ),
-                    "~" => Ok(Operator::IR),
-                    ">=" => Ok(Operator::GE),
-                    ">" => Ok(Operator::GT),
-                    _ => Err("invalid version operator"),
-                }
-            }
-
         // Categories must not begin with a hyphen, dot, or plus sign.
         pub rule category() -> &'input str
             = s:$(quiet!{
@@ -56,12 +38,6 @@ peg::parser!{
         pub rule revision() -> &'input str
             = s:$(quiet!{['0'..='9']+} / expected!("revision"))
             { s }
-
-        // TODO: Ask rust-peg upstream for syntax that allows rules similar to pest's silent rule
-        // support. This would allow skipping denoted strings from action results to avoid having
-        // to use separate rules.
-        rule ver_str() -> (Option<&'input str>, Option<&'input str>)
-            = quiet!{"-"} ver_rev:version() { (Some(ver_rev.0), ver_rev.1) }
 
         // EAPI 1
 
@@ -175,47 +151,52 @@ peg::parser!{
                 }
             }
 
-        // public pkg atom parsing method
-        pub rule atom(eapi: &'static Eapi) -> Atom
-            = block:blocks(eapi)? op:version_op()? cat:category() "/" pkg:package()
-                    ver_rev:ver_str()? glob:"*"? slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)? {?
-                // verify version operator and string usage
-                let mut ver_op = op.clone();
-                match (op, ver_rev, glob) {
-                    (Some(_), None, _) => return Err("missing version"),
-                    (None, Some(_), _) => return Err("missing version operator"),
-                    // globbed versions must use '=' operator
-                    (Some(Operator::EQ), Some(_), Some(_)) => ver_op = Some(Operator::EG),
-                    (Some(_), Some(_), Some(_)) => return Err("invalid version operator"),
-                    _ => (),
-                }
-
-                // unwrap conditionals
-                let (ver, rev) = ver_rev.unwrap_or_default();
-                let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
+        rule versioned() -> (&'input str, &'input str, Option<Operator>, Option<Version>)
+            = op:$(quiet!{("<" "="?) / "=" / "~" / (">" "="?)})
+                    cat:category() "/" pkg:package()
+                    quiet!{"-"} ver_rev:version() glob:"*"? {?
+                let op = match (op, glob) {
+                    ("<", None) => Ok(Operator::LT),
+                    ("<=", None) => Ok(Operator::LE),
+                    ("=", None) => Ok(Operator::EQ),
+                    ("=", Some(_)) => Ok(Operator::EG),
+                    ("~", None) => Ok(Operator::IR),
+                    (">=", None) => Ok(Operator::GE),
+                    (">", None) => Ok(Operator::GT),
+                    _ => Err("invalid version operator"),
+                }?;
 
                 // construct version struct
-                let version = match ver {
-                    None => None,
-                    Some(s) => {
-                        Some(Version {
-                            base: s.to_string(),
-                            revision: Revision::new(rev),
-                        })
-                    },
+                let (ver, rev) = ver_rev;
+                let version = Version {
+                    base: ver.to_string(),
+                    revision: Revision::new(rev),
                 };
 
-                Ok(Atom {
+                Ok((cat, pkg, Some(op), Some(version)))
+            } / cat:category() "/" pkg:package() {
+                (cat, pkg, None, None)
+            }
+
+        // public pkg atom parsing method
+        pub rule atom(eapi: &'static Eapi) -> Atom
+            = block:blocks(eapi)? versioned:versioned()
+                    slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)? {
+                // unwrap conditionals
+                let (cat, pkg, op, version) = versioned;
+                let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
+
+                Atom {
                     category: cat.to_string(),
                     package: pkg.to_string(),
                     block: block,
-                    op: ver_op,
+                    op: op,
                     version: version,
                     slot: slot.and_then(|s| Some(s.to_string())),
                     subslot: subslot.and_then(|s| Some(s.to_string())),
                     slot_op: slot_op.and_then(|s| Some(s.to_string())),
                     use_deps: use_deps.and_then(|u| Some(vec_str!(u))),
-                })
+                }
             }
     }
 }
