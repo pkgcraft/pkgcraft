@@ -120,8 +120,23 @@ impl Ord for Version {
         // if dotted strings differ, then perform comparisons on them
         if self_parts[0] != other_parts[0] {
             // split dotted strings into components
-            let self_ver_parts: Vec<&str> = self_parts[0].split(".").collect();
-            let other_ver_parts: Vec<&str> = other_parts[0].split(".").collect();
+            let mut self_ver_parts: Vec<&str> = self_parts[0].split(".").collect();
+            let mut other_ver_parts: Vec<&str> = other_parts[0].split(".").collect();
+
+            // get the last character from the last string
+            let last = |parts: &mut Vec<&str>| {
+                let s = parts.last_mut().unwrap();
+                match s.chars().last().unwrap() {
+                    c @ 'a'..='z' => {
+                        *s = &s[..s.len() - 1];
+                        Some(c)
+                    },
+                    _ => None,
+                }
+            };
+
+            // pull letter suffixes for later comparison
+            let letters = (last(&mut self_ver_parts), last(&mut other_ver_parts));
 
             // iterate through the components
             for (v1, v2) in self_ver_parts.iter().zip(other_ver_parts.iter()) {
@@ -158,17 +173,8 @@ impl Ord for Version {
                 return cmp;
             }
 
-            // get the last character from the last string
-            let last = |parts: &Vec<&'a str>| {
-                let s: &'a str = parts.last().unwrap();
-                match s.chars().last().unwrap() {
-                    'a'..='z' => s,
-                    _ => "",
-                }
-            };
-
             // dotted components were equal so compare single letter suffixes
-            cmp = last(&self_ver_parts).cmp(&last(&other_ver_parts));
+            cmp = letters.0.cmp(&letters.1);
             if cmp != Ordering::Equal {
                 return cmp;
             }
@@ -314,7 +320,11 @@ mod tests {
                 // all equal versions shouldn't be sorted
                 ("0 00 0-r0 0-r00", "0 00 0-r0 0-r00"),
                 ("1.0.2 1.0.2-r0 1.000.2", "1.0.2 1.0.2-r0 1.000.2"),
+                // simple versions
                 ("3 2 1 0", "0 1 2 3"),
+                ("1.100 1.10 1.1", "1.1 1.10 1.100"),
+                // letter suffixes
+                ("1z 1y 1b 1a", "1a 1b 1y 1z"),
                 ] {
             let mut versions: Vec<Version> = unsorted.split(" ")
                 .map(|s| Version::from_str(s).unwrap())
