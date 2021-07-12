@@ -283,24 +283,40 @@ mod tests {
         for expr in [
                 ("0 = 0"),
                 ("0 = 0-r0"),
-                ("0-r0 = 0"),
                 ("1.0.2 = 1.0.2-r0"),
                 ("1.0.2-r0 = 1.000.2"),
                 ("1.000.2 = 1.00.2-r0"),
                 ("0-r0 = 0-r00"),
-                ("0.1 < 0.11"),
-                ("0.01 > 0.001"),
-                ("0_alpha1 < 0_alpha2"),
-                ("0_alpha2-r1 > 0_alpha1-r2"),
                 ("0_beta01 = 0_beta001"),
+                ("0.1 < 0.11"),
+                ("0_alpha1 < 0_alpha2"),
+                ("0.01 > 0.001"),
+                ("0_alpha2-r1 > 0_alpha1-r2"),
                 ] {
             let v: Vec<&str> = expr.split(" ").collect();
-            let (v1, op, v2) = (v[0], v[1], v[2]);
-            let ver1 = Version::from_str(v1).unwrap();
-            let ver2 = Version::from_str(v2).unwrap();
-            assert_eq!(
-                ver1.partial_cmp(&ver2), Some(op_map[op]),
-                "failed comparing {}", expr);
+            let v1 = Version::from_str(v[0]).unwrap();
+            let v2 = Version::from_str(v[2]).unwrap();
+            let op = op_map[v[1]];
+            match op {
+                Ordering::Equal => {
+                    assert_eq!(
+                        v1.partial_cmp(&v2), Some(op), "failed comparing {}", expr);
+                    assert_eq!(
+                        v2.partial_cmp(&v1), Some(op), "failed comparing {}", expr);
+                },
+                Ordering::Less => {
+                    assert_eq!(
+                        v1.partial_cmp(&v2), Some(op), "failed comparing {}", expr);
+                    assert_eq!(
+                        v2.partial_cmp(&v1), Some(Ordering::Greater), "failed comparing {}", expr);
+                },
+                Ordering::Greater => {
+                    assert_eq!(
+                        v1.partial_cmp(&v2), Some(op), "failed comparing {}", expr);
+                    assert_eq!(
+                        v2.partial_cmp(&v1), Some(Ordering::Less), "failed comparing {}", expr);
+                },
+            }
         }
     }
 }
