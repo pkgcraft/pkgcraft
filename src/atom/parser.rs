@@ -386,8 +386,8 @@ mod tests {
     fn test_parse_use_dep_defaults() {
         // invalid deps
         let mut s;
-        for use_deps in ["a()", "a(?)", "a(b)", "a(-+)", "a(++)"] {
-            s = format!("cat/pkg[{}]", use_deps);
+        for use_dep in ["(-)", "(+)", "a()", "a(?)", "a(b)", "a(-+)", "a(++)", "a((+))", "a(-)b"] {
+            s = format!("cat/pkg[{}]", use_dep);
             assert!(parse(&s, &eapi::EAPI4).is_err(), "{} didn't fail", s);
         }
 
