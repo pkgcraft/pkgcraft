@@ -178,10 +178,18 @@ peg::parser!{
                 (cat, pkg, None, None)
             }
 
+        rule repo(eapi: &'static Eapi) -> &'input str
+            = quiet!{"::"} s:$([_]+) {?
+                if !eapi.has("repo_ids") {
+                    return Err("repo deps aren't supported in EAPIs");
+                }
+                Ok(s)
+            }
+
         // public pkg atom parsing method
         pub rule atom(eapi: &'static Eapi) -> Atom
             = block:blocks(eapi)? versioned:versioned()
-                    slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)? {
+                    slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)? repo:repo(eapi)? {
                 // unwrap conditionals
                 let (cat, pkg, op, version) = versioned;
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
@@ -196,6 +204,7 @@ peg::parser!{
                     subslot: subslot.and_then(|s| Some(s.to_string())),
                     slot_op: slot_op.and_then(|s| Some(s.to_string())),
                     use_deps: use_deps.and_then(|u| Some(vec_str!(u))),
+                    repo: repo.and_then(|s| Some(s.to_string())),
                 }
             }
     }

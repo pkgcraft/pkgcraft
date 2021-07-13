@@ -47,6 +47,7 @@ pub struct Atom {
     pub subslot: Option<String>,
     pub slot_op: Option<String>,
     pub use_deps: Option<Vec<String>>,
+    pub repo: Option<String>,
 }
 
 impl Atom {
@@ -104,6 +105,11 @@ impl fmt::Display for Atom {
             s.push_str(&format!(":{}", slot_op));
         }
 
+        // append repo
+        if let Some(repo) = &self.repo {
+            s.push_str(&format!("::{}", repo));
+        }
+
         // append use deps
         if let Some(x) = &self.use_deps {
             s.push_str(&format!("[{}]", &x.join(",")));
@@ -152,7 +158,12 @@ impl Ord for Atom {
             return cmp;
         }
 
-        self.use_deps.cmp(&other.use_deps)
+        cmp = self.use_deps.cmp(&other.use_deps);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+
+        self.repo.cmp(&other.repo)
     }
 }
 
