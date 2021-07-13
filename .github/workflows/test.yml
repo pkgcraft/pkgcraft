@@ -1,0 +1,52 @@
+name: test
+
+on:
+  push:
+    branches-ignore: [deploy]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Update crates
+      uses: actions-rs/cargo@v1
+      with:
+        command: update
+
+    - name: Cache crates
+      uses: actions/cache@v2
+      with:
+        path: ~/.cargo/registry/cache
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-
+
+    - name: Run tests
+      if: ${{ matrix.os == 'macos-latest' }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+
+    # tarpaulin is currently linux x86_64 only
+    - name: Run tests with coverage via tarpaulin
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: actions-rs/tarpaulin@v0.1
+
+    - name: Upload to codecov.io
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: codecov/codecov-action@v1
