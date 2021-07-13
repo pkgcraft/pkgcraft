@@ -49,45 +49,30 @@ peg::parser!{
             } / expected!("slot name")
             ) { s }
 
-        rule slot(eapi: &'static Eapi) -> (&'input str, Option<&'input str>, Option<&'input str>)
-            = slot:slot_name() subslot:subslot(eapi)? slot_op:$("=")? {
-                (slot, subslot, slot_op)
+        rule slot(eapi: &'static Eapi) -> (&'input str, Option<&'input str>)
+            = slot:slot_name() subslot:subslot(eapi)? {
+                (slot, subslot)
+            }
+
+        rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<&'input str>)
+            = op:$("*" / "=") {?
+                if !eapi.has("slot_ops") {
+                    return Err("slot operators are supported in >= EAPI 5");
+                }
+                Ok((None, None, Some(op)))
+            } / slot:slot(eapi) op:$("=")? {?
+                if op.is_some() && !eapi.has("slot_ops") {
+                    return Err("slot operators are supported in >= EAPI 5");
+                }
+                Ok((Some(slot.0), slot.1, op))
             }
 
         rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<&'input str>)
-            = quiet!{":"} s:$("*" / "=" / slot(eapi) / expected!("slot dep")) {?
+            = quiet!{":"} slot_parts:slot_str(eapi) {?
                 if !eapi.has("slot_deps") {
                     return Err("slot deps are supported in >= EAPI 1");
                 }
-
-                let explode_slot = |mut s: &'input str| {
-                    let (mut slot, mut subslot, mut op) = (None, None, None);
-                    if s.ends_with("=") {
-                        op = Some("=");
-                        s = &s[..s.len()-1];
-                    }
-                    let slot_data: Vec<&str> = s.splitn(2, "/").collect();
-
-                    if slot_data.len() == 1 {
-                        slot = Some(slot_data[0]);
-                    } else {
-                        slot = Some(slot_data[0]);
-                        subslot = Some(slot_data[1]);
-                    }
-
-                    (slot, subslot, op)
-                };
-
-                let (slot, subslot, slot_op) = match s {
-                    "*" | "=" => (None, None, Some(s)),
-                    _         => explode_slot(s),
-                };
-
-                if slot_op.is_some() && !eapi.has("slot_ops") {
-                    return Err("slot operators are supported in >= EAPI 5");
-                }
-
-                return Ok((slot, subslot, slot_op));
+                Ok(slot_parts)
             }
 
         // EAPI 2
