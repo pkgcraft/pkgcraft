@@ -212,17 +212,17 @@ impl Ord for Version {
             match self_suffixes_len.cmp(&other_suffixes_len) {
                 Ordering::Equal => (),
                 Ordering::Greater => {
-                    let m = suffix_regex.captures(self_suffixes[self_suffixes_len - 1]).unwrap();
+                    let m = suffix_regex.captures(self_suffixes.last().unwrap()).unwrap();
                     match m.name("suffix").unwrap().as_str() {
-                        "_p" => return Ordering::Greater,
-                        _ => return Ordering::Less,
+                        "p" => return Ordering::Greater,
+                        _   => return Ordering::Less,
                     }
                 },
                 Ordering::Less => {
-                    let m = suffix_regex.captures(other_suffixes[other_suffixes_len - 1]).unwrap();
+                    let m = suffix_regex.captures(other_suffixes.last().unwrap()).unwrap();
                     match m.name("suffix").unwrap().as_str() {
-                        "_p" => return Ordering::Less,
-                        _ => return Ordering::Greater,
+                        "p" => return Ordering::Less,
+                        _   => return Ordering::Greater,
                     }
                 },
             }
@@ -275,16 +275,30 @@ mod tests {
 
         for expr in [
             ("0 = 0"),
+            // equal due to integer coercion and "-r0" being the revision default
             ("0 = 0-r0"),
             ("1.0.2 = 1.0.2-r0"),
             ("1.0.2-r0 = 1.000.2"),
             ("1.000.2 = 1.00.2-r0"),
             ("0-r0 = 0-r00"),
             ("0_beta01 = 0_beta001"),
+            // integer version comparison
             ("0.1 < 0.11"),
-            ("0_alpha1 < 0_alpha2"),
             ("0.01 > 0.001"),
+            // version letter suffix
+            ("0a < 0b"),
+            ("1.1z > 1.1a"),
+            // release suffix
+            ("0_alpha < 0_beta"),
+            ("0_pre < 0_rc"),
+            // release suffix version
+            ("0_alpha1 < 0_alpha2"),
             ("0_alpha2-r1 > 0_alpha1-r2"),
+            // last release suffix
+            ("0_alpha_rc_p > 0_alpha_rc"),
+            // revision
+            ("0-r2 > 0-r1"),
+            ("1.0.2_pre01-r2 > 1.00.2_pre001-r1"),
         ] {
             let v: Vec<&str> = expr.split(" ").collect();
             let v1 = Version::from_str(v[0]).unwrap();
