@@ -13,8 +13,15 @@ type EapiOptions = HashMap<&'static str, bool>;
 
 static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
     [
+        // EAPI 1
+
+        // IUSE defaults
+        ("iuse_defaults", false),
+
         // atom slot deps -- cat/pkg:0
         ("slot_deps", false),
+
+        // EAPI 2
 
         // atom blockers -- !cat/pkg and !!cat/pkg
         ("blockers", false),
@@ -22,8 +29,18 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // atom use deps -- cat/pkg[use]
         ("use_deps", false),
 
+        // SRC_URI -> operator for url filename renaming
+        ("src_uri_renames", false),
+
+        // EAPI 4
+
         // atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
         ("use_dep_defaults", false),
+
+        // REQUIRED_USE support
+        ("required_use", false),
+
+        // EAPI 5
 
         // atom subslots -- cat/pkg:0/4
         ("subslots", false),
@@ -31,9 +48,17 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // atom slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
         ("slot_ops", false),
 
-        // extended options
+        // REQUIRED_USE ?? operator
+        ("required_use_one_of", false),
 
-        // atom repos -- cat/pkg::repo
+        // EAPI 8
+
+        // SRC_URI supports fetch+ and mirror+ prefixes
+        ("src_uri_unrestrict", false),
+
+        // EAPI EXTENDED
+
+        // atom repo deps -- cat/pkg::repo
         ("repo_ids", false),
     ].iter().cloned().collect()
 });
