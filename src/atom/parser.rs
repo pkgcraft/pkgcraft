@@ -178,18 +178,27 @@ peg::parser!{
                 (cat, pkg, None, None)
             }
 
-        rule repo(eapi: &'static Eapi) -> &'input str
-            = quiet!{"::"} s:$([_]+) {?
+        // repos must not begin with a hyphen and must also be a valid package name
+        pub rule repo() -> &'input str
+            = s:$(quiet!{
+                ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
+                (['a'..='z' | 'A'..='Z' | '0'..='9' | '_'] / ("-" !version()))*
+            } / expected!("repo name")
+            ) { s }
+
+        rule repo_dep(eapi: &'static Eapi) -> &'input str
+            = quiet!{"::"} repo:repo() {?
                 if !eapi.has("repo_ids") {
                     return Err("repo deps aren't supported in EAPIs");
                 }
-                Ok(s)
+                Ok(repo)
             }
 
         // public pkg atom parsing method
         pub rule atom(eapi: &'static Eapi) -> Atom
             = block:blocks(eapi)? versioned:versioned()
-                    slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)? repo:repo(eapi)? {
+                    slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)?
+                    repo:repo_dep(eapi)? {
                 // unwrap conditionals
                 let (cat, pkg, op, version) = versioned;
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
