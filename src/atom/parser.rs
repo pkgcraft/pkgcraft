@@ -178,7 +178,7 @@ peg::parser!{
                 (cat, pkg, None, None)
             }
 
-        // repos must not begin with a hyphen and must also be a valid package name
+        // repo must not begin with a hyphen and must also be a valid package name
         pub rule repo() -> &'input str
             = s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
