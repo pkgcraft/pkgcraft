@@ -152,6 +152,13 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
 
+pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
+    let options: EapiOptions = [
+        ("repo_ids", true),
+    ].iter().cloned().collect();
+    Eapi::register("extended", Some(EAPI_LATEST), Some(&options))
+});
+
 pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
     let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
     eapis.insert("0", &EAPI0);
