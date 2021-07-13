@@ -30,6 +30,11 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
         // atom slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
         ("slot_ops", false),
+
+        // non-standard options
+
+        // atom repos -- cat/pkg::repo
+        ("repo_ids", false),
     ].iter().cloned().collect()
 });
 
