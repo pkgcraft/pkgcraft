@@ -216,7 +216,7 @@ mod tests {
                 // version operator with missing version
                 "~a/b", "~a/b-r1", ">a/b", ">=a/b-r1",
                 // '*' suffix can only be used with the '=' operator
-                ">=a/b-0*",
+                ">=a/b-0*", "~a/b-0*", "a/b-0*",
                 // '*' suffix can only be used with valid version strings
                 "=a/b-0.*", "=a/b-0-r*",
                 ] {
