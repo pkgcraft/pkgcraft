@@ -92,16 +92,16 @@ impl fmt::Display for Atom {
         }
 
         // append slot data
-        if let Some(slot) = &self.slot {
-            s.push_str(&format!(":{}", slot));
-            if let Some(subslot) = &self.subslot {
-                s.push_str(&format!("/{}", subslot));
-            }
-            if let Some(slot_op) = &self.slot_op {
-                s.push_str(slot_op);
-            }
-        } else if let Some(slot_op) = &self.slot_op {
-            s.push_str(&format!(":{}", slot_op));
+        match (&self.slot, &self.subslot, &self.slot_op) {
+            (Some(slot), Some(subslot), Some(op)) =>
+             s.push_str(&format!(":{}/{}{}", slot, subslot, op)),
+            (Some(slot), Some(subslot), None) =>
+             s.push_str(&format!(":{}/{}", slot, subslot)),
+            (Some(slot), None, Some(op)) =>
+             s.push_str(&format!(":{}{}", slot, op)),
+            (Some(x), None, None) | (None, None, Some(x)) =>
+             s.push_str(&format!(":{}", x)),
+            _ => (),
         }
 
         // append repo
