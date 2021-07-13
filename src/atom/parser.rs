@@ -39,8 +39,6 @@ peg::parser!{
             = s:$(quiet!{['0'..='9']+} / expected!("revision"))
             { s }
 
-        // EAPI 1
-
         // Slot names must not begin with a hyphen, dot, or plus sign.
         rule slot_name() -> &'input str
             = s:$(quiet!{
@@ -74,8 +72,6 @@ peg::parser!{
                 }
                 Ok(slot_parts)
             }
-
-        // EAPI 2
 
         rule blocks(eapi: &'static Eapi) -> Blocker
             = blocks:"!"*<1,2> {?
@@ -114,8 +110,6 @@ peg::parser!{
                 }
             }
 
-        // EAPI 4
-
         rule use_dep_default(eapi: &'static Eapi) -> &'input str
             = s:$("(+)" / "(-)" / expected!("use dep default")) {?
                 if eapi.has("use_dep_defaults") {
@@ -124,8 +118,6 @@ peg::parser!{
                     return Err("use dep defaults are supported in >= EAPI 4");
                 }
             }
-
-        // EAPI 5
 
         rule subslot(eapi: &'static Eapi) -> &'input str
             = quiet!{"/"} s:slot_name() {?
