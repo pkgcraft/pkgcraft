@@ -2,16 +2,10 @@ use std::cmp::{min, Ordering};
 use std::fmt;
 use std::str::FromStr;
 
-use once_cell::sync::Lazy;
-use regex::Regex;
-
 use super::parser::pkg::version as parse;
 use super::ParseError;
+use crate::macros::regex;
 use crate::utils::rstrip;
-
-static SUFFIX_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$").unwrap()
-});
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Suffix {
@@ -185,6 +179,7 @@ impl Ord for Version {
         let suffix_range = min(self_suffixes_len, other_suffixes_len);
 
         if suffix_range >= 1 {
+            let suffix_regex = regex!("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$");
             for x in 0..suffix_range {
                 // if the strings are equal, continue to the next
                 if self_suffixes[x] == other_suffixes[x] {
@@ -192,8 +187,8 @@ impl Ord for Version {
                 }
 
                 // use regex to split suffixes from versions
-                let m1 = SUFFIX_REGEX.captures(self_suffixes[x]).unwrap();
-                let m2 = SUFFIX_REGEX.captures(other_suffixes[x]).unwrap();
+                let m1 = suffix_regex.captures(self_suffixes[x]).unwrap();
+                let m2 = suffix_regex.captures(other_suffixes[x]).unwrap();
                 let s1 = Suffix::from_str(m1.name("suffix").unwrap().as_str()).unwrap();
                 let s2 = Suffix::from_str(m2.name("suffix").unwrap().as_str()).unwrap();
 
@@ -217,14 +212,14 @@ impl Ord for Version {
             match self_suffixes_len.cmp(&other_suffixes_len) {
                 Ordering::Equal => (),
                 Ordering::Greater => {
-                    let m = SUFFIX_REGEX.captures(self_suffixes[self_suffixes_len - 1]).unwrap();
+                    let m = suffix_regex.captures(self_suffixes[self_suffixes_len - 1]).unwrap();
                     match m.name("suffix").unwrap().as_str() {
                         "_p" => return Ordering::Greater,
                         _ => return Ordering::Less,
                     }
                 },
                 Ordering::Less => {
-                    let m = SUFFIX_REGEX.captures(other_suffixes[other_suffixes_len - 1]).unwrap();
+                    let m = suffix_regex.captures(other_suffixes[other_suffixes_len - 1]).unwrap();
                     match m.name("suffix").unwrap().as_str() {
                         "_p" => return Ordering::Less,
                         _ => return Ordering::Greater,
