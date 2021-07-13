@@ -128,7 +128,7 @@ peg::parser!{
                 }
             }
 
-        rule versioned() -> (&'input str, &'input str, Option<Operator>, Option<Version>)
+        rule cpv() -> (&'input str, &'input str, Option<Operator>, Option<Version>)
             = op:$(quiet!{("<" "="?) / "=" / "~" / (">" "="?)})
                     cat:category() "/" pkg:package()
                     quiet!{"-"} ver_rev:version() glob:"*"? {?
@@ -173,10 +173,9 @@ peg::parser!{
 
         // public pkg atom parsing method
         pub rule atom(eapi: &'static Eapi) -> Atom
-            = block:blocks(eapi)? versioned:versioned()
-                    slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)?
-                    repo:repo_dep(eapi)? {
-                let (cat, pkg, op, version) = versioned;
+            = block:blocks(eapi)? cpv:cpv() slot_dep:slot_dep(eapi)?
+                    use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
+                let (cat, pkg, op, version) = cpv;
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
                 Atom {
                     category: cat.to_string(),
