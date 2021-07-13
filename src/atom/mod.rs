@@ -63,11 +63,10 @@ impl Atom {
     }
 
     pub fn cpv(&self) -> String {
-        let mut s = format!("{}/{}", self.category, self.package);
-        if let Some(ver) = &self.version {
-            s.push_str(&format!("-{}", ver));
+        match &self.version {
+            Some(ver) => format!("{}/{}-{}", self.category, self.package, ver),
+            None => format!("{}/{}", self.category, self.package),
         }
-        s
     }
 }
 
