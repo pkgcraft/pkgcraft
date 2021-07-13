@@ -1,11 +1,11 @@
 // convert &str to Option<String>
-#[allow(unused_macros)] // currently only used in tests
+#[cfg(test)]
 macro_rules! opt_str {
     ($x:expr) => {
         Some($x.to_string())
     };
 }
-#[allow(unused_imports)] // currently only used in tests
+#[cfg(test)]
 pub(crate) use opt_str;
 
 // convert Vec<&str> to Vec<String>
