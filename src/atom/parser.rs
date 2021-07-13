@@ -199,10 +199,8 @@ peg::parser!{
             = block:blocks(eapi)? versioned:versioned()
                     slot_dep:slot_dep(eapi)? use_deps:use_deps(eapi)?
                     repo:repo_dep(eapi)? {
-                // unwrap conditionals
                 let (cat, pkg, op, version) = versioned;
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
-
                 Atom {
                     category: cat.to_string(),
                     package: pkg.to_string(),
