@@ -74,7 +74,7 @@ peg::parser!{
             }
 
         rule blocks(eapi: &'static Eapi) -> Blocker
-            = blocks:"!"*<1,2> {?
+            = blocks:(quiet!{"!"}*<1,2>) {?
                 if eapi.has("blockers") {
                     match blocks[..] {
                         [_] => return Ok(Blocker::Weak),
