@@ -1,5 +1,5 @@
-mod license;
-mod required_use;
+pub mod license;
+pub mod required_use;
 
 #[derive(Debug, PartialEq)]
 pub enum DepSpec {

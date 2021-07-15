@@ -1,10 +1,11 @@
 use peg;
 
+use crate::atom::ParseError;
 use super::DepSpec;
 use crate::macros::vec_str;
 
 peg::parser!{
-    pub grammar parse() for str {
+    pub grammar license() for str {
         rule _ = [' ']
 
         // licenses must not begin with a hyphen, dot, or plus sign.
@@ -46,13 +47,17 @@ peg::parser!{
     }
 }
 
+pub fn parse(s: &str) -> Result<DepSpec, ParseError> {
+    license::expr(s)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::depspec::DepSpec;
     use crate::atom::ParseError;
     use crate::macros::vec_str;
 
-    use super::parse::expr as parse;
+    use super::license::expr as parse;
 
     #[test]
     fn test_parse_license() {

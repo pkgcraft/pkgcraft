@@ -1,10 +1,11 @@
 use peg;
 
-use super::DepSpec;
+use crate::atom::ParseError;
 use crate::macros::vec_str;
+use super::DepSpec;
 
 peg::parser!{
-    pub grammar parse() for str {
+    pub grammar required_use() for str {
         rule _ = [' ']
 
         rule useflag() -> &'input str
@@ -49,13 +50,17 @@ peg::parser!{
     }
 }
 
+pub fn parse(s: &str) -> Result<DepSpec, ParseError> {
+    required_use::expr(s)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::depspec::DepSpec;
     use crate::atom::ParseError;
     use crate::macros::vec_str;
 
-    use super::parse::expr as parse;
+    use super::required_use::expr as parse;
 
     #[test]
     fn test_parse_required_use() {
