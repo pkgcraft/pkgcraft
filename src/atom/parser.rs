@@ -1,7 +1,7 @@
 use peg;
 
-use crate::atom::{Atom, Blocker, Operator};
-use crate::atom::version::{Revision, Version};
+use super::{Atom, Blocker, Operator};
+use super::version::{Revision, Version};
 use crate::eapi::Eapi;
 use crate::macros::vec_str;
 
