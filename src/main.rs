@@ -1,6 +1,6 @@
-use arcanist;
+use pkgcraft;
 
 pub fn main() -> Result<(), &'static str> {
-    arcanist::lib_init()?;
+    pkgcraft::lib_init()?;
     Ok(())
 }

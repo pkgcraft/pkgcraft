@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use arcanist::depspec::required_use;
-use arcanist::eapi::EAPI_LATEST;
+use pkgcraft::depspec::required_use;
+use pkgcraft::eapi::EAPI_LATEST;
 
 #[allow(unused_must_use)]
 fn bench_parse_required_use(c: &mut Criterion) {

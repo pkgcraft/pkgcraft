@@ -1,3 +1,3 @@
-# arcanist
+# pkgcraft
 
-arcanist is a library (and future command-line tool) for Gentoo Linux mangling.
+pkgcraft is a library (and future command-line tool) for Gentoo Linux mangling.

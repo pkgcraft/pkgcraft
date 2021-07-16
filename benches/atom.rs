@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use arcanist::atom;
-use arcanist::eapi::EAPI_LATEST;
+use pkgcraft::atom;
+use pkgcraft::eapi::EAPI_LATEST;
 
 #[allow(unused_must_use)]
 fn bench_parse_unversioned(c: &mut Criterion) {

@@ -7,6 +7,6 @@ mod repo;
 mod utils;
 
 pub fn lib_init() -> Result<(), &'static str> {
-    println!("using arcanist");
+    println!("using pkgcraft");
     Ok(())
 }

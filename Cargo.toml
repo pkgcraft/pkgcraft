@@ -1,25 +1,25 @@
 [package]
-name = "arcanist"
+name = "pkgcraft"
 version = "0.0.2"
 description = "Gentoo Linux mangling library and cli tool"
 authors = ["Tim Harder <radhermit@gmail.com>"]
-homepage = "https://github.com/radhermit/arcanist"
-repository = "https://github.com/radhermit/arcanist"
-documentation = "https://github.com/radhermit/arcanist"
+homepage = "https://github.com/pkgcraft/pkgcraft"
+repository = "https://github.com/pkgcraft/pkgcraft"
+documentation = "https://github.com/pkgcraft/pkgcraft"
 readme = "README.md"
 license = "MIT"
 edition = "2018"
 autotests = false
 
 [lib]
-name = "arcanist"
+name = "pkgcraft"
 path = "src/lib.rs"
 crate-type = ["rlib", "dylib"]
 
 [[bin]]
 bench = false
 path = "src/main.rs"
-name = "arc"
+name = "pkft"
 
 [[test]]
 name = "integration"
