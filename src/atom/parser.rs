@@ -1,11 +1,11 @@
 use peg;
 
-use super::{Atom, Blocker, Operator};
 use super::version::{Revision, Version};
+use super::{Atom, Blocker, Operator};
 use crate::eapi::Eapi;
 use crate::macros::vec_str;
 
-peg::parser!{
+peg::parser! {
     pub grammar pkg() for str {
         // Categories must not begin with a hyphen, dot, or plus sign.
         pub rule category() -> &'input str
@@ -197,8 +197,8 @@ peg::parser!{
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom::{Atom, Blocker, Operator, ParseError};
     use crate::atom::version::Version;
+    use crate::atom::{Atom, Blocker, Operator, ParseError};
     use crate::eapi;
     use crate::macros::opt_str;
 
@@ -208,41 +208,57 @@ mod tests {
     fn test_parse_versions() {
         // invalid deps
         for s in [
-                // bad/missing category and/or package names
-                "", "a", "a/+b", ".a/.b",
-                // package names can't end in a hyphen followed by anything matching a version
-                "a/b-0", "<a/b-1-1",
-                // version operator with missing version
-                "~a/b", "~a/b-r1", ">a/b", ">=a/b-r1",
-                // '*' suffix can only be used with the '=' operator
-                ">=a/b-0*", "~a/b-0*", "a/b-0*",
-                // '*' suffix can only be used with valid version strings
-                "=a/b-0.*", "=a/b-0-r*",
-                ] {
+            // bad/missing category and/or package names
+            "",
+            "a",
+            "a/+b",
+            ".a/.b",
+            // package names can't end in a hyphen followed by anything matching a version
+            "a/b-0",
+            "<a/b-1-1",
+            // version operator with missing version
+            "~a/b",
+            "~a/b-r1",
+            ">a/b",
+            ">=a/b-r1",
+            // '*' suffix can only be used with the '=' operator
+            ">=a/b-0*",
+            "~a/b-0*",
+            "a/b-0*",
+            // '*' suffix can only be used with valid version strings
+            "=a/b-0.*",
+            "=a/b-0-r*",
+        ] {
             assert!(parse(&s, &eapi::EAPI0).is_err(), "{} didn't fail", s);
         }
 
         // convert &str to Option<Version>
-        let version = |s| { Version::from_str(s).ok() };
+        let version = |s| Version::from_str(s).ok();
 
         // good deps
         let mut atom;
         let mut result: Result<Atom, ParseError>;
         for (s, cat, pkg, op, ver) in [
-                ("a/b", "a", "b", None, None),
-                ("_/_", "_", "_", None, None),
-                ("_.+-/_+-", "_.+-", "_+-", None, None),
-                ("a/b-", "a", "b-", None, None),
-                ("a/b-r100", "a", "b-r100", None, None),
-                ("<a/b-r0-1-r2", "a", "b-r0", Some(Operator::LT), version("1-r2")),
-                ("<=a/b-1", "a", "b", Some(Operator::LE), version("1")),
-                ("=a/b-1-r1", "a", "b", Some(Operator::EQ), version("1-r1")),
-                ("=a/b-3*", "a", "b", Some(Operator::EG), version("3")),
-                ("=a/b-3-r1*", "a", "b", Some(Operator::EG), version("3-r1")),
-                ("~a/b-0-r1", "a", "b", Some(Operator::IR), version("0-r1")),
-                (">=a/b-2", "a", "b", Some(Operator::GE), version("2")),
-                (">a/b-3-r0", "a", "b", Some(Operator::GT), version("3-r0")),
-                ] {
+            ("a/b", "a", "b", None, None),
+            ("_/_", "_", "_", None, None),
+            ("_.+-/_+-", "_.+-", "_+-", None, None),
+            ("a/b-", "a", "b-", None, None),
+            ("a/b-r100", "a", "b-r100", None, None),
+            (
+                "<a/b-r0-1-r2",
+                "a",
+                "b-r0",
+                Some(Operator::LT),
+                version("1-r2"),
+            ),
+            ("<=a/b-1", "a", "b", Some(Operator::LE), version("1")),
+            ("=a/b-1-r1", "a", "b", Some(Operator::EQ), version("1-r1")),
+            ("=a/b-3*", "a", "b", Some(Operator::EG), version("3")),
+            ("=a/b-3-r1*", "a", "b", Some(Operator::EG), version("3-r1")),
+            ("~a/b-0-r1", "a", "b", Some(Operator::IR), version("0-r1")),
+            (">=a/b-2", "a", "b", Some(Operator::GE), version("2")),
+            (">a/b-3-r0", "a", "b", Some(Operator::GT), version("3-r0")),
+        ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);
                 assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
@@ -269,14 +285,14 @@ mod tests {
         let mut atom;
         let mut result: Result<Atom, ParseError>;
         for (slot_str, slot) in [
-                ("0", opt_str!("0")),
-                ("a", opt_str!("a")),
-                ("_", opt_str!("_")),
-                ("_a", opt_str!("_a")),
-                ("99", opt_str!("99")),
-                ("aBc", opt_str!("aBc")),
-                ("a+b_c.d-e", opt_str!("a+b_c.d-e")),
-                ] {
+            ("0", opt_str!("0")),
+            ("a", opt_str!("a")),
+            ("_", opt_str!("_")),
+            ("_a", opt_str!("_a")),
+            ("99", opt_str!("99")),
+            ("aBc", opt_str!("aBc")),
+            ("a+b_c.d-e", opt_str!("a+b_c.d-e")),
+        ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg:{}", slot_str);
                 result = parse(&s, eapi);
@@ -287,7 +303,7 @@ mod tests {
                         atom = result.unwrap();
                         assert_eq!(atom.slot, slot);
                         assert_eq!(format!("{}", atom), s);
-                    },
+                    }
                 };
             }
         }
@@ -308,11 +324,11 @@ mod tests {
         let mut atom: Atom;
         let mut result: Result<Atom, ParseError>;
         for (s, block) in [
-                ("!cat/pkg", Some(Blocker::Weak)),
-                ("!cat/pkg:0", Some(Blocker::Weak)),
-                ("!!cat/pkg", Some(Blocker::Strong)),
-                ("!!<cat/pkg-1", Some(Blocker::Strong)),
-                ] {
+            ("!cat/pkg", Some(Blocker::Weak)),
+            ("!cat/pkg:0", Some(Blocker::Weak)),
+            ("!!cat/pkg", Some(Blocker::Strong)),
+            ("!!<cat/pkg-1", Some(Blocker::Strong)),
+        ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);
                 match eapi.has("blockers") {
@@ -322,7 +338,7 @@ mod tests {
                         atom = result.unwrap();
                         assert_eq!(atom.block, block);
                         assert_eq!(format!("{}", atom), s);
-                    },
+                    }
                 };
             }
         }
@@ -352,7 +368,7 @@ mod tests {
                         let expected = use_deps.split(",").map(|s| s.to_string()).collect();
                         assert_eq!(atom.use_deps, Some(expected));
                         assert_eq!(format!("{}", atom), s);
-                    },
+                    }
                 };
             }
         }
@@ -362,7 +378,9 @@ mod tests {
     fn test_parse_use_dep_defaults() {
         // invalid deps
         let mut s;
-        for use_dep in ["(-)", "(+)", "a()", "a(?)", "a(b)", "a(-+)", "a(++)", "a((+))", "a(-)b"] {
+        for use_dep in [
+            "(-)", "(+)", "a()", "a(?)", "a(b)", "a(-+)", "a(++)", "a((+))", "a(-)b",
+        ] {
             s = format!("cat/pkg[{}]", use_dep);
             assert!(parse(&s, &eapi::EAPI4).is_err(), "{} didn't fail", s);
         }
@@ -382,7 +400,7 @@ mod tests {
                         let expected = use_deps.split(",").map(|s| s.to_string()).collect();
                         assert_eq!(atom.use_deps, Some(expected));
                         assert_eq!(format!("{}", atom), s);
-                    },
+                    }
                 };
             }
         }
@@ -401,12 +419,12 @@ mod tests {
         let mut atom;
         let mut result: Result<Atom, ParseError>;
         for (slot_str, slot, subslot, slot_op) in [
-                ("0/1", opt_str!("0"), opt_str!("1"), None),
-                ("a/b", opt_str!("a"), opt_str!("b"), None),
-                ("A/B", opt_str!("A"), opt_str!("B"), None),
-                ("_/_", opt_str!("_"), opt_str!("_"), None),
-                ("0/a.b+c-d_e", opt_str!("0"), opt_str!("a.b+c-d_e"), None),
-                ] {
+            ("0/1", opt_str!("0"), opt_str!("1"), None),
+            ("a/b", opt_str!("a"), opt_str!("b"), None),
+            ("A/B", opt_str!("A"), opt_str!("B"), None),
+            ("_/_", opt_str!("_"), opt_str!("_"), None),
+            ("0/a.b+c-d_e", opt_str!("0"), opt_str!("a.b+c-d_e"), None),
+        ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg:{}", slot_str);
                 result = parse(&s, eapi);
@@ -419,7 +437,7 @@ mod tests {
                         assert_eq!(atom.subslot, subslot);
                         assert_eq!(atom.slot_op, slot_op);
                         assert_eq!(format!("{}", atom), s);
-                    },
+                    }
                 };
             }
         }
@@ -438,13 +456,13 @@ mod tests {
         let mut atom;
         let mut result: Result<Atom, ParseError>;
         for (slot_str, slot, subslot, slot_op) in [
-                ("*", None, None, opt_str!("*")),
-                ("=", None, None, opt_str!("=")),
-                ("0=", opt_str!("0"), None, opt_str!("=")),
-                ("a=", opt_str!("a"), None, opt_str!("=")),
-                ("0/1=", opt_str!("0"), opt_str!("1"), opt_str!("=")),
-                ("a/b=", opt_str!("a"), opt_str!("b"), opt_str!("=")),
-                ] {
+            ("*", None, None, opt_str!("*")),
+            ("=", None, None, opt_str!("=")),
+            ("0=", opt_str!("0"), None, opt_str!("=")),
+            ("a=", opt_str!("a"), None, opt_str!("=")),
+            ("0/1=", opt_str!("0"), opt_str!("1"), opt_str!("=")),
+            ("a/b=", opt_str!("a"), opt_str!("b"), opt_str!("=")),
+        ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg:{}", slot_str);
                 result = parse(&s, eapi);
@@ -457,7 +475,7 @@ mod tests {
                         assert_eq!(atom.subslot, subslot);
                         assert_eq!(atom.slot_op, slot_op);
                         assert_eq!(format!("{}", atom), s);
-                    },
+                    }
                 };
             }
         }

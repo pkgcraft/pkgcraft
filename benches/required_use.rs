@@ -5,9 +5,11 @@ use pkgcraft::eapi::EAPI_LATEST;
 
 #[allow(unused_must_use)]
 fn bench_parse_required_use(c: &mut Criterion) {
-    c.bench_function("required-use-conditional", |b| b.iter(|| {
-        required_use::parse("u1? ( u2 )", EAPI_LATEST);
-    }));
+    c.bench_function("required-use-conditional", |b| {
+        b.iter(|| {
+            required_use::parse("u1? ( u2 )", EAPI_LATEST);
+        })
+    });
 }
 
 criterion_group!(required_use_benches, bench_parse_required_use);

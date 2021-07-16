@@ -43,9 +43,15 @@ impl Revision {
             Some(s) => {
                 // parsing shouldn't fail when using grammar-parsed values
                 let int: u32 = s.parse().unwrap();
-                Revision { value: Some(s.to_string()), int: int }
+                Revision {
+                    value: Some(s.to_string()),
+                    int: int,
+                }
+            }
+            None => Revision {
+                value: None,
+                int: 0,
             },
-            None => Revision { value: None, int: 0 },
         }
     }
 }
@@ -112,9 +118,7 @@ impl Ord for Version {
                 // separate letter suffix from version string
                 let split = |s: &'a str| -> (Option<char>, &'a str) {
                     match s.chars().last().unwrap() {
-                        c @ 'a'..='z' => {
-                            (Some(c), &s[..s.len() - 1])
-                        },
+                        c @ 'a'..='z' => (Some(c), &s[..s.len() - 1]),
                         _ => (None, &s),
                     }
                 };
@@ -145,7 +149,7 @@ impl Ord for Version {
                             if cmp != Ordering::Equal {
                                 return cmp;
                             }
-                        },
+                        }
                         _ => {
                             let v1_int: u32 = v1.parse().unwrap();
                             let v2_int: u32 = v2.parse().unwrap();
@@ -153,7 +157,7 @@ impl Ord for Version {
                             if cmp != Ordering::Equal {
                                 return cmp;
                             }
-                        },
+                        }
                     }
                 }
 
@@ -196,8 +200,18 @@ impl Ord for Version {
                     }
 
                     // otherwise use the suffix versions for comparison
-                    let v1: u32 = m1.name("version").unwrap().as_str().parse().unwrap_or_default();
-                    let v2: u32 = m2.name("version").unwrap().as_str().parse().unwrap_or_default();
+                    let v1: u32 = m1
+                        .name("version")
+                        .unwrap()
+                        .as_str()
+                        .parse()
+                        .unwrap_or_default();
+                    let v2: u32 = m2
+                        .name("version")
+                        .unwrap()
+                        .as_str()
+                        .parse()
+                        .unwrap_or_default();
                     cmp = v1.cmp(&v2);
                     if cmp != Ordering::Equal {
                         return cmp;
@@ -209,19 +223,23 @@ impl Ord for Version {
                 match self_suffixes_len.cmp(&other_suffixes_len) {
                     Ordering::Equal => (),
                     Ordering::Greater => {
-                        let m = suffix_regex.captures(self_suffixes.last().unwrap()).unwrap();
+                        let m = suffix_regex
+                            .captures(self_suffixes.last().unwrap())
+                            .unwrap();
                         match m.name("suffix").unwrap().as_str() {
                             "p" => return Ordering::Greater,
-                            _   => return Ordering::Less,
+                            _ => return Ordering::Less,
                         }
-                    },
+                    }
                     Ordering::Less => {
-                        let m = suffix_regex.captures(other_suffixes.last().unwrap()).unwrap();
+                        let m = suffix_regex
+                            .captures(other_suffixes.last().unwrap())
+                            .unwrap();
                         match m.name("suffix").unwrap().as_str() {
                             "p" => return Ordering::Less,
-                            _   => return Ordering::Greater,
+                            _ => return Ordering::Greater,
                         }
-                    },
+                    }
                 }
             }
         }
@@ -269,7 +287,10 @@ mod tests {
             ("<", Ordering::Less),
             ("=", Ordering::Equal),
             (">", Ordering::Greater),
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         for expr in [
             ("0 = 0"),
@@ -306,15 +327,15 @@ mod tests {
                 Ordering::Equal => {
                     assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
                     assert_eq!(v2.cmp(&v1), op, "failed comparing {}", expr);
-                },
+                }
                 Ordering::Less => {
                     assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
                     assert_eq!(v2.cmp(&v1), Ordering::Greater, "failed comparing {}", expr);
-                },
+                }
                 Ordering::Greater => {
                     assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
                     assert_eq!(v2.cmp(&v1), Ordering::Less, "failed comparing {}", expr);
-                },
+                }
             }
         }
     }
@@ -322,27 +343,29 @@ mod tests {
     #[test]
     fn test_sorting() {
         for (unsorted, expected) in [
-                // all equal versions shouldn't be sorted
-                ("0 00 0-r0 0-r00", "0 00 0-r0 0-r00"),
-                ("1.0.2 1.0.2-r0 1.000.2", "1.0.2 1.0.2-r0 1.000.2"),
-                // simple versions
-                ("3 2 1 0", "0 1 2 3"),
-                ("1.100 1.10 1.1", "1.1 1.10 1.100"),
-                // letter suffixes
-                ("1z 1y 1b 1a", "1a 1b 1y 1z"),
-                // release suffixes
-                ("1_p 1_rc 1_pre 1_beta 1_alpha", "1_alpha 1_beta 1_pre 1_rc 1_p"),
-                ("1_p2 1_p1 1_p0", "1_p0 1_p1 1_p2"),
-                // revisions
-                ("1-r2 1-r1 1-r0", "1-r0 1-r1 1-r2"),
-                ] {
-            let mut versions: Vec<Version> = unsorted.split(" ")
+            // all equal versions shouldn't be sorted
+            ("0 00 0-r0 0-r00", "0 00 0-r0 0-r00"),
+            ("1.0.2 1.0.2-r0 1.000.2", "1.0.2 1.0.2-r0 1.000.2"),
+            // simple versions
+            ("3 2 1 0", "0 1 2 3"),
+            ("1.100 1.10 1.1", "1.1 1.10 1.100"),
+            // letter suffixes
+            ("1z 1y 1b 1a", "1a 1b 1y 1z"),
+            // release suffixes
+            (
+                "1_p 1_rc 1_pre 1_beta 1_alpha",
+                "1_alpha 1_beta 1_pre 1_rc 1_p",
+            ),
+            ("1_p2 1_p1 1_p0", "1_p0 1_p1 1_p2"),
+            // revisions
+            ("1-r2 1-r1 1-r0", "1-r0 1-r1 1-r2"),
+        ] {
+            let mut versions: Vec<Version> = unsorted
+                .split(" ")
                 .map(|s| Version::from_str(s).unwrap())
                 .collect();
             versions.sort();
-            let sorted: Vec<String> = versions.iter()
-                .map(|v| format!("{}", v))
-                .collect();
+            let sorted: Vec<String> = versions.iter().map(|v| format!("{}", v)).collect();
             assert_eq!(sorted.join(" "), expected);
         }
     }

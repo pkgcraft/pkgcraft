@@ -92,7 +92,11 @@ impl Eapi {
         atom::parse(s, &self)
     }
 
-    fn register(id: &'static str, parent: Option<&'static Eapi>, options: Option<&EapiOptions>) -> Eapi {
+    fn register(
+        id: &'static str,
+        parent: Option<&'static Eapi>,
+        options: Option<&EapiOptions>,
+    ) -> Eapi {
         // clone inherited options
         let mut eapi_options: EapiOptions = match parent {
             Some(x) => x.options.clone(),

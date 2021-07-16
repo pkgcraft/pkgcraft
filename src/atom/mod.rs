@@ -93,14 +93,12 @@ impl fmt::Display for Atom {
 
         // append slot data
         match (&self.slot, &self.subslot, &self.slot_op) {
-            (Some(slot), Some(subslot), Some(op)) =>
-                s.push_str(&format!(":{}/{}{}", slot, subslot, op)),
-            (Some(slot), Some(subslot), None) =>
-                s.push_str(&format!(":{}/{}", slot, subslot)),
-            (Some(slot), None, Some(op)) =>
-                s.push_str(&format!(":{}{}", slot, op)),
-            (Some(x), None, None) | (None, None, Some(x)) =>
-                s.push_str(&format!(":{}", x)),
+            (Some(slot), Some(subslot), Some(op)) => {
+                s.push_str(&format!(":{}/{}{}", slot, subslot, op))
+            }
+            (Some(slot), Some(subslot), None) => s.push_str(&format!(":{}/{}", slot, subslot)),
+            (Some(slot), None, Some(op)) => s.push_str(&format!(":{}{}", slot, op)),
+            (Some(x), None, None) | (None, None, Some(x)) => s.push_str(&format!(":{}", x)),
             _ => (),
         }
 
@@ -266,45 +264,61 @@ mod tests {
     #[test]
     fn test_sorting() {
         for (unsorted, expected) in [
-                // categories
-                ("c/pkg b/pkg a/pkg", "a/pkg b/pkg c/pkg"),
-                // packages
-                ("cat/c cat/b cat/a", "cat/a cat/b cat/c"),
-                // blocks
-                ("!a/b !!a/b", "!!a/b !a/b"),
-                // version ops
-                (">a/b-1 >=a/b-1 ~a/b-1 =a/b-1* =a/b-1 <=a/b-1 <a/b-1",
-                 "<a/b-1 <=a/b-1 =a/b-1 =a/b-1* ~a/b-1 >=a/b-1 >a/b-1"),
-                // slots
-                ("a/b:2 a/b:1 a/b:0", "a/b:0 a/b:1 a/b:2"),
-                // subslots
-                ("a/b:0/2 a/b:0/1 a/b:0/0", "a/b:0/0 a/b:0/1 a/b:0/2"),
-                // use deps
-                ("a/b[c] a/b[b] a/b[a]", "a/b[a] a/b[b] a/b[c]"),
-
-                // equal versions shouldn't be sorted
-                ("=a/b-0 =a/b-00 =a/b-0-r0", "=a/b-0 =a/b-00 =a/b-0-r0"),
-                ("=a/b-1.0.2 =a/b-1.0.2-r0 =a/b-1.000.2",
-                 "=a/b-1.0.2 =a/b-1.0.2-r0 =a/b-1.000.2"),
-                // simple versions
-                ("=a/b-2 =a/b-1 =a/b-0", "=a/b-0 =a/b-1 =a/b-2"),
-                ("=a/b-1.100 =a/b-1.10 =a/b-1.1", "=a/b-1.1 =a/b-1.10 =a/b-1.100"),
-                // letter suffixes
-                ("=a/b-1z =a/b-1y =a/b-1b =a/b-1a", "=a/b-1a =a/b-1b =a/b-1y =a/b-1z"),
-                // release suffixes
-                ("=a/b-1_p =a/b-1_rc =a/b-1_pre =a/b-1_beta =a/b-1_alpha",
-                 "=a/b-1_alpha =a/b-1_beta =a/b-1_pre =a/b-1_rc =a/b-1_p"),
-                ("=a/b-1_p2 =a/b-1_p1 =a/b-1_p0", "=a/b-1_p0 =a/b-1_p1 =a/b-1_p2"),
-                // revisions
-                ("=a/b-1-r2 =a/b-1-r1 =a/b-1-r0", "=a/b-1-r0 =a/b-1-r1 =a/b-1-r2"),
-                ] {
-            let mut atoms: Vec<Atom> = unsorted.split(" ")
+            // categories
+            ("c/pkg b/pkg a/pkg", "a/pkg b/pkg c/pkg"),
+            // packages
+            ("cat/c cat/b cat/a", "cat/a cat/b cat/c"),
+            // blocks
+            ("!a/b !!a/b", "!!a/b !a/b"),
+            // version ops
+            (
+                ">a/b-1 >=a/b-1 ~a/b-1 =a/b-1* =a/b-1 <=a/b-1 <a/b-1",
+                "<a/b-1 <=a/b-1 =a/b-1 =a/b-1* ~a/b-1 >=a/b-1 >a/b-1",
+            ),
+            // slots
+            ("a/b:2 a/b:1 a/b:0", "a/b:0 a/b:1 a/b:2"),
+            // subslots
+            ("a/b:0/2 a/b:0/1 a/b:0/0", "a/b:0/0 a/b:0/1 a/b:0/2"),
+            // use deps
+            ("a/b[c] a/b[b] a/b[a]", "a/b[a] a/b[b] a/b[c]"),
+            // equal versions shouldn't be sorted
+            ("=a/b-0 =a/b-00 =a/b-0-r0", "=a/b-0 =a/b-00 =a/b-0-r0"),
+            (
+                "=a/b-1.0.2 =a/b-1.0.2-r0 =a/b-1.000.2",
+                "=a/b-1.0.2 =a/b-1.0.2-r0 =a/b-1.000.2",
+            ),
+            // simple versions
+            ("=a/b-2 =a/b-1 =a/b-0", "=a/b-0 =a/b-1 =a/b-2"),
+            (
+                "=a/b-1.100 =a/b-1.10 =a/b-1.1",
+                "=a/b-1.1 =a/b-1.10 =a/b-1.100",
+            ),
+            // letter suffixes
+            (
+                "=a/b-1z =a/b-1y =a/b-1b =a/b-1a",
+                "=a/b-1a =a/b-1b =a/b-1y =a/b-1z",
+            ),
+            // release suffixes
+            (
+                "=a/b-1_p =a/b-1_rc =a/b-1_pre =a/b-1_beta =a/b-1_alpha",
+                "=a/b-1_alpha =a/b-1_beta =a/b-1_pre =a/b-1_rc =a/b-1_p",
+            ),
+            (
+                "=a/b-1_p2 =a/b-1_p1 =a/b-1_p0",
+                "=a/b-1_p0 =a/b-1_p1 =a/b-1_p2",
+            ),
+            // revisions
+            (
+                "=a/b-1-r2 =a/b-1-r1 =a/b-1-r0",
+                "=a/b-1-r0 =a/b-1-r1 =a/b-1-r2",
+            ),
+        ] {
+            let mut atoms: Vec<Atom> = unsorted
+                .split(" ")
                 .map(|s| Atom::from_str(s).unwrap())
                 .collect();
             atoms.sort();
-            let sorted: Vec<String> = atoms.iter()
-                .map(|v| format!("{}", v))
-                .collect();
+            let sorted: Vec<String> = atoms.iter().map(|v| format!("{}", v)).collect();
             assert_eq!(sorted.join(" "), expected);
         }
     }

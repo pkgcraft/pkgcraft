@@ -1,10 +1,10 @@
 use peg;
 
+use super::DepSpec;
 use crate::atom;
 use crate::eapi::Eapi;
-use super::DepSpec;
 
-peg::parser!{
+peg::parser! {
     pub grammar pkgdep() for str {
         rule _ = [' ']
 
@@ -65,20 +65,27 @@ mod tests {
     fn test_parse_deps() {
         // invalid data
         for s in [
-                "", "(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"
-                ] {
+            "",
+            "(",
+            ")",
+            "( )",
+            "( a/b)",
+            "| ( a/b )",
+            "use ( a/b )",
+            "!use ( a/b )",
+        ] {
             assert!(parse(&s, EAPI_LATEST).is_err(), "{} didn't fail", s);
         }
 
-        let atom = |s| { Atom::from_str(s).unwrap() };
+        let atom = |s| Atom::from_str(s).unwrap();
 
         // good data
         let mut deps;
         let mut result: Result<DepSpec, ParseError>;
         for (s, expected) in [
-                ("a/b", DepSpec::Atoms(vec![atom("a/b")])),
-                ("a/b c/d", DepSpec::Atoms(vec![atom("a/b"), atom("c/d")])),
-                ] {
+            ("a/b", DepSpec::Atoms(vec![atom("a/b")])),
+            ("a/b c/d", DepSpec::Atoms(vec![atom("a/b"), atom("c/d")])),
+        ] {
             result = parse(&s, EAPI_LATEST);
             assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
             deps = result.unwrap();

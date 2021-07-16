@@ -1,11 +1,11 @@
 use peg;
 
+use super::DepSpec;
 use crate::atom::ParseError;
 use crate::eapi::Eapi;
 use crate::macros::vec_str;
-use super::DepSpec;
 
-peg::parser!{
+peg::parser! {
     pub grammar required_use() for str {
         rule _ = [' ']
 
@@ -59,8 +59,8 @@ pub fn parse(s: &str, eapi: &'static Eapi) -> Result<DepSpec, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::depspec::DepSpec;
     use crate::atom::ParseError;
+    use crate::depspec::DepSpec;
     use crate::eapi::EAPI_LATEST;
     use crate::macros::vec_str;
 
@@ -70,8 +70,15 @@ mod tests {
     fn test_parse_required_use() {
         // invalid data
         for s in [
-                "", "(", ")", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"
-                ] {
+            "",
+            "(",
+            ")",
+            "( )",
+            "( u)",
+            "| ( u )",
+            "u1 ( u2 )",
+            "!u1 ( u2 )",
+        ] {
             assert!(parse(&s, EAPI_LATEST).is_err(), "{} didn't fail", s);
         }
 
@@ -79,32 +86,55 @@ mod tests {
         let mut required_use;
         let mut result: Result<DepSpec, ParseError>;
         for (s, expected) in [
-                ("u", DepSpec::Strings(vec_str!(["u"]))),
-                ("u1 u2", DepSpec::Strings(vec_str!(["u1", "u2"]))),
-                ("( u )",
-                 DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u"]))))),
-                ("( u1 u2 )",
-                 DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"]))))),
-                ("|| ( u )",
-                 DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u"]))))),
-                ("|| ( u1 u2 )",
-                 DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"]))))),
-                ("^^ ( u1 u2 )",
-                 DepSpec::ExactlyOneOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"]))))),
-                ("u1? ( u2 )",
-                 DepSpec::ConditionalUse(
-                    "u1".to_string(), false,
-                    Box::new(DepSpec::Strings(vec_str!(["u2"]))))),
-                ("u1? ( u2 u3 )",
-                 DepSpec::ConditionalUse(
-                    "u1".to_string(), false,
-                    Box::new(DepSpec::Strings(vec_str!(["u2", "u3"]))))),
-                ("u1? ( || ( u2 u3 ) )",
-                 DepSpec::ConditionalUse(
-                    "u1".to_string(), false,
-                    Box::new(DepSpec::AnyOf(
-                        Box::new(DepSpec::Strings(vec_str!(["u2", "u3"]))))))),
-                ] {
+            ("u", DepSpec::Strings(vec_str!(["u"]))),
+            ("u1 u2", DepSpec::Strings(vec_str!(["u1", "u2"]))),
+            (
+                "( u )",
+                DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u"])))),
+            ),
+            (
+                "( u1 u2 )",
+                DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
+            ),
+            (
+                "|| ( u )",
+                DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u"])))),
+            ),
+            (
+                "|| ( u1 u2 )",
+                DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
+            ),
+            (
+                "^^ ( u1 u2 )",
+                DepSpec::ExactlyOneOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
+            ),
+            (
+                "u1? ( u2 )",
+                DepSpec::ConditionalUse(
+                    "u1".to_string(),
+                    false,
+                    Box::new(DepSpec::Strings(vec_str!(["u2"]))),
+                ),
+            ),
+            (
+                "u1? ( u2 u3 )",
+                DepSpec::ConditionalUse(
+                    "u1".to_string(),
+                    false,
+                    Box::new(DepSpec::Strings(vec_str!(["u2", "u3"]))),
+                ),
+            ),
+            (
+                "u1? ( || ( u2 u3 ) )",
+                DepSpec::ConditionalUse(
+                    "u1".to_string(),
+                    false,
+                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!([
+                        "u2", "u3"
+                    ]))))),
+                ),
+            ),
+        ] {
             result = parse(&s, EAPI_LATEST);
             assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
             required_use = result.unwrap();

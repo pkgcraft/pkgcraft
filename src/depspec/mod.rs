@@ -19,6 +19,6 @@ pub enum DepSpec {
     AllOf(Box<DepSpec>),
     AnyOf(Box<DepSpec>),
     ExactlyOneOf(Box<DepSpec>), // REQUIRED_USE only
-    AtMostOneOf(Box<DepSpec>), // REQUIRED_USE only
+    AtMostOneOf(Box<DepSpec>),  // REQUIRED_USE only
     ConditionalUse(String, bool, Box<DepSpec>),
 }

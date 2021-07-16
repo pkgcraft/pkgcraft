@@ -1,11 +1,11 @@
 use peg;
 
-use crate::atom::ParseError;
 use super::{DepSpec, Uri};
+use crate::atom::ParseError;
 use crate::eapi::Eapi;
 use crate::macros::opt_str;
 
-peg::parser!{
+peg::parser! {
     pub grammar src_uri() for str {
         rule _ = [' ']
 
@@ -76,22 +76,36 @@ mod tests {
         // invalid data
         let mut result: Result<DepSpec, ParseError>;
         for s in [
-                "", "(", ")", "( )", "( uri)", "| ( uri )", "use ( uri )", "!use ( uri )"
-                ] {
+            "",
+            "(",
+            ")",
+            "( )",
+            "( uri)",
+            "| ( uri )",
+            "use ( uri )",
+            "!use ( uri )",
+        ] {
             assert!(parse(&s, EAPI_LATEST).is_err(), "{} didn't fail", s);
         }
 
-        let uri = |u1: &str, u2: Option<&str>| {
-            Uri { uri: u1.to_string(), rename: u2.and_then(|s| Some(s.to_string())) }
+        let uri = |u1: &str, u2: Option<&str>| Uri {
+            uri: u1.to_string(),
+            rename: u2.and_then(|s| Some(s.to_string())),
         };
 
         // good data
         let mut src_uri;
         for (s, expected) in [
-                ("uri1", DepSpec::Uris(vec![uri("uri1", None)])),
-                ("uri1 uri2", DepSpec::Uris(vec![uri("uri1", None), uri("uri2", None)])),
-                ("uri1 -> file", DepSpec::Uris(vec![uri("uri1", Some("file"))])),
-                ] {
+            ("uri1", DepSpec::Uris(vec![uri("uri1", None)])),
+            (
+                "uri1 uri2",
+                DepSpec::Uris(vec![uri("uri1", None), uri("uri2", None)]),
+            ),
+            (
+                "uri1 -> file",
+                DepSpec::Uris(vec![uri("uri1", Some("file"))]),
+            ),
+        ] {
             result = parse(&s, EAPI_LATEST);
             assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
             src_uri = result.unwrap();
