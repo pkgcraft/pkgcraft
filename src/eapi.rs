@@ -11,6 +11,7 @@ use once_cell::sync::Lazy;
 
 type EapiOptions = HashMap<&'static str, bool>;
 
+#[rustfmt::skip]
 static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
     [
         // EAPI 1
@@ -125,10 +126,12 @@ pub fn get_eapi(id: &str) -> Result<&'static Eapi, &'static str> {
     }
 }
 
+#[rustfmt::skip]
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("0", None, None)
 });
 
+#[rustfmt::skip]
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("slot_deps", true),
@@ -136,6 +139,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("1", Some(&EAPI0), Some(&options))
 });
 
+#[rustfmt::skip]
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("blockers", true),
@@ -145,10 +149,12 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("2", Some(&EAPI1), Some(&options))
 });
 
+#[rustfmt::skip]
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("3", Some(&EAPI2), None)
 });
 
+#[rustfmt::skip]
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("use_dep_defaults", true),
@@ -157,6 +163,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("4", Some(&EAPI3), Some(&options))
 });
 
+#[rustfmt::skip]
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("subslots", true),
@@ -166,14 +173,17 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("5", Some(&EAPI4), Some(&options))
 });
 
+#[rustfmt::skip]
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("6", Some(&EAPI5), None)
 });
 
+#[rustfmt::skip]
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::register("7", Some(&EAPI6), None)
 });
 
+#[rustfmt::skip]
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("src_uri_unrestrict", true),
@@ -183,6 +193,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
 
+#[rustfmt::skip]
 pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("repo_ids", true),
