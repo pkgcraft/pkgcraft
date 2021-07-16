@@ -36,10 +36,9 @@ peg::parser!{
                 DepSpec::AnyOf(Box::new(e))
             }
 
-        // TODO: handle negation
         rule conditional() -> DepSpec
-            = "!"? u:useflag() "?" _ "(" _ e:expr() _ ")" {
-                DepSpec::ConditionalUse(u.to_string(), Box::new(e))
+            = negate:"!"? u:useflag() "?" _ "(" _ e:expr() _ ")" {
+                DepSpec::ConditionalUse(u.to_string(), negate.is_some(), Box::new(e))
             }
 
         pub rule expr() -> DepSpec
@@ -84,15 +83,15 @@ mod tests {
                  DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
                 ("use? ( l1 )",
                  DepSpec::ConditionalUse(
-                    "use".to_string(),
+                    "use".to_string(), false,
                     Box::new(DepSpec::Strings(vec_str!(["l1"]))))),
                 ("use? ( l1 l2 )",
                  DepSpec::ConditionalUse(
-                    "use".to_string(),
+                    "use".to_string(), false,
                     Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
                 ("use? ( || ( l1 l2 ) )",
                  DepSpec::ConditionalUse(
-                    "use".to_string(),
+                    "use".to_string(), false,
                     Box::new(DepSpec::AnyOf(
                         Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))))),
                 ] {

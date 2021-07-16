@@ -42,10 +42,9 @@ peg::parser!{
                 Ok(DepSpec::AtMostOneOf(Box::new(e)))
             }
 
-        // TODO: handle negation
         rule conditional(eapi: &'static Eapi) -> DepSpec
-            = "!"? u:useflag() "?" _ "(" _ e:expr(eapi) _ ")" {
-                DepSpec::ConditionalUse(u.to_string(), Box::new(e))
+            = negate:"!"? u:useflag() "?" _ "(" _ e:expr(eapi) _ ")" {
+                DepSpec::ConditionalUse(u.to_string(), negate.is_some(), Box::new(e))
             }
 
         pub rule expr(eapi: &'static Eapi) -> DepSpec
@@ -94,15 +93,15 @@ mod tests {
                  DepSpec::ExactlyOneOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"]))))),
                 ("u1? ( u2 )",
                  DepSpec::ConditionalUse(
-                    "u1".to_string(),
+                    "u1".to_string(), false,
                     Box::new(DepSpec::Strings(vec_str!(["u2"]))))),
                 ("u1? ( u2 u3 )",
                  DepSpec::ConditionalUse(
-                    "u1".to_string(),
+                    "u1".to_string(), false,
                     Box::new(DepSpec::Strings(vec_str!(["u2", "u3"]))))),
                 ("u1? ( || ( u2 u3 ) )",
                  DepSpec::ConditionalUse(
-                    "u1".to_string(),
+                    "u1".to_string(), false,
                     Box::new(DepSpec::AnyOf(
                         Box::new(DepSpec::Strings(vec_str!(["u2", "u3"]))))))),
                 ] {

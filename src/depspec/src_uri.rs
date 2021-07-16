@@ -49,10 +49,9 @@ peg::parser!{
                 DepSpec::AllOf(Box::new(e))
             }
 
-        // TODO: handle negation
         rule conditional(eapi: &'static Eapi) -> DepSpec
-            = "!"? u:useflag() "?" _ "(" _ e:expr(eapi) _ ")" {
-                DepSpec::ConditionalUse(u.to_string(), Box::new(e))
+            = negate:"!"? u:useflag() "?" _ "(" _ e:expr(eapi) _ ")" {
+                DepSpec::ConditionalUse(u.to_string(), negate.is_some(), Box::new(e))
             }
 
         pub rule expr(eapi: &'static Eapi) -> DepSpec
