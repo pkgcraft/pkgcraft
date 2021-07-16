@@ -9,7 +9,7 @@ peg::parser!{
         rule _ = [' ']
 
         rule dep(eapi: &'static Eapi) -> atom::Atom
-            = s:$([^ ' ']+) {?
+            = s:$(!")" [^' ']+) {?
                 let atom = match atom::parse(s, eapi) {
                     Ok(x) => x,
                     Err(e) => return Err("failed parsing atom"),
@@ -66,7 +66,7 @@ mod tests {
     fn test_parse_deps() {
         // invalid data
         for s in [
-                "", "( )", "( a/b)", "| ( a/b )", "foo ( a/b )", "!use ( a/b )"
+                "", "(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"
                 ] {
             assert!(parse(&s, EAPI_LATEST).is_err(), "{} didn't fail", s);
         }

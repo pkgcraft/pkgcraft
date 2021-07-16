@@ -63,7 +63,7 @@ mod tests {
     fn test_parse_license() {
         // invalid data
         for s in [
-                "", "( )", "( l1)", "| ( l1 )", "foo ( l1 )", "!use ( l1 )"
+                "", "(", ")", "( )", "( l1)", "| ( l1 )", "foo ( l1 )", "!use ( l1 )"
                 ] {
             assert!(parse(&s).is_err(), "{} didn't fail", s);
         }

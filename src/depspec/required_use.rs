@@ -71,7 +71,7 @@ mod tests {
     fn test_parse_required_use() {
         // invalid data
         for s in [
-                "", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"
+                "", "(", ")", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"
                 ] {
             assert!(parse(&s, EAPI_LATEST).is_err(), "{} didn't fail", s);
         }
