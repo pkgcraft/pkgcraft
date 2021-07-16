@@ -24,7 +24,7 @@ peg::parser!{
             ) { s }
 
         rule names() -> DepSpec
-            = names:name() ++ " " { DepSpec::Names(vec_str!(names)) }
+            = names:name() ++ " " { DepSpec::Strings(vec_str!(names)) }
 
         rule all_of() -> DepSpec
             = "(" _ e:expr() _ ")" {
@@ -72,29 +72,29 @@ mod tests {
         let mut license;
         let mut result: Result<DepSpec, ParseError>;
         for (s, expected) in [
-                ("l1", DepSpec::Names(vec_str!(["l1"]))),
-                ("l1 l2", DepSpec::Names(vec_str!(["l1", "l2"]))),
+                ("l1", DepSpec::Strings(vec_str!(["l1"]))),
+                ("l1 l2", DepSpec::Strings(vec_str!(["l1", "l2"]))),
                 ("( l1 )",
-                 DepSpec::AllOf(Box::new(DepSpec::Names(vec_str!(["l1"]))))),
+                 DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["l1"]))))),
                 ("( l1 l2 )",
-                 DepSpec::AllOf(Box::new(DepSpec::Names(vec_str!(["l1", "l2"]))))),
+                 DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
                 ("|| ( l1 )",
-                 DepSpec::AnyOf(Box::new(DepSpec::Names(vec_str!(["l1"]))))),
+                 DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1"]))))),
                 ("|| ( l1 l2 )",
-                 DepSpec::AnyOf(Box::new(DepSpec::Names(vec_str!(["l1", "l2"]))))),
+                 DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
                 ("use? ( l1 )",
                  DepSpec::ConditionalUse(
                     "use".to_string(),
-                    Box::new(DepSpec::Names(vec_str!(["l1"]))))),
+                    Box::new(DepSpec::Strings(vec_str!(["l1"]))))),
                 ("use? ( l1 l2 )",
                  DepSpec::ConditionalUse(
                     "use".to_string(),
-                    Box::new(DepSpec::Names(vec_str!(["l1", "l2"]))))),
+                    Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
                 ("use? ( || ( l1 l2 ) )",
                  DepSpec::ConditionalUse(
                     "use".to_string(),
                     Box::new(DepSpec::AnyOf(
-                        Box::new(DepSpec::Names(vec_str!(["l1", "l2"]))))))),
+                        Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))))),
                 ] {
             result = parse(&s);
             assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());

@@ -6,7 +6,7 @@ pub mod required_use;
 
 #[derive(Debug, PartialEq)]
 pub enum DepSpec {
-    Names(Vec<String>),
+    Strings(Vec<String>),
     Atoms(Vec<Atom>),
     AllOf(Box<DepSpec>),
     AnyOf(Box<DepSpec>),
