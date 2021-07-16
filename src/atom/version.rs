@@ -102,134 +102,132 @@ impl Ord for Version {
     fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
         let mut cmp: Ordering;
 
-        // if versions are equal, comparing revisions suffices
-        if self.base == other.base {
-            return self.revision.cmp(&other.revision);
-        }
+        if self.base != other.base {
+            // split versions into dotted strings and lists of suffixes
+            let self_parts: Vec<&str> = self.base.split("_").collect();
+            let other_parts: Vec<&str> = other.base.split("_").collect();
 
-        // split versions into dotted strings and lists of suffixes
-        let self_parts: Vec<&str> = self.base.split("_").collect();
-        let other_parts: Vec<&str> = other.base.split("_").collect();
+            // if dotted strings differ, then perform comparisons on them
+            if self_parts[0] != other_parts[0] {
+                // separate letter suffix from version string
+                let split = |s: &'a str| -> (Option<char>, &'a str) {
+                    match s.chars().last().unwrap() {
+                        c @ 'a'..='z' => {
+                            (Some(c), &s[..s.len() - 1])
+                        },
+                        _ => (None, &s),
+                    }
+                };
 
-        // if dotted strings differ, then perform comparisons on them
-        if self_parts[0] != other_parts[0] {
-            // separate letter suffix from version string
-            let split = |s: &'a str| -> (Option<char>, &'a str) {
-                match s.chars().last().unwrap() {
-                    c @ 'a'..='z' => {
-                        (Some(c), &s[..s.len() - 1])
-                    },
-                    _ => (None, &s),
-                }
-            };
+                // pull letter suffixes for later comparison
+                let (self_letter, self_str) = split(self_parts[0]);
+                let (other_letter, other_str) = split(other_parts[0]);
+                // split dotted version string into components
+                let self_ver_parts: Vec<&str> = self_str.split(".").collect();
+                let other_ver_parts: Vec<&str> = other_str.split(".").collect();
 
-            // pull letter suffixes for later comparison
-            let (self_letter, self_str) = split(self_parts[0]);
-            let (other_letter, other_str) = split(other_parts[0]);
-            // split dotted version string into components
-            let self_ver_parts: Vec<&str> = self_str.split(".").collect();
-            let other_ver_parts: Vec<&str> = other_str.split(".").collect();
+                // iterate through the components
+                for (v1, v2) in self_ver_parts.iter().zip(other_ver_parts.iter()) {
+                    // if string is lexically equal, it is numerically equal too
+                    if v1 == v2 {
+                        continue;
+                    }
 
-            // iterate through the components
-            for (v1, v2) in self_ver_parts.iter().zip(other_ver_parts.iter()) {
-                // if string is lexically equal, it is numerically equal too
-                if v1 == v2 {
-                    continue;
-                }
-
-                // If one of the components begins with a "0" then they are compared as integers so
-                // that 1.1 > 1.02; otherwise they are compared as strings. Note that we can use
-                // byte-slicing since version strings are guaranteed to use ASCII characters.
-                match (&v1[..1], &v2[..1]) {
-                    ("0", _) | (_, "0") => {
-                        let v1_stripped = rstrip(v1, '0');
-                        let v2_stripped = rstrip(v2, '0');
-                        cmp = v1_stripped.cmp(&v2_stripped);
-                        if cmp != Ordering::Equal {
-                            return cmp;
-                        }
-                    },
-                    _ => {
-                        let v1_int: u32 = v1.parse().unwrap();
-                        let v2_int: u32 = v2.parse().unwrap();
-                        cmp = v1_int.cmp(&v2_int);
-                        if cmp != Ordering::Equal {
-                            return cmp;
-                        }
-                    },
-                }
-            }
-
-            cmp = self_ver_parts.len().cmp(&other_ver_parts.len());
-            if cmp != Ordering::Equal {
-                return cmp;
-            }
-
-            // dotted components were equal so compare letter suffixes
-            cmp = self_letter.cmp(&other_letter);
-            if cmp != Ordering::Equal {
-                return cmp;
-            }
-        }
-
-        let self_suffixes = &self_parts[1..];
-        let self_suffixes_len = self_suffixes.len();
-        let other_suffixes = &other_parts[1..];
-        let other_suffixes_len = other_suffixes.len();
-        let suffix_range = min(self_suffixes_len, other_suffixes_len);
-
-        if suffix_range >= 1 {
-            let suffix_regex = regex!("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$");
-            for x in 0..suffix_range {
-                // if the strings are equal, continue to the next
-                if self_suffixes[x] == other_suffixes[x] {
-                    continue;
+                    // If one of the components begins with a "0" then they are compared as
+                    // integers so that 1.1 > 1.02; otherwise they are compared as strings. Note
+                    // that we can use byte-slicing since version strings are guaranteed to use
+                    // ASCII characters.
+                    match (&v1[..1], &v2[..1]) {
+                        ("0", _) | (_, "0") => {
+                            let v1_stripped = rstrip(v1, '0');
+                            let v2_stripped = rstrip(v2, '0');
+                            cmp = v1_stripped.cmp(&v2_stripped);
+                            if cmp != Ordering::Equal {
+                                return cmp;
+                            }
+                        },
+                        _ => {
+                            let v1_int: u32 = v1.parse().unwrap();
+                            let v2_int: u32 = v2.parse().unwrap();
+                            cmp = v1_int.cmp(&v2_int);
+                            if cmp != Ordering::Equal {
+                                return cmp;
+                            }
+                        },
+                    }
                 }
 
-                // use regex to split suffixes from versions
-                let m1 = suffix_regex.captures(self_suffixes[x]).unwrap();
-                let m2 = suffix_regex.captures(other_suffixes[x]).unwrap();
-                let s1 = Suffix::from_str(m1.name("suffix").unwrap().as_str()).unwrap();
-                let s2 = Suffix::from_str(m2.name("suffix").unwrap().as_str()).unwrap();
-
-                // if suffixes differ, use them for comparison
-                cmp = s1.cmp(&s2);
+                cmp = self_ver_parts.len().cmp(&other_ver_parts.len());
                 if cmp != Ordering::Equal {
                     return cmp;
                 }
 
-                // otherwise use the suffix versions for comparison
-                let v1: u32 = m1.name("version").unwrap().as_str().parse().unwrap_or_default();
-                let v2: u32 = m2.name("version").unwrap().as_str().parse().unwrap_or_default();
-                cmp = v1.cmp(&v2);
+                // dotted components were equal so compare letter suffixes
+                cmp = self_letter.cmp(&other_letter);
                 if cmp != Ordering::Equal {
                     return cmp;
                 }
             }
 
-            // One version has more suffixes than the other, use its last
-            // suffix to determine ordering.
-            match self_suffixes_len.cmp(&other_suffixes_len) {
-                Ordering::Equal => (),
-                Ordering::Greater => {
-                    let m = suffix_regex.captures(self_suffixes.last().unwrap()).unwrap();
-                    match m.name("suffix").unwrap().as_str() {
-                        "p" => return Ordering::Greater,
-                        _   => return Ordering::Less,
+            let self_suffixes = &self_parts[1..];
+            let self_suffixes_len = self_suffixes.len();
+            let other_suffixes = &other_parts[1..];
+            let other_suffixes_len = other_suffixes.len();
+            let suffix_range = min(self_suffixes_len, other_suffixes_len);
+
+            if suffix_range >= 1 {
+                let suffix_regex = regex!("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$");
+                for x in 0..suffix_range {
+                    // if the strings are equal, continue to the next
+                    if self_suffixes[x] == other_suffixes[x] {
+                        continue;
                     }
-                },
-                Ordering::Less => {
-                    let m = suffix_regex.captures(other_suffixes.last().unwrap()).unwrap();
-                    match m.name("suffix").unwrap().as_str() {
-                        "p" => return Ordering::Less,
-                        _   => return Ordering::Greater,
+
+                    // use regex to split suffixes from versions
+                    let m1 = suffix_regex.captures(self_suffixes[x]).unwrap();
+                    let m2 = suffix_regex.captures(other_suffixes[x]).unwrap();
+                    let s1 = Suffix::from_str(m1.name("suffix").unwrap().as_str()).unwrap();
+                    let s2 = Suffix::from_str(m2.name("suffix").unwrap().as_str()).unwrap();
+
+                    // if suffixes differ, use them for comparison
+                    cmp = s1.cmp(&s2);
+                    if cmp != Ordering::Equal {
+                        return cmp;
                     }
-                },
+
+                    // otherwise use the suffix versions for comparison
+                    let v1: u32 = m1.name("version").unwrap().as_str().parse().unwrap_or_default();
+                    let v2: u32 = m2.name("version").unwrap().as_str().parse().unwrap_or_default();
+                    cmp = v1.cmp(&v2);
+                    if cmp != Ordering::Equal {
+                        return cmp;
+                    }
+                }
+
+                // One version has more suffixes than the other, use its last
+                // suffix to determine ordering.
+                match self_suffixes_len.cmp(&other_suffixes_len) {
+                    Ordering::Equal => (),
+                    Ordering::Greater => {
+                        let m = suffix_regex.captures(self_suffixes.last().unwrap()).unwrap();
+                        match m.name("suffix").unwrap().as_str() {
+                            "p" => return Ordering::Greater,
+                            _   => return Ordering::Less,
+                        }
+                    },
+                    Ordering::Less => {
+                        let m = suffix_regex.captures(other_suffixes.last().unwrap()).unwrap();
+                        match m.name("suffix").unwrap().as_str() {
+                            "p" => return Ordering::Less,
+                            _   => return Ordering::Greater,
+                        }
+                    },
+                }
             }
         }
 
         // finally compare the revisions
-        return self.revision.cmp(&other.revision);
+        self.revision.cmp(&other.revision)
     }
 }
 
