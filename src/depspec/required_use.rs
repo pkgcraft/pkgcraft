@@ -1,6 +1,7 @@
 use peg;
 
 use crate::atom::ParseError;
+use crate::eapi::Eapi;
 use crate::macros::vec_str;
 use super::DepSpec;
 
@@ -18,46 +19,50 @@ peg::parser!{
         rule useflags() -> DepSpec
             = useflags:useflag() ++ " " { DepSpec::Names(vec_str!(useflags)) }
 
-        rule all_of() -> DepSpec
-            = "(" _ e:expr() _ ")" {
+        rule all_of(eapi: &'static Eapi) -> DepSpec
+            = "(" _ e:expr(eapi) _ ")" {
                 DepSpec::AllOf(Box::new(e))
             }
 
-        rule any_of() -> DepSpec
-            = "||" _ "(" _ e:expr() _ ")" {
+        rule any_of(eapi: &'static Eapi) -> DepSpec
+            = "||" _ "(" _ e:expr(eapi) _ ")" {
                 DepSpec::AnyOf(Box::new(e))
             }
 
-        rule exactly_one_of() -> DepSpec
-            = "^^" _ "(" _ e:expr() _ ")" {
+        rule exactly_one_of(eapi: &'static Eapi) -> DepSpec
+            = "^^" _ "(" _ e:expr(eapi) _ ")" {
                 DepSpec::ExactlyOneOf(Box::new(e))
             }
 
-        rule at_most_one_of() -> DepSpec
-            = "??" _ "(" _ e:expr() _ ")" {
-                DepSpec::AtMostOneOf(Box::new(e))
+        rule at_most_one_of(eapi: &'static Eapi) -> DepSpec
+            = "??" _ "(" _ e:expr(eapi) _ ")" {?
+                if !eapi.has("required_use_one_of") {
+                    return Err("?? groups are supported in >= EAPI 5");
+                }
+                Ok(DepSpec::AtMostOneOf(Box::new(e)))
             }
 
         // TODO: handle negation
-        rule conditional() -> DepSpec
-            = "!"? u:useflag() "?" _ "(" _ e:expr() _ ")" {
+        rule conditional(eapi: &'static Eapi) -> DepSpec
+            = "!"? u:useflag() "?" _ "(" _ e:expr(eapi) _ ")" {
                 DepSpec::ConditionalUse(u.to_string(), Box::new(e))
             }
 
-        pub rule expr() -> DepSpec
-            = conditional() / any_of() / all_of() /
-                exactly_one_of() / at_most_one_of() / useflags()
+        pub rule expr(eapi: &'static Eapi) -> DepSpec
+            = conditional(eapi) / any_of(eapi) / all_of(eapi) /
+                exactly_one_of(eapi) / at_most_one_of(eapi) / useflags()
     }
 }
 
-pub fn parse(s: &str) -> Result<DepSpec, ParseError> {
-    required_use::expr(s)
+pub fn parse(s: &str, eapi: &'static Eapi) -> Result<DepSpec, ParseError> {
+    required_use::expr(s, eapi)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::depspec::DepSpec;
     use crate::atom::ParseError;
+    use crate::eapi::EAPI_LATEST;
     use crate::macros::vec_str;
 
     use super::required_use::expr as parse;
@@ -68,7 +73,7 @@ mod tests {
         for s in [
                 "", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"
                 ] {
-            assert!(parse(&s).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, EAPI_LATEST).is_err(), "{} didn't fail", s);
         }
 
         // good data
@@ -87,8 +92,6 @@ mod tests {
                  DepSpec::AnyOf(Box::new(DepSpec::Names(vec_str!(["u1", "u2"]))))),
                 ("^^ ( u1 u2 )",
                  DepSpec::ExactlyOneOf(Box::new(DepSpec::Names(vec_str!(["u1", "u2"]))))),
-                ("?? ( u1 u2 )",
-                 DepSpec::AtMostOneOf(Box::new(DepSpec::Names(vec_str!(["u1", "u2"]))))),
                 ("u1? ( u2 )",
                  DepSpec::ConditionalUse(
                     "u1".to_string(),
@@ -103,7 +106,7 @@ mod tests {
                     Box::new(DepSpec::AnyOf(
                         Box::new(DepSpec::Names(vec_str!(["u2", "u3"]))))))),
                 ] {
-            result = parse(&s);
+            result = parse(&s, EAPI_LATEST);
             assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
             required_use = result.unwrap();
             assert_eq!(required_use, expected);
