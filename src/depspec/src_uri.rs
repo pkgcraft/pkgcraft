@@ -20,25 +20,28 @@ peg::parser!{
             ) { s }
 
         rule uris(eapi: &'static Eapi) -> DepSpec
-            = uris:uri() ++ " " {?
+            = uris:uri() ++ " " {
                 let mut raw_uris = uris.iter().peekable();
                 let mut uri_objs: Vec<Uri> = Vec::new();
 
-                while let Some(x) = raw_uris.next() {
-                    let rename = match raw_uris.peek() {
-                        Some(&&"->") => {
-                            if !eapi.has("src_uri_renames") {
-                                return Err("URI renames are supported in >= EAPI 2");
-                            }
-                            raw_uris.next();
-                            raw_uris.next().and_then(|s| opt_str!(s))
-                        },
-                        _ => None,
-                    };
-                    uri_objs.push(Uri { uri: x.to_string(), rename: rename });
+                if eapi.has("src_uri_renames") {
+                    while let Some(x) = raw_uris.next() {
+                        let rename = match raw_uris.peek() {
+                            Some(&&"->") => {
+                                raw_uris.next();
+                                raw_uris.next().and_then(|s| opt_str!(s))
+                            },
+                            _ => None,
+                        };
+                        uri_objs.push(Uri { uri: x.to_string(), rename: rename });
+                    }
+                } else {
+                    while let Some(x) = raw_uris.next() {
+                        uri_objs.push(Uri { uri: x.to_string(), rename: None });
+                    }
                 }
 
-                Ok(DepSpec::Uris(uri_objs))
+                DepSpec::Uris(uri_objs)
             }
 
         rule all_of(eapi: &'static Eapi) -> DepSpec
