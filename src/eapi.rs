@@ -140,6 +140,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("blockers", true),
         ("use_deps", true),
+        ("src_uri_renames", true),
     ].iter().cloned().collect();
     Eapi::register("2", Some(&EAPI1), Some(&options))
 });
@@ -151,6 +152,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("use_dep_defaults", true),
+        ("required_use", true),
     ].iter().cloned().collect();
     Eapi::register("4", Some(&EAPI3), Some(&options))
 });
@@ -159,6 +161,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("subslots", true),
         ("slot_ops", true),
+        ("required_use_one_of", true),
     ].iter().cloned().collect();
     Eapi::register("5", Some(&EAPI4), Some(&options))
 });
@@ -172,7 +175,10 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::register("8", Some(&EAPI7), None)
+    let options: EapiOptions = [
+        ("src_uri_unrestrict", true),
+    ].iter().cloned().collect();
+    Eapi::register("8", Some(&EAPI7), Some(&options))
 });
 
 pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;

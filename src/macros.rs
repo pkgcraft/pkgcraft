@@ -1,11 +1,9 @@
 // convert &str to Option<String>
-#[cfg(test)]
 macro_rules! opt_str {
     ($x:expr) => {
         Some($x.to_string())
     };
 }
-#[cfg(test)]
 pub(crate) use opt_str;
 
 // convert Vec<&str> to Vec<String>
