@@ -2,12 +2,17 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::atom;
-
 use indexmap::IndexMap;
 // TODO: use std implementation if it becomes available
 // https://github.com/rust-lang/rust/issues/74465
 use once_cell::sync::Lazy;
+use regex::Regex;
+
+use crate::atom;
+
+static VALID_EAPI_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap()
+});
 
 type EapiOptions = HashMap<&'static str, bool>;
 
@@ -118,11 +123,16 @@ impl fmt::Display for Eapi {
     }
 }
 
-// TODO: use different error for invalid EAPIs
 pub fn get_eapi(id: &str) -> Result<&'static Eapi, &'static str> {
     match KNOWN_EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
-        None => Err("unknown EAPI"),
+        None => {
+            if VALID_EAPI_RE.is_match(id) {
+                Err("unknown EAPI")
+            } else {
+                Err("invalid EAPI")
+            }
+        }
     }
 }
 
@@ -221,6 +231,7 @@ mod tests {
 
     #[test]
     fn test_get_eapi() {
+        assert!(get_eapi("-invalid").is_err());
         assert!(get_eapi("unknown").is_err());
         assert_eq!(*get_eapi("8").unwrap(), *EAPI8);
     }
