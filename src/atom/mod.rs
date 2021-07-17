@@ -311,7 +311,7 @@ mod tests {
             ),
         ] {
             let mut atoms: Vec<Atom> = unsorted
-                .split(" ")
+                .split(' ')
                 .map(|s| Atom::from_str(s).unwrap())
                 .collect();
             atoms.sort();

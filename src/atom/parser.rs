@@ -365,7 +365,7 @@ mod tests {
                     true => {
                         assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
                         atom = result.unwrap();
-                        let expected = use_deps.split(",").map(|s| s.to_string()).collect();
+                        let expected = use_deps.split(',').map(|s| s.to_string()).collect();
                         assert_eq!(atom.use_deps, Some(expected));
                         assert_eq!(format!("{}", atom), s);
                     }
@@ -397,7 +397,7 @@ mod tests {
                     true => {
                         assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
                         atom = result.unwrap();
-                        let expected = use_deps.split(",").map(|s| s.to_string()).collect();
+                        let expected = use_deps.split(',').map(|s| s.to_string()).collect();
                         assert_eq!(atom.use_deps, Some(expected));
                         assert_eq!(format!("{}", atom), s);
                     }

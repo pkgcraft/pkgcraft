@@ -326,7 +326,7 @@ mod tests {
             ("0-r2 > 0-r1"),
             ("1.0.2_pre01-r2 > 1.00.2_pre001-r1"),
         ] {
-            let v: Vec<&str> = expr.split(" ").collect();
+            let v: Vec<&str> = expr.split(' ').collect();
             let v1 = Version::from_str(v[0]).unwrap();
             let v2 = Version::from_str(v[2]).unwrap();
             let op = op_map[v[1]];
@@ -368,7 +368,7 @@ mod tests {
             ("1-r2 1-r1 1-r0", "1-r0 1-r1 1-r2"),
         ] {
             let mut versions: Vec<Version> = unsorted
-                .split(" ")
+                .split(' ')
                 .map(|s| Version::from_str(s).unwrap())
                 .collect();
             versions.sort();
