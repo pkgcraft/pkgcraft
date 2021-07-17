@@ -52,10 +52,7 @@ pub struct Atom {
 
 impl Atom {
     pub fn fullver(&self) -> Option<String> {
-        match &self.version {
-            Some(ver) => Some(format!("{}", ver)),
-            None => None,
-        }
+        self.version.as_ref().map(|ver| format!("{}", ver))
     }
 
     pub fn key(&self) -> String {

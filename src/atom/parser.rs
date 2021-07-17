@@ -77,12 +77,12 @@ peg::parser! {
             = blocks:(quiet!{"!"}*<1,2>) {?
                 if eapi.has("blockers") {
                     match blocks[..] {
-                        [_] => return Ok(Blocker::Weak),
-                        [_, _] => return Ok(Blocker::Strong),
+                        [_] => Ok(Blocker::Weak),
+                        [_, _] => Ok(Blocker::Strong),
                         _ => Err("invalid blocker"),
                     }
                 } else {
-                    return Err("blockers are supported in >= EAPI 2");
+                    Err("blockers are supported in >= EAPI 2")
                 }
             }
 
@@ -104,27 +104,27 @@ peg::parser! {
         rule use_deps(eapi: &'static Eapi) -> Vec<&'input str>
             = quiet!{"["} use_deps:use_dep(eapi) ++ "," quiet!{"]"} {?
                 if eapi.has("use_deps") {
-                    return Ok(use_deps);
+                    Ok(use_deps)
                 } else {
-                    return Err("use deps are supported in >= EAPI 2");
+                    Err("use deps are supported in >= EAPI 2")
                 }
             }
 
         rule use_dep_default(eapi: &'static Eapi) -> &'input str
             = s:$("(+)" / "(-)" / expected!("use dep default")) {?
                 if eapi.has("use_dep_defaults") {
-                    return Ok(s);
+                    Ok(s)
                 } else {
-                    return Err("use dep defaults are supported in >= EAPI 4");
+                    Err("use dep defaults are supported in >= EAPI 4")
                 }
             }
 
         rule subslot(eapi: &'static Eapi) -> &'input str
             = quiet!{"/"} s:slot_name() {?
                 if eapi.has("subslots") {
-                    return Ok(s);
+                    Ok(s)
                 } else {
-                    return Err("subslots are supported in >= EAPI 5");
+                    Err("subslots are supported in >= EAPI 5")
                 }
             }
 
@@ -180,14 +180,14 @@ peg::parser! {
                 Atom {
                     category: cat.to_string(),
                     package: pkg.to_string(),
-                    block: block,
-                    op: op,
-                    version: version,
-                    slot: slot.and_then(|s| Some(s.to_string())),
-                    subslot: subslot.and_then(|s| Some(s.to_string())),
-                    slot_op: slot_op.and_then(|s| Some(s.to_string())),
-                    use_deps: use_deps.and_then(|u| Some(vec_str!(u))),
-                    repo: repo.and_then(|s| Some(s.to_string())),
+                    block,
+                    op,
+                    version,
+                    slot: slot.map(|s| s.to_string()),
+                    subslot: subslot.map(|s| s.to_string()),
+                    slot_op: slot_op.map(|s| s.to_string()),
+                    use_deps: use_deps.map(|u| vec_str!(u)),
+                    repo: repo.map(|s| s.to_string()),
                 }
             }
     }

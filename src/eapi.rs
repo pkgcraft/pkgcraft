@@ -95,23 +95,22 @@ impl Eapi {
     fn register(
         id: &'static str,
         parent: Option<&'static Eapi>,
-        options: Option<&EapiOptions>,
+        eapi_options: Option<&EapiOptions>,
     ) -> Eapi {
         // clone inherited options
-        let mut eapi_options: EapiOptions = match parent {
+        let mut options: EapiOptions = match parent {
             Some(x) => x.options.clone(),
             None => EAPI_OPTIONS.clone(),
         };
 
         // merge EAPI specific options
-        match options {
-            Some(x) => eapi_options.extend(x),
-            None => (),
-        };
+        if let Some(x) = eapi_options {
+            options.extend(x);
+        }
 
         Eapi {
-            id: id,
-            options: eapi_options,
+            id,
+            options,
         }
     }
 }

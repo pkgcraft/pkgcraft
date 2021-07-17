@@ -1,9 +1,8 @@
 // Return a string slice stripping the given character from the right side. Note that this assumes
 // the string only contains ASCII characters.
 pub fn rstrip(s: &str, c: char) -> &str {
-    let mut chars = s.chars().rev();
     let mut count = 0;
-    while let Some(x) = chars.next() {
+    for x in s.chars().rev() {
         if x != c {
             break;
         }

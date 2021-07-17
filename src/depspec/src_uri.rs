@@ -3,7 +3,6 @@ use peg;
 use super::{DepSpec, Uri};
 use crate::atom::ParseError;
 use crate::eapi::Eapi;
-use crate::macros::opt_str;
 
 peg::parser! {
     pub grammar src_uri() for str {
@@ -29,11 +28,11 @@ peg::parser! {
                         let rename = match raw_uris.peek() {
                             Some(&&"->") => {
                                 raw_uris.next();
-                                raw_uris.next().and_then(|s| opt_str!(s))
+                                raw_uris.next().map(|s| s.to_string())
                             },
                             _ => None,
                         };
-                        uri_objs.push(Uri { uri: x.to_string(), rename: rename });
+                        uri_objs.push(Uri { uri: x.to_string(), rename });
                     }
                 } else {
                     while let Some(x) = raw_uris.next() {

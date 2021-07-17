@@ -1,5 +1,6 @@
 use std::cmp::{min, Ordering};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use super::parser::pkg::version as parse;
@@ -31,7 +32,7 @@ impl FromStr for Suffix {
     }
 }
 
-#[derive(Debug, Eq, Hash)]
+#[derive(Debug, Eq)]
 pub struct Revision {
     pub value: Option<String>,
     int: u32,
@@ -45,7 +46,7 @@ impl Revision {
                 let int: u32 = s.parse().unwrap();
                 Revision {
                     value: Some(s.to_string()),
-                    int: int,
+                    int,
                 }
             }
             None => Revision {
@@ -59,6 +60,12 @@ impl Revision {
 impl PartialEq for Revision {
     fn eq(&self, other: &Self) -> bool {
         self.int == other.int
+    }
+}
+
+impl Hash for Revision {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.int.hash(state);
     }
 }
 
@@ -110,8 +117,8 @@ impl Ord for Version {
 
         if self.base != other.base {
             // split versions into dotted strings and lists of suffixes
-            let self_parts: Vec<&str> = self.base.split("_").collect();
-            let other_parts: Vec<&str> = other.base.split("_").collect();
+            let self_parts: Vec<&str> = self.base.split('_').collect();
+            let other_parts: Vec<&str> = other.base.split('_').collect();
 
             // if dotted strings differ, then perform comparisons on them
             if self_parts[0] != other_parts[0] {
@@ -127,8 +134,8 @@ impl Ord for Version {
                 let (self_letter, self_str) = split(self_parts[0]);
                 let (other_letter, other_str) = split(other_parts[0]);
                 // split dotted version string into components
-                let self_ver_parts: Vec<&str> = self_str.split(".").collect();
-                let other_ver_parts: Vec<&str> = other_str.split(".").collect();
+                let self_ver_parts: Vec<&str> = self_str.split('.').collect();
+                let other_ver_parts: Vec<&str> = other_str.split('.').collect();
 
                 // iterate through the components
                 for (v1, v2) in self_ver_parts.iter().zip(other_ver_parts.iter()) {
