@@ -1,12 +1,12 @@
 use std::str::FromStr;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::Criterion;
 
 use pkgcraft::atom;
 use pkgcraft::eapi::EAPI_LATEST;
 
 #[allow(unused_must_use)]
-fn bench_parse_unversioned(c: &mut Criterion) {
+pub fn bench_parse_unversioned(c: &mut Criterion) {
     c.bench_function("atom-unversioned", |b| {
         b.iter(|| {
             atom::parse("cat/pkg", EAPI_LATEST);
@@ -50,6 +50,3 @@ fn bench_parse_unversioned(c: &mut Criterion) {
         b.iter(|| atoms.sort());
     });
 }
-
-criterion_group!(atom_benches, bench_parse_unversioned);
-criterion_main!(atom_benches);

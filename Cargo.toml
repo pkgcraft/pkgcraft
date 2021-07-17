@@ -35,9 +35,5 @@ regex = "1"
 criterion = "0.3"
 
 [[bench]]
-name = "atom"
-harness = false
-
-[[bench]]
-name = "required_use"
+name = "bench"
 harness = false
