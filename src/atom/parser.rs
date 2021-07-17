@@ -480,4 +480,33 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_parse_repos() {
+        // invalid deps
+        let mut s;
+        for slot in ["", "-repo", "repo-1", "repo@path"] {
+            s = format!("cat/pkg::{}", slot);
+            result = parse(&s, &eapi::EAPI_EXTENDED);
+            assert!(result.is_err(), "{} didn't fail", s);
+        }
+
+        // good deps
+        let mut atom;
+        let mut result: Result<Atom, ParseError>;
+        for repo in ["_", "a", "repo", "repo_a", "repo-a"] {
+            s = format!("cat/pkg::{}", repo);
+
+            // repo ids aren't supported in regular EAPIs
+            for eapi in eapi::KNOWN_EAPIS.values() {
+                assert!(parse(&s, eapi).is_err(), "{} didn't fail", s);
+            }
+
+            result = parse(&s, &eapi::EAPI_EXTENDED);
+            assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+            atom = result.unwrap();
+            assert_eq!(atom.repo, opt_str!(repo));
+            assert_eq!(format!("{}", atom), s);
+        }
+    }
 }
