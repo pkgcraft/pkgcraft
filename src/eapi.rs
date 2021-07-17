@@ -256,6 +256,19 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "unknown EAPI option \"unknown\"")]
+    fn test_has_unknown() {
+        EAPI_LATEST.has("unknown");
+    }
+
+    #[test]
+    fn test_fmt() {
+        for (id, eapi) in KNOWN_EAPIS.iter() {
+            assert_eq!(format!("{}", eapi), format!("EAPI {}", id));
+        }
+    }
+
+    #[test]
     fn test_atom_parsing() {
         let mut atom;
         atom = EAPI0.atom("cat/pkg").unwrap();
