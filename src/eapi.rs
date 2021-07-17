@@ -10,9 +10,8 @@ use regex::Regex;
 
 use crate::atom;
 
-static VALID_EAPI_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap()
-});
+static VALID_EAPI_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
 
 type EapiOptions = HashMap<&'static str, bool>;
 
