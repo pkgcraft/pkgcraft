@@ -483,17 +483,19 @@ mod tests {
 
     #[test]
     fn test_parse_repos() {
-        // invalid deps
         let mut s;
+        let mut result: Result<Atom, ParseError>;
+
+        // invalid deps
         for slot in ["", "-repo", "repo-1", "repo@path"] {
             s = format!("cat/pkg::{}", slot);
             result = parse(&s, &eapi::EAPI_EXTENDED);
             assert!(result.is_err(), "{} didn't fail", s);
         }
 
-        // good deps
         let mut atom;
-        let mut result: Result<Atom, ParseError>;
+
+        // good deps
         for repo in ["_", "a", "repo", "repo_a", "repo-a"] {
             s = format!("cat/pkg::{}", repo);
 
