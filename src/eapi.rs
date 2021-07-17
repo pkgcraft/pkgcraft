@@ -108,10 +108,7 @@ impl Eapi {
             options.extend(x);
         }
 
-        Eapi {
-            id,
-            options,
-        }
+        Eapi { id, options }
     }
 }
 
