@@ -126,7 +126,9 @@ peg::parser! {
             }
 
         rule cpv() -> (&'input str, &'input str, Option<Operator>, Option<Version>)
-            = op:$(quiet!{("<" "="?) / "=" / "~" / (">" "="?)})
+            = cat:category() "/" pkg:package() {
+                (cat, pkg, None, None)
+            } / op:$(quiet!{("<" "="?) / "=" / "~" / (">" "="?)})
                     cat:category() "/" pkg:package()
                     quiet!{"-"} ver_rev:version() glob:"*"? {?
                 let op = match (op, glob) {
@@ -148,8 +150,6 @@ peg::parser! {
                 };
 
                 Ok((cat, pkg, Some(op), Some(version)))
-            } / cat:category() "/" pkg:package() {
-                (cat, pkg, None, None)
             }
 
         // repo must not begin with a hyphen and must also be a valid package name
