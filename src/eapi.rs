@@ -96,7 +96,7 @@ impl Eapi {
         atom::parse(s, &self)
     }
 
-    fn register(
+    fn new(
         id: &'static str,
         parent: Option<&'static Eapi>,
         eapi_options: Option<&EapiOptions>,
@@ -137,7 +137,7 @@ pub fn get_eapi(id: &str) -> Result<&'static Eapi, &'static str> {
 
 #[rustfmt::skip]
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::register("0", None, None)
+    Eapi::new("0", None, None)
 });
 
 #[rustfmt::skip]
@@ -145,7 +145,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("slot_deps", true),
     ].iter().cloned().collect();
-    Eapi::register("1", Some(&EAPI0), Some(&options))
+    Eapi::new("1", Some(&EAPI0), Some(&options))
 });
 
 #[rustfmt::skip]
@@ -155,12 +155,12 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
         ("use_deps", true),
         ("src_uri_renames", true),
     ].iter().cloned().collect();
-    Eapi::register("2", Some(&EAPI1), Some(&options))
+    Eapi::new("2", Some(&EAPI1), Some(&options))
 });
 
 #[rustfmt::skip]
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::register("3", Some(&EAPI2), None)
+    Eapi::new("3", Some(&EAPI2), None)
 });
 
 #[rustfmt::skip]
@@ -169,7 +169,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
         ("use_dep_defaults", true),
         ("required_use", true),
     ].iter().cloned().collect();
-    Eapi::register("4", Some(&EAPI3), Some(&options))
+    Eapi::new("4", Some(&EAPI3), Some(&options))
 });
 
 #[rustfmt::skip]
@@ -179,17 +179,17 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
         ("slot_ops", true),
         ("required_use_one_of", true),
     ].iter().cloned().collect();
-    Eapi::register("5", Some(&EAPI4), Some(&options))
+    Eapi::new("5", Some(&EAPI4), Some(&options))
 });
 
 #[rustfmt::skip]
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::register("6", Some(&EAPI5), None)
+    Eapi::new("6", Some(&EAPI5), None)
 });
 
 #[rustfmt::skip]
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::register("7", Some(&EAPI6), None)
+    Eapi::new("7", Some(&EAPI6), None)
 });
 
 #[rustfmt::skip]
@@ -197,7 +197,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("src_uri_unrestrict", true),
     ].iter().cloned().collect();
-    Eapi::register("8", Some(&EAPI7), Some(&options))
+    Eapi::new("8", Some(&EAPI7), Some(&options))
 });
 
 pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
@@ -207,7 +207,7 @@ pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("repo_ids", true),
     ].iter().cloned().collect();
-    Eapi::register("extended", Some(EAPI_LATEST), Some(&options))
+    Eapi::new("extended", Some(EAPI_LATEST), Some(&options))
 });
 
 pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
