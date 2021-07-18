@@ -36,8 +36,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cargo/registry/cache
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ runner.os }}-cargo-
+        key: cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: cargo-
 
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
