@@ -30,13 +30,10 @@ peg::parser! {
                 ['a'..='z']?
                 ("_" ("alpha" / "beta" / "pre" / "rc" / "p") ['0'..='9']*)*
             } / expected!("version")
-            ) rev:rev_str()? { (ver, rev) }
+            ) rev:revision()? { (ver, rev) }
 
-        rule rev_str() -> &'input str
-            = quiet!{"-r"} rev:revision() { rev }
-
-        pub rule revision() -> &'input str
-            = s:$(quiet!{['0'..='9']+} / expected!("revision"))
+        rule revision() -> &'input str
+            = quiet!{"-r"} s:$(quiet!{['0'..='9']+} / expected!("revision"))
             { s }
 
         // Slot names must not begin with a hyphen, dot, or plus sign.
