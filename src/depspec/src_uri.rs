@@ -20,22 +20,22 @@ peg::parser! {
 
         rule uris(eapi: &'static Eapi) -> DepSpec
             = uris:uri() ++ " " {
-                let mut raw_uris = uris.iter().peekable();
                 let mut uri_objs: Vec<Uri> = Vec::new();
 
                 if eapi.has("src_uri_renames") {
-                    while let Some(x) = raw_uris.next() {
-                        let rename = match raw_uris.peek() {
+                    let mut uris = uris.iter().peekable();
+                    while let Some(x) = uris.next() {
+                        let rename = match uris.peek() {
                             Some(&&"->") => {
-                                raw_uris.next();
-                                raw_uris.next().map(|s| s.to_string())
+                                uris.next();
+                                uris.next().map(|s| s.to_string())
                             },
                             _ => None,
                         };
                         uri_objs.push(Uri { uri: x.to_string(), rename });
                     }
                 } else {
-                    while let Some(x) = raw_uris.next() {
+                    for x in uris {
                         uri_objs.push(Uri { uri: x.to_string(), rename: None });
                     }
                 }
