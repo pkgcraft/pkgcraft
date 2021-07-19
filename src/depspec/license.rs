@@ -56,7 +56,7 @@ mod tests {
     use crate::depspec::DepSpec;
     use crate::macros::vec_str;
 
-    use super::license::expr as parse;
+    use super::parse;
 
     #[test]
     fn test_parse_license() {

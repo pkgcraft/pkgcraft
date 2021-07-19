@@ -64,7 +64,7 @@ mod tests {
     use crate::eapi::EAPI_LATEST;
     use crate::macros::vec_str;
 
-    use super::required_use::expr as parse;
+    use super::parse;
 
     #[test]
     fn test_parse_required_use() {
