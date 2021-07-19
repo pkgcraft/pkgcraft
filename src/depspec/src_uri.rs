@@ -66,9 +66,9 @@ pub fn parse(s: &str, eapi: &'static Eapi) -> Result<DepSpec, ParseError> {
 mod tests {
     use crate::atom::ParseError;
     use crate::depspec::{DepSpec, Uri};
-    use crate::eapi::EAPI_LATEST;
+    use crate::eapi;
 
-    use super::src_uri::expr as parse;
+    use super::parse;
 
     #[test]
     fn test_parse_src_uri() {
@@ -84,7 +84,9 @@ mod tests {
             "use ( uri )",
             "!use ( uri )",
         ] {
-            assert!(parse(&s, EAPI_LATEST).is_err(), "{} didn't fail", s);
+            for eapi in eapi::KNOWN_EAPIS.values() {
+                assert!(parse(&s, eapi).is_err(), "{} didn't fail", s);
+            }
         }
 
         let uri = |u1: &str, u2: Option<&str>| Uri {
@@ -101,14 +103,42 @@ mod tests {
                 DepSpec::Uris(vec![uri("uri1", None), uri("uri2", None)]),
             ),
             (
-                "uri1 -> file",
-                DepSpec::Uris(vec![uri("uri1", Some("file"))]),
+                "( uri1 uri2 )",
+                DepSpec::AllOf(Box::new(DepSpec::Uris(vec![
+                    uri("uri1", None),
+                    uri("uri2", None),
+                ]))),
+            ),
+            (
+                "use? ( uri1 )",
+                DepSpec::ConditionalUse(
+                    "use".to_string(),
+                    false,
+                    Box::new(DepSpec::Uris(vec![uri("uri1", None)])),
+                ),
             ),
         ] {
-            result = parse(&s, EAPI_LATEST);
-            assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
-            src_uri = result.unwrap();
-            assert_eq!(src_uri, expected);
+            for eapi in eapi::KNOWN_EAPIS.values() {
+                result = parse(&s, eapi);
+                assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                src_uri = result.unwrap();
+                assert_eq!(src_uri, expected);
+            }
+        }
+
+        // SRC_URI renames
+        for (s, expected) in [(
+            "uri1 -> file",
+            DepSpec::Uris(vec![uri("uri1", Some("file"))]),
+        )] {
+            for eapi in eapi::KNOWN_EAPIS.values() {
+                if eapi.has("src_uri_renames") {
+                    result = parse(&s, eapi);
+                    assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                    src_uri = result.unwrap();
+                    assert_eq!(src_uri, expected);
+                }
+            }
         }
     }
 }
