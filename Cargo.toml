@@ -26,7 +26,6 @@ name = "integration"
 path = "tests/lib.rs"
 
 [dependencies]
-indexmap = "1.7.0"
 once_cell = "1.8.0"
 peg = "0.7"
 regex = "1"

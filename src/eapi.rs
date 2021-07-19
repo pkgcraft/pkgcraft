@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 
-use indexmap::IndexMap;
 // TODO: use std implementation if it becomes available
 // https://github.com/rust-lang/rust/issues/74465
 use once_cell::sync::Lazy;
@@ -71,6 +70,7 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 #[derive(Debug, PartialEq)]
 pub struct Eapi {
     id: &'static str,
+    parent: Option<&'static Eapi>,
     options: EapiOptions,
 }
 
@@ -112,7 +112,11 @@ impl Eapi {
             options.extend(x);
         }
 
-        Eapi { id, options }
+        Eapi {
+            id,
+            parent,
+            options,
+        }
     }
 }
 
@@ -210,17 +214,14 @@ pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("extended", Some(EAPI_LATEST), Some(&options))
 });
 
-pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
-    let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
-    eapis.insert("0", &EAPI0);
-    eapis.insert("1", &EAPI1);
-    eapis.insert("2", &EAPI2);
-    eapis.insert("3", &EAPI3);
-    eapis.insert("4", &EAPI4);
-    eapis.insert("5", &EAPI5);
-    eapis.insert("6", &EAPI6);
-    eapis.insert("7", &EAPI7);
-    eapis.insert("8", &EAPI8);
+pub static KNOWN_EAPIS: Lazy<HashMap<&'static str, &'static Eapi>> = Lazy::new(|| {
+    let mut eapis: HashMap<&'static str, &'static Eapi> = HashMap::new();
+    let mut eapi: &Eapi = EAPI_LATEST;
+    while let Some(x) = eapi.parent {
+        eapis.insert(eapi.id, eapi);
+        eapi = x;
+    }
+    eapis.insert(eapi.id, eapi);
     eapis
 });
 
@@ -233,11 +234,6 @@ mod tests {
         assert!(get_eapi("-invalid").is_err());
         assert!(get_eapi("unknown").is_err());
         assert_eq!(*get_eapi("8").unwrap(), *EAPI8);
-    }
-
-    #[test]
-    fn latest() {
-        assert!(**EAPI_LATEST == **KNOWN_EAPIS.last().unwrap().1);
     }
 
     #[test]
