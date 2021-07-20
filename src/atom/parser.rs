@@ -203,6 +203,8 @@ mod tests {
 
     #[test]
     fn test_parse_versions() {
+        let mut result: Result<Atom, ParseError>;
+
         // invalid deps
         for s in [
             // bad/missing category and/or package names
@@ -226,7 +228,10 @@ mod tests {
             "=a/b-0.*",
             "=a/b-0-r*",
         ] {
-            assert!(parse(&s, &eapi::EAPI0).is_err(), "{} didn't fail", s);
+            for eapi in eapi::KNOWN_EAPIS.values() {
+                result = parse(&s, eapi);
+                assert!(result.is_err(), "{} didn't fail", s);
+            }
         }
 
         // convert &str to Option<Version>
@@ -234,7 +239,6 @@ mod tests {
 
         // good deps
         let mut atom;
-        let mut result: Result<Atom, ParseError>;
         for (s, cat, pkg, op, ver) in [
             ("a/b", "a", "b", None, None),
             ("_/_", "_", "_", None, None),
