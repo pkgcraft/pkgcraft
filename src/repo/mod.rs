@@ -1,5 +1,7 @@
 use std::fmt;
 
+mod fake;
+
 pub trait Repo: fmt::Display {
     // TODO: convert to `impl Iterator` return type once supported within traits
     // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
