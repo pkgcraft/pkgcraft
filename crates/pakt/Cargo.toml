@@ -1,0 +1,20 @@
+[package]
+name = "pakt"
+version = "0.0.1"
+description = "command-line tool leveraging pkgcraft"
+authors = ["Tim Harder <radhermit@gmail.com>"]
+homepage = "https://github.com/pkgcraft/pkgcraft/pakt"
+repository = "https://github.com/pkgcraft/pkgcraft"
+documentation = "https://github.com/pkgcraft/pkgcraft/pakt"
+readme = "README.md"
+license = "MIT"
+edition = "2018"
+autotests = false
+
+[dependencies]
+pkgcraft = { path = "../..", version = "0.0.2" }
+
+[[bin]]
+bench = false
+path = "src/main.rs"
+name = "pakt"
