@@ -12,7 +12,7 @@ edition = "2018"
 autotests = false
 
 [dependencies]
-pkgcraft = { path = "../..", version = "0.0.2" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.2" }
 
 [[bin]]
 bench = false
