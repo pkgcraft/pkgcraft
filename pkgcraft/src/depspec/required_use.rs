@@ -1,7 +1,6 @@
 use peg;
 
 use super::DepSpec;
-use crate::atom::ParseError;
 use crate::eapi::Eapi;
 use crate::macros::vec_str;
 

@@ -1,7 +1,6 @@
 use peg;
 
 use super::{DepSpec, Uri};
-use crate::atom::ParseError;
 use crate::eapi::Eapi;
 
 peg::parser! {
