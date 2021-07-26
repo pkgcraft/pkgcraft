@@ -12,7 +12,6 @@ pub struct Repo {
     pkgs: repo::PkgCache,
 }
 
-
 impl Repo {
     pub fn new<'a, I>(id: &str, atoms: I) -> Result<Repo>
     where
@@ -21,11 +20,16 @@ impl Repo {
         let mut pkgs = repo::PkgCache::new();
         for s in atoms.into_iter() {
             let (cat, pkg, ver) = atom::parse::cpv(s)?;
-            pkgs.entry(cat.to_string()).or_insert(repo::VersionCache::new())
-                .entry(pkg.to_string()).or_insert(HashSet::new())
+            pkgs.entry(cat.to_string())
+                .or_insert_with(repo::VersionCache::new)
+                .entry(pkg.to_string())
+                .or_insert_with(HashSet::new)
                 .insert(ver.to_string());
         }
-        Ok(Repo { id: id.to_string(), pkgs: pkgs })
+        Ok(Repo {
+            id: id.to_string(),
+            pkgs,
+        })
     }
 }
 
@@ -42,21 +46,21 @@ impl repo::Repo for Repo {
 
     fn packages<S: AsRef<str>>(&self, cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
         match self.pkgs.get(cat.as_ref()) {
-            Some(pkgs) => return Box::new(pkgs.keys()),
-            None => return Box::new(iter::empty::<&String>()),
-        };
+            Some(pkgs) => Box::new(pkgs.keys()),
+            None => Box::new(iter::empty::<&String>()),
+        }
     }
 
     fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Box<dyn Iterator<Item = &String> + '_> {
         match self.pkgs.get(cat.as_ref()) {
             Some(pkgs) => {
                 match pkgs.get(pkg.as_ref()) {
-                    Some(vers) => return Box::new(vers.iter()),
-                    None => return Box::new(iter::empty::<&String>()),
-                };
-            },
-            None => return Box::new(iter::empty::<&String>()),
-        };
+                    Some(vers) => Box::new(vers.iter()),
+                    None => Box::new(iter::empty::<&String>()),
+                }
+            }
+            None => Box::new(iter::empty::<&String>()),
+        }
     }
 }
 
@@ -64,8 +68,8 @@ impl repo::Repo for Repo {
 mod tests {
     use maplit::hashset;
 
-    use crate::repo::Repo as RepoTrait;
     use crate::macros::vec_str;
+    use crate::repo::Repo as RepoTrait;
 
     use super::*;
 
@@ -78,10 +82,10 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", []).unwrap();
-        assert_eq!(iter_to_set(repo.categories()), hashset!{});
+        assert_eq!(iter_to_set(repo.categories()), hashset! {});
         // existing pkgs
         repo = Repo::new("fake", ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
-        assert_eq!(iter_to_set(repo.categories()), hashset!{"cat1", "cat2"});
+        assert_eq!(iter_to_set(repo.categories()), hashset! {"cat1", "cat2"});
     }
 
     #[test]
@@ -89,12 +93,15 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", []).unwrap();
-        assert_eq!(iter_to_set(repo.packages("cat")), hashset!{});
+        assert_eq!(iter_to_set(repo.packages("cat")), hashset! {});
         // existing pkgs
         repo = Repo::new("fake", ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
-        assert_eq!(iter_to_set(repo.packages("cat")), hashset!{});
-        assert_eq!(iter_to_set(repo.packages("cat1")), hashset!{"pkg-a", "pkg-b"});
-        assert_eq!(iter_to_set(repo.packages("cat2")), hashset!{"pkg-c"});
+        assert_eq!(iter_to_set(repo.packages("cat")), hashset! {});
+        assert_eq!(
+            iter_to_set(repo.packages("cat1")),
+            hashset! {"pkg-a", "pkg-b"}
+        );
+        assert_eq!(iter_to_set(repo.packages("cat2")), hashset! {"pkg-c"});
     }
 
     #[test]
@@ -102,11 +109,14 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", []).unwrap();
-        assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset!{});
+        assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset! {});
         // existing pkgs
         repo = Repo::new("fake", ["cat1/pkg-a-1", "cat2/pkg-b-1", "cat2/pkg-b-2"]).unwrap();
-        assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset!{});
-        assert_eq!(iter_to_set(repo.versions("cat1", "pkg-a")), hashset!{"1"});
-        assert_eq!(iter_to_set(repo.versions("cat2", "pkg-b")), hashset!{"1", "2"});
+        assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset! {});
+        assert_eq!(iter_to_set(repo.versions("cat1", "pkg-a")), hashset! {"1"});
+        assert_eq!(
+            iter_to_set(repo.versions("cat2", "pkg-b")),
+            hashset! {"1", "2"}
+        );
     }
 }

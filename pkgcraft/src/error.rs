@@ -4,7 +4,6 @@ use std::io;
 
 use crate::atom;
 
-
 /// A `Result` alias where the `Err` case is `pkgcraft::error::Error`.
 pub type Result<T> = ::std::result::Result<T, Error>;
 
