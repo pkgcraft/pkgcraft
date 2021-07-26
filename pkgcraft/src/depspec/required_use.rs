@@ -6,7 +6,7 @@ use crate::eapi::Eapi;
 use crate::macros::vec_str;
 
 peg::parser! {
-    pub grammar required_use() for str {
+    pub grammar depspec() for str {
         rule _ = [' ']
 
         rule useflag() -> &'input str
@@ -53,9 +53,8 @@ peg::parser! {
     }
 }
 
-pub fn parse(s: &str, eapi: &'static Eapi) -> Result<DepSpec, ParseError> {
-    required_use::expr(s, eapi)
-}
+// export depspec parser
+pub use depspec::expr as parse;
 
 #[cfg(test)]
 mod tests {

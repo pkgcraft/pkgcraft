@@ -5,7 +5,7 @@ use crate::atom::ParseError;
 use crate::eapi::Eapi;
 
 peg::parser! {
-    pub grammar src_uri() for str {
+    pub grammar depspec() for str {
         rule _ = [' ']
 
         rule uri() -> &'input str
@@ -58,9 +58,8 @@ peg::parser! {
     }
 }
 
-pub fn parse(s: &str, eapi: &'static Eapi) -> Result<DepSpec, ParseError> {
-    src_uri::expr(s, eapi)
-}
+// export depspec parser
+pub use depspec::expr as parse;
 
 #[cfg(test)]
 mod tests {

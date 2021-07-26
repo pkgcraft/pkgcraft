@@ -5,7 +5,7 @@ use crate::atom;
 use crate::eapi::Eapi;
 
 peg::parser! {
-    pub grammar pkgdep() for str {
+    pub grammar depspec() for str {
         rule _ = [' ']
 
         rule dep(eapi: &'static Eapi) -> atom::Atom
@@ -47,9 +47,8 @@ peg::parser! {
     }
 }
 
-pub fn parse(s: &str, eapi: &'static Eapi) -> Result<DepSpec, atom::ParseError> {
-    pkgdep::expr(s, eapi)
-}
+// export depspec parser
+pub use depspec::expr as parse;
 
 #[cfg(test)]
 mod tests {
