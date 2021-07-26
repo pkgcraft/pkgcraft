@@ -3,8 +3,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
-use super::parser::pkg::version as parse;
-use super::ParseError;
+use super::{parse, ParseError};
 use crate::macros::regex;
 use crate::utils::rstrip;
 
@@ -266,7 +265,7 @@ impl FromStr for Version {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (ver, rev) = parse(s)?;
+        let (ver, rev) = parse::version(s)?;
         Ok(Version {
             base: ver.to_string(),
             revision: Revision::new(rev),

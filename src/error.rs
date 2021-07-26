@@ -2,6 +2,8 @@ use std::env;
 use std::fmt;
 use std::io;
 
+use crate::atom;
+
 
 /// A `Result` alias where the `Err` case is `pkgcraft::error::Error`.
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -24,6 +26,12 @@ impl From<env::VarError> for Error {
 impl From<io::Error> for Error {
     fn from(error: io::Error) -> Self {
         Error::IOError(format!("{}", error))
+    }
+}
+
+impl From<atom::ParseError> for Error {
+    fn from(error: atom::ParseError) -> Self {
+        Error::ParseError(format!("{}", error))
     }
 }
 

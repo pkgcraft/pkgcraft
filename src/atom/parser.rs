@@ -125,7 +125,7 @@ peg::parser! {
                 }
             }
 
-        rule cpv() -> (&'input str, &'input str, Option<Operator>, Option<Version>)
+        rule pkg_dep() -> (&'input str, &'input str, Option<Operator>, Option<Version>)
             = cat:category() "/" pkg:package() {
                 (cat, pkg, None, None)
             } / op:$(quiet!{("<" "="?) / "=" / "~" / (">" "="?)})
@@ -168,11 +168,15 @@ peg::parser! {
                 Ok(repo)
             }
 
-        // public pkg atom parsing method
-        pub rule atom(eapi: &'static Eapi) -> Atom
-            = block:blocks(eapi)? cpv:cpv() slot_dep:slot_dep(eapi)?
+        pub rule cpv() -> (&'input str, &'input str, &'input str)
+            = cat:category() "/" pkg:package() quiet!{"-"} ver:$(version()) {
+                (cat, pkg, ver)
+            }
+
+        pub rule dep(eapi: &'static Eapi) -> Atom
+            = block:blocks(eapi)? pkg_dep:pkg_dep() slot_dep:slot_dep(eapi)?
                     use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
-                let (cat, pkg, op, version) = cpv;
+                let (cat, pkg, op, version) = pkg_dep;
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
                 Atom {
                     category: cat.to_string(),
@@ -199,7 +203,7 @@ mod tests {
     use crate::eapi;
     use crate::macros::opt_str;
 
-    use super::pkg::atom as parse;
+    use super::pkg::dep as parse;
 
     #[test]
     fn test_parse_versions() {

@@ -10,7 +10,7 @@ peg::parser! {
 
         rule dep(eapi: &'static Eapi) -> atom::Atom
             = s:$(!['(' | ')'] [^' ']+) {?
-                let atom = match atom::parse(s, eapi) {
+                let atom = match atom::parse::dep(s, eapi) {
                     Ok(x) => x,
                     Err(e) => return Err("failed parsing atom"),
                 };

@@ -8,6 +8,8 @@ use crate::eapi;
 mod parser;
 mod version;
 
+pub use crate::atom::parser::pkg as parse;
+
 pub type ParseError = ::peg::error::ParseError<::peg::str::LineCol>;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -167,15 +169,11 @@ impl PartialOrd for Atom {
     }
 }
 
-pub fn parse(s: &str, eapi: &'static eapi::Eapi) -> Result<Atom, ParseError> {
-    parser::pkg::atom(s, &eapi)
-}
-
 impl FromStr for Atom {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parser::pkg::atom(s, eapi::EAPI_LATEST)
+        parse::dep(s, eapi::EAPI_LATEST)
     }
 }
 
