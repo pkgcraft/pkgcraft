@@ -8,7 +8,8 @@ use crate::eapi;
 mod parser;
 mod version;
 
-pub use crate::atom::parser::pkg as parse;
+// export pkg dep parser
+pub use parser::pkg as parse;
 
 pub type ParseError = ::peg::error::ParseError<::peg::str::LineCol>;
 
