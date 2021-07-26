@@ -4,10 +4,13 @@ use std::path::PathBuf;
 
 use crate::error::Result;
 
-#[derive(Debug, PartialEq)]
+mod repo;
+
+#[derive(Debug)]
 pub struct Config {
     cache_dir: PathBuf,
     config_dir: PathBuf,
+    repos: repo::Config,
 }
 
 impl Config {
@@ -47,7 +50,13 @@ impl Config {
             fs::create_dir_all(&config_dir)?;
         }
 
-        Ok(Config { cache_dir, config_dir })
+        let repos = repo::Config::new(&config_dir)?;
+
+        Ok(Config {
+            cache_dir,
+            config_dir,
+            repos,
+        })
     }
 }
 
@@ -94,12 +103,21 @@ mod tests {
 
         // XDG var is unset and HOME is set
         let config = Config::new("pkgcraft", "", false).unwrap();
-        assert_eq!(config.cache_dir, PathBuf::from("/home/user/.cache/pkgcraft"));
-        assert_eq!(config.config_dir, PathBuf::from("/home/user/.config/pkgcraft"));
+        assert_eq!(
+            config.cache_dir,
+            PathBuf::from("/home/user/.cache/pkgcraft")
+        );
+        assert_eq!(
+            config.config_dir,
+            PathBuf::from("/home/user/.config/pkgcraft")
+        );
 
         // prefixed
         let config = Config::new("pkgcraft", "/prefix", false).unwrap();
-        assert_eq!(config.cache_dir, PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
+        assert_eq!(
+            config.cache_dir,
+            PathBuf::from("/prefix/home/user/.cache/pkgcraft")
+        );
         assert_eq!(
             config.config_dir,
             PathBuf::from("/prefix/home/user/.config/pkgcraft")
