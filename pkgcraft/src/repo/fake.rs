@@ -53,12 +53,10 @@ impl repo::Repo for Repo {
 
     fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Box<dyn Iterator<Item = &String> + '_> {
         match self.pkgs.get(cat.as_ref()) {
-            Some(pkgs) => {
-                match pkgs.get(pkg.as_ref()) {
-                    Some(vers) => Box::new(vers.iter()),
-                    None => Box::new(iter::empty::<&String>()),
-                }
-            }
+            Some(pkgs) => match pkgs.get(pkg.as_ref()) {
+                Some(vers) => Box::new(vers.iter()),
+                None => Box::new(iter::empty::<&String>()),
+            },
             None => Box::new(iter::empty::<&String>()),
         }
     }
