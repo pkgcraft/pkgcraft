@@ -46,6 +46,8 @@ jobs:
     - name: Run tests with coverage via tarpaulin
       if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: actions-rs/tarpaulin@v0.1
+      with:
+        args: '--exclude-files */tests'
 
     - name: Upload to codecov.io
       if: ${{ matrix.os == 'ubuntu-latest' }}
