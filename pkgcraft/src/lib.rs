@@ -1,4 +1,5 @@
 pub mod atom;
+pub mod config;
 pub mod depspec;
 pub mod eapi;
 mod ebuild;

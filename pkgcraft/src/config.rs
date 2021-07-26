@@ -2,20 +2,22 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-use pkgcraft::error::Result;
+use crate::error::Result;
 
 #[derive(Debug, PartialEq)]
 pub struct Config {
-    cache: PathBuf,
-    config: PathBuf,
+    cache_dir: PathBuf,
+    config_dir: PathBuf,
 }
 
 impl Config {
-    pub fn new(prefix: &str, create: bool) -> Result<Config> {
+    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
         let mut user_cache = user_dir("XDG_CACHE_HOME", ".cache")?;
+        user_cache.push(name);
         let mut user_config = user_dir("XDG_CONFIG_HOME", ".config")?;
+        user_config.push(name);
         let mut system_cache = PathBuf::from("/var/cache");
-        let mut system_config = PathBuf::from("/etc/pakt");
+        let mut system_config = PathBuf::from(format!("/etc/{}", name));
 
         // append non-empty prefix
         if !prefix.is_empty() {
@@ -33,7 +35,7 @@ impl Config {
         //  - existing user config
         //  - existing system config
         //  - create new user config
-        let (cache, config) = match (user_config.exists(), system_config.exists()) {
+        let (cache_dir, config_dir) = match (user_config.exists(), system_config.exists()) {
             (true, _) => (user_cache, user_config),
             (_, true) => (system_cache, system_config),
             _ => (user_cache, user_config),
@@ -41,11 +43,11 @@ impl Config {
 
         // create dirs on request
         if create {
-            fs::create_dir_all(&cache)?;
-            fs::create_dir_all(&config)?;
+            fs::create_dir_all(&cache_dir)?;
+            fs::create_dir_all(&config_dir)?;
         }
 
-        Ok(Config { cache, config })
+        Ok(Config { cache_dir, config_dir })
     }
 }
 
@@ -62,7 +64,6 @@ fn user_dir(xdg_var: &str, fallback: &str) -> Result<PathBuf> {
         }
     };
 
-    path.push("pakt");
     Ok(path)
 }
 
@@ -79,33 +80,33 @@ mod tests {
         env::set_var("HOME", "/home/user");
 
         // XDG var and HOME are set
-        let config = Config::new("", false).unwrap();
-        assert_eq!(config.cache, PathBuf::from("/cache/pakt"));
-        assert_eq!(config.config, PathBuf::from("/config/pakt"));
+        let config = Config::new("pkgcraft", "", false).unwrap();
+        assert_eq!(config.cache_dir, PathBuf::from("/cache/pkgcraft"));
+        assert_eq!(config.config_dir, PathBuf::from("/config/pkgcraft"));
 
         // prefixed
-        let config = Config::new("/prefix", false).unwrap();
-        assert_eq!(config.cache, PathBuf::from("/prefix/cache/pakt"));
-        assert_eq!(config.config, PathBuf::from("/prefix/config/pakt"));
+        let config = Config::new("pkgcraft", "/prefix", false).unwrap();
+        assert_eq!(config.cache_dir, PathBuf::from("/prefix/cache/pkgcraft"));
+        assert_eq!(config.config_dir, PathBuf::from("/prefix/config/pkgcraft"));
 
         env::remove_var("XDG_CACHE_HOME");
         env::remove_var("XDG_CONFIG_HOME");
 
         // XDG var is unset and HOME is set
-        let config = Config::new("", false).unwrap();
-        assert_eq!(config.cache, PathBuf::from("/home/user/.cache/pakt"));
-        assert_eq!(config.config, PathBuf::from("/home/user/.config/pakt"));
+        let config = Config::new("pkgcraft", "", false).unwrap();
+        assert_eq!(config.cache_dir, PathBuf::from("/home/user/.cache/pkgcraft"));
+        assert_eq!(config.config_dir, PathBuf::from("/home/user/.config/pkgcraft"));
 
         // prefixed
-        let config = Config::new("/prefix", false).unwrap();
-        assert_eq!(config.cache, PathBuf::from("/prefix/home/user/.cache/pakt"));
+        let config = Config::new("pkgcraft", "/prefix", false).unwrap();
+        assert_eq!(config.cache_dir, PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
         assert_eq!(
-            config.config,
-            PathBuf::from("/prefix/home/user/.config/pakt")
+            config.config_dir,
+            PathBuf::from("/prefix/home/user/.config/pkgcraft")
         );
         env::remove_var("HOME");
 
         // XDG var and HOME are unset
-        assert!(Config::new("", false).is_err());
+        assert!(Config::new("pkgcraft", "", false).is_err());
     }
 }
