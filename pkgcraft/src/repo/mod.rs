@@ -1,6 +1,11 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
+mod ebuild;
 mod fake;
+
+type VersionCache = HashMap<String, HashSet<String>>;
+type PkgCache = HashMap<String, VersionCache>;
 
 pub trait Repo: fmt::Display {
     // TODO: convert to `impl Iterator` return type once supported within traits

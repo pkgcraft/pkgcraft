@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt;
 use std::iter;
 
@@ -6,13 +6,10 @@ use crate::atom;
 use crate::error::Result;
 use crate::repo;
 
-type VersionCache = HashMap<String, HashSet<String>>;
-type PkgCache = HashMap<String, VersionCache>;
-
 #[derive(Debug, PartialEq)]
 pub struct Repo {
     pub id: String,
-    pkgs: PkgCache,
+    pkgs: repo::PkgCache,
 }
 
 
@@ -21,10 +18,10 @@ impl Repo {
     where
         I: IntoIterator<Item = &'a str>,
     {
-        let mut pkgs = PkgCache::new();
+        let mut pkgs = repo::PkgCache::new();
         for s in atoms.into_iter() {
             let (cat, pkg, ver) = atom::parse::cpv(s)?;
-            pkgs.entry(cat.to_string()).or_insert(VersionCache::new())
+            pkgs.entry(cat.to_string()).or_insert(repo::VersionCache::new())
                 .entry(pkg.to_string()).or_insert(HashSet::new())
                 .insert(ver.to_string());
         }
