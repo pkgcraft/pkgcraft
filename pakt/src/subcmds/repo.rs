@@ -5,23 +5,17 @@ pub fn cmd() -> App<'static> {
     App::new("repo")
         .about("manage available repos")
         .setting(AppSettings::DisableHelpSubcommand)
-        .setting(AppSettings::VersionlessSubcommands)
+        .setting(AppSettings::DisableVersionForSubcommands)
         .subcommand(
             App::new("add")
                 .about("register new repo")
-                .arg(Arg::new("name")
-                    .required(true)
-                    .about("repo name"))
-                .arg(Arg::new("uri")
-                    .required(true)
-                    .about("repo location")),
+                .arg(Arg::new("name").required(true).about("repo name"))
+                .arg(Arg::new("uri").required(true).about("repo location")),
         )
         .subcommand(
             App::new("del")
                 .about("remove known repo")
-                .arg(Arg::new("name")
-                    .required(true)
-                    .about("repo name")),
+                .arg(Arg::new("name").required(true).about("repo name")),
         )
 }
 

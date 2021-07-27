@@ -16,7 +16,7 @@ anyhow = "1.0.42"
 pkgcraft = { path = "../pkgcraft", version = "0.0.2" }
 
 [dependencies.clap]
-version = "3.0.0-beta.2"
+git = "https://github.com/clap-rs/clap.git"
 default-features = false
 features = [ "suggestions", "std" ]
 
