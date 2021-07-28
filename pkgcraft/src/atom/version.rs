@@ -233,18 +233,14 @@ impl Ord for Version {
                 match self_suffixes.len().cmp(&other_suffixes.len()) {
                     Ordering::Equal => (),
                     Ordering::Greater => {
-                        let m = SUFFIX_RE
-                            .captures(self_suffixes.last().unwrap())
-                            .unwrap();
+                        let m = SUFFIX_RE.captures(self_suffixes.last().unwrap()).unwrap();
                         match m.name("suffix").unwrap().as_str() {
                             "p" => return Ordering::Greater,
                             _ => return Ordering::Less,
                         }
                     }
                     Ordering::Less => {
-                        let m = SUFFIX_RE
-                            .captures(other_suffixes.last().unwrap())
-                            .unwrap();
+                        let m = SUFFIX_RE.captures(other_suffixes.last().unwrap()).unwrap();
                         match m.name("suffix").unwrap().as_str() {
                             "p" => return Ordering::Less,
                             _ => return Ordering::Greater,
