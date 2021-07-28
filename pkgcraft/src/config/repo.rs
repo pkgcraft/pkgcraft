@@ -2,28 +2,35 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde::{Serialize, Deserialize};
+
 use crate::error::{Error, Result};
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     path: PathBuf,
+    #[serde(default)] // https://github.com/mehcode/config-rs/issues/114
     repos: HashSet<String>,
 }
 
 impl Config {
     pub fn new(config_dir: &Path) -> Result<Config> {
         let path = config_dir.join("repos");
+        let repos: HashSet<String>;
 
-        let repo_paths = fs::read_dir(&path)?;
-        let repos: HashSet<String> = repo_paths
-            .filter_map(|entry| {
-                entry.ok().and_then(|e| {
-                    e.path()
-                        .file_name()
-                        .and_then(|p| p.to_str().map(|s| s.to_string()))
+        if let Ok(repo_paths) = fs::read_dir(&path) {
+            repos = repo_paths
+                .filter_map(|entry| {
+                    entry.ok().and_then(|e| {
+                        e.path()
+                            .file_name()
+                            .and_then(|p| p.to_str().map(|s| s.to_string()))
+                    })
                 })
-            })
-            .collect();
+                .collect();
+        } else {
+            repos = HashSet::new();
+        }
 
         Ok(Config { path, repos })
     }

@@ -2,15 +2,23 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
+use serde::{Serialize, Deserialize};
+
 use crate::error::Result;
 
 mod repo;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     cache_dir: PathBuf,
     config_dir: PathBuf,
-    repos: repo::Config,
+    pub repos: repo::Config,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config::new("pkgcraft", "", false).unwrap()
+    }
 }
 
 impl Config {
