@@ -3,9 +3,14 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+
 use super::{parse, ParseError};
-use crate::macros::regex;
 use crate::utils::rstrip;
+
+static SUFFIX_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$").unwrap());
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Suffix {
@@ -182,7 +187,6 @@ impl Ord for Version {
             let self_suffixes = &self_parts[1..];
             let other_suffixes = &other_parts[1..];
             let mut suffix_count: u32 = 0;
-            let suffix_regex = regex!("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$");
 
             for (s1, s2) in self_suffixes.iter().zip(other_suffixes.iter()) {
                 suffix_count += 1;
@@ -193,8 +197,8 @@ impl Ord for Version {
                 }
 
                 // use regex to split suffixes from versions
-                let m1 = suffix_regex.captures(s1).unwrap();
-                let m2 = suffix_regex.captures(s2).unwrap();
+                let m1 = SUFFIX_RE.captures(s1).unwrap();
+                let m2 = SUFFIX_RE.captures(s2).unwrap();
                 let n1 = Suffix::from_str(m1.name("suffix").unwrap().as_str()).unwrap();
                 let n2 = Suffix::from_str(m2.name("suffix").unwrap().as_str()).unwrap();
 
@@ -229,7 +233,7 @@ impl Ord for Version {
                 match self_suffixes.len().cmp(&other_suffixes.len()) {
                     Ordering::Equal => (),
                     Ordering::Greater => {
-                        let m = suffix_regex
+                        let m = SUFFIX_RE
                             .captures(self_suffixes.last().unwrap())
                             .unwrap();
                         match m.name("suffix").unwrap().as_str() {
@@ -238,7 +242,7 @@ impl Ord for Version {
                         }
                     }
                     Ordering::Less => {
-                        let m = suffix_regex
+                        let m = SUFFIX_RE
                             .captures(other_suffixes.last().unwrap())
                             .unwrap();
                         match m.name("suffix").unwrap().as_str() {
