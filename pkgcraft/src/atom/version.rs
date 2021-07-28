@@ -1,4 +1,4 @@
-use std::cmp::{min, Ordering};
+use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
@@ -180,53 +180,53 @@ impl Ord for Version {
             }
 
             let self_suffixes = &self_parts[1..];
-            let self_suffixes_len = self_suffixes.len();
             let other_suffixes = &other_parts[1..];
-            let other_suffixes_len = other_suffixes.len();
-            let suffix_range = min(self_suffixes_len, other_suffixes_len);
+            let mut suffix_count: u32 = 0;
+            let suffix_regex = regex!("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$");
 
-            if suffix_range >= 1 {
-                let suffix_regex = regex!("^(?P<suffix>alpha|beta|pre|rc|p)(?P<version>\\d*)$");
-                for x in 0..suffix_range {
-                    // if the strings are equal, continue to the next
-                    if self_suffixes[x] == other_suffixes[x] {
-                        continue;
-                    }
+            for (s1, s2) in self_suffixes.iter().zip(other_suffixes.iter()) {
+                suffix_count += 1;
 
-                    // use regex to split suffixes from versions
-                    let m1 = suffix_regex.captures(self_suffixes[x]).unwrap();
-                    let m2 = suffix_regex.captures(other_suffixes[x]).unwrap();
-                    let s1 = Suffix::from_str(m1.name("suffix").unwrap().as_str()).unwrap();
-                    let s2 = Suffix::from_str(m2.name("suffix").unwrap().as_str()).unwrap();
-
-                    // if suffixes differ, use them for comparison
-                    cmp = s1.cmp(&s2);
-                    if cmp != Ordering::Equal {
-                        return cmp;
-                    }
-
-                    // otherwise use the suffix versions for comparison
-                    let v1: u32 = m1
-                        .name("version")
-                        .unwrap()
-                        .as_str()
-                        .parse()
-                        .unwrap_or_default();
-                    let v2: u32 = m2
-                        .name("version")
-                        .unwrap()
-                        .as_str()
-                        .parse()
-                        .unwrap_or_default();
-                    cmp = v1.cmp(&v2);
-                    if cmp != Ordering::Equal {
-                        return cmp;
-                    }
+                // if suffix strings are equal, continue to the next
+                if s1 == s2 {
+                    continue;
                 }
 
+                // use regex to split suffixes from versions
+                let m1 = suffix_regex.captures(s1).unwrap();
+                let m2 = suffix_regex.captures(s2).unwrap();
+                let n1 = Suffix::from_str(m1.name("suffix").unwrap().as_str()).unwrap();
+                let n2 = Suffix::from_str(m2.name("suffix").unwrap().as_str()).unwrap();
+
+                // if suffixes differ, use them for comparison
+                cmp = n1.cmp(&n2);
+                if cmp != Ordering::Equal {
+                    return cmp;
+                }
+
+                // otherwise use the suffix versions for comparison
+                let v1: u32 = m1
+                    .name("version")
+                    .unwrap()
+                    .as_str()
+                    .parse()
+                    .unwrap_or_default();
+                let v2: u32 = m2
+                    .name("version")
+                    .unwrap()
+                    .as_str()
+                    .parse()
+                    .unwrap_or_default();
+                cmp = v1.cmp(&v2);
+                if cmp != Ordering::Equal {
+                    return cmp;
+                }
+            }
+
+            if suffix_count > 0 {
                 // One version has more suffixes than the other, use its last
                 // suffix to determine ordering.
-                match self_suffixes_len.cmp(&other_suffixes_len) {
+                match self_suffixes.len().cmp(&other_suffixes.len()) {
                     Ordering::Equal => (),
                     Ordering::Greater => {
                         let m = suffix_regex
