@@ -1,6 +1,8 @@
 use anyhow::Result;
 use clap::{App, ArgMatches};
 
+use crate::settings::Settings;
+
 mod repo;
 
 // combine subcommands from given submodules into a vector for clap
@@ -15,9 +17,9 @@ pub fn register() -> Vec<App<'static>> {
     subcmds!(repo)
 }
 
-pub fn run(subcmd: &str, args: &ArgMatches) -> Result<()> {
+pub fn run(subcmd: &str, args: &ArgMatches, settings: &Settings) -> Result<()> {
     match subcmd {
-        "repo" => repo::run(args),
+        "repo" => repo::run(args, settings),
         _ => Ok(()),
     }
 }

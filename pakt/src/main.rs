@@ -2,8 +2,10 @@ use anyhow::Result;
 use clap::{App, AppSettings, Arg, ArgMatches, ErrorKind};
 
 use argparse::str_to_bool;
+use settings::Settings;
 
 mod argparse;
+mod settings;
 mod subcmds;
 
 fn main() -> Result<()> {
@@ -46,20 +48,21 @@ fn main() -> Result<()> {
 
     let matches = app.try_get_matches().unwrap_or_else(|e| exit(&cmd, &e, 2));
 
-    // TODO: load config settings and then override them with command-line settings
+    // load config settings and then override them with command-line settings
+    let mut settings = Settings::new()?;
 
     if let Some(ref color) = matches.value_of("color") {
-        let color = str_to_bool(color)?;
+        settings.color = str_to_bool(color)?;
     }
 
-    let debug = matches.is_present("debug");
-
-    let mut verbosity = 0;
-    verbosity += matches.occurrences_of("verbose");
-    verbosity -= matches.occurrences_of("quiet");
+    if matches.is_present("debug") {
+        settings.debug = true;
+    }
+    settings.verbosity += matches.occurrences_of("verbose") as i32;
+    settings.verbosity -= matches.occurrences_of("quiet") as i32;
 
     match matches.subcommand() {
-        Some((cmd, args)) => subcmds::run(&cmd, &args),
+        Some((cmd, args)) => subcmds::run(cmd, args, &settings),
         _ => Ok(()),
     }
 }

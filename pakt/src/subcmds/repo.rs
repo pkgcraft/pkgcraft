@@ -1,6 +1,8 @@
 use anyhow::Result;
 use clap::{App, AppSettings, Arg, ArgMatches};
 
+use crate::settings::Settings;
+
 pub fn cmd() -> App<'static> {
     App::new("repo")
         .about("manage available repos")
@@ -19,21 +21,21 @@ pub fn cmd() -> App<'static> {
         )
 }
 
-pub fn run(args: &ArgMatches) -> Result<()> {
+pub fn run(args: &ArgMatches, settings: &Settings) -> Result<()> {
     match args.subcommand() {
-        Some(("add", m)) => add(&m),
-        Some(("del", m)) => del(&m),
+        Some(("add", m)) => add(m, settings),
+        Some(("del", m)) => del(m, settings),
         _ => Ok(()),
     }
 }
 
-fn add(args: &ArgMatches) -> Result<()> {
+fn add(args: &ArgMatches, _settings: &Settings) -> Result<()> {
     let name = args.value_of("name").unwrap();
     let uri = args.value_of("uri").unwrap();
     Ok(())
 }
 
-fn del(args: &ArgMatches) -> Result<()> {
+fn del(args: &ArgMatches, _settings: &Settings) -> Result<()> {
     let name = args.value_of("name").unwrap();
     Ok(())
 }
