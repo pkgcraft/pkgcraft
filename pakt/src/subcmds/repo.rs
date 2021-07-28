@@ -26,8 +26,13 @@ pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
         Some(("add", m)) => add(m, settings),
         Some(("del", m)) => del(m, settings),
         Some((s, _)) => Err(anyhow!("unknown repo subcommand: {:?}", s)),
-        _ => Ok(()),
+        None => list(settings),
     }
+}
+
+fn list(_settings: &Settings) -> Result<()> {
+    // TODO: output list of available repos
+    Ok(())
 }
 
 fn add(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
