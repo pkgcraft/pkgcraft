@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{App, ArgMatches};
 
 use crate::settings::Settings;
@@ -20,6 +20,6 @@ pub fn register() -> Vec<App<'static>> {
 pub fn run(subcmd: &str, args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     match subcmd {
         "repo" => repo::run(args, settings),
-        _ => Ok(()),
+        s => Err(anyhow!("unknown subcommand: {:?}", s)),
     }
 }

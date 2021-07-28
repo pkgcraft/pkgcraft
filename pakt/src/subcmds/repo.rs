@@ -25,6 +25,7 @@ pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     match args.subcommand() {
         Some(("add", m)) => add(m, settings),
         Some(("del", m)) => del(m, settings),
+        Some((s, _)) => Err(anyhow!("unknown repo subcommand: {:?}", s)),
         _ => Ok(()),
     }
 }
