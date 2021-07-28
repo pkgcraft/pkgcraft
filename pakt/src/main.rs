@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{App, AppSettings, Arg, ArgMatches, ErrorKind};
+use clap::{App, AppSettings, Arg, ArgMatches};
 
 use argparse::str_to_bool;
 use settings::Settings;
@@ -40,13 +40,12 @@ fn main() -> Result<()> {
                 .about("suppress non-error messages"),
         );
 
-    let app_ignore_errors = app.clone().setting(AppSettings::IgnoreErrors);
-
     // determine subcommand being run to use for error output
-    let pre_parsed = app_ignore_errors.get_matches();
-    let cmd = determine_cmd(&pre_parsed);
+    //let app_ignore_errors = app.clone().setting(AppSettings::IgnoreErrors);
+    //let pre_parsed = app_ignore_errors.get_matches();
+    //let cmd = determine_cmd(&pre_parsed);
 
-    let matches = app.try_get_matches().unwrap_or_else(|e| exit(&cmd, &e, 2));
+    let matches = app.get_matches();
 
     // load config settings and then override them with command-line settings
     let mut settings = Settings::new()?;
@@ -68,6 +67,7 @@ fn main() -> Result<()> {
 }
 
 // determine full command being run including all subcommands
+#[allow(dead_code)]
 fn determine_cmd(args: &ArgMatches) -> String {
     let mut args: &ArgMatches = args;
     let mut cmd = vec![env!("CARGO_PKG_NAME")];
@@ -76,25 +76,4 @@ fn determine_cmd(args: &ArgMatches) -> String {
         args = m;
     }
     cmd.join(" ")
-}
-
-fn exit(cmd: &str, error: &clap::Error, code: i32) -> ! {
-    match error.kind {
-        ErrorKind::DisplayHelp => println!("{}", error),
-        ErrorKind::DisplayVersion => {
-            println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-        }
-        _ => {
-            // extract error message without extra cruft -- drop help info
-            let msg = format!("{}", error);
-            let error = msg.split('\n').next().unwrap();
-            println!("{}: {}", cmd, error);
-        }
-    }
-
-    use std::io::Write;
-    let _ = std::io::stdout().lock().flush();
-    let _ = std::io::stderr().lock().flush();
-
-    std::process::exit(code)
 }
