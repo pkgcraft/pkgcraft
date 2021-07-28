@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use config::{Config, Environment};
-use serde::{Serialize, Deserialize};
 use pkgcraft::config::Config as PkgcraftConfig;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Settings {

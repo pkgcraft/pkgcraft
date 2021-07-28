@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
 
