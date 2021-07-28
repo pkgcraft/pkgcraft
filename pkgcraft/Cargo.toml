@@ -14,7 +14,6 @@ autotests = false
 [lib]
 name = "pkgcraft"
 path = "src/lib.rs"
-crate-type = ["rlib", "dylib"]
 
 [[test]]
 name = "integration"
