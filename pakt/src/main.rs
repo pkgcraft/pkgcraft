@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{App, AppSettings, Arg, ArgMatches};
 
 use argparse::str_to_bool;
@@ -61,8 +61,8 @@ fn main() -> Result<()> {
     settings.verbosity -= matches.occurrences_of("quiet") as i32;
 
     match matches.subcommand() {
-        Some((cmd, args)) => subcmds::run(cmd, args, &settings),
-        _ => Ok(()),
+        Some((cmd, args)) => subcmds::run(cmd, args, &mut settings),
+        _ => Err(anyhow!("missing subcommand")),
     }
 }
 

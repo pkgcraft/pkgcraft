@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{App, AppSettings, Arg, ArgMatches};
 
 use crate::settings::Settings;
@@ -21,7 +21,7 @@ pub fn cmd() -> App<'static> {
         )
 }
 
-pub fn run(args: &ArgMatches, settings: &Settings) -> Result<()> {
+pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     match args.subcommand() {
         Some(("add", m)) => add(m, settings),
         Some(("del", m)) => del(m, settings),
@@ -29,13 +29,19 @@ pub fn run(args: &ArgMatches, settings: &Settings) -> Result<()> {
     }
 }
 
-fn add(args: &ArgMatches, _settings: &Settings) -> Result<()> {
+fn add(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     let name = args.value_of("name").unwrap();
     let uri = args.value_of("uri").unwrap();
-    Ok(())
+    match settings.config.repos.add(name, uri) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(anyhow!(e)),
+    }
 }
 
-fn del(args: &ArgMatches, _settings: &Settings) -> Result<()> {
+fn del(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     let name = args.value_of("name").unwrap();
-    Ok(())
+    match settings.config.repos.del(name) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(anyhow!(e)),
+    }
 }

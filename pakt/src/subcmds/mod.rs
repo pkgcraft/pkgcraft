@@ -17,7 +17,7 @@ pub fn register() -> Vec<App<'static>> {
     subcmds!(repo)
 }
 
-pub fn run(subcmd: &str, args: &ArgMatches, settings: &Settings) -> Result<()> {
+pub fn run(subcmd: &str, args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     match subcmd {
         "repo" => repo::run(args, settings),
         _ => Ok(()),
