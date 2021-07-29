@@ -23,10 +23,22 @@ impl Default for Config {
 
 impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
-        let mut user_cache = user_dir("XDG_CACHE_HOME", ".cache")?;
+        let home = env::var("HOME")?;
+
+        // pull user cache dir from $XDG_CACHE_HOME, otherwise $HOME/.cache
+        let mut user_cache: PathBuf = match env::var("XDG_CACHE_HOME") {
+            Ok(x) => PathBuf::from(x),
+            Err(_) => [&home, ".cache"].iter().collect(),
+        };
         user_cache.push(name);
-        let mut user_config = user_dir("XDG_CONFIG_HOME", ".config")?;
+
+        // pull user cache dir from $XDG_CONFIG_HOME, otherwise $HOME/.config
+        let mut user_config: PathBuf = match env::var("XDG_CONFIG_HOME") {
+            Ok(x) => PathBuf::from(x),
+            Err(_) => [&home, ".config"].iter().collect(),
+        };
         user_config.push(name);
+
         let mut system_cache = PathBuf::from("/var/cache");
         let mut system_config = PathBuf::from(format!("/etc/{}", name));
 
@@ -66,22 +78,6 @@ impl Config {
             repos,
         })
     }
-}
-
-fn user_dir(xdg_var: &str, fallback: &str) -> Result<PathBuf> {
-    let mut path = PathBuf::new();
-
-    match env::var(xdg_var) {
-        Ok(s) => {
-            path.push(s);
-        }
-        Err(_) => {
-            path.push(env::var("HOME")?);
-            path.push(fallback);
-        }
-    };
-
-    Ok(path)
 }
 
 #[cfg(test)]
