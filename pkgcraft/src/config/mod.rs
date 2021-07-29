@@ -24,49 +24,47 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
+    pub fn new(name: &str, prefix_path: &str, create: bool) -> Result<Config> {
         let home = env::var("HOME")?;
         let (config_dir, cache_dir, data_dir, db_dir): (PathBuf, PathBuf, PathBuf, PathBuf);
 
-        // prefixify a given path
-        let prefixed = |p: PathBuf| -> PathBuf {
-            if !prefix.is_empty() {
-                let prefix = PathBuf::from(prefix);
-                prefix.join(p.strip_prefix("/").unwrap_or(&p))
-            } else {
-                p
+        // prefix a given path
+        let prefix = |p: PathBuf| -> PathBuf {
+            match prefix_path.is_empty() {
+                true => p,
+                false => PathBuf::from(prefix_path).join(p.strip_prefix("/").unwrap_or(&p)),
             }
         };
 
         // pull user config from $XDG_CONFIG_HOME, otherwise $HOME/.config
         let user_config: PathBuf = match env::var("XDG_CONFIG_HOME") {
-            Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
-            Err(_) => prefixed([&home, ".config", name].iter().collect()),
+            Ok(x) => prefix([&x, name].iter().collect::<PathBuf>()),
+            Err(_) => prefix([&home, ".config", name].iter().collect()),
         };
 
-        let system_config = prefixed(PathBuf::from(format!("/etc/{}", name)));
+        let system_config = prefix(PathBuf::from(format!("/etc/{}", name)));
 
         // Determine if user config or system config will be used --
         // system config is only used if it exists and no user config exists.
         config_dir = match (user_config.exists(), system_config.exists()) {
             (false, true) => {
-                cache_dir = prefixed(PathBuf::from(format!("/var/cache/{}", name)));
-                data_dir = prefixed(PathBuf::from(format!("/usr/share/{}", name)));
-                db_dir = prefixed(PathBuf::from(format!("/var/db/{}", name)));
+                cache_dir = prefix(PathBuf::from(format!("/var/cache/{}", name)));
+                data_dir = prefix(PathBuf::from(format!("/usr/share/{}", name)));
+                db_dir = prefix(PathBuf::from(format!("/var/db/{}", name)));
                 system_config
             }
             _ => {
                 // pull user cache dir from $XDG_CACHE_HOME, otherwise $HOME/.cache
                 cache_dir = match env::var("XDG_CACHE_HOME") {
-                    Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
-                    Err(_) => prefixed([&home, ".cache", name].iter().collect::<PathBuf>()),
+                    Ok(x) => prefix([&x, name].iter().collect::<PathBuf>()),
+                    Err(_) => prefix([&home, ".cache", name].iter().collect::<PathBuf>()),
                 };
 
                 // pull user data dir from $XDG_DATA_HOME, otherwise $HOME/.local/share
                 data_dir = match env::var("XDG_DATA_HOME") {
-                    Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
+                    Ok(x) => prefix([&x, name].iter().collect::<PathBuf>()),
                     Err(_) => {
-                        prefixed([&home, ".local", "share", name].iter().collect::<PathBuf>())
+                        prefix([&home, ".local", "share", name].iter().collect::<PathBuf>())
                     }
                 };
 
@@ -112,7 +110,7 @@ mod tests {
         assert_eq!(config.cache_dir, PathBuf::from("/cache/pkgcraft"));
         assert_eq!(config.config_dir, PathBuf::from("/config/pkgcraft"));
 
-        // prefixed
+        // prefix
         let config = Config::new("pkgcraft", "/prefix", false).unwrap();
         assert_eq!(config.cache_dir, PathBuf::from("/prefix/cache/pkgcraft"));
         assert_eq!(config.config_dir, PathBuf::from("/prefix/config/pkgcraft"));
@@ -131,7 +129,7 @@ mod tests {
             PathBuf::from("/home/user/.config/pkgcraft")
         );
 
-        // prefixed
+        // prefix
         let config = Config::new("pkgcraft", "/prefix", false).unwrap();
         assert_eq!(
             config.cache_dir,
