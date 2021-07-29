@@ -50,7 +50,7 @@ fn main() -> Result<()> {
     // load config settings and then override them with command-line settings
     let mut settings = Settings::new()?;
 
-    if let Some(ref color) = matches.value_of("color") {
+    if let Some(color) = matches.value_of("color") {
         settings.color = str_to_bool(color)?;
     }
 

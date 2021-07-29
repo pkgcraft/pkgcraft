@@ -93,7 +93,7 @@ impl Eapi {
     }
 
     pub fn atom(&'static self, s: &str) -> Result<atom::Atom, atom::ParseError> {
-        atom::parse::dep(s, &self)
+        atom::parse::dep(s, self)
     }
 
     fn new(

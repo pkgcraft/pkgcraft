@@ -130,7 +130,7 @@ impl Ord for Version {
                 let split = |s: &'a str| -> (Option<char>, &'a str) {
                     match s.chars().last().unwrap() {
                         c @ 'a'..='z' => (Some(c), &s[..s.len() - 1]),
-                        _ => (None, &s),
+                        _ => (None, s),
                     }
                 };
 
@@ -156,7 +156,7 @@ impl Ord for Version {
                         ("0", _) | (_, "0") => {
                             let v1_stripped = rstrip(v1, '0');
                             let v2_stripped = rstrip(v2, '0');
-                            cmp = v1_stripped.cmp(&v2_stripped);
+                            cmp = v1_stripped.cmp(v2_stripped);
                             if cmp != Ordering::Equal {
                                 return cmp;
                             }
@@ -257,7 +257,7 @@ impl Ord for Version {
 
 impl PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
