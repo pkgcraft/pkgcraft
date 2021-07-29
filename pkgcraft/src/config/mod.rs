@@ -54,13 +54,13 @@ impl Config {
                 system_config
             }
             _ => {
-                // pull user cache dir from $XDG_CONFIG_HOME, otherwise $HOME/.config
+                // pull user cache dir from $XDG_CACHE_HOME, otherwise $HOME/.cache
                 cache_dir = match env::var("XDG_CACHE_HOME") {
                     Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
                     Err(_) => prefixed([&home, ".cache", name].iter().collect::<PathBuf>()),
                 };
 
-                // pull user cache dir from $XDG_CONFIG_HOME, otherwise $HOME/.local/share
+                // pull user data dir from $XDG_DATA_HOME, otherwise $HOME/.local/share
                 data_dir = match env::var("XDG_DATA_HOME") {
                     Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
                     Err(_) => {
