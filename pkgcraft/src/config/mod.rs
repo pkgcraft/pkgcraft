@@ -12,6 +12,7 @@ mod repo;
 pub struct Config {
     cache_dir: PathBuf,
     config_dir: PathBuf,
+    data_dir: PathBuf,
     pub repos: repo::Config,
 }
 
@@ -24,50 +25,58 @@ impl Default for Config {
 impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
         let home = env::var("HOME")?;
+        let (config_dir, cache_dir, data_dir): (PathBuf, PathBuf, PathBuf);
 
-        // pull user cache dir from $XDG_CACHE_HOME, otherwise $HOME/.cache
-        let mut user_cache: PathBuf = match env::var("XDG_CACHE_HOME") {
-            Ok(x) => PathBuf::from(x),
-            Err(_) => [&home, ".cache"].iter().collect(),
+        // prefixify a given path
+        let prefixed = |p: PathBuf| -> PathBuf {
+            if !prefix.is_empty() {
+                let prefix = PathBuf::from(prefix);
+                prefix.join(p.strip_prefix("/").unwrap_or(&p))
+            } else {
+                p
+            }
         };
-        user_cache.push(name);
 
-        // pull user cache dir from $XDG_CONFIG_HOME, otherwise $HOME/.config
-        let mut user_config: PathBuf = match env::var("XDG_CONFIG_HOME") {
-            Ok(x) => PathBuf::from(x),
-            Err(_) => [&home, ".config"].iter().collect(),
+        // pull user config from $XDG_CONFIG_HOME, otherwise $HOME/.config
+        let user_config: PathBuf = match env::var("XDG_CONFIG_HOME") {
+            Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
+            Err(_) => prefixed([&home, ".config", name].iter().collect()),
         };
-        user_config.push(name);
 
-        let mut system_cache = PathBuf::from("/var/cache");
-        let mut system_config = PathBuf::from(format!("/etc/{}", name));
+        let system_config = prefixed(PathBuf::from(format!("/etc/{}", name)));
 
-        // append non-empty prefix
-        if !prefix.is_empty() {
-            let prefix = PathBuf::from(prefix);
-            let prefixed = |path: &PathBuf| -> PathBuf {
-                prefix.join(path.strip_prefix("/").unwrap_or(&path))
-            };
-            user_cache = prefixed(&user_cache);
-            user_config = prefixed(&user_config);
-            system_cache = prefixed(&system_cache);
-            system_config = prefixed(&system_config);
-        }
+        // Determine if user config or system config will be used --
+        // system config is only used if it exists and no user config exists.
+        config_dir = match (user_config.exists(), system_config.exists()) {
+            (false, true) => {
+                cache_dir = prefixed(PathBuf::from(format!("/var/cache/{}", name)));
+                data_dir = prefixed(PathBuf::from(format!("/usr/share/{}", name)));
+                system_config
+            }
+            _ => {
+                // pull user cache dir from $XDG_CONFIG_HOME, otherwise $HOME/.config
+                cache_dir = match env::var("XDG_CACHE_HOME") {
+                    Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
+                    Err(_) => prefixed([&home, ".cache", name].iter().collect::<PathBuf>()),
+                };
 
-        // Config precedence:
-        //  - existing user config
-        //  - existing system config
-        //  - create new user config
-        let (cache_dir, config_dir) = match (user_config.exists(), system_config.exists()) {
-            (true, _) => (user_cache, user_config),
-            (_, true) => (system_cache, system_config),
-            _ => (user_cache, user_config),
+                // pull user cache dir from $XDG_CONFIG_HOME, otherwise $HOME/.local/share
+                data_dir = match env::var("XDG_DATA_HOME") {
+                    Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
+                    Err(_) => {
+                        prefixed([&home, ".local", "share", name].iter().collect::<PathBuf>())
+                    }
+                };
+
+                user_config
+            }
         };
 
         // create dirs on request
         if create {
             fs::create_dir_all(&cache_dir)?;
             fs::create_dir_all(&config_dir)?;
+            fs::create_dir_all(&data_dir)?;
         }
 
         let repos = repo::Config::new(&config_dir)?;
@@ -75,6 +84,7 @@ impl Config {
         Ok(Config {
             cache_dir,
             config_dir,
+            data_dir,
             repos,
         })
     }
