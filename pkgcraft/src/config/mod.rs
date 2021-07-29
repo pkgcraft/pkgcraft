@@ -13,6 +13,7 @@ pub struct Config {
     cache_dir: PathBuf,
     config_dir: PathBuf,
     data_dir: PathBuf,
+    db_dir: PathBuf,
     pub repos: repo::Config,
 }
 
@@ -25,7 +26,7 @@ impl Default for Config {
 impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
         let home = env::var("HOME")?;
-        let (config_dir, cache_dir, data_dir): (PathBuf, PathBuf, PathBuf);
+        let (config_dir, cache_dir, data_dir, db_dir): (PathBuf, PathBuf, PathBuf, PathBuf);
 
         // prefixify a given path
         let prefixed = |p: PathBuf| -> PathBuf {
@@ -51,6 +52,7 @@ impl Config {
             (false, true) => {
                 cache_dir = prefixed(PathBuf::from(format!("/var/cache/{}", name)));
                 data_dir = prefixed(PathBuf::from(format!("/usr/share/{}", name)));
+                db_dir = prefixed(PathBuf::from(format!("/var/db/{}", name)));
                 system_config
             }
             _ => {
@@ -68,6 +70,7 @@ impl Config {
                     }
                 };
 
+                db_dir = data_dir.clone();
                 user_config
             }
         };
@@ -77,6 +80,7 @@ impl Config {
             fs::create_dir_all(&cache_dir)?;
             fs::create_dir_all(&config_dir)?;
             fs::create_dir_all(&data_dir)?;
+            fs::create_dir_all(&db_dir)?;
         }
 
         let repos = repo::Config::new(&config_dir)?;
@@ -85,6 +89,7 @@ impl Config {
             cache_dir,
             config_dir,
             data_dir,
+            db_dir,
             repos,
         })
     }
