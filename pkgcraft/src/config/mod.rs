@@ -63,9 +63,7 @@ impl Config {
                 // pull user data dir from $XDG_DATA_HOME, otherwise $HOME/.local/share
                 data_dir = match env::var("XDG_DATA_HOME") {
                     Ok(x) => prefix([&x, name].iter().collect::<PathBuf>()),
-                    Err(_) => {
-                        prefix([&home, ".local", "share", name].iter().collect::<PathBuf>())
-                    }
+                    Err(_) => prefix([&home, ".local", "share", name].iter().collect::<PathBuf>()),
                 };
 
                 db_dir = data_dir.clone();
