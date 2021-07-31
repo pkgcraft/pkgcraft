@@ -1,14 +1,18 @@
 use std::collections::HashSet;
 use std::fmt;
+use std::fs;
 use std::iter;
+
+use serde::{Deserialize, Serialize};
 
 use crate::atom;
 use crate::error::Result;
 use crate::repo;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Repo {
     pub id: String,
+    #[serde(default)] // https://github.com/mehcode/config-rs/issues/114
     pkgs: repo::PkgCache,
 }
 
@@ -60,13 +64,19 @@ impl repo::Repo for Repo {
             None => Box::new(iter::empty::<&String>()),
         }
     }
+
+    fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<Self> {
+        let id = id.as_ref();
+        let path = path.as_ref();
+        let data = fs::read_to_string(path)?;
+        Repo::new(id, data.lines())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use maplit::hashset;
 
-    use crate::macros::vec_str;
     use crate::repo::Repo as RepoTrait;
 
     use super::*;

@@ -1,21 +1,25 @@
-use std::error::Error;
 use std::fmt;
 use std::iter;
+use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
+use crate::error::{Error, Result};
 use crate::repo;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Repo {
     pub id: String,
     pub path: String,
+    #[serde(default)] // https://github.com/mehcode/config-rs/issues/114
     pkgs: repo::PkgCache,
 }
 
 impl Repo {
-    pub fn new(id: &str, path: &str) -> Result<Repo, Box<dyn Error>> {
+    pub fn new<S: AsRef<str>>(id: S, path: S) -> Result<Repo> {
         Ok(Repo {
-            id: id.to_string(),
-            path: path.to_string(),
+            id: id.as_ref().to_string(),
+            path: path.as_ref().to_string(),
             pkgs: repo::PkgCache::new(),
         })
     }
@@ -39,5 +43,20 @@ impl repo::Repo for Repo {
 
     fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Box<dyn Iterator<Item = &String> + '_> {
         Box::new(iter::empty::<&String>())
+    }
+
+    fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<Self> {
+        let id = id.as_ref();
+        let path = path.as_ref();
+        let error: String;
+
+        let repo_path = PathBuf::from(path);
+        if repo_path.join("profiles").exists() {
+            return Repo::new(id, path);
+        } else {
+            error = format!("missing profiles dir"); 
+        }
+
+        Err(Error::InvalidRepo { path: path.to_string(), error })
     }
 }

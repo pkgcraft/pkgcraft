@@ -12,6 +12,7 @@ pub enum Error {
     ConfigError(String),
     ParseError(String),
     IOError(String),
+    InvalidRepo { path: String, error: String },
 }
 
 impl ::std::error::Error for Error {}
@@ -40,6 +41,7 @@ impl fmt::Display for Error {
             Error::ConfigError(ref s) => write!(f, "{}", s),
             Error::ParseError(ref s) => write!(f, "{}", s),
             Error::IOError(ref s) => write!(f, "{}", s),
+            Error::InvalidRepo{path, error} => write!(f, "invalid repo {:?}: {}", path, error),
         }
     }
 }
