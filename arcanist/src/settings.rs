@@ -18,11 +18,18 @@ impl Settings {
         s.merge(Config::try_from(&Settings::default())?)
             .context("failed merging config defaults")?;
 
-        // env variables override defaults
+        // env variables matching ARCANIST_* override
         s.merge(Environment::with_prefix("ARCANIST").separator("_"))
             .context("failed merging env settings")?;
 
         // serialize to struct
-        s.try_into().context("failed serializing settings")
+        let mut settings: Settings = s.try_into().context("failed serializing settings")?;
+
+        // load pkgcraft config
+        let config = PkgcraftConfig::new("pkgcraft", "", false)
+            .context("failed loading pkgcraft config")?;
+        settings.config = config;
+
+        Ok(settings)
     }
 }
