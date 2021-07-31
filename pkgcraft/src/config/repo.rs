@@ -49,18 +49,23 @@ impl Config {
         for entry in fs::read_dir(&path)? {
             let entry = entry?;
             let p = entry.path();
+
             if p.is_file() {
                 if let Some(name) = p
                     .file_name()
                     .and_then(|p| p.to_str().map(|s| s.to_string()))
+                    .filter(|s| !s.starts_with('.'))
                 {
-                    let repo_conf: RepoConfig =
-                        toml::from_str(&fs::read_to_string(p)?).map_err(|e| {
-                            Error::ConfigError(format!(
-                                "failed loading repo config {:?}: {}",
-                                name, e
-                            ))
-                        })?;
+                    let data = fs::read_to_string(&p).map_err(|e| {
+                        Error::ConfigError(format!("failed loading repo config {:?}: {}", &p, e))
+                    })?;
+
+                    let repo_conf: RepoConfig = toml::from_str(&data).map_err(|e| {
+                        Error::ConfigError(format!(
+                            "failed loading repo config toml {:?}: {}",
+                            &p, e
+                        ))
+                    })?;
                     repo_configs.push((repo_conf, name));
                 }
             }
