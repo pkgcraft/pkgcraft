@@ -13,6 +13,34 @@ struct RepoConfig {
     location: String,
     format: String,
     priority: i32,
+    uri: Option<String>,
+}
+
+impl RepoConfig {
+    fn new(path: &PathBuf) -> Result<Self> {
+        let data = fs::read_to_string(&path).map_err(|e| {
+            Error::ConfigError(format!("failed loading repo config {:?}: {}", &path, e))
+        })?;
+
+        let repo_conf: RepoConfig = toml::from_str(&data).map_err(|e| {
+            Error::ConfigError(format!(
+                "failed loading repo config toml {:?}: {}",
+                &path, e
+            ))
+        })?;
+
+        let location = Path::new(&repo_conf.location);
+        if !location.exists() {
+            return Err(Error::ConfigError(format!(
+                "invalid repo config {:?}: nonexistent location: {:?}",
+                &path, &location
+            )));
+        }
+
+        // TODO: verify format is supported
+
+        Ok(repo_conf)
+    }
 }
 
 impl PartialOrd for RepoConfig {
@@ -56,16 +84,7 @@ impl Config {
                     .and_then(|p| p.to_str().map(|s| s.to_string()))
                     .filter(|s| !s.starts_with('.'))
                 {
-                    let data = fs::read_to_string(&p).map_err(|e| {
-                        Error::ConfigError(format!("failed loading repo config {:?}: {}", &p, e))
-                    })?;
-
-                    let repo_conf: RepoConfig = toml::from_str(&data).map_err(|e| {
-                        Error::ConfigError(format!(
-                            "failed loading repo config toml {:?}: {}",
-                            &p, e
-                        ))
-                    })?;
+                    let repo_conf = RepoConfig::new(&p)?;
                     repo_configs.push((repo_conf, name));
                 }
             }
