@@ -8,19 +8,13 @@ use crate::error::Result;
 
 mod repo;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Config {
     cache_dir: PathBuf,
     config_dir: PathBuf,
     data_dir: PathBuf,
     db_dir: PathBuf,
     pub repos: repo::Config,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config::new("pkgcraft", "", false).unwrap()
-    }
 }
 
 impl Config {
