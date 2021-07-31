@@ -24,7 +24,7 @@ pub fn cmd() -> App<'static> {
                         .takes_value(true)
                         .multiple_values(true)
                         .value_name("REPO")
-                        .about("repo names"),
+                        .about("repos to remove"),
                 )
                 .arg(Arg::new("clean").short('c').about("remove repo files")),
         )
@@ -35,7 +35,7 @@ pub fn cmd() -> App<'static> {
                     .takes_value(true)
                     .multiple_values(true)
                     .value_name("REPO")
-                    .about("repo names"),
+                    .about("repos to sync"),
             ),
         )
 }
