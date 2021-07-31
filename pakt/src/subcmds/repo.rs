@@ -13,28 +13,30 @@ pub fn cmd() -> App<'static> {
                 .about("register new repo")
                 .arg(Arg::new("name").required(true).about("repo name"))
                 .arg(Arg::new("uri").required(true).about("repo location"))
-                .arg(Arg::new("sync").short('s').about("sync repo"))
+                .arg(Arg::new("sync").short('s').about("sync repo")),
         )
         .subcommand(
             App::new("del")
                 .about("unregister repo")
-                .arg(Arg::new("repos")
-                    .required(true)
-                    .takes_value(true)
-                    .multiple_values(true)
-                    .value_name("REPO")
-                    .about("repo names"))
-                .arg(Arg::new("clean").short('c').about("remove repo files"))
+                .arg(
+                    Arg::new("repos")
+                        .required(true)
+                        .takes_value(true)
+                        .multiple_values(true)
+                        .value_name("REPO")
+                        .about("repo names"),
+                )
+                .arg(Arg::new("clean").short('c').about("remove repo files")),
         )
         .subcommand(
-            App::new("sync")
-                .about("sync repos")
-                .arg(Arg::new("repos")
+            App::new("sync").about("sync repos").arg(
+                Arg::new("repos")
                     .required(true)
                     .takes_value(true)
                     .multiple_values(true)
                     .value_name("REPO")
-                    .about("repo names"))
+                    .about("repo names"),
+            ),
         )
 }
 
@@ -49,27 +51,35 @@ pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
 }
 
 fn list(settings: &Settings) -> Result<()> {
-    settings.config.repos.list()
-        .context("failed listing repos")
+    settings.config.repos.list().context("failed listing repos")
 }
 
 fn add(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     let name = args.value_of("name").unwrap();
     let uri = args.value_of("uri").unwrap();
     let sync = args.is_present("sync");
-    settings.config.repos.add(name, uri, sync)
+    settings
+        .config
+        .repos
+        .add(name, uri, sync)
         .context(format!("failed adding repo: {:?}", name))
 }
 
 fn del(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     let repos: Vec<&str> = args.values_of("repos").unwrap().collect();
     let clean = args.is_present("clean");
-    settings.config.repos.del(&repos, clean)
-        .context(format!("failed removing repo(s)"))
+    settings
+        .config
+        .repos
+        .del(&repos, clean)
+        .context("failed removing repo(s)")
 }
 
 fn sync(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     let repos: Vec<&str> = args.values_of("repos").unwrap().collect();
-    settings.config.repos.sync(&repos)
-        .context(format!("failed syncing repo(s)"))
+    settings
+        .config
+        .repos
+        .sync(&repos)
+        .context("failed syncing repo(s)")
 }

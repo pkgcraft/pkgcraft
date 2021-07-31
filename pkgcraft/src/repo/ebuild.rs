@@ -54,9 +54,12 @@ impl repo::Repo for Repo {
         if repo_path.join("profiles").exists() {
             return Repo::new(id, path);
         } else {
-            error = format!("missing profiles dir"); 
+            error = "missing profiles dir".to_string();
         }
 
-        Err(Error::InvalidRepo { path: path.to_string(), error })
+        Err(Error::InvalidRepo {
+            path: path.to_string(),
+            error,
+        })
     }
 }

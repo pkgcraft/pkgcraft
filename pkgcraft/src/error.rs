@@ -41,7 +41,7 @@ impl fmt::Display for Error {
             Error::ConfigError(ref s) => write!(f, "{}", s),
             Error::ParseError(ref s) => write!(f, "{}", s),
             Error::IOError(ref s) => write!(f, "{}", s),
-            Error::InvalidRepo{path, error} => write!(f, "invalid repo {:?}: {}", path, error),
+            Error::InvalidRepo { path, error } => write!(f, "invalid repo {:?}: {}", path, error),
         }
     }
 }

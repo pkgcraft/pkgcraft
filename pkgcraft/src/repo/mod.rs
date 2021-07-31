@@ -40,7 +40,10 @@ impl Repository {
             return Ok(Repository::Fake(repo));
         }
 
-        Err(Error::ConfigError(format!("{:?} repo at {:?}: unknown or invalid format", id, path)))
+        Err(Error::ConfigError(format!(
+            "{:?} repo at {:?}: unknown or invalid format",
+            id, path
+        )))
     }
 
     pub fn from_format<S: AsRef<str>>(id: S, path: S, format: S) -> Result<Repository> {
@@ -54,7 +57,7 @@ impl Repository {
             _ => {
                 let err = format!("{:?} repo: unknown format: {:?}", id, format);
                 Err(Error::ConfigError(err))
-            },
+            }
         }
     }
 }

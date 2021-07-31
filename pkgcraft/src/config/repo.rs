@@ -50,9 +50,17 @@ impl Config {
             let entry = entry?;
             let p = entry.path();
             if p.is_file() {
-                if let Some(name) = p.file_name().and_then(|p| p.to_str().map(|s| s.to_string())) {
-                    let repo_conf: RepoConfig = toml::from_str(&fs::read_to_string(p)?)
-                        .map_err(|e| Error::ConfigError(format!("failed loading repo config {:?}: {}", name, e)))?;
+                if let Some(name) = p
+                    .file_name()
+                    .and_then(|p| p.to_str().map(|s| s.to_string()))
+                {
+                    let repo_conf: RepoConfig =
+                        toml::from_str(&fs::read_to_string(p)?).map_err(|e| {
+                            Error::ConfigError(format!(
+                                "failed loading repo config {:?}: {}",
+                                name, e
+                            ))
+                        })?;
                     repo_configs.push((repo_conf, name));
                 }
             }
@@ -70,7 +78,11 @@ impl Config {
             configs.insert(name.clone(), config);
         }
 
-        Ok(Config { path, configs, repos })
+        Ok(Config {
+            path,
+            configs,
+            repos,
+        })
     }
 
     pub fn list(&self) -> Result<()> {
@@ -92,7 +104,7 @@ impl Config {
         }
     }
 
-    pub fn del(&mut self, repos: &Vec<&str>, _clean: bool) -> Result<()> {
+    pub fn del(&mut self, repos: &[&str], _clean: bool) -> Result<()> {
         let mut failed: Vec<&str> = Vec::new();
         for repo in repos {
             match self.repos.remove(repo as &str) {
@@ -103,12 +115,15 @@ impl Config {
 
         match failed.is_empty() {
             true => Ok(()),
-            false => Err(Error::ConfigError(format!("failed removing: {}", failed.join(", ")))),
+            false => Err(Error::ConfigError(format!(
+                "failed removing: {}",
+                failed.join(", ")
+            ))),
         }
     }
 
     // TODO: add syncing support
-    pub fn sync(&mut self, repos: &Vec<&str>) -> Result<()> {
+    pub fn sync(&mut self, repos: &[&str]) -> Result<()> {
         let mut failed: Vec<&str> = Vec::new();
         for repo in repos {
             match self.repos.get(repo as &str) {
@@ -119,7 +134,10 @@ impl Config {
 
         match failed.is_empty() {
             true => Ok(()),
-            false => Err(Error::ConfigError(format!("failed syncing: {}", failed.join(", ")))),
+            false => Err(Error::ConfigError(format!(
+                "failed syncing: {}",
+                failed.join(", ")
+            ))),
         }
     }
 }
