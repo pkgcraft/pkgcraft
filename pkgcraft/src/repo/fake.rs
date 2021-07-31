@@ -12,7 +12,7 @@ use crate::repo;
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Repo {
     pub id: String,
-    #[serde(default)] // https://github.com/mehcode/config-rs/issues/114
+    #[serde(default)]
     pkgs: repo::PkgCache,
 }
 

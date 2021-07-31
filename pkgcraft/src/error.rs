@@ -13,6 +13,7 @@ pub enum Error {
     ParseError(String),
     IOError(String),
     InvalidRepo { path: String, error: String },
+    SyncError(String),
 }
 
 impl ::std::error::Error for Error {}
@@ -42,6 +43,7 @@ impl fmt::Display for Error {
             Error::ParseError(ref s) => write!(f, "{}", s),
             Error::IOError(ref s) => write!(f, "{}", s),
             Error::InvalidRepo { path, error } => write!(f, "invalid repo {:?}: {}", path, error),
+            Error::SyncError(ref s) => write!(f, "failed syncing: {}", s),
         }
     }
 }

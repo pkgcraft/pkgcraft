@@ -6,4 +6,5 @@ mod ebuild;
 pub mod error;
 mod macros;
 mod repo;
+mod sync;
 mod utils;

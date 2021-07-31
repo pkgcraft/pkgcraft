@@ -11,7 +11,7 @@ use crate::repo;
 pub struct Repo {
     pub id: String,
     pub path: String,
-    #[serde(default)] // https://github.com/mehcode/config-rs/issues/114
+    #[serde(default)]
     pkgs: repo::PkgCache,
 }
 

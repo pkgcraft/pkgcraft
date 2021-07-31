@@ -3,20 +3,22 @@ use std::fs;
 use std::io::Write;
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error::ConfigError;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::repo::Repository;
+use crate::sync::Syncer;
 
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 struct RepoConfig {
     location: String,
     format: String,
     priority: i32,
-    url: Option<String>,
+    sync: Option<Syncer>,
 }
 
 impl RepoConfig {
@@ -43,6 +45,13 @@ impl RepoConfig {
 
         Ok(repo_conf)
     }
+
+    fn sync(&self) -> Result<()> {
+        match &self.sync {
+            Some(syncer) => syncer.sync(&self.location),
+            None => Ok(()),
+        }
+    }
 }
 
 impl PartialOrd for RepoConfig {
@@ -61,9 +70,9 @@ impl Ord for RepoConfig {
 pub struct Config {
     config_dir: PathBuf,
     repo_dir: PathBuf,
-    #[serde(default)] // https://github.com/mehcode/config-rs/issues/114
+    #[serde(default)]
     configs: IndexMap<String, RepoConfig>,
-    #[serde(default)] // https://github.com/mehcode/config-rs/issues/114
+    #[serde(default)]
     repos: IndexMap<String, Repository>,
 }
 
@@ -136,50 +145,44 @@ impl Config {
                 let mut config: RepoConfig = Default::default();
                 let mut location = PathBuf::from(uri);
 
-                // TODO: match against handled syncer URLs
-                location = match uri.starts_with("https://") {
-                    true => {
-                        config.url = Some(uri.to_string());
+                let path_to_location = |p: PathBuf| -> Result<String> {
+                    p.to_str()
+                        .ok_or_else(|| ConfigError(format!("bad repo location: {:?}", &p)))
+                        .map(|s| s.to_string())
+                };
+
+                match Syncer::from_str(uri) {
+                    Ok(Syncer::Noop) | Err(_) => {
+                        if !location.starts_with(&self.repo_dir) {
+                            location = self.repo_dir.join(&name);
+                            fs::create_dir_all(&self.repo_dir).map_err(|e| {
+                                ConfigError(format!(
+                                    "failed creating repo dir {:?}: {}",
+                                    &self.repo_dir, &e
+                                ))
+                            })?;
+                            symlink(&uri, &location).map_err(|e| {
+                                ConfigError(format!(
+                                    "failed symlinking repo {:?} to {:?}: {}",
+                                    &uri, &location, &e
+                                ))
+                            })?;
+                        }
+                        config.location = path_to_location(location)?;
+                    }
+                    Ok(syncer) => {
                         location = self.repo_dir.join(&name);
                         if location.exists() {
                             return Err(ConfigError(format!("existing repo: {:?}", &location)));
                         }
-                        // TODO: sync repo
-                        location
-                    }
-                    false => {
-                        location = match location.starts_with(&self.repo_dir) {
-                            true => location,
-                            false => {
-                                location = self.repo_dir.join(&name);
-                                fs::create_dir_all(&self.repo_dir).map_err(|e| {
-                                    ConfigError(format!(
-                                        "failed creating repo dir {:?}: {}",
-                                        &self.repo_dir, &e
-                                    ))
-                                })?;
-                                symlink(&uri, &location).map_err(|e| {
-                                    ConfigError(format!(
-                                        "failed symlinking repo {:?} to {:?}: {}",
-                                        &uri, &location, &e
-                                    ))
-                                })?;
-                                location
-                            }
-                        };
-                        location
+                        config.sync = Some(syncer);
+                        config.location = path_to_location(location)?;
+                        config.sync()?;
                     }
                 };
 
-                let location = location
-                    .to_str()
-                    .ok_or_else(|| ConfigError(format!("bad repo location: {:?}", &location)))?
-                    .to_string();
-
-                // TODO: determine format from repo
-                let (format, repo) = Repository::from_path(&name, &location)?;
+                let (format, repo) = Repository::from_path(&name, &config.location)?;
                 config.format = format;
-                config.location = location;
 
                 // write repo config file to disk
                 let repo_conf_data = toml::to_string(&config).map_err(|e| {
@@ -224,22 +227,42 @@ impl Config {
         }
     }
 
+    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repository> {
+        let id = id.as_ref();
+        match self.repos.get(id) {
+            Some(repo) => Ok(repo),
+            None => Err(ConfigError(format!("nonexistent repo: {:?}", id))),
+        }
+    }
+
+    fn config_from_id<S: AsRef<str>>(&self, id: S) -> Result<&RepoConfig> {
+        let id = id.as_ref();
+        match self.configs.get(id) {
+            Some(config) => Ok(config),
+            None => Err(ConfigError(format!("nonexistent repo: {:?}", id))),
+        }
+    }
+
     // TODO: add syncing support
     pub fn sync(&mut self, repos: &[&str]) -> Result<()> {
-        let mut failed: Vec<&str> = Vec::new();
-        for repo in repos {
-            match self.repos.get(repo as &str) {
-                Some(_) => (),
-                None => failed.push(repo),
+        let mut failed: Vec<(&str, Error)> = Vec::new();
+        for name in repos {
+            let repo_config = self.config_from_id(name)?;
+            if let Err(e) = repo_config.sync() {
+                failed.push((name, e));
             }
         }
 
         match failed.is_empty() {
             true => Ok(()),
-            false => Err(ConfigError(format!(
-                "failed syncing: {}",
-                failed.join(", ")
-            ))),
+            false => {
+                let errors = failed
+                    .iter()
+                    .map(|(name, e)| format!("{}: {}", name, e))
+                    .collect::<Vec<String>>()
+                    .join("\n\t");
+                Err(ConfigError(format!("failed syncing:\n\t{}", errors)))
+            }
         }
     }
 }
