@@ -73,7 +73,7 @@ impl Config {
             fs::create_dir_all(&db_dir)?;
         }
 
-        let repos = repo::Config::new(&config_dir)?;
+        let repos = repo::Config::new(&config_dir, &db_dir)?;
 
         Ok(Config {
             cache_dir,

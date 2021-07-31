@@ -28,16 +28,16 @@ impl fmt::Display for Repository {
 }
 
 impl Repository {
-    pub fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<Repository> {
+    pub fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<(String, Repository)> {
         let id = id.as_ref();
         let path = path.as_ref();
 
         if let Ok(repo) = ebuild::Repo::from_path(id, path) {
-            return Ok(Repository::Ebuild(repo));
+            return Ok(("ebuild".to_string(), Repository::Ebuild(repo)));
         }
 
         if let Ok(repo) = fake::Repo::from_path(id, path) {
-            return Ok(Repository::Fake(repo));
+            return Ok(("fake".to_string(), Repository::Fake(repo)));
         }
 
         Err(Error::ConfigError(format!(
