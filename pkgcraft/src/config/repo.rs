@@ -88,8 +88,10 @@ impl Config {
                     .and_then(|p| p.to_str().map(|s| s.to_string()))
                     .filter(|s| !s.starts_with('.'))
                 {
-                    let repo_conf = RepoConfig::new(&p)?;
-                    repo_configs.push((repo_conf, name));
+                    match RepoConfig::new(&p) {
+                        Ok(repo_conf) => repo_configs.push((repo_conf, name)),
+                        Err(err) => log::warn!("{}", err),
+                    }
                 }
             }
         }

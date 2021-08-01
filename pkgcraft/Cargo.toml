@@ -21,6 +21,7 @@ path = "tests/lib.rs"
 
 [dependencies]
 indexmap = { version = "1.7.0", features = ["serde"] }
+log = "0.4"
 once_cell = "1.8.0"
 peg = "0.7"
 regex = "1"
