@@ -60,6 +60,15 @@ fn main() -> Result<()> {
     settings.verbosity += matches.occurrences_of("verbose") as i32;
     settings.verbosity -= matches.occurrences_of("quiet") as i32;
 
+    stderrlog::new()
+        .modules([module_path!(), "pkgcraft"])
+        .verbosity(matches.occurrences_of("verbose") as usize)
+        .quiet(settings.verbosity < 0)
+        .init()?;
+
+    // load pkgcraft config
+    settings.load()?;
+
     match matches.subcommand() {
         Some((cmd, args)) => subcmds::run(cmd, args, &mut settings),
         _ => Err(anyhow!("missing subcommand")),

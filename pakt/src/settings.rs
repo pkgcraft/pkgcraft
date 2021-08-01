@@ -24,13 +24,15 @@ impl Settings {
             .context("failed merging env settings")?;
 
         // serialize to struct
-        let mut settings: Settings = s.try_into().context("failed serializing settings")?;
-
-        // load pkgcraft config
-        let config =
-            PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
-        settings.config = config;
+        let settings: Settings = s.try_into().context("failed serializing settings")?;
 
         Ok(settings)
+    }
+
+    // load pkgcraft config
+    pub fn load(&mut self) -> Result<()> {
+        self.config =
+            PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
+        Ok(())
     }
 }

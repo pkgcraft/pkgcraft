@@ -14,8 +14,10 @@ autotests = false
 [dependencies]
 anyhow = "1.0.42"
 config = "0.11"
+log = "0.4"
 pkgcraft = { path = "../pkgcraft", version = "0.0.2" }
 serde = { version = "1.0", features = ["derive"] }
+stderrlog = "0.5"
 
 [dependencies.clap]
 git = "https://github.com/clap-rs/clap.git"
