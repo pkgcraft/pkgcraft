@@ -39,5 +39,10 @@ fn main() -> Result<()> {
     settings.verbosity += matches.occurrences_of("verbose") as i32;
     settings.verbosity -= matches.occurrences_of("quiet") as i32;
 
+    // TODO: initialize syslog logger
+
+    // load pkgcraft config
+    settings.load()?;
+
     Ok(())
 }
