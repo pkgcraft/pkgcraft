@@ -37,11 +37,11 @@ impl repo::Repo for Repo {
         Box::new(iter::empty::<&String>())
     }
 
-    fn packages<S: AsRef<str>>(&self, cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
+    fn packages<S: AsRef<str>>(&self, _cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
         Box::new(iter::empty::<&String>())
     }
 
-    fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Box<dyn Iterator<Item = &String> + '_> {
+    fn versions<S: AsRef<str>>(&self, _cat: S, _pkg: S) -> Box<dyn Iterator<Item = &String> + '_> {
         Box::new(iter::empty::<&String>())
     }
 
