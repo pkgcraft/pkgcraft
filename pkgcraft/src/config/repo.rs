@@ -244,7 +244,13 @@ impl Config {
     }
 
     // TODO: add concurrent syncing support with output progress
-    pub fn sync(&mut self, repos: &[&str]) -> Result<()> {
+    pub fn sync(&mut self, repos: Option<Vec<&str>>) -> Result<()> {
+        let repos = match repos {
+            Some(names) => names,
+            // sync all configured repos if none were passed
+            None => self.configs.keys().map(|s| s.as_str()).collect(),
+        };
+
         let mut failed: Vec<(&str, Error)> = Vec::new();
         for name in repos {
             let repo_config = self.config_from_id(name)?;
