@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{App, AppSettings, ArgMatches};
 
 use crate::settings::Settings;
@@ -14,5 +14,8 @@ pub fn cmd() -> App<'static> {
 }
 
 pub fn run(_args: &ArgMatches, settings: &mut Settings) -> Result<()> {
-    settings.config.repos.list().context("failed listing repos")
+    for (id, config) in settings.config.repos.configs.iter() {
+        println!("{}: {}", id, config.location);
+    }
+    Ok(())
 }

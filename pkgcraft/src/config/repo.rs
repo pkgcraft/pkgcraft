@@ -14,10 +14,10 @@ use crate::repo::Repository;
 use crate::sync::Syncer;
 
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
-struct RepoConfig {
-    location: String,
-    format: String,
-    priority: i32,
+pub struct RepoConfig {
+    pub location: String,
+    pub format: String,
+    pub priority: i32,
     sync: Option<Syncer>,
 }
 
@@ -64,7 +64,7 @@ pub struct Config {
     config_dir: PathBuf,
     repo_dir: PathBuf,
     #[serde(default)]
-    configs: IndexMap<String, RepoConfig>,
+    pub configs: IndexMap<String, RepoConfig>,
     #[serde(default)]
     repos: IndexMap<String, Repository>,
 }
@@ -122,13 +122,6 @@ impl Config {
             configs,
             repos,
         })
-    }
-
-    pub fn list(&self) -> Result<()> {
-        for (id, config) in self.configs.iter() {
-            println!("{}: {}", id, config.location);
-        }
-        Ok(())
     }
 
     pub fn add(&mut self, name: &str, uri: &str) -> Result<()> {
