@@ -33,14 +33,6 @@ impl RepoConfig {
             ))
         })?;
 
-        let location = Path::new(&repo_conf.location);
-        if !location.exists() {
-            return Err(ConfigError(format!(
-                "invalid repo config {:?}: nonexistent location: {:?}",
-                &path, &location
-            )));
-        }
-
         // verify format is supported
         Repository::supported(&repo_conf.format)?;
 
@@ -98,6 +90,7 @@ impl Config {
                     .and_then(|p| p.to_str().map(|s| s.to_string()))
                     .filter(|s| !s.starts_with('.'))
                 {
+                    // ignore bad configs
                     match RepoConfig::new(&p) {
                         Ok(repo_conf) => repo_configs.push((repo_conf, name)),
                         Err(err) => log::warn!("{}", err),
@@ -113,8 +106,13 @@ impl Config {
         let mut configs: IndexMap<String, RepoConfig> = Default::default();
         let mut repos: IndexMap<String, Repository> = Default::default();
         for (config, name) in repo_configs {
-            let repo = Repository::from_format(&name, &config.location, &config.format)?;
-            repos.insert(name.clone(), repo);
+            // ignore unsynced or nonexistent repos
+            match Repository::from_format(&name, &config.location, &config.format) {
+                Ok(repo) => {
+                    repos.insert(name.clone(), repo);
+                }
+                Err(err) => log::warn!("{}", err),
+            }
             configs.insert(name.clone(), config);
         }
 
