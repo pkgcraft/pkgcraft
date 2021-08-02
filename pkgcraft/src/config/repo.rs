@@ -41,7 +41,8 @@ impl RepoConfig {
             )));
         }
 
-        // TODO: verify format is supported
+        // verify format is supported
+        Repository::supported(&repo_conf.format)?;
 
         Ok(repo_conf)
     }
@@ -132,7 +133,6 @@ impl Config {
         Ok(())
     }
 
-    // TODO: handling optional syncing
     pub fn add(&mut self, name: &str, uri: &str) -> Result<()> {
         let name = name.to_string();
 
@@ -243,7 +243,7 @@ impl Config {
         }
     }
 
-    // TODO: add syncing support
+    // TODO: add concurrent syncing support with output progress
     pub fn sync(&mut self, repos: &[&str]) -> Result<()> {
         let mut failed: Vec<(&str, Error)> = Vec::new();
         for name in repos {

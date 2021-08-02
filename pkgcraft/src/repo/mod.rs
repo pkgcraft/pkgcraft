@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::macros::vec_str;
 
 mod ebuild;
 mod fake;
@@ -18,6 +20,8 @@ pub enum Repository {
     Fake(fake::Repo),
 }
 
+static SUPPORTED_FORMATS: Lazy<HashSet<String>> = Lazy::new(|| vec_str!(["ebuild", "fake"]));
+
 impl fmt::Display for Repository {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -28,6 +32,14 @@ impl fmt::Display for Repository {
 }
 
 impl Repository {
+    pub fn supported<S: AsRef<str>>(s: S) -> Result<()> {
+        let s = s.as_ref();
+        match SUPPORTED_FORMATS.get(s) {
+            Some(_) => Ok(()),
+            None => Err(Error::ConfigError(format!("unknown repo format: {:?}", s))),
+        }
+    }
+
     pub fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<(String, Repository)> {
         let id = id.as_ref();
         let path = path.as_ref();
