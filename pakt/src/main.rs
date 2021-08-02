@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{App, AppSettings, Arg, ArgMatches};
 
 use argparse::str_to_bool;
@@ -69,20 +69,17 @@ fn main() -> Result<()> {
     // load pkgcraft config
     settings.load()?;
 
-    match matches.subcommand() {
-        Some((cmd, args)) => subcmds::run(cmd, args, &mut settings),
-        _ => Err(anyhow!("missing subcommand")),
-    }
+    let (cmd, subcmd_args) = determine_cmd(&matches);
+    subcmds::run(cmd, subcmd_args, &mut settings)
 }
 
 // determine full command being run including all subcommands
-#[allow(dead_code)]
-fn determine_cmd(args: &ArgMatches) -> String {
+fn determine_cmd(args: &ArgMatches) -> (String, &ArgMatches) {
     let mut args: &ArgMatches = args;
-    let mut cmd = vec![env!("CARGO_PKG_NAME")];
+    let mut cmd = vec![];
     while let Some((subcmd, m)) = args.subcommand() {
         cmd.push(subcmd);
         args = m;
     }
-    cmd.join(" ")
+    (cmd.join(" "), args)
 }

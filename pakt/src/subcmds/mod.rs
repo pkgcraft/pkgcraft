@@ -1,25 +1,14 @@
 use anyhow::{anyhow, Result};
-use clap::{App, ArgMatches};
+use clap::ArgMatches;
 
 use crate::settings::Settings;
 
-mod repo;
+include!(concat!(env!("OUT_DIR"), "/subcmds/generated.rs"));
 
-// combine subcommands from given submodules into a vector for clap
-macro_rules! subcmds {
-    ($($module:ident),*) => {{
-        vec![$($module::cmd(),)*]
-    }};
-}
-
-// register and return all known subcommands
-pub fn register() -> Vec<App<'static>> {
-    subcmds!(repo)
-}
-
-pub fn run(subcmd: &str, args: &ArgMatches, settings: &mut Settings) -> Result<()> {
-    match subcmd {
-        "repo" => repo::run(args, settings),
-        s => Err(anyhow!("unknown subcommand: {:?}", s)),
+pub fn run<S: AsRef<str>>(cmd: S, args: &ArgMatches, settings: &mut Settings) -> Result<()> {
+    let cmd = cmd.as_ref();
+    match FUNC_MAP.get(cmd) {
+        Some(func) => func(args, settings),
+        None => Err(anyhow!("unknown subcommand: {:?}", cmd)),
     }
 }
