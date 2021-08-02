@@ -125,8 +125,8 @@ impl Config {
     }
 
     pub fn list(&self) -> Result<()> {
-        for repo in self.repos.values() {
-            println!("{}", repo);
+        for (id, config) in self.configs.iter() {
+            println!("{}: {}", id, config.location);
         }
         Ok(())
     }
