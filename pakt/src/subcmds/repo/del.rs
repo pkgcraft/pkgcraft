@@ -14,16 +14,14 @@ pub fn cmd() -> App<'static> {
                 .value_name("REPO")
                 .about("repos to remove"),
         )
-        .arg(Arg::new("clean").short('c').about("remove repo files"))
 }
 
 pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     let repos: Vec<&str> = args.values_of("repos").unwrap().collect();
-    let clean = args.is_present("clean");
     settings
         .config
         .repos
-        .del(&repos, clean)
+        .del(&repos, true)
         .context("failed removing repo(s)")
 }
 
