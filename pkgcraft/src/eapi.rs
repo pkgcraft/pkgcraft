@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 
+use indexmap::IndexMap;
 // TODO: use std implementation if it becomes available
 // https://github.com/rust-lang/rust/issues/74465
 use once_cell::sync::Lazy;
@@ -74,13 +75,17 @@ pub struct Eapi {
     options: EapiOptions,
 }
 
-// Technically EAPIs can't be ordered in this fashion since arbitrary strings are allowed for
-// names, in those cases None is returned since comparison isn't possible.
 impl PartialOrd for Eapi {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let eapi_num: u32 = self.id.parse().ok()?;
-        let other_num: u32 = other.id.parse().ok()?;
-        eapi_num.partial_cmp(&other_num)
+        let eapi_num = KNOWN_EAPIS.get_index_of(&self.id).unwrap();
+        let other_num = KNOWN_EAPIS.get_index_of(&other.id).unwrap();
+        let ordering = eapi_num.partial_cmp(&other_num);
+        // invert ordering since KNOWN_EAPIS starts with the most recent EAPI
+        match ordering {
+            Some(Ordering::Less) => Some(Ordering::Greater),
+            Some(Ordering::Greater) => Some(Ordering::Less),
+            _ => ordering,
+        }
     }
 }
 
@@ -214,8 +219,8 @@ pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("extended", Some(EAPI_LATEST), Some(&options))
 });
 
-pub static KNOWN_EAPIS: Lazy<HashMap<&'static str, &'static Eapi>> = Lazy::new(|| {
-    let mut eapis: HashMap<&'static str, &'static Eapi> = HashMap::new();
+pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
+    let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
     let mut eapi: &Eapi = EAPI_LATEST;
     while let Some(x) = eapi.parent {
         eapis.insert(eapi.id, eapi);
