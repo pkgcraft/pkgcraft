@@ -207,22 +207,32 @@ impl Config {
         }
     }
 
-    pub fn del(&mut self, repos: &[&str], _clean: bool) -> Result<()> {
-        let mut failed: Vec<&str> = Vec::new();
-        for repo in repos {
-            match self.repos.remove(repo as &str) {
-                Some(_) => (),
-                None => failed.push(repo),
+    pub fn del(&mut self, repos: &[&str], clean: bool) -> Result<()> {
+        for name in repos {
+            // error out if repo config is missing
+            let repo_config = self.config_from_id(name)?;
+            // physical repo files are allowed to be missing
+            if let Ok(_repo) = self.repo_from_id(name) {
+                if clean {
+                    fs::remove_dir_all(&repo_config.location).map_err(|e| {
+                        ConfigError(format!(
+                            "failed removing repo files: {:?}: {}",
+                            &repo_config.location, &e
+                        ))
+                    })?;
+                }
+                self.repos.remove(name as &str);
             }
-        }
 
-        match failed.is_empty() {
-            true => Ok(()),
-            false => Err(ConfigError(format!(
-                "failed removing: {}",
-                failed.join(", ")
-            ))),
+            if clean {
+                let path = self.config_dir.join(&name);
+                fs::remove_file(&path).map_err(|e| {
+                    ConfigError(format!("failed removing repo config: {:?}: {}", &path, &e))
+                })?;
+            }
+            self.configs.remove(name as &str);
         }
+        Ok(())
     }
 
     fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repository> {
