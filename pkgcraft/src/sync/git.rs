@@ -22,7 +22,7 @@ impl Syncable for Repo {
             true => Ok(Syncer::Git(Repo {
                 url: url.to_string(),
             })),
-            false => Err(Error::ParseError(format!("invalid git URL: {:?}", url))),
+            false => Err(Error::Error(format!("invalid git URL: {:?}", url))),
         }
     }
 
