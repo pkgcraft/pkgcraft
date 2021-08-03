@@ -9,6 +9,7 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Clone, Debug)]
 pub enum Error {
+    Error(String),
     ConfigError(String),
     ParseError(String),
     IOError(String),
@@ -39,6 +40,7 @@ impl From<atom::ParseError> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Error::Error(ref s) => write!(f, "{}", s),
             Error::ConfigError(ref s) => write!(f, "{}", s),
             Error::ParseError(ref s) => write!(f, "{}", s),
             Error::IOError(ref s) => write!(f, "{}", s),
