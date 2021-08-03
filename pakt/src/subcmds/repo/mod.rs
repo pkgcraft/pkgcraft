@@ -10,12 +10,10 @@ pub fn cmd() -> App<'static> {
         .about("manage available repos")
         .setting(AppSettings::DisableHelpSubcommand)
         .setting(AppSettings::DisableVersionForSubcommands)
+        .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommands(register())
 }
 
-pub fn run(_args: &ArgMatches, settings: &mut Settings) -> Result<()> {
-    for (id, config) in settings.config.repos.configs.iter() {
-        println!("{}: {}", id, config.location);
-    }
+pub fn run(_args: &ArgMatches, _settings: &mut Settings) -> Result<()> {
     Ok(())
 }
