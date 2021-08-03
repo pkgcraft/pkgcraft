@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::iter;
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -10,8 +11,36 @@ use crate::macros::vec_str;
 mod ebuild;
 mod fake;
 
-type VersionCache = HashMap<String, HashSet<String>>;
-type PkgCache = HashMap<String, VersionCache>;
+type VersionMap = HashMap<String, HashSet<String>>;
+type PkgMap = HashMap<String, VersionMap>;
+
+#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
+struct PkgCache {
+    pkgmap: PkgMap,
+}
+
+impl PkgCache {
+    fn categories(&self) -> Box<dyn Iterator<Item = &String> + '_> {
+        Box::new(self.pkgmap.keys())
+    }
+
+    fn packages<S: AsRef<str>>(&self, cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
+        match self.pkgmap.get(cat.as_ref()) {
+            Some(pkgs) => Box::new(pkgs.keys()),
+            None => Box::new(iter::empty::<&String>()),
+        }
+    }
+
+    fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Box<dyn Iterator<Item = &String> + '_> {
+        match self.pkgmap.get(cat.as_ref()) {
+            Some(pkgs) => match pkgs.get(pkg.as_ref()) {
+                Some(vers) => Box::new(vers.iter()),
+                None => Box::new(iter::empty::<&String>()),
+            },
+            None => Box::new(iter::empty::<&String>()),
+        }
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
@@ -77,8 +106,9 @@ impl Repository {
 pub trait Repo: fmt::Debug + fmt::Display + Sized {
     // TODO: convert to `impl Iterator` return type once supported within traits
     // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
-    fn categories(&self) -> Box<dyn Iterator<Item = &String> + '_>;
-    fn packages<S: AsRef<str>>(&self, cat: S) -> Box<dyn Iterator<Item = &String> + '_>;
-    fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Box<dyn Iterator<Item = &String> + '_>;
+    fn categories(&mut self) -> Box<dyn Iterator<Item = &String> + '_>;
+    fn packages<S: AsRef<str>>(&mut self, cat: S) -> Box<dyn Iterator<Item = &String> + '_>;
+    fn versions<S: AsRef<str>>(&mut self, cat: S, pkg: S)
+        -> Box<dyn Iterator<Item = &String> + '_>;
     fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<Self>;
 }

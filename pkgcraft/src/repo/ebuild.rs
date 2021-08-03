@@ -1,5 +1,4 @@
 use std::fmt;
-use std::iter;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -7,10 +6,11 @@ use serde::{Deserialize, Serialize};
 use crate::error::{Error, Result};
 use crate::repo;
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 pub struct Repo {
     pub id: String,
-    pub path: String,
+    pub path: PathBuf,
+    cached: bool,
     #[serde(default)]
     pkgs: repo::PkgCache,
 }
@@ -19,30 +19,48 @@ impl Repo {
     pub fn new<S: AsRef<str>>(id: S, path: S) -> Result<Repo> {
         Ok(Repo {
             id: id.as_ref().to_string(),
-            path: path.as_ref().to_string(),
-            pkgs: repo::PkgCache::new(),
+            path: PathBuf::from(path.as_ref()),
+            ..Default::default()
         })
+    }
+
+    // TODO: build pkg cache from dir listing
+    fn update_cache(&mut self) {
+        self.cached = true;
     }
 }
 
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.id, self.path)
+        write!(f, "{}: {}", self.id, self.path.to_string_lossy())
     }
 }
 
 // TODO: fill out stub implementation
 impl repo::Repo for Repo {
-    fn categories(&self) -> Box<dyn Iterator<Item = &String> + '_> {
-        Box::new(iter::empty::<&String>())
+    fn categories(&mut self) -> Box<dyn Iterator<Item = &String> + '_> {
+        if !self.cached {
+            self.update_cache();
+        }
+        self.pkgs.categories()
     }
 
-    fn packages<S: AsRef<str>>(&self, _cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
-        Box::new(iter::empty::<&String>())
+    fn packages<S: AsRef<str>>(&mut self, cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
+        if !self.cached {
+            self.update_cache();
+        }
+        self.pkgs.packages(cat)
     }
 
-    fn versions<S: AsRef<str>>(&self, _cat: S, _pkg: S) -> Box<dyn Iterator<Item = &String> + '_> {
-        Box::new(iter::empty::<&String>())
+    fn versions<S: AsRef<str>>(
+        &mut self,
+        cat: S,
+        pkg: S,
+    ) -> Box<dyn Iterator<Item = &String> + '_> {
+        if !self.cached {
+            self.update_cache();
+        }
+        self.pkgs.versions(cat, pkg)
     }
 
     fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<Self> {

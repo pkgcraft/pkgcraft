@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::fs;
-use std::iter;
 
 use serde::{Deserialize, Serialize};
 
@@ -21,15 +20,18 @@ impl Repo {
     where
         I: IntoIterator<Item = &'a str>,
     {
-        let mut pkgs = repo::PkgCache::new();
+        let mut pkgmap = repo::PkgMap::new();
         for s in atoms.into_iter() {
             let (cat, pkg, ver) = atom::parse::cpv(s)?;
-            pkgs.entry(cat.to_string())
-                .or_insert_with(repo::VersionCache::new)
+            pkgmap
+                .entry(cat.to_string())
+                .or_insert_with(repo::VersionMap::new)
                 .entry(pkg.to_string())
                 .or_insert_with(HashSet::new)
                 .insert(ver.to_string());
         }
+
+        let pkgs = repo::PkgCache { pkgmap };
         Ok(Repo {
             id: id.to_string(),
             pkgs,
@@ -44,25 +46,20 @@ impl fmt::Display for Repo {
 }
 
 impl repo::Repo for Repo {
-    fn categories(&self) -> Box<dyn Iterator<Item = &String> + '_> {
-        Box::new(self.pkgs.keys())
+    fn categories(&mut self) -> Box<dyn Iterator<Item = &String> + '_> {
+        self.pkgs.categories()
     }
 
-    fn packages<S: AsRef<str>>(&self, cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
-        match self.pkgs.get(cat.as_ref()) {
-            Some(pkgs) => Box::new(pkgs.keys()),
-            None => Box::new(iter::empty::<&String>()),
-        }
+    fn packages<S: AsRef<str>>(&mut self, cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
+        self.pkgs.packages(cat)
     }
 
-    fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Box<dyn Iterator<Item = &String> + '_> {
-        match self.pkgs.get(cat.as_ref()) {
-            Some(pkgs) => match pkgs.get(pkg.as_ref()) {
-                Some(vers) => Box::new(vers.iter()),
-                None => Box::new(iter::empty::<&String>()),
-            },
-            None => Box::new(iter::empty::<&String>()),
-        }
+    fn versions<S: AsRef<str>>(
+        &mut self,
+        cat: S,
+        pkg: S,
+    ) -> Box<dyn Iterator<Item = &String> + '_> {
+        self.pkgs.versions(cat, pkg)
     }
 
     fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<Self> {
