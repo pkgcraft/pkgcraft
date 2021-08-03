@@ -4,7 +4,7 @@ use std::fs;
 use std::io::prelude::*;
 use std::path::Path;
 
-use indoc::formatdoc;
+use indoc::{formatdoc, indoc};
 use walkdir::{DirEntry, WalkDir};
 
 fn is_hidden(entry: &DirEntry) -> bool {
@@ -13,6 +13,16 @@ fn is_hidden(entry: &DirEntry) -> bool {
         .to_str()
         .map(|s| s.starts_with('.'))
         .unwrap_or(false)
+}
+
+fn run_fn_exists(path: &Path) -> bool {
+    let src_contents = fs::read_to_string(&path).unwrap();
+    for line in src_contents.lines() {
+        if line.starts_with("pub fn run(") {
+            return true;
+        }
+    }
+    false
 }
 
 fn main() {
@@ -50,14 +60,15 @@ fn main() {
     for (level, subcmds) in cmds.iter() {
         let dir_path = format!("subcmds/{}", level);
         let file_dir = dest_path.join(&dir_path);
-        let module_path = src_dir.join(&dir_path);
+        let module_src_path = src_dir.join(&dir_path);
+        let module_file_path = module_src_path.join("mod.rs");
         fs::create_dir_all(&file_dir).unwrap();
         let file = fs::File::create(&file_dir.join("generated.rs")).unwrap();
         for cmd in subcmds {
             let module = cmd.split('/').last().unwrap();
-            let module_path = match module_path.join(format!("{}.rs", module)).exists() {
-                true => module_path.join(format!("{}.rs", module)),
-                false => module_path.join(format!("{}/mod.rs", module)),
+            let module_path = match module_src_path.join(format!("{}.rs", module)).exists() {
+                true => module_src_path.join(format!("{}.rs", module)),
+                false => module_src_path.join(format!("{}/mod.rs", module)),
             };
             writeln!(&file, "#[path = \"{}\"]", module_path.to_str().unwrap()).unwrap();
             writeln!(&file, "mod {};", module).unwrap();
@@ -70,6 +81,7 @@ fn main() {
             .join(", ");
         let register_func = formatdoc!(
             "
+
             pub fn register() -> Vec<clap::App<'static>> {{
                 vec![{}]
             }}
@@ -86,6 +98,7 @@ fn main() {
 
         let func_map = formatdoc!(
             "
+
             use std::collections::HashMap;
 
             use once_cell::sync::Lazy;
@@ -101,6 +114,24 @@ fn main() {
             cmd_maps.join(",\n\t")
         );
         write!(&file, "{}", func_map).unwrap();
+
+        // insert generic subcommand run function if none exists
+        if !run_fn_exists(&module_file_path) {
+            let run_fn = indoc! {"
+
+                use anyhow::Result;
+                use clap::ArgMatches;
+
+                use crate::settings::Settings;
+
+                pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
+                    let (subcmd, m) = args.subcommand().unwrap();
+                    let func = FUNC_MAP.get(subcmd).unwrap();
+                    func(m, settings)
+                }
+            "};
+            write!(&file, "{}", run_fn).unwrap();
+        }
     }
 
     println!("cargo:rerun-if-changed=build.rs");
