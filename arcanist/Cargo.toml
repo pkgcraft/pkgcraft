@@ -1,11 +1,10 @@
 [package]
 name = "arcanist"
 version = "0.0.1"
-description = "Gentoo package-building daemon leveraging pkgcraft"
+description = "package-building daemon leveraging pkgcraft"
 authors = ["Tim Harder <radhermit@gmail.com>"]
 homepage = "https://github.com/pkgcraft/pkgcraft/arcanist"
 repository = "https://github.com/pkgcraft/pkgcraft"
-documentation = "https://github.com/pkgcraft/pkgcraft/arcanist"
 readme = "README.md"
 license = "MIT"
 edition = "2018"

@@ -5,7 +5,6 @@ description = "library of Gentoo Linux functionality"
 authors = ["Tim Harder <radhermit@gmail.com>"]
 homepage = "https://github.com/pkgcraft/pkgcraft"
 repository = "https://github.com/pkgcraft/pkgcraft"
-documentation = "https://github.com/pkgcraft/pkgcraft"
 readme = "README.md"
 license = "MIT"
 edition = "2018"
