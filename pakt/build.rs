@@ -60,7 +60,7 @@ fn main() {
                 false => module_path.join(format!("{}/mod.rs", module)),
             };
             writeln!(&file, "#[path = \"{}\"]", module_path.to_str().unwrap()).unwrap();
-            writeln!(&file, "pub mod {};", module).unwrap();
+            writeln!(&file, "mod {};", module).unwrap();
         }
 
         let cmd_strs = subcmds
@@ -77,40 +77,31 @@ fn main() {
             cmd_strs
         );
         write!(&file, "{}", register_func).unwrap();
-    }
 
-    let mut cmd_maps: Vec<String> = Vec::new();
-    for (_level, subcmds) in cmds.iter() {
+        let mut cmd_maps: Vec<String> = Vec::new();
         for s in subcmds {
-            cmd_maps.push(format!(
-                "({:?}, {}::run as RunFn)",
-                s.replace("/", " "),
-                s.replace("/", "::")
-            ));
+            let cmd = s.split('/').last().unwrap();
+            cmd_maps.push(format!("({:?}, {}::run as RunFn)", cmd, cmd));
         }
+
+        let func_map = formatdoc!(
+            "
+            use std::collections::HashMap;
+
+            use once_cell::sync::Lazy;
+
+            type RunFn = fn(&ArgMatches, &mut Settings) -> Result<()>;
+
+            static FUNC_MAP: Lazy<HashMap<&'static str, RunFn>> = Lazy::new(|| {{
+                [
+                    {}
+                ].iter().cloned().collect()
+            }});
+        ",
+            cmd_maps.join(",\n\t")
+        );
+        write!(&file, "{}", func_map).unwrap();
     }
-
-    let func_map = formatdoc!(
-        "
-        use std::collections::HashMap;
-
-        use once_cell::sync::Lazy;
-
-        type RunFn = fn(&ArgMatches, &mut Settings) -> Result<()>;
-
-        static FUNC_MAP: Lazy<HashMap<&'static str, RunFn>> = Lazy::new(|| {{
-            [
-                {}
-            ].iter().cloned().collect()
-        }});
-    ",
-        cmd_maps.join(",\n\t")
-    );
-    let file = fs::OpenOptions::new()
-        .append(true)
-        .open(&dest_path.join("subcmds/generated.rs"))
-        .unwrap();
-    write!(&file, "{}", func_map).unwrap();
 
     println!("cargo:rerun-if-changed=build.rs");
 }

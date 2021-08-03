@@ -14,6 +14,8 @@ pub fn cmd() -> App<'static> {
         .subcommands(register())
 }
 
-pub fn run(_args: &ArgMatches, _settings: &mut Settings) -> Result<()> {
-    Ok(())
+pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
+    let (subcmd, m) = args.subcommand().unwrap();
+    let func = FUNC_MAP.get(subcmd).unwrap();
+    func(m, settings)
 }

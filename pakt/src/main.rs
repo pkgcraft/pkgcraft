@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{App, AppSettings, Arg, ArgMatches};
+use clap::{App, AppSettings, Arg};
 
 use argparse::str_to_bool;
 use settings::Settings;
@@ -43,7 +43,6 @@ fn main() -> Result<()> {
     // determine subcommand being run to use for error output
     //let app_ignore_errors = app.clone().setting(AppSettings::IgnoreErrors);
     //let pre_parsed = app_ignore_errors.get_matches();
-    //let cmd = determine_cmd(&pre_parsed);
 
     let matches = app.get_matches();
 
@@ -69,17 +68,5 @@ fn main() -> Result<()> {
     // load pkgcraft config
     settings.load()?;
 
-    let (cmd, subcmd_args) = determine_cmd(&matches);
-    subcmds::run(cmd, subcmd_args, &mut settings)
-}
-
-// determine full command being run including all subcommands
-fn determine_cmd(args: &ArgMatches) -> (String, &ArgMatches) {
-    let mut args: &ArgMatches = args;
-    let mut cmd = vec![];
-    while let Some((subcmd, m)) = args.subcommand() {
-        cmd.push(subcmd);
-        args = m;
-    }
-    (cmd.join(" "), args)
+    subcmds::run(&matches, &mut settings)
 }
