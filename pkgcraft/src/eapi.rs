@@ -9,6 +9,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::atom;
+use crate::error::{Error, Result};
 
 static VALID_EAPI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
@@ -97,7 +98,7 @@ impl Eapi {
         }
     }
 
-    pub fn atom(&'static self, s: &str) -> Result<atom::Atom, atom::ParseError> {
+    pub fn atom(&'static self, s: &str) -> std::result::Result<atom::Atom, atom::ParseError> {
         atom::parse::dep(s, self)
     }
 
@@ -131,16 +132,13 @@ impl fmt::Display for Eapi {
     }
 }
 
-pub fn get_eapi(id: &str) -> Result<&'static Eapi, &'static str> {
+pub fn get_eapi(id: &str) -> Result<&'static Eapi> {
     match KNOWN_EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
-        None => {
-            if VALID_EAPI_RE.is_match(id) {
-                Err("unknown EAPI")
-            } else {
-                Err("invalid EAPI")
-            }
-        }
+        None => match VALID_EAPI_RE.is_match(id) {
+            true => Err(Error::Error(format!("unknown EAPI: {:?}", id))),
+            false => Err(Error::Error(format!("invalid EAPI: {:?}", id))),
+        },
     }
 }
 
