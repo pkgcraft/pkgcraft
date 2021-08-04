@@ -31,50 +31,48 @@ fn main() {
     let dest_path = Path::new(&out_dir);
 
     let mut subcmds: Vec<String> = Vec::new();
+    let mut cmd_map: HashMap<String, Vec<String>> = HashMap::new();
+
     let subcmds_path = src_dir.join("subcmds");
     let walker = WalkDir::new(&subcmds_path).into_iter();
     for entry in walker.filter_entry(|e| !is_hidden(e)) {
         let entry = entry.unwrap();
         let path = entry.path();
-        let subcmd = path.strip_prefix(&subcmds_path).unwrap().with_extension("");
-        if let Some(filename) = subcmd.file_name() {
-            if filename.to_str().unwrap() != "mod" {
-                subcmds.push(subcmd.to_str().unwrap().to_string());
+        if path.is_file() {
+            let subcmd = path.strip_prefix(&subcmds_path).unwrap().with_extension("");
+            if subcmd.file_name().is_some() {
+                let cmd_path = subcmd.to_str().unwrap().to_string();
+                subcmds.push(cmd_path.clone());
+
+                let cmd: Vec<String> = cmd_path.split('/').map(|s| s.to_string()).collect();
+                let key = cmd[..cmd.len() - 1].join("/");
+                match cmd_map.get_mut(&key) {
+                    Some(vec) => vec.push(cmd_path),
+                    None => {
+                        cmd_map.insert(key, vec![cmd_path]);
+                    }
+                }
             }
         }
     }
 
-    let mut cmds: HashMap<String, Vec<String>> = HashMap::new();
-
-    for subcmd in subcmds {
-        let cmd: Vec<&str> = subcmd.split('/').collect();
-        let key = cmd[..cmd.len() - 1].join("/");
-        match cmds.get_mut(&key) {
-            Some(vec) => vec.push(subcmd.to_string()),
-            None => {
-                cmds.insert(key, vec![subcmd.to_string()]);
-            }
-        }
-    }
-
-    for (level, subcmds) in cmds.iter() {
-        let dir_path = format!("subcmds/{}", level);
+    for (key, cmds) in cmd_map.iter() {
+        let dir_path = format!("subcmds/{}", &key);
         let file_dir = dest_path.join(&dir_path);
-        let module_src_path = src_dir.join(&dir_path);
-        let module_file_path = module_src_path.join("mod.rs");
+        let module_file_path = match key.as_str() {
+            "" => src_dir.join("subcmds.rs"),
+            _ => src_dir.join(format!("{}.rs", dir_path)),
+        };
         fs::create_dir_all(&file_dir).unwrap();
         let file = fs::File::create(&file_dir.join("generated.rs")).unwrap();
-        for cmd in subcmds {
+        for cmd in cmds {
             let module = cmd.split('/').last().unwrap();
-            let module_path = match module_src_path.join(format!("{}.rs", module)).exists() {
-                true => module_src_path.join(format!("{}.rs", module)),
-                false => module_src_path.join(format!("{}/mod.rs", module)),
-            };
+            let module_path = src_dir.join(format!("subcmds/{}.rs", &cmd));
             writeln!(&file, "#[path = \"{}\"]", module_path.to_str().unwrap()).unwrap();
             writeln!(&file, "mod {};", module).unwrap();
         }
 
-        let cmd_strs = subcmds
+        let cmd_strs = cmds
             .iter()
             .map(|s| format!("{}::cmd()", s.split('/').last().unwrap()))
             .collect::<Vec<String>>()
@@ -91,7 +89,7 @@ fn main() {
         write!(&file, "{}", register_func).unwrap();
 
         let mut cmd_maps: Vec<String> = Vec::new();
-        for s in subcmds {
+        for s in cmds {
             let cmd = s.split('/').last().unwrap();
             cmd_maps.push(format!("({:?}, {}::run as RunFn)", cmd, cmd));
         }
