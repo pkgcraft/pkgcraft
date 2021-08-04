@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::repo;
-use crate::repo::Repo as RepoTrait;
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 pub struct Repo {
@@ -18,7 +17,11 @@ pub struct Repo {
 
 impl Repo {
     pub fn new<S: AsRef<str>>(id: S, path: S) -> Result<Repo> {
-        Repo::from_path(id, path)
+        Ok(Repo {
+            id: id.as_ref().to_string(),
+            path: PathBuf::from(path.as_ref()),
+            ..Default::default()
+        })
     }
 
     // TODO: build pkg cache from dir listing
