@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::iter;
 
+use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
@@ -42,16 +43,14 @@ impl PkgCache {
     }
 }
 
-pub fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<(String, Box<dyn Repo>)> {
+pub fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<(&'static str, Box<dyn Repo>)> {
     let id = id.as_ref();
     let path = path.as_ref();
 
-    if let Ok(repo) = ebuild::Repo::from_path(id, path) {
-        return Ok(("ebuild".to_string(), Box::new(repo)));
-    }
-
-    if let Ok(repo) = fake::Repo::from_path(id, path) {
-        return Ok(("fake".to_string(), Box::new(repo)));
+    for format in SUPPORTED_FORMATS.iter() {
+        if let Ok(repo) = from_format(id, path, format) {
+            return Ok((format, Box::new(repo)));
+        }
     }
 
     Err(Error::ConfigError(format!(
@@ -66,8 +65,8 @@ pub fn from_format<S: AsRef<str>>(id: S, path: S, format: S) -> Result<Box<dyn R
     let format = format.as_ref();
 
     match format {
-        "ebuild" => Ok(Box::new(ebuild::Repo::from_path(id, path)?)),
-        "fake" => Ok(Box::new(fake::Repo::from_path(id, path)?)),
+        ebuild::Repo::FORMAT => Ok(Box::new(ebuild::Repo::from_path(id, path)?)),
+        fake::Repo::FORMAT => Ok(Box::new(fake::Repo::from_path(id, path)?)),
         _ => {
             let err = format!("{:?} repo: unknown format: {:?}", id, format);
             Err(Error::ConfigError(err))
@@ -75,8 +74,13 @@ pub fn from_format<S: AsRef<str>>(id: S, path: S, format: S) -> Result<Box<dyn R
     }
 }
 
-static SUPPORTED_FORMATS: Lazy<HashSet<&'static str>> =
-    Lazy::new(|| ["ebuild", "fake"].iter().cloned().collect());
+#[rustfmt::skip]
+static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
+    [
+        ebuild::Repo::FORMAT,
+        fake::Repo::FORMAT,
+    ].iter().cloned().collect()
+});
 
 pub fn is_supported<S: AsRef<str>>(s: S) -> Result<()> {
     let s = s.as_ref();

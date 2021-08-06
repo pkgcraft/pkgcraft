@@ -173,7 +173,7 @@ impl Config {
                 };
 
                 let (format, repo) = repo::from_path(&name, &config.location)?;
-                config.format = format;
+                config.format = format.to_string();
 
                 // write repo config file to disk
                 let repo_conf_data = toml::to_string(&config).map_err(|e| {

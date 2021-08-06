@@ -16,6 +16,8 @@ pub struct Repo {
 }
 
 impl Repo {
+    pub const FORMAT: &'static str = "ebuild";
+
     pub fn new<S: AsRef<str>>(id: S, path: S) -> Result<Repo> {
         Ok(Repo {
             id: id.as_ref().to_string(),

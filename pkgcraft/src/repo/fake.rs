@@ -16,6 +16,8 @@ pub struct Repo {
 }
 
 impl Repo {
+    pub const FORMAT: &'static str = "fake";
+
     pub fn new<'a, I>(id: &str, atoms: I) -> Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
