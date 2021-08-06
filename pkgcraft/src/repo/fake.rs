@@ -37,6 +37,11 @@ impl Repo {
             pkgs,
         })
     }
+
+    pub fn from_path(id: &str, path: &str) -> Result<Self> {
+        let data = fs::read_to_string(path)?;
+        Repo::new(id, data.lines())
+    }
 }
 
 impl fmt::Display for Repo {
@@ -46,27 +51,16 @@ impl fmt::Display for Repo {
 }
 
 impl repo::Repo for Repo {
-    fn categories(&mut self) -> Box<dyn Iterator<Item = &String> + '_> {
+    fn categories(&mut self) -> repo::StringIter {
         self.pkgs.categories()
     }
 
-    fn packages<S: AsRef<str>>(&mut self, cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
+    fn packages(&mut self, cat: &str) -> repo::StringIter {
         self.pkgs.packages(cat)
     }
 
-    fn versions<S: AsRef<str>>(
-        &mut self,
-        cat: S,
-        pkg: S,
-    ) -> Box<dyn Iterator<Item = &String> + '_> {
+    fn versions(&mut self, cat: &str, pkg: &str) -> repo::StringIter {
         self.pkgs.versions(cat, pkg)
-    }
-
-    fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<Self> {
-        let id = id.as_ref();
-        let path = path.as_ref();
-        let data = fs::read_to_string(path)?;
-        Repo::new(id, data.lines())
     }
 }
 

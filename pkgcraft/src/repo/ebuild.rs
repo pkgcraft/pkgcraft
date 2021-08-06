@@ -28,6 +28,18 @@ impl Repo {
     fn update_cache(&mut self) {
         self.cached = true;
     }
+
+    pub fn from_path(id: &str, path: &str) -> Result<Self> {
+        let repo_path = PathBuf::from(path);
+        if !repo_path.join("profiles").exists() {
+            return Err(Error::InvalidRepo {
+                path: path.to_string(),
+                error: "missing profiles dir".to_string(),
+            });
+        }
+
+        Repo::new(id, path)
+    }
 }
 
 impl fmt::Display for Repo {
@@ -38,43 +50,24 @@ impl fmt::Display for Repo {
 
 // TODO: fill out stub implementation
 impl repo::Repo for Repo {
-    fn categories(&mut self) -> Box<dyn Iterator<Item = &String> + '_> {
+    fn categories(&mut self) -> repo::StringIter {
         if !self.cached {
             self.update_cache();
         }
         self.pkgs.categories()
     }
 
-    fn packages<S: AsRef<str>>(&mut self, cat: S) -> Box<dyn Iterator<Item = &String> + '_> {
+    fn packages(&mut self, cat: &str) -> repo::StringIter {
         if !self.cached {
             self.update_cache();
         }
         self.pkgs.packages(cat)
     }
 
-    fn versions<S: AsRef<str>>(
-        &mut self,
-        cat: S,
-        pkg: S,
-    ) -> Box<dyn Iterator<Item = &String> + '_> {
+    fn versions(&mut self, cat: &str, pkg: &str) -> repo::StringIter {
         if !self.cached {
             self.update_cache();
         }
         self.pkgs.versions(cat, pkg)
-    }
-
-    fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<Self> {
-        let id = id.as_ref();
-        let path = path.as_ref();
-
-        let repo_path = PathBuf::from(path);
-        if !repo_path.join("profiles").exists() {
-            return Err(Error::InvalidRepo {
-                path: path.to_string(),
-                error: "missing profiles dir".to_string(),
-            });
-        }
-
-        Repo::new(id, path)
     }
 }

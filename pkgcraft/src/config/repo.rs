@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::Error::ConfigError;
 use crate::error::{Error, Result};
-use crate::repo::Repository;
+use crate::repo;
 use crate::sync::Syncer;
 
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
@@ -34,7 +34,7 @@ impl RepoConfig {
         })?;
 
         // verify format is supported
-        Repository::supported(&repo_conf.format)?;
+        repo::is_supported(&repo_conf.format)?;
 
         Ok(repo_conf)
     }
@@ -65,8 +65,8 @@ pub struct Config {
     repo_dir: PathBuf,
     #[serde(default)]
     pub configs: IndexMap<String, RepoConfig>,
-    #[serde(default)]
-    repos: IndexMap<String, Repository>,
+    #[serde(skip)]
+    repos: IndexMap<String, Box<dyn repo::Repo>>,
 }
 
 impl Config {
@@ -104,10 +104,10 @@ impl Config {
 
         // create hash tables of repos ordered by priority
         let mut configs: IndexMap<String, RepoConfig> = Default::default();
-        let mut repos: IndexMap<String, Repository> = Default::default();
+        let mut repos: IndexMap<String, Box<dyn repo::Repo>> = Default::default();
         for (config, name) in repo_configs {
             // ignore unsynced or nonexistent repos
-            match Repository::from_format(&name, &config.location, &config.format) {
+            match repo::from_format(&name, &config.location, &config.format) {
                 Ok(repo) => {
                     repos.insert(name.clone(), repo);
                 }
@@ -172,7 +172,7 @@ impl Config {
                     }
                 };
 
-                let (format, repo) = Repository::from_path(&name, &config.location)?;
+                let (format, repo) = repo::from_path(&name, &config.location)?;
                 config.format = format;
 
                 // write repo config file to disk
@@ -228,7 +228,7 @@ impl Config {
         Ok(())
     }
 
-    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repository> {
+    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&dyn repo::Repo> {
         let id = id.as_ref();
         match self.repos.get(id) {
             Some(repo) => Ok(repo),
