@@ -5,7 +5,7 @@ use crate::settings::Settings;
 
 pub fn cmd() -> App<'static> {
     App::new("add")
-        .about("register new repo")
+        .about("register repo")
         .arg(Arg::new("name").required(true).about("repo name"))
         .arg(Arg::new("uri").required(true).about("repo location"))
 }
