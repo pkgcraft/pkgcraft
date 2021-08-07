@@ -1,6 +1,10 @@
 use std::fmt;
+use std::fs;
 use std::path::{Path, PathBuf};
 
+use tempfile::TempDir;
+
+use crate::eapi;
 use crate::error::{Error, Result};
 use crate::repo;
 
@@ -68,5 +72,58 @@ impl repo::Repo for Repo {
             self.update_cache();
         }
         self.pkgs.versions(cat, pkg)
+    }
+}
+
+#[derive(Debug)]
+pub struct TempRepo {
+    tempdir: TempDir,
+    repo: Repo,
+}
+
+// currently used for internal testing only
+#[allow(dead_code)]
+impl TempRepo {
+    pub fn new<S: AsRef<str>>(id: S, eapi: Option<&eapi::Eapi>) -> Result<Self> {
+        let id = id.as_ref();
+        let eapi = format!("{}", eapi.unwrap_or(eapi::EAPI_LATEST));
+        let tempdir = TempDir::new()
+            .map_err(|e| Error::Error(format!("failed creating temp repo {:?}: {}", id, e)))?;
+        let temp_path = tempdir.path();
+
+        for dir in ["metadata", "profiles"] {
+            fs::create_dir(temp_path.join(dir))
+                .map_err(|e| Error::Error(format!("failed creating temp repo {:?}: {}", id, e)))?;
+        }
+        fs::write(temp_path.join("profiles/repo_name"), id)
+            .map_err(|e| Error::Error(format!("failed writing temp repo id: {}", e)))?;
+        fs::write(temp_path.join("profiles/eapi"), eapi)
+            .map_err(|e| Error::Error(format!("failed writing temp repo EAPI: {}", e)))?;
+
+        let repo = Repo::from_path(id, temp_path)?;
+        Ok(TempRepo { tempdir, repo })
+    }
+}
+
+impl fmt::Display for TempRepo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.repo)
+    }
+}
+
+impl repo::Repo for TempRepo {
+    #[inline]
+    fn categories(&mut self) -> repo::StringIter {
+        self.repo.categories()
+    }
+
+    #[inline]
+    fn packages(&mut self, cat: &str) -> repo::StringIter {
+        self.repo.packages(cat)
+    }
+
+    #[inline]
+    fn versions(&mut self, cat: &str, pkg: &str) -> repo::StringIter {
+        self.repo.versions(cat, pkg)
     }
 }
