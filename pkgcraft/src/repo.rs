@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::iter;
+use std::path::Path;
 
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
@@ -60,8 +61,7 @@ impl Repository {
         }
     }
 
-    pub fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<(&'static str, Self)> {
-        let id = id.as_ref();
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<(&'static str, Self)> {
         let path = path.as_ref();
 
         for format in SUPPORTED_FORMATS.iter() {
@@ -76,10 +76,8 @@ impl Repository {
         )))
     }
 
-    pub fn from_format<S: AsRef<str>>(id: S, path: S, format: S) -> Result<Self> {
-        let id = id.as_ref();
+    pub fn from_format<P: AsRef<Path>>(id: &str, path: P, format: &str) -> Result<Self> {
         let path = path.as_ref();
-        let format = format.as_ref();
 
         match format {
             ebuild::Repo::FORMAT => Ok(Repository::Ebuild(ebuild::Repo::from_path(id, path)?)),

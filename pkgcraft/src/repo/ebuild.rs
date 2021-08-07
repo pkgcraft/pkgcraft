@@ -1,5 +1,5 @@
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::error::{Error, Result};
 use crate::repo;
@@ -15,9 +15,9 @@ pub struct Repo {
 impl Repo {
     pub const FORMAT: &'static str = "ebuild";
 
-    pub fn new<S: AsRef<str>>(id: S, path: S) -> Result<Repo> {
+    pub fn new<P: AsRef<Path>>(id: &str, path: P) -> Result<Self> {
         Ok(Repo {
-            id: id.as_ref().to_string(),
+            id: id.to_string(),
             path: PathBuf::from(path.as_ref()),
             ..Default::default()
         })
@@ -28,11 +28,11 @@ impl Repo {
         self.cached = true;
     }
 
-    pub fn from_path(id: &str, path: &str) -> Result<Self> {
-        let repo_path = PathBuf::from(path);
-        if !repo_path.join("profiles").exists() {
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<Self> {
+        let path = path.as_ref();
+        if !path.join("profiles").exists() {
             return Err(Error::InvalidRepo {
-                path: path.to_string(),
+                path: PathBuf::from(path),
                 error: "missing profiles dir".to_string(),
             });
         }

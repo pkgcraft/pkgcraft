@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::fs;
+use std::path::Path;
 
 use crate::atom;
 use crate::error::Result;
@@ -37,8 +38,8 @@ impl Repo {
         })
     }
 
-    pub fn from_path(id: &str, path: &str) -> Result<Self> {
-        let data = fs::read_to_string(path)?;
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<Self> {
+        let data = fs::read_to_string(path.as_ref())?;
         Repo::new(id, data.lines())
     }
 }

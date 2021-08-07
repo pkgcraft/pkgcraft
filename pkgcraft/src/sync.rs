@@ -1,4 +1,5 @@
 use std::fmt;
+use std::path::Path;
 use std::str::FromStr;
 
 use serde_with::{DeserializeFromStr, SerializeDisplay};
@@ -24,11 +25,12 @@ impl fmt::Display for Syncer {
 
 pub trait Syncable {
     fn url_to_syncer(url: &str) -> Result<Syncer>;
-    fn sync(&self, path: &str) -> Result<()>;
+    fn sync<P: AsRef<Path>>(&self, path: P) -> Result<()>;
 }
 
 impl Syncer {
-    pub fn sync(&self, path: &str) -> Result<()> {
+    pub fn sync<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        let path = path.as_ref();
         match self {
             Syncer::Git(repo) => repo.sync(path),
             Syncer::Noop => Ok(()),

@@ -15,7 +15,7 @@ use crate::sync::Syncer;
 
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RepoConfig {
-    pub location: String,
+    pub location: PathBuf,
     pub format: String,
     pub priority: i32,
     sync: Option<Syncer>,
@@ -136,12 +136,6 @@ impl Config {
                 let mut config: RepoConfig = Default::default();
                 let mut location = PathBuf::from(uri);
 
-                let path_to_location = |p: PathBuf| -> Result<String> {
-                    p.to_str()
-                        .ok_or_else(|| ConfigError(format!("bad repo location: {:?}", &p)))
-                        .map(|s| s.to_string())
-                };
-
                 match Syncer::from_str(uri) {
                     Ok(Syncer::Noop) | Err(_) => {
                         if !location.starts_with(&self.repo_dir) {
@@ -159,7 +153,7 @@ impl Config {
                                 ))
                             })?;
                         }
-                        config.location = path_to_location(location)?;
+                        config.location = location;
                     }
                     Ok(syncer) => {
                         location = self.repo_dir.join(&name);
@@ -167,7 +161,7 @@ impl Config {
                             return Err(ConfigError(format!("existing repo: {:?}", &location)));
                         }
                         config.sync = Some(syncer);
-                        config.location = path_to_location(location)?;
+                        config.location = location;
                         config.sync()?;
                     }
                 };

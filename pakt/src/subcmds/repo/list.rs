@@ -10,7 +10,7 @@ pub fn cmd() -> App<'static> {
 
 pub fn run(_args: &ArgMatches, settings: &mut Settings) -> Result<()> {
     for (id, config) in settings.config.repos.configs.iter() {
-        println!("{}: {}", id, config.location);
+        println!("{}: {:?}", id, config.location);
     }
     Ok(())
 }

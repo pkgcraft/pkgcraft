@@ -1,6 +1,7 @@
 use std::env;
 use std::fmt;
 use std::io;
+use std::path::PathBuf;
 
 use crate::atom;
 
@@ -13,7 +14,7 @@ pub enum Error {
     ConfigError(String),
     ParseError(String),
     IOError(String),
-    InvalidRepo { path: String, error: String },
+    InvalidRepo { path: PathBuf, error: String },
     SyncError(String),
 }
 
