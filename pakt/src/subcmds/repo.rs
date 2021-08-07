@@ -9,4 +9,4 @@ pub fn cmd() -> App<'static> {
         .subcommands(register())
 }
 
-include!(concat!(env!("OUT_DIR"), "/subcmds/repo/generated.rs"));
+include!(concat!(env!("OUT_DIR"), "/subcmds/repo.rs"));

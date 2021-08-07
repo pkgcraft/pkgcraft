@@ -1,1 +1,1 @@
-include!(concat!(env!("OUT_DIR"), "/subcmds/generated.rs"));
+include!(concat!(env!("OUT_DIR"), "/subcmds.rs"));
