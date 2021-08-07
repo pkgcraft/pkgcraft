@@ -128,7 +128,7 @@ impl Eapi {
 
 impl fmt::Display for Eapi {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "EAPI {}", self.id)
+        write!(f, "{}", self.id)
     }
 }
 
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         for (id, eapi) in KNOWN_EAPIS.iter() {
-            assert_eq!(format!("{}", eapi), format!("EAPI {}", id));
+            assert_eq!(format!("{}", eapi), format!("{}", id));
         }
     }
 
