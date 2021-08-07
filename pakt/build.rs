@@ -85,12 +85,15 @@ fn main() {
 
         fs::create_dir_all(&file_dir).unwrap();
         let file = fs::File::create(&generated_module_path).unwrap();
+
+        // load subcommand modules from the src dir
         for s in &cmds {
             let module_path = src_dir.join(&dir_path).join(format!("{}.rs", &s));
             writeln!(&file, "#[path = {:?}]", module_path).unwrap();
             writeln!(&file, "mod {};", s).unwrap();
         }
 
+        // auto-register subcommands for clap
         let cmd_strs = &cmds
             .iter()
             .map(|s| format!("{}::cmd()", s.split('/').last().unwrap()))
@@ -107,12 +110,12 @@ fn main() {
         );
         write!(&file, "{}", register_func).unwrap();
 
+        // build subcommand -> run function map
         let mut cmd_maps: Vec<String> = Vec::new();
         for s in &cmds {
             let cmd = s.split('/').last().unwrap();
             cmd_maps.push(format!("({:?}, {}::run as RunFn)", cmd, cmd));
         }
-
         let func_map = formatdoc!(
             "
 
@@ -150,9 +153,11 @@ fn main() {
             write!(&file, "{}", run_fn).unwrap();
         }
 
+        // inject nested subcommands for code generation
         for cmd in &cmds {
             let new_path = path.join(cmd);
-            cmd_stack.push((new_path.clone(), cmd_map.subcmds(&new_path)));
+            let subcmds = cmd_map.subcmds(&new_path);
+            cmd_stack.push((new_path, subcmds));
         }
     }
 
