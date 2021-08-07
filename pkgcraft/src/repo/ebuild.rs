@@ -11,8 +11,8 @@ use crate::repo;
 
 #[derive(Debug, Default)]
 pub struct Repo {
-    pub id: String,
-    pub path: PathBuf,
+    id: String,
+    path: PathBuf,
     cached: bool,
     pkgs: repo::PkgCache,
 }

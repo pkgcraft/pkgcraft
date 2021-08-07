@@ -9,7 +9,7 @@ use crate::repo;
 
 #[derive(Debug, Default)]
 pub struct Repo {
-    pub id: String,
+    id: String,
     pkgs: repo::PkgCache,
 }
 
