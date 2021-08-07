@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 
 use crate::error::{Error, Result};
 
-mod ebuild;
+pub mod ebuild;
 mod fake;
 
 type VersionMap = HashMap<String, HashSet<String>>;

@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::Error::ConfigError;
 use crate::error::{Error, Result};
+use crate::repo::ebuild::TempRepo;
 use crate::repo::Repository;
 use crate::sync::Syncer;
 
@@ -190,6 +191,32 @@ impl Config {
                 self.repos.insert(name.clone(), repo);
                 self.configs.insert(name.clone(), config);
                 Ok(())
+            }
+        }
+    }
+
+    pub fn create(&mut self, name: &str) -> Result<()> {
+        match self.configs.get(name) {
+            Some(c) => Err(ConfigError(format!(
+                "existing repo: {:?} @ {:?}",
+                name, c.location
+            ))),
+            None => {
+                // create temporary repo and persist it to disk
+                let temp_repo_path = TempRepo::new(name, Some(&self.repo_dir), None)?.persist();
+                // rename new repo dir what it should be called
+                let repo_path = self.repo_dir.join(name);
+                fs::rename(&temp_repo_path, &repo_path).map_err(|e| {
+                    ConfigError(format!(
+                        "failed renaming repo: {:?} -> {:?}: {}",
+                        &temp_repo_path, &repo_path, e
+                    ))
+                })?;
+                // add repo to config
+                let location = repo_path
+                    .to_str()
+                    .ok_or_else(|| ConfigError(format!("invalid repo name: {:?}", name)))?;
+                self.add(name, location)
             }
         }
     }

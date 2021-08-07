@@ -82,8 +82,6 @@ pub struct TempRepo {
     repo: Repo,
 }
 
-// currently used for internal testing only
-#[allow(dead_code)]
 impl TempRepo {
     pub fn new<P: AsRef<Path>>(
         id: &str,
@@ -103,13 +101,17 @@ impl TempRepo {
             fs::create_dir(temp_path.join(dir))
                 .map_err(|e| Error::Error(format!("failed creating temp repo {:?}: {}", id, e)))?;
         }
-        fs::write(temp_path.join("profiles/repo_name"), id)
+        fs::write(temp_path.join("profiles/repo_name"), format!("{}\n", id))
             .map_err(|e| Error::Error(format!("failed writing temp repo id: {}", e)))?;
-        fs::write(temp_path.join("profiles/eapi"), eapi)
+        fs::write(temp_path.join("profiles/eapi"), format!("{}\n", eapi))
             .map_err(|e| Error::Error(format!("failed writing temp repo EAPI: {}", e)))?;
 
         let repo = Repo::from_path(id, temp_path)?;
         Ok(TempRepo { tempdir, repo })
+    }
+
+    pub fn persist(self) -> PathBuf {
+        self.tempdir.into_path()
     }
 }
 
