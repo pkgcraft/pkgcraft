@@ -4,7 +4,6 @@ use std::iter;
 
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 
@@ -15,7 +14,7 @@ type VersionMap = HashMap<String, HashSet<String>>;
 type PkgMap = HashMap<String, VersionMap>;
 type StringIter<'a> = Box<dyn Iterator<Item = &'a String> + 'a>;
 
-#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default)]
 struct PkgCache {
     pkgmap: PkgMap,
 }
@@ -43,8 +42,7 @@ impl PkgCache {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "type")]
+#[derive(Debug)]
 pub enum Repository {
     Ebuild(ebuild::Repo),
     Fake(fake::Repo),

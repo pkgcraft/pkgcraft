@@ -2,16 +2,13 @@ use std::collections::HashSet;
 use std::fmt;
 use std::fs;
 
-use serde::{Deserialize, Serialize};
-
 use crate::atom;
 use crate::error::Result;
 use crate::repo;
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default)]
 pub struct Repo {
     pub id: String,
-    #[serde(default)]
     pkgs: repo::PkgCache,
 }
 

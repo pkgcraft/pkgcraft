@@ -1,17 +1,14 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
-
 use crate::error::{Error, Result};
 use crate::repo;
 
-#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default)]
 pub struct Repo {
     pub id: String,
     pub path: PathBuf,
     cached: bool,
-    #[serde(default)]
     pkgs: repo::PkgCache,
 }
 

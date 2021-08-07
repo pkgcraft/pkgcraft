@@ -65,7 +65,7 @@ pub struct Config {
     repo_dir: PathBuf,
     #[serde(default)]
     pub configs: IndexMap<String, RepoConfig>,
-    #[serde(default)]
+    #[serde(skip)]
     repos: IndexMap<String, Repository>,
 }
 
