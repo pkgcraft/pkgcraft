@@ -134,35 +134,47 @@ impl Config {
                 &name, &c.location
             ))),
             None => {
-                let mut config: RepoConfig = Default::default();
-                let mut location = PathBuf::from(uri);
+                let dest_dir = self.repo_dir.join(&name);
+                if dest_dir.exists() {
+                    return Err(ConfigError(format!("existing repo: {:?}", &dest_dir)));
+                }
+
+                let mut config: RepoConfig = RepoConfig {
+                    location: dest_dir.clone(),
+                    ..Default::default()
+                };
+
+                fs::create_dir_all(&self.repo_dir).map_err(|e| {
+                    ConfigError(format!(
+                        "failed creating repo dir {:?}: {}",
+                        &self.repo_dir, &e
+                    ))
+                })?;
 
                 match Syncer::from_str(uri) {
                     Ok(Syncer::Noop) | Err(_) => {
-                        if !location.starts_with(&self.repo_dir) {
-                            location = self.repo_dir.join(&name);
-                            fs::create_dir_all(&self.repo_dir).map_err(|e| {
+                        let mut path = PathBuf::from(uri);
+                        if path.is_relative() {
+                            path = fs::canonicalize(&path).map_err(|e| {
                                 ConfigError(format!(
-                                    "failed creating repo dir {:?}: {}",
-                                    &self.repo_dir, &e
+                                    "failed canonicalizing path {:?}: {}",
+                                    &path, &e
                                 ))
                             })?;
-                            symlink(&uri, &location).map_err(|e| {
+                        }
+                        if path.exists() {
+                            symlink(&path, &dest_dir).map_err(|e| {
                                 ConfigError(format!(
                                     "failed symlinking repo {:?} to {:?}: {}",
-                                    &uri, &location, &e
+                                    &path, &dest_dir, &e
                                 ))
                             })?;
+                        } else {
+                            return Err(ConfigError(format!("nonexistent repo path: {:?}", &path)));
                         }
-                        config.location = location;
                     }
                     Ok(syncer) => {
-                        location = self.repo_dir.join(&name);
-                        if location.exists() {
-                            return Err(ConfigError(format!("existing repo: {:?}", &location)));
-                        }
                         config.sync = Some(syncer);
-                        config.location = location;
                         config.sync()?;
                     }
                 };
