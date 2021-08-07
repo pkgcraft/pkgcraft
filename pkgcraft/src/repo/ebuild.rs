@@ -1,3 +1,4 @@
+use std::env;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -84,10 +85,17 @@ pub struct TempRepo {
 // currently used for internal testing only
 #[allow(dead_code)]
 impl TempRepo {
-    pub fn new<S: AsRef<str>>(id: S, eapi: Option<&eapi::Eapi>) -> Result<Self> {
-        let id = id.as_ref();
+    pub fn new<P: AsRef<Path>>(
+        id: &str,
+        path: Option<P>,
+        eapi: Option<&eapi::Eapi>,
+    ) -> Result<Self> {
+        let path = match path {
+            Some(p) => PathBuf::from(p.as_ref()),
+            None => env::temp_dir(),
+        };
         let eapi = format!("{}", eapi.unwrap_or(eapi::EAPI_LATEST));
-        let tempdir = TempDir::new()
+        let tempdir = TempDir::new_in(path)
             .map_err(|e| Error::Error(format!("failed creating temp repo {:?}: {}", id, e)))?;
         let temp_path = tempdir.path();
 
