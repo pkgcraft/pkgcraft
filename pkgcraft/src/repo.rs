@@ -43,37 +43,58 @@ impl PkgCache {
     }
 }
 
-pub fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<(&'static str, Box<dyn Repo>)> {
-    let id = id.as_ref();
-    let path = path.as_ref();
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "type")]
+pub enum Repository {
+    Ebuild(ebuild::Repo),
+    Fake(fake::Repo),
+}
 
-    for format in SUPPORTED_FORMATS.iter() {
-        if let Ok(repo) = from_format(id, path, format) {
-            return Ok((format, Box::new(repo)));
+impl Repository {
+    pub fn is_supported<S: AsRef<str>>(format: S) -> Result<()> {
+        let format = format.as_ref();
+        match SUPPORTED_FORMATS.get(format) {
+            Some(_) => Ok(()),
+            None => Err(Error::ConfigError(format!(
+                "unknown repo format: {:?}",
+                format
+            ))),
         }
     }
 
-    Err(Error::ConfigError(format!(
-        "{:?} repo at {:?}: unknown or invalid format",
-        id, path
-    )))
-}
+    pub fn from_path<S: AsRef<str>>(id: S, path: S) -> Result<(&'static str, Self)> {
+        let id = id.as_ref();
+        let path = path.as_ref();
 
-pub fn from_format<S: AsRef<str>>(id: S, path: S, format: S) -> Result<Box<dyn Repo>> {
-    let id = id.as_ref();
-    let path = path.as_ref();
-    let format = format.as_ref();
+        for format in SUPPORTED_FORMATS.iter() {
+            if let Ok(repo) = Self::from_format(id, path, format) {
+                return Ok((format, repo));
+            }
+        }
 
-    match format {
-        ebuild::Repo::FORMAT => Ok(Box::new(ebuild::Repo::from_path(id, path)?)),
-        fake::Repo::FORMAT => Ok(Box::new(fake::Repo::from_path(id, path)?)),
-        _ => {
-            let err = format!("{:?} repo: unknown format: {:?}", id, format);
-            Err(Error::ConfigError(err))
+        Err(Error::ConfigError(format!(
+            "{:?} repo at {:?}: unknown or invalid format",
+            id, path
+        )))
+    }
+
+    pub fn from_format<S: AsRef<str>>(id: S, path: S, format: S) -> Result<Self> {
+        let id = id.as_ref();
+        let path = path.as_ref();
+        let format = format.as_ref();
+
+        match format {
+            ebuild::Repo::FORMAT => Ok(Repository::Ebuild(ebuild::Repo::from_path(id, path)?)),
+            fake::Repo::FORMAT => Ok(Repository::Fake(fake::Repo::from_path(id, path)?)),
+            _ => {
+                let err = format!("{:?} repo: unknown format: {:?}", id, format);
+                Err(Error::ConfigError(err))
+            }
         }
     }
 }
 
+// externally supported repo formats
 #[rustfmt::skip]
 static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     [
@@ -81,14 +102,6 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
         fake::Repo::FORMAT,
     ].iter().cloned().collect()
 });
-
-pub fn is_supported<S: AsRef<str>>(s: S) -> Result<()> {
-    let s = s.as_ref();
-    match SUPPORTED_FORMATS.get(s) {
-        Some(_) => Ok(()),
-        None => Err(Error::ConfigError(format!("unknown repo format: {:?}", s))),
-    }
-}
 
 pub trait Repo: fmt::Debug + fmt::Display {
     // TODO: convert to `impl Iterator` return type once supported within traits
@@ -98,19 +111,37 @@ pub trait Repo: fmt::Debug + fmt::Display {
     fn versions(&mut self, cat: &str, pkg: &str) -> StringIter;
 }
 
-impl<R: Repo + ?Sized> Repo for Box<R> {
+impl fmt::Display for Repository {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Repository::Ebuild(ref repo) => write!(f, "{}", repo),
+            Repository::Fake(ref repo) => write!(f, "{}", repo),
+        }
+    }
+}
+
+impl Repo for Repository {
     #[inline]
     fn categories(&mut self) -> StringIter {
-        (**self).categories()
+        match self {
+            Repository::Ebuild(ref mut repo) => repo.categories(),
+            Repository::Fake(ref mut repo) => repo.categories(),
+        }
     }
 
     #[inline]
     fn packages(&mut self, cat: &str) -> StringIter {
-        (**self).packages(cat)
+        match self {
+            Repository::Ebuild(ref mut repo) => repo.packages(cat),
+            Repository::Fake(ref mut repo) => repo.packages(cat),
+        }
     }
 
     #[inline]
     fn versions(&mut self, cat: &str, pkg: &str) -> StringIter {
-        (**self).versions(cat, pkg)
+        match self {
+            Repository::Ebuild(ref mut repo) => repo.versions(cat, pkg),
+            Repository::Fake(ref mut repo) => repo.versions(cat, pkg),
+        }
     }
 }
