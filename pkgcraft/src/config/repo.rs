@@ -64,7 +64,7 @@ impl Ord for RepoConfig {
 pub struct Config {
     config_dir: PathBuf,
     repo_dir: PathBuf,
-    #[serde(default)]
+    #[serde(skip)]
     pub configs: IndexMap<String, RepoConfig>,
     #[serde(skip)]
     repos: IndexMap<String, Repository>,
@@ -200,8 +200,9 @@ impl Config {
                     ))
                 })?;
 
-                self.repos.insert(name.clone(), repo);
+                // TODO: re-sort config/repo maps by priority, then name
                 self.configs.insert(name.clone(), config);
+                self.repos.insert(name.clone(), repo);
                 Ok(())
             }
         }
@@ -247,7 +248,7 @@ impl Config {
                         ))
                     })?;
                 }
-                self.repos.remove(name as &str);
+                self.repos.shift_remove(name as &str);
             }
 
             if clean {
@@ -256,7 +257,7 @@ impl Config {
                     ConfigError(format!("failed removing repo config: {:?}: {}", &path, &e))
                 })?;
             }
-            self.configs.remove(name as &str);
+            self.configs.shift_remove(name as &str);
         }
         Ok(())
     }
