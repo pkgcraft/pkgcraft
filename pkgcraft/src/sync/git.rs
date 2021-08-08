@@ -13,16 +13,16 @@ static HANDLED_URI_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(https|git)://.+
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Repo {
-    pub url: String,
+    pub uri: String,
 }
 
 impl Syncable for Repo {
-    fn url_to_syncer(url: &str) -> Result<Syncer> {
-        match HANDLED_URI_RE.is_match(url) {
+    fn uri_to_syncer(uri: &str) -> Result<Syncer> {
+        match HANDLED_URI_RE.is_match(uri) {
             true => Ok(Syncer::Git(Repo {
-                url: url.to_string(),
+                uri: uri.to_string(),
             })),
-            false => Err(Error::Error(format!("invalid git URL: {:?}", url))),
+            false => Err(Error::Error(format!("invalid git repo: {:?}", uri))),
         }
     }
 
@@ -45,7 +45,7 @@ impl Syncable for Repo {
             do_merge(&repo, branch, fetch_commit)
                 .map_err(|e| SyncError(format!("failed merging: {}", e.message())))?;
         } else {
-            do_clone(&self.url, path)
+            do_clone(&self.uri, path)
                 .map_err(|e| SyncError(format!("failed cloning git repo: {}", e.message())))?;
         }
         Ok(())
