@@ -1,3 +1,5 @@
+use std::env;
+
 use anyhow::{Context, Result};
 use config::{Config, Environment};
 use pkgcraft::config::Config as PkgcraftConfig;
@@ -22,6 +24,11 @@ impl Settings {
         // env variables matching PACT_* override
         s.merge(Environment::with_prefix("PACT").separator("_"))
             .context("failed merging env settings")?;
+
+        // respect NO_COLOR -- https://no-color.org/
+        if env::var_os("NO_COLOR").is_some() {
+            s.set("color", false).context("failed setting color")?;
+        }
 
         // serialize to struct
         let settings: Settings = s.try_into().context("failed serializing settings")?;
