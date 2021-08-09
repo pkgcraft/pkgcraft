@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
 use crate::eapi;
-use crate::error::{Error, Result};
+use crate::error::Error;
 use crate::repo;
 
 #[derive(Debug, Default)]
@@ -20,7 +20,7 @@ pub struct Repo {
 impl Repo {
     pub const FORMAT: &'static str = "ebuild";
 
-    pub fn new<P: AsRef<Path>>(id: &str, path: P) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(id: &str, path: P) -> Result<Self, Error> {
         Ok(Repo {
             id: id.to_string(),
             path: PathBuf::from(path.as_ref()),
@@ -33,10 +33,10 @@ impl Repo {
         self.cached = true;
     }
 
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<Self> {
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<Self, Error> {
         let path = path.as_ref();
         if !path.join("profiles").exists() {
-            return Err(Error::InvalidRepo {
+            return Err(Error::RepoInvalid {
                 path: PathBuf::from(path),
                 error: "missing profiles dir".to_string(),
             });
@@ -87,24 +87,25 @@ impl TempRepo {
         id: &str,
         path: Option<P>,
         eapi: Option<&eapi::Eapi>,
-    ) -> Result<Self> {
+    ) -> Result<Self, Error> {
         let path = match path {
             Some(p) => PathBuf::from(p.as_ref()),
             None => env::temp_dir(),
         };
         let eapi = format!("{}", eapi.unwrap_or(eapi::EAPI_LATEST));
         let tempdir = TempDir::new_in(path)
-            .map_err(|e| Error::Error(format!("failed creating temp repo {:?}: {}", id, e)))?;
+            .map_err(|e| Error::RepoInit(format!("failed creating temp repo {:?}: {}", id, e)))?;
         let temp_path = tempdir.path();
 
         for dir in ["metadata", "profiles"] {
-            fs::create_dir(temp_path.join(dir))
-                .map_err(|e| Error::Error(format!("failed creating temp repo {:?}: {}", id, e)))?;
+            fs::create_dir(temp_path.join(dir)).map_err(|e| {
+                Error::RepoInit(format!("failed creating temp repo {:?}: {}", id, e))
+            })?;
         }
         fs::write(temp_path.join("profiles/repo_name"), format!("{}\n", id))
-            .map_err(|e| Error::Error(format!("failed writing temp repo id: {}", e)))?;
+            .map_err(|e| Error::RepoInit(format!("failed writing temp repo id: {}", e)))?;
         fs::write(temp_path.join("profiles/eapi"), format!("{}\n", eapi))
-            .map_err(|e| Error::Error(format!("failed writing temp repo EAPI: {}", e)))?;
+            .map_err(|e| Error::RepoInit(format!("failed writing temp repo EAPI: {}", e)))?;
 
         let repo = Repo::from_path(id, temp_path)?;
         Ok(TempRepo { tempdir, repo })

@@ -5,8 +5,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::error::Error::SyncError;
-use crate::error::{Error, Result};
+use crate::error::Error;
 use crate::sync::{Syncable, Syncer};
 
 static HANDLED_URI_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(https|git)://.+\.git$").unwrap());
@@ -17,42 +16,44 @@ pub struct Repo {
 }
 
 impl Syncable for Repo {
-    fn uri_to_syncer(uri: &str) -> Result<Syncer> {
+    fn uri_to_syncer(uri: &str) -> Result<Syncer, Error> {
         match HANDLED_URI_RE.is_match(uri) {
             true => Ok(Syncer::Git(Repo {
                 uri: uri.to_string(),
             })),
-            false => Err(Error::Error(format!("invalid git repo: {:?}", uri))),
+            false => Err(Error::RepoInit(format!("invalid git repo: {:?}", uri))),
         }
     }
 
-    fn sync<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+    fn sync<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
         let path = path.as_ref();
         if path.exists() {
-            let repo = git2::Repository::open(&path)
-                .map_err(|e| SyncError(format!("failed initializing git repo: {}", e.message())))?;
-            let head = repo
-                .head()
-                .map_err(|e| SyncError(format!("failed getting git HEAD: {}", e.message())))?;
+            let repo = git2::Repository::open(&path).map_err(|e| {
+                Error::RepoSync(format!("failed initializing git repo: {}", e.message()))
+            })?;
+            let head = repo.head().map_err(|e| {
+                Error::RepoSync(format!("failed getting git HEAD: {}", e.message()))
+            })?;
             let branch = head
                 .shorthand()
-                .ok_or_else(|| SyncError("not on a git branch".to_string()))?;
+                .ok_or_else(|| Error::RepoSync("not on a git branch".to_string()))?;
             let mut remote = repo
                 .find_remote("origin")
-                .map_err(|e| SyncError(format!("invalid remote origin: {}", e.message())))?;
+                .map_err(|e| Error::RepoSync(format!("invalid remote origin: {}", e.message())))?;
             let fetch_commit = do_fetch(&repo, &[branch], &mut remote)
-                .map_err(|e| SyncError(format!("failed fetching: {}", e.message())))?;
+                .map_err(|e| Error::RepoSync(format!("failed fetching: {}", e.message())))?;
             do_merge(&repo, branch, fetch_commit)
-                .map_err(|e| SyncError(format!("failed merging: {}", e.message())))?;
+                .map_err(|e| Error::RepoSync(format!("failed merging: {}", e.message())))?;
         } else {
-            do_clone(&self.uri, path)
-                .map_err(|e| SyncError(format!("failed cloning git repo: {}", e.message())))?;
+            do_clone(&self.uri, path).map_err(|e| {
+                Error::RepoSync(format!("failed cloning git repo: {}", e.message()))
+            })?;
         }
         Ok(())
     }
 }
 
-fn do_clone(url: &str, path: &Path) -> std::result::Result<git2::Repository, git2::Error> {
+fn do_clone(url: &str, path: &Path) -> Result<git2::Repository, git2::Error> {
     let mut cb = git2::RemoteCallbacks::new();
 
     // show transfer progress
@@ -90,7 +91,7 @@ fn do_fetch<'a>(
     repo: &'a git2::Repository,
     refs: &[&str],
     remote: &'a mut git2::Remote,
-) -> std::result::Result<git2::AnnotatedCommit<'a>, git2::Error> {
+) -> Result<git2::AnnotatedCommit<'a>, git2::Error> {
     let mut cb = git2::RemoteCallbacks::new();
 
     // show transfer progress
@@ -151,7 +152,7 @@ fn fast_forward(
     repo: &git2::Repository,
     lb: &mut git2::Reference,
     rc: &git2::AnnotatedCommit,
-) -> std::result::Result<(), git2::Error> {
+) -> Result<(), git2::Error> {
     let name = match lb.name() {
         Some(s) => s.to_string(),
         None => String::from_utf8_lossy(lb.name_bytes()).to_string(),
@@ -174,7 +175,7 @@ fn normal_merge(
     repo: &git2::Repository,
     local: &git2::AnnotatedCommit,
     remote: &git2::AnnotatedCommit,
-) -> std::result::Result<(), git2::Error> {
+) -> Result<(), git2::Error> {
     let local_tree = repo.find_commit(local.id())?.tree()?;
     let remote_tree = repo.find_commit(remote.id())?.tree()?;
     let ancestor = repo
@@ -211,7 +212,7 @@ fn do_merge<'a>(
     repo: &'a git2::Repository,
     remote_branch: &str,
     fetch_commit: git2::AnnotatedCommit<'a>,
-) -> std::result::Result<(), git2::Error> {
+) -> Result<(), git2::Error> {
     // 1. do a merge analysis
     let analysis = repo.merge_analysis(&[&fetch_commit])?;
 

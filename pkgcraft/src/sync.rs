@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::error::{Error, Result};
+use crate::error::Error;
 
 mod git;
 mod tar;
@@ -28,19 +28,19 @@ impl fmt::Display for Syncer {
 }
 
 pub trait Syncable {
-    fn uri_to_syncer(uri: &str) -> Result<Syncer>;
-    fn sync<P: AsRef<Path>>(&self, path: P) -> Result<()>;
+    fn uri_to_syncer(uri: &str) -> Result<Syncer, Error>;
+    fn sync<P: AsRef<Path>>(&self, path: P) -> Result<(), Error>;
 }
 
 impl Syncer {
-    pub fn sync<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+    pub fn sync<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
         let path = path.as_ref();
 
         // make sure repos dir exists
         let repos_dir = path.parent().unwrap();
         if !repos_dir.exists() {
             fs::create_dir_all(&repos_dir).map_err(|e| {
-                Error::SyncError(format!("failed creating repos dir {:?}: {}", &repos_dir, e))
+                Error::RepoSync(format!("failed creating repos dir {:?}: {}", &repos_dir, e))
             })?;
         }
 
@@ -55,7 +55,7 @@ impl Syncer {
 impl FromStr for Syncer {
     type Err = Error;
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         #[rustfmt::skip]
         let prioritized_syncers = [
             git::Repo::uri_to_syncer,

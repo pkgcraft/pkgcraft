@@ -11,7 +11,7 @@ mod version;
 // export pkg dep parser
 pub use parser::pkg as parse;
 
-pub type ParseError = ::peg::error::ParseError<::peg::str::LineCol>;
+pub type ParseError = peg::error::ParseError<peg::str::LineCol>;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Blocker {

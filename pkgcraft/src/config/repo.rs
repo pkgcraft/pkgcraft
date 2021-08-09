@@ -8,8 +8,7 @@ use std::str::FromStr;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-use crate::error::Error::ConfigError;
-use crate::error::{Error, Result};
+use crate::error::Error;
 use crate::repo::ebuild::TempRepo;
 use crate::repo::Repository;
 use crate::sync::Syncer;
@@ -23,12 +22,12 @@ pub struct RepoConfig {
 }
 
 impl RepoConfig {
-    fn new(path: &Path) -> Result<Self> {
+    fn new(path: &Path) -> Result<Self, Error> {
         let data = fs::read_to_string(&path)
-            .map_err(|e| ConfigError(format!("failed loading repo config {:?}: {}", &path, e)))?;
+            .map_err(|e| Error::Config(format!("failed loading repo config {:?}: {}", &path, e)))?;
 
         let repo_conf: RepoConfig = toml::from_str(&data).map_err(|e| {
-            ConfigError(format!(
+            Error::Config(format!(
                 "failed loading repo config toml {:?}: {}",
                 &path, e
             ))
@@ -40,7 +39,7 @@ impl RepoConfig {
         Ok(repo_conf)
     }
 
-    fn sync(&self) -> Result<()> {
+    fn sync(&self) -> Result<(), Error> {
         match &self.sync {
             Some(syncer) => syncer.sync(&self.location),
             None => Ok(()),
@@ -76,7 +75,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(config_dir: &Path, db_dir: &Path) -> Result<Config> {
+    pub fn new(config_dir: &Path, db_dir: &Path) -> Result<Config, Error> {
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
 
@@ -86,10 +85,10 @@ impl Config {
         }
 
         let mut repo_configs: Vec<(RepoConfig, String)> = Vec::new();
-        for entry in fs::read_dir(&config_dir)? {
-            let entry = entry?;
-            let p = entry.path();
+        let entries = fs::read_dir(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
 
+        for entry in entries {
+            let p = entry.map_err(|e| Error::Config(e.to_string()))?.path();
             if p.is_file() {
                 if let Some(name) = p
                     .file_name()
@@ -130,18 +129,18 @@ impl Config {
         })
     }
 
-    pub fn add(&mut self, name: &str, uri: &str) -> Result<()> {
+    pub fn add(&mut self, name: &str, uri: &str) -> Result<(), Error> {
         let name = name.to_string();
 
         match self.configs.get(&name) {
-            Some(c) => Err(ConfigError(format!(
+            Some(c) => Err(Error::Config(format!(
                 "existing repo: {:?} @ {:?}",
                 &name, &c.location
             ))),
             None => {
                 let dest_dir = self.repo_dir.join(&name);
                 if dest_dir.exists() {
-                    return Err(ConfigError(format!("existing repo: {:?}", &dest_dir)));
+                    return Err(Error::Config(format!("existing repo: {:?}", &dest_dir)));
                 }
 
                 let mut config: RepoConfig = RepoConfig {
@@ -150,7 +149,7 @@ impl Config {
                 };
 
                 fs::create_dir_all(&self.repo_dir).map_err(|e| {
-                    ConfigError(format!(
+                    Error::Config(format!(
                         "failed creating repo dir {:?}: {}",
                         &self.repo_dir, &e
                     ))
@@ -161,7 +160,7 @@ impl Config {
                         let mut path = PathBuf::from(uri);
                         if path.is_relative() {
                             path = fs::canonicalize(&path).map_err(|e| {
-                                ConfigError(format!(
+                                Error::Config(format!(
                                     "failed canonicalizing path {:?}: {}",
                                     &path, &e
                                 ))
@@ -169,13 +168,16 @@ impl Config {
                         }
                         if path.exists() {
                             symlink(&path, &dest_dir).map_err(|e| {
-                                ConfigError(format!(
+                                Error::Config(format!(
                                     "failed symlinking repo {:?} to {:?}: {}",
                                     &path, &dest_dir, &e
                                 ))
                             })?;
                         } else {
-                            return Err(ConfigError(format!("nonexistent repo path: {:?}", &path)));
+                            return Err(Error::Config(format!(
+                                "nonexistent repo path: {:?}",
+                                &path
+                            )));
                         }
                     }
                     Ok(syncer) => {
@@ -189,17 +191,17 @@ impl Config {
 
                 // write repo config file to disk
                 let repo_conf_data = toml::to_string(&config).map_err(|e| {
-                    ConfigError(format!("failed serializing repo config to toml: {}", &e))
+                    Error::Config(format!("failed serializing repo config to toml: {}", &e))
                 })?;
                 let path = self.config_dir.join(&name);
                 let mut file = fs::File::create(&path).map_err(|e| {
-                    ConfigError(format!(
+                    Error::Config(format!(
                         "failed creating repo config file: {:?}: {}",
                         &path, &e
                     ))
                 })?;
                 file.write_all(repo_conf_data.as_bytes()).map_err(|e| {
-                    ConfigError(format!(
+                    Error::Config(format!(
                         "failed writing repo config file: {:?}: {}",
                         &path, &e
                     ))
@@ -213,9 +215,9 @@ impl Config {
         }
     }
 
-    pub fn create(&mut self, name: &str) -> Result<()> {
+    pub fn create(&mut self, name: &str) -> Result<(), Error> {
         match self.configs.get(name) {
-            Some(c) => Err(ConfigError(format!(
+            Some(c) => Err(Error::Config(format!(
                 "existing repo: {:?} @ {:?}",
                 name, c.location
             ))),
@@ -225,7 +227,7 @@ impl Config {
                 // rename new repo dir what it should be called
                 let repo_path = self.repo_dir.join(name);
                 fs::rename(&temp_repo_path, &repo_path).map_err(|e| {
-                    ConfigError(format!(
+                    Error::Config(format!(
                         "failed renaming repo: {:?} -> {:?}: {}",
                         &temp_repo_path, &repo_path, e
                     ))
@@ -233,13 +235,13 @@ impl Config {
                 // add repo to config
                 let location = repo_path
                     .to_str()
-                    .ok_or_else(|| ConfigError(format!("invalid repo name: {:?}", name)))?;
+                    .ok_or_else(|| Error::Config(format!("invalid repo name: {:?}", name)))?;
                 self.add(name, location)
             }
         }
     }
 
-    pub fn del(&mut self, repos: &[&str], clean: bool) -> Result<()> {
+    pub fn del(&mut self, repos: &[&str], clean: bool) -> Result<(), Error> {
         for name in repos {
             // error out if repo config is missing
             let repo_config = self.config_from_id(name)?;
@@ -247,7 +249,7 @@ impl Config {
             if let Ok(_repo) = self.repo_from_id(name) {
                 if clean {
                     fs::remove_dir_all(&repo_config.location).map_err(|e| {
-                        ConfigError(format!(
+                        Error::Config(format!(
                             "failed removing repo files: {:?}: {}",
                             &repo_config.location, &e
                         ))
@@ -259,7 +261,7 @@ impl Config {
             if clean {
                 let path = self.config_dir.join(&name);
                 fs::remove_file(&path).map_err(|e| {
-                    ConfigError(format!("failed removing repo config: {:?}: {}", &path, &e))
+                    Error::Config(format!("failed removing repo config: {:?}: {}", &path, &e))
                 })?;
             }
             self.configs.shift_remove(name as &str);
@@ -267,24 +269,24 @@ impl Config {
         Ok(())
     }
 
-    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repository> {
+    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repository, Error> {
         let id = id.as_ref();
         match self.repos.get(id) {
             Some(repo) => Ok(repo),
-            None => Err(ConfigError(format!("nonexistent repo: {:?}", id))),
+            None => Err(Error::Config(format!("nonexistent repo: {:?}", id))),
         }
     }
 
-    fn config_from_id<S: AsRef<str>>(&self, id: S) -> Result<&RepoConfig> {
+    fn config_from_id<S: AsRef<str>>(&self, id: S) -> Result<&RepoConfig, Error> {
         let id = id.as_ref();
         match self.configs.get(id) {
             Some(config) => Ok(config),
-            None => Err(ConfigError(format!("nonexistent repo: {:?}", id))),
+            None => Err(Error::Config(format!("nonexistent repo: {:?}", id))),
         }
     }
 
     // TODO: add concurrent syncing support with output progress
-    pub fn sync(&mut self, repos: Option<Vec<&str>>) -> Result<()> {
+    pub fn sync(&mut self, repos: Option<Vec<&str>>) -> Result<(), Error> {
         let repos = match repos {
             Some(names) => names,
             // sync all configured repos if none were passed
@@ -307,7 +309,7 @@ impl Config {
                     .map(|(name, e)| format!("{}: {}", name, e))
                     .collect::<Vec<String>>()
                     .join("\n\t");
-                Err(ConfigError(format!("failed syncing:\n\t{}", errors)))
+                Err(Error::Config(format!("failed syncing:\n\t{}", errors)))
             }
         }
     }

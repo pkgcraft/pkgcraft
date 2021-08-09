@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::atom;
-use crate::error::Result;
+use crate::error::Error;
 use crate::repo;
 
 #[derive(Debug, Default)]
@@ -16,7 +16,7 @@ pub struct Repo {
 impl Repo {
     pub const FORMAT: &'static str = "fake";
 
-    pub fn new<'a, I>(id: &str, atoms: I) -> Result<Repo>
+    pub fn new<'a, I>(id: &str, atoms: I) -> Result<Repo, Error>
     where
         I: IntoIterator<Item = &'a str>,
     {
@@ -38,8 +38,8 @@ impl Repo {
         })
     }
 
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<Self> {
-        let data = fs::read_to_string(path.as_ref())?;
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<Self, Error> {
+        let data = fs::read_to_string(path.as_ref()).map_err(|e| Error::RepoInit(e.to_string()))?;
         Repo::new(id, data.lines())
     }
 }

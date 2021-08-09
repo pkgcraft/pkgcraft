@@ -1,52 +1,21 @@
-use std::env;
-use std::fmt;
-use std::io;
 use std::path::PathBuf;
+
+use thiserror::Error;
 
 use crate::atom;
 
-/// A `Result` alias where the `Err` case is `pkgcraft::error::Error`.
-pub type Result<T> = ::std::result::Result<T, Error>;
-
-#[derive(Clone, Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
-    Error(String),
-    ConfigError(String),
-    ParseError(String),
-    IOError(String),
-    InvalidRepo { path: PathBuf, error: String },
-    SyncError(String),
-}
-
-impl ::std::error::Error for Error {}
-
-impl From<env::VarError> for Error {
-    fn from(error: env::VarError) -> Self {
-        Error::ConfigError(format!("{}", error))
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Error::IOError(format!("{}", error))
-    }
-}
-
-impl From<atom::ParseError> for Error {
-    fn from(error: atom::ParseError) -> Self {
-        Error::ParseError(format!("{}", error))
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::Error(ref s) => write!(f, "{}", s),
-            Error::ConfigError(ref s) => write!(f, "{}", s),
-            Error::ParseError(ref s) => write!(f, "{}", s),
-            Error::IOError(ref s) => write!(f, "{}", s),
-            Error::InvalidRepo { path, error } => write!(f, "invalid repo {:?}: {}", path, error),
-            Error::SyncError(ref s) => write!(f, "failed syncing: {}", s),
-        }
-    }
+    #[error("{0}")]
+    Eapi(String),
+    #[error("atom parse error")]
+    ParseAtom(#[from] atom::ParseError),
+    #[error("config error: {0}")]
+    Config(String),
+    #[error("invalid repo: {path:?}: {error}")]
+    RepoInvalid { path: PathBuf, error: String },
+    #[error("{0}")]
+    RepoInit(String),
+    #[error("failed syncing repo: {0}")]
+    RepoSync(String),
 }

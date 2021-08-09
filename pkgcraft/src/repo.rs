@@ -1,12 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::iter;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 
-use crate::error::{Error, Result};
+use crate::error::Error;
 
 pub mod ebuild;
 mod fake;
@@ -50,18 +50,18 @@ pub enum Repository {
 }
 
 impl Repository {
-    pub fn is_supported<S: AsRef<str>>(format: S) -> Result<()> {
+    pub fn is_supported<S: AsRef<str>>(format: S) -> Result<(), Error> {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
             Some(_) => Ok(()),
-            None => Err(Error::ConfigError(format!(
+            None => Err(Error::RepoInit(format!(
                 "unknown repo format: {:?}",
                 format
             ))),
         }
     }
 
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<(&'static str, Self)> {
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<(&'static str, Self), Error> {
         let path = path.as_ref();
 
         for format in SUPPORTED_FORMATS.iter() {
@@ -70,22 +70,22 @@ impl Repository {
             }
         }
 
-        Err(Error::ConfigError(format!(
-            "{:?} repo at {:?}: unknown or invalid format",
-            id, path
-        )))
+        Err(Error::RepoInvalid {
+            path: PathBuf::from(path),
+            error: "unknown or invalid format".to_string(),
+        })
     }
 
-    pub fn from_format<P: AsRef<Path>>(id: &str, path: P, format: &str) -> Result<Self> {
+    pub fn from_format<P: AsRef<Path>>(id: &str, path: P, format: &str) -> Result<Self, Error> {
         let path = path.as_ref();
 
         match format {
             ebuild::Repo::FORMAT => Ok(Repository::Ebuild(ebuild::Repo::from_path(id, path)?)),
             fake::Repo::FORMAT => Ok(Repository::Fake(fake::Repo::from_path(id, path)?)),
-            _ => {
-                let err = format!("{:?} repo: unknown format: {:?}", id, format);
-                Err(Error::ConfigError(err))
-            }
+            _ => Err(Error::RepoInit(format!(
+                "{:?} repo: unknown format: {:?}",
+                id, format
+            ))),
         }
     }
 }

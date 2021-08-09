@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::Result;
+use crate::error::Error;
 
 mod repo;
 
@@ -18,8 +18,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
-        let home = env::var("HOME")?;
+    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config, Error> {
+        let home =
+            env::var("HOME").map_err(|_| Error::Config("undefined variable $HOME".to_string()))?;
         let (config_dir, cache_dir, data_dir, db_dir): (PathBuf, PathBuf, PathBuf, PathBuf);
 
         // prefix a given path
@@ -69,10 +70,10 @@ impl Config {
 
         // create dirs on request
         if create {
-            fs::create_dir_all(&cache_dir)?;
-            fs::create_dir_all(&config_dir)?;
-            fs::create_dir_all(&data_dir)?;
-            fs::create_dir_all(&db_dir)?;
+            fs::create_dir_all(&cache_dir).map_err(|e| Error::Config(e.to_string()))?;
+            fs::create_dir_all(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
+            fs::create_dir_all(&data_dir).map_err(|e| Error::Config(e.to_string()))?;
+            fs::create_dir_all(&db_dir).map_err(|e| Error::Config(e.to_string()))?;
         }
 
         let repos = repo::Config::new(&config_dir, &db_dir)?;
