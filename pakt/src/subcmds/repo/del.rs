@@ -24,5 +24,3 @@ pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
         .del(&repos, true)
         .context("failed removing repo(s)")
 }
-
-

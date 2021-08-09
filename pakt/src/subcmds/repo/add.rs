@@ -19,5 +19,3 @@ pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
         .add(name, uri)
         .context(format!("failed adding repo: {:?}", name))
 }
-
-
