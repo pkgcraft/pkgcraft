@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use std::fmt;
 
 use indexmap::IndexMap;
-// TODO: use std implementation if it becomes available
-// https://github.com/rust-lang/rust/issues/74465
 use once_cell::sync::Lazy;
 use regex::Regex;
 
