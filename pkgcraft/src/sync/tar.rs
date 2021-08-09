@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 use flate2::read::GzDecoder;
 use once_cell::sync::Lazy;
@@ -61,7 +62,7 @@ impl Syncable for Repo {
 
         // download tarball to tempfile
         let mut temp_file = Builder::new()
-            .suffix(&format!(".{}.tarball", &repo_name))
+            .suffix(&format!(".{}.tar.gz", &repo_name))
             .tempfile_in(&repos_dir)?;
         resp.copy_to(&mut temp_file)
             .map_err(|e| SyncError(format!("failed copy repo data: {}", e)))?;
@@ -73,19 +74,38 @@ impl Syncable for Repo {
         let tmp_dir_old = Builder::new()
             .suffix(&format!(".{}.old", &repo_name))
             .tempdir_in(&repos_dir)?;
-        let tar_file = fs::File::open(temp_file.path())?;
-        let mut archive = Archive::new(GzDecoder::new(tar_file));
-        archive
-            .entries()?
-            .filter_map(|e| e.ok())
-            .map(|mut entry| -> Result<PathBuf> {
-                // drop first directory component in archive paths
-                let stripped_path: PathBuf = entry.path()?.iter().skip(1).collect();
-                entry.unpack(&tmp_dir.path().join(&stripped_path))?;
-                Ok(stripped_path)
-            })
-            .filter_map(|e| e.ok())
-            .for_each(drop);
+
+        // try unpacking via tar first since it's a lot faster for large repos
+        let tar_unpack = Command::new("tar")
+            .args(&[
+                "--extract",
+                "--gzip",
+                "-f",
+                temp_file.path().to_str().unwrap(),
+                "--strip-components=1",
+                "--no-same-owner",
+                "-C",
+                tmp_dir.path().to_str().unwrap(),
+            ])
+            .stderr(Stdio::null())
+            .status();
+
+        // fallback to built-in support on tar failure
+        if tar_unpack.is_err() || !tar_unpack.unwrap().success() {
+            let tar_file = fs::File::open(temp_file.path())?;
+            let mut archive = Archive::new(GzDecoder::new(tar_file));
+            archive
+                .entries()?
+                .filter_map(|e| e.ok())
+                .map(|mut entry| -> Result<PathBuf> {
+                    // drop first directory component in archive paths
+                    let stripped_path: PathBuf = entry.path()?.iter().skip(1).collect();
+                    entry.unpack(&tmp_dir.path().join(&stripped_path))?;
+                    Ok(stripped_path)
+                })
+                .filter_map(|e| e.ok())
+                .for_each(drop);
+        }
 
         // move old repo out of the way if it exists and replace with unpacked repo
         if path.exists() {
