@@ -76,15 +76,11 @@ pub struct Eapi {
 
 impl PartialOrd for Eapi {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let eapi_num = KNOWN_EAPIS.get_index_of(&self.id).unwrap();
-        let other_num = KNOWN_EAPIS.get_index_of(&other.id).unwrap();
-        let ordering = eapi_num.partial_cmp(&other_num);
-        // invert ordering since KNOWN_EAPIS starts with the most recent EAPI
-        match ordering {
-            Some(Ordering::Less) => Some(Ordering::Greater),
-            Some(Ordering::Greater) => Some(Ordering::Less),
-            _ => ordering,
-        }
+        // invert indices since KNOWN_EAPIS starts with the most recent EAPI
+        let max_index = KNOWN_EAPIS.len() - 1;
+        let self_index = max_index - KNOWN_EAPIS.get_index_of(&self.id).unwrap();
+        let other_index = max_index - KNOWN_EAPIS.get_index_of(&other.id).unwrap();
+        self_index.partial_cmp(&other_index)
     }
 }
 
