@@ -50,7 +50,12 @@ impl RepoConfig {
 
 impl PartialOrd for RepoConfig {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.priority.partial_cmp(&other.priority)
+        let cmp = self.priority.cmp(&other.priority);
+        if cmp != Ordering::Equal {
+            Some(cmp)
+        } else {
+            self.location.partial_cmp(&other.location)
+        }
     }
 }
 
