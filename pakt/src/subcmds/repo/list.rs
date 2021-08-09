@@ -6,6 +6,7 @@ use crate::settings::Settings;
 pub fn cmd() -> App<'static> {
     App::new("list")
         .about("list repos")
+        .long_about("List repositories ordered by their priority and then location.")
 }
 
 pub fn run(_args: &ArgMatches, settings: &mut Settings) -> Result<()> {
