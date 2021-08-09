@@ -19,8 +19,7 @@ pub struct Config {
 
 impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config, Error> {
-        let home =
-            env::var("HOME").map_err(|_| Error::Config("undefined variable $HOME".to_string()))?;
+        let home = env::var("HOME").ok().unwrap_or_else(|| "/root".to_string());
         let (config_dir, cache_dir, data_dir, db_dir): (PathBuf, PathBuf, PathBuf, PathBuf);
 
         // prefix a given path
@@ -39,9 +38,11 @@ impl Config {
 
         let system_config = prefixed(PathBuf::from(format!("/etc/{}", name)));
 
-        // Determine if user config or system config will be used --
-        // system config is only used if it exists and no user config exists.
-        config_dir = match (user_config.exists(), system_config.exists()) {
+        // determine if user config or system config will be used
+        config_dir = match (
+            user_config.exists(),
+            system_config.exists() || home == "/root",
+        ) {
             (false, true) => {
                 cache_dir = prefixed(PathBuf::from(format!("/var/cache/{}", name)));
                 data_dir = prefixed(PathBuf::from(format!("/usr/share/{}", name)));
@@ -137,6 +138,7 @@ mod tests {
         env::remove_var("HOME");
 
         // XDG var and HOME are unset
-        assert!(Config::new("pkgcraft", "", false).is_err());
+        let config = Config::new("pkgcraft", "", false).unwrap();
+        assert_eq!(config.config_dir, PathBuf::from("/etc/pkgcraft"));
     }
 }
