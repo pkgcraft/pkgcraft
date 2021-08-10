@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  lint:
+  bench:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -21,9 +21,7 @@ jobs:
         override: true
 
     - name: Update crates
-      uses: actions-rs/cargo@v1
-      with:
-        command: update
+      run: cargo update
 
     - name: Cache crates
       uses: actions/cache@v2
@@ -32,7 +30,7 @@ jobs:
         key: cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: cargo-
 
-    - name: Run tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: criterion
+    - name: Run benchmarks
+      run: |
+        cargo install cargo-criterion
+        cargo criterion
