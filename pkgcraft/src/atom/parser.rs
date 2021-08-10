@@ -132,13 +132,13 @@ peg::parser! {
                     cat:category() "/" pkg:package()
                     quiet!{"-"} ver_rev:version() glob:"*"? {?
                 let op = match (op, glob) {
-                    ("<", None) => Ok(Operator::LT),
-                    ("<=", None) => Ok(Operator::LE),
-                    ("=", None) => Ok(Operator::EQ),
-                    ("=", Some(_)) => Ok(Operator::EG),
-                    ("~", None) => Ok(Operator::IR),
-                    (">=", None) => Ok(Operator::GE),
-                    (">", None) => Ok(Operator::GT),
+                    ("<", None) => Ok(Operator::Less),
+                    ("<=", None) => Ok(Operator::LessEqual),
+                    ("=", None) => Ok(Operator::Equal),
+                    ("=", Some(_)) => Ok(Operator::EqualGlob),
+                    ("~", None) => Ok(Operator::Approximate),
+                    (">=", None) => Ok(Operator::GreaterEqual),
+                    (">", None) => Ok(Operator::Greater),
                     _ => Err("invalid version operator"),
                 }?;
 
@@ -253,16 +253,46 @@ mod tests {
                 "<a/b-r0-1-r2",
                 "a",
                 "b-r0",
-                Some(Operator::LT),
+                Some(Operator::Less),
                 version("1-r2"),
             ),
-            ("<=a/b-1", "a", "b", Some(Operator::LE), version("1")),
-            ("=a/b-1-r1", "a", "b", Some(Operator::EQ), version("1-r1")),
-            ("=a/b-3*", "a", "b", Some(Operator::EG), version("3")),
-            ("=a/b-3-r1*", "a", "b", Some(Operator::EG), version("3-r1")),
-            ("~a/b-0-r1", "a", "b", Some(Operator::IR), version("0-r1")),
-            (">=a/b-2", "a", "b", Some(Operator::GE), version("2")),
-            (">a/b-3-r0", "a", "b", Some(Operator::GT), version("3-r0")),
+            ("<=a/b-1", "a", "b", Some(Operator::LessEqual), version("1")),
+            (
+                "=a/b-1-r1",
+                "a",
+                "b",
+                Some(Operator::Equal),
+                version("1-r1"),
+            ),
+            ("=a/b-3*", "a", "b", Some(Operator::EqualGlob), version("3")),
+            (
+                "=a/b-3-r1*",
+                "a",
+                "b",
+                Some(Operator::EqualGlob),
+                version("3-r1"),
+            ),
+            (
+                "~a/b-0-r1",
+                "a",
+                "b",
+                Some(Operator::Approximate),
+                version("0-r1"),
+            ),
+            (
+                ">=a/b-2",
+                "a",
+                "b",
+                Some(Operator::GreaterEqual),
+                version("2"),
+            ),
+            (
+                ">a/b-3-r0",
+                "a",
+                "b",
+                Some(Operator::Greater),
+                version("3-r0"),
+            ),
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);
