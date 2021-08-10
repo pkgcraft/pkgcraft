@@ -206,9 +206,17 @@ impl Config {
                     ))
                 })?;
 
-                // TODO: re-sort config/repo maps by priority, then name
-                self.configs.insert(name.clone(), config);
-                self.repos.insert(name.clone(), repo);
+                let (configs, repos) = (&mut self.configs, &mut self.repos);
+                configs.insert(name.clone(), config);
+                // re-sort configs by RepoConfig ordering
+                configs.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
+                repos.insert(name.clone(), repo);
+                // use sorted configs to re-sort repos
+                repos.sort_by(|k1, _v1, k2, _v2| {
+                    let k1_index = configs.get_index_of(k1).unwrap();
+                    let k2_index = configs.get_index_of(k2).unwrap();
+                    k1_index.cmp(&k2_index)
+                });
                 Ok(())
             }
         }
