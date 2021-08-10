@@ -129,97 +129,87 @@ impl Config {
     }
 
     pub fn add(&mut self, name: &str, uri: &str) -> Result<(), Error> {
-        let name = name.to_string();
+        let dest_dir = self.repo_dir.join(name);
 
-        match self.configs.get(&name) {
-            Some(c) => Err(Error::Config(format!(
+        if let Some(c) = self.configs.get(name) {
+            return Err(Error::Config(format!(
                 "existing repo: {:?} @ {:?}",
-                &name, &c.location
-            ))),
-            None => {
-                let dest_dir = self.repo_dir.join(&name);
-                if dest_dir.exists() {
-                    return Err(Error::Config(format!("existing repo: {:?}", &dest_dir)));
-                }
-
-                let mut config: RepoConfig = RepoConfig {
-                    location: dest_dir.clone(),
-                    ..Default::default()
-                };
-
-                fs::create_dir_all(&self.repo_dir).map_err(|e| {
-                    Error::Config(format!(
-                        "failed creating repo dir {:?}: {}",
-                        &self.repo_dir, &e
-                    ))
-                })?;
-
-                match Syncer::from_str(uri) {
-                    Ok(Syncer::Noop) | Err(_) => {
-                        let mut path = PathBuf::from(uri);
-                        if path.is_relative() {
-                            path = fs::canonicalize(&path).map_err(|e| {
-                                Error::Config(format!(
-                                    "failed canonicalizing path {:?}: {}",
-                                    &path, &e
-                                ))
-                            })?;
-                        }
-                        if path.exists() {
-                            symlink(&path, &dest_dir).map_err(|e| {
-                                Error::Config(format!(
-                                    "failed symlinking repo {:?} to {:?}: {}",
-                                    &path, &dest_dir, &e
-                                ))
-                            })?;
-                        } else {
-                            return Err(Error::Config(format!(
-                                "nonexistent repo path: {:?}",
-                                &path
-                            )));
-                        }
-                    }
-                    Ok(syncer) => {
-                        config.sync = Some(syncer);
-                        config.sync()?;
-                    }
-                };
-
-                let (format, repo) = Repository::from_path(&name, &config.location)?;
-                config.format = format.to_string();
-
-                // write repo config file to disk
-                let repo_conf_data = toml::to_string(&config).map_err(|e| {
-                    Error::Config(format!("failed serializing repo config to toml: {}", &e))
-                })?;
-                let path = self.config_dir.join(&name);
-                let mut file = fs::File::create(&path).map_err(|e| {
-                    Error::Config(format!(
-                        "failed creating repo config file: {:?}: {}",
-                        &path, &e
-                    ))
-                })?;
-                file.write_all(repo_conf_data.as_bytes()).map_err(|e| {
-                    Error::Config(format!(
-                        "failed writing repo config file: {:?}: {}",
-                        &path, &e
-                    ))
-                })?;
-
-                let (configs, repos) = (&mut self.configs, &mut self.repos);
-                configs.insert(name.clone(), config);
-                // re-sort configs by RepoConfig ordering
-                configs.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
-                repos.insert(name.clone(), repo);
-                // use sorted configs to re-sort repos
-                repos.sort_by(|k1, _v1, k2, _v2| {
-                    let k1_index = configs.get_index_of(k1).unwrap();
-                    let k2_index = configs.get_index_of(k2).unwrap();
-                    k1_index.cmp(&k2_index)
-                });
-                Ok(())
-            }
+                name, &c.location
+            )));
+        } else if dest_dir.exists() {
+            return Err(Error::Config(format!("existing repo: {:?}", &dest_dir)));
         }
+
+        fs::create_dir_all(&self.repo_dir).map_err(|e| {
+            Error::Config(format!(
+                "failed creating repo dir {:?}: {}",
+                &self.repo_dir, &e
+            ))
+        })?;
+
+        let mut config = RepoConfig {
+            location: dest_dir.clone(),
+            ..Default::default()
+        };
+
+        match Syncer::from_str(uri) {
+            Ok(Syncer::Noop) | Err(_) => {
+                let mut path = PathBuf::from(uri);
+                if path.is_relative() {
+                    path = fs::canonicalize(&path).map_err(|e| {
+                        Error::Config(format!("failed canonicalizing path {:?}: {}", &path, &e))
+                    })?;
+                }
+                if path.exists() {
+                    symlink(&path, &dest_dir).map_err(|e| {
+                        Error::Config(format!(
+                            "failed symlinking repo {:?} to {:?}: {}",
+                            &path, &dest_dir, &e
+                        ))
+                    })?;
+                } else {
+                    return Err(Error::Config(format!("nonexistent repo path: {:?}", &path)));
+                }
+            }
+            Ok(syncer) => {
+                config.sync = Some(syncer);
+                config.sync()?;
+            }
+        };
+
+        let (format, repo) = Repository::from_path(name, &config.location)?;
+        config.format = format.to_string();
+
+        // write repo config file to disk
+        let repo_conf_data = toml::to_string(&config).map_err(|e| {
+            Error::Config(format!("failed serializing repo config to toml: {}", &e))
+        })?;
+        let path = self.config_dir.join(name);
+        let mut file = fs::File::create(&path).map_err(|e| {
+            Error::Config(format!(
+                "failed creating repo config file: {:?}: {}",
+                &path, &e
+            ))
+        })?;
+        file.write_all(repo_conf_data.as_bytes()).map_err(|e| {
+            Error::Config(format!(
+                "failed writing repo config file: {:?}: {}",
+                &path, &e
+            ))
+        })?;
+
+        let (configs, repos) = (&mut self.configs, &mut self.repos);
+        configs.insert(name.to_string(), config);
+        // re-sort configs by RepoConfig ordering
+        configs.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
+        repos.insert(name.to_string(), repo);
+        // use sorted configs to re-sort repos
+        repos.sort_by(|k1, _v1, k2, _v2| {
+            let k1_index = configs.get_index_of(k1).unwrap();
+            let k2_index = configs.get_index_of(k2).unwrap();
+            k1_index.cmp(&k2_index)
+        });
+        Ok(())
     }
 
     pub fn create(&mut self, name: &str) -> Result<(), Error> {
