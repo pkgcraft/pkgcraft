@@ -83,7 +83,7 @@ mod tests {
             "!use ( uri )",
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
-                assert!(parse(&s, eapi).is_err(), "{} didn't fail", s);
+                assert!(parse(&s, eapi).is_err(), "{:?} didn't fail", s);
             }
         }
 

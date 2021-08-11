@@ -73,7 +73,7 @@ mod tests {
             "use ( a/b )",
             "!use ( a/b )",
         ] {
-            assert!(parse(&s, EAPI_LATEST).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, EAPI_LATEST).is_err(), "{:?} didn't fail", s);
         }
 
         let atom = |s| Atom::from_str(s).unwrap();

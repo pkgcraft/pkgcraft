@@ -234,7 +234,7 @@ mod tests {
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);
-                assert!(result.is_err(), "{} didn't fail", s);
+                assert!(result.is_err(), "{:?} didn't fail", s);
             }
         }
 
@@ -296,7 +296,7 @@ mod tests {
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);
-                assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
                 atom = result.unwrap();
                 assert_eq!(atom.category, cat);
                 assert_eq!(atom.package, pkg);
@@ -313,7 +313,7 @@ mod tests {
         let mut s;
         for slot in ["", "+", "+0", ".a", "-b", "a@b", "0/1"] {
             s = format!("cat/pkg:{}", slot);
-            assert!(parse(&s, &eapi::EAPI1).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, &eapi::EAPI1).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
@@ -332,9 +332,9 @@ mod tests {
                 s = format!("cat/pkg:{}", slot_str);
                 result = parse(&s, eapi);
                 match eapi.has("slot_deps") {
-                    false => assert!(result.is_err(), "{} didn't fail", s),
+                    false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
-                        assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                        assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
                         atom = result.unwrap();
                         assert_eq!(atom.slot, slot);
                         assert_eq!(format!("{}", atom), s);
@@ -348,7 +348,7 @@ mod tests {
     fn test_parse_blockers() {
         // invalid deps
         for s in ["!!!cat/pkg", "!cat/pkg-0", "!!cat/pkg-0-r1"] {
-            assert!(parse(&s, &eapi::EAPI2).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, &eapi::EAPI2).is_err(), "{:?} didn't fail", s);
         }
 
         // non-blocker
@@ -367,9 +367,9 @@ mod tests {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);
                 match eapi.has("blockers") {
-                    false => assert!(result.is_err(), "{} didn't fail", s),
+                    false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
-                        assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                        assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
                         atom = result.unwrap();
                         assert_eq!(atom.block, block);
                         assert_eq!(format!("{}", atom), s);
@@ -385,7 +385,7 @@ mod tests {
         let mut s;
         for use_deps in ["", "-", "-a?", "!a"] {
             s = format!("cat/pkg[{}]", use_deps);
-            assert!(parse(&s, &eapi::EAPI2).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, &eapi::EAPI2).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
@@ -396,9 +396,9 @@ mod tests {
                 s = format!("cat/pkg[{}]", use_deps);
                 result = parse(&s, eapi);
                 match eapi.has("use_deps") {
-                    false => assert!(result.is_err(), "{} didn't fail", s),
+                    false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
-                        assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                        assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
                         atom = result.unwrap();
                         let expected = use_deps.split(',').map(|s| s.to_string()).collect();
                         assert_eq!(atom.use_deps, Some(expected));
@@ -417,7 +417,7 @@ mod tests {
             "(-)", "(+)", "a()", "a(?)", "a(b)", "a(-+)", "a(++)", "a((+))", "a(-)b",
         ] {
             s = format!("cat/pkg[{}]", use_dep);
-            assert!(parse(&s, &eapi::EAPI4).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, &eapi::EAPI4).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
@@ -428,9 +428,9 @@ mod tests {
                 s = format!("cat/pkg[{}]", use_deps);
                 result = parse(&s, eapi);
                 match eapi.has("use_dep_defaults") {
-                    false => assert!(result.is_err(), "{} didn't fail", s),
+                    false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
-                        assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                        assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
                         atom = result.unwrap();
                         let expected = use_deps.split(',').map(|s| s.to_string()).collect();
                         assert_eq!(atom.use_deps, Some(expected));
@@ -447,7 +447,7 @@ mod tests {
         let mut s;
         for slot in ["/", "/0", "0/", "0/+1", "0//1", "0/1/2"] {
             s = format!("cat/pkg:{}", slot);
-            assert!(parse(&s, &eapi::EAPI5).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, &eapi::EAPI5).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
@@ -464,9 +464,9 @@ mod tests {
                 s = format!("cat/pkg:{}", slot_str);
                 result = parse(&s, eapi);
                 match eapi.has("slot_ops") {
-                    false => assert!(result.is_err(), "{} didn't fail", s),
+                    false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
-                        assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                        assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
                         atom = result.unwrap();
                         assert_eq!(atom.slot, slot);
                         assert_eq!(atom.subslot, subslot);
@@ -484,7 +484,7 @@ mod tests {
         let mut s;
         for slot in ["*0", "=0", "*=", "=="] {
             s = format!("cat/pkg:{}", slot);
-            assert!(parse(&s, &eapi::EAPI5).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, &eapi::EAPI5).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
@@ -502,9 +502,9 @@ mod tests {
                 s = format!("cat/pkg:{}", slot_str);
                 result = parse(&s, eapi);
                 match eapi.has("slot_ops") {
-                    false => assert!(result.is_err(), "{} didn't fail", s),
+                    false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
-                        assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                        assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
                         atom = result.unwrap();
                         assert_eq!(atom.slot, slot);
                         assert_eq!(atom.subslot, subslot);
@@ -525,7 +525,7 @@ mod tests {
         for slot in ["", "-repo", "repo-1", "repo@path"] {
             s = format!("cat/pkg::{}", slot);
             result = parse(&s, &eapi::EAPI_EXTENDED);
-            assert!(result.is_err(), "{} didn't fail", s);
+            assert!(result.is_err(), "{:?} didn't fail", s);
         }
 
         let mut atom;
@@ -536,11 +536,11 @@ mod tests {
 
             // repo ids aren't supported in regular EAPIs
             for eapi in eapi::KNOWN_EAPIS.values() {
-                assert!(parse(&s, eapi).is_err(), "{} didn't fail", s);
+                assert!(parse(&s, eapi).is_err(), "{:?} didn't fail", s);
             }
 
             result = parse(&s, &eapi::EAPI_EXTENDED);
-            assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+            assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
             atom = result.unwrap();
             assert_eq!(atom.repo, opt_str!(repo));
             assert_eq!(format!("{}", atom), s);

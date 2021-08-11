@@ -69,7 +69,7 @@ mod tests {
             "foo ( l1 )",
             "!use ( l1 )",
         ] {
-            assert!(parse(&s).is_err(), "{} didn't fail", s);
+            assert!(parse(&s).is_err(), "{:?} didn't fail", s);
         }
 
         // good data

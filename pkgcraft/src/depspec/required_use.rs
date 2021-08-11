@@ -77,7 +77,7 @@ mod tests {
             "u1 ( u2 )",
             "!u1 ( u2 )",
         ] {
-            assert!(parse(&s, eapi::EAPI_LATEST).is_err(), "{} didn't fail", s);
+            assert!(parse(&s, eapi::EAPI_LATEST).is_err(), "{:?} didn't fail", s);
         }
 
         // good data
