@@ -133,11 +133,11 @@ peg::parser! {
                     quiet!{"-"} ver_rev:version() glob:"*"? {?
                 let op = match (op, glob) {
                     ("<", None) => Ok(Operator::Less),
-                    ("<=", None) => Ok(Operator::LessEqual),
+                    ("<=", None) => Ok(Operator::LessOrEqual),
                     ("=", None) => Ok(Operator::Equal),
                     ("=", Some(_)) => Ok(Operator::EqualGlob),
                     ("~", None) => Ok(Operator::Approximate),
-                    (">=", None) => Ok(Operator::GreaterEqual),
+                    (">=", None) => Ok(Operator::GreaterOrEqual),
                     (">", None) => Ok(Operator::Greater),
                     _ => Err("invalid version operator"),
                 }?;
@@ -256,7 +256,13 @@ mod tests {
                 Some(Operator::Less),
                 version("1-r2"),
             ),
-            ("<=a/b-1", "a", "b", Some(Operator::LessEqual), version("1")),
+            (
+                "<=a/b-1",
+                "a",
+                "b",
+                Some(Operator::LessOrEqual),
+                version("1"),
+            ),
             (
                 "=a/b-1-r1",
                 "a",
@@ -283,7 +289,7 @@ mod tests {
                 ">=a/b-2",
                 "a",
                 "b",
-                Some(Operator::GreaterEqual),
+                Some(Operator::GreaterOrEqual),
                 version("2"),
             ),
             (

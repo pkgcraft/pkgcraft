@@ -30,13 +30,13 @@ impl fmt::Display for Blocker {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub enum Operator {
-    Less,         // <cat/pkg-1
-    LessEqual,    // <=cat/pkg-1
-    Equal,        // =cat/pkg-1
-    EqualGlob,    // =cat/pkg-1*
-    Approximate,  // ~cat/pkg-1
-    GreaterEqual, // >=cat/pkg-1
-    Greater,      // >cat/pkg-1
+    Less,           // <cat/pkg-1
+    LessOrEqual,    // <=cat/pkg-1
+    Equal,          // =cat/pkg-1
+    EqualGlob,      // =cat/pkg-1*
+    Approximate,    // ~cat/pkg-1
+    GreaterOrEqual, // >=cat/pkg-1
+    Greater,        // >cat/pkg-1
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -82,11 +82,11 @@ impl fmt::Display for Atom {
         // append operator and version
         match &self.op {
             Some(Operator::Less) => s.push_str(&format!("<{}", self.cpv())),
-            Some(Operator::LessEqual) => s.push_str(&format!("<={}", self.cpv())),
+            Some(Operator::LessOrEqual) => s.push_str(&format!("<={}", self.cpv())),
             Some(Operator::Equal) => s.push_str(&format!("={}", self.cpv())),
             Some(Operator::EqualGlob) => s.push_str(&format!("={}*", self.cpv())),
             Some(Operator::Approximate) => s.push_str(&format!("~{}", self.cpv())),
-            Some(Operator::GreaterEqual) => s.push_str(&format!(">={}", self.cpv())),
+            Some(Operator::GreaterOrEqual) => s.push_str(&format!(">={}", self.cpv())),
             Some(Operator::Greater) => s.push_str(&format!(">{}", self.cpv())),
             None => s.push_str(&self.cpv()),
         }
