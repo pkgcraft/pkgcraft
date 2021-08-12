@@ -85,6 +85,7 @@ impl PartialOrd for Eapi {
 }
 
 impl Eapi {
+    /// Check if an EAPI has a given feature.
     pub fn has(&self, opt: &str) -> bool {
         match self.options.get(opt) {
             Some(value) => *value,
@@ -92,6 +93,7 @@ impl Eapi {
         }
     }
 
+    /// Parse a package atom using EAPI specific support.
     pub fn atom(&'static self, s: &str) -> Result<atom::Atom, atom::ParseError> {
         atom::parse::dep(s, self)
     }
@@ -126,6 +128,7 @@ impl fmt::Display for Eapi {
     }
 }
 
+/// Get a EAPI given its identifier.
 pub fn get_eapi(id: &str) -> Result<&'static Eapi, Error> {
     match KNOWN_EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
@@ -201,8 +204,10 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("8", Some(&EAPI7), Some(&options))
 });
 
+/// Alias to the latest registered EAPI.
 pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
 
+/// The latest EAPI with non-spec extensions on top.
 #[rustfmt::skip]
 pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
@@ -211,6 +216,7 @@ pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("extended", Some(EAPI_LATEST), Some(&options))
 });
 
+/// Ordered mapping of EAPI identifiers to instances.
 pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
     let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
     let mut eapi: &Eapi = EAPI_LATEST;
