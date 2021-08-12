@@ -16,7 +16,7 @@ pub struct Repo {
 }
 
 impl Syncable for Repo {
-    fn uri_to_syncer(uri: &str) -> Result<Syncer, Error> {
+    fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
         match HANDLED_URI_RE.is_match(uri) {
             true => Ok(Syncer::Git(Repo {
                 uri: uri.to_string(),
@@ -25,7 +25,7 @@ impl Syncable for Repo {
         }
     }
 
-    fn sync<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
+    fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
         if path.exists() {
             let repo = git2::Repository::open(&path).map_err(|e| {

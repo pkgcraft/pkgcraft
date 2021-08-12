@@ -28,12 +28,12 @@ impl fmt::Display for Syncer {
 }
 
 pub trait Syncable {
-    fn uri_to_syncer(uri: &str) -> Result<Syncer, Error>;
-    fn sync<P: AsRef<Path>>(&self, path: P) -> Result<(), Error>;
+    fn uri_to_syncer(uri: &str) -> crate::Result<Syncer>;
+    fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()>;
 }
 
 impl Syncer {
-    pub fn sync<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
+    pub fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
 
         // make sure repos dir exists

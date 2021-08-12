@@ -22,7 +22,7 @@ pub struct RepoConfig {
 }
 
 impl RepoConfig {
-    fn new(path: &Path) -> Result<Self, Error> {
+    fn new(path: &Path) -> crate::Result<Self> {
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::Config(format!("failed loading repo config {:?}: {}", &path, e)))?;
 
@@ -39,7 +39,7 @@ impl RepoConfig {
         Ok(repo_conf)
     }
 
-    fn sync(&self) -> Result<(), Error> {
+    fn sync(&self) -> crate::Result<()> {
         match &self.sync {
             Some(syncer) => syncer.sync(&self.location),
             None => Ok(()),
@@ -74,7 +74,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(config_dir: &Path, db_dir: &Path) -> Result<Config, Error> {
+    pub fn new(config_dir: &Path, db_dir: &Path) -> crate::Result<Config> {
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
 
@@ -128,7 +128,7 @@ impl Config {
         })
     }
 
-    pub fn add(&mut self, name: &str, uri: &str) -> Result<(), Error> {
+    pub fn add(&mut self, name: &str, uri: &str) -> crate::Result<()> {
         let dest_dir = self.repo_dir.join(name);
 
         if let Some(c) = self.configs.get(name) {
@@ -212,7 +212,7 @@ impl Config {
         Ok(())
     }
 
-    pub fn create(&mut self, name: &str) -> Result<(), Error> {
+    pub fn create(&mut self, name: &str) -> crate::Result<()> {
         match self.configs.get(name) {
             Some(c) => Err(Error::Config(format!(
                 "existing repo: {:?} @ {:?}",
@@ -238,7 +238,7 @@ impl Config {
         }
     }
 
-    pub fn del(&mut self, repos: &[&str], clean: bool) -> Result<(), Error> {
+    pub fn del(&mut self, repos: &[&str], clean: bool) -> crate::Result<()> {
         for name in repos {
             // error out if repo config is missing
             let repo_config = self.config_from_id(name)?;
@@ -266,7 +266,7 @@ impl Config {
         Ok(())
     }
 
-    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repository, Error> {
+    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> crate::Result<&Repository> {
         let id = id.as_ref();
         match self.repos.get(id) {
             Some(repo) => Ok(repo),
@@ -274,7 +274,7 @@ impl Config {
         }
     }
 
-    fn config_from_id<S: AsRef<str>>(&self, id: S) -> Result<&RepoConfig, Error> {
+    fn config_from_id<S: AsRef<str>>(&self, id: S) -> crate::Result<&RepoConfig> {
         let id = id.as_ref();
         match self.configs.get(id) {
             Some(config) => Ok(config),
@@ -283,7 +283,7 @@ impl Config {
     }
 
     // TODO: add concurrent syncing support with output progress
-    pub fn sync(&mut self, repos: Option<Vec<&str>>) -> Result<(), Error> {
+    pub fn sync(&mut self, repos: Option<Vec<&str>>) -> crate::Result<()> {
         let repos = match repos {
             Some(names) => names,
             // sync all configured repos if none were passed

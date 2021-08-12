@@ -20,7 +20,7 @@ pub struct Repo {
 impl Repo {
     pub const FORMAT: &'static str = "ebuild";
 
-    pub fn new<P: AsRef<Path>>(id: &str, path: P) -> Result<Self, Error> {
+    pub fn new<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
         Ok(Repo {
             id: id.to_string(),
             path: PathBuf::from(path.as_ref()),
@@ -33,7 +33,7 @@ impl Repo {
         self.cached = true;
     }
 
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<Self, Error> {
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         if !path.join("profiles").exists() {
             return Err(Error::RepoInvalid {
@@ -87,7 +87,7 @@ impl TempRepo {
         id: &str,
         path: Option<P>,
         eapi: Option<&eapi::Eapi>,
-    ) -> Result<Self, Error> {
+    ) -> crate::Result<Self> {
         let path = match path {
             Some(p) => PathBuf::from(p.as_ref()),
             None => env::temp_dir(),

@@ -50,7 +50,7 @@ pub enum Repository {
 }
 
 impl Repository {
-    pub fn is_supported<S: AsRef<str>>(format: S) -> Result<(), Error> {
+    pub fn is_supported<S: AsRef<str>>(format: S) -> crate::Result<()> {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
             Some(_) => Ok(()),
@@ -61,7 +61,7 @@ impl Repository {
         }
     }
 
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<(&'static str, Self), Error> {
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<(&'static str, Self)> {
         let path = path.as_ref();
 
         for format in SUPPORTED_FORMATS.iter() {
@@ -76,7 +76,7 @@ impl Repository {
         })
     }
 
-    pub fn from_format<P: AsRef<Path>>(id: &str, path: P, format: &str) -> Result<Self, Error> {
+    pub fn from_format<P: AsRef<Path>>(id: &str, path: P, format: &str) -> crate::Result<Self> {
         let path = path.as_ref();
 
         match format {

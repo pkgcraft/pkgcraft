@@ -18,7 +18,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config, Error> {
+    pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Config> {
         let home = env::var("HOME").ok().unwrap_or_else(|| "/root".to_string());
         let (config_dir, cache_dir, data_dir, db_dir): (PathBuf, PathBuf, PathBuf, PathBuf);
 
