@@ -76,10 +76,8 @@ pub struct Eapi {
 
 impl PartialOrd for Eapi {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // invert indices since KNOWN_EAPIS starts with the most recent EAPI
-        let max_index = KNOWN_EAPIS.len() - 1;
-        let self_index = max_index - KNOWN_EAPIS.get_index_of(&self.id).unwrap();
-        let other_index = max_index - KNOWN_EAPIS.get_index_of(&other.id).unwrap();
+        let self_index = KNOWN_EAPIS.get_index_of(&self.id).unwrap();
+        let other_index = KNOWN_EAPIS.get_index_of(&other.id).unwrap();
         self_index.partial_cmp(&other_index)
     }
 }
@@ -225,6 +223,8 @@ pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(
         eapi = x;
     }
     eapis.insert(eapi.id, eapi);
+    // reverse so it's in chronological order
+    eapis.reverse();
     eapis
 });
 
