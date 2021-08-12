@@ -50,11 +50,16 @@ impl Syncable for Repo {
             }
         }
 
-        let client = reqwest::blocking::Client::new();
-        let mut resp =
-            client.get(&self.url).headers(headers).send().map_err(|e| {
-                Error::RepoSync(format!("failed downloading {:?}: {}", &self.url, e))
-            })?;
+        let send_req = || -> Result<reqwest::blocking::Response, reqwest::Error> {
+            let client = reqwest::blocking::Client::new();
+            client
+                .get(&self.url)
+                .headers(headers)
+                .send()?
+                .error_for_status()
+        };
+
+        let mut resp = send_req().map_err(|e| Error::RepoSync(e.to_string()))?;
 
         // content is unchanged
         if resp.status().as_u16() == 304 {
