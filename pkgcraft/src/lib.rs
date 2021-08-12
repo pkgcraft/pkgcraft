@@ -1,6 +1,6 @@
 pub mod atom;
 pub mod config;
-mod depspec;
+pub mod depspec;
 pub mod eapi;
 mod error;
 mod macros;
