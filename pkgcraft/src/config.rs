@@ -71,10 +71,9 @@ impl Config {
 
         // create dirs on request
         if create {
-            fs::create_dir_all(&cache_dir).map_err(|e| Error::Config(e.to_string()))?;
-            fs::create_dir_all(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
-            fs::create_dir_all(&data_dir).map_err(|e| Error::Config(e.to_string()))?;
-            fs::create_dir_all(&db_dir).map_err(|e| Error::Config(e.to_string()))?;
+            for dir in [&cache_dir, &config_dir, &data_dir, &db_dir] {
+                fs::create_dir_all(dir).map_err(|e| Error::Config(e.to_string()))?;
+            }
         }
 
         let repos = repo::Config::new(&config_dir, &db_dir)?;
