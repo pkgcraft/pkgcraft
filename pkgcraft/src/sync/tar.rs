@@ -103,6 +103,7 @@ impl Syncable for Repo {
         if tar_unpack.is_err() || !tar_unpack.unwrap().success() {
             let tar_file =
                 fs::File::open(temp_file.path()).map_err(|e| Error::RepoSync(e.to_string()))?;
+            // TODO: run decompression in a separate thread
             let mut archive = Archive::new(GzDecoder::new(tar_file));
             archive
                 .entries()
