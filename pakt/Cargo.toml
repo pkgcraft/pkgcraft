@@ -19,9 +19,8 @@ pkgcraft = { path = "../pkgcraft", version = "0.0.2" }
 serde = { version = "1.0", features = ["derive"] }
 stderrlog = "0.5"
 
-# TODO: use a release once 3.0.0-rc.0 or similar is available
 [dependencies.clap]
-git = "https://github.com/clap-rs/clap.git"
+version = "3.0.0-beta.4"
 default-features = false
 features = [ "suggestions", "std" ]
 
