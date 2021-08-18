@@ -102,14 +102,18 @@ impl Eapi {
         eapi_options: Option<&EapiOptions>,
     ) -> Eapi {
         // clone inherited options
-        let mut options: EapiOptions = match parent {
+        let mut options = match parent {
             Some(x) => x.options.clone(),
             None => EAPI_OPTIONS.clone(),
         };
 
-        // merge EAPI specific options
-        if let Some(x) = eapi_options {
-            options.extend(x);
+        // merge EAPI specific options while verifying defaults exist
+        if let Some(map) = eapi_options {
+            for (key, val) in map.iter() {
+                if options.insert(key, *val).is_none() {
+                    panic!("EAPI {:?} option missing default: {:?}", id, key);
+                }
+            }
         }
 
         Eapi {
