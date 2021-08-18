@@ -1,17 +1,15 @@
 use anyhow::Result;
-use clap::{App, AppSettings, Arg};
+use clap::{App, Arg};
+use warp::Filter;
 
 use settings::Settings;
 
 mod settings;
 
-fn main() -> Result<()> {
+fn load_settings() -> Result<Settings> {
     let app = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("package-building daemon leveraging pkgcraft")
-        .setting(AppSettings::DisableHelpSubcommand)
-        .setting(AppSettings::DisableVersionForSubcommands)
-        .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(Arg::new("debug").long("debug").about("enable debug output"))
         .arg(
             Arg::new("verbose")
@@ -44,5 +42,16 @@ fn main() -> Result<()> {
     // load pkgcraft config
     settings.load()?;
 
+    Ok(settings)
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let settings = load_settings()?;
+    let routes =
+        warp::any().map(|| format!("{}-{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")));
+    warp::serve(routes)
+        .run(([127, 0, 0, 1], settings.port))
+        .await;
     Ok(())
 }
