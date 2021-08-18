@@ -11,8 +11,8 @@ use crate::sync::{Syncable, Syncer};
 static HANDLED_URI_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(https|git)://.+\.git$").unwrap());
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
-pub struct Repo {
-    pub uri: String,
+pub(crate) struct Repo {
+    pub(crate) uri: String,
 }
 
 impl Syncable for Repo {

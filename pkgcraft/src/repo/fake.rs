@@ -8,15 +8,15 @@ use crate::error::Error;
 use crate::repo;
 
 #[derive(Debug, Default)]
-pub struct Repo {
+pub(crate) struct Repo {
     id: String,
     pkgs: repo::PkgCache,
 }
 
 impl Repo {
-    pub const FORMAT: &'static str = "fake";
+    pub(super) const FORMAT: &'static str = "fake";
 
-    pub fn new<'a, I>(id: &str, atoms: I) -> crate::Result<Repo>
+    fn new<'a, I>(id: &str, atoms: I) -> crate::Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
     {
@@ -38,7 +38,7 @@ impl Repo {
         })
     }
 
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
+    pub(super) fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
         let data = fs::read_to_string(path.as_ref()).map_err(|e| Error::RepoInit(e.to_string()))?;
         Repo::new(id, data.lines())
     }

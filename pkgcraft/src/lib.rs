@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 pub mod atom;
 pub mod config;
 pub mod depspec;

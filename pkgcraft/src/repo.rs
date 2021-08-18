@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 
 use crate::error::Error;
 
-pub mod ebuild;
+pub(crate) mod ebuild;
 mod fake;
 
 type VersionMap = HashMap<String, HashSet<String>>;
@@ -44,13 +44,13 @@ impl PkgCache {
 }
 
 #[derive(Debug)]
-pub enum Repository {
+pub(crate) enum Repository {
     Ebuild(ebuild::Repo),
     Fake(fake::Repo),
 }
 
 impl Repository {
-    pub fn is_supported<S: AsRef<str>>(format: S) -> crate::Result<()> {
+    pub(crate) fn is_supported<S: AsRef<str>>(format: S) -> crate::Result<()> {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
             Some(_) => Ok(()),
@@ -61,7 +61,10 @@ impl Repository {
         }
     }
 
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<(&'static str, Self)> {
+    pub(crate) fn from_path<P: AsRef<Path>>(
+        id: &str,
+        path: P,
+    ) -> crate::Result<(&'static str, Self)> {
         let path = path.as_ref();
 
         for format in SUPPORTED_FORMATS.iter() {
@@ -76,7 +79,11 @@ impl Repository {
         })
     }
 
-    pub fn from_format<P: AsRef<Path>>(id: &str, path: P, format: &str) -> crate::Result<Self> {
+    pub(crate) fn from_format<P: AsRef<Path>>(
+        id: &str,
+        path: P,
+        format: &str,
+    ) -> crate::Result<Self> {
         let path = path.as_ref();
 
         match format {
@@ -99,7 +106,7 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-pub trait Repo: fmt::Debug + fmt::Display {
+pub(crate) trait Repo: fmt::Debug + fmt::Display {
     // TODO: convert to `impl Iterator` return type once supported within traits
     // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
     fn categories(&mut self) -> StringIter;

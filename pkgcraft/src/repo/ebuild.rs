@@ -10,7 +10,7 @@ use crate::error::Error;
 use crate::repo;
 
 #[derive(Debug, Default)]
-pub struct Repo {
+pub(crate) struct Repo {
     id: String,
     path: PathBuf,
     cached: bool,
@@ -18,9 +18,9 @@ pub struct Repo {
 }
 
 impl Repo {
-    pub const FORMAT: &'static str = "ebuild";
+    pub(super) const FORMAT: &'static str = "ebuild";
 
-    pub fn new<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
+    fn new<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
         Ok(Repo {
             id: id.to_string(),
             path: PathBuf::from(path.as_ref()),
@@ -33,7 +33,7 @@ impl Repo {
         self.cached = true;
     }
 
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
+    pub(super) fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         if !path.join("profiles").exists() {
             return Err(Error::RepoInvalid {
@@ -77,13 +77,13 @@ impl repo::Repo for Repo {
 }
 
 #[derive(Debug)]
-pub struct TempRepo {
+pub(crate) struct TempRepo {
     tempdir: TempDir,
     repo: Repo,
 }
 
 impl TempRepo {
-    pub fn new<P: AsRef<Path>>(
+    pub(crate) fn new<P: AsRef<Path>>(
         id: &str,
         path: Option<P>,
         eapi: Option<&eapi::Eapi>,
@@ -111,7 +111,7 @@ impl TempRepo {
         Ok(TempRepo { tempdir, repo })
     }
 
-    pub fn persist(self) -> PathBuf {
+    pub(crate) fn persist(self) -> PathBuf {
         self.tempdir.into_path()
     }
 }

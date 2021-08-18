@@ -17,8 +17,8 @@ static HANDLED_URI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^tar\+(?P<url>https://.+)$").unwrap());
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
-pub struct Repo {
-    pub uri: String,
+pub(crate) struct Repo {
+    pub(crate) uri: String,
     url: String,
 }
 

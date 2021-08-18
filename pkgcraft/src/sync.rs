@@ -11,7 +11,7 @@ mod git;
 mod tar;
 
 #[derive(Debug, PartialEq, Eq, DeserializeFromStr, SerializeDisplay)]
-pub enum Syncer {
+pub(crate) enum Syncer {
     Git(git::Repo),
     TarHttps(tar::Repo),
     Noop,
@@ -27,13 +27,13 @@ impl fmt::Display for Syncer {
     }
 }
 
-pub trait Syncable {
+pub(self) trait Syncable {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer>;
     fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()>;
 }
 
 impl Syncer {
-    pub fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()> {
+    pub(crate) fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
 
         // make sure repos dir exists
