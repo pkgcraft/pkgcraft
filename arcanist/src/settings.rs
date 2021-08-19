@@ -1,25 +1,16 @@
+use std::net::SocketAddr;
+
 use anyhow::{Context, Result};
 use config::{Config, Environment};
 use pkgcraft::config::Config as PkgcraftConfig;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Settings {
     pub debug: bool,
     pub verbosity: i32,
     pub config: PkgcraftConfig,
-    pub port: u16,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Settings {
-            debug: false,
-            verbosity: 0,
-            config: PkgcraftConfig::default(),
-            port: 24842,
-        }
-    }
+    pub socket: Option<SocketAddr>,
 }
 
 impl Settings {
