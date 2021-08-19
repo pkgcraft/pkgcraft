@@ -26,6 +26,12 @@ fn load_settings() -> Result<Settings> {
                 .long("quiet")
                 .multiple_occurrences(true)
                 .about("suppress non-error messages"),
+        )
+        .arg(
+            Arg::new("socket")
+                .long("bind")
+                .value_name("IP:port")
+                .about("bind to given network socket"),
         );
 
     let matches = app.get_matches();
@@ -38,6 +44,8 @@ fn load_settings() -> Result<Settings> {
     }
     settings.verbosity += matches.occurrences_of("verbose") as i32;
     settings.verbosity -= matches.occurrences_of("quiet") as i32;
+
+    settings.socket = matches.value_of("socket").map(|s| s.to_string());
 
     // TODO: initialize syslog logger
 
