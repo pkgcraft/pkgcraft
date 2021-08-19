@@ -206,10 +206,10 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("8", Some(&EAPI7), Some(&options))
 });
 
-/// Alias to the latest registered EAPI.
+/// Reference to the latest registered EAPI.
 pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
 
-/// The latest EAPI with non-spec extensions on top.
+/// The latest EAPI with extensions on top.
 #[rustfmt::skip]
 pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
