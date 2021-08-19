@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::{App, Arg};
-use tokio::net::UnixListener;
-use tokio_stream::wrappers::UnixListenerStream;
+use tokio::net::{TcpListener, UnixListener};
+use tokio_stream::wrappers::{TcpListenerStream, UnixListenerStream};
 use warp::Filter;
 
 use settings::Settings;
@@ -54,15 +54,24 @@ async fn main() -> Result<()> {
         warp::any().map(|| format!("{}-{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")));
 
     // use network socket if configured or unix socket default
-    if let Some(socket) = settings.socket {
-        warp::serve(routes).run((socket.ip(), socket.port())).await;
-    } else {
-        let sock_name = format!("{}.sock", env!("CARGO_PKG_NAME"));
-        let socket = settings.config.get_socket(&sock_name, true)?;
-        let listener = UnixListener::bind(&socket)
-            .context(format!("failed binding to socket: {:?}", &socket))?;
-        let incoming = UnixListenerStream::new(listener);
-        warp::serve(routes).run_incoming(incoming).await;
+    match settings.socket {
+        None => {
+            let sock_name = format!("{}.sock", env!("CARGO_PKG_NAME"));
+            let socket = settings.config.get_socket(&sock_name, true)?;
+            let listener = UnixListener::bind(&socket)
+                .context(format!("failed binding to socket: {:?}", &socket))?;
+            warp::serve(routes)
+                .run_incoming(UnixListenerStream::new(listener))
+                .await;
+        }
+        Some(socket) => {
+            let listener = TcpListener::bind(&socket)
+                .await
+                .context(format!("failed binding to socket: {:?}", &socket))?;
+            warp::serve(routes)
+                .run_incoming(TcpListenerStream::new(listener))
+                .await;
+        }
     }
 
     Ok(())

@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use anyhow::{Context, Result};
 use config::{Config, Environment};
 use pkgcraft::config::Config as PkgcraftConfig;
@@ -10,7 +8,7 @@ pub struct Settings {
     pub debug: bool,
     pub verbosity: i32,
     pub config: PkgcraftConfig,
-    pub socket: Option<SocketAddr>,
+    pub socket: Option<String>,
 }
 
 impl Settings {
