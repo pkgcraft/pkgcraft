@@ -36,27 +36,23 @@ impl FromStr for Suffix {
     }
 }
 
-#[derive(Debug, Eq)]
+#[derive(Debug, Default, Eq)]
 pub struct Revision {
     pub value: Option<String>,
     int: u32,
 }
 
 impl Revision {
-    pub fn new(s: Option<&str>) -> Revision {
-        match &s {
-            Some(s) => {
-                // parsing shouldn't fail when using grammar-parsed values
-                let int: u32 = s.parse().unwrap();
-                Revision {
-                    value: Some(s.to_string()),
-                    int,
-                }
+    pub fn new(rev: Option<&str>) -> Revision {
+        if let Some(s) = &rev {
+            // parsing shouldn't fail when using grammar-parsed values
+            let int: u32 = s.parse().unwrap();
+            Revision {
+                value: Some(s.to_string()),
+                int,
             }
-            None => Revision {
-                value: None,
-                int: 0,
-            },
+        } else {
+            Revision::default()
         }
     }
 }
