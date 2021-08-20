@@ -136,8 +136,6 @@ impl Config {
                 "existing repo: {:?} @ {:?}",
                 name, &c.location
             )));
-        } else if dest_dir.exists() {
-            return Err(Error::Config(format!("existing repo: {:?}", &dest_dir)));
         }
 
         fs::create_dir_all(&self.repo_dir).map_err(|e| {
@@ -161,12 +159,14 @@ impl Config {
                     })?;
                 }
                 if path.exists() {
-                    symlink(&path, &dest_dir).map_err(|e| {
-                        Error::Config(format!(
-                            "failed symlinking repo {:?} to {:?}: {}",
-                            &path, &dest_dir, &e
-                        ))
-                    })?;
+                    if path != dest_dir {
+                        symlink(&path, &dest_dir).map_err(|e| {
+                            Error::Config(format!(
+                                "failed symlinking repo {:?} to {:?}: {}",
+                                &path, &dest_dir, &e
+                            ))
+                        })?;
+                    }
                 } else {
                     return Err(Error::Config(format!("nonexistent repo path: {:?}", &path)));
                 }
