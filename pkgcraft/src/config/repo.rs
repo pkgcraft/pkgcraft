@@ -219,20 +219,14 @@ impl Config {
                 name, c.location
             ))),
             None => {
-                // create temporary repo and persist it to disk
-                let temp_repo_path = TempRepo::new(name, Some(&self.repo_dir), None)?.persist();
-                // rename new repo dir what it should be called
                 let repo_path = self.repo_dir.join(name);
-                fs::rename(&temp_repo_path, &repo_path).map_err(|e| {
-                    Error::Config(format!(
-                        "failed renaming repo: {:?} -> {:?}: {}",
-                        &temp_repo_path, &repo_path, e
-                    ))
-                })?;
-                // add repo to config
                 let location = repo_path
                     .to_str()
                     .ok_or_else(|| Error::Config(format!("invalid repo name: {:?}", name)))?;
+                // create temporary repo and persist it to disk
+                let temp_repo = TempRepo::new(name, Some(&self.repo_dir), None)?;
+                temp_repo.persist(Some(&repo_path))?;
+                // add repo to config
                 self.add(name, location)
             }
         }

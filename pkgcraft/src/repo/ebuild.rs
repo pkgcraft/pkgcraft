@@ -111,8 +111,18 @@ impl TempRepo {
         Ok(TempRepo { tempdir, repo })
     }
 
-    pub(crate) fn persist(self) -> PathBuf {
-        self.tempdir.into_path()
+    pub(crate) fn persist(self, path: Option<&PathBuf>) -> crate::Result<PathBuf> {
+        let mut repo_path = self.tempdir.into_path();
+        if let Some(path) = path {
+            fs::rename(&repo_path, path).map_err(|e| {
+                Error::RepoInit(format!(
+                    "failed renaming repo: {:?} -> {:?}: {}",
+                    &repo_path, &path, e
+                ))
+            })?;
+            repo_path = path.clone();
+        }
+        Ok(repo_path)
     }
 }
 
