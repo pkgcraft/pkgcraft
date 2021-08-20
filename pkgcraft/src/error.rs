@@ -15,8 +15,10 @@ pub enum Error {
     ParseAtom(#[from] atom::ParseError),
     #[error("config error: {0}")]
     Config(String),
+    #[error("{0}")]
+    InvalidValue(String),
     #[error("invalid repo: {path:?}: {error}")]
-    RepoInvalid { path: PathBuf, error: String },
+    InvalidRepo { path: PathBuf, error: String },
     #[error("{0}")]
     RepoInit(String),
     #[error("failed syncing repo: {0}")]

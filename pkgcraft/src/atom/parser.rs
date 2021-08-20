@@ -144,9 +144,11 @@ peg::parser! {
 
                 // construct version struct
                 let (ver, rev) = ver_rev;
+                // grammar-parsed values can't fail
+                let revision = Revision::new(rev).unwrap();
                 let version = Version {
                     base: ver.to_string(),
-                    revision: Revision::new(rev),
+                    revision,
                 };
 
                 Ok((cat, pkg, Some(op), Some(version)))

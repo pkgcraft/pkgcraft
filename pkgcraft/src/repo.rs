@@ -73,7 +73,7 @@ impl Repository {
             }
         }
 
-        Err(Error::RepoInvalid {
+        Err(Error::InvalidRepo {
             path: PathBuf::from(path),
             error: "unknown or invalid format".to_string(),
         })

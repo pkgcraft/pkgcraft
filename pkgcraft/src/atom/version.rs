@@ -6,7 +6,8 @@ use std::str::FromStr;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use super::{parse, ParseError};
+use super::parse;
+use crate::error::Error;
 use crate::utils::rstrip;
 
 static SUFFIX_RE: Lazy<Regex> =
@@ -43,16 +44,18 @@ pub struct Revision {
 }
 
 impl Revision {
-    pub fn new(rev: Option<&str>) -> Revision {
-        if let Some(s) = &rev {
-            // parsing shouldn't fail when using grammar-parsed values
-            let int: u32 = s.parse().unwrap();
-            Revision {
-                value: Some(s.to_string()),
-                int,
+    pub fn new(rev: Option<&str>) -> crate::Result<Self> {
+        match &rev {
+            Some(s) => {
+                let int: u32 = s
+                    .parse()
+                    .map_err(|e| Error::InvalidValue(format!("invalid revision {:?}: {}", s, e)))?;
+                Ok(Revision {
+                    value: Some(s.to_string()),
+                    int,
+                })
             }
-        } else {
-            Revision::default()
+            None => Ok(Revision::default()),
         }
     }
 }
@@ -258,13 +261,14 @@ impl PartialOrd for Version {
 }
 
 impl FromStr for Version {
-    type Err = ParseError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (ver, rev) = parse::version(s)?;
+        let revision = Revision::new(rev)?;
         Ok(Version {
             base: ver.to_string(),
-            revision: Revision::new(rev),
+            revision,
         })
     }
 }

@@ -36,7 +36,7 @@ impl Repo {
     pub(super) fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         if !path.join("profiles").exists() {
-            return Err(Error::RepoInvalid {
+            return Err(Error::InvalidRepo {
                 path: PathBuf::from(path),
                 error: "missing profiles dir".to_string(),
             });
