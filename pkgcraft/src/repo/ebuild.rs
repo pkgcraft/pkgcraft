@@ -76,6 +76,7 @@ impl repo::Repo for Repo {
     }
 }
 
+/// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub(crate) struct TempRepo {
     tempdir: TempDir,
@@ -83,6 +84,8 @@ pub(crate) struct TempRepo {
 }
 
 impl TempRepo {
+    /// Attempts to create a temporary repo inside an optional path or inside `env::temp_dir()` if
+    /// no path is specified.
     pub(crate) fn new<P: AsRef<Path>>(
         id: &str,
         path: Option<P>,
@@ -111,6 +114,8 @@ impl TempRepo {
         Ok(TempRepo { tempdir, repo })
     }
 
+    /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is
+    /// located.
     pub(crate) fn persist(self, path: Option<&PathBuf>) -> crate::Result<PathBuf> {
         let mut repo_path = self.tempdir.into_path();
         if let Some(path) = path {
