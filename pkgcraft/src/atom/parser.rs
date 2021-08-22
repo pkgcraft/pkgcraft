@@ -196,20 +196,59 @@ peg::parser! {
     }
 }
 
+// provide public parsing functionality while converting error types
+pub mod parse {
+    use crate::atom::Atom;
+    use crate::eapi::Eapi;
+    use crate::peg::peg_error;
+
+    use super::pkg as parse;
+
+    #[inline]
+    pub fn category(s: &str) -> crate::Result<&str> {
+        parse::category(s).map_err(|e| peg_error("invalid category name", s, e))
+    }
+
+    #[inline]
+    pub fn package(s: &str) -> crate::Result<&str> {
+        parse::package(s).map_err(|e| peg_error("invalid package name", s, e))
+    }
+
+    #[inline]
+    pub fn version(s: &str) -> crate::Result<(&str, Option<&str>)> {
+        parse::version(s).map_err(|e| peg_error("invalid version", s, e))
+    }
+
+    #[inline]
+    pub fn repo(s: &str) -> crate::Result<&str> {
+        parse::repo(s).map_err(|e| peg_error("invalid repo name", s, e))
+    }
+
+    #[inline]
+    pub fn cpv(s: &str) -> crate::Result<(&str, &str, &str)> {
+        parse::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
+    }
+
+    #[inline]
+    pub fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
+        parse::dep(s, eapi).map_err(|e| peg_error("invalid atom", s, e))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
 
     use crate::atom::version::Version;
-    use crate::atom::{Atom, Blocker, Operator, ParseError};
+    use crate::atom::{Atom, Blocker, Operator};
     use crate::eapi;
     use crate::macros::opt_str;
 
-    use super::pkg::dep as parse;
+    use super::parse;
 
     #[test]
     fn test_parse_versions() {
-        let mut result: Result<Atom, ParseError>;
+        let mut result: crate::Result<Atom>;
 
         // invalid deps
         for s in [
@@ -235,7 +274,7 @@ mod tests {
             "=a/b-0-r*",
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
-                result = parse(&s, eapi);
+                result = parse::dep(&s, eapi);
                 assert!(result.is_err(), "{:?} didn't fail", s);
             }
         }
@@ -303,7 +342,7 @@ mod tests {
             ),
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
-                result = parse(&s, eapi);
+                result = parse::dep(&s, eapi);
                 assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
                 atom = result.unwrap();
                 assert_eq!(atom.category, cat);
@@ -321,12 +360,12 @@ mod tests {
         let mut s;
         for slot in ["", "+", "+0", ".a", "-b", "a@b", "0/1"] {
             s = format!("cat/pkg:{}", slot);
-            assert!(parse(&s, &eapi::EAPI1).is_err(), "{:?} didn't fail", s);
+            assert!(parse::dep(&s, &eapi::EAPI1).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
         let mut atom;
-        let mut result: Result<Atom, ParseError>;
+        let mut result: crate::Result<Atom>;
         for (slot_str, slot) in [
             ("0", opt_str!("0")),
             ("a", opt_str!("a")),
@@ -338,7 +377,7 @@ mod tests {
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg:{}", slot_str);
-                result = parse(&s, eapi);
+                result = parse::dep(&s, eapi);
                 match eapi.has("slot_deps") {
                     false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
@@ -356,16 +395,16 @@ mod tests {
     fn test_parse_blockers() {
         // invalid deps
         for s in ["!!!cat/pkg", "!cat/pkg-0", "!!cat/pkg-0-r1"] {
-            assert!(parse(&s, &eapi::EAPI2).is_err(), "{:?} didn't fail", s);
+            assert!(parse::dep(&s, &eapi::EAPI2).is_err(), "{:?} didn't fail", s);
         }
 
         // non-blocker
-        let atom = parse("cat/pkg", &eapi::EAPI2).unwrap();
+        let atom = parse::dep("cat/pkg", &eapi::EAPI2).unwrap();
         assert!(atom.block.is_none());
 
         // good deps
         let mut atom: Atom;
-        let mut result: Result<Atom, ParseError>;
+        let mut result: crate::Result<Atom>;
         for (s, block) in [
             ("!cat/pkg", Some(Blocker::Weak)),
             ("!cat/pkg:0", Some(Blocker::Weak)),
@@ -373,7 +412,7 @@ mod tests {
             ("!!<cat/pkg-1", Some(Blocker::Strong)),
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
-                result = parse(&s, eapi);
+                result = parse::dep(&s, eapi);
                 match eapi.has("blockers") {
                     false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
@@ -393,16 +432,16 @@ mod tests {
         let mut s;
         for use_deps in ["", "-", "-a?", "!a"] {
             s = format!("cat/pkg[{}]", use_deps);
-            assert!(parse(&s, &eapi::EAPI2).is_err(), "{:?} didn't fail", s);
+            assert!(parse::dep(&s, &eapi::EAPI2).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
         let mut atom;
-        let mut result: Result<Atom, ParseError>;
+        let mut result: crate::Result<Atom>;
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg[{}]", use_deps);
-                result = parse(&s, eapi);
+                result = parse::dep(&s, eapi);
                 match eapi.has("use_deps") {
                     false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
@@ -425,16 +464,16 @@ mod tests {
             "(-)", "(+)", "a()", "a(?)", "a(b)", "a(-+)", "a(++)", "a((+))", "a(-)b",
         ] {
             s = format!("cat/pkg[{}]", use_dep);
-            assert!(parse(&s, &eapi::EAPI4).is_err(), "{:?} didn't fail", s);
+            assert!(parse::dep(&s, &eapi::EAPI4).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
         let mut atom;
-        let mut result: Result<Atom, ParseError>;
+        let mut result: crate::Result<Atom>;
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg[{}]", use_deps);
-                result = parse(&s, eapi);
+                result = parse::dep(&s, eapi);
                 match eapi.has("use_dep_defaults") {
                     false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
@@ -455,12 +494,12 @@ mod tests {
         let mut s;
         for slot in ["/", "/0", "0/", "0/+1", "0//1", "0/1/2"] {
             s = format!("cat/pkg:{}", slot);
-            assert!(parse(&s, &eapi::EAPI5).is_err(), "{:?} didn't fail", s);
+            assert!(parse::dep(&s, &eapi::EAPI5).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
         let mut atom;
-        let mut result: Result<Atom, ParseError>;
+        let mut result: crate::Result<Atom>;
         for (slot_str, slot, subslot, slot_op) in [
             ("0/1", opt_str!("0"), opt_str!("1"), None),
             ("a/b", opt_str!("a"), opt_str!("b"), None),
@@ -470,7 +509,7 @@ mod tests {
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg:{}", slot_str);
-                result = parse(&s, eapi);
+                result = parse::dep(&s, eapi);
                 match eapi.has("slot_ops") {
                     false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
@@ -492,12 +531,12 @@ mod tests {
         let mut s;
         for slot in ["*0", "=0", "*=", "=="] {
             s = format!("cat/pkg:{}", slot);
-            assert!(parse(&s, &eapi::EAPI5).is_err(), "{:?} didn't fail", s);
+            assert!(parse::dep(&s, &eapi::EAPI5).is_err(), "{:?} didn't fail", s);
         }
 
         // good deps
         let mut atom;
-        let mut result: Result<Atom, ParseError>;
+        let mut result: crate::Result<Atom>;
         for (slot_str, slot, subslot, slot_op) in [
             ("*", None, None, opt_str!("*")),
             ("=", None, None, opt_str!("=")),
@@ -508,7 +547,7 @@ mod tests {
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg:{}", slot_str);
-                result = parse(&s, eapi);
+                result = parse::dep(&s, eapi);
                 match eapi.has("slot_ops") {
                     false => assert!(result.is_err(), "{:?} didn't fail", s),
                     true => {
@@ -527,12 +566,12 @@ mod tests {
     #[test]
     fn test_parse_repos() {
         let mut s;
-        let mut result: Result<Atom, ParseError>;
+        let mut result: crate::Result<Atom>;
 
         // invalid deps
         for slot in ["", "-repo", "repo-1", "repo@path"] {
             s = format!("cat/pkg::{}", slot);
-            result = parse(&s, &eapi::EAPI_EXTENDED);
+            result = parse::dep(&s, &eapi::EAPI_EXTENDED);
             assert!(result.is_err(), "{:?} didn't fail", s);
         }
 
@@ -544,10 +583,10 @@ mod tests {
 
             // repo ids aren't supported in regular EAPIs
             for eapi in eapi::KNOWN_EAPIS.values() {
-                assert!(parse(&s, eapi).is_err(), "{:?} didn't fail", s);
+                assert!(parse::dep(&s, eapi).is_err(), "{:?} didn't fail", s);
             }
 
-            result = parse(&s, &eapi::EAPI_EXTENDED);
+            result = parse::dep(&s, &eapi::EAPI_EXTENDED);
             assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
             atom = result.unwrap();
             assert_eq!(atom.repo, opt_str!(repo));

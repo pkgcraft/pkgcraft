@@ -6,6 +6,7 @@ pub mod depspec;
 pub mod eapi;
 mod error;
 mod macros;
+mod peg;
 mod repo;
 mod sync;
 mod utils;

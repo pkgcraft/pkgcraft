@@ -57,10 +57,10 @@ pub use depspec::expr as parse;
 
 #[cfg(test)]
 mod tests {
-    use crate::atom::ParseError;
     use crate::depspec::DepSpec;
     use crate::eapi;
     use crate::macros::vec_str;
+    use crate::peg::PegError;
 
     use super::parse;
 
@@ -82,7 +82,7 @@ mod tests {
 
         // good data
         let mut required_use;
-        let mut result: Result<DepSpec, ParseError>;
+        let mut result: Result<DepSpec, PegError>;
         for (s, expected) in [
             ("u", DepSpec::Strings(vec_str!(["u"]))),
             ("u1 u2", DepSpec::Strings(vec_str!(["u1", "u2"]))),

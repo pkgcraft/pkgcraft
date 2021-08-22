@@ -1,18 +1,16 @@
 use std::path::PathBuf;
 
-use thiserror::Error as ThisError;
-
-use crate::atom;
+use crate::peg;
 
 /// A `Result` alias where the `Err` case is `pkgcraft::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, ThisError)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
     Eapi(String),
-    #[error("atom parse error")]
-    ParseAtom(#[from] atom::ParseError),
+    #[error("{0}")]
+    PegParse(peg::Error),
     #[error("config error: {0}")]
     Config(String),
     #[error("{0}")]

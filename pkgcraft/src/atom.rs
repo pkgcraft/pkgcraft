@@ -4,14 +4,11 @@ use std::str::FromStr;
 
 use self::version::Version;
 use crate::eapi;
+// export parser functionality
+pub use parser::parse;
 
 mod parser;
 mod version;
-
-// export pkg dep parser
-pub use parser::pkg as parse;
-
-pub type ParseError = peg::error::ParseError<peg::str::LineCol>;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Blocker {
@@ -171,7 +168,7 @@ impl PartialOrd for Atom {
 }
 
 impl FromStr for Atom {
-    type Err = ParseError;
+    type Err = crate::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         parse::dep(s, eapi::EAPI_LATEST)

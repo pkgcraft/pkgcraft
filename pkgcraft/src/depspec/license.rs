@@ -50,9 +50,9 @@ pub use depspec::expr as parse;
 
 #[cfg(test)]
 mod tests {
-    use crate::atom::ParseError;
     use crate::depspec::DepSpec;
     use crate::macros::vec_str;
+    use crate::peg::PegError;
 
     use super::parse;
 
@@ -74,7 +74,7 @@ mod tests {
 
         // good data
         let mut license;
-        let mut result: Result<DepSpec, ParseError>;
+        let mut result: Result<DepSpec, PegError>;
         for (s, expected) in [
             ("l1", DepSpec::Strings(vec_str!(["l1"]))),
             ("l1 l2", DepSpec::Strings(vec_str!(["l1", "l2"]))),

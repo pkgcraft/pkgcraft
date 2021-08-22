@@ -92,7 +92,8 @@ impl Eapi {
     }
 
     /// Parse a package atom using EAPI specific support.
-    pub fn atom(&'static self, s: &str) -> Result<atom::Atom, atom::ParseError> {
+    #[inline]
+    pub fn atom(&'static self, s: &str) -> crate::Result<atom::Atom> {
         atom::parse::dep(s, self)
     }
 
@@ -131,7 +132,7 @@ impl fmt::Display for Eapi {
 }
 
 /// Get a EAPI given its identifier.
-pub fn get_eapi(id: &str) -> Result<&'static Eapi, Error> {
+pub fn get_eapi(id: &str) -> crate::Result<&'static Eapi> {
     match KNOWN_EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
         None => match VALID_EAPI_RE.is_match(id) {

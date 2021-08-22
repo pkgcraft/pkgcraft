@@ -62,16 +62,16 @@ pub use depspec::expr as parse;
 
 #[cfg(test)]
 mod tests {
-    use crate::atom::ParseError;
     use crate::depspec::{DepSpec, Uri};
     use crate::eapi;
+    use crate::peg::PegError;
 
     use super::parse;
 
     #[test]
     fn test_parse_src_uri() {
         // invalid data
-        let mut result: Result<DepSpec, ParseError>;
+        let mut result: Result<DepSpec, PegError>;
         for s in [
             "",
             "(",

@@ -54,9 +54,10 @@ pub use depspec::expr as parse;
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom::{Atom, ParseError};
+    use crate::atom::Atom;
     use crate::depspec::DepSpec;
     use crate::eapi::EAPI_LATEST;
+    use crate::peg::PegError;
 
     use super::parse;
 
@@ -80,7 +81,7 @@ mod tests {
 
         // good data
         let mut deps;
-        let mut result: Result<DepSpec, ParseError>;
+        let mut result: Result<DepSpec, PegError>;
         for (s, expected) in [
             ("a/b", DepSpec::Atoms(vec![atom("a/b")])),
             ("a/b c/d", DepSpec::Atoms(vec![atom("a/b"), atom("c/d")])),

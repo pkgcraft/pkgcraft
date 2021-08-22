@@ -19,6 +19,7 @@ name = "integration"
 path = "tests/lib.rs"
 
 [dependencies]
+chic = "1"
 flate2 = "1.0"
 git2 = "0.13"
 indexmap = { version = "1.7.0", features = ["serde"] }
