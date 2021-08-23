@@ -1,6 +1,7 @@
 use std::io;
 use std::path::Path;
 use std::process::Command;
+use std::thread;
 use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
@@ -29,14 +30,15 @@ async fn start_arcanist(path: &Path, timeout: &u64) -> Result<()> {
         .spawn()
         .context("failed starting arcanist")?;
     // wait for arcanist to start
-    let mut sleep: u64 = 100;
+    let mut sleep_ms: u64 = 100;
+    let timeout_ms: u64 = timeout * 1000;
     loop {
-        std::thread::sleep(std::time::Duration::from_millis(sleep));
+        thread::sleep(Duration::from_millis(sleep_ms));
         match UnixStream::connect(path).await {
             Ok(_) => return Ok(()),
             _ => {
-                sleep += 100;
-                if sleep >= timeout * 1000 {
+                sleep_ms *= 2;
+                if sleep_ms >= timeout_ms {
                     return Err(anyhow!("timed out starting arcanist"));
                 }
             }
