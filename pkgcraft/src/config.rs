@@ -136,8 +136,8 @@ impl Config {
                 }
                 _ => {
                     return Err(Error::Config(format!(
-                        "failed connecting to arcanist: {}",
-                        e
+                        "failed connecting to arcanist: {}: {:?}",
+                        e, &path
                     )))
                 }
             }
