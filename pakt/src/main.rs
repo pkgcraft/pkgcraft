@@ -1,6 +1,9 @@
+use std::io;
+use std::path::Path;
+use std::process::Command;
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use clap::{App, AppSettings, Arg};
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
@@ -19,6 +22,27 @@ mod settings;
 mod subcmds;
 
 pub type Client = ArcanistClient<Channel>;
+
+/// Try starting a local arcanist instance.
+async fn start_arcanist(path: &Path, timeout: &u64) -> Result<()> {
+    Command::new("arcanist")
+        .spawn()
+        .context("failed starting arcanist")?;
+    // wait for arcanist to start
+    let mut sleep: u64 = 100;
+    loop {
+        std::thread::sleep(std::time::Duration::from_millis(sleep));
+        match UnixStream::connect(path).await {
+            Ok(_) => return Ok(()),
+            _ => {
+                sleep += 100;
+                if sleep >= timeout * 1000 {
+                    return Err(anyhow!("timed out starting arcanist"));
+                }
+            }
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -107,7 +131,7 @@ async fn main() -> Result<()> {
         .connect_timeout(Duration::from_secs(timeout))
         .timeout(Duration::from_secs(timeout));
 
-    // connect to arcanist, starting a local instance if necessary
+    // connect to arcanist
     let channel: Channel = match socket {
         Some(socket) => endpoint
             .connect()
@@ -115,6 +139,14 @@ async fn main() -> Result<()> {
             .context(format!("failed connecting to arcanist: {:?}", &socket))?,
         None => {
             let path = settings.config.get_socket("arcanist.sock", false)?;
+            if let Err(e) = UnixStream::connect(&path).await {
+                match e.kind() {
+                    io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
+                        start_arcanist(&path, &timeout).await?;
+                    }
+                    _ => (),
+                }
+            }
             endpoint
                 .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(path.clone())))
                 .await
