@@ -12,13 +12,18 @@ autotests = false
 
 [dependencies]
 anyhow = "1.0.42"
+async-stream = "0.3.2"
 clap = { version = "3.0.0-beta.4", default-features = false, features = ["std", "suggestions"] }
 config = "0.11"
+futures = "0.3.16"
 pkgcraft = { path = "../pkgcraft", version = "0.0.2" }
+prost = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
-tokio-stream = { version = "0.1.7", features = ["net"] }
-warp = "0.3"
+tonic = { version = "0.5.2", features = ["tls", "compression"] }
+
+[build-dependencies]
+tonic-build = { version = "0.5.2", features = ["compression"] }
 
 [[bin]]
 bench = false

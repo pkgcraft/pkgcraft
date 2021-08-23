@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use clap::{App, Arg, ArgMatches};
 
 use crate::settings::Settings;
+use crate::Client;
 
 pub fn cmd() -> App<'static> {
     App::new("add")
@@ -10,7 +11,7 @@ pub fn cmd() -> App<'static> {
         .arg(Arg::new("uri").required(true).about("repo location"))
 }
 
-pub fn run(args: &ArgMatches, settings: &mut Settings) -> Result<()> {
+pub fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
     let name = args.value_of("name").unwrap();
     let uri = args.value_of("uri").unwrap();
     settings

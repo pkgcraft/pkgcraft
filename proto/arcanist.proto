@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package arcanist;
+
+service Arcanist {
+    rpc Version (ArcanistRequest) returns (ArcanistResponse);
+}
+
+message ArcanistRequest {
+    string message = 1;
+}
+
+message ArcanistResponse {
+    string message = 1;
+}

@@ -1,14 +1,27 @@
-use anyhow::Result;
-use clap::{App, AppSettings, Arg};
+use std::time::Duration;
 
-use argparse::str_to_bool;
+use anyhow::{Context, Result};
+use clap::{App, AppSettings, Arg};
+use tokio::net::UnixStream;
+use tonic::transport::{Channel, Endpoint, Uri};
+use tower::service_fn;
+
+pub mod arcanist {
+    tonic::include_proto!("arcanist");
+}
+
+use arcanist::arcanist_client::ArcanistClient;
+use argparse::{positive_int, str_to_bool};
 use settings::Settings;
 
 mod argparse;
 mod settings;
 mod subcmds;
 
-fn main() -> Result<()> {
+pub type Client = ArcanistClient<Channel>;
+
+#[tokio::main]
+async fn main() -> Result<()> {
     let app = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("command-line tool leveraging pkgcraft")
@@ -38,6 +51,21 @@ fn main() -> Result<()> {
                 .long("quiet")
                 .multiple_occurrences(true)
                 .about("suppress non-error messages"),
+        )
+        .arg(
+            Arg::new("socket")
+                .short('c')
+                .long("connect")
+                .value_name("URL")
+                .about("connect to given arcanist instance"),
+        )
+        .arg(
+            Arg::new("timeout")
+                .long("timeout")
+                .value_name("SECONDS")
+                .default_value("5")
+                .validator(positive_int)
+                .about("connection timeout"),
         );
 
     // determine subcommand being run to use for error output
@@ -68,5 +96,33 @@ fn main() -> Result<()> {
     // load pkgcraft config
     settings.load()?;
 
-    subcmds::run(&matches, &mut settings)
+    let socket = matches.value_of("socket").map(|s| s.to_string());
+    let url = socket.clone().unwrap_or_else(|| "http://[::]".to_string());
+    let timeout = matches
+        .value_of("timeout")
+        .unwrap_or_default()
+        .parse::<u64>()
+        .unwrap();
+    let endpoint = Endpoint::from_shared(url)?
+        .connect_timeout(Duration::from_secs(timeout))
+        .timeout(Duration::from_secs(timeout));
+
+    // connect to arcanist, starting a local instance if necessary
+    let channel: Channel = match socket {
+        Some(socket) => endpoint
+            .connect()
+            .await
+            .context(format!("failed connecting to arcanist: {:?}", &socket))?,
+        None => {
+            let path = settings.config.get_socket("arcanist.sock", false)?;
+            endpoint
+                .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(path.clone())))
+                .await
+                .context("failed connecting to arcanist")?
+        }
+    };
+
+    let mut client: Client = ArcanistClient::new(channel);
+
+    subcmds::run(&matches, &mut client, &mut settings).await
 }

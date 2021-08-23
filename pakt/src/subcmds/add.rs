@@ -1,12 +1,17 @@
-use clap::{App, AppSettings};
+use anyhow::Result;
+use clap::{App, AppSettings, ArgMatches};
+
+use crate::settings::Settings;
+use crate::Client;
 
 pub fn cmd() -> App<'static> {
     App::new("add")
         .about("add packages")
         .setting(AppSettings::DisableHelpSubcommand)
         .setting(AppSettings::DisableVersionForSubcommands)
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .subcommands(register())
 }
 
-include!(concat!(env!("OUT_DIR"), "/subcmds/add.rs"));
+pub fn run(args: &ArgMatches, _client: &mut Client, _settings: &mut Settings) -> Result<()> {
+    let (_subcmd, _m) = args.subcommand().unwrap();
+    Ok(())
+}

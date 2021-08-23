@@ -1,12 +1,17 @@
+use std::net::SocketAddr;
+
 use anyhow::{Context, Result};
 use clap::{App, Arg};
-use tokio::net::{TcpListener, UnixListener};
-use tokio_stream::wrappers::{TcpListenerStream, UnixListenerStream};
-use warp::Filter;
+use futures::TryFutureExt;
+use tokio::net::UnixListener;
+use tonic::transport::Server;
 
+use service::{ArcanistServer, ArcanistService};
 use settings::Settings;
 
+mod service;
 mod settings;
+mod uds;
 
 fn load_settings() -> Result<Settings> {
     let app = App::new(env!("CARGO_PKG_NAME"))
@@ -58,27 +63,31 @@ fn load_settings() -> Result<Settings> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let settings = load_settings()?;
-    let routes =
-        warp::any().map(|| format!("{}-{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")));
+
+    let service = ArcanistService::default();
+    let server = Server::builder().add_service(ArcanistServer::new(service));
 
     // use network socket if configured or unix socket default
     match settings.socket {
         None => {
             let sock_name = format!("{}.sock", env!("CARGO_PKG_NAME"));
             let socket = settings.config.get_socket(&sock_name, true)?;
-            let listener = UnixListener::bind(&socket)
-                .context(format!("failed binding to socket: {:?}", &socket))?;
-            warp::serve(routes)
-                .run_incoming(UnixListenerStream::new(listener))
-                .await;
+            let incoming = {
+                let listener = UnixListener::bind(&socket)
+                    .context(format!("failed binding to socket: {:?}", &socket))?;
+
+                async_stream::stream! {
+                    while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
+                        yield item;
+                    }
+                }
+            };
+
+            server.serve_with_incoming(incoming).await?;
         }
         Some(socket) => {
-            let listener = TcpListener::bind(&socket)
-                .await
-                .context(format!("failed binding to socket: {:?}", &socket))?;
-            warp::serve(routes)
-                .run_incoming(TcpListenerStream::new(listener))
-                .await;
+            let socket: SocketAddr = socket.parse().context("invalid network socket")?;
+            server.serve(socket).await?
         }
     }
 

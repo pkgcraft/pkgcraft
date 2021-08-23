@@ -23,6 +23,7 @@ jobs:
         toolchain: 1.54.0
         profile: minimal
         override: true
+        components: rustfmt
 
     - name: Update crates
       uses: actions-rs/cargo@v1
