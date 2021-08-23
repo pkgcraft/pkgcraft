@@ -143,6 +143,7 @@ async fn main() -> Result<()> {
             let path = settings.config.get_socket("arcanist.sock", false)?;
             if let Err(e) = UnixStream::connect(&path).await {
                 match e.kind() {
+                    // try starting arcanist if the socket file is old or nonexistent
                     io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
                         start_arcanist(&path, &timeout).await?;
                     }
