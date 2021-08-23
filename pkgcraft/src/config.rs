@@ -1,6 +1,11 @@
 use std::env;
 use std::fs;
+use std::io;
+use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
+use std::process::Command;
+use std::thread;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
@@ -99,6 +104,46 @@ impl Config {
         let path = ConfigPath::new(name, prefix, create)?;
         let repos = repo::Config::new(&path.config, &path.db)?;
         Ok(Config { path, repos })
+    }
+
+    pub fn connect_or_spawn_arcanist(
+        &self,
+        path: Option<PathBuf>,
+        timeout: Option<u64>,
+    ) -> crate::Result<PathBuf> {
+        let path = path
+            .ok_or("no default")
+            .or_else(|_| self.get_socket("arcanist.sock", false))?;
+
+        let mut sleep_ms: u64 = 100;
+        let timeout_ms: u64 = timeout.unwrap_or(5) * 1000;
+
+        while let Err(e) = UnixStream::connect(&path) {
+            match e.kind() {
+                // spawn arcanist if it's not running
+                io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
+                    if sleep_ms == 100 {
+                        Command::new("arcanist").spawn().map_err(|e| {
+                            Error::Config(format!("failed starting arcanist: {}", e))
+                        })?;
+                    }
+                    // wait for arcanist to start
+                    thread::sleep(Duration::from_millis(sleep_ms));
+                    sleep_ms *= 2;
+                    if sleep_ms >= timeout_ms {
+                        return Err(Error::Config("timed out starting arcanist".to_string()));
+                    }
+                }
+                _ => {
+                    return Err(Error::Config(format!(
+                        "failed connecting to arcanist: {}",
+                        e
+                    )))
+                }
+            }
+        }
+
+        Ok(path)
     }
 
     pub fn get_socket(&self, name: &str, refresh: bool) -> crate::Result<PathBuf> {

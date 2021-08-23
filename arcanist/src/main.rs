@@ -50,12 +50,12 @@ fn load_settings() -> Result<Settings> {
     settings.verbosity += matches.occurrences_of("verbose") as i32;
     settings.verbosity -= matches.occurrences_of("quiet") as i32;
 
-    settings.socket = matches.value_of("socket").map(|s| s.to_string());
-
     // TODO: initialize syslog logger
 
     // load pkgcraft config
     settings.load()?;
+
+    settings.socket = matches.value_of("socket").map(|s| s.to_string());
 
     Ok(settings)
 }

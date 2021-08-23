@@ -1,10 +1,6 @@
-use std::io;
-use std::path::Path;
-use std::process::Command;
-use std::thread;
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use clap::{App, AppSettings, Arg};
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
@@ -23,28 +19,6 @@ mod settings;
 mod subcmds;
 
 pub type Client = ArcanistClient<Channel>;
-
-/// Try starting a local arcanist instance.
-async fn start_arcanist(path: &Path, timeout: &u64) -> Result<()> {
-    Command::new("arcanist")
-        .spawn()
-        .context("failed starting arcanist")?;
-    // wait for arcanist to start
-    let mut sleep_ms: u64 = 100;
-    let timeout_ms: u64 = timeout * 1000;
-    loop {
-        thread::sleep(Duration::from_millis(sleep_ms));
-        match UnixStream::connect(path).await {
-            Ok(_) => return Ok(()),
-            _ => {
-                sleep_ms *= 2;
-                if sleep_ms >= timeout_ms {
-                    return Err(anyhow!("timed out starting arcanist"));
-                }
-            }
-        }
-    }
-}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -140,20 +114,16 @@ async fn main() -> Result<()> {
             .await
             .context(format!("failed connecting to arcanist: {:?}", &socket))?,
         None => {
-            let path = settings.config.get_socket("arcanist.sock", false)?;
-            if let Err(e) = UnixStream::connect(&path).await {
-                match e.kind() {
-                    // try starting arcanist if the socket file is old or nonexistent
-                    io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
-                        start_arcanist(&path, &timeout).await?;
-                    }
-                    _ => (),
-                }
-            }
+            let socket = settings
+                .config
+                .connect_or_spawn_arcanist(None, Some(timeout))?;
+            let error = format!("failed connecting to arcanist: {:?}", &socket);
             endpoint
-                .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(path.clone())))
+                .connect_with_connector(service_fn(move |_: Uri| {
+                    UnixStream::connect(socket.clone())
+                }))
                 .await
-                .context("failed connecting to arcanist")?
+                .context(error)?
         }
     };
 
