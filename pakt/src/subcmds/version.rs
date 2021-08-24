@@ -14,9 +14,8 @@ pub fn cmd() -> App<'static> {
 
 pub async fn run(client: &mut Client) -> Result<()> {
     let version = format!("{}-{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    let request = tonic::Request::new(ArcanistRequest { message: version });
+    let request = tonic::Request::new(ArcanistRequest { data: version });
     let response = client.version(request).await?;
-    let resp = response.into_inner();
-    println!("{}", resp.message);
+    println!("{}", response.into_inner().data);
     Ok(())
 }

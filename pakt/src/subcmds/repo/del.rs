@@ -16,7 +16,7 @@ pub fn cmd() -> App<'static> {
             .about("repos to remove"))
 }
 
-pub fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
+pub async fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
     let repos: Vec<&str> = args.values_of("repos").unwrap().collect();
     settings
         .config

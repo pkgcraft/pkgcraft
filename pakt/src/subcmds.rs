@@ -24,10 +24,10 @@ pub fn register() -> Vec<App<'static>> {
 pub async fn run(args: &ArgMatches, client: &mut Client, settings: &mut Settings) -> Result<()> {
     let (subcmd, m) = args.subcommand().unwrap();
     match subcmd {
-        "add" => add::run(m, client),
-        "del" => del::run(m, client),
-        "repo" => repo::run(m, client, settings),
-        "search" => search::run(m, client),
+        "add" => add::run(m, client).await,
+        "del" => del::run(m, client).await,
+        "repo" => repo::run(m, client, settings).await,
+        "search" => search::run(m, client).await,
         "version" => version::run(client).await,
         _ => panic!("unknown subcommand"),
     }

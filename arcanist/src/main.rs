@@ -6,8 +6,8 @@ use futures::TryFutureExt;
 use tokio::net::UnixListener;
 use tonic::transport::Server;
 
-use service::{ArcanistServer, ArcanistService};
-use settings::Settings;
+use crate::service::{ArcanistServer, ArcanistService};
+use crate::settings::Settings;
 
 mod service;
 mod settings;
@@ -64,12 +64,10 @@ fn load_settings() -> Result<Settings> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let settings = load_settings()?;
-
-    let service = ArcanistService::default();
-    let server = Server::builder().add_service(ArcanistServer::new(service));
+    let mut server = Server::builder();
 
     // use network socket if configured or unix socket default
-    match settings.socket {
+    match &settings.socket {
         None => {
             let sock_name = format!("{}.sock", env!("CARGO_PKG_NAME"));
             let socket = settings.config.get_socket(&sock_name, true)?;
@@ -84,11 +82,19 @@ async fn main() -> Result<()> {
                 }
             };
 
-            server.serve_with_incoming(incoming).await?;
+            let service = ArcanistService { settings };
+            server
+                .add_service(ArcanistServer::new(service))
+                .serve_with_incoming(incoming)
+                .await?;
         }
         Some(socket) => {
             let socket: SocketAddr = socket.parse().context("invalid network socket")?;
-            server.serve(socket).await?
+            let service = ArcanistService { settings };
+            server
+                .add_service(ArcanistServer::new(service))
+                .serve(socket)
+                .await?
         }
     }
 

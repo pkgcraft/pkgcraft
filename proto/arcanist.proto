@@ -1,15 +1,26 @@
 syntax = "proto3";
-
 package arcanist;
 
 service Arcanist {
     rpc Version (ArcanistRequest) returns (ArcanistResponse);
+    rpc ListRepos (ArcanistRequest) returns (ListResponse);
+    rpc SearchPackages (ListRequest) returns (stream ArcanistResponse);
+    rpc AddPackages (ListRequest) returns (stream ArcanistResponse);
+    rpc RemovePackages (ListRequest) returns (stream ArcanistResponse);
 }
 
 message ArcanistRequest {
-    string message = 1;
+    string data = 1;
 }
 
 message ArcanistResponse {
-    string message = 1;
+    string data = 1;
+}
+
+message ListRequest {
+    repeated string data = 1;
+}
+
+message ListResponse {
+    repeated string data = 1;
 }

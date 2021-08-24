@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{App, AppSettings, Arg, ArgMatches, ArgSettings};
 
+use crate::arcanist::ListRequest;
 use crate::Client;
 
 #[rustfmt::skip]
@@ -17,8 +18,17 @@ pub fn cmd() -> App<'static> {
             .about("packages to remove"))
 }
 
-pub fn run(args: &ArgMatches, _client: &mut Client) -> Result<()> {
-    let pkgs: Vec<_> = args.values_of("pkgs").unwrap().collect();
-    println!("{:?}", pkgs);
+pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
+    let pkgs: Vec<String> = args
+        .values_of("pkgs")
+        .unwrap()
+        .map(|s| s.to_string())
+        .collect();
+    let request = tonic::Request::new(ListRequest { data: pkgs });
+    let response = client.remove_packages(request).await?;
+    let mut stream = response.into_inner();
+    while let Some(response) = stream.message().await? {
+        println!("{}", response.data);
+    }
     Ok(())
 }

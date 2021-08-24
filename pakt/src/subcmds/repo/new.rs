@@ -13,7 +13,7 @@ pub fn cmd() -> App<'static> {
             .about("repo name"))
 }
 
-pub fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
+pub async fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
     let name = args.value_of("name").unwrap();
     settings
         .config

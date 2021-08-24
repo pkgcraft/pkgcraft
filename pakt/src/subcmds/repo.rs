@@ -31,14 +31,14 @@ pub fn cmd() -> App<'static> {
         .subcommands(register())
 }
 
-pub fn run(args: &ArgMatches, client: &mut Client, settings: &mut Settings) -> Result<()> {
+pub async fn run(args: &ArgMatches, client: &mut Client, settings: &mut Settings) -> Result<()> {
     let (subcmd, m) = args.subcommand().unwrap();
     match subcmd {
-        "add" => add::run(m, client, settings),
-        "del" => del::run(m, client, settings),
-        "list" => list::run(m, client, settings),
-        "new" => new::run(m, client, settings),
-        "sync" => sync::run(m, client, settings),
+        "add" => add::run(m, client, settings).await,
+        "del" => del::run(m, client, settings).await,
+        "list" => list::run(client).await,
+        "new" => new::run(m, client, settings).await,
+        "sync" => sync::run(m, client, settings).await,
         _ => panic!("unknown subcommand"),
     }
 }

@@ -15,7 +15,7 @@ pub fn cmd() -> App<'static> {
             .about("repos to sync"))
 }
 
-pub fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
+pub async fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
     let repos = args.values_of("repos").map(|names| names.collect());
     settings
         .config
