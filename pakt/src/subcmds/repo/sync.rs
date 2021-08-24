@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::{App, Arg, ArgMatches, ArgSettings};
 
-use crate::settings::Settings;
+use crate::arcanist::ListRequest;
 use crate::Client;
 
 #[rustfmt::skip]
@@ -15,11 +15,17 @@ pub fn cmd() -> App<'static> {
             .about("repos to sync"))
 }
 
-pub async fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
-    let repos = args.values_of("repos").map(|names| names.collect());
-    settings
-        .config
-        .repos
-        .sync(repos)
-        .context("failed syncing repo(s)")
+pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
+    let repos: Vec<String> = args
+        .values_of("repos")
+        .map(|names| names.map(|s| s.to_string()).collect())
+        .unwrap_or_else(Vec::new);
+
+    let request = tonic::Request::new(ListRequest { data: repos });
+    client
+        .sync_repos(request)
+        .await
+        .context("failed syncing repo(s)")?;
+
+    Ok(())
 }

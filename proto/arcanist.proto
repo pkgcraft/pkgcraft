@@ -3,10 +3,21 @@ package arcanist;
 
 service Arcanist {
     rpc Version (ArcanistRequest) returns (ArcanistResponse);
+
+    rpc AddRepo (AddRepoRequest) returns (ArcanistResponse);
+    rpc RemoveRepos (ListRequest) returns (ListResponse);
     rpc ListRepos (ArcanistRequest) returns (ListResponse);
+    rpc CreateRepo (ArcanistRequest) returns (ArcanistResponse);
+    rpc SyncRepos (ListRequest) returns (ListResponse);
+
     rpc SearchPackages (ListRequest) returns (stream ArcanistResponse);
     rpc AddPackages (ListRequest) returns (stream ArcanistResponse);
     rpc RemovePackages (ListRequest) returns (stream ArcanistResponse);
+}
+
+message AddRepoRequest {
+    string name = 1;
+    string uri = 2;
 }
 
 message ArcanistRequest {

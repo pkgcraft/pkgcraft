@@ -1,13 +1,13 @@
 use anyhow::{Context, Result};
 use clap::{App, Arg, ArgMatches, ArgSettings};
 
-use crate::settings::Settings;
+use crate::arcanist::ListRequest;
 use crate::Client;
 
 #[rustfmt::skip]
 pub fn cmd() -> App<'static> {
     App::new("del")
-        .about("unregister repo")
+        .about("unregister repo(s)")
         .arg(Arg::new("repos")
             .setting(ArgSettings::Required)
             .setting(ArgSettings::TakesValue)
@@ -16,11 +16,16 @@ pub fn cmd() -> App<'static> {
             .about("repos to remove"))
 }
 
-pub async fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
-    let repos: Vec<&str> = args.values_of("repos").unwrap().collect();
-    settings
-        .config
-        .repos
-        .del(&repos, true)
-        .context("failed removing repo(s)")
+pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
+    let repos: Vec<String> = args
+        .values_of("repos")
+        .unwrap()
+        .map(|s| s.to_string())
+        .collect();
+    let request = tonic::Request::new(ListRequest { data: repos });
+    client
+        .remove_repos(request)
+        .await
+        .context("failed removing repo(s)")?;
+    Ok(())
 }

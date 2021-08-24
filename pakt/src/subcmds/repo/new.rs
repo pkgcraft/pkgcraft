@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::{App, Arg, ArgMatches, ArgSettings};
 
-use crate::settings::Settings;
+use crate::arcanist::ArcanistRequest;
 use crate::Client;
 
 #[rustfmt::skip]
@@ -13,11 +13,12 @@ pub fn cmd() -> App<'static> {
             .about("repo name"))
 }
 
-pub async fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
-    let name = args.value_of("name").unwrap();
-    settings
-        .config
-        .repos
-        .create(name)
-        .context(format!("failed creating repo: {:?}", name))
+pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
+    let name = args.value_of("name").unwrap().to_string();
+    let request = tonic::Request::new(ArcanistRequest { data: name.clone() });
+    client
+        .create_repo(request)
+        .await
+        .context(format!("failed creating repo: {:?}", &name))?;
+    Ok(())
 }

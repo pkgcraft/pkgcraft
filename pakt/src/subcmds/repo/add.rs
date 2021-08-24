@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::{App, Arg, ArgMatches, ArgSettings};
 
-use crate::settings::Settings;
+use crate::arcanist::AddRepoRequest;
 use crate::Client;
 
 #[rustfmt::skip]
@@ -16,12 +16,17 @@ pub fn cmd() -> App<'static> {
             .about("repo location"))
 }
 
-pub async fn run(args: &ArgMatches, _client: &mut Client, settings: &mut Settings) -> Result<()> {
-    let name = args.value_of("name").unwrap();
-    let uri = args.value_of("uri").unwrap();
-    settings
-        .config
-        .repos
-        .add(name, uri)
-        .context(format!("failed adding repo: {:?}", name))
+pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
+    let name = args.value_of("name").unwrap().to_string();
+    let uri = args.value_of("uri").unwrap().to_string();
+    let request = tonic::Request::new(AddRepoRequest {
+        name: name.clone(),
+        uri,
+    });
+    let response = client
+        .add_repo(request)
+        .await
+        .context(format!("failed adding repo: {:?}", &name))?;
+    println!("{}", response.into_inner().data);
+    Ok(())
 }

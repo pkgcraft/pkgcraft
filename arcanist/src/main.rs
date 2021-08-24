@@ -1,9 +1,11 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use clap::{App, Arg, ArgSettings};
 use futures::TryFutureExt;
 use tokio::net::UnixListener;
+use tokio::sync::RwLock;
 use tonic::transport::Server;
 
 use crate::service::{ArcanistServer, ArcanistService};
@@ -82,7 +84,9 @@ async fn main() -> Result<()> {
                 }
             };
 
-            let service = ArcanistService { settings };
+            let service = ArcanistService {
+                settings: Arc::new(RwLock::new(settings)),
+            };
             server
                 .add_service(ArcanistServer::new(service))
                 .serve_with_incoming(incoming)
@@ -90,7 +94,9 @@ async fn main() -> Result<()> {
         }
         Some(socket) => {
             let socket: SocketAddr = socket.parse().context("invalid network socket")?;
-            let service = ArcanistService { settings };
+            let service = ArcanistService {
+                settings: Arc::new(RwLock::new(settings)),
+            };
             server
                 .add_service(ArcanistServer::new(service))
                 .serve(socket)

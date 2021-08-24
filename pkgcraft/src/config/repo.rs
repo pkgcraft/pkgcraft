@@ -232,8 +232,9 @@ impl Config {
         }
     }
 
-    pub fn del(&mut self, repos: &[&str], clean: bool) -> crate::Result<()> {
+    pub fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
         for name in repos {
+            let name = name.as_ref();
             // error out if repo config is missing
             let repo_config = self.config_from_id(name)?;
             // physical repo files are allowed to be missing
@@ -277,11 +278,11 @@ impl Config {
     }
 
     // TODO: add concurrent syncing support with output progress
-    pub fn sync(&mut self, repos: Option<Vec<&str>>) -> crate::Result<()> {
-        let repos = match repos {
-            Some(names) => names,
+    pub fn sync<S: AsRef<str>>(&mut self, repos: Vec<S>) -> crate::Result<()> {
+        let repos: Vec<&str> = match &repos {
+            names if !names.is_empty() => names.iter().map(|s| s.as_ref()).collect(),
             // sync all configured repos if none were passed
-            None => self.configs.keys().map(|s| s.as_str()).collect(),
+            _ => self.configs.keys().map(|s| s.as_str()).collect(),
         };
 
         let mut failed: Vec<(&str, Error)> = Vec::new();
