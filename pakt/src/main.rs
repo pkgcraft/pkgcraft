@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use clap::{App, AppSettings, Arg};
+use clap::{App, AppSettings, Arg, ArgSettings};
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
@@ -20,58 +20,51 @@ mod subcmds;
 
 pub type Client = ArcanistClient<Channel>;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let app = App::new(env!("CARGO_PKG_NAME"))
+#[rustfmt::skip]
+pub fn cmd() -> App<'static> {
+    App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("command-line tool leveraging pkgcraft")
         .setting(AppSettings::DisableHelpSubcommand)
         .setting(AppSettings::DisableVersionForSubcommands)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommands(subcmds::register())
-        .arg(
-            Arg::new("color")
-                .long("color")
-                .takes_value(true)
-                .value_name("BOOLEAN")
-                .validator(str_to_bool)
-                .about("toggle colored output"),
-        )
-        .arg(Arg::new("debug").long("debug").about("enable debug output"))
-        .arg(
-            Arg::new("verbose")
-                .short('v')
-                .long("verbose")
-                .multiple_occurrences(true)
-                .about("enable verbose output"),
-        )
-        .arg(
-            Arg::new("quiet")
-                .short('q')
-                .long("quiet")
-                .multiple_occurrences(true)
-                .about("suppress non-error messages"),
-        )
-        .arg(
-            Arg::new("socket")
-                .short('c')
-                .long("connect")
-                .value_name("URL")
-                .about("connect to given arcanist instance"),
-        )
-        .arg(
-            Arg::new("timeout")
-                .long("timeout")
-                .value_name("SECONDS")
-                .default_value("5")
-                .validator(positive_int)
-                .about("connection timeout"),
-        );
+        .arg(Arg::new("color")
+            .setting(ArgSettings::TakesValue)
+            .long("color")
+            .value_name("BOOLEAN")
+            .validator(str_to_bool)
+            .about("toggle colored output"))
+        .arg(Arg::new("debug")
+            .long("debug")
+            .about("enable debug output"))
+        .arg(Arg::new("verbose")
+            .setting(ArgSettings::MultipleOccurrences)
+            .short('v')
+            .long("verbose")
+            .about("enable verbose output"))
+        .arg(Arg::new("quiet")
+            .setting(ArgSettings::MultipleOccurrences)
+            .short('q')
+            .long("quiet")
+            .about("suppress non-error messages"))
+        .arg(Arg::new("socket")
+            .short('c')
+            .long("connect")
+            .value_name("URL")
+            .about("connect to given arcanist instance"))
+        .arg(Arg::new("timeout")
+            .setting(ArgSettings::TakesValue)
+            .long("timeout")
+            .value_name("SECONDS")
+            .default_value("5")
+            .validator(positive_int)
+            .about("connection timeout"))
+}
 
-    // determine subcommand being run to use for error output
-    //let app_ignore_errors = app.clone().setting(AppSettings::IgnoreErrors);
-    //let pre_parsed = app_ignore_errors.get_matches();
-
+#[tokio::main]
+async fn main() -> Result<()> {
+    let app = cmd();
     let matches = app.get_matches();
 
     // load config settings and then override them with command-line settings

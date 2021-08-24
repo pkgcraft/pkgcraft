@@ -4,6 +4,7 @@ use clap::{App, ArgMatches};
 use crate::settings::Settings;
 use crate::Client;
 
+#[rustfmt::skip]
 pub fn cmd() -> App<'static> {
     App::new("list")
         .about("list repos")

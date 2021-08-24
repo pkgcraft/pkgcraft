@@ -21,6 +21,7 @@ pub fn register() -> Vec<App<'static>> {
     ]
 }
 
+#[rustfmt::skip]
 pub fn cmd() -> App<'static> {
     App::new("repo")
         .about("manage repos")

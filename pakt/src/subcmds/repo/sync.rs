@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use clap::{App, Arg, ArgMatches};
+use clap::{App, Arg, ArgMatches, ArgSettings};
 
 use crate::settings::Settings;
 use crate::Client;
@@ -9,8 +9,8 @@ pub fn cmd() -> App<'static> {
     App::new("sync")
         .about("sync repos")
         .arg(Arg::new("repos")
-            .takes_value(true)
-            .multiple_values(true)
+            .setting(ArgSettings::TakesValue)
+            .setting(ArgSettings::MultipleValues)
             .value_name("REPO")
             .about("repos to sync"))
 }
