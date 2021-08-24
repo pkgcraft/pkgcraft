@@ -102,8 +102,7 @@ async fn main() -> Result<()> {
         .parse::<u64>()
         .unwrap();
     let endpoint = Endpoint::from_shared(url)?
-        .connect_timeout(Duration::from_secs(timeout))
-        .timeout(Duration::from_secs(timeout));
+        .connect_timeout(Duration::from_secs(timeout));
 
     // connect to arcanist
     let channel: Channel = match socket {
