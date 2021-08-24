@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use anyhow::{Context, Result};
-use clap::{App, Arg};
+use clap::{App, Arg, ArgSettings};
 use futures::TryFutureExt;
 use tokio::net::UnixListener;
 use tonic::transport::Server;
@@ -13,49 +13,50 @@ mod service;
 mod settings;
 mod uds;
 
-fn load_settings() -> Result<Settings> {
-    let app = App::new(env!("CARGO_PKG_NAME"))
+#[rustfmt::skip]
+pub fn cmd() -> App<'static> {
+    App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("package-building daemon leveraging pkgcraft")
-        .arg(Arg::new("debug").long("debug").about("enable debug output"))
-        .arg(
-            Arg::new("verbose")
-                .short('v')
-                .long("verbose")
-                .multiple_occurrences(true)
-                .about("enable verbose output"),
-        )
-        .arg(
-            Arg::new("quiet")
-                .short('q')
-                .long("quiet")
-                .multiple_occurrences(true)
-                .about("suppress non-error messages"),
-        )
-        .arg(
-            Arg::new("socket")
-                .long("bind")
-                .value_name("IP:port")
-                .about("bind to given network socket"),
-        );
+        .arg(Arg::new("debug")
+            .long("debug")
+            .about("enable debug output"))
+        .arg(Arg::new("verbose")
+            .setting(ArgSettings::MultipleOccurrences)
+            .short('v')
+            .long("verbose")
+            .about("enable verbose output"))
+        .arg(Arg::new("quiet")
+            .setting(ArgSettings::MultipleOccurrences)
+            .short('q')
+            .long("quiet")
+            .about("suppress non-error messages"))
+        .arg(Arg::new("socket")
+            .setting(ArgSettings::TakesValue)
+            .long("bind")
+            .value_name("IP:port")
+            .about("bind to given network socket"))
+}
 
-    let matches = app.get_matches();
+fn load_settings() -> Result<Settings> {
+    let app = cmd();
+    let args = app.get_matches();
 
     // load config settings and then override them with command-line settings
     let mut settings = Settings::new()?;
 
-    if matches.is_present("debug") {
+    if args.is_present("debug") {
         settings.debug = true;
     }
-    settings.verbosity += matches.occurrences_of("verbose") as i32;
-    settings.verbosity -= matches.occurrences_of("quiet") as i32;
+    settings.verbosity += args.occurrences_of("verbose") as i32;
+    settings.verbosity -= args.occurrences_of("quiet") as i32;
 
     // TODO: initialize syslog logger
 
     // load pkgcraft config
     settings.load()?;
 
-    settings.socket = matches.value_of("socket").map(|s| s.to_string());
+    settings.socket = args.value_of("socket").map(|s| s.to_string());
 
     Ok(settings)
 }

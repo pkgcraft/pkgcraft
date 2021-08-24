@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use clap::{App, AppSettings, Arg, ArgSettings};
+use clap::{App, AppSettings, Arg, ArgMatches, ArgSettings};
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
@@ -62,36 +62,41 @@ pub fn cmd() -> App<'static> {
             .about("connection timeout"))
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn load_settings() -> Result<(Settings, ArgMatches)> {
     let app = cmd();
-    let matches = app.get_matches();
+    let args = app.get_matches();
 
     // load config settings and then override them with command-line settings
     let mut settings = Settings::new()?;
 
-    if let Some(color) = matches.value_of("color") {
+    if let Some(color) = args.value_of("color") {
         settings.color = str_to_bool(color)?;
     }
 
-    if matches.is_present("debug") {
+    if args.is_present("debug") {
         settings.debug = true;
     }
-    settings.verbosity += matches.occurrences_of("verbose") as i32;
-    settings.verbosity -= matches.occurrences_of("quiet") as i32;
+    settings.verbosity += args.occurrences_of("verbose") as i32;
+    settings.verbosity -= args.occurrences_of("quiet") as i32;
 
     stderrlog::new()
         .modules([module_path!(), "pkgcraft"])
-        .verbosity(matches.occurrences_of("verbose") as usize)
+        .verbosity(args.occurrences_of("verbose") as usize)
         .quiet(settings.verbosity < 0)
         .init()?;
 
     // load pkgcraft config
     settings.load()?;
 
-    let socket = matches.value_of("socket").map(|s| s.to_string());
+    Ok((settings, args))
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let (mut settings, args) = load_settings()?;
+    let socket = args.value_of("socket").map(|s| s.to_string());
     let url = socket.clone().unwrap_or_else(|| "http://[::]".to_string());
-    let timeout = matches
+    let timeout = args
         .value_of("timeout")
         .unwrap_or_default()
         .parse::<u64>()
@@ -122,5 +127,5 @@ async fn main() -> Result<()> {
 
     let mut client: Client = ArcanistClient::new(channel);
 
-    subcmds::run(&matches, &mut client, &mut settings).await
+    subcmds::run(&args, &mut client, &mut settings).await
 }
