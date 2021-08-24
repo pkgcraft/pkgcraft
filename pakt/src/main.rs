@@ -101,8 +101,10 @@ async fn main() -> Result<()> {
         .unwrap_or_default()
         .parse::<u64>()
         .unwrap();
+    let user_agent = format!("{}-{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     let endpoint = Endpoint::from_shared(url)?
-        .connect_timeout(Duration::from_secs(timeout));
+        .connect_timeout(Duration::from_secs(timeout))
+        .user_agent(user_agent)?;
 
     // connect to arcanist
     let channel: Channel = match socket {
