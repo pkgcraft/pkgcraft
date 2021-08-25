@@ -21,8 +21,9 @@ impl Settings {
         s.merge(Config::try_from(&Settings::default())?)
             .context("failed merging config defaults")?;
 
-        // env variables matching PACT_* override
-        s.merge(Environment::with_prefix("PACT").separator("_"))
+        // merge env variable overrides
+        let bin = env!("CARGO_BIN_NAME").to_uppercase();
+        s.merge(Environment::with_prefix(&bin).separator("_"))
             .context("failed merging env settings")?;
 
         // respect NO_COLOR -- https://no-color.org/
