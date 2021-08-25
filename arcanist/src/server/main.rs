@@ -61,7 +61,9 @@ fn load_settings() -> Result<Settings> {
     // load pkgcraft config
     settings.load()?;
 
-    settings.socket = args.value_of("socket").map(|s| s.to_string());
+    if let Some(socket) = args.value_of("socket") {
+        settings.socket = Some(socket.to_string());
+    }
 
     Ok(settings)
 }
