@@ -23,10 +23,21 @@ tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1.7"
 tonic = { version = "0.5.2", features = ["tls", "compression"] }
 
+# pakt specific deps
+log = "0.4"
+once_cell = "1.8.0"
+stderrlog = "0.5"
+tower = "0.4.8"
+
 [build-dependencies]
 tonic-build = { version = "0.5.2", features = ["compression"] }
 
 [[bin]]
 bench = false
-path = "src/main.rs"
+path = "src/server/main.rs"
 name = "arcanist"
+
+[[bin]]
+bench = false
+path = "src/cli/main.rs"
+name = "pakt"

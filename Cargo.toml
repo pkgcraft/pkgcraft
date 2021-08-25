@@ -1,6 +1,5 @@
 [workspace]
 members = [
     "arcanist",
-    "pakt",
     "pkgcraft",
 ]
