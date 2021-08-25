@@ -20,7 +20,7 @@ mod uds;
 
 #[rustfmt::skip]
 pub fn cmd() -> App<'static> {
-    App::new(env!("CARGO_PKG_NAME"))
+    App::new(env!("CARGO_BIN_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("package-building daemon leveraging pkgcraft")
         .arg(Arg::new("debug")

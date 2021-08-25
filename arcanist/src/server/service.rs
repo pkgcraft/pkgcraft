@@ -143,7 +143,7 @@ impl Arcanist for ArcanistService {
         &self,
         request: Request<StringRequest>,
     ) -> Result<Response<StringResponse>, Status> {
-        let version = format!("{}-{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+        let version = format!("{}-{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
         let req = request.into_inner();
         let reply = StringResponse {
             data: format!("client: {}, server: {}", req.data, version),

@@ -22,7 +22,7 @@ pub type Client = ArcanistClient<Channel>;
 
 #[rustfmt::skip]
 pub fn cmd() -> App<'static> {
-    App::new(env!("CARGO_PKG_NAME"))
+    App::new(env!("CARGO_BIN_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .about("command-line tool leveraging pkgcraft")
         .setting(AppSettings::DisableHelpSubcommand)
@@ -101,7 +101,7 @@ async fn try_main() -> Result<()> {
         .unwrap_or_default()
         .parse::<u64>()
         .unwrap();
-    let user_agent = format!("{}-{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    let user_agent = format!("{}-{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
     let endpoint = Endpoint::from_shared(url)?
         .connect_timeout(Duration::from_secs(timeout))
         .user_agent(user_agent)?;
