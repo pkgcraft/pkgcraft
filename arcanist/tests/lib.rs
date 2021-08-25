@@ -1,48 +1,9 @@
-use std::error::Error;
-use std::path::PathBuf;
 use std::process::Command;
 use std::str;
-use std::sync::mpsc;
-use std::time::Duration;
 
 use assert_cmd::Command as assert_command;
-use notify::{raw_watcher, RawEvent, RecursiveMode, Watcher};
+use pkgcraft::utils::wait_until_file_created;
 use tempfile::Builder;
-
-fn wait_until_file_created(
-    file_path: &PathBuf,
-    timeout: Option<u64>,
-) -> Result<(), Box<dyn Error>> {
-    // zero or an unset value effectively means no timeout occurs
-    let timeout = match timeout {
-        None | Some(0) => u64::MAX,
-        Some(x) => x,
-    };
-
-    let (tx, rx) = mpsc::channel();
-    let mut watcher = raw_watcher(tx)?;
-    // watch parent directory for changes until given file exists
-    let file_dir = file_path.parent().unwrap();
-    watcher.watch(&file_dir, RecursiveMode::NonRecursive)?;
-    if !file_path.exists() {
-        loop {
-            match rx.recv_timeout(Duration::from_secs(timeout))? {
-                RawEvent {
-                    path: Some(p),
-                    op: Ok(notify::op::CREATE),
-                    ..
-                } => {
-                    if p == *file_path {
-                        break;
-                    }
-                }
-                _ => continue,
-            }
-        }
-    }
-    watcher.unwatch(file_dir)?;
-    Ok(())
-}
 
 #[test]
 fn test_version() {
@@ -55,7 +16,7 @@ fn test_version() {
         .expect("arcanist failed to start");
 
     // wait for arcanist to bind to its socket file
-    wait_until_file_created(&socket_path, None).unwrap();
+    wait_until_file_created(&socket_path, Some(5)).unwrap();
 
     let mut cmd = assert_command::cargo_bin("pakt").unwrap();
     let output = cmd.arg("-c").arg(socket).arg("version").output().unwrap();

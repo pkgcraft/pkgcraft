@@ -34,7 +34,6 @@ tonic-build = { version = "0.5.2", features = ["compression"] }
 
 [dev-dependencies]
 assert_cmd = "2"
-notify = "4"
 tempfile = "3"
 
 [[bin]]

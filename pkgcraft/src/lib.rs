@@ -9,6 +9,6 @@ mod macros;
 mod peg;
 mod repo;
 mod sync;
-mod utils;
+pub mod utils;
 
 pub use self::error::{Error, Result};

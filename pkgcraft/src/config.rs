@@ -4,12 +4,11 @@ use std::io;
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::thread;
-use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
+use crate::utils::wait_until_file_created;
 
 mod repo;
 
@@ -115,29 +114,24 @@ impl Config {
             .ok_or("no default")
             .or_else(|_| Ok(self.path.run.join("arcanist.sock")))?;
 
-        let mut sleep_ms: u64 = 100;
-        let timeout_ms: u64 = timeout.unwrap_or(5) * 1000;
-
+        let mut spawned = false;
         while let Err(e) = UnixStream::connect(&path) {
             match e.kind() {
                 // spawn arcanist if it's not running
-                io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
-                    if sleep_ms == 100 {
-                        Command::new("arcanist")
-                            .stdin(Stdio::null())
-                            .stdout(Stdio::null())
-                            .stderr(Stdio::null())
-                            .spawn()
-                            .map_err(|e| {
-                                Error::Config(format!("failed starting arcanist: {}", e))
-                            })?;
-                    }
-                    // wait for arcanist to start
-                    thread::sleep(Duration::from_millis(sleep_ms));
-                    sleep_ms *= 2;
-                    if sleep_ms >= timeout_ms {
-                        return Err(Error::Config("timed out starting arcanist".to_string()));
-                    }
+                io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound if !spawned => {
+                    // remove potentially existing, old socket file
+                    fs::remove_file(&path).unwrap_or_default();
+
+                    Command::new("arcanist")
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .spawn()
+                        .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
+
+                    // wait for arcanist to bind to its socket file
+                    wait_until_file_created(&path, timeout)?;
+                    spawned = true;
                 }
                 _ => {
                     return Err(Error::Config(format!(

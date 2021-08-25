@@ -18,7 +18,11 @@ pub enum Error {
     #[error("invalid repo: {path:?}: {error}")]
     InvalidRepo { path: PathBuf, error: String },
     #[error("{0}")]
+    IO(String),
+    #[error("{0}")]
     RepoInit(String),
     #[error("failed syncing repo: {0}")]
     RepoSync(String),
+    #[error("timed out: {0}")]
+    Timeout(String),
 }
