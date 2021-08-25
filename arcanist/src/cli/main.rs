@@ -99,36 +99,35 @@ async fn try_main() -> Result<()> {
     let config =
         PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
 
-    let url_with_fallback = settings
-        .url
-        .clone()
-        .unwrap_or_else(|| "http://[::]".to_string());
+    let user_agent = format!("{}-{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
     let timeout = args
         .value_of("timeout")
         .unwrap_or_default()
         .parse::<u64>()
         .unwrap();
-    let user_agent = format!("{}-{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
-    let endpoint = Endpoint::from_shared(url_with_fallback)?
-        .connect_timeout(Duration::from_secs(timeout))
-        .user_agent(user_agent)?;
+    let url = match &settings.url {
+        Some(url) => url.clone(),
+        None => config
+            .connect_or_spawn_arcanist(None, Some(timeout))?
+            .to_string_lossy()
+            .into_owned(),
+    };
 
     // connect to arcanist
-    let channel: Channel = match &settings.url {
-        Some(url) => endpoint
+    let error = format!("failed connecting to arcanist: {:?}", &url);
+    let channel: Channel = match url.starts_with('/') {
+        true => Endpoint::from_static("http://[::]")
+            .connect_timeout(Duration::from_secs(timeout))
+            .user_agent(user_agent)?
+            .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(url.clone())))
+            .await
+            .context(error)?,
+        false => Endpoint::from_shared(url)?
+            .connect_timeout(Duration::from_secs(timeout))
+            .user_agent(user_agent)?
             .connect()
             .await
-            .context(format!("failed connecting to arcanist: {:?}", &url))?,
-        None => {
-            let socket = config.connect_or_spawn_arcanist(None, Some(timeout))?;
-            let error = format!("failed connecting to arcanist: {:?}", &socket);
-            endpoint
-                .connect_with_connector(service_fn(move |_: Uri| {
-                    UnixStream::connect(socket.clone())
-                }))
-                .await
-                .context(error)?
-        }
+            .context(error)?,
     };
 
     let mut client: Client = ArcanistClient::new(channel);

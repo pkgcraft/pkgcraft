@@ -66,21 +66,23 @@ fn load_settings() -> Result<Settings> {
     Ok(settings)
 }
 
-pub fn get_socket_path(config: &PkgcraftConfig) -> Result<PathBuf> {
-    let socket_dir = &config.path.run;
-    let socket = config.path.run.join("arcanist.sock");
+pub fn verify_socket_path(path: String) -> Result<PathBuf> {
+    let path = PathBuf::from(path);
+    let socket_dir = &path
+        .parent()
+        .context(format!("invalid socket path: {:?}", &path))?;
 
     // check if the socket is already in use
-    if UnixStream::connect(&socket).is_ok() {
-        bail!("arcanist already running on: {:?}", &socket);
+    if UnixStream::connect(&path).is_ok() {
+        bail!("arcanist already running on: {:?}", &path);
     }
 
     // create dirs and remove old socket file if it exists
     fs::create_dir_all(socket_dir)
         .context(format!("failed creating socket dir: {:?}", socket_dir))?;
-    fs::remove_file(&socket).unwrap_or_default();
+    fs::remove_file(&path).unwrap_or_default();
 
-    Ok(socket)
+    Ok(path)
 }
 
 #[tokio::main]
@@ -92,41 +94,47 @@ async fn main() -> Result<()> {
     let config =
         PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
 
-    // use network socket if configured or unix socket default
-    match &settings.socket {
-        None => {
-            let socket = get_socket_path(&config)?;
-            let incoming = {
-                let listener = UnixListener::bind(&socket)
-                    .context(format!("failed binding to socket: {:?}", &socket))?;
+    let socket = match &settings.socket {
+        Some(socket) => socket.clone(),
+        None => config
+            .path
+            .run
+            .join("arcanist.sock")
+            .to_string_lossy()
+            .into_owned(),
+    };
 
-                async_stream::stream! {
-                    while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
-                        yield item;
-                    }
+    if socket.starts_with('/') {
+        let socket = verify_socket_path(socket)?;
+        let incoming = {
+            let listener = UnixListener::bind(&socket)
+                .context(format!("failed binding to socket: {:?}", &socket))?;
+
+            async_stream::stream! {
+                while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
+                    yield item;
                 }
-            };
+            }
+        };
 
-            let service = ArcanistService {
-                settings,
-                config: Arc::new(RwLock::new(config)),
-            };
-            server
-                .add_service(ArcanistServer::new(service))
-                .serve_with_incoming(incoming)
-                .await?;
-        }
-        Some(socket) => {
-            let socket: SocketAddr = socket.parse().context("invalid network socket")?;
-            let service = ArcanistService {
-                settings,
-                config: Arc::new(RwLock::new(config)),
-            };
-            server
-                .add_service(ArcanistServer::new(service))
-                .serve(socket)
-                .await?
-        }
+        let service = ArcanistService {
+            settings,
+            config: Arc::new(RwLock::new(config)),
+        };
+        server
+            .add_service(ArcanistServer::new(service))
+            .serve_with_incoming(incoming)
+            .await?;
+    } else {
+        let socket: SocketAddr = socket.parse().context("invalid network socket")?;
+        let service = ArcanistService {
+            settings,
+            config: Arc::new(RwLock::new(config)),
+        };
+        server
+            .add_service(ArcanistServer::new(service))
+            .serve(socket)
+            .await?
     }
 
     Ok(())
