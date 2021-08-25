@@ -49,7 +49,7 @@ pub fn cmd() -> App<'static> {
             .short('q')
             .long("quiet")
             .about("suppress non-error messages"))
-        .arg(Arg::new("socket")
+        .arg(Arg::new("url")
             .short('c')
             .long("connect")
             .value_name("URL")
@@ -95,24 +95,24 @@ async fn try_main() -> Result<()> {
     let config =
         PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
 
-    let socket = args.value_of("socket").map(|s| s.to_string());
-    let url = socket.clone().unwrap_or_else(|| "http://[::]".to_string());
+    let url = args.value_of("url").map(|s| s.to_string());
+    let url_with_fallback = url.clone().unwrap_or_else(|| "http://[::]".to_string());
     let timeout = args
         .value_of("timeout")
         .unwrap_or_default()
         .parse::<u64>()
         .unwrap();
     let user_agent = format!("{}-{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
-    let endpoint = Endpoint::from_shared(url)?
+    let endpoint = Endpoint::from_shared(url_with_fallback)?
         .connect_timeout(Duration::from_secs(timeout))
         .user_agent(user_agent)?;
 
     // connect to arcanist
-    let channel: Channel = match socket {
-        Some(socket) => endpoint
+    let channel: Channel = match url {
+        Some(url) => endpoint
             .connect()
             .await
-            .context(format!("failed connecting to arcanist: {:?}", &socket))?,
+            .context(format!("failed connecting to arcanist: {:?}", &url))?,
         None => {
             let socket = config.connect_or_spawn_arcanist(None, Some(timeout))?;
             let error = format!("failed connecting to arcanist: {:?}", &socket);
