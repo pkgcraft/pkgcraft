@@ -3,6 +3,8 @@ use std::fs;
 use std::path::Path;
 use std::str::FromStr;
 
+use async_trait::async_trait;
+use futures::executor::block_on;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::error::Error;
@@ -27,9 +29,10 @@ impl fmt::Display for Syncer {
     }
 }
 
+#[async_trait]
 pub(self) trait Syncable {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer>;
-    fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()>;
+    async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()>;
 }
 
 impl Syncer {
@@ -45,8 +48,8 @@ impl Syncer {
         }
 
         match self {
-            Syncer::Git(repo) => repo.sync(path),
-            Syncer::TarHttps(repo) => repo.sync(path),
+            Syncer::Git(repo) => block_on(repo.sync(path)),
+            Syncer::TarHttps(repo) => block_on(repo.sync(path)),
             Syncer::Noop => Ok(()),
         }
     }

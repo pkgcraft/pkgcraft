@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 use std::path::Path;
 
+use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -15,6 +16,7 @@ pub(crate) struct Repo {
     pub(crate) uri: String,
 }
 
+#[async_trait]
 impl Syncable for Repo {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
         match HANDLED_URI_RE.is_match(uri) {
@@ -25,7 +27,7 @@ impl Syncable for Repo {
         }
     }
 
-    fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()> {
+    async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
         if path.exists() {
             let repo = git2::Repository::open(&path).map_err(|e| {

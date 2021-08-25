@@ -31,13 +31,7 @@ impl Arcanist for ArcanistService {
     ) -> Result<Response<ArcanistResponse>, Status> {
         let req = request.into_inner();
         let repos = &mut self.settings.write().await.config.repos;
-        let result = repos.add(&req.name, &req.uri);
-        //let result = tokio::task::spawn_blocking(move || {
-            ////let repos = &mut self.settings.write().await.config.repos;
-            //repos.add(&req.name, &req.uri)
-        //}).await;
-
-        match result {
+        match repos.add(&req.name, &req.uri) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(&e)),
             Err(e) => Err(Status::internal(format!("{}", &e))),
             Ok(_) => {
