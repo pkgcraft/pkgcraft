@@ -22,15 +22,10 @@ jobs:
         components: clippy, rustfmt
 
     - name: Run rustfmt
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
+      run: cargo fmt --all -- --check
 
     - name: Update crates
-      uses: actions-rs/cargo@v1
-      with:
-        command: update
+      run: cargo update
 
     - name: Cache crates
       uses: actions/cache@v2

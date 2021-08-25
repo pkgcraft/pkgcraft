@@ -26,9 +26,7 @@ jobs:
         components: rustfmt
 
     - name: Update crates
-      uses: actions-rs/cargo@v1
-      with:
-        command: update
+      run: cargo update
 
     - name: Cache crates
       uses: actions/cache@v2
@@ -37,11 +35,12 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
 
+    - name: Build
+      run: cargo build
+
     - name: Run tests
       if: ${{ matrix.os == 'macos-latest' }}
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
+      run: cargo test
 
     # tarpaulin is currently linux x86_64 only
     - name: Run tests with coverage via tarpaulin
