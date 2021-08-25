@@ -1,6 +1,6 @@
 [package]
 name = "arcanist"
-version = "0.0.1"
+version = "0.0.3"
 description = "package-building daemon leveraging pkgcraft"
 authors = ["Tim Harder <radhermit@gmail.com>"]
 homepage = "https://github.com/pkgcraft/pkgcraft/arcanist"
@@ -16,7 +16,7 @@ async-stream = "0.3.2"
 clap = { version = "3.0.0-beta.4", default-features = false, features = ["std", "suggestions"] }
 config = "0.11"
 futures = "0.3.16"
-pkgcraft = { path = "../pkgcraft", version = "0.0.2" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.1" }
 prost = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
