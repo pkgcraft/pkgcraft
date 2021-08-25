@@ -92,7 +92,7 @@ fn load_settings() -> Result<(Settings, ArgMatches)> {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn try_main() -> Result<()> {
     let (mut settings, args) = load_settings()?;
     let socket = args.value_of("socket").map(|s| s.to_string());
     let url = socket.clone().unwrap_or_else(|| "http://[::]".to_string());
@@ -129,4 +129,19 @@ async fn main() -> Result<()> {
     let mut client: Client = ArcanistClient::new(channel);
 
     subcmds::run(&args, &mut client, &mut settings).await
+}
+
+fn main() {
+    // extract error message from tonic status responses
+    if let Err(error) = try_main() {
+        eprintln!("error: {}\n", error);
+        error
+            .chain()
+            .skip(1)
+            .for_each(|cause| match cause.downcast_ref() {
+                Some(e @ tonic::Status { .. }) => eprintln!("caused by: {}", e.message()),
+                _ => eprintln!("caused by: {}", cause),
+            });
+        std::process::exit(1);
+    }
 }
