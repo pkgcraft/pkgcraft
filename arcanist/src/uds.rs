@@ -10,6 +10,12 @@ use tonic::transport::server::Connected;
 #[derive(Debug)]
 pub struct UnixStream(pub tokio::net::UnixStream);
 
+#[derive(Clone, Debug)]
+pub struct UdsConnectInfo {
+    pub peer_addr: Option<Arc<tokio::net::unix::SocketAddr>>,
+    pub peer_cred: Option<tokio::net::unix::UCred>,
+}
+
 impl Connected for UnixStream {
     type ConnectInfo = UdsConnectInfo;
 
@@ -19,12 +25,6 @@ impl Connected for UnixStream {
             peer_cred: self.0.peer_cred().ok(),
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct UdsConnectInfo {
-    pub peer_addr: Option<Arc<tokio::net::unix::SocketAddr>>,
-    pub peer_cred: Option<tokio::net::unix::UCred>,
 }
 
 impl AsyncRead for UnixStream {
