@@ -1,7 +1,10 @@
+use std::fs;
 use std::net::SocketAddr;
+use std::os::unix::net::UnixStream;
+use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::{App, Arg, ArgSettings};
 use futures::TryFutureExt;
 use tokio::net::UnixListener;
@@ -63,6 +66,23 @@ fn load_settings() -> Result<Settings> {
     Ok(settings)
 }
 
+pub fn get_socket_path(settings: &Settings) -> Result<PathBuf> {
+    let socket_dir = &settings.config.path.run;
+    let socket = settings.config.path.run.join("arcanist.sock");
+
+    // check if the socket is already in use
+    if UnixStream::connect(&socket).is_ok() {
+        bail!("arcanist already running on: {:?}", &socket);
+    }
+
+    // create dirs and remove old socket file if it exists
+    fs::create_dir_all(socket_dir)
+        .context(format!("failed creating socket dir: {:?}", socket_dir))?;
+    fs::remove_file(&socket).unwrap_or_default();
+
+    Ok(socket)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let settings = load_settings()?;
@@ -71,8 +91,7 @@ async fn main() -> Result<()> {
     // use network socket if configured or unix socket default
     match &settings.socket {
         None => {
-            let sock_name = format!("{}.sock", env!("CARGO_PKG_NAME"));
-            let socket = settings.config.get_socket(&sock_name, true)?;
+            let socket = get_socket_path(&settings)?;
             let incoming = {
                 let listener = UnixListener::bind(&socket)
                     .context(format!("failed binding to socket: {:?}", &socket))?;

@@ -15,11 +15,11 @@ mod repo;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ConfigPath {
-    cache: PathBuf,
-    config: PathBuf,
-    data: PathBuf,
-    db: PathBuf,
-    run: PathBuf,
+    pub cache: PathBuf,
+    pub config: PathBuf,
+    pub data: PathBuf,
+    pub db: PathBuf,
+    pub run: PathBuf,
 }
 
 impl ConfigPath {
@@ -113,7 +113,7 @@ impl Config {
     ) -> crate::Result<PathBuf> {
         let path = path
             .ok_or("no default")
-            .or_else(|_| self.get_socket("arcanist.sock", false))?;
+            .or_else(|_| Ok(self.path.run.join("arcanist.sock")))?;
 
         let mut sleep_ms: u64 = 100;
         let timeout_ms: u64 = timeout.unwrap_or(5) * 1000;
@@ -149,26 +149,6 @@ impl Config {
         }
 
         Ok(path)
-    }
-
-    pub fn get_socket(&self, name: &str, refresh: bool) -> crate::Result<PathBuf> {
-        let socket = self.path.run.join(name);
-
-        if refresh {
-            // check if the socket is already in use
-            if UnixStream::connect(&socket).is_ok() {
-                return Err(Error::Config(format!(
-                    "arcanist already running on: {:?}",
-                    &socket
-                )));
-            }
-
-            // remove old socket file if it exists
-            fs::create_dir_all(&self.path.run).map_err(|e| Error::Config(e.to_string()))?;
-            fs::remove_file(&socket).unwrap_or_default();
-        }
-
-        Ok(socket)
     }
 }
 
