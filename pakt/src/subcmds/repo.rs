@@ -11,24 +11,17 @@ mod new;
 mod sync;
 
 #[rustfmt::skip]
-pub fn register() -> Vec<App<'static>> {
-    vec![
-        add::cmd(),
-        del::cmd(),
-        list::cmd(),
-        new::cmd(),
-        sync::cmd(),
-    ]
-}
-
-#[rustfmt::skip]
 pub fn cmd() -> App<'static> {
     App::new("repo")
         .about("manage repos")
         .setting(AppSettings::DisableHelpSubcommand)
         .setting(AppSettings::DisableVersionForSubcommands)
         .setting(AppSettings::SubcommandRequiredElseHelp)
-        .subcommands(register())
+        .subcommand(add::cmd())
+        .subcommand(del::cmd())
+        .subcommand(list::cmd())
+        .subcommand(new::cmd())
+        .subcommand(sync::cmd())
 }
 
 pub async fn run(args: &ArgMatches, client: &mut Client, _settings: &mut Settings) -> Result<()> {
