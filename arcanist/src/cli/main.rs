@@ -63,12 +63,16 @@ pub fn cmd() -> App<'static> {
             .about("connection timeout"))
 }
 
-fn load_settings() -> Result<(Settings, ArgMatches)> {
+fn load_settings() -> Result<(Settings, PkgcraftConfig, ArgMatches)> {
     let app = cmd();
     let args = app.get_matches();
 
+    // load pkgcraft config
+    let config =
+        PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
+
     // load config settings and then override them with command-line settings
-    let mut settings = Settings::new()?;
+    let mut settings = Settings::new(&config)?;
 
     if let Some(color) = args.value_of("color") {
         settings.color = str_to_bool(color)?;
@@ -81,7 +85,7 @@ fn load_settings() -> Result<(Settings, ArgMatches)> {
     settings.verbosity -= args.occurrences_of("quiet") as i32;
 
     if let Some(url) = args.value_of("url") {
-        settings.url = Some(url.to_string());
+        settings.url = url.to_string();
     }
 
     stderrlog::new()
@@ -90,24 +94,22 @@ fn load_settings() -> Result<(Settings, ArgMatches)> {
         .quiet(settings.verbosity < 0)
         .init()?;
 
-    Ok((settings, args))
+    Ok((settings, config, args))
 }
 
 #[tokio::main]
 async fn try_main() -> Result<()> {
-    let (mut settings, args) = load_settings()?;
-    let config =
-        PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
-
+    let (mut settings, config, args) = load_settings()?;
     let user_agent = format!("{}-{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
     let timeout = args
         .value_of("timeout")
         .unwrap_or_default()
         .parse::<u64>()
         .unwrap();
-    let url = match &settings.url {
-        Some(url) => url.clone(),
-        None => config
+
+    let url = match settings.url.is_empty() {
+        false => settings.url.clone(),
+        true => config
             .connect_or_spawn_arcanist(None, Some(timeout))?
             .to_string_lossy()
             .into_owned(),

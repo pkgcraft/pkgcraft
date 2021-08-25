@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
-use config::{Config, Environment};
+use config::{Config, Environment, File};
+use pkgcraft::config::Config as PkgcraftConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -10,16 +11,24 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn new() -> Result<Self> {
+    pub fn new(config: &PkgcraftConfig) -> Result<Self> {
         let mut s = Config::default();
 
         // use defaults
         s.merge(Config::try_from(&Settings::default())?)
             .context("failed merging config defaults")?;
 
+        // load config from file
+        let binary = env!("CARGO_BIN_NAME");
+        let config_path = config.path.config.join(format!("{}.toml", &binary));
+        s.merge(File::from(config_path.as_path()).required(false))
+            .context(format!(
+                "failed merging config settings: {:?}",
+                &config_path
+            ))?;
+
         // merge env variable overrides
-        let bin = env!("CARGO_BIN_NAME").to_uppercase();
-        s.merge(Environment::with_prefix(&bin).separator("_"))
+        s.merge(Environment::with_prefix(&binary.to_uppercase()).separator("_"))
             .context("failed merging env settings")?;
 
         // serialize to struct

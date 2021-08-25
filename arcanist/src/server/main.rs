@@ -45,12 +45,16 @@ pub fn cmd() -> App<'static> {
             .about("bind to given network socket"))
 }
 
-fn load_settings() -> Result<Settings> {
+fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
     let app = cmd();
     let args = app.get_matches();
 
+    // load pkgcraft config
+    let config =
+        PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
+
     // load config settings and then override them with command-line settings
-    let mut settings = Settings::new()?;
+    let mut settings = Settings::new(&config)?;
 
     if args.is_present("debug") {
         settings.debug = true;
@@ -64,7 +68,7 @@ fn load_settings() -> Result<Settings> {
         settings.socket = socket.to_string();
     }
 
-    Ok(settings)
+    Ok((settings, config))
 }
 
 pub fn verify_socket_path(path: String) -> Result<PathBuf> {
@@ -88,11 +92,7 @@ pub fn verify_socket_path(path: String) -> Result<PathBuf> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let settings = load_settings()?;
-
-    // load pkgcraft config
-    let config =
-        PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
+    let (settings, config) = load_settings()?;
 
     let socket = match settings.socket.is_empty() {
         false => settings.socket.clone(),
