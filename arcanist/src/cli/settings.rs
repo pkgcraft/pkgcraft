@@ -9,6 +9,7 @@ pub struct Settings {
     pub color: bool,
     pub debug: bool,
     pub verbosity: i32,
+    pub url: Option<String>,
 }
 
 impl Settings {

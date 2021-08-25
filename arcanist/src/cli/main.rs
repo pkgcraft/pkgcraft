@@ -80,6 +80,10 @@ fn load_settings() -> Result<(Settings, ArgMatches)> {
     settings.verbosity += args.occurrences_of("verbose") as i32;
     settings.verbosity -= args.occurrences_of("quiet") as i32;
 
+    if let Some(url) = args.value_of("url") {
+        settings.url = Some(url.to_string());
+    }
+
     stderrlog::new()
         .modules([module_path!(), "pkgcraft"])
         .verbosity(args.occurrences_of("verbose") as usize)
@@ -95,8 +99,10 @@ async fn try_main() -> Result<()> {
     let config =
         PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
 
-    let url = args.value_of("url").map(|s| s.to_string());
-    let url_with_fallback = url.clone().unwrap_or_else(|| "http://[::]".to_string());
+    let url_with_fallback = settings
+        .url
+        .clone()
+        .unwrap_or_else(|| "http://[::]".to_string());
     let timeout = args
         .value_of("timeout")
         .unwrap_or_default()
@@ -108,7 +114,7 @@ async fn try_main() -> Result<()> {
         .user_agent(user_agent)?;
 
     // connect to arcanist
-    let channel: Channel = match url {
+    let channel: Channel = match &settings.url {
         Some(url) => endpoint
             .connect()
             .await
