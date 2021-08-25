@@ -153,10 +153,21 @@ impl Config {
 
     pub fn get_socket(&self, name: &str, refresh: bool) -> crate::Result<PathBuf> {
         let socket = self.path.run.join(name);
+
+        // check if the socket is already in use
+        if UnixStream::connect(&socket).is_ok() {
+            return Err(Error::Config(format!(
+                "arcanist already running on: {:?}",
+                &socket
+            )));
+        }
+
+        // remove old socket file if it exists
         if refresh {
             fs::create_dir_all(&self.path.run).map_err(|e| Error::Config(e.to_string()))?;
             fs::remove_file(&socket).unwrap_or_default();
         }
+
         Ok(socket)
     }
 }
