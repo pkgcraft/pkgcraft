@@ -14,8 +14,8 @@ pub mod arcanist {
 
 pub use arcanist::arcanist_server::ArcanistServer;
 use arcanist::{
-    arcanist_server::Arcanist, AddRepoRequest, ArcanistRequest, ArcanistResponse, ListRequest,
-    ListResponse,
+    arcanist_server::Arcanist, AddRepoRequest, ListRequest, ListResponse, StringRequest,
+    StringResponse,
 };
 
 #[derive(Debug)]
@@ -28,14 +28,14 @@ impl Arcanist for ArcanistService {
     async fn add_repo(
         &self,
         request: Request<AddRepoRequest>,
-    ) -> Result<Response<ArcanistResponse>, Status> {
+    ) -> Result<Response<StringResponse>, Status> {
         let req = request.into_inner();
         let repos = &mut self.settings.write().await.config.repos;
         match repos.add(&req.name, &req.uri) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(&e)),
             Err(e) => Err(Status::internal(format!("{}", &e))),
             Ok(_) => {
-                let reply = ArcanistResponse { data: req.name };
+                let reply = StringResponse { data: req.name };
                 Ok(Response::new(reply))
             }
         }
@@ -59,7 +59,7 @@ impl Arcanist for ArcanistService {
 
     async fn list_repos(
         &self,
-        _request: Request<ArcanistRequest>,
+        _request: Request<StringRequest>,
     ) -> Result<Response<ListResponse>, Status> {
         let mut repos: Vec<String> = Vec::new();
         let settings = self.settings.read().await;
@@ -72,15 +72,15 @@ impl Arcanist for ArcanistService {
 
     async fn create_repo(
         &self,
-        request: Request<ArcanistRequest>,
-    ) -> Result<Response<ArcanistResponse>, Status> {
+        request: Request<StringRequest>,
+    ) -> Result<Response<StringResponse>, Status> {
         let req = request.into_inner();
         let repos = &mut self.settings.write().await.config.repos;
         match repos.create(&req.data) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(&e)),
             Err(e) => Err(Status::internal(format!("{}", &e))),
             Ok(_) => {
-                let reply = ArcanistResponse { data: req.data };
+                let reply = StringResponse { data: req.data };
                 Ok(Response::new(reply))
             }
         }
@@ -102,7 +102,7 @@ impl Arcanist for ArcanistService {
         }
     }
 
-    type SearchPackagesStream = ReceiverStream<Result<ArcanistResponse, Status>>;
+    type SearchPackagesStream = ReceiverStream<Result<StringResponse, Status>>;
 
     async fn search_packages(
         &self,
@@ -111,7 +111,7 @@ impl Arcanist for ArcanistService {
         let (tx, rx) = mpsc::channel(4);
         tokio::spawn(async move {
             for pkg in request.into_inner().data.iter() {
-                tx.send(Ok(ArcanistResponse {
+                tx.send(Ok(StringResponse {
                     data: pkg.to_string(),
                 }))
                 .await
@@ -121,7 +121,7 @@ impl Arcanist for ArcanistService {
         Ok(Response::new(ReceiverStream::new(rx)))
     }
 
-    type AddPackagesStream = ReceiverStream<Result<ArcanistResponse, Status>>;
+    type AddPackagesStream = ReceiverStream<Result<StringResponse, Status>>;
 
     async fn add_packages(
         &self,
@@ -130,7 +130,7 @@ impl Arcanist for ArcanistService {
         unimplemented!()
     }
 
-    type RemovePackagesStream = ReceiverStream<Result<ArcanistResponse, Status>>;
+    type RemovePackagesStream = ReceiverStream<Result<StringResponse, Status>>;
 
     async fn remove_packages(
         &self,
@@ -141,11 +141,11 @@ impl Arcanist for ArcanistService {
 
     async fn version(
         &self,
-        request: Request<ArcanistRequest>,
-    ) -> Result<Response<ArcanistResponse>, Status> {
+        request: Request<StringRequest>,
+    ) -> Result<Response<StringResponse>, Status> {
         let version = format!("{}-{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         let req = request.into_inner();
-        let reply = ArcanistResponse {
+        let reply = StringResponse {
             data: format!("client: {}, server: {}", req.data, version),
         };
         Ok(Response::new(reply))

@@ -2,17 +2,19 @@ syntax = "proto3";
 package arcanist;
 
 service Arcanist {
-    rpc Version (ArcanistRequest) returns (ArcanistResponse);
+    rpc Version (StringRequest) returns (StringResponse);
 
-    rpc AddRepo (AddRepoRequest) returns (ArcanistResponse);
+    // repo actions
+    rpc AddRepo (AddRepoRequest) returns (StringResponse);
     rpc RemoveRepos (ListRequest) returns (ListResponse);
-    rpc ListRepos (ArcanistRequest) returns (ListResponse);
-    rpc CreateRepo (ArcanistRequest) returns (ArcanistResponse);
+    rpc ListRepos (StringRequest) returns (ListResponse);
+    rpc CreateRepo (StringRequest) returns (StringResponse);
     rpc SyncRepos (ListRequest) returns (ListResponse);
 
-    rpc SearchPackages (ListRequest) returns (stream ArcanistResponse);
-    rpc AddPackages (ListRequest) returns (stream ArcanistResponse);
-    rpc RemovePackages (ListRequest) returns (stream ArcanistResponse);
+    // package actions
+    rpc SearchPackages (ListRequest) returns (stream StringResponse);
+    rpc AddPackages (ListRequest) returns (stream StringResponse);
+    rpc RemovePackages (ListRequest) returns (stream StringResponse);
 }
 
 message AddRepoRequest {
@@ -20,11 +22,11 @@ message AddRepoRequest {
     string uri = 2;
 }
 
-message ArcanistRequest {
+message StringRequest {
     string data = 1;
 }
 
-message ArcanistResponse {
+message StringResponse {
     string data = 1;
 }
 

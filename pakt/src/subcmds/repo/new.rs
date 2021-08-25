@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::{App, Arg, ArgMatches, ArgSettings};
 
-use crate::arcanist::ArcanistRequest;
+use crate::arcanist::StringRequest;
 use crate::Client;
 
 #[rustfmt::skip]
@@ -15,7 +15,7 @@ pub fn cmd() -> App<'static> {
 
 pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
     let name = args.value_of("name").unwrap().to_string();
-    let request = tonic::Request::new(ArcanistRequest { data: name.clone() });
+    let request = tonic::Request::new(StringRequest { data: name.clone() });
     client
         .create_repo(request)
         .await
