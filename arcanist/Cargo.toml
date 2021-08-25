@@ -32,6 +32,10 @@ tower = "0.4.8"
 [build-dependencies]
 tonic-build = { version = "0.5.2", features = ["compression"] }
 
+[dev-dependencies]
+assert_cmd = "2"
+tempfile = "3"
+
 [[bin]]
 bench = false
 path = "src/server/main.rs"
@@ -41,3 +45,7 @@ name = "arcanist"
 bench = false
 path = "src/cli/main.rs"
 name = "pakt"
+
+[[test]]
+name = "integration"
+path = "tests/lib.rs"
