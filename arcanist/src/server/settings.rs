@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct Settings {
     pub debug: bool,
     pub verbosity: i32,
-    pub socket: Option<String>,
+    pub socket: String,
 }
 
 impl Settings {

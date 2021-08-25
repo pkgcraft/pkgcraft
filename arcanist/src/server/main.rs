@@ -60,7 +60,7 @@ fn load_settings() -> Result<Settings> {
     // TODO: initialize syslog logger
 
     if let Some(socket) = args.value_of("socket") {
-        settings.socket = Some(socket.to_string());
+        settings.socket = socket.to_string();
     }
 
     Ok(settings)
@@ -88,15 +88,14 @@ pub fn verify_socket_path(path: String) -> Result<PathBuf> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let settings = load_settings()?;
-    let mut server = Server::builder();
 
     // load pkgcraft config
     let config =
         PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
 
-    let socket = match &settings.socket {
-        Some(socket) => socket.clone(),
-        None => config
+    let socket = match settings.socket.is_empty() {
+        false => settings.socket.clone(),
+        true => config
             .path
             .run
             .join("arcanist.sock")
@@ -109,12 +108,13 @@ async fn main() -> Result<()> {
         config: Arc::new(RwLock::new(config)),
     };
 
+    let server = Server::builder().add_service(ArcanistServer::new(service));
+
     if socket.starts_with('/') {
         let socket = verify_socket_path(socket)?;
         let incoming = {
             let listener = UnixListener::bind(&socket)
                 .context(format!("failed binding to socket: {:?}", &socket))?;
-
             async_stream::stream! {
                 while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
                     yield item;
@@ -122,16 +122,10 @@ async fn main() -> Result<()> {
             }
         };
 
-        server
-            .add_service(ArcanistServer::new(service))
-            .serve_with_incoming(incoming)
-            .await?;
+        server.serve_with_incoming(incoming).await?;
     } else {
         let socket: SocketAddr = socket.parse().context("invalid network socket")?;
-        server
-            .add_service(ArcanistServer::new(service))
-            .serve(socket)
-            .await?
+        server.serve(socket).await?
     }
 
     Ok(())
