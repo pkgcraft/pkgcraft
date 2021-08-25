@@ -104,6 +104,11 @@ async fn main() -> Result<()> {
             .into_owned(),
     };
 
+    let service = ArcanistService {
+        settings,
+        config: Arc::new(RwLock::new(config)),
+    };
+
     if socket.starts_with('/') {
         let socket = verify_socket_path(socket)?;
         let incoming = {
@@ -117,20 +122,12 @@ async fn main() -> Result<()> {
             }
         };
 
-        let service = ArcanistService {
-            settings,
-            config: Arc::new(RwLock::new(config)),
-        };
         server
             .add_service(ArcanistServer::new(service))
             .serve_with_incoming(incoming)
             .await?;
     } else {
         let socket: SocketAddr = socket.parse().context("invalid network socket")?;
-        let service = ArcanistService {
-            settings,
-            config: Arc::new(RwLock::new(config)),
-        };
         server
             .add_service(ArcanistServer::new(service))
             .serve(socket)
