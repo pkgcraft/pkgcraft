@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Duration;
 
@@ -123,9 +123,14 @@ impl Config {
                 // spawn arcanist if it's not running
                 io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
                     if sleep_ms == 100 {
-                        Command::new("arcanist").spawn().map_err(|e| {
-                            Error::Config(format!("failed starting arcanist: {}", e))
-                        })?;
+                        Command::new("arcanist")
+                            .stdin(Stdio::null())
+                            .stdout(Stdio::null())
+                            .stderr(Stdio::null())
+                            .spawn()
+                            .map_err(|e| {
+                                Error::Config(format!("failed starting arcanist: {}", e))
+                            })?;
                     }
                     // wait for arcanist to start
                     thread::sleep(Duration::from_millis(sleep_ms));
