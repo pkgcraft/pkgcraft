@@ -8,8 +8,9 @@ use anyhow::{bail, Context, Result};
 use clap::{App, Arg, ArgSettings};
 use futures::TryFutureExt;
 use pkgcraft::config::Config as PkgcraftConfig;
-use tokio::net::UnixListener;
+use tokio::net::{TcpListener, UnixListener};
 use tokio::sync::RwLock;
+use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 
 use crate::service::{ArcanistServer, ArcanistService};
@@ -112,20 +113,28 @@ async fn main() -> Result<()> {
 
     if socket.starts_with('/') {
         let socket = verify_socket_path(socket)?;
+        let listener = UnixListener::bind(&socket)
+            .context(format!("failed binding to socket: {:?}", &socket))?;
+        // TODO: log socket that's being used
         let incoming = {
-            let listener = UnixListener::bind(&socket)
-                .context(format!("failed binding to socket: {:?}", &socket))?;
             async_stream::stream! {
                 while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
                     yield item;
                 }
             }
         };
-
         server.serve_with_incoming(incoming).await?;
     } else {
         let socket: SocketAddr = socket.parse().context("invalid network socket")?;
-        server.serve(socket).await?
+        let listener = TcpListener::bind(socket)
+            .await
+            .context(format!("failed binding to socket: {:?}", &socket))?;
+        // TODO: log address that's being used
+        let _addr = listener
+            .local_addr()
+            .context(format!("invalid local address: {:?}", &socket))?;
+        let incoming = TcpListenerStream::new(listener);
+        server.serve_with_incoming(incoming).await?
     }
 
     Ok(())
