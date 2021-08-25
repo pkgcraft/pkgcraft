@@ -7,7 +7,7 @@ use crate::Client;
 #[rustfmt::skip]
 pub fn cmd() -> App<'static> {
     App::new("del")
-        .about("unregister repo(s)")
+        .about("remove repo(s)")
         .arg(Arg::new("repos")
             .setting(ArgSettings::Required)
             .setting(ArgSettings::TakesValue)
