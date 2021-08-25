@@ -7,6 +7,7 @@ use std::sync::Arc;
 use anyhow::{bail, Context, Result};
 use clap::{App, Arg, ArgSettings};
 use futures::TryFutureExt;
+use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::UnixListener;
 use tokio::sync::RwLock;
 use tonic::transport::Server;
@@ -58,9 +59,6 @@ fn load_settings() -> Result<Settings> {
 
     // TODO: initialize syslog logger
 
-    // load pkgcraft config
-    settings.load()?;
-
     if let Some(socket) = args.value_of("socket") {
         settings.socket = Some(socket.to_string());
     }
@@ -68,9 +66,9 @@ fn load_settings() -> Result<Settings> {
     Ok(settings)
 }
 
-pub fn get_socket_path(settings: &Settings) -> Result<PathBuf> {
-    let socket_dir = &settings.config.path.run;
-    let socket = settings.config.path.run.join("arcanist.sock");
+pub fn get_socket_path(config: &PkgcraftConfig) -> Result<PathBuf> {
+    let socket_dir = &config.path.run;
+    let socket = config.path.run.join("arcanist.sock");
 
     // check if the socket is already in use
     if UnixStream::connect(&socket).is_ok() {
@@ -90,10 +88,14 @@ async fn main() -> Result<()> {
     let settings = load_settings()?;
     let mut server = Server::builder();
 
+    // load pkgcraft config
+    let config =
+        PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
+
     // use network socket if configured or unix socket default
     match &settings.socket {
         None => {
-            let socket = get_socket_path(&settings)?;
+            let socket = get_socket_path(&config)?;
             let incoming = {
                 let listener = UnixListener::bind(&socket)
                     .context(format!("failed binding to socket: {:?}", &socket))?;
@@ -106,7 +108,8 @@ async fn main() -> Result<()> {
             };
 
             let service = ArcanistService {
-                settings: Arc::new(RwLock::new(settings)),
+                settings,
+                config: Arc::new(RwLock::new(config)),
             };
             server
                 .add_service(ArcanistServer::new(service))
@@ -116,7 +119,8 @@ async fn main() -> Result<()> {
         Some(socket) => {
             let socket: SocketAddr = socket.parse().context("invalid network socket")?;
             let service = ArcanistService {
-                settings: Arc::new(RwLock::new(settings)),
+                settings,
+                config: Arc::new(RwLock::new(config)),
             };
             server
                 .add_service(ArcanistServer::new(service))

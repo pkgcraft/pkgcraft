@@ -1,13 +1,11 @@
 use anyhow::{Context, Result};
 use config::{Config, Environment};
-use pkgcraft::config::Config as PkgcraftConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Settings {
     pub debug: bool,
     pub verbosity: i32,
-    pub config: PkgcraftConfig,
     pub socket: Option<String>,
 }
 
@@ -28,12 +26,5 @@ impl Settings {
         let settings: Settings = s.try_into().context("failed serializing settings")?;
 
         Ok(settings)
-    }
-
-    // load pkgcraft config
-    pub fn load(&mut self) -> Result<()> {
-        self.config =
-            PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
-        Ok(())
     }
 }

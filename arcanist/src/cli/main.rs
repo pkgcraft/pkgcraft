@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::{App, AppSettings, Arg, ArgMatches, ArgSettings};
+use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
@@ -85,15 +86,15 @@ fn load_settings() -> Result<(Settings, ArgMatches)> {
         .quiet(settings.verbosity < 0)
         .init()?;
 
-    // load pkgcraft config
-    settings.load()?;
-
     Ok((settings, args))
 }
 
 #[tokio::main]
 async fn try_main() -> Result<()> {
     let (mut settings, args) = load_settings()?;
+    let config =
+        PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
+
     let socket = args.value_of("socket").map(|s| s.to_string());
     let url = socket.clone().unwrap_or_else(|| "http://[::]".to_string());
     let timeout = args
@@ -113,9 +114,7 @@ async fn try_main() -> Result<()> {
             .await
             .context(format!("failed connecting to arcanist: {:?}", &socket))?,
         None => {
-            let socket = settings
-                .config
-                .connect_or_spawn_arcanist(None, Some(timeout))?;
+            let socket = config.connect_or_spawn_arcanist(None, Some(timeout))?;
             let error = format!("failed connecting to arcanist: {:?}", &socket);
             endpoint
                 .connect_with_connector(service_fn(move |_: Uri| {

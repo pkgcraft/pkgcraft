@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use pkgcraft::config::Config as PkgcraftConfig;
 use pkgcraft::Error;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
@@ -20,7 +21,8 @@ use arcanist::{
 
 #[derive(Debug)]
 pub struct ArcanistService {
-    pub settings: Arc<RwLock<Settings>>,
+    pub settings: Settings,
+    pub config: Arc<RwLock<PkgcraftConfig>>,
 }
 
 #[tonic::async_trait]
@@ -30,7 +32,7 @@ impl Arcanist for ArcanistService {
         request: Request<AddRepoRequest>,
     ) -> Result<Response<StringResponse>, Status> {
         let req = request.into_inner();
-        let repos = &mut self.settings.write().await.config.repos;
+        let repos = &mut self.config.write().await.repos;
         match repos.add(&req.name, &req.uri) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(&e)),
             Err(e) => Err(Status::internal(format!("{}", &e))),
@@ -46,7 +48,7 @@ impl Arcanist for ArcanistService {
         request: Request<ListRequest>,
     ) -> Result<Response<ListResponse>, Status> {
         let req = request.into_inner();
-        let repos = &mut self.settings.write().await.config.repos;
+        let repos = &mut self.config.write().await.repos;
         match repos.del(&req.data, true) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(&e)),
             Err(e) => Err(Status::internal(format!("{}", &e))),
@@ -62,8 +64,8 @@ impl Arcanist for ArcanistService {
         _request: Request<StringRequest>,
     ) -> Result<Response<ListResponse>, Status> {
         let mut repos: Vec<String> = Vec::new();
-        let settings = self.settings.read().await;
-        for (id, config) in settings.config.repos.configs.iter() {
+        let config = self.config.read().await;
+        for (id, config) in config.repos.configs.iter() {
             repos.push(format!("{}: {:?}", id, config.location));
         }
         let reply = ListResponse { data: repos };
@@ -75,7 +77,7 @@ impl Arcanist for ArcanistService {
         request: Request<StringRequest>,
     ) -> Result<Response<StringResponse>, Status> {
         let req = request.into_inner();
-        let repos = &mut self.settings.write().await.config.repos;
+        let repos = &mut self.config.write().await.repos;
         match repos.create(&req.data) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(&e)),
             Err(e) => Err(Status::internal(format!("{}", &e))),
@@ -91,7 +93,7 @@ impl Arcanist for ArcanistService {
         request: Request<ListRequest>,
     ) -> Result<Response<ListResponse>, Status> {
         let req = request.into_inner();
-        let config = &mut self.settings.write().await.config;
+        let config = &mut self.config.write().await;
         match config.repos.sync(req.data.clone()) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(&e)),
             Err(e) => Err(Status::internal(format!("{}", &e))),
