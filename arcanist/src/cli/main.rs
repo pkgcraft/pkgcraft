@@ -49,6 +49,11 @@ pub fn cmd() -> App<'static> {
             .short('q')
             .long("quiet")
             .about("suppress non-error messages"))
+        .arg(Arg::new("config")
+            .setting(ArgSettings::TakesValue)
+            .long("config")
+            .value_name("PATH")
+            .about("path to config file"))
         .arg(Arg::new("url")
             .short('c')
             .long("connect")
@@ -72,7 +77,8 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig, ArgMatches)> {
         PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
 
     // load config settings and then override them with command-line settings
-    let mut settings = Settings::new(&config)?;
+    let config_file = args.value_of("config");
+    let mut settings = Settings::new(&config, config_file)?;
 
     if let Some(color) = args.value_of("color") {
         settings.color = str_to_bool(color)?;

@@ -43,6 +43,11 @@ pub fn cmd() -> App<'static> {
             .long("bind")
             .value_name("IP:port")
             .about("bind to given network socket"))
+        .arg(Arg::new("config")
+            .setting(ArgSettings::TakesValue)
+            .long("config")
+            .value_name("PATH")
+            .about("path to config file"))
 }
 
 fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
@@ -54,7 +59,8 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
         PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
 
     // load config settings and then override them with command-line settings
-    let mut settings = Settings::new(&config)?;
+    let config_file = args.value_of("config");
+    let mut settings = Settings::new(&config, config_file)?;
 
     if args.is_present("debug") {
         settings.debug = true;

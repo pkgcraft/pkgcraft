@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::{Context, Result};
 use config::{Config, Environment, File};
 use pkgcraft::config::Config as PkgcraftConfig;
@@ -11,21 +13,31 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn new(config: &PkgcraftConfig) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(config: &PkgcraftConfig, path: Option<P>) -> Result<Self> {
         let mut s = Config::default();
 
         // use defaults
         s.merge(Config::try_from(&Settings::default())?)
             .context("failed merging config defaults")?;
 
-        // load config from file
         let binary = env!("CARGO_BIN_NAME");
-        let config_path = config.path.config.join(format!("{}.toml", &binary));
-        s.merge(File::from(config_path.as_path()).required(false))
-            .context(format!(
-                "failed merging config settings: {:?}",
-                &config_path
-            ))?;
+
+        // load config file from given location or default fallback
+        match path {
+            Some(path) => {
+                let path = path.as_ref();
+                s.merge(File::from(path).required(true))
+                    .context(format!("failed merging config settings: {:?}", path))?;
+            }
+            None => {
+                let config_path = config.path.config.join(format!("{}.toml", &binary));
+                s.merge(File::from(config_path.as_path()).required(false))
+                    .context(format!(
+                        "failed merging config settings: {:?}",
+                        &config_path
+                    ))?;
+            }
+        }
 
         // merge env variable overrides
         s.merge(Environment::with_prefix(&binary.to_uppercase()).separator("_"))
