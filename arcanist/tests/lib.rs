@@ -1,3 +1,4 @@
+use std::env;
 use std::process::Command;
 use std::str;
 
@@ -7,6 +8,10 @@ use tempfile::Builder;
 
 #[test]
 fn test_version() {
+    // don't read system/user configs
+    env::set_var("ARCANIST_SKIP_CONFIG", "true");
+    env::set_var("PAKT_SKIP_CONFIG", "true");
+
     let tmp_dir = Builder::new().prefix("arcanist.").tempdir().unwrap();
     let socket_path = tmp_dir.path().to_owned().join("arcanist.sock");
     let socket = socket_path.to_str().unwrap();

@@ -1,3 +1,4 @@
+use std::env;
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -21,26 +22,29 @@ impl Settings {
             .context("failed merging config defaults")?;
 
         let binary = env!("CARGO_BIN_NAME");
+        let binary_upper = binary.to_uppercase();
 
-        // load config file from given location or default fallback
-        match path {
-            Some(path) => {
-                let path = path.as_ref();
-                s.merge(File::from(path).required(true))
-                    .context(format!("failed merging config settings: {:?}", path))?;
-            }
-            None => {
-                let config_path = config.path.config.join(format!("{}.toml", &binary));
-                s.merge(File::from(config_path.as_path()).required(false))
-                    .context(format!(
-                        "failed merging config settings: {:?}",
-                        &config_path
-                    ))?;
+        // load config file from given location or default fallback if not signalled to skip
+        if env::var_os(format!("{}_SKIP_CONFIG", &binary_upper)).is_none() {
+            match path {
+                Some(path) => {
+                    let path = path.as_ref();
+                    s.merge(File::from(path).required(true))
+                        .context(format!("failed merging config settings: {:?}", path))?;
+                }
+                None => {
+                    let config_path = config.path.config.join(format!("{}.toml", &binary));
+                    s.merge(File::from(config_path.as_path()).required(false))
+                        .context(format!(
+                            "failed merging config settings: {:?}",
+                            &config_path
+                        ))?;
+                }
             }
         }
 
         // merge env variable overrides
-        s.merge(Environment::with_prefix(&binary.to_uppercase()).separator("_"))
+        s.merge(Environment::with_prefix(&binary_upper).separator("_"))
             .context("failed merging env settings")?;
 
         // serialize to struct
