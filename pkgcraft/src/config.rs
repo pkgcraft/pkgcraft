@@ -8,7 +8,7 @@ use std::process::{Command, Stdio};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
-use crate::utils::AsyncWatcher;
+use crate::utils::FileWatcher;
 
 mod repo;
 
@@ -105,7 +105,7 @@ impl Config {
         Ok(Config { path, repos })
     }
 
-    pub async fn connect_or_spawn_arcanist(
+    pub fn connect_or_spawn_arcanist(
         &self,
         path: Option<PathBuf>,
         timeout: Option<u64>,
@@ -121,7 +121,7 @@ impl Config {
                     // remove potentially existing, old socket file
                     fs::remove_file(&socket).unwrap_or_default();
                     // watch for socket file creation
-                    let mut socket_watcher = AsyncWatcher::new(&socket)?;
+                    let socket_watcher = FileWatcher::new(&socket)?;
                     // start arcanist detached from the current process
                     Command::new("arcanist")
                         .stdin(Stdio::null())
@@ -131,8 +131,7 @@ impl Config {
                         .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
                     // wait for arcanist to bind to its socket file
                     socket_watcher
-                        .created(timeout)
-                        .await
+                        .watch_for(notify::op::CREATE, timeout)
                         .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
                 }
                 _ => {

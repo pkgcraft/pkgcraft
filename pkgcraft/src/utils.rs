@@ -20,19 +20,18 @@ pub(crate) fn rstrip(s: &str, c: char) -> &str {
     &s[..s.len() - count]
 }
 
-pub struct AsyncWatcher {
-    path: PathBuf,
-    watched_dir: PathBuf,
+pub struct FileWatcher {
     watcher: notify::RecommendedWatcher,
+    path: PathBuf,
     rx: mpsc::Receiver<RawEvent>,
 }
 
-impl AsyncWatcher {
+impl FileWatcher {
     pub fn new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
         let path = PathBuf::from(path.as_ref());
         let (tx, rx) = mpsc::channel();
         let mut watcher = raw_watcher(tx)
-            .map_err(|e| Error::IO(format!("failed creating file watcher: {:?}: {}", &path, e)))?;
+            .map_err(|e| Error::IO(format!("failed creating watcher: {:?}: {}", &path, e)))?;
         let watched_dir = path
             .parent()
             .ok_or_else(|| Error::IO(format!("invalid path: {:?}", &path)))?
@@ -40,17 +39,12 @@ impl AsyncWatcher {
         // watch path parent directory for changes
         watcher
             .watch(&watched_dir, RecursiveMode::NonRecursive)
-            .map_err(|e| Error::IO(format!("failed watching file: {:?}: {}", &path, e)))?;
+            .map_err(|e| Error::IO(format!("failed watching path: {:?}: {}", &path, e)))?;
 
-        Ok(AsyncWatcher {
-            path,
-            watched_dir,
-            watcher,
-            rx,
-        })
+        Ok(FileWatcher { watcher, path, rx })
     }
 
-    pub async fn created(&mut self, timeout: Option<u64>) -> crate::Result<()> {
+    pub fn watch_for(&self, event: notify::op::Op, timeout: Option<u64>) -> crate::Result<()> {
         // zero or an unset value effectively means no timeout occurs
         let timeout = match timeout {
             None | Some(0) => u64::MAX,
@@ -66,21 +60,20 @@ impl AsyncWatcher {
                 })? {
                 RawEvent {
                     path: Some(p),
-                    op: Ok(notify::op::CREATE),
+                    op: Ok(e),
                     ..
-                } => {
-                    if p == self.path {
-                        break;
-                    }
-                }
+                } if p == self.path && e == event => break,
                 _ => continue,
             }
         }
+        Ok(())
+    }
 
+    pub fn unwatch<P: AsRef<Path>>(&mut self, path: P) -> crate::Result<()> {
+        let path = path.as_ref();
         self.watcher
-            .unwatch(&self.watched_dir)
-            .map_err(|e| Error::IO(format!("failed unwatching file: {:?}: {}", &self.path, e)))?;
-
+            .unwatch(&path)
+            .map_err(|e| Error::IO(format!("failed unwatching path: {:?}: {}", &path, e)))?;
         Ok(())
     }
 }
