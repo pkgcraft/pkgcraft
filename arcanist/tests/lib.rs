@@ -3,7 +3,7 @@ use std::process::Stdio;
 use std::str;
 
 use assert_cmd::Command as assert_command;
-use regex::Regex;
+use pkgcraft::utils::ARCANIST_RE;
 use tempfile::Builder;
 use tokio::{io::AsyncBufReadExt, io::BufReader, process::Command};
 
@@ -59,8 +59,7 @@ async fn test_tcp() {
     let stderr = arcanist.stderr.take().expect("no stderr");
     let f = BufReader::new(stderr);
     let msg = f.lines().next_line().await.unwrap().unwrap();
-    let re = Regex::new(r"^arcanist listening at: (?P<socket>.+)$").unwrap();
-    let m = re.captures(&msg).unwrap();
+    let m = ARCANIST_RE.captures(&msg).unwrap();
     let socket = m.name("socket").unwrap().as_str();
     let url = format!("http://{}", &socket);
 

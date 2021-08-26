@@ -15,7 +15,7 @@ use tokio::{
 
 use crate::error::Error;
 
-static ARCANIST_RE: Lazy<Regex> =
+pub static ARCANIST_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^arcanist listening at: \"?(?P<socket>.+)\"?$").unwrap());
 
 // Return a string slice stripping the given character from the right side. Note that this assumes
