@@ -122,7 +122,7 @@ async fn main() -> Result<()> {
             let socket = verify_socket_path(socket)?;
             let listener = UnixListener::bind(&socket)
                 .context(format!("failed binding to socket: {:?}", &socket))?;
-            // TODO: log socket that's being used
+            eprintln!("arcanist listening at: {:?}", &socket);
             let incoming = {
                 async_stream::stream! {
                     while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
@@ -136,10 +136,10 @@ async fn main() -> Result<()> {
             let listener = TcpListener::bind(socket)
                 .await
                 .context(format!("failed binding to socket: {:?}", &socket))?;
-            // TODO: log address that's being used
-            let _addr = listener
+            let addr = listener
                 .local_addr()
                 .context(format!("invalid local address: {:?}", &socket))?;
+            eprintln!("arcanist listening at: {}", &addr);
             let incoming = TcpListenerStream::new(listener);
             server.serve_with_incoming(incoming).await?
         }
