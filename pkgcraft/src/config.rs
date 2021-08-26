@@ -8,7 +8,7 @@ use std::process::{Command, Stdio};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
-use crate::utils::wait_until_file_created;
+use crate::utils::AsyncWatcher;
 
 mod repo;
 
@@ -105,44 +105,46 @@ impl Config {
         Ok(Config { path, repos })
     }
 
-    pub fn connect_or_spawn_arcanist(
+    pub async fn connect_or_spawn_arcanist(
         &self,
         path: Option<PathBuf>,
         timeout: Option<u64>,
     ) -> crate::Result<PathBuf> {
-        let path = path
+        let socket = path
             .ok_or("no default")
             .or_else(|_| Ok(self.path.run.join("arcanist.sock")))?;
 
-        let mut spawned = false;
-        while let Err(e) = UnixStream::connect(&path) {
+        if let Err(e) = UnixStream::connect(&socket) {
             match e.kind() {
                 // spawn arcanist if it's not running
-                io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound if !spawned => {
+                io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
                     // remove potentially existing, old socket file
-                    fs::remove_file(&path).unwrap_or_default();
-
+                    fs::remove_file(&socket).unwrap_or_default();
+                    // watch for socket file creation
+                    let mut socket_watcher = AsyncWatcher::new(&socket)?;
+                    // start arcanist detached from the current process
                     Command::new("arcanist")
                         .stdin(Stdio::null())
                         .stdout(Stdio::null())
                         .stderr(Stdio::null())
                         .spawn()
                         .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
-
                     // wait for arcanist to bind to its socket file
-                    wait_until_file_created(&path, timeout)?;
-                    spawned = true;
+                    socket_watcher
+                        .created(timeout)
+                        .await
+                        .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
                 }
                 _ => {
                     return Err(Error::Config(format!(
                         "failed connecting to arcanist: {}: {:?}",
-                        e, &path
+                        e, &socket
                     )))
                 }
             }
         }
 
-        Ok(path)
+        Ok(socket)
     }
 }
 

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -20,50 +20,67 @@ pub(crate) fn rstrip(s: &str, c: char) -> &str {
     &s[..s.len() - count]
 }
 
-pub fn wait_until_file_created(path: &Path, timeout: Option<u64>) -> crate::Result<()> {
-    if !path.is_absolute() || path.file_name().is_none() {
-        return Err(Error::IO(format!("invalid file to watch: {:?}", &path)));
+pub struct AsyncWatcher {
+    path: PathBuf,
+    watched_dir: PathBuf,
+    watcher: notify::RecommendedWatcher,
+    rx: mpsc::Receiver<RawEvent>,
+}
+
+impl AsyncWatcher {
+    pub fn new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
+        let path = PathBuf::from(path.as_ref());
+        let (tx, rx) = mpsc::channel();
+        let mut watcher = raw_watcher(tx)
+            .map_err(|e| Error::IO(format!("failed creating file watcher: {:?}: {}", &path, e)))?;
+        let watched_dir = path
+            .parent()
+            .ok_or_else(|| Error::IO(format!("invalid path: {:?}", &path)))?
+            .to_path_buf();
+        // watch path parent directory for changes
+        watcher
+            .watch(&watched_dir, RecursiveMode::NonRecursive)
+            .map_err(|e| Error::IO(format!("failed watching file: {:?}: {}", &path, e)))?;
+
+        Ok(AsyncWatcher {
+            path,
+            watched_dir,
+            watcher,
+            rx,
+        })
     }
 
-    // zero or an unset value effectively means no timeout occurs
-    let timeout = match timeout {
-        None | Some(0) => u64::MAX,
-        Some(x) => x,
-    };
+    pub async fn created(&mut self, timeout: Option<u64>) -> crate::Result<()> {
+        // zero or an unset value effectively means no timeout occurs
+        let timeout = match timeout {
+            None | Some(0) => u64::MAX,
+            Some(x) => x,
+        };
 
-    let (tx, rx) = mpsc::channel();
-    let mut watcher = raw_watcher(tx)
-        .map_err(|e| Error::IO(format!("failed creating file watcher: {:?}: {}", &path, e)))?;
-
-    // watch parent directory for changes until given file exists
-    let path_dir = path.parent().unwrap();
-    watcher
-        .watch(&path_dir, RecursiveMode::NonRecursive)
-        .map_err(|e| Error::IO(format!("failed watching file: {:?}: {}", &path, e)))?;
-
-    if !path.exists() {
         loop {
-            match rx
+            match self
+                .rx
                 .recv_timeout(Duration::from_secs(timeout))
-                .map_err(|_| Error::Timeout(format!("waiting for path existence: {:?}", &path)))?
-            {
+                .map_err(|_| {
+                    Error::Timeout(format!("waiting for path existence: {:?}", &self.path))
+                })? {
                 RawEvent {
                     path: Some(p),
                     op: Ok(notify::op::CREATE),
                     ..
                 } => {
-                    if p == path {
+                    if p == self.path {
                         break;
                     }
                 }
                 _ => continue,
             }
         }
+
+        self.watcher
+            .unwatch(&self.watched_dir)
+            .map_err(|e| Error::IO(format!("failed unwatching file: {:?}: {}", &self.path, e)))?;
+
+        Ok(())
     }
-
-    watcher
-        .unwatch(path_dir)
-        .map_err(|e| Error::IO(format!("failed unwatching file: {:?}: {}", &path, e)))?;
-
-    Ok(())
 }

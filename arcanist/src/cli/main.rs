@@ -117,7 +117,8 @@ async fn try_main() -> Result<()> {
     let url = match settings.url.is_empty() {
         false => settings.url.clone(),
         true => config
-            .connect_or_spawn_arcanist(None, Some(timeout))?
+            .connect_or_spawn_arcanist(None, Some(timeout))
+            .await?
             .to_string_lossy()
             .into_owned(),
     };

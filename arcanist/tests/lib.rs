@@ -1,13 +1,13 @@
 use std::env;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::str;
 
 use assert_cmd::Command as assert_command;
-use pkgcraft::utils::wait_until_file_created;
+use pkgcraft::utils::AsyncWatcher;
 use tempfile::Builder;
 
-#[test]
-fn test_version() {
+#[tokio::test]
+async fn test_version() {
     // don't read system/user configs
     env::set_var("ARCANIST_SKIP_CONFIG", "true");
     env::set_var("PAKT_SKIP_CONFIG", "true");
@@ -15,13 +15,20 @@ fn test_version() {
     let tmp_dir = Builder::new().prefix("arcanist.").tempdir().unwrap();
     let socket_path = tmp_dir.path().to_owned().join("arcanist.sock");
     let socket = socket_path.to_str().unwrap();
+
+    // watch for socket file creation
+    let mut socket_watcher = AsyncWatcher::new(&socket_path).unwrap();
+
     let mut arcanist = Command::new(env!("CARGO_BIN_EXE_arcanist"))
         .args(&["--bind", socket])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()
         .expect("arcanist failed to start");
 
     // wait for arcanist to bind to its socket file
-    wait_until_file_created(&socket_path, Some(5)).unwrap();
+    socket_watcher.created(Some(5)).await.unwrap();
 
     let mut cmd = assert_command::cargo_bin("pakt").unwrap();
     let output = cmd.arg("-c").arg(socket).arg("version").output().unwrap();
