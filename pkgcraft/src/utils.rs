@@ -1,4 +1,8 @@
+use std::fs;
+use std::io;
+use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -76,4 +80,42 @@ impl FileWatcher {
             .map_err(|e| Error::IO(format!("failed unwatching path: {:?}: {}", &path, e)))?;
         Ok(())
     }
+}
+
+pub fn connect_or_spawn_arcanist<P: AsRef<Path>>(
+    path: P,
+    timeout: Option<u64>,
+) -> crate::Result<()> {
+    let socket = path.as_ref();
+
+    if let Err(e) = UnixStream::connect(&socket) {
+        match e.kind() {
+            // spawn arcanist if it's not running
+            io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
+                // remove potentially existing, old socket file
+                fs::remove_file(&socket).unwrap_or_default();
+                // watch for socket file creation
+                let socket_watcher = FileWatcher::new(&socket)?;
+                // start arcanist detached from the current process
+                Command::new("arcanist")
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .spawn()
+                    .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
+                // wait for arcanist to bind to its socket file
+                socket_watcher
+                    .watch_for(notify::op::CREATE, timeout)
+                    .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
+            }
+            _ => {
+                return Err(Error::Config(format!(
+                    "failed connecting to arcanist: {}: {:?}",
+                    e, &socket
+                )))
+            }
+        }
+    }
+
+    Ok(())
 }

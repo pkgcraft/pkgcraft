@@ -4,6 +4,7 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use clap::{App, AppSettings, Arg, ArgMatches, ArgSettings};
 use pkgcraft::config::Config as PkgcraftConfig;
+use pkgcraft::utils::connect_or_spawn_arcanist;
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
@@ -121,10 +122,11 @@ async fn try_main() -> Result<()> {
 
     let url = match settings.url.is_empty() {
         false => settings.url.clone(),
-        true => config
-            .connect_or_spawn_arcanist(None, Some(timeout))?
-            .to_string_lossy()
-            .into_owned(),
+        true => {
+            let path = config.path.run.join("arcanist.sock");
+            connect_or_spawn_arcanist(&path, Some(timeout))?;
+            path.to_string_lossy().into_owned()
+        }
     };
 
     // connect to arcanist

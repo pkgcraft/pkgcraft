@@ -1,14 +1,10 @@
 use std::env;
 use std::fs;
-use std::io;
-use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
-use crate::utils::FileWatcher;
 
 mod repo;
 
@@ -103,47 +99,6 @@ impl Config {
         let path = ConfigPath::new(name, prefix, create)?;
         let repos = repo::Config::new(&path.config, &path.db)?;
         Ok(Config { path, repos })
-    }
-
-    pub fn connect_or_spawn_arcanist(
-        &self,
-        path: Option<PathBuf>,
-        timeout: Option<u64>,
-    ) -> crate::Result<PathBuf> {
-        let socket = path
-            .ok_or("no default")
-            .or_else(|_| Ok(self.path.run.join("arcanist.sock")))?;
-
-        if let Err(e) = UnixStream::connect(&socket) {
-            match e.kind() {
-                // spawn arcanist if it's not running
-                io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
-                    // remove potentially existing, old socket file
-                    fs::remove_file(&socket).unwrap_or_default();
-                    // watch for socket file creation
-                    let socket_watcher = FileWatcher::new(&socket)?;
-                    // start arcanist detached from the current process
-                    Command::new("arcanist")
-                        .stdin(Stdio::null())
-                        .stdout(Stdio::null())
-                        .stderr(Stdio::null())
-                        .spawn()
-                        .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
-                    // wait for arcanist to bind to its socket file
-                    socket_watcher
-                        .watch_for(notify::op::CREATE, timeout)
-                        .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
-                }
-                _ => {
-                    return Err(Error::Config(format!(
-                        "failed connecting to arcanist: {}: {:?}",
-                        e, &socket
-                    )))
-                }
-            }
-        }
-
-        Ok(socket)
     }
 }
 
