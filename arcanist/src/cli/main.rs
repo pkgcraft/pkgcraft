@@ -1,3 +1,4 @@
+use std::net::SocketAddr;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -92,7 +93,11 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig, ArgMatches)> {
     settings.verbosity -= args.occurrences_of("quiet") as i32;
 
     if let Some(url) = args.value_of("url") {
-        settings.url = url.to_string();
+        // convert raw socket arg into url
+        settings.url = match url.parse::<SocketAddr>() {
+            Err(_) => url.to_string(),
+            Ok(socket) => format!("http://{}", socket),
+        };
     }
 
     stderrlog::new()
