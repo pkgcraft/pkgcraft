@@ -22,6 +22,7 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1.7", features = ["net"] }
 tonic = { version = "0.5.2", features = ["tls", "compression"] }
+url = "2"
 
 # pakt specific deps
 log = "0.4"

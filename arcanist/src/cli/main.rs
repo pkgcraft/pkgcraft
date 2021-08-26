@@ -6,6 +6,7 @@ use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
+use url::Url;
 
 pub mod arcanist {
     tonic::include_proto!("arcanist");
@@ -122,20 +123,25 @@ async fn try_main() -> Result<()> {
     };
 
     // connect to arcanist
-    let error = format!("failed connecting to arcanist: {:?}", &url);
-    let channel: Channel = match url.starts_with('/') {
-        true => Endpoint::from_static("http://[::]")
-            .connect_timeout(Duration::from_secs(timeout))
-            .user_agent(user_agent)?
-            .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(url.clone())))
-            .await
-            .context(error)?,
-        false => Endpoint::from_shared(url)?
-            .connect_timeout(Duration::from_secs(timeout))
-            .user_agent(user_agent)?
-            .connect()
-            .await
-            .context(error)?,
+    let channel: Channel = match Url::parse(&url) {
+        Err(_) => {
+            let error = format!("failed connecting to arcanist socket: {:?}", &url);
+            Endpoint::from_static("http://[::]")
+                .connect_timeout(Duration::from_secs(timeout))
+                .user_agent(user_agent)?
+                .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(url.clone())))
+                .await
+                .context(error)?
+        }
+        Ok(_) => {
+            let error = format!("failed connecting to arcanist: {:?}", &url);
+            Endpoint::from_shared(url)?
+                .connect_timeout(Duration::from_secs(timeout))
+                .user_agent(user_agent)?
+                .connect()
+                .await
+                .context(error)?
+        }
     };
 
     let mut client: Client = ArcanistClient::new(channel);

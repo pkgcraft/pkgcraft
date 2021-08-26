@@ -117,30 +117,32 @@ async fn main() -> Result<()> {
 
     let server = Server::builder().add_service(ArcanistServer::new(service));
 
-    if socket.starts_with('/') {
-        let socket = verify_socket_path(socket)?;
-        let listener = UnixListener::bind(&socket)
-            .context(format!("failed binding to socket: {:?}", &socket))?;
-        // TODO: log socket that's being used
-        let incoming = {
-            async_stream::stream! {
-                while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
-                    yield item;
+    match socket.parse::<SocketAddr>() {
+        Err(_) => {
+            let socket = verify_socket_path(socket)?;
+            let listener = UnixListener::bind(&socket)
+                .context(format!("failed binding to socket: {:?}", &socket))?;
+            // TODO: log socket that's being used
+            let incoming = {
+                async_stream::stream! {
+                    while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
+                        yield item;
+                    }
                 }
-            }
-        };
-        server.serve_with_incoming(incoming).await?;
-    } else {
-        let socket: SocketAddr = socket.parse().context("invalid network socket")?;
-        let listener = TcpListener::bind(socket)
-            .await
-            .context(format!("failed binding to socket: {:?}", &socket))?;
-        // TODO: log address that's being used
-        let _addr = listener
-            .local_addr()
-            .context(format!("invalid local address: {:?}", &socket))?;
-        let incoming = TcpListenerStream::new(listener);
-        server.serve_with_incoming(incoming).await?
+            };
+            server.serve_with_incoming(incoming).await?;
+        }
+        Ok(socket) => {
+            let listener = TcpListener::bind(socket)
+                .await
+                .context(format!("failed binding to socket: {:?}", &socket))?;
+            // TODO: log address that's being used
+            let _addr = listener
+                .local_addr()
+                .context(format!("invalid local address: {:?}", &socket))?;
+            let incoming = TcpListenerStream::new(listener);
+            server.serve_with_incoming(incoming).await?
+        }
     }
 
     Ok(())
