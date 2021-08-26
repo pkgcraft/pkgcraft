@@ -127,7 +127,6 @@ async fn try_main() -> Result<()> {
         Err(_) => {
             let error = format!("failed connecting to arcanist socket: {:?}", &url);
             Endpoint::from_static("http://[::]")
-                .connect_timeout(Duration::from_secs(timeout))
                 .user_agent(user_agent)?
                 .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(url.clone())))
                 .await
