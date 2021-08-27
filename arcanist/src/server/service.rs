@@ -129,7 +129,7 @@ impl Arcanist for ArcanistService {
         &self,
         _request: Request<ListRequest>,
     ) -> Result<Response<Self::AddPackagesStream>, Status> {
-        unimplemented!()
+        todo!()
     }
 
     type RemovePackagesStream = ReceiverStream<Result<StringResponse, Status>>;
@@ -138,7 +138,7 @@ impl Arcanist for ArcanistService {
         &self,
         _request: Request<ListRequest>,
     ) -> Result<Response<Self::RemovePackagesStream>, Status> {
-        unimplemented!()
+        todo!()
     }
 
     async fn version(
