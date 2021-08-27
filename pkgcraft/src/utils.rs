@@ -129,13 +129,10 @@ where
     // wait for arcanist to report it's running
     let stderr = arcanist.stderr.take().expect("no stderr");
     let f = BufReader::new(stderr);
-    match timeout_future(timeout, f.lines().next_line()).await {
+    let socket = match timeout_future(timeout, f.lines().next_line()).await {
         Ok(Ok(Some(line))) => {
             match ARCANIST_RE.captures(&line) {
-                Some(m) => {
-                    let socket = m.name("socket").unwrap().as_str().to_owned();
-                    Ok((arcanist, socket))
-                }
+                Some(m) => Ok(m.name("socket").unwrap().as_str().to_owned()),
                 None => {
                     // try to kill arcanist, but ignore failures
                     arcanist.kill().await.ok();
@@ -148,7 +145,9 @@ where
             arcanist.kill().await.ok();
             Err(Error::IO("failed starting arcanist".to_string()))
         }
-    }
+    };
+
+    Ok((arcanist, socket?))
 }
 
 pub async fn connect_or_spawn_arcanist<P: AsRef<Path>>(
