@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::io;
 use std::os::unix::net::UnixStream;
@@ -10,13 +11,16 @@ use notify::{raw_watcher, RawEvent, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::{
-    io::AsyncBufReadExt, io::BufReader, process::Command, time::timeout as timeout_future,
+    io::AsyncBufReadExt,
+    io::BufReader,
+    process::{Child, Command},
+    time::timeout as timeout_future,
 };
 
 use crate::error::Error;
 
 pub static ARCANIST_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^arcanist listening at: \"?(?P<socket>.+)\"?$").unwrap());
+    Lazy::new(|| Regex::new("^arcanist listening at: (?P<socket>.+)$").unwrap());
 
 // Return a string slice stripping the given character from the right side. Note that this assumes
 // the string only contains ASCII characters.
@@ -90,6 +94,63 @@ impl FileWatcher {
     }
 }
 
+pub async fn spawn_arcanist<S, I, K, V>(
+    socket: S,
+    env: Option<I>,
+    timeout: Option<u64>,
+) -> crate::Result<(Child, String)>
+where
+    S: AsRef<str>,
+    I: IntoIterator<Item = (K, V)>,
+    K: AsRef<OsStr>,
+    V: AsRef<OsStr>,
+{
+    // zero or an unset value effectively means no timeout occurs
+    let timeout = match timeout {
+        None | Some(0) => Duration::from_secs(u64::MAX),
+        Some(x) => Duration::from_secs(x),
+    };
+
+    // merge environment settings
+    let mut cmd = Command::new("arcanist");
+    if let Some(env) = env {
+        cmd.env_clear().envs(env);
+    }
+
+    // start arcanist detached from the current process while capturing stderr
+    let mut arcanist = cmd
+        .args(&["--bind", socket.as_ref()])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
+
+    // wait for arcanist to report it's running
+    let stderr = arcanist.stderr.take().expect("no stderr");
+    let f = BufReader::new(stderr);
+    match timeout_future(timeout, f.lines().next_line()).await {
+        Ok(Ok(Some(line))) => {
+            match ARCANIST_RE.captures(&line) {
+                Some(m) => {
+                    let socket = m.name("socket").unwrap().as_str().to_owned();
+                    Ok((arcanist, socket))
+                }
+                None => {
+                    // try to kill arcanist, but ignore failures
+                    arcanist.kill().await.ok();
+                    Err(Error::IO(format!("unknown arcanist message: {:?}", line)))
+                }
+            }
+        }
+        _ => {
+            // try to kill arcanist, but ignore failures
+            arcanist.kill().await.ok();
+            Err(Error::IO("failed starting arcanist".to_string()))
+        }
+    }
+}
+
 pub async fn connect_or_spawn_arcanist<P: AsRef<Path>>(
     path: P,
     timeout: Option<u64>,
@@ -99,44 +160,15 @@ pub async fn connect_or_spawn_arcanist<P: AsRef<Path>>(
         .to_str()
         .ok_or_else(|| Error::InvalidValue(format!("invalid socket path: {:?}", &socket_path)))?;
 
-    // zero or an unset value effectively means no timeout occurs
-    let timeout = match timeout {
-        None | Some(0) => Duration::from_secs(u64::MAX),
-        Some(x) => Duration::from_secs(x),
-    };
-
     if let Err(e) = UnixStream::connect(&socket_path) {
         match e.kind() {
             // spawn arcanist if it's not running
             io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
                 // remove potentially existing, old socket file
                 fs::remove_file(&socket_path).unwrap_or_default();
-                // start arcanist detached from the current process
-                let mut arcanist = Command::new("arcanist")
-                    .args(&["--bind", socket])
-                    .stdin(Stdio::null())
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::piped())
-                    .spawn()
-                    .map_err(|e| Error::Config(format!("failed starting arcanist: {}", e)))?;
-
-                // wait for arcanist to report it's running
-                let stderr = arcanist.stderr.take().expect("no stderr");
-                let f = BufReader::new(stderr);
-                match timeout_future(timeout, f.lines().next_line()).await {
-                    Ok(Ok(Some(line))) => {
-                        if !ARCANIST_RE.is_match(&line) {
-                            // try to kill arcanist, but ignore failures
-                            arcanist.kill().await.ok();
-                            return Err(Error::IO(format!("unknown arcanist message: {:?}", line)));
-                        }
-                    }
-                    _ => {
-                        // try to kill arcanist, but ignore failures
-                        arcanist.kill().await.ok();
-                        return Err(Error::IO("failed starting arcanist".to_string()));
-                    }
-                }
+                // spawn arcanist and wait for it to start
+                let env: Option<Vec<(&str, &str)>> = None;
+                spawn_arcanist(&socket, env, timeout).await?;
             }
             _ => {
                 return Err(Error::Config(format!(

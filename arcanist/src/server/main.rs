@@ -97,7 +97,7 @@ async fn main() -> Result<()> {
             uds::verify_socket_path(&socket)?;
             let listener = UnixListener::bind(&socket)
                 .context(format!("failed binding to socket: {:?}", &socket))?;
-            eprintln!("arcanist listening at: {:?}", &socket);
+            eprintln!("arcanist listening at: {}", &socket);
             let incoming = {
                 async_stream::stream! {
                     while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
