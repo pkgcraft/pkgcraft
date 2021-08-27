@@ -62,20 +62,19 @@ async fn test_tcp() {
         let msg = f.lines().next_line().await.unwrap().unwrap();
         let m = ARCANIST_RE.captures(&msg).unwrap();
         let socket = m.name("socket").unwrap().as_str();
-        let url = format!("http://{}", &socket);
+        let url = &format!("http://{}", &socket);
 
         let expected = format!(
             "client: pakt-{0}, server: arcanist-{0}",
             env!("CARGO_PKG_VERSION")
         );
-        // verify raw socket arg works
-        let mut cmd = assert_command::cargo_bin("pakt").unwrap();
-        let output1 = cmd.arg("-c").arg(socket).arg("version").output().unwrap();
-        assert_eq!(str::from_utf8(&output1.stdout).unwrap().trim(), expected);
-        // as well as regular url
-        let mut cmd = assert_command::cargo_bin("pakt").unwrap();
-        let output2 = cmd.arg("-c").arg(url).arg("version").output().unwrap();
-        assert_eq!(str::from_utf8(&output2.stdout).unwrap().trim(), expected);
+
+        // verify both raw socket and url args work
+        for addr in [socket, url] {
+            let mut cmd = assert_command::cargo_bin("pakt").unwrap();
+            let output = cmd.arg("-c").arg(addr).arg("version").output().unwrap();
+            assert_eq!(str::from_utf8(&output.stdout).unwrap().trim(), expected);
+        }
 
         arcanist.kill().await.unwrap();
     }
