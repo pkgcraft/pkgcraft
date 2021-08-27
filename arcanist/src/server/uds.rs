@@ -1,7 +1,7 @@
 use std::{
     fs,
     os::unix::net::UnixStream as StdUnixStream,
-    path::PathBuf,
+    path::Path,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
@@ -60,8 +60,8 @@ impl AsyncWrite for UnixStream {
 }
 
 // Verify if a given path is an accept UNIX domain socket path.
-pub fn verify_socket_path(path: String) -> Result<PathBuf> {
-    let path = PathBuf::from(path);
+pub fn verify_socket_path<P: AsRef<Path>>(path: P) -> Result<()> {
+    let path = path.as_ref();
     let socket_dir = &path
         .parent()
         .context(format!("invalid socket path: {:?}", &path))?;
@@ -76,5 +76,5 @@ pub fn verify_socket_path(path: String) -> Result<PathBuf> {
         .context(format!("failed creating socket dir: {:?}", socket_dir))?;
     fs::remove_file(&path).unwrap_or_default();
 
-    Ok(path)
+    Ok(())
 }

@@ -94,7 +94,7 @@ async fn main() -> Result<()> {
 
     match socket.parse::<SocketAddr>() {
         Err(_) => {
-            let socket = uds::verify_socket_path(socket)?;
+            uds::verify_socket_path(&socket)?;
             let listener = UnixListener::bind(&socket)
                 .context(format!("failed binding to socket: {:?}", &socket))?;
             eprintln!("arcanist listening at: {:?}", &socket);
@@ -108,7 +108,7 @@ async fn main() -> Result<()> {
             server.serve_with_incoming(incoming).await?;
         }
         Ok(socket) => {
-            let listener = TcpListener::bind(socket)
+            let listener = TcpListener::bind(&socket)
                 .await
                 .context(format!("failed binding to socket: {:?}", &socket))?;
             let addr = listener
