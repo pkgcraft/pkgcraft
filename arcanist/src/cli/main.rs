@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::process;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -166,6 +167,6 @@ fn main() {
                 Some(e @ tonic::Status { .. }) => eprintln!("caused by: {}", e.message()),
                 _ => eprintln!("caused by: {}", cause),
             });
-        std::process::exit(1);
+        process::exit(1);
     }
 }
