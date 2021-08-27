@@ -3,7 +3,11 @@
 
 # Pkgcraft
 
-Pkgcraft is a highly experimental, rust-based ecosystem for Gentoo Linux.
+Pkgcraft is a highly experimental, rust-based, tooling ecosystem for Gentoo. It
+aims to provide bindings for other programming languages targeting
+Gentoo-specific functionality as well as a new approach to package management,
+leveraging a client-server design that will potentially support various
+frontends.
 
 ## Components
 
