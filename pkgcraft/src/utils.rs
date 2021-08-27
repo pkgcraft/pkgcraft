@@ -154,11 +154,12 @@ where
 pub async fn connect_or_spawn_arcanist<P: AsRef<Path>>(
     path: P,
     timeout: Option<u64>,
-) -> crate::Result<()> {
+) -> crate::Result<String> {
     let socket_path = path.as_ref();
     let socket = socket_path
         .to_str()
-        .ok_or_else(|| Error::InvalidValue(format!("invalid socket path: {:?}", &socket_path)))?;
+        .ok_or_else(|| Error::InvalidValue(format!("invalid socket path: {:?}", &socket_path)))?
+        .to_string();
 
     if let Err(e) = UnixStream::connect(&socket_path) {
         match e.kind() {
@@ -179,5 +180,5 @@ pub async fn connect_or_spawn_arcanist<P: AsRef<Path>>(
         }
     }
 
-    Ok(())
+    Ok(socket)
 }
