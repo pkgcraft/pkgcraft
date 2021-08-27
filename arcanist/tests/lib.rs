@@ -47,34 +47,36 @@ async fn test_tcp() {
     env::set_var("ARCANIST_SKIP_CONFIG", "true");
     env::set_var("PAKT_SKIP_CONFIG", "true");
 
-    let mut arcanist = Command::new(env!("CARGO_BIN_EXE_arcanist"))
-        .args(&["--bind", "127.0.0.1:0"])
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("arcanist failed to start");
+    for addr in ["127.0.0.1:0", "[::]:0"] {
+        let mut arcanist = Command::new(env!("CARGO_BIN_EXE_arcanist"))
+            .args(&["--bind", addr])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("arcanist failed to start");
 
-    // determine the socket arcanist is running on
-    let stderr = arcanist.stderr.take().expect("no stderr");
-    let f = BufReader::new(stderr);
-    let msg = f.lines().next_line().await.unwrap().unwrap();
-    let m = ARCANIST_RE.captures(&msg).unwrap();
-    let socket = m.name("socket").unwrap().as_str();
-    let url = format!("http://{}", &socket);
+        // determine the socket arcanist is running on
+        let stderr = arcanist.stderr.take().expect("no stderr");
+        let f = BufReader::new(stderr);
+        let msg = f.lines().next_line().await.unwrap().unwrap();
+        let m = ARCANIST_RE.captures(&msg).unwrap();
+        let socket = m.name("socket").unwrap().as_str();
+        let url = format!("http://{}", &socket);
 
-    let expected = format!(
-        "client: pakt-{0}, server: arcanist-{0}",
-        env!("CARGO_PKG_VERSION")
-    );
-    // verify raw socket arg works
-    let mut cmd = assert_command::cargo_bin("pakt").unwrap();
-    let output1 = cmd.arg("-c").arg(socket).arg("version").output().unwrap();
-    assert_eq!(str::from_utf8(&output1.stdout).unwrap().trim(), expected);
-    // as well as regular url
-    let mut cmd = assert_command::cargo_bin("pakt").unwrap();
-    let output2 = cmd.arg("-c").arg(url).arg("version").output().unwrap();
-    assert_eq!(str::from_utf8(&output2.stdout).unwrap().trim(), expected);
+        let expected = format!(
+            "client: pakt-{0}, server: arcanist-{0}",
+            env!("CARGO_PKG_VERSION")
+        );
+        // verify raw socket arg works
+        let mut cmd = assert_command::cargo_bin("pakt").unwrap();
+        let output1 = cmd.arg("-c").arg(socket).arg("version").output().unwrap();
+        assert_eq!(str::from_utf8(&output1.stdout).unwrap().trim(), expected);
+        // as well as regular url
+        let mut cmd = assert_command::cargo_bin("pakt").unwrap();
+        let output2 = cmd.arg("-c").arg(url).arg("version").output().unwrap();
+        assert_eq!(str::from_utf8(&output2.stdout).unwrap().trim(), expected);
 
-    arcanist.kill().await.unwrap();
+        arcanist.kill().await.unwrap();
+    }
 }
