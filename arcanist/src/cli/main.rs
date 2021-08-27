@@ -125,8 +125,7 @@ async fn try_main() -> Result<()> {
         false => settings.url.clone(),
         true => {
             let path = config.path.run.join("arcanist.sock");
-            let socket = connect_or_spawn_arcanist(&path, Some(timeout)).await?;
-            socket
+            connect_or_spawn_arcanist(&path, Some(timeout)).await?
         }
     };
 
