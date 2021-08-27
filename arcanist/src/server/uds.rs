@@ -1,9 +1,13 @@
 use std::{
+    fs,
+    os::unix::net::UnixStream as StdUnixStream,
+    path::PathBuf,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
 };
 
+use anyhow::{bail, Context as AnyhowContext, Result};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tonic::transport::server::Connected;
 
@@ -53,4 +57,24 @@ impl AsyncWrite for UnixStream {
     fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         Pin::new(&mut self.0).poll_shutdown(cx)
     }
+}
+
+// Verify if a given path is an accept UNIX domain socket path.
+pub fn verify_socket_path(path: String) -> Result<PathBuf> {
+    let path = PathBuf::from(path);
+    let socket_dir = &path
+        .parent()
+        .context(format!("invalid socket path: {:?}", &path))?;
+
+    // check if the socket is already in use
+    if StdUnixStream::connect(&path).is_ok() {
+        bail!("arcanist already running on: {:?}", &path);
+    }
+
+    // create dirs and remove old socket file if it exists
+    fs::create_dir_all(socket_dir)
+        .context(format!("failed creating socket dir: {:?}", socket_dir))?;
+    fs::remove_file(&path).unwrap_or_default();
+
+    Ok(path)
 }

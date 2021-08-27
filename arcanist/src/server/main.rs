@@ -1,10 +1,7 @@
-use std::fs;
 use std::net::SocketAddr;
-use std::os::unix::net::UnixStream;
-use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use clap::{App, Arg, ArgSettings};
 use futures::TryFutureExt;
 use pkgcraft::config::Config as PkgcraftConfig;
@@ -72,54 +69,32 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
 
     if let Some(socket) = args.value_of("socket") {
         settings.socket = socket.to_string();
+    } else if settings.socket.is_empty() {
+        // default to using unix domain socket
+        settings.socket = config
+            .path
+            .run
+            .join("arcanist.sock")
+            .to_string_lossy()
+            .into_owned();
     }
 
     Ok((settings, config))
 }
 
-pub fn verify_socket_path(path: String) -> Result<PathBuf> {
-    let path = PathBuf::from(path);
-    let socket_dir = &path
-        .parent()
-        .context(format!("invalid socket path: {:?}", &path))?;
-
-    // check if the socket is already in use
-    if UnixStream::connect(&path).is_ok() {
-        bail!("arcanist already running on: {:?}", &path);
-    }
-
-    // create dirs and remove old socket file if it exists
-    fs::create_dir_all(socket_dir)
-        .context(format!("failed creating socket dir: {:?}", socket_dir))?;
-    fs::remove_file(&path).unwrap_or_default();
-
-    Ok(path)
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let (settings, config) = load_settings()?;
-
-    let socket = match settings.socket.is_empty() {
-        false => settings.socket.clone(),
-        true => config
-            .path
-            .run
-            .join("arcanist.sock")
-            .to_string_lossy()
-            .into_owned(),
-    };
-
+    let socket = settings.socket.clone();
     let service = ArcanistService {
         settings,
         config: Arc::new(RwLock::new(config)),
     };
-
     let server = Server::builder().add_service(ArcanistServer::new(service));
 
     match socket.parse::<SocketAddr>() {
         Err(_) => {
-            let socket = verify_socket_path(socket)?;
+            let socket = uds::verify_socket_path(socket)?;
             let listener = UnixListener::bind(&socket)
                 .context(format!("failed binding to socket: {:?}", &socket))?;
             eprintln!("arcanist listening at: {:?}", &socket);
