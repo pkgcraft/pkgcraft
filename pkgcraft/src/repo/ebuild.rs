@@ -13,7 +13,6 @@ use crate::repo;
 pub(crate) struct Repo {
     id: String,
     path: PathBuf,
-    cached: bool,
     pkgs: repo::PkgCache,
 }
 
@@ -26,11 +25,6 @@ impl Repo {
             path: PathBuf::from(path.as_ref()),
             ..Default::default()
         })
-    }
-
-    // TODO: build pkg cache from dir listing
-    fn update_cache(&mut self) {
-        self.cached = true;
     }
 
     pub(super) fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
@@ -55,23 +49,14 @@ impl fmt::Display for Repo {
 // TODO: fill out stub implementation
 impl repo::Repo for Repo {
     fn categories(&mut self) -> repo::StringIter {
-        if !self.cached {
-            self.update_cache();
-        }
         self.pkgs.categories()
     }
 
     fn packages(&mut self, cat: &str) -> repo::StringIter {
-        if !self.cached {
-            self.update_cache();
-        }
         self.pkgs.packages(cat)
     }
 
     fn versions(&mut self, cat: &str, pkg: &str) -> repo::StringIter {
-        if !self.cached {
-            self.update_cache();
-        }
         self.pkgs.versions(cat, pkg)
     }
 }
