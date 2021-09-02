@@ -37,6 +37,7 @@ pub fn cmd() -> App<'static> {
             .about("suppress non-error messages"))
         .arg(Arg::new("socket")
             .setting(ArgSettings::TakesValue)
+            .setting(ArgSettings::ForbidEmptyValues)
             .long("bind")
             .value_name("IP:port")
             .about("bind to given network socket"))
