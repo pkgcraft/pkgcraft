@@ -69,10 +69,18 @@ where
                 }
             }
         }
-        _ => {
-            // try to kill arcanist, but ignore failures
+        Err(_) => {
             arcanist.kill().await.ok();
             Err(Error::Start("timed out".to_string()))
+        }
+        Ok(Err(e)) => {
+            // unknown IO error
+            arcanist.kill().await.ok();
+            Err(Error::Start(e.to_string()))
+        }
+        Ok(Ok(None)) => {
+            arcanist.kill().await.ok();
+            Err(Error::Start("no startup message found".to_string()))
         }
     };
 
