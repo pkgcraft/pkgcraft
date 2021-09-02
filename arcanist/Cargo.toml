@@ -18,7 +18,9 @@ config = "0.11"
 futures = "0.3.16"
 pkgcraft = { path = "../pkgcraft", version = "0.0.1" }
 prost = "0.8"
+regex = "1"
 serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0.26"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1.7", features = ["net"] }
 tonic = { version = "0.5.2", features = ["tls", "compression"] }
@@ -37,6 +39,10 @@ tonic-build = { version = "0.5.2", features = ["compression"] }
 assert_cmd = "2"
 regex = "1"
 tempfile = "3"
+
+[lib]
+name = "arcanist"
+path = "src/lib/lib.rs"
 
 [[bin]]
 bench = false

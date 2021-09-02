@@ -3,7 +3,6 @@ use std::str;
 
 use assert_cmd::Command as assert_command;
 use once_cell::sync::Lazy;
-use pkgcraft::utils::spawn_arcanist;
 use tempfile::Builder;
 
 static TARGET_DIR: Lazy<String> = Lazy::new(|| {
@@ -20,7 +19,7 @@ async fn test_uds() {
     let socket_path = tmp_dir.path().to_owned().join("arcanist.sock");
     let socket = socket_path.to_str().unwrap();
 
-    let (mut arcanist, socket) = spawn_arcanist(&socket, Some(env), Some(5)).await.unwrap();
+    let (mut arcanist, socket) = arcanist::spawn(&socket, Some(env), Some(5)).await.unwrap();
 
     let mut cmd = assert_command::cargo_bin("pakt").unwrap();
     let output = cmd
@@ -45,7 +44,7 @@ async fn test_tcp() {
     let env = [("ARCANIST_SKIP_CONFIG", "true"), ("PATH", &TARGET_DIR)];
 
     for addr in ["127.0.0.1:0", "[::]:0"] {
-        let (mut arcanist, socket) = spawn_arcanist(addr, Some(env), Some(5)).await.unwrap();
+        let (mut arcanist, socket) = arcanist::spawn(addr, Some(env), Some(5)).await.unwrap();
         let url = format!("http://{}", &socket);
 
         let expected = format!(
