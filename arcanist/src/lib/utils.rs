@@ -17,7 +17,7 @@ use tokio::{
 
 use crate::error::Error;
 
-pub static ARCANIST_RE: Lazy<Regex> =
+static ARCANIST_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^arcanist listening at: (?P<socket>.+)$").unwrap());
 
 pub async fn spawn<S, I, K, V>(
