@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::{App, Arg, ArgSettings};
 use futures::TryFutureExt;
 use pkgcraft::config::Config as PkgcraftConfig;
@@ -94,7 +94,8 @@ async fn main() -> Result<()> {
     let server = Server::builder().add_service(arcanist::Server::new(service));
 
     match socket.parse::<SocketAddr>() {
-        Err(_) => {
+        // force unix domain sockets to be absolute paths
+        Err(_) if socket.starts_with('/') => {
             uds::verify_socket_path(&socket)?;
             let listener = UnixListener::bind(&socket)
                 .context(format!("failed binding to socket: {:?}", &socket))?;
@@ -119,6 +120,7 @@ async fn main() -> Result<()> {
             let incoming = TcpListenerStream::new(listener);
             server.serve_with_incoming(incoming).await?
         }
+        _ => bail!("invalid socket: {:?}", &socket),
     }
 
     Ok(())
