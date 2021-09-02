@@ -43,6 +43,7 @@ pub fn cmd() -> App<'static> {
             .about("bind to given network socket"))
         .arg(Arg::new("config")
             .setting(ArgSettings::TakesValue)
+            .setting(ArgSettings::ForbidEmptyValues)
             .long("config")
             .value_name("PATH")
             .about("path to config file"))
