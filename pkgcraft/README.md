@@ -1,3 +1,3 @@
 # pkgcraft
 
-Pkgcraft is a library of Gentoo Linux functionality.
+Pkgcraft is a library of Gentoo functionality.
