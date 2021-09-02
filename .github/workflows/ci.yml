@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [deploy]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: 1.54.0
+        profile: minimal
+        override: true
+        components: rustfmt
+
+    - name: Update crates
+      run: cargo update
+
+    - name: Cache crates
+      uses: actions/cache@v2
+      with:
+        path: ~/.cargo/registry/cache
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-
+
+    - name: Run tests
+      if: ${{ matrix.os == 'macos-latest' }}
+      run: cargo test
+
+    # tarpaulin is currently linux x86_64 only
+    - name: Run tests with coverage via tarpaulin
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: actions-rs/tarpaulin@v0.1
+      with:
+        args: '--exclude-files */tests'
+
+    - name: Upload to codecov.io
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: codecov/codecov-action@v1
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: 1.54.0
+        profile: minimal
+        override: true
+        components: clippy, rustfmt
+
+    - name: Run rustfmt
+      run: cargo fmt --all -- --check
+
+    - name: Update crates
+      run: cargo update
+
+    - name: Cache crates
+      uses: actions/cache@v2
+      with:
+        path: ~/.cargo/registry/cache
+        key: cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: cargo-
+
+    - name: Run clippy
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: 1.54.0
+        profile: minimal
+        override: true
+        components: rustfmt
+
+    - name: Update crates
+      run: cargo update
+
+    - name: Cache crates
+      uses: actions/cache@v2
+      with:
+        path: ~/.cargo/registry/cache
+        key: cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: cargo-
+
+    - name: Run benchmarks
+      run: |
+        cargo install cargo-criterion
+        cargo criterion
