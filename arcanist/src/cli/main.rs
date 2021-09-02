@@ -120,6 +120,7 @@ async fn try_main() -> Result<()> {
         .parse::<u64>()
         .unwrap();
 
+    // use unix domain socket by default if no connection URL is given
     let url = match settings.url.is_empty() {
         false => settings.url.clone(),
         true => {
@@ -150,7 +151,6 @@ async fn try_main() -> Result<()> {
     };
 
     let mut client: Client = arcanist::Client::new(channel);
-
     subcmds::run(&args, &mut client, &mut settings).await
 }
 
