@@ -10,11 +10,6 @@ use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
 use url::Url;
 
-pub mod arcanist {
-    tonic::include_proto!("arcanist");
-}
-
-use arcanist::arcanist_client::ArcanistClient;
 use argparse::{positive_int, str_to_bool};
 use settings::Settings;
 
@@ -22,7 +17,7 @@ mod argparse;
 mod settings;
 mod subcmds;
 
-pub type Client = ArcanistClient<Channel>;
+pub type Client = arcanist::Client<Channel>;
 
 #[rustfmt::skip]
 pub fn cmd() -> App<'static> {
@@ -149,7 +144,7 @@ async fn try_main() -> Result<()> {
         }
     };
 
-    let mut client: Client = ArcanistClient::new(channel);
+    let mut client: Client = arcanist::Client::new(channel);
 
     subcmds::run(&args, &mut client, &mut settings).await
 }

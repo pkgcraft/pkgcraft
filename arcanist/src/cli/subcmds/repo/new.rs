@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use clap::{App, Arg, ArgMatches, ArgSettings};
 
-use crate::arcanist::StringRequest;
 use crate::Client;
+use arcanist::proto::StringRequest;
 
 #[rustfmt::skip]
 pub fn cmd() -> App<'static> {

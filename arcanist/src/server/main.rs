@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 
-use crate::service::{ArcanistServer, ArcanistService};
+use crate::service::ArcanistService;
 use crate::settings::Settings;
 
 mod service;
@@ -90,7 +90,7 @@ async fn main() -> Result<()> {
         settings,
         config: Arc::new(RwLock::new(config)),
     };
-    let server = Server::builder().add_service(ArcanistServer::new(service));
+    let server = Server::builder().add_service(arcanist::Server::new(service));
 
     match socket.parse::<SocketAddr>() {
         Err(_) => {
