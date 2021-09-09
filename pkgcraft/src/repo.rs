@@ -50,6 +50,7 @@ pub(crate) enum Repository {
 }
 
 impl Repository {
+    /// Determine if a given repository format is supported.
     pub(crate) fn is_supported<S: AsRef<str>>(format: S) -> crate::Result<()> {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
@@ -61,6 +62,7 @@ impl Repository {
         }
     }
 
+    /// Try to load a repository from a given path.
     pub(crate) fn from_path<P: AsRef<Path>>(
         id: &str,
         path: P,
@@ -79,6 +81,7 @@ impl Repository {
         })
     }
 
+    /// Try to load a certain repository type from a given path.
     pub(crate) fn from_format<P: AsRef<Path>>(
         id: &str,
         path: P,
