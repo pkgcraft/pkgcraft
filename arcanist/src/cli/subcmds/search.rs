@@ -9,7 +9,6 @@ pub fn cmd() -> App<'static> {
     App::new("search")
         .about("search repos")
         .setting(AppSettings::DisableHelpSubcommand)
-        .setting(AppSettings::DisableVersionForSubcommands)
         .arg(Arg::new("pkgs")
             .setting(ArgSettings::TakesValue)
             .setting(ArgSettings::MultipleValues)

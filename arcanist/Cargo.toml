@@ -13,7 +13,7 @@ autotests = false
 [dependencies]
 anyhow = "1.0.42"
 async-stream = "0.3.2"
-clap = { version = "3.0.0-beta.4", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "3.0.0-beta.5", default-features = false, features = ["std", "suggestions"] }
 config = "0.11"
 futures = "0.3.16"
 pkgcraft = { path = "../pkgcraft", version = "0.0.1" }

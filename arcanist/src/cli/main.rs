@@ -25,7 +25,6 @@ pub fn cmd() -> App<'static> {
         .version(env!("CARGO_PKG_VERSION"))
         .about("command-line tool leveraging pkgcraft")
         .setting(AppSettings::DisableHelpSubcommand)
-        .setting(AppSettings::DisableVersionForSubcommands)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommands(subcmds::register())
         .arg(Arg::new("color")

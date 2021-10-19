@@ -9,7 +9,6 @@ pub fn cmd() -> App<'static> {
     App::new("add")
         .about("add packages")
         .setting(AppSettings::DisableHelpSubcommand)
-        .setting(AppSettings::DisableVersionForSubcommands)
         .arg(Arg::new("pkgs")
             .setting(ArgSettings::TakesValue)
             .setting(ArgSettings::MultipleValues)

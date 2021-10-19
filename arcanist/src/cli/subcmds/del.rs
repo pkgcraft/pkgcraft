@@ -9,7 +9,6 @@ pub fn cmd() -> App<'static> {
     App::new("del")
         .about("remove packages")
         .setting(AppSettings::DisableHelpSubcommand)
-        .setting(AppSettings::DisableVersionForSubcommands)
         .arg(Arg::new("pkgs")
             .setting(ArgSettings::TakesValue)
             .setting(ArgSettings::MultipleValues)

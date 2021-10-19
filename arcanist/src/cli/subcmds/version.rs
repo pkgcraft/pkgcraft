@@ -9,7 +9,6 @@ pub fn cmd() -> App<'static> {
     App::new("version")
         .about("query arcanist for client/server version info")
         .setting(AppSettings::DisableHelpSubcommand)
-        .setting(AppSettings::DisableVersionForSubcommands)
 }
 
 pub async fn run(client: &mut Client) -> Result<()> {
