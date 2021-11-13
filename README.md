@@ -15,10 +15,6 @@ frontends.
 - **arcanist**: daemon focused on package querying, building, and merging
 - **pakt**: command-line client for arcanist
 
-## Requirements
-
-Minimum supported rust version: 1.54.0
-
 ## Contact
 
 For bugs and feature requests please create an [issue][1].
