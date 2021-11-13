@@ -103,7 +103,8 @@ async fn main() -> Result<()> {
             eprintln!("arcanist listening at: {}", &socket);
             let incoming = {
                 async_stream::stream! {
-                    while let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await {
+                    loop {
+                        let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await;
                         yield item;
                     }
                 }
