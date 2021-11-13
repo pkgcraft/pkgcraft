@@ -36,15 +36,7 @@ jobs:
         restore-keys: ${{ runner.os }}-cargo-
 
     - name: Run tests
-      if: ${{ matrix.os == 'macos-latest' }}
       run: cargo test
-
-    # tarpaulin is currently linux x86_64 only
-    - name: Run tests with coverage via tarpaulin
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: actions-rs/tarpaulin@v0.1
-      with:
-        args: '--exclude-files */tests'
 
     - name: Upload to codecov.io
       if: ${{ matrix.os == 'ubuntu-latest' }}
