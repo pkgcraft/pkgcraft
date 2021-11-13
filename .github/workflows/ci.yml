@@ -38,10 +38,6 @@ jobs:
     - name: Run tests
       run: cargo test
 
-    - name: Upload to codecov.io
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      uses: codecov/codecov-action@v1
-
   lint:
     runs-on: ubuntu-latest
     steps:
