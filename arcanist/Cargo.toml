@@ -18,13 +18,13 @@ clap = { version = "3.0.0-beta.5", default-features = false, features = ["std", 
 config = "0.11"
 futures = "0.3.16"
 pkgcraft = { path = "../pkgcraft", version = "0.0.1" }
-prost = "0.8"
+prost = "0.9"
 regex = "1"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0.26"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1.7", features = ["net"] }
-tonic = { version = "0.5.2", features = ["tls", "compression"] }
+tonic = { version = "0.6.0", features = ["tls", "compression"] }
 url = "2"
 
 # pakt specific deps
@@ -34,7 +34,7 @@ stderrlog = "0.5"
 tower = "0.4.8"
 
 [build-dependencies]
-tonic-build = { version = "0.5.2", features = ["compression"] }
+tonic-build = { version = "0.6.0", features = ["compression"] }
 
 [dev-dependencies]
 assert_cmd = "2"
