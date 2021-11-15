@@ -8,6 +8,8 @@ use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
 use argparse::{positive_int, str_to_bool};
@@ -100,11 +102,21 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig, ArgMatches)> {
         };
     }
 
-    stderrlog::new()
-        .modules([module_path!(), "pkgcraft"])
-        .verbosity(args.occurrences_of("verbose") as usize)
-        .quiet(settings.verbosity < 0)
-        .init()?;
+    // logs are output at the warn level by default
+    let tracing_level = match settings.verbosity {
+        i32::MIN..=-1 => Level::ERROR,
+        0 => Level::WARN,
+        1 => Level::INFO,
+        2 => Level::DEBUG,
+        3..=i32::MAX => Level::TRACE,
+    };
+
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(tracing_level)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
     Ok((settings, config, args))
 }
