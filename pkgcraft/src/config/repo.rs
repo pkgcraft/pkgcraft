@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 use crate::error::Error;
 use crate::repo::ebuild::TempRepo;
@@ -97,7 +98,7 @@ impl Config {
                     // ignore bad configs
                     match RepoConfig::new(&p) {
                         Ok(repo_conf) => repo_configs.push((repo_conf, name)),
-                        Err(err) => log::warn!("{}", err),
+                        Err(err) => warn!("{}", err),
                     }
                 }
             }
@@ -115,7 +116,7 @@ impl Config {
                 Ok(repo) => {
                     repos.insert(name.clone(), repo);
                 }
-                Err(err) => log::warn!("{}", err),
+                Err(err) => warn!("{}", err),
             }
             configs.insert(name.clone(), config);
         }
