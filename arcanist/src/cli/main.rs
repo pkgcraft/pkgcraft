@@ -1,3 +1,4 @@
+use std::io;
 use std::net::SocketAddr;
 use std::process;
 use std::time::Duration;
@@ -113,6 +114,7 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig, ArgMatches)> {
 
     let subscriber = FmtSubscriber::builder()
         .with_max_level(tracing_level)
+        .with_writer(io::stderr)
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
