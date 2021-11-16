@@ -10,7 +10,7 @@ use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
 use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::fmt;
 use url::Url;
 
 use argparse::{positive_int, str_to_bool};
@@ -112,7 +112,7 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig, ArgMatches)> {
         3..=i32::MAX => Level::TRACE,
     };
 
-    let subscriber = FmtSubscriber::builder()
+    let subscriber = fmt()
         .with_max_level(tracing_level)
         .with_writer(io::stderr)
         .finish();
