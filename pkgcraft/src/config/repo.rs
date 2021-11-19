@@ -75,37 +75,41 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(config_dir: &Path, db_dir: &Path) -> crate::Result<Config> {
+    pub fn new(config_dir: &Path, db_dir: &Path, create: bool) -> crate::Result<Config> {
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
 
-        // if no repo config dir exists, return the default
-        if !config_dir.exists() {
-            return Ok(Config::default());
-        }
-
-        let mut repo_configs: Vec<(RepoConfig, String)> = Vec::new();
-        let entries = fs::read_dir(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
-
-        for entry in entries {
-            let p = entry.map_err(|e| Error::Config(e.to_string()))?.path();
-            if p.is_file() {
-                if let Some(name) = p
-                    .file_name()
-                    .and_then(|p| p.to_str().map(|s| s.to_string()))
-                    .filter(|s| !s.starts_with('.'))
-                {
-                    // ignore bad configs
-                    match RepoConfig::new(&p) {
-                        Ok(repo_conf) => repo_configs.push((repo_conf, name)),
-                        Err(err) => warn!("{}", err),
-                    }
-                }
+        // create paths on request
+        if create {
+            for path in [&config_dir, &repo_dir] {
+                fs::create_dir_all(path).map_err(|e| Error::Config(e.to_string()))?;
             }
         }
 
-        // sort repo configs by priority then by name
-        repo_configs.sort();
+        let mut repo_configs: Vec<(RepoConfig, String)> = Vec::new();
+        if config_dir.exists() {
+            let entries = fs::read_dir(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
+
+            for entry in entries {
+                let p = entry.map_err(|e| Error::Config(e.to_string()))?.path();
+                if p.is_file() {
+                    if let Some(name) = p
+                        .file_name()
+                        .and_then(|p| p.to_str().map(|s| s.to_string()))
+                        .filter(|s| !s.starts_with('.'))
+                    {
+                        // ignore bad configs
+                        match RepoConfig::new(&p) {
+                            Ok(repo_conf) => repo_configs.push((repo_conf, name)),
+                            Err(err) => warn!("{}", err),
+                        }
+                    }
+                }
+            }
+
+            // sort repo configs by priority then by name
+            repo_configs.sort();
+        }
 
         // create hash tables of repos ordered by priority
         let mut configs: IndexMap<String, RepoConfig> = Default::default();
@@ -138,13 +142,6 @@ impl Config {
                 name, &c.location
             )));
         }
-
-        fs::create_dir_all(&self.repo_dir).map_err(|e| {
-            Error::Config(format!(
-                "failed creating repo dir {:?}: {}",
-                &self.repo_dir, &e
-            ))
-        })?;
 
         let mut config = RepoConfig {
             location: dest_dir.clone(),

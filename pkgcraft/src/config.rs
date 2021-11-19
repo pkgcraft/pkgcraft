@@ -97,7 +97,7 @@ pub struct Config {
 impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Config> {
         let path = ConfigPath::new(name, prefix, create)?;
-        let repos = repo::Config::new(&path.config, &path.db)?;
+        let repos = repo::Config::new(&path.config, &path.db, create)?;
         Ok(Config { path, repos })
     }
 }
