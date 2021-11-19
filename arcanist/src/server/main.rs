@@ -9,6 +9,7 @@ use tokio::net::{TcpListener, UnixListener};
 use tokio::sync::RwLock;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
+use tracing_subscriber::{filter::LevelFilter, fmt};
 
 use crate::service::ArcanistService;
 use crate::settings::Settings;
@@ -67,8 +68,6 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
     settings.verbosity += args.occurrences_of("verbose") as i32;
     settings.verbosity -= args.occurrences_of("quiet") as i32;
 
-    // TODO: initialize syslog logger
-
     if let Some(socket) = args.value_of("socket") {
         settings.socket = socket.to_string();
     } else if settings.socket.is_empty() {
@@ -80,6 +79,19 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
             .to_string_lossy()
             .into_owned();
     }
+
+    // defaults to warning level
+    let tracing_filter = match settings.verbosity {
+        i32::MIN..=-2 => LevelFilter::OFF,
+        -1 => LevelFilter::ERROR,
+        0 => LevelFilter::WARN,
+        1 => LevelFilter::INFO,
+        2 => LevelFilter::DEBUG,
+        3..=i32::MAX => LevelFilter::TRACE,
+    };
+
+    let subscriber = fmt().with_max_level(tracing_filter).finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     Ok((settings, config))
 }
