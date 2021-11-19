@@ -55,7 +55,7 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
 
     // load pkgcraft config
     let config =
-        PkgcraftConfig::new("pkgcraft", "", false).context("failed loading pkgcraft config")?;
+        PkgcraftConfig::new("pkgcraft", "", true).context("failed loading pkgcraft config")?;
 
     // load config settings and then override them with command-line settings
     let config_file = args.value_of("config");
