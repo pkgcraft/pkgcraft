@@ -1,4 +1,3 @@
-use std::env;
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -14,7 +13,11 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn new<P: AsRef<Path>>(config: &PkgcraftConfig, path: Option<P>) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(
+        config: &PkgcraftConfig,
+        path: Option<P>,
+        skip_config: bool,
+    ) -> Result<Self> {
         let mut s = Config::default();
 
         // use defaults
@@ -25,7 +28,7 @@ impl Settings {
         let binary_upper = binary.to_uppercase();
 
         // load config file from given location or default fallback if not signalled to skip
-        if env::var_os(format!("{}_SKIP_CONFIG", &binary_upper)).is_none() {
+        if !skip_config {
             match path {
                 Some(path) => {
                     let path = path.as_ref();
