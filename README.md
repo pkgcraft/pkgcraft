@@ -14,7 +14,7 @@ frontends.
 - **arcanist**: daemon focused on package querying, building, and merging
 - **pakt**: command-line client for arcanist
 
-## Contact
+## Development
 
 For bugs and feature requests please create an [issue][1].
 
