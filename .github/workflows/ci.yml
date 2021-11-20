@@ -97,4 +97,4 @@ jobs:
     - name: Run benchmarks
       run: |
         cargo install cargo-criterion
-        cargo criterion
+        cargo criterion --no-run
