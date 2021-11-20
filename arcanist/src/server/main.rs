@@ -1,4 +1,3 @@
-use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -54,17 +53,14 @@ pub fn cmd() -> App<'static> {
 fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
     let app = cmd();
     let args = app.get_matches();
-
-    let binary = env!("CARGO_BIN_NAME");
-    let binary_upper = binary.to_uppercase();
-    let skip_config = env::var_os(format!("{}_SKIP_CONFIG", &binary_upper)).is_some();
+    let config_file = args.value_of("config");
+    let skip_config = config_file == Some("no");
 
     // load pkgcraft config
     let config = PkgcraftConfig::new("pkgcraft", "", !skip_config)
         .context("failed loading pkgcraft config")?;
 
     // load config settings and then override them with command-line settings
-    let config_file = args.value_of("config");
     let mut settings = Settings::new(&config, config_file, skip_config)?;
 
     if args.is_present("debug") {

@@ -20,16 +20,17 @@ use crate::error::Error;
 static ARCANIST_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^arcanist listening at: (?P<socket>.+)$").unwrap());
 
-pub async fn spawn<S, I, K, V>(
+pub async fn spawn<S, I, A, O>(
     socket: S,
     env: Option<I>,
+    args: Option<A>,
     timeout: Option<u64>,
 ) -> crate::Result<(Child, String)>
 where
     S: AsRef<str>,
-    I: IntoIterator<Item = (K, V)>,
-    K: AsRef<OsStr>,
-    V: AsRef<OsStr>,
+    I: IntoIterator<Item = (O, O)>,
+    A: IntoIterator<Item = O>,
+    O: AsRef<OsStr>,
 {
     // zero or an unset value effectively means no timeout occurs
     let timeout = match timeout {
@@ -37,10 +38,13 @@ where
         Some(x) => Duration::from_secs(x),
     };
 
-    // merge environment settings
+    // merge env and args settings
     let mut cmd = Command::new("arcanist");
     if let Some(env) = env {
         cmd.env_clear().envs(env);
+    }
+    if let Some(args) = args {
+        cmd.args(args);
     }
 
     // start arcanist detached from the current process while capturing stderr
@@ -105,7 +109,8 @@ pub async fn connect_or_spawn<P: AsRef<Path>>(
                 fs::remove_file(&socket_path).unwrap_or_default();
                 // spawn arcanist and wait for it to start
                 let env: Option<Vec<(&str, &str)>> = None;
-                spawn(&socket, env, timeout).await?;
+                let args: Option<Vec<&str>> = None;
+                spawn(&socket, env, args, timeout).await?;
             }
             _ => return Err(Error::Connect(format!("{}: {:?}", e, &socket_path))),
         }
