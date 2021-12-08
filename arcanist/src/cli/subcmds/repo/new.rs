@@ -10,7 +10,7 @@ pub fn cmd() -> App<'static> {
         .about("create repo")
         .arg(Arg::new("name")
             .setting(ArgSettings::Required)
-            .about("repo name"))
+            .help("repo name"))
 }
 
 pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {

@@ -10,10 +10,10 @@ pub fn cmd() -> App<'static> {
         .about("register repo")
         .arg(Arg::new("name")
             .setting(ArgSettings::Required)
-            .about("repo name"))
+            .help("repo name"))
         .arg(Arg::new("uri")
             .setting(ArgSettings::Required)
-            .about("repo location"))
+            .help("repo location"))
 }
 
 pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {

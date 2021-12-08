@@ -13,7 +13,7 @@ pub fn cmd() -> App<'static> {
             .setting(ArgSettings::TakesValue)
             .setting(ArgSettings::MultipleValues)
             .value_name("TARGET")
-            .about("extended atom matching"))
+            .help("extended atom matching"))
 }
 
 pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {

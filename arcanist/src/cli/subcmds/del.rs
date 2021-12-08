@@ -14,7 +14,7 @@ pub fn cmd() -> App<'static> {
             .setting(ArgSettings::MultipleValues)
             .setting(ArgSettings::Required)
             .value_name("PKG")
-            .about("packages to remove"))
+            .help("packages to remove"))
 }
 
 pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {

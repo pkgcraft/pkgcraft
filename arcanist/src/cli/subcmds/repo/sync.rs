@@ -12,7 +12,7 @@ pub fn cmd() -> App<'static> {
             .setting(ArgSettings::TakesValue)
             .setting(ArgSettings::MultipleValues)
             .value_name("REPO")
-            .about("repos to sync"))
+            .help("repos to sync"))
 }
 
 pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
