@@ -1,4 +1,5 @@
 [![CI](https://github.com/pkgcraft/pkgcraft/workflows/CI/badge.svg)](https://github.com/pkgcraft/pkgcraft/actions/workflows/ci.yml)
+[![deps](https://deps.rs/repo/github/pkgcraft/pkgcraft/status.svg)](https://deps.rs/repo/github/pkgcraft/pkgcraft)
 
 # Pkgcraft
 
