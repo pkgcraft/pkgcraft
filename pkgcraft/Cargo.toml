@@ -32,10 +32,10 @@ regex = "1"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "stream"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_with = "1.9.4"
-tar = "0.4"
+tar = "0.4.38"
 tempfile = "3"
 thiserror = "1.0.26"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.14", features = ["full"] }
 toml = "0.5.8"
 tracing = "0.1"
 
