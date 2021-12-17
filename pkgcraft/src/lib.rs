@@ -11,4 +11,7 @@ mod repo;
 mod sync;
 pub mod utils;
 
+#[cfg(feature = "capi")]
+mod capi;
+
 pub use self::error::{Error, Result};

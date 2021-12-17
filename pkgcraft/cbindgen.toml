@@ -1,0 +1,5 @@
+header = "// SPDX-License-Identifier: MIT"
+include_guard = "PKGCRAFT_H"
+include_version = true
+language = "C"
+cpp_compat = true
