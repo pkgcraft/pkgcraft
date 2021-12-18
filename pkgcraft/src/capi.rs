@@ -2,6 +2,7 @@
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use std::ptr::null_mut;
 use std::str::FromStr;
 
 use crate::atom;
@@ -15,7 +16,11 @@ pub struct Atom {
 
 /// Parse a string into a package atom.
 #[no_mangle]
-pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> Box<Atom> {
+pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> *mut Atom {
+    if s.is_null() {
+        return null_mut();
+    }
+
     let cstr = CStr::from_ptr(s);
     // TODO: add error handling
     let atom = atom::Atom::from_str(cstr.to_str().unwrap()).unwrap();
@@ -34,7 +39,9 @@ pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> Box<Atom> {
         package: pkg.into_raw(),
         version: ver.into_raw(),
     };
-    Box::new(c_atom)
+
+    let boxed = Box::new(c_atom);
+    Box::into_raw(boxed)
 }
 
 /// Free atom object.
