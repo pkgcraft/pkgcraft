@@ -2,10 +2,10 @@
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use std::ptr::null_mut;
+use std::ptr::{null, null_mut};
 use std::str::FromStr;
 
-use crate::atom;
+use crate::atom::Atom as PkgAtom;
 
 #[repr(C)]
 pub struct Atom {
@@ -23,21 +23,21 @@ pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> *mut Atom {
 
     let cstr = CStr::from_ptr(s);
     // TODO: add error handling
-    let atom = atom::Atom::from_str(cstr.to_str().unwrap()).unwrap();
+    let atom = PkgAtom::from_str(cstr.to_str().unwrap()).unwrap();
 
     // parsing should catch errors so no need to check here
-    let cat = CString::new(atom.category).unwrap();
-    let pkg = CString::new(atom.package).unwrap();
-    let ver = match &atom.version {
-        Some(v) => CString::new(format!("{}", v)).unwrap(),
-        None => CString::new("").unwrap(),
+    let category = CString::new(atom.category).unwrap().into_raw();
+    let package = CString::new(atom.package).unwrap().into_raw();
+    let version = match &atom.version {
+        Some(v) => CString::new(format!("{}", v)).unwrap().into_raw(),
+        None => null(),
     };
 
     // create C-compatible struct
     let c_atom = Atom {
-        category: cat.into_raw(),
-        package: pkg.into_raw(),
-        version: ver.into_raw(),
+        category,
+        package,
+        version,
     };
 
     let boxed = Box::new(c_atom);
@@ -54,5 +54,7 @@ pub unsafe extern "C" fn atom_free(atom: *mut Atom) {
     let a = Box::from_raw(atom);
     let _cat = CString::from_raw(a.category as *mut i8);
     let _pkg = CString::from_raw(a.package as *mut i8);
-    let _ver = CString::from_raw(a.version as *mut i8);
+    if !(*atom).version.is_null() {
+        let _ver = CString::from_raw(a.version as *mut i8);
+    }
 }

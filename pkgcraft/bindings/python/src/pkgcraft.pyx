@@ -10,7 +10,10 @@ cdef class atom:
         self._atom = pkgcraft.str_to_atom(s.encode())
         self.category = self._atom.category.decode()
         self.package = self._atom.package.decode()
-        self.version = self._atom.version.decode()
+        if self._atom.version is not NULL:
+            self.version = self._atom.version.decode()
+        else:
+            self.version = None
 
     def __dealloc__(self):
         pkgcraft.atom_free(self._atom)
