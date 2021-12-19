@@ -1,0 +1,6 @@
+header = "# SPDX-License-Identifier: MIT\n# generated with cbindgen\n# cython: language_level=3"
+language = "Cython"
+tab_width = 4
+
+[cython]
+header = '"pkgcraft.h"'
