@@ -6,6 +6,9 @@ cdef extern from "pkgcraft.h":
         const char *category
         const char *package
         const char *version
+        const char *slot
+        const char *subslot
+        const char *repo
 
     Atom *str_to_atom(const char *s)
     void atom_free(Atom *atom)

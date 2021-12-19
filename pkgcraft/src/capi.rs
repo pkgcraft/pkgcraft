@@ -12,6 +12,9 @@ pub struct Atom {
     pub category: *const c_char,
     pub package: *const c_char,
     pub version: *const c_char,
+    pub slot: *const c_char,
+    pub subslot: *const c_char,
+    pub repo: *const c_char,
 }
 
 /// Parse a string into a package atom.
@@ -28,8 +31,20 @@ pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> *mut Atom {
     // parsing should catch errors so no need to check here
     let category = CString::new(atom.category).unwrap().into_raw();
     let package = CString::new(atom.package).unwrap().into_raw();
-    let version = match &atom.version {
-        Some(v) => CString::new(format!("{}", v)).unwrap().into_raw(),
+    let version = match atom.version {
+        Some(s) => CString::new(format!("{}", s)).unwrap().into_raw(),
+        None => null(),
+    };
+    let slot = match atom.slot {
+        Some(s) => CString::new(s).unwrap().into_raw(),
+        None => null(),
+    };
+    let subslot = match atom.subslot {
+        Some(s) => CString::new(s).unwrap().into_raw(),
+        None => null(),
+    };
+    let repo = match atom.repo {
+        Some(s) => CString::new(s).unwrap().into_raw(),
         None => null(),
     };
 
@@ -38,6 +53,9 @@ pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> *mut Atom {
         category,
         package,
         version,
+        slot,
+        subslot,
+        repo,
     };
 
     let boxed = Box::new(c_atom);
@@ -56,5 +74,14 @@ pub unsafe extern "C" fn atom_free(atom: *mut Atom) {
     let _pkg = CString::from_raw(a.package as *mut i8);
     if !(*atom).version.is_null() {
         let _ver = CString::from_raw(a.version as *mut i8);
+    }
+    if !(*atom).slot.is_null() {
+        let _slot = CString::from_raw(a.slot as *mut i8);
+    }
+    if !(*atom).subslot.is_null() {
+        let _subslot = CString::from_raw(a.subslot as *mut i8);
+    }
+    if !(*atom).repo.is_null() {
+        let _repo = CString::from_raw(a.repo as *mut i8);
     }
 }
