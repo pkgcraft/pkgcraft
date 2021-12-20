@@ -128,16 +128,16 @@ pub unsafe extern "C" fn atom_free(atom: *mut Atom) {
     let a = Box::from_raw(atom);
     let _cat = CString::from_raw(a.category as *mut i8);
     let _pkg = CString::from_raw(a.package as *mut i8);
-    if !(*atom).version.is_null() {
+    if !a.version.is_null() {
         let _ver = CString::from_raw(a.version as *mut i8);
     }
-    if !(*atom).slot.is_null() {
+    if !a.slot.is_null() {
         let _slot = CString::from_raw(a.slot as *mut i8);
     }
-    if !(*atom).subslot.is_null() {
+    if !a.subslot.is_null() {
         let _subslot = CString::from_raw(a.subslot as *mut i8);
     }
-    if !(*atom).repo.is_null() {
+    if !a.repo.is_null() {
         let _repo = CString::from_raw(a.repo as *mut i8);
     }
 }
