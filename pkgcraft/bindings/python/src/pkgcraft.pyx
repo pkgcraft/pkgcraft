@@ -7,13 +7,11 @@ cimport pkgcraft
 
 cdef class PkgcraftException(Exception):
     cdef char *_error
-    cdef public str message
 
     def __init__(self, str msg):
         self._error = pkgcraft.last_error_message()
         if self._error is not NULL:
-            self.message = self._error.decode()
-            super().__init__(self.message)
+            super().__init__(self._error.decode())
         else:
             super().__init__(msg)
 
