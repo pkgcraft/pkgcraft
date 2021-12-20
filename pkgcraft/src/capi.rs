@@ -8,8 +8,7 @@ use std::{fmt, ptr};
 
 use tracing::{error, warn};
 
-use crate::atom;
-use crate::eapi;
+use crate::{atom, eapi};
 
 #[derive(Debug)]
 struct PkgcraftError {
