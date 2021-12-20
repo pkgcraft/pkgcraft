@@ -28,8 +28,12 @@ cdef class atom:
     cdef public str subslot
     cdef public str repo
 
-    def __init__(self, str s):
-        self._atom = pkgcraft.str_to_atom(s.encode())
+    def __init__(self, str atom, str eapi=None):
+        if eapi is None:
+            self._atom = pkgcraft.str_to_atom(atom.encode(), NULL)
+        else:
+            self._atom = pkgcraft.str_to_atom(atom.encode(), eapi.encode())
+
         if self._atom is NULL:
             raise PkgcraftException("invalid atom")
 

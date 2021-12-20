@@ -4,11 +4,12 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use std::{fmt, ptr, str::FromStr};
+use std::{fmt, ptr};
 
 use tracing::{error, warn};
 
-use crate::atom::Atom as PkgAtom;
+use crate::atom;
+use crate::eapi;
 
 #[derive(Debug)]
 struct PkgcraftError {
@@ -41,17 +42,17 @@ pub struct Atom {
     pub repo: *const c_char,
 }
 
-/// Parse a string into a package atom.
+/// Parse a string into an atom using a specific EAPI. Use a null pointer for the eapi argument in
+/// order to parse with the latest EAPI.
 #[no_mangle]
-pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> *mut Atom {
-    if s.is_null() {
+pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -> *mut Atom {
+    if atom.is_null() {
         let err = PkgcraftError::new("no atom string provided");
         update_last_error(err);
         return ptr::null_mut();
     }
 
-    let cstr = CStr::from_ptr(s);
-    let atom_str = match cstr.to_str() {
+    let atom_str = match CStr::from_ptr(atom).to_str() {
         Ok(s) => s,
         Err(e) => {
             update_last_error(e);
@@ -59,7 +60,24 @@ pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> *mut Atom {
         }
     };
 
-    let atom = match PkgAtom::from_str(atom_str) {
+    let eapi = match eapi.is_null() {
+        true => eapi::EAPI_LATEST,
+        false => match CStr::from_ptr(eapi).to_str() {
+            Ok(s) => match eapi::get_eapi(s) {
+                Ok(eapi) => eapi,
+                Err(e) => {
+                    update_last_error(e);
+                    return ptr::null_mut();
+                }
+            },
+            Err(e) => {
+                update_last_error(e);
+                return ptr::null_mut();
+            }
+        },
+    };
+
+    let atom = match atom::parse::dep(atom_str, eapi) {
         Ok(a) => a,
         Err(e) => {
             update_last_error(e);

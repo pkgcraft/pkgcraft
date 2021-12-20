@@ -18,8 +18,9 @@ cdef extern from "pkgcraft.h":
         const char *subslot;
         const char *repo;
 
-    # Parse a string into a package atom.
-    Atom *str_to_atom(const char *s);
+    # Parse a string into an atom using a specific EAPI. Use a null pointer for the eapi argument in
+    # order to parse with the latest EAPI.
+    Atom *str_to_atom(const char *atom, const char *eapi);
 
     # Free atom object.
     void atom_free(Atom *atom);
