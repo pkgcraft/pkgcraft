@@ -54,8 +54,7 @@ pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> *mut Atom {
     let atom_str = match cstr.to_str() {
         Ok(s) => s,
         Err(e) => {
-            let err = PkgcraftError::new(&e.to_string());
-            update_last_error(err);
+            update_last_error(e);
             return ptr::null_mut();
         }
     };
@@ -63,8 +62,7 @@ pub unsafe extern "C" fn str_to_atom(s: *const c_char) -> *mut Atom {
     let atom = match PkgAtom::from_str(atom_str) {
         Ok(a) => a,
         Err(e) => {
-            let err = PkgcraftError::new(&e.to_string());
-            update_last_error(err);
+            update_last_error(e);
             return ptr::null_mut();
         }
     };
@@ -158,7 +156,7 @@ pub unsafe extern "C" fn last_error_message() -> *mut c_char {
     // Retrieve the most recent error, clearing it in the process.
     let last_error: Option<Box<dyn Error>> = LAST_ERROR.with(|prev| prev.borrow_mut().take());
     match last_error {
-        Some(err) => CString::new(err.to_string()).unwrap().into_raw(),
+        Some(e) => CString::new(e.to_string()).unwrap().into_raw(),
         None => return ptr::null_mut(),
     }
 }
