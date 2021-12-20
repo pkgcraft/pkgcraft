@@ -13,14 +13,19 @@ pub struct Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let peg_error = chic::Error::new(format!("parsing failure: {}", self.msg)).error(
-            self.error.location.line,
-            self.error.location.offset,
-            self.error.location.offset + 1,
-            &self.src,
-            format!("Expected: {}", self.error.expected),
-        );
-        write!(f, "{}", peg_error.to_string())
+        let err = if self.src.is_empty() {
+            format!("{}: empty string", self.msg)
+        } else {
+            let chic_error = chic::Error::new(format!("parsing failure: {}", self.msg)).error(
+                self.error.location.line,
+                self.error.location.offset,
+                self.error.location.offset + 1,
+                &self.src,
+                format!("Expected: {}", self.error.expected),
+            );
+            chic_error.to_string()
+        };
+        write!(f, "{}", err)
     }
 }
 
