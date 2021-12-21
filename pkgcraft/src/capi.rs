@@ -38,6 +38,10 @@ pub struct Atom {
     pub version: *const c_char,
     pub slot: *const c_char,
     pub subslot: *const c_char,
+    pub use_deps: *const *const c_char,
+    // TODO: switch to c_size_t once it's non-experimental
+    // https://github.com/rust-lang/rust/issues/88345
+    use_deps_len: usize,
     pub repo: *const c_char,
 }
 
@@ -87,18 +91,33 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
     // parsing should catch errors so no need to check here
     let category = CString::new(atom.category).unwrap().into_raw();
     let package = CString::new(atom.package).unwrap().into_raw();
+
     let version = match atom.version {
         Some(s) => CString::new(format!("{}", s)).unwrap().into_raw(),
         None => ptr::null(),
     };
+
     let slot = match atom.slot {
         Some(s) => CString::new(s).unwrap().into_raw(),
         None => ptr::null(),
     };
+
     let subslot = match atom.subslot {
         Some(s) => CString::new(s).unwrap().into_raw(),
         None => ptr::null(),
     };
+
+    let mut use_strs = vec![];
+    if let Some(use_deps) = atom.use_deps {
+        for u in use_deps.iter() {
+            use_strs.push(CString::new(u.as_str()).unwrap().into_raw())
+        }
+    }
+    let use_deps_len = use_strs.len();
+    // TODO: switch to into_raw_parts() once it's non-experimental
+    // https://github.com/rust-lang/rust/issues/65816
+    let use_deps = Box::into_raw(use_strs.into_boxed_slice()).cast();
+
     let repo = match atom.repo {
         Some(s) => CString::new(s).unwrap().into_raw(),
         None => ptr::null(),
@@ -111,6 +130,8 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
         version,
         slot,
         subslot,
+        use_deps,
+        use_deps_len,
         repo,
     };
 
@@ -126,19 +147,25 @@ pub unsafe extern "C" fn atom_free(atom: *mut Atom) {
     }
 
     let a = Box::from_raw(atom);
-    let _cat = CString::from_raw(a.category as *mut i8);
-    let _pkg = CString::from_raw(a.package as *mut i8);
+    drop(CString::from_raw(a.category as *mut _));
+    drop(CString::from_raw(a.package as *mut _));
     if !a.version.is_null() {
-        let _ver = CString::from_raw(a.version as *mut i8);
+        drop(CString::from_raw(a.version as *mut _));
     }
     if !a.slot.is_null() {
-        let _slot = CString::from_raw(a.slot as *mut i8);
+        drop(CString::from_raw(a.slot as *mut _));
     }
     if !a.subslot.is_null() {
-        let _subslot = CString::from_raw(a.subslot as *mut i8);
+        drop(CString::from_raw(a.subslot as *mut _));
+    }
+    if !a.use_deps.is_null() {
+        let use_deps = Vec::from_raw_parts(a.use_deps as *mut _, a.use_deps_len, a.use_deps_len);
+        for &u in use_deps.iter() {
+            drop(CString::from_raw(u));
+        }
     }
     if !a.repo.is_null() {
-        let _repo = CString::from_raw(a.repo as *mut i8);
+        drop(CString::from_raw(a.repo as *mut _));
     }
 }
 

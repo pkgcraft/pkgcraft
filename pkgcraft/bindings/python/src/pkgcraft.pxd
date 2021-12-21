@@ -16,6 +16,8 @@ cdef extern from "pkgcraft.h":
         const char *version;
         const char *slot;
         const char *subslot;
+        const char *const *use_deps;
+        uintptr_t use_deps_len;
         const char *repo;
 
     # Parse a string into an atom using a specific EAPI. Use a null pointer for the eapi argument in

@@ -26,6 +26,7 @@ cdef class atom:
     cdef public str version
     cdef public str slot
     cdef public str subslot
+    cdef public tuple use_deps
     cdef public str repo
 
     def __init__(self, str atom, str eapi=None):
@@ -54,6 +55,12 @@ cdef class atom:
             self.subslot = self._atom.subslot.decode()
         else:
             self.subslot = None
+
+        if self._atom.use_deps is not NULL:
+            self.use_deps = tuple(
+                self._atom.use_deps[i].decode() for i in range(self._atom.use_deps_len))
+        else:
+            self.use_deps = None
 
         if self._atom.repo is not NULL:
             self.repo = self._atom.repo.decode()
