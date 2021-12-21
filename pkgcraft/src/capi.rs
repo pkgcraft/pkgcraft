@@ -50,14 +50,14 @@ pub struct Atom {
 /// Parse a string into an atom using a specific EAPI. Pass a null pointer for the eapi argument in
 /// order to parse using the latest EAPI with extensions (e.g. support for repo deps).
 #[no_mangle]
-pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -> *mut Atom {
+pub extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -> *mut Atom {
     if atom.is_null() {
         let err = PkgcraftError::new("no atom string provided");
         update_last_error(err);
         return ptr::null_mut();
     }
 
-    let atom_str = match CStr::from_ptr(atom).to_str() {
+    let atom_str = match unsafe { CStr::from_ptr(atom).to_str() } {
         Ok(s) => s,
         Err(e) => {
             update_last_error(e);
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
 
     let eapi = match eapi.is_null() {
         true => &eapi::EAPI_PKGCRAFT,
-        false => match CStr::from_ptr(eapi).to_str() {
+        false => match unsafe { CStr::from_ptr(eapi).to_str() } {
             Ok(s) => match eapi::get_eapi(s) {
                 Ok(eapi) => eapi,
                 Err(e) => {
@@ -269,7 +269,7 @@ pub fn update_last_error<E: Error + 'static>(err: E) {
 ///
 /// The caller is expected to free memory used by the string after they're finished using it.
 #[no_mangle]
-pub unsafe extern "C" fn last_error_message() -> *mut c_char {
+pub extern "C" fn last_error_message() -> *mut c_char {
     // Retrieve the most recent error, clearing it in the process.
     let last_error: Option<Box<dyn Error>> = LAST_ERROR.with(|prev| prev.borrow_mut().take());
     match last_error {
