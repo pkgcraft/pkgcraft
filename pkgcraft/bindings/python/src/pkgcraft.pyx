@@ -29,6 +29,13 @@ cdef class atom:
     cdef public tuple use_deps
     cdef public str repo
 
+    cdef str _key
+    cdef str _cpv
+
+    def __cinit__(self):
+        self._key = None
+        self._cpv = None
+
     def __init__(self, str atom, str eapi=None):
         if eapi is None:
             self._atom = pkgcraft.str_to_atom(atom.encode(), NULL)
@@ -67,17 +74,23 @@ cdef class atom:
         else:
             self.repo = None
 
+    @property
     def key(self):
-        cdef const char *key_str = pkgcraft.atom_key(self._atom)
-        cdef str key = key_str.decode()
-        free(<void *>key_str)
-        return key
+        cdef const char *key_str
+        if self._key is None:
+            key_str = pkgcraft.atom_key(self._atom)
+            self._key = key_str.decode()
+            free(<void *>key_str)
+        return self._key
 
+    @property
     def cpv(self):
-        cdef const char *cpv_str = pkgcraft.atom_cpv(self._atom)
-        cdef str cpv = cpv_str.decode()
-        free(<void *>cpv_str)
-        return cpv
+        cdef const char *cpv_str
+        if self._cpv is None:
+            cpv_str = pkgcraft.atom_cpv(self._atom)
+            self._cpv = cpv_str.decode()
+            free(<void *>cpv_str)
+        return self._cpv
 
     def __dealloc__(self):
         pkgcraft.atom_free(self._atom)
