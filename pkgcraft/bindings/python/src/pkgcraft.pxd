@@ -20,8 +20,8 @@ cdef extern from "pkgcraft.h":
         uintptr_t use_deps_len;
         const char *repo;
 
-    # Parse a string into an atom using a specific EAPI. Use a null pointer for the eapi argument in
-    # order to parse with the latest EAPI.
+    # Parse a string into an atom using a specific EAPI. Pass a null pointer for the eapi argument in
+    # order to parse using the latest EAPI with extensions (e.g. support for repo deps).
     Atom *str_to_atom(const char *atom, const char *eapi);
 
     # Free atom object.

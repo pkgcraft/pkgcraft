@@ -45,8 +45,8 @@ pub struct Atom {
     pub repo: *const c_char,
 }
 
-/// Parse a string into an atom using a specific EAPI. Use a null pointer for the eapi argument in
-/// order to parse with the latest EAPI.
+/// Parse a string into an atom using a specific EAPI. Pass a null pointer for the eapi argument in
+/// order to parse using the latest EAPI with extensions (e.g. support for repo deps).
 #[no_mangle]
 pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -> *mut Atom {
     if atom.is_null() {
@@ -64,7 +64,7 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
     };
 
     let eapi = match eapi.is_null() {
-        true => eapi::EAPI_LATEST,
+        true => &eapi::EAPI_EXTENDED,
         false => match CStr::from_ptr(eapi).to_str() {
             Ok(s) => match eapi::get_eapi(s) {
                 Ok(eapi) => eapi,
