@@ -64,7 +64,7 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
     };
 
     let eapi = match eapi.is_null() {
-        true => &eapi::EAPI_EXTENDED,
+        true => &eapi::EAPI_PKGCRAFT,
         false => match CStr::from_ptr(eapi).to_str() {
             Ok(s) => match eapi::get_eapi(s) {
                 Ok(eapi) => eapi,

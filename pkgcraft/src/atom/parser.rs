@@ -571,7 +571,7 @@ mod tests {
         // invalid deps
         for slot in ["", "-repo", "repo-1", "repo@path"] {
             s = format!("cat/pkg::{}", slot);
-            result = parse::dep(&s, &eapi::EAPI_EXTENDED);
+            result = parse::dep(&s, &eapi::EAPI_PKGCRAFT);
             assert!(result.is_err(), "{:?} didn't fail", s);
         }
 
@@ -581,12 +581,12 @@ mod tests {
         for repo in ["_", "a", "repo", "repo_a", "repo-a"] {
             s = format!("cat/pkg::{}", repo);
 
-            // repo ids aren't supported in regular EAPIs
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            // repo ids aren't supported in official EAPIs
+            for eapi in eapi::OFFICIAL_EAPIS.values() {
                 assert!(parse::dep(&s, eapi).is_err(), "{:?} didn't fail", s);
             }
 
-            result = parse::dep(&s, &eapi::EAPI_EXTENDED);
+            result = parse::dep(&s, &eapi::EAPI_PKGCRAFT);
             assert!(result.is_ok(), "{:?} failed: {}", s, result.err().unwrap());
             atom = result.unwrap();
             assert_eq!(atom.repo, opt_str!(repo));

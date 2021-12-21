@@ -212,15 +212,15 @@ pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
 
 /// The latest EAPI with extensions on top.
 #[rustfmt::skip]
-pub static EAPI_EXTENDED: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("repo_ids", true),
     ].iter().cloned().collect();
-    Eapi::new("extended", Some(EAPI_LATEST), Some(&options))
+    Eapi::new("pkgcraft", Some(EAPI_LATEST), Some(&options))
 });
 
-/// Ordered mapping of EAPI identifiers to instances.
-pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
+/// Ordered mapping of official EAPI identifiers to instances.
+pub static OFFICIAL_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
     let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
     let mut eapi: &Eapi = EAPI_LATEST;
     while let Some(x) = eapi.parent {
@@ -230,6 +230,13 @@ pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(
     eapis.insert(eapi.id, eapi);
     // reverse so it's in chronological order
     eapis.reverse();
+    eapis
+});
+
+/// Ordered mapping of known EAPI identifiers to instances.
+pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
+    let mut eapis = OFFICIAL_EAPIS.clone();
+    eapis.insert(EAPI_PKGCRAFT.id, &EAPI_PKGCRAFT);
     eapis
 });
 
