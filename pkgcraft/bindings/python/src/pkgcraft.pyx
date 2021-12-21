@@ -56,7 +56,7 @@ cdef class atom:
         else:
             self.subslot = None
 
-        if self._atom.use_deps is not NULL:
+        if self._atom.use_deps_len:
             self.use_deps = tuple(
                 self._atom.use_deps[i].decode() for i in range(self._atom.use_deps_len))
         else:
