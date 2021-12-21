@@ -76,6 +76,12 @@ cdef class atom:
 
     @property
     def key(self):
+        """Get the concatenated string of an atom's category and package.
+
+        >>> from pkgcraft import atom
+        >>> a = atom("=cat/pkg-1-r2")
+        >>> assert a.key == "cat/pkg"
+        """
         cdef const char *key_str
         if self._key is None:
             key_str = pkgcraft.atom_key(self._atom)
@@ -85,6 +91,12 @@ cdef class atom:
 
     @property
     def cpv(self):
+        """Get the concatenated string of an atom's category, package, and version.
+
+        >>> from pkgcraft import atom
+        >>> a = atom("=cat/pkg-1-r2")
+        >>> assert a.cpv == "cat/pkg-1-r2"
+        """
         cdef const char *cpv_str
         if self._cpv is None:
             cpv_str = pkgcraft.atom_cpv(self._atom)
