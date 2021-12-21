@@ -21,22 +21,22 @@ cdef class PkgcraftException(Exception):
 
 cdef class atom:
     cdef pkgcraft.Atom *_atom
-    cdef public str category
-    cdef public str package
-    cdef public str version
-    cdef public str slot
-    cdef public str subslot
-    cdef public tuple use_deps
-    cdef public str repo
-
     cdef str _key
     cdef str _cpv
 
-    def __cinit__(self):
+    cdef public:
+        str category
+        str package
+        str version
+        str slot
+        str subslot
+        tuple use_deps
+        str repo
+
+    def __cinit__(self, str atom, str eapi=None):
         self._key = None
         self._cpv = None
 
-    def __init__(self, str atom, str eapi=None):
         if eapi is None:
             self._atom = pkgcraft.str_to_atom(atom.encode(), NULL)
         else:
