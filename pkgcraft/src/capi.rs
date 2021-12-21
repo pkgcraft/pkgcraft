@@ -40,7 +40,7 @@ pub struct Atom {
     pub subslot: *const c_char,
     pub use_deps: *const *const c_char,
     // TODO: switch to c_size_t once it's non-experimental
-    // https://github.com/rust-lang/rust/issues/88345
+    // https://doc.rust-lang.org/std/os/raw/type.c_size_t.html
     use_deps_len: usize,
     pub repo: *const c_char,
 }
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
     }
     let use_deps_len = use_strs.len();
     // TODO: switch to into_raw_parts() once it's non-experimental
-    // https://github.com/rust-lang/rust/issues/65816
+    // https://doc.rust-lang.org/std/vec/struct.Vec.html#method.into_raw_parts
     let use_deps = Box::into_raw(use_strs.into_boxed_slice()).cast();
 
     let repo = match atom.repo {
