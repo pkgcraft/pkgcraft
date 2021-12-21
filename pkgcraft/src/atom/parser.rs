@@ -33,7 +33,7 @@ peg::parser! {
             ) rev:revision()? { (ver, rev) }
 
         rule revision() -> &'input str
-            = quiet!{"-r"} s:$(quiet!{['0'..='9']+} / expected!("revision"))
+            = "-r" s:$(quiet!{['0'..='9']+} / expected!("revision"))
             { s }
 
         // Slot names must not begin with a hyphen, dot, or plus sign.
@@ -63,7 +63,7 @@ peg::parser! {
             }
 
         rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<&'input str>)
-            = quiet!{":"} slot_parts:slot_str(eapi) {?
+            = ":" slot_parts:slot_str(eapi) {?
                 if !eapi.has("slot_deps") {
                     return Err("slot deps are supported in >= EAPI 1");
                 }
@@ -71,7 +71,7 @@ peg::parser! {
             }
 
         rule blocks(eapi: &'static Eapi) -> Blocker
-            = blocks:(quiet!{"!"}*<1,2>) {?
+            = blocks:("!"*<1,2>) {?
                 if eapi.has("blockers") {
                     match blocks[..] {
                         [_] => Ok(Blocker::Weak),
@@ -91,15 +91,15 @@ peg::parser! {
             ) { s }
 
         rule use_dep(eapi: &'static Eapi) -> &'input str
-            = s:$(
+            = s:$(quiet!{
                 (useflag() use_dep_default(eapi)? ['=' | '?']?) /
-                (quiet!{"-"} useflag() use_dep_default(eapi)?) /
-                (quiet!{"!"} useflag() use_dep_default(eapi)? ['=' | '?']) /
-                expected!("use dep")
+                ("-" useflag() use_dep_default(eapi)?) /
+                ("!" useflag() use_dep_default(eapi)? ['=' | '?'])
+            } / expected!("use dep")
             ) { s }
 
         rule use_deps(eapi: &'static Eapi) -> Vec<&'input str>
-            = quiet!{"["} use_deps:use_dep(eapi) ++ "," quiet!{"]"} {?
+            = "[" use_deps:use_dep(eapi) ++ "," "]" {?
                 if eapi.has("use_deps") {
                     Ok(use_deps)
                 } else {
@@ -108,7 +108,7 @@ peg::parser! {
             }
 
         rule use_dep_default(eapi: &'static Eapi) -> &'input str
-            = s:$("(+)" / "(-)" / expected!("use dep default")) {?
+            = s:$("(+)" / "(-)") {?
                 if eapi.has("use_dep_defaults") {
                     Ok(s)
                 } else {
@@ -117,7 +117,7 @@ peg::parser! {
             }
 
         rule subslot(eapi: &'static Eapi) -> &'input str
-            = quiet!{"/"} s:slot_name() {?
+            = "/" s:slot_name() {?
                 if eapi.has("subslots") {
                     Ok(s)
                 } else {
@@ -128,9 +128,9 @@ peg::parser! {
         rule pkg_dep() -> (&'input str, &'input str, Option<Operator>, Option<Version>)
             = cat:category() "/" pkg:package() {
                 (cat, pkg, None, None)
-            } / op:$(quiet!{("<" "="?) / "=" / "~" / (">" "="?)})
+            } / op:$(("<" "="?) / "=" / "~" / (">" "="?))
                     cat:category() "/" pkg:package()
-                    quiet!{"-"} ver_rev:version() glob:"*"? {?
+                    "-" ver_rev:version() glob:"*"? {?
                 let op = match (op, glob) {
                     ("<", None) => Ok(Operator::Less),
                     ("<=", None) => Ok(Operator::LessOrEqual),
@@ -163,7 +163,7 @@ peg::parser! {
             ) { s }
 
         rule repo_dep(eapi: &'static Eapi) -> &'input str
-            = quiet!{"::"} repo:repo() {?
+            = "::" repo:repo() {?
                 if !eapi.has("repo_ids") {
                     return Err("repo deps aren't supported in EAPIs");
                 }
@@ -171,7 +171,7 @@ peg::parser! {
             }
 
         pub rule cpv() -> (&'input str, &'input str, &'input str)
-            = cat:category() "/" pkg:package() quiet!{"-"} ver:$(version()) {
+            = cat:category() "/" pkg:package() "-" ver:$(version()) {
                 (cat, pkg, ver)
             }
 
