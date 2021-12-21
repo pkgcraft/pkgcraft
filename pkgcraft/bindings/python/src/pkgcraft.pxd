@@ -12,6 +12,8 @@ cdef extern from *:
 cdef extern from "pkgcraft.h":
 
     cdef struct Atom:
+        const char *string;
+        const char *eapi;
         const char *category;
         const char *package;
         const char *version;
@@ -25,7 +27,15 @@ cdef extern from "pkgcraft.h":
     # order to parse using the latest EAPI with extensions (e.g. support for repo deps).
     Atom *str_to_atom(const char *atom, const char *eapi);
 
-    # Free atom object.
+    # Return a given atom's key, e.g. the atom "=cat/pkg-1-r2" has a key of "cat/pkg".
+    # Returns a null pointer on error.
+    const char *atom_key(Atom *atom);
+
+    # Return a given atom's cpv, e.g. the atom "=cat/pkg-1-r2" has a cpv of "cat/pkg-1-r2".
+    # Returns a null pointer on error.
+    const char *atom_cpv(Atom *atom);
+
+    # Free an atom.
     void atom_free(Atom *atom);
 
     # Get the most recent error message as a UTF-8 string, if none exists a null pointer is returned.

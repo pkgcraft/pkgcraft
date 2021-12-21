@@ -4,14 +4,14 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use std::{fmt, ptr};
+use std::{fmt, mem, ptr};
 
 use tracing::{error, warn};
 
 use crate::{atom, eapi};
 
 #[derive(Debug)]
-struct PkgcraftError {
+pub struct PkgcraftError {
     pub message: String,
 }
 
@@ -33,6 +33,8 @@ impl Error for PkgcraftError {}
 
 #[repr(C)]
 pub struct Atom {
+    string: *const c_char,
+    eapi: *const c_char,
     category: *const c_char,
     package: *const c_char,
     version: *const c_char,
@@ -89,6 +91,8 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
     };
 
     // parsing should catch errors so no need to check here
+    let string = CString::new(atom_str).unwrap().into_raw();
+    let eapi = CString::new(eapi.to_string()).unwrap().into_raw();
     let category = CString::new(atom.category).unwrap().into_raw();
     let package = CString::new(atom.package).unwrap().into_raw();
 
@@ -125,6 +129,8 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
 
     // create C-compatible struct
     let c_atom = Atom {
+        string,
+        eapi,
         category,
         package,
         version,
@@ -135,11 +141,76 @@ pub unsafe extern "C" fn str_to_atom(atom: *const c_char, eapi: *const c_char) -
         repo,
     };
 
-    let boxed = Box::new(c_atom);
-    Box::into_raw(boxed)
+    Box::into_raw(Box::new(c_atom))
 }
 
-/// Free atom object.
+/// Convert a C-compatible Atom struct to a rust Atom struct.
+pub fn atom_to_rust(atom: *mut Atom) -> Result<atom::Atom, PkgcraftError> {
+    if atom.is_null() {
+        return Err(PkgcraftError::new("no atom provided"));
+    }
+
+    let atom = unsafe { Box::from_raw(atom) };
+    let atom_str = unsafe { CStr::from_ptr(atom.string) }
+        .to_str()
+        .map_err(|e| PkgcraftError {
+            message: format!("invalid atom string: {:?}", e),
+        })?;
+
+    let eapi = match atom.eapi.is_null() {
+        true => &eapi::EAPI_PKGCRAFT,
+        false => {
+            let eapi_str =
+                unsafe { CStr::from_ptr(atom.eapi) }
+                    .to_str()
+                    .map_err(|e| PkgcraftError {
+                        message: format!("invalid eapi string: {:?}", e),
+                    })?;
+            eapi::get_eapi(eapi_str).map_err(|e| PkgcraftError {
+                message: e.to_string(),
+            })?
+        }
+    };
+
+    // don't deallocate memory when `atom` is dropped
+    mem::forget(atom);
+
+    atom::parse::dep(atom_str, eapi).map_err(|e| PkgcraftError {
+        message: e.to_string(),
+    })
+}
+
+/// Return a given atom's key, e.g. the atom "=cat/pkg-1-r2" has a key of "cat/pkg".
+/// Returns a null pointer on error.
+#[no_mangle]
+pub extern "C" fn atom_key(atom: *mut Atom) -> *const c_char {
+    let key = match atom_to_rust(atom) {
+        Ok(a) => a.key(),
+        Err(e) => {
+            update_last_error(e);
+            return ptr::null_mut();
+        }
+    };
+
+    CString::new(key).unwrap().into_raw()
+}
+
+/// Return a given atom's cpv, e.g. the atom "=cat/pkg-1-r2" has a cpv of "cat/pkg-1-r2".
+/// Returns a null pointer on error.
+#[no_mangle]
+pub extern "C" fn atom_cpv(atom: *mut Atom) -> *const c_char {
+    let cpv = match atom_to_rust(atom) {
+        Ok(a) => a.cpv(),
+        Err(e) => {
+            update_last_error(e);
+            return ptr::null_mut();
+        }
+    };
+
+    CString::new(cpv).unwrap().into_raw()
+}
+
+/// Free an atom.
 #[no_mangle]
 pub unsafe extern "C" fn atom_free(atom: *mut Atom) {
     if atom.is_null() {
@@ -147,6 +218,8 @@ pub unsafe extern "C" fn atom_free(atom: *mut Atom) {
     }
 
     let a = Box::from_raw(atom);
+    drop(CString::from_raw(a.string as *mut _));
+    drop(CString::from_raw(a.eapi as *mut _));
     drop(CString::from_raw(a.category as *mut _));
     drop(CString::from_raw(a.package as *mut _));
     if !a.version.is_null() {

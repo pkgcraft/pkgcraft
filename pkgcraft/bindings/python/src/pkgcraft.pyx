@@ -67,5 +67,17 @@ cdef class atom:
         else:
             self.repo = None
 
+    def key(self):
+        cdef const char *key_str = pkgcraft.atom_key(self._atom)
+        cdef str key = key_str.decode()
+        free(<void *>key_str)
+        return key
+
+    def cpv(self):
+        cdef const char *cpv_str = pkgcraft.atom_cpv(self._atom)
+        cdef str cpv = cpv_str.decode()
+        free(<void *>cpv_str)
+        return cpv
+
     def __dealloc__(self):
         pkgcraft.atom_free(self._atom)
