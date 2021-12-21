@@ -33,16 +33,16 @@ impl Error for PkgcraftError {}
 
 #[repr(C)]
 pub struct Atom {
-    pub category: *const c_char,
-    pub package: *const c_char,
-    pub version: *const c_char,
-    pub slot: *const c_char,
-    pub subslot: *const c_char,
-    pub use_deps: *const *const c_char,
+    category: *const c_char,
+    package: *const c_char,
+    version: *const c_char,
+    slot: *const c_char,
+    subslot: *const c_char,
+    use_deps: *const *const c_char,
     // TODO: switch to c_size_t once it's non-experimental
     // https://doc.rust-lang.org/std/os/raw/type.c_size_t.html
     use_deps_len: usize,
-    pub repo: *const c_char,
+    repo: *const c_char,
 }
 
 /// Parse a string into an atom using a specific EAPI. Pass a null pointer for the eapi argument in
