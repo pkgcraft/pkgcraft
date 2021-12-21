@@ -5,7 +5,10 @@ from libc.stdlib cimport free
 
 cimport pkgcraft
 
+
 cdef class PkgcraftException(Exception):
+    """Generic pkgcraft exception."""
+
     cdef char *_error
 
     def __init__(self, str msg):
@@ -19,7 +22,49 @@ cdef class PkgcraftException(Exception):
         if self._error is not NULL:
             free(self._error)
 
+
 cdef class atom:
+    """Package atom parsing.
+
+    >>> from pkgcraft import atom
+
+    Simple package atom
+    >>> a = atom("cat/pkg")
+    >>> a.category
+    'cat'
+    >>> a.package
+    'pkg'
+    >>> attrs = ("version", "slot", "subslot", "use_deps", "repo")
+    >>> assert all(getattr(a, attr) is None for attr in attrs)
+
+    More complex package atom
+    >>> a = atom("=cat/pkg-1-r2:0/2[a,b]::repo")
+    >>> a.category
+    'cat'
+    >>> a.package
+    'pkg'
+    >>> a.version
+    '1-r2'
+    >>> a.slot
+    '0'
+    >>> a.subslot
+    '2'
+    >>> a.use_deps
+    ('a', 'b')
+    >>> a.repo
+    'repo'
+
+    Invalid package atom
+    >>> a = atom("cat/pkg[foo")
+    Traceback (most recent call last):
+        ...
+    pkgcraft.PkgcraftException: error: parsing failure: invalid atom
+      |
+    1 | cat/pkg[foo
+      |            ^ Expected: one of ",", "]"
+      |
+    """
+
     cdef pkgcraft.Atom *_atom
     cdef str _key
     cdef str _cpv
@@ -80,7 +125,8 @@ cdef class atom:
 
         >>> from pkgcraft import atom
         >>> a = atom("=cat/pkg-1-r2")
-        >>> assert a.key == "cat/pkg"
+        >>> a.key
+        'cat/pkg'
         """
         cdef const char *key_str
         if self._key is None:
@@ -95,7 +141,8 @@ cdef class atom:
 
         >>> from pkgcraft import atom
         >>> a = atom("=cat/pkg-1-r2")
-        >>> assert a.cpv == "cat/pkg-1-r2"
+        >>> a.cpv
+        'cat/pkg-1-r2'
         """
         cdef const char *cpv_str
         if self._cpv is None:
