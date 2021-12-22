@@ -30,10 +30,14 @@ impl fmt::Display for Error {
 }
 
 /// Convert a PEG parsing error to an internal pkgcraft error type.
-pub(crate) fn peg_error(msg: &str, src: &str, error: PegError) -> error::Error {
+pub(crate) fn peg_error<S1, S2>(msg: S1, src: S2, error: PegError) -> error::Error
+where
+    S1: Into<String>,
+    S2: Into<String>,
+{
     let error = Error {
-        msg: msg.to_string(),
-        src: src.to_string(),
+        msg: msg.into(),
+        src: src.into(),
         error,
     };
     error::Error::PegParse(error)

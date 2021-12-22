@@ -207,34 +207,34 @@ pub mod parse {
 
     #[inline]
     pub fn category(s: &str) -> crate::Result<&str> {
-        pkg::category(s).map_err(|e| peg_error("invalid category name", s, e))
+        pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {:?}", s), s, e))
     }
 
     #[inline]
     pub fn package(s: &str) -> crate::Result<&str> {
-        pkg::package(s).map_err(|e| peg_error("invalid package name", s, e))
+        pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {:?}", s), s, e))
     }
 
     #[inline]
     pub fn version(s: &str) -> crate::Result<(&str, Option<&str>)> {
-        pkg::version(s).map_err(|e| peg_error("invalid version", s, e))
+        pkg::version(s).map_err(|e| peg_error(format!("invalid version: {:?}", s), s, e))
     }
 
     #[inline]
     pub fn repo(s: &str) -> crate::Result<&str> {
-        pkg::repo(s).map_err(|e| peg_error("invalid repo name", s, e))
+        pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {:?}", s), s, e))
     }
 
     #[inline]
     pub fn cpv(s: &str) -> crate::Result<(&str, &str, &str)> {
-        pkg::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
+        pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {:?}", s), s, e))
     }
 
     cached_key! {
         ATOM_CACHE: SizedCache<(String, String), crate::Result<Atom>> = SizedCache::with_size(1000);
         Key = { (s.to_string(), eapi.to_string()) };
         fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> = {
-            pkg::dep(s, eapi).map_err(|e| peg_error("invalid atom", s, e))
+            pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {:?}", s), s, e))
         }
     }
 }
