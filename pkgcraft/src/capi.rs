@@ -9,7 +9,7 @@ use std::{env, fmt, mem, ptr};
 
 use tracing::{error, warn};
 
-use crate::{atom, eapi};
+use crate::{atom, eapi, error};
 
 #[derive(Debug, Clone)]
 pub struct PkgcraftError {
@@ -21,6 +21,12 @@ impl PkgcraftError {
         PkgcraftError {
             message: msg.as_ref().to_string(),
         }
+    }
+}
+
+impl From<error::Error> for PkgcraftError {
+    fn from(e: error::Error) -> Self {
+        PkgcraftError::new(e.to_string())
     }
 }
 
@@ -243,11 +249,15 @@ pub unsafe extern "C" fn atom_free(atom: *mut Atom) {
     }
 }
 
+/// Unwrap the returned value of a given expression or return the given value.
 macro_rules! unwrap_or_return {
     ( $e:expr, $v:expr ) => {
         match $e {
             Ok(x) => x,
-            Err(_) => return $v,
+            Err(e) => {
+                update_last_error(e);
+                return $v;
+            }
         }
     };
 }
@@ -295,20 +305,8 @@ pub extern "C" fn ver_test(argc: c_int, argv: *mut *mut c_char) -> c_int {
         }
     };
 
-    // parse versions
-    let parse_version = |ver: &str| -> Result<atom::Version, PkgcraftError> {
-        match atom::Version::from_str(ver) {
-            Ok(v) => Ok(v),
-            Err(_) => {
-                let err = PkgcraftError::new(format!("invalid version: {:?}", ver));
-                update_last_error(err.clone());
-                Err(err)
-            }
-        }
-    };
-
-    let ver_lhs = unwrap_or_return!(parse_version(&lhs), -1);
-    let ver_rhs = unwrap_or_return!(parse_version(&rhs), -1);
+    let ver_lhs = unwrap_or_return!(atom::Version::from_str(&lhs), -1);
+    let ver_rhs = unwrap_or_return!(atom::Version::from_str(&rhs), -1);
 
     let ret = match op.as_ref() {
         "-eq" => ver_lhs == ver_rhs,
