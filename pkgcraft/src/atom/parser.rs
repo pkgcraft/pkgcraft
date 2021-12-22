@@ -198,8 +198,7 @@ peg::parser! {
 
 // provide public parsing functionality while converting error types
 pub mod parse {
-    use std::cell::RefCell;
-    use lru::LruCache;
+    use cached::{cached_key, SizedCache};
 
     use crate::atom::Atom;
     use crate::eapi::Eapi;
@@ -232,25 +231,12 @@ pub mod parse {
         pkg::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
     }
 
-    thread_local! {
-        static ATOM_CACHE: RefCell<LruCache<(String, String), crate::Result<Atom>>> = RefCell::new(LruCache::new(1000));
-    }
-
-    #[inline]
-    pub fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
-        ATOM_CACHE.with(|c| {
-            let mut cache_ref = c.borrow_mut();
-            let key = (s.to_string(), eapi.to_string());
-            if let Some(ret) = cache_ref.get(&key) {
-                return ret.clone();
-            }
-
-            drop(cache_ref);
-
-            let ret = pkg::dep(s, eapi).map_err(|e| peg_error("invalid atom", s, e));
-            c.borrow_mut().put(key, ret.clone());
-            ret
-        })
+    cached_key!{
+        ATOM_CACHE: SizedCache<(String, String), crate::Result<Atom>> = SizedCache::with_size(1000);
+        Key = { (s.to_string(), eapi.to_string()) };
+        fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> = {
+            pkg::dep(s, eapi).map_err(|e| peg_error("invalid atom", s, e))
+        }
     }
 }
 
