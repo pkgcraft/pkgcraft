@@ -4,7 +4,7 @@ use crate::error;
 
 pub(crate) type PegError = ::peg::error::ParseError<::peg::str::LineCol>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
     msg: String,
     src: String,

@@ -10,7 +10,7 @@ pub use parser::parse;
 mod parser;
 mod version;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub enum Blocker {
     Strong, // !!cat/pkg
     Weak,   // !cat/pkg
@@ -36,7 +36,7 @@ pub enum Operator {
     Greater,        // >cat/pkg-1
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Atom {
     pub category: String,
     pub package: String,

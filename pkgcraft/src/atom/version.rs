@@ -37,7 +37,7 @@ impl FromStr for Suffix {
     }
 }
 
-#[derive(Debug, Default, Eq)]
+#[derive(Debug, Default, Eq, Clone)]
 pub struct Revision {
     pub value: Option<String>,
     int: u32,
@@ -102,7 +102,7 @@ impl fmt::Display for Revision {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Version {
     pub base: String,
     pub revision: Revision,
