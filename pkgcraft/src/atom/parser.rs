@@ -25,11 +25,10 @@ peg::parser! {
             ) { s }
 
         pub rule version() -> (&'input str, Option<&'input str>)
-            = ver:$(quiet!{
+            = ver:$(
                 ['0'..='9']+ ("." ['0'..='9']+)*
                 ['a'..='z']?
                 ("_" ("alpha" / "beta" / "pre" / "rc" / "p") ['0'..='9']*)*
-            } / expected!("version")
             ) rev:revision()? { (ver, rev) }
 
         rule revision() -> &'input str
