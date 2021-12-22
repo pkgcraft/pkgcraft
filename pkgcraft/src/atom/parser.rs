@@ -231,7 +231,7 @@ pub mod parse {
         pkg::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
     }
 
-    cached_key!{
+    cached_key! {
         ATOM_CACHE: SizedCache<(String, String), crate::Result<Atom>> = SizedCache::with_size(1000);
         Key = { (s.to_string(), eapi.to_string()) };
         fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> = {

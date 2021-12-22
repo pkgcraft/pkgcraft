@@ -3,22 +3,23 @@
 use std::cell::RefCell;
 use std::error::Error;
 use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
-use std::{fmt, mem, ptr};
+use std::os::raw::{c_char, c_int};
+use std::str::FromStr;
+use std::{env, fmt, mem, ptr};
 
 use tracing::{error, warn};
 
 use crate::{atom, eapi};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PkgcraftError {
     pub message: String,
 }
 
 impl PkgcraftError {
-    fn new(msg: &str) -> PkgcraftError {
+    fn new<S: AsRef<str>>(msg: S) -> PkgcraftError {
         PkgcraftError {
-            message: msg.to_string(),
+            message: msg.as_ref().to_string(),
         }
     }
 }
@@ -240,6 +241,90 @@ pub unsafe extern "C" fn atom_free(atom: *mut Atom) {
     if !a.repo.is_null() {
         drop(CString::from_raw(a.repo as *mut _));
     }
+}
+
+macro_rules! unwrap_or_return {
+    ( $e:expr, $v:expr ) => {
+        match $e {
+            Ok(x) => x,
+            Err(_) => return $v,
+        }
+    };
+}
+
+/// Perform version testing as defined in the spec.
+/// https://projects.gentoo.org/pms/latest/pms.html#x1-13400012.3.14
+///
+/// Operates on argc and argv passed directly from C and handles freeing argv.
+///
+/// Returns 0 if the specified test is true, 1 otherwise.
+/// Returns -1 if an error occurred.
+#[no_mangle]
+pub extern "C" fn ver_test(argc: c_int, argv: *mut *mut c_char) -> c_int {
+    let args_len: usize = argc.try_into().unwrap();
+    let cargs = unsafe { Vec::from_raw_parts(argv, args_len, args_len) };
+    // skip the initial program name in argv[0]
+    let args: Vec<&str> = cargs
+        .iter()
+        .skip(1)
+        .map(|s| unsafe { CStr::from_ptr(*s).to_str().unwrap() })
+        .collect();
+
+    let (lhs, op, rhs) = match args.len() {
+        2 => {
+            let varname = "PVR";
+            let pvr = match env::var(varname) {
+                Ok(v) => v,
+                Err(e) => {
+                    let err = PkgcraftError::new(format!("{}: {:?}", e, varname));
+                    update_last_error(err);
+                    return -1;
+                }
+            };
+            (pvr, args[0].to_string(), args[1].to_string())
+        }
+        3 => (
+            args[0].to_string(),
+            args[1].to_string(),
+            args[2].to_string(),
+        ),
+        _ => {
+            let err = PkgcraftError::new(format!("only accepts 2 or 3 args, got {}", args.len()));
+            update_last_error(err);
+            return -1;
+        }
+    };
+
+    // parse versions
+    let parse_version = |ver: &str| -> Result<atom::Version, PkgcraftError> {
+        match atom::Version::from_str(ver) {
+            Ok(v) => Ok(v),
+            Err(_) => {
+                let err = PkgcraftError::new(format!("invalid version: {:?}", ver));
+                update_last_error(err.clone());
+                Err(err)
+            }
+        }
+    };
+
+    let ver_lhs = unwrap_or_return!(parse_version(&lhs), -1);
+    let ver_rhs = unwrap_or_return!(parse_version(&rhs), -1);
+
+    let ret = match op.as_ref() {
+        "-eq" => ver_lhs == ver_rhs,
+        "-ne" => ver_lhs != ver_rhs,
+        "-lt" => ver_lhs < ver_rhs,
+        "-gt" => ver_lhs > ver_rhs,
+        "-le" => ver_lhs <= ver_rhs,
+        "-ge" => ver_lhs >= ver_rhs,
+        _ => {
+            let err = PkgcraftError::new(format!("invalid operator: {:?}", op));
+            update_last_error(err);
+            return -1;
+        }
+    };
+
+    !ret as c_int
 }
 
 thread_local! {

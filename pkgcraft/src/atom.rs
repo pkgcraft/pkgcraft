@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
-use self::version::Version;
+pub use self::version::Version;
 use crate::eapi;
 // export parser functionality
 pub use parser::parse;
