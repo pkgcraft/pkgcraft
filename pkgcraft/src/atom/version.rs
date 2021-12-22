@@ -43,18 +43,24 @@ pub struct Revision {
     int: u32,
 }
 
+impl FromStr for Revision {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let int: u32 = s
+            .parse()
+            .map_err(|e| Error::InvalidValue(format!("invalid revision {:?}: {}", s, e)))?;
+        Ok(Revision {
+            value: Some(s.to_string()),
+            int,
+        })
+    }
+}
+
 impl Revision {
     pub fn new(rev: Option<&str>) -> crate::Result<Self> {
         match &rev {
-            Some(s) => {
-                let int: u32 = s
-                    .parse()
-                    .map_err(|e| Error::InvalidValue(format!("invalid revision {:?}: {}", s, e)))?;
-                Ok(Revision {
-                    value: Some(s.to_string()),
-                    int,
-                })
-            }
+            Some(s) => Revision::from_str(s),
             None => Ok(Revision::default()),
         }
     }
