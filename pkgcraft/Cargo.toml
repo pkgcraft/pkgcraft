@@ -19,9 +19,6 @@ path = "src/lib.rs"
 name = "integration"
 path = "tests/lib.rs"
 
-[features]
-capi = []
-
 [dependencies]
 async-trait = "0.1.51"
 cached = "0.26.2"
