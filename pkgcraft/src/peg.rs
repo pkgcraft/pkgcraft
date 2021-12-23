@@ -23,7 +23,9 @@ impl fmt::Display for Error {
                 &self.src,
                 format!("Expected: {}", self.error.expected),
             );
-            chic_error.to_string()
+            let s = chic_error.to_string();
+            // don't prefix error messages
+            s.strip_prefix("error: ").unwrap_or(&s).to_string()
         };
         write!(f, "{}", err)
     }
