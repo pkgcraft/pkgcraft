@@ -1,6 +1,6 @@
 [package]
 name = "pkgcraft"
-version = "0.0.1"
+version = "0.0.2"
 description = "library of Gentoo functionality"
 authors = ["Tim Harder <radhermit@gmail.com>"]
 homepage = "https://github.com/pkgcraft/pkgcraft"
