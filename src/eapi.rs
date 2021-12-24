@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
@@ -67,11 +68,23 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Clone)]
 pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
+}
+
+impl PartialEq for Eapi {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Hash for Eapi {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
 }
 
 impl PartialOrd for Eapi {

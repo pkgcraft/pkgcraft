@@ -231,8 +231,8 @@ pub mod parse {
     }
 
     cached_key! {
-        ATOM_CACHE: SizedCache<(String, String), crate::Result<Atom>> = SizedCache::with_size(1000);
-        Key = { (s.to_string(), eapi.to_string()) };
+        ATOM_CACHE: SizedCache<(String, &Eapi), crate::Result<Atom>> = SizedCache::with_size(1000);
+        Key = { (s.to_string(), eapi) };
         fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> = {
             pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {:?}", s), s, e))
         }
