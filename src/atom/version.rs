@@ -191,11 +191,8 @@ impl Ord for Version {
 
             let self_suffixes = &self_parts[1..];
             let other_suffixes = &other_parts[1..];
-            let mut suffix_count: u32 = 0;
 
             for (s1, s2) in self_suffixes.iter().zip(other_suffixes.iter()) {
-                suffix_count += 1;
-
                 // if suffix strings are equal, continue to the next
                 if s1 == s2 {
                     continue;
@@ -232,24 +229,22 @@ impl Ord for Version {
                 }
             }
 
-            if suffix_count > 0 {
-                // One version has more suffixes than the other, use its last
-                // suffix to determine ordering.
-                match self_suffixes.len().cmp(&other_suffixes.len()) {
-                    Ordering::Equal => (),
-                    Ordering::Greater => {
-                        let m = SUFFIX_RE.captures(self_suffixes.last().unwrap()).unwrap();
-                        match m.name("suffix").unwrap().as_str() {
-                            "p" => return Ordering::Greater,
-                            _ => return Ordering::Less,
-                        }
+            // One version has more suffixes than the other, use its last
+            // suffix to determine ordering.
+            match self_suffixes.len().cmp(&other_suffixes.len()) {
+                Ordering::Equal => (),
+                Ordering::Greater => {
+                    let m = SUFFIX_RE.captures(self_suffixes.last().unwrap()).unwrap();
+                    match m.name("suffix").unwrap().as_str() {
+                        "p" => return Ordering::Greater,
+                        _ => return Ordering::Less,
                     }
-                    Ordering::Less => {
-                        let m = SUFFIX_RE.captures(other_suffixes.last().unwrap()).unwrap();
-                        match m.name("suffix").unwrap().as_str() {
-                            "p" => return Ordering::Less,
-                            _ => return Ordering::Greater,
-                        }
+                }
+                Ordering::Less => {
+                    let m = SUFFIX_RE.captures(other_suffixes.last().unwrap()).unwrap();
+                    match m.name("suffix").unwrap().as_str() {
+                        "p" => return Ordering::Less,
+                        _ => return Ordering::Greater,
                     }
                 }
             }
@@ -319,12 +314,19 @@ mod tests {
             // version letter suffix
             ("0a < 0b"),
             ("1.1z > 1.1a"),
+            // suffix vs non-suffix
+            ("1.2.3_alpha < 1.2.3"),
+            ("1.2.3_beta < 1.2.3"),
+            ("1.2.3_pre < 1.2.3"),
+            ("1.2.3_rc < 1.2.3"),
+            ("1.2.3_p > 1.2.3"),
             // release suffix
             ("0_alpha < 0_beta"),
             ("0_pre < 0_rc"),
             // release suffix version
             ("0_alpha1 < 0_alpha2"),
             ("0_alpha2-r1 > 0_alpha1-r2"),
+            ("0_p1 < 0_p2"),
             // last release suffix
             ("0_alpha_rc_p > 0_alpha_rc"),
             // revision
