@@ -99,14 +99,14 @@ impl fmt::Display for Atom {
             _ => (),
         }
 
-        // append repo
-        if let Some(repo) = &self.repo {
-            s.push_str(&format!("::{}", repo));
-        }
-
         // append use deps
         if let Some(x) = &self.use_deps {
             s.push_str(&format!("[{}]", &x.join(",")));
+        }
+
+        // append repo
+        if let Some(repo) = &self.repo {
+            s.push_str(&format!("::{}", repo));
         }
 
         write!(f, "{}", s)
