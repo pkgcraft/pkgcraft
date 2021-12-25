@@ -28,6 +28,8 @@ jobs:
 
     - name: Set up rust cache
       uses: Swatinem/rust-cache@v1
+      with:
+        cache-on-failure: true
 
     - name: Run tests
       run: cargo test
@@ -51,6 +53,8 @@ jobs:
 
     - name: Set up rust cache
       uses: Swatinem/rust-cache@v1
+      with:
+        cache-on-failure: true
 
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
@@ -73,6 +77,8 @@ jobs:
 
     - name: Set up rust cache
       uses: Swatinem/rust-cache@v1
+      with:
+        cache-on-failure: true
 
     - name: Run benchmarks
       run: |
