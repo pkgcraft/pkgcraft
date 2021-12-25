@@ -51,6 +51,10 @@ pub struct Atom {
 }
 
 impl Atom {
+    pub fn new<S: AsRef<str>>(s: S, eapi: &'static eapi::Eapi) -> crate::Result<Self> {
+        parse::dep(s.as_ref(), eapi)
+    }
+
     pub fn fullver(&self) -> Option<String> {
         self.version.as_ref().map(|ver| format!("{}", ver))
     }
@@ -171,7 +175,7 @@ impl FromStr for Atom {
     type Err = crate::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parse::dep(s, &eapi::EAPI_PKGCRAFT)
+        Atom::new(s, &eapi::EAPI_PKGCRAFT)
     }
 }
 
