@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::atom;
+use crate::atom::Atom;
 use crate::error::Error;
 
 static VALID_EAPI_RE: Lazy<Regex> =
@@ -106,8 +106,8 @@ impl Eapi {
 
     /// Parse a package atom using EAPI specific support.
     #[inline]
-    pub fn atom(&'static self, s: &str) -> crate::Result<atom::Atom> {
-        atom::parse::dep(s, self)
+    pub fn atom(&'static self, s: &str) -> crate::Result<Atom> {
+        Atom::new(s, self)
     }
 
     fn new(
