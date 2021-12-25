@@ -25,15 +25,8 @@ jobs:
         override: true
         components: rustfmt
 
-    - name: Update crates
-      run: cargo update
-
-    - name: Cache crates
-      uses: actions/cache@v2
-      with:
-        path: ~/.cargo/registry/cache
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ runner.os }}-cargo-
+    - name: Set up rust cache
+      uses: Swatinem/rust-cache@v1
 
     - name: Run tests
       run: cargo test
@@ -55,15 +48,8 @@ jobs:
     - name: Run rustfmt
       run: cargo fmt --all -- --check
 
-    - name: Update crates
-      run: cargo update
-
-    - name: Cache crates
-      uses: actions/cache@v2
-      with:
-        path: ~/.cargo/registry/cache
-        key: cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: cargo-
+    - name: Set up rust cache
+      uses: Swatinem/rust-cache@v1
 
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
@@ -84,15 +70,8 @@ jobs:
         override: true
         components: rustfmt
 
-    - name: Update crates
-      run: cargo update
-
-    - name: Cache crates
-      uses: actions/cache@v2
-      with:
-        path: ~/.cargo/registry/cache
-        key: cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: cargo-
+    - name: Set up rust cache
+      uses: Swatinem/rust-cache@v1
 
     - name: Run benchmarks
       run: |
