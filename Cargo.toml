@@ -15,10 +15,6 @@ autotests = false
 name = "pkgcraft"
 path = "src/lib.rs"
 
-[[test]]
-name = "integration"
-path = "tests/lib.rs"
-
 [dependencies]
 async-trait = "0.1.51"
 cached = "0.26.2"
