@@ -192,6 +192,7 @@ mod tests {
             "~cat/pkg-4",
             ">=cat/pkg-r1-2-r3",
             ">cat/pkg-4-r1:0=",
+            ">cat/pkg-4-r1:0/2=[use]",
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
