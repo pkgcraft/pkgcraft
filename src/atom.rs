@@ -171,7 +171,7 @@ impl FromStr for Atom {
     type Err = crate::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parse::dep(s, eapi::EAPI_LATEST)
+        parse::dep(s, &eapi::EAPI_PKGCRAFT)
     }
 }
 
@@ -193,6 +193,7 @@ mod tests {
             ">=cat/pkg-r1-2-r3",
             ">cat/pkg-4-r1:0=",
             ">cat/pkg-4-r1:0/2=[use]",
+            ">cat/pkg-4-r1:0/2=[use]::repo",
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
