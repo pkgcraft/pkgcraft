@@ -106,8 +106,8 @@ impl Eapi {
 
     /// Parse a package atom using EAPI specific support.
     #[inline]
-    pub fn atom(&'static self, s: &str) -> crate::Result<Atom> {
-        Atom::new(s, self)
+    pub fn atom<S: AsRef<str>>(&'static self, s: S) -> crate::Result<Atom> {
+        Atom::new(s.as_ref(), self)
     }
 
     fn new(
