@@ -9,9 +9,10 @@ static VERSION_RE: Lazy<Regex> = Lazy::new(|| {
 pub fn version_split(ver: &str) -> Vec<&str> {
     let mut version_parts = Vec::new();
     for caps in VERSION_RE.captures_iter(ver) {
-        let sep = caps.name("sep").map_or("", |m| m.as_str());
-        let comp = caps.name("comp").map_or("", |m| m.as_str());
-        version_parts.extend([sep, comp]);
+        version_parts.extend([
+            caps.name("sep").map_or("", |m| m.as_str()),
+            caps.name("comp").map_or("", |m| m.as_str()),
+        ]);
     }
     version_parts
 }
