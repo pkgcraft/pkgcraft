@@ -95,6 +95,34 @@ impl PartialOrd for Eapi {
     }
 }
 
+pub trait IntoEapi {
+    fn into_eapi(self) -> crate::Result<&'static Eapi>;
+}
+
+impl IntoEapi for &'static Eapi {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
+        Ok(self)
+    }
+}
+
+impl IntoEapi for Option<&str> {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
+        match self {
+            None => Ok(&EAPI_PKGCRAFT),
+            Some(s) => get_eapi(s),
+        }
+    }
+}
+
+impl IntoEapi for Option<&'static Eapi> {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
+        match self {
+            None => Ok(&EAPI_PKGCRAFT),
+            Some(eapi) => Ok(eapi),
+        }
+    }
+}
+
 impl Eapi {
     /// Check if an EAPI has a given feature.
     pub fn has(&self, opt: &str) -> bool {

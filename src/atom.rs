@@ -3,7 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 
 pub use self::version::Version;
-use crate::eapi;
+use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 // export parser functionality
 pub use parser::parse;
 
@@ -51,8 +51,8 @@ pub struct Atom {
 }
 
 impl Atom {
-    pub fn new<S: AsRef<str>>(s: S, eapi: &'static eapi::Eapi) -> crate::Result<Self> {
-        parse::dep(s.as_ref(), eapi)
+    pub fn new<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> crate::Result<Self> {
+        parse::dep(s.as_ref(), eapi.into_eapi()?)
     }
 
     pub fn fullver(&self) -> Option<String> {
@@ -175,7 +175,7 @@ impl FromStr for Atom {
     type Err = crate::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Atom::new(s, &eapi::EAPI_PKGCRAFT)
+        Atom::new(s, &*EAPI_PKGCRAFT)
     }
 }
 
