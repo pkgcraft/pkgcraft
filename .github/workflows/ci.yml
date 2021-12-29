@@ -133,5 +133,8 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: cargo install cargo-criterion
 
-    - name: Run benchmarks
+    - name: Build
       run: cargo criterion --no-run
+
+    - name: Benchmark
+      run: cargo criterion
