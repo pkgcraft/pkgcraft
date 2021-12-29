@@ -57,17 +57,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust-version }}
-        profile: minimal
-        override: true
-        components: clippy, rustfmt
-
-    - name: Run rustfmt
-      run: cargo fmt --all -- --check
-
     - name: Update deps
       run: cargo update
 
@@ -84,6 +73,17 @@ jobs:
           target
         key: v1-${{ github.job }}-${{ runner.os }}-rust-${{ matrix.rust-version }}-cargo-${{ hashFiles('Cargo.lock') }}
         restore-keys: v1-${{ github.job }}-${{ runner.os }}-rust-${{ matrix.rust-version }}-cargo-
+
+    - name: Set up rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust-version }}
+        profile: minimal
+        override: true
+        components: clippy, rustfmt
+
+    - name: Run rustfmt
+      run: cargo fmt --all -- --check
 
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
