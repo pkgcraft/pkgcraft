@@ -12,11 +12,28 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        rust-version: ['1.56.0', 'stable']
+        rust-version: ['1.56.0', '1.57.0']
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
+
+    - name: Update deps
+      run: cargo update
+
+    - name: Set up rust cache
+      uses: actions/cache@v2
+      id: cache
+      with:
+        path: |
+          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+          ~/.rustup
+          target
+        key: v1-${{ matrix.os }}-rust-${{ matrix.rust-version }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v1-${{ matrix.os }}-rust-${{ matrix.rust-version }}-cargo-
 
     - name: Set up rust toolchain ${{ matrix.rust-version }}
       uses: actions-rs/toolchain@v1
@@ -25,11 +42,6 @@ jobs:
         profile: minimal
         override: true
         components: rustfmt
-
-    - name: Set up rust cache
-      uses: Swatinem/rust-cache@v1
-      with:
-        cache-on-failure: true
 
     - name: Run tests
       run: cargo test
@@ -43,7 +55,7 @@ jobs:
     - name: Set up rust toolchain
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: 1.57.0
         profile: minimal
         override: true
         components: clippy, rustfmt
@@ -51,10 +63,22 @@ jobs:
     - name: Run rustfmt
       run: cargo fmt --all -- --check
 
+    - name: Update deps
+      run: cargo update
+
     - name: Set up rust cache
-      uses: Swatinem/rust-cache@v1
+      uses: actions/cache@v2
+      id: cache
       with:
-        cache-on-failure: true
+        path: |
+          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+          ~/.rustup
+          target
+        key: v1-${{ matrix.os }}-rust-${{ matrix.rust-version }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v1-${{ matrix.os }}-rust-${{ matrix.rust-version }}-cargo-
 
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
@@ -67,20 +91,34 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Update deps
+      run: cargo update
+
+    - name: Set up rust cache
+      uses: actions/cache@v2
+      id: cache
+      with:
+        path: |
+          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+          ~/.rustup
+          target
+        key: v1-${{ matrix.os }}-rust-${{ matrix.rust-version }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v1-${{ matrix.os }}-rust-${{ matrix.rust-version }}-cargo-
+
     - name: Set up rust toolchain
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: 1.57.0
         profile: minimal
         override: true
         components: rustfmt
 
-    - name: Set up rust cache
-      uses: Swatinem/rust-cache@v1
-      with:
-        cache-on-failure: true
+    - name: Install cargo-c
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: cargo install cargo-criterion
 
     - name: Run benchmarks
-      run: |
-        cargo install cargo-criterion
-        cargo criterion --no-run
+      run: cargo criterion --no-run
