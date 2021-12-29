@@ -137,4 +137,4 @@ jobs:
       run: cargo criterion --no-run
 
     - name: Benchmark
-      run: cargo criterion --color always
+      run: cargo criterion --color always --output-format quiet
