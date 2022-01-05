@@ -40,14 +40,14 @@ impl FromStr for Suffix {
 #[derive(Debug, Default, Eq, Clone)]
 pub struct Revision {
     pub value: Option<String>,
-    int: u32,
+    int: u64,
 }
 
 impl FromStr for Revision {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let int: u32 = s
+        let int: u64 = s
             .parse()
             .map_err(|e| Error::InvalidValue(format!("invalid revision {:?}: {}", s, e)))?;
         Ok(Revision {
@@ -167,8 +167,8 @@ impl Ord for Version {
                             }
                         }
                         _ => {
-                            let v1_int: u32 = v1.parse().unwrap();
-                            let v2_int: u32 = v2.parse().unwrap();
+                            let v1_int: u64 = v1.parse().unwrap();
+                            let v2_int: u64 = v2.parse().unwrap();
                             cmp = v1_int.cmp(&v2_int);
                             if cmp != Ordering::Equal {
                                 return cmp;
@@ -211,13 +211,13 @@ impl Ord for Version {
                 }
 
                 // otherwise use the suffix versions for comparison
-                let v1: u32 = m1
+                let v1: u64 = m1
                     .name("version")
                     .unwrap()
                     .as_str()
                     .parse()
                     .unwrap_or_default();
-                let v2: u32 = m2
+                let v2: u64 = m2
                     .name("version")
                     .unwrap()
                     .as_str()
