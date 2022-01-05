@@ -1,7 +1,6 @@
 #![warn(unreachable_pub)]
 
 pub mod atom;
-pub mod bash;
 pub mod config;
 pub mod depspec;
 pub mod eapi;
