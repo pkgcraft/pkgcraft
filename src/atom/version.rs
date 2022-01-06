@@ -108,7 +108,7 @@ impl fmt::Display for Revision {
     }
 }
 
-#[derive(Debug, Eq, Hash, Clone)]
+#[derive(Debug, Eq, Clone)]
 pub struct Version {
     pub base: String,
     pub revision: Revision,

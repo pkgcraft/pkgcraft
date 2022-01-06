@@ -36,7 +36,7 @@ pub enum Operator {
     Greater,        // >cat/pkg-1
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Atom {
     pub category: String,
     pub package: String,
