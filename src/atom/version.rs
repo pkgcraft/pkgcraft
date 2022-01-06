@@ -154,12 +154,12 @@ impl Ord for Version {
                 let other_ver_parts: Vec<&str> = other_str.split('.').collect();
 
                 // separate major version from remaining version componenets
-                let (self_major, self_remaining) = (self_ver_parts[0], &self_ver_parts[1..]);
-                let (other_major, other_remaining) = (other_ver_parts[0], &other_ver_parts[1..]);
+                let (self_major, self_remaining) = (&self_ver_parts[0], &self_ver_parts[1..]);
+                let (other_major, other_remaining) = (&other_ver_parts[0], &other_ver_parts[1..]);
 
                 // compare major versions
-                let self_major_int: u64 = self_major.parse().unwrap();
-                let other_major_int: u64 = other_major.parse().unwrap();
+                let self_major_int: u64 = self_major.parse().expect("major version overflow");
+                let other_major_int: u64 = other_major.parse().expect("major version overflow");
                 cmp = self_major_int.cmp(&other_major_int);
                 if cmp != Ordering::Equal {
                     return cmp;
@@ -186,8 +186,8 @@ impl Ord for Version {
                             }
                         }
                         _ => {
-                            let v1_int: u64 = v1.parse().unwrap();
-                            let v2_int: u64 = v2.parse().unwrap();
+                            let v1_int: u64 = v1.parse().expect("version component overflow");
+                            let v2_int: u64 = v2.parse().expect("version component overflow");
                             cmp = v1_int.cmp(&v2_int);
                             if cmp != Ordering::Equal {
                                 return cmp;
@@ -308,10 +308,28 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "major version overflow")]
+    fn test_overflow_major_version() {
+        let val: u128 = u64::MAX as u128;
+        let v1 = Version::from_str(&format!("{}", val)).unwrap();
+        let v2 = Version::from_str(&format!("{}", val + 1)).unwrap();
+        assert!(v1 != v2);
+    }
+
+    #[test]
+    #[should_panic(expected = "version component overflow")]
+    fn test_overflow_version_component() {
+        let val: u128 = u64::MAX as u128;
+        let v1 = Version::from_str(&format!("1.{}", val)).unwrap();
+        let v2 = Version::from_str(&format!("1.{}", val + 1)).unwrap();
+        assert!(v1 != v2);
+    }
+
+    #[test]
     fn test_cmp() {
         let op_map: HashMap<&str, Ordering> = [
             ("<", Ordering::Less),
-            ("=", Ordering::Equal),
+            ("==", Ordering::Equal),
             (">", Ordering::Greater),
         ]
         .iter()
@@ -319,29 +337,47 @@ mod tests {
         .collect();
 
         for expr in [
-            ("0 = 0"),
+            // simple major versions
+            ("0 == 0"),
+            ("0 != 1"),
             // equal due to integer coercion and "-r0" being the revision default
-            ("0 = 0-r0"),
-            ("1.0.2 = 1.0.2-r0"),
-            ("1.0.2-r0 = 1.000.2"),
-            ("1.000.2 = 1.00.2-r0"),
-            ("0-r0 = 0-r00"),
-            ("0_beta01 = 0_beta001"),
-            // integer version comparison
+            ("0 == 0-r0"),
+            ("1 == 01"),
+            ("01 == 001"),
+            ("1.00 == 1.0"),
+            ("1.0100 == 1.010"),
+            ("01.01 == 1.01"),
+            ("0001.1 == 1.1"),
+            ("1.2 == 001.2"),
+            ("1.0.2 == 1.0.2-r0"),
+            ("1.0.2-r0 == 1.000.2"),
+            ("1.000.2 == 1.00.2-r0"),
+            ("0-r0 == 0-r00"),
+            ("0_beta01 == 0_beta001"),
+            ("1.2_pre08-r09 == 1.2_pre8-r9"),
+            ("1.010.02 != 1.01.2"),
+            // minor versions
             ("0.1 < 0.11"),
             ("0.01 > 0.001"),
+            ("1.0 > 1"),
+            ("1.0_alpha > 1_alpha"),
+            ("1.0_alpha > 1"),
+            ("1.0_alpha < 1.0"),
             // version letter suffix
             ("0a < 0b"),
             ("1.1z > 1.1a"),
-            // suffix vs non-suffix
+            // release types
+            ("1_alpha < 1_beta"),
+            ("1_beta < 1_pre"),
+            ("1_pre < 1_rc"),
+            ("1_rc < 1"),
+            ("1 < 1_p"),
+            // release suffix vs non-suffix
             ("1.2.3_alpha < 1.2.3"),
             ("1.2.3_beta < 1.2.3"),
             ("1.2.3_pre < 1.2.3"),
             ("1.2.3_rc < 1.2.3"),
             ("1.2.3_p > 1.2.3"),
-            // release suffix
-            ("0_alpha < 0_beta"),
-            ("0_pre < 0_rc"),
             // release suffix version
             ("0_alpha1 < 0_alpha2"),
             ("0_alpha2-r1 > 0_alpha1-r2"),
@@ -351,23 +387,22 @@ mod tests {
             // revision
             ("0-r2 > 0-r1"),
             ("1.0.2_pre01-r2 > 1.00.2_pre001-r1"),
+            // bound limits
+            (&format!("{} < {}", u32::MAX, u64::MAX)),
         ] {
             let v: Vec<&str> = expr.split(' ').collect();
             let v1 = Version::from_str(v[0]).unwrap();
             let v2 = Version::from_str(v[2]).unwrap();
-            let op = op_map[v[1]];
+            let op = v[1];
             match op {
-                Ordering::Equal => {
-                    assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
-                    assert_eq!(v2.cmp(&v1), op, "failed comparing {}", expr);
+                "!=" => {
+                    assert_ne!(v1, v2, "failed comparing {}", expr);
+                    assert_ne!(v2, v1, "failed comparing {}", expr);
                 }
-                Ordering::Less => {
+                _ => {
+                    let op = op_map[op];
                     assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
-                    assert_eq!(v2.cmp(&v1), Ordering::Greater, "failed comparing {}", expr);
-                }
-                Ordering::Greater => {
-                    assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
-                    assert_eq!(v2.cmp(&v1), Ordering::Less, "failed comparing {}", expr);
+                    assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {}", expr);
                 }
             }
         }
