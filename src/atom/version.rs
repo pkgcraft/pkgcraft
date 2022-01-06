@@ -148,12 +148,25 @@ impl Ord for Version {
                 // pull letter suffixes for later comparison
                 let (self_letter, self_str) = split(self_parts[0]);
                 let (other_letter, other_str) = split(other_parts[0]);
+
                 // split dotted version string into components
                 let self_ver_parts: Vec<&str> = self_str.split('.').collect();
                 let other_ver_parts: Vec<&str> = other_str.split('.').collect();
 
-                // iterate through the components
-                for (v1, v2) in self_ver_parts.iter().zip(other_ver_parts.iter()) {
+                // separate major version from remaining version componenets
+                let (self_major, self_remaining) = (self_ver_parts[0], &self_ver_parts[1..]);
+                let (other_major, other_remaining) = (other_ver_parts[0], &other_ver_parts[1..]);
+
+                // compare major versions
+                let self_major_int: u64 = self_major.parse().unwrap();
+                let other_major_int: u64 = other_major.parse().unwrap();
+                cmp = self_major_int.cmp(&other_major_int);
+                if cmp != Ordering::Equal {
+                    return cmp;
+                }
+
+                // iterate through the remaining version components
+                for (v1, v2) in self_remaining.iter().zip(other_remaining.iter()) {
                     // if string is lexically equal, it is numerically equal too
                     if v1 == v2 {
                         continue;
