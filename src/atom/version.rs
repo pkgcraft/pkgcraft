@@ -108,7 +108,7 @@ impl fmt::Display for Revision {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Eq, Hash, Clone)]
 pub struct Version {
     pub base: String,
     pub revision: Revision,
@@ -117,6 +117,12 @@ pub struct Version {
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}{}", self.base, self.revision)
+    }
+}
+
+impl PartialEq for Version {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
     }
 }
 
