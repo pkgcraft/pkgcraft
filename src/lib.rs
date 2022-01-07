@@ -8,6 +8,7 @@ mod error;
 mod macros;
 pub mod peg;
 mod repo;
+pub mod scallop;
 mod sync;
 pub mod utils;
 
