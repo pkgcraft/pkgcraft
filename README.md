@@ -1,6 +1,5 @@
 [![CI](https://github.com/pkgcraft/pkgcraft/workflows/CI/badge.svg)](https://github.com/pkgcraft/pkgcraft/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/pkgcraft.svg)](https://crates.io/crates/pkgcraft)
-[![deps](https://deps.rs/repo/github/pkgcraft/pkgcraft/status.svg)](https://deps.rs/repo/github/pkgcraft/pkgcraft)
 
 # Pkgcraft
 
