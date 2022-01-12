@@ -1,6 +1,6 @@
 use std::cmp;
 
-use scallop::builtins::Builtin;
+use scallop::builtins::{output_error_func, Builtin};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
@@ -13,7 +13,8 @@ Returns -1 on error.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<i32> {
-    let pv = string_value("PV").unwrap_or("");
+    let pv = string_value("PV").unwrap_or_else(|| String::from(""));
+    let pv = pv.as_str();
     let (range, ver) = match args.len() {
         1 => (args[0], pv),
         2 => (args[0], args[1]),
@@ -38,5 +39,5 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "ver_cut 1-2 - 1.2.3",
-    exit_on_error: false,
+    error_func: Some(output_error_func),
 };

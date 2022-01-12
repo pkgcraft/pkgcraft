@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use scallop::builtins::Builtin;
+use scallop::builtins::{output_error_func, Builtin};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
@@ -14,7 +14,8 @@ Returns -1 if an error occurred.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<i32> {
-    let pvr = string_value("PVR").unwrap_or("");
+    let pvr = string_value("PVR").unwrap_or_else(|| String::from(""));
+    let pvr = pvr.as_str();
     let (lhs, op, rhs) = match args.len() {
         2 if pvr.is_empty() => return Err(Error::new("$PVR is undefined")),
         2 => (pvr, args[0], args[1]),
@@ -43,5 +44,5 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "ver_test 1 -lt 2-r1",
-    exit_on_error: false,
+    error_func: Some(output_error_func),
 };

@@ -1,4 +1,4 @@
-use scallop::builtins::Builtin;
+use scallop::builtins::{output_error_func, Builtin};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
@@ -11,7 +11,8 @@ Returns -1 on error.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<i32> {
-    let pv = string_value("PV").unwrap_or("");
+    let pv = string_value("PV").unwrap_or_else(|| String::from(""));
+    let pv = pv.as_str();
     let (ver, args) = match args.len() {
         n if n < 2 => return Err(Error::new(format!("requires 2 or more args, got {}", n))),
 
@@ -54,5 +55,5 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "ver_rs 2 - 1.2.3",
-    exit_on_error: false,
+    error_func: Some(output_error_func),
 };

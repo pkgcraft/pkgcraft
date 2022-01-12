@@ -1,4 +1,4 @@
-use scallop::builtins::Builtin;
+use scallop::builtins::{output_error_func, Builtin};
 use scallop::variables::array_to_vec;
 use scallop::Result;
 
@@ -23,5 +23,5 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "assert \"error message\"",
-    exit_on_error: false,
+    error_func: Some(output_error_func),
 };

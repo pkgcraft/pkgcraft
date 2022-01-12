@@ -1,4 +1,4 @@
-use scallop::builtins::Builtin;
+use scallop::builtins::{output_error_func, Builtin};
 use scallop::variables::string_value;
 use scallop::{source, Error, Result};
 
@@ -37,5 +37,5 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "EXPORT_FUNCTIONS src_configure src_compile",
-    exit_on_error: false,
+    error_func: Some(output_error_func),
 };

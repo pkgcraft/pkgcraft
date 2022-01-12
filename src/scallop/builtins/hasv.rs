@@ -1,4 +1,4 @@
-use scallop::builtins::Builtin;
+use scallop::builtins::{output_error_func, Builtin};
 use scallop::Result;
 
 use super::has;
@@ -20,5 +20,5 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "hasv needle ${haystack}",
-    exit_on_error: false,
+    error_func: Some(output_error_func),
 };
