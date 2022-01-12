@@ -160,8 +160,9 @@ jobs:
         components: rustfmt
 
     - name: Install cargo-criterion
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: cargo install cargo-criterion
+      run: |
+        # ignore return value since `cargo install` errors out when already installed
+        cargo install cargo-criterion || true
 
     - name: Build
       run: cargo criterion --no-run
