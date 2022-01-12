@@ -8,6 +8,16 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout scallop
+        uses: actions/checkout@v2
+        with:
+          repository: pkgcraft/scallop
+          path: scallop
+          submodules: true
+
+      - name: Move scallop into expected location
+        run: mv scallop ../
+
       - name: Checkout code
         uses: actions/checkout@v2
 
