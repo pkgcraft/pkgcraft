@@ -18,6 +18,11 @@ type EapiOptions = HashMap<&'static str, bool>;
 #[rustfmt::skip]
 static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
     [
+        // EAPI 0
+
+        // RDEPEND=DEPEND if RDEPEND is unset
+        ("rdepend_default", true),
+
         // EAPI 1
 
         // IUSE defaults
@@ -216,6 +221,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("use_dep_defaults", true),
         ("required_use", true),
+        ("rdepend_default", false),
     ].iter().cloned().collect();
     Eapi::new("4", Some(&EAPI3), Some(&options))
 });
