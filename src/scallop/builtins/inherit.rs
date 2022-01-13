@@ -1,5 +1,5 @@
 use scallop::builtins::{output_error_func, Builtin};
-use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable};
+use scallop::variables::{array_to_vec, string_vec, unbind, Assign, ScopedVariable, Variable};
 use scallop::{source, Result};
 
 use crate::scallop::BUILD_DATA;
@@ -12,6 +12,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
 
     BUILD_DATA.with(|d| -> Result<i32> {
         let eclass_var = ScopedVariable::new("ECLASS");
+        let inherited_var = Variable::new("INHERITED");
         let eapi = d.borrow().eapi;
 
         // track direct ebuild inherits
@@ -44,6 +45,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
                 }
             }
 
+            inherited_var.bind(format!(" {}", &eclass), Some(Assign::APPEND));
             d.inherited.insert(eclass);
         }
 
