@@ -22,7 +22,7 @@ pub fn source_ebuild<P: AsRef<Path>>(ebuild: P) -> Result<()> {
         // set RDEPEND=DEPEND if RDEPEND is unset
         if eapi.has("rdepend_default") && string_value("RDEPEND").is_none() {
             let depend = string_value("DEPEND").unwrap_or_else(|| String::from(""));
-            bind("RDEPEND", &depend, None);
+            bind("RDEPEND", &depend, None, None);
         }
 
         // prepend metadata keys that incrementally accumulate to eclass values

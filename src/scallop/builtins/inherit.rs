@@ -33,7 +33,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
                 unbind(var)?;
             }
 
-            eclass_var.bind(&eclass, None);
+            eclass_var.bind(&eclass, None, None);
             source::file(&format!("{}/eclass/{}.eclass", d.borrow().repo, &eclass)).unwrap();
 
             let mut d = d.borrow_mut();
@@ -45,7 +45,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
                 }
             }
 
-            inherited_var.bind(format!(" {}", &eclass), Some(Assign::APPEND));
+            inherited_var.bind(format!(" {}", &eclass), Some(Assign::APPEND), None);
             d.inherited.insert(eclass);
         }
 
