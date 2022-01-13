@@ -102,6 +102,13 @@ impl PartialOrd for Eapi {
     }
 }
 
+// use the latest EAPI for the Default trait
+impl Default for &'static Eapi {
+    fn default() -> &'static Eapi {
+        EAPI_LATEST
+    }
+}
+
 pub trait IntoEapi {
     fn into_eapi(self) -> crate::Result<&'static Eapi>;
 }
