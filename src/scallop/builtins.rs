@@ -4,6 +4,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 pub mod assert;
+pub mod debug_print;
+pub mod debug_print_function;
+pub mod debug_print_section;
 pub mod die;
 pub mod export_functions;
 pub mod has;
