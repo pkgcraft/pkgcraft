@@ -4,9 +4,7 @@ use scallop::{source, Result};
 
 use crate::scallop::BUILD_DATA;
 
-static LONG_DOC: &str = "\
-Checks the value of the shell’s pipe status variable, and if any component is non-zero
-(indicating failure), calls die, passing any parameters to it.";
+static LONG_DOC: &str = "Sources the given list of eclasses.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<i32> {
