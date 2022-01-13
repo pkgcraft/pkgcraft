@@ -7,6 +7,7 @@ use crate::eapi::Eapi;
 use crate::Error;
 
 pub mod builtins;
+pub mod functions;
 
 #[derive(Debug, Default, Clone)]
 pub struct BuildData {
