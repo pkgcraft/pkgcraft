@@ -180,7 +180,7 @@ impl Eapi {
         };
 
         if let Some(keys) = eapi_incremental_keys {
-            incremental_keys = incremental_keys.union(&keys).cloned().collect();
+            incremental_keys = incremental_keys.union(keys).cloned().collect();
         }
 
         Eapi {
