@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -14,6 +14,7 @@ static VALID_EAPI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
 
 type EapiOptions = HashMap<&'static str, bool>;
+type EapiKeys = HashSet<&'static str>;
 
 #[rustfmt::skip]
 static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
@@ -78,6 +79,7 @@ pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
+    pub incremental_keys: EapiKeys,
 }
 
 impl PartialEq for Eapi {
@@ -147,6 +149,7 @@ impl Eapi {
         id: &'static str,
         parent: Option<&'static Eapi>,
         eapi_options: Option<&EapiOptions>,
+        eapi_incremental_keys: Option<&EapiKeys>,
     ) -> Eapi {
         // clone inherited options
         let mut options = match parent {
@@ -163,10 +166,21 @@ impl Eapi {
             }
         }
 
+        // merge incremental keys
+        let mut incremental_keys = match parent {
+            Some(x) => x.incremental_keys.clone(),
+            None => HashSet::new() as EapiKeys,
+        };
+
+        if let Some(keys) = eapi_incremental_keys {
+            incremental_keys = incremental_keys.union(&keys).cloned().collect();
+        }
+
         Eapi {
             id,
             parent,
             options,
+            incremental_keys,
         }
     }
 }
@@ -190,7 +204,10 @@ pub fn get_eapi(id: &str) -> crate::Result<&'static Eapi> {
 
 #[rustfmt::skip]
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::new("0", None, None)
+    let incremental_keys: EapiKeys = [
+        "IUSE", "DEPEND", "RDEPEND", "PDEPEND",
+    ].iter().cloned().collect();
+    Eapi::new("0", None, None, Some(&incremental_keys))
 });
 
 #[rustfmt::skip]
@@ -198,7 +215,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("slot_deps", true),
     ].iter().cloned().collect();
-    Eapi::new("1", Some(&EAPI0), Some(&options))
+    Eapi::new("1", Some(&EAPI0), Some(&options), None)
 });
 
 #[rustfmt::skip]
@@ -208,12 +225,12 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
         ("use_deps", true),
         ("src_uri_renames", true),
     ].iter().cloned().collect();
-    Eapi::new("2", Some(&EAPI1), Some(&options))
+    Eapi::new("2", Some(&EAPI1), Some(&options), None)
 });
 
 #[rustfmt::skip]
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::new("3", Some(&EAPI2), None)
+    Eapi::new("3", Some(&EAPI2), None, None)
 });
 
 #[rustfmt::skip]
@@ -223,7 +240,10 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
         ("required_use", true),
         ("rdepend_default", false),
     ].iter().cloned().collect();
-    Eapi::new("4", Some(&EAPI3), Some(&options))
+    let incremental_keys: EapiKeys = [
+        "REQUIRED_USE",
+    ].iter().cloned().collect();
+    Eapi::new("4", Some(&EAPI3), Some(&options), Some(&incremental_keys))
 });
 
 #[rustfmt::skip]
@@ -233,17 +253,20 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
         ("slot_ops", true),
         ("required_use_one_of", true),
     ].iter().cloned().collect();
-    Eapi::new("5", Some(&EAPI4), Some(&options))
+    Eapi::new("5", Some(&EAPI4), Some(&options), None)
 });
 
 #[rustfmt::skip]
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::new("6", Some(&EAPI5), None)
+    Eapi::new("6", Some(&EAPI5), None, None)
 });
 
 #[rustfmt::skip]
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::new("7", Some(&EAPI6), None)
+    let incremental_keys: EapiKeys = [
+        "BDEPEND",
+    ].iter().cloned().collect();
+    Eapi::new("7", Some(&EAPI6), None, Some(&incremental_keys))
 });
 
 #[rustfmt::skip]
@@ -251,7 +274,10 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("src_uri_unrestrict", true),
     ].iter().cloned().collect();
-    Eapi::new("8", Some(&EAPI7), Some(&options))
+    let incremental_keys: EapiKeys = [
+        "IDEPEND", "PROPERTIES", "RESTRICT",
+    ].iter().cloned().collect();
+    Eapi::new("8", Some(&EAPI7), Some(&options), Some(&incremental_keys))
 });
 
 /// Reference to the latest registered EAPI.
@@ -263,7 +289,7 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("repo_ids", true),
     ].iter().cloned().collect();
-    Eapi::new("pkgcraft", Some(EAPI_LATEST), Some(&options))
+    Eapi::new("pkgcraft", Some(EAPI_LATEST), Some(&options), None)
 });
 
 /// Ordered mapping of official EAPI identifiers to instances.
