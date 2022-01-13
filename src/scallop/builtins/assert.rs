@@ -11,7 +11,7 @@ Checks the value of the shell’s pipe status variable, and if any component is 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<i32> {
     let pipestatus = array_to_vec("PIPESTATUS")?;
-    let failed = pipestatus.iter().any(|&s| s != "0");
+    let failed = pipestatus.iter().any(|s| s != "0");
     match failed {
         true => die::run(args),
         false => Ok(0),
