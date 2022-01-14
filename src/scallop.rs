@@ -15,7 +15,9 @@ pub struct BuildData {
     pub eapi: &'static Eapi,
 
     pub desttree: String,
+    pub exedesttree: String,
     pub insdesttree: String,
+
     pub iuse_effective: HashSet<String>,
     pub r#use: HashSet<String>,
 
