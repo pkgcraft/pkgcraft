@@ -15,6 +15,7 @@ pub struct BuildData {
     pub eapi: &'static Eapi,
 
     pub desttree: String,
+    pub docdesttree: String,
     pub exedesttree: String,
     pub insdesttree: String,
 
