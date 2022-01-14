@@ -12,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         1..=5 => {
             // override missing args with default values
             let mut vals = ["", "yes", "no", "", ""];
-            let start = args.len() - 1;
+            let start = args.len();
             let stop = vals.len();
             vals[start..stop].clone_from_slice(&args[start..stop]);
             (args[0], vals)
