@@ -16,6 +16,7 @@ pub mod has;
 pub mod hasv;
 pub mod in_iuse;
 pub mod inherit;
+pub mod insinto;
 pub mod into;
 pub mod nonfatal;
 pub mod r#use;

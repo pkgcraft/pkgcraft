@@ -27,6 +27,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // DESTTREE is exported to the ebuild env
         ("export_desttree", true),
 
+        // INSDESTTREE is exported to the ebuild env
+        ("export_insdesttree", true),
+
         // EAPI 1
 
         // IUSE defaults
@@ -282,6 +285,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("export_desttree", false),
+        ("export_insdesttree", false),
     ].iter().cloned().collect();
     let incremental_keys: EapiKeys = [
         "BDEPEND",
