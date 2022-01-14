@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
@@ -10,7 +10,7 @@ Perform string substitution on package version strings.
 Returns -1 on error.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pv = string_value("PV").unwrap_or_else(|| String::from(""));
     let pv = pv.as_str();
     let (ver, args) = match args.len() {
@@ -47,7 +47,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
 
     println!("{}", version_parts.join(""));
 
-    Ok(0)
+    Ok(ExecStatus::Success)
 }
 
 pub static BUILTIN: Builtin = Builtin {

@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::command::Command;
 use scallop::{Error, Result};
 
@@ -12,7 +12,7 @@ results in a command being called that would normally abort the build process du
 instead a non-zero exit status shall be returned.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::new("no arguments specified"));
     }
@@ -23,7 +23,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
     cmd.execute().ok();
     NONFATAL.store(false, Ordering::Relaxed);
 
-    Ok(0)
+    Ok(ExecStatus::Success)
 }
 
 pub static BUILTIN: Builtin = Builtin {

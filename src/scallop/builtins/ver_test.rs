@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
@@ -13,7 +13,7 @@ Returns 0 if the specified test is true, 1 otherwise.
 Returns -1 if an error occurred.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pvr = string_value("PVR").unwrap_or_else(|| String::from(""));
     let pvr = pvr.as_str();
     let (lhs, op, rhs) = match args.len() {
@@ -36,7 +36,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
         _ => return Err(Error::new(format!("invalid operator: {:?}", op))),
     };
 
-    Ok(!ret as i32)
+    Ok(ExecStatus::from(ret))
 }
 
 pub static BUILTIN: Builtin = Builtin {

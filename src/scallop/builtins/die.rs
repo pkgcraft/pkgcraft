@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::NONFATAL;
@@ -9,7 +9,7 @@ static LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     // handle nonfatal support
     let args = match args.len() {
         // TODO: check for EAPI support
@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
                     println!("nonfatal die");
                     eprintln!("{}", args[1]);
                 }
-                return Ok(1);
+                return Ok(ExecStatus::Failure);
             }
             &args[1..]
         }

@@ -2,6 +2,7 @@ use std::sync::atomic::AtomicBool;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use scallop::builtins::ExecStatus;
 
 use crate::scallop::BUILD_DATA;
 
@@ -83,8 +84,12 @@ pub(crate) mod parse {
     }
 }
 
-pub(crate) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> scallop::Result<i32> {
-    BUILD_DATA.with(|d| -> scallop::Result<i32> {
+pub(crate) fn use_conf(
+    args: &[&str],
+    enabled: &str,
+    disabled: &str,
+) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (flag, opt, suffix) = match args.len() {
             1 => (&args[..1], args[0], String::from("")),
@@ -103,9 +108,8 @@ pub(crate) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> scallop:
 
         let ret = r#use::run(flag)?;
         match ret {
-            0 => println!("--{}-{}{}", enabled, opt, suffix),
-            1 => println!("--{}-{}{}", disabled, opt, suffix),
-            n => panic!("invalid return value: {}", n),
+            ExecStatus::Success => println!("--{}-{}{}", enabled, opt, suffix),
+            ExecStatus::Failure => println!("--{}-{}{}", disabled, opt, suffix),
         }
         Ok(ret)
     })

@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::Result;
 
 use super::use_conf;
@@ -7,7 +7,7 @@ static LONG_DOC: &str = "\
 Returns --with-${opt} and --without-${opt} configure flags based on a given USE flag.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     use_conf(args, "with", "without")
 }
 

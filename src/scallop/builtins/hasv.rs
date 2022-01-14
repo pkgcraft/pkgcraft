@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::Result;
 
 use super::has;
@@ -6,9 +6,9 @@ use super::has;
 static LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let ret = has::run(args)?;
-    if ret == 0 {
+    if bool::from(&ret) {
         println!("{}", args[0]);
     }
 

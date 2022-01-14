@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{source, Error, Result};
 
@@ -10,7 +10,7 @@ function is defined:
 src_unpack() { base_src_unpack; }";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let eclass = match string_value("ECLASS") {
         Some(val) => val,
         None => return Err(Error::new("no ECLASS defined")),
@@ -29,7 +29,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
 
     source::string(funcs.join("\n"))?;
 
-    Ok(0)
+    Ok(ExecStatus::Success)
 }
 
 pub static BUILTIN: Builtin = Builtin {

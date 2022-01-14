@@ -1,6 +1,6 @@
 use std::cmp;
 
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
@@ -12,7 +12,7 @@ Output substring from package version string and range arguments.
 Returns -1 on error.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pv = string_value("PV").unwrap_or_else(|| String::from(""));
     let pv = pv.as_str();
     let (range, ver) = match args.len() {
@@ -31,7 +31,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
     let end_idx = cmp::min(end * 2, len);
     println!("{}", &version_parts[start_idx..end_idx].join(""));
 
-    Ok(0)
+    Ok(ExecStatus::Success)
 }
 
 pub static BUILTIN: Builtin = Builtin {

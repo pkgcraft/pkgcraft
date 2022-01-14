@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::{array_to_vec, string_vec, unbind, Assign, ScopedVariable, Variable};
 use scallop::{source, Result};
 
@@ -7,10 +7,10 @@ use crate::scallop::BUILD_DATA;
 static LONG_DOC: &str = "Sources the given list of eclasses.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let eclasses: Vec<String> = args.iter().map(|s| s.to_string()).collect();
 
-    BUILD_DATA.with(|d| -> Result<i32> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eclass_var = ScopedVariable::new("ECLASS");
         let inherited_var = Variable::new("INHERITED");
         let eapi = d.borrow().eapi;
@@ -54,7 +54,7 @@ pub(crate) fn run(args: &[&str]) -> Result<i32> {
             unbind(var)?;
         }
 
-        Ok(0)
+        Ok(ExecStatus::Success)
     })
 }
 

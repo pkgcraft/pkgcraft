@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::array_to_vec;
 use scallop::Result;
 
@@ -9,12 +9,12 @@ Checks the value of the shell’s pipe status variable, and if any component is 
 (indicating failure), calls die, passing any parameters to it.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pipestatus = array_to_vec("PIPESTATUS")?;
     let failed = pipestatus.iter().any(|s| s != "0");
     match failed {
         true => die::run(args),
-        false => Ok(0),
+        false => Ok(ExecStatus::Success),
     }
 }
 

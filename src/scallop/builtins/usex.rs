@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::r#use;
@@ -7,26 +7,25 @@ static LONG_DOC: &str = "\
 Returns --with-${opt} and --without-${opt} configure flags based on a given USE flag.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (flag, vals) = match args.len() {
         1..=5 => {
+            // override missing args with default values
             let mut vals = ["", "yes", "no", "", ""];
-            for idx in (args.len() - 1)..=4 {
-                vals[idx] = args[idx];
-            }
+            let start = args.len() - 1;
+            let stop = vals.len();
+            vals[start..stop].clone_from_slice(&args[start..stop]);
             (args[0], vals)
         }
         n => return Err(Error::new(format!("requires 1 to 5 args, got {}", n))),
     };
 
-    let ret = r#use::run(&[flag])?;
-    match ret {
-        0 => println!("{}{}", vals[1], vals[3]),
-        1 => println!("{}{}", vals[2], vals[4]),
-        n => panic!("invalid return value: {}", n),
+    match r#use::run(&[flag])? {
+        ExecStatus::Success => println!("{}{}", vals[1], vals[3]),
+        ExecStatus::Failure => println!("{}{}", vals[2], vals[4]),
     }
 
-    Ok(0)
+    Ok(ExecStatus::Success)
 }
 
 pub static BUILTIN: Builtin = Builtin {

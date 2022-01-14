@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin};
+use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use crate::scallop::BUILD_DATA;
@@ -8,15 +8,15 @@ Returns shell true (0) if the first argument (a USE flag name) is included in IU
 otherwise.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<i32> {
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let flag = match args.len() {
         1 => args[0],
         n => return Err(Error::new(format!("requires 1 arg, got {}", n))),
     };
 
-    BUILD_DATA.with(|d| -> Result<i32> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let iuse_effective = &d.borrow().iuse_effective;
-        Ok(!iuse_effective.contains(flag) as i32)
+        Ok(ExecStatus::from(iuse_effective.contains(flag)))
     })
 }
 
