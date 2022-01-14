@@ -51,6 +51,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // REQUIRED_USE support
         ("required_use", false),
 
+        // use_with and use_enable support an optional third argument
+        ("use_conf_arg", false),
+
         // EAPI 5
 
         // atom subslots -- cat/pkg:0/4
@@ -246,6 +249,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
         ("use_dep_defaults", true),
         ("required_use", true),
         ("rdepend_default", false),
+        ("use_conf_arg", true),
     ].iter().cloned().collect();
     let incremental_keys: EapiKeys = [
         "REQUIRED_USE",
