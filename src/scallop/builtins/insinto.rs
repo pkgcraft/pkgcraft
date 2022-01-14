@@ -9,7 +9,7 @@ Takes exactly one argument and sets the value of INSDESTTREE.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    let insdesttree = match args.len() {
+    let path = match args.len() {
         1 => match args[0] {
             "/" => "",
             s => s,
@@ -19,10 +19,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     BUILD_DATA.with(|d| {
         let mut d = d.borrow_mut();
-        d.insdesttree = insdesttree.to_string();
+        d.insdesttree = path.to_string();
 
         if d.eapi.has("export_insdesttree") {
-            bind("INSDESTTREE", insdesttree, None, None);
+            bind("INSDESTTREE", path, None, None);
         }
     });
 
