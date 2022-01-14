@@ -10,7 +10,7 @@ flag name is prefixed with !, returns true if the flag is disabled, and false if
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<i32> {
     let (negated, flag) = match args.len() {
-        1 => match args[0].starts_with("!") {
+        1 => match args[0].starts_with('!') {
             false => (false, args[0]),
             true => (true, &args[0][1..]),
         },
