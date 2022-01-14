@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 
 use indexmap::IndexSet;
 
@@ -13,6 +13,9 @@ pub mod functions;
 pub struct BuildData {
     pub repo: String,
     pub eapi: &'static Eapi,
+
+    pub iuse_effective: HashSet<String>,
+    pub r#use: HashSet<String>,
 
     /// Eclasses directly inherited by an ebuild.
     pub inherit: Vec<String>,
