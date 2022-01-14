@@ -70,6 +70,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // SRC_URI supports fetch+ and mirror+ prefixes
         ("src_uri_unrestrict", false),
 
+        // usev supports an optional second arg
+        ("usev_two_args", false),
+
         // EAPI EXTENDED
 
         // atom repo deps -- cat/pkg::repo
@@ -284,6 +287,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     let options: EapiOptions = [
         ("src_uri_unrestrict", true),
+        ("usev_two_args", true),
     ].iter().cloned().collect();
     let incremental_keys: EapiKeys = [
         "IDEPEND", "PROPERTIES", "RESTRICT",

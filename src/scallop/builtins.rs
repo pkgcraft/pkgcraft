@@ -20,6 +20,7 @@ pub mod nonfatal;
 pub mod r#use;
 pub mod use_enable;
 pub mod use_with;
+pub mod usev;
 pub mod usex;
 pub mod ver_cut;
 pub mod ver_rs;
