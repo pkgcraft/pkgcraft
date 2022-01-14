@@ -24,6 +24,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // RDEPEND=DEPEND if RDEPEND is unset
         ("rdepend_default", true),
 
+        // DESTTREE is exported to the ebuild env
+        ("export_desttree", true),
+
         // EAPI 1
 
         // IUSE defaults
@@ -277,10 +280,13 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 
 #[rustfmt::skip]
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
+    let options: EapiOptions = [
+        ("export_desttree", false),
+    ].iter().cloned().collect();
     let incremental_keys: EapiKeys = [
         "BDEPEND",
     ].iter().cloned().collect();
-    Eapi::new("7", Some(&EAPI6), None, Some(&incremental_keys))
+    Eapi::new("7", Some(&EAPI6), Some(&options), Some(&incremental_keys))
 });
 
 #[rustfmt::skip]
