@@ -11,6 +11,7 @@ pub mod die;
 pub mod export_functions;
 pub mod has;
 pub mod hasv;
+pub mod in_iuse;
 pub mod inherit;
 pub mod nonfatal;
 pub mod r#use;
