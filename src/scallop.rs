@@ -1,13 +1,14 @@
 use std::cell::RefCell;
 use std::collections::{HashSet, VecDeque};
+use std::path::Path;
 
 use indexmap::IndexSet;
+use scallop::variables::{bind, string_value, string_vec};
+use scallop::{Error, Result};
 
 use crate::eapi::Eapi;
-use crate::Error;
 
 pub mod builtins;
-pub mod functions;
 
 #[derive(Debug, Default, Clone)]
 pub struct BuildData {
@@ -60,8 +61,59 @@ thread_local! {
     pub static BUILD_DATA: RefCell<BuildData> = RefCell::new(Default::default());
 }
 
-impl From<Error> for scallop::Error {
-    fn from(e: Error) -> Self {
-        scallop::Error::new(e.to_string())
+impl From<crate::Error> for Error {
+    fn from(e: crate::Error) -> Self {
+        Error::new(e.to_string())
+    }
+}
+
+pub struct PkgShell<'a> {
+    sh: &'a mut scallop::Shell,
+}
+
+impl<'a> PkgShell<'a> {
+    pub fn new(sh: &'a mut scallop::Shell, data: BuildData) -> Self {
+        // update thread local mutable for builtins
+        BUILD_DATA.with(|d| d.replace(data));
+        PkgShell { sh }
+    }
+
+    pub fn source_ebuild<P: AsRef<Path>>(&mut self, ebuild: P) -> Result<()> {
+        let ebuild = ebuild.as_ref();
+        if !ebuild.exists() {
+            return Err(Error::new(format!("nonexistent ebuild: {:?}", ebuild)));
+        }
+
+        self.sh.source_file(&ebuild)?;
+
+        // TODO: export default for $S
+
+        BUILD_DATA.with(|d| {
+            let mut d = d.borrow_mut();
+            let eapi = d.eapi;
+
+            // set RDEPEND=DEPEND if RDEPEND is unset
+            if eapi.has("rdepend_default") && string_value("RDEPEND").is_none() {
+                let depend = string_value("DEPEND").unwrap_or_else(|| String::from(""));
+                bind("RDEPEND", &depend, None, None);
+            }
+
+            // prepend metadata keys that incrementally accumulate to eclass values
+            for var in &eapi.incremental_keys {
+                if let Some(data) = string_vec(var) {
+                    let deque = d.get_deque(var);
+                    // TODO: extend_left() should be implemented upstream for VecDeque
+                    for item in data.into_iter().rev() {
+                        deque.push_front(item);
+                    }
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+    pub fn reset(&mut self) {
+        self.sh.reset()
     }
 }
