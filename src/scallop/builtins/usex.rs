@@ -4,7 +4,7 @@ use scallop::{Error, Result};
 use super::r#use;
 
 static LONG_DOC: &str = "\
-Returns --with-${opt} and --without-${opt} configure flags based on a given USE flag.";
+Tests if a given USE flag is enabled and outputs a string related to its status.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -30,9 +30,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 }
 
 pub static BUILTIN: Builtin = Builtin {
-    name: "use_with",
+    name: "usex",
     func: run,
     help: LONG_DOC,
-    usage: "use_with flag",
+    usage: "usex flag",
     error_func: Some(output_error_func),
 };
