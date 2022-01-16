@@ -2,7 +2,7 @@ use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::r#use;
-use crate::scallop::BUILD_DATA;
+use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
 The same as use, but also prints the flag name if the condition is met.";

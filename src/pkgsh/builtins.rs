@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::ExecStatus;
 
-use crate::scallop::BUILD_DATA;
+use crate::pkgsh::BUILD_DATA;
 
 pub mod assert;
 pub mod debug_print;

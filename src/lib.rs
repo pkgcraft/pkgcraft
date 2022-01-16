@@ -8,7 +8,7 @@ mod error;
 mod macros;
 pub mod peg;
 mod repo;
-pub mod scallop;
+pub mod pkgsh;
 mod sync;
 pub mod utils;
 

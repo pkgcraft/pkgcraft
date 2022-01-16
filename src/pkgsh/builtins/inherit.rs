@@ -2,7 +2,7 @@ use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::{array_to_vec, string_vec, unbind, Assign, ScopedVariable, Variable};
 use scallop::{source, Result};
 
-use crate::scallop::BUILD_DATA;
+use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Sources the given list of eclasses.";
 

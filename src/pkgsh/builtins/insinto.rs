@@ -2,10 +2,10 @@ use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::bind;
 use scallop::{Error, Result};
 
-use crate::scallop::BUILD_DATA;
+use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
-Takes exactly one argument and sets the value of DESTTREE.";
+Takes exactly one argument and sets the value of INSDESTTREE.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -19,10 +19,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     BUILD_DATA.with(|d| {
         let mut d = d.borrow_mut();
-        d.desttree = path.to_string();
+        d.insdesttree = path.to_string();
 
-        if d.eapi.has("export_desttree") {
-            bind("DESTTREE", path, None, None);
+        if d.eapi.has("export_insdesttree") {
+            bind("INSDESTTREE", path, None, None);
         }
     });
 
@@ -30,9 +30,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 }
 
 pub static BUILTIN: Builtin = Builtin {
-    name: "into",
+    name: "insinto",
     func: run,
     help: LONG_DOC,
-    usage: "into /install/path",
+    usage: "insinto /install/path",
     error_func: Some(output_error_func),
 };

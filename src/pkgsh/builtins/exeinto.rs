@@ -1,7 +1,7 @@
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use crate::scallop::BUILD_DATA;
+use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
 Takes exactly one argument and sets the install path for doexe and newexe.";

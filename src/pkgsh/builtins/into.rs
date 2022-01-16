@@ -1,10 +1,11 @@
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::variables::bind;
 use scallop::{Error, Result};
 
-use crate::scallop::BUILD_DATA;
+use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
-Takes exactly one argument and sets the install path for dodoc and other doc-related commands.";
+Takes exactly one argument and sets the value of DESTTREE.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -17,16 +18,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     };
 
     BUILD_DATA.with(|d| {
-        d.borrow_mut().docdesttree = path.to_string();
+        let mut d = d.borrow_mut();
+        d.desttree = path.to_string();
+
+        if d.eapi.has("export_desttree") {
+            bind("DESTTREE", path, None, None);
+        }
     });
 
     Ok(ExecStatus::Success)
 }
 
 pub static BUILTIN: Builtin = Builtin {
-    name: "docinto",
+    name: "into",
     func: run,
     help: LONG_DOC,
-    usage: "docinto /install/path",
+    usage: "into /install/path",
     error_func: Some(output_error_func),
 };
