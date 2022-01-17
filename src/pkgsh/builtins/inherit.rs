@@ -1,5 +1,5 @@
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
-use scallop::variables::{array_to_vec, string_vec, unbind, ShcopedVariable, Variable, Variables};
+use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Result};
 
 use crate::pkgsh::BUILD_DATA;
