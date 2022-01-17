@@ -1,5 +1,5 @@
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
-use scallop::variables::{array_to_vec, string_vec, unbind, Assign, ScopedVariable, Variable};
+use scallop::variables::{array_to_vec, string_vec, unbind, ShcopedVariable, Variable, Variables};
 use scallop::{source, Result};
 
 use crate::pkgsh::BUILD_DATA;
@@ -11,8 +11,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let eclasses: Vec<String> = args.iter().map(|s| s.to_string()).collect();
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        let eclass_var = ScopedVariable::new("ECLASS");
-        let inherited_var = Variable::new("INHERITED");
+        let mut eclass_var = ScopedVariable::new("ECLASS");
+        let mut inherited_var = Variable::new("INHERITED");
         let eapi = d.borrow().eapi;
 
         // track direct ebuild inherits
@@ -45,7 +45,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 }
             }
 
-            inherited_var.bind(format!(" {}", &eclass), Some(Assign::APPEND), None);
+            inherited_var.append(&format!(" {}", &eclass));
             d.inherited.insert(eclass);
         }
 

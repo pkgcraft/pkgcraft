@@ -7,8 +7,8 @@ pub mod eapi;
 mod error;
 mod macros;
 pub mod peg;
-mod repo;
 pub mod pkgsh;
+mod repo;
 mod sync;
 pub mod utils;
 
