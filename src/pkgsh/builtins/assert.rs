@@ -5,8 +5,8 @@ use scallop::Result;
 use super::die;
 
 static LONG_DOC: &str = "\
-Checks the value of the shell’s pipe status variable, and if any component is non-zero
-(indicating failure), calls die, passing any parameters to it.";
+Calls `die` with passed arguments if any process in the most recently-executed foreground pipeline
+exited with an error status.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
