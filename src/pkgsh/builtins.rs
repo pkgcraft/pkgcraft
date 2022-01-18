@@ -2,10 +2,8 @@ use std::sync::atomic::AtomicBool;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use scallop::builtins::ExecStatus;
 
-use crate::pkgsh::BUILD_DATA;
-
+mod _use_conf;
 pub mod assert;
 pub mod debug_print;
 pub mod debug_print_function;
@@ -87,35 +85,4 @@ pub(crate) mod parse {
         }
         Ok((start, end))
     }
-}
-
-pub(crate) fn use_conf(
-    args: &[&str],
-    enabled: &str,
-    disabled: &str,
-) -> scallop::Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
-        let (flag, opt, suffix) = match args.len() {
-            1 => (&args[..1], args[0], String::from("")),
-            2 => (&args[..1], args[1], String::from("")),
-            3 => match eapi.has("use_conf_arg") {
-                true => (&args[..1], args[1], format!("={}", args[2])),
-                false => return Err(scallop::Error::new("requires 1 or 2 args, got 3")),
-            },
-            n => {
-                return Err(scallop::Error::new(format!(
-                    "requires 1, 2, or 3 args, got {}",
-                    n
-                )))
-            }
-        };
-
-        let ret = r#use::run(flag)?;
-        match ret {
-            ExecStatus::Success => println!("--{}-{}{}", enabled, opt, suffix),
-            ExecStatus::Failure => println!("--{}-{}{}", disabled, opt, suffix),
-        }
-        Ok(ret)
-    })
 }
