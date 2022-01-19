@@ -17,7 +17,7 @@ path = "src/lib.rs"
 
 [dependencies]
 async-trait = "0.1.51"
-cached = "0.26.2"
+cached = "0.29"
 chic = "1"
 flate2 = "1.0"
 futures = "0.3.16"
