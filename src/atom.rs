@@ -117,50 +117,27 @@ impl fmt::Display for Atom {
     }
 }
 
+// convert Vec<&str> to Vec<String>
+macro_rules! cmp_not_equal {
+    ($x:expr) => {
+        let cmp = $x;
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+    };
+}
+pub(crate) use cmp_not_equal;
+
 impl Ord for Atom {
     fn cmp(&self, other: &Self) -> Ordering {
-        let mut cmp: Ordering;
-
-        cmp = self.category.cmp(&other.category);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-
-        cmp = self.package.cmp(&other.package);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-
-        cmp = self.op.cmp(&other.op);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-
-        cmp = self.version.cmp(&other.version);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-
-        cmp = self.block.cmp(&other.block);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-
-        cmp = self.slot.cmp(&other.slot);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-
-        cmp = self.subslot.cmp(&other.subslot);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-
-        cmp = self.use_deps.cmp(&other.use_deps);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-
+        cmp_not_equal!(self.category.cmp(&other.category));
+        cmp_not_equal!(self.package.cmp(&other.package));
+        cmp_not_equal!(self.op.cmp(&other.op));
+        cmp_not_equal!(self.version.cmp(&other.version));
+        cmp_not_equal!(self.block.cmp(&other.block));
+        cmp_not_equal!(self.slot.cmp(&other.slot));
+        cmp_not_equal!(self.subslot.cmp(&other.subslot));
+        cmp_not_equal!(self.use_deps.cmp(&other.use_deps));
         self.repo.cmp(&other.repo)
     }
 }

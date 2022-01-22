@@ -6,7 +6,7 @@ use std::str::FromStr;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use super::parse;
+use super::{cmp_not_equal, parse};
 use crate::error::Error;
 use crate::utils::rstrip;
 
@@ -128,8 +128,6 @@ impl PartialEq for Version {
 
 impl Ord for Version {
     fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
-        let mut cmp: Ordering;
-
         if self.base != other.base {
             // split versions into dotted strings and lists of suffixes
             let self_parts: Vec<&str> = self.base.split('_').collect();
@@ -160,10 +158,7 @@ impl Ord for Version {
                 // compare major versions
                 let self_major_int: u64 = self_major.parse().expect("major version overflow");
                 let other_major_int: u64 = other_major.parse().expect("major version overflow");
-                cmp = self_major_int.cmp(&other_major_int);
-                if cmp != Ordering::Equal {
-                    return cmp;
-                }
+                cmp_not_equal!(self_major_int.cmp(&other_major_int));
 
                 // iterate through the remaining version components
                 for (v1, v2) in self_remaining.iter().zip(other_remaining.iter()) {
@@ -180,32 +175,20 @@ impl Ord for Version {
                         ("0", _) | (_, "0") => {
                             let v1_stripped = rstrip(v1, '0');
                             let v2_stripped = rstrip(v2, '0');
-                            cmp = v1_stripped.cmp(v2_stripped);
-                            if cmp != Ordering::Equal {
-                                return cmp;
-                            }
+                            cmp_not_equal!(v1_stripped.cmp(v2_stripped));
                         }
                         _ => {
                             let v1_int: u64 = v1.parse().expect("version component overflow");
                             let v2_int: u64 = v2.parse().expect("version component overflow");
-                            cmp = v1_int.cmp(&v2_int);
-                            if cmp != Ordering::Equal {
-                                return cmp;
-                            }
+                            cmp_not_equal!(v1_int.cmp(&v2_int));
                         }
                     }
                 }
 
-                cmp = self_ver_parts.len().cmp(&other_ver_parts.len());
-                if cmp != Ordering::Equal {
-                    return cmp;
-                }
+                cmp_not_equal!(self_ver_parts.len().cmp(&other_ver_parts.len()));
 
                 // dotted components were equal so compare letter suffixes
-                cmp = self_letter.cmp(&other_letter);
-                if cmp != Ordering::Equal {
-                    return cmp;
-                }
+                cmp_not_equal!(self_letter.cmp(&other_letter));
             }
 
             let self_suffixes = &self_parts[1..];
@@ -224,10 +207,7 @@ impl Ord for Version {
                 let n2 = Suffix::from_str(m2.name("suffix").unwrap().as_str()).unwrap();
 
                 // if suffixes differ, use them for comparison
-                cmp = n1.cmp(&n2);
-                if cmp != Ordering::Equal {
-                    return cmp;
-                }
+                cmp_not_equal!(n1.cmp(&n2));
 
                 // otherwise use the suffix versions for comparison
                 let v1: u64 = m1
@@ -242,10 +222,7 @@ impl Ord for Version {
                     .as_str()
                     .parse()
                     .unwrap_or_default();
-                cmp = v1.cmp(&v2);
-                if cmp != Ordering::Equal {
-                    return cmp;
-                }
+                cmp_not_equal!(v1.cmp(&v2));
             }
 
             // One version has more suffixes than the other, use its last
