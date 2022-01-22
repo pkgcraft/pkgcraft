@@ -117,7 +117,7 @@ impl fmt::Display for Atom {
     }
 }
 
-// convert Vec<&str> to Vec<String>
+// Return Ordering if it's not equal.
 macro_rules! cmp_not_equal {
     ($x:expr) => {
         let cmp = $x;
