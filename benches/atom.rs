@@ -5,7 +5,7 @@ use criterion::Criterion;
 use pkgcraft::atom::Atom;
 
 #[allow(unused_must_use)]
-pub fn bench_parse_unversioned(c: &mut Criterion) {
+pub fn bench_pkg_atoms(c: &mut Criterion) {
     c.bench_function("atom-parse-unversioned", |b| {
         b.iter(|| Atom::from_str("cat/pkg"))
     });
