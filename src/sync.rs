@@ -9,11 +9,13 @@ use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::error::Error;
 
+#[cfg(feature = "git")]
 mod git;
 mod tar;
 
 #[derive(Debug, PartialEq, Eq, DeserializeFromStr, SerializeDisplay)]
 pub(crate) enum Syncer {
+    #[cfg(feature = "git")]
     Git(git::Repo),
     TarHttps(tar::Repo),
     Noop,
@@ -22,6 +24,7 @@ pub(crate) enum Syncer {
 impl fmt::Display for Syncer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            #[cfg(feature = "git")]
             Syncer::Git(repo) => write!(f, "{}", repo.uri),
             Syncer::TarHttps(repo) => write!(f, "{}", repo.uri),
             Syncer::Noop => write!(f, "\"\""),
@@ -48,6 +51,7 @@ impl Syncer {
         }
 
         match self {
+            #[cfg(feature = "git")]
             Syncer::Git(repo) => block_on(repo.sync(path)),
             Syncer::TarHttps(repo) => block_on(repo.sync(path)),
             Syncer::Noop => Ok(()),
@@ -61,6 +65,7 @@ impl FromStr for Syncer {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         #[rustfmt::skip]
         let prioritized_syncers = [
+            #[cfg(feature = "git")]
             git::Repo::uri_to_syncer,
             tar::Repo::uri_to_syncer,
         ];
