@@ -48,10 +48,9 @@ jobs:
           ~/.cargo/registry/index
           ~/.cargo/registry/cache
           ~/.cargo/git/db
-          ~/.rustup
           target
-        key: v3-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v3-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v4-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v4-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
 
     - name: Build
       run: cargo build
@@ -96,10 +95,9 @@ jobs:
           ~/.cargo/registry/index
           ~/.cargo/registry/cache
           ~/.cargo/git/db
-          ~/.rustup
           target
-        key: v3-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v3-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v4-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v4-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
 
     - name: Run rustfmt
       run: cargo fmt --all -- --check
@@ -145,10 +143,9 @@ jobs:
           ~/.cargo/registry/index
           ~/.cargo/registry/cache
           ~/.cargo/git/db
-          ~/.rustup
           target
-        key: v3-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v3-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v4-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v4-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
 
     - name: Install cargo-criterion
       run: |
