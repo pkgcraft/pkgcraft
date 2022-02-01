@@ -88,14 +88,14 @@ impl<'a> PkgShell<'a> {
 
         // TODO: export default for $S
 
-        BUILD_DATA.with(|d| {
+        BUILD_DATA.with(|d| -> Result<()> {
             let mut d = d.borrow_mut();
             let eapi = d.eapi;
 
             // set RDEPEND=DEPEND if RDEPEND is unset
             if eapi.has("rdepend_default") && string_value("RDEPEND").is_none() {
                 let depend = string_value("DEPEND").unwrap_or_else(|| String::from(""));
-                bind("RDEPEND", &depend, None, None);
+                bind("RDEPEND", &depend, None, None)?;
             }
 
             // prepend metadata keys that incrementally accumulate to eclass values
@@ -108,9 +108,8 @@ impl<'a> PkgShell<'a> {
                     }
                 }
             }
-        });
-
-        Ok(())
+            Ok(())
+        })
     }
 
     pub fn reset(&mut self) {

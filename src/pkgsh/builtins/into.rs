@@ -17,16 +17,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => return Err(Error::new(format!("requires 1 arg, got {}", n))),
     };
 
-    BUILD_DATA.with(|d| {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let mut d = d.borrow_mut();
         d.desttree = path.to_string();
 
         if d.eapi.has("export_desttree") {
-            bind("DESTTREE", path, None, None);
+            bind("DESTTREE", path, None, None)?;
         }
-    });
-
-    Ok(ExecStatus::Success)
+        Ok(ExecStatus::Success)
+    })
 }
 
 pub static BUILTIN: Builtin = Builtin {
