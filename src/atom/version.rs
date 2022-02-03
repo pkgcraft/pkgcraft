@@ -121,23 +121,19 @@ impl ParsedVersion<'_> {
             numbers.push((s.to_string(), num));
         }
 
-        let suffixes = match &self.suffixes {
-            None => vec![],
-            Some(vals) => {
-                let mut suffixes: Vec<(Suffix, Option<u64>)> = vec![];
-                for (s, v) in vals.iter() {
-                    let suffix = Suffix::from_str(s)?;
-                    let num = match v {
-                        None => None,
-                        Some(x) => Some(x.parse().map_err(|e| {
-                            Error::InvalidValue(format!("invalid version: {}: {}", e, s))
-                        })?),
-                    };
-                    suffixes.push((suffix, num));
-                }
-                suffixes
+        let mut suffixes: Vec<(Suffix, Option<u64>)> = vec![];
+        if let Some(vals) = self.suffixes {
+            for (s, v) in vals.iter() {
+                let suffix = Suffix::from_str(s)?;
+                let num = match v {
+                    None => None,
+                    Some(x) => Some(x.parse().map_err(|e| {
+                        Error::InvalidValue(format!("invalid version: {}: {}", e, s))
+                    })?),
+                };
+                suffixes.push((suffix, num));
             }
-        };
+        }
 
         Ok(Version {
             base: s[self.start..self.end].to_string(),
