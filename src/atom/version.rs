@@ -5,7 +5,6 @@ use std::str::FromStr;
 
 use super::{cmp_not_equal, parse};
 use crate::error::Error;
-use crate::utils::rstrip;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Suffix {
@@ -187,9 +186,7 @@ impl Ord for Version {
                 // If one of the components starts with a "0" then they are compared as strings
                 // with trailing 0's stripped, otherwise they are compared as integers.
                 if v1.starts_with('0') || v2.starts_with('0') {
-                    let v1_stripped = rstrip(v1, '0');
-                    let v2_stripped = rstrip(v2, '0');
-                    cmp_not_equal!(v1_stripped.cmp(v2_stripped));
+                    cmp_not_equal!(v1.trim_end_matches('0').cmp(v2.trim_end_matches('0')));
                 } else {
                     cmp_not_equal!(n1.cmp(n2));
                 }

@@ -10,6 +10,5 @@ pub mod peg;
 pub mod pkgsh;
 mod repo;
 mod sync;
-pub mod utils;
 
 pub use self::error::{Error, Result};
