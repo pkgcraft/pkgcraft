@@ -2,15 +2,17 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
+use self::version::ParsedVersion;
 pub use self::version::Version;
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
+use crate::macros::vec_str;
 // export parser functionality
 pub use parser::parse;
 
 mod parser;
 mod version;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum Blocker {
     Strong, // !!cat/pkg
     Weak,   // !cat/pkg
@@ -25,7 +27,7 @@ impl fmt::Display for Blocker {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum Operator {
     Less,           // <cat/pkg-1
     LessOrEqual,    // <=cat/pkg-1
@@ -34,6 +36,42 @@ pub enum Operator {
     Approximate,    // ~cat/pkg-1
     GreaterOrEqual, // >=cat/pkg-1
     Greater,        // >cat/pkg-1
+}
+
+#[derive(Debug)]
+pub(crate) struct ParsedAtom<'a> {
+    pub(crate) category: &'a str,
+    pub(crate) package: &'a str,
+    pub(crate) block: Option<Blocker>,
+    pub(crate) op: Option<Operator>,
+    pub(crate) version: Option<ParsedVersion<'a>>,
+    pub(crate) slot: Option<&'a str>,
+    pub(crate) subslot: Option<&'a str>,
+    pub(crate) slot_op: Option<&'a str>,
+    pub(crate) use_deps: Option<Vec<&'a str>>,
+    pub(crate) repo: Option<&'a str>,
+}
+
+impl ParsedAtom<'_> {
+    pub(crate) fn into_owned(self, s: &str) -> crate::Result<Atom> {
+        let version = match self.version {
+            None => None,
+            Some(v) => Some(v.into_owned(s)?),
+        };
+
+        Ok(Atom {
+            category: self.category.to_string(),
+            package: self.package.to_string(),
+            block: self.block,
+            op: self.op,
+            version,
+            slot: self.slot.map(|s| s.to_string()),
+            subslot: self.subslot.map(|s| s.to_string()),
+            slot_op: self.slot_op.map(|s| s.to_string()),
+            use_deps: self.use_deps.as_ref().map(|u| vec_str!(u)),
+            repo: self.repo.map(|s| s.to_string()),
+        })
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
