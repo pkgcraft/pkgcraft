@@ -42,7 +42,7 @@ impl FromStr for Revision {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let int: u64 = s
             .parse()
-            .map_err(|e| Error::InvalidValue(format!("invalid revision {:?}: {}", s, e)))?;
+            .map_err(|e| Error::InvalidValue(format!("invalid revision: {}: {}", e, s)))?;
         Ok(Revision {
             value: Some(s.to_string()),
             int,
@@ -130,7 +130,7 @@ impl ParsedVersion<'_> {
                     let num = match v {
                         None => None,
                         Some(x) => Some(x.parse().map_err(|e| {
-                            Error::InvalidValue(format!("invalid version: {}: {}", e, s))
+                            Error::InvalidValue(format!("invalid version: {}: {}", e, x))
                         })?),
                     };
                     suffixes.push((suffix, num));
@@ -256,21 +256,27 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "invalid version")]
-    fn test_overflow_major_version() {
-        let val: u128 = u64::MAX as u128;
-        let v1 = Version::from_str(&format!("{}", val)).unwrap();
-        let v2 = Version::from_str(&format!("{}", val + 1)).unwrap();
-        assert!(v1 != v2);
-    }
+    fn test_overflow_version() {
+        let u64_max: u128 = u64::MAX as u128;
 
-    #[test]
-    #[should_panic(expected = "invalid version")]
-    fn test_overflow_version_component() {
-        let val: u128 = u64::MAX as u128;
-        let v1 = Version::from_str(&format!("1.{}", val)).unwrap();
-        let v2 = Version::from_str(&format!("1.{}", val + 1)).unwrap();
-        assert!(v1 != v2);
+        for (s1, s2) in [
+            // major version
+            (&format!("{}", u64_max), &format!("{}", u64_max + 1)),
+            // minor version
+            (&format!("1.{}", u64_max), &format!("1.{}", u64_max + 1)),
+            // suffix version
+            (&format!("1_p{}", u64_max), &format!("1_p{}", u64_max + 1)),
+            // revision
+            (&format!("1-r{}", u64_max), &format!("1-r{}", u64_max + 1)),
+        ] {
+            let v1 = Version::from_str(s1);
+            assert!(v1.is_ok());
+            let v2 = Version::from_str(s2);
+            assert!(v2
+                .unwrap_err()
+                .to_string()
+                .ends_with(&format!("{}", u64_max + 1)));
+        }
     }
 
     #[test]
