@@ -112,7 +112,7 @@ pub(crate) struct ParsedVersion<'a> {
 }
 
 impl ParsedVersion<'_> {
-    pub(crate) fn into_owned(self, s: &str) -> crate::Result<Version> {
+    pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
         let mut numbers: Vec<(String, u64)> = vec![];
         for s in self.numbers.iter() {
             let num = s
@@ -140,7 +140,7 @@ impl ParsedVersion<'_> {
         };
 
         Ok(Version {
-            base: s[self.start..self.end].to_string(),
+            base: input[self.start..self.end].to_string(),
             numbers,
             letter: self.letter,
             suffixes,

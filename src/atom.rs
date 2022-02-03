@@ -53,10 +53,10 @@ pub(crate) struct ParsedAtom<'a> {
 }
 
 impl ParsedAtom<'_> {
-    pub(crate) fn into_owned(self, s: &str) -> crate::Result<Atom> {
+    pub(crate) fn into_owned(self, input: &str) -> crate::Result<Atom> {
         let version = match self.version {
             None => None,
-            Some(v) => Some(v.into_owned(s)?),
+            Some(v) => Some(v.into_owned(input)?),
         };
 
         Ok(Atom {
