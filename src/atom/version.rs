@@ -261,17 +261,17 @@ mod tests {
 
         for (s1, s2) in [
             // major version
-            (&format!("{}", u64_max), &format!("{}", u64_max + 1)),
+            (format!("{}", u64_max), format!("{}", u64_max + 1)),
             // minor version
-            (&format!("1.{}", u64_max), &format!("1.{}", u64_max + 1)),
+            (format!("1.{}", u64_max), format!("1.{}", u64_max + 1)),
             // suffix version
-            (&format!("1_p{}", u64_max), &format!("1_p{}", u64_max + 1)),
+            (format!("1_p{}", u64_max), format!("1_p{}", u64_max + 1)),
             // revision
-            (&format!("1-r{}", u64_max), &format!("1-r{}", u64_max + 1)),
+            (format!("1-r{}", u64_max), format!("1-r{}", u64_max + 1)),
         ] {
-            let v1 = Version::from_str(s1);
+            let v1 = Version::from_str(&s1);
             assert!(v1.is_ok());
-            let v2 = Version::from_str(s2);
+            let v2 = Version::from_str(&s2);
             assert!(v2
                 .unwrap_err()
                 .to_string()
