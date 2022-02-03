@@ -121,19 +121,23 @@ impl ParsedVersion<'_> {
             numbers.push((s.to_string(), num));
         }
 
-        let mut suffixes: Vec<(Suffix, Option<u64>)> = vec![];
-        if let Some(vals) = self.suffixes {
-            for (s, v) in vals.iter() {
-                let suffix = Suffix::from_str(s)?;
-                let num = match v {
-                    None => None,
-                    Some(x) => Some(x.parse().map_err(|e| {
-                        Error::InvalidValue(format!("invalid version: {}: {}", e, s))
-                    })?),
-                };
-                suffixes.push((suffix, num));
+        let suffixes = match self.suffixes {
+            None => None,
+            Some(vals) => {
+                let mut suffixes: Vec<(Suffix, Option<u64>)> = vec![];
+                for (s, v) in vals.iter() {
+                    let suffix = Suffix::from_str(s)?;
+                    let num = match v {
+                        None => None,
+                        Some(x) => Some(x.parse().map_err(|e| {
+                            Error::InvalidValue(format!("invalid version: {}: {}", e, s))
+                        })?),
+                    };
+                    suffixes.push((suffix, num));
+                }
+                Some(suffixes)
             }
-        }
+        };
 
         Ok(Version {
             base: s[self.start..self.end].to_string(),
@@ -150,7 +154,7 @@ pub struct Version {
     base: String,
     numbers: Vec<(String, u64)>,
     letter: Option<char>,
-    suffixes: Vec<(Suffix, Option<u64>)>,
+    suffixes: Option<Vec<(Suffix, Option<u64>)>>,
     revision: Revision,
 }
 
@@ -194,22 +198,23 @@ impl Ord for Version {
             // dotted components were equal so compare letter suffixes
             cmp_not_equal!(self.letter.cmp(&other.letter));
 
-            for ((s1, n1), (s2, n2)) in self.suffixes.iter().zip(other.suffixes.iter()) {
-                // if suffixes differ, use them for comparison
-                cmp_not_equal!(s1.cmp(s2));
-                // otherwise use the suffix versions for comparison
-                cmp_not_equal!(n1.cmp(n2));
+            if let (Some(x), Some(y)) = (self.suffixes.as_ref(), other.suffixes.as_ref()) {
+                for ((s1, n1), (s2, n2)) in x.iter().zip(y.iter()) {
+                    // if suffixes differ, use them for comparison
+                    cmp_not_equal!(s1.cmp(s2));
+                    // otherwise use the suffix versions for comparison
+                    cmp_not_equal!(n1.cmp(n2));
+                }
             }
 
-            // One version has more suffixes than the other, use its last
-            // suffix to determine ordering.
-            match self.suffixes.len().cmp(&other.suffixes.len()) {
+            // If one version has more suffixes, use the last suffix to determine ordering.
+            match self.suffixes.cmp(&other.suffixes) {
                 Ordering::Equal => (),
-                Ordering::Greater => match self.suffixes.last().unwrap().0 {
+                Ordering::Greater => match self.suffixes.as_ref().unwrap().last().unwrap().0 {
                     Suffix::P => return Ordering::Greater,
                     _ => return Ordering::Less,
                 },
-                Ordering::Less => match other.suffixes.last().unwrap().0 {
+                Ordering::Less => match other.suffixes.as_ref().unwrap().last().unwrap().0 {
                     Suffix::P => return Ordering::Less,
                     _ => return Ordering::Greater,
                 },
