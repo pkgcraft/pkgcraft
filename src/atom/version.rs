@@ -245,8 +245,6 @@ impl FromStr for Version {
 mod tests {
     use std::collections::HashMap;
 
-    use regex::Regex;
-
     use super::*;
     use crate::macros::*;
     use crate::Error;
@@ -273,11 +271,13 @@ mod tests {
             // revision
             (format!("1-r{}", u64_max), format!("1-r{}", u64_max + 1)),
         ] {
+            // at bounds limit
             let v1 = Version::from_str(&s1);
             assert!(v1.is_ok());
+            // above bounds limit
             let v2 = Version::from_str(&s2);
-            assert_err!(v2.as_ref().unwrap_err(), Error::InvalidValue(_));
-            assert_err_re!(v2.as_ref().unwrap_err(), &format!("^.*: {}$", u64_max + 1));
+            assert_err!(&v2, Err(Error::InvalidValue(_)));
+            assert_err_re!(v2, format!("^.*: {}$", u64_max + 1));
         }
     }
 

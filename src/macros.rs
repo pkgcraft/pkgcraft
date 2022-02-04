@@ -22,9 +22,10 @@ pub(crate) use assert_err;
 
 #[cfg(test)]
 macro_rules! assert_err_re {
-    ($err:expr, $x:expr) => {
-        let s = $err.to_string();
-        let re = Regex::new($x).unwrap();
+    ($res:expr, $x:expr) => {
+        let err = $res.unwrap_err();
+        let s = err.to_string();
+        let re = ::regex::Regex::new($x.as_ref()).unwrap();
         assert!(re.is_match(&s), "{:?} does not match regex: {}", s, re);
     };
 }
