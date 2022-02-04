@@ -283,7 +283,7 @@ mod tests {
             // packages
             ("cat/c cat/b cat/a", "cat/a cat/b cat/c"),
             // blocks
-            ("!a/b !!a/b", "!!a/b !a/b"),
+            ("!a/b !!a/b a/b", "a/b !!a/b !a/b"),
             // version ops
             (
                 ">a/b-1 >=a/b-1 ~a/b-1 =a/b-1* =a/b-1 <=a/b-1 <a/b-1",
