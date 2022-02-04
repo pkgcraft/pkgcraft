@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use super::{cmp_not_equal, parse};
-use crate::error::Error;
+use crate::Error;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Suffix {
@@ -245,7 +245,11 @@ impl FromStr for Version {
 mod tests {
     use std::collections::HashMap;
 
+    use regex::Regex;
+
     use super::*;
+    use crate::macros::*;
+    use crate::Error;
 
     #[test]
     fn test_from_str() {
@@ -272,10 +276,8 @@ mod tests {
             let v1 = Version::from_str(&s1);
             assert!(v1.is_ok());
             let v2 = Version::from_str(&s2);
-            assert!(v2
-                .unwrap_err()
-                .to_string()
-                .ends_with(&format!("{}", u64_max + 1)));
+            assert_err!(v2.as_ref().unwrap_err(), Error::InvalidValue(_));
+            assert_err_re!(v2.as_ref().unwrap_err(), &format!("^.*: {}$", u64_max + 1));
         }
     }
 
