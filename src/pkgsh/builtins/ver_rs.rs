@@ -57,3 +57,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "ver_rs 2 - 1.2.3",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as ver_rs;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(ver_rs, vec![0, 1]);
+    }
+}

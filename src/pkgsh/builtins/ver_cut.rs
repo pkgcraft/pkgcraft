@@ -41,3 +41,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "ver_cut 1-2 - 1.2.3",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as ver_cut;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(ver_cut, vec![0, 3]);
+    }
+}

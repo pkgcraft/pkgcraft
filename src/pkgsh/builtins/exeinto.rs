@@ -30,3 +30,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "exeinto /install/path",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as exeinto;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(exeinto, vec![0, 2]);
+    }
+}

@@ -36,3 +36,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "usex flag",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as usex;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(usex, vec![0, 6]);
+    }
+}

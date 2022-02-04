@@ -10,7 +10,7 @@ Returns -1 on error.";
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let needle = match args.first() {
         Some(s) => s,
-        None => return Err(Error::new("requires 1 or more args")),
+        None => return Err(Error::new("requires 1 or more args, got 0")),
     };
 
     let haystack = &args[1..];
@@ -24,3 +24,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "has needle ${haystack}",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as has;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(has, vec![0]);
+    }
+}

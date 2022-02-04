@@ -27,3 +27,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "in_iuse flag",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as in_iuse;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(in_iuse, vec![0, 2]);
+    }
+}

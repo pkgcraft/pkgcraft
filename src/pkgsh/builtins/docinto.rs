@@ -30,3 +30,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "docinto /install/path",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as docinto;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(docinto, vec![0, 2]);
+    }
+}

@@ -22,3 +22,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "hasv needle ${haystack}",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as hasv;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(hasv, vec![0]);
+    }
+}
