@@ -46,11 +46,57 @@ pub static BUILTIN: Builtin = Builtin {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Read;
+
     use super::super::assert_invalid_args;
     use super::run as ver_cut;
 
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(ver_cut, vec![0, 3]);
+    use gag::BufferRedirect;
+    use rusty_fork::rusty_fork_test;
+    use scallop::builtins::ExecStatus;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            assert_invalid_args(ver_cut, vec![0, 3]);
+        }
+
+        #[test]
+        fn invalid_range() {
+            for rng in ["-", "-2"] {
+                let r = ver_cut(&[rng, "2"]);
+                assert!(r.unwrap_err().to_string().contains("invalid range"));
+            }
+        }
+
+        #[test]
+        fn output() {
+            let mut buf = BufferRedirect::stdout().unwrap();
+            for (args, expected) in [
+                    (["1", "1.2.3"], "1"),
+                    (["1-1", "1.2.3"], "1"),
+                    (["1-2", "1.2.3"], "1.2"),
+                    (["2-", "1.2.3"], "2.3"),
+                    (["1-", "1.2.3"], "1.2.3"),
+                    (["3-4", "1.2.3b_alpha4"], "3b"),
+                    (["5", "1.2.3b_alpha4"], "alpha"),
+                    (["1-2", ".1.2.3"], "1.2"),
+                    (["0-2", ".1.2.3"], ".1.2"),
+                    (["2-3", "1.2.3."], "2.3"),
+                    (["2-", "1.2.3."], "2.3."),
+                    (["2-4", "1.2.3."], "2.3."),
+                    (["0-2", "1.2.3"], "1.2"),
+                    (["2-5", "1.2.3"], "2.3"),
+                    (["4", "1.2.3"], ""),
+                    (["0", "1.2.3"], ""),
+                    (["4-", "1.2.3"], ""),
+                    ] {
+                let r = ver_cut(&args).unwrap();
+                let mut output = String::new();
+                buf.read_to_string(&mut output).unwrap();
+                assert_eq!(&output[..], expected);
+                assert_eq!(r, ExecStatus::Success);
+            }
+        }
     }
 }
