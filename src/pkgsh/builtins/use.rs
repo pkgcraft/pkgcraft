@@ -44,9 +44,44 @@ pub static BUILTIN: Builtin = Builtin {
 mod tests {
     use super::super::assert_invalid_args;
     use super::run as r#use;
+    use crate::macros::assert_err_re;
+    use crate::pkgsh::BUILD_DATA;
 
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(r#use, vec![0, 2]);
+    use rusty_fork::rusty_fork_test;
+    use scallop::builtins::ExecStatus;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            assert_invalid_args(r#use, vec![0, 2]);
+        }
+
+        #[test]
+        fn empty_iuse_effective() {
+            assert_err_re!(r#use(&["use"]), "^.* not in IUSE$");
+        }
+
+        #[test]
+        fn disabled() {
+            BUILD_DATA.with(|d| {
+                d.borrow_mut().iuse_effective.insert("use".to_string());
+                // use flag is disabled
+                assert_eq!(r#use(&["use"]).unwrap(), ExecStatus::Failure);
+                // inverted check
+                assert_eq!(r#use(&["!use"]).unwrap(), ExecStatus::Success);
+            });
+        }
+
+        #[test]
+        fn enabled() {
+            BUILD_DATA.with(|d| {
+                d.borrow_mut().iuse_effective.insert("use".to_string());
+                d.borrow_mut().r#use.insert("use".to_string());
+                // use flag is enabled
+                assert_eq!(r#use(&["use"]).unwrap(), ExecStatus::Success);
+                // inverted check
+                assert_eq!(r#use(&["!use"]).unwrap(), ExecStatus::Failure);
+            });
+        }
     }
 }
