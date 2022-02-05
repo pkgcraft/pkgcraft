@@ -94,7 +94,7 @@ mod tests {
         }
 
         #[test]
-        fn test_cmp() {
+        fn return_status() {
             let op_map: HashMap<&str, &str> = [
                 ("==", "-eq"),
                 ("!=", "-ne"),
@@ -102,6 +102,18 @@ mod tests {
                 (">", "-gt"),
                 ("<=", "-le"),
                 (">=", "-ge"),
+            ]
+            .iter()
+            .cloned()
+            .collect();
+
+            let inverted_op_map: HashMap<&str, &str> = [
+                ("==", "!="),
+                ("!=", "=="),
+                ("<", ">="),
+                (">", "<="),
+                ("<=", ">"),
+                (">=", "<"),
             ]
             .iter()
             .cloned()
@@ -165,13 +177,18 @@ mod tests {
             ] {
                 let v: Vec<&str> = expr.split(' ').collect();
                 let (v1, op, v2) = (v[0], op_map[v[1]], v[2]);
+                let inverted_op = op_map[inverted_op_map[v[1]]];
                 let r = ver_test(&[v1, op, v2]);
                 assert_eq!(r.unwrap(), ExecStatus::Success);
+                let r = ver_test(&[v1, inverted_op, v2]);
+                assert_eq!(r.unwrap(), ExecStatus::Failure);
 
                 // test pulling v1 from $PVR
                 pvr.bind(v1, None, None).unwrap();
                 let r = ver_test(&[op, v2]);
                 assert_eq!(r.unwrap(), ExecStatus::Success);
+                let r = ver_test(&[inverted_op, v2]);
+                assert_eq!(r.unwrap(), ExecStatus::Failure);
             }
         }
     }
