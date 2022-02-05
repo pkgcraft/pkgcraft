@@ -114,7 +114,7 @@ mod tests {
                 let r = ver_rs(args.as_slice()).unwrap();
                 let mut output = String::new();
                 buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], expected);
+                assert_eq!(output, expected);
                 assert_eq!(r, ExecStatus::Success);
 
                 // test pulling version from $PV
@@ -122,7 +122,7 @@ mod tests {
                 let r = ver_rs(args.as_slice()).unwrap();
                 let mut output = String::new();
                 buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], expected);
+                assert_eq!(output, expected);
                 assert_eq!(r, ExecStatus::Success);
             }
         }

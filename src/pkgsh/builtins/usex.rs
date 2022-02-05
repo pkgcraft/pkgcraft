@@ -77,7 +77,7 @@ mod tests {
                     usex(args.as_slice()).unwrap();
                     let mut output = String::new();
                     buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(&output[..], expected);
+                    assert_eq!(output, expected);
                 }
             });
         }
@@ -97,7 +97,7 @@ mod tests {
                     usex(args.as_slice()).unwrap();
                     let mut output = String::new();
                     buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(&output[..], expected);
+                    assert_eq!(output, expected);
                 }
             });
         }

@@ -90,7 +90,7 @@ mod tests {
                     assert_eq!(usev(args).unwrap(), status);
                     let mut output = String::new();
                     buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(&output[..], expected);
+                    assert_eq!(output, expected);
                 }
 
                 // check EAPIs that support two arg variant
@@ -104,7 +104,7 @@ mod tests {
                             assert_eq!(usev(args).unwrap(), status);
                             let mut output = String::new();
                             buf.read_to_string(&mut output).unwrap();
-                            assert_eq!(&output[..], expected);
+                            assert_eq!(output, expected);
                         }
                     }
                 }
@@ -125,7 +125,7 @@ mod tests {
                     assert_eq!(usev(args).unwrap(), status);
                     let mut output = String::new();
                     buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(&output[..], expected);
+                    assert_eq!(output, expected);
                 }
 
                 // check EAPIs that support two arg variant
@@ -139,7 +139,7 @@ mod tests {
                             assert_eq!(usev(args).unwrap(), status);
                             let mut output = String::new();
                             buf.read_to_string(&mut output).unwrap();
-                            assert_eq!(&output[..], expected);
+                            assert_eq!(output, expected);
                         }
                     }
                 }

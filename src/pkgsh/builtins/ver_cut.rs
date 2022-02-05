@@ -99,7 +99,7 @@ mod tests {
                 let r = ver_cut(&[rng, ver]).unwrap();
                 let mut output = String::new();
                 buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], expected);
+                assert_eq!(output, expected);
                 assert_eq!(r, ExecStatus::Success);
 
                 // test pulling version from $PV
@@ -107,7 +107,7 @@ mod tests {
                 let r = ver_cut(&[rng]).unwrap();
                 let mut output = String::new();
                 buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], expected);
+                assert_eq!(output, expected);
                 assert_eq!(r, ExecStatus::Success);
             }
         }
