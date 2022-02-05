@@ -16,23 +16,23 @@ Returns -1 if an error occurred.";
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pvr = string_value("PVR").unwrap_or_else(|| String::from(""));
     let pvr = pvr.as_str();
-    let (lhs, op, rhs) = match args.len() {
+    let (v1, op, v2) = match args.len() {
         2 if pvr.is_empty() => return Err(Error::new("$PVR is undefined")),
         2 => (pvr, args[0], args[1]),
         3 => (args[0], args[1], args[2]),
         n => return Err(Error::new(format!("only accepts 2 or 3 args, got {}", n))),
     };
 
-    let ver_lhs = Version::from_str(lhs)?;
-    let ver_rhs = Version::from_str(rhs)?;
+    let v1 = Version::from_str(v1)?;
+    let v2 = Version::from_str(v2)?;
 
     let ret = match op {
-        "-eq" => ver_lhs == ver_rhs,
-        "-ne" => ver_lhs != ver_rhs,
-        "-lt" => ver_lhs < ver_rhs,
-        "-gt" => ver_lhs > ver_rhs,
-        "-le" => ver_lhs <= ver_rhs,
-        "-ge" => ver_lhs >= ver_rhs,
+        "-eq" => v1 == v2,
+        "-ne" => v1 != v2,
+        "-lt" => v1 < v2,
+        "-gt" => v1 > v2,
+        "-le" => v1 <= v2,
+        "-ge" => v1 >= v2,
         _ => return Err(Error::new(format!("invalid operator: {}", op))),
     };
 
