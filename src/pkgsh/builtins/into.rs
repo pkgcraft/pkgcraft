@@ -40,9 +40,22 @@ pub static BUILTIN: Builtin = Builtin {
 mod tests {
     use super::super::assert_invalid_args;
     use super::run as into;
+    use crate::pkgsh::BUILD_DATA;
 
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(into, vec![0]);
+    use rusty_fork::rusty_fork_test;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            assert_invalid_args(into, vec![0]);
+        }
+
+        #[test]
+        fn set_path() {
+            into(&["/test/path"]).unwrap();
+            BUILD_DATA.with(|d| {
+                assert_eq!(d.borrow().desttree, "/test/path");
+            });
+        }
     }
 }
