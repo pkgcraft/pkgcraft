@@ -42,3 +42,108 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "usev flag",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use std::io::Read;
+
+    use super::super::assert_invalid_args;
+    use super::run as usev;
+    use crate::eapi::OFFICIAL_EAPIS;
+    use crate::macros::assert_err_re;
+    use crate::pkgsh::BUILD_DATA;
+
+    use gag::BufferRedirect;
+    use rusty_fork::rusty_fork_test;
+    use scallop::builtins::ExecStatus;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            assert_invalid_args(usev, vec![0, 3]);
+
+            BUILD_DATA.with(|d| {
+                for eapi in OFFICIAL_EAPIS.values() {
+                    if !eapi.has("usev_two_args") {
+                        d.borrow_mut().eapi = eapi;
+                        assert_invalid_args(usev, vec![2]);
+                    }
+                }
+            });
+        }
+
+        #[test]
+        fn empty_iuse_effective() {
+            assert_err_re!(usev(&["use"]), "^.* not in IUSE$");
+        }
+
+        #[test]
+        fn disabled() {
+            BUILD_DATA.with(|d| {
+                d.borrow_mut().iuse_effective.insert("use".to_string());
+                let mut buf = BufferRedirect::stdout().unwrap();
+
+                for (args, status, expected) in [
+                        (&["use"], ExecStatus::Failure, ""),
+                        (&["!use"], ExecStatus::Success, "use"),
+                        ] {
+                    assert_eq!(usev(args).unwrap(), status);
+                    let mut output = String::new();
+                    buf.read_to_string(&mut output).unwrap();
+                    assert_eq!(&output[..], expected);
+                }
+
+                // check EAPIs that support two arg variant
+                for eapi in OFFICIAL_EAPIS.values() {
+                    if eapi.has("usev_two_args") {
+                        d.borrow_mut().eapi = eapi;
+                        for (args, status, expected) in [
+                                (&["use", "out"], ExecStatus::Failure, ""),
+                                (&["!use", "out"], ExecStatus::Success, "out"),
+                                ] {
+                            assert_eq!(usev(args).unwrap(), status);
+                            let mut output = String::new();
+                            buf.read_to_string(&mut output).unwrap();
+                            assert_eq!(&output[..], expected);
+                        }
+                    }
+                }
+            });
+        }
+
+        #[test]
+        fn enabled() {
+            BUILD_DATA.with(|d| {
+                d.borrow_mut().iuse_effective.insert("use".to_string());
+                d.borrow_mut().r#use.insert("use".to_string());
+
+                let mut buf = BufferRedirect::stdout().unwrap();
+                for (args, status, expected) in [
+                        (&["use"], ExecStatus::Success, "use"),
+                        (&["!use"], ExecStatus::Failure, ""),
+                        ] {
+                    assert_eq!(usev(args).unwrap(), status);
+                    let mut output = String::new();
+                    buf.read_to_string(&mut output).unwrap();
+                    assert_eq!(&output[..], expected);
+                }
+
+                // check EAPIs that support two arg variant
+                for eapi in OFFICIAL_EAPIS.values() {
+                    if eapi.has("usev_two_args") {
+                        d.borrow_mut().eapi = eapi;
+                        for (args, status, expected) in [
+                                (&["use", "out"], ExecStatus::Success, "out"),
+                                (&["!use", "out"], ExecStatus::Failure, ""),
+                                ] {
+                            assert_eq!(usev(args).unwrap(), status);
+                            let mut output = String::new();
+                            buf.read_to_string(&mut output).unwrap();
+                            assert_eq!(&output[..], expected);
+                        }
+                    }
+                }
+            });
+        }
+    }
+}
