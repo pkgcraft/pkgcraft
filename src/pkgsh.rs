@@ -20,6 +20,11 @@ pub struct BuildData {
     pub exedesttree: String,
     pub insdesttree: String,
 
+    pub compress_include: HashSet<String>,
+    pub compress_exclude: HashSet<String>,
+    pub strip_include: HashSet<String>,
+    pub strip_exclude: HashSet<String>,
+
     pub iuse_effective: HashSet<String>,
     pub r#use: HashSet<String>,
 
