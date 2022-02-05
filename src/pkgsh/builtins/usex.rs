@@ -68,28 +68,17 @@ mod tests {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 let mut buf = BufferRedirect::stdout().unwrap();
-
-                // use flag is disabled
-                usex(&["use"]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], "no");
-
-                usex(&["use", "arg2", "arg3", "arg4", "arg5"]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], "arg3arg5");
-
-                // inverted check
-                usex(&["!use"]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], "yes");
-
-                usex(&["!use", "arg2", "arg3", "arg4", "arg5"]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], "arg2arg4");
+                for (args, expected) in [
+                        (vec!["use"], "no"),
+                        (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
+                        (vec!["!use"], "yes"),
+                        (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
+                        ] {
+                    usex(args.as_slice()).unwrap();
+                    let mut output = String::new();
+                    buf.read_to_string(&mut output).unwrap();
+                    assert_eq!(&output[..], expected);
+                }
             });
         }
 
@@ -99,28 +88,17 @@ mod tests {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 d.borrow_mut().r#use.insert("use".to_string());
                 let mut buf = BufferRedirect::stdout().unwrap();
-
-                // use flag is enabled
-                usex(&["use"]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], "yes");
-
-                usex(&["use", "arg2", "arg3", "arg4", "arg5"]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], "arg2arg4");
-
-                // inverted check
-                usex(&["!use"]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], "no");
-
-                usex(&["!use", "arg2", "arg3", "arg4", "arg5"]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(&output[..], "arg3arg5");
+                for (args, expected) in [
+                        (vec!["use"], "yes"),
+                        (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
+                        (vec!["!use"], "no"),
+                        (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
+                        ] {
+                    usex(args.as_slice()).unwrap();
+                    let mut output = String::new();
+                    buf.read_to_string(&mut output).unwrap();
+                    assert_eq!(&output[..], expected);
+                }
             });
         }
     }
