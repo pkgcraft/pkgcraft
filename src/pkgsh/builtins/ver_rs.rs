@@ -15,12 +15,11 @@ Returns -1 on error.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pv = string_value("PV").unwrap_or_else(|| String::from(""));
-    let pv = pv.as_str();
     let (ver, args) = match args.len() {
         n if n < 2 => return Err(Error::new(format!("requires 2 or more args, got {}", n))),
 
         // even number of args uses $PV
-        n if n % 2 == 0 => (pv, args),
+        n if n % 2 == 0 => (pv.as_str(), args),
 
         // odd number of args uses the last arg as the version
         _ => {

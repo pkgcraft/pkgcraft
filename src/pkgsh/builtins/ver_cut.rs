@@ -16,9 +16,8 @@ Returns -1 on error.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pv = string_value("PV").unwrap_or_else(|| String::from(""));
-    let pv = pv.as_str();
     let (range, ver) = match args.len() {
-        1 => (args[0], pv),
+        1 => (args[0], pv.as_str()),
         2 => (args[0], args[1]),
         n => return Err(Error::new(format!("requires 1 or 2 args, got {}", n))),
     };
