@@ -32,9 +32,28 @@ pub static BUILTIN: Builtin = Builtin {
 mod tests {
     use super::super::assert_invalid_args;
     use super::run as in_iuse;
+    use crate::pkgsh::BUILD_DATA;
 
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(in_iuse, vec![0, 2]);
+    use rusty_fork::rusty_fork_test;
+    use scallop::builtins::ExecStatus;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            assert_invalid_args(in_iuse, vec![0, 2]);
+        }
+
+        #[test]
+        fn known() {
+            BUILD_DATA.with(|d| {
+                d.borrow_mut().iuse_effective.insert("use".to_string());
+                assert_eq!(in_iuse(&["use"]).unwrap(), ExecStatus::Success);
+            });
+        }
+
+        #[test]
+        fn unknown() {
+            assert_eq!(in_iuse(&["use"]).unwrap(), ExecStatus::Failure);
+        }
     }
 }
