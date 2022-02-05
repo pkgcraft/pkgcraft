@@ -17,7 +17,6 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             let nonfatal = NONFATAL.load(Ordering::Relaxed);
             if nonfatal {
                 if args.len() == 2 {
-                    println!("nonfatal die");
                     eprintln!("{}", args[1]);
                 }
                 return Ok(ExecStatus::Failure);

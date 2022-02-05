@@ -1,6 +1,7 @@
+use std::io::{stdout, Write};
+
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
-use std::io::{stdout, Write};
 
 use super::r#use;
 use crate::macros::write_flush;

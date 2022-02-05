@@ -1,8 +1,11 @@
+use std::io::{stdout, Write};
+
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
 use super::{parse, version_split};
+use crate::macros::write_flush;
 
 static LONG_DOC: &str = "\
 Perform string substitution on package version strings.
@@ -45,7 +48,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             });
     }
 
-    println!("{}", version_parts.join(""));
+    write_flush!(stdout(), "{}", version_parts.join(""));
 
     Ok(ExecStatus::Success)
 }

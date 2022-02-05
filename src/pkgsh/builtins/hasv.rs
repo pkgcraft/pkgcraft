@@ -1,7 +1,10 @@
+use std::io::{stdout, Write};
+
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::Result;
 
 use super::has;
+use crate::macros::write_flush;
 
 static LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 
@@ -9,7 +12,7 @@ static LONG_DOC: &str = "The same as has, but also prints the first argument if 
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let ret = has::run(args)?;
     if bool::from(&ret) {
-        println!("{}", args[0]);
+        write_flush!(stdout(), "{}", args[0]);
     }
 
     Ok(ret)

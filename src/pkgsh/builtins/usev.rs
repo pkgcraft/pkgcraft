@@ -1,7 +1,10 @@
+use std::io::{stdout, Write};
+
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::r#use;
+use crate::macros::write_flush;
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
@@ -25,7 +28,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         let ret = r#use::run(&[arg])?;
         if bool::from(&ret) {
-            println!("{}", output);
+            write_flush!(stdout(), "{}", output);
         }
 
         Ok(ret)

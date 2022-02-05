@@ -1,10 +1,12 @@
 use std::cmp;
+use std::io::{stdout, Write};
 
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
 use super::{parse, version_split};
+use crate::macros::write_flush;
 
 static LONG_DOC: &str = "\
 Output substring from package version string and range arguments.
@@ -29,7 +31,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => cmp::min(n * 2 - 1, len),
     };
     let end_idx = cmp::min(end * 2, len);
-    println!("{}", &version_parts[start_idx..end_idx].join(""));
+    write_flush!(stdout(), "{}", &version_parts[start_idx..end_idx].join(""));
 
     Ok(ExecStatus::Success)
 }
