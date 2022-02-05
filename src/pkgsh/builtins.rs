@@ -8,6 +8,7 @@ pub mod assert;
 pub mod debug_print;
 pub mod debug_print_function;
 pub mod debug_print_section;
+pub mod default;
 pub mod die;
 pub mod docinto;
 pub mod docompress;

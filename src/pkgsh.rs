@@ -15,6 +15,9 @@ pub struct BuildData {
     pub repo: String,
     pub eapi: &'static Eapi,
 
+    pub phase: String,
+    pub phase_func: String,
+
     pub desttree: String,
     pub docdesttree: String,
     pub exedesttree: String,
