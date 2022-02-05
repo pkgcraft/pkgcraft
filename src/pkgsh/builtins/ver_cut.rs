@@ -50,6 +50,7 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as ver_cut;
+    use crate::macros::assert_err_re;
 
     use gag::BufferRedirect;
     use rusty_fork::rusty_fork_test;
@@ -68,6 +69,9 @@ mod tests {
                 let r = ver_cut(&[rng, "2"]);
                 assert!(r.unwrap_err().to_string().contains("invalid range"));
             }
+
+            let r = ver_cut(&["3-2", "1.2.3"]);
+            assert_err_re!(r, " is greater than end ");
         }
 
         #[test]
