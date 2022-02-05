@@ -54,6 +54,7 @@ mod tests {
     use gag::BufferRedirect;
     use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
+    use scallop::variables::*;
 
     rusty_fork_test! {
         #[test]
@@ -71,27 +72,36 @@ mod tests {
 
         #[test]
         fn output() {
+            let mut pv = Variable::new("PV");
             let mut buf = BufferRedirect::stdout().unwrap();
-            for (args, expected) in [
-                    (["1", "1.2.3"], "1"),
-                    (["1-1", "1.2.3"], "1"),
-                    (["1-2", "1.2.3"], "1.2"),
-                    (["2-", "1.2.3"], "2.3"),
-                    (["1-", "1.2.3"], "1.2.3"),
-                    (["3-4", "1.2.3b_alpha4"], "3b"),
-                    (["5", "1.2.3b_alpha4"], "alpha"),
-                    (["1-2", ".1.2.3"], "1.2"),
-                    (["0-2", ".1.2.3"], ".1.2"),
-                    (["2-3", "1.2.3."], "2.3"),
-                    (["2-", "1.2.3."], "2.3."),
-                    (["2-4", "1.2.3."], "2.3."),
-                    (["0-2", "1.2.3"], "1.2"),
-                    (["2-5", "1.2.3"], "2.3"),
-                    (["4", "1.2.3"], ""),
-                    (["0", "1.2.3"], ""),
-                    (["4-", "1.2.3"], ""),
+            for (rng, ver, expected) in [
+                    ("1", "1.2.3", "1"),
+                    ("1-1", "1.2.3", "1"),
+                    ("1-2", "1.2.3", "1.2"),
+                    ("2-", "1.2.3", "2.3"),
+                    ("1-", "1.2.3", "1.2.3"),
+                    ("3-4", "1.2.3b_alpha4", "3b"),
+                    ("5", "1.2.3b_alpha4", "alpha"),
+                    ("1-2", ".1.2.3", "1.2"),
+                    ("0-2", ".1.2.3", ".1.2"),
+                    ("2-3", "1.2.3.", "2.3"),
+                    ("2-", "1.2.3.", "2.3."),
+                    ("2-4", "1.2.3.", "2.3."),
+                    ("0-2", "1.2.3", "1.2"),
+                    ("2-5", "1.2.3", "2.3"),
+                    ("4", "1.2.3", ""),
+                    ("0", "1.2.3", ""),
+                    ("4-", "1.2.3", ""),
                     ] {
-                let r = ver_cut(&args).unwrap();
+                let r = ver_cut(&[rng, ver]).unwrap();
+                let mut output = String::new();
+                buf.read_to_string(&mut output).unwrap();
+                assert_eq!(&output[..], expected);
+                assert_eq!(r, ExecStatus::Success);
+
+                // test pulling version from $PV
+                pv.bind(ver, None, None).unwrap();
+                let r = ver_cut(&[rng]).unwrap();
                 let mut output = String::new();
                 buf.read_to_string(&mut output).unwrap();
                 assert_eq!(&output[..], expected);
