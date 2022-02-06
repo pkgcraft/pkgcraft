@@ -7,6 +7,7 @@ additional arguments.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(_args: &[&str]) -> Result<ExecStatus> {
+    // TODO: fill out this stub
     Ok(ExecStatus::Success)
 }
 
