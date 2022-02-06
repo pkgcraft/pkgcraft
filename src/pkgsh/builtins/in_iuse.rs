@@ -4,8 +4,7 @@ use scallop::{Error, Result};
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
-Returns shell true (0) if the first argument (a USE flag name) is included in IUSE_EFFECTIVE, false
-otherwise.";
+Returns success if the USE flag argument is found in IUSE_EFFECTIVE, failure otherwise.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

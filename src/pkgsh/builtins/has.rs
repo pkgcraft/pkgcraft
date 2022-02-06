@@ -2,9 +2,7 @@ use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 static LONG_DOC: &str = "\
-Returns 0 if the first argument is found in the list of subsequent arguments, 1 otherwise.
-
-Returns -1 on error.";
+Returns success if the first argument is found in subsequent arguments, failure otherwise.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

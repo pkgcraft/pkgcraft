@@ -4,8 +4,8 @@ use scallop::{Error, Result};
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
-Returns shell true (0) if the first argument (a USE flag name) is enabled, false otherwise. If the
-flag name is prefixed with !, returns true if the flag is disabled, and false if it is enabled.";
+Returns success if the USE flag argument is enabled, failure otherwise.
+The return values are inverted if the flag name is prefixed with !.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

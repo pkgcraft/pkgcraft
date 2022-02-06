@@ -8,10 +8,7 @@ use scallop::{Error, Result};
 use super::{parse, version_split};
 use crate::macros::write_flush;
 
-static LONG_DOC: &str = "\
-Output substring from package version string and range arguments.
-
-Returns -1 on error.";
+static LONG_DOC: &str = "Output substring from package version string and range arguments.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

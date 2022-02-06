@@ -6,11 +6,7 @@ use scallop::{Error, Result};
 
 use crate::atom::Version;
 
-static LONG_DOC: &str = "\
-Perform version testing as defined in the spec.
-
-Returns 0 if the specified test is true, 1 otherwise.
-Returns -1 if an error occurred.";
+static LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

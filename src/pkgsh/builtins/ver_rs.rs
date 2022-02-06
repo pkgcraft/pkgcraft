@@ -7,10 +7,7 @@ use scallop::{Error, Result};
 use super::{parse, version_split};
 use crate::macros::write_flush;
 
-static LONG_DOC: &str = "\
-Perform string substitution on package version strings.
-
-Returns -1 on error.";
+static LONG_DOC: &str = "Perform string substitution on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -28,8 +25,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         }
     };
 
-    // Split version string into separators and components, note that the version string doesn't
-    // have to follow the spec since args like ".1.2.3" are allowed.
+    // Split version string into separators and components, note that the invalid versions
+    // like ".1.2.3" are allowed.
     let mut version_parts = version_split(ver);
 
     // iterate over (range, separator) pairs
