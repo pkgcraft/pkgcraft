@@ -39,7 +39,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             let mut d = d.borrow_mut();
             // append metadata keys that incrementally accumulate
             for var in &eapi.incremental_keys {
-                if let Some(data) = string_vec(var) {
+                if let Ok(data) = string_vec(var) {
                     let deque = d.get_deque(var);
                     deque.extend(data);
                 }
