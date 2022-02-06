@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let func_name = format!("default_{}", d.borrow().phase_func);
-        if let Some(func) = functions::find(&func_name) {
+        if let Some(mut func) = functions::find(&func_name) {
             func.execute(&[])?;
         }
         Ok(ExecStatus::Success)
