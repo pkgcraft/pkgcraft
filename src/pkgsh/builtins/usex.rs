@@ -55,7 +55,7 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(usex, vec![0, 6]);
+            assert_invalid_args(usex, &[0, 6]);
         }
 
         #[test]

@@ -42,7 +42,7 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(docinto, vec![0, 2]);
+            assert_invalid_args(docinto, &[0, 2]);
         }
 
         #[test]

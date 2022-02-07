@@ -41,6 +41,6 @@ mod tests {
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(nonfatal, vec![0]);
+        assert_invalid_args(nonfatal, &[0]);
     }
 }

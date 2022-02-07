@@ -33,6 +33,6 @@ mod tests {
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(hasv, vec![0]);
+        assert_invalid_args(hasv, &[0]);
     }
 }

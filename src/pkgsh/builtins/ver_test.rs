@@ -58,7 +58,7 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(ver_test, vec![0, 1, 4]);
+            assert_invalid_args(ver_test, &[0, 1, 4]);
             // $PVR not defined
             assert!(ver_test(&["-eq", "1"]).is_err());
         }

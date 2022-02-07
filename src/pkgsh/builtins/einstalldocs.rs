@@ -94,6 +94,6 @@ mod tests {
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(einstalldocs, vec![1]);
+        assert_invalid_args(einstalldocs, &[1]);
     }
 }

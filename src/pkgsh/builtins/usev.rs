@@ -60,13 +60,13 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(usev, vec![0, 3]);
+            assert_invalid_args(usev, &[0, 3]);
 
             BUILD_DATA.with(|d| {
                 for eapi in OFFICIAL_EAPIS.values() {
                     if !eapi.has("usev_two_args") {
                         d.borrow_mut().eapi = eapi;
-                        assert_invalid_args(usev, vec![2]);
+                        assert_invalid_args(usev, &[2]);
                     }
                 }
             });

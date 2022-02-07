@@ -36,13 +36,13 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(use_enable, vec![0, 4]);
+            assert_invalid_args(use_enable, &[0, 4]);
 
             BUILD_DATA.with(|d| {
                 for eapi in OFFICIAL_EAPIS.values() {
                     if !eapi.has("use_conf_arg") {
                         d.borrow_mut().eapi = eapi;
-                        assert_invalid_args(use_enable, vec![3]);
+                        assert_invalid_args(use_enable, &[3]);
                     }
                 }
             });

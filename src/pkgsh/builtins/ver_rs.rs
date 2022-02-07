@@ -73,7 +73,7 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(ver_rs, vec![0, 1]);
+            assert_invalid_args(ver_rs, &[0, 1]);
         }
 
         #[test]

@@ -77,6 +77,6 @@ mod tests {
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(inherit, vec![0]);
+        assert_invalid_args(inherit, &[0]);
     }
 }
