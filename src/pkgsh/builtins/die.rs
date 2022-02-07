@@ -33,7 +33,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     // TODO: output bash backtrace
 
-    // TODO: this should probably call the exit builtin
+    // TODO: This should send SIGTERM to the entire process group and a signal handler should be
+    // used in the main process to catch that, longjmp back to the top level, and reset the library
+    // instead of terminating.
     std::process::exit(1)
 }
 
