@@ -92,6 +92,7 @@ pub struct Eapi {
     parent: Option<&'static Eapi>,
     options: EapiOptions,
     incremental_keys: EapiHashSet,
+    builtins: EapiHashSet,
 }
 
 impl PartialEq for Eapi {
@@ -184,6 +185,17 @@ impl Eapi {
         keys.extend(updates);
         keys
     }
+
+    fn update_builtins(&self, add: &[&'static str], remove: &[&'static str]) -> EapiHashSet {
+        let mut builtins = self.builtins.clone();
+        builtins.extend(add);
+        for x in remove {
+            if !builtins.remove(x) {
+                panic!("unknown builtin: {}", x);
+            }
+        }
+        builtins
+    }
 }
 
 impl fmt::Display for Eapi {
@@ -211,6 +223,29 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
         .iter()
         .cloned()
         .collect(),
+    builtins: [
+        "assert",
+        "debug-print-function",
+        "debug-print",
+        "debug-print-section",
+        "die",
+        "docinto",
+        "dodoc",
+        "exeinto",
+        "EXPORT_FUNCTIONS",
+        "has",
+        "hasv",
+        "inherit",
+        "insinto",
+        "into",
+        "use",
+        "usev",
+        "use_enable",
+        "use_with",
+    ]
+    .iter()
+    .cloned()
+    .collect(),
 });
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -218,6 +253,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI0),
     options: EAPI0.update_options(&[("slot_deps", true)]),
     incremental_keys: EAPI0.incremental_keys.clone(),
+    builtins: EAPI0.builtins.clone(),
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -229,6 +265,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("src_uri_renames", true),
     ]),
     incremental_keys: EAPI1.incremental_keys.clone(),
+    builtins: EAPI1.update_builtins(&["default"], &[]),
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -236,6 +273,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI2),
     options: EAPI2.options.clone(),
     incremental_keys: EAPI2.incremental_keys.clone(),
+    builtins: EAPI2.builtins.clone(),
 });
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -248,6 +286,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("use_conf_arg", true),
     ]),
     incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
+    builtins: EAPI3.update_builtins(&["docompress", "nonfatal"], &[]),
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -259,6 +298,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("required_use_one_of", true),
     ]),
     incremental_keys: EAPI4.incremental_keys.clone(),
+    builtins: EAPI4.update_builtins(&["usex"], &[]),
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -266,16 +306,15 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI5),
     options: EAPI5.options.clone(),
     incremental_keys: EAPI5.incremental_keys.clone(),
+    builtins: EAPI5.update_builtins(&["einstalldocs", "in_iuse"], &[]),
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "7",
     parent: Some(&EAPI6),
-    options: EAPI6.update_options(&[
-        ("export_desttree", false),
-        ("export_insdesttree", false),
-    ]),
+    options: EAPI6.update_options(&[("export_desttree", false), ("export_insdesttree", false)]),
     incremental_keys: EAPI6.update_keys(&["BDEPEND"]),
+    builtins: EAPI6.update_builtins(&["dostrip", "ver_cut", "ver_rs", "ver_test"], &[]),
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -283,6 +322,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI7),
     options: EAPI7.update_options(&[("src_uri_unrestrict", true), ("usev_two_args", true)]),
     incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
+    builtins: EAPI7.update_builtins(&[], &["hasv"]),
 });
 
 /// Reference to the latest registered EAPI.
@@ -294,6 +334,7 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(EAPI_LATEST),
     options: EAPI_LATEST.update_options(&[("repo_ids", true)]),
     incremental_keys: EAPI_LATEST.incremental_keys.clone(),
+    builtins: EAPI_LATEST.builtins.clone(),
 });
 
 /// Ordered mapping of official EAPI identifiers to instances.
