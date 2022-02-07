@@ -19,6 +19,7 @@ pub mod einstalldocs;
 pub mod exeinto;
 pub mod exeopts;
 pub mod export_functions;
+pub mod get_libdir;
 pub mod has;
 pub mod hasq;
 pub mod hasv;

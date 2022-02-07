@@ -312,7 +312,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI5),
     options: EAPI5.options.clone(),
     incremental_keys: EAPI5.incremental_keys.clone(),
-    builtins: EAPI5.update_builtins(&["einstalldocs", "in_iuse"], &[]),
+    builtins: EAPI5.update_builtins(&["einstalldocs", "get_libdir", "in_iuse"], &[]),
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
