@@ -7,10 +7,9 @@ static LONG_DOC: &str = "Calls the default_* function for the current phase.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    match args.len() {
-        0 => (),
-        n => return Err(Error::Builtin(format!("takes no args, got {}", n))),
-    };
+    if !args.is_empty() {
+        return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
+    }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let func_name = format!("default_{}", d.borrow().phase_func);
