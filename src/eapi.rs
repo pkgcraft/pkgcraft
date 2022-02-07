@@ -169,43 +169,20 @@ impl Eapi {
         &self.incremental_keys
     }
 
-    fn new(
-        id: &'static str,
-        parent: Option<&'static Eapi>,
-        eapi_options: Option<&EapiOptions>,
-        eapi_incremental_keys: Option<&EapiHashSet>,
-    ) -> Eapi {
-        // clone inherited options
-        let mut options = match parent {
-            Some(x) => x.options.clone(),
-            None => EAPI_OPTIONS.clone(),
-        };
-
-        // merge EAPI specific options while verifying defaults exist
-        if let Some(map) = eapi_options {
-            for (key, val) in map.iter() {
-                if options.insert(key, *val).is_none() {
-                    panic!("EAPI {:?} option missing default: {:?}", id, key);
-                }
+    fn update_options(&self, updates: &[(&'static str, bool)]) -> EapiOptions {
+        let mut options = self.options.clone();
+        for (key, val) in updates.iter() {
+            if options.insert(key, *val).is_none() {
+                panic!("option missing default: {:?}", key);
             }
         }
+        options
+    }
 
-        // merge incremental keys
-        let mut incremental_keys = match parent {
-            Some(x) => x.incremental_keys.clone(),
-            None => HashSet::new() as EapiHashSet,
-        };
-
-        if let Some(keys) = eapi_incremental_keys {
-            incremental_keys = incremental_keys.union(keys).cloned().collect();
-        }
-
-        Eapi {
-            id,
-            parent,
-            options,
-            incremental_keys,
-        }
+    fn update_keys(&self, updates: &[&'static str]) -> EapiHashSet {
+        let mut keys = self.incremental_keys.clone();
+        keys.extend(updates);
+        keys
     }
 }
 
@@ -226,100 +203,97 @@ pub fn get_eapi(id: &str) -> crate::Result<&'static Eapi> {
     }
 }
 
-#[rustfmt::skip]
-pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
-    let incremental_keys: EapiHashSet = [
-        "IUSE", "DEPEND", "RDEPEND", "PDEPEND",
-    ].iter().cloned().collect();
-    Eapi::new("0", None, None, Some(&incremental_keys))
+pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "0",
+    parent: None,
+    options: EAPI_OPTIONS.clone(),
+    incremental_keys: ["IUSE", "DEPEND", "RDEPEND", "PDEPEND"]
+        .iter()
+        .cloned()
+        .collect(),
 });
 
-#[rustfmt::skip]
-pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
-    let options: EapiOptions = [
-        ("slot_deps", true),
-    ].iter().cloned().collect();
-    Eapi::new("1", Some(&EAPI0), Some(&options), None)
+pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "1",
+    parent: Some(&EAPI0),
+    options: EAPI0.update_options(&[("slot_deps", true)]),
+    incremental_keys: EAPI0.incremental_keys.clone(),
 });
 
-#[rustfmt::skip]
-pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
-    let options: EapiOptions = [
+pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "2",
+    parent: Some(&EAPI1),
+    options: EAPI1.update_options(&[
         ("blockers", true),
         ("use_deps", true),
         ("src_uri_renames", true),
-    ].iter().cloned().collect();
-    Eapi::new("2", Some(&EAPI1), Some(&options), None)
+    ]),
+    incremental_keys: EAPI1.incremental_keys.clone(),
 });
 
-#[rustfmt::skip]
-pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::new("3", Some(&EAPI2), None, None)
+pub static EAPI3: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "3",
+    parent: Some(&EAPI2),
+    options: EAPI2.options.clone(),
+    incremental_keys: EAPI2.incremental_keys.clone(),
 });
 
-#[rustfmt::skip]
-pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
-    let options: EapiOptions = [
+pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "4",
+    parent: Some(&EAPI3),
+    options: EAPI3.update_options(&[
         ("use_dep_defaults", true),
         ("required_use", true),
         ("rdepend_default", false),
         ("use_conf_arg", true),
-    ].iter().cloned().collect();
-    let incremental_keys: EapiHashSet = [
-        "REQUIRED_USE",
-    ].iter().cloned().collect();
-    Eapi::new("4", Some(&EAPI3), Some(&options), Some(&incremental_keys))
+    ]),
+    incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
 });
 
-#[rustfmt::skip]
-pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
-    let options: EapiOptions = [
+pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "5",
+    parent: Some(&EAPI4),
+    options: EAPI4.update_options(&[
         ("subslots", true),
         ("slot_ops", true),
         ("required_use_one_of", true),
-    ].iter().cloned().collect();
-    Eapi::new("5", Some(&EAPI4), Some(&options), None)
+    ]),
+    incremental_keys: EAPI4.incremental_keys.clone(),
 });
 
-#[rustfmt::skip]
-pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::new("6", Some(&EAPI5), None, None)
+pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "6",
+    parent: Some(&EAPI5),
+    options: EAPI5.options.clone(),
+    incremental_keys: EAPI5.incremental_keys.clone(),
 });
 
-#[rustfmt::skip]
-pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
-    let options: EapiOptions = [
+pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "7",
+    parent: Some(&EAPI6),
+    options: EAPI6.update_options(&[
         ("export_desttree", false),
         ("export_insdesttree", false),
-    ].iter().cloned().collect();
-    let incremental_keys: EapiHashSet = [
-        "BDEPEND",
-    ].iter().cloned().collect();
-    Eapi::new("7", Some(&EAPI6), Some(&options), Some(&incremental_keys))
+    ]),
+    incremental_keys: EAPI6.update_keys(&["BDEPEND"]),
 });
 
-#[rustfmt::skip]
-pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
-    let options: EapiOptions = [
-        ("src_uri_unrestrict", true),
-        ("usev_two_args", true),
-    ].iter().cloned().collect();
-    let incremental_keys: EapiHashSet = [
-        "IDEPEND", "PROPERTIES", "RESTRICT",
-    ].iter().cloned().collect();
-    Eapi::new("8", Some(&EAPI7), Some(&options), Some(&incremental_keys))
+pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "8",
+    parent: Some(&EAPI7),
+    options: EAPI7.update_options(&[("src_uri_unrestrict", true), ("usev_two_args", true)]),
+    incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
 });
 
 /// Reference to the latest registered EAPI.
 pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
 
 /// The latest EAPI with extensions on top.
-#[rustfmt::skip]
-pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
-    let options: EapiOptions = [
-        ("repo_ids", true),
-    ].iter().cloned().collect();
-    Eapi::new("pkgcraft", Some(EAPI_LATEST), Some(&options), None)
+pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| Eapi {
+    id: "pkgcraft",
+    parent: Some(EAPI_LATEST),
+    options: EAPI_LATEST.update_options(&[("repo_ids", true)]),
+    incremental_keys: EAPI_LATEST.incremental_keys.clone(),
 });
 
 /// Ordered mapping of official EAPI identifiers to instances.
