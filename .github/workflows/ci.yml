@@ -156,4 +156,5 @@ jobs:
       run: cargo criterion --no-run
 
     - name: Benchmark
+      if: github.ref_name == 'bench'
       run: cargo criterion --color always --output-format quiet
