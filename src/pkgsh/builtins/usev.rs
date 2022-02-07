@@ -14,19 +14,19 @@ The same as use, but also prints the flag name if the condition is met.";
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
-        let (arg, output) = match args.len() {
+        let (flag, output) = match args.len() {
             1 => {
-                let flag = args[0].strip_prefix('!').unwrap_or(args[0]);
-                (args[0], flag)
+                let output = args[0].strip_prefix('!').unwrap_or(args[0]);
+                (&args[..1], output)
             }
             2 => match eapi.has("usev_two_args") {
-                true => (args[0], args[1]),
+                true => (&args[..1], args[1]),
                 false => return Err(scallop::Error::new("requires 1 arg, got 2")),
             },
             n => return Err(Error::new(format!("requires 1 or 2 args, got {}", n))),
         };
 
-        let ret = use_::run(&[arg])?;
+        let ret = use_::run(flag)?;
         if bool::from(&ret) {
             write_flush!(stdout(), "{}", output);
         }
