@@ -23,6 +23,11 @@ pub struct BuildData {
     pub exedesttree: String,
     pub insdesttree: String,
 
+    pub insopts: Vec<String>,
+    pub diropts: Vec<String>,
+    pub exeopts: Vec<String>,
+    pub libopts: Vec<String>,
+
     // TODO: add default values listed in the spec
     pub compress_include: HashSet<String>,
     pub compress_exclude: HashSet<String>,
