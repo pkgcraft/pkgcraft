@@ -14,7 +14,7 @@ static VALID_EAPI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
 
 type EapiOptions = HashMap<&'static str, bool>;
-type EapiKeys = HashSet<&'static str>;
+type EapiHashSet = HashSet<&'static str>;
 
 #[rustfmt::skip]
 static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
@@ -91,7 +91,7 @@ pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
-    pub incremental_keys: EapiKeys,
+    incremental_keys: EapiHashSet,
 }
 
 impl PartialEq for Eapi {
@@ -164,11 +164,16 @@ impl Eapi {
         Atom::new(s.as_ref(), self)
     }
 
+    #[inline]
+    pub(crate) fn incremental_keys(&self) -> &EapiHashSet {
+        &self.incremental_keys
+    }
+
     fn new(
         id: &'static str,
         parent: Option<&'static Eapi>,
         eapi_options: Option<&EapiOptions>,
-        eapi_incremental_keys: Option<&EapiKeys>,
+        eapi_incremental_keys: Option<&EapiHashSet>,
     ) -> Eapi {
         // clone inherited options
         let mut options = match parent {
@@ -188,7 +193,7 @@ impl Eapi {
         // merge incremental keys
         let mut incremental_keys = match parent {
             Some(x) => x.incremental_keys.clone(),
-            None => HashSet::new() as EapiKeys,
+            None => HashSet::new() as EapiHashSet,
         };
 
         if let Some(keys) = eapi_incremental_keys {
@@ -223,7 +228,7 @@ pub fn get_eapi(id: &str) -> crate::Result<&'static Eapi> {
 
 #[rustfmt::skip]
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
-    let incremental_keys: EapiKeys = [
+    let incremental_keys: EapiHashSet = [
         "IUSE", "DEPEND", "RDEPEND", "PDEPEND",
     ].iter().cloned().collect();
     Eapi::new("0", None, None, Some(&incremental_keys))
@@ -260,7 +265,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
         ("rdepend_default", false),
         ("use_conf_arg", true),
     ].iter().cloned().collect();
-    let incremental_keys: EapiKeys = [
+    let incremental_keys: EapiHashSet = [
         "REQUIRED_USE",
     ].iter().cloned().collect();
     Eapi::new("4", Some(&EAPI3), Some(&options), Some(&incremental_keys))
@@ -287,7 +292,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
         ("export_desttree", false),
         ("export_insdesttree", false),
     ].iter().cloned().collect();
-    let incremental_keys: EapiKeys = [
+    let incremental_keys: EapiHashSet = [
         "BDEPEND",
     ].iter().cloned().collect();
     Eapi::new("7", Some(&EAPI6), Some(&options), Some(&incremental_keys))
@@ -299,7 +304,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
         ("src_uri_unrestrict", true),
         ("usev_two_args", true),
     ].iter().cloned().collect();
-    let incremental_keys: EapiKeys = [
+    let incremental_keys: EapiHashSet = [
         "IDEPEND", "PROPERTIES", "RESTRICT",
     ].iter().cloned().collect();
     Eapi::new("8", Some(&EAPI7), Some(&options), Some(&incremental_keys))

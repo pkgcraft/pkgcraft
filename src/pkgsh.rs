@@ -108,7 +108,7 @@ impl<'a> PkgShell<'a> {
             }
 
             // prepend metadata keys that incrementally accumulate to eclass values
-            for var in &eapi.incremental_keys {
+            for var in eapi.incremental_keys() {
                 if let Ok(data) = string_vec(var) {
                     let deque = d.get_deque(var);
                     // TODO: extend_left() should be implemented upstream for VecDeque
