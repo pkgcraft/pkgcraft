@@ -12,8 +12,17 @@ static LONG_DOC: &str = "\
 Installs the files specified by the DOCS and HTML_DOCS variables or a default set of files.";
 
 static DOC_DEFAULTS: &[&str] = &[
-    "README*", "ChangeLog", "AUTHORS", "NEWS", "TODO", "CHANGES", "THANKS", "BUGS",
-    "FAQ", "CREDITS", "CHANGELOG",
+    "README*",
+    "ChangeLog",
+    "AUTHORS",
+    "NEWS",
+    "TODO",
+    "CHANGES",
+    "THANKS",
+    "BUGS",
+    "FAQ",
+    "CREDITS",
+    "CHANGELOG",
 ];
 
 fn filter_docs(globs: &[&str]) -> Result<Vec<String>> {
@@ -43,19 +52,19 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let orig_docdestree = d.borrow().docdesttree.clone();
 
         for (var, defaults, docdesttree) in [
-                ("DOCS", Some(DOC_DEFAULTS), ""),
-                ("HTML_DOCS", None, "html"),
-                ] {
+            ("DOCS", Some(DOC_DEFAULTS), ""),
+            ("HTML_DOCS", None, "html"),
+        ] {
             let args = match var_to_vec(var) {
                 Ok(v) => {
                     let mut args: Vec<String> = vec!["-r".to_string()];
                     args.extend(v);
                     args
-                },
+                }
                 _ => match defaults {
                     Some(v) => filter_docs(v)?,
                     None => continue,
-                }
+                },
             };
             d.borrow_mut().docdesttree = String::from(docdesttree);
             let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
