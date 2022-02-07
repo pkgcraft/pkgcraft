@@ -38,11 +38,9 @@ mod tests {
             assert_invalid_args(use_with, &[0, 4]);
 
             BUILD_DATA.with(|d| {
-                for eapi in OFFICIAL_EAPIS.values() {
-                    if !eapi.has("use_conf_arg") {
-                        d.borrow_mut().eapi = eapi;
-                        assert_invalid_args(use_with, &[3]);
-                    }
+                for eapi in OFFICIAL_EAPIS.values().filter(|e| !e.has("use_conf_arg")) {
+                    d.borrow_mut().eapi = eapi;
+                    assert_invalid_args(use_with, &[3]);
                 }
             });
         }
@@ -71,18 +69,16 @@ mod tests {
                 }
 
                 // check EAPIs that support three arg variant
-                for eapi in OFFICIAL_EAPIS.values() {
-                    if eapi.has("use_conf_arg") {
-                        d.borrow_mut().eapi = eapi;
-                        for (args, status, expected) in [
-                                (&["use", "opt", "val"], ExecStatus::Failure, "--without-opt=val"),
-                                (&["!use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
-                                ] {
-                            assert_eq!(use_with(args).unwrap(), status);
-                            let mut output = String::new();
-                            buf.read_to_string(&mut output).unwrap();
-                            assert_eq!(output, expected);
-                        }
+                for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("use_conf_arg")) {
+                    d.borrow_mut().eapi = eapi;
+                    for (args, status, expected) in [
+                            (&["use", "opt", "val"], ExecStatus::Failure, "--without-opt=val"),
+                            (&["!use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
+                            ] {
+                        assert_eq!(use_with(args).unwrap(), status);
+                        let mut output = String::new();
+                        buf.read_to_string(&mut output).unwrap();
+                        assert_eq!(output, expected);
                     }
                 }
             });
@@ -108,18 +104,16 @@ mod tests {
                 }
 
                 // check EAPIs that support three arg variant
-                for eapi in OFFICIAL_EAPIS.values() {
-                    if eapi.has("use_conf_arg") {
-                        d.borrow_mut().eapi = eapi;
-                        for (args, status, expected) in [
-                                (&["use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
-                                (&["!use", "opt", "val"], ExecStatus::Failure, "--without-opt=val"),
-                                ] {
-                            assert_eq!(use_with(args).unwrap(), status);
-                            let mut output = String::new();
-                            buf.read_to_string(&mut output).unwrap();
-                            assert_eq!(output, expected);
-                        }
+                for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("use_conf_arg")) {
+                    d.borrow_mut().eapi = eapi;
+                    for (args, status, expected) in [
+                            (&["use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
+                            (&["!use", "opt", "val"], ExecStatus::Failure, "--without-opt=val"),
+                            ] {
+                        assert_eq!(use_with(args).unwrap(), status);
+                        let mut output = String::new();
+                        buf.read_to_string(&mut output).unwrap();
+                        assert_eq!(output, expected);
                     }
                 }
             });

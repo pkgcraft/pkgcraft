@@ -62,11 +62,9 @@ mod tests {
             assert_invalid_args(usev, &[0, 3]);
 
             BUILD_DATA.with(|d| {
-                for eapi in OFFICIAL_EAPIS.values() {
-                    if !eapi.has("usev_two_args") {
-                        d.borrow_mut().eapi = eapi;
-                        assert_invalid_args(usev, &[2]);
-                    }
+                for eapi in OFFICIAL_EAPIS.values().filter(|e| !e.has("usev_two_args")) {
+                    d.borrow_mut().eapi = eapi;
+                    assert_invalid_args(usev, &[2]);
                 }
             });
         }
@@ -93,18 +91,16 @@ mod tests {
                 }
 
                 // check EAPIs that support two arg variant
-                for eapi in OFFICIAL_EAPIS.values() {
-                    if eapi.has("usev_two_args") {
-                        d.borrow_mut().eapi = eapi;
-                        for (args, status, expected) in [
-                                (&["use", "out"], ExecStatus::Failure, ""),
-                                (&["!use", "out"], ExecStatus::Success, "out"),
-                                ] {
-                            assert_eq!(usev(args).unwrap(), status);
-                            let mut output = String::new();
-                            buf.read_to_string(&mut output).unwrap();
-                            assert_eq!(output, expected);
-                        }
+                for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("usev_two_args")) {
+                    d.borrow_mut().eapi = eapi;
+                    for (args, status, expected) in [
+                            (&["use", "out"], ExecStatus::Failure, ""),
+                            (&["!use", "out"], ExecStatus::Success, "out"),
+                            ] {
+                        assert_eq!(usev(args).unwrap(), status);
+                        let mut output = String::new();
+                        buf.read_to_string(&mut output).unwrap();
+                        assert_eq!(output, expected);
                     }
                 }
             });
@@ -128,18 +124,16 @@ mod tests {
                 }
 
                 // check EAPIs that support two arg variant
-                for eapi in OFFICIAL_EAPIS.values() {
-                    if eapi.has("usev_two_args") {
-                        d.borrow_mut().eapi = eapi;
-                        for (args, status, expected) in [
-                                (&["use", "out"], ExecStatus::Success, "out"),
-                                (&["!use", "out"], ExecStatus::Failure, ""),
-                                ] {
-                            assert_eq!(usev(args).unwrap(), status);
-                            let mut output = String::new();
-                            buf.read_to_string(&mut output).unwrap();
-                            assert_eq!(output, expected);
-                        }
+                for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("usev_two_args")) {
+                    d.borrow_mut().eapi = eapi;
+                    for (args, status, expected) in [
+                            (&["use", "out"], ExecStatus::Success, "out"),
+                            (&["!use", "out"], ExecStatus::Failure, ""),
+                            ] {
+                        assert_eq!(usev(args).unwrap(), status);
+                        let mut output = String::new();
+                        buf.read_to_string(&mut output).unwrap();
+                        assert_eq!(output, expected);
                     }
                 }
             });
