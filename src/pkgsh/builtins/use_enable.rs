@@ -59,6 +59,7 @@ mod tests {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 let mut buf = BufferRedirect::stdout().unwrap();
 
+                assert!(use_enable(&["!use"]).is_err());
                 for (args, status, expected) in [
                         (vec!["use"], ExecStatus::Failure, "--disable-use"),
                         (vec!["use", "opt"], ExecStatus::Failure, "--disable-opt"),
@@ -70,7 +71,7 @@ mod tests {
                     assert_eq!(output, expected);
                 }
 
-                // check EAPIs that support two arg variant
+                // check EAPIs that support three arg variant
                 for eapi in OFFICIAL_EAPIS.values() {
                     if eapi.has("use_conf_arg") {
                         d.borrow_mut().eapi = eapi;
@@ -93,8 +94,9 @@ mod tests {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 d.borrow_mut().use_.insert("use".to_string());
-
                 let mut buf = BufferRedirect::stdout().unwrap();
+
+                assert!(use_enable(&["!use"]).is_err());
                 for (args, status, expected) in [
                         (vec!["use"], ExecStatus::Success, "--enable-use"),
                         (vec!["use", "opt"], ExecStatus::Success, "--enable-opt"),
@@ -106,7 +108,7 @@ mod tests {
                     assert_eq!(output, expected);
                 }
 
-                // check EAPIs that support two arg variant
+                // check EAPIs that support three arg variant
                 for eapi in OFFICIAL_EAPIS.values() {
                     if eapi.has("use_conf_arg") {
                         d.borrow_mut().eapi = eapi;

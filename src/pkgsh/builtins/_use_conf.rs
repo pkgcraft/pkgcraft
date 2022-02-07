@@ -12,7 +12,10 @@ pub(crate) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (flag, opt, suffix) = match args.len() {
-            1 => (&args[..1], args[0], String::from("")),
+            1 => match args[0].starts_with('!') {
+                false => (&args[..1], args[0], String::from("")),
+                true => return Err(Error::new("USE flag inversion requires 2 or 3 args")),
+            },
             2 => (&args[..1], args[1], String::from("")),
             3 => match eapi.has("use_conf_arg") {
                 true => (&args[..1], args[1], format!("={}", args[2])),
