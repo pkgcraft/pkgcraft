@@ -24,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             return Err(Error::new(format!("USE flag {:?} not in IUSE", flag)));
         }
 
-        let mut ret = d.r#use.contains(flag);
+        let mut ret = d.use_.contains(flag);
         if negated {
             ret = !ret;
         }
@@ -43,7 +43,7 @@ pub static BUILTIN: Builtin = Builtin {
 #[cfg(test)]
 mod tests {
     use super::super::assert_invalid_args;
-    use super::run as r#use;
+    use super::run as use_;
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
@@ -53,12 +53,12 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(r#use, vec![0, 2]);
+            assert_invalid_args(use_, vec![0, 2]);
         }
 
         #[test]
         fn empty_iuse_effective() {
-            assert_err_re!(r#use(&["use"]), "^.* not in IUSE$");
+            assert_err_re!(use_(&["use"]), "^.* not in IUSE$");
         }
 
         #[test]
@@ -66,9 +66,9 @@ mod tests {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 // use flag is disabled
-                assert_eq!(r#use(&["use"]).unwrap(), ExecStatus::Failure);
+                assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Failure);
                 // inverted check
-                assert_eq!(r#use(&["!use"]).unwrap(), ExecStatus::Success);
+                assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Success);
             });
         }
 
@@ -76,11 +76,11 @@ mod tests {
         fn enabled() {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
-                d.borrow_mut().r#use.insert("use".to_string());
+                d.borrow_mut().use_.insert("use".to_string());
                 // use flag is enabled
-                assert_eq!(r#use(&["use"]).unwrap(), ExecStatus::Success);
+                assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Success);
                 // inverted check
-                assert_eq!(r#use(&["!use"]).unwrap(), ExecStatus::Failure);
+                assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Failure);
             });
         }
     }

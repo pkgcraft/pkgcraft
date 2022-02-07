@@ -24,7 +24,7 @@ pub mod inherit;
 pub mod insinto;
 pub mod into;
 pub mod nonfatal;
-pub mod r#use;
+pub mod use_;
 pub mod use_enable;
 pub mod use_with;
 pub mod usev;

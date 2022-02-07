@@ -30,7 +30,7 @@ pub struct BuildData {
     pub strip_exclude: HashSet<String>,
 
     pub iuse_effective: HashSet<String>,
-    pub r#use: HashSet<String>,
+    pub use_: HashSet<String>,
 
     /// Eclasses directly inherited by an ebuild.
     pub inherit: Vec<String>,

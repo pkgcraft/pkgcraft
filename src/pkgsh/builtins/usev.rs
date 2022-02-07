@@ -3,7 +3,7 @@ use std::io::{stdout, Write};
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::r#use;
+use super::use_;
 use crate::macros::write_flush;
 use crate::pkgsh::BUILD_DATA;
 
@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             n => return Err(Error::new(format!("requires 1 or 2 args, got {}", n))),
         };
 
-        let ret = r#use::run(&[arg])?;
+        let ret = use_::run(&[arg])?;
         if bool::from(&ret) {
             write_flush!(stdout(), "{}", output);
         }
@@ -115,7 +115,7 @@ mod tests {
         fn enabled() {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
-                d.borrow_mut().r#use.insert("use".to_string());
+                d.borrow_mut().use_.insert("use".to_string());
 
                 let mut buf = BufferRedirect::stdout().unwrap();
                 for (args, status, expected) in [

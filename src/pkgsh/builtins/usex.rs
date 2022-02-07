@@ -3,7 +3,7 @@ use std::io::{stdout, Write};
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::r#use;
+use super::use_;
 use crate::macros::write_flush;
 
 static LONG_DOC: &str = "\
@@ -24,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => return Err(Error::new(format!("requires 1 to 5 args, got {}", n))),
     };
 
-    match r#use::run(&[flag])? {
+    match use_::run(&[flag])? {
         ExecStatus::Success => write_flush!(stdout(), "{}{}", vals[1], vals[3]),
         ExecStatus::Failure => write_flush!(stdout(), "{}{}", vals[2], vals[4]),
     }
@@ -86,7 +86,7 @@ mod tests {
         fn enabled() {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
-                d.borrow_mut().r#use.insert("use".to_string());
+                d.borrow_mut().use_.insert("use".to_string());
                 let mut buf = BufferRedirect::stdout().unwrap();
                 for (args, expected) in [
                         (vec!["use"], "yes"),
