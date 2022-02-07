@@ -25,15 +25,16 @@ static DOC_DEFAULTS: &[&str] = &[
     "CHANGELOG",
 ];
 
-fn filter_docs(globs: &[&str]) -> Result<Vec<String>> {
+// Perform file expansion on doc strings.
+fn expand_docs<S: AsRef<str>>(globs: &[S]) -> Result<Vec<String>> {
     let mut args: Vec<String> = vec![];
+    // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
-        for entry in glob(f).map_err(|e| Error::new(e.to_string()))? {
-            if let Ok(path) = entry {
-                let m = fs::metadata(&path).map_err(|e| Error::new(e.to_string()))?;
-                if m.len() > 0 {
-                    args.push(path.to_str().unwrap().to_string());
-                }
+        let paths = glob(f.as_ref()).map_err(|e| Error::new(e.to_string()))?;
+        for path in paths.flatten() {
+            let m = fs::metadata(&path).map_err(|e| Error::new(e.to_string()))?;
+            if m.len() > 0 {
+                args.push(path.to_str().unwrap().to_string());
             }
         }
     }
@@ -55,20 +56,20 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             ("DOCS", Some(DOC_DEFAULTS), ""),
             ("HTML_DOCS", None, "html"),
         ] {
-            let args = match var_to_vec(var) {
-                Ok(v) => {
-                    let mut args: Vec<String> = vec!["-r".to_string()];
-                    args.extend(v);
-                    args
-                }
+            let (opts, files) = match var_to_vec(var) {
+                Ok(v) => (vec!["-r"], expand_docs(v.as_slice())?),
                 _ => match defaults {
-                    Some(v) => filter_docs(v)?,
+                    Some(v) => (vec![], expand_docs(v)?),
                     None => continue,
                 },
             };
-            d.borrow_mut().docdesttree = String::from(docdesttree);
-            let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-            dodoc::run(args.as_slice())?;
+
+            if !files.is_empty() {
+                d.borrow_mut().docdesttree = String::from(docdesttree);
+                let mut args: Vec<&str> = opts;
+                args.extend(files.iter().map(|s| s.as_str()));
+                dodoc::run(args.as_slice())?;
+            }
         }
 
         // restore original docdesttree value
