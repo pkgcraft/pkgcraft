@@ -40,7 +40,7 @@ static VERSION_RE: Lazy<Regex> = Lazy::new(|| {
 });
 
 /// Split version string into a vector of separators and components.
-pub(crate) fn version_split(ver: &str) -> Vec<&str> {
+fn version_split(ver: &str) -> Vec<&str> {
     let mut version_parts = Vec::new();
     for caps in VERSION_RE.captures_iter(ver) {
         version_parts.extend([
@@ -52,7 +52,7 @@ pub(crate) fn version_split(ver: &str) -> Vec<&str> {
 }
 
 peg::parser! {
-    pub grammar cmd() for str {
+    grammar cmd() for str {
         // Parse ranges used with the ver_rs and ver_cut commands.
         pub rule range(max: usize) -> (usize, usize)
             = start_s:$(['0'..='9']+) "-" end_s:$(['0'..='9']+) {
@@ -72,14 +72,14 @@ peg::parser! {
 }
 
 // provide public parsing functionality while converting error types
-pub(crate) mod parse {
+mod parse {
     use crate::peg::peg_error;
 
     use super::cmd;
     use crate::{Error, Result};
 
     #[inline]
-    pub(crate) fn range(s: &str, max: usize) -> Result<(usize, usize)> {
+    pub(super) fn range(s: &str, max: usize) -> Result<(usize, usize)> {
         let (start, end) =
             cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {:?}", s), s, e))?;
         if end < start {
