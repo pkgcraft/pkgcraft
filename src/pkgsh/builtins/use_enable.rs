@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
 use super::_use_conf::use_conf;
@@ -16,7 +16,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "use_enable flag",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::bind;
 use scallop::{Error, Result};
 
@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             "/" => "",
             s => s,
         },
-        n => return Err(Error::new(format!("requires 1 arg, got {}", n))),
+        n => return Err(Error::Builtin(format!("requires 1 arg, got {}", n))),
     };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -33,7 +33,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "into /install/path",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

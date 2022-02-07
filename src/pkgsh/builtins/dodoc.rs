@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
 static LONG_DOC: &str = "Install documentation files.";
@@ -14,5 +14,4 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "dodoc [-r] doc_file",
-    error_func: Some(output_error_func),
 };

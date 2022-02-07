@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::command::Command;
 use scallop::{Error, Result};
 
@@ -14,7 +14,7 @@ instead a non-zero exit status shall be returned.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::new("requires 1 or more args, got 0"));
+        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
     NONFATAL.store(true, Ordering::Relaxed);
@@ -31,7 +31,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "nonfatal cmd arg1 arg2",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

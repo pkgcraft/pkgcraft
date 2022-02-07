@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use crate::pkgsh::BUILD_DATA;
@@ -13,7 +13,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             "/" => "",
             s => s,
         },
-        n => return Err(Error::new(format!("requires 1 arg, got {}", n))),
+        n => return Err(Error::Builtin(format!("requires 1 arg, got {}", n))),
     };
 
     BUILD_DATA.with(|d| {
@@ -28,7 +28,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "docinto /install/path",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

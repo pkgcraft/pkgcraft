@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error, Result};
 
@@ -9,7 +9,7 @@ static LONG_DOC: &str = "Sources the given list of eclasses.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::new("requires 1 or more args, got 0"));
+        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
     let eclasses: Vec<String> = args.iter().map(|s| s.to_string()).collect();
@@ -67,7 +67,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "inherit eclass1 eclass2",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

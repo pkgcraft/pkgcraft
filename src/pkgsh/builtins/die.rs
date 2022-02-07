@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::NONFATAL;
@@ -24,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             &args[1..]
         }
         0 | 1 => args,
-        n => return Err(Error::new(format!("takes up to 1 arg, got {}", n))),
+        n => return Err(Error::Builtin(format!("takes up to 1 arg, got {}", n))),
     };
 
     if !args.is_empty() {
@@ -44,5 +44,4 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "die \"error message\"",
-    error_func: Some(output_error_func),
 };

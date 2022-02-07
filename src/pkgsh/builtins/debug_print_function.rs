@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
 static LONG_DOC: &str = "\
@@ -16,5 +16,4 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "debug-print-function arg1 arg2",
-    error_func: Some(output_error_func),
 };

@@ -1,6 +1,6 @@
 use std::io::{stdout, Write};
 
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::use_;
@@ -21,9 +21,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             }
             2 => match eapi.has("usev_two_args") {
                 true => (&args[..1], args[1]),
-                false => return Err(scallop::Error::new("requires 1 arg, got 2")),
+                false => return Err(Error::Builtin("requires 1 arg, got 2".into())),
             },
-            n => return Err(Error::new(format!("requires 1 or 2 args, got {}", n))),
+            n => return Err(Error::Builtin(format!("requires 1 or 2 args, got {}", n))),
         };
 
         let ret = use_::run(flag)?;
@@ -40,7 +40,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "usev flag",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

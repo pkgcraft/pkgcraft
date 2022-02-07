@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use crate::pkgsh::BUILD_DATA;
@@ -12,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let (set, args) = match args.first() {
             Some(&"-x") => (&mut d.strip_exclude, &args[1..]),
             Some(_) => (&mut d.strip_include, args),
-            None => return Err(Error::new("requires 1 or more args, got 0")),
+            None => return Err(Error::Builtin("requires 1 or more args, got 0".into())),
         };
 
         set.extend(args.iter().map(|s| s.to_string()));
@@ -25,5 +25,4 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "dostrip [-x] /path/to/strip",
-    error_func: Some(output_error_func),
 };

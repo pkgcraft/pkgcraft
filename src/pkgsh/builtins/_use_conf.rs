@@ -14,14 +14,14 @@ pub(crate) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
         let (flag, opt, suffix) = match args.len() {
             1 => match args[0].starts_with('!') {
                 false => (&args[..1], args[0], String::from("")),
-                true => return Err(Error::new("USE flag inversion requires 2 or 3 args")),
+                true => return Err(Error::Builtin("USE flag inversion requires 2 or 3 args".into())),
             },
             2 => (&args[..1], args[1], String::from("")),
             3 => match eapi.has("use_conf_arg") {
                 true => (&args[..1], args[1], format!("={}", args[2])),
-                false => return Err(Error::new("requires 1 or 2 args, got 3")),
+                false => return Err(Error::Builtin("requires 1 or 2 args, got 3".into())),
             },
-            n => return Err(Error::new(format!("requires 1, 2, or 3 args, got {}", n))),
+            n => return Err(Error::Builtin(format!("requires 1, 2, or 3 args, got {}", n))),
         };
 
         let ret = use_::run(flag)?;

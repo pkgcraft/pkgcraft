@@ -1,7 +1,7 @@
 use std::cmp;
 use std::io::{stdout, Write};
 
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
@@ -16,7 +16,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (range, ver) = match args.len() {
         1 => (args[0], pv.as_str()),
         2 => (args[0], args[1]),
-        n => return Err(Error::new(format!("requires 1 or 2 args, got {}", n))),
+        n => return Err(Error::Builtin(format!("requires 1 or 2 args, got {}", n))),
     };
 
     let version_parts = version_split(ver);
@@ -37,7 +37,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "ver_cut 1-2 - 1.2.3",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

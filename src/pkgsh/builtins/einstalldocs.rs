@@ -1,7 +1,7 @@
 use std::fs;
 
 use glob::glob;
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::var_to_vec;
 use scallop::{Error, Result};
 
@@ -30,9 +30,9 @@ fn expand_docs<S: AsRef<str>>(globs: &[S]) -> Result<Vec<String>> {
     let mut args: Vec<String> = vec![];
     // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
-        let paths = glob(f.as_ref()).map_err(|e| Error::new(e.to_string()))?;
+        let paths = glob(f.as_ref()).map_err(|e| Error::Builtin(e.to_string()))?;
         for path in paths.flatten() {
-            let m = fs::metadata(&path).map_err(|e| Error::new(e.to_string()))?;
+            let m = fs::metadata(&path).map_err(|e| Error::Builtin(e.to_string()))?;
             if m.len() > 0 {
                 args.push(path.to_str().unwrap().to_string());
             }
@@ -45,7 +45,7 @@ fn expand_docs<S: AsRef<str>>(globs: &[S]) -> Result<Vec<String>> {
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     match args.len() {
         0 => (),
-        n => return Err(Error::new(format!("takes no args, got {}", n))),
+        n => return Err(Error::Builtin(format!("takes no args, got {}", n))),
     };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -84,7 +84,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "einstalldocs",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

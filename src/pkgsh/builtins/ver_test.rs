@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
@@ -13,10 +13,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pvr = string_value("PVR").unwrap_or_else(|| String::from(""));
     let pvr = pvr.as_str();
     let (v1, op, v2) = match args.len() {
-        2 if pvr.is_empty() => return Err(Error::new("$PVR is undefined")),
+        2 if pvr.is_empty() => return Err(Error::Builtin("$PVR is undefined".into())),
         2 => (pvr, args[0], args[1]),
         3 => (args[0], args[1], args[2]),
-        n => return Err(Error::new(format!("only accepts 2 or 3 args, got {}", n))),
+        n => return Err(Error::Builtin(format!("only accepts 2 or 3 args, got {}", n))),
     };
 
     let v1 = Version::from_str(v1)?;
@@ -29,7 +29,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         "-gt" => v1 > v2,
         "-le" => v1 <= v2,
         "-ge" => v1 >= v2,
-        _ => return Err(Error::new(format!("invalid operator: {}", op))),
+        _ => return Err(Error::Builtin(format!("invalid operator: {}", op))),
     };
 
     Ok(ExecStatus::from(ret))
@@ -40,7 +40,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "ver_test 1 -lt 2-r1",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

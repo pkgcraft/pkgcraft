@@ -1,4 +1,4 @@
-use scallop::builtins::{output_error_func, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 static LONG_DOC: &str = "\
@@ -8,7 +8,7 @@ Returns success if the first argument is found in subsequent arguments, failure 
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let needle = match args.first() {
         Some(s) => s,
-        None => return Err(Error::new("requires 1 or more args, got 0")),
+        None => return Err(Error::Builtin("requires 1 or more args, got 0".into())),
     };
 
     let haystack = &args[1..];
@@ -20,7 +20,6 @@ pub static BUILTIN: Builtin = Builtin {
     func: run,
     help: LONG_DOC,
     usage: "has needle ${haystack}",
-    error_func: Some(output_error_func),
 };
 
 #[cfg(test)]

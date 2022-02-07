@@ -77,7 +77,7 @@ thread_local! {
 
 impl From<crate::Error> for Error {
     fn from(e: crate::Error) -> Self {
-        Error::new(e.to_string())
+        Error::Base(e.to_string())
     }
 }
 
@@ -95,7 +95,7 @@ impl<'a> PkgShell<'a> {
     pub fn source_ebuild<P: AsRef<Path>>(&mut self, ebuild: P) -> Result<()> {
         let ebuild = ebuild.as_ref();
         if !ebuild.exists() {
-            return Err(Error::new(format!("nonexistent ebuild: {:?}", ebuild)));
+            return Err(Error::Base(format!("nonexistent ebuild: {:?}", ebuild)));
         }
 
         self.sh.source_file(&ebuild)?;
