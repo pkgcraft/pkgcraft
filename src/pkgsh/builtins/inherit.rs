@@ -1,6 +1,6 @@
 use scallop::builtins::{output_error_func, Builtin, ExecStatus};
 use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable, Variable, Variables};
-use scallop::{source, Result};
+use scallop::{source, Error, Result};
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -8,6 +8,10 @@ static LONG_DOC: &str = "Sources the given list of eclasses.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+    if args.is_empty() {
+        return Err(Error::new("requires 1 or more args, got 0"));
+    }
+
     let eclasses: Vec<String> = args.iter().map(|s| s.to_string()).collect();
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -65,3 +69,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "inherit eclass1 eclass2",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as inherit;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(inherit, vec![0]);
+    }
+}

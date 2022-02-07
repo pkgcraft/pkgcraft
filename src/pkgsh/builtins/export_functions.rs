@@ -11,6 +11,10 @@ src_unpack() { base_src_unpack; }";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+    if args.is_empty() {
+        return Err(Error::new("requires 1 or more args, got 0"));
+    }
+
     let eclass = match string_value("ECLASS") {
         Some(val) => val,
         None => return Err(Error::new("no ECLASS defined")),
@@ -39,3 +43,14 @@ pub static BUILTIN: Builtin = Builtin {
     usage: "EXPORT_FUNCTIONS src_configure src_compile",
     error_func: Some(output_error_func),
 };
+
+#[cfg(test)]
+mod tests {
+    use super::super::assert_invalid_args;
+    use super::run as inherit;
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(inherit, vec![0]);
+    }
+}
