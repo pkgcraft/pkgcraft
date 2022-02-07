@@ -234,11 +234,13 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
         "exeinto",
         "EXPORT_FUNCTIONS",
         "has",
+        "hasq",
         "hasv",
         "inherit",
         "insinto",
         "into",
         "use",
+        "useq",
         "usev",
         "use_enable",
         "use_with",
@@ -322,7 +324,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI7),
     options: EAPI7.update_options(&[("src_uri_unrestrict", true), ("usev_two_args", true)]),
     incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
-    builtins: EAPI7.update_builtins(&[], &["hasv"]),
+    builtins: EAPI7.update_builtins(&[], &["hasq", "hasv", "useq"]),
 });
 
 /// Reference to the latest registered EAPI.
