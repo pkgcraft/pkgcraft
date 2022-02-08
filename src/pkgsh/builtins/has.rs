@@ -1,5 +1,8 @@
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
+
+use super::{PkgBuiltin, GLOBAL};
 
 static LONG_DOC: &str = "\
 Returns success if the first argument is found in subsequent arguments, failure otherwise.";
@@ -15,12 +18,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::from(haystack.contains(needle)))
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "has",
-    func: run,
-    help: LONG_DOC,
-    usage: "has needle ${haystack}",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "has",
+            func: run,
+            help: LONG_DOC,
+            usage: "has needle ${haystack}",
+        },
+        "0-",
+        &[GLOBAL],
+    )
+});
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,8 @@
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
+
+use super::PkgBuiltin;
 
 static LONG_DOC: &str = "Install documentation files.";
 
@@ -9,9 +12,15 @@ pub(crate) fn run(_args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "dodoc",
-    func: run,
-    help: LONG_DOC,
-    usage: "dodoc [-r] doc_file",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "dodoc",
+            func: run,
+            help: LONG_DOC,
+            usage: "dodoc [-r] doc_file",
+        },
+        "0-",
+        &["src_install"],
+    )
+});

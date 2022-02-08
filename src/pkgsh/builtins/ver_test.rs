@@ -1,9 +1,11 @@
 use std::str::FromStr;
 
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
+use super::{PkgBuiltin, GLOBAL};
 use crate::atom::Version;
 
 static LONG_DOC: &str = "Perform comparisons on package version strings.";
@@ -40,12 +42,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::from(ret))
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "ver_test",
-    func: run,
-    help: LONG_DOC,
-    usage: "ver_test 1 -lt 2-r1",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "ver_test",
+            func: run,
+            help: LONG_DOC,
+            usage: "ver_test 1 -lt 2-r1",
+        },
+        "7-",
+        &[GLOBAL],
+    )
+});
 
 #[cfg(test)]
 mod tests {

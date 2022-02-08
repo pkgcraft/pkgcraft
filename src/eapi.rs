@@ -6,15 +6,16 @@ use std::hash::{Hash, Hasher};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use scallop::builtins::ScopedBuiltins;
 
 use crate::atom::Atom;
-use crate::error::Error;
+use crate::pkgsh::builtins::{parse, BuiltinsMap, BUILTINS_MAP};
+use crate::{Error, Result};
 
 static VALID_EAPI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
 
 type EapiOptions = HashMap<&'static str, bool>;
-type EapiHashSet = HashSet<&'static str>;
 
 #[rustfmt::skip]
 static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
@@ -62,6 +63,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
         // EAPI 5
 
+        // export the running phase name as $EBUILD_PHASE_FUNC
+        ("ebuild_phase_func", false),
+
         // atom subslots -- cat/pkg:0/4
         ("subslots", false),
 
@@ -91,8 +95,8 @@ pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
-    incremental_keys: EapiHashSet,
-    builtins: EapiHashSet,
+    phases: HashSet<String>,
+    incremental_keys: HashSet<String>,
 }
 
 impl PartialEq for Eapi {
@@ -123,17 +127,17 @@ impl Default for &'static Eapi {
 }
 
 pub trait IntoEapi {
-    fn into_eapi(self) -> crate::Result<&'static Eapi>;
+    fn into_eapi(self) -> Result<&'static Eapi>;
 }
 
 impl IntoEapi for &'static Eapi {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
+    fn into_eapi(self) -> Result<&'static Eapi> {
         Ok(self)
     }
 }
 
 impl IntoEapi for Option<&str> {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
+    fn into_eapi(self) -> Result<&'static Eapi> {
         match self {
             None => Ok(&EAPI_PKGCRAFT),
             Some(s) => get_eapi(s),
@@ -142,7 +146,7 @@ impl IntoEapi for Option<&str> {
 }
 
 impl IntoEapi for Option<&'static Eapi> {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
+    fn into_eapi(self) -> Result<&'static Eapi> {
         match self {
             None => Ok(&EAPI_PKGCRAFT),
             Some(eapi) => Ok(eapi),
@@ -161,12 +165,31 @@ impl Eapi {
 
     /// Parse a package atom using EAPI specific support.
     #[inline]
-    pub fn atom<S: AsRef<str>>(&'static self, s: S) -> crate::Result<Atom> {
+    pub fn atom<S: AsRef<str>>(&'static self, s: S) -> Result<Atom> {
         Atom::new(s.as_ref(), self)
     }
 
     #[inline]
-    pub(crate) fn incremental_keys(&self) -> &EapiHashSet {
+    pub(crate) fn phases(&self) -> &HashSet<String> {
+        &self.phases
+    }
+
+    pub(crate) fn builtins<S: AsRef<str>>(&self, scope: S) -> Result<&BuiltinsMap> {
+        let scope = scope.as_ref();
+        BUILTINS_MAP
+            .get(self)
+            .unwrap()
+            .get(scope)
+            .ok_or_else(|| Error::Eapi(format!("EAPI {}, unknown scope: {}", self.id, scope)))
+    }
+
+    pub(crate) fn scoped_builtins<S: AsRef<str>>(&self, scope: S) -> Result<ScopedBuiltins> {
+        let builtins: Vec<&String> = self.builtins(scope)?.keys().collect();
+        Ok(ScopedBuiltins::new((&builtins, &[]))?)
+    }
+
+    #[inline]
+    pub(crate) fn incremental_keys(&self) -> &HashSet<String> {
         &self.incremental_keys
     }
 
@@ -180,21 +203,16 @@ impl Eapi {
         options
     }
 
-    fn update_keys(&self, updates: &[&'static str]) -> EapiHashSet {
-        let mut keys = self.incremental_keys.clone();
-        keys.extend(updates);
-        keys
+    fn update_phases(&self, updates: &[&'static str]) -> HashSet<String> {
+        let mut phases = self.phases.clone();
+        phases.extend(updates.iter().map(|s| s.to_string()));
+        phases
     }
 
-    fn update_builtins(&self, add: &[&'static str], remove: &[&'static str]) -> EapiHashSet {
-        let mut builtins = self.builtins.clone();
-        builtins.extend(add);
-        for x in remove {
-            if !builtins.remove(x) {
-                panic!("unknown builtin: {}", x);
-            }
-        }
-        builtins
+    fn update_keys(&self, updates: &[&'static str]) -> HashSet<String> {
+        let mut keys = self.incremental_keys.clone();
+        keys.extend(updates.iter().map(|s| s.to_string()));
+        keys
     }
 }
 
@@ -205,7 +223,7 @@ impl fmt::Display for Eapi {
 }
 
 /// Get a EAPI given its identifier.
-pub fn get_eapi(id: &str) -> crate::Result<&'static Eapi> {
+pub fn get_eapi(id: &str) -> Result<&'static Eapi> {
     match KNOWN_EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
         None => match VALID_EAPI_RE.is_match(id) {
@@ -219,47 +237,35 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "0",
     parent: None,
     options: EAPI_OPTIONS.clone(),
-    incremental_keys: ["IUSE", "DEPEND", "RDEPEND", "PDEPEND"]
-        .iter()
-        .cloned()
-        .collect(),
-    builtins: [
-        "assert",
-        "debug-print-function",
-        "debug-print",
-        "debug-print-section",
-        "diropts",
-        "die",
-        "docinto",
-        "dodoc",
-        "exeinto",
-        "exeopts",
-        "EXPORT_FUNCTIONS",
-        "has",
-        "hasq",
-        "hasv",
-        "inherit",
-        "insinto",
-        "insopts",
-        "into",
-        "libopts",
-        "use",
-        "useq",
-        "usev",
-        "use_enable",
-        "use_with",
+    phases: [
+        "pkg_setup",
+        "pkg_config",
+        "pkg_info",
+        "pkg_nofetch",
+        "pkg_prerm",
+        "pkg_postrm",
+        "pkg_preinst",
+        "pkg_postinst",
+        "src_unpack",
+        "src_compile",
+        "src_test",
+        "src_install",
     ]
     .iter()
-    .cloned()
+    .map(|s| s.to_string())
     .collect(),
+    incremental_keys: ["IUSE", "DEPEND", "RDEPEND", "PDEPEND"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect(),
 });
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "1",
     parent: Some(&EAPI0),
     options: EAPI0.update_options(&[("slot_deps", true)]),
+    phases: EAPI0.phases.clone(),
     incremental_keys: EAPI0.incremental_keys.clone(),
-    builtins: EAPI0.builtins.clone(),
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -270,16 +276,16 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("use_deps", true),
         ("src_uri_renames", true),
     ]),
+    phases: EAPI1.update_phases(&["src_prepare", "src_configure"]),
     incremental_keys: EAPI1.incremental_keys.clone(),
-    builtins: EAPI1.update_builtins(&["default"], &[]),
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "3",
     parent: Some(&EAPI2),
     options: EAPI2.options.clone(),
+    phases: EAPI2.phases.clone(),
     incremental_keys: EAPI2.incremental_keys.clone(),
-    builtins: EAPI2.builtins.clone(),
 });
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -291,44 +297,45 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("rdepend_default", false),
         ("use_conf_arg", true),
     ]),
+    phases: EAPI3.update_phases(&["pkg_pretend"]),
     incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
-    builtins: EAPI3.update_builtins(&["docompress", "nonfatal"], &[]),
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "5",
     parent: Some(&EAPI4),
     options: EAPI4.update_options(&[
+        ("ebuild_phase_func", true),
         ("subslots", true),
         ("slot_ops", true),
         ("required_use_one_of", true),
     ]),
+    phases: EAPI4.phases.clone(),
     incremental_keys: EAPI4.incremental_keys.clone(),
-    builtins: EAPI4.update_builtins(&["usex"], &[]),
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "6",
     parent: Some(&EAPI5),
     options: EAPI5.options.clone(),
+    phases: EAPI5.phases.clone(),
     incremental_keys: EAPI5.incremental_keys.clone(),
-    builtins: EAPI5.update_builtins(&["einstalldocs", "get_libdir", "in_iuse"], &[]),
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "7",
     parent: Some(&EAPI6),
     options: EAPI6.update_options(&[("export_desttree", false), ("export_insdesttree", false)]),
+    phases: EAPI6.phases.clone(),
     incremental_keys: EAPI6.update_keys(&["BDEPEND"]),
-    builtins: EAPI6.update_builtins(&["dostrip", "ver_cut", "ver_rs", "ver_test"], &["libopts"]),
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "8",
     parent: Some(&EAPI7),
     options: EAPI7.update_options(&[("src_uri_unrestrict", true), ("usev_two_args", true)]),
+    phases: EAPI7.phases.clone(),
     incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
-    builtins: EAPI7.update_builtins(&[], &["hasq", "hasv", "useq"]),
 });
 
 /// Reference to the latest registered EAPI.
@@ -339,8 +346,8 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "pkgcraft",
     parent: Some(EAPI_LATEST),
     options: EAPI_LATEST.update_options(&[("repo_ids", true)]),
+    phases: EAPI_LATEST.phases.clone(),
     incremental_keys: EAPI_LATEST.incremental_keys.clone(),
-    builtins: EAPI_LATEST.builtins.clone(),
 });
 
 /// Ordered mapping of official EAPI identifiers to instances.
@@ -363,6 +370,11 @@ pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(
     eapis.insert(EAPI_PKGCRAFT.id, &EAPI_PKGCRAFT);
     eapis
 });
+
+pub(crate) fn supported<S: AsRef<str>>(val: S) -> Result<Vec<&'static Eapi>> {
+    let (start, end) = parse::range(val.as_ref(), KNOWN_EAPIS.len() - 1)?;
+    Ok((start..=end).map(|n| KNOWN_EAPIS[n]).collect())
+}
 
 #[cfg(test)]
 mod tests {

@@ -1,9 +1,10 @@
 use std::io::{stdout, Write};
 
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
-use super::has;
+use super::{has, PkgBuiltin, GLOBAL};
 use crate::macros::write_flush;
 
 static LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
@@ -18,12 +19,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ret)
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "hasv",
-    func: run,
-    help: LONG_DOC,
-    usage: "hasv needle ${haystack}",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "hasv",
+            func: run,
+            help: LONG_DOC,
+            usage: "hasv needle ${haystack}",
+        },
+        "0-7",
+        &[GLOBAL],
+    )
+});
 
 #[cfg(test)]
 mod tests {

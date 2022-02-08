@@ -1,7 +1,11 @@
+use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use scallop::builtins::{Builtin, ExecStatus};
+
+use crate::{eapi, eapi::Eapi};
 
 mod _use_conf;
 pub mod assert;
@@ -39,6 +43,101 @@ pub mod usex;
 pub mod ver_cut;
 pub mod ver_rs;
 pub mod ver_test;
+
+pub(crate) struct PkgBuiltin {
+    builtin: Builtin,
+    eapis: String,
+    scope_re: Regex,
+}
+
+// scope patterns
+static ECLASS: &str = "eclass";
+static GLOBAL: &str = ".+";
+static PHASE: &str = ".+_.+";
+
+impl PkgBuiltin {
+    fn new(builtin: Builtin, eapis: &str, scope: &[&str]) -> Self {
+        PkgBuiltin {
+            builtin,
+            eapis: eapis.to_string(),
+            scope_re: Regex::new(&format!(r"^{}$", scope.join("|"))).unwrap(),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
+        self.builtin.run(args)
+    }
+}
+
+pub(crate) type BuiltinsMap = HashMap<String, &'static PkgBuiltin>;
+pub(crate) type PhaseBuiltinsMap = HashMap<String, BuiltinsMap>;
+pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, PhaseBuiltinsMap>;
+
+pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
+    let builtins: Vec<&PkgBuiltin> = vec![
+        &assert::BUILTIN,
+        &debug_print::BUILTIN,
+        &debug_print_function::BUILTIN,
+        &debug_print_section::BUILTIN,
+        &default::BUILTIN,
+        &die::BUILTIN,
+        &diropts::BUILTIN,
+        &docinto::BUILTIN,
+        &docompress::BUILTIN,
+        &dodoc::BUILTIN,
+        &dostrip::BUILTIN,
+        &einstalldocs::BUILTIN,
+        &exeinto::BUILTIN,
+        &exeopts::BUILTIN,
+        &export_functions::BUILTIN,
+        &get_libdir::BUILTIN,
+        &has::BUILTIN,
+        &hasq::BUILTIN,
+        &hasv::BUILTIN,
+        &in_iuse::BUILTIN,
+        &inherit::BUILTIN,
+        &insinto::BUILTIN,
+        &into::BUILTIN,
+        &libopts::BUILTIN,
+        &nonfatal::BUILTIN,
+        &use_::BUILTIN,
+        &use_enable::BUILTIN,
+        &use_with::BUILTIN,
+        &useq::BUILTIN,
+        &usev::BUILTIN,
+        &usex::BUILTIN,
+        &ver_cut::BUILTIN,
+        &ver_rs::BUILTIN,
+        &ver_test::BUILTIN,
+    ];
+    let mut builtins_map = EapiBuiltinsMap::new();
+
+    for b in builtins.iter() {
+        let eapis = eapi::supported(&b.eapis).expect("failed to parse EAPI range");
+        for eapi in eapis.iter() {
+            let phase_map = builtins_map
+                .entry(eapi)
+                .or_insert_with(PhaseBuiltinsMap::new);
+            for phase in eapi.phases().iter() {
+                if b.scope_re.is_match(phase) {
+                    phase_map
+                        .entry(phase.clone())
+                        .or_insert_with(BuiltinsMap::new)
+                        .insert(b.builtin.name.to_string(), b);
+                }
+            }
+
+            if b.scope_re.is_match("global") {
+                phase_map
+                    .entry("global".to_string())
+                    .or_insert_with(BuiltinsMap::new)
+                    .insert(b.builtin.name.to_string(), b);
+            }
+        }
+    }
+    builtins_map
+});
 
 static NONFATAL: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
@@ -79,14 +178,14 @@ peg::parser! {
 }
 
 // provide public parsing functionality while converting error types
-mod parse {
+pub(crate) mod parse {
     use crate::peg::peg_error;
 
     use super::cmd;
     use crate::{Error, Result};
 
     #[inline]
-    pub(super) fn range(s: &str, max: usize) -> Result<(usize, usize)> {
+    pub(crate) fn range(s: &str, max: usize) -> Result<(usize, usize)> {
         let (start, end) =
             cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {:?}", s), s, e))?;
         if end < start {

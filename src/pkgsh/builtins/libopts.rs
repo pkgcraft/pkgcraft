@@ -1,6 +1,8 @@
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
+use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
@@ -19,12 +21,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "libopts",
-    func: run,
-    help: LONG_DOC,
-    usage: "libopts -m0644",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "libopts",
+            func: run,
+            help: LONG_DOC,
+            usage: "libopts -m0644",
+        },
+        "0-6",
+        &["src_install"],
+    )
+});
 
 #[cfg(test)]
 mod tests {

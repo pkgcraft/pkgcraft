@@ -1,9 +1,10 @@
 use std::sync::atomic::Ordering;
 
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::NONFATAL;
+use super::{PkgBuiltin, GLOBAL, NONFATAL};
 
 static LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
@@ -39,9 +40,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     std::process::exit(1)
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "die",
-    func: run,
-    help: LONG_DOC,
-    usage: "die \"error message\"",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "die",
+            func: run,
+            help: LONG_DOC,
+            usage: "die \"error message\"",
+        },
+        "0-",
+        &[GLOBAL],
+    )
+});

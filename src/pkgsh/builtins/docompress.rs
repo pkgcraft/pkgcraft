@@ -1,6 +1,8 @@
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
+use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Include or exclude paths for compression.";
@@ -20,9 +22,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "docompress",
-    func: run,
-    help: LONG_DOC,
-    usage: "docompress [-x] /path/to/compress",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "docompress",
+            func: run,
+            help: LONG_DOC,
+            usage: "docompress [-x] /path/to/compress",
+        },
+        "4-",
+        &["src_install"],
+    )
+});

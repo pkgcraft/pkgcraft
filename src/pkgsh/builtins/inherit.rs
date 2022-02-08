@@ -1,7 +1,9 @@
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error, Result};
 
+use super::{PkgBuiltin, GLOBAL};
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Sources the given list of eclasses.";
@@ -18,6 +20,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let mut eclass_var = ScopedVariable::new("ECLASS");
         let mut inherited_var = Variable::new("INHERITED");
         let eapi = d.borrow().eapi;
+        // enable eclass builtins
+        let _builtins = eapi.scoped_builtins("eclass")?;
 
         // track direct ebuild inherits
         if let Ok(source) = array_to_vec("BASH_SOURCE") {
@@ -62,12 +66,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "inherit",
-    func: run,
-    help: LONG_DOC,
-    usage: "inherit eclass1 eclass2",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "inherit",
+            func: run,
+            help: LONG_DOC,
+            usage: "inherit eclass1 eclass2",
+        },
+        "0-",
+        &[GLOBAL],
+    )
+});
 
 #[cfg(test)]
 mod tests {

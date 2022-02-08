@@ -1,6 +1,8 @@
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
-use scallop::{functions, Error, Result};
+use scallop::{Error, Result};
 
+use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Calls the default_* function for the current phase.";
@@ -12,20 +14,28 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        let func_name = format!("default_{}", d.borrow().phase_func);
-        if let Some(mut func) = functions::find(&func_name) {
-            func.execute(&[])?;
+        let phase_func = &d.borrow().phase_func;
+        let builtins = d.borrow().eapi.builtins(phase_func)?;
+        let default_builtin = format!("default_{}", phase_func);
+        if let Some(b) = builtins.get(&default_builtin) {
+            b.run(&[])?;
         }
         Ok(ExecStatus::Success)
     })
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "default",
-    func: run,
-    help: LONG_DOC,
-    usage: "default",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "default",
+            func: run,
+            help: LONG_DOC,
+            usage: "default",
+        },
+        "2-",
+        &[PHASE],
+    )
+});
 
 #[cfg(test)]
 mod tests {

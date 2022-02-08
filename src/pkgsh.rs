@@ -3,8 +3,8 @@ use std::collections::{HashSet, VecDeque};
 use std::path::Path;
 
 use indexmap::IndexSet;
-use scallop::variables::{bind, string_value, string_vec};
-use scallop::{Error, Result};
+use scallop::variables::*;
+use scallop::{functions, Error, Result};
 
 use crate::eapi::Eapi;
 
@@ -75,12 +75,6 @@ thread_local! {
     pub static BUILD_DATA: RefCell<BuildData> = RefCell::new(Default::default());
 }
 
-impl From<crate::Error> for Error {
-    fn from(e: crate::Error) -> Self {
-        Error::Base(e.to_string())
-    }
-}
-
 pub struct PkgShell<'a> {
     sh: &'a mut scallop::Shell,
 }
@@ -90,6 +84,26 @@ impl<'a> PkgShell<'a> {
         // update thread local mutable for builtins
         BUILD_DATA.with(|d| d.replace(data));
         PkgShell { sh }
+    }
+
+    pub fn run_phase(&self, phase: &str) -> Result<()> {
+        BUILD_DATA.with(|d| -> Result<()> {
+            let eapi = d.borrow().eapi;
+
+            // enable phase builtins
+            let _builtins = eapi.scoped_builtins(phase)?;
+
+            if eapi.has("ebuild_phase_func") {
+                let mut phase_func = ScopedVariable::new("EBUILD_PHASE_FUNC");
+                phase_func.bind(phase, None, None)?;
+            }
+
+            if let Some(mut func) = functions::find(phase) {
+                func.execute(&[])?;
+            }
+
+            Ok(())
+        })
     }
 
     pub fn source_ebuild<P: AsRef<Path>>(&mut self, ebuild: P) -> Result<()> {

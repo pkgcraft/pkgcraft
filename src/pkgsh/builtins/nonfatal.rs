@@ -1,10 +1,11 @@
 use std::sync::atomic::Ordering;
 
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::command::Command;
 use scallop::{Error, Result};
 
-use super::NONFATAL;
+use super::{PkgBuiltin, NONFATAL, PHASE};
 
 static LONG_DOC: &str = "\
 Takes one or more arguments and executes them as a command, preserving the exit status. If this
@@ -26,12 +27,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "nonfatal",
-    func: run,
-    help: LONG_DOC,
-    usage: "nonfatal cmd arg1 arg2",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "nonfatal",
+            func: run,
+            help: LONG_DOC,
+            usage: "nonfatal cmd arg1 arg2",
+        },
+        "4-",
+        &[PHASE],
+    )
+});
 
 #[cfg(test)]
 mod tests {

@@ -1,7 +1,9 @@
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
 use super::_use_conf::use_conf;
+use super::{PkgBuiltin, PHASE};
 
 static LONG_DOC: &str = "\
 Returns --enable-${opt} and --disable-${opt} configure flags based on a given USE flag.";
@@ -11,12 +13,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     use_conf(args, "enable", "disable")
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "use_enable",
-    func: run,
-    help: LONG_DOC,
-    usage: "use_enable flag",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "use_enable",
+            func: run,
+            help: LONG_DOC,
+            usage: "use_enable flag",
+        },
+        "0-",
+        &[PHASE],
+    )
+});
 
 #[cfg(test)]
 mod tests {

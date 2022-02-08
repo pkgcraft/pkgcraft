@@ -1,6 +1,8 @@
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
+use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Include or exclude paths for symbol stripping.";
@@ -20,9 +22,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "dostrip",
-    func: run,
-    help: LONG_DOC,
-    usage: "dostrip [-x] /path/to/strip",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "dostrip",
+            func: run,
+            help: LONG_DOC,
+            usage: "dostrip [-x] /path/to/strip",
+        },
+        "7-",
+        &["src_install"],
+    )
+});

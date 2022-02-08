@@ -1,9 +1,10 @@
 use std::io::{stdout, Write};
 
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::use_;
+use super::{use_, PkgBuiltin, PHASE};
 use crate::macros::write_flush;
 use crate::pkgsh::BUILD_DATA;
 
@@ -35,12 +36,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "usev",
-    func: run,
-    help: LONG_DOC,
-    usage: "usev flag",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "usev",
+            func: run,
+            help: LONG_DOC,
+            usage: "usev flag",
+        },
+        "0-",
+        &[PHASE],
+    )
+});
 
 #[cfg(test)]
 mod tests {

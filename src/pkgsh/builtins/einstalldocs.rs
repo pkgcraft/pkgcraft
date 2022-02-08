@@ -1,11 +1,12 @@
 use std::fs;
 
 use glob::glob;
+use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::var_to_vec;
 use scallop::{Error, Result};
 
-use super::dodoc;
+use super::{dodoc, PkgBuiltin};
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
@@ -78,12 +79,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub static BUILTIN: Builtin = Builtin {
-    name: "einstalldocs",
-    func: run,
-    help: LONG_DOC,
-    usage: "einstalldocs",
-};
+pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(
+        Builtin {
+            name: "einstalldocs",
+            func: run,
+            help: LONG_DOC,
+            usage: "einstalldocs",
+        },
+        "6-",
+        &["src_install"],
+    )
+});
 
 #[cfg(test)]
 mod tests {
