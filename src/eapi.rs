@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::ScopedBuiltins;
@@ -371,7 +371,7 @@ pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(
     eapis
 });
 
-pub(crate) fn supported<S: AsRef<str>>(val: S) -> Result<Vec<&'static Eapi>> {
+pub(crate) fn supported<S: AsRef<str>>(val: S) -> Result<IndexSet<&'static Eapi>> {
     let (start, end) = parse::range(val.as_ref(), KNOWN_EAPIS.len() - 1)?;
     Ok((start..=end).map(|n| KNOWN_EAPIS[n]).collect())
 }

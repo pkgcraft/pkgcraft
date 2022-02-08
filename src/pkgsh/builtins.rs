@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 
+use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::{Builtin, ExecStatus};
@@ -46,7 +47,7 @@ pub mod ver_test;
 
 pub(crate) struct PkgBuiltin {
     builtin: Builtin,
-    eapis: String,
+    eapis: IndexSet<&'static Eapi>,
     scope_re: Regex,
 }
 
@@ -59,7 +60,7 @@ impl PkgBuiltin {
     fn new(builtin: Builtin, eapis: &str, scope: &[&str]) -> Self {
         PkgBuiltin {
             builtin,
-            eapis: eapis.to_string(),
+            eapis: eapi::supported(eapis).expect("failed to parse EAPI range"),
             scope_re: Regex::new(&format!(r"^{}$", scope.join("|"))).unwrap(),
         }
     }
@@ -114,8 +115,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
     let mut builtins_map = EapiBuiltinsMap::new();
 
     for b in builtins.iter() {
-        let eapis = eapi::supported(&b.eapis).expect("failed to parse EAPI range");
-        for eapi in eapis.iter() {
+        for eapi in b.eapis.iter() {
             let phase_map = builtins_map
                 .entry(eapi)
                 .or_insert_with(PhaseBuiltinsMap::new);
