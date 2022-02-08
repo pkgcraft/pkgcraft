@@ -75,6 +75,11 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // REQUIRED_USE ?? operator
         ("required_use_one_of", false),
 
+        // EAPI 6
+
+        // `die -n` supports nonfatal usage
+        ("nonfatal_die", false),
+
         // EAPI 8
 
         // SRC_URI supports fetch+ and mirror+ prefixes
@@ -317,7 +322,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "6",
     parent: Some(&EAPI5),
-    options: EAPI5.options.clone(),
+    options: EAPI5.update_options(&[("nonfatal_die", true)]),
     phases: EAPI5.phases.clone(),
     incremental_keys: EAPI5.incremental_keys.clone(),
 });
