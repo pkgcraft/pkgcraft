@@ -113,7 +113,7 @@ pub(crate) struct ParsedVersion<'a> {
 
 impl ParsedVersion<'_> {
     pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
-        let mut numbers: Vec<(String, u64)> = vec![];
+        let mut numbers = Vec::<(String, u64)>::new();
         for s in self.numbers.iter() {
             let num = s
                 .parse()
@@ -121,23 +121,19 @@ impl ParsedVersion<'_> {
             numbers.push((s.to_string(), num));
         }
 
-        let suffixes = match self.suffixes {
-            None => None,
-            Some(vals) => {
-                let mut suffixes: Vec<(Suffix, Option<u64>)> = vec![];
-                for (s, v) in vals.iter() {
-                    let suffix = Suffix::from_str(s)?;
-                    let num = match v {
-                        None => None,
-                        Some(x) => Some(x.parse().map_err(|e| {
-                            Error::InvalidValue(format!("invalid version: {}: {}", e, x))
-                        })?),
-                    };
-                    suffixes.push((suffix, num));
-                }
-                Some(suffixes)
+        let mut suffixes = Vec::<(Suffix, Option<u64>)>::new();
+        if let Some(vals) = self.suffixes {
+            for (s, v) in vals.iter() {
+                let suffix = Suffix::from_str(s)?;
+                let num = match v {
+                    None => None,
+                    Some(x) => Some(x.parse().map_err(|e| {
+                        Error::InvalidValue(format!("invalid version: {}: {}", e, x))
+                    })?),
+                };
+                suffixes.push((suffix, num));
             }
-        };
+        }
 
         Ok(Version {
             base: input[self.start..self.end].to_string(),
@@ -154,7 +150,7 @@ pub struct Version {
     base: String,
     numbers: Vec<(String, u64)>,
     letter: Option<char>,
-    suffixes: Option<Vec<(Suffix, Option<u64>)>>,
+    suffixes: Vec<(Suffix, Option<u64>)>,
     revision: Revision,
 }
 
@@ -198,23 +194,21 @@ impl Ord for Version {
             // dotted components were equal so compare letter suffixes
             cmp_not_equal!(self.letter.cmp(&other.letter));
 
-            if let (Some(x), Some(y)) = (self.suffixes.as_ref(), other.suffixes.as_ref()) {
-                for ((s1, n1), (s2, n2)) in x.iter().zip(y.iter()) {
-                    // if suffixes differ, use them for comparison
-                    cmp_not_equal!(s1.cmp(s2));
-                    // otherwise use the suffix versions for comparison
-                    cmp_not_equal!(n1.cmp(n2));
-                }
+            for ((s1, n1), (s2, n2)) in self.suffixes.iter().zip(other.suffixes.iter()) {
+                // if suffixes differ, use them for comparison
+                cmp_not_equal!(s1.cmp(s2));
+                // otherwise use the suffix versions for comparison
+                cmp_not_equal!(n1.cmp(n2));
             }
 
             // If one version has more suffixes, use the last suffix to determine ordering.
             match self.suffixes.cmp(&other.suffixes) {
                 Ordering::Equal => (),
-                Ordering::Greater => match self.suffixes.as_ref().unwrap().last().unwrap().0 {
+                Ordering::Greater => match self.suffixes.last().unwrap().0 {
                     Suffix::P => return Ordering::Greater,
                     _ => return Ordering::Less,
                 },
-                Ordering::Less => match other.suffixes.as_ref().unwrap().last().unwrap().0 {
+                Ordering::Less => match other.suffixes.last().unwrap().0 {
                     Suffix::P => return Ordering::Less,
                     _ => return Ordering::Greater,
                 },
