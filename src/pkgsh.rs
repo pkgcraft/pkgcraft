@@ -116,10 +116,10 @@ impl<'a> PkgShell<'a> {
         BUILD_DATA.with(|d| -> Result<()> {
             let mut d = d.borrow_mut();
             let eapi = d.eapi;
-            let mut _opts = ScopedOptions::new();
+            let mut opts = ScopedOptions::new();
 
             if eapi.has("global_failglob") {
-                _opts = _opts.toggle((&["failglob"], &[]))?;
+                opts.toggle((&["failglob"], &[]))?;
             }
 
             self.sh.source_file(&ebuild)?;
