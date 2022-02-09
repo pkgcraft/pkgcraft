@@ -21,8 +21,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "default_pkg_nofetch",
         },
-        "2-",
-        &["pkg_nofetch"],
+        &[("2-", &["pkg_nofetch"])],
     )
 });
 

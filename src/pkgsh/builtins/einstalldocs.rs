@@ -27,6 +27,7 @@ static DOC_DEFAULTS: &[&str] = &[
 ];
 
 // Perform file expansion on doc strings.
+// TODO: replace glob usage with native bash pathname expansion?
 fn expand_docs<S: AsRef<str>>(globs: &[S]) -> Result<Vec<String>> {
     let mut args: Vec<String> = vec![];
     // TODO: output warnings for unmatched patterns when running against non-default input
@@ -87,8 +88,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "einstalldocs",
         },
-        "6-",
-        &["src_install"],
+        &[("6-", &["src_install"])],
     )
 });
 

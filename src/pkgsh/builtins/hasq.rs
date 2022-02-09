@@ -19,7 +19,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "hasq needle ${haystack}",
         },
-        "0-7",
-        &[GLOBAL],
+        &[("0-7", &[GLOBAL])],
     )
 });

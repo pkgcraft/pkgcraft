@@ -35,8 +35,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "get_libdir",
         },
-        "6-",
-        &[GLOBAL],
+        &[("6-", &[GLOBAL])],
     )
 });
 

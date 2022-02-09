@@ -20,7 +20,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "useq flag",
         },
-        "0-7",
-        &[PHASE],
+        &[("0-7", &[PHASE])],
     )
 });

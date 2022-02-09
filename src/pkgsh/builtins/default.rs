@@ -35,8 +35,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "default",
         },
-        "2-",
-        &[PHASE],
+        &[("2-", &[PHASE])],
     )
 });
 

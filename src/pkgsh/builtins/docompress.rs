@@ -30,7 +30,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "docompress [-x] /path/to/compress",
         },
-        "4-",
-        &["src_install"],
+        &[("4-", &["src_install"])],
     )
 });

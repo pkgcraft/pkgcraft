@@ -74,8 +74,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "inherit eclass1 eclass2",
         },
-        "0-",
-        &[GLOBAL],
+        &[("0-", &[GLOBAL])],
     )
 });
 

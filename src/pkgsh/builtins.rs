@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 
-use indexmap::IndexSet;
+use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::{Builtin, ExecStatus};
@@ -28,6 +28,7 @@ pub mod docinto;
 pub mod docompress;
 pub mod dodoc;
 pub mod dostrip;
+pub mod econf;
 pub mod einstalldocs;
 pub mod exeinto;
 pub mod exeopts;
@@ -56,8 +57,7 @@ pub mod ver_test;
 
 pub(crate) struct PkgBuiltin {
     builtin: Builtin,
-    eapis: IndexSet<&'static Eapi>,
-    scope_re: Regex,
+    scope: IndexMap<&'static Eapi, Regex>,
 }
 
 // scope patterns
@@ -66,12 +66,17 @@ static GLOBAL: &str = ".+";
 static PHASE: &str = ".+_.+";
 
 impl PkgBuiltin {
-    fn new(builtin: Builtin, eapis: &str, scope: &[&str]) -> Self {
-        PkgBuiltin {
-            builtin,
-            eapis: eapi::supported(eapis).expect("failed to parse EAPI range"),
-            scope_re: Regex::new(&format!(r"^{}$", scope.join("|"))).unwrap(),
+    fn new(builtin: Builtin, scopes: &[(&str, &[&str])]) -> Self {
+        let mut scope = IndexMap::new();
+        for (eapis, s) in scopes.iter() {
+            let scope_re = Regex::new(&format!(r"^{}$", s.join("|"))).unwrap();
+            for e in eapi::supported(eapis).expect("failed to parse EAPI range") {
+                if scope.insert(e, scope_re.clone()).is_some() {
+                    panic!("clashing EAPI scopes: {}", e);
+                }
+            }
         }
+        PkgBuiltin { builtin, scope }
     }
 
     #[inline]
@@ -84,6 +89,7 @@ pub(crate) type BuiltinsMap = HashMap<String, &'static PkgBuiltin>;
 pub(crate) type PhaseBuiltinsMap = HashMap<String, BuiltinsMap>;
 pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, PhaseBuiltinsMap>;
 
+// TODO: auto-generate the builtin module imports and vector creation via build script
 pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
     let builtins: Vec<&PkgBuiltin> = vec![
         &assert::BUILTIN,
@@ -104,6 +110,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &docompress::BUILTIN,
         &dodoc::BUILTIN,
         &dostrip::BUILTIN,
+        &econf::BUILTIN,
         &einstalldocs::BUILTIN,
         &exeinto::BUILTIN,
         &exeopts::BUILTIN,
@@ -115,6 +122,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &in_iuse::BUILTIN,
         &inherit::BUILTIN,
         &insinto::BUILTIN,
+        &insopts::BUILTIN,
         &into::BUILTIN,
         &libopts::BUILTIN,
         &nonfatal::BUILTIN,
@@ -132,12 +140,12 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
     let mut builtins_map = EapiBuiltinsMap::new();
 
     for b in builtins.iter() {
-        for eapi in b.eapis.iter() {
+        for (eapi, re) in b.scope.iter() {
             let phase_map = builtins_map
                 .entry(eapi)
                 .or_insert_with(PhaseBuiltinsMap::new);
             for (phase, _fn) in eapi.phases().iter() {
-                if b.scope_re.is_match(phase) {
+                if re.is_match(phase) {
                     phase_map
                         .entry(phase.clone())
                         .or_insert_with(BuiltinsMap::new)
@@ -145,7 +153,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
                 }
             }
 
-            if b.scope_re.is_match("global") {
+            if re.is_match("global") {
                 phase_map
                     .entry("global".to_string())
                     .or_insert_with(BuiltinsMap::new)

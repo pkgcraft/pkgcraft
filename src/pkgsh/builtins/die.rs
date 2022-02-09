@@ -50,8 +50,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "die \"error message\"",
         },
-        "0-",
-        &[GLOBAL],
+        &[("0-", &[GLOBAL])],
     )
 });
 

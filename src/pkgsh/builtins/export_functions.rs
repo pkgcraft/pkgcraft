@@ -47,8 +47,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "EXPORT_FUNCTIONS src_configure src_compile",
         },
-        "0-",
-        &[ECLASS],
+        &[("0-", &[ECLASS])],
     )
 });
 

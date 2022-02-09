@@ -30,7 +30,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "dostrip [-x] /path/to/strip",
         },
-        "7-",
-        &["src_install"],
+        &[("7-", &["src_install"])],
     )
 });

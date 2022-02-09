@@ -29,8 +29,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "libopts -m0644",
         },
-        "0-6",
-        &["src_install"],
+        &[("0-6", &["src_install"])],
     )
 });
 

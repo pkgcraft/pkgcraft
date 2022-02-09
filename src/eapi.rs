@@ -287,7 +287,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
     ]),
     phases: EAPI1.update_phases(&[
         ("src_prepare", phase_stub as PhaseFn),
-        ("src_configure", phase_stub as PhaseFn),
+        ("src_configure", eapi2::src_configure as PhaseFn),
     ]),
     incremental_keys: EAPI1.incremental_keys.clone(),
 });

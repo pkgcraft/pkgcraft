@@ -1,13 +1,10 @@
 use once_cell::sync::Lazy;
-
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
-use super::{PkgBuiltin, GLOBAL};
+use super::PkgBuiltin;
 
-static LONG_DOC: &str = "\
-If in a special debug mode, the arguments should be outputted or recorded using some kind of debug
-logging.";
+static LONG_DOC: &str = "Run a package's configure script.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(_args: &[&str]) -> Result<ExecStatus> {
@@ -18,11 +15,11 @@ pub(crate) fn run(_args: &[&str]) -> Result<ExecStatus> {
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
     PkgBuiltin::new(
         Builtin {
-            name: "debug-print",
+            name: "econf",
             func: run,
             help: LONG_DOC,
-            usage: "debug-print msg",
+            usage: "econf --enable-feature",
         },
-        &[("0-", &[GLOBAL])],
+        &[("0-1", &["src_compile"]), ("2-", &["src_configure"])],
     )
 });

@@ -21,8 +21,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "default_src_configure",
         },
-        "2-",
-        &["src_configure"],
+        &[("2-", &["src_configure"])],
     )
 });
 

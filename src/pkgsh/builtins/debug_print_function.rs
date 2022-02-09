@@ -22,7 +22,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "debug-print-function arg1 arg2",
         },
-        "0-",
-        &[GLOBAL],
+        &[("0-", &[GLOBAL])],
     )
 });
