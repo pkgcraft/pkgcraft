@@ -10,6 +10,7 @@ use scallop::{functions, Error, Result};
 use crate::eapi::Eapi;
 
 pub mod builtins;
+pub mod phases;
 
 #[derive(Debug, Default, Clone)]
 pub struct BuildData {
@@ -87,8 +88,9 @@ impl<'a> PkgShell<'a> {
         PkgShell { sh }
     }
 
-    pub fn run_phase(&self, phase: &str) -> Result<()> {
+    pub fn run_phase<S: AsRef<str>>(&self, phase: S) -> Result<()> {
         BUILD_DATA.with(|d| -> Result<()> {
+            let phase = phase.as_ref();
             let eapi = d.borrow().eapi;
 
             // enable phase builtins
@@ -99,7 +101,22 @@ impl<'a> PkgShell<'a> {
                 phase_func.bind(phase, None, None)?;
             }
 
-            if let Some(mut func) = functions::find(phase) {
+            // run user space pre-phase hooks
+            if let Some(mut func) = functions::find(format!("pre_{}", phase)) {
+                func.execute(&[])?;
+            }
+
+            // run user space phase function, falling back to internal default
+            match functions::find(phase) {
+                Some(mut func) => func.execute(&[])?,
+                None => match eapi.phases().get(phase) {
+                    Some(func) => func()?,
+                    None => return Err(Error::Base(format!("nonexistent phase: {}", phase))),
+                },
+            }
+
+            // run user space post-phase hooks
+            if let Some(mut func) = functions::find(format!("post_{}", phase)) {
                 func.execute(&[])?;
             }
 

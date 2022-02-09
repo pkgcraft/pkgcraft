@@ -10,6 +10,7 @@ use scallop::builtins::ScopedBuiltins;
 
 use crate::atom::Atom;
 use crate::pkgsh::builtins::{parse, BuiltinsMap, BUILTINS_MAP};
+use crate::pkgsh::phases::*;
 use crate::{Error, Result};
 
 static VALID_EAPI_RE: Lazy<Regex> =
@@ -103,7 +104,7 @@ pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
-    phases: HashSet<String>,
+    phases: HashMap<String, PhaseFn>,
     incremental_keys: HashSet<String>,
 }
 
@@ -178,7 +179,7 @@ impl Eapi {
     }
 
     #[inline]
-    pub(crate) fn phases(&self) -> &HashSet<String> {
+    pub(crate) fn phases(&self) -> &HashMap<String, PhaseFn> {
         &self.phases
     }
 
@@ -211,9 +212,9 @@ impl Eapi {
         options
     }
 
-    fn update_phases(&self, updates: &[&'static str]) -> HashSet<String> {
+    fn update_phases(&self, updates: &[(&str, PhaseFn)]) -> HashMap<String, PhaseFn> {
         let mut phases = self.phases.clone();
-        phases.extend(updates.iter().map(|s| s.to_string()));
+        phases.extend(updates.iter().map(|(s, f)| (s.to_string(), *f as PhaseFn)));
         phases
     }
 
@@ -246,21 +247,21 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: None,
     options: EAPI_OPTIONS.clone(),
     phases: [
-        "pkg_setup",
-        "pkg_config",
-        "pkg_info",
-        "pkg_nofetch",
-        "pkg_prerm",
-        "pkg_postrm",
-        "pkg_preinst",
-        "pkg_postinst",
-        "src_unpack",
-        "src_compile",
-        "src_test",
-        "src_install",
+        ("pkg_setup", phase_stub),
+        ("pkg_config", phase_stub),
+        ("pkg_info", phase_stub),
+        ("pkg_nofetch", phase_stub),
+        ("pkg_prerm", phase_stub),
+        ("pkg_postrm", phase_stub),
+        ("pkg_preinst", phase_stub),
+        ("pkg_postinst", phase_stub),
+        ("src_unpack", phase_stub),
+        ("src_compile", phase_stub),
+        ("src_test", phase_stub),
+        ("src_install", phase_stub),
     ]
     .iter()
-    .map(|s| s.to_string())
+    .map(|(s, f)| (s.to_string(), *f as PhaseFn))
     .collect(),
     incremental_keys: ["IUSE", "DEPEND", "RDEPEND", "PDEPEND"]
         .iter()
@@ -284,7 +285,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("use_deps", true),
         ("src_uri_renames", true),
     ]),
-    phases: EAPI1.update_phases(&["src_prepare", "src_configure"]),
+    phases: EAPI1.update_phases(&[("src_prepare", phase_stub), ("src_configure", phase_stub)]),
     incremental_keys: EAPI1.incremental_keys.clone(),
 });
 
@@ -305,7 +306,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("rdepend_default", false),
         ("use_conf_arg", true),
     ]),
-    phases: EAPI3.update_phases(&["pkg_pretend"]),
+    phases: EAPI3.update_phases(&[("pkg_pretend", phase_stub)]),
     incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
 });
 

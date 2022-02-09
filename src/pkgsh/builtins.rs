@@ -121,7 +121,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
             let phase_map = builtins_map
                 .entry(eapi)
                 .or_insert_with(PhaseBuiltinsMap::new);
-            for phase in eapi.phases().iter() {
+            for (phase, _fn) in eapi.phases().iter() {
                 if b.scope_re.is_match(phase) {
                     phase_map
                         .entry(phase.clone())
