@@ -80,6 +80,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // `die -n` supports nonfatal usage
         ("nonfatal_die", false),
 
+        // failglob shell option is enabled in global scope
+        ("global_failglob", false),
+
         // EAPI 8
 
         // SRC_URI supports fetch+ and mirror+ prefixes
@@ -322,7 +325,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "6",
     parent: Some(&EAPI5),
-    options: EAPI5.update_options(&[("nonfatal_die", true)]),
+    options: EAPI5.update_options(&[("nonfatal_die", true), ("global_failglob", true)]),
     phases: EAPI5.phases.clone(),
     incremental_keys: EAPI5.incremental_keys.clone(),
 });

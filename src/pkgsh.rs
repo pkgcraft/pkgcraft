@@ -3,6 +3,7 @@ use std::collections::{HashSet, VecDeque};
 use std::path::Path;
 
 use indexmap::IndexSet;
+use scallop::builtins::ScopedOptions;
 use scallop::variables::*;
 use scallop::{functions, Error, Result};
 
@@ -112,13 +113,18 @@ impl<'a> PkgShell<'a> {
             return Err(Error::Base(format!("nonexistent ebuild: {:?}", ebuild)));
         }
 
-        self.sh.source_file(&ebuild)?;
-
-        // TODO: export default for $S
-
         BUILD_DATA.with(|d| -> Result<()> {
             let mut d = d.borrow_mut();
             let eapi = d.eapi;
+            let mut _opts = ScopedOptions::new();
+
+            if eapi.has("global_failglob") {
+                _opts = _opts.toggle((&["failglob"], &[]))?;
+            }
+
+            self.sh.source_file(&ebuild)?;
+
+            // TODO: export default for $S
 
             // set RDEPEND=DEPEND if RDEPEND is unset
             if eapi.has("rdepend_default") && string_value("RDEPEND").is_none() {
