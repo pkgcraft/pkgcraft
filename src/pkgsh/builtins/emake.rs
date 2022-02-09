@@ -5,7 +5,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::{string_value, string_vec};
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, GLOBAL};
+use super::{PkgBuiltin, PHASE};
 
 static LONG_DOC: &str = "Run the make command for a package.";
 
@@ -32,6 +32,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "emake -C builddir",
         },
-        &[("0-", &[GLOBAL])],
+        &[("0-", &[PHASE])],
     )
 });
