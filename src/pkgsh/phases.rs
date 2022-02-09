@@ -1,9 +1,10 @@
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
 pub(crate) mod eapi0;
 
-pub(crate) type PhaseFn = fn() -> Result<()>;
+pub(crate) type PhaseFn = fn() -> Result<ExecStatus>;
 
-pub(crate) fn phase_stub() -> Result<()> {
-    Ok(())
+pub(crate) fn phase_stub() -> Result<ExecStatus> {
+    Ok(ExecStatus::Success)
 }

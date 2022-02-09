@@ -3,7 +3,7 @@ use std::collections::{HashSet, VecDeque};
 use std::path::Path;
 
 use indexmap::IndexSet;
-use scallop::builtins::ScopedOptions;
+use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, Error, Result};
 
@@ -91,8 +91,8 @@ impl<'a> PkgShell<'a> {
         PkgShell { sh }
     }
 
-    pub fn run_phase<S: AsRef<str>>(&self, phase: S) -> Result<()> {
-        BUILD_DATA.with(|d| -> Result<()> {
+    pub fn run_phase<S: AsRef<str>>(&self, phase: S) -> Result<ExecStatus> {
+        BUILD_DATA.with(|d| -> Result<ExecStatus> {
             let phase = phase.as_ref();
             let eapi = d.borrow().eapi;
 
@@ -116,14 +116,14 @@ impl<'a> PkgShell<'a> {
                     Some(func) => func()?,
                     None => return Err(Error::Base(format!("nonexistent phase: {}", phase))),
                 },
-            }
+            };
 
             // run user space post-phase hooks
             if let Some(mut func) = functions::find(format!("post_{}", phase)) {
                 func.execute(&[])?;
             }
 
-            Ok(())
+            Ok(ExecStatus::Success)
         })
     }
 
