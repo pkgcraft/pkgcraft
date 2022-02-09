@@ -114,8 +114,7 @@ impl<'a> PkgShell<'a> {
         }
 
         BUILD_DATA.with(|d| -> Result<()> {
-            let mut d = d.borrow_mut();
-            let eapi = d.eapi;
+            let eapi = d.borrow().eapi;
             let mut opts = ScopedOptions::new();
 
             if eapi.has("global_failglob") {
@@ -133,6 +132,7 @@ impl<'a> PkgShell<'a> {
             }
 
             // prepend metadata keys that incrementally accumulate to eclass values
+            let mut d = d.borrow_mut();
             for var in eapi.incremental_keys() {
                 if let Ok(data) = string_vec(var) {
                     let deque = d.get_deque(var);
