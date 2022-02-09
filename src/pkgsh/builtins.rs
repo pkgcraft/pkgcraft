@@ -16,6 +16,11 @@ pub mod debug_print_function;
 pub mod debug_print_section;
 pub mod default;
 pub mod default_pkg_nofetch;
+pub mod default_src_compile;
+pub mod default_src_configure;
+pub mod default_src_install;
+pub mod default_src_prepare;
+pub mod default_src_test;
 pub mod default_src_unpack;
 pub mod die;
 pub mod diropts;
@@ -87,6 +92,11 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &debug_print_section::BUILTIN,
         &default::BUILTIN,
         &default_pkg_nofetch::BUILTIN,
+        &default_src_compile::BUILTIN,
+        &default_src_configure::BUILTIN,
+        &default_src_install::BUILTIN,
+        &default_src_prepare::BUILTIN,
+        &default_src_test::BUILTIN,
         &default_src_unpack::BUILTIN,
         &die::BUILTIN,
         &diropts::BUILTIN,
