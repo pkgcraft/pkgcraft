@@ -6,7 +6,7 @@ use super::PkgBuiltin;
 use super::_default_phase_func::default_phase_func;
 
 static LONG_DOC: &str = "\
-Runs the default src_unpack implementation for a package's EAPI.";
+Runs the default pkg_nofetch implementation for a package's EAPI.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -16,23 +16,23 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
     PkgBuiltin::new(
         Builtin {
-            name: "default_src_unpack",
+            name: "default_pkg_nofetch",
             func: run,
             help: LONG_DOC,
-            usage: "default_src_unpack",
+            usage: "default_pkg_nofetch",
         },
         "2-",
-        &["src_unpack"],
+        &["pkg_nofetch"],
     )
 });
 
 #[cfg(test)]
 mod tests {
     use super::super::assert_invalid_args;
-    use super::run as default_src_unpack;
+    use super::run as default_pkg_nofetch;
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(default_src_unpack, &[1]);
+        assert_invalid_args(default_pkg_nofetch, &[1]);
     }
 }

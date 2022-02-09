@@ -8,12 +8,14 @@ use scallop::builtins::{Builtin, ExecStatus};
 
 use crate::{eapi, eapi::Eapi};
 
+mod _default_phase_func;
 mod _use_conf;
 pub mod assert;
 pub mod debug_print;
 pub mod debug_print_function;
 pub mod debug_print_section;
 pub mod default;
+pub mod default_pkg_nofetch;
 pub mod default_src_unpack;
 pub mod die;
 pub mod diropts;
@@ -84,6 +86,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &debug_print_function::BUILTIN,
         &debug_print_section::BUILTIN,
         &default::BUILTIN,
+        &default_pkg_nofetch::BUILTIN,
         &default_src_unpack::BUILTIN,
         &die::BUILTIN,
         &diropts::BUILTIN,

@@ -8,7 +8,7 @@ use crate::macros::write_flush;
 use crate::pkgsh::BUILD_DATA;
 
 // Underlying implementation for use_with and use_enable.
-pub(crate) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<ExecStatus> {
+pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (flag, opt, suffix) = match args.len() {
