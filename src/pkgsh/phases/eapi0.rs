@@ -19,8 +19,7 @@ pub(crate) fn src_unpack() -> Result<ExecStatus> {
 }
 
 pub(crate) fn src_compile() -> Result<ExecStatus> {
-    let configure = Path::new("./configure");
-    if configure.is_executable() {
+    if Path::new("./configure").is_executable() {
         econf(&[])?;
     }
 
