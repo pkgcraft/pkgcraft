@@ -256,7 +256,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("pkg_preinst", phase_stub as PhaseFn),
         ("pkg_postinst", phase_stub as PhaseFn),
         ("src_unpack", eapi0::src_unpack as PhaseFn),
-        ("src_compile", phase_stub as PhaseFn),
+        ("src_compile", eapi0::src_compile as PhaseFn),
         ("src_test", phase_stub as PhaseFn),
         ("src_install", phase_stub as PhaseFn),
     ]

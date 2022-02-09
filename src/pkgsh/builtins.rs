@@ -30,6 +30,7 @@ pub mod dodoc;
 pub mod dostrip;
 pub mod econf;
 pub mod einstalldocs;
+pub mod emake;
 pub mod exeinto;
 pub mod exeopts;
 pub mod export_functions;
@@ -112,6 +113,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &dostrip::BUILTIN,
         &econf::BUILTIN,
         &einstalldocs::BUILTIN,
+        &emake::BUILTIN,
         &exeinto::BUILTIN,
         &exeopts::BUILTIN,
         &export_functions::BUILTIN,
