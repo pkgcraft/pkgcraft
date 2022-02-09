@@ -17,6 +17,9 @@ pub struct BuildData {
     pub repo: String,
     pub eapi: &'static Eapi,
 
+    // TODO: proxy this via a borrowed package reference
+    pub distfiles: Vec<String>,
+
     pub phase: String,
     pub phase_func: String,
 

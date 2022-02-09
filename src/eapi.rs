@@ -214,7 +214,7 @@ impl Eapi {
 
     fn update_phases(&self, updates: &[(&str, PhaseFn)]) -> HashMap<String, PhaseFn> {
         let mut phases = self.phases.clone();
-        phases.extend(updates.iter().map(|(s, f)| (s.to_string(), *f as PhaseFn)));
+        phases.extend(updates.iter().map(|(s, f)| (s.to_string(), *f)));
         phases
     }
 
@@ -247,21 +247,21 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: None,
     options: EAPI_OPTIONS.clone(),
     phases: [
-        ("pkg_setup", phase_stub),
-        ("pkg_config", phase_stub),
-        ("pkg_info", phase_stub),
-        ("pkg_nofetch", phase_stub),
-        ("pkg_prerm", phase_stub),
-        ("pkg_postrm", phase_stub),
-        ("pkg_preinst", phase_stub),
-        ("pkg_postinst", phase_stub),
-        ("src_unpack", phase_stub),
-        ("src_compile", phase_stub),
-        ("src_test", phase_stub),
-        ("src_install", phase_stub),
+        ("pkg_setup", phase_stub as PhaseFn),
+        ("pkg_config", phase_stub as PhaseFn),
+        ("pkg_info", phase_stub as PhaseFn),
+        ("pkg_nofetch", phase_stub as PhaseFn),
+        ("pkg_prerm", phase_stub as PhaseFn),
+        ("pkg_postrm", phase_stub as PhaseFn),
+        ("pkg_preinst", phase_stub as PhaseFn),
+        ("pkg_postinst", phase_stub as PhaseFn),
+        ("src_unpack", eapi0::src_unpack as PhaseFn),
+        ("src_compile", phase_stub as PhaseFn),
+        ("src_test", phase_stub as PhaseFn),
+        ("src_install", phase_stub as PhaseFn),
     ]
     .iter()
-    .map(|(s, f)| (s.to_string(), *f as PhaseFn))
+    .map(|(s, f)| (s.to_string(), *f))
     .collect(),
     incremental_keys: ["IUSE", "DEPEND", "RDEPEND", "PDEPEND"]
         .iter()
@@ -285,7 +285,10 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("use_deps", true),
         ("src_uri_renames", true),
     ]),
-    phases: EAPI1.update_phases(&[("src_prepare", phase_stub), ("src_configure", phase_stub)]),
+    phases: EAPI1.update_phases(&[
+        ("src_prepare", phase_stub as PhaseFn),
+        ("src_configure", phase_stub as PhaseFn),
+    ]),
     incremental_keys: EAPI1.incremental_keys.clone(),
 });
 
@@ -306,7 +309,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("rdepend_default", false),
         ("use_conf_arg", true),
     ]),
-    phases: EAPI3.update_phases(&[("pkg_pretend", phase_stub)]),
+    phases: EAPI3.update_phases(&[("pkg_pretend", phase_stub as PhaseFn)]),
     incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
 });
 
