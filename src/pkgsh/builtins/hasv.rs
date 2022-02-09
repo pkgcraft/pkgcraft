@@ -4,14 +4,14 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
-use super::{has, PkgBuiltin, GLOBAL};
+use super::{has::run as has, PkgBuiltin, GLOBAL};
 use crate::macros::write_flush;
 
 static LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    let ret = has::run(args)?;
+    let ret = has(args)?;
     if bool::from(&ret) {
         write_flush!(stdout(), "{}", args[0]);
     }

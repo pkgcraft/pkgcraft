@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::{use_, PkgBuiltin, PHASE};
+use super::{use_::run as use_, PkgBuiltin, PHASE};
 use crate::macros::write_flush;
 
 static LONG_DOC: &str = "\
@@ -25,7 +25,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => return Err(Error::Builtin(format!("requires 1 to 5 args, got {}", n))),
     };
 
-    match use_::run(flag)? {
+    match use_(flag)? {
         ExecStatus::Success => write_flush!(stdout(), "{}{}", vals[1], vals[3]),
         ExecStatus::Failure => write_flush!(stdout(), "{}{}", vals[2], vals[4]),
     }

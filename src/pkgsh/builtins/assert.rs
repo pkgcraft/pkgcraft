@@ -3,7 +3,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::array_to_vec;
 use scallop::Result;
 
-use super::{die, PkgBuiltin, GLOBAL};
+use super::{die::run as die, PkgBuiltin, GLOBAL};
 
 static LONG_DOC: &str = "\
 Calls `die` with passed arguments if any process in the most recently-executed foreground pipeline
@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pipestatus = array_to_vec("PIPESTATUS")?;
     let failed = pipestatus.iter().any(|s| s != "0");
     match failed {
-        true => die::run(args),
+        true => die(args),
         false => Ok(ExecStatus::Success),
     }
 }

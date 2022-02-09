@@ -3,7 +3,7 @@ use std::io::{stdout, Write};
 use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::use_;
+use super::use_::run as use_;
 use crate::macros::write_flush;
 use crate::pkgsh::BUILD_DATA;
 
@@ -33,7 +33,7 @@ pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
             }
         };
 
-        let ret = use_::run(flag)?;
+        let ret = use_(flag)?;
         match ret {
             ExecStatus::Success => write_flush!(stdout(), "--{}-{}{}", enabled, opt, suffix),
             ExecStatus::Failure => write_flush!(stdout(), "--{}-{}{}", disabled, opt, suffix),

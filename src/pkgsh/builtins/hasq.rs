@@ -2,13 +2,13 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
-use super::{has, PkgBuiltin, GLOBAL};
+use super::{has::run as has, PkgBuiltin, GLOBAL};
 
 static LONG_DOC: &str = "Deprecated synonym for has.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    has::run(args)
+    has(args)
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {

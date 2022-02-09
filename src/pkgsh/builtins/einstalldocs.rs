@@ -6,7 +6,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::var_to_vec;
 use scallop::{Error, Result};
 
-use super::{dodoc, PkgBuiltin};
+use super::{dodoc::run as dodoc, PkgBuiltin};
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
@@ -69,7 +69,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 d.borrow_mut().docdesttree = String::from(docdesttree);
                 let mut args: Vec<&str> = opts;
                 args.extend(files.iter().map(|s| s.as_str()));
-                dodoc::run(args.as_slice())?;
+                dodoc(args.as_slice())?;
             }
         }
 

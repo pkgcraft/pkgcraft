@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::{use_, PkgBuiltin, PHASE};
+use super::{use_::run as use_, PkgBuiltin, PHASE};
 use crate::macros::write_flush;
 use crate::pkgsh::BUILD_DATA;
 
@@ -27,7 +27,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             n => return Err(Error::Builtin(format!("requires 1 or 2 args, got {}", n))),
         };
 
-        let ret = use_::run(flag)?;
+        let ret = use_(flag)?;
         if bool::from(&ret) {
             write_flush!(stdout(), "{}", output);
         }
