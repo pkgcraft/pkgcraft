@@ -52,7 +52,7 @@ pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let (opts, files) = match var_to_vec(var) {
-            Ok(v) => (vec!["-r"], expand_docs(v.as_slice())?),
+            Ok(v) => (vec!["-r"], expand_docs(&v)?),
             _ => match defaults {
                 Some(v) => (vec![], expand_docs(v)?),
                 None => (vec![], vec![]),
