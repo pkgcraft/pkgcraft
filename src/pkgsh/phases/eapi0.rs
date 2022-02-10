@@ -28,3 +28,20 @@ pub(crate) fn src_compile() -> Result<ExecStatus> {
     }
     Ok(ExecStatus::Success)
 }
+
+pub(crate) fn src_test() -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+        let mut args = Vec::<&str>::new();
+        if !d.borrow().eapi.has("parallel_tests") {
+            args.push("-j1");
+        }
+        for target in ["check", "test"] {
+            if emake(&[target, "-n"]).is_ok() {
+                args.push(target);
+                emake(&args)?;
+                break;
+            }
+        }
+        Ok(ExecStatus::Success)
+    })
+}

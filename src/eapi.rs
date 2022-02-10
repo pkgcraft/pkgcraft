@@ -67,6 +67,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // export the running phase name as $EBUILD_PHASE_FUNC
         ("ebuild_phase_func", false),
 
+        // running tests in parallel is supported
+        ("parallel_tests", false),
+
         // atom subslots -- cat/pkg:0/4
         ("subslots", false),
 
@@ -257,7 +260,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("pkg_postinst", phase_stub as PhaseFn),
         ("src_unpack", eapi0::src_unpack as PhaseFn),
         ("src_compile", eapi0::src_compile as PhaseFn),
-        ("src_test", phase_stub as PhaseFn),
+        ("src_test", eapi0::src_test as PhaseFn),
         ("src_install", phase_stub as PhaseFn),
     ]
     .iter()
@@ -322,6 +325,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI4),
     options: EAPI4.update_options(&[
         ("ebuild_phase_func", true),
+        ("parallel_tests", true),
         ("subslots", true),
         ("slot_ops", true),
         ("required_use_one_of", true),
