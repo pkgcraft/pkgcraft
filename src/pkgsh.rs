@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::Path;
 
 use indexmap::IndexSet;
@@ -16,6 +16,9 @@ pub mod phases;
 pub struct BuildData {
     pub repo: String,
     pub eapi: &'static Eapi,
+
+    // mapping of variables conditionally exported to the build environment
+    pub env: HashMap<String, String>,
 
     // TODO: proxy this via a borrowed package reference
     pub distfiles: Vec<String>,
