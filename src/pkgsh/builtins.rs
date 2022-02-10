@@ -28,6 +28,8 @@ pub mod docinto;
 pub mod docompress;
 pub mod dodoc;
 pub mod dostrip;
+pub mod eapply;
+pub mod eapply_user;
 pub mod econf;
 pub mod einstall;
 pub mod einstalldocs;
@@ -112,6 +114,8 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &docompress::BUILTIN,
         &dodoc::BUILTIN,
         &dostrip::BUILTIN,
+        &eapply::BUILTIN,
+        &eapply_user::BUILTIN,
         &econf::BUILTIN,
         &einstalldocs::BUILTIN,
         &emake::BUILTIN,

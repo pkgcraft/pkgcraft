@@ -21,11 +21,13 @@ pub struct BuildData {
     // mapping of variables conditionally exported to the build environment
     pub env: HashMap<String, String>,
 
-    // TODO: proxy this via a borrowed package reference
+    // TODO: proxy these fields via borrowed package reference
     pub distfiles: Vec<String>,
+    pub user_patches: Vec<String>,
 
     pub phase: String,
     pub phase_func: String,
+    pub user_patches_applied: bool,
 
     pub desttree: String,
     pub docdesttree: String,
