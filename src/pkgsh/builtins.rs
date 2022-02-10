@@ -91,8 +91,8 @@ impl PkgBuiltin {
 }
 
 pub(crate) type BuiltinsMap = HashMap<String, &'static PkgBuiltin>;
-pub(crate) type PhaseBuiltinsMap = HashMap<String, BuiltinsMap>;
-pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, PhaseBuiltinsMap>;
+pub(crate) type ScopeBuiltinsMap = HashMap<String, BuiltinsMap>;
+pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, ScopeBuiltinsMap>;
 
 // TODO: auto-generate the builtin module imports and vector creation via build script
 pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
@@ -146,27 +146,22 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &ver_rs::BUILTIN,
         &ver_test::BUILTIN,
     ];
-    let mut builtins_map = EapiBuiltinsMap::new();
 
+    let mut builtins_map = EapiBuiltinsMap::new();
     for b in builtins.iter() {
         for (eapi, re) in b.scope.iter() {
-            let phase_map = builtins_map
+            let scope_map = builtins_map
                 .entry(eapi)
-                .or_insert_with(PhaseBuiltinsMap::new);
-            for (phase, _fn) in eapi.phases().iter() {
-                if re.is_match(phase) {
-                    phase_map
-                        .entry(phase.clone())
+                .or_insert_with(ScopeBuiltinsMap::new);
+            let mut scopes: Vec<&str> = vec!["global", "eclass"];
+            scopes.extend(eapi.phases().iter().map(|(s, _)| s.as_str()));
+            for scope in scopes.iter() {
+                if re.is_match(scope) {
+                    scope_map
+                        .entry(scope.to_string())
                         .or_insert_with(BuiltinsMap::new)
-                        .insert(b.builtin.name.to_string(), b);
+                        .insert(b.builtin.name.into(), b);
                 }
-            }
-
-            if re.is_match("global") {
-                phase_map
-                    .entry("global".to_string())
-                    .or_insert_with(BuiltinsMap::new)
-                    .insert(b.builtin.name.to_string(), b);
             }
         }
     }
