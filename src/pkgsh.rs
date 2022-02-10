@@ -11,6 +11,7 @@ use crate::eapi::Eapi;
 
 pub mod builtins;
 pub mod phases;
+pub mod utils;
 
 #[derive(Debug, Default, Clone)]
 pub struct BuildData {

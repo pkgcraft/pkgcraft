@@ -4,7 +4,8 @@ use is_executable::IsExecutable;
 use scallop::builtins::ExecStatus;
 use scallop::Result;
 
-use super::super::builtins::{econf::run as econf, emake::run as emake, unpack::run as unpack};
+use crate::pkgsh::builtins::{econf::run as econf, emake::run as emake, unpack::run as unpack};
+use crate::pkgsh::utils::makefile_exists;
 use crate::pkgsh::BUILD_DATA;
 
 pub(crate) fn src_unpack() -> Result<ExecStatus> {
@@ -23,11 +24,8 @@ pub(crate) fn src_compile() -> Result<ExecStatus> {
         econf(&[])?;
     }
 
-    for f in ["Makefile", "GNUmakefile", "makefile"] {
-        if Path::new(f).exists() {
-            emake(&[])?;
-            break;
-        }
+    if makefile_exists() {
+        emake(&[])?;
     }
 
     Ok(ExecStatus::Success)
