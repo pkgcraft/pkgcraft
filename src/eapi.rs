@@ -273,7 +273,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "1",
     parent: Some(&EAPI0),
     options: EAPI0.update_options(&[("slot_deps", true)]),
-    phases: EAPI0.phases.clone(),
+    phases: EAPI0.update_phases(&[("src_compile", eapi1::src_compile as PhaseFn)]),
     incremental_keys: EAPI0.incremental_keys.clone(),
 });
 
@@ -287,6 +287,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
     ]),
     phases: EAPI1.update_phases(&[
         ("src_prepare", phase_stub as PhaseFn),
+        ("src_compile", eapi2::src_compile as PhaseFn),
         ("src_configure", eapi2::src_configure as PhaseFn),
     ]),
     incremental_keys: EAPI1.incremental_keys.clone(),
