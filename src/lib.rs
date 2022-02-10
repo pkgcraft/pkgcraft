@@ -10,5 +10,7 @@ pub mod peg;
 pub mod pkgsh;
 mod repo;
 mod sync;
+#[cfg(test)]
+pub(crate) mod test;
 
 pub use self::error::{Error, Result};
