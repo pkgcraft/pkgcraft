@@ -23,10 +23,8 @@ pub(crate) fn src_compile() -> Result<ExecStatus> {
     if Path::new("./configure").is_executable() {
         econf(&[])?;
     }
-
     if makefile_exists() {
         emake(&[])?;
     }
-
     Ok(ExecStatus::Success)
 }
