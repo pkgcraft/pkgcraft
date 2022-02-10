@@ -1,6 +1,11 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use scallop::variables::string_value;
+use scallop::variables::{expand, string_value};
+
+// Get the system libdir.
+pub(super) fn configure() -> PathBuf {
+    PathBuf::from(expand("${ECONF_SOURCE:-.}/configure").unwrap())
+}
 
 // Get the system libdir.
 pub(super) fn get_libdir() -> String {

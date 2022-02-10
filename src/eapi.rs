@@ -102,13 +102,16 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-#[derive(Debug, Eq, Clone)]
+type EapiEconfOptions = HashMap<String, (Regex, Option<String>)>;
+
+#[derive(Debug, Clone)]
 pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
     phases: HashMap<String, PhaseFn>,
     incremental_keys: HashSet<String>,
+    econf_options: EapiEconfOptions,
 }
 
 impl PartialEq for Eapi {
@@ -116,6 +119,8 @@ impl PartialEq for Eapi {
         self.id == other.id
     }
 }
+
+impl Eq for Eapi {}
 
 impl Hash for Eapi {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -205,6 +210,11 @@ impl Eapi {
         &self.incremental_keys
     }
 
+    #[inline]
+    pub(crate) fn econf_options(&self) -> &EapiEconfOptions {
+        &self.econf_options
+    }
+
     fn update_options(&self, updates: &[(&'static str, bool)]) -> EapiOptions {
         let mut options = self.options.clone();
         for (key, val) in updates.iter() {
@@ -225,6 +235,17 @@ impl Eapi {
         let mut keys = self.incremental_keys.clone();
         keys.extend(updates.iter().map(|s| s.to_string()));
         keys
+    }
+
+    fn update_econf(&self, updates: &[(&str, Option<&str>, Option<&str>)]) -> EapiEconfOptions {
+        let mut econf_options = self.econf_options.clone();
+        for (s, re_str, opt) in updates {
+            let re = Regex::new(&format!("^*--{}*$", re_str.unwrap_or(s))).unwrap();
+            let s = s.to_string();
+            let opt = opt.map(|s| s.to_string());
+            econf_options.insert(s, (re, opt));
+        }
+        econf_options
     }
 }
 
@@ -270,6 +291,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
         .iter()
         .map(|s| s.to_string())
         .collect(),
+    econf_options: EapiEconfOptions::new(),
 });
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -278,6 +300,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
     options: EAPI0.update_options(&[("slot_deps", true)]),
     phases: EAPI0.update_phases(&[("src_compile", eapi1::src_compile as PhaseFn)]),
     incremental_keys: EAPI0.incremental_keys.clone(),
+    econf_options: EAPI0.econf_options.clone(),
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -294,6 +317,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("src_configure", eapi2::src_configure as PhaseFn),
     ]),
     incremental_keys: EAPI1.incremental_keys.clone(),
+    econf_options: EAPI1.econf_options.clone(),
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -302,6 +326,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| Eapi {
     options: EAPI2.options.clone(),
     phases: EAPI2.phases.clone(),
     incremental_keys: EAPI2.incremental_keys.clone(),
+    econf_options: EAPI2.econf_options.clone(),
 });
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -318,6 +343,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("src_install", eapi4::src_install as PhaseFn),
     ]),
     incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
+    econf_options: EAPI3.update_econf(&[("disable-dependency-tracking", None, None)]),
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -332,6 +358,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
     ]),
     phases: EAPI4.phases.clone(),
     incremental_keys: EAPI4.incremental_keys.clone(),
+    econf_options: EAPI4.update_econf(&[("disable-silent-rules", None, None)]),
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -343,6 +370,10 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("src_install", eapi6::src_install as PhaseFn),
     ]),
     incremental_keys: EAPI5.incremental_keys.clone(),
+    econf_options: EAPI5.update_econf(&[
+        ("docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
+        ("htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
+    ]),
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -351,6 +382,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
     options: EAPI6.update_options(&[("export_desttree", false), ("export_insdesttree", false)]),
     phases: EAPI6.phases.clone(),
     incremental_keys: EAPI6.update_keys(&["BDEPEND"]),
+    econf_options: EAPI6.update_econf(&[("with-sysroot", None, Some("${ESYSROOT:-/}"))]),
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -359,6 +391,10 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     options: EAPI7.update_options(&[("src_uri_unrestrict", true), ("usev_two_args", true)]),
     phases: EAPI7.phases.clone(),
     incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
+    econf_options: EAPI7.update_econf(&[
+        ("datarootdir", None, Some("${EPREFIX}/usr/share")),
+        ("disable-static", Some("(dis|en)able-static"), None),
+    ]),
 });
 
 /// Reference to the latest registered EAPI.
@@ -371,6 +407,7 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| Eapi {
     options: EAPI_LATEST.update_options(&[("repo_ids", true)]),
     phases: EAPI_LATEST.phases.clone(),
     incremental_keys: EAPI_LATEST.incremental_keys.clone(),
+    econf_options: EAPI_LATEST.econf_options.clone(),
 });
 
 /// Ordered mapping of official EAPI identifiers to instances.
