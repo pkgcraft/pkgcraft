@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
-use super::{has::run as has, PkgBuiltin, GLOBAL};
+use super::{has::run as has, PkgBuiltin, ALL};
 
 static LONG_DOC: &str = "Deprecated synonym for has.";
 
@@ -19,6 +19,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "hasq needle ${haystack}",
         },
-        &[("0-7", &[GLOBAL])],
+        &[("0-7", &[ALL])],
     )
 });

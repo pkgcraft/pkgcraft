@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
-use super::{has::run as has, PkgBuiltin, GLOBAL};
+use super::{has::run as has, PkgBuiltin, ALL};
 use crate::macros::write_flush;
 
 static LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
@@ -27,7 +27,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "hasv needle ${haystack}",
         },
-        &[("0-7", &[GLOBAL])],
+        &[("0-7", &[ALL])],
     )
 });
 

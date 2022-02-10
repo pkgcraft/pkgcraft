@@ -5,7 +5,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, GLOBAL};
+use super::{PkgBuiltin, ALL};
 use crate::macros::write_flush;
 
 static LONG_DOC: &str = "Output the libdir name.";
@@ -35,7 +35,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "get_libdir",
         },
-        &[("6-", &[GLOBAL])],
+        &[("6-", &[ALL])],
     )
 });
 

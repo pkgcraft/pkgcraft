@@ -5,7 +5,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, GLOBAL};
+use super::{PkgBuiltin, ALL};
 use crate::atom::Version;
 
 static LONG_DOC: &str = "Perform comparisons on package version strings.";
@@ -50,7 +50,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "ver_test 1 -lt 2-r1",
         },
-        &[("7-", &[GLOBAL])],
+        &[("7-", &[ALL])],
     )
 });
 

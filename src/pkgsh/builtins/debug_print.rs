@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
-use super::{PkgBuiltin, GLOBAL};
+use super::{PkgBuiltin, ALL};
 
 static LONG_DOC: &str = "\
 If in a special debug mode, the arguments should be outputted or recorded using some kind of debug
@@ -23,6 +23,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "debug-print msg",
         },
-        &[("0-", &[GLOBAL])],
+        &[("0-", &[ALL])],
     )
 });

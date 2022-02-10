@@ -5,7 +5,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
-use super::{parse, version_split, PkgBuiltin, GLOBAL};
+use super::{parse, version_split, PkgBuiltin, ALL};
 use crate::macros::write_flush;
 
 static LONG_DOC: &str = "Perform string substitution on package version strings.";
@@ -63,7 +63,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "ver_rs 2 - 1.2.3",
         },
-        &[("7-", &[GLOBAL])],
+        &[("7-", &[ALL])],
     )
 });
 

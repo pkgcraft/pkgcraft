@@ -3,7 +3,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::array_to_vec;
 use scallop::Result;
 
-use super::{die::run as die, PkgBuiltin, GLOBAL};
+use super::{die::run as die, PkgBuiltin, ALL};
 
 static LONG_DOC: &str = "\
 Calls `die` with passed arguments if any process in the most recently-executed foreground pipeline
@@ -27,6 +27,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "assert \"error message\"",
         },
-        &[("0-", &[GLOBAL])],
+        &[("0-", &[ALL])],
     )
 });

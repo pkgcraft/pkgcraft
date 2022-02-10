@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, GLOBAL, NONFATAL};
+use super::{PkgBuiltin, ALL, NONFATAL};
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "\
@@ -50,7 +50,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "die \"error message\"",
         },
-        &[("0-", &[GLOBAL])],
+        &[("0-", &[ALL])],
     )
 });
 

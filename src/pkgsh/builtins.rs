@@ -65,8 +65,9 @@ pub(crate) struct PkgBuiltin {
 }
 
 // scope patterns
+static ALL: &str = ".+";
 static ECLASS: &str = "eclass";
-static GLOBAL: &str = ".+";
+static GLOBAL: &str = "global";
 static PHASE: &str = ".+_.+";
 
 impl PkgBuiltin {

@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, GLOBAL};
+use super::{PkgBuiltin, ALL};
 
 static LONG_DOC: &str = "\
 Returns success if the first argument is found in subsequent arguments, failure otherwise.";
@@ -26,7 +26,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "has needle ${haystack}",
         },
-        &[("0-", &[GLOBAL])],
+        &[("0-", &[ALL])],
     )
 });
 
