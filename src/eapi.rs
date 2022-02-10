@@ -310,7 +310,10 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("rdepend_default", false),
         ("use_conf_arg", true),
     ]),
-    phases: EAPI3.update_phases(&[("pkg_pretend", phase_stub as PhaseFn)]),
+    phases: EAPI3.update_phases(&[
+        ("pkg_pretend", phase_stub as PhaseFn),
+        ("src_install", eapi4::src_install as PhaseFn),
+    ]),
     incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
 });
 

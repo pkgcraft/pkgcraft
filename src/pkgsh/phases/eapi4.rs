@@ -2,9 +2,9 @@ use scallop::builtins::ExecStatus;
 use scallop::Result;
 
 use super::emake_install;
-use crate::pkgsh::builtins::einstalldocs::run as einstalldocs;
+use crate::pkgsh::builtins::einstalldocs::install_docs;
 
 pub(crate) fn src_install() -> Result<ExecStatus> {
     emake_install()?;
-    einstalldocs(&[])
+    install_docs("DOCS")
 }

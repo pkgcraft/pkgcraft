@@ -12,7 +12,7 @@ use crate::pkgsh::BUILD_DATA;
 static LONG_DOC: &str = "\
 Installs the files specified by the DOCS and HTML_DOCS variables or a default set of files.";
 
-static DOC_DEFAULTS: &[&str] = &[
+static DOCS_DEFAULTS: &[&str] = &[
     "README*",
     "ChangeLog",
     "AUTHORS",
@@ -43,41 +43,50 @@ fn expand_docs<S: AsRef<str>>(globs: &[S]) -> Result<Vec<String>> {
     Ok(args)
 }
 
+pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
+    let (defaults, docdesttree) = match var {
+        "DOCS" => (Some(DOCS_DEFAULTS), ""),
+        "HTML_DOCS" => (None, "html"),
+        _ => return Err(Error::Builtin(format!("unknown variable: {}", var))),
+    };
+
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+        let (opts, files) = match var_to_vec(var) {
+            Ok(v) => (vec!["-r"], expand_docs(v.as_slice())?),
+            _ => match defaults {
+                Some(v) => (vec![], expand_docs(v)?),
+                None => (vec![], vec![]),
+            },
+        };
+
+        if !files.is_empty() {
+            // save original docdesttree value and use custom value
+            let orig_docdestree = d.borrow().docdesttree.clone();
+            d.borrow_mut().docdesttree = String::from(docdesttree);
+
+            let mut args: Vec<&str> = opts;
+            args.extend(files.iter().map(|s| s.as_str()));
+            dodoc(args.as_slice())?;
+
+            // restore original docdesttree value
+            d.borrow_mut().docdesttree = orig_docdestree;
+        }
+
+        Ok(ExecStatus::Success)
+    })
+}
+
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
     }
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        // save original docdesttree value
-        let orig_docdestree = d.borrow().docdesttree.clone();
+    for var in ["DOCS", "HTML_DOCS"] {
+        install_docs(var)?;
+    }
 
-        for (var, defaults, docdesttree) in [
-            ("DOCS", Some(DOC_DEFAULTS), ""),
-            ("HTML_DOCS", None, "html"),
-        ] {
-            let (opts, files) = match var_to_vec(var) {
-                Ok(v) => (vec!["-r"], expand_docs(v.as_slice())?),
-                _ => match defaults {
-                    Some(v) => (vec![], expand_docs(v)?),
-                    None => continue,
-                },
-            };
-
-            if !files.is_empty() {
-                d.borrow_mut().docdesttree = String::from(docdesttree);
-                let mut args: Vec<&str> = opts;
-                args.extend(files.iter().map(|s| s.as_str()));
-                dodoc(args.as_slice())?;
-            }
-        }
-
-        // restore original docdesttree value
-        d.borrow_mut().docdesttree = orig_docdestree;
-
-        Ok(ExecStatus::Success)
-    })
+    Ok(ExecStatus::Success)
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
