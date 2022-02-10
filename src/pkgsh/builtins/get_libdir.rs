@@ -2,11 +2,11 @@ use std::io::{stdout, Write};
 
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
-use scallop::variables::string_value;
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL};
 use crate::macros::write_flush;
+use crate::pkgsh::utils::get_libdir;
 
 static LONG_DOC: &str = "Output the libdir name.";
 
@@ -15,15 +15,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
     }
-
-    let mut libdir = String::from("lib");
-    if let Some(abi) = string_value("ABI") {
-        if let Some(val) = string_value(format!("LIBDIR_{}", abi)) {
-            libdir = val;
-        }
-    }
-
-    write_flush!(stdout(), "{}", libdir);
+    write_flush!(stdout(), "{}", get_libdir());
     Ok(ExecStatus::Success)
 }
 

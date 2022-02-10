@@ -3,6 +3,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
 use super::{emake::run as emake, PkgBuiltin};
+use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Run `emake install` for a package.";
@@ -18,9 +19,12 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let paths: &[&str] = &[
             &format!("prefix={}/usr", ED),
             &format!("datadir={}/usr/share", ED),
-            &format!("infodir={}/usr/share/info", ED),
-            &format!("localstatedir={}/var/lib", ED),
             &format!("mandir={}/usr/share/man", ED),
+            &format!("infodir={}/usr/share/info", ED),
+            // Note that the additional complexity for determining libdir described in PMS is
+            // ignored in favor of using the more modern and simple value from get_libdir().
+            &format!("libdir={}/usr/{}", ED, get_libdir()),
+            &format!("localstatedir={}/var/lib", ED),
             &format!("sysconfdir={}/etc", ED),
         ];
 
