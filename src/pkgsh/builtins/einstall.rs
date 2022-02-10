@@ -12,7 +12,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let env = &d.borrow().env;
         #[allow(non_snake_case)]
-        let ED = env.get("ED").expect("ED undefined");
+        let ED = env
+            .get("ED")
+            .unwrap_or_else(|| env.get("D").expect("$D undefined"));
         let paths: &[&str] = &[
             &format!("prefix={}/usr", ED),
             &format!("datadir={}/usr/share", ED),
