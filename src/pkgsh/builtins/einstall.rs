@@ -12,20 +12,19 @@ static LONG_DOC: &str = "Run `emake install` for a package.";
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let env = &d.borrow().env;
-        #[allow(non_snake_case)]
-        let ED = env
+        let destdir = env
             .get("ED")
             .unwrap_or_else(|| env.get("D").expect("$D undefined"));
         let paths: &[&str] = &[
-            &format!("prefix={}/usr", ED),
-            &format!("datadir={}/usr/share", ED),
-            &format!("mandir={}/usr/share/man", ED),
-            &format!("infodir={}/usr/share/info", ED),
+            &format!("prefix={}/usr", destdir),
+            &format!("datadir={}/usr/share", destdir),
+            &format!("mandir={}/usr/share/man", destdir),
+            &format!("infodir={}/usr/share/info", destdir),
             // Note that the additional complexity for determining libdir described in PMS is
             // ignored in favor of using the more modern and simple value from get_libdir().
-            &format!("libdir={}/usr/{}", ED, get_libdir()),
-            &format!("localstatedir={}/var/lib", ED),
-            &format!("sysconfdir={}/etc", ED),
+            &format!("libdir={}/usr/{}", destdir, get_libdir()),
+            &format!("localstatedir={}/var/lib", destdir),
+            &format!("sysconfdir={}/etc", destdir),
         ];
 
         let args = &[paths, &["-j1"], args, &["install"]].concat();
