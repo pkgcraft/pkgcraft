@@ -9,12 +9,14 @@ use crate::pkgsh::builtins::{
 
 pub(crate) fn src_prepare() -> Result<ExecStatus> {
     if let Ok(patches) = var_to_vec("PATCHES") {
-        // TODO: need to perform word expansion on each string as well
-        let patches: Vec<&str> = patches.iter().map(|s| s.as_str()).collect();
-        // Note that not allowing options in PATCHES is technically from EAPI 8, but it's
-        // backported here for EAPI 6 onwards.
-        let args: &[&str] = &[&["--"], &patches[..]].concat();
-        eapply(args)?;
+        if !patches.is_empty() {
+            // TODO: need to perform word expansion on each string as well
+            let patches: Vec<&str> = patches.iter().map(|s| s.as_str()).collect();
+            // Note that not allowing options in PATCHES is technically from EAPI 8, but it's
+            // backported here for EAPI 6 onwards.
+            let args: &[&str] = &[&["--"], &patches[..]].concat();
+            eapply(args)?;
+        }
     }
     eapply_user(&[])
 }
