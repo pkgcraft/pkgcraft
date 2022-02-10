@@ -138,7 +138,7 @@ impl<'a> PkgShell<'a> {
             let mut opts = ScopedOptions::new();
 
             if eapi.has("global_failglob") {
-                opts.toggle((&["failglob"], &[]))?;
+                opts.toggle(&["failglob"], &[])?;
             }
 
             self.sh.source_file(&ebuild)?;
