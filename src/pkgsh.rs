@@ -143,6 +143,9 @@ impl<'a> PkgShell<'a> {
             let eapi = d.borrow().eapi;
             let mut opts = ScopedOptions::new();
 
+            // enable global builtins
+            let _builtins = eapi.scoped_builtins("global")?;
+
             if eapi.has("global_failglob") {
                 opts.toggle(&["failglob"], &[])?;
             }
