@@ -334,7 +334,10 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "6",
     parent: Some(&EAPI5),
     options: EAPI5.update_options(&[("nonfatal_die", true), ("global_failglob", true)]),
-    phases: EAPI5.update_phases(&[("src_install", eapi6::src_install as PhaseFn)]),
+    phases: EAPI5.update_phases(&[
+        ("src_prepare", eapi6::src_prepare as PhaseFn),
+        ("src_install", eapi6::src_install as PhaseFn),
+    ]),
     incremental_keys: EAPI5.incremental_keys.clone(),
 });
 
