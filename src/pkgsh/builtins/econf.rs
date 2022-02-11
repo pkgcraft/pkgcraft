@@ -15,7 +15,7 @@ use crate::pkgsh::utils::{configure, output_command};
 use crate::pkgsh::BUILD_DATA;
 
 static CONFIG_OPT_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(?P<opt>--[^=\s]+)(=(?P<val>\w+))?").unwrap());
+    Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)(=(?P<val>\w+))?").unwrap());
 
 static LONG_DOC: &str = "Run a package's configure script.";
 
@@ -118,20 +118,23 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::env;
     use std::fs::File;
-    use std::io::prelude::*;
+    use std::io::{prelude::*, Read};
     use std::process::{Command, Stdio};
 
-    use super::run as econf;
-    use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
-
+    use gag::BufferRedirect;
+    use indexmap::IndexSet;
     use indoc::indoc;
     use rusty_fork::rusty_fork_test;
     use tempfile::tempdir;
 
+    use super::{BUILTIN as econf, CONFIG_OPT_RE};
+    use crate::macros::assert_err_re;
+    use crate::pkgsh::BUILD_DATA;
+
     static CONFIGURE_AC: &str = indoc! {"
         AC_INIT([pkgcraft], [0.0.1], [pkgcraft@pkgcraft.org])
         AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+        LT_INIT
         AC_PROG_CC
         AC_OUTPUT
     "};
@@ -139,7 +142,7 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn nonexistent() {
-            assert_err_re!(econf(&[]), format!("^nonexistent configure .*$"));
+            assert_err_re!(econf.run(&[]), format!("^nonexistent configure .*$"));
         }
 
         #[test]
@@ -148,25 +151,59 @@ mod tests {
             let configure = dir.path().join("configure");
             File::create(configure).unwrap();
             env::set_current_dir(&dir).unwrap();
-            assert_err_re!(econf(&[]), format!("^nonexecutable configure .*$"));
+            assert_err_re!(econf.run(&[]), format!("^nonexecutable configure .*$"));
         }
 
         #[test]
         #[cfg_attr(target_os = "macos", ignore)]
-        fn configure_parsing() {
+        fn args() {
             let dir = tempdir().unwrap();
             let configure_ac = dir.path().join("configure.ac");
             let file = File::create(configure_ac).unwrap();
             env::set_current_dir(&dir).unwrap();
             write!(&file, "{}", CONFIGURE_AC).unwrap();
             Command::new("autoreconf").arg("-i").stderr(Stdio::null()).status().unwrap();
+
+            let mut buf = BufferRedirect::stdout().unwrap();
+            let mut run = |args: &[&str]| -> (Vec<String>, IndexSet<String>) {
+                // TODO: Mock out command call in some fashion to capture params instead of
+                // actually running the configure script.
+                econf.run(args).unwrap();
+                let mut output = String::new();
+                buf.read_to_string(&mut output).unwrap();
+                let output: Vec<&str> = output.split('\n').collect();
+                let cmd: Vec<String> = output[0].split(' ').map(|s| s.to_string()).collect();
+                let mut opts = IndexSet::<String>::new();
+                for param in &cmd[1..] {
+                    for caps in CONFIG_OPT_RE.captures_iter(param) {
+                        opts.insert(caps["opt"].to_string());
+                    }
+                }
+                (cmd, opts)
+            };
+
             BUILD_DATA.with(|d| {
                 // TODO: add support for generating build state data for tests
                 d.borrow_mut().env.extend([
                     ("EPREFIX".into(), "/eprefix".into()),
-                    ("CHOST".into(), "chost".into()),
+                    ("CHOST".into(), "x86_64-pc-linux-gnu".into()),
                 ]);
-                econf(&[]).unwrap();
+
+                // verify EAPI specific options are added
+                for eapi in econf.scope.keys() {
+                    d.borrow_mut().eapi = eapi;
+                    if !eapi.econf_options().is_empty() {
+                        let (_cmd, opts) = run(&[]);
+                        let eapi_opts: Vec<&String> = eapi.econf_options().keys().collect();
+                        let cmd_opts: Vec<&String> = opts.iter().collect();
+                        assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len()-eapi_opts.len()..]);
+                    }
+                }
+
+                for arg in ["--prefix=/dir", "CC=gcc"] {
+                    let (cmd, _opts) = run(&[arg]);
+                    assert!(cmd.contains(&arg.to_string()), "command missing argument: {}", arg);
+                }
             });
         }
     }
