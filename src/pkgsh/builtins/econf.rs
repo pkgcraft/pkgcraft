@@ -57,17 +57,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let eprefix = env.get("EPREFIX").expect("$EPREFIX undefined");
         let chost = env.get("CHOST").expect("$CHOST undefined");
 
-        for (opt, val) in [
-            ("--prefix", format!("{}/usr", eprefix)),
-            ("--mandir", format!("{}/usr/share/man", eprefix)),
-            ("--infodir", format!("{}/usr/share/info", eprefix)),
-            ("--datadir", format!("{}/usr/share", eprefix)),
-            ("--sysconfdir", format!("{}/etc", eprefix)),
-            ("--localstatedir", format!("{}/var/lib", eprefix)),
-            ("--host", chost.clone()),
-        ] {
-            defaults.insert(opt, Some(val));
-        }
+        defaults.extend([
+            ("--prefix", Some(format!("{}/usr", eprefix))),
+            ("--mandir", Some(format!("{}/usr/share/man", eprefix))),
+            ("--infodir", Some(format!("{}/usr/share/info", eprefix))),
+            ("--datadir", Some(format!("{}/usr/share", eprefix))),
+            ("--sysconfdir", Some(format!("{}/etc", eprefix))),
+            ("--localstatedir", Some(format!("{}/var/lib", eprefix))),
+            ("--host", Some(chost.clone())),
+        ]);
 
         if !args.contains_key("--libdir") {
             if let Some(libdir) = get_libdir(None) {
@@ -82,7 +80,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             }
         }
 
-        for (opt, var) in [("build", "CBUILD"), ("target", "CTARGET")] {
+        for (opt, var) in [("--build", "CBUILD"), ("--target", "CTARGET")] {
             if let Some(val) = string_value(var) {
                 defaults.insert(opt, Some(val));
             }
