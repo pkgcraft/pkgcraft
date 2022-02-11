@@ -96,10 +96,7 @@ mod tests {
         // existing pkgs
         repo = Repo::new("fake", ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
         assert_eq!(iter_to_set(repo.packages("cat")), hashset! {});
-        assert_eq!(
-            iter_to_set(repo.packages("cat1")),
-            hashset! {"pkg-a", "pkg-b"}
-        );
+        assert_eq!(iter_to_set(repo.packages("cat1")), hashset! {"pkg-a", "pkg-b"});
         assert_eq!(iter_to_set(repo.packages("cat2")), hashset! {"pkg-c"});
     }
 
@@ -113,9 +110,6 @@ mod tests {
         repo = Repo::new("fake", ["cat1/pkg-a-1", "cat2/pkg-b-1", "cat2/pkg-b-2"]).unwrap();
         assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset! {});
         assert_eq!(iter_to_set(repo.versions("cat1", "pkg-a")), hashset! {"1"});
-        assert_eq!(
-            iter_to_set(repo.versions("cat2", "pkg-b")),
-            hashset! {"1", "2"}
-        );
+        assert_eq!(iter_to_set(repo.versions("cat2", "pkg-b")), hashset! {"1", "2"});
     }
 }

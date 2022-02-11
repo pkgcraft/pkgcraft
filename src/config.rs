@@ -39,10 +39,7 @@ impl ConfigPath {
         let system_config = prefixed(PathBuf::from(format!("/etc/{}", name)));
 
         // determine if user config or system config will be used
-        config = match (
-            user_config.exists(),
-            system_config.exists() || home == "/root",
-        ) {
+        config = match (user_config.exists(), system_config.exists() || home == "/root") {
             (false, true) => {
                 cache = prefixed(PathBuf::from(format!("/var/cache/{}", name)));
                 data = prefixed(PathBuf::from(format!("/usr/share/{}", name)));
@@ -129,25 +126,13 @@ mod tests {
 
         // XDG var is unset and HOME is set
         let config = Config::new("pkgcraft", "", false).unwrap();
-        assert_eq!(
-            config.path.cache,
-            PathBuf::from("/home/user/.cache/pkgcraft")
-        );
-        assert_eq!(
-            config.path.config,
-            PathBuf::from("/home/user/.config/pkgcraft")
-        );
+        assert_eq!(config.path.cache, PathBuf::from("/home/user/.cache/pkgcraft"));
+        assert_eq!(config.path.config, PathBuf::from("/home/user/.config/pkgcraft"));
 
         // prefix
         let config = Config::new("pkgcraft", "/prefix", false).unwrap();
-        assert_eq!(
-            config.path.cache,
-            PathBuf::from("/prefix/home/user/.cache/pkgcraft")
-        );
-        assert_eq!(
-            config.path.config,
-            PathBuf::from("/prefix/home/user/.config/pkgcraft")
-        );
+        assert_eq!(config.path.cache, PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
+        assert_eq!(config.path.config, PathBuf::from("/prefix/home/user/.config/pkgcraft"));
         env::remove_var("HOME");
 
         // XDG var and HOME are unset

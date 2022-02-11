@@ -6,9 +6,7 @@ use pkgcraft::atom::Version;
 
 #[allow(unused_must_use)]
 pub fn bench_pkg_versions(c: &mut Criterion) {
-    c.bench_function("version-parse", |b| {
-        b.iter(|| Version::from_str("1.2.3-alpha4-r5"))
-    });
+    c.bench_function("version-parse", |b| b.iter(|| Version::from_str("1.2.3-alpha4-r5")));
 
     c.bench_function("version-cmp-eq", |b| {
         let v1 = Version::from_str("1.2.3").unwrap();

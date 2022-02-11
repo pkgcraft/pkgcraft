@@ -294,56 +294,14 @@ mod tests {
             ("_.+-/_+-", "_.+-", "_+-", None, None),
             ("a/b-", "a", "b-", None, None),
             ("a/b-r100", "a", "b-r100", None, None),
-            (
-                "<a/b-r0-1-r2",
-                "a",
-                "b-r0",
-                Some(Operator::Less),
-                version("1-r2"),
-            ),
-            (
-                "<=a/b-1",
-                "a",
-                "b",
-                Some(Operator::LessOrEqual),
-                version("1"),
-            ),
-            (
-                "=a/b-1-r1",
-                "a",
-                "b",
-                Some(Operator::Equal),
-                version("1-r1"),
-            ),
+            ("<a/b-r0-1-r2", "a", "b-r0", Some(Operator::Less), version("1-r2")),
+            ("<=a/b-1", "a", "b", Some(Operator::LessOrEqual), version("1")),
+            ("=a/b-1-r1", "a", "b", Some(Operator::Equal), version("1-r1")),
             ("=a/b-3*", "a", "b", Some(Operator::EqualGlob), version("3")),
-            (
-                "=a/b-3-r1*",
-                "a",
-                "b",
-                Some(Operator::EqualGlob),
-                version("3-r1"),
-            ),
-            (
-                "~a/b-0-r1",
-                "a",
-                "b",
-                Some(Operator::Approximate),
-                version("0-r1"),
-            ),
-            (
-                ">=a/b-2",
-                "a",
-                "b",
-                Some(Operator::GreaterOrEqual),
-                version("2"),
-            ),
-            (
-                ">a/b-3-r0",
-                "a",
-                "b",
-                Some(Operator::Greater),
-                version("3-r0"),
-            ),
+            ("=a/b-3-r1*", "a", "b", Some(Operator::EqualGlob), version("3-r1")),
+            ("~a/b-0-r1", "a", "b", Some(Operator::Approximate), version("0-r1")),
+            (">=a/b-2", "a", "b", Some(Operator::GreaterOrEqual), version("2")),
+            (">a/b-3-r0", "a", "b", Some(Operator::Greater), version("3-r0")),
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse::dep(&s, eapi);
@@ -464,9 +422,7 @@ mod tests {
     fn test_parse_use_dep_defaults() {
         // invalid deps
         let mut s;
-        for use_dep in [
-            "(-)", "(+)", "a()", "a(?)", "a(b)", "a(-+)", "a(++)", "a((+))", "a(-)b",
-        ] {
+        for use_dep in ["(-)", "(+)", "a()", "a(?)", "a(b)", "a(-+)", "a(++)", "a((+))", "a(-)b"] {
             s = format!("cat/pkg[{}]", use_dep);
             assert!(parse::dep(&s, &eapi::EAPI4).is_err(), "{:?} didn't fail", s);
         }

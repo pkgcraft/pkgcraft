@@ -61,11 +61,7 @@ fn do_clone(url: &str, path: &Path) -> Result<git2::Repository, git2::Error> {
     // show transfer progress
     cb.transfer_progress(|stats| {
         if stats.received_objects() == stats.total_objects() {
-            print!(
-                "Resolving deltas {}/{}\r",
-                stats.indexed_deltas(),
-                stats.total_deltas()
-            );
+            print!("Resolving deltas {}/{}\r", stats.indexed_deltas(), stats.total_deltas());
         } else if stats.total_objects() > 0 {
             print!(
                 "Received {}/{} objects ({}) in {} bytes\r",
@@ -99,11 +95,7 @@ fn do_fetch<'a>(
     // show transfer progress
     cb.transfer_progress(|stats| {
         if stats.received_objects() == stats.total_objects() {
-            print!(
-                "Resolving deltas {}/{}\r",
-                stats.indexed_deltas(),
-                stats.total_deltas()
-            );
+            print!("Resolving deltas {}/{}\r", stats.indexed_deltas(), stats.total_deltas());
         } else if stats.total_objects() > 0 {
             print!(
                 "Received {}/{} objects ({}) in {} bytes\r",

@@ -34,10 +34,7 @@ impl Syncable for Repo {
                 uri: uri.to_string(),
                 url: m.name("url").unwrap().as_str().to_string(),
             })),
-            None => Err(Error::RepoInit(format!(
-                "invalid tar+https repo: {:?}",
-                uri
-            ))),
+            None => Err(Error::RepoInit(format!("invalid tar+https repo: {:?}", uri))),
         }
     }
 
@@ -152,10 +149,7 @@ impl Syncable for Repo {
             })?;
         }
         fs::rename(&tmp_dir, &path).map_err(|e| {
-            Error::RepoSync(format!(
-                "failed moving repo {:?} -> {:?}: {}",
-                &tmp_dir, &path, e
-            ))
+            Error::RepoSync(format!("failed moving repo {:?} -> {:?}: {}", &tmp_dir, &path, e))
         })?;
 
         // TODO: store this in cache instead of repo file

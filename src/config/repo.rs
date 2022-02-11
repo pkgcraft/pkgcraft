@@ -28,10 +28,7 @@ impl RepoConfig {
             .map_err(|e| Error::Config(format!("failed loading repo config {:?}: {}", &path, e)))?;
 
         let repo_conf: RepoConfig = toml::from_str(&data).map_err(|e| {
-            Error::Config(format!(
-                "failed loading repo config toml {:?}: {}",
-                &path, e
-            ))
+            Error::Config(format!("failed loading repo config toml {:?}: {}", &path, e))
         })?;
 
         // verify format is supported
@@ -137,10 +134,7 @@ impl Config {
         let dest_dir = self.repo_dir.join(name);
 
         if let Some(c) = self.configs.get(name) {
-            return Err(Error::Config(format!(
-                "existing repo: {:?} @ {:?}",
-                name, &c.location
-            )));
+            return Err(Error::Config(format!("existing repo: {:?} @ {:?}", name, &c.location)));
         }
 
         let mut config = RepoConfig {
@@ -184,16 +178,10 @@ impl Config {
         })?;
         let path = self.config_dir.join(name);
         let mut file = fs::File::create(&path).map_err(|e| {
-            Error::Config(format!(
-                "failed creating repo config file: {:?}: {}",
-                &path, &e
-            ))
+            Error::Config(format!("failed creating repo config file: {:?}: {}", &path, &e))
         })?;
         file.write_all(repo_conf_data.as_bytes()).map_err(|e| {
-            Error::Config(format!(
-                "failed writing repo config file: {:?}: {}",
-                &path, &e
-            ))
+            Error::Config(format!("failed writing repo config file: {:?}: {}", &path, &e))
         })?;
 
         let (configs, repos) = (&mut self.configs, &mut self.repos);
@@ -212,10 +200,7 @@ impl Config {
 
     pub fn create(&mut self, name: &str) -> crate::Result<()> {
         match self.configs.get(name) {
-            Some(c) => Err(Error::Config(format!(
-                "existing repo: {:?} @ {:?}",
-                name, c.location
-            ))),
+            Some(c) => Err(Error::Config(format!("existing repo: {:?} @ {:?}", name, c.location))),
             None => {
                 let repo_path = self.repo_dir.join(name);
                 let location = repo_path

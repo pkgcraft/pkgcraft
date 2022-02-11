@@ -25,13 +25,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     let funcs: Vec<String> = args
         .iter()
-        .map(|func| {
-            format!(
-                "{func}() {{ {eclass}_{func} \"$@\"; }}",
-                func = func,
-                eclass = eclass
-            )
-        })
+        .map(|func| format!("{func}() {{ {eclass}_{func} \"$@\"; }}", func = func, eclass = eclass))
         .collect();
 
     source::string(funcs.join("\n"))?;

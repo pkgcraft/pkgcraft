@@ -64,16 +64,7 @@ mod tests {
     #[test]
     fn test_parse_deps() {
         // invalid data
-        for s in [
-            "",
-            "(",
-            ")",
-            "( )",
-            "( a/b)",
-            "| ( a/b )",
-            "use ( a/b )",
-            "!use ( a/b )",
-        ] {
+        for s in ["", "(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
             assert!(parse(&s, EAPI_LATEST).is_err(), "{:?} didn't fail", s);
         }
 

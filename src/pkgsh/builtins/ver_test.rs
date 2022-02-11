@@ -18,12 +18,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         2 if pvr.is_empty() => return Err(Error::Builtin("$PVR is undefined".into())),
         2 => (pvr, args[0], args[1]),
         3 => (args[0], args[1], args[2]),
-        n => {
-            return Err(Error::Builtin(format!(
-                "only accepts 2 or 3 args, got {}",
-                n
-            )))
-        }
+        n => return Err(Error::Builtin(format!("only accepts 2 or 3 args, got {}", n))),
     };
 
     let v1 = Version::from_str(v1)?;

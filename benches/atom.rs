@@ -6,17 +6,11 @@ use pkgcraft::atom::Atom;
 
 #[allow(unused_must_use)]
 pub fn bench_pkg_atoms(c: &mut Criterion) {
-    c.bench_function("atom-parse-unversioned", |b| {
-        b.iter(|| Atom::from_str("cat/pkg"))
-    });
+    c.bench_function("atom-parse-unversioned", |b| b.iter(|| Atom::from_str("cat/pkg")));
 
-    c.bench_function("atom-parse-slotdep", |b| {
-        b.iter(|| Atom::from_str("cat/pkg:0"))
-    });
+    c.bench_function("atom-parse-slotdep", |b| b.iter(|| Atom::from_str("cat/pkg:0")));
 
-    c.bench_function("atom-parse-versioned", |b| {
-        b.iter(|| Atom::from_str(">=cat/pkg-4-r1"))
-    });
+    c.bench_function("atom-parse-versioned", |b| b.iter(|| Atom::from_str(">=cat/pkg-4-r1")));
 
     c.bench_function("atom-parse-versioned-slotdep", |b| {
         b.iter(|| Atom::from_str(">=cat/pkg-4-r1:0="))

@@ -59,16 +59,7 @@ mod tests {
     #[test]
     fn test_parse_license() {
         // invalid data
-        for s in [
-            "",
-            "(",
-            ")",
-            "( )",
-            "( l1)",
-            "| ( l1 )",
-            "foo ( l1 )",
-            "!use ( l1 )",
-        ] {
+        for s in ["", "(", ")", "( )", "( l1)", "| ( l1 )", "foo ( l1 )", "!use ( l1 )"] {
             assert!(parse(&s).is_err(), "{:?} didn't fail", s);
         }
 
@@ -78,22 +69,10 @@ mod tests {
         for (s, expected) in [
             ("l1", DepSpec::Strings(vec_str!(["l1"]))),
             ("l1 l2", DepSpec::Strings(vec_str!(["l1", "l2"]))),
-            (
-                "( l1 )",
-                DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["l1"])))),
-            ),
-            (
-                "( l1 l2 )",
-                DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"])))),
-            ),
-            (
-                "|| ( l1 )",
-                DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1"])))),
-            ),
-            (
-                "|| ( l1 l2 )",
-                DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"])))),
-            ),
+            ("( l1 )", DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["l1"]))))),
+            ("( l1 l2 )", DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
+            ("|| ( l1 )", DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1"]))))),
+            ("|| ( l1 l2 )", DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
             (
                 "use? ( l1 )",
                 DepSpec::ConditionalUse(
@@ -115,9 +94,7 @@ mod tests {
                 DepSpec::ConditionalUse(
                     "use".to_string(),
                     false,
-                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!([
-                        "l1", "l2"
-                    ]))))),
+                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
                 ),
             ),
         ] {

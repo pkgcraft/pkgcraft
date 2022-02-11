@@ -375,11 +375,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     incremental_keys: EAPI5.incremental_keys.clone(),
     econf_options: EAPI5.update_econf(&[
         ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
-        (
-            "--htmldir",
-            None,
-            Some("${EPREFIX}/usr/share/doc/${PF}/html"),
-        ),
+        ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
     ]),
 });
 
@@ -400,11 +396,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
     econf_options: EAPI7.update_econf(&[
         ("datarootdir", None, Some("${EPREFIX}/usr/share")),
-        (
-            "--disable-static",
-            Some(&["--disable-static", "--enable-static"]),
-            None,
-        ),
+        ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
     ]),
 });
 

@@ -67,16 +67,7 @@ mod tests {
     #[test]
     fn test_parse_required_use() {
         // invalid data
-        for s in [
-            "",
-            "(",
-            ")",
-            "( )",
-            "( u)",
-            "| ( u )",
-            "u1 ( u2 )",
-            "!u1 ( u2 )",
-        ] {
+        for s in ["", "(", ")", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"] {
             assert!(parse(&s, eapi::EAPI_LATEST).is_err(), "{:?} didn't fail", s);
         }
 
@@ -86,22 +77,10 @@ mod tests {
         for (s, expected) in [
             ("u", DepSpec::Strings(vec_str!(["u"]))),
             ("u1 u2", DepSpec::Strings(vec_str!(["u1", "u2"]))),
-            (
-                "( u )",
-                DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u"])))),
-            ),
-            (
-                "( u1 u2 )",
-                DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
-            ),
-            (
-                "|| ( u )",
-                DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u"])))),
-            ),
-            (
-                "|| ( u1 u2 )",
-                DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
-            ),
+            ("( u )", DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u"]))))),
+            ("( u1 u2 )", DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"]))))),
+            ("|| ( u )", DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u"]))))),
+            ("|| ( u1 u2 )", DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"]))))),
             (
                 "^^ ( u1 u2 )",
                 DepSpec::ExactlyOneOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
@@ -127,9 +106,7 @@ mod tests {
                 DepSpec::ConditionalUse(
                     "u1".to_string(),
                     false,
-                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!([
-                        "u2", "u3"
-                    ]))))),
+                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u2", "u3"]))))),
                 ),
             ),
         ] {
