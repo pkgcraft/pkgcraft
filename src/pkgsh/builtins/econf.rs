@@ -62,7 +62,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             ("--infodir", format!("{}/usr/share/info", eprefix)),
             ("--datadir", format!("{}/usr/share", eprefix)),
             ("--sysconfdir", format!("{}/etc", eprefix)),
-            ("--localstatedir", format!("{}/etc", eprefix)),
+            ("--localstatedir", format!("{}/var/lib", eprefix)),
             ("--host", chost.clone()),
         ] {
             defaults.insert(opt, Some(val));
