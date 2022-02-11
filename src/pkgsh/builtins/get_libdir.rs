@@ -15,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
     }
-    write_flush!(stdout(), "{}", get_libdir());
+    write_flush!(stdout(), "{}", get_libdir(Some("lib")).unwrap());
     Ok(ExecStatus::Success)
 }
 

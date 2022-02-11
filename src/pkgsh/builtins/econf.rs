@@ -11,7 +11,7 @@ use scallop::variables::{expand, string_value};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
-use crate::pkgsh::utils::{configure, output_command};
+use crate::pkgsh::utils::{configure, get_libdir, output_command};
 use crate::pkgsh::BUILD_DATA;
 
 static CONFIG_OPT_RE: Lazy<Regex> =
@@ -29,14 +29,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         }
     }
 
-    let mut args_map = IndexMap::<&str, Option<String>>::new();
-    for arg in args {
-        match arg.split_once('=') {
-            None => args_map.insert(arg, None),
-            Some((opt, val)) => args_map.insert(opt, Some(val.to_string())),
-        };
-    }
+    // convert args into an indexed set so they can be easily merged with the default options
+    let args: IndexMap<&str, Option<String>> = args
+        .iter()
+        .map(|&s| {
+            s.split_once('=')
+                .map_or_else(|| (s, None), |(o, v)| (o, Some(v.to_string())))
+        })
+        .collect();
 
+    // parse `./configure --help` output to determine supported options
     let conf_help = Command::new(&configure)
         .arg("--help")
         .output()
@@ -55,7 +57,6 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let eprefix = env.get("EPREFIX").expect("$EPREFIX undefined");
         let chost = env.get("CHOST").expect("$CHOST undefined");
 
-        // TODO: add libdir setting
         for (opt, val) in [
             ("--prefix", format!("{}/usr", eprefix)),
             ("--mandir", format!("{}/usr/share/man", eprefix)),
@@ -66,6 +67,19 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             ("--host", chost.clone()),
         ] {
             defaults.insert(opt, Some(val));
+        }
+
+        if !args.contains_key("--libdir") {
+            if let Some(libdir) = get_libdir(None) {
+                let prefix = match args.get("--exec-prefix") {
+                    Some(Some(v)) => v.clone(),
+                    _ => match args.get("--prefix") {
+                        Some(Some(v)) => v.clone(),
+                        _ => format!("{}/usr", eprefix),
+                    },
+                };
+                defaults.insert("--libdir", Some(format!("{}/{}", prefix, libdir)));
+            }
         }
 
         for (opt, var) in [("build", "CBUILD"), ("target", "CTARGET")] {
@@ -85,8 +99,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         }
     });
 
+    // merge args over default options and then add them as command args
     let mut econf = Command::new(&configure);
-    defaults.extend(args_map.into_iter());
+    defaults.extend(args);
     for (opt, val) in defaults.iter() {
         match val {
             None => econf.arg(opt),

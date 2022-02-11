@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             &format!("infodir={}/usr/share/info", destdir),
             // Note that the additional complexity for determining libdir described in PMS is
             // ignored in favor of using the more modern and simple value from get_libdir().
-            &format!("libdir={}/usr/{}", destdir, get_libdir()),
+            &format!("libdir={}/usr/{}", destdir, get_libdir(Some("lib")).unwrap()),
             &format!("localstatedir={}/var/lib", destdir),
             &format!("sysconfdir={}/etc", destdir),
         ];
