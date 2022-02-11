@@ -1,3 +1,4 @@
+use std::io::stdout;
 use std::process::Command;
 
 use once_cell::sync::Lazy;
@@ -6,7 +7,7 @@ use scallop::variables::{string_value, string_vec};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, PHASE};
-use crate::pkgsh::utils::makefile_exists;
+use crate::pkgsh::utils::{makefile_exists, output_command};
 
 static LONG_DOC: &str = "Run the make command for a package.";
 
@@ -17,13 +18,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     let make_prog = string_value("MAKE").unwrap_or_else(|| String::from("make"));
-    let mut make = Command::new(make_prog);
+    let mut emake = Command::new(make_prog);
     if let Ok(opts) = string_vec("MAKEOPTS") {
-        make.args(&opts);
+        emake.args(&opts);
     }
-    make.args(args);
 
-    make.status().map_or_else(
+    emake.args(args);
+    output_command(stdout(), &emake);
+
+    emake.status().map_or_else(
         |e| Err(Error::Builtin(format!("failed running: {}", e))),
         |v| Ok(ExecStatus::from(v)),
     )
