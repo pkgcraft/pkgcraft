@@ -395,7 +395,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     phases: EAPI7.phases.clone(),
     incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
     econf_options: EAPI7.update_econf(&[
-        ("datarootdir", None, Some("${EPREFIX}/usr/share")),
+        ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
         ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
     ]),
 });
