@@ -152,6 +152,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg_attr(target_os = "macos", ignore)]
         fn configure_parsing() {
             let dir = tempdir().unwrap();
             let configure_ac = dir.path().join("configure.ac");
