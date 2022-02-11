@@ -101,12 +101,12 @@ impl<'a> PkgShell<'a> {
         BUILD_DATA.with(|d| -> Result<ExecStatus> {
             let phase = phase.as_ref();
             let eapi = d.borrow().eapi;
+            let mut phase_func = ScopedVariable::new("EBUILD_PHASE_FUNC");
 
             // enable phase builtins
             let _builtins = eapi.scoped_builtins(phase)?;
 
             if eapi.has("ebuild_phase_func") {
-                let mut phase_func = ScopedVariable::new("EBUILD_PHASE_FUNC");
                 phase_func.bind(phase, None, None)?;
             }
 
