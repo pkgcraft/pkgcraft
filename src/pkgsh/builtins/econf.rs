@@ -89,10 +89,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         // add EAPI specific options if found
         for (opt, (markers, val)) in d.borrow().eapi.econf_options() {
             if !known_opts.is_disjoint(markers) {
-                match val {
-                    None => defaults.insert(opt, None),
-                    Some(v) => defaults.insert(opt, Some(expand(v).unwrap())),
-                };
+                defaults.insert(opt, val.as_ref().map(|v| expand(v).unwrap()));
             }
         }
     });
