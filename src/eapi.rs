@@ -102,9 +102,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-type EapiEconfOptions = HashMap<String, (Regex, Option<String>)>;
+type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Eq, Clone)]
 pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
@@ -119,8 +119,6 @@ impl PartialEq for Eapi {
         self.id == other.id
     }
 }
-
-impl Eq for Eapi {}
 
 impl Hash for Eapi {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -170,6 +168,8 @@ impl IntoEapi for Option<&'static Eapi> {
         }
     }
 }
+
+type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 
 impl Eapi {
     /// Check if an EAPI has a given feature.
@@ -237,13 +237,16 @@ impl Eapi {
         keys
     }
 
-    fn update_econf(&self, updates: &[(&str, Option<&str>, Option<&str>)]) -> EapiEconfOptions {
+    fn update_econf(&self, updates: &[EconfUpdate]) -> EapiEconfOptions {
         let mut econf_options = self.econf_options.clone();
-        for (s, re_str, opt) in updates {
-            let re = Regex::new(&format!("^*--{}*$", re_str.unwrap_or(s))).unwrap();
-            let s = s.to_string();
-            let opt = opt.map(|s| s.to_string());
-            econf_options.insert(s, (re, opt));
+        for (opt, markers, val) in updates {
+            let markers = markers
+                .unwrap_or(&[opt])
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
+            let val = val.map(|s| s.to_string());
+            econf_options.insert(opt.to_string(), (markers, val));
         }
         econf_options
     }
@@ -343,7 +346,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("src_install", eapi4::src_install as PhaseFn),
     ]),
     incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
-    econf_options: EAPI3.update_econf(&[("disable-dependency-tracking", None, None)]),
+    econf_options: EAPI3.update_econf(&[("--disable-dependency-tracking", None, None)]),
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -358,7 +361,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
     ]),
     phases: EAPI4.phases.clone(),
     incremental_keys: EAPI4.incremental_keys.clone(),
-    econf_options: EAPI4.update_econf(&[("disable-silent-rules", None, None)]),
+    econf_options: EAPI4.update_econf(&[("--disable-silent-rules", None, None)]),
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -371,8 +374,12 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     ]),
     incremental_keys: EAPI5.incremental_keys.clone(),
     econf_options: EAPI5.update_econf(&[
-        ("docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
-        ("htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
+        ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
+        (
+            "--htmldir",
+            None,
+            Some("${EPREFIX}/usr/share/doc/${PF}/html"),
+        ),
     ]),
 });
 
@@ -382,7 +389,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
     options: EAPI6.update_options(&[("export_desttree", false), ("export_insdesttree", false)]),
     phases: EAPI6.phases.clone(),
     incremental_keys: EAPI6.update_keys(&["BDEPEND"]),
-    econf_options: EAPI6.update_econf(&[("with-sysroot", None, Some("${ESYSROOT:-/}"))]),
+    econf_options: EAPI6.update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))]),
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -393,7 +400,11 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
     econf_options: EAPI7.update_econf(&[
         ("datarootdir", None, Some("${EPREFIX}/usr/share")),
-        ("disable-static", Some("(dis|en)able-static"), None),
+        (
+            "--disable-static",
+            Some(&["--disable-static", "--enable-static"]),
+            None,
+        ),
     ]),
 });
 

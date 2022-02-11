@@ -46,6 +46,7 @@ tracing = "0.1"
 [dev-dependencies]
 criterion = "0.3"
 gag = "1.0.0"
+indoc = "1.0.3"
 maplit = "1.0.2"
 rusty-fork = "0.3.0"
 

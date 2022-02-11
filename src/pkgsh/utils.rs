@@ -1,6 +1,21 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use itertools::join;
 
 use scallop::variables::{expand, string_value};
+
+// Write the string representing a command to a given handle.
+pub(super) fn output_command<W: Write>(mut handle: W, cmd: &Command) {
+    write!(handle, "{}", cmd.get_program().to_string_lossy()).unwrap();
+    writeln!(
+        handle,
+        " {}",
+        join(cmd.get_args().map(|s| s.to_string_lossy()), " ")
+    )
+    .unwrap();
+}
 
 // Get the system libdir.
 pub(super) fn configure() -> PathBuf {
