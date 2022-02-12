@@ -14,9 +14,7 @@ use super::PkgBuiltin;
 use crate::pkgsh::utils::{configure, get_libdir, output_command};
 use crate::pkgsh::BUILD_DATA;
 
-static CONFIG_OPT_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)(=(?P<val>\w+))?").unwrap());
-
+static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
 static LONG_DOC: &str = "Run a package's configure script.";
 
 #[doc = stringify!(LONG_DOC)]
