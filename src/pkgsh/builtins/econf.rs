@@ -34,7 +34,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         .iter()
         .map(|&s| {
             s.split_once('=')
-                .map_or_else(|| (s, None), |(o, v)| (o, Some(v.to_string())))
+                .map_or_else(|| (s, None), |(o, v)| (o, Some(v.into())))
         })
         .collect();
 
@@ -132,12 +132,13 @@ mod tests {
     use std::process::{Command, Stdio};
 
     use gag::BufferRedirect;
-    use indexmap::IndexSet;
+    use indexmap::IndexMap;
     use indoc::indoc;
     use rusty_fork::rusty_fork_test;
+    use scallop::variables::{ScopedVariable, Variables};
     use tempfile::tempdir;
 
-    use super::{BUILTIN as econf, CONFIG_OPT_RE};
+    use super::BUILTIN as econf;
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
@@ -172,24 +173,28 @@ mod tests {
             let file = File::create(configure_ac).unwrap();
             env::set_current_dir(&dir).unwrap();
             write!(&file, "{}", CONFIGURE_AC).unwrap();
-            Command::new("autoreconf").arg("-i").stderr(Stdio::null()).status().unwrap();
+            Command::new("autoreconf")
+                .arg("-i")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .unwrap();
 
             let mut buf = BufferRedirect::stdout().unwrap();
-            let mut run = |args: &[&str]| -> (Vec<String>, IndexSet<String>) {
+            let mut run = |args: &[&str]| -> IndexMap<String, Option<String>> {
                 // TODO: Mock out command call in some fashion to capture params instead of
                 // actually running the configure script.
                 econf.run(args).unwrap();
                 let mut output = String::new();
                 buf.read_to_string(&mut output).unwrap();
-                let output: Vec<&str> = output.split('\n').collect();
-                let cmd: Vec<String> = output[0].split(' ').map(|s| s.to_string()).collect();
-                let mut opts = IndexSet::<String>::new();
-                for param in &cmd[1..] {
-                    for caps in CONFIG_OPT_RE.captures_iter(param) {
-                        opts.insert(caps["opt"].to_string());
-                    }
-                }
-                (cmd, opts)
+                let cmd: Vec<&str> = output.split('\n').next().unwrap().split(' ').collect();
+                cmd[1..]
+                    .iter()
+                    .map(|&s| {
+                        s.split_once('=')
+                            .map_or_else(|| (s.into(), None), |(o, v)| (o.into(), Some(v.into())))
+                    })
+                    .collect()
             };
 
             BUILD_DATA.with(|d| {
@@ -203,16 +208,35 @@ mod tests {
                 for eapi in econf.scope.keys() {
                     d.borrow_mut().eapi = eapi;
                     if !eapi.econf_options().is_empty() {
-                        let (_cmd, opts) = run(&[]);
+                        let opts = run(&[]);
                         let eapi_opts: Vec<&String> = eapi.econf_options().keys().collect();
-                        let cmd_opts: Vec<&String> = opts.iter().collect();
-                        assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len()-eapi_opts.len()..]);
+                        let cmd_opts: Vec<&String> = opts.keys().collect();
+                        assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len() - eapi_opts.len()..]);
                     }
                 }
 
-                for arg in ["--prefix=/dir", "CC=gcc"] {
-                    let (cmd, _opts) = run(&[arg]);
-                    assert!(cmd.contains(&arg.to_string()), "command missing argument: {}", arg);
+                // verify user args are respected
+                for (opt, expected) in [("--prefix", "/dir"), ("--libdir", "/dir"), ("CC", "gcc")] {
+                    let opts = run(&[&format!("{}={}", opt, expected)]);
+                    let val = opts.get(opt).unwrap().as_ref().unwrap();
+                    assert_eq!(val, expected);
+                }
+
+                // --libdir doesn't get passed if related variables are unset
+                let opts = run(&[]);
+                assert!(opts.get("--libdir").is_none());
+
+                // set required variables and verify --libdir
+                for (abi, libdir) in [("amd64", "lib64"), ("x86", "lib")] {
+                    // TODO: load this data from test profiles
+                    let mut abi_var = ScopedVariable::new("ABI");
+                    let mut libdir_var = ScopedVariable::new(format!("LIBDIR_{}", abi));
+                    abi_var.bind(abi, None, None).unwrap();
+                    libdir_var.bind(libdir, None, None).unwrap();
+
+                    let opts = run(&[]);
+                    let val = opts.get("--libdir").unwrap().as_ref().unwrap();
+                    assert_eq!(val, &format!("/eprefix/usr/{}", libdir));
                 }
             });
         }
