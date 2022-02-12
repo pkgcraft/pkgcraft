@@ -13,10 +13,22 @@ pub mod builtins;
 pub mod phases;
 pub mod utils;
 
+#[derive(Debug, Copy, Clone)]
+struct Pid {
+    inner: nix::unistd::Pid,
+}
+
+impl Default for Pid {
+    fn default() -> Self {
+        Pid { inner: nix::unistd::getpid() }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct BuildData {
     pub repo: String,
     pub eapi: &'static Eapi,
+    pid: Pid,
 
     // mapping of variables conditionally exported to the build environment
     pub env: HashMap<String, String>,
@@ -66,6 +78,10 @@ pub struct BuildData {
 }
 
 impl BuildData {
+    fn pid(&self) -> nix::unistd::Pid {
+        self.pid.inner
+    }
+
     pub fn get_deque(&mut self, name: &str) -> &mut VecDeque<String> {
         match name {
             "IUSE" => &mut self.iuse,
@@ -83,7 +99,7 @@ impl BuildData {
 }
 
 thread_local! {
-    pub static BUILD_DATA: RefCell<BuildData> = RefCell::new(Default::default());
+    pub static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::default());
 }
 
 pub struct PkgShell<'a> {

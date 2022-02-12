@@ -30,6 +30,7 @@ pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
         match ret {
             ExecStatus::Success => write_flush!(stdout(), "--{}-{}{}", enabled, opt, suffix),
             ExecStatus::Failure => write_flush!(stdout(), "--{}-{}{}", disabled, opt, suffix),
+            _ => (),
         }
         Ok(ret)
     })

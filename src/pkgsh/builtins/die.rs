@@ -1,5 +1,6 @@
 use std::sync::atomic::Ordering;
 
+use nix::{sys::signal, unistd::getpid};
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
@@ -35,10 +36,14 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         // TODO: output bash backtrace
 
-        // TODO: This should send SIGTERM to the entire process group and a signal handler should be
-        // used in the main process to catch that, longjmp back to the top level, and reset the library
-        // instead of terminating.
-        std::process::exit(1)
+        // TODO: send SIGTERM to background jobs (use jobs builtin)
+        let pid = d.borrow().pid();
+        if pid != getpid() {
+            // TODO: convert error types
+            signal::kill(pid, signal::Signal::SIGUSR1).expect("failed sending signal");
+        }
+
+        Ok(ExecStatus::Error)
     })
 }
 
@@ -57,11 +62,14 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 #[cfg(test)]
 mod tests {
     use super::super::assert_invalid_args;
-    use super::run as die;
+    use super::{run as die, BUILTIN};
     use crate::eapi::OFFICIAL_EAPIS;
     use crate::pkgsh::BUILD_DATA;
 
+    use nix::unistd::getpid;
     use rusty_fork::rusty_fork_test;
+    use scallop::{source, Shell};
+    use scallop::variables::*;
 
     rusty_fork_test! {
         #[test]
@@ -73,6 +81,28 @@ mod tests {
                     d.borrow_mut().eapi = eapi;
                     assert_invalid_args(die, &[2]);
                 }
+            });
+        }
+
+        #[test]
+        fn test_die() {
+            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+
+            BUILD_DATA.with(|d| {
+                // die in main process
+                bind("VAR", "1", None, None).unwrap();
+                assert_eq!(string_value("VAR").unwrap(), "1");
+                source::string("die && VAR=2").unwrap();
+                assert_eq!(string_value("VAR"), None);
+
+                // die in subshell
+                bind("VAR", "1", None, None).unwrap();
+                assert_eq!(string_value("VAR").unwrap(), "1");
+                source::string("VAR=$(die); VAR=2").unwrap();
+                assert_eq!(string_value("VAR"), None);
+
+                // verify the process hasn't changed
+                assert_eq!(d.borrow().pid(), getpid());
             });
         }
     }
