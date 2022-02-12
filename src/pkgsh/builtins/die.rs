@@ -62,15 +62,15 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, nonfatal};
     use super::{run as die, BUILTIN};
     use crate::eapi::OFFICIAL_EAPIS;
     use crate::pkgsh::BUILD_DATA;
 
     use nix::unistd::getpid;
     use rusty_fork::rusty_fork_test;
-    use scallop::{source, Shell};
     use scallop::variables::*;
+    use scallop::{source, Shell};
 
     rusty_fork_test! {
         #[test]
@@ -101,6 +101,34 @@ mod tests {
                 assert_eq!(string_value("VAR").unwrap(), "1");
                 source::string("VAR=$(die); VAR=2").unwrap();
                 assert_eq!(string_value("VAR"), None);
+
+                // verify the process hasn't changed
+                assert_eq!(d.borrow().pid(), getpid());
+            });
+        }
+
+        #[test]
+        fn nonfatal_die() {
+            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]));
+
+            BUILD_DATA.with(|d| {
+                // nonfatal requires `die -n` call
+                bind("VAR", "1", None, None).unwrap();
+                assert_eq!(string_value("VAR").unwrap(), "1");
+                source::string("nonfatal die && VAR=2").unwrap();
+                assert_eq!(string_value("VAR"), None);
+
+                // nonfatal die in main process
+                bind("VAR", "1", None, None).unwrap();
+                assert_eq!(string_value("VAR").unwrap(), "1");
+                source::string("nonfatal die -n && VAR=2").unwrap();
+                assert_eq!(string_value("VAR").unwrap(), "2");
+
+                // nonfatal die in subshell
+                bind("VAR", "1", None, None).unwrap();
+                assert_eq!(string_value("VAR").unwrap(), "1");
+                source::string("VAR=$(nonfatal die -n); VAR=2").unwrap();
+                assert_eq!(string_value("VAR").unwrap(), "2");
 
                 // verify the process hasn't changed
                 assert_eq!(d.borrow().pid(), getpid());
