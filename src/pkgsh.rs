@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::Path;
 
 use indexmap::IndexSet;
+use nix::{sys::signal, unistd::getpid};
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, Error, Result};
@@ -20,7 +21,7 @@ struct Pid {
 
 impl Default for Pid {
     fn default() -> Self {
-        Pid { inner: nix::unistd::getpid() }
+        Pid { inner: getpid() }
     }
 }
 
@@ -80,6 +81,14 @@ pub struct BuildData {
 impl BuildData {
     fn pid(&self) -> nix::unistd::Pid {
         self.pid.inner
+    }
+
+    fn subshell(&self) -> bool {
+        self.pid.inner != getpid()
+    }
+
+    fn kill<T: Into<Option<signal::Signal>>>(&self, signal: T) -> Result<()> {
+        signal::kill(self.pid(), signal.into()).map_err(|e| Error::Base(e.to_string()))
     }
 
     pub fn get_deque(&mut self, name: &str) -> &mut VecDeque<String> {

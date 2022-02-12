@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use nix::{sys::signal, unistd::getpid};
+use nix::sys::signal;
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
@@ -37,13 +37,14 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         // TODO: output bash backtrace
 
         // TODO: send SIGTERM to background jobs (use jobs builtin)
-        let pid = d.borrow().pid();
-        if pid != getpid() {
-            // TODO: convert error types
-            signal::kill(pid, signal::Signal::SIGUSR1).expect("failed sending signal");
+        let d = d.borrow();
+        match d.subshell() {
+            true => {
+                d.kill(signal::Signal::SIGUSR1)?;
+                std::process::exit(2);
+            }
+            false => Ok(ExecStatus::Error),
         }
-
-        Ok(ExecStatus::Error)
     })
 }
 
