@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use nix::sys::signal;
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
+use scallop::shell::{error, is_subshell, kill};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL, NONFATAL};
@@ -30,17 +31,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             n => return Err(Error::Builtin(format!("takes up to 1 arg, got {}", n))),
         };
 
-        if !args.is_empty() {
-            eprintln!("{}", args[0]);
-        }
+        let msg = match args.is_empty() {
+            true => "(no error message)",
+            false => args[0],
+        };
 
         // TODO: output bash backtrace
+        error(format!("die called: {}", msg))?;
 
         // TODO: send SIGTERM to background jobs (use jobs builtin)
-        let d = d.borrow();
-        match d.subshell() {
+        match is_subshell() {
             true => {
-                d.kill(signal::Signal::SIGUSR1)?;
+                kill(signal::Signal::SIGUSR1)?;
                 std::process::exit(2);
             }
             false => Ok(ExecStatus::Error),
@@ -65,6 +67,7 @@ mod tests {
     use super::super::{assert_invalid_args, nonfatal};
     use super::{run as die, BUILTIN};
     use crate::eapi::OFFICIAL_EAPIS;
+    use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
     use nix::unistd::getpid;
@@ -86,53 +89,69 @@ mod tests {
         }
 
         #[test]
-        fn test_die() {
-            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+        fn main() {
+            let sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+            bind("VAR", "1", None, None).unwrap();
 
-            BUILD_DATA.with(|d| {
-                // die in main process
-                bind("VAR", "1", None, None).unwrap();
-                assert_eq!(string_value("VAR").unwrap(), "1");
-                source::string("die && VAR=2").unwrap();
-                assert_eq!(string_value("VAR"), None);
+            assert_eq!(string_value("VAR").unwrap(), "1");
+            let r = source::string("die && VAR=2");
+            assert_err_re!(r, r"^die called: \(no error message\)");
 
-                // die in subshell
-                bind("VAR", "1", None, None).unwrap();
-                assert_eq!(string_value("VAR").unwrap(), "1");
-                source::string("VAR=$(die); VAR=2").unwrap();
-                assert_eq!(string_value("VAR"), None);
+            // verify bash state is reset
+            assert_eq!(string_value("VAR"), None);
 
-                // verify the process hasn't changed
-                assert_eq!(d.borrow().pid(), getpid());
-            });
+            // verify message output
+            let r = source::string("die \"output message\"");
+            assert_err_re!(r, r"^die called: output message");
+
+            // verify the process hasn't changed
+            assert_eq!(sh.pid(), &getpid());
         }
 
         #[test]
-        fn nonfatal_die() {
-            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]));
+        fn subshell() {
+            let sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+            bind("VAR", "1", None, None).unwrap();
 
-            BUILD_DATA.with(|d| {
-                // nonfatal requires `die -n` call
-                bind("VAR", "1", None, None).unwrap();
-                assert_eq!(string_value("VAR").unwrap(), "1");
-                source::string("nonfatal die && VAR=2").unwrap();
-                assert_eq!(string_value("VAR"), None);
+            assert_eq!(string_value("VAR").unwrap(), "1");
+            let r = source::string("VAR=$(die); VAR=2");
+            assert_err_re!(r, r"^die called: \(no error message\)");
 
-                // nonfatal die in main process
-                bind("VAR", "1", None, None).unwrap();
-                assert_eq!(string_value("VAR").unwrap(), "1");
-                source::string("nonfatal die -n && VAR=2").unwrap();
-                assert_eq!(string_value("VAR").unwrap(), "2");
+            // verify bash state is reset
+            assert_eq!(string_value("VAR"), None);
 
-                // nonfatal die in subshell
-                bind("VAR", "1", None, None).unwrap();
-                assert_eq!(string_value("VAR").unwrap(), "1");
-                source::string("VAR=$(nonfatal die -n); VAR=2").unwrap();
-                assert_eq!(string_value("VAR").unwrap(), "2");
+            // verify message output
+            let r = source::string("VAR=$(die \"output message\")");
+            assert_err_re!(r, r"^die called: output message");
 
-                // verify the process hasn't changed
-                assert_eq!(d.borrow().pid(), getpid());
-            });
+            // verify the process hasn't changed
+            assert_eq!(sh.pid(), &getpid());
+        }
+
+        #[test]
+        fn nonfatal() {
+            let sh = Shell::new("sh", Some(vec![&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]));
+
+            // nonfatal requires `die -n` call
+            bind("VAR", "1", None, None).unwrap();
+            assert_eq!(string_value("VAR").unwrap(), "1");
+            let r = source::string("nonfatal die && VAR=2");
+            assert_err_re!(r, r"^die called: \(no error message\)");
+
+            // nonfatal die in main process
+            bind("VAR", "1", None, None).unwrap();
+            assert_eq!(string_value("VAR").unwrap(), "1");
+            source::string("nonfatal die -n && VAR=2").unwrap();
+            assert_eq!(string_value("VAR").unwrap(), "2");
+
+            // nonfatal die in subshell
+            bind("VAR", "1", None, None).unwrap();
+            assert_eq!(string_value("VAR").unwrap(), "1");
+            source::string("VAR=$(nonfatal die -n); VAR=2").unwrap();
+            assert_eq!(string_value("VAR").unwrap(), "2");
+
+            // verify the process hasn't changed
+            assert_eq!(sh.pid(), &getpid());
         }
     }
 }
