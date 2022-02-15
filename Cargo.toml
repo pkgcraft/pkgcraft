@@ -42,6 +42,7 @@ thiserror = "1.0.26"
 tokio = { version = "1.14", features = ["full"] }
 toml = "0.5.8"
 tracing = "0.1"
+walkdir = "2"
 
 [dev-dependencies]
 criterion = "0.3"
