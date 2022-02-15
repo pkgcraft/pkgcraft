@@ -82,7 +82,6 @@ mod tests {
             let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
             bind("VAR", "1", None, None).unwrap();
 
-            assert_eq!(string_value("VAR").unwrap(), "1");
             let r = source::string("die && VAR=2");
             assert_err_re!(r, r"^die called: \(no error message\)");
 
@@ -100,7 +99,6 @@ mod tests {
             let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
             bind("VAR", "1", None, None).unwrap();
 
-            assert_eq!(string_value("VAR").unwrap(), "1");
             let r = source::string("VAR=$(die); VAR=2");
             assert_err_re!(r, r"^die called: \(no error message\)");
 
@@ -116,23 +114,20 @@ mod tests {
         #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn nonfatal() {
             let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]));
+            bind("VAR", "1", None, None).unwrap();
 
             // nonfatal requires `die -n` call
-            bind("VAR", "1", None, None).unwrap();
-            assert_eq!(string_value("VAR").unwrap(), "1");
             let r = source::string("nonfatal die && VAR=2");
             assert_err_re!(r, r"^die called: \(no error message\)");
 
             // nonfatal die in main process
             bind("VAR", "1", None, None).unwrap();
-            assert_eq!(string_value("VAR").unwrap(), "1");
             source::string("nonfatal die -n && VAR=2").unwrap();
             assert_eq!(string_value("VAR").unwrap(), "2");
 
             // nonfatal die in subshell
             bind("VAR", "1", None, None).unwrap();
-            assert_eq!(string_value("VAR").unwrap(), "1");
-            source::string("VAR=$(nonfatal die -n); VAR=2").unwrap();
+            source::string("FOO=$(nonfatal die -n); VAR=2").unwrap();
             assert_eq!(string_value("VAR").unwrap(), "2");
         }
     }
