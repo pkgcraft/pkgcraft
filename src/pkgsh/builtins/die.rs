@@ -1,9 +1,7 @@
 use std::sync::atomic::Ordering;
 
-use nix::sys::signal;
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
-use scallop::shell::{error, is_subshell, kill};
+use scallop::builtins::{raise_error, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL, NONFATAL};
@@ -36,17 +34,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             false => args[0],
         };
 
-        // TODO: output bash backtrace
-        error(format!("die called: {}", msg))?;
-
-        // TODO: send SIGTERM to background jobs (use jobs builtin)
-        match is_subshell() {
-            true => {
-                kill(signal::Signal::SIGUSR1)?;
-                std::process::exit(2);
-            }
-            false => Ok(ExecStatus::Error),
-        }
+        // TODO: add bash backtrace to output
+        raise_error(format!("die called: {}", msg))
     })
 }
 
@@ -70,7 +59,6 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
-    use nix::unistd::getpid;
     use rusty_fork::rusty_fork_test;
     use scallop::variables::*;
     use scallop::{source, Shell};
@@ -89,8 +77,9 @@ mod tests {
         }
 
         #[test]
+        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn main() {
-            let sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
             bind("VAR", "1", None, None).unwrap();
 
             assert_eq!(string_value("VAR").unwrap(), "1");
@@ -103,14 +92,12 @@ mod tests {
             // verify message output
             let r = source::string("die \"output message\"");
             assert_err_re!(r, r"^die called: output message");
-
-            // verify the process hasn't changed
-            assert_eq!(sh.pid(), &getpid());
         }
 
         #[test]
+        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn subshell() {
-            let sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
             bind("VAR", "1", None, None).unwrap();
 
             assert_eq!(string_value("VAR").unwrap(), "1");
@@ -123,14 +110,12 @@ mod tests {
             // verify message output
             let r = source::string("VAR=$(die \"output message\")");
             assert_err_re!(r, r"^die called: output message");
-
-            // verify the process hasn't changed
-            assert_eq!(sh.pid(), &getpid());
         }
 
         #[test]
+        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn nonfatal() {
-            let sh = Shell::new("sh", Some(vec![&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]));
+            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]));
 
             // nonfatal requires `die -n` call
             bind("VAR", "1", None, None).unwrap();
@@ -149,9 +134,6 @@ mod tests {
             assert_eq!(string_value("VAR").unwrap(), "1");
             source::string("VAR=$(nonfatal die -n); VAR=2").unwrap();
             assert_eq!(string_value("VAR").unwrap(), "2");
-
-            // verify the process hasn't changed
-            assert_eq!(sh.pid(), &getpid());
         }
     }
 }
