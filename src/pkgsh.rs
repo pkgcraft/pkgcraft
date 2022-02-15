@@ -5,7 +5,7 @@ use std::path::Path;
 use indexmap::IndexSet;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
-use scallop::{functions, Error, Result};
+use scallop::{functions, source, Error, Result};
 
 use crate::eapi::Eapi;
 
@@ -150,7 +150,7 @@ impl<'a> PkgShell<'a> {
                 opts.toggle(&["failglob"], &[])?;
             }
 
-            self.sh.source_file(&ebuild)?;
+            source::file(&ebuild)?;
 
             // TODO: export default for $S
 
