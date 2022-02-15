@@ -61,11 +61,13 @@ mod tests {
 
         #[test]
         fn success() {
+            let _sh = Shell::new("sh", None);
+
             // unset PIPESTATUS
             source::string("assert").unwrap();
 
             // successful pipeline
-            source::string("true | true ; assert").unwrap();
+            source::string("true | true; assert").unwrap();
         }
 
         #[test]
