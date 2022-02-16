@@ -1,44 +1,50 @@
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 use super::PkgBuiltin;
 
 static LONG_DOC: &str = "Apply patches to a package's source code.";
 
-type Patches = Vec<(Option<String>, Vec<String>)>;
+type Patches = Vec<(Option<PathBuf>, Vec<PathBuf>)>;
 
+// Predicate used to filter compatible patch files from an iterator.
+fn is_patch(entry: &DirEntry) -> bool {
+    let path = entry.path();
+    match path.is_dir() {
+        true => false,
+        false => path
+            .extension()
+            .map(|s| s == "diff" || s == "patch")
+            .unwrap_or(false),
+    }
+}
+
+// Find the patches contained in a given set of paths.
 fn find_patches(paths: &[&str]) -> Result<Patches> {
     let mut patches = Patches::new();
     for p in paths {
         let path = Path::new(p);
         if path.is_dir() {
-            let mut dir_patches = Vec::<String>::new();
-            for entry in WalkDir::new(path)
-                .sort_by(|a, b| a.file_name().cmp(b.file_name()))
+            let dir_patches: Vec<PathBuf> = WalkDir::new(&path)
+                .sort_by_file_name()
                 .into_iter()
                 .filter_map(|e| e.ok())
-            {
-                let file = entry.path();
-                let f = file
-                    .to_str()
-                    .ok_or_else(|| Error::Builtin(format!("invalid filename: {:?}", file)))?;
-                if f.ends_with(".diff") || f.ends_with(".patch") {
-                    dir_patches.push(f.to_string());
-                }
-            }
+                .filter(is_patch)
+                .map(|e| e.path().into())
+                .collect();
             if dir_patches.is_empty() {
                 return Err(Error::Builtin(format!("no patches in directory: {:?}", p)));
             }
-            patches.push((Some(p.to_string()), dir_patches));
+            patches.push((Some(path.into()), dir_patches));
         } else if path.exists() {
-            patches.push((None, vec![p.to_string()]));
+            patches.push((None, vec![path.into()]));
         } else {
             return Err(Error::Builtin(format!("nonexistent file: {}", p)));
         }
@@ -78,8 +84,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     let patches = find_patches(&files)?;
-    for (_path, files) in patches.iter() {
+    for (path, files) in patches.iter() {
+        let msg_prefix = match path {
+            None => "",
+            Some(p) => {
+                println!("Applying patches from {:?}", p);
+                "  "
+            }
+        };
+
         for f in files {
+            let name = f.file_name().unwrap().to_string_lossy();
+            match path {
+                None => println!("{}Applying {}...", msg_prefix, name),
+                _ => println!("{}{}...", msg_prefix, name),
+            }
             let data = File::open(f)
                 .map_err(|e| Error::Builtin(format!("failed reading patch {:?}: {}", f, e)))?;
             let output = Command::new("patch")
@@ -90,7 +109,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 .map_err(|e| Error::Builtin(format!("failed running patch: {}", e)))?;
             if !output.status.success() {
                 let error = str::from_utf8(&output.stdout).expect("failed decoding patch output");
-                return Err(Error::Builtin(format!("failed applying: {}\n{}", f, error)));
+                return Err(Error::Builtin(format!("failed applying: {}\n{}", name, error)));
             }
         }
     }
@@ -205,6 +224,37 @@ mod tests {
                 let args = [opts, vec!["file.patch"]].concat();
                 eapply(&args).unwrap();
             }
+        }
+
+        #[test]
+        fn dir() {
+            let file_content: &str = indoc! {"
+                0
+            "};
+            let patch0: &str = indoc! {"
+                --- a/file.txt
+                +++ a/file.txt
+                @@ -1 +1 @@
+                -0
+                +1
+            "};
+            let patch1: &str = indoc! {"
+                --- a/file.txt
+                +++ a/file.txt
+                @@ -1 +1 @@
+                -1
+                +2
+            "};
+
+            let dir = tempdir().unwrap();
+            env::set_current_dir(&dir).unwrap();
+            fs::write("file.txt", file_content).unwrap();
+            fs::create_dir("files").unwrap();
+            for (i, data) in [patch0, patch1].iter().enumerate() {
+                let file = format!("files/{}.patch", i);
+                fs::write(file, data).unwrap();
+            }
+            eapply(&["files"]).unwrap();
         }
     }
 }
