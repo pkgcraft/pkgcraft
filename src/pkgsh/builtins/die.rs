@@ -16,8 +16,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let args = match args.len() {
             1 | 2 if eapi.has("nonfatal_die") && args[0] == "-n" => {
-                let nonfatal = NONFATAL.load(Ordering::Relaxed);
-                if nonfatal {
+                if NONFATAL.load(Ordering::Relaxed) {
                     if args.len() == 2 {
                         eprintln!("{}", args[1]);
                     }
