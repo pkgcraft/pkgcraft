@@ -164,6 +164,13 @@ mod tests {
                 let r = eapply(&args);
                 assert_err_re!(r, format!("^nonexistent file: .*$"));
             }
+
+            // empty dir
+            let dir = tempdir().unwrap();
+            env::set_current_dir(&dir).unwrap();
+            fs::create_dir("files").unwrap();
+            let r = eapply(&["files"]);
+            assert_err_re!(r, format!("^no patches in directory: .*$"));
         }
 
         #[test]
