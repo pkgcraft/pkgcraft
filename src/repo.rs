@@ -13,7 +13,7 @@ mod fake;
 
 type VersionMap = HashMap<String, HashSet<String>>;
 type PkgMap = HashMap<String, VersionMap>;
-type StringIter<'a> = Box<dyn Iterator<Item = &'a String> + 'a>;
+type StringIter<'a> = Box<dyn Iterator<Item = &'a str> + 'a>;
 
 #[derive(Debug, Default)]
 struct PkgCache {
@@ -22,23 +22,23 @@ struct PkgCache {
 
 impl PkgCache {
     fn categories(&self) -> StringIter {
-        Box::new(self.pkgmap.keys())
+        Box::new(self.pkgmap.keys().map(|s| s.as_str()))
     }
 
     fn packages<S: AsRef<str>>(&self, cat: S) -> StringIter {
         match self.pkgmap.get(cat.as_ref()) {
-            Some(pkgs) => Box::new(pkgs.keys()),
-            None => Box::new(iter::empty::<&String>()),
+            Some(pkgs) => Box::new(pkgs.keys().map(|s| s.as_str())),
+            None => Box::new(iter::empty::<&str>()),
         }
     }
 
     fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> StringIter {
         match self.pkgmap.get(cat.as_ref()) {
             Some(pkgs) => match pkgs.get(pkg.as_ref()) {
-                Some(vers) => Box::new(vers.iter()),
-                None => Box::new(iter::empty::<&String>()),
+                Some(vers) => Box::new(vers.iter().map(|s| s.as_str())),
+                None => Box::new(iter::empty::<&str>()),
             },
-            None => Box::new(iter::empty::<&String>()),
+            None => Box::new(iter::empty::<&str>()),
         }
     }
 }

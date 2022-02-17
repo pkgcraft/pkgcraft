@@ -72,8 +72,8 @@ mod tests {
 
     use super::*;
 
-    fn iter_to_set<'a>(iter: Box<dyn Iterator<Item = &'a String> + '_>) -> HashSet<&'a str> {
-        iter.map(|s| s.as_str()).collect::<HashSet<&str>>()
+    fn iter_to_set<'a>(iter: Box<dyn Iterator<Item = &'a str> + '_>) -> HashSet<&'a str> {
+        iter.collect::<HashSet<&str>>()
     }
 
     #[test]

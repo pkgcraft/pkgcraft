@@ -30,7 +30,7 @@ static DOCS_DEFAULTS: &[&str] = &[
 // TODO: replace glob usage with native bash pathname expansion?
 // TODO: need to perform word expansion on each string as well
 fn expand_docs<S: AsRef<str>>(globs: &[S]) -> Result<Vec<String>> {
-    let mut args: Vec<String> = vec![];
+    let mut args = Vec::<String>::new();
     // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
         let paths = glob(f.as_ref()).map_err(|e| Error::Builtin(e.to_string()))?;

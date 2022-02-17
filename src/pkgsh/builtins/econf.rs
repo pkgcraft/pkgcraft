@@ -207,8 +207,8 @@ mod tests {
                     d.borrow_mut().eapi = eapi;
                     if !eapi.econf_options().is_empty() {
                         let opts = run(&[]);
-                        let eapi_opts: Vec<&String> = eapi.econf_options().keys().collect();
-                        let cmd_opts: Vec<&String> = opts.keys().collect();
+                        let eapi_opts: Vec<&str> = eapi.econf_options().keys().map(|s| s.as_str()).collect();
+                        let cmd_opts: Vec<&str> = opts.keys().map(|s| s.as_str()).collect();
                         assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len() - eapi_opts.len()..]);
                     }
                 }
