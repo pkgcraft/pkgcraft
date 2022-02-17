@@ -90,7 +90,7 @@ impl PkgBuiltin {
     }
 }
 
-pub(crate) type BuiltinsMap = HashMap<String, &'static PkgBuiltin>;
+pub(crate) type BuiltinsMap = HashMap<&'static str, &'static PkgBuiltin>;
 pub(crate) type ScopeBuiltinsMap = HashMap<String, BuiltinsMap>;
 pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, ScopeBuiltinsMap>;
 
@@ -160,7 +160,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
                     scope_map
                         .entry(scope.to_string())
                         .or_insert_with(BuiltinsMap::new)
-                        .insert(b.builtin.name.into(), b);
+                        .insert(b.builtin.name, b);
                 }
             }
         }

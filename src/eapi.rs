@@ -201,7 +201,7 @@ impl Eapi {
     }
 
     pub(crate) fn scoped_builtins<S: AsRef<str>>(&self, scope: S) -> Result<ScopedBuiltins> {
-        let builtins: Vec<&String> = self.builtins(scope)?.keys().collect();
+        let builtins: Vec<&str> = self.builtins(scope)?.keys().map(|&s| s).collect();
         Ok(ScopedBuiltins::new((&builtins, &[]))?)
     }
 
