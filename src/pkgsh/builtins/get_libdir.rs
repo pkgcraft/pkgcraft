@@ -1,12 +1,12 @@
-use std::io::{stdout, Write};
+use std::io::Write;
 
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL};
-use crate::macros::write_flush;
 use crate::pkgsh::utils::get_libdir;
+use crate::pkgsh::write_stdout;
 
 static LONG_DOC: &str = "Output the libdir name.";
 
@@ -15,7 +15,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
     }
-    write_flush!(stdout(), "{}", get_libdir(Some("lib")).unwrap());
+
+    let libdir = get_libdir(Some("lib")).unwrap();
+    write_stdout!("{}", libdir);
+
     Ok(ExecStatus::Success)
 }
 
@@ -33,15 +36,13 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
-
-    use super::super::assert_invalid_args;
-    use super::run as get_libdir;
-
-    use gag::BufferRedirect;
     use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
     use scallop::variables::*;
+
+    use super::super::assert_invalid_args;
+    use super::run as get_libdir;
+    use crate::pkgsh::assert_stdout;
 
     rusty_fork_test! {
         #[test]
@@ -51,22 +52,18 @@ mod tests {
 
         #[test]
         fn default() {
-            let mut buf = BufferRedirect::stdout().unwrap();
             let mut abi_var = Variable::new("ABI");
             for abi in [None, Some(""), Some("abi")] {
                 if let Some(val) = abi {
                     abi_var.bind(val, None, None).unwrap();
                 }
                 assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(output, "lib");
+                assert_stdout!("lib");
             }
         }
 
         #[test]
         fn abi() {
-            let mut buf = BufferRedirect::stdout().unwrap();
             let mut abi_var = Variable::new("ABI");
             for (abi, libdir) in [
                     ("abi1", "libabi1"),
@@ -75,9 +72,7 @@ mod tests {
                 abi_var.bind(abi, None, None).unwrap();
                 bind(format!("LIBDIR_{}", abi), libdir, None, None).unwrap();
                 assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(output, libdir);
+                assert_stdout!(libdir);
             }
         }
     }

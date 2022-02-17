@@ -1,11 +1,11 @@
-use std::io::{stdout, Write};
+use std::io::Write;
 
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{use_::run as use_, PkgBuiltin, PHASE};
-use crate::macros::write_flush;
+use crate::pkgsh::write_stdout;
 
 static LONG_DOC: &str = "\
 Tests if a given USE flag is enabled and outputs a string related to its status.";
@@ -26,8 +26,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     };
 
     match use_(flag)? {
-        ExecStatus::Success => write_flush!(stdout(), "{}{}", vals[1], vals[3]),
-        ExecStatus::Failure => write_flush!(stdout(), "{}{}", vals[2], vals[4]),
+        ExecStatus::Success => write_stdout!("{}{}", vals[1], vals[3]),
+        ExecStatus::Failure => write_stdout!("{}{}", vals[2], vals[4]),
         n => return Ok(n),
     }
 
@@ -48,15 +48,12 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
+    use rusty_fork::rusty_fork_test;
 
     use super::super::assert_invalid_args;
     use super::run as usex;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
-
-    use gag::BufferRedirect;
-    use rusty_fork::rusty_fork_test;
+    use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
     rusty_fork_test! {
         #[test]
@@ -73,7 +70,6 @@ mod tests {
         fn disabled() {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
-                let mut buf = BufferRedirect::stdout().unwrap();
                 for (args, expected) in [
                         (vec!["use"], "no"),
                         (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
@@ -81,9 +77,7 @@ mod tests {
                         (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
                         ] {
                     usex(&args).unwrap();
-                    let mut output = String::new();
-                    buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(output, expected);
+                    assert_stdout!(expected);
                 }
             });
         }
@@ -93,7 +87,6 @@ mod tests {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 d.borrow_mut().use_.insert("use".to_string());
-                let mut buf = BufferRedirect::stdout().unwrap();
                 for (args, expected) in [
                         (vec!["use"], "yes"),
                         (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
@@ -101,9 +94,7 @@ mod tests {
                         (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
                         ] {
                     usex(&args).unwrap();
-                    let mut output = String::new();
-                    buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(output, expected);
+                    assert_stdout!(expected);
                 }
             });
         }

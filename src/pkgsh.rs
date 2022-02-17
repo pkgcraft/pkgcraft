@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::Path;
+use std::{io, str};
 
 use indexmap::IndexSet;
 use scallop::builtins::{ExecStatus, ScopedOptions};
@@ -13,10 +14,91 @@ pub mod builtins;
 pub mod phases;
 pub mod utils;
 
-#[derive(Debug, Default)]
+struct Stdout {
+    #[cfg(not(test))]
+    inner: io::Stdout,
+    #[cfg(test)]
+    inner: io::Cursor<Vec<u8>>,
+}
+
+impl Default for Stdout {
+    fn default() -> Self {
+        #[cfg(not(test))]
+        let inner = io::stdout();
+        #[cfg(test)]
+        let inner = io::Cursor::new(vec![]);
+
+        Stdout { inner }
+    }
+}
+
+macro_rules! write_stdout {
+    ($($arg:tt)*) => {
+        crate::pkgsh::BUILD_DATA.with(|d| write!(d.borrow_mut().stdout.inner, $($arg)*).unwrap())
+    }
+}
+use write_stdout;
+
+#[cfg(test)]
+macro_rules! assert_stdout {
+    ($expected:expr) => {
+        crate::pkgsh::BUILD_DATA.with(|d| {
+            let mut d = d.borrow_mut();
+            let output = std::str::from_utf8(d.stdout.inner.get_ref()).unwrap();
+            assert_eq!(output, $expected);
+            d.stdout.inner = std::io::Cursor::new(vec![]);
+        })
+    };
+}
+#[cfg(test)]
+use assert_stdout;
+
+struct Stderr {
+    #[cfg(not(test))]
+    inner: io::Stderr,
+    #[cfg(test)]
+    inner: io::Cursor<Vec<u8>>,
+}
+
+impl Default for Stderr {
+    fn default() -> Self {
+        #[cfg(not(test))]
+        let inner = io::stderr();
+        #[cfg(test)]
+        let inner = io::Cursor::new(vec![]);
+
+        Stderr { inner }
+    }
+}
+
+macro_rules! write_stderr {
+    ($($arg:tt)*) => {
+        crate::pkgsh::BUILD_DATA.with(|d| write!(d.borrow_mut().stderr.inner, $($arg)*).unwrap())
+    }
+}
+use write_stderr;
+
+#[cfg(test)]
+macro_rules! assert_stderr {
+    ($expected:expr) => {
+        crate::pkgsh::BUILD_DATA.with(|d| {
+            let mut d = d.borrow_mut();
+            let output = std::str::from_utf8(d.stderr.inner.get_ref()).unwrap();
+            assert_eq!(output, $expected);
+            d.stderr.inner = std::io::Cursor::new(vec![]);
+        })
+    };
+}
+#[cfg(test)]
+use assert_stderr;
+
+#[derive(Default)]
 pub struct BuildData {
     pub repo: String,
     pub eapi: &'static Eapi,
+
+    stdout: Stdout,
+    stderr: Stderr,
 
     // mapping of variables conditionally exported to the build environment
     pub env: HashMap<String, String>,

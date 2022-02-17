@@ -1,12 +1,11 @@
-use std::io::{stdout, Write};
+use std::io::Write;
 
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{use_::run as use_, PkgBuiltin, PHASE};
-use crate::macros::write_flush;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::{write_stdout, BUILD_DATA};
 
 static LONG_DOC: &str = "\
 The same as use, but also prints the flag name if the condition is met.";
@@ -29,7 +28,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         let ret = use_(flag)?;
         if bool::from(&ret) {
-            write_flush!(stdout(), "{}", output);
+            write_stdout!("{}", output);
         }
 
         Ok(ret)
@@ -50,17 +49,14 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
+    use rusty_fork::rusty_fork_test;
+    use scallop::builtins::ExecStatus;
 
     use super::super::assert_invalid_args;
     use super::run as usev;
     use crate::eapi::OFFICIAL_EAPIS;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
-
-    use gag::BufferRedirect;
-    use rusty_fork::rusty_fork_test;
-    use scallop::builtins::ExecStatus;
+    use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
     rusty_fork_test! {
         #[test]
@@ -84,16 +80,13 @@ mod tests {
         fn disabled() {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
-                let mut buf = BufferRedirect::stdout().unwrap();
 
                 for (args, status, expected) in [
                         (&["use"], ExecStatus::Failure, ""),
                         (&["!use"], ExecStatus::Success, "use"),
                         ] {
                     assert_eq!(usev(args).unwrap(), status);
-                    let mut output = String::new();
-                    buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(output, expected);
+                    assert_stdout!(expected);
                 }
 
                 // check EAPIs that support two arg variant
@@ -104,9 +97,7 @@ mod tests {
                             (&["!use", "out"], ExecStatus::Success, "out"),
                             ] {
                         assert_eq!(usev(args).unwrap(), status);
-                        let mut output = String::new();
-                        buf.read_to_string(&mut output).unwrap();
-                        assert_eq!(output, expected);
+                        assert_stdout!(expected);
                     }
                 }
             });
@@ -118,15 +109,12 @@ mod tests {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 d.borrow_mut().use_.insert("use".to_string());
 
-                let mut buf = BufferRedirect::stdout().unwrap();
                 for (args, status, expected) in [
                         (&["use"], ExecStatus::Success, "use"),
                         (&["!use"], ExecStatus::Failure, ""),
                         ] {
                     assert_eq!(usev(args).unwrap(), status);
-                    let mut output = String::new();
-                    buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(output, expected);
+                    assert_stdout!(expected);
                 }
 
                 // check EAPIs that support two arg variant
@@ -137,9 +125,7 @@ mod tests {
                             (&["!use", "out"], ExecStatus::Failure, ""),
                             ] {
                         assert_eq!(usev(args).unwrap(), status);
-                        let mut output = String::new();
-                        buf.read_to_string(&mut output).unwrap();
-                        assert_eq!(output, expected);
+                        assert_stdout!(expected);
                     }
                 }
             });

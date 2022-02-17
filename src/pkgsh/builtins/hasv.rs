@@ -1,11 +1,11 @@
-use std::io::{stdout, Write};
+use std::io::Write;
 
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
 use super::{has::run as has, PkgBuiltin, ALL};
-use crate::macros::write_flush;
+use crate::pkgsh::write_stdout;
 
 static LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 
@@ -13,7 +13,7 @@ static LONG_DOC: &str = "The same as has, but also prints the first argument if 
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let ret = has(args)?;
     if bool::from(&ret) {
-        write_flush!(stdout(), "{}", args[0]);
+        write_stdout!("{}", args[0]);
     }
 
     Ok(ret)

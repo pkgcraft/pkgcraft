@@ -1,4 +1,4 @@
-use std::io::{stdout, Write};
+use std::io::Write;
 
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
@@ -6,7 +6,7 @@ use scallop::variables::string_value;
 use scallop::{Error, Result};
 
 use super::{parse, version_split, PkgBuiltin, ALL};
-use crate::macros::write_flush;
+use crate::pkgsh::write_stdout;
 
 static LONG_DOC: &str = "Perform string substitution on package version strings.";
 
@@ -45,7 +45,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             });
     }
 
-    write_flush!(stdout(), "{}", version_parts.join(""));
+    write_stdout!("{}", version_parts.join(""));
 
     Ok(ExecStatus::Success)
 }
@@ -64,16 +64,14 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
+    use rusty_fork::rusty_fork_test;
+    use scallop::builtins::ExecStatus;
+    use scallop::variables::*;
 
     use super::super::assert_invalid_args;
     use super::run as ver_rs;
     use crate::macros::assert_err_re;
-
-    use gag::BufferRedirect;
-    use rusty_fork::rusty_fork_test;
-    use scallop::builtins::ExecStatus;
-    use scallop::variables::*;
+    use crate::pkgsh::assert_stdout;
 
     rusty_fork_test! {
         #[test]
@@ -95,7 +93,6 @@ mod tests {
         #[test]
         fn output() {
             let mut pv = Variable::new("PV");
-            let mut buf = BufferRedirect::stdout().unwrap();
             for (mut args, expected) in [
                     (vec!["1", "-", "1.2.3"], "1-2.3"),
                     (vec!["2", "-", "1.2.3"], "1.2-3"),
@@ -114,17 +111,13 @@ mod tests {
                     (vec!["3-5", ".", "1.2.3"], "1.2.3"),
                     ] {
                 let r = ver_rs(&args).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(output, expected);
+                assert_stdout!(expected);
                 assert_eq!(r, ExecStatus::Success);
 
                 // test pulling version from $PV
                 pv.bind(args.pop().unwrap(), None, None).unwrap();
                 let r = ver_rs(&args).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(output, expected);
+                assert_stdout!(expected);
                 assert_eq!(r, ExecStatus::Success);
             }
         }

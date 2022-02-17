@@ -27,17 +27,14 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
+    use rusty_fork::rusty_fork_test;
+    use scallop::builtins::ExecStatus;
 
     use super::super::assert_invalid_args;
     use super::run as use_with;
     use crate::eapi::OFFICIAL_EAPIS;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
-
-    use gag::BufferRedirect;
-    use rusty_fork::rusty_fork_test;
-    use scallop::builtins::ExecStatus;
+    use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
     rusty_fork_test! {
         #[test]
@@ -61,7 +58,6 @@ mod tests {
         fn disabled() {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
-                let mut buf = BufferRedirect::stdout().unwrap();
 
                 assert!(use_with(&["!use"]).is_err());
                 for (args, status, expected) in [
@@ -70,9 +66,7 @@ mod tests {
                         (vec!["!use", "opt"], ExecStatus::Success, "--with-opt"),
                         ] {
                     assert_eq!(use_with(&args).unwrap(), status);
-                    let mut output = String::new();
-                    buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(output, expected);
+                    assert_stdout!(expected);
                 }
 
                 // check EAPIs that support three arg variant
@@ -83,9 +77,7 @@ mod tests {
                             (&["!use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
                             ] {
                         assert_eq!(use_with(args).unwrap(), status);
-                        let mut output = String::new();
-                        buf.read_to_string(&mut output).unwrap();
-                        assert_eq!(output, expected);
+                        assert_stdout!(expected);
                     }
                 }
             });
@@ -96,7 +88,6 @@ mod tests {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 d.borrow_mut().use_.insert("use".to_string());
-                let mut buf = BufferRedirect::stdout().unwrap();
 
                 assert!(use_with(&["!use"]).is_err());
                 for (args, status, expected) in [
@@ -105,9 +96,7 @@ mod tests {
                         (vec!["!use", "opt"], ExecStatus::Failure, "--without-opt"),
                         ] {
                     assert_eq!(use_with(&args).unwrap(), status);
-                    let mut output = String::new();
-                    buf.read_to_string(&mut output).unwrap();
-                    assert_eq!(output, expected);
+                    assert_stdout!(expected);
                 }
 
                 // check EAPIs that support three arg variant
@@ -118,9 +107,7 @@ mod tests {
                             (&["!use", "opt", "val"], ExecStatus::Failure, "--without-opt=val"),
                             ] {
                         assert_eq!(use_with(args).unwrap(), status);
-                        let mut output = String::new();
-                        buf.read_to_string(&mut output).unwrap();
-                        assert_eq!(output, expected);
+                        assert_stdout!(expected);
                     }
                 }
             });

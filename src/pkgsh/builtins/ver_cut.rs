@@ -1,5 +1,5 @@
 use std::cmp;
-use std::io::{stdout, Write};
+use std::io::Write;
 
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
@@ -7,7 +7,7 @@ use scallop::variables::string_value;
 use scallop::{Error, Result};
 
 use super::{parse, version_split, PkgBuiltin, ALL};
-use crate::macros::write_flush;
+use crate::pkgsh::write_stdout;
 
 static LONG_DOC: &str = "Output substring from package version string and range arguments.";
 
@@ -28,7 +28,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => cmp::min(n * 2 - 1, len),
     };
     let end_idx = cmp::min(end * 2, len);
-    write_flush!(stdout(), "{}", &version_parts[start_idx..end_idx].join(""));
+
+    write_stdout!("{}", &version_parts[start_idx..end_idx].join(""));
 
     Ok(ExecStatus::Success)
 }
@@ -47,16 +48,14 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
+    use rusty_fork::rusty_fork_test;
+    use scallop::builtins::ExecStatus;
+    use scallop::variables::*;
 
     use super::super::assert_invalid_args;
     use super::run as ver_cut;
     use crate::macros::assert_err_re;
-
-    use gag::BufferRedirect;
-    use rusty_fork::rusty_fork_test;
-    use scallop::builtins::ExecStatus;
-    use scallop::variables::*;
+    use crate::pkgsh::assert_stdout;
 
     rusty_fork_test! {
         #[test]
@@ -78,7 +77,6 @@ mod tests {
         #[test]
         fn output() {
             let mut pv = Variable::new("PV");
-            let mut buf = BufferRedirect::stdout().unwrap();
             for (rng, ver, expected) in [
                     ("1", "1.2.3", "1"),
                     ("1-1", "1.2.3", "1"),
@@ -99,17 +97,13 @@ mod tests {
                     ("4-", "1.2.3", ""),
                     ] {
                 let r = ver_cut(&[rng, ver]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(output, expected);
+                assert_stdout!(expected);
                 assert_eq!(r, ExecStatus::Success);
 
                 // test pulling version from $PV
                 pv.bind(ver, None, None).unwrap();
                 let r = ver_cut(&[rng]).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
-                assert_eq!(output, expected);
+                assert_stdout!(expected);
                 assert_eq!(r, ExecStatus::Success);
             }
         }

@@ -1,11 +1,10 @@
-use std::io::{stdout, Write};
+use std::io::Write;
 
 use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
 use super::use_::run as use_;
-use crate::macros::write_flush;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::{write_stdout, BUILD_DATA};
 
 // Underlying implementation for use_with and use_enable.
 pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<ExecStatus> {
@@ -28,8 +27,8 @@ pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
 
         let ret = use_(flag)?;
         match ret {
-            ExecStatus::Success => write_flush!(stdout(), "--{}-{}{}", enabled, opt, suffix),
-            ExecStatus::Failure => write_flush!(stdout(), "--{}-{}{}", disabled, opt, suffix),
+            ExecStatus::Success => write_stdout!("--{}-{}{}", enabled, opt, suffix),
+            ExecStatus::Failure => write_stdout!("--{}-{}{}", disabled, opt, suffix),
             _ => (),
         }
         Ok(ret)

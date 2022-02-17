@@ -39,14 +39,3 @@ macro_rules! vec_str {
     };
 }
 pub(crate) use vec_str;
-
-macro_rules! write_flush {
-    ($handle:expr, $($t:tt)*) => {
-        {
-            let mut h = $handle;
-            write!(h, $($t)* ).unwrap();
-            h.flush().unwrap();
-        }
-    }
-}
-pub(crate) use write_flush;
