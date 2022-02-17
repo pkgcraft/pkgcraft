@@ -3,18 +3,24 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Install documentation files.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
-    }
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+        let eapi = d.borrow().eapi;
+        let (_recursive, _args) = match args.first() {
+            None => return Err(Error::Builtin("requires 1 or more args, got 0".into())),
+            Some(&"-r") if eapi.has("dodoc_recursive") => (true, &args[1..]),
+            _ => (false, args),
+        };
 
-    // TODO: fill out this stub
+        // TODO: fill out this stub
 
-    Ok(ExecStatus::Success)
+        Ok(ExecStatus::Success)
+    })
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {

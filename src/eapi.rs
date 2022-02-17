@@ -53,6 +53,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
         // EAPI 4
 
+        // `dodoc -r` support
+        ("dodoc_recursive", false),
+
         // atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
         ("use_dep_defaults", false),
 
@@ -336,6 +339,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "4",
     parent: Some(&EAPI3),
     options: EAPI3.update_options(&[
+        ("dodoc_recursive", true),
         ("use_dep_defaults", true),
         ("required_use", true),
         ("rdepend_default", false),
