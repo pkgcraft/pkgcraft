@@ -113,7 +113,7 @@ mod tests {
                     (vec!["3-", ".", "1.2.3"], "1.2.3"),
                     (vec!["3-5", ".", "1.2.3"], "1.2.3"),
                     ] {
-                let r = ver_rs(args.as_slice()).unwrap();
+                let r = ver_rs(&args).unwrap();
                 let mut output = String::new();
                 buf.read_to_string(&mut output).unwrap();
                 assert_eq!(output, expected);
@@ -121,7 +121,7 @@ mod tests {
 
                 // test pulling version from $PV
                 pv.bind(args.pop().unwrap(), None, None).unwrap();
-                let r = ver_rs(args.as_slice()).unwrap();
+                let r = ver_rs(&args).unwrap();
                 let mut output = String::new();
                 buf.read_to_string(&mut output).unwrap();
                 assert_eq!(output, expected);

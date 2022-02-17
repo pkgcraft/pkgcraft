@@ -233,6 +233,6 @@ fn assert_invalid_args(func: ::scallop::builtins::BuiltinFn, nums: &[u32]) {
         let args: Vec<String> = (0..*n).map(|n| n.to_string()).collect();
         let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
         let re = format!("^.*, got {}", n);
-        crate::macros::assert_err_re!(func(args.as_slice()), re);
+        crate::macros::assert_err_re!(func(&args), re);
     }
 }

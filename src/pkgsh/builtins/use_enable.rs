@@ -69,7 +69,7 @@ mod tests {
                         (vec!["use", "opt"], ExecStatus::Failure, "--disable-opt"),
                         (vec!["!use", "opt"], ExecStatus::Success, "--enable-opt"),
                         ] {
-                    assert_eq!(use_enable(args.as_slice()).unwrap(), status);
+                    assert_eq!(use_enable(&args).unwrap(), status);
                     let mut output = String::new();
                     buf.read_to_string(&mut output).unwrap();
                     assert_eq!(output, expected);
@@ -104,7 +104,7 @@ mod tests {
                         (vec!["use", "opt"], ExecStatus::Success, "--enable-opt"),
                         (vec!["!use", "opt"], ExecStatus::Failure, "--disable-opt"),
                         ] {
-                    assert_eq!(use_enable(args.as_slice()).unwrap(), status);
+                    assert_eq!(use_enable(&args).unwrap(), status);
                     let mut output = String::new();
                     buf.read_to_string(&mut output).unwrap();
                     assert_eq!(output, expected);

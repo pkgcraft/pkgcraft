@@ -80,7 +80,7 @@ mod tests {
                         (vec!["!use"], "yes"),
                         (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
                         ] {
-                    usex(args.as_slice()).unwrap();
+                    usex(&args).unwrap();
                     let mut output = String::new();
                     buf.read_to_string(&mut output).unwrap();
                     assert_eq!(output, expected);
@@ -100,7 +100,7 @@ mod tests {
                         (vec!["!use"], "no"),
                         (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
                         ] {
-                    usex(args.as_slice()).unwrap();
+                    usex(&args).unwrap();
                     let mut output = String::new();
                     buf.read_to_string(&mut output).unwrap();
                     assert_eq!(output, expected);

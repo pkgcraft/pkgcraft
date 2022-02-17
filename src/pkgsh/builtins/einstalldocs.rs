@@ -67,7 +67,7 @@ pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
 
             let mut args: Vec<&str> = opts;
             args.extend(files.iter().map(|s| s.as_str()));
-            dodoc(args.as_slice())?;
+            dodoc(&args)?;
 
             // restore original docdesttree value
             d.borrow_mut().docdesttree = orig_docdestree;
