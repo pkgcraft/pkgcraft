@@ -53,7 +53,7 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
         // EAPI 4
 
-        // `dodoc -r` support
+        // recursive install support via `dodoc -r`
         ("dodoc_recursive", false),
 
         // atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
@@ -91,6 +91,9 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         ("global_failglob", false),
 
         // EAPI 8
+
+        // relative path support via `dosym -r`
+        ("dosym_relative", false),
 
         // SRC_URI supports fetch+ and mirror+ prefixes
         ("src_uri_unrestrict", false),
@@ -395,7 +398,11 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "8",
     parent: Some(&EAPI7),
-    options: EAPI7.update_options(&[("src_uri_unrestrict", true), ("usev_two_args", true)]),
+    options: EAPI7.update_options(&[
+        ("dosym_relative", true),
+        ("src_uri_unrestrict", true),
+        ("usev_two_args", true),
+    ]),
     phases: EAPI7.phases.clone(),
     incremental_keys: EAPI7.update_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"]),
     econf_options: EAPI7.update_econf(&[
