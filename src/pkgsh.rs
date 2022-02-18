@@ -11,6 +11,7 @@ use scallop::{functions, source, Error, Result};
 use crate::eapi::Eapi;
 
 pub mod builtins;
+mod install;
 pub(crate) mod phases;
 pub(crate) mod unescape;
 mod utils;

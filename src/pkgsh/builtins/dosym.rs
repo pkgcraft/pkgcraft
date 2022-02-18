@@ -1,8 +1,12 @@
+use std::path::PathBuf;
+
 use once_cell::sync::Lazy;
+use relative_path::RelativePath;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::pkgsh::install::create_link;
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Create symbolic links.";
@@ -11,13 +15,33 @@ static LONG_DOC: &str = "Create symbolic links.";
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
-        let (_relative, _source, _target) = match args.len() {
-            3 if args[0] == "-r" && eapi.has("dosym_relative") => (true, args[1], args[2]),
-            2 => (false, args[0], args[1]),
+        let (source, target) = match args.len() {
+            3 if args[0] == "-r" && eapi.has("dosym_relative") => {
+                let (source, target) = (PathBuf::from(args[1]), PathBuf::from(args[2]));
+                if !source.is_absolute() {
+                    return Err(Error::Builtin(format!(
+                        "`dosym -r` requires absolute source: {:?}",
+                        source
+                    )));
+                }
+                let mut parent = PathBuf::from("/");
+                if let Some(p) = target.parent() {
+                    parent.push(p)
+                }
+                let relpath = RelativePath::from_path(&parent)
+                    .map_err(|e| Error::Builtin(format!("invalid relative path: {}", e)))?;
+                (relpath.to_logical_path(source), target)
+            }
+            2 => (PathBuf::from(args[0]), PathBuf::from(args[1])),
             n => return Err(Error::Builtin(format!("requires 2 args, got {}", n))),
         };
 
-        // TODO: fill out this stub
+        // check for unsupported dir target arg -- https://bugs.gentoo.org/379899
+        if target.file_name().is_none() || (target.is_dir() && !target.is_symlink()) {
+            return Err(Error::Builtin(format!("missing filename target: {:?}", target)));
+        }
+
+        create_link(false, source, target)?;
 
         Ok(ExecStatus::Success)
     })
