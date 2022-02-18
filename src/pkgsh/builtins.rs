@@ -33,6 +33,7 @@ pub mod dosym;
 pub mod eapply;
 pub mod eapply_user;
 pub mod econf;
+pub mod einfo;
 pub mod einstall;
 pub mod einstalldocs;
 pub mod emake;
@@ -122,6 +123,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &eapply::BUILTIN,
         &eapply_user::BUILTIN,
         &econf::BUILTIN,
+        &einfo::BUILTIN,
         &einstalldocs::BUILTIN,
         &emake::BUILTIN,
         &einstall::BUILTIN,

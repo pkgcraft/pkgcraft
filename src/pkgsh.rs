@@ -11,8 +11,9 @@ use scallop::{functions, source, Error, Result};
 use crate::eapi::Eapi;
 
 pub mod builtins;
-pub mod phases;
-pub mod utils;
+pub(crate) mod phases;
+pub(crate) mod unescape;
+mod utils;
 
 struct Stdout {
     #[cfg(not(test))]
