@@ -18,11 +18,11 @@ impl Iterator for UnescapeString<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         self.s.next().map(|c| match c {
             '\\' => match self.s.next() {
-                None => Err(Error::EscapeAtEndOfString),
                 Some('n') => Ok('\n'),
                 Some('t') => Ok('\t'),
                 Some('\\') => Ok('\\'),
                 Some(c) => Err(Error::UnrecognizedEscape(format!(r"\{}", c))),
+                None => Err(Error::EscapeAtEndOfString),
             },
             c => Ok(c),
         })
@@ -31,7 +31,7 @@ impl Iterator for UnescapeString<'_> {
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
-    #[error("escape characater at the end of string")]
+    #[error("escape character at the end of string")]
     EscapeAtEndOfString,
     #[error("unrecognized escape: {0}")]
     UnrecognizedEscape(String),
