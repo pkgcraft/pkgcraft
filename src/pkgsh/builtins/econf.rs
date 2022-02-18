@@ -147,6 +147,21 @@ mod tests {
         AC_OUTPUT
     "};
 
+    fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
+        // TODO: Mock out command call in some fashion to capture params instead of
+        // actually running the configure script.
+        econf.run(args).unwrap();
+        let output = get_stdout!();
+        let cmd: Vec<&str> = output.split('\n').next().unwrap().split(' ').collect();
+        cmd[1..]
+            .iter()
+            .map(|&s| {
+                s.split_once('=')
+                    .map_or_else(|| (s.into(), None), |(o, v)| (o.into(), Some(v.into())))
+            })
+            .collect()
+    }
+
     rusty_fork_test! {
         #[test]
         fn nonexistent() {
@@ -177,21 +192,6 @@ mod tests {
                 .status()
                 .unwrap();
 
-            let run = |args: &[&str]| -> IndexMap<String, Option<String>> {
-                // TODO: Mock out command call in some fashion to capture params instead of
-                // actually running the configure script.
-                econf.run(args).unwrap();
-                let output = get_stdout!();
-                let cmd: Vec<&str> = output.split('\n').next().unwrap().split(' ').collect();
-                cmd[1..]
-                    .iter()
-                    .map(|&s| {
-                        s.split_once('=')
-                            .map_or_else(|| (s.into(), None), |(o, v)| (o.into(), Some(v.into())))
-                    })
-                    .collect()
-            };
-
             BUILD_DATA.with(|d| {
                 // TODO: add support for generating build state data for tests
                 d.borrow_mut().env.extend([
@@ -203,7 +203,7 @@ mod tests {
                 for eapi in econf.scope.keys() {
                     d.borrow_mut().eapi = eapi;
                     if !eapi.econf_options().is_empty() {
-                        let opts = run(&[]);
+                        let opts = get_opts(&[]);
                         let eapi_opts: Vec<&str> = eapi.econf_options().keys().map(|s| s.as_str()).collect();
                         let cmd_opts: Vec<&str> = opts.keys().map(|s| s.as_str()).collect();
                         assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len() - eapi_opts.len()..]);
@@ -212,13 +212,13 @@ mod tests {
 
                 // verify user args are respected
                 for (opt, expected) in [("--prefix", "/dir"), ("--libdir", "/dir"), ("CC", "gcc")] {
-                    let opts = run(&[&format!("{}={}", opt, expected)]);
+                    let opts = get_opts(&[&format!("{}={}", opt, expected)]);
                     let val = opts.get(opt).unwrap().as_ref().unwrap();
                     assert_eq!(val, expected);
                 }
 
                 // --libdir doesn't get passed if related variables are unset
-                let opts = run(&[]);
+                let opts = get_opts(&[]);
                 assert!(opts.get("--libdir").is_none());
 
                 // set required variables and verify --libdir
@@ -229,7 +229,7 @@ mod tests {
                     abi_var.bind(abi, None, None).unwrap();
                     libdir_var.bind(libdir, None, None).unwrap();
 
-                    let opts = run(&[]);
+                    let opts = get_opts(&[]);
                     let val = opts.get("--libdir").unwrap().as_ref().unwrap();
                     assert_eq!(val, &format!("/eprefix/usr/{}", libdir));
                 }
