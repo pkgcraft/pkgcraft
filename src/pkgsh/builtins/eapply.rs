@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
@@ -9,6 +10,7 @@ use scallop::{Error, Result};
 use walkdir::{DirEntry, WalkDir};
 
 use super::PkgBuiltin;
+use crate::pkgsh::write_stdout;
 
 static LONG_DOC: &str = "Apply patches to a package's source code.";
 
@@ -88,7 +90,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let msg_prefix = match path {
             None => "",
             Some(p) => {
-                println!("Applying patches from {:?}", p);
+                write_stdout!("Applying patches from {:?}\n", p);
                 "  "
             }
         };
@@ -96,8 +98,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         for f in files {
             let name = f.file_name().unwrap().to_string_lossy();
             match path {
-                None => println!("{}Applying {}...", msg_prefix, name),
-                _ => println!("{}{}...", msg_prefix, name),
+                None => write_stdout!("{}Applying {}...\n", msg_prefix, name),
+                _ => write_stdout!("{}{}...\n", msg_prefix, name),
             }
             let data = File::open(f)
                 .map_err(|e| Error::Builtin(format!("failed reading patch {:?}: {}", f, e)))?;

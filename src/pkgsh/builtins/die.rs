@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::sync::atomic::Ordering;
 
 use once_cell::sync::Lazy;
@@ -5,7 +6,7 @@ use scallop::builtins::{raise_error, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL, NONFATAL};
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::{write_stderr, BUILD_DATA};
 
 static LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
@@ -18,7 +19,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             1 | 2 if eapi.has("nonfatal_die") && args[0] == "-n" => {
                 if NONFATAL.load(Ordering::Relaxed) {
                     if args.len() == 2 {
-                        eprintln!("{}", args[1]);
+                        write_stderr!("{}\n", args[1]);
                     }
                     return Ok(ExecStatus::Failure);
                 }
