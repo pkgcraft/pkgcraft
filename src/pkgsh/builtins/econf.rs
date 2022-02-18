@@ -1,4 +1,3 @@
-use std::io::stdout;
 use std::process::Command;
 use std::str;
 
@@ -102,7 +101,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
     }
 
-    output_command(stdout(), &econf);
+    // TODO: replace inner usage if trait delegation makes it to stable
+    BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout.inner, &econf));
 
     econf.status().map_or_else(
         |e| Err(Error::Builtin(format!("failed running: {}", e))),
@@ -124,12 +124,11 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
     use std::fs::File;
-    use std::io::{prelude::*, Read};
+    use std::io::prelude::*;
     use std::process::{Command, Stdio};
+    use std::{env, str};
 
-    use gag::BufferRedirect;
     use indexmap::IndexMap;
     use indoc::indoc;
     use rusty_fork::rusty_fork_test;
@@ -138,7 +137,7 @@ mod tests {
 
     use super::BUILTIN as econf;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::{get_stdout, BUILD_DATA};
 
     static CONFIGURE_AC: &str = indoc! {"
         AC_INIT([pkgcraft], [0.0.1], [pkgcraft@pkgcraft.org])
@@ -178,13 +177,11 @@ mod tests {
                 .status()
                 .unwrap();
 
-            let mut buf = BufferRedirect::stdout().unwrap();
-            let mut run = |args: &[&str]| -> IndexMap<String, Option<String>> {
+            let run = |args: &[&str]| -> IndexMap<String, Option<String>> {
                 // TODO: Mock out command call in some fashion to capture params instead of
                 // actually running the configure script.
                 econf.run(args).unwrap();
-                let mut output = String::new();
-                buf.read_to_string(&mut output).unwrap();
+                let output = get_stdout!();
                 let cmd: Vec<&str> = output.split('\n').next().unwrap().split(' ').collect();
                 cmd[1..]
                     .iter()

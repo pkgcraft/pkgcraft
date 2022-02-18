@@ -1,4 +1,3 @@
-use std::io::stdout;
 use std::process::Command;
 
 use once_cell::sync::Lazy;
@@ -8,6 +7,7 @@ use scallop::{Error, Result};
 
 use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::utils::{makefile_exists, output_command};
+use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Run the make command for a package.";
 
@@ -24,7 +24,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     emake.args(args);
-    output_command(stdout(), &emake);
+    // TODO: replace inner usage if trait delegation makes it to stable
+    BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout.inner, &emake));
 
     emake.status().map_or_else(
         |e| Err(Error::Builtin(format!("failed running: {}", e))),

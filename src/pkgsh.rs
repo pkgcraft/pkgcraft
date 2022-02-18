@@ -41,14 +41,25 @@ macro_rules! write_stdout {
 use write_stdout;
 
 #[cfg(test)]
-macro_rules! assert_stdout {
-    ($expected:expr) => {
+macro_rules! get_stdout {
+    () => {
         crate::pkgsh::BUILD_DATA.with(|d| {
             let mut d = d.borrow_mut();
             let output = std::str::from_utf8(d.stdout.inner.get_ref()).unwrap();
-            assert_eq!(output, $expected);
+            let output = String::from(output);
             d.stdout.inner = std::io::Cursor::new(vec![]);
+            output
         })
+    };
+}
+#[cfg(test)]
+use get_stdout;
+
+#[cfg(test)]
+macro_rules! assert_stdout {
+    ($expected:expr) => {
+        let output = crate::pkgsh::get_stdout!();
+        assert_eq!(output, $expected);
     };
 }
 #[cfg(test)]
@@ -80,14 +91,25 @@ macro_rules! write_stderr {
 use write_stderr;
 
 #[cfg(test)]
-macro_rules! assert_stderr {
-    ($expected:expr) => {
+macro_rules! get_stderr {
+    () => {
         crate::pkgsh::BUILD_DATA.with(|d| {
             let mut d = d.borrow_mut();
             let output = std::str::from_utf8(d.stderr.inner.get_ref()).unwrap();
-            assert_eq!(output, $expected);
+            let output = String::from(output);
             d.stderr.inner = std::io::Cursor::new(vec![]);
+            output
         })
+    };
+}
+#[cfg(test)]
+use get_stderr;
+
+#[cfg(test)]
+macro_rules! assert_stderr {
+    ($expected:expr) => {
+        let output = crate::pkgsh::get_stderr!();
+        assert_eq!(output, $expected);
     };
 }
 #[cfg(test)]
