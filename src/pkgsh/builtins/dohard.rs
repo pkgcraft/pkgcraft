@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
@@ -12,7 +10,7 @@ static LONG_DOC: &str = "Create hard links.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (source, target) = match args.len() {
-        2 => (PathBuf::from(args[0]), PathBuf::from(args[1])),
+        2 => (args[0], args[1]),
         n => return Err(Error::Builtin(format!("requires 2 args, got {}", n))),
     };
 

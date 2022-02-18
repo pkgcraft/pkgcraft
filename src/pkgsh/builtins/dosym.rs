@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use relative_path::RelativePath;
@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (source, target) = match args.len() {
             3 if args[0] == "-r" && eapi.has("dosym_relative") => {
-                let (source, target) = (PathBuf::from(args[1]), PathBuf::from(args[2]));
+                let (source, target) = (Path::new(args[1]), Path::new(args[2]));
                 if !source.is_absolute() {
                     return Err(Error::Builtin(format!(
                         "`dosym -r` requires absolute source: {:?}",
@@ -32,7 +32,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                     .map_err(|e| Error::Builtin(format!("invalid relative path: {}", e)))?;
                 (relpath.to_logical_path(source), target)
             }
-            2 => (PathBuf::from(args[0]), PathBuf::from(args[1])),
+            2 => (PathBuf::from(args[0]), Path::new(args[1])),
             n => return Err(Error::Builtin(format!("requires 2 args, got {}", n))),
         };
 
@@ -41,7 +41,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             return Err(Error::Builtin(format!("missing filename target: {:?}", target)));
         }
 
-        create_link(false, source, target)?;
+        create_link(false, source.as_path(), target)?;
 
         Ok(ExecStatus::Success)
     })
