@@ -101,8 +101,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
     }
 
-    // TODO: replace inner usage if trait delegation makes it to stable
-    BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout.inner, &econf));
+    BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout(), &econf));
 
     econf.status().map_or_else(
         |e| Err(Error::Builtin(format!("failed running: {}", e))),

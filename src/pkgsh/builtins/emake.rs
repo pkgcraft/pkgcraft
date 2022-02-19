@@ -24,8 +24,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     emake.args(args);
-    // TODO: replace inner usage if trait delegation makes it to stable
-    BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout.inner, &emake));
+    BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout(), &emake));
 
     emake.status().map_or_else(
         |e| Err(Error::Builtin(format!("failed running: {}", e))),

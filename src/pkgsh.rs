@@ -172,7 +172,12 @@ pub struct BuildData {
 }
 
 impl BuildData {
-    pub fn get_deque(&mut self, name: &str) -> &mut VecDeque<String> {
+    // TODO: replace with direct field usage if trait delegation makes it to stable
+    fn stdout(&mut self) -> Box<dyn io::Write + '_> {
+        Box::new(&mut self.stdout.inner)
+    }
+
+    fn get_deque(&mut self, name: &str) -> &mut VecDeque<String> {
         match name {
             "IUSE" => &mut self.iuse,
             "REQUIRED_USE" => &mut self.required_use,
