@@ -1,6 +1,10 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
+#[cfg(not(test))]
+use std::io::Write;
 use std::path::Path;
+use std::process::Command;
 use std::{io, str};
 
 use indexmap::IndexSet;
@@ -15,6 +19,46 @@ mod install;
 pub(crate) mod phases;
 pub(crate) mod unescape;
 mod utils;
+
+fn get_cmd(cmd: &Command) -> Vec<Cow<str>> {
+    let mut args: Vec<Cow<str>> = vec![cmd.get_program().to_string_lossy()];
+    args.extend(cmd.get_args().map(|s| s.to_string_lossy()));
+    args
+}
+
+/// Support conversion from a given object into a Vec<T>.
+trait RunCommand {
+    /// Convert a given object into a Vec<&str>.
+    fn run(self) -> Result<ExecStatus>;
+}
+
+#[cfg(not(test))]
+impl RunCommand for Command {
+    fn run(mut self) -> Result<ExecStatus> {
+        write_stdout!("{}", get_cmd(&self).join(" "));
+        self.status().map_or_else(
+            |e| Err(Error::Builtin(format!("failed running: {e}"))),
+            |v| Ok(ExecStatus::from(v)),
+        )
+    }
+}
+
+#[cfg(test)]
+thread_local! {
+    static COMMANDS: RefCell<Vec<Vec<String>>> = RefCell::new(Default::default());
+}
+
+#[cfg(test)]
+impl RunCommand for Command {
+    fn run(self) -> Result<ExecStatus> {
+        let cmd = get_cmd(&self)
+            .into_iter()
+            .map(|s| String::from(s))
+            .collect();
+        COMMANDS.with(|cmds| cmds.borrow_mut().push(cmd));
+        Ok(ExecStatus::Success)
+    }
+}
 
 struct Stdout {
     #[cfg(not(test))]
@@ -172,11 +216,6 @@ pub struct BuildData {
 }
 
 impl BuildData {
-    // TODO: replace with direct field usage if trait delegation makes it to stable
-    fn stdout(&mut self) -> Box<dyn io::Write + '_> {
-        Box::new(&mut self.stdout.inner)
-    }
-
     fn get_deque(&mut self, name: &str) -> &mut VecDeque<String> {
         match name {
             "IUSE" => &mut self.iuse,

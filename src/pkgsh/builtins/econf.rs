@@ -10,8 +10,8 @@ use scallop::variables::{expand, string_value};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
-use crate::pkgsh::utils::{configure, get_libdir, output_command};
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::utils::{configure, get_libdir};
+use crate::pkgsh::{RunCommand, BUILD_DATA};
 
 static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
 static LONG_DOC: &str = "Run a package's configure script.";
@@ -101,12 +101,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
     }
 
-    BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout(), &econf));
-
-    econf.status().map_or_else(
-        |e| Err(Error::Builtin(format!("failed running: {e}"))),
-        |v| Ok(ExecStatus::from(v)),
-    )
+    econf.run()
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
@@ -136,7 +131,7 @@ mod tests {
 
     use super::BUILTIN as econf;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::{get_stdout, BUILD_DATA};
+    use crate::pkgsh::{BUILD_DATA, COMMANDS};
 
     static CONFIGURE_AC: &str = indoc! {"
         AC_INIT([pkgcraft], [0.0.1], [pkgcraft@pkgcraft.org])
@@ -150,11 +145,10 @@ mod tests {
         // TODO: Mock out command call in some fashion to capture params instead of
         // actually running the configure script.
         econf.run(args).unwrap();
-        let output = get_stdout!();
-        let cmd: Vec<&str> = output.split('\n').next().unwrap().split(' ').collect();
+        let cmd = COMMANDS.with(|cmds| cmds.borrow_mut().pop().unwrap_or(vec![]));
         cmd[1..]
             .iter()
-            .map(|&s| {
+            .map(|s| {
                 s.split_once('=')
                     .map_or_else(|| (s.into(), None), |(o, v)| (o.into(), Some(v.into())))
             })

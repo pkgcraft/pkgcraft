@@ -6,8 +6,8 @@ use scallop::variables::{string_value, string_vec};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, PHASE};
-use crate::pkgsh::utils::{makefile_exists, output_command};
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::utils::makefile_exists;
+use crate::pkgsh::RunCommand;
 
 static LONG_DOC: &str = "Run the make command for a package.";
 
@@ -24,12 +24,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     emake.args(args);
-    BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout(), &emake));
-
-    emake.status().map_or_else(
-        |e| Err(Error::Builtin(format!("failed running: {e}"))),
-        |v| Ok(ExecStatus::from(v)),
-    )
+    emake.run()
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
