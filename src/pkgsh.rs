@@ -3,9 +3,10 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 #[cfg(not(test))]
 use std::io::Write;
-use std::path::Path;
+use std::os::unix::fs::symlink;
+use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::{io, str};
+use std::{fs, io, str};
 
 use indexmap::IndexSet;
 use scallop::builtins::{ExecStatus, ScopedOptions};
@@ -15,7 +16,6 @@ use scallop::{functions, source, Error, Result};
 use crate::eapi::Eapi;
 
 pub mod builtins;
-mod install;
 pub(crate) mod phases;
 pub(crate) mod unescape;
 mod utils;
@@ -221,6 +221,60 @@ pub struct BuildData {
 }
 
 impl BuildData {
+    fn prefix<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        let path = path.as_ref();
+        let destdir = Path::new(
+            self.env
+                .get("ED")
+                .unwrap_or_else(|| self.env.get("D").expect("$D undefined")),
+        );
+        let path = path.strip_prefix("/").unwrap_or(path);
+        [destdir, path].iter().collect()
+    }
+
+    fn create_link<P: AsRef<Path>, Q: AsRef<Path>>(
+        &self,
+        hard: bool,
+        source: P,
+        target: Q,
+    ) -> Result<()> {
+        let (source, target) = (source.as_ref(), target.as_ref());
+        if let Some(parent) = target.parent() {
+            self.create_dirs(parent)?;
+        }
+
+        let link = match hard {
+            true => fs::hard_link,
+            false => symlink,
+        };
+
+        let failed = |e: io::Error| {
+            return Err(Error::Base(format!(
+                "failed creating link: {source:?} -> {target:?}: {e}"
+            )));
+        };
+
+        let target = self.prefix(target);
+
+        loop {
+            match link(source, &target) {
+                Ok(_) => break,
+                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                    fs::remove_file(&target).or_else(failed)?
+                }
+                Err(e) => return failed(e),
+            }
+        }
+
+        Ok(())
+    }
+
+    fn create_dirs<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        let path = path.as_ref();
+        fs::create_dir_all(path)
+            .map_err(|e| Error::Base(format!("failed creating dir: {path:?}: {e}")))
+    }
+
     fn get_deque(&mut self, name: &str) -> &mut VecDeque<String> {
         match name {
             "IUSE" => &mut self.iuse,

@@ -3,7 +3,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
-use crate::pkgsh::install::create_link;
+use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Create hard links.";
 
@@ -14,9 +14,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => return Err(Error::Builtin(format!("requires 2 args, got {n}"))),
     };
 
-    create_link(true, source, target)?;
-
-    Ok(ExecStatus::Success)
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+        d.borrow().create_link(true, source, target)?;
+        Ok(ExecStatus::Success)
+    })
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {

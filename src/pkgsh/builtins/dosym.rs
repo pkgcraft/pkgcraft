@@ -6,7 +6,6 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
-use crate::pkgsh::install::create_link;
 use crate::pkgsh::BUILD_DATA;
 
 static LONG_DOC: &str = "Create symbolic links.";
@@ -40,7 +39,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             return Err(Error::Builtin(format!("missing filename target: {target:?}")));
         }
 
-        create_link(false, source.as_path(), target)?;
+        d.borrow().create_link(false, source, target)?;
 
         Ok(ExecStatus::Success)
     })
