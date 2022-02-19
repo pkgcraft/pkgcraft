@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     let libdir = get_libdir(Some("lib")).unwrap();
-    write_stdout!("{}", libdir);
+    write_stdout!("{libdir}");
 
     Ok(ExecStatus::Success)
 }
@@ -70,7 +70,7 @@ mod tests {
                     ("abi2", "libabi2"),
                     ] {
                 abi_var.bind(abi, None, None).unwrap();
-                bind(format!("LIBDIR_{}", abi), libdir, None, None).unwrap();
+                bind(format!("LIBDIR_{abi}"), libdir, None, None).unwrap();
                 assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
                 assert_stdout!(libdir);
             }

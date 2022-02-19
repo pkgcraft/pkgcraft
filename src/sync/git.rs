@@ -23,7 +23,7 @@ impl Syncable for Repo {
             true => Ok(Syncer::Git(Repo {
                 uri: uri.to_string(),
             })),
-            false => Err(Error::RepoInit(format!("invalid git repo: {:?}", uri))),
+            false => Err(Error::RepoInit(format!("invalid git repo: {uri:?}"))),
         }
     }
 
@@ -55,7 +55,8 @@ impl Syncable for Repo {
     }
 }
 
-fn do_clone(url: &str, path: &Path) -> Result<git2::Repository, git2::Error> {
+fn do_clone<P: AsRef<Path>>(url: &str, path: P) -> Result<git2::Repository, git2::Error> {
+    let path = path.as_ref();
     let mut cb = git2::RemoteCallbacks::new();
 
     // show transfer progress

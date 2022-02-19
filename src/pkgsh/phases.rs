@@ -23,7 +23,7 @@ pub(super) fn emake_install() -> Result<ExecStatus> {
             let env = &d.borrow().env;
             #[allow(non_snake_case)]
             let D = env.get("D").expect("D undefined");
-            let destdir = format!("DESTDIR={}", D);
+            let destdir = format!("DESTDIR={D}");
             let args = &[destdir.as_str(), "install"];
             emake(args)
         })?;

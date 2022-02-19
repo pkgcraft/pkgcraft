@@ -16,15 +16,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             .get("ED")
             .unwrap_or_else(|| env.get("D").expect("$D undefined"));
         let paths: &[&str] = &[
-            &format!("prefix={}/usr", destdir),
-            &format!("datadir={}/usr/share", destdir),
-            &format!("mandir={}/usr/share/man", destdir),
-            &format!("infodir={}/usr/share/info", destdir),
+            &format!("prefix={destdir}/usr"),
+            &format!("datadir={destdir}/usr/share"),
+            &format!("mandir={destdir}/usr/share/man"),
+            &format!("infodir={destdir}/usr/share/info"),
             // Note that the additional complexity for determining libdir described in PMS is
             // ignored in favor of using the more modern and simple value from get_libdir().
-            &format!("libdir={}/usr/{}", destdir, get_libdir(Some("lib")).unwrap()),
-            &format!("localstatedir={}/var/lib", destdir),
-            &format!("sysconfdir={}/etc", destdir),
+            &format!("libdir={destdir}/usr/{}", get_libdir(Some("lib")).unwrap()),
+            &format!("localstatedir={destdir}/var/lib"),
+            &format!("sysconfdir={destdir}/etc"),
         ];
 
         let args = &[paths, &["-j1"], args, &["install"]].concat();

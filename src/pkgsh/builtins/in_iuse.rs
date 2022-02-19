@@ -12,7 +12,7 @@ Returns success if the USE flag argument is found in IUSE_EFFECTIVE, failure oth
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let flag = match args.len() {
         1 => args[0],
-        n => return Err(Error::Builtin(format!("requires 1 arg, got {}", n))),
+        n => return Err(Error::Builtin(format!("requires 1 arg, got {n}"))),
     };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {

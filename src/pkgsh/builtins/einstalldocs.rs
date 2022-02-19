@@ -48,7 +48,7 @@ pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
     let (defaults, docdesttree) = match var {
         "DOCS" => (Some(DOCS_DEFAULTS), ""),
         "HTML_DOCS" => (None, "html"),
-        _ => return Err(Error::Builtin(format!("unknown variable: {}", var))),
+        _ => return Err(Error::Builtin(format!("unknown variable: {var}"))),
     };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {

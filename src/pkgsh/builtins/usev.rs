@@ -23,12 +23,12 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 true => (&args[..1], args[1]),
                 false => return Err(Error::Builtin("requires 1 arg, got 2".into())),
             },
-            n => return Err(Error::Builtin(format!("requires 1 or 2 args, got {}", n))),
+            n => return Err(Error::Builtin(format!("requires 1 or 2 args, got {n}"))),
         };
 
         let ret = use_(flag)?;
         if bool::from(&ret) {
-            write_stdout!("{}", output);
+            write_stdout!("{output}");
         }
 
         Ok(ret)

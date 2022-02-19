@@ -20,8 +20,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 let (source, target) = (Path::new(args[1]), Path::new(args[2]));
                 if !source.is_absolute() {
                     return Err(Error::Builtin(format!(
-                        "`dosym -r` requires absolute source: {:?}",
-                        source
+                        "`dosym -r` requires absolute source: {source:?}",
                     )));
                 }
                 let mut parent = PathBuf::from("/");
@@ -29,16 +28,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                     parent.push(p)
                 }
                 let relpath = RelativePath::from_path(&parent)
-                    .map_err(|e| Error::Builtin(format!("invalid relative path: {}", e)))?;
+                    .map_err(|e| Error::Builtin(format!("invalid relative path: {e}")))?;
                 (relpath.to_logical_path(source), target)
             }
             2 => (PathBuf::from(args[0]), Path::new(args[1])),
-            n => return Err(Error::Builtin(format!("requires 2 args, got {}", n))),
+            n => return Err(Error::Builtin(format!("requires 2 args, got {n}"))),
         };
 
         // check for unsupported dir target arg -- https://bugs.gentoo.org/379899
         if target.file_name().is_none() || (target.is_dir() && !target.is_symlink()) {
-            return Err(Error::Builtin(format!("missing filename target: {:?}", target)));
+            return Err(Error::Builtin(format!("missing filename target: {target:?}")));
         }
 
         create_link(false, source.as_path(), target)?;

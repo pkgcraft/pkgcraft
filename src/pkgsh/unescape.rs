@@ -21,7 +21,7 @@ impl Iterator for UnescapeString<'_> {
                 Some('n') => Ok('\n'),
                 Some('t') => Ok('\t'),
                 Some('\\') => Ok('\\'),
-                Some(c) => Err(Error::UnrecognizedEscape(format!(r"\{}", c))),
+                Some(c) => Err(Error::UnrecognizedEscape(format!(r"\{c}"))),
                 None => Err(Error::EscapeAtEndOfString),
             },
             c => Ok(c),

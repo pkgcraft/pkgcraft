@@ -42,7 +42,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             }
 
             eclass_var.bind(&eclass, None, None)?;
-            source::file(&format!("{}/eclass/{}.eclass", d.borrow().repo, &eclass)).unwrap();
+            source::file(&format!("{}/eclass/{eclass}.eclass", d.borrow().repo)).unwrap();
 
             let mut d = d.borrow_mut();
             // append metadata keys that incrementally accumulate
@@ -53,7 +53,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 }
             }
 
-            inherited_var.append(&format!(" {}", &eclass))?;
+            inherited_var.append(&format!(" {eclass}"))?;
             d.inherited.insert(eclass);
         }
 

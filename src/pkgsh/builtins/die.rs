@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 &args[1..]
             }
             0 | 1 => args,
-            n => return Err(Error::Builtin(format!("takes up to 1 arg, got {}", n))),
+            n => return Err(Error::Builtin(format!("takes up to 1 arg, got {n}"))),
         };
 
         let msg = match args.is_empty() {
@@ -35,7 +35,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
 
         // TODO: add bash backtrace to output
-        raise_error(format!("die called: {}", msg))
+        raise_error(format!("die called: {msg}"))
     })
 }
 

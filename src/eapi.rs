@@ -182,7 +182,7 @@ impl Eapi {
     pub fn has(&self, opt: &str) -> bool {
         match self.options.get(opt) {
             Some(value) => *value,
-            None => panic!("unknown EAPI option {:?}", opt),
+            None => panic!("unknown EAPI option {opt:?}"),
         }
     }
 
@@ -203,7 +203,7 @@ impl Eapi {
             .get(self)
             .unwrap()
             .get(scope)
-            .ok_or_else(|| Error::Eapi(format!("EAPI {}, unknown scope: {}", self.id, scope)))
+            .ok_or_else(|| Error::Eapi(format!("EAPI {}, unknown scope: {scope}", self.id)))
     }
 
     pub(crate) fn scoped_builtins<S: AsRef<str>>(&self, scope: S) -> Result<ScopedBuiltins> {
@@ -225,7 +225,7 @@ impl Eapi {
         let mut options = self.options.clone();
         for (key, val) in updates.iter() {
             if options.insert(key, *val).is_none() {
-                panic!("option missing default: {:?}", key);
+                panic!("option missing default: {key:?}");
             }
         }
         options
@@ -269,8 +269,8 @@ pub fn get_eapi(id: &str) -> Result<&'static Eapi> {
     match KNOWN_EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
         None => match VALID_EAPI_RE.is_match(id) {
-            true => Err(Error::Eapi(format!("unknown EAPI: {:?}", id))),
-            false => Err(Error::Eapi(format!("invalid EAPI: {:?}", id))),
+            true => Err(Error::Eapi(format!("unknown EAPI: {id:?}"))),
+            false => Err(Error::Eapi(format!("invalid EAPI: {id:?}"))),
         },
     }
 }
@@ -485,7 +485,7 @@ mod tests {
     #[test]
     fn test_fmt() {
         for (id, eapi) in KNOWN_EAPIS.iter() {
-            assert_eq!(format!("{}", eapi), format!("{}", id));
+            assert_eq!(format!("{eapi}"), format!("{id}"));
         }
     }
 
@@ -495,12 +495,12 @@ mod tests {
         atom = EAPI0.atom("cat/pkg").unwrap();
         assert_eq!(atom.category, "cat");
         assert_eq!(atom.package, "pkg");
-        assert_eq!(format!("{}", atom), "cat/pkg");
+        assert_eq!(format!("{atom}"), "cat/pkg");
 
         atom = EAPI1.atom("cat/pkg:0").unwrap();
         assert_eq!(atom.category, "cat");
         assert_eq!(atom.package, "pkg");
         assert_eq!(atom.slot.as_ref().unwrap(), "0");
-        assert_eq!(format!("{}", atom), "cat/pkg:0");
+        assert_eq!(format!("{atom}"), "cat/pkg:0");
     }
 }

@@ -94,7 +94,7 @@ impl Atom {
     }
 
     pub fn fullver(&self) -> Option<String> {
-        self.version.as_ref().map(|ver| format!("{}", ver))
+        self.version.as_ref().map(|ver| format!("{ver}"))
     }
 
     pub fn key(&self) -> String {
@@ -103,7 +103,7 @@ impl Atom {
 
     pub fn cpv(&self) -> String {
         match &self.version {
-            Some(ver) => format!("{}/{}-{}", self.category, self.package, ver),
+            Some(ver) => format!("{}/{}-{ver}", self.category, self.package),
             None => format!("{}/{}", self.category, self.package),
         }
     }
@@ -115,7 +115,7 @@ impl fmt::Display for Atom {
 
         // append blocker
         if let Some(block) = &self.block {
-            s.push_str(&format!("{}", block));
+            s.push_str(&format!("{block}"));
         }
 
         // append operator and version
@@ -133,11 +133,11 @@ impl fmt::Display for Atom {
         // append slot data
         match (&self.slot, &self.subslot, &self.slot_op) {
             (Some(slot), Some(subslot), Some(op)) => {
-                s.push_str(&format!(":{}/{}{}", slot, subslot, op))
+                s.push_str(&format!(":{slot}/{subslot}{op}"))
             }
-            (Some(slot), Some(subslot), None) => s.push_str(&format!(":{}/{}", slot, subslot)),
-            (Some(slot), None, Some(op)) => s.push_str(&format!(":{}{}", slot, op)),
-            (Some(x), None, None) | (None, None, Some(x)) => s.push_str(&format!(":{}", x)),
+            (Some(slot), Some(subslot), None) => s.push_str(&format!(":{slot}/{subslot}")),
+            (Some(slot), None, Some(op)) => s.push_str(&format!(":{slot}{op}")),
+            (Some(x), None, None) | (None, None, Some(x)) => s.push_str(&format!(":{x}")),
             _ => (),
         }
 
@@ -148,10 +148,10 @@ impl fmt::Display for Atom {
 
         // append repo
         if let Some(repo) = &self.repo {
-            s.push_str(&format!("::{}", repo));
+            s.push_str(&format!("::{repo}"));
         }
 
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -217,7 +217,7 @@ mod tests {
             "!!<cat/pkg-4",
         ] {
             atom = Atom::from_str(&s).unwrap();
-            assert_eq!(format!("{}", atom), s);
+            assert_eq!(format!("{atom}"), s);
         }
     }
 
@@ -317,7 +317,7 @@ mod tests {
                 .map(|s| Atom::from_str(s).unwrap())
                 .collect();
             atoms.sort();
-            let sorted: Vec<String> = atoms.iter().map(|v| format!("{}", v)).collect();
+            let sorted: Vec<String> = atoms.iter().map(|v| format!("{v}")).collect();
             assert_eq!(sorted.join(" "), expected);
         }
     }

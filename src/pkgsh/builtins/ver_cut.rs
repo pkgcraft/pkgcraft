@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (range, ver) = match args.len() {
         1 => (args[0], pv.as_str()),
         2 => (args[0], args[1]),
-        n => return Err(Error::Builtin(format!("requires 1 or 2 args, got {}", n))),
+        n => return Err(Error::Builtin(format!("requires 1 or 2 args, got {n}"))),
     };
 
     let version_parts = version_split(ver);

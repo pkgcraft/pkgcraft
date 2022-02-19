@@ -20,7 +20,7 @@ pub(super) fn configure() -> PathBuf {
 // Get the system libdir.
 pub(super) fn get_libdir(default: Option<&str>) -> Option<String> {
     if let Some(abi) = string_value("ABI") {
-        if let Some(val) = string_value(format!("LIBDIR_{}", abi)) {
+        if let Some(val) = string_value(format!("LIBDIR_{abi}")) {
             return Some(val);
         }
     }

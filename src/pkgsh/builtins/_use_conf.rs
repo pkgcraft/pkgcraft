@@ -22,13 +22,13 @@ pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
                 true => (&args[..1], args[1], format!("={}", args[2])),
                 false => return Err(Error::Builtin("requires 1 or 2 args, got 3".into())),
             },
-            n => return Err(Error::Builtin(format!("requires 1, 2, or 3 args, got {}", n))),
+            n => return Err(Error::Builtin(format!("requires 1, 2, or 3 args, got {n}"))),
         };
 
         let ret = use_(flag)?;
         match ret {
-            ExecStatus::Success => write_stdout!("--{}-{}{}", enabled, opt, suffix),
-            ExecStatus::Failure => write_stdout!("--{}-{}{}", disabled, opt, suffix),
+            ExecStatus::Success => write_stdout!("--{enabled}-{opt}{suffix}"),
+            ExecStatus::Failure => write_stdout!("--{disabled}-{opt}{suffix}"),
             _ => (),
         }
         Ok(ret)

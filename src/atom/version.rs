@@ -25,7 +25,7 @@ impl FromStr for Suffix {
             "pre" => Ok(Suffix::Pre),
             "rc" => Ok(Suffix::Rc),
             "p" => Ok(Suffix::P),
-            _ => Err(Error::InvalidValue(format!("invalid suffix: {}", s))),
+            _ => Err(Error::InvalidValue(format!("invalid suffix: {s}"))),
         }
     }
 }
@@ -42,7 +42,7 @@ impl FromStr for Revision {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let int: u64 = s
             .parse()
-            .map_err(|e| Error::InvalidValue(format!("invalid revision: {}: {}", e, s)))?;
+            .map_err(|e| Error::InvalidValue(format!("invalid revision: {e}: {s}")))?;
         Ok(Revision {
             value: Some(s.to_string()),
             int,
@@ -95,7 +95,7 @@ impl PartialOrd for Revision {
 impl fmt::Display for Revision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.value {
-            Some(s) => write!(f, "-r{}", s),
+            Some(s) => write!(f, "-r{s}"),
             None => Ok(()),
         }
     }
@@ -117,7 +117,7 @@ impl ParsedVersion<'_> {
         for s in self.numbers.iter() {
             let num = s
                 .parse()
-                .map_err(|e| Error::InvalidValue(format!("invalid version: {}: {}", e, s)))?;
+                .map_err(|e| Error::InvalidValue(format!("invalid version: {e}: {s}")))?;
             numbers.push((s.to_string(), num));
         }
 
@@ -128,7 +128,7 @@ impl ParsedVersion<'_> {
                 let num = match v {
                     None => None,
                     Some(x) => Some(x.parse().map_err(|e| {
-                        Error::InvalidValue(format!("invalid version: {}: {}", e, x))
+                        Error::InvalidValue(format!("invalid version: {e}: {x}"))
                     })?),
                 };
                 suffixes.push((suffix, num));
@@ -248,7 +248,7 @@ mod tests {
     fn test_from_str() {
         for s in ["0", "0-r0", "1_alpha5-r1", "1.001.100r_beta1_p2"] {
             let ver = Version::from_str(s).unwrap();
-            assert_eq!(format!("{}", ver), s);
+            assert_eq!(format!("{ver}"), s);
         }
     }
 
@@ -258,13 +258,13 @@ mod tests {
 
         for (s1, s2) in [
             // major version
-            (format!("{}", u64_max), format!("{}", u64_max + 1)),
+            (format!("{u64_max}"), format!("{}", u64_max + 1)),
             // minor version
-            (format!("1.{}", u64_max), format!("1.{}", u64_max + 1)),
+            (format!("1.{u64_max}"), format!("1.{}", u64_max + 1)),
             // suffix version
-            (format!("1_p{}", u64_max), format!("1_p{}", u64_max + 1)),
+            (format!("1_p{u64_max}"), format!("1_p{}", u64_max + 1)),
             // revision
-            (format!("1-r{}", u64_max), format!("1-r{}", u64_max + 1)),
+            (format!("1-r{u64_max}"), format!("1-r{}", u64_max + 1)),
         ] {
             // at bounds limit
             let v1 = Version::from_str(&s1);
@@ -291,13 +291,13 @@ mod tests {
             let op = v[1];
             match op {
                 "!=" => {
-                    assert_ne!(v1, v2, "failed comparing {}", expr);
-                    assert_ne!(v2, v1, "failed comparing {}", expr);
+                    assert_ne!(v1, v2, "failed comparing {expr}");
+                    assert_ne!(v2, v1, "failed comparing {expr}");
                 }
                 _ => {
                     let op = op_map[op];
-                    assert_eq!(v1.cmp(&v2), op, "failed comparing {}", expr);
-                    assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {}", expr);
+                    assert_eq!(v1.cmp(&v2), op, "failed comparing {expr}");
+                    assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {expr}");
                 }
             }
         }
@@ -325,7 +325,7 @@ mod tests {
                 .map(|s| Version::from_str(s).unwrap())
                 .collect();
             versions.sort();
-            let sorted: Vec<String> = versions.iter().map(|v| format!("{}", v)).collect();
+            let sorted: Vec<String> = versions.iter().map(|v| format!("{v}")).collect();
             assert_eq!(sorted.join(" "), expected);
         }
     }

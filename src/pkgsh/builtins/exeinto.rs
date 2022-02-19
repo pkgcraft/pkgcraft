@@ -15,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             "/" => "",
             s => s,
         },
-        n => return Err(Error::Builtin(format!("requires 1 arg, got {}", n))),
+        n => return Err(Error::Builtin(format!("requires 1 arg, got {n}"))),
     };
 
     BUILD_DATA.with(|d| {

@@ -82,7 +82,7 @@ impl PkgBuiltin {
             let scope_re = Regex::new(&format!(r"^{}$", s.join("|"))).unwrap();
             for e in eapi::supported(eapis).expect("failed to parse EAPI range") {
                 if scope.insert(e, scope_re.clone()).is_some() {
-                    panic!("clashing EAPI scopes: {}", e);
+                    panic!("clashing EAPI scopes: {e}");
                 }
             }
         }
@@ -224,11 +224,10 @@ pub(crate) mod parse {
     #[inline]
     pub(crate) fn range(s: &str, max: usize) -> Result<(usize, usize)> {
         let (start, end) =
-            cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {:?}", s), s, e))?;
+            cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {s:?}"), s, e))?;
         if end < start {
             return Err(Error::InvalidValue(format!(
-                "start of range ({}) is greater than end ({})",
-                start, end
+                "start of range ({start}) is greater than end ({end})",
             )));
         }
         Ok((start, end))
@@ -240,7 +239,7 @@ fn assert_invalid_args(func: ::scallop::builtins::BuiltinFn, nums: &[u32]) {
     for n in nums {
         let args: Vec<String> = (0..*n).map(|n| n.to_string()).collect();
         let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-        let re = format!("^.*, got {}", n);
+        let re = format!("^.*, got {n}");
         crate::macros::assert_err_re!(func(&args), re);
     }
 }

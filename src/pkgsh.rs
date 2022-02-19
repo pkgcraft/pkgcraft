@@ -188,7 +188,7 @@ impl BuildData {
             "IDEPEND" => &mut self.idepend,
             "PROPERTIES" => &mut self.properties,
             "RESTRICT" => &mut self.restrict,
-            s => panic!("unknown field name: {}", s),
+            s => panic!("unknown field name: {s}"),
         }
     }
 }
@@ -222,7 +222,7 @@ impl<'a> PkgShell<'a> {
             }
 
             // run user space pre-phase hooks
-            if let Some(mut func) = functions::find(format!("pre_{}", phase)) {
+            if let Some(mut func) = functions::find(format!("pre_{phase}")) {
                 func.execute(&[])?;
             }
 
@@ -231,12 +231,12 @@ impl<'a> PkgShell<'a> {
                 Some(mut func) => func.execute(&[])?,
                 None => match eapi.phases().get(phase) {
                     Some(func) => func()?,
-                    None => return Err(Error::Base(format!("nonexistent phase: {}", phase))),
+                    None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
                 },
             };
 
             // run user space post-phase hooks
-            if let Some(mut func) = functions::find(format!("post_{}", phase)) {
+            if let Some(mut func) = functions::find(format!("post_{phase}")) {
                 func.execute(&[])?;
             }
 
@@ -247,7 +247,7 @@ impl<'a> PkgShell<'a> {
     pub fn source_ebuild<P: AsRef<Path>>(&mut self, ebuild: P) -> Result<()> {
         let ebuild = ebuild.as_ref();
         if !ebuild.exists() {
-            return Err(Error::Base(format!("nonexistent ebuild: {:?}", ebuild)));
+            return Err(Error::Base(format!("nonexistent ebuild: {ebuild:?}")));
         }
 
         BUILD_DATA.with(|d| -> Result<()> {

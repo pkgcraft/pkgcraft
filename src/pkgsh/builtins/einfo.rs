@@ -18,7 +18,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     for s in args {
         let unescaped = unescape_string(s)?;
-        write_stderr!("{}\n", unescaped);
+        write_stderr!("{unescaped}\n");
     }
 
     Ok(ExecStatus::Success)

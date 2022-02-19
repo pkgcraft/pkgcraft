@@ -39,7 +39,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let conf_help = Command::new(&configure)
         .arg("--help")
         .output()
-        .map_err(|e| Error::Builtin(format!("failed running: {}", e)))?;
+        .map_err(|e| Error::Builtin(format!("failed running: {e}")))?;
     let mut known_opts = IndexSet::<String>::new();
     let conf_help = str::from_utf8(&conf_help.stdout).expect("failed decoding configure output");
     for line in conf_help.split('\n') {
@@ -55,12 +55,12 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let chost = env.get("CHOST").expect("$CHOST undefined");
 
         defaults.extend([
-            ("--prefix", Some(format!("{}/usr", eprefix))),
-            ("--mandir", Some(format!("{}/usr/share/man", eprefix))),
-            ("--infodir", Some(format!("{}/usr/share/info", eprefix))),
-            ("--datadir", Some(format!("{}/usr/share", eprefix))),
-            ("--sysconfdir", Some(format!("{}/etc", eprefix))),
-            ("--localstatedir", Some(format!("{}/var/lib", eprefix))),
+            ("--prefix", Some(format!("{eprefix}/usr"))),
+            ("--mandir", Some(format!("{eprefix}/usr/share/man"))),
+            ("--infodir", Some(format!("{eprefix}/usr/share/info"))),
+            ("--datadir", Some(format!("{eprefix}/usr/share"))),
+            ("--sysconfdir", Some(format!("{eprefix}/etc"))),
+            ("--localstatedir", Some(format!("{eprefix}/var/lib"))),
             ("--host", Some(chost.clone())),
         ]);
 
@@ -70,10 +70,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                     Some(Some(v)) => v.clone(),
                     _ => match args.get("--prefix") {
                         Some(Some(v)) => v.clone(),
-                        _ => format!("{}/usr", eprefix),
+                        _ => format!("{eprefix}/usr"),
                     },
                 };
-                defaults.insert("--libdir", Some(format!("{}/{}", prefix, libdir)));
+                defaults.insert("--libdir", Some(format!("{prefix}/{libdir}")));
             }
         }
 
@@ -97,14 +97,14 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     for (opt, val) in defaults.iter() {
         match val {
             None => econf.arg(opt),
-            Some(v) => econf.arg(format!("{}={}", opt, v)),
+            Some(v) => econf.arg(format!("{opt}={v}")),
         };
     }
 
     BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout(), &econf));
 
     econf.status().map_or_else(
-        |e| Err(Error::Builtin(format!("failed running: {}", e))),
+        |e| Err(Error::Builtin(format!("failed running: {e}"))),
         |v| Ok(ExecStatus::from(v)),
     )
 }
@@ -183,7 +183,7 @@ mod tests {
             let configure_ac = dir.path().join("configure.ac");
             let file = File::create(configure_ac).unwrap();
             env::set_current_dir(&dir).unwrap();
-            write!(&file, "{}", CONFIGURE_AC).unwrap();
+            write!(&file, "{CONFIGURE_AC}").unwrap();
             Command::new("autoreconf")
                 .arg("-i")
                 .stdout(Stdio::null())
@@ -211,7 +211,7 @@ mod tests {
 
                 // verify user args are respected
                 for (opt, expected) in [("--prefix", "/dir"), ("--libdir", "/dir"), ("CC", "gcc")] {
-                    let opts = get_opts(&[&format!("{}={}", opt, expected)]);
+                    let opts = get_opts(&[&format!("{opt}={expected}")]);
                     let val = opts.get(opt).unwrap().as_ref().unwrap();
                     assert_eq!(val, expected);
                 }
@@ -224,13 +224,13 @@ mod tests {
                 for (abi, libdir) in [("amd64", "lib64"), ("x86", "lib")] {
                     // TODO: load this data from test profiles
                     let mut abi_var = ScopedVariable::new("ABI");
-                    let mut libdir_var = ScopedVariable::new(format!("LIBDIR_{}", abi));
+                    let mut libdir_var = ScopedVariable::new(format!("LIBDIR_{abi}"));
                     abi_var.bind(abi, None, None).unwrap();
                     libdir_var.bind(libdir, None, None).unwrap();
 
                     let opts = get_opts(&[]);
                     let val = opts.get("--libdir").unwrap().as_ref().unwrap();
-                    assert_eq!(val, &format!("/eprefix/usr/{}", libdir));
+                    assert_eq!(val, &format!("/eprefix/usr/{libdir}"));
                 }
             });
         }

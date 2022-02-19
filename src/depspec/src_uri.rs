@@ -74,7 +74,7 @@ mod tests {
         let mut result: Result<DepSpec, PegError>;
         for s in ["", "(", ")", "( )", "( uri)", "| ( uri )", "use ( uri )", "!use ( uri )"] {
             for eapi in eapi::KNOWN_EAPIS.values() {
-                assert!(parse(&s, eapi).is_err(), "{:?} didn't fail", s);
+                assert!(parse(&s, eapi).is_err(), "{s:?} didn't fail");
             }
         }
 
@@ -103,7 +103,7 @@ mod tests {
         ] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 result = parse(&s, eapi);
-                assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                 src_uri = result.unwrap();
                 assert_eq!(src_uri, expected);
             }
@@ -114,7 +114,7 @@ mod tests {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 if eapi.has("src_uri_renames") {
                     result = parse(&s, eapi);
-                    assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+                    assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                     src_uri = result.unwrap();
                     assert_eq!(src_uri, expected);
                 }

@@ -82,18 +82,18 @@ impl TempRepo {
         };
         let eapi = format!("{}", eapi.unwrap_or(eapi::EAPI_LATEST));
         let tempdir = TempDir::new_in(path)
-            .map_err(|e| Error::RepoInit(format!("failed creating temp repo {:?}: {}", id, e)))?;
+            .map_err(|e| Error::RepoInit(format!("failed creating temp repo {id:?}: {e}")))?;
         let temp_path = tempdir.path();
 
         for dir in ["metadata", "profiles"] {
             fs::create_dir(temp_path.join(dir)).map_err(|e| {
-                Error::RepoInit(format!("failed creating temp repo {:?}: {}", id, e))
+                Error::RepoInit(format!("failed creating temp repo {id:?}: {e}"))
             })?;
         }
-        fs::write(temp_path.join("profiles/repo_name"), format!("{}\n", id))
-            .map_err(|e| Error::RepoInit(format!("failed writing temp repo id: {}", e)))?;
-        fs::write(temp_path.join("profiles/eapi"), format!("{}\n", eapi))
-            .map_err(|e| Error::RepoInit(format!("failed writing temp repo EAPI: {}", e)))?;
+        fs::write(temp_path.join("profiles/repo_name"), format!("{id}\n"))
+            .map_err(|e| Error::RepoInit(format!("failed writing temp repo id: {e}")))?;
+        fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
+            .map_err(|e| Error::RepoInit(format!("failed writing temp repo EAPI: {e}")))?;
 
         let repo = Repo::from_path(id, temp_path)?;
         Ok(TempRepo { tempdir, repo })
@@ -101,16 +101,16 @@ impl TempRepo {
 
     /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is
     /// located.
-    pub(crate) fn persist(self, path: Option<&PathBuf>) -> crate::Result<PathBuf> {
+    pub(crate) fn persist<P: AsRef<Path>>(self, path: Option<P>) -> crate::Result<PathBuf> {
         let mut repo_path = self.tempdir.into_path();
         if let Some(path) = path {
+            let path = path.as_ref();
             fs::rename(&repo_path, path).map_err(|e| {
                 Error::RepoInit(format!(
-                    "failed renaming repo: {:?} -> {:?}: {}",
-                    &repo_path, &path, e
+                    "failed renaming repo: {repo_path:?} -> {path:?}: {e}",
                 ))
             })?;
-            repo_path = path.clone();
+            repo_path = path.into();
         }
         Ok(repo_path)
     }

@@ -42,13 +42,13 @@ fn find_patches(paths: &[&str]) -> Result<Patches> {
                 .map(|e| e.path().into())
                 .collect();
             if dir_patches.is_empty() {
-                return Err(Error::Builtin(format!("no patches in directory: {:?}", p)));
+                return Err(Error::Builtin(format!("no patches in directory: {p:?}")));
             }
             patches.push((Some(path.into()), dir_patches));
         } else if path.exists() {
             patches.push((None, vec![path.into()]));
         } else {
-            return Err(Error::Builtin(format!("nonexistent file: {}", p)));
+            return Err(Error::Builtin(format!("nonexistent file: {p}")));
         }
     }
 
@@ -90,7 +90,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let msg_prefix = match path {
             None => "",
             Some(p) => {
-                write_stdout!("Applying patches from {:?}\n", p);
+                write_stdout!("Applying patches from {p:?}\n");
                 "  "
             }
         };
@@ -98,20 +98,20 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         for f in files {
             let name = f.file_name().unwrap().to_string_lossy();
             match path {
-                None => write_stdout!("{}Applying {}...\n", msg_prefix, name),
-                _ => write_stdout!("{}{}...\n", msg_prefix, name),
+                None => write_stdout!("{msg_prefix}Applying {name}...\n"),
+                _ => write_stdout!("{msg_prefix}{name}...\n"),
             }
             let data = File::open(f)
-                .map_err(|e| Error::Builtin(format!("failed reading patch {:?}: {}", f, e)))?;
+                .map_err(|e| Error::Builtin(format!("failed reading patch {f:?}: {e}")))?;
             let output = Command::new("patch")
                 .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
                 .args(&options)
                 .stdin(data)
                 .output()
-                .map_err(|e| Error::Builtin(format!("failed running patch: {}", e)))?;
+                .map_err(|e| Error::Builtin(format!("failed running patch: {e}")))?;
             if !output.status.success() {
                 let error = str::from_utf8(&output.stdout).expect("failed decoding patch output");
-                return Err(Error::Builtin(format!("failed applying: {}\n{}", name, error)));
+                return Err(Error::Builtin(format!("failed applying: {name}\n{error}")));
             }
         }
     }
@@ -260,7 +260,7 @@ mod tests {
             fs::write("file.txt", file_content).unwrap();
             fs::create_dir("files").unwrap();
             for (i, data) in [patch0, patch1].iter().enumerate() {
-                let file = format!("files/{}.patch", i);
+                let file = format!("files/{i}.patch");
                 fs::write(file, data).unwrap();
             }
             eapply(&["files"]).unwrap();

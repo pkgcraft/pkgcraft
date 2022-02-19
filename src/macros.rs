@@ -13,7 +13,7 @@ macro_rules! assert_err {
     ($expression:expr, $($pattern:tt)+) => {
         match $expression {
             $($pattern)+ => (),
-            ref e => panic!("expected `{}` but got `{:?}`", stringify!($($pattern)+), e),
+            ref e => panic!("expected `{}` but got `{e:?}`", stringify!($($pattern)+)),
         }
     }
 }
@@ -26,7 +26,7 @@ macro_rules! assert_err_re {
         let err = $res.unwrap_err();
         let s = err.to_string();
         let re = ::regex::Regex::new($x.as_ref()).unwrap();
-        assert!(re.is_match(&s), "{:?} does not match regex: {}", s, re);
+        assert!(re.is_match(&s), "{s:?} does not match regex: {re}");
     };
 }
 #[cfg(test)]

@@ -16,14 +16,14 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             false => (false, args[0]),
             true => (true, &args[0][1..]),
         },
-        n => return Err(Error::Builtin(format!("requires 1 arg, got {}", n))),
+        n => return Err(Error::Builtin(format!("requires 1 arg, got {n}"))),
     };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
 
         if !d.iuse_effective.contains(flag) {
-            return Err(Error::Builtin(format!("USE flag {:?} not in IUSE", flag)));
+            return Err(Error::Builtin(format!("USE flag {flag:?} not in IUSE")));
         }
 
         let mut ret = d.use_.contains(flag);

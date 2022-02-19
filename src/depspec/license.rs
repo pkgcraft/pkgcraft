@@ -60,7 +60,7 @@ mod tests {
     fn test_parse_license() {
         // invalid data
         for s in ["", "(", ")", "( )", "( l1)", "| ( l1 )", "foo ( l1 )", "!use ( l1 )"] {
-            assert!(parse(&s).is_err(), "{:?} didn't fail", s);
+            assert!(parse(&s).is_err(), "{s:?} didn't fail");
         }
 
         // good data
@@ -99,7 +99,7 @@ mod tests {
             ),
         ] {
             result = parse(&s);
-            assert!(result.is_ok(), "{} failed: {}", s, result.err().unwrap());
+            assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
             license = result.unwrap();
             assert_eq!(license, expected);
         }

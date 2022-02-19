@@ -36,15 +36,15 @@ impl ConfigPath {
             Err(_) => prefixed([&home, ".config", name].iter().collect()),
         };
 
-        let system_config = prefixed(PathBuf::from(format!("/etc/{}", name)));
+        let system_config = prefixed(PathBuf::from(format!("/etc/{name}")));
 
         // determine if user config or system config will be used
         config = match (user_config.exists(), system_config.exists() || home == "/root") {
             (false, true) => {
-                cache = prefixed(PathBuf::from(format!("/var/cache/{}", name)));
-                data = prefixed(PathBuf::from(format!("/usr/share/{}", name)));
-                db = prefixed(PathBuf::from(format!("/var/db/{}", name)));
-                run = prefixed(PathBuf::from(format!("/run/{}", name)));
+                cache = prefixed(PathBuf::from(format!("/var/cache/{name}")));
+                data = prefixed(PathBuf::from(format!("/usr/share/{name}")));
+                db = prefixed(PathBuf::from(format!("/var/db/{name}")));
+                run = prefixed(PathBuf::from(format!("/run/{name}")));
                 system_config
             }
             _ => {

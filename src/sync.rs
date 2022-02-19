@@ -46,7 +46,7 @@ impl Syncer {
         let repos_dir = path.parent().unwrap();
         if !repos_dir.exists() {
             fs::create_dir_all(&repos_dir).map_err(|e| {
-                Error::RepoSync(format!("failed creating repos dir {:?}: {}", &repos_dir, e))
+                Error::RepoSync(format!("failed creating repos dir {repos_dir:?}: {e}"))
             })?;
         }
 

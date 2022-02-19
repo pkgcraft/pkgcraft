@@ -55,7 +55,7 @@ impl Repository {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
             Some(_) => Ok(()),
-            None => Err(Error::RepoInit(format!("unknown repo format: {:?}", format))),
+            None => Err(Error::RepoInit(format!("unknown repo format: {format:?}"))),
         }
     }
 
@@ -89,7 +89,7 @@ impl Repository {
         match format {
             ebuild::Repo::FORMAT => Ok(Repository::Ebuild(ebuild::Repo::from_path(id, path)?)),
             fake::Repo::FORMAT => Ok(Repository::Fake(fake::Repo::from_path(id, path)?)),
-            _ => Err(Error::RepoInit(format!("{:?} repo: unknown format: {:?}", id, format))),
+            _ => Err(Error::RepoInit(format!("{id:?} repo: unknown format: {format:?}"))),
         }
     }
 }

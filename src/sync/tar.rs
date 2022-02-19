@@ -34,7 +34,7 @@ impl Syncable for Repo {
                 uri: uri.to_string(),
                 url: m.name("url").unwrap().as_str().to_string(),
             })),
-            None => Err(Error::RepoInit(format!("invalid tar+https repo: {:?}", uri))),
+            None => Err(Error::RepoInit(format!("invalid tar+https repo: {uri:?}"))),
         }
     }
 
@@ -73,7 +73,7 @@ impl Syncable for Repo {
 
         // create tempfile
         let mut temp_file = Builder::new()
-            .suffix(&format!(".{}.tar.gz", &repo_name))
+            .suffix(&format!(".{repo_name}.tar.gz"))
             .tempfile_in(&repos_dir)
             .map_err(|e| Error::RepoSync(e.to_string()))?;
 
@@ -81,19 +81,19 @@ impl Syncable for Repo {
         let mut stream = resp.bytes_stream();
         while let Some(item) = stream.next().await {
             let chunk =
-                item.map_err(|e| Error::RepoSync(format!("failed downloading repo: {}", e)))?;
+                item.map_err(|e| Error::RepoSync(format!("failed downloading repo: {e}")))?;
             temp_file
                 .write(&chunk)
-                .map_err(|e| Error::RepoSync(format!("failed writing repo: {}", e)))?;
+                .map_err(|e| Error::RepoSync(format!("failed writing repo: {e}")))?;
         }
 
         // unpack repo data to tempdir
         let tmp_dir = Builder::new()
-            .suffix(&format!(".{}.update", &repo_name))
+            .suffix(&format!(".{repo_name}.update"))
             .tempdir_in(&repos_dir)
             .map_err(|e| Error::RepoSync(e.to_string()))?;
         let tmp_dir_old = Builder::new()
-            .suffix(&format!(".{}.old", &repo_name))
+            .suffix(&format!(".{repo_name}.old"))
             .tempdir_in(&repos_dir)
             .map_err(|e| Error::RepoSync(e.to_string()))?;
 
@@ -126,13 +126,13 @@ impl Syncable for Repo {
                     // drop first directory component in archive paths
                     let stripped_path: PathBuf = entry
                         .path()
-                        .map_err(|e| Error::RepoSync(format!("failed unpacking archive: {}", e)))
+                        .map_err(|e| Error::RepoSync(format!("failed unpacking archive: {e}")))
                         .iter()
                         .skip(1)
                         .collect();
                     entry
                         .unpack(&tmp_dir.path().join(&stripped_path))
-                        .map_err(|e| Error::RepoSync(format!("failed unpacking archive: {}", e)))?;
+                        .map_err(|e| Error::RepoSync(format!("failed unpacking archive: {e}")))?;
                     Ok(stripped_path)
                 })
                 .filter_map(|e| e.ok())
@@ -143,20 +143,19 @@ impl Syncable for Repo {
         if path.exists() {
             fs::rename(&path, &tmp_dir_old).map_err(|e| {
                 Error::RepoSync(format!(
-                    "failed moving old repo {:?} -> {:?}: {}",
-                    &path, &tmp_dir_old, e
+                    "failed moving old repo {path:?} -> {tmp_dir_old:?}: {e}",
                 ))
             })?;
         }
         fs::rename(&tmp_dir, &path).map_err(|e| {
-            Error::RepoSync(format!("failed moving repo {:?} -> {:?}: {}", &tmp_dir, &path, e))
+            Error::RepoSync(format!("failed moving repo {tmp_dir:?} -> {path:?}: {e}"))
         })?;
 
         // TODO: store this in cache instead of repo file
         // update cached ETag value
         if let Some(etag) = resp_headers.get(ETAG) {
             fs::write(&etag_path, etag.as_bytes()).map_err(|e| {
-                Error::RepoSync(format!("failed writing etag {:?}: {}", &etag_path, e))
+                Error::RepoSync(format!("failed writing etag {etag_path:?}: {e}"))
             })?;
         }
 

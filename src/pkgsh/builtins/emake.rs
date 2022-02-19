@@ -27,7 +27,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| output_command(&mut d.borrow_mut().stdout(), &emake));
 
     emake.status().map_or_else(
-        |e| Err(Error::Builtin(format!("failed running: {}", e))),
+        |e| Err(Error::Builtin(format!("failed running: {e}"))),
         |v| Ok(ExecStatus::from(v)),
     )
 }
