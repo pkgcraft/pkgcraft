@@ -131,7 +131,7 @@ mod tests {
 
     use super::BUILTIN as econf;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::{BUILD_DATA, COMMANDS};
+    use crate::pkgsh::{last_command, BUILD_DATA};
 
     static CONFIGURE_AC: &str = indoc! {"
         AC_INIT([pkgcraft], [0.0.1], [pkgcraft@pkgcraft.org])
@@ -143,7 +143,7 @@ mod tests {
 
     fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
         econf.run(args).unwrap();
-        let cmd = COMMANDS.with(|cmds| cmds.borrow_mut().pop().unwrap_or(vec![]));
+        let cmd = last_command().unwrap();
         cmd[1..]
             .iter()
             .map(|s| {

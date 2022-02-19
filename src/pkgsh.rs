@@ -49,6 +49,11 @@ thread_local! {
 }
 
 #[cfg(test)]
+fn last_command() -> Option<Vec<String>> {
+    COMMANDS.with(|cmds| cmds.borrow_mut().pop())
+}
+
+#[cfg(test)]
 impl RunCommand for Command {
     fn run(self) -> Result<ExecStatus> {
         let cmd = get_cmd(&self)

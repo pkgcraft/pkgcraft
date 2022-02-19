@@ -38,3 +38,64 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
         &[("0-", &[PHASE])],
     )
 });
+
+#[cfg(test)]
+mod tests {
+    use std::env;
+    use std::fs::File;
+
+    use rusty_fork::rusty_fork_test;
+    use scallop::shell::Shell;
+    use scallop::variables::bind;
+    use tempfile::tempdir;
+
+    use super::run as emake;
+    use crate::macros::assert_err_re;
+    use crate::pkgsh::last_command;
+
+    rusty_fork_test! {
+        #[test]
+        fn nonexistent() {
+            assert_err_re!(emake(&[]), "^nonexistent makefile$");
+        }
+
+        #[test]
+        fn command() {
+            let _sh = Shell::new("sh", None);
+            let dir = tempdir().unwrap();
+            let makefile = dir.path().join("makefile");
+            File::create(makefile).unwrap();
+            env::set_current_dir(&dir).unwrap();
+            emake(&[]).unwrap();
+            let cmd = last_command().unwrap();
+            assert_eq!(cmd[0], "make");
+
+            // using $MAKEOPTS settings
+            bind("MAKEOPTS", "-j10", None, None).unwrap();
+            emake(&[]).unwrap();
+            let cmd = last_command().unwrap();
+            assert_eq!(cmd[1..], ["-j10"]);
+            bind("MAKEOPTS", "-j20 -l 20", None, None).unwrap();
+            emake(&[]).unwrap();
+            let cmd = last_command().unwrap();
+            assert_eq!(cmd[1..], ["-j20", "-l", "20"]);
+
+            // using custom $MAKE prog
+            bind("MAKE", "custom-make", None, None).unwrap();
+            emake(&[]).unwrap();
+            let cmd = last_command().unwrap();
+            assert_eq!(cmd[0], "custom-make");
+        }
+
+        #[test]
+        fn target() {
+            let dir = tempdir().unwrap();
+            let makefile = dir.path().join("makefile");
+            File::create(makefile).unwrap();
+            env::set_current_dir(&dir).unwrap();
+            emake(&["install"]).unwrap();
+            let cmd = last_command().unwrap();
+            assert_eq!(cmd[1..], ["install"]);
+        }
+    }
+}
