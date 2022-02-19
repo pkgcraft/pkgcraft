@@ -66,9 +66,17 @@ mod tests {
             let makefile = dir.path().join("makefile");
             File::create(makefile).unwrap();
             env::set_current_dir(&dir).unwrap();
+
+            // default make prog
             emake(&[]).unwrap();
             let cmd = last_command().unwrap();
             assert_eq!(cmd[0], "make");
+
+            // custom args
+            let args = ["-C", "build", "install"];
+            emake(&args).unwrap();
+            let cmd = last_command().unwrap();
+            assert_eq!(cmd[1..], args);
 
             // using $MAKEOPTS settings
             bind("MAKEOPTS", "-j10", None, None).unwrap();
@@ -80,22 +88,11 @@ mod tests {
             let cmd = last_command().unwrap();
             assert_eq!(cmd[1..], ["-j20", "-l", "20"]);
 
-            // using custom $MAKE prog
+            // custom $MAKE prog
             bind("MAKE", "custom-make", None, None).unwrap();
             emake(&[]).unwrap();
             let cmd = last_command().unwrap();
             assert_eq!(cmd[0], "custom-make");
-        }
-
-        #[test]
-        fn target() {
-            let dir = tempdir().unwrap();
-            let makefile = dir.path().join("makefile");
-            File::create(makefile).unwrap();
-            env::set_current_dir(&dir).unwrap();
-            emake(&["install"]).unwrap();
-            let cmd = last_command().unwrap();
-            assert_eq!(cmd[1..], ["install"]);
         }
     }
 }
