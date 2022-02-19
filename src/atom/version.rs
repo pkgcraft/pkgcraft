@@ -125,12 +125,13 @@ impl ParsedVersion<'_> {
         if let Some(vals) = self.suffixes {
             for (s, v) in vals.iter() {
                 let suffix = Suffix::from_str(s)?;
-                let num = match v {
-                    None => None,
-                    Some(x) => Some(x.parse().map_err(|e| {
-                        Error::InvalidValue(format!("invalid version: {e}: {x}"))
-                    })?),
-                };
+                let num =
+                    match v {
+                        None => None,
+                        Some(x) => Some(x.parse().map_err(|e| {
+                            Error::InvalidValue(format!("invalid version: {e}: {x}"))
+                        })?),
+                    };
                 suffixes.push((suffix, num));
             }
         }

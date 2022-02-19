@@ -28,9 +28,8 @@ impl RepoConfig {
         let data = fs::read_to_string(path)
             .map_err(|e| Error::Config(format!("failed loading repo config {path:?}: {e}")))?;
 
-        let repo_conf: RepoConfig = toml::from_str(&data).map_err(|e| {
-            Error::Config(format!("failed loading repo config toml {path:?}: {e}"))
-        })?;
+        let repo_conf: RepoConfig = toml::from_str(&data)
+            .map_err(|e| Error::Config(format!("failed loading repo config toml {path:?}: {e}")))?;
 
         // verify format is supported
         Repository::is_supported(&repo_conf.format)?;
@@ -174,9 +173,8 @@ impl Config {
         config.format = format.to_string();
 
         // write repo config file to disk
-        let repo_conf_data = toml::to_string(&config).map_err(|e| {
-            Error::Config(format!("failed serializing repo config to toml: {e}"))
-        })?;
+        let repo_conf_data = toml::to_string(&config)
+            .map_err(|e| Error::Config(format!("failed serializing repo config to toml: {e}")))?;
         let path = self.config_dir.join(name);
         let mut file = fs::File::create(&path).map_err(|e| {
             Error::Config(format!("failed creating repo config file: {path:?}: {e}"))

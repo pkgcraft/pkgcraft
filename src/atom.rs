@@ -132,9 +132,7 @@ impl fmt::Display for Atom {
 
         // append slot data
         match (&self.slot, &self.subslot, &self.slot_op) {
-            (Some(slot), Some(subslot), Some(op)) => {
-                s.push_str(&format!(":{slot}/{subslot}{op}"))
-            }
+            (Some(slot), Some(subslot), Some(op)) => s.push_str(&format!(":{slot}/{subslot}{op}")),
             (Some(slot), Some(subslot), None) => s.push_str(&format!(":{slot}/{subslot}")),
             (Some(slot), None, Some(op)) => s.push_str(&format!(":{slot}{op}")),
             (Some(x), None, None) | (None, None, Some(x)) => s.push_str(&format!(":{x}")),

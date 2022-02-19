@@ -86,9 +86,8 @@ impl TempRepo {
         let temp_path = tempdir.path();
 
         for dir in ["metadata", "profiles"] {
-            fs::create_dir(temp_path.join(dir)).map_err(|e| {
-                Error::RepoInit(format!("failed creating temp repo {id:?}: {e}"))
-            })?;
+            fs::create_dir(temp_path.join(dir))
+                .map_err(|e| Error::RepoInit(format!("failed creating temp repo {id:?}: {e}")))?;
         }
         fs::write(temp_path.join("profiles/repo_name"), format!("{id}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing temp repo id: {e}")))?;
@@ -106,9 +105,7 @@ impl TempRepo {
         if let Some(path) = path {
             let path = path.as_ref();
             fs::rename(&repo_path, path).map_err(|e| {
-                Error::RepoInit(format!(
-                    "failed renaming repo: {repo_path:?} -> {path:?}: {e}",
-                ))
+                Error::RepoInit(format!("failed renaming repo: {repo_path:?} -> {path:?}: {e}"))
             })?;
             repo_path = path.into();
         }

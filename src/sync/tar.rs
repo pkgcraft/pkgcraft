@@ -142,9 +142,7 @@ impl Syncable for Repo {
         // move old repo out of the way if it exists and replace with unpacked repo
         if path.exists() {
             fs::rename(&path, &tmp_dir_old).map_err(|e| {
-                Error::RepoSync(format!(
-                    "failed moving old repo {path:?} -> {tmp_dir_old:?}: {e}",
-                ))
+                Error::RepoSync(format!("failed moving old repo {path:?} -> {tmp_dir_old:?}: {e}"))
             })?;
         }
         fs::rename(&tmp_dir, &path).map_err(|e| {
@@ -154,9 +152,8 @@ impl Syncable for Repo {
         // TODO: store this in cache instead of repo file
         // update cached ETag value
         if let Some(etag) = resp_headers.get(ETAG) {
-            fs::write(&etag_path, etag.as_bytes()).map_err(|e| {
-                Error::RepoSync(format!("failed writing etag {etag_path:?}: {e}"))
-            })?;
+            fs::write(&etag_path, etag.as_bytes())
+                .map_err(|e| Error::RepoSync(format!("failed writing etag {etag_path:?}: {e}")))?;
         }
 
         Ok(())
