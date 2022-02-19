@@ -142,8 +142,6 @@ mod tests {
     "};
 
     fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
-        // TODO: Mock out command call in some fashion to capture params instead of
-        // actually running the configure script.
         econf.run(args).unwrap();
         let cmd = COMMANDS.with(|cmds| cmds.borrow_mut().pop().unwrap_or(vec![]));
         cmd[1..]
