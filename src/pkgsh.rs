@@ -239,10 +239,6 @@ impl BuildData {
         target: Q,
     ) -> Result<()> {
         let (source, target) = (source.as_ref(), target.as_ref());
-        if let Some(parent) = target.parent() {
-            self.create_dirs(parent)?;
-        }
-
         let link = match hard {
             true => fs::hard_link,
             false => symlink,
@@ -255,6 +251,10 @@ impl BuildData {
         };
 
         let target = self.prefix(target);
+
+        if let Some(parent) = target.parent() {
+            self.create_dirs(parent)?;
+        }
 
         loop {
             match link(source, &target) {

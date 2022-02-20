@@ -12,5 +12,6 @@ mod repo;
 mod sync;
 #[cfg(test)]
 pub(crate) mod test;
+mod utils;
 
 pub use self::error::{Error, Result};
