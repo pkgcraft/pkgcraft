@@ -34,15 +34,39 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as dohard;
+    use std::fs::File;
+    use std::os::unix::fs::MetadataExt;
+    use std::{env, fs};
 
     use rusty_fork::rusty_fork_test;
+    use tempfile::tempdir;
+
+    use super::super::assert_invalid_args;
+    use super::run as dohard;
+    use crate::pkgsh::BUILD_DATA;
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
             assert_invalid_args(dohard, &[0, 1, 3]);
+        }
+
+        #[test]
+        fn linking() {
+            BUILD_DATA.with(|d| {
+                let dir = tempdir().unwrap();
+                env::set_current_dir(&dir).unwrap();
+                let path = dir.path().to_str().unwrap();
+                d.borrow_mut().env.insert("ED".into(), path.into());
+                let source = dir.path().join("source");
+                File::create(source).unwrap();
+
+                dohard(&["source", "target"]).unwrap();
+                let source_meta = fs::metadata("source").unwrap();
+                let target_meta = fs::metadata("target").unwrap();
+                // hard link inodes match
+                assert_eq!(source_meta.ino(), target_meta.ino());
+            })
         }
     }
 }
