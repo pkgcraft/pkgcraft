@@ -1,3 +1,4 @@
+use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
@@ -40,7 +41,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             return Err(Error::Builtin(format!("missing filename target: {target:?}")));
         }
 
-        d.borrow().create_link(false, source, target)?;
+        let install = d.borrow().install();
+        install.link(|p, q| symlink(p, q), source, target)?;
 
         Ok(ExecStatus::Success)
     })

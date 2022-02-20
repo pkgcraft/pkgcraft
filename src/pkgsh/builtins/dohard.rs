@@ -1,3 +1,5 @@
+use std::fs::hard_link;
+
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
@@ -15,7 +17,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     };
 
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        d.borrow().create_link(true, source, target)?;
+        let install = d.borrow().install();
+        install.link(|p, q| hard_link(p, q), source, target)?;
         Ok(ExecStatus::Success)
     })
 }
