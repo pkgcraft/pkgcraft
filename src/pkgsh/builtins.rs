@@ -35,6 +35,7 @@ pub mod doenvd;
 pub mod doexe;
 pub mod dohard;
 pub mod doinfo;
+pub mod doinitd;
 pub mod dostrip;
 pub mod dosym;
 pub mod eapply;
@@ -132,6 +133,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &doexe::BUILTIN,
         &dohard::BUILTIN,
         &doinfo::BUILTIN,
+        &doinitd::BUILTIN,
         &dostrip::BUILTIN,
         &dosym::BUILTIN,
         &eapply::BUILTIN,
