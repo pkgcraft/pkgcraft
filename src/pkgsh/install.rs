@@ -309,27 +309,27 @@ impl Install {
     {
         for (source, dest) in paths.into_iter() {
             let source = source.as_ref();
-            let dest = dest.as_ref();
+            let dest = self.prefix(dest.as_ref());
             let meta = fs::metadata(source)
                 .map_err(|e| Error::Base(format!("invalid file {source:?}: {e}")))?;
 
             // matching `install` command, remove dest before install
-            match fs::remove_file(dest) {
+            match fs::remove_file(&dest) {
                 Err(e) if e.kind() != io::ErrorKind::NotFound => {
                     return Err(Error::Base(format!("failed removing file: {dest:?}: {e}")));
                 }
                 _ => (),
             }
 
-            fs::copy(source, dest).map_err(|e| {
+            fs::copy(source, &dest).map_err(|e| {
                 Error::Base(format!("failed copying file: {source:?} to {dest:?}: {e}"))
             })?;
             if let Some(opts) = &self.file_options {
-                self.set_attributes(opts, dest)?;
+                self.set_attributes(opts, &dest)?;
                 if opts.preserve_timestamps {
                     let atime = FileTime::from_last_access_time(&meta);
                     let mtime = FileTime::from_last_modification_time(&meta);
-                    set_file_times(dest, atime, mtime)
+                    set_file_times(&dest, atime, mtime)
                         .map_err(|e| Error::Base(format!("failed setting file time: {e}")))?;
                 }
             }
