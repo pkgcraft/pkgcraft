@@ -65,6 +65,38 @@ impl RunCommand for Command {
     }
 }
 
+#[cfg(not(test))]
+type StdinType = io::Stdin;
+#[cfg(test)]
+type StdinType = io::Cursor<Vec<u8>>;
+
+struct Stdin {
+    inner: StdinType,
+}
+
+impl Default for Stdin {
+    fn default() -> Self {
+        #[cfg(not(test))]
+        let inner = io::stdin();
+        #[cfg(test)]
+        let inner = io::Cursor::new(vec![]);
+
+        Stdin { inner }
+    }
+}
+
+#[cfg(test)]
+macro_rules! write_stdin {
+    ($($arg:tt)*) => {
+        crate::pkgsh::BUILD_DATA.with(|d| {
+            write!(d.borrow_mut().stdin.inner, $($arg)*).unwrap();
+            d.borrow_mut().stdin.inner.set_position(0);
+        })
+    }
+}
+#[cfg(test)]
+use write_stdin;
+
 struct Stdout {
     #[cfg(not(test))]
     inner: io::Stdout,
@@ -170,6 +202,7 @@ pub struct BuildData {
     pub repo: String,
     pub eapi: &'static Eapi,
 
+    stdin: Stdin,
     stdout: Stdout,
     stderr: Stderr,
 
@@ -230,6 +263,10 @@ impl BuildData {
         data.exeopts.push("-m0755".into());
         data.desttree = "/usr".into();
         data
+    }
+
+    fn stdin(&mut self) -> &mut StdinType {
+        &mut self.stdin.inner
     }
 
     fn install(&self) -> install::Install {

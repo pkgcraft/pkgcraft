@@ -10,6 +10,7 @@ use crate::macros::vec_str;
 use crate::{eapi, eapi::Eapi};
 
 mod _default_phase_func;
+mod _new;
 mod _use_conf;
 pub mod adddeny;
 pub mod addpredict;
@@ -71,6 +72,7 @@ pub mod insopts;
 pub mod into;
 pub mod keepdir;
 pub mod libopts;
+pub mod newbin;
 pub mod nonfatal;
 pub mod unpack;
 pub mod use_;
@@ -181,6 +183,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &into::BUILTIN,
         &keepdir::BUILTIN,
         &libopts::BUILTIN,
+        &newbin::BUILTIN,
         &nonfatal::BUILTIN,
         &unpack::BUILTIN,
         &use_::BUILTIN,

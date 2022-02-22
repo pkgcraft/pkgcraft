@@ -70,17 +70,20 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // export the running phase name as $EBUILD_PHASE_FUNC
         ("ebuild_phase_func", false),
 
+        // new* helpers can use stdin for content instead of a file
+        ("new_supports_stdin", false),
+
         // running tests in parallel is supported
         ("parallel_tests", false),
 
-        // atom subslots -- cat/pkg:0/4
-        ("subslots", false),
+        // REQUIRED_USE ?? operator
+        ("required_use_one_of", false),
 
         // atom slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
         ("slot_ops", false),
 
-        // REQUIRED_USE ?? operator
-        ("required_use_one_of", false),
+        // atom subslots -- cat/pkg:0/4
+        ("subslots", false),
 
         // EAPI 6
 
@@ -365,10 +368,11 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI4),
     options: EAPI4.update_options(&[
         ("ebuild_phase_func", true),
+        ("new_supports_stdin", true),
         ("parallel_tests", true),
-        ("subslots", true),
-        ("slot_ops", true),
         ("required_use_one_of", true),
+        ("slot_ops", true),
+        ("subslots", true),
     ]),
     phases: EAPI4.phases.clone(),
     incremental_keys: EAPI4.incremental_keys.clone(),
