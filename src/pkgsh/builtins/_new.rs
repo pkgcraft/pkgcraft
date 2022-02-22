@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::path::Path;
 use std::{fs, io};
 
 use nix::unistd::isatty;
@@ -13,9 +14,14 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (source, dest) = match args.len() {
-            2 => (args[0], args[1]),
+            2 => (args[0], Path::new(args[1])),
             n => return Err(Error::Builtin(format!("requires 2, got {n}"))),
         };
+
+        // filename can't contain a path separator
+        if dest.parent() != Some(Path::new("")) {
+            return Err(Error::Builtin(format!("invalid filename: {dest:?}")));
+        }
 
         let tmp_dir =
             tempdir().map_err(|e| Error::Builtin(format!("failed creating tempdir: {e}")))?;

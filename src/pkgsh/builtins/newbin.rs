@@ -54,6 +54,12 @@ mod tests {
                 // nonexistent
                 let r = newbin(&["bin", "pkgcraft"]);
                 assert_err_re!(r, format!("^failed copying file \"bin\" .*$"));
+
+                // filename contains path separator
+                for f in ["bin/pkgcraft", "/bin/pkgcraft", "/"] {
+                    let r = newbin(&["bin", f]);
+                    assert_err_re!(r, format!("^invalid filename: {f:?}$"));
+                }
             })
         }
 
