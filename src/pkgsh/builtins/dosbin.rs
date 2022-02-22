@@ -2,8 +2,8 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use super::dobin::install_bin;
+use super::PkgBuiltin;
 
 static LONG_DOC: &str = "Install executables into DESTTREE/sbin.";
 
@@ -15,7 +15,6 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     install_bin(args, "sbin")
 }
-
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
     PkgBuiltin::new(
