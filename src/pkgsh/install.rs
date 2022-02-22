@@ -119,10 +119,11 @@ impl Install {
         }
     }
 
-    pub(super) fn dest<P: AsRef<Path>>(mut self, dest: P) -> Self {
+    pub(super) fn dest<P: AsRef<Path>>(mut self, dest: P) -> Result<Self> {
         let dest = dest.as_ref();
         self.destdir.push(dest.strip_prefix("/").unwrap_or(dest));
-        self
+        self.dirs([&self.destdir])?;
+        Ok(self)
     }
 
     fn parse_options<I, T>(&self, options: I) -> (InstallOptions, bool)

@@ -223,11 +223,12 @@ pub struct BuildData {
 impl BuildData {
     fn new() -> Self {
         let mut data = BuildData::default();
-        // set `install` option defaults
+        // set build state defaults
         data.insopts.push("-m0644".into());
         data.libopts.push("-m0644".into());
         data.diropts.push("-m0755".into());
         data.exeopts.push("-m0755".into());
+        data.desttree = "/usr".into();
         data
     }
 

@@ -1,5 +1,6 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
+use nix::unistd::geteuid;
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
@@ -7,7 +8,7 @@ use scallop::{Error, Result};
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "Install executables.";
+static LONG_DOC: &str = "Install executables into DESTTREE/bin.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -16,9 +17,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let dest = &d.borrow().exedesttree;
-        let opts = &d.borrow().exeopts;
-        let install = d.borrow().install().dest(&dest)?.ins_options(opts);
+        let dest: PathBuf = [&d.borrow().desttree, "bin"].iter().collect();
+        let opts: &[&str] = match geteuid().is_root() {
+            true => &["-m0755", "-o", "root", "-g", "root"],
+            false => &["-m0755"],
+        };
+        let install = d
+            .borrow()
+            .install()
+            .dest(&dest)?
+            .ins_options(opts.iter().copied());
 
         let files = args
             .iter()
@@ -33,10 +41,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
     PkgBuiltin::new(
         Builtin {
-            name: "doexe",
+            name: "dobin",
             func: run,
             help: LONG_DOC,
-            usage: "doexe path/to/executable",
+            usage: "dobin path/to/executable",
         },
         &[("0-", &["src_install"])],
     )
@@ -53,14 +61,14 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::super::exeopts::run as exeopts;
-    use super::run as doexe;
+    use super::run as dobin;
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(doexe, &[0]);
+            assert_invalid_args(dobin, &[0]);
 
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
@@ -69,7 +77,7 @@ mod tests {
                 d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
 
                 // nonexistent
-                let r = doexe(&["test"]);
+                let r = dobin(&["test"]);
                 assert_err_re!(r, format!("^invalid file \"test\": .*$"));
             })
         }
@@ -87,8 +95,8 @@ mod tests {
                 let default = 0o100755;
 
                 fs::File::create("test").unwrap();
-                doexe(&["test"]).unwrap();
-                let path = Path::new("test");
+                dobin(&["test"]).unwrap();
+                let path = Path::new("usr/bin/test");
                 let path: PathBuf = [prefix, path].iter().collect();
                 assert!(path.is_file(), "failed creating file: {path:?}");
                 let meta = fs::metadata(&path).unwrap();
@@ -98,7 +106,7 @@ mod tests {
         }
 
         #[test]
-        fn custom_exeopts() {
+        fn exeopts_ignored() {
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
                 env::set_current_dir(&dir).unwrap();
@@ -109,23 +117,21 @@ mod tests {
                 d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
 
                 let default = 0o100755;
-                let custom = 0o100777;
 
                 fs::File::create("test").unwrap();
-                exeopts(&["-m0755"]).unwrap();
-                doexe(&["test"]).unwrap();
-                let path = Path::new("test");
+                dobin(&["test"]).unwrap();
+                let path = Path::new("usr/bin/test");
                 let path: PathBuf = [prefix, path].iter().collect();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
                 assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
 
-                // change mode and re-run doexe()
+                // verify exeopts are ignored
                 exeopts(&["-m0777"]).unwrap();
-                doexe(&["test"]).unwrap();
+                dobin(&["test"]).unwrap();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
-                assert!(mode == custom, "mode {mode:#o} is not custom {custom:#o}");
+                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
             })
         }
     }

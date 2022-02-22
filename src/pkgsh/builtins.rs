@@ -25,6 +25,7 @@ pub mod default_src_test;
 pub mod default_src_unpack;
 pub mod die;
 pub mod diropts;
+pub mod dobin;
 pub mod docinto;
 pub mod docompress;
 pub mod dodir;
@@ -118,6 +119,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &default_src_unpack::BUILTIN,
         &die::BUILTIN,
         &diropts::BUILTIN,
+        &dobin::BUILTIN,
         &docinto::BUILTIN,
         &docompress::BUILTIN,
         &dodir::BUILTIN,
