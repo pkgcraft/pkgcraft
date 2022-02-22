@@ -92,6 +92,10 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
         // EAPI 8
 
+        // improve insopts/exeopts consistency for install functions
+        // https://bugs.gentoo.org/657580
+        ("consistent_file_opts", false),
+
         // relative path support via `dosym -r`
         ("dosym_relative", false),
 
@@ -399,6 +403,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "8",
     parent: Some(&EAPI7),
     options: EAPI7.update_options(&[
+        ("consistent_file_opts", true),
         ("dosym_relative", true),
         ("src_uri_unrestrict", true),
         ("usev_two_args", true),
