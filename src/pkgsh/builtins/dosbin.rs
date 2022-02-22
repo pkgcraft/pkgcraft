@@ -1,37 +1,11 @@
-use std::path::{Path, PathBuf};
-
-use nix::unistd::geteuid;
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
-use crate::pkgsh::BUILD_DATA;
+use super::dobin::install_bin;
 
-static LONG_DOC: &str = "Install executables into DESTTREE/bin.";
-
-pub(super) fn install_bin(args: &[&str], dest: &str) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        let dest: PathBuf = [&d.borrow().desttree, dest].iter().collect();
-        let opts: &[&str] = match geteuid().is_root() {
-            true => &["-m0755", "-o", "root", "-g", "root"],
-            false => &["-m0755"],
-        };
-        let install = d
-            .borrow()
-            .install()
-            .dest(&dest)?
-            .ins_options(opts.iter().copied());
-
-        let files = args
-            .iter()
-            .map(Path::new)
-            .filter_map(|f| f.file_name().map(|name| (f, name)));
-        install.files(files)?;
-
-        Ok(ExecStatus::Success)
-    })
-}
+static LONG_DOC: &str = "Install executables into DESTTREE/sbin.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -39,16 +13,17 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
-    install_bin(args, "bin")
+    install_bin(args, "sbin")
 }
+
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
     PkgBuiltin::new(
         Builtin {
-            name: "dobin",
+            name: "dosbin",
             func: run,
             help: LONG_DOC,
-            usage: "dobin path/to/executable",
+            usage: "dosbin path/to/executable",
         },
         &[("0-", &["src_install"])],
     )
@@ -65,14 +40,14 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::super::exeopts::run as exeopts;
-    use super::run as dobin;
+    use super::run as dosbin;
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(dobin, &[0]);
+            assert_invalid_args(dosbin, &[0]);
 
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
@@ -81,7 +56,7 @@ mod tests {
                 d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
 
                 // nonexistent
-                let r = dobin(&["pkgcraft"]);
+                let r = dosbin(&["pkgcraft"]);
                 assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
             })
         }
@@ -99,8 +74,8 @@ mod tests {
                 let default = 0o100755;
 
                 fs::File::create("pkgcraft").unwrap();
-                dobin(&["pkgcraft"]).unwrap();
-                let path = Path::new("usr/bin/pkgcraft");
+                dosbin(&["pkgcraft"]).unwrap();
+                let path = Path::new("usr/sbin/pkgcraft");
                 let path: PathBuf = [prefix, path].iter().collect();
                 assert!(path.is_file(), "failed creating file: {path:?}");
                 let meta = fs::metadata(&path).unwrap();
@@ -123,8 +98,8 @@ mod tests {
                 let default = 0o100755;
 
                 fs::File::create("pkgcraft").unwrap();
-                dobin(&["pkgcraft"]).unwrap();
-                let path = Path::new("usr/bin/pkgcraft");
+                dosbin(&["pkgcraft"]).unwrap();
+                let path = Path::new("usr/sbin/pkgcraft");
                 let path: PathBuf = [prefix, path].iter().collect();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
@@ -132,7 +107,7 @@ mod tests {
 
                 // verify exeopts are ignored
                 exeopts(&["-m0777"]).unwrap();
-                dobin(&["pkgcraft"]).unwrap();
+                dosbin(&["pkgcraft"]).unwrap();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
                 assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
