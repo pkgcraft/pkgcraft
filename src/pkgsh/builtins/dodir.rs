@@ -77,7 +77,7 @@ mod tests {
                         assert!(path.is_dir(), "failed creating dir: {dir:?}");
                         let meta = fs::metadata(&path).unwrap();
                         let mode = meta.mode();
-                        assert!(mode == default, "dir mode {mode:#o} is not default {default:#o}");
+                        assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
                     }
                 }
             })
@@ -101,14 +101,14 @@ mod tests {
                     let path: PathBuf = [prefix, path].iter().collect();
                     let meta = fs::metadata(&path).unwrap();
                     let mode = meta.mode();
-                    assert!(mode == default, "dir mode {mode:#o} is not default {default:#o}");
+                    assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
 
-                    // change mode for installed directories and re-run dodir()
+                    // change mode and re-run dodir()
                     diropts(&["-m0777"]).unwrap();
                     dodir(&[dir]).unwrap();
                     let meta = fs::metadata(&path).unwrap();
                     let mode = meta.mode();
-                    assert!(mode == custom, "dir mode {mode:#o} is not custom {custom:#o}");
+                    assert!(mode == custom, "mode {mode:#o} is not custom {custom:#o}");
                 }
             })
         }

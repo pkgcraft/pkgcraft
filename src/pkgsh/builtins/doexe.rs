@@ -44,11 +44,89 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as doexe;
+    use std::os::unix::fs::MetadataExt;
+    use std::path::{Path, PathBuf};
+    use std::{env, fs};
 
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(doexe, &[0]);
+    use rusty_fork::rusty_fork_test;
+    use tempfile::tempdir;
+
+    use super::super::assert_invalid_args;
+    use super::super::exeopts::run as exeopts;
+    use super::run as doexe;
+    use crate::macros::assert_err_re;
+    use crate::pkgsh::BUILD_DATA;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            assert_invalid_args(doexe, &[0]);
+
+            BUILD_DATA.with(|d| {
+                let dir = tempdir().unwrap();
+                env::set_current_dir(&dir).unwrap();
+                let prefix = dir.path();
+                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+
+                // nonexistent
+                let r = doexe(&["test"]);
+                assert_err_re!(r, format!("^invalid file \"test\": .*$"));
+            })
+        }
+
+        #[test]
+        fn creation() {
+            BUILD_DATA.with(|d| {
+                let dir = tempdir().unwrap();
+                let prefix = dir.path();
+                let src_dir = prefix.join("src");
+                fs::create_dir(&src_dir).unwrap();
+                env::set_current_dir(&src_dir).unwrap();
+                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+
+                let default = 0o100755;
+
+                fs::File::create("test").unwrap();
+                doexe(&["test"]).unwrap();
+                let path = Path::new("test");
+                let path: PathBuf = [prefix, path].iter().collect();
+                assert!(path.is_file(), "failed creating file: {path:?}");
+                let meta = fs::metadata(&path).unwrap();
+                let mode = meta.mode();
+                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
+            })
+        }
+
+        #[test]
+        fn custom_exeopts() {
+            BUILD_DATA.with(|d| {
+                let dir = tempdir().unwrap();
+                env::set_current_dir(&dir).unwrap();
+                let prefix = dir.path();
+                let src_dir = prefix.join("src");
+                fs::create_dir(&src_dir).unwrap();
+                env::set_current_dir(&src_dir).unwrap();
+                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+
+                let default = 0o100755;
+                let custom = 0o100777;
+
+                fs::File::create("test").unwrap();
+                exeopts(&["-m0755"]).unwrap();
+                doexe(&["test"]).unwrap();
+                let path = Path::new("test");
+                let path: PathBuf = [prefix, path].iter().collect();
+                let meta = fs::metadata(&path).unwrap();
+                let mode = meta.mode();
+                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
+
+                // change mode and re-run doexe()
+                exeopts(&["-m0777"]).unwrap();
+                doexe(&["test"]).unwrap();
+                let meta = fs::metadata(&path).unwrap();
+                let mode = meta.mode();
+                assert!(mode == custom, "mode {mode:#o} is not custom {custom:#o}");
+            })
+        }
     }
 }
