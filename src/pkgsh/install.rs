@@ -1,4 +1,4 @@
-use std::os::unix::fs::{symlink, MetadataExt};
+use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
@@ -300,44 +300,6 @@ impl Install {
         }
     }
 
-    // Determine if installing source into dest should work.
-    fn install_allowed(
-        &self,
-        source: &Path,
-        source_meta: &fs::Metadata,
-        dest: &Path,
-    ) -> Result<()> {
-        // matching `install` command, follow symlinks for source and don't follow for dest
-        let dest_meta = match fs::symlink_metadata(dest) {
-            Ok(v) => v,
-            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
-            Err(e) => return Err(Error::Base(format!("cannot stat {dest:?}: {e}"))),
-        };
-
-        // installing symlink
-        if dest_meta.is_symlink() {
-            return Ok(());
-        }
-
-        // source and dest are different files
-        if source_meta.ino() != dest_meta.ino() {
-            return Ok(());
-        }
-
-        // installing hardlink
-        if dest_meta.nlink() > 1 {
-            let source_path = fs::canonicalize(source)
-                .map_err(|e| Error::Base(format!("invalid path {source:?}: {e}")))?;
-            let dest_path = fs::canonicalize(dest)
-                .map_err(|e| Error::Base(format!("invalid path {dest:?}: {e}")))?;
-            if source_path != dest_path {
-                return Ok(());
-            }
-        }
-
-        Err(Error::Base(format!("{source:?} and {dest:?} are identical")))
-    }
-
     // Install files using internal functionality.
     fn files_internal<I, P, Q>(&self, paths: I) -> Result<()>
     where
@@ -349,9 +311,7 @@ impl Install {
             let source = source.as_ref();
             let dest = dest.as_ref();
             let meta = fs::metadata(source)
-                .map_err(|e| Error::Base(format!("cannot stat {source:?}: {e}")))?;
-
-            self.install_allowed(source, &meta, dest)?;
+                .map_err(|e| Error::Base(format!("invalid file {source:?}: {e}")))?;
 
             // matching `install` command, remove dest before install
             match fs::remove_file(dest) {
