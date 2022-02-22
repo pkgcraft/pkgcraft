@@ -13,7 +13,7 @@ Displays a failure message provided in an optional argument and then aborts the 
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let args = match args.len() {
             1 | 2 if eapi.has("nonfatal_die") && args[0] == "-n" => {

@@ -15,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let dest = "/usr/share/info";
         let opts = ["-m0644"];
         let install = d.borrow().install().dest(&dest)?.ins_options(opts);

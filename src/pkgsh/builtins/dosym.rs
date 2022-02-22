@@ -13,7 +13,7 @@ static LONG_DOC: &str = "Create symbolic links.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (source, target, target_str) = match args.len() {
             3 if args[0] == "-r" && eapi.has("dosym_relative") => {

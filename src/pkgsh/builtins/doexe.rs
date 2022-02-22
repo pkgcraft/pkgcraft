@@ -15,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let dest = &d.borrow().exedesttree;
         let opts = &d.borrow().exeopts;
         let install = d.borrow().install().dest(&dest)?.ins_options(opts);

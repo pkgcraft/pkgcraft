@@ -11,7 +11,7 @@ static LONG_DOC: &str = "Install documentation files.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (recursive, args) = match args.first() {
             None => return Err(Error::Builtin("requires 1 or more args, got 0".into())),

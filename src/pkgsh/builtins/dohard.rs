@@ -16,7 +16,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => return Err(Error::Builtin(format!("requires 2 args, got {n}"))),
     };
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let install = d.borrow().install();
         install.link(|p, q| hard_link(p, q), source, target)?;
         Ok(ExecStatus::Success)
