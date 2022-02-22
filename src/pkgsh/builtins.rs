@@ -67,6 +67,7 @@ pub mod inherit;
 pub mod insinto;
 pub mod insopts;
 pub mod into;
+pub mod keepdir;
 pub mod libopts;
 pub mod nonfatal;
 pub mod unpack;
@@ -174,6 +175,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &insinto::BUILTIN,
         &insopts::BUILTIN,
         &into::BUILTIN,
+        &keepdir::BUILTIN,
         &libopts::BUILTIN,
         &nonfatal::BUILTIN,
         &unpack::BUILTIN,

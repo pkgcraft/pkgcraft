@@ -165,7 +165,7 @@ impl Install {
         self
     }
 
-    fn prefix<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+    pub(super) fn prefix<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let path = path.as_ref();
         let path = path.strip_prefix("/").unwrap_or(path);
         [self.destdir.as_path(), path].iter().collect()
