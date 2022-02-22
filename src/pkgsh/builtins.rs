@@ -40,6 +40,7 @@ pub mod dolib;
 pub mod dolib_a;
 pub mod dolib_so;
 pub mod dosbin;
+pub mod dosed;
 pub mod dostrip;
 pub mod dosym;
 pub mod eapply;
@@ -141,6 +142,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &dolib::BUILTIN,
         &dolib_a::BUILTIN,
         &dolib_so::BUILTIN,
+        &dosed::BUILTIN,
         &dosbin::BUILTIN,
         &dostrip::BUILTIN,
         &dosym::BUILTIN,
