@@ -58,9 +58,10 @@ impl FromStr for Mode {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         let without_prefix = s.trim_start_matches("0o");
-        let mode = u32::from_str_radix(without_prefix, 8)
-            .map(stat::Mode::from_bits_truncate)
+        let mode = stat::mode_t::from_str_radix(without_prefix, 8)
             .map_err(|_| crate::Error::InvalidValue(format!("invalid mode: {s}")))?;
+        let mode = stat::Mode::from_bits(mode)
+            .ok_or_else(|| crate::Error::InvalidValue(format!("invalid mode: {s}")))?;
         Ok(Mode { inner: mode })
     }
 }
