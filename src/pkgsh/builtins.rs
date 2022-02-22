@@ -11,6 +11,10 @@ use crate::{eapi, eapi::Eapi};
 
 mod _default_phase_func;
 mod _use_conf;
+pub mod adddeny;
+pub mod addpredict;
+pub mod addread;
+pub mod addwrite;
 pub mod assert;
 pub mod debug_print;
 pub mod debug_print_function;
@@ -114,6 +118,10 @@ pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, ScopeBuiltinsMap>;
 // TODO: auto-generate the builtin module imports and vector creation via build script
 pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
     let builtins: Vec<&PkgBuiltin> = vec![
+        &adddeny::BUILTIN,
+        &addpredict::BUILTIN,
+        &addread::BUILTIN,
+        &addwrite::BUILTIN,
         &assert::BUILTIN,
         &debug_print::BUILTIN,
         &debug_print_function::BUILTIN,
