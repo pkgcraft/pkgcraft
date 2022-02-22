@@ -216,7 +216,7 @@ impl Install {
 
         if let Some(mode) = opts.mode() {
             if !path.is_symlink() {
-                stat::fchmodat(None, path, mode, stat::FchmodatFlags::NoFollowSymlink)
+                stat::fchmodat(None, path, mode, stat::FchmodatFlags::FollowSymlink)
                     .map_err(|e| Error::Base(format!("failed setting file mode: {path:?}: {e}")))?;
             }
         }
