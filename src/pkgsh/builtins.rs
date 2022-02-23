@@ -79,6 +79,7 @@ pub mod newexe;
 pub mod newheader;
 pub mod newinitd;
 pub mod newlib_a;
+pub mod newlib_so;
 pub mod nonfatal;
 pub mod unpack;
 pub mod use_;
@@ -196,6 +197,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &newheader::BUILTIN,
         &newinitd::BUILTIN,
         &newlib_a::BUILTIN,
+        &newlib_so::BUILTIN,
         &nonfatal::BUILTIN,
         &unpack::BUILTIN,
         &use_::BUILTIN,
