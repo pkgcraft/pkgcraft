@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
-        let dest = "/etc/conf.d";
+        let dest = "/etc/env.d";
         let opts: Vec<&str> = match d.eapi.has("consistent_file_opts") {
             true => vec!["-m0644"],
             false => d.insopts.iter().map(|s| s.as_str()).collect(),
@@ -93,7 +93,7 @@ mod tests {
 
                 fs::File::create("pkgcraft").unwrap();
                 doenvd(&["pkgcraft"]).unwrap();
-                let path = Path::new("etc/conf.d/pkgcraft");
+                let path = Path::new("etc/env.d/pkgcraft");
                 let path: PathBuf = [prefix, path].iter().collect();
                 assert!(path.is_file(), "failed creating file: {path:?}");
                 let meta = fs::metadata(&path).unwrap();
@@ -118,7 +118,7 @@ mod tests {
 
                 fs::File::create("pkgcraft").unwrap();
                 doenvd(&["pkgcraft"]).unwrap();
-                let path = Path::new("etc/conf.d/pkgcraft");
+                let path = Path::new("etc/env.d/pkgcraft");
                 let path: PathBuf = [prefix, path].iter().collect();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
