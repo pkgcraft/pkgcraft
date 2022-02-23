@@ -69,36 +69,13 @@ mod tests {
                 d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
 
                 // nonexistent
-                let r = doexe(&["test"]);
-                assert_err_re!(r, format!("^invalid file \"test\": .*$"));
+                let r = doexe(&["pkgcraft"]);
+                assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
             })
         }
 
         #[test]
         fn creation() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
-                let src_dir = prefix.join("src");
-                fs::create_dir(&src_dir).unwrap();
-                env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
-
-                let default = 0o100755;
-
-                fs::File::create("test").unwrap();
-                doexe(&["test"]).unwrap();
-                let path = Path::new("test");
-                let path: PathBuf = [prefix, path].iter().collect();
-                assert!(path.is_file(), "failed creating file: {path:?}");
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
-            })
-        }
-
-        #[test]
-        fn custom_exeopts() {
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
                 env::set_current_dir(&dir).unwrap();
@@ -111,18 +88,17 @@ mod tests {
                 let default = 0o100755;
                 let custom = 0o100777;
 
-                fs::File::create("test").unwrap();
-                exeopts(&["-m0755"]).unwrap();
-                doexe(&["test"]).unwrap();
-                let path = Path::new("test");
+                fs::File::create("pkgcraft").unwrap();
+                doexe(&["pkgcraft"]).unwrap();
+                let path = Path::new("pkgcraft");
                 let path: PathBuf = [prefix, path].iter().collect();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
                 assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
 
-                // change mode and re-run doexe()
+                // change mode and re-run
                 exeopts(&["-m0777"]).unwrap();
-                doexe(&["test"]).unwrap();
+                doexe(&["pkgcraft"]).unwrap();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
                 assert!(mode == custom, "mode {mode:#o} is not custom {custom:#o}");

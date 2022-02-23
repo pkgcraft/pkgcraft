@@ -19,7 +19,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             name: "newenvd",
             func: run,
             help: LONG_DOC,
-            usage: "newenvd path/to/env/file filename",
+            usage: "newenvd path/to/env/file new_filename",
         },
         &[("0-", &["src_install"])],
     )
@@ -46,7 +46,7 @@ mod tests {
         }
 
         #[test]
-        fn creation_from_file() {
+        fn creation() {
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
                 let prefix = dir.path();
@@ -61,28 +61,14 @@ mod tests {
                 newenvd(&["env", "pkgcraft"]).unwrap();
                 let path = Path::new("etc/env.d/pkgcraft");
                 let path: PathBuf = [prefix, path].iter().collect();
-                assert!(path.is_file(), "failed creating file: {path:?}");
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
+                assert_eq!(fs::read_to_string(&path).unwrap(), "");
                 assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
-            })
-        }
 
-        #[test]
-        fn creation_from_stdin() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
-                let src_dir = prefix.join("src");
-                fs::create_dir(&src_dir).unwrap();
-                env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
-
+                // re-run using data from stdin
                 write_stdin!("pkgcraft");
                 newenvd(&["-", "pkgcraft"]).unwrap();
-                let path = Path::new("etc/env.d/pkgcraft");
-                let path: PathBuf = [prefix, path].iter().collect();
-                assert!(path.is_file(), "failed creating file: {path:?}");
                 assert_eq!(fs::read_to_string(&path).unwrap(), "pkgcraft");
             })
         }

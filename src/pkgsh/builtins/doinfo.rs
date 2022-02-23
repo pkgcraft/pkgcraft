@@ -89,7 +89,6 @@ mod tests {
                 doinfo(&["pkgcraft"]).unwrap();
                 let path = Path::new("usr/share/info/pkgcraft");
                 let path: PathBuf = [prefix, path].iter().collect();
-                assert!(path.is_file(), "failed creating file: {path:?}");
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
                 assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
