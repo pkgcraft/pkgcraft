@@ -46,3 +46,27 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> Result<ExecStatus> {
         func(&[path])
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use rusty_fork::rusty_fork_test;
+
+    use super::super::newbin::run as newbin;
+    use super::new;
+    use crate::macros::assert_err_re;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            // nonexistent
+            let r = new(&["bin", "pkgcraft"], newbin);
+            assert_err_re!(r, format!("^failed copying file \"bin\" .*$"));
+
+            // filename contains path separator
+            for f in ["bin/pkgcraft", "/bin/pkgcraft", "/"] {
+                let r = new(&["bin", f], newbin);
+                assert_err_re!(r, format!("^invalid filename: {f:?}$"));
+            }
+        }
+    }
+}

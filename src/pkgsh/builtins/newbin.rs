@@ -19,7 +19,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             name: "newbin",
             func: run,
             help: LONG_DOC,
-            usage: "newbin path/to/executable bin_name",
+            usage: "newbin path/to/executable filename",
         },
         &[("0-", &["src_install"])],
     )
@@ -37,30 +37,12 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as newbin;
-    use crate::macros::assert_err_re;
     use crate::pkgsh::{write_stdin, BUILD_DATA};
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
             assert_invalid_args(newbin, &[0, 1, 3]);
-
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let prefix = dir.path();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
-
-                // nonexistent
-                let r = newbin(&["bin", "pkgcraft"]);
-                assert_err_re!(r, format!("^failed copying file \"bin\" .*$"));
-
-                // filename contains path separator
-                for f in ["bin/pkgcraft", "/bin/pkgcraft", "/"] {
-                    let r = newbin(&["bin", f]);
-                    assert_err_re!(r, format!("^invalid filename: {f:?}$"));
-                }
-            })
         }
 
         #[test]
