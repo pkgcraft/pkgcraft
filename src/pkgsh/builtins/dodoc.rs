@@ -28,7 +28,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         .collect();
         let install = d.borrow().install().dest(&dest)?;
 
-        let (files, dirs): (Vec<&Path>, Vec<&Path>) =
+        let (dirs, files): (Vec<&Path>, Vec<&Path>) =
             args.iter().map(Path::new).partition(|p| p.is_dir());
 
         if !dirs.is_empty() {
