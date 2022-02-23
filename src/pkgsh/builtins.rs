@@ -75,6 +75,7 @@ pub mod libopts;
 pub mod newbin;
 pub mod newconfd;
 pub mod newenvd;
+pub mod newexe;
 pub mod nonfatal;
 pub mod unpack;
 pub mod use_;
@@ -188,6 +189,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &newbin::BUILTIN,
         &newconfd::BUILTIN,
         &newenvd::BUILTIN,
+        &newexe::BUILTIN,
         &nonfatal::BUILTIN,
         &unpack::BUILTIN,
         &use_::BUILTIN,
