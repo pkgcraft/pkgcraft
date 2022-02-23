@@ -1,28 +1,25 @@
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
-use scallop::{Error, Result};
+use scallop::Result;
 
-use super::dolib::install_lib;
+use super::_new::new;
+use super::dolib_a::run as dolib_a;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install static libraries.";
+static LONG_DOC: &str = "Install renamed static libraries.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
-    }
-
-    install_lib(args, Some(vec!["-m0644"]))
+    new(args, dolib_a)
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
     PkgBuiltin::new(
         Builtin {
-            name: "dolib.a",
+            name: "newlib.a",
             func: run,
             help: LONG_DOC,
-            usage: "dolib.a path/to/lib.a",
+            usage: "newlib.a path/to/lib.a new_filename",
         },
         &[("0-", &["src_install"])],
     )
@@ -30,6 +27,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
     use std::os::unix::fs::MetadataExt;
     use std::path::{Path, PathBuf};
     use std::{env, fs};
@@ -38,26 +36,13 @@ mod tests {
     use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
-    use super::super::libopts::run as libopts;
-    use super::run as dolib_a;
-    use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
+    use super::run as newlib_a;
+    use crate::pkgsh::{write_stdin, BUILD_DATA};
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(dolib_a, &[0]);
-
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let prefix = dir.path();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
-
-                // nonexistent
-                let r = dolib_a(&["pkgcraft"]);
-                assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
-            })
+            assert_invalid_args(newlib_a, &[0, 1, 3]);
         }
 
         #[test]
@@ -72,20 +57,19 @@ mod tests {
 
                 let default = 0o100644;
 
-                fs::File::create("pkgcraft.a").unwrap();
-                dolib_a(&["pkgcraft.a"]).unwrap();
+                fs::File::create("lib").unwrap();
+                newlib_a(&["lib", "pkgcraft.a"]).unwrap();
                 let path = Path::new("usr/lib/pkgcraft.a");
                 let path: PathBuf = [prefix, path].iter().collect();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
+                assert_eq!(fs::read_to_string(&path).unwrap(), "");
                 assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
 
-                // verify libopts are ignored
-                libopts(&["-m0755"]).unwrap();
-                dolib_a(&["pkgcraft.a"]).unwrap();
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
+                // re-run using data from stdin
+                write_stdin!("pkgcraft");
+                newlib_a(&["-", "pkgcraft.a"]).unwrap();
+                assert_eq!(fs::read_to_string(&path).unwrap(), "pkgcraft");
             })
         }
     }
