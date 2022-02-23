@@ -22,14 +22,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     let version_parts = version_split(ver);
     let len = version_parts.len();
-    let (start, end) = parse::range(range, len / 2)?;
-    let start_idx = match start {
-        0 => 0,
-        n => cmp::min(n * 2 - 1, len),
-    };
-    let end_idx = cmp::min(end * 2, len);
+    let (mut start, mut end) = parse::range(range, len / 2)?;
 
-    write_stdout!("{}", &version_parts[start_idx..end_idx].join(""));
+    // remap indices to array positions
+    if start != 0 {
+        start = cmp::min(start * 2 - 1, len);
+    }
+    end = cmp::min(end * 2, len);
+
+    write_stdout!("{}", &version_parts[start..end].join(""));
 
     Ok(ExecStatus::Success)
 }
