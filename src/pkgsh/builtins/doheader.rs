@@ -55,7 +55,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             name: "doheader",
             func: run,
             help: LONG_DOC,
-            usage: "doheader [-r] header.h",
+            usage: "doheader [-r] /path/to/header.h",
         },
         &[("5-", &["src_install"])],
     )
