@@ -3,23 +3,23 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::Result;
 
 use super::_new::new;
-use super::dolib_so::run as dolib_so;
+use super::dosbin::run as dosbin;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed shared libraries.";
+static LONG_DOC: &str = "Install renamed executables into DESTTREE/sbin.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    new(args, dolib_so)
+    new(args, dosbin)
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
     PkgBuiltin::new(
         Builtin {
-            name: "newlib.so",
+            name: "newsbin",
             func: run,
             help: LONG_DOC,
-            usage: "newlib.so path/to/lib.so new_filename",
+            usage: "newsbin path/to/executable new_filename",
         },
         &[("0-", &["src_install"])],
     )
@@ -36,13 +36,13 @@ mod tests {
     use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
-    use super::run as newlib_so;
+    use super::run as newsbin;
     use crate::pkgsh::{write_stdin, BUILD_DATA};
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            assert_invalid_args(newlib_so, &[0, 1, 3]);
+            assert_invalid_args(newsbin, &[0, 1, 3]);
         }
 
         #[test]
@@ -57,9 +57,9 @@ mod tests {
 
                 let default = 0o100755;
 
-                fs::File::create("lib").unwrap();
-                newlib_so(&["lib", "pkgcraft.so"]).unwrap();
-                let path = Path::new("usr/lib/pkgcraft.so");
+                fs::File::create("bin").unwrap();
+                newsbin(&["bin", "pkgcraft"]).unwrap();
+                let path = Path::new("usr/sbin/pkgcraft");
                 let path: PathBuf = [prefix, path].iter().collect();
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
@@ -68,7 +68,7 @@ mod tests {
 
                 // re-run using data from stdin
                 write_stdin!("pkgcraft");
-                newlib_so(&["-", "pkgcraft.so"]).unwrap();
+                newsbin(&["-", "pkgcraft"]).unwrap();
                 assert_eq!(fs::read_to_string(&path).unwrap(), "pkgcraft");
             })
         }
