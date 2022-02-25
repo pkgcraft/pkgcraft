@@ -28,8 +28,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 #[cfg(test)]
 mod tests {
     use std::io::Write;
-    use std::os::unix::fs::MetadataExt;
-    use std::path::{Path, PathBuf};
     use std::{env, fs};
 
     use rusty_fork::rusty_fork_test;
@@ -55,16 +53,10 @@ mod tests {
                 env::set_current_dir(&src_dir).unwrap();
                 d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
 
-                let default = 0o100755;
-
                 fs::File::create("bin").unwrap();
                 newbin(&["bin", "pkgcraft"]).unwrap();
-                let path = Path::new("usr/bin/pkgcraft");
-                let path: PathBuf = [prefix, path].iter().collect();
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert_eq!(fs::read_to_string(&path).unwrap(), "");
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
+                let path = prefix.join("usr/bin/pkgcraft");
+                assert!(path.exists(), "missing file: {path:?}");
 
                 // re-run using data from stdin
                 write_stdin!("pkgcraft");

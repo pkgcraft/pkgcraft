@@ -58,7 +58,7 @@ mod tests {
                 let path = prefix.join("usr/share/man/man1/pkgcraft.1");
                 assert!(path.exists(), "missing file: {path:?}");
 
-                // change mode and re-run using data from stdin
+                // re-run using data from stdin
                 write_stdin!("pkgcraft");
                 newman(&["-", "pkgcraft.1"]).unwrap();
                 assert_eq!(fs::read_to_string(&path).unwrap(), "pkgcraft");
