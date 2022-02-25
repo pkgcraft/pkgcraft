@@ -67,7 +67,7 @@ impl FromStr for Mode {
 }
 
 #[derive(Parser, Debug, Default)]
-#[clap(author, version, about, long_about = None)]
+#[clap(name = "install")]
 struct InstallOptions {
     #[clap(short, long)]
     group: Option<Group>,
