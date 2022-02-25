@@ -51,7 +51,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             name: "doins",
             func: run,
             help: LONG_DOC,
-            usage: "doins [-r] /path/to/file",
+            usage: "doins [-r] path/to/file",
         },
         &[("0-", &["src_install"])],
     )

@@ -6,7 +6,7 @@ use super::_new::new;
 use super::doins::run as doins;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install rename files into INSDESTREE.";
+static LONG_DOC: &str = "Install renamed files into INSDESTREE.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -19,7 +19,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             name: "newins",
             func: run,
             help: LONG_DOC,
-            usage: "newins /path/to/file new_filename",
+            usage: "newins path/to/file new_filename",
         },
         &[("0-", &["src_install"])],
     )
