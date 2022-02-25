@@ -45,16 +45,22 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // atom blockers -- !cat/pkg and !!cat/pkg
         ("blockers", false),
 
-        // atom use deps -- cat/pkg[use]
-        ("use_deps", false),
+        // support language detection via filename for `doman`
+        ("doman_lang_detect", false),
 
         // SRC_URI -> operator for url filename renaming
         ("src_uri_renames", false),
+
+        // atom use deps -- cat/pkg[use]
+        ("use_deps", false),
 
         // EAPI 4
 
         // recursive install support via `dodoc -r`
         ("dodoc_recursive", false),
+
+        // support `doman` language override via -i18n option
+        ("doman_lang_override", false),
 
         // atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
         ("use_dep_defaults", false),
@@ -324,6 +330,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI1),
     options: EAPI1.update_options(&[
         ("blockers", true),
+        ("doman_lang_detect", true),
         ("use_deps", true),
         ("src_uri_renames", true),
     ]),
@@ -350,10 +357,11 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
     parent: Some(&EAPI3),
     options: EAPI3.update_options(&[
         ("dodoc_recursive", true),
-        ("use_dep_defaults", true),
-        ("required_use", true),
+        ("doman_lang_override", true),
         ("rdepend_default", false),
+        ("required_use", true),
         ("use_conf_arg", true),
+        ("use_dep_defaults", true),
     ]),
     phases: EAPI3.update_phases(&[
         ("pkg_pretend", phase_stub as PhaseFn),
