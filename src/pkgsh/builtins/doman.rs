@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -34,21 +34,24 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let eapi = d.eapi;
         let install = d.install().dest("/usr/share/man")?.ins_options(["-m0644"]);
 
-        let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&str, PathBuf)>::new());
+        let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
 
-        for arg in args {
-            let (mut basename, ext) = match arg.rsplit_once('.') {
-                Some((base, ext)) => (base, ext),
-                None => {
+        for path in args.iter().map(Path::new) {
+            let (mut base, ext) = match (
+                path.file_stem().map(|s| s.to_str()),
+                path.extension().map(|s| s.to_str()),
+            ) {
+                (Some(Some(base)), Some(Some(ext))) => (base, ext),
+                _ => {
                     return Err(Error::Builtin(format!(
-                        "invalid file target, use `newman`: {arg:?}"
+                        "invalid file target, use `newman`: {path:?}"
                     )))
                 }
             };
 
             if eapi.has("doman_lang_detect") {
-                if let Some(m) = DETECT_LANG_RE.captures(basename) {
-                    basename = m.name("name").unwrap().as_str();
+                if let Some(m) = DETECT_LANG_RE.captures(base) {
+                    base = m.name("name").unwrap().as_str();
                     if lang.is_empty() || !eapi.has("doman_lang_override") {
                         lang = m.name("lang").unwrap().as_str();
                     }
@@ -59,7 +62,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             let mut mandir = PathBuf::from(lang);
             mandir.push(format!("man{ext}"));
 
-            files.push((arg, mandir.join(format!("{basename}.{ext}"))));
+            files.push((path, mandir.join(format!("{base}.{ext}"))));
             dirs.insert(mandir);
         }
 
@@ -123,26 +126,25 @@ mod tests {
         fn creation() {
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
-                let prefix_path = dir.path();
-                let prefix = String::from(prefix_path.to_str().unwrap());
-                let src_dir = prefix_path.join("src");
+                let prefix = dir.path();
+                let src_dir = prefix.join("src");
                 fs::create_dir(&src_dir).unwrap();
                 env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix);
+                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
 
                 let default = 0o100644;
 
                 // standard file
                 fs::File::create("pkgcraft.1").unwrap();
                 doman(&["pkgcraft.1"]).unwrap();
-                let path = prefix_path.join("usr/share/man/man1/pkgcraft.1");
+                let path = prefix.join("usr/share/man/man1/pkgcraft.1");
                 let meta = fs::metadata(&path).unwrap();
                 let mode = meta.mode();
                 assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
 
                 // -i18n option usage
                 doman(&["-i18n=en", "pkgcraft.1"]).unwrap();
-                let path = prefix_path.join("usr/share/man/en/man1/pkgcraft.1");
+                let path = prefix.join("usr/share/man/en/man1/pkgcraft.1");
                 assert!(path.exists(), "missing file: {path:?}");
 
                 // filename lang detection
@@ -152,13 +154,13 @@ mod tests {
                 ] {
                     fs::File::create(f).unwrap();
                     doman(&[f]).unwrap();
-                    let path = prefix_path.join(format!("usr/share/man/{dir}"));
+                    let path = prefix.join(format!("usr/share/man/{dir}"));
                     assert!(path.exists(), "missing file: {path:?}");
                 }
 
                 // -i18n option overrides filename lang
                 doman(&["-i18n=zz", "pkgcraft.en.1"]).unwrap();
-                let path = prefix_path.join("usr/share/man/zz/man1/pkgcraft.1");
+                let path = prefix.join("usr/share/man/zz/man1/pkgcraft.1");
                 assert!(path.exists(), "missing file: {path:?}");
             })
         }
