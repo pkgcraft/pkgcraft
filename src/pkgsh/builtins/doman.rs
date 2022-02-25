@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     // only the -i18n option was specified
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more targets, got 0".into()));
+        return Err(Error::Builtin("missing filename target".into()));
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -92,12 +92,31 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as doman;
+    use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
             assert_invalid_args(doman, &[0]);
+        }
+
+        #[test]
+        fn errors() {
+            BUILD_DATA.with(|d| {
+                let dir = tempdir().unwrap();
+                env::set_current_dir(&dir).unwrap();
+                let path = dir.path().to_str().unwrap();
+                d.borrow_mut().env.insert("ED".into(), path.into());
+
+                // no targets
+                let r = doman(&["-i18n=en"]);
+                assert_err_re!(r, format!("^missing filename target$"));
+
+                // `newman` target
+                let r = doman(&["manpage"]);
+                assert_err_re!(r, format!("^invalid file target, use `newman`: .*$"));
+            })
         }
 
         #[test]
