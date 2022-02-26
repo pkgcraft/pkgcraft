@@ -48,7 +48,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "dolib path/to/lib",
         },
-        &[("0-", &["src_install"])],
+        &[("0-6", &["src_install"])],
     )
 });
 
