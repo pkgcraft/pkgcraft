@@ -4,8 +4,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::Lazy;
-use regex::Regex;
+use once_cell::sync::{Lazy, OnceCell};
+use regex::{escape, Regex, RegexBuilder};
 use scallop::builtins::ScopedBuiltins;
 
 use crate::atom::Atom;
@@ -99,6 +99,12 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // failglob shell option is enabled in global scope
         ("global_failglob", false),
 
+        // `unpack` supports absolute paths
+        ("unpack_absolute_paths", false),
+
+        // `unpack` performs case-insensitive file extension matching
+        ("unpack_case_insensitive", false),
+
         // EAPI 8
 
         // improve insopts/exeopts consistency for install functions
@@ -123,7 +129,7 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
 type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 
-#[derive(Debug, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
@@ -131,7 +137,11 @@ pub struct Eapi {
     phases: HashMap<String, PhaseFn>,
     incremental_keys: HashSet<String>,
     econf_options: EapiEconfOptions,
+    archives: HashSet<String>,
+    archives_regex: OnceCell<Regex>,
 }
+
+impl Eq for Eapi {}
 
 impl PartialEq for Eapi {
     fn eq(&self, other: &Self) -> bool {
@@ -210,6 +220,21 @@ impl Eapi {
         &self.phases
     }
 
+    #[inline]
+    pub(crate) fn archives_regex(&self) -> &Regex {
+        self.archives_regex.get_or_init(|| {
+            // Regex matches extensions from the longest to the shortest.
+            let mut possible_exts: Vec<String> =
+                self.archives.iter().map(|s| escape(s.as_str())).collect();
+            possible_exts.sort_by_cached_key(|s| s.len());
+            possible_exts.reverse();
+            RegexBuilder::new(&format!(r"\.(?P<ext>{})$", possible_exts.join("|")))
+                .case_insensitive(self.has("unpack_case_insensitive"))
+                .build()
+                .unwrap()
+        })
+    }
+
     pub(crate) fn builtins<S: AsRef<str>>(&self, scope: S) -> Result<&BuiltinsMap> {
         let scope = scope.as_ref();
         BUILTINS_MAP
@@ -269,6 +294,17 @@ impl Eapi {
         }
         econf_options
     }
+
+    fn update_archives(&self, add: &[&str], remove: &[&str]) -> HashSet<String> {
+        let mut archives = self.archives.clone();
+        archives.extend(add.iter().map(|s| s.to_string()));
+        for x in remove {
+            if !archives.remove(*x) {
+                panic!("disabling unknown archive format: {x:?}");
+            }
+        }
+        archives
+    }
 }
 
 impl fmt::Display for Eapi {
@@ -314,6 +350,26 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| Eapi {
         .map(|s| s.to_string())
         .collect(),
     econf_options: EapiEconfOptions::new(),
+    #[rustfmt::skip]
+    archives: [
+        "tar",
+        "gz", "Z",
+        "tar.gz", "tgz", "tar.Z",
+        "bz2", "bz",
+        "tar.bz2", "tbz2", "tar.bz", "tbz",
+        "zip", "ZIP", "jar",
+        "7z", "7Z",
+        "rar", "RAR",
+        "LHA", "LHa", "lha", "lzh",
+        "a",
+        "deb",
+        "lzma",
+        "tar.lzma",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect(),
+    archives_regex: OnceCell::new(),
 });
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -323,6 +379,8 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| Eapi {
     phases: EAPI0.update_phases(&[("src_compile", eapi1::src_compile as PhaseFn)]),
     incremental_keys: EAPI0.incremental_keys.clone(),
     econf_options: EAPI0.econf_options.clone(),
+    archives: EAPI0.archives.clone(),
+    archives_regex: OnceCell::new(),
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -341,6 +399,8 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| Eapi {
     ]),
     incremental_keys: EAPI1.incremental_keys.clone(),
     econf_options: EAPI1.econf_options.clone(),
+    archives: EAPI1.archives.clone(),
+    archives_regex: OnceCell::new(),
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -350,6 +410,8 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| Eapi {
     phases: EAPI2.phases.clone(),
     incremental_keys: EAPI2.incremental_keys.clone(),
     econf_options: EAPI2.econf_options.clone(),
+    archives: EAPI2.update_archives(&["tar.xz", "xz"], &[]),
+    archives_regex: OnceCell::new(),
 });
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -369,6 +431,8 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| Eapi {
     ]),
     incremental_keys: EAPI3.update_keys(&["REQUIRED_USE"]),
     econf_options: EAPI3.update_econf(&[("--disable-dependency-tracking", None, None)]),
+    archives: EAPI3.archives.clone(),
+    archives_regex: OnceCell::new(),
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -385,12 +449,19 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| Eapi {
     phases: EAPI4.phases.clone(),
     incremental_keys: EAPI4.incremental_keys.clone(),
     econf_options: EAPI4.update_econf(&[("--disable-silent-rules", None, None)]),
+    archives: EAPI4.archives.clone(),
+    archives_regex: OnceCell::new(),
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "6",
     parent: Some(&EAPI5),
-    options: EAPI5.update_options(&[("nonfatal_die", true), ("global_failglob", true)]),
+    options: EAPI5.update_options(&[
+        ("nonfatal_die", true),
+        ("global_failglob", true),
+        ("unpack_absolute_paths", true),
+        ("unpack_case_insensitive", true),
+    ]),
     phases: EAPI5.update_phases(&[
         ("src_prepare", eapi6::src_prepare as PhaseFn),
         ("src_install", eapi6::src_install as PhaseFn),
@@ -400,6 +471,8 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
         ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
     ]),
+    archives: EAPI5.update_archives(&["txz"], &[]),
+    archives_regex: OnceCell::new(),
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -409,6 +482,8 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| Eapi {
     phases: EAPI6.phases.clone(),
     incremental_keys: EAPI6.update_keys(&["BDEPEND"]),
     econf_options: EAPI6.update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))]),
+    archives: EAPI6.archives.clone(),
+    archives_regex: OnceCell::new(),
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
@@ -426,6 +501,13 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
         ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
         ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
     ]),
+    #[rustfmt::skip]
+    archives: EAPI7.update_archives(&[], &[
+        "7z", "7Z",
+        "rar", "RAR",
+        "LHA", "LHa", "lha", "lzh",
+    ]),
+    archives_regex: OnceCell::new(),
 });
 
 /// Reference to the latest registered EAPI.
@@ -439,6 +521,8 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| Eapi {
     phases: EAPI_LATEST.phases.clone(),
     incremental_keys: EAPI_LATEST.incremental_keys.clone(),
     econf_options: EAPI_LATEST.econf_options.clone(),
+    archives: EAPI_LATEST.archives.clone(),
+    archives_regex: OnceCell::new(),
 });
 
 /// Ordered mapping of official EAPI identifiers to instances.

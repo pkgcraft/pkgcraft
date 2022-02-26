@@ -24,7 +24,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     emake.args(args);
-    emake.run()
+    emake.run()?;
+    Ok(ExecStatus::Success)
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {

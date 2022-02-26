@@ -14,6 +14,7 @@ use scallop::{functions, source, Error, Result};
 
 use crate::eapi::Eapi;
 
+mod archive;
 pub mod builtins;
 mod install;
 pub(crate) mod phases;
@@ -26,26 +27,34 @@ fn get_cmd(cmd: &Command) -> Vec<Cow<str>> {
     args
 }
 
+fn run_cmd(cmd: &mut Command) -> Result<()> {
+    match cmd.status() {
+        Ok(r) => match r.success() {
+            true => Ok(()),
+            false => Err(Error::Base(format!("failed running: {cmd:?}"))),
+        },
+        Err(e) => Err(Error::Base(format!("failed running: {:?}: {e}", cmd.get_program()))),
+    }
+}
+
 /// Support conversion from a given object into a Vec<T>.
 trait RunCommand {
     /// Convert a given object into a Vec<&str>.
-    fn run(self) -> Result<ExecStatus>;
+    fn run(&mut self) -> Result<()>;
 }
 
 #[cfg(not(test))]
 impl RunCommand for Command {
-    fn run(mut self) -> Result<ExecStatus> {
-        write_stdout!("{}", get_cmd(&self).join(" "));
-        self.status().map_or_else(
-            |e| Err(Error::Builtin(format!("failed running: {e}"))),
-            |v| Ok(ExecStatus::from(v)),
-        )
+    fn run(&mut self) -> Result<()> {
+        write_stdout!("{}", get_cmd(self).join(" "));
+        run_cmd(self)
     }
 }
 
 #[cfg(test)]
 thread_local! {
     static COMMANDS: RefCell<Vec<Vec<String>>> = RefCell::new(Default::default());
+    static RUN_COMMAND: RefCell<bool> = RefCell::new(false);
 }
 
 #[cfg(test)]
@@ -54,14 +63,29 @@ fn last_command() -> Option<Vec<String>> {
 }
 
 #[cfg(test)]
+fn run_commands<F: FnOnce()>(func: F) {
+    RUN_COMMAND.with(|d| {
+        *d.borrow_mut() = true;
+        func();
+        *d.borrow_mut() = false;
+    })
+}
+
+#[cfg(test)]
 impl RunCommand for Command {
-    fn run(self) -> Result<ExecStatus> {
+    fn run(&mut self) -> Result<()> {
         let cmd = get_cmd(&self)
             .into_iter()
             .map(|s| String::from(s))
             .collect();
         COMMANDS.with(|cmds| cmds.borrow_mut().push(cmd));
-        Ok(ExecStatus::Success)
+
+        RUN_COMMAND.with(|d| -> Result<()> {
+            match *d.borrow() {
+                true => run_cmd(self),
+                false => Ok(()),
+            }
+        })
     }
 }
 

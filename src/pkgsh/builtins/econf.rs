@@ -101,7 +101,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
     }
 
-    econf.run()
+    econf.run()?;
+    Ok(ExecStatus::Success)
 }
 
 pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {

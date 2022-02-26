@@ -224,6 +224,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
     ];
 
     let static_scopes: Vec<String> = vec_str!(["global", "eclass"]);
+    #[allow(clippy::mutable_key_type)]
     let mut builtins_map = EapiBuiltinsMap::new();
     for b in builtins.iter() {
         for (eapi, re) in b.scope.iter() {
