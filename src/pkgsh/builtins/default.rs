@@ -5,7 +5,7 @@ use scallop::{Error, Result};
 use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "Calls the default_* function for the current phase.";
+const LONG_DOC: &str = "Calls the default_* function for the current phase.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

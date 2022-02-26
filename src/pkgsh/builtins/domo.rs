@@ -8,7 +8,7 @@ use scallop::{Error, Result};
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "Install gettext *.mo files.";
+const LONG_DOC: &str = "Install gettext *.mo files.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

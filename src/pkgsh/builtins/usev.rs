@@ -7,7 +7,7 @@ use scallop::{Error, Result};
 use super::{use_::run as use_, PkgBuiltin, PHASE};
 use crate::pkgsh::{write_stdout, BUILD_DATA};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 The same as use, but also prints the flag name if the condition is met.";
 
 #[doc = stringify!(LONG_DOC)]

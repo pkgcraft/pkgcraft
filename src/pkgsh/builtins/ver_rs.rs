@@ -8,7 +8,7 @@ use scallop::{Error, Result};
 use super::{parse, version_split, PkgBuiltin, ALL};
 use crate::pkgsh::write_stdout;
 
-static LONG_DOC: &str = "Perform string substitution on package version strings.";
+const LONG_DOC: &str = "Perform string substitution on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

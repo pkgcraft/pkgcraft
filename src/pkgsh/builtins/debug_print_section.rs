@@ -4,7 +4,7 @@ use scallop::Result;
 
 use super::{PkgBuiltin, ALL};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Calls debug-print with now in section $*.";
 
 #[doc = stringify!(LONG_DOC)]

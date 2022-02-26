@@ -5,7 +5,7 @@ use scallop::{source, Error, Result};
 
 use super::{PkgBuiltin, ECLASS};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Export stub functions that call the eclass's functions, thereby making them default.
 For example, if ECLASS=base and `EXPORT_FUNCTIONS src_unpack` is called the following
 function is defined:

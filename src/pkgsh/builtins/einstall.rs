@@ -6,7 +6,7 @@ use super::{emake::run as emake, PkgBuiltin};
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "Run `emake install` for a package.";
+const LONG_DOC: &str = "Run `emake install` for a package.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

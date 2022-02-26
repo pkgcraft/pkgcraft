@@ -5,7 +5,7 @@ use scallop::Result;
 use super::use_::run as use_;
 use super::{PkgBuiltin, PHASE};
 
-static LONG_DOC: &str = "Deprecated synonym for use.";
+const LONG_DOC: &str = "Deprecated synonym for use.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

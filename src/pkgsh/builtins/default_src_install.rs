@@ -5,7 +5,7 @@ use scallop::Result;
 use super::PkgBuiltin;
 use super::_default_phase_func::default_phase_func;
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Runs the default src_install implementation for a package's EAPI.";
 
 #[doc = stringify!(LONG_DOC)]

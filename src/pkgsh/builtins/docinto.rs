@@ -5,7 +5,7 @@ use scallop::{Error, Result};
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Takes exactly one argument and sets the install path for dodoc and other doc-related commands.";
 
 #[doc = stringify!(LONG_DOC)]

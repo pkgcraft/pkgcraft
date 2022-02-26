@@ -9,10 +9,10 @@ use scallop::{Error, Result};
 use super::{dodoc::run as dodoc, PkgBuiltin};
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Installs the files specified by the DOCS and HTML_DOCS variables or a default set of files.";
 
-static DOCS_DEFAULTS: &[&str] = &[
+const DOCS_DEFAULTS: &[&str] = &[
     "README*",
     "ChangeLog",
     "AUTHORS",

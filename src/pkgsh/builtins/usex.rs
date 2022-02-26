@@ -7,7 +7,7 @@ use scallop::{Error, Result};
 use super::{use_::run as use_, PkgBuiltin, PHASE};
 use crate::pkgsh::write_stdout;
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Tests if a given USE flag is enabled and outputs a string related to its status.";
 
 #[doc = stringify!(LONG_DOC)]

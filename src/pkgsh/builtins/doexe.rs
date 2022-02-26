@@ -7,7 +7,7 @@ use scallop::{Error, Result};
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "Install executables.";
+const LONG_DOC: &str = "Install executables.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

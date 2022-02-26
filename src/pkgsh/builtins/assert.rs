@@ -5,7 +5,7 @@ use scallop::Result;
 
 use super::{die::run as die, PkgBuiltin, ALL};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Calls `die` with passed arguments if any process in the most recently-executed foreground pipeline
 exited with an error status.";
 

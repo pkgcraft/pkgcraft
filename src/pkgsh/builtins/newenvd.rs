@@ -6,7 +6,7 @@ use super::_new::new;
 use super::doenvd::run as doenvd;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
+const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

@@ -5,7 +5,7 @@ use scallop::Result;
 use super::_use_conf::use_conf;
 use super::{PkgBuiltin, PHASE};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Returns --enable-${opt} and --disable-${opt} configure flags based on a given USE flag.";
 
 #[doc = stringify!(LONG_DOC)]

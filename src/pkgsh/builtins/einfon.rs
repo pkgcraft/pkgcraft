@@ -8,7 +8,7 @@ use super::super::unescape::unescape_string;
 use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::write_stderr;
 
-static LONG_DOC: &str = "Display informational messages without trailing newlines.";
+const LONG_DOC: &str = "Display informational messages without trailing newlines.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

@@ -7,7 +7,7 @@ use scallop::{Error, Result};
 
 use super::{PkgBuiltin, NONFATAL, PHASE};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Takes one or more arguments and executes them as a command, preserving the exit status. If this
 results in a command being called that would normally abort the build process due to a failure,
 instead a non-zero exit status shall be returned.";

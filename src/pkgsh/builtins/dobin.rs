@@ -8,7 +8,7 @@ use scallop::{Error, Result};
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "Install executables into DESTTREE/bin.";
+const LONG_DOC: &str = "Install executables into DESTTREE/bin.";
 
 pub(super) fn install_bin(args: &[&str], dest: &str) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {

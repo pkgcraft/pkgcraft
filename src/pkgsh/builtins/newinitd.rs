@@ -6,7 +6,7 @@ use super::_new::new;
 use super::doinitd::run as doinitd;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed init scripts into /etc/init.d/.";
+const LONG_DOC: &str = "Install renamed init scripts into /etc/init.d/.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

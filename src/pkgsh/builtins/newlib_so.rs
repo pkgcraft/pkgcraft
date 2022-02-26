@@ -6,7 +6,7 @@ use super::_new::new;
 use super::dolib_so::run as dolib_so;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed shared libraries.";
+const LONG_DOC: &str = "Install renamed shared libraries.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

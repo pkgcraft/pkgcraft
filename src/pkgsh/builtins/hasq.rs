@@ -4,7 +4,7 @@ use scallop::Result;
 
 use super::{has::run as has, PkgBuiltin, ALL};
 
-static LONG_DOC: &str = "Deprecated synonym for has.";
+const LONG_DOC: &str = "Deprecated synonym for has.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

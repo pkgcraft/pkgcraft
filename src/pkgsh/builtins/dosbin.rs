@@ -5,7 +5,7 @@ use scallop::{Error, Result};
 use super::dobin::install_bin;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install executables into DESTTREE/sbin.";
+const LONG_DOC: &str = "Install executables into DESTTREE/sbin.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

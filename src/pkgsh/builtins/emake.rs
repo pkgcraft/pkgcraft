@@ -9,7 +9,7 @@ use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::utils::makefile_exists;
 use crate::pkgsh::RunCommand;
 
-static LONG_DOC: &str = "Run the make command for a package.";
+const LONG_DOC: &str = "Run the make command for a package.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

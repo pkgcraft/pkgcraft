@@ -7,7 +7,7 @@ use scallop::Result;
 use super::{has::run as has, PkgBuiltin, ALL};
 use crate::pkgsh::write_stdout;
 
-static LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
+const LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

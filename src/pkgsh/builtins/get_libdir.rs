@@ -8,7 +8,7 @@ use super::{PkgBuiltin, ALL};
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::write_stdout;
 
-static LONG_DOC: &str = "Output the libdir name.";
+const LONG_DOC: &str = "Output the libdir name.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

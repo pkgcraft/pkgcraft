@@ -6,7 +6,7 @@ use super::_new::new;
 use super::doins::run as doins;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed files into INSDESTREE.";
+const LONG_DOC: &str = "Install renamed files into INSDESTREE.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

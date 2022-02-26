@@ -12,7 +12,7 @@ use walkdir::{DirEntry, WalkDir};
 use super::PkgBuiltin;
 use crate::pkgsh::write_stdout;
 
-static LONG_DOC: &str = "Apply patches to a package's source code.";
+const LONG_DOC: &str = "Apply patches to a package's source code.";
 
 type Patches = Vec<(Option<PathBuf>, Vec<PathBuf>)>;
 

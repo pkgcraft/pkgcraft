@@ -5,7 +5,7 @@ use scallop::Result;
 
 use super::{PkgBuiltin, ALL};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 If in a special debug mode, the arguments should be outputted or recorded using some kind of debug
 logging.";
 

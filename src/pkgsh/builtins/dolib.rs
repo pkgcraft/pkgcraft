@@ -8,7 +8,7 @@ use super::PkgBuiltin;
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "Install libraries.";
+const LONG_DOC: &str = "Install libraries.";
 
 pub(super) fn install_lib(args: &[&str], opts: Option<Vec<&str>>) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {

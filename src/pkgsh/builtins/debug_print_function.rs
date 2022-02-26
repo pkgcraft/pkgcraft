@@ -4,7 +4,7 @@ use scallop::Result;
 
 use super::{PkgBuiltin, ALL};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Calls debug-print with $1: entering function as the first argument and the remaining arguments as
 additional arguments.";
 

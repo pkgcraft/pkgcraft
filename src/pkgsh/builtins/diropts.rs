@@ -5,7 +5,7 @@ use scallop::{Error, Result};
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Sets the options for directory creation via `dodir` and similar commands.";
 
 #[doc = stringify!(LONG_DOC)]

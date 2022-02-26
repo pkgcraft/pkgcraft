@@ -14,7 +14,7 @@ use crate::pkgsh::utils::{configure, get_libdir};
 use crate::pkgsh::{RunCommand, BUILD_DATA};
 
 static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
-static LONG_DOC: &str = "Run a package's configure script.";
+const LONG_DOC: &str = "Run a package's configure script.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -133,7 +133,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::{last_command, BUILD_DATA};
 
-    static CONFIGURE_AC: &str = indoc! {"
+    const CONFIGURE_AC: &str = indoc! {"
         AC_INIT([pkgcraft], [0.0.1], [pkgcraft@pkgcraft.org])
         AM_INIT_AUTOMAKE([-Wall -Werror foreign])
         LT_INIT

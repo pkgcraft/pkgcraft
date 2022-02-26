@@ -6,7 +6,7 @@ use super::_new::new;
 use super::doconfd::run as doconfd;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed config files into /etc/conf.d/.";
+const LONG_DOC: &str = "Install renamed config files into /etc/conf.d/.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

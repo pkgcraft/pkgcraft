@@ -6,7 +6,7 @@ use super::_new::new;
 use super::doheader::run as doheader;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed header files into /usr/include/.";
+const LONG_DOC: &str = "Install renamed header files into /usr/include/.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

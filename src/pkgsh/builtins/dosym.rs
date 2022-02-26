@@ -9,7 +9,7 @@ use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 use crate::utils::relpath;
 
-static LONG_DOC: &str = "Create symbolic links.";
+const LONG_DOC: &str = "Create symbolic links.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

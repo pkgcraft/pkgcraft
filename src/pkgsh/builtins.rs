@@ -103,10 +103,10 @@ pub(crate) struct PkgBuiltin {
 }
 
 // scope patterns
-static ALL: &str = ".+";
-static ECLASS: &str = "eclass";
-static GLOBAL: &str = "global";
-static PHASE: &str = ".+_.+";
+const ALL: &str = ".+";
+const ECLASS: &str = "eclass";
+const GLOBAL: &str = "global";
+const PHASE: &str = ".+_.+";
 
 impl PkgBuiltin {
     fn new(builtin: Builtin, scopes: &[(&str, &[&str])]) -> Self {

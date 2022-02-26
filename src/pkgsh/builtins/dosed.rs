@@ -4,7 +4,7 @@ use scallop::{Error, Result};
 
 use super::{PkgBuiltin, PHASE};
 
-static LONG_DOC: &str = "Run sed patterns across files.";
+const LONG_DOC: &str = "Run sed patterns across files.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

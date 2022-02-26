@@ -5,7 +5,7 @@ use scallop::Result;
 
 use super::{PkgBuiltin, PHASE};
 
-static LONG_DOC: &str = "Add a directory to the sandbox predict list.";
+const LONG_DOC: &str = "Add a directory to the sandbox predict list.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(_args: &[&str]) -> Result<ExecStatus> {

@@ -5,7 +5,7 @@ use scallop::{Error, Result};
 use super::dolib::install_lib;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install shared libraries.";
+const LONG_DOC: &str = "Install shared libraries.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

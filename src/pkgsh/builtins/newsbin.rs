@@ -6,7 +6,7 @@ use super::_new::new;
 use super::dosbin::run as dosbin;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed executables into DESTTREE/sbin.";
+const LONG_DOC: &str = "Install renamed executables into DESTTREE/sbin.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

@@ -4,7 +4,7 @@ use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Returns success if the first argument is found in subsequent arguments, failure otherwise.";
 
 #[doc = stringify!(LONG_DOC)]

@@ -5,7 +5,7 @@ use scallop::{Error, Result};
 use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Returns success if the USE flag argument is enabled, failure otherwise.
 The return values are inverted if the flag name is prefixed with !.";
 

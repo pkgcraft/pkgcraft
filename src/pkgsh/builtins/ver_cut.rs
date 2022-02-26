@@ -9,7 +9,7 @@ use scallop::{Error, Result};
 use super::{parse, version_split, PkgBuiltin, ALL};
 use crate::pkgsh::write_stdout;
 
-static LONG_DOC: &str = "Output substring from package version string and range arguments.";
+const LONG_DOC: &str = "Output substring from package version string and range arguments.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

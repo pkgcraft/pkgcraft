@@ -8,7 +8,7 @@ use scallop::{Error, Result};
 use super::{PkgBuiltin, ALL};
 use crate::atom::Version;
 
-static LONG_DOC: &str = "Perform comparisons on package version strings.";
+const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

@@ -6,7 +6,7 @@ use super::_new::new;
 use super::dolib_a::run as dolib_a;
 use super::PkgBuiltin;
 
-static LONG_DOC: &str = "Install renamed static libraries.";
+const LONG_DOC: &str = "Install renamed static libraries.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

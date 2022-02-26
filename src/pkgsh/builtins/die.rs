@@ -8,7 +8,7 @@ use scallop::{Error, Result};
 use super::{PkgBuiltin, ALL, NONFATAL};
 use crate::pkgsh::{write_stderr, BUILD_DATA};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
 
 #[doc = stringify!(LONG_DOC)]

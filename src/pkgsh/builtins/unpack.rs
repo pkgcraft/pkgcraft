@@ -4,7 +4,7 @@ use scallop::{Error, Result};
 
 use super::{PkgBuiltin, PHASE};
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Unpacks one or more source archives, in order, into the current directory.";
 
 #[doc = stringify!(LONG_DOC)]

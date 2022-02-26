@@ -6,7 +6,7 @@ use scallop::{source, Error, Result};
 use super::{PkgBuiltin, GLOBAL};
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "Sources the given list of eclasses.";
+const LONG_DOC: &str = "Sources the given list of eclasses.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {

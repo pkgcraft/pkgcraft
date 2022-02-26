@@ -6,7 +6,7 @@ use scallop::{Error, Result};
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
 
-static LONG_DOC: &str = "\
+const LONG_DOC: &str = "\
 Takes exactly one argument and sets the value of DESTTREE.";
 
 #[doc = stringify!(LONG_DOC)]
