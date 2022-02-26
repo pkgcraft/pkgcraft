@@ -20,13 +20,13 @@ git = ["git2"]
 
 [dependencies]
 async-trait = "0.1.51"
-cached = "0.30"
+cached = "0.32"
 chic = "1"
 clap = { version = "3.1.0", features = ["derive"] }
 filetime = "0.2"
 flate2 = "1.0"
 futures = "0.3.16"
-git2 = { version = "0.13", optional = true }
+git2 = { version = "0.14", optional = true }
 glob = "0.3.0"
 indexmap = { version = "1.7.0", features = ["serde"] }
 is_executable = "1.0.1"
