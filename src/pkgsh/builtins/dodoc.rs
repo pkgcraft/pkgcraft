@@ -14,10 +14,13 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (recursive, args) = match args.first() {
-            None => return Err(Error::Builtin("requires 1 or more args, got 0".into())),
             Some(&"-r") if eapi.has("dodoc_recursive") => (true, &args[1..]),
             _ => (false, args),
         };
+
+        if args.is_empty() {
+            return Err(Error::Builtin("requires 1 or more targets, got 0".into()));
+        }
 
         let dest: PathBuf = [
             "/usr/share/doc",
