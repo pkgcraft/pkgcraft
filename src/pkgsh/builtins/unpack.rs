@@ -149,6 +149,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg_attr(target_os = "macos", ignore)] // TODO: switch to builtin support?
         fn tar_gz() {
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
