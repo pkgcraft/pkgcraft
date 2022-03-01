@@ -23,6 +23,7 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> Result<ExecStatus> {
             return Err(Error::Builtin(format!("invalid filename: {dest:?}")));
         }
 
+        // TODO: create tempdir in $T to avoid cross-fs issues as much as possible
         let tmp_dir =
             tempdir().map_err(|e| Error::Builtin(format!("failed creating tempdir: {e}")))?;
         let dest = tmp_dir.path().join(dest);
