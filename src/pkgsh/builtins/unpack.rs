@@ -67,7 +67,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         }
 
         // ensure proper permissions on unpacked files with minimal syscalls
-        for entry in WalkDir::new(&dir) {
+        for entry in WalkDir::new(&dir).min_depth(1) {
             let entry = entry.map_err(|e| Error::Base(format!("failed walking {dir:?}: {e}")))?;
             let path = entry.path();
             let stat =
