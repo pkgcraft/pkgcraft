@@ -2,7 +2,7 @@ use std::env;
 use std::ops::BitOr;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::NoFollowSymlink, Mode, SFlag};
+use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
@@ -78,7 +78,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 mode if (mode & SFlag::S_IFDIR.bits() == 1) => current_mode.bitor(*DIR_MODE),
                 _ => current_mode.bitor(*FILE_MODE),
             };
-            fchmodat(None, path, mode, NoFollowSymlink)
+            fchmodat(None, path, mode, FollowSymlink)
                 .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))?;
         }
 
