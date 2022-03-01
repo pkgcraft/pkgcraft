@@ -37,22 +37,22 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let eapi = d.eapi;
         let distdir = d.env.get("DISTDIR").expect("$DISTDIR undefined");
 
-        for path in args.iter().map(Utf8Path::new) {
-            let determine_srcdir = || -> Result<Utf8PathBuf> {
-                if path.parent() == Some(Utf8Path::new("")) {
-                    Ok(Utf8PathBuf::from(distdir))
-                } else if path.starts_with("./") || eapi.has("unpack_absolute_paths") {
-                    Ok(Utf8PathBuf::from(""))
-                } else if path.is_absolute() {
-                    return Err(Error::Builtin(format!("absolute paths not supported: {path:?}")));
-                } else {
-                    return Err(Error::Builtin(format!(
-                        "relative paths require './' prefix in EAPI {eapi}: {path:?}"
-                    )));
-                }
-            };
+        let determine_srcdir = |path: &Utf8Path| -> Result<Utf8PathBuf> {
+            if path.parent() == Some(Utf8Path::new("")) {
+                Ok(Utf8PathBuf::from(distdir))
+            } else if path.starts_with("./") || eapi.has("unpack_absolute_paths") {
+                Ok(Utf8PathBuf::from(""))
+            } else if path.is_absolute() {
+                return Err(Error::Builtin(format!("absolute paths not supported: {path:?}")));
+            } else {
+                return Err(Error::Builtin(format!(
+                    "relative paths require './' prefix in EAPI {eapi}: {path:?}"
+                )));
+            }
+        };
 
-            let srcdir = determine_srcdir()?;
+        for path in args.iter().map(Utf8Path::new) {
+            let srcdir = determine_srcdir(path)?;
             let source = srcdir.join(path);
 
             if !source.exists() {
