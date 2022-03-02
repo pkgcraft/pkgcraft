@@ -39,25 +39,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let eapi = d.eapi;
         let distdir = d.env.get("DISTDIR").expect("$DISTDIR undefined");
 
+        // Determine the source directory for a given archive target. Basic filenames are prefixed
+        // with DISTDIR while all other types are unprefixed including conditionally supported
+        // absolute and relative paths.
         let determine_srcdir = |path: &Utf8Path| -> Result<Utf8PathBuf> {
             if path.parent() == Some(Utf8Path::new("")) {
-                // plain filename is prefixed with DISTDIR
                 Ok(Utf8PathBuf::from(distdir))
-            } else if path.starts_with("./") {
-                // filenames starting with ./ are relative to the current dir
+            } else if path.starts_with("./") || eapi.has("unpack_extended_path") {
                 Ok(Utf8PathBuf::from(""))
             } else {
-                // absolute and relative path support is EAPI conditional
-                if eapi.has("unpack_extended_path") {
-                    Ok(Utf8PathBuf::from(""))
-                } else {
-                    let adj = match path.is_absolute() {
-                        true => "absolute",
-                        false => "relative",
-                    };
-                    let err = format!("{adj} paths not supported in EAPI {eapi}: {path:?}");
-                    Err(Error::Builtin(err))
-                }
+                let adj = match path.is_absolute() {
+                    true => "absolute",
+                    false => "relative",
+                };
+                let err = format!("{adj} paths not supported in EAPI {eapi}: {path:?}");
+                Err(Error::Builtin(err))
             }
         };
 
