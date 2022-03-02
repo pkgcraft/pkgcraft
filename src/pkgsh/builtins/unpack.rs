@@ -198,42 +198,50 @@ mod tests {
 
         #[test]
         #[cfg_attr(target_os = "macos", ignore)] // TODO: switch to builtin support?
-        fn file_perms() {
+        fn archives() {
             BUILD_DATA.with(|d| {
                 let tmp_dir = tempdir().unwrap();
                 let prefix = tmp_dir.path();
-                let dist = prefix.join("dist");
-                fs::create_dir(&dist).unwrap();
+                let datadir = prefix.join("data");
+                let distdir = prefix.join("dist");
+                fs::create_dir(&distdir).unwrap();
                 env::set_current_dir(&prefix).unwrap();
-                d.borrow_mut().env.insert("DISTDIR".into(), dist.to_str().unwrap().into());
+                d.borrow_mut().env.insert("DISTDIR".into(), distdir.to_str().unwrap().into());
 
                 // create archive source
-                let dir = prefix.join("tar");
-                let file = dir.join("data");
-                fs::create_dir(&dir).unwrap();
+                let dir = datadir.join("dir");
+                let file = dir.join("file");
+                fs::create_dir_all(&dir).unwrap();
                 fs::write(&file, "pkgcraft").unwrap();
 
                 // disable permissions that should get reset during unpack
                 fchmodat(None, &dir, DIR_MODE.bitxor(Mode::S_IXOTH), FollowSymlink).unwrap();
                 fchmodat(None, &file, FILE_MODE.bitxor(Mode::S_IWUSR), FollowSymlink).unwrap();
 
-                // create archive, remove its source, and then unpack it
-                run_commands(|| {
-                    Archive::pack("tar", "a.tar.gz").unwrap();
-                    fs::remove_dir_all("tar").unwrap();
-                    unpack(&["./a.tar.gz"]).unwrap();
-                });
+                for file in ["a.tar.gz", "a.tar.bz2", "a.tar.xz"] {
+                    // create archive, remove its source, and then unpack it
+                    run_commands(|| {
+                        let archive_path = distdir.join(file);
+                        env::set_current_dir(&datadir).unwrap();
+                        Archive::pack("dir", archive_path.to_str().unwrap()).unwrap();
+                        env::set_current_dir(&prefix).unwrap();
+                        unpack(&[file]).unwrap();
+                    });
 
-                // verify unpacked data
-                assert_eq!(fs::read_to_string(&file).unwrap(), "pkgcraft");
+                    // verify unpacked data
+                    assert_eq!(fs::read_to_string("dir/file").unwrap(), "pkgcraft");
 
-                // verify permissions got reset
-                let stat = lstat(&dir).unwrap();
-                let mode = Mode::from_bits_truncate(stat.st_mode);
-                assert!(mode.contains(*DIR_MODE), "incorrect dir mode: {mode:#o}");
-                let stat = lstat(&file).unwrap();
-                let mode = Mode::from_bits_truncate(stat.st_mode);
-                assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
+                    // verify permissions got reset
+                    let stat = lstat("dir").unwrap();
+                    let mode = Mode::from_bits_truncate(stat.st_mode);
+                    assert!(mode.contains(*DIR_MODE), "incorrect dir mode: {mode:#o}");
+                    let stat = lstat("dir/file").unwrap();
+                    let mode = Mode::from_bits_truncate(stat.st_mode);
+                    assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
+
+                    // remove unpacked archive
+                    fs::remove_dir_all("dir").unwrap();
+                }
             })
         }
     }
