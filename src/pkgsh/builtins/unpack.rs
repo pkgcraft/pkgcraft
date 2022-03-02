@@ -39,15 +39,23 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         let determine_srcdir = |path: &Utf8Path| -> Result<Utf8PathBuf> {
             if path.parent() == Some(Utf8Path::new("")) {
+                // plain filename is prefixed with DISTDIR
                 Ok(Utf8PathBuf::from(distdir))
-            } else if path.starts_with("./") || eapi.has("unpack_absolute_paths") {
+            } else if path.starts_with("./") {
+                // filenames starting with ./ are relative to the current dir
                 Ok(Utf8PathBuf::from(""))
-            } else if path.is_absolute() {
-                return Err(Error::Builtin(format!("absolute paths not supported: {path:?}")));
             } else {
-                return Err(Error::Builtin(format!(
-                    "relative paths require './' prefix in EAPI {eapi}: {path:?}"
-                )));
+                // absolute and relative path support is EAPI conditional
+                if eapi.has("unpack_extended_path") {
+                    Ok(Utf8PathBuf::from(""))
+                } else {
+                    let adj = match path.is_absolute() {
+                        true => "absolute",
+                        false => "relative",
+                    };
+                    let err = format!("{adj} paths not supported in EAPI {eapi}: {path:?}");
+                    Err(Error::Builtin(err))
+                }
             }
         };
 
@@ -127,7 +135,7 @@ mod tests {
         }
 
         #[test]
-        fn case_insensitive() {
+        fn eapi_features() {
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
                 let prefix = dir.path();
@@ -136,13 +144,34 @@ mod tests {
                 env::set_current_dir(&prefix).unwrap();
                 d.borrow_mut().env.insert("DISTDIR".into(), dist.to_str().unwrap().into());
                 fs::File::create("dist/a.TAR.GZ").unwrap();
+                let abs_path = prefix.join("dist/a.tar.gz");
+                fs::File::create(&abs_path).unwrap();
 
                 for eapi in OFFICIAL_EAPIS.values() {
                     d.borrow_mut().eapi = eapi;
+
+                    // case insensitive support
+                    let result = unpack(&["a.TAR.GZ"]);
                     if eapi.has("unpack_case_insensitive") {
-                        unpack(&["a.TAR.GZ"]).unwrap();
+                        result.unwrap();
                     } else {
-                        assert_err_re!(unpack(&["a.TAR.GZ"]), "^unknown archive format: .*$");
+                        assert_err_re!(result, "^unknown archive format: .*$");
+                    }
+
+                    // absolute path support
+                    let result = unpack(&[abs_path.to_str().unwrap()]);
+                    if eapi.has("unpack_extended_path") {
+                        result.unwrap();
+                    } else {
+                        assert_err_re!(result, "^absolute paths not supported .*$");
+                    }
+
+                    // unprefixed relative path support
+                    let result = unpack(&["dist/a.tar.gz"]);
+                    if eapi.has("unpack_extended_path") {
+                        result.unwrap();
+                    } else {
+                        assert_err_re!(result, "^relative paths not supported .*$");
                     }
                 }
             })

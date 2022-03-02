@@ -99,8 +99,8 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
         // failglob shell option is enabled in global scope
         ("global_failglob", false),
 
-        // `unpack` supports absolute paths
-        ("unpack_absolute_paths", false),
+        // `unpack` supports absolute and relative paths
+        ("unpack_extended_path", false),
 
         // `unpack` performs case-insensitive file extension matching
         ("unpack_case_insensitive", false),
@@ -459,7 +459,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| Eapi {
     options: EAPI5.update_options(&[
         ("nonfatal_die", true),
         ("global_failglob", true),
-        ("unpack_absolute_paths", true),
+        ("unpack_extended_path", true),
         ("unpack_case_insensitive", true),
     ]),
     phases: EAPI5.update_phases(&[
