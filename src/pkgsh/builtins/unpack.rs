@@ -80,13 +80,25 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             let path = entry.path();
             let stat =
                 lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
-            let current_mode = Mode::from_bits_truncate(stat.st_mode);
-            let mode = match stat.st_mode {
-                mode if (mode & SFlag::S_IFLNK.bits() == 1) => continue,
-                mode if (mode & SFlag::S_IFDIR.bits() == 1) => current_mode.bitor(*DIR_MODE),
-                _ => current_mode.bitor(*FILE_MODE),
+            let mode = Mode::from_bits_truncate(stat.st_mode);
+            let new_mode = match SFlag::from_bits_truncate(stat.st_mode) {
+                flags if flags.contains(SFlag::S_IFLNK) => continue,
+                flags if flags.contains(SFlag::S_IFDIR) => {
+                    if !mode.contains(*DIR_MODE) {
+                        mode.bitor(*DIR_MODE)
+                    } else {
+                        continue;
+                    }
+                }
+                _ => {
+                    if !mode.contains(*FILE_MODE) {
+                        mode.bitor(*FILE_MODE)
+                    } else {
+                        continue;
+                    }
+                }
             };
-            fchmodat(None, path, mode, FollowSymlink)
+            fchmodat(None, path, new_mode, FollowSymlink)
                 .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))?;
         }
 
@@ -108,13 +120,15 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::BitXor;
     use std::{env, fs};
 
+    use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode};
     use rusty_fork::rusty_fork_test;
     use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
-    use super::run as unpack;
+    use super::{run as unpack, DIR_MODE, FILE_MODE};
     use crate::eapi::OFFICIAL_EAPIS;
     use crate::macros::assert_err_re;
     use crate::pkgsh::archive::{Archive, Compression};
@@ -137,8 +151,8 @@ mod tests {
         #[test]
         fn eapi_features() {
             BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
+                let tmp_dir = tempdir().unwrap();
+                let prefix = tmp_dir.path();
                 let dist = prefix.join("dist");
                 fs::create_dir(&dist).unwrap();
                 env::set_current_dir(&prefix).unwrap();
@@ -166,7 +180,10 @@ mod tests {
                         assert_err_re!(result, "^absolute paths not supported .*$");
                     }
 
-                    // unprefixed relative path support
+                    // prefixed relative paths work everywhere
+                    unpack(&["./dist/a.tar.gz"]).unwrap();
+
+                    // unprefixed are EAPI conditional
                     let result = unpack(&["dist/a.tar.gz"]);
                     if eapi.has("unpack_extended_path") {
                         result.unwrap();
@@ -179,19 +196,24 @@ mod tests {
 
         #[test]
         #[cfg_attr(target_os = "macos", ignore)] // TODO: switch to builtin support?
-        fn tar_gz() {
+        fn file_perms() {
             BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
+                let tmp_dir = tempdir().unwrap();
+                let prefix = tmp_dir.path();
                 let dist = prefix.join("dist");
                 fs::create_dir(&dist).unwrap();
                 env::set_current_dir(&prefix).unwrap();
                 d.borrow_mut().env.insert("DISTDIR".into(), dist.to_str().unwrap().into());
 
                 // create archive source
-                let tar = prefix.join("tar");
-                fs::create_dir(&tar).unwrap();
-                fs::write("tar/data", "pkgcraft").unwrap();
+                let dir = prefix.join("tar");
+                let file = dir.join("data");
+                fs::create_dir(&dir).unwrap();
+                fs::write(&file, "pkgcraft").unwrap();
+
+                // disable permissions that should get reset during unpack
+                fchmodat(None, &dir, DIR_MODE.bitxor(Mode::S_IXOTH), FollowSymlink).unwrap();
+                fchmodat(None, &file, FILE_MODE.bitxor(Mode::S_IWUSR), FollowSymlink).unwrap();
 
                 // create archive, remove its source, and then unpack it
                 run_commands(|| {
@@ -201,7 +223,15 @@ mod tests {
                 });
 
                 // verify unpacked data
-                assert_eq!(fs::read_to_string("tar/data").unwrap(), "pkgcraft");
+                assert_eq!(fs::read_to_string(&file).unwrap(), "pkgcraft");
+
+                // verify permissions got reset
+                let stat = lstat(&dir).unwrap();
+                let mode = Mode::from_bits_truncate(stat.st_mode);
+                assert!(mode.contains(*DIR_MODE), "incorrect dir mode: {mode:#o}");
+                let stat = lstat(&file).unwrap();
+                let mode = Mode::from_bits_truncate(stat.st_mode);
+                assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
             })
         }
     }
