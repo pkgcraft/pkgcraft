@@ -140,8 +140,18 @@ pub(super) struct Gz {
 }
 
 impl Compression for Gz {
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
-        unimplemented!()
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+        let src = src.as_ref();
+        let src = File::open(src)
+            .map_err(|e| Error::Base(format!("failed reading file: {src:?}: {e}")))?;
+
+        let dest = dest.as_ref();
+        let dest = File::create(dest)
+            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+
+        let mut cmd = Command::new("gzip");
+        cmd.arg("-c").stdin(src).stdout(dest);
+        cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
@@ -151,7 +161,7 @@ impl Compression for Gz {
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating archive: {dest:?}: {e}")))?;
+            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("gzip");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -165,8 +175,18 @@ pub(super) struct Bz2 {
 }
 
 impl Compression for Bz2 {
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
-        unimplemented!()
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+        let src = src.as_ref();
+        let src = File::open(src)
+            .map_err(|e| Error::Base(format!("failed reading file: {src:?}: {e}")))?;
+
+        let dest = dest.as_ref();
+        let dest = File::create(dest)
+            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+
+        let mut cmd = Command::new("bzip2");
+        cmd.arg("-c").stdin(src).stdout(dest);
+        cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
@@ -176,7 +196,7 @@ impl Compression for Bz2 {
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating archive: {dest:?}: {e}")))?;
+            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("bzip2");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -190,8 +210,18 @@ pub(super) struct Xz {
 }
 
 impl Compression for Xz {
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
-        unimplemented!()
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+        let src = src.as_ref();
+        let src = File::open(src)
+            .map_err(|e| Error::Base(format!("failed reading file: {src:?}: {e}")))?;
+
+        let dest = dest.as_ref();
+        let dest = File::create(dest)
+            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+
+        let mut cmd = Command::new("xz");
+        cmd.arg("-c").stdin(src).stdout(dest);
+        cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
@@ -201,7 +231,7 @@ impl Compression for Xz {
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating archive: {dest:?}: {e}")))?;
+            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("xz");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -290,7 +320,7 @@ impl Compression for Lzma {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating archive: {dest:?}: {e}")))?;
+            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("lzma");
         cmd.arg("-dc").arg(&self.path).stdout(dest);

@@ -218,14 +218,16 @@ mod tests {
                 fchmodat(None, &dir, DIR_MODE.bitxor(Mode::S_IXOTH), FollowSymlink).unwrap();
                 fchmodat(None, &file, FILE_MODE.bitxor(Mode::S_IWUSR), FollowSymlink).unwrap();
 
-                for file in ["a.tar.gz", "a.tar.bz2", "a.tar.xz"] {
-                    // create archive, remove its source, and then unpack it
+                // compressed archives
+                for ext in ["tar.gz", "tar.bz2", "tar.xz"] {
+                    // create tarball, remove its source, and then unpack it
                     run_commands(|| {
-                        let archive_path = distdir.join(file);
+                        let file = format!("a.{ext}");
+                        let path = distdir.join(&file);
                         env::set_current_dir(&datadir).unwrap();
-                        Archive::pack("dir", archive_path.to_str().unwrap()).unwrap();
+                        Archive::pack("dir", path.to_str().unwrap()).unwrap();
                         env::set_current_dir(&prefix).unwrap();
-                        unpack(&[file]).unwrap();
+                        unpack(&[&file]).unwrap();
                     });
 
                     // verify unpacked data
@@ -239,8 +241,32 @@ mod tests {
                     let mode = Mode::from_bits_truncate(stat.st_mode);
                     assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
 
-                    // remove unpacked archive
+                    // remove unpacked data
                     fs::remove_dir_all("dir").unwrap();
+                }
+
+                // compressed files
+                for ext in ["gz", "bz2", "xz"] {
+                    // create archive, remove its source, and then unpack it
+                    run_commands(|| {
+                        let file = format!("file.{ext}");
+                        let path = distdir.join(&file);
+                        env::set_current_dir(&dir).unwrap();
+                        Archive::pack("file", path.to_str().unwrap()).unwrap();
+                        env::set_current_dir(&prefix).unwrap();
+                        unpack(&[&file]).unwrap();
+                    });
+
+                    // verify unpacked data
+                    assert_eq!(fs::read_to_string("file").unwrap(), "pkgcraft");
+
+                    // verify permissions got reset
+                    let stat = lstat("file").unwrap();
+                    let mode = Mode::from_bits_truncate(stat.st_mode);
+                    assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
+
+                    // remove unpacked data
+                    fs::remove_file("file").unwrap();
                 }
             })
         }
