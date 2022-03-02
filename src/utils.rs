@@ -1,4 +1,17 @@
+use std::env;
 use std::path::{Component, Path, PathBuf};
+
+use camino::Utf8PathBuf;
+
+use crate::{Error, Result};
+
+// Get the current working directory as a Utf8PathBuf.
+pub(crate) fn current_dir() -> Result<Utf8PathBuf> {
+    let dir = env::current_dir()
+        .map_err(|e| Error::InvalidValue(format!("can't get current dir: {e}")))?;
+    Utf8PathBuf::try_from(dir)
+        .map_err(|e| Error::InvalidValue(format!("invalid unicode path: {e}")))
+}
 
 // Construct a relative path from a base directory to the specified path.
 //

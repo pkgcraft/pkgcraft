@@ -1,4 +1,3 @@
-use std::env;
 use std::ops::BitOr;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -9,8 +8,11 @@ use scallop::{Error, Result};
 use walkdir::WalkDir;
 
 use super::{PkgBuiltin, PHASE};
-use crate::pkgsh::archive::{Archive, Compression};
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::{
+    archive::{Archive, Compression},
+    BUILD_DATA,
+};
+use crate::utils::current_dir;
 
 const LONG_DOC: &str = "\
 Unpacks one or more source archives, in order, into the current directory.";
@@ -29,24 +31,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
-    let dir =
-        env::current_dir().map_err(|e| Error::Builtin(format!("can't get current dir: {e}")))?;
-    let dir = Utf8PathBuf::try_from(dir)
-        .map_err(|e| Error::Builtin(format!("invalid unicode path: {e}")))?;
+    let current_dir = current_dir()?;
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
         let eapi = d.eapi;
         let distdir = d.env.get("DISTDIR").expect("$DISTDIR undefined");
 
-        // Determine the source directory for a given archive target. Basic filenames are prefixed
-        // with DISTDIR while all other types are unprefixed including conditionally supported
-        // absolute and relative paths.
-        let determine_srcdir = |path: &Utf8Path| -> Result<Utf8PathBuf> {
+        // Determine the source for a given archive target. Basic filenames are prefixed with
+        // DISTDIR while all other types are unprefixed including conditionally supported absolute
+        // and relative paths.
+        let determine_source = |path: &Utf8Path| -> Result<Utf8PathBuf> {
             if path.parent() == Some(Utf8Path::new("")) {
-                Ok(Utf8PathBuf::from(distdir))
+                Ok(Utf8PathBuf::from(distdir).join(path))
             } else if path.starts_with("./") || eapi.has("unpack_extended_path") {
-                Ok(Utf8PathBuf::from(""))
+                Ok(Utf8PathBuf::from(path))
             } else {
                 let adj = match path.is_absolute() {
                     true => "absolute",
@@ -58,9 +57,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
 
         for path in args.iter().map(Utf8Path::new) {
-            let srcdir = determine_srcdir(path)?;
-            let source = srcdir.join(path);
-
+            let source = determine_source(path)?;
             if !source.exists() {
                 return Err(Error::Builtin(format!("nonexistent archive: {path}")));
             }
@@ -68,13 +65,14 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             let (ext, archive) = Archive::from_path(&source, eapi)?;
             let base = source.file_name().unwrap();
             let base = &base[0..base.len() - 1 - ext.len()];
-            let dest = &dir.join(base);
+            let dest = &current_dir.join(base);
             archive.unpack(dest)?;
         }
 
         // ensure proper permissions on unpacked files with minimal syscalls
-        for entry in WalkDir::new(&dir).min_depth(1) {
-            let entry = entry.map_err(|e| Error::Base(format!("failed walking {dir:?}: {e}")))?;
+        for entry in WalkDir::new(&current_dir).min_depth(1) {
+            let entry =
+                entry.map_err(|e| Error::Base(format!("failed walking {current_dir:?}: {e}")))?;
             let path = entry.path();
             let stat =
                 lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
