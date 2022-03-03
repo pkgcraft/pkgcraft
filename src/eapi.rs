@@ -3,11 +3,13 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+use camino::Utf8Path;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::{Lazy, OnceCell};
 use regex::{escape, Regex, RegexBuilder};
 use scallop::builtins::ScopedBuiltins;
 
+use crate::archive::Archive;
 use crate::atom::Atom;
 use crate::pkgsh::builtins::{parse, BuiltinsMap, BUILTINS_MAP};
 use crate::pkgsh::phases::*;
@@ -233,6 +235,22 @@ impl Eapi {
                 .build()
                 .unwrap()
         })
+    }
+
+    pub(crate) fn archive_from_path<P>(&self, path: P) -> Result<(String, Archive)>
+    where
+        P: AsRef<Utf8Path>,
+    {
+        let path = path.as_ref();
+
+        match self.archives_regex().captures(path.as_str()) {
+            Some(c) => {
+                let ext = String::from(c.name("ext").unwrap().as_str());
+                let archive = Archive::from_path(path)?;
+                Ok((ext, archive))
+            }
+            None => Err(Error::InvalidValue(format!("unknown archive format: {path:?}"))),
+        }
     }
 
     pub(crate) fn builtins<S: AsRef<str>>(&self, scope: S) -> Result<&BuiltinsMap> {

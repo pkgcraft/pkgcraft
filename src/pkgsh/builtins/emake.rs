@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::process::Command;
 
 use once_cell::sync::Lazy;
@@ -6,8 +7,9 @@ use scallop::variables::{string_value, string_vec};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, PHASE};
+use crate::command::RunCommand;
 use crate::pkgsh::utils::makefile_exists;
-use crate::pkgsh::RunCommand;
+use crate::pkgsh::write_stdout;
 
 const LONG_DOC: &str = "Run the make command for a package.";
 
@@ -24,6 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     emake.args(args);
+    write_stdout!("{}", emake.to_vec().join(" "));
     emake.run()?;
     Ok(ExecStatus::Success)
 }
@@ -51,8 +54,8 @@ mod tests {
     use tempfile::tempdir;
 
     use super::run as emake;
+    use crate::command::last_command;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::last_command;
 
     rusty_fork_test! {
         #[test]

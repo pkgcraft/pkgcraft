@@ -12,7 +12,7 @@ use scallop::{Error, Result};
 use walkdir::WalkDir;
 
 use super::BuildData;
-use crate::pkgsh::RunCommand;
+use crate::command::RunCommand;
 
 #[derive(Debug)]
 struct Group {
@@ -267,7 +267,9 @@ impl Install {
             install.args(&opts.raw);
         }
         install.args(paths.into_iter().map(|p| self.prefix(p)));
-        install.run().map(|_| ())
+        install
+            .run()
+            .map_or_else(|e| Err(Error::Base(e.to_string())), |_| Ok(()))
     }
 
     // Install all targets under given directories.

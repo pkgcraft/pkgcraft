@@ -1,10 +1,6 @@
-use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
-#[cfg(not(test))]
-use std::io::Write;
 use std::path::Path;
-use std::process::Command;
 use std::{io, str};
 
 use indexmap::IndexSet;
@@ -14,82 +10,13 @@ use scallop::{functions, source, Error, Result};
 
 use crate::eapi::Eapi;
 
-mod archive;
 pub mod builtins;
 mod install;
 pub(crate) mod phases;
 pub(crate) mod unescape;
 mod utils;
-
-fn get_cmd(cmd: &Command) -> Vec<Cow<str>> {
-    let mut args: Vec<Cow<str>> = vec![cmd.get_program().to_string_lossy()];
-    args.extend(cmd.get_args().map(|s| s.to_string_lossy()));
-    args
-}
-
-fn run_cmd(cmd: &mut Command) -> Result<()> {
-    match cmd.status() {
-        Ok(r) => match r.success() {
-            true => Ok(()),
-            false => Err(Error::Base(format!("failed running: {cmd:?}"))),
-        },
-        Err(e) => Err(Error::Base(format!("failed running: {:?}: {e}", cmd.get_program()))),
-    }
-}
-
-/// Support conversion from a given object into a Vec<T>.
-trait RunCommand {
-    /// Convert a given object into a Vec<&str>.
-    fn run(&mut self) -> Result<()>;
-}
-
 #[cfg(not(test))]
-impl RunCommand for Command {
-    fn run(&mut self) -> Result<()> {
-        write_stdout!("{}", get_cmd(self).join(" "));
-        run_cmd(self)
-    }
-}
 
-#[cfg(test)]
-thread_local! {
-    static COMMANDS: RefCell<Vec<Vec<String>>> = RefCell::new(Default::default());
-    static RUN_COMMAND: RefCell<bool> = RefCell::new(false);
-}
-
-#[cfg(test)]
-fn last_command() -> Option<Vec<String>> {
-    COMMANDS.with(|cmds| cmds.borrow_mut().pop())
-}
-
-#[cfg(test)]
-fn run_commands<F: FnOnce()>(func: F) {
-    RUN_COMMAND.with(|d| {
-        *d.borrow_mut() = true;
-        func();
-        *d.borrow_mut() = false;
-    })
-}
-
-#[cfg(test)]
-impl RunCommand for Command {
-    fn run(&mut self) -> Result<()> {
-        let cmd = get_cmd(&self)
-            .into_iter()
-            .map(|s| String::from(s))
-            .collect();
-        COMMANDS.with(|cmds| cmds.borrow_mut().push(cmd));
-
-        RUN_COMMAND.with(|d| -> Result<()> {
-            match *d.borrow() {
-                true => run_cmd(self),
-                false => Ok(()),
-            }
-        })
-    }
-}
-
-#[cfg(not(test))]
 type StdinType = io::Stdin;
 #[cfg(test)]
 type StdinType = io::Cursor<Vec<u8>>;

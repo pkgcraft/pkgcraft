@@ -2,12 +2,12 @@ use std::fs::File;
 use std::process::Command;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use scallop::{Error, Result};
 
-use super::RunCommand;
-use crate::eapi::{Eapi, EAPI_LATEST};
+use crate::command::RunCommand;
+use crate::{Error, Result};
 
-pub(super) trait Compression {
+pub(super) trait ArchiveFormat {
+    const EXTS: &'static [&'static str];
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()>;
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()>;
 }
@@ -17,7 +17,9 @@ pub(super) struct Tar {
     path: Utf8PathBuf,
 }
 
-impl Compression for Tar {
+impl ArchiveFormat for Tar {
+    const EXTS: &'static [&'static str] = &["tar"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
@@ -38,7 +40,9 @@ pub(super) struct TarGz {
     path: Utf8PathBuf,
 }
 
-impl Compression for TarGz {
+impl ArchiveFormat for TarGz {
+    const EXTS: &'static [&'static str] = &["tar.gz", "tgz", "tar.z"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
@@ -59,7 +63,9 @@ pub(super) struct TarBz2 {
     path: Utf8PathBuf,
 }
 
-impl Compression for TarBz2 {
+impl ArchiveFormat for TarBz2 {
+    const EXTS: &'static [&'static str] = &["tar.bz2", "tbz2", "tbz"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
@@ -80,7 +86,9 @@ pub(super) struct TarLzma {
     path: Utf8PathBuf,
 }
 
-impl Compression for TarLzma {
+impl ArchiveFormat for TarLzma {
+    const EXTS: &'static [&'static str] = &["tar.lzma"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
@@ -101,7 +109,9 @@ pub(super) struct TarXz {
     path: Utf8PathBuf,
 }
 
-impl Compression for TarXz {
+impl ArchiveFormat for TarXz {
+    const EXTS: &'static [&'static str] = &["tar.xz", "txz"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
@@ -122,7 +132,9 @@ pub(super) struct Zip {
     path: Utf8PathBuf,
 }
 
-impl Compression for Zip {
+impl ArchiveFormat for Zip {
+    const EXTS: &'static [&'static str] = &["zip", "jar"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
         unimplemented!()
     }
@@ -139,15 +151,17 @@ pub(super) struct Gz {
     path: Utf8PathBuf,
 }
 
-impl Compression for Gz {
+impl ArchiveFormat for Gz {
+    const EXTS: &'static [&'static str] = &["gz", "z"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
         let src = src.as_ref();
-        let src = File::open(src)
-            .map_err(|e| Error::Base(format!("failed reading file: {src:?}: {e}")))?;
+        let src =
+            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("gzip");
         cmd.arg("-c").stdin(src).stdout(dest);
@@ -157,11 +171,11 @@ impl Compression for Gz {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
         let src = &self.path;
         let src = File::open(src)
-            .map_err(|e| Error::Base(format!("failed reading archive: {src:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("gzip");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -174,15 +188,17 @@ pub(super) struct Bz2 {
     path: Utf8PathBuf,
 }
 
-impl Compression for Bz2 {
+impl ArchiveFormat for Bz2 {
+    const EXTS: &'static [&'static str] = &["bz2", "bz"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
         let src = src.as_ref();
-        let src = File::open(src)
-            .map_err(|e| Error::Base(format!("failed reading file: {src:?}: {e}")))?;
+        let src =
+            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("bzip2");
         cmd.arg("-c").stdin(src).stdout(dest);
@@ -192,11 +208,11 @@ impl Compression for Bz2 {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
         let src = &self.path;
         let src = File::open(src)
-            .map_err(|e| Error::Base(format!("failed reading archive: {src:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("bzip2");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -209,15 +225,17 @@ pub(super) struct Xz {
     path: Utf8PathBuf,
 }
 
-impl Compression for Xz {
+impl ArchiveFormat for Xz {
+    const EXTS: &'static [&'static str] = &["xz"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
         let src = src.as_ref();
-        let src = File::open(src)
-            .map_err(|e| Error::Base(format!("failed reading file: {src:?}: {e}")))?;
+        let src =
+            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("xz");
         cmd.arg("-c").stdin(src).stdout(dest);
@@ -227,11 +245,11 @@ impl Compression for Xz {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
         let src = &self.path;
         let src = File::open(src)
-            .map_err(|e| Error::Base(format!("failed reading archive: {src:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("xz");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -244,7 +262,9 @@ pub(super) struct _7z {
     path: Utf8PathBuf,
 }
 
-impl Compression for _7z {
+impl ArchiveFormat for _7z {
+    const EXTS: &'static [&'static str] = &["7z"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
         unimplemented!()
     }
@@ -261,7 +281,9 @@ pub(super) struct Rar {
     path: Utf8PathBuf,
 }
 
-impl Compression for Rar {
+impl ArchiveFormat for Rar {
+    const EXTS: &'static [&'static str] = &["rar"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
         unimplemented!()
     }
@@ -278,7 +300,9 @@ pub(super) struct Lha {
     path: Utf8PathBuf,
 }
 
-impl Compression for Lha {
+impl ArchiveFormat for Lha {
+    const EXTS: &'static [&'static str] = &["lha", "lzh"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
         unimplemented!()
     }
@@ -295,7 +319,9 @@ pub(super) struct Ar {
     path: Utf8PathBuf,
 }
 
-impl Compression for Ar {
+impl ArchiveFormat for Ar {
+    const EXTS: &'static [&'static str] = &["deb", "a"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
         unimplemented!()
     }
@@ -312,7 +338,9 @@ pub(super) struct Lzma {
     path: Utf8PathBuf,
 }
 
-impl Compression for Lzma {
+impl ArchiveFormat for Lzma {
+    const EXTS: &'static [&'static str] = &["lzma"];
+
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
         unimplemented!()
     }
@@ -320,7 +348,7 @@ impl Compression for Lzma {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::Base(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
 
         let mut cmd = Command::new("lzma");
         cmd.arg("-dc").arg(&self.path).stdout(dest);
@@ -337,9 +365,11 @@ macro_rules! make_archive {
             )*
         }
 
-        impl Compression for Archive {
+        impl ArchiveFormat for Archive {
+            const EXTS: &'static [&'static str] = &[];
+
             fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
-                let (_, archive) = Archive::from_path(dest.as_ref(), EAPI_LATEST)?;
+                let archive = Archive::from_path(dest.as_ref())?;
                 match archive {
                     $(
                         Archive::$x(_) => $x::pack(src, dest),
@@ -355,44 +385,38 @@ macro_rules! make_archive {
                 }
             }
         }
+
+        impl Archive {
+            pub(super) fn from_path<P: AsRef<Utf8Path>>(path: P) -> Result<Archive> {
+                let path = path.as_ref();
+                let path = Utf8PathBuf::from(path);
+                let filename = path.file_name().ok_or_else(||
+                    Error::InvalidValue(format!("invalid archive: {path:?}")))?;
+                let filename = filename.to_lowercase();
+
+                let mut possible_exts = Vec::<(&str, &str)>::new();
+                $(
+                    possible_exts.extend($x::EXTS.iter().map(|&s| (s, $x::EXTS[0])));
+                )*
+                possible_exts.sort_by_cached_key(|(s, _)| s.len());
+                possible_exts.reverse();
+
+                let mut marker_ext = "";
+                for (ext, marker) in possible_exts {
+                    if filename.ends_with(ext) {
+                        marker_ext = marker;
+                        break;
+                    }
+                }
+
+                match marker_ext {
+                    $(
+                        ext if ext == $x::EXTS[0] => Ok(Archive::$x($x { path })),
+                    )*
+                    _ => Err(crate::Error::InvalidValue(format!("unknown archive format: {path:?}"))),
+                }
+            }
+        }
     };
 }
 make_archive!(Tar, TarGz, TarBz2, TarLzma, TarXz, Zip, Gz, Bz2, Xz, _7z, Rar, Lha, Ar, Lzma);
-
-impl Archive {
-    pub(super) fn from_path<P: AsRef<Utf8Path>>(
-        path: P,
-        eapi: &Eapi,
-    ) -> crate::Result<(String, Archive)> {
-        let path = path.as_ref();
-
-        let mut ext = match eapi.archives_regex().captures(path.as_str()) {
-            Some(c) => String::from(c.name("ext").unwrap().as_str()),
-            None => String::from(""),
-        };
-
-        if eapi.has("unpack_case_insensitive") {
-            ext = ext.to_lowercase();
-        }
-
-        let path = Utf8PathBuf::from(path);
-
-        match ext.as_str() {
-            "tar" => Ok((ext, Archive::Tar(Tar { path }))),
-            "tar.gz" | "tgz" | "tar.z" | "tar.Z" => Ok((ext, Archive::TarGz(TarGz { path }))),
-            "tar.bz2" | "tbz2" | "tbz" => Ok((ext, Archive::TarBz2(TarBz2 { path }))),
-            "tar.lzma" => Ok((ext, Archive::TarLzma(TarLzma { path }))),
-            "tar.xz" | "txz" => Ok((ext, Archive::TarXz(TarXz { path }))),
-            "zip" | "ZIP" | "jar" => Ok((ext, Archive::Zip(Zip { path }))),
-            "gz" | "z" | "Z" => Ok((ext, Archive::Gz(Gz { path }))),
-            "bz2" | "bz" => Ok((ext, Archive::Bz2(Bz2 { path }))),
-            "xz" => Ok((ext, Archive::Xz(Xz { path }))),
-            "7z" | "7Z" => Ok((ext, Archive::_7z(_7z { path }))),
-            "rar" | "RAR" => Ok((ext, Archive::Rar(Rar { path }))),
-            "lha" | "LHA" | "LHa" | "lzh" => Ok((ext, Archive::Lha(Lha { path }))),
-            "deb" | "a" => Ok((ext, Archive::Ar(Ar { path }))),
-            "lzma" => Ok((ext, Archive::Lzma(Lzma { path }))),
-            _ => Err(crate::Error::InvalidValue(format!("unknown archive format: {path:?}"))),
-        }
-    }
-}

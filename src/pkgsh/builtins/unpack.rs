@@ -8,10 +8,8 @@ use scallop::{Error, Result};
 use walkdir::WalkDir;
 
 use super::{PkgBuiltin, PHASE};
-use crate::pkgsh::{
-    archive::{Archive, Compression},
-    BUILD_DATA,
-};
+use crate::archive::ArchiveFormat;
+use crate::pkgsh::BUILD_DATA;
 use crate::utils::current_dir;
 
 const LONG_DOC: &str = "\
@@ -62,7 +60,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 return Err(Error::Builtin(format!("nonexistent archive: {path}")));
             }
 
-            let (ext, archive) = Archive::from_path(&source, eapi)?;
+            let (ext, archive) = eapi.archive_from_path(&source)?;
             let base = source.file_name().unwrap();
             let base = &base[0..base.len() - 1 - ext.len()];
             let dest = &current_dir.join(base);
@@ -125,10 +123,11 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::{run as unpack, DIR_MODE, FILE_MODE};
+    use crate::archive::{Archive, ArchiveFormat};
+    use crate::command::run_commands;
     use crate::eapi::OFFICIAL_EAPIS;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::archive::{Archive, Compression};
-    use crate::pkgsh::{run_commands, BUILD_DATA};
+    use crate::pkgsh::BUILD_DATA;
 
     rusty_fork_test! {
         #[test]

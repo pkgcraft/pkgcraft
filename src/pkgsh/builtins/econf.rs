@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::process::Command;
 use std::str;
 
@@ -10,8 +11,10 @@ use scallop::variables::{expand, string_value};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::command::RunCommand;
 use crate::pkgsh::utils::{configure, get_libdir};
-use crate::pkgsh::{RunCommand, BUILD_DATA};
+use crate::pkgsh::write_stdout;
+use crate::pkgsh::BUILD_DATA;
 
 static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
 const LONG_DOC: &str = "Run a package's configure script.";
@@ -101,6 +104,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
     }
 
+    write_stdout!("{}", econf.to_vec().join(" "));
     econf.run()?;
     Ok(ExecStatus::Success)
 }
@@ -131,8 +135,9 @@ mod tests {
     use tempfile::tempdir;
 
     use super::BUILTIN as econf;
+    use crate::command::last_command;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::{last_command, BUILD_DATA};
+    use crate::pkgsh::BUILD_DATA;
 
     const CONFIGURE_AC: &str = indoc! {"
         AC_INIT([pkgcraft], [0.0.1], [pkgcraft@pkgcraft.org])
