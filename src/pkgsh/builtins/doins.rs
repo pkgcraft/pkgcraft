@@ -62,11 +62,76 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as doins;
+    use std::os::unix::fs::MetadataExt;
+    use std::path::{Path, PathBuf};
+    use std::{env, fs};
 
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(doins, &[0]);
+    use rusty_fork::rusty_fork_test;
+    use tempfile::tempdir;
+
+    use super::super::assert_invalid_args;
+    use super::super::insinto::run as insinto;
+    use super::super::insopts::run as insopts;
+    use super::run as doins;
+    use crate::macros::assert_err_re;
+    use crate::pkgsh::BUILD_DATA;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            assert_invalid_args(doins, &[0]);
+
+            BUILD_DATA.with(|d| {
+                let dir = tempdir().unwrap();
+                env::set_current_dir(&dir).unwrap();
+                let prefix = dir.path();
+                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+
+                // nonexistent
+                let r = doins(&["pkgcraft"]);
+                assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
+
+                // non-recursive directory
+                fs::create_dir("dir").unwrap();
+                let r = doins(&["dir"]);
+                assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+            })
+        }
+
+        #[test]
+        fn creation() {
+            BUILD_DATA.with(|d| {
+                let dir = tempdir().unwrap();
+                let prefix = dir.path();
+                let src_dir = prefix.join("src");
+                fs::create_dir(&src_dir).unwrap();
+                env::set_current_dir(&src_dir).unwrap();
+                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+
+                let default = 0o100644;
+                let custom = 0o100755;
+
+                // simple file
+                fs::File::create("file").unwrap();
+                doins(&["file"]).unwrap();
+                let path = Path::new("file");
+                let path: PathBuf = [prefix, path].iter().collect();
+                let meta = fs::metadata(&path).unwrap();
+                let mode = meta.mode();
+                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
+
+                // recursive using `insinto` and `insopts`
+                fs::create_dir_all("dir/subdir").unwrap();
+                fs::File::create("dir/subdir/file").unwrap();
+                insinto(&["newdir"]).unwrap();
+                insopts(&["-m0755"]).unwrap();
+                doins(&["-r", "dir"]).unwrap();
+                let path = Path::new("newdir/dir/subdir/file");
+                let path: PathBuf = [prefix, path].iter().collect();
+                let meta = fs::metadata(&path).unwrap();
+                let mode = meta.mode();
+                assert!(mode == custom, "mode {mode:#o} is not custom {custom:#o}");
+            })
+        }
     }
 }
