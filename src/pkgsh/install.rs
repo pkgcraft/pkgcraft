@@ -278,13 +278,16 @@ impl Install {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        // TODO: fill out this stub
         for dir in dirs.into_iter() {
             let dir = dir.as_ref();
             for entry in WalkDir::new(&dir) {
                 let entry =
                     entry.map_err(|e| Error::Base(format!("error walking {dir:?}: {e}")))?;
-                println!("{}", entry.path().display());
+                let path = entry.path();
+                match path.is_dir() {
+                    true => self.dirs([path])?,
+                    false => self.files([(path, path)])?,
+                }
             }
         }
         Ok(())
