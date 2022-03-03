@@ -290,7 +290,16 @@ impl Install {
                 let entry =
                     entry.map_err(|e| Error::Base(format!("error walking {dir:?}: {e}")))?;
                 let path = entry.path();
-                let dest: PathBuf = path.components().skip(depth).collect();
+                let dest = match depth {
+                    0 => path,
+                    n => {
+                        let mut comp = path.components();
+                        for _ in 0..n {
+                            comp.next();
+                        }
+                        comp.as_path()
+                    }
+                };
                 match path.is_dir() {
                     true => self.dirs([dest])?,
                     false => self.files([(path, dest)])?,
