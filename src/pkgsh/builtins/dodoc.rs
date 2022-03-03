@@ -133,9 +133,13 @@ mod tests {
                 dodoc(&["-r", "doc"]).unwrap();
                 let path = Path::new("usr/share/doc/pkgcraft-0/newdir/doc/subdir/file");
                 let path: PathBuf = [prefix, path].iter().collect();
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
+                assert!(path.exists(), "missing file: {path:?}");
+
+                // handling for paths ending in '/.'
+                dodoc(&["-r", "doc/."]).unwrap();
+                let path = Path::new("usr/share/doc/pkgcraft-0/newdir/subdir/file");
+                let path: PathBuf = [prefix, path].iter().collect();
+                assert!(path.exists(), "missing file: {path:?}");
             })
         }
     }

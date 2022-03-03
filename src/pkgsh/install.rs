@@ -280,13 +280,20 @@ impl Install {
     {
         for dir in dirs.into_iter() {
             let dir = dir.as_ref();
-            for entry in WalkDir::new(&dir) {
+            // Determine whether to skip the base directory -- path.components() can't be used
+            // because it normalizes all occurrences of '.' away.
+            let depth = match dir.to_string_lossy().ends_with("/.") {
+                true => 1,
+                false => 0,
+            };
+            for entry in WalkDir::new(&dir).min_depth(depth) {
                 let entry =
                     entry.map_err(|e| Error::Base(format!("error walking {dir:?}: {e}")))?;
                 let path = entry.path();
+                let dest: PathBuf = path.components().skip(depth).collect();
                 match path.is_dir() {
-                    true => self.dirs([path])?,
-                    false => self.files([(path, path)])?,
+                    true => self.dirs([dest])?,
+                    false => self.files([(path, dest)])?,
                 }
             }
         }
