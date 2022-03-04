@@ -61,27 +61,31 @@ impl FileTree {
         let root = Path::new("/");
         for entry in WalkDir::new(&self.install_dir) {
             let entry = entry.unwrap();
-            match entry.path() {
-                p if p.is_dir() => continue,
-                p => {
-                    let path = root.join(p.strip_prefix(&self.install_dir).unwrap());
-                    let meta = fs::metadata(&p).unwrap();
-                    let file = files.pop().unwrap_or_else(|| panic!("unknown file: {p:?}"));
-                    assert_eq!(path, file.path);
+            let path = entry.path();
 
-                    if let Some(mode) = file.mode {
-                        let path_mode = meta.mode();
-                        assert!(
-                            path_mode == mode,
-                            "{path:?}: mode {path_mode:#o} is not expected {mode:#o}"
-                        );
-                    }
+            // skip non-empty subdirs
+            if path.is_dir() && path.read_dir().unwrap().next().is_some() {
+                continue;
+            }
 
-                    if let Some(file_data) = &file.data {
-                        let path_data = fs::read_to_string(&p).unwrap();
-                        assert_eq!(path_data, file_data.as_str());
-                    }
-                }
+            let file_path = root.join(path.strip_prefix(&self.install_dir).unwrap());
+            let meta = fs::metadata(path).unwrap();
+            let expected = files
+                .pop()
+                .unwrap_or_else(|| panic!("unknown path: {path:?}"));
+            assert_eq!(file_path, expected.path);
+
+            if let Some(expected) = expected.mode {
+                let file_mode = meta.mode();
+                assert!(
+                    file_mode == expected,
+                    "{file_path:?}: mode {file_mode:#o} is not {expected:#o}"
+                );
+            }
+
+            if let Some(expected) = &expected.data {
+                let file_data = fs::read_to_string(path).unwrap();
+                assert_eq!(file_data, expected.as_str());
             }
         }
 
