@@ -37,16 +37,14 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
+    use std::fs;
     use std::os::unix::fs::MetadataExt;
-    use std::{env, fs};
 
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::run as dohard;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::test::FileTree;
 
     rusty_fork_test! {
         #[test]
@@ -56,20 +54,15 @@ mod tests {
 
         #[test]
         fn linking() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let path = dir.path().to_str().unwrap();
-                d.borrow_mut().env.insert("ED".into(), path.into());
-                let source = dir.path().join("source");
-                File::create(source).unwrap();
+            let file_tree = FileTree::new();
+            fs::File::create("source").unwrap();
 
-                dohard(&["source", "target"]).unwrap();
-                let source_meta = fs::metadata("source").unwrap();
-                let target_meta = fs::metadata("target").unwrap();
-                // hard link inodes match
-                assert_eq!(source_meta.ino(), target_meta.ino());
-            })
+            dohard(&["source", "target"]).unwrap();
+            let source_meta = fs::metadata("source").unwrap();
+            let target_meta = fs::metadata(file_tree.install_dir.join("target")).unwrap();
+            // hard link inodes match
+            assert_eq!(source_meta.ino(), target_meta.ino());
+            assert_eq!(target_meta.nlink(), 2);
         }
     }
 }
