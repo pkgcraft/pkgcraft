@@ -48,18 +48,16 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::os::unix::fs::MetadataExt;
-    use std::path::{Path, PathBuf};
-    use std::{env, fs};
+    use std::fs;
 
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::super::insopts::run as insopts;
     use super::run as doenvd;
     use crate::eapi::OFFICIAL_EAPIS;
     use crate::macros::assert_err_re;
+    use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
     rusty_fork_test! {
@@ -67,53 +65,42 @@ mod tests {
         fn invalid_args() {
             assert_invalid_args(doenvd, &[0]);
 
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let prefix = dir.path();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+            let _file_tree = FileTree::new();
 
-                // nonexistent
-                let r = doenvd(&["pkgcraft"]);
-                assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
-            })
+            // nonexistent
+            let r = doenvd(&["pkgcraft"]);
+            assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
         }
 
         #[test]
         fn creation() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
-                let src_dir = prefix.join("src");
-                fs::create_dir(&src_dir).unwrap();
-                env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+            let file_tree = FileTree::new();
+            let default_mode = 0o100644;
+            let custom_mode = 0o100755;
 
-                let default = 0o100644;
-                let custom = 0o100755;
+            fs::File::create("pkgcraft").unwrap();
+            doenvd(&["pkgcraft"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/etc/env.d/pkgcraft"
+                mode = {default_mode}
+            "#));
 
-                fs::File::create("pkgcraft").unwrap();
+            // verify insopts are respected depending on EAPI
+            for eapi in OFFICIAL_EAPIS.values() {
+                BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
+                insopts(&["-m0755"]).unwrap();
                 doenvd(&["pkgcraft"]).unwrap();
-                let path = Path::new("etc/env.d/pkgcraft");
-                let path: PathBuf = [prefix, path].iter().collect();
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
-
-                // verify insopts are respected depending on EAPI
-                for eapi in OFFICIAL_EAPIS.values() {
-                    d.borrow_mut().eapi = eapi;
-                    insopts(&["-m0755"]).unwrap();
-                    doenvd(&["pkgcraft"]).unwrap();
-                    let meta = fs::metadata(&path).unwrap();
-                    let mode = meta.mode();
-                    if eapi.has("consistent_file_opts") {
-                        assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
-                    } else {
-                        assert!(mode == custom, "mode {mode:#o} is not custom {custom:#o}");
-                    }
-                }
-            })
+                let mode = match eapi.has("consistent_file_opts") {
+                    true => default_mode,
+                    false => custom_mode,
+                };
+                file_tree.assert(format!(r#"
+                    [[files]]
+                    path = "/etc/env.d/pkgcraft"
+                    mode = {mode}
+                "#));
+            }
         }
     }
 }
