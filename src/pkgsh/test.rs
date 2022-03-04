@@ -51,9 +51,7 @@ impl FileTree {
         fs::remove_dir_all(&self.install_dir).unwrap();
     }
 
-    pub(crate) fn assert<F: FnOnce(), S: AsRef<str>>(&self, func: F, data: S) {
-        func();
-
+    pub(crate) fn assert<S: AsRef<str>>(&self, data: S) {
         // load expected data from toml
         let data: Files = toml::from_str(data.as_ref()).unwrap();
         let mut files = data.files;

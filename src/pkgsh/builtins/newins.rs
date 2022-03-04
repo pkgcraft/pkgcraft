@@ -48,28 +48,20 @@ mod tests {
             let file_tree = FileTree::new();
 
             fs::File::create("file").unwrap();
-            file_tree.assert(
-                || {
-                    newins(&["file", "pkgcraft"]).unwrap();
-                },
-                r#"
+            newins(&["file", "pkgcraft"]).unwrap();
+            file_tree.assert(r#"
                 [[files]]
                 path = "/pkgcraft"
-                "#,
-            );
+            "#);
 
             // re-run using data from stdin
             write_stdin!("pkgcraft");
-            file_tree.assert(
-                || {
-                    newins(&["-", "pkgcraft"]).unwrap();
-                },
-                r#"
+            newins(&["-", "pkgcraft"]).unwrap();
+            file_tree.assert(r#"
                 [[files]]
                 path = "/pkgcraft"
                 data = "pkgcraft"
-                "#,
-            );
+            "#);
         }
     }
 }

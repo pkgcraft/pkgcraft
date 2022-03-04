@@ -105,43 +105,29 @@ mod tests {
 
             // simple file
             fs::File::create("file").unwrap();
-            file_tree.assert(
-                || {
-                    dodoc(&["file"]).unwrap();
-                },
-                format!(
-                    r#"
-                    [[files]]
-                    path = "/usr/share/doc/pkgcraft-0/file"
-                    mode = {default_mode}
-                    "#
-                ),
-            );
+            dodoc(&["file"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/file"
+                mode = {default_mode}
+            "#));
 
             // recursive using `docinto`
             fs::create_dir_all("doc/subdir").unwrap();
             fs::File::create("doc/subdir/file").unwrap();
-            file_tree.assert(
-                || {
-                    docinto(&["newdir"]).unwrap();
-                    dodoc(&["-r", "doc"]).unwrap();
-                },
-                r#"
+            docinto(&["newdir"]).unwrap();
+            dodoc(&["-r", "doc"]).unwrap();
+            file_tree.assert(r#"
                 [[files]]
                 path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/file"
-                "#,
-            );
+            "#);
 
             // handling for paths ending in '/.'
-            file_tree.assert(
-                || {
-                    dodoc(&["-r", "doc/."]).unwrap();
-                },
-                r#"
+            dodoc(&["-r", "doc/."]).unwrap();
+            file_tree.assert(r#"
                 [[files]]
                 path = "/usr/share/doc/pkgcraft-0/newdir/subdir/file"
-                "#,
-            );
+            "#);
         }
     }
 }
