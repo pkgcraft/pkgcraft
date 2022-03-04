@@ -59,7 +59,7 @@ impl FileTree {
 
         // match expected data against fs data
         let root = Path::new("/");
-        for entry in WalkDir::new(&self.install_dir) {
+        for entry in WalkDir::new(&self.install_dir).sort_by_file_name() {
             let entry = entry.unwrap();
             let path = entry.path();
 
