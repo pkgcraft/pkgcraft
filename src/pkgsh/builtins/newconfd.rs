@@ -27,15 +27,15 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use std::io::Write;
-    use std::{env, fs};
 
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::run as newconfd;
-    use crate::pkgsh::{write_stdin, BUILD_DATA};
+    use crate::pkgsh::test::FileTree;
+    use crate::pkgsh::write_stdin;
 
     rusty_fork_test! {
         #[test]
@@ -45,24 +45,23 @@ mod tests {
 
         #[test]
         fn creation() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
-                let src_dir = prefix.join("src");
-                fs::create_dir(&src_dir).unwrap();
-                env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+            let file_tree = FileTree::new();
 
-                fs::File::create("config").unwrap();
-                newconfd(&["config", "pkgcraft"]).unwrap();
-                let path = prefix.join("etc/conf.d/pkgcraft");
-                assert!(path.exists(), "missing file: {path:?}");
+            fs::File::create("config").unwrap();
+            newconfd(&["config", "pkgcraft"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/etc/conf.d/pkgcraft"
+            "#);
 
-                // re-run using data from stdin
-                write_stdin!("pkgcraft");
-                newconfd(&["-", "pkgcraft"]).unwrap();
-                assert_eq!(fs::read_to_string(&path).unwrap(), "pkgcraft");
-            })
+            // re-run using data from stdin
+            write_stdin!("pkgcraft");
+            newconfd(&["-", "pkgcraft"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/etc/conf.d/pkgcraft"
+                data = "pkgcraft"
+            "#);
         }
     }
 }
