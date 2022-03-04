@@ -49,6 +49,7 @@ mod tests {
     use rusty_fork::rusty_fork_test;
 
     use super::super::assert_invalid_args;
+    use super::super::exeinto::run as exeinto;
     use super::super::exeopts::run as exeopts;
     use super::run as doexe;
     use crate::macros::assert_err_re;
@@ -80,12 +81,13 @@ mod tests {
                 mode = {default_mode}
             "#));
 
-            // change mode and re-run
+            // custom mode and install dir
+            exeinto(&["/opt/bin"]).unwrap();
             exeopts(&["-m0777"]).unwrap();
             doexe(&["pkgcraft"]).unwrap();
             file_tree.assert(format!(r#"
                 [[files]]
-                path = "/pkgcraft"
+                path = "/opt/bin/pkgcraft"
                 mode = {custom_mode}
             "#));
         }

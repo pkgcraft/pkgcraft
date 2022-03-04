@@ -33,6 +33,8 @@ mod tests {
     use rusty_fork::rusty_fork_test;
 
     use super::super::assert_invalid_args;
+    use super::super::exeinto::run as exeinto;
+    use super::super::exeopts::run as exeopts;
     use super::run as newexe;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::write_stdin;
@@ -46,22 +48,28 @@ mod tests {
         #[test]
         fn creation() {
             let file_tree = FileTree::new();
+            let default_mode = 0o100755;
+            let custom_mode = 0o100777;
 
             fs::File::create("bin").unwrap();
             newexe(&["bin", "pkgcraft"]).unwrap();
-            file_tree.assert(r#"
+            file_tree.assert(format!(r#"
                 [[files]]
                 path = "/pkgcraft"
-            "#);
+                mode = {default_mode}
+            "#));
 
-            // re-run using data from stdin
+            // custom mode and install dir using data from stdin
             write_stdin!("pkgcraft");
+            exeinto(&["/opt/bin"]).unwrap();
+            exeopts(&["-m0777"]).unwrap();
             newexe(&["-", "pkgcraft"]).unwrap();
-            file_tree.assert(r#"
+            file_tree.assert(format!(r#"
                 [[files]]
-                path = "/pkgcraft"
+                path = "/opt/bin/pkgcraft"
+                mode = {custom_mode}
                 data = "pkgcraft"
-            "#);
+            "#));
         }
     }
 }
