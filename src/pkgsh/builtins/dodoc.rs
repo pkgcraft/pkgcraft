@@ -101,7 +101,7 @@ mod tests {
         fn creation() {
             BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
             let file_tree = FileTree::new();
-            let default_mode: u32 = 0o100644;
+            let default_mode = 0o100644;
 
             // simple file
             fs::File::create("file").unwrap();

@@ -87,16 +87,14 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::os::unix::fs::MetadataExt;
-    use std::{env, fs};
+    use std::fs;
 
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::run as doman;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::test::FileTree;
 
     rusty_fork_test! {
         #[test]
@@ -106,63 +104,57 @@ mod tests {
 
         #[test]
         fn errors() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let path = dir.path().to_str().unwrap();
-                d.borrow_mut().env.insert("ED".into(), path.into());
+            let _file_tree = FileTree::new();
 
-                // no targets
-                let r = doman(&["-i18n=en"]);
-                assert_err_re!(r, format!("^missing filename target$"));
+            // no targets
+            let r = doman(&["-i18n=en"]);
+            assert_err_re!(r, format!("^missing filename target$"));
 
-                // `newman` target
-                let r = doman(&["manpage"]);
-                assert_err_re!(r, format!("^invalid file target, use `newman`: .*$"));
-            })
+            // `newman` target
+            let r = doman(&["manpage"]);
+            assert_err_re!(r, format!("^invalid file target, use `newman`: .*$"));
         }
 
         #[test]
         fn creation() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
-                let src_dir = prefix.join("src");
-                fs::create_dir(&src_dir).unwrap();
-                env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+            let file_tree = FileTree::new();
+            let default_mode = 0o100644;
 
-                let default = 0o100644;
+            // standard file
+            fs::File::create("pkgcraft.1").unwrap();
+            doman(&["pkgcraft.1"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/usr/share/man/man1/pkgcraft.1"
+                mode = {default_mode}
+            "#));
 
-                // standard file
-                fs::File::create("pkgcraft.1").unwrap();
-                doman(&["pkgcraft.1"]).unwrap();
-                let path = prefix.join("usr/share/man/man1/pkgcraft.1");
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
+            // -i18n option usage
+            doman(&["-i18n=en", "pkgcraft.1"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/man/en/man1/pkgcraft.1"
+            "#);
 
-                // -i18n option usage
-                doman(&["-i18n=en", "pkgcraft.1"]).unwrap();
-                let path = prefix.join("usr/share/man/en/man1/pkgcraft.1");
-                assert!(path.exists(), "missing file: {path:?}");
+            // filename lang detection
+            for (file, path) in [
+                ("pkgcraft.en.1", "en/man1/pkgcraft.1"),
+                ("pkgcraft.en_US.1", "en_US/man1/pkgcraft.1"),
+            ] {
+                fs::File::create(file).unwrap();
+                doman(&[file]).unwrap();
+                file_tree.assert(format!(r#"
+                    [[files]]
+                    path = "/usr/share/man/{path}"
+                "#));
+            }
 
-                // filename lang detection
-                for (f, dir) in [
-                    ("pkgcraft.en.1", "en/man1/pkgcraft.1"),
-                    ("pkgcraft.en_US.1", "en_US/man1/pkgcraft.1"),
-                ] {
-                    fs::File::create(f).unwrap();
-                    doman(&[f]).unwrap();
-                    let path = prefix.join(format!("usr/share/man/{dir}"));
-                    assert!(path.exists(), "missing file: {path:?}");
-                }
-
-                // -i18n option overrides filename lang
-                doman(&["-i18n=zz", "pkgcraft.en.1"]).unwrap();
-                let path = prefix.join("usr/share/man/zz/man1/pkgcraft.1");
-                assert!(path.exists(), "missing file: {path:?}");
-            })
+            // -i18n option overrides filename lang
+            doman(&["-i18n=zz", "pkgcraft.en.1"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/man/zz/man1/pkgcraft.1"
+            "#);
         }
     }
 }
