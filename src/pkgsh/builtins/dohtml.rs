@@ -1,7 +1,6 @@
 use std::collections::HashSet;
-use std::ffi::OsStr;
-use std::path::{Path, PathBuf};
 
+use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
@@ -52,7 +51,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     };
 
     allowed_file_exts.extend(opts.extra_allowed_file_exts);
-    let excluded_dirs: HashSet<&Path> = opts.excluded_dirs.iter().map(Path::new).collect();
+    let excluded_dirs: HashSet<&Utf8Path> = opts.excluded_dirs.iter().map(Utf8Path::new).collect();
     let allowed_files: HashSet<String> = opts.allowed_files.into_iter().collect();
 
     // TODO: output info if verbose option is enabled
@@ -63,13 +62,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             "" => "html",
             val => val,
         };
-        let dest: PathBuf = ["/usr/share/doc", d.env.get("PF").expect("$PF undefined"), subdir]
+        let dest: Utf8PathBuf = ["/usr/share/doc", d.env.get("PF").expect("$PF undefined"), subdir]
             .iter()
             .collect();
         let install = d.install().dest(&dest)?;
 
-        let (dirs, files): (Vec<&Path>, Vec<&Path>) =
-            opts.targets.iter().map(Path::new).partition(|p| p.is_dir());
+        let (dirs, files): (Vec<&Utf8Path>, Vec<&Utf8Path>) = opts
+            .targets
+            .iter()
+            .map(Utf8Path::new)
+            .partition(|p| p.is_dir());
 
         if !dirs.is_empty() {
             if opts.recursive {
@@ -84,17 +86,11 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         }
 
         // determine if a file is allowed to be installed
-        let allowed_file = |path: &Path| -> bool {
-            let filename = path
-                .file_name()
-                .unwrap_or_else(|| OsStr::new(""))
-                .to_str()
-                .unwrap_or("");
-            let ext = path
-                .extension()
-                .unwrap_or_else(|| OsStr::new(""))
-                .to_str()
-                .unwrap_or("");
+        let allowed_file = |path: &Utf8Path| -> bool {
+            let (filename, ext) = match (path.file_name(), path.extension()) {
+                (Some(name), Some(ext)) => (name, ext),
+                _ => return false,
+            };
             allowed_file_exts.contains(ext) || allowed_files.contains(filename)
         };
 
@@ -122,11 +118,71 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as dohtml;
+    use std::fs;
 
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(dohtml, &[0]);
+    use rusty_fork::rusty_fork_test;
+
+    use super::super::assert_invalid_args;
+    use super::super::docinto::run as docinto;
+    use super::run as dohtml;
+    use crate::macros::assert_err_re;
+    use crate::pkgsh::test::FileTree;
+    use crate::pkgsh::BUILD_DATA;
+
+    rusty_fork_test! {
+        #[test]
+        fn invalid_args() {
+            assert_invalid_args(dohtml, &[0]);
+
+            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+            let _file_tree = FileTree::new();
+
+            // nonexistent
+            let r = dohtml(&["pkgcraft.html"]);
+            assert_err_re!(r, format!("^invalid file \"pkgcraft.html\": .*$"));
+
+            // non-recursive directory
+            fs::create_dir("dir").unwrap();
+            let r = dohtml(&["dir"]);
+            assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+        }
+
+        #[test]
+        fn creation() {
+            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+            let file_tree = FileTree::new();
+
+            // simple file
+            fs::File::create("pkgcraft.html").unwrap();
+            dohtml(&["pkgcraft.html"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/pkgcraft.html"
+            "#));
+
+            // recursive
+            fs::create_dir_all("doc/subdir").unwrap();
+            fs::File::create("doc/subdir/pkgcraft.h").unwrap();
+            dohtml(&["-r", "doc"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/doc/subdir/pkgcraft.h"
+            "#);
+
+            // handling for paths ending in '/.'
+            dohtml(&["-r", "doc/."]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/subdir/pkgcraft.h"
+            "#);
+
+            // recursive using `docinto`
+            docinto(&["newdir"]).unwrap();
+            dohtml(&["-r", "doc"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/pkgcraft.h"
+            "#);
+        }
     }
 }
