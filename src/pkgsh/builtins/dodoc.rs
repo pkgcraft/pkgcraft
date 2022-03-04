@@ -68,84 +68,71 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, fs};
+    use std::fs;
 
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::super::docinto::run as docinto;
     use super::run as dodoc;
     use crate::macros::assert_err_re;
+    use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
-    use crate::test::FileTree;
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
             assert_invalid_args(dodoc, &[0]);
 
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let prefix = dir.path();
-                d.borrow_mut()
-                    .env
-                    .insert("ED".into(), prefix.to_str().unwrap().into());
-                d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into());
+            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+            let _file_tree = FileTree::new();
 
-                // nonexistent
-                let r = dodoc(&["pkgcraft"]);
-                assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
+            // nonexistent
+            let r = dodoc(&["pkgcraft"]);
+            assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
 
-                // non-recursive directory
-                fs::create_dir("dir").unwrap();
-                let r = dodoc(&["dir"]);
-                assert_err_re!(r, format!("^trying to install directory as file: .*$"));
-            })
+            // non-recursive directory
+            fs::create_dir("dir").unwrap();
+            let r = dodoc(&["dir"]);
+            assert_err_re!(r, format!("^trying to install directory as file: .*$"));
         }
 
         #[test]
         fn creation() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let tmp_dir = dir.path();
-                let src_dir = tmp_dir.join("src");
-                fs::create_dir(&src_dir).unwrap();
-                env::set_current_dir(&src_dir).unwrap();
-                let install_dir = tmp_dir.join("image");
-                d.borrow_mut()
-                    .env
-                    .insert("ED".into(), install_dir.to_str().unwrap().into());
-                d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into());
+            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+            let file_tree = FileTree::new();
+            let default_mode: u32 = 0o100644;
 
-                let default_mode: u32 = 0o100644;
-
-                // simple file
-                fs::File::create("file").unwrap();
+            // simple file
+            fs::File::create("file").unwrap();
+            file_tree.run(|| {
                 dodoc(&["file"]).unwrap();
                 assert_eq!(
-                    FileTree::new(&install_dir).modes(),
+                    file_tree.modes(),
                     [("/usr/share/doc/pkgcraft-0/file".into(), default_mode)]
                 );
+            });
 
-                // recursive using `docinto`
-                fs::create_dir_all("doc/subdir").unwrap();
-                fs::File::create("doc/subdir/file").unwrap();
+            // recursive using `docinto`
+            fs::create_dir_all("doc/subdir").unwrap();
+            fs::File::create("doc/subdir/file").unwrap();
+            file_tree.run(|| {
                 docinto(&["newdir"]).unwrap();
                 dodoc(&["-r", "doc"]).unwrap();
                 assert_eq!(
-                    FileTree::new(&install_dir).files(),
+                    file_tree.files(),
                     ["/usr/share/doc/pkgcraft-0/newdir/doc/subdir/file"]
                 );
+            });
 
-                // handling for paths ending in '/.'
+            // handling for paths ending in '/.'
+            file_tree.run(|| {
                 dodoc(&["-r", "doc/."]).unwrap();
                 assert_eq!(
-                    FileTree::new(&install_dir).files(),
+                    file_tree.files(),
                     ["/usr/share/doc/pkgcraft-0/newdir/subdir/file"]
                 );
-            })
+            });
         }
     }
 }

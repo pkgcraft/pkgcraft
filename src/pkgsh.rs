@@ -13,10 +13,12 @@ use crate::eapi::Eapi;
 pub mod builtins;
 mod install;
 pub(crate) mod phases;
+#[cfg(test)]
+pub(crate) mod test;
 pub(crate) mod unescape;
 mod utils;
-#[cfg(not(test))]
 
+#[cfg(not(test))]
 type StdinType = io::Stdin;
 #[cfg(test)]
 type StdinType = io::Cursor<Vec<u8>>;
