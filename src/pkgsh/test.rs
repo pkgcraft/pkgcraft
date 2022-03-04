@@ -18,6 +18,7 @@ struct FileData {
     pub(crate) path: PathBuf,
     mode: Option<u32>,
     data: Option<String>,
+    link: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -69,7 +70,7 @@ impl FileTree {
             }
 
             let file_path = root.join(path.strip_prefix(&self.install_dir).unwrap());
-            let meta = fs::metadata(path).unwrap();
+            let meta = fs::symlink_metadata(path).unwrap();
             let expected = files
                 .pop()
                 .unwrap_or_else(|| panic!("unknown path: {path:?}"));
@@ -86,6 +87,11 @@ impl FileTree {
             if let Some(expected) = &expected.data {
                 let file_data = fs::read_to_string(path).unwrap();
                 assert_eq!(file_data, expected.as_str());
+            }
+
+            if let Some(expected) = &expected.link {
+                let target = fs::read_link(path).unwrap();
+                assert_eq!(&target, expected);
             }
         }
 

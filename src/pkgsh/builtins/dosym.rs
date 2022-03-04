@@ -62,16 +62,15 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-    use std::{env, fs};
+    use std::fs;
 
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::run as dosym;
     use crate::eapi::OFFICIAL_EAPIS;
     use crate::macros::assert_err_re;
+    use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
     rusty_fork_test! {
@@ -89,39 +88,38 @@ mod tests {
 
         #[test]
         fn errors() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let path = dir.path().to_str().unwrap();
-                d.borrow_mut().env.insert("ED".into(), path.into());
+            let _file_tree = FileTree::new();
 
-                // dir targets aren't supported
-                let r = dosym(&["source", "target/"]);
-                assert_err_re!(r, format!("^missing filename target: .*$"));
+            // dir targets aren't supported
+            let r = dosym(&["source", "target/"]);
+            assert_err_re!(r, format!("^missing filename target: .*$"));
 
-                fs::create_dir("target").unwrap();
-                let r = dosym(&["source", "target"]);
-                assert_err_re!(r, format!("^missing filename target: .*$"));
+            fs::create_dir("target").unwrap();
+            let r = dosym(&["source", "target"]);
+            assert_err_re!(r, format!("^missing filename target: .*$"));
 
-                // relative source with `dosym -r`
-                let r = dosym(&["-r", "source", "target"]);
-                assert_err_re!(r, format!("^absolute source required .*$"));
-            })
+            // relative source with `dosym -r`
+            let r = dosym(&["-r", "source", "target"]);
+            assert_err_re!(r, format!("^absolute source required .*$"));
         }
 
         #[test]
         fn linking() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let path = dir.path().to_str().unwrap();
-                d.borrow_mut().env.insert("ED".into(), path.into());
+            let file_tree = FileTree::new();
 
-                dosym(&["/usr/bin/source", "target"]).unwrap();
-                assert_eq!(Path::new("/usr/bin/source"), fs::read_link("./target").unwrap());
-                dosym(&["-r", "/usr/bin/source", "/usr/bin/target"]).unwrap();
-                assert_eq!(Path::new("source"), fs::read_link("./usr/bin/target").unwrap());
-            })
+            dosym(&["/usr/bin/source", "target"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/target"
+                link = "/usr/bin/source"
+            "#));
+
+            dosym(&["-r", "/usr/bin/source", "/usr/bin/target"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/usr/bin/target"
+                link = "source"
+            "#));
         }
     }
 }
