@@ -30,63 +30,49 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::os::unix::fs::MetadataExt;
-    use std::path::{Path, PathBuf};
-    use std::{env, fs};
+    use std::fs;
 
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::super::exeopts::run as exeopts;
     use super::run as dosbin;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::test::FileTree;
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
             assert_invalid_args(dosbin, &[0]);
 
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let prefix = dir.path();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+            let _file_tree = FileTree::new();
 
-                // nonexistent
-                let r = dosbin(&["pkgcraft"]);
-                assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
-            })
+            // nonexistent
+            let r = dosbin(&["pkgcraft"]);
+            assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
         }
 
         #[test]
         fn creation() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
-                let src_dir = prefix.join("src");
-                fs::create_dir(&src_dir).unwrap();
-                env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+            let file_tree = FileTree::new();
+            let default_mode = 0o100755;
 
-                let default = 0o100755;
+            fs::File::create("pkgcraft").unwrap();
+            dosbin(&["pkgcraft"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/usr/sbin/pkgcraft"
+                mode = {default_mode}
+            "#));
 
-                fs::File::create("pkgcraft").unwrap();
-                dosbin(&["pkgcraft"]).unwrap();
-                let path = Path::new("usr/sbin/pkgcraft");
-                let path: PathBuf = [prefix, path].iter().collect();
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
-
-                // verify exeopts are ignored
-                exeopts(&["-m0777"]).unwrap();
-                dosbin(&["pkgcraft"]).unwrap();
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
-            })
+            // verify exeopts are ignored
+            exeopts(&["-m0777"]).unwrap();
+            dosbin(&["pkgcraft"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/usr/sbin/pkgcraft"
+                mode = {default_mode}
+            "#));
         }
     }
 }
