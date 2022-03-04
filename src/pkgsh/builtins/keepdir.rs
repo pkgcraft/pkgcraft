@@ -59,6 +59,7 @@ mod tests {
         #[test]
         fn creation() {
             let file_tree = FileTree::new();
+            let default_mode = 0o100644;
 
             for dirs in [
                     vec!["dir"],
@@ -74,6 +75,8 @@ mod tests {
                     files.push(format!(r#"
                         [[files]]
                         path = "/{path}/.keep"
+                        mode = {default_mode}
+                        data = ""
                     "#));
                 }
                 file_tree.assert(files.join("\n"));
