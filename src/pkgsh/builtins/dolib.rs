@@ -59,6 +59,7 @@ mod tests {
     use rusty_fork::rusty_fork_test;
 
     use super::super::assert_invalid_args;
+    use super::super::into::run as into;
     use super::super::libopts::run as libopts;
     use super::run as dolib;
     use crate::macros::assert_err_re;
@@ -90,12 +91,13 @@ mod tests {
                 mode = {default_mode}
             "#));
 
-            // verify libopts are respected
+            // custom mode and install dir
+            into(&["/"]).unwrap();
             libopts(&["-m0755"]).unwrap();
             dolib(&["pkgcraft"]).unwrap();
             file_tree.assert(format!(r#"
                 [[files]]
-                path = "/usr/lib/pkgcraft"
+                path = "/lib/pkgcraft"
                 mode = {custom_mode}
             "#));
         }

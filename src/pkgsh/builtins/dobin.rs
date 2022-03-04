@@ -62,6 +62,7 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::super::exeopts::run as exeopts;
+    use super::super::into::run as into;
     use super::run as dobin;
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
@@ -91,12 +92,13 @@ mod tests {
                 mode = {default_mode}
             "#));
 
-            // verify exeopts are ignored
+            // custom install dir with libopts ignored
+            into(&["/"]).unwrap();
             exeopts(&["-m0777"]).unwrap();
             dobin(&["pkgcraft"]).unwrap();
             file_tree.assert(format!(r#"
                 [[files]]
-                path = "/usr/bin/pkgcraft"
+                path = "/bin/pkgcraft"
                 mode = {default_mode}
             "#));
         }

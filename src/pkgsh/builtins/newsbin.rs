@@ -33,6 +33,7 @@ mod tests {
     use rusty_fork::rusty_fork_test;
 
     use super::super::assert_invalid_args;
+    use super::super::into::run as into;
     use super::run as newsbin;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::write_stdin;
@@ -54,12 +55,13 @@ mod tests {
                 path = "/usr/sbin/pkgcraft"
             "#);
 
-            // re-run using data from stdin
+            // custom install dir using data from stdin
             write_stdin!("pkgcraft");
+            into(&["/"]).unwrap();
             newsbin(&["-", "pkgcraft"]).unwrap();
             file_tree.assert(r#"
                 [[files]]
-                path = "/usr/sbin/pkgcraft"
+                path = "/sbin/pkgcraft"
                 data = "pkgcraft"
             "#);
         }

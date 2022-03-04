@@ -35,6 +35,7 @@ mod tests {
     use rusty_fork::rusty_fork_test;
 
     use super::super::assert_invalid_args;
+    use super::super::into::run as into;
     use super::super::libopts::run as libopts;
     use super::run as dolib_so;
     use crate::macros::assert_err_re;
@@ -65,12 +66,13 @@ mod tests {
                 mode = {default_mode}
             "#));
 
-            // verify libopts are ignored
+            // custom install dir with libopts ignored
+            into(&["/"]).unwrap();
             libopts(&["-m0777"]).unwrap();
             dolib_so(&["pkgcraft.so"]).unwrap();
             file_tree.assert(format!(r#"
                 [[files]]
-                path = "/usr/lib/pkgcraft.so"
+                path = "/lib/pkgcraft.so"
                 mode = {default_mode}
             "#));
         }

@@ -33,6 +33,7 @@ mod tests {
     use rusty_fork::rusty_fork_test;
 
     use super::super::assert_invalid_args;
+    use super::super::into::run as into;
     use super::run as newlib_so;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::write_stdin;
@@ -54,12 +55,13 @@ mod tests {
                 path = "/usr/lib/pkgcraft.so"
             "#);
 
-            // re-run using data from stdin
+            // custom install dir using data from stdin
             write_stdin!("pkgcraft");
+            into(&["/"]).unwrap();
             newlib_so(&["-", "pkgcraft.so"]).unwrap();
             file_tree.assert(r#"
                 [[files]]
-                path = "/usr/lib/pkgcraft.so"
+                path = "/lib/pkgcraft.so"
                 data = "pkgcraft"
             "#);
         }
