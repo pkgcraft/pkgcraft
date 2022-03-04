@@ -167,8 +167,7 @@ impl Install {
 
     pub(super) fn prefix<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let path = path.as_ref();
-        let path = path.strip_prefix("/").unwrap_or(path);
-        [self.destdir.as_path(), path].iter().collect()
+        self.destdir.join(path.strip_prefix("/").unwrap_or(path))
     }
 
     pub(super) fn link<F, P, Q>(&self, link: F, source: P, target: Q) -> Result<()>
