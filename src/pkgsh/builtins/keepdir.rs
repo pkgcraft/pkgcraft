@@ -44,15 +44,11 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-    use std::path::{Path, PathBuf};
-
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::run as keepdir;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::test::FileTree;
 
     rusty_fork_test! {
         #[test]
@@ -62,28 +58,26 @@ mod tests {
 
         #[test]
         fn creation() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                env::set_current_dir(&dir).unwrap();
-                let prefix = dir.path();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+            let file_tree = FileTree::new();
 
-                for dirs in [
-                        vec!["dir"],
-                        vec!["path/to/dir"],
-                        vec!["/etc"],
-                        vec!["/usr/bin"],
-                        vec!["dir", "/usr/bin"],
-                        ] {
-                    keepdir(&dirs).unwrap();
-                    for dir in dirs {
-                        let path = Path::new(dir.strip_prefix("/").unwrap_or(dir));
-                        let path: PathBuf = [prefix, path].iter().collect();
-                        assert!(path.is_dir(), "failed creating dir: {dir:?}");
-                        assert!(path.join(".keep").is_file());
-                    }
+            for dirs in [
+                    vec!["dir"],
+                    vec!["path/to/dir"],
+                    vec!["/etc"],
+                    vec!["/usr/bin"],
+                    vec!["dir", "/usr/bin"],
+                    ] {
+                keepdir(&dirs).unwrap();
+                let mut files = vec![];
+                for dir in dirs {
+                    let path = dir.strip_prefix("/").unwrap_or(dir);
+                    files.push(format!(r#"
+                        [[files]]
+                        path = "/{path}/.keep"
+                    "#));
                 }
-            })
+                file_tree.assert(files.join("\n"));
+            }
         }
     }
 }
