@@ -121,8 +121,8 @@ impl Install {
 
     pub(super) fn dest<P: AsRef<Path>>(mut self, dest: P) -> Result<Self> {
         let dest = dest.as_ref();
+        self.dirs([dest])?;
         self.destdir.push(dest.strip_prefix("/").unwrap_or(dest));
-        self.dirs([&self.destdir])?;
         Ok(self)
     }
 
@@ -290,6 +290,7 @@ impl Install {
                 let entry =
                     entry.map_err(|e| Error::Base(format!("error walking {dir:?}: {e}")))?;
                 let path = entry.path();
+                // TODO: replace with advance_by() once it's stable
                 let dest = match depth {
                     0 => path,
                     n => {
