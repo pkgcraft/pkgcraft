@@ -105,34 +105,43 @@ mod tests {
 
             // simple file
             fs::File::create("file").unwrap();
-            file_tree.run(|| {
-                dodoc(&["file"]).unwrap();
-                assert_eq!(
-                    file_tree.modes(),
-                    [("/usr/share/doc/pkgcraft-0/file".into(), default_mode)]
-                );
-            });
+            file_tree.assert(
+                || {
+                    dodoc(&["file"]).unwrap();
+                },
+                format!(
+                    r#"
+                    [[files]]
+                    path = "/usr/share/doc/pkgcraft-0/file"
+                    mode = {default_mode}
+                    "#
+                ),
+            );
 
             // recursive using `docinto`
             fs::create_dir_all("doc/subdir").unwrap();
             fs::File::create("doc/subdir/file").unwrap();
-            file_tree.run(|| {
-                docinto(&["newdir"]).unwrap();
-                dodoc(&["-r", "doc"]).unwrap();
-                assert_eq!(
-                    file_tree.files(),
-                    ["/usr/share/doc/pkgcraft-0/newdir/doc/subdir/file"]
-                );
-            });
+            file_tree.assert(
+                || {
+                    docinto(&["newdir"]).unwrap();
+                    dodoc(&["-r", "doc"]).unwrap();
+                },
+                r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/file"
+                "#,
+            );
 
             // handling for paths ending in '/.'
-            file_tree.run(|| {
-                dodoc(&["-r", "doc/."]).unwrap();
-                assert_eq!(
-                    file_tree.files(),
-                    ["/usr/share/doc/pkgcraft-0/newdir/subdir/file"]
-                );
-            });
+            file_tree.assert(
+                || {
+                    dodoc(&["-r", "doc/."]).unwrap();
+                },
+                r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/newdir/subdir/file"
+                "#,
+            );
         }
     }
 }

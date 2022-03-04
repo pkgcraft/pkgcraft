@@ -99,23 +99,36 @@ mod tests {
 
             // simple file
             fs::File::create("file").unwrap();
-            file_tree.run(|| {
-                doins(&["file"]).unwrap();
-                assert_eq!(file_tree.modes(), [("/file".into(), default_mode)]);
-            });
+            file_tree.assert(
+                || {
+                    doins(&["file"]).unwrap();
+                },
+                format!(
+                    r#"
+                    [[files]]
+                    path = "/file"
+                    mode = {default_mode}
+                    "#
+                ),
+            );
 
             // recursive using `insinto` and `insopts`
             fs::create_dir_all("dir/subdir").unwrap();
             fs::File::create("dir/subdir/file").unwrap();
-            file_tree.run(|| {
-                insinto(&["newdir"]).unwrap();
-                insopts(&["-m0755"]).unwrap();
-                doins(&["-r", "dir"]).unwrap();
-                assert_eq!(
-                    file_tree.modes(),
-                    [("/newdir/dir/subdir/file".into(), custom_mode)]
-                );
-            });
+            file_tree.assert(
+                || {
+                    insinto(&["newdir"]).unwrap();
+                    insopts(&["-m0755"]).unwrap();
+                    doins(&["-r", "dir"]).unwrap();
+                },
+                format!(
+                    r#"
+                    [[files]]
+                    path = "/newdir/dir/subdir/file"
+                    mode = {custom_mode}
+                    "#
+                ),
+            );
         }
     }
 }
