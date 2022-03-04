@@ -68,8 +68,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::os::unix::fs::MetadataExt;
-    use std::path::{Path, PathBuf};
     use std::{env, fs};
 
     use rusty_fork::rusty_fork_test;
@@ -80,6 +78,7 @@ mod tests {
     use super::run as dodoc;
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
+    use crate::test::FileTree;
 
     rusty_fork_test! {
         #[test]
@@ -90,7 +89,9 @@ mod tests {
                 let dir = tempdir().unwrap();
                 env::set_current_dir(&dir).unwrap();
                 let prefix = dir.path();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+                d.borrow_mut()
+                    .env
+                    .insert("ED".into(), prefix.to_str().unwrap().into());
                 d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into());
 
                 // nonexistent
@@ -108,38 +109,42 @@ mod tests {
         fn creation() {
             BUILD_DATA.with(|d| {
                 let dir = tempdir().unwrap();
-                let prefix = dir.path();
-                let src_dir = prefix.join("src");
+                let tmp_dir = dir.path();
+                let src_dir = tmp_dir.join("src");
                 fs::create_dir(&src_dir).unwrap();
                 env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
+                let install_dir = tmp_dir.join("image");
+                d.borrow_mut()
+                    .env
+                    .insert("ED".into(), install_dir.to_str().unwrap().into());
                 d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into());
 
-                let default = 0o100644;
+                let default_mode: u32 = 0o100644;
 
                 // simple file
                 fs::File::create("file").unwrap();
                 dodoc(&["file"]).unwrap();
-                let path = Path::new("usr/share/doc/pkgcraft-0/file");
-                let path: PathBuf = [prefix, path].iter().collect();
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
+                assert_eq!(
+                    FileTree::new(&install_dir).modes(),
+                    [("/usr/share/doc/pkgcraft-0/file".into(), default_mode)]
+                );
 
                 // recursive using `docinto`
                 fs::create_dir_all("doc/subdir").unwrap();
                 fs::File::create("doc/subdir/file").unwrap();
                 docinto(&["newdir"]).unwrap();
                 dodoc(&["-r", "doc"]).unwrap();
-                let path = Path::new("usr/share/doc/pkgcraft-0/newdir/doc/subdir/file");
-                let path: PathBuf = [prefix, path].iter().collect();
-                assert!(path.exists(), "missing file: {path:?}");
+                assert_eq!(
+                    FileTree::new(&install_dir).files(),
+                    ["/usr/share/doc/pkgcraft-0/newdir/doc/subdir/file"]
+                );
 
                 // handling for paths ending in '/.'
                 dodoc(&["-r", "doc/."]).unwrap();
-                let path = Path::new("usr/share/doc/pkgcraft-0/newdir/subdir/file");
-                let path: PathBuf = [prefix, path].iter().collect();
-                assert!(path.exists(), "missing file: {path:?}");
+                assert_eq!(
+                    FileTree::new(&install_dir).files(),
+                    ["/usr/share/doc/pkgcraft-0/newdir/subdir/file"]
+                );
             })
         }
     }

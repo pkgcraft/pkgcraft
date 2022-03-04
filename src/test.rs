@@ -1,3 +1,9 @@
+use std::fs;
+use std::os::unix::fs::MetadataExt;
+use std::path::Path;
+
+use walkdir::WalkDir;
+
 pub(crate) static VER_CMP_DATA: &[&str] = &[
     // simple major versions
     "0 == 0",
@@ -50,3 +56,46 @@ pub(crate) static VER_CMP_DATA: &[&str] = &[
     "0-r2 > 0-r1",
     "1.0.2_pre01-r2 > 1.00.2_pre001-r1",
 ];
+
+#[derive(Debug)]
+pub(crate) struct FileTree<'a> {
+    path: &'a Path,
+}
+
+impl<'a> FileTree<'a> {
+    pub(crate) fn new(path: &'a Path) -> Self {
+        FileTree { path: path }
+    }
+
+    pub(crate) fn files(&self) -> Vec<String> {
+        let mut files = Vec::<String>::new();
+        let root = Path::new("/");
+        for entry in WalkDir::new(self.path) {
+            let entry = entry.unwrap();
+            match entry.path() {
+                p if p.is_dir() => continue,
+                p => {
+                    let new_path = root.join(p.strip_prefix(self.path).unwrap());
+                    files.push(new_path.to_str().unwrap().into());
+                }
+            }
+        }
+        files
+    }
+
+    pub(crate) fn modes(&self) -> Vec<(String, u32)> {
+        let mut modes = Vec::<(String, u32)>::new();
+        for file in self.files() {
+            let file_path = file.strip_prefix("/").unwrap();
+            let meta = fs::metadata(self.path.join(file_path)).unwrap();
+            modes.push((file, meta.mode()));
+        }
+        modes
+    }
+}
+
+impl<'a> Drop for FileTree<'a> {
+    fn drop(&mut self) {
+        fs::remove_dir_all(&self.path).unwrap();
+    }
+}
