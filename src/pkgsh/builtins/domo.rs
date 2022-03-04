@@ -58,15 +58,13 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::os::unix::fs::MetadataExt;
-    use std::path::{Path, PathBuf};
-    use std::{env, fs};
+    use std::fs;
 
     use rusty_fork::rusty_fork_test;
-    use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
     use super::run as domo;
+    use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
     rusty_fork_test! {
@@ -77,25 +75,17 @@ mod tests {
 
         #[test]
         fn creation() {
-            BUILD_DATA.with(|d| {
-                let dir = tempdir().unwrap();
-                let prefix = dir.path();
-                let src_dir = prefix.join("src");
-                fs::create_dir(&src_dir).unwrap();
-                env::set_current_dir(&src_dir).unwrap();
-                d.borrow_mut().env.insert("ED".into(), prefix.to_str().unwrap().into());
-                d.borrow_mut().env.insert("PN".into(), "pkgcraft".into());
+            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PN".into(), "pkgcraft".into()));
+            let file_tree = FileTree::new();
+            let default_mode = 0o100644;
 
-                let default = 0o100644;
-
-                fs::File::create("en.mo").unwrap();
-                domo(&["en.mo"]).unwrap();
-                let path = Path::new("usr/share/locale/en/LC_MESSAGES/pkgcraft.mo");
-                let path: PathBuf = [prefix, path].iter().collect();
-                let meta = fs::metadata(&path).unwrap();
-                let mode = meta.mode();
-                assert!(mode == default, "mode {mode:#o} is not default {default:#o}");
-            })
+            fs::File::create("en.mo").unwrap();
+            domo(&["en.mo"]).unwrap();
+            file_tree.assert(format!(r#"
+                [[files]]
+                path = "/usr/share/locale/en/LC_MESSAGES/pkgcraft.mo"
+                mode = {default_mode}
+            "#));
         }
     }
 }
