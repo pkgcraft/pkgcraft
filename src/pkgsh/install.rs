@@ -9,7 +9,7 @@ use filetime::{set_file_times, FileTime};
 use itertools::Itertools;
 use nix::{sys::stat, unistd};
 use scallop::{Error, Result};
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 use super::BuildData;
 use crate::command::RunCommand;
@@ -272,10 +272,11 @@ impl Install {
     }
 
     // Install all targets under given directories.
-    pub(super) fn from_dirs<I, P>(&self, dirs: I) -> Result<()>
+    pub(super) fn from_dirs<I, P, F>(&self, dirs: I, predicate: Option<F>) -> Result<()>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
+        F: FnMut(&DirEntry) -> bool + Copy,
     {
         for dir in dirs.into_iter() {
             let dir = dir.as_ref();
@@ -285,7 +286,18 @@ impl Install {
                 true => 1,
                 false => 0,
             };
-            for entry in WalkDir::new(&dir).min_depth(depth) {
+
+            let entries = match predicate {
+                None => itertools::Either::Left(WalkDir::new(&dir).min_depth(depth)),
+                Some(func) => itertools::Either::Right(
+                    WalkDir::new(&dir)
+                        .min_depth(depth)
+                        .into_iter()
+                        .filter_entry(func),
+                ),
+            };
+
+            for entry in entries.into_iter() {
                 let entry =
                     entry.map_err(|e| Error::Base(format!("error walking {dir:?}: {e}")))?;
                 let path = entry.path();

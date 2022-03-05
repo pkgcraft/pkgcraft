@@ -1,10 +1,11 @@
 use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
-use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
+use walkdir::DirEntry;
 
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
@@ -51,10 +52,29 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     };
 
     allowed_file_exts.extend(opts.extra_allowed_file_exts);
-    let excluded_dirs: HashSet<&Utf8Path> = opts.excluded_dirs.iter().map(Utf8Path::new).collect();
+    let excluded_dirs: HashSet<&Path> = opts.excluded_dirs.iter().map(Path::new).collect();
     let allowed_files: HashSet<String> = opts.allowed_files.into_iter().collect();
 
     // TODO: output info if verbose option is enabled
+
+    // determine if a file is allowed
+    let allowed_file = |path: &Path| -> bool {
+        match (path.file_name().map(|s| s.to_str()), path.extension().map(|s| s.to_str())) {
+            (Some(Some(name)), Some(Some(ext))) => {
+                allowed_file_exts.contains(ext) || allowed_files.contains(name)
+            }
+            _ => false,
+        }
+    };
+
+    // determine if a walkdir entry is allowed
+    let is_allowed = |entry: &DirEntry| -> bool {
+        let path = entry.path();
+        match path.is_dir() {
+            true => !excluded_dirs.contains(path),
+            false => allowed_file(path),
+        }
+    };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
@@ -62,21 +82,17 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             "" => "html",
             val => val,
         };
-        let dest: Utf8PathBuf = ["/usr/share/doc", d.env.get("PF").expect("$PF undefined"), subdir]
+        let dest: PathBuf = ["/usr/share/doc", d.env.get("PF").expect("$PF undefined"), subdir]
             .iter()
             .collect();
         let install = d.install().dest(&dest)?;
 
-        let (dirs, files): (Vec<&Utf8Path>, Vec<&Utf8Path>) = opts
-            .targets
-            .iter()
-            .map(Utf8Path::new)
-            .partition(|p| p.is_dir());
+        let (dirs, files): (Vec<&Path>, Vec<&Path>) =
+            opts.targets.iter().map(Path::new).partition(|p| p.is_dir());
 
         if !dirs.is_empty() {
             if opts.recursive {
-                let dirs = dirs.iter().filter(|&d| !excluded_dirs.contains(d));
-                install.from_dirs(dirs)?;
+                install.from_dirs(dirs, Some(is_allowed))?;
             } else {
                 return Err(Error::Builtin(format!(
                     "trying to install directory as file: {:?}",
@@ -84,15 +100,6 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 )));
             }
         }
-
-        // determine if a file is allowed to be installed
-        let allowed_file = |path: &Utf8Path| -> bool {
-            let (filename, ext) = match (path.file_name(), path.extension()) {
-                (Some(name), Some(ext)) => (name, ext),
-                _ => return false,
-            };
-            allowed_file_exts.contains(ext) || allowed_files.contains(filename)
-        };
 
         let files = files
             .into_iter()
@@ -158,18 +165,18 @@ mod tests {
 
             // recursive
             fs::create_dir_all("doc/subdir").unwrap();
-            fs::File::create("doc/subdir/pkgcraft.h").unwrap();
+            fs::File::create("doc/subdir/pkgcraft.html").unwrap();
             dohtml(&["-r", "doc"]).unwrap();
             file_tree.assert(r#"
                 [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/doc/subdir/pkgcraft.h"
+                path = "/usr/share/doc/pkgcraft-0/html/doc/subdir/pkgcraft.html"
             "#);
 
             // handling for paths ending in '/.'
             dohtml(&["-r", "doc/."]).unwrap();
             file_tree.assert(r#"
                 [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/subdir/pkgcraft.h"
+                path = "/usr/share/doc/pkgcraft-0/html/subdir/pkgcraft.html"
             "#);
 
             // recursive using `docinto`
@@ -177,7 +184,7 @@ mod tests {
             dohtml(&["-r", "doc"]).unwrap();
             file_tree.assert(r#"
                 [[files]]
-                path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/pkgcraft.h"
+                path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/pkgcraft.html"
             "#);
         }
     }

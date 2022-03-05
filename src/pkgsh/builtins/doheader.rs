@@ -6,6 +6,7 @@ use scallop::{Error, Result};
 
 use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
+use crate::types::NO_WALKDIR_FILTER;
 
 const LONG_DOC: &str = "Install header files into /usr/include/.";
 
@@ -31,7 +32,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         if !dirs.is_empty() {
             if recursive {
-                install.from_dirs(dirs)?;
+                install.from_dirs(dirs, NO_WALKDIR_FILTER)?;
             } else {
                 return Err(Error::Builtin(format!(
                     "trying to install directory as file: {:?}",
