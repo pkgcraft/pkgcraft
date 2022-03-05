@@ -50,19 +50,12 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as doinfo;
-    use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
             assert_invalid_args(doinfo, &[0]);
-
-            let _file_tree = FileTree::new();
-
-            // nonexistent
-            let r = doinfo(&["pkgcraft"]);
-            assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
         }
 
         #[test]

@@ -56,7 +56,6 @@ mod tests {
     use super::super::insopts::run as insopts;
     use super::run as doenvd;
     use crate::eapi::OFFICIAL_EAPIS;
-    use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
@@ -64,12 +63,6 @@ mod tests {
         #[test]
         fn invalid_args() {
             assert_invalid_args(doenvd, &[0]);
-
-            let _file_tree = FileTree::new();
-
-            // nonexistent
-            let r = doenvd(&["pkgcraft"]);
-            assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
         }
 
         #[test]

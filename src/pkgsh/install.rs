@@ -398,3 +398,26 @@ impl Install {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use crate::macros::assert_err_re;
+    use crate::pkgsh::BUILD_DATA;
+
+    #[test]
+    fn nonexistent_file() {
+        BUILD_DATA.with(|d| {
+            let tmp_dir = tempdir().unwrap();
+            d.borrow_mut()
+                .env
+                .insert("ED".into(), tmp_dir.path().to_str().unwrap().into());
+            let install = d.borrow().install();
+
+            // nonexistent
+            let r = install.files_internal([("source", "dest")]);
+            assert_err_re!(r, format!("^invalid file \"source\": .*$"));
+        })
+    }
+}

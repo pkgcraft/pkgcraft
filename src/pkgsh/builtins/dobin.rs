@@ -64,19 +64,12 @@ mod tests {
     use super::super::exeopts::run as exeopts;
     use super::super::into::run as into;
     use super::run as dobin;
-    use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
 
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
             assert_invalid_args(dobin, &[0]);
-
-            let _file_tree = FileTree::new();
-
-            // nonexistent
-            let r = dobin(&["pkgcraft"]);
-            assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
         }
 
         #[test]

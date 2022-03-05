@@ -80,10 +80,6 @@ mod tests {
 
             let _file_tree = FileTree::new();
 
-            // nonexistent
-            let r = doins(&["pkgcraft"]);
-            assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
-
             // non-recursive directory
             fs::create_dir("dir").unwrap();
             let r = doins(&["dir"]);

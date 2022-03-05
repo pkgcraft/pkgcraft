@@ -56,7 +56,6 @@ mod tests {
     use super::super::exeopts::run as exeopts;
     use super::run as doinitd;
     use crate::eapi::OFFICIAL_EAPIS;
-    use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
@@ -64,12 +63,6 @@ mod tests {
         #[test]
         fn invalid_args() {
             assert_invalid_args(doinitd, &[0]);
-
-            let _file_tree = FileTree::new();
-
-            // nonexistent
-            let r = doinitd(&["pkgcraft"]);
-            assert_err_re!(r, format!("^invalid file \"pkgcraft\": .*$"));
         }
 
         #[test]

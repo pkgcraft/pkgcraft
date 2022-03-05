@@ -137,10 +137,6 @@ mod tests {
             BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
             let _file_tree = FileTree::new();
 
-            // nonexistent
-            let r = dohtml(&["pkgcraft.html"]);
-            assert_err_re!(r, format!("^invalid file \"pkgcraft.html\": .*$"));
-
             // non-recursive directory
             fs::create_dir("dir").unwrap();
             let r = dohtml(&["dir"]);
