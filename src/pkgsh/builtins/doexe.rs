@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
@@ -19,13 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let dest = &d.borrow().exedesttree;
         let opts = &d.borrow().exeopts;
         let install = d.borrow().install().dest(&dest)?.ins_options(opts);
-
-        let files = args
-            .iter()
-            .map(Path::new)
-            .filter_map(|f| f.file_name().map(|name| (f, name)));
-        install.files(files)?;
-
+        install.files(args)?;
         Ok(ExecStatus::Success)
     })
 }

@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use nix::unistd::geteuid;
 use once_cell::sync::Lazy;
@@ -23,12 +23,7 @@ pub(super) fn install_bin(args: &[&str], dest: &str) -> Result<ExecStatus> {
             .dest(&dest)?
             .ins_options(opts.iter().copied());
 
-        let files = args
-            .iter()
-            .map(Path::new)
-            .filter_map(|f| f.file_name().map(|name| (f, name)));
-        install.files(files)?;
-
+        install.files(args)?;
         Ok(ExecStatus::Success)
     })
 }

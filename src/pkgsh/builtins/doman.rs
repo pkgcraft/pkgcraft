@@ -67,7 +67,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         }
 
         install.dirs(dirs)?;
-        install.files(files)?;
+        install.files_map(files)?;
 
         Ok(ExecStatus::Success)
     })

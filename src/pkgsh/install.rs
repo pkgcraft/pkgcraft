@@ -302,15 +302,32 @@ impl Install {
                 };
                 match path.is_dir() {
                     true => self.dirs([dest])?,
-                    false => self.files([(path, dest)])?,
+                    false => self.files_map([(path, dest)])?,
                 }
             }
         }
         Ok(())
     }
 
-    // Install files.
-    pub(super) fn files<I, P, Q>(&self, paths: I) -> Result<()>
+    // Install files from their given paths.
+    pub(super) fn files<'a, I, P>(&self, paths: I) -> Result<()>
+    where
+        I: IntoIterator<Item = &'a P>,
+        P: AsRef<Path> + 'a + ?Sized,
+    {
+        let files = paths
+            .into_iter()
+            .map(|p| p.as_ref())
+            .filter_map(|p| p.file_name().map(|name| (p, name)));
+
+        match self.install_cmd {
+            false => self.files_internal(files),
+            true => self.files_cmd(files),
+        }
+    }
+
+    // Install files using a custom source -> dest mapping.
+    pub(super) fn files_map<I, P, Q>(&self, paths: I) -> Result<()>
     where
         I: IntoIterator<Item = (P, Q)>,
         P: AsRef<Path>,

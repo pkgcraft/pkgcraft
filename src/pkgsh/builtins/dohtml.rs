@@ -98,7 +98,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             .into_iter()
             .filter(|f| allowed_file(f))
             .filter_map(|f| f.file_name().map(|name| (f, name)));
-        install.files(files)?;
+        install.files_map(files)?;
 
         Ok(ExecStatus::Success)
     })

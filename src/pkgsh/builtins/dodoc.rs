@@ -45,9 +45,6 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             }
         }
 
-        let files = files
-            .into_iter()
-            .filter_map(|f| f.file_name().map(|name| (f, name)));
         install.files(files)?;
 
         Ok(ExecStatus::Success)
