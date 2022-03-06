@@ -431,7 +431,7 @@ mod tests {
 
     use rusty_fork::rusty_fork_test;
 
-    use crate::command::run_commands;
+    use crate::command::{last_command, run_commands};
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
@@ -446,6 +446,32 @@ mod tests {
                 // nonexistent
                 let r = install.files_internal([("source", "dest")]);
                 assert_err_re!(r, format!("^invalid file \"source\": .*$"));
+            })
+        }
+
+        #[test]
+        fn dirs() {
+            let file_tree = FileTree::new();
+            BUILD_DATA.with(|d| {
+                // internal dir creation is used for supported `install` options
+                let install = d.borrow().install().dir_options(["-m0750"]);
+                let mode = 0o40750;
+
+                install.dirs(["dir"]).unwrap();
+                file_tree.assert(format!(
+                    r#"
+                    [[files]]
+                    path = "/dir"
+                    mode = {mode}
+                "#
+                ));
+
+                // use unhandled '-v' option to force `install` command usage
+                let install = d.borrow().install().dir_options(["-v"]);
+
+                install.dirs(["dir"]).unwrap();
+                let cmd = last_command().unwrap();
+                assert_eq!(cmd[..3], ["install", "-d", "-v"]);
             })
         }
 
@@ -508,6 +534,53 @@ mod tests {
                     "#
                     ));
                 });
+            })
+        }
+
+        #[test]
+        fn files() {
+            let file_tree = FileTree::new();
+            BUILD_DATA.with(|d| {
+                // internal file creation is used for supported `install` options
+                let install = d.borrow().install().ins_options(["-m0750"]);
+                let mode = 0o100750;
+
+                // single file
+                fs::File::create("file").unwrap();
+                install.files(["file"]).unwrap();
+                file_tree.assert(format!(
+                    r#"
+                    [[files]]
+                    path = "/file"
+                    mode = {mode}
+                "#
+                ));
+
+                // single file mapping
+                fs::File::create("src").unwrap();
+                install.files_map([("src", "dest")]).unwrap();
+                file_tree.assert(format!(
+                    r#"
+                    [[files]]
+                    path = "/dest"
+                    mode = {mode}
+                "#
+                ));
+
+                // use unhandled '-v' option to force `install` command usage
+                let install = d.borrow().install().ins_options(["-v"]);
+
+                // single file
+                fs::File::create("file").unwrap();
+                install.files(["file"]).unwrap();
+                let cmd = last_command().unwrap();
+                assert_eq!(cmd[..3], ["install", "-v", "file"]);
+
+                // single file mapping
+                fs::File::create("src").unwrap();
+                install.files_map([("src", "dest")]).unwrap();
+                let cmd = last_command().unwrap();
+                assert_eq!(cmd[..3], ["install", "-v", "src"]);
             })
         }
 
