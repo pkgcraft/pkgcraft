@@ -118,11 +118,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             }
         }
 
-        let files = files
-            .into_iter()
-            .filter(|f| allowed_file(f))
-            .filter_map(|f| f.file_name().map(|name| (f, name)));
-        install.files_map(files)?;
+        let files = files.iter().filter(|f| allowed_file(f));
+        install.files(files)?;
 
         Ok(ExecStatus::Success)
     })
