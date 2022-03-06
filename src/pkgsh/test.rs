@@ -40,6 +40,7 @@ impl FileTree {
                 .insert("ED".into(), install_dir.to_str().unwrap().into());
         });
 
+        fs::create_dir(&install_dir).unwrap();
         fs::create_dir(&src_dir).unwrap();
         env::set_current_dir(&src_dir).unwrap();
         FileTree {
@@ -50,6 +51,7 @@ impl FileTree {
 
     pub(crate) fn wipe(&self) {
         fs::remove_dir_all(&self.install_dir).unwrap();
+        fs::create_dir(&self.install_dir).unwrap();
     }
 
     pub(crate) fn assert<S: AsRef<str>>(&self, data: S) {

@@ -427,23 +427,160 @@ impl Install {
 
 #[cfg(test)]
 mod tests {
-    use tempfile::tempdir;
+    use std::fs;
 
+    use rusty_fork::rusty_fork_test;
+
+    use crate::command::run_commands;
     use crate::macros::assert_err_re;
+    use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
-    #[test]
-    fn nonexistent_file() {
-        BUILD_DATA.with(|d| {
-            let tmp_dir = tempdir().unwrap();
-            d.borrow_mut()
-                .env
-                .insert("ED".into(), tmp_dir.path().to_str().unwrap().into());
-            let install = d.borrow().install();
+    rusty_fork_test! {
+        #[test]
+        fn nonexistent_file() {
+            let _file_tree = FileTree::new();
+            BUILD_DATA.with(|d| {
+                let install = d.borrow().install();
 
-            // nonexistent
-            let r = install.files_internal([("source", "dest")]);
-            assert_err_re!(r, format!("^invalid file \"source\": .*$"));
-        })
+                // nonexistent
+                let r = install.files_internal([("source", "dest")]);
+                assert_err_re!(r, format!("^invalid file \"source\": .*$"));
+            })
+        }
+
+        #[test]
+        fn dirs_internal() {
+            let file_tree = FileTree::new();
+            BUILD_DATA.with(|d| {
+                let install = d.borrow().install();
+                let default_mode = 0o40755;
+
+                // single dir
+                install.dirs_internal(["dir"]).unwrap();
+                file_tree.assert(format!(
+                    r#"
+                    [[files]]
+                    path = "/dir"
+                    mode = {default_mode}
+                "#
+                ));
+
+                // multiple dirs
+                install.dirs_internal(["a", "b"]).unwrap();
+                file_tree.assert(format!(
+                    r#"
+                    [[files]]
+                    path = "/a"
+                    [[files]]
+                    path = "/b"
+                "#
+                ));
+            })
+        }
+
+        #[test]
+        fn dirs_cmd() {
+            let file_tree = FileTree::new();
+            BUILD_DATA.with(|d| {
+                let install = d.borrow().install();
+                let default_mode = 0o40755;
+
+                run_commands(|| {
+                    // single dir
+                    install.dirs_cmd(["dir"]).unwrap();
+                    file_tree.assert(format!(
+                        r#"
+                        [[files]]
+                        path = "/dir"
+                        mode = {default_mode}
+                    "#
+                    ));
+
+                    // multiple dirs
+                    install.dirs_cmd(["a", "b"]).unwrap();
+                    file_tree.assert(format!(
+                        r#"
+                        [[files]]
+                        path = "/a"
+                        [[files]]
+                        path = "/b"
+                    "#
+                    ));
+                });
+            })
+        }
+
+        #[test]
+        fn files_internal() {
+            let file_tree = FileTree::new();
+            BUILD_DATA.with(|d| {
+                let install = d.borrow().install();
+                let default_mode = 0o100644;
+
+                // single file
+                fs::File::create("src").unwrap();
+                install.files_internal([("src", "dest")]).unwrap();
+                file_tree.assert(format!(
+                    r#"
+                    [[files]]
+                    path = "/dest"
+                    mode = {default_mode}
+                "#
+                ));
+
+                // multiple files
+                fs::File::create("src1").unwrap();
+                fs::File::create("src2").unwrap();
+                install
+                    .files_internal([("src1", "dest1"), ("src2", "dest2")])
+                    .unwrap();
+                file_tree.assert(format!(
+                    r#"
+                    [[files]]
+                    path = "/dest1"
+                    [[files]]
+                    path = "/dest2"
+                "#
+                ));
+            })
+        }
+
+        #[test]
+        fn files_cmd() {
+            let file_tree = FileTree::new();
+            BUILD_DATA.with(|d| {
+                let install = d.borrow().install();
+                let default_mode = 0o100755;
+
+                run_commands(|| {
+                    // single file
+                    fs::File::create("src").unwrap();
+                    install.files_cmd([("src", "dest")]).unwrap();
+                    file_tree.assert(format!(
+                        r#"
+                        [[files]]
+                        path = "/dest"
+                        mode = {default_mode}
+                    "#
+                    ));
+
+                    // multiple files
+                    fs::File::create("src1").unwrap();
+                    fs::File::create("src2").unwrap();
+                    install
+                        .files_cmd([("src1", "dest1"), ("src2", "dest2")])
+                        .unwrap();
+                    file_tree.assert(format!(
+                        r#"
+                        [[files]]
+                        path = "/dest1"
+                        [[files]]
+                        path = "/dest2"
+                    "#
+                    ));
+                });
+            })
+        }
     }
 }
