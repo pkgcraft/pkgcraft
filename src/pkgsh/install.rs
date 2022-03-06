@@ -6,7 +6,7 @@ use std::{fs, io};
 
 use clap::Parser;
 use filetime::{set_file_times, FileTime};
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use nix::{sys::stat, unistd};
 use scallop::{Error, Result};
 use walkdir::{DirEntry, WalkDir};
@@ -276,25 +276,22 @@ impl Install {
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
-        F: FnMut(&DirEntry) -> bool + Copy,
+        F: Fn(&DirEntry) -> bool,
     {
         for dir in dirs.into_iter() {
             let dir = dir.as_ref();
-            // Determine whether to skip the base directory -- path.components() can't be used
+            // Determine whether to skip the base directory, path.components() can't be used
             // because it normalizes all occurrences of '.' away.
             let depth = match dir.to_string_lossy().ends_with("/.") {
                 true => 1,
                 false => 0,
             };
 
-            let entries = match predicate {
-                None => itertools::Either::Left(WalkDir::new(&dir).min_depth(depth)),
-                Some(func) => itertools::Either::Right(
-                    WalkDir::new(&dir)
-                        .min_depth(depth)
-                        .into_iter()
-                        .filter_entry(func),
-                ),
+            // optionally apply directory filtering
+            let entries = WalkDir::new(&dir).min_depth(depth);
+            let entries = match predicate.as_ref() {
+                None => Either::Left(entries),
+                Some(func) => Either::Right(entries.into_iter().filter_entry(func)),
             };
 
             for entry in entries.into_iter() {
