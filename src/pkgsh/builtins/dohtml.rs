@@ -12,8 +12,6 @@ use crate::pkgsh::BUILD_DATA;
 
 const LONG_DOC: &str = "Install HTML documentation files.";
 
-const DEFAULT_FILE_EXTS: &[&str] = &["css", "gif", "htm", "html", "jpeg", "jpg", "js", "png"];
-
 #[derive(Parser, Debug, Default)]
 #[clap(name = "dohtml")]
 struct Options {
@@ -23,7 +21,7 @@ struct Options {
     verbose: bool,
     #[clap(short = 'A')]
     extra_allowed_file_exts: Vec<String>,
-    #[clap(short = 'a')]
+    #[clap(short = 'a', default_value = "css,gif,htm,html,jpeg,jpg,js,png")]
     allowed_file_exts: Vec<String>,
     #[clap(short = 'f')]
     allowed_files: Vec<String>,
@@ -56,11 +54,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
-    let mut allowed_file_exts: HashSet<String> = match opts.allowed_file_exts.is_empty() {
-        true => DEFAULT_FILE_EXTS.iter().map(|s| s.to_string()).collect(),
-        false => expand_csv(opts.allowed_file_exts).into_iter().collect(),
-    };
-
+    let mut allowed_file_exts: HashSet<String> =
+        expand_csv(opts.allowed_file_exts).into_iter().collect();
     allowed_file_exts.extend(expand_csv(opts.extra_allowed_file_exts));
     let excluded_dirs: HashSet<PathBuf> = expand_csv(opts.excluded_dirs)
         .iter()
