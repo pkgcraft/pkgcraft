@@ -35,6 +35,16 @@ struct Options {
     targets: Vec<String>,
 }
 
+// Expand a vector of command-separated strings into a vector of values.
+// TODO: replace with internal clap derive parsing?
+fn expand_csv(data: Vec<String>) -> Vec<String> {
+    let mut vals = Vec::<String>::new();
+    for s in data.iter() {
+        vals.extend(s.split(',').map(|s| s.into()));
+    }
+    vals
+}
+
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let opts = match Options::try_parse_from(&[&["dohtml"], args].concat()) {
@@ -48,21 +58,25 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     let mut allowed_file_exts: HashSet<String> = match opts.allowed_file_exts.is_empty() {
         true => DEFAULT_FILE_EXTS.iter().map(|s| s.to_string()).collect(),
-        false => opts.allowed_file_exts.into_iter().collect(),
+        false => expand_csv(opts.allowed_file_exts).into_iter().collect(),
     };
 
-    allowed_file_exts.extend(opts.extra_allowed_file_exts);
-    let excluded_dirs: HashSet<&Path> = opts.excluded_dirs.iter().map(Path::new).collect();
-    let allowed_files: HashSet<String> = opts.allowed_files.into_iter().collect();
+    allowed_file_exts.extend(expand_csv(opts.extra_allowed_file_exts));
+    let excluded_dirs: HashSet<PathBuf> = expand_csv(opts.excluded_dirs)
+        .iter()
+        .map(PathBuf::from)
+        .collect();
+    let allowed_files: HashSet<String> = expand_csv(opts.allowed_files).into_iter().collect();
 
     // TODO: output info if verbose option is enabled
 
     // determine if a file is allowed
     let allowed_file = |path: &Path| -> bool {
         match (path.file_name().map(|s| s.to_str()), path.extension().map(|s| s.to_str())) {
-            (Some(Some(name)), Some(Some(ext))) => {
-                allowed_file_exts.contains(ext) || allowed_files.contains(name)
-            }
+            (Some(Some(name)), Some(Some(ext))) => match allowed_files.is_empty() {
+                true => allowed_file_exts.contains(ext),
+                false => allowed_files.contains(name),
+            },
             _ => false,
         }
     };
@@ -82,9 +96,12 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             "" => "html",
             val => val,
         };
-        let dest: PathBuf = ["/usr/share/doc", d.env.get("PF").expect("$PF undefined"), subdir]
-            .iter()
-            .collect();
+        let pf = d.env.get("PF").expect("$PF undefined");
+        let doc_prefix = match opts.doc_prefix.as_ref() {
+            None => "",
+            Some(s) => s.strip_prefix('/').unwrap_or(s.as_str()),
+        };
+        let dest: PathBuf = ["/usr/share/doc", pf, subdir, doc_prefix].iter().collect();
         let install = d.install().dest(&dest)?;
 
         let (dirs, files): (Vec<&Path>, Vec<&Path>) =
@@ -172,19 +189,69 @@ mod tests {
                 path = "/usr/share/doc/pkgcraft-0/html/doc/subdir/pkgcraft.html"
             "#);
 
-            // handling for paths ending in '/.'
-            dohtml(&["-r", "doc/."]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/subdir/pkgcraft.html"
-            "#);
-
             // recursive using `docinto`
             docinto(&["newdir"]).unwrap();
             dohtml(&["-r", "doc"]).unwrap();
             file_tree.assert(r#"
                 [[files]]
                 path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/pkgcraft.html"
+            "#);
+        }
+
+        #[test]
+        fn options() {
+            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+            let file_tree = FileTree::new();
+
+            fs::create_dir("doc").unwrap();
+            fs::File::create("doc/readme.html").unwrap();
+            fs::File::create("doc/readme.txt").unwrap();
+
+            // ignored files
+            dohtml(&["-r", "doc/."]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/readme.html"
+            "#);
+
+            // -A: extra allowed file exts
+            dohtml(&["-r", "doc/.", "-A", "txt,md"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/readme.html"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+            "#);
+
+            // -a: allowed file exts
+            dohtml(&["-r", "doc/.", "-a", "txt,md"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+            "#);
+
+            // -f: allowed files
+            dohtml(&["-r", "doc/.", "-f", "readme.txt,readme.md"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+            "#);
+
+            // -p: doc prefix
+            dohtml(&["-r", "doc/.", "-p", "prefix"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/prefix/readme.html"
+            "#);
+
+            fs::create_dir("doc/subdir").unwrap();
+            fs::File::create("doc/subdir/excluded.html").unwrap();
+
+            // -x: excluded dirs
+            dohtml(&["-r", "doc/.", "-x", "doc/subdir,doc/test"]).unwrap();
+            file_tree.assert(r#"
+                [[files]]
+                path = "/usr/share/doc/pkgcraft-0/html/readme.html"
             "#);
         }
     }
