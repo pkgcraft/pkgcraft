@@ -117,6 +117,7 @@ mod tests {
             "#);
 
             // handling for paths ending in '/.'
+            docinto(&["/newdir"]).unwrap();
             dodoc(&["-r", "doc/."]).unwrap();
             file_tree.assert(r#"
                 [[files]]

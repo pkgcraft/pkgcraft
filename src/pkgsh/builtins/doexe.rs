@@ -67,14 +67,16 @@ mod tests {
             "#));
 
             // custom mode and install dir
-            exeinto(&["/opt/bin"]).unwrap();
-            exeopts(&["-m0777"]).unwrap();
-            doexe(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/opt/bin/pkgcraft"
-                mode = {custom_mode}
-            "#));
+            for dir in ["/opt/bin", "opt/bin"] {
+                exeinto(&[dir]).unwrap();
+                exeopts(&["-m0777"]).unwrap();
+                doexe(&["pkgcraft"]).unwrap();
+                file_tree.assert(format!(r#"
+                    [[files]]
+                    path = "/opt/bin/pkgcraft"
+                    mode = {custom_mode}
+                "#));
+            }
         }
     }
 }
