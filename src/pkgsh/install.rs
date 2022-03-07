@@ -156,8 +156,7 @@ impl Install {
         I: IntoIterator<Item = T>,
         T: Into<String>,
     {
-        let opts = self.parse_options(options);
-        self.file_options = opts;
+        self.file_options = self.parse_options(options);
         self
     }
 
@@ -167,8 +166,7 @@ impl Install {
         I: IntoIterator<Item = T>,
         T: Into<String>,
     {
-        let opts = self.parse_options(options);
-        self.dir_options = opts;
+        self.dir_options = self.parse_options(options);
         self
     }
 
