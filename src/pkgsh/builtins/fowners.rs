@@ -52,8 +52,8 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use rusty_fork::rusty_fork_test;
 
-    use super::run as fowners;
     use super::super::assert_invalid_args;
+    use super::run as fowners;
 
     rusty_fork_test! {
         #[test]
