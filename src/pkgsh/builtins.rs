@@ -64,6 +64,8 @@ pub mod emake;
 pub mod exeinto;
 pub mod exeopts;
 pub mod export_functions;
+pub mod fowners;
+pub mod fperms;
 pub mod get_libdir;
 pub mod has;
 pub mod hasq;
@@ -189,6 +191,8 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &exeinto::BUILTIN,
         &exeopts::BUILTIN,
         &export_functions::BUILTIN,
+        &fowners::BUILTIN,
+        &fperms::BUILTIN,
         &get_libdir::BUILTIN,
         &has::BUILTIN,
         &hasq::BUILTIN,
