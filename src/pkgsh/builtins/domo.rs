@@ -23,7 +23,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 .iter()
                 .collect();
         let opts = ["-m0644"];
-        let install = d.install().dest(&dest)?.ins_options(opts);
+        let install = d.install().dest(&dest)?.file_options(opts);
 
         let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
         let filename = format!("{}.mo", d.env.get("PN").expect("$PN undefined"));

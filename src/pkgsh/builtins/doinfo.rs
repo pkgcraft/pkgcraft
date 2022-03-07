@@ -16,7 +16,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let dest = "/usr/share/info";
         let opts = ["-m0644"];
-        let install = d.borrow().install().dest(&dest)?.ins_options(opts);
+        let install = d.borrow().install().dest(&dest)?.file_options(opts);
         install.files(args)?;
         Ok(ExecStatus::Success)
     })

@@ -16,7 +16,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let dest = &d.borrow().exedesttree;
         let opts = &d.borrow().exeopts;
-        let install = d.borrow().install().dest(&dest)?.ins_options(opts);
+        let install = d.borrow().install().dest(&dest)?.file_options(opts);
         install.files(args)?;
         Ok(ExecStatus::Success)
     })

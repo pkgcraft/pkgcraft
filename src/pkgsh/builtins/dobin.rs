@@ -21,7 +21,7 @@ pub(super) fn install_bin(args: &[&str], dest: &str) -> Result<ExecStatus> {
             .borrow()
             .install()
             .dest(&dest)?
-            .ins_options(opts.iter().copied());
+            .file_options(opts.iter().copied());
 
         install.files(args)?;
         Ok(ExecStatus::Success)

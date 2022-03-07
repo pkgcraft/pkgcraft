@@ -151,7 +151,7 @@ impl Install {
     }
 
     /// Parse options to use for file attributes during install.
-    pub(super) fn ins_options<I, T>(mut self, options: I) -> Self
+    pub(super) fn file_options<I, T>(mut self, options: I) -> Self
     where
         I: IntoIterator<Item = T>,
         T: Into<String>,
@@ -549,7 +549,7 @@ mod tests {
             let file_tree = FileTree::new();
             BUILD_DATA.with(|d| {
                 // internal file creation is used for supported `install` options
-                let install = d.borrow().install().ins_options(["-m0750"]);
+                let install = d.borrow().install().file_options(["-m0750"]);
                 let mode = 0o100750;
 
                 // single file
@@ -575,7 +575,7 @@ mod tests {
                 ));
 
                 // use unhandled '-v' option to force `install` command usage
-                let install = d.borrow().install().ins_options(["-v"]);
+                let install = d.borrow().install().file_options(["-v"]);
 
                 // single file
                 fs::File::create("file").unwrap();

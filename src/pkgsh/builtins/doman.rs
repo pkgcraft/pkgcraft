@@ -32,7 +32,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
         let eapi = d.eapi;
-        let install = d.install().dest("/usr/share/man")?.ins_options(["-m0644"]);
+        let install = d.install().dest("/usr/share/man")?.file_options(["-m0644"]);
 
         let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
 
