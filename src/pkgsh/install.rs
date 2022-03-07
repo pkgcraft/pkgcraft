@@ -119,6 +119,7 @@ impl Install {
         }
     }
 
+    /// Set the target directory to install files into.
     pub(super) fn dest<P: AsRef<Path>>(mut self, dest: P) -> Result<Self> {
         let dest = dest.as_ref();
         self.dirs([dest])?;
@@ -137,12 +138,13 @@ impl Install {
 
         let (mut opts, install_cmd) = match InstallOptions::try_parse_from(&to_parse) {
             Ok(opts) => (opts, false),
-            Err(_) => (Default::default(), true),
+            Err(_) => (InstallOptions::default(), true),
         };
         opts.raw = options;
         (opts, install_cmd)
     }
 
+    /// Parse options to use for file attributes during install.
     pub(super) fn ins_options<I, T>(mut self, options: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -154,6 +156,7 @@ impl Install {
         self
     }
 
+    /// Parse options to use for dir attributes during install.
     pub(super) fn dir_options<I, T>(mut self, options: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -165,11 +168,13 @@ impl Install {
         self
     }
 
+    /// Prefix a given path with the target directory.
     pub(super) fn prefix<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let path = path.as_ref();
         self.destdir.join(path.strip_prefix("/").unwrap_or(path))
     }
 
+    /// Create a soft or hardlink between a given source and target.
     pub(super) fn link<F, P, Q>(&self, link: F, source: P, target: Q) -> Result<()>
     where
         F: Fn(&Path, &Path) -> io::Result<()>,
@@ -225,7 +230,7 @@ impl Install {
         Ok(())
     }
 
-    // Create directories.
+    /// Create given directories under the target directory.
     pub(super) fn dirs<I, P>(&self, paths: I) -> Result<()>
     where
         I: IntoIterator<Item = P>,
@@ -271,7 +276,7 @@ impl Install {
             .map_or_else(|e| Err(Error::Base(e.to_string())), |_| Ok(()))
     }
 
-    // Install all targets under given directories.
+    /// Copy file trees under given directories to the target directory.
     pub(super) fn from_dirs<I, P, F>(&self, dirs: I, predicate: Option<F>) -> Result<()>
     where
         I: IntoIterator<Item = P>,
@@ -318,7 +323,7 @@ impl Install {
         Ok(())
     }
 
-    // Install files from their given paths.
+    /// Install files from their given paths to the target directory.
     pub(super) fn files<'a, I, P>(&self, paths: I) -> Result<()>
     where
         I: IntoIterator<Item = &'a P>,
@@ -335,7 +340,7 @@ impl Install {
         }
     }
 
-    // Install files using a custom source -> dest mapping.
+    /// Install files using a custom source -> dest mapping to the target directory.
     pub(super) fn files_map<I, P, Q>(&self, paths: I) -> Result<()>
     where
         I: IntoIterator<Item = (P, Q)>,
