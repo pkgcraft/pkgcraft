@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let dest: PathBuf = [
             "/usr/share/doc",
             d.borrow().env.get("PF").expect("$PF undefined"),
-            &d.borrow().docdesttree,
+            d.borrow().docdesttree.trim_start_matches('/'),
         ]
         .iter()
         .collect();

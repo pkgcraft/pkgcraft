@@ -63,7 +63,7 @@ mod tests {
                 dodir(&dirs).unwrap();
                 let mut files = vec![];
                 for dir in dirs {
-                    let path = dir.strip_prefix("/").unwrap_or(dir);
+                    let path = dir.trim_start_matches('/');
                     files.push(format!(r#"
                         [[files]]
                         path = "/{path}"
@@ -81,7 +81,7 @@ mod tests {
             let custom_mode = 0o40777;
 
             for dir in ["dir", "/usr/bin"] {
-                let path = dir.strip_prefix("/").unwrap_or(dir);
+                let path = dir.trim_start_matches('/');
 
                 diropts(&["-m0755"]).unwrap();
                 dodir(&[dir]).unwrap();
@@ -94,7 +94,7 @@ mod tests {
                 // change mode and re-run dodir()
                 diropts(&["-m0777"]).unwrap();
                 dodir(&[dir]).unwrap();
-                let path = dir.strip_prefix("/").unwrap_or(dir);
+                let path = dir.trim_start_matches('/');
                 file_tree.assert(format!(r#"
                     [[files]]
                     path = "/{path}"

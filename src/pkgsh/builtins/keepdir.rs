@@ -71,7 +71,7 @@ mod tests {
                 keepdir(&dirs).unwrap();
                 let mut files = vec![];
                 for dir in dirs {
-                    let path = dir.strip_prefix("/").unwrap_or(dir);
+                    let path = dir.trim_start_matches('/');
                     files.push(format!(r#"
                         [[files]]
                         path = "/{path}/.keep"

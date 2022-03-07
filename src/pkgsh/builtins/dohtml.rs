@@ -94,7 +94,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let pf = d.env.get("PF").expect("$PF undefined");
         let doc_prefix = match opts.doc_prefix.as_ref() {
             None => "",
-            Some(s) => s.strip_prefix('/').unwrap_or(s.as_str()),
+            Some(s) => s.trim_start_matches('/'),
         };
         let dest: PathBuf = ["/usr/share/doc", pf, subdir, doc_prefix].iter().collect();
         let install = d.install().dest(&dest)?;
