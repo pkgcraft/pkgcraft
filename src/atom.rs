@@ -6,6 +6,7 @@ use self::version::ParsedVersion;
 pub use self::version::Version;
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::vec_str;
+use crate::{Error, Result};
 // export parser functionality
 pub use parser::parse;
 
@@ -53,7 +54,7 @@ pub(crate) struct ParsedAtom<'a> {
 }
 
 impl ParsedAtom<'_> {
-    pub(crate) fn into_owned(self, input: &str) -> crate::Result<Atom> {
+    pub(crate) fn into_owned(self, input: &str) -> Result<Atom> {
         let version = match self.version {
             None => None,
             Some(v) => Some(v.into_owned(input)?),
@@ -89,7 +90,7 @@ pub struct Atom {
 }
 
 impl Atom {
-    pub fn new<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> crate::Result<Self> {
+    pub fn new<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> Result<Self> {
         parse::dep(s.as_ref(), eapi.into_eapi()?)
     }
 
@@ -185,9 +186,9 @@ impl PartialOrd for Atom {
 }
 
 impl FromStr for Atom {
-    type Err = crate::Error;
+    type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self> {
         Atom::new(s, &*EAPI_PKGCRAFT)
     }
 }

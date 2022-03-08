@@ -199,40 +199,41 @@ pub mod parse {
     use crate::atom::Atom;
     use crate::eapi::Eapi;
     use crate::peg::peg_error;
+    use crate::Result;
 
     use super::pkg;
 
     #[inline]
-    pub fn category(s: &str) -> crate::Result<&str> {
+    pub fn category(s: &str) -> Result<&str> {
         pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s:?}"), s, e))
     }
 
     #[inline]
-    pub fn package(s: &str) -> crate::Result<&str> {
+    pub fn package(s: &str) -> Result<&str> {
         pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s:?}"), s, e))
     }
 
     #[inline]
-    pub fn version(s: &str) -> crate::Result<Version> {
+    pub fn version(s: &str) -> Result<Version> {
         let parsed_version =
             pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
         parsed_version.into_owned(s)
     }
 
     #[inline]
-    pub fn repo(s: &str) -> crate::Result<&str> {
+    pub fn repo(s: &str) -> Result<&str> {
         pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
     }
 
     #[inline]
-    pub fn cpv(s: &str) -> crate::Result<(&str, &str, &str)> {
+    pub fn cpv(s: &str) -> Result<(&str, &str, &str)> {
         pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))
     }
 
     cached_key! {
-        ATOM_CACHE: SizedCache<(String, &Eapi), crate::Result<Atom>> = SizedCache::with_size(1000);
+        ATOM_CACHE: SizedCache<(String, &Eapi), Result<Atom>> = SizedCache::with_size(1000);
         Key = { (s.to_string(), eapi) };
-        fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> = {
+        fn dep(s: &str, eapi: &'static Eapi) -> Result<Atom> = {
             let parsed_atom = pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))?;
             parsed_atom.into_owned(s)
         }
@@ -245,14 +246,14 @@ mod tests {
 
     use crate::atom::version::Version;
     use crate::atom::{Atom, Blocker, Operator};
-    use crate::eapi;
     use crate::macros::opt_str;
+    use crate::{eapi, Result};
 
     use super::parse;
 
     #[test]
     fn test_parse_versions() {
-        let mut result: crate::Result<Atom>;
+        let mut result: Result<Atom>;
 
         // invalid deps
         for s in [
@@ -327,7 +328,7 @@ mod tests {
 
         // good deps
         let mut atom;
-        let mut result: crate::Result<Atom>;
+        let mut result: Result<Atom>;
         for (slot_str, slot) in [
             ("0", opt_str!("0")),
             ("a", opt_str!("a")),
@@ -366,7 +367,7 @@ mod tests {
 
         // good deps
         let mut atom: Atom;
-        let mut result: crate::Result<Atom>;
+        let mut result: Result<Atom>;
         for (s, block) in [
             ("!cat/pkg", Some(Blocker::Weak)),
             ("!cat/pkg:0", Some(Blocker::Weak)),
@@ -399,7 +400,7 @@ mod tests {
 
         // good deps
         let mut atom;
-        let mut result: crate::Result<Atom>;
+        let mut result: Result<Atom>;
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg[{use_deps}]");
@@ -429,7 +430,7 @@ mod tests {
 
         // good deps
         let mut atom;
-        let mut result: crate::Result<Atom>;
+        let mut result: Result<Atom>;
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
             for eapi in eapi::KNOWN_EAPIS.values() {
                 s = format!("cat/pkg[{use_deps}]");
@@ -459,7 +460,7 @@ mod tests {
 
         // good deps
         let mut atom;
-        let mut result: crate::Result<Atom>;
+        let mut result: Result<Atom>;
         for (slot_str, slot, subslot, slot_op) in [
             ("0/1", opt_str!("0"), opt_str!("1"), None),
             ("a/b", opt_str!("a"), opt_str!("b"), None),
@@ -496,7 +497,7 @@ mod tests {
 
         // good deps
         let mut atom;
-        let mut result: crate::Result<Atom>;
+        let mut result: Result<Atom>;
         for (slot_str, slot, subslot, slot_op) in [
             ("*", None, None, opt_str!("*")),
             ("=", None, None, opt_str!("=")),
@@ -526,7 +527,7 @@ mod tests {
     #[test]
     fn test_parse_repos() {
         let mut s;
-        let mut result: crate::Result<Atom>;
+        let mut result: Result<Atom>;
 
         // invalid deps
         for slot in ["", "-repo", "repo-1", "repo@path"] {

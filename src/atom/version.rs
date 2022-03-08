@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use super::{cmp_not_equal, parse};
-use crate::Error;
+use crate::{Error, Result};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Suffix {
@@ -18,7 +18,7 @@ enum Suffix {
 impl FromStr for Suffix {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Suffix, Self::Err> {
+    fn from_str(s: &str) -> Result<Suffix> {
         match s {
             "alpha" => Ok(Suffix::Alpha),
             "beta" => Ok(Suffix::Beta),
@@ -39,7 +39,7 @@ pub(crate) struct Revision {
 impl FromStr for Revision {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self> {
         let int: u64 = s
             .parse()
             .map_err(|e| Error::InvalidValue(format!("invalid revision: {e}: {s}")))?;
@@ -51,7 +51,7 @@ impl FromStr for Revision {
 }
 
 impl Revision {
-    pub(crate) fn new(rev: Option<&str>) -> crate::Result<Self> {
+    pub(crate) fn new(rev: Option<&str>) -> Result<Self> {
         match &rev {
             Some(s) => Revision::from_str(s),
             None => Ok(Revision::default()),
@@ -112,7 +112,7 @@ pub(crate) struct ParsedVersion<'a> {
 }
 
 impl ParsedVersion<'_> {
-    pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
+    pub(crate) fn into_owned(self, input: &str) -> Result<Version> {
         let mut numbers = Vec::<(String, u64)>::new();
         for s in self.numbers.iter() {
             let num = s
@@ -231,7 +231,7 @@ impl FromStr for Version {
     type Err = Error;
 
     #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self> {
         parse::version(s)
     }
 }
