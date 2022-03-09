@@ -53,7 +53,7 @@ jobs:
         restore-keys: v7-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
 
     - name: Build
-      run: cargo build
+      run: cargo build --tests
 
     - name: Test
       run: cargo test
