@@ -20,7 +20,7 @@ git = ["git2"]
 
 [dependencies]
 async-trait = "0.1.51"
-cached = "0.33"
+cached = "0.34"
 camino = "1.0.7"
 chic = "1"
 clap = { version = "3.1.0", features = ["derive"] }
