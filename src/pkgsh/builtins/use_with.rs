@@ -61,8 +61,8 @@ mod tests {
 
                 assert!(use_with(&["!use"]).is_err());
                 for (args, status, expected) in [
-                        (vec!["use"], ExecStatus::Failure, "--without-use"),
-                        (vec!["use", "opt"], ExecStatus::Failure, "--without-opt"),
+                        (vec!["use"], ExecStatus::Failure(1), "--without-use"),
+                        (vec!["use", "opt"], ExecStatus::Failure(1), "--without-opt"),
                         (vec!["!use", "opt"], ExecStatus::Success, "--with-opt"),
                         ] {
                     assert_eq!(use_with(&args).unwrap(), status);
@@ -73,7 +73,7 @@ mod tests {
                 for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("use_conf_arg")) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
-                            (&["use", "opt", "val"], ExecStatus::Failure, "--without-opt=val"),
+                            (&["use", "opt", "val"], ExecStatus::Failure(1), "--without-opt=val"),
                             (&["!use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
                             ] {
                         assert_eq!(use_with(args).unwrap(), status);
@@ -93,7 +93,7 @@ mod tests {
                 for (args, status, expected) in [
                         (vec!["use"], ExecStatus::Success, "--with-use"),
                         (vec!["use", "opt"], ExecStatus::Success, "--with-opt"),
-                        (vec!["!use", "opt"], ExecStatus::Failure, "--without-opt"),
+                        (vec!["!use", "opt"], ExecStatus::Failure(1), "--without-opt"),
                         ] {
                     assert_eq!(use_with(&args).unwrap(), status);
                     assert_stdout!(expected);
@@ -104,7 +104,7 @@ mod tests {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
-                            (&["!use", "opt", "val"], ExecStatus::Failure, "--without-opt=val"),
+                            (&["!use", "opt", "val"], ExecStatus::Failure(1), "--without-opt=val"),
                             ] {
                         assert_eq!(use_with(args).unwrap(), status);
                         assert_stdout!(expected);

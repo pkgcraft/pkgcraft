@@ -28,7 +28,7 @@ pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
         let ret = use_(flag)?;
         match ret {
             ExecStatus::Success => write_stdout!("--{enabled}-{opt}{suffix}"),
-            ExecStatus::Failure => write_stdout!("--{disabled}-{opt}{suffix}"),
+            ExecStatus::Failure(_) => write_stdout!("--{disabled}-{opt}{suffix}"),
             _ => (),
         }
         Ok(ret)

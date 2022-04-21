@@ -58,7 +58,7 @@ mod tests {
 
         #[test]
         fn unknown() {
-            assert_eq!(in_iuse(&["use"]).unwrap(), ExecStatus::Failure);
+            assert_eq!(in_iuse(&["use"]).unwrap(), ExecStatus::Failure(1));
         }
     }
 }

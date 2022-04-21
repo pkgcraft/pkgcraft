@@ -27,7 +27,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     match use_(flag)? {
         ExecStatus::Success => write_stdout!("{}{}", vals[1], vals[3]),
-        ExecStatus::Failure => write_stdout!("{}{}", vals[2], vals[4]),
+        ExecStatus::Failure(_) => write_stdout!("{}{}", vals[2], vals[4]),
         n => return Ok(n),
     }
 

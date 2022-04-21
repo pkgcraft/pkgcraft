@@ -72,7 +72,7 @@ mod tests {
             BUILD_DATA.with(|d| {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
                 // use flag is disabled
-                assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Failure);
+                assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Failure(1));
                 // inverted check
                 assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Success);
             });
@@ -86,7 +86,7 @@ mod tests {
                 // use flag is enabled
                 assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Success);
                 // inverted check
-                assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Failure);
+                assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Failure(1));
             });
         }
     }

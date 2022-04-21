@@ -61,8 +61,8 @@ mod tests {
 
                 assert!(use_enable(&["!use"]).is_err());
                 for (args, status, expected) in [
-                        (vec!["use"], ExecStatus::Failure, "--disable-use"),
-                        (vec!["use", "opt"], ExecStatus::Failure, "--disable-opt"),
+                        (vec!["use"], ExecStatus::Failure(1), "--disable-use"),
+                        (vec!["use", "opt"], ExecStatus::Failure(1), "--disable-opt"),
                         (vec!["!use", "opt"], ExecStatus::Success, "--enable-opt"),
                         ] {
                     assert_eq!(use_enable(&args).unwrap(), status);
@@ -73,7 +73,7 @@ mod tests {
                 for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("use_conf_arg")) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
-                            (&["use", "opt", "val"], ExecStatus::Failure, "--disable-opt=val"),
+                            (&["use", "opt", "val"], ExecStatus::Failure(1), "--disable-opt=val"),
                             (&["!use", "opt", "val"], ExecStatus::Success, "--enable-opt=val"),
                             ] {
                         assert_eq!(use_enable(args).unwrap(), status);
@@ -93,7 +93,7 @@ mod tests {
                 for (args, status, expected) in [
                         (vec!["use"], ExecStatus::Success, "--enable-use"),
                         (vec!["use", "opt"], ExecStatus::Success, "--enable-opt"),
-                        (vec!["!use", "opt"], ExecStatus::Failure, "--disable-opt"),
+                        (vec!["!use", "opt"], ExecStatus::Failure(1), "--disable-opt"),
                         ] {
                     assert_eq!(use_enable(&args).unwrap(), status);
                     assert_stdout!(expected);
@@ -104,7 +104,7 @@ mod tests {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "opt", "val"], ExecStatus::Success, "--enable-opt=val"),
-                            (&["!use", "opt", "val"], ExecStatus::Failure, "--disable-opt=val"),
+                            (&["!use", "opt", "val"], ExecStatus::Failure(1), "--disable-opt=val"),
                             ] {
                         assert_eq!(use_enable(args).unwrap(), status);
                         assert_stdout!(expected);

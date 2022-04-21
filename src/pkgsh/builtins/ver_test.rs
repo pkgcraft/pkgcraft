@@ -131,14 +131,14 @@ mod tests {
                 let r = ver_test(&[v1, op, v2]);
                 assert_eq!(r.unwrap(), ExecStatus::Success, "failed comparing: {expr}");
                 let r = ver_test(&[v1, inverted_op, v2]);
-                assert_eq!(r.unwrap(), ExecStatus::Failure, "failed comparing: {expr}");
+                assert_eq!(r.unwrap(), ExecStatus::Failure(1), "failed comparing: {expr}");
 
                 // test pulling v1 from $PVR
                 pvr.bind(v1, None, None).unwrap();
                 let r = ver_test(&[op, v2]);
                 assert_eq!(r.unwrap(), ExecStatus::Success, "failed comparing: {expr}");
                 let r = ver_test(&[inverted_op, v2]);
-                assert_eq!(r.unwrap(), ExecStatus::Failure, "failed comparing: {expr}");
+                assert_eq!(r.unwrap(), ExecStatus::Failure(1), "failed comparing: {expr}");
             }
         }
     }

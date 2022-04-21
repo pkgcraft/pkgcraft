@@ -82,7 +82,7 @@ mod tests {
                 d.borrow_mut().iuse_effective.insert("use".to_string());
 
                 for (args, status, expected) in [
-                        (&["use"], ExecStatus::Failure, ""),
+                        (&["use"], ExecStatus::Failure(1), ""),
                         (&["!use"], ExecStatus::Success, "use"),
                         ] {
                     assert_eq!(usev(args).unwrap(), status);
@@ -93,7 +93,7 @@ mod tests {
                 for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("usev_two_args")) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
-                            (&["use", "out"], ExecStatus::Failure, ""),
+                            (&["use", "out"], ExecStatus::Failure(1), ""),
                             (&["!use", "out"], ExecStatus::Success, "out"),
                             ] {
                         assert_eq!(usev(args).unwrap(), status);
@@ -111,7 +111,7 @@ mod tests {
 
                 for (args, status, expected) in [
                         (&["use"], ExecStatus::Success, "use"),
-                        (&["!use"], ExecStatus::Failure, ""),
+                        (&["!use"], ExecStatus::Failure(1), ""),
                         ] {
                     assert_eq!(usev(args).unwrap(), status);
                     assert_stdout!(expected);
@@ -122,7 +122,7 @@ mod tests {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "out"], ExecStatus::Success, "out"),
-                            (&["!use", "out"], ExecStatus::Failure, ""),
+                            (&["!use", "out"], ExecStatus::Failure(1), ""),
                             ] {
                         assert_eq!(usev(args).unwrap(), status);
                         assert_stdout!(expected);

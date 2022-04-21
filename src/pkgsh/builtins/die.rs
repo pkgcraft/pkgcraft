@@ -21,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                     if args.len() == 2 {
                         write_stderr!("{}\n", args[1]);
                     }
-                    return Ok(ExecStatus::Failure);
+                    return Ok(ExecStatus::Failure(1));
                 }
                 &args[1..]
             }
