@@ -1,14 +1,41 @@
-pub(crate) fn unescape_string(s: &str) -> Result<String, Error> {
-    UnescapeString::new(s).collect()
+use std::borrow::Cow;
+
+pub(crate) fn unescape(s: &str) -> Result<Cow<str>, Error> {
+    UnescapeString::unescape(s)
 }
 
+pub(crate) fn unescape_vec<'a>(vals: &[&'a str]) -> Result<Vec<Cow<'a, str>>, Error> {
+    let mut unescaped_vec = vec![];
+    for s in vals {
+        unescaped_vec.push(unescape(s)?);
+    }
+    Ok(unescaped_vec)
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct UnescapeString<'a> {
     s: std::str::Chars<'a>,
+    mutated: bool,
 }
 
 impl<'a> UnescapeString<'a> {
-    pub(crate) fn new(s: &'a str) -> Self {
-        UnescapeString { s: s.chars() }
+    pub(crate) fn unescape(s: &str) -> Result<Cow<str>, Error> {
+        let mut unescape = UnescapeString {
+            s: s.chars(),
+            mutated: s.is_empty(),
+        };
+        if unescape.mutated()? {
+            let s = unescape.collect::<Result<String, Error>>()?;
+            Ok(Cow::Owned(s))
+        } else {
+            Ok(Cow::Borrowed(s))
+        }
+    }
+
+    fn mutated(&mut self) -> Result<bool, Error> {
+        let mut iter = self.clone();
+        while iter.next().is_some() {}
+        Ok(iter.mutated)
     }
 }
 
@@ -18,9 +45,18 @@ impl Iterator for UnescapeString<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         self.s.next().map(|c| match c {
             '\\' => match self.s.next() {
-                Some('n') => Ok('\n'),
-                Some('t') => Ok('\t'),
-                Some('\\') => Ok('\\'),
+                Some('n') => {
+                    self.mutated = true;
+                    Ok('\n')
+                }
+                Some('t') => {
+                    self.mutated = true;
+                    Ok('\t')
+                }
+                Some('\\') => {
+                    self.mutated = true;
+                    Ok('\\')
+                }
                 Some(c) => Err(Error::UnrecognizedEscape(format!(r"\{c}"))),
                 None => Err(Error::EscapeAtEndOfString),
             },

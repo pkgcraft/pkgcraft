@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::super::unescape::unescape_string;
+use super::super::unescape::unescape_vec;
 use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::write_stderr;
 
@@ -16,11 +16,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
-    write_stderr!("*");
-    for s in args {
-        let unescaped = unescape_string(s)?;
-        write_stderr!(" {unescaped}");
-    }
+    let args = unescape_vec(args)?;
+    let msg = args.join(" ");
+    write_stderr!("* {msg}");
 
     Ok(ExecStatus::Success)
 }
