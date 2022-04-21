@@ -8,7 +8,7 @@ use super::super::unescape::unescape_vec;
 use super::{PkgBuiltin, ALL};
 use crate::pkgsh::write_stderr;
 
-const LONG_DOC: &str = "Display QA warning message.";
+const LONG_DOC: &str = "Display error message.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
