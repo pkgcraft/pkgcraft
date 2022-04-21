@@ -20,7 +20,7 @@ pub(crate) struct UnescapeString<'a> {
 
 impl<'a> UnescapeString<'a> {
     pub(crate) fn unescape(s: &str) -> Result<Cow<str>, Error> {
-        let mut unescape = UnescapeString {
+        let unescape = UnescapeString {
             s: s.chars(),
             mutated: s.is_empty(),
         };
@@ -32,7 +32,7 @@ impl<'a> UnescapeString<'a> {
         }
     }
 
-    fn mutated(&mut self) -> Result<bool, Error> {
+    fn mutated(&self) -> Result<bool, Error> {
         let mut iter = self.clone();
         while iter.next().is_some() {}
         Ok(iter.mutated)
