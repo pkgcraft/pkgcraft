@@ -5,7 +5,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::super::unescape::unescape_vec;
-use super::{PkgBuiltin, PHASE};
+use super::{PkgBuiltin, ALL};
 use crate::pkgsh::write_stderr;
 
 const LONG_DOC: &str = "Display informational message without trailing newline.";
@@ -31,7 +31,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
             help: LONG_DOC,
             usage: "einfon \"message\"",
         },
-        &[("0-", &[PHASE])],
+        &[("0-", &[ALL])],
     )
 });
 
