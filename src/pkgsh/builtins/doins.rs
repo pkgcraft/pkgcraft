@@ -31,7 +31,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         if !dirs.is_empty() {
             if recursive {
-                install.from_dirs(dirs, NO_WALKDIR_FILTER)?;
+                install.recursive(dirs, NO_WALKDIR_FILTER)?;
             } else {
                 return Err(Error::Builtin(format!(
                     "trying to install directory as file: {:?}",

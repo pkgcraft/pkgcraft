@@ -279,7 +279,7 @@ impl Install {
     }
 
     /// Copy file trees under given directories to the target directory.
-    pub(super) fn from_dirs<I, P, F>(&self, dirs: I, predicate: Option<F>) -> Result<()>
+    pub(super) fn recursive<I, P, F>(&self, dirs: I, predicate: Option<F>) -> Result<()>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,

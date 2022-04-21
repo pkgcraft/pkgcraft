@@ -104,7 +104,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         if !dirs.is_empty() {
             if opts.recursive {
-                install.from_dirs(dirs, Some(is_allowed))?;
+                install.recursive(dirs, Some(is_allowed))?;
             } else {
                 return Err(Error::Builtin(format!(
                     "trying to install directory as file: {:?}",
