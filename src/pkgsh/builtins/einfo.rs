@@ -8,7 +8,7 @@ use super::super::unescape::unescape_string;
 use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::write_stderr;
 
-const LONG_DOC: &str = "Display informational messages.";
+const LONG_DOC: &str = "Display informational message.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -16,10 +16,12 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
+    write_stderr!("*");
     for s in args {
         let unescaped = unescape_string(s)?;
-        write_stderr!("{unescaped}\n");
+        write_stderr!(" {unescaped}");
     }
+    write_stderr!("\n");
 
     Ok(ExecStatus::Success)
 }
@@ -50,10 +52,11 @@ mod tests {
     #[test]
     fn output() {
         for (args, expected) in [
-            (vec!["msg"], "msg\n"),
-            (vec![r"\tmsg"], "\tmsg\n"),
-            (vec![r"msg1\nmsg2"], "msg1\nmsg2\n"),
-            (vec![r"msg1\\msg2"], "msg1\\msg2\n"),
+            (vec!["msg"], "* msg\n"),
+            (vec![r"\tmsg"], "* \tmsg\n"),
+            (vec!["msg1", "msg2"], "* msg1 msg2\n"),
+            (vec![r"msg1\nmsg2"], "* msg1\nmsg2\n"),
+            (vec![r"msg1\\msg2"], "* msg1\\msg2\n"),
         ] {
             einfo(&args).unwrap();
             assert_stderr!(expected);

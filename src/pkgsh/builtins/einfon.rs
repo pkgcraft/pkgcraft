@@ -8,7 +8,7 @@ use super::super::unescape::unescape_string;
 use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::write_stderr;
 
-const LONG_DOC: &str = "Display informational messages without trailing newlines.";
+const LONG_DOC: &str = "Display informational message without trailing newline.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
@@ -16,9 +16,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
+    write_stderr!("*");
     for s in args {
         let unescaped = unescape_string(s)?;
-        write_stderr!("{unescaped}");
+        write_stderr!(" {unescaped}");
     }
 
     Ok(ExecStatus::Success)
@@ -50,10 +51,11 @@ mod tests {
     #[test]
     fn output() {
         for (args, expected) in [
-            (vec!["msg"], "msg"),
-            (vec![r"\tmsg"], "\tmsg"),
-            (vec![r"msg1\nmsg2"], "msg1\nmsg2"),
-            (vec![r"msg1\\msg2"], "msg1\\msg2"),
+            (vec!["msg"], "* msg"),
+            (vec![r"\tmsg"], "* \tmsg"),
+            (vec!["msg1", "msg2"], "* msg1 msg2"),
+            (vec![r"msg1\nmsg2"], "* msg1\nmsg2"),
+            (vec![r"msg1\\msg2"], "* msg1\\msg2"),
         ] {
             einfon(&args).unwrap();
             assert_stderr!(expected);
