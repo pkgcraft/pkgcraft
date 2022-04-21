@@ -61,6 +61,7 @@ pub mod einfon;
 pub mod einstall;
 pub mod einstalldocs;
 pub mod emake;
+pub mod eqawarn;
 pub mod ewarn;
 pub mod exeinto;
 pub mod exeopts;
@@ -189,6 +190,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &einstalldocs::BUILTIN,
         &einstall::BUILTIN,
         &emake::BUILTIN,
+        &eqawarn::BUILTIN,
         &ewarn::BUILTIN,
         &exeinto::BUILTIN,
         &exeopts::BUILTIN,
