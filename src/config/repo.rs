@@ -110,8 +110,8 @@ impl Config {
         }
 
         // create hash tables of repos ordered by priority
-        let mut configs: IndexMap<String, RepoConfig> = Default::default();
-        let mut repos: IndexMap<String, Repository> = Default::default();
+        let mut configs = IndexMap::<String, RepoConfig>::new();
+        let mut repos = IndexMap::<String, Repository>::new();
         for (config, name) in repo_configs {
             // ignore unsynced or nonexistent repos
             match Repository::from_format(&name, &config.location, &config.format) {
