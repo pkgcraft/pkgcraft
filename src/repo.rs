@@ -43,6 +43,7 @@ impl PkgCache {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub(crate) enum Repository {
     Ebuild(ebuild::Repo),
