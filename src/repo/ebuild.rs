@@ -269,15 +269,36 @@ impl repo::Repo for TempRepo {
 
 #[cfg(test)]
 mod tests {
+    use maplit::hashset;
+
+    use crate::repo::Repo as RepoTrait;
+    use crate::test::iter_to_set;
+
     use super::*;
 
     #[test]
-    fn test_config() {
+    fn test_masters() {
         let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
         let mut repo = temprepo.repo;
+        assert!(repo.config.masters().is_empty());
         repo.config.set("masters", "a b c");
         repo.config.write().unwrap();
         let test_repo = Repo::from_path(repo.id, repo.path).unwrap();
         assert_eq!(test_repo.config.masters(), ["a", "b", "c"]);
+    }
+
+    #[test]
+    fn test_empty_repo() {
+        let mut temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+        assert_eq!(temprepo.id(), "test");
+        assert_eq!(iter_to_set(temprepo.categories()), hashset! {});
+        assert_eq!(iter_to_set(temprepo.packages("cat")), hashset! {});
+        assert_eq!(iter_to_set(temprepo.versions("cat", "pkg")), hashset! {});
+
+        let mut repo = temprepo.repo;
+        assert_eq!(repo.id(), "test");
+        assert_eq!(iter_to_set(repo.categories()), hashset! {});
+        assert_eq!(iter_to_set(repo.packages("cat")), hashset! {});
+        assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset! {});
     }
 }

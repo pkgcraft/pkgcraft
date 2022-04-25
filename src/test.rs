@@ -1,3 +1,9 @@
+use std::collections::HashSet;
+
+pub(crate) fn iter_to_set<'a>(iter: Box<dyn Iterator<Item = &'a str> + '_>) -> HashSet<&'a str> {
+    iter.collect::<HashSet<&str>>()
+}
+
 pub(crate) static VER_CMP_DATA: &[&str] = &[
     // simple major versions
     "0 == 0",

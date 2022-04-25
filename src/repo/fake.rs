@@ -71,11 +71,14 @@ mod tests {
     use maplit::hashset;
 
     use crate::repo::Repo as RepoTrait;
+    use crate::test::iter_to_set;
 
     use super::*;
 
-    fn iter_to_set<'a>(iter: Box<dyn Iterator<Item = &'a str> + '_>) -> HashSet<&'a str> {
-        iter.collect::<HashSet<&str>>()
+    #[test]
+    fn test_id() {
+        let repo = Repo::new("fake", []).unwrap();
+        assert_eq!(repo.id(), "fake");
     }
 
     #[test]
