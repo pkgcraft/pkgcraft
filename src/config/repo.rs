@@ -69,7 +69,7 @@ pub struct Config {
     #[serde(skip)]
     pub configs: IndexMap<String, RepoConfig>,
     #[serde(skip)]
-    pub(crate) repos: IndexMap<String, Arc<Repository>>,
+    pub repos: IndexMap<String, Arc<Repository>>,
 }
 
 impl Config {

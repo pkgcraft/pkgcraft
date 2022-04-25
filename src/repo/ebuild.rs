@@ -85,7 +85,7 @@ impl Metadata {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct Repo {
+pub struct Repo {
     id: String,
     pub(super) path: PathBuf,
     pub(super) config: Metadata,
@@ -131,7 +131,7 @@ impl Repo {
         Repo::new(id, path, config)
     }
 
-    pub(crate) fn masters(&self) -> crate::Result<Vec<Arc<repo::Repository>>> {
+    pub fn masters(&self) -> crate::Result<Vec<Arc<repo::Repository>>> {
         let config = Config::current();
         let mut masters = vec![];
         for id in self.config.masters() {
@@ -148,7 +148,7 @@ impl Repo {
         Ok(masters)
     }
 
-    pub(crate) fn trees(&self) -> crate::Result<Vec<Arc<repo::Repository>>> {
+    pub fn trees(&self) -> crate::Result<Vec<Arc<repo::Repository>>> {
         let mut trees = self.masters()?;
         let config = Config::current();
         match config.repos.repos.get(&self.id) {

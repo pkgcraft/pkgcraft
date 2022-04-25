@@ -8,7 +8,7 @@ use crate::error::Error;
 use crate::repo;
 
 #[derive(Debug, Default)]
-pub(crate) struct Repo {
+pub struct Repo {
     id: String,
     pkgs: repo::PkgCache,
 }
