@@ -3,9 +3,7 @@ use std::fmt;
 use std::fs;
 use std::path::Path;
 
-use crate::atom;
-use crate::error::Error;
-use crate::repo;
+use crate::{atom, repo, Error, Result};
 
 #[derive(Debug, Default)]
 pub struct Repo {
@@ -16,7 +14,7 @@ pub struct Repo {
 impl Repo {
     pub(super) const FORMAT: &'static str = "fake";
 
-    fn new<'a, I>(id: &str, atoms: I) -> crate::Result<Repo>
+    fn new<'a, I>(id: &str, atoms: I) -> Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
     {
@@ -38,7 +36,7 @@ impl Repo {
         })
     }
 
-    pub(super) fn from_path<P: AsRef<Path>>(id: &str, path: P) -> crate::Result<Self> {
+    pub(super) fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<Self> {
         let data = fs::read_to_string(path.as_ref()).map_err(|e| Error::RepoInit(e.to_string()))?;
         Repo::new(id, data.lines())
     }

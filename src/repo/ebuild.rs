@@ -6,9 +6,7 @@ use ini::Ini;
 use tempfile::TempDir;
 
 use crate::config::Config;
-use crate::eapi;
-use crate::error::Error;
-use crate::repo;
+use crate::{eapi, repo, Error, Result};
 
 const DEFAULT_SECTION: Option<String> = None;
 
@@ -37,7 +35,7 @@ impl Default for Metadata {
 }
 
 impl Metadata {
-    fn new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
+    fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
         match Ini::load_from_file(path) {
             Ok(ini) => Ok(Metadata {
@@ -62,7 +60,7 @@ impl Metadata {
     }
 
     #[cfg(test)]
-    pub(crate) fn write(&self) -> crate::Result<()> {
+    pub(crate) fn write(&self) -> Result<()> {
         match &self.path {
             Some(path) => self
                 .ini
@@ -95,7 +93,7 @@ pub struct Repo {
 impl Repo {
     pub(super) const FORMAT: &'static str = "ebuild";
 
-    fn new<S, P>(id: S, path: P, config: Metadata) -> crate::Result<Self>
+    fn new<S, P>(id: S, path: P, config: Metadata) -> Result<Self>
     where
         S: AsRef<str>,
         P: AsRef<Path>,
@@ -108,7 +106,7 @@ impl Repo {
         })
     }
 
-    pub(super) fn from_path<S, P>(id: S, path: P) -> crate::Result<Self>
+    pub(super) fn from_path<S, P>(id: S, path: P) -> Result<Self>
     where
         S: AsRef<str>,
         P: AsRef<Path>,
@@ -131,7 +129,7 @@ impl Repo {
         Repo::new(id, path, config)
     }
 
-    pub fn masters(&self) -> crate::Result<Vec<Arc<repo::Repository>>> {
+    pub fn masters(&self) -> Result<Vec<Arc<repo::Repository>>> {
         let config = Config::current();
         let mut masters = vec![];
         for id in self.config.masters() {
@@ -148,7 +146,7 @@ impl Repo {
         Ok(masters)
     }
 
-    pub fn trees(&self) -> crate::Result<Vec<Arc<repo::Repository>>> {
+    pub fn trees(&self) -> Result<Vec<Arc<repo::Repository>>> {
         let mut trees = self.masters()?;
         let config = Config::current();
         match config.repos.repos.get(&self.id) {
@@ -203,7 +201,7 @@ impl TempRepo {
         id: &str,
         path: Option<P>,
         eapi: Option<&eapi::Eapi>,
-    ) -> crate::Result<Self> {
+    ) -> Result<Self> {
         let path = match path {
             Some(p) => PathBuf::from(p.as_ref()),
             None => env::temp_dir(),
@@ -228,7 +226,7 @@ impl TempRepo {
 
     /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is
     /// located.
-    pub(crate) fn persist<P: AsRef<Path>>(self, path: Option<P>) -> crate::Result<PathBuf> {
+    pub(crate) fn persist<P: AsRef<Path>>(self, path: Option<P>) -> Result<PathBuf> {
         let mut repo_path = self.tempdir.into_path();
         if let Some(path) = path {
             let path = path.as_ref();
