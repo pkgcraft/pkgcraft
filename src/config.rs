@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
 
 use serde::{Deserialize, Serialize};
 
@@ -91,11 +92,25 @@ pub struct Config {
     pub repos: repo::Config,
 }
 
+thread_local! {
+    static CURRENT_CONFIG: RwLock<Arc<Config>> = RwLock::new(Default::default());
+}
+
 impl Config {
-    pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Config> {
+    pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Arc<Config>> {
         let path = ConfigPath::new(name, prefix, create)?;
         let repos = repo::Config::new(&path.config, &path.db, create)?;
-        Ok(Config { path, repos })
+        let config = Config { path, repos };
+        config.make_current();
+        Ok(Config::current())
+    }
+
+    pub(crate) fn current() -> Arc<Config> {
+        CURRENT_CONFIG.with(|c| c.read().unwrap().clone())
+    }
+
+    pub(crate) fn make_current(self) {
+        CURRENT_CONFIG.with(|c| *c.write().unwrap() = Arc::new(self))
     }
 }
 
