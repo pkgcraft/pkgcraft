@@ -62,6 +62,10 @@ impl repo::Repo for Repo {
     fn versions(&mut self, cat: &str, pkg: &str) -> repo::StringIter {
         self.pkgs.versions(cat, pkg)
     }
+
+    fn id(&self) -> &str {
+        &self.id
+    }
 }
 
 #[cfg(test)]

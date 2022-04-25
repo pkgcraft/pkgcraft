@@ -4,6 +4,7 @@ use std::io::Write;
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -68,7 +69,7 @@ pub struct Config {
     #[serde(skip)]
     pub configs: IndexMap<String, RepoConfig>,
     #[serde(skip)]
-    repos: IndexMap<String, Repository>,
+    pub(crate) repos: IndexMap<String, Arc<Repository>>,
 }
 
 impl Config {
@@ -111,12 +112,12 @@ impl Config {
 
         // create hash tables of repos ordered by priority
         let mut configs = IndexMap::<String, RepoConfig>::new();
-        let mut repos = IndexMap::<String, Repository>::new();
+        let mut repos = IndexMap::<String, Arc<Repository>>::new();
         for (config, name) in repo_configs {
             // ignore unsynced or nonexistent repos
             match Repository::from_format(&name, &config.location, &config.format) {
                 Ok(repo) => {
-                    repos.insert(name.clone(), repo);
+                    repos.insert(name.clone(), Arc::new(repo));
                 }
                 Err(err) => warn!("{err}"),
             }
@@ -187,7 +188,7 @@ impl Config {
         configs.insert(name.to_string(), config);
         // re-sort configs by RepoConfig ordering
         configs.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
-        repos.insert(name.to_string(), repo);
+        repos.insert(name.to_string(), Arc::new(repo));
         // use sorted configs to re-sort repos
         repos.sort_by(|k1, _v1, k2, _v2| {
             let k1_index = configs.get_index_of(k1).unwrap();

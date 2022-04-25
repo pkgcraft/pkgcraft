@@ -109,6 +109,7 @@ pub(crate) trait Repo: fmt::Debug + fmt::Display {
     fn categories(&mut self) -> StringIter;
     fn packages(&mut self, cat: &str) -> StringIter;
     fn versions(&mut self, cat: &str, pkg: &str) -> StringIter;
+    fn id(&self) -> &str;
 }
 
 impl fmt::Display for Repository {
@@ -142,6 +143,14 @@ impl Repo for Repository {
         match self {
             Repository::Ebuild(ref mut repo) => repo.versions(cat, pkg),
             Repository::Fake(ref mut repo) => repo.versions(cat, pkg),
+        }
+    }
+
+    #[inline]
+    fn id(&self) -> &str {
+        match self {
+            Repository::Ebuild(ref repo) => repo.id(),
+            Repository::Fake(ref repo) => repo.id(),
         }
     }
 }
