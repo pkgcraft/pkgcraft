@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
+use crate::macros::build_from_paths;
 
 mod repo;
 
@@ -33,8 +34,8 @@ impl ConfigPath {
 
         // pull user config from $XDG_CONFIG_HOME, otherwise $HOME/.config
         let user_config: PathBuf = match env::var("XDG_CONFIG_HOME") {
-            Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
-            Err(_) => prefixed([&home, ".config", name].iter().collect()),
+            Ok(x) => prefixed(build_from_paths!(&x, name)),
+            Err(_) => prefixed(build_from_paths!(&home, ".config", name)),
         };
 
         let system_config = prefixed(PathBuf::from(format!("/etc/{name}")));
@@ -51,16 +52,14 @@ impl ConfigPath {
             _ => {
                 // pull user cache path from $XDG_CACHE_HOME, otherwise $HOME/.cache
                 cache = match env::var("XDG_CACHE_HOME") {
-                    Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
-                    Err(_) => prefixed([&home, ".cache", name].iter().collect::<PathBuf>()),
+                    Ok(x) => prefixed(build_from_paths!(&x, name)),
+                    Err(_) => prefixed(build_from_paths!(&home, ".cache", name)),
                 };
 
                 // pull user data path from $XDG_DATA_HOME, otherwise $HOME/.local/share
                 data = match env::var("XDG_DATA_HOME") {
-                    Ok(x) => prefixed([&x, name].iter().collect::<PathBuf>()),
-                    Err(_) => {
-                        prefixed([&home, ".local", "share", name].iter().collect::<PathBuf>())
-                    }
+                    Ok(x) => prefixed(build_from_paths!(&x, name)),
+                    Err(_) => prefixed(build_from_paths!(&home, ".local", "share", name)),
                 };
 
                 db = data.clone();

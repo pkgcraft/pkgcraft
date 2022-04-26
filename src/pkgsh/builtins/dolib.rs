@@ -1,10 +1,9 @@
-use std::path::PathBuf;
-
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::macros::build_from_paths;
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::BUILD_DATA;
 
@@ -14,7 +13,7 @@ pub(super) fn install_lib(args: &[&str], opts: Option<Vec<&str>>) -> Result<Exec
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
         let libdir = get_libdir(Some("lib")).unwrap();
-        let dest: PathBuf = [&d.desttree, &libdir].iter().collect();
+        let dest = build_from_paths!(&d.desttree, &libdir);
         let opts: Vec<&str> = match opts {
             Some(v) => v,
             None => d.libopts.iter().map(|s| s.as_str()).collect(),

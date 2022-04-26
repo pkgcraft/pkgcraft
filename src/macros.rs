@@ -1,3 +1,14 @@
+macro_rules! build_from_paths {
+    ($base:expr, $($segment:expr),+) => {{
+        let mut base: ::std::path::PathBuf = $base.into();
+        $(
+            base.push($segment);
+        )*
+        base
+    }}
+}
+pub(crate) use build_from_paths;
+
 // convert &str to Option<String>
 #[cfg(test)]
 macro_rules! opt_str {

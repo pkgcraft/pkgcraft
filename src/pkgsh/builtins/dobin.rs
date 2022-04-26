@@ -1,18 +1,17 @@
-use std::path::PathBuf;
-
 use nix::unistd::geteuid;
 use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
 
 const LONG_DOC: &str = "Install executables into DESTTREE/bin.";
 
 pub(super) fn install_bin(args: &[&str], dest: &str) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        let dest: PathBuf = [&d.borrow().desttree, dest].iter().collect();
+        let dest = build_from_paths!(&d.borrow().desttree, dest);
         let opts: &[&str] = match geteuid().is_root() {
             true => &["-m0755", "-o", "root", "-g", "root"],
             false => &["-m0755"],

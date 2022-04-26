@@ -8,6 +8,7 @@ use scallop::{Error, Result};
 use walkdir::DirEntry;
 
 use super::PkgBuiltin;
+use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
 
 const LONG_DOC: &str = "Install HTML documentation files.";
@@ -96,7 +97,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             None => "",
             Some(s) => s.trim_start_matches('/'),
         };
-        let dest: PathBuf = ["/usr/share/doc", pf, subdir, doc_prefix].iter().collect();
+        let dest = build_from_paths!("/usr/share/doc", pf, subdir, doc_prefix);
         let install = d.install().dest(&dest)?;
 
         let (dirs, files): (Vec<&Path>, Vec<&Path>) =
