@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::iter::zip;
 use std::str::FromStr;
 
 use super::{cmp_not_equal, parse};
@@ -174,7 +175,7 @@ impl Ord for Version {
             cmp_not_equal!(self.numbers[0].1.cmp(&other.numbers[0].1));
 
             // iterate through the remaining version components
-            for ((v1, n1), (v2, n2)) in self.numbers[1..].iter().zip(other.numbers[1..].iter()) {
+            for ((v1, n1), (v2, n2)) in zip(&self.numbers[1..], &other.numbers[1..]) {
                 // if string is lexically equal, it is numerically equal too
                 if v1 == v2 {
                     continue;
@@ -195,7 +196,7 @@ impl Ord for Version {
             // dotted components were equal so compare letter suffixes
             cmp_not_equal!(self.letter.cmp(&other.letter));
 
-            for ((s1, n1), (s2, n2)) in self.suffixes.iter().zip(other.suffixes.iter()) {
+            for ((s1, n1), (s2, n2)) in zip(&self.suffixes, &other.suffixes) {
                 // if suffixes differ, use them for comparison
                 cmp_not_equal!(s1.cmp(s2));
                 // otherwise use the suffix versions for comparison
