@@ -202,9 +202,7 @@ impl fmt::Display for Repo {
     }
 }
 
-struct FilesAtPath {
-    iter: Box<dyn Iterator<Item = walkdir::Result<DirEntry>>>,
-}
+struct FilesAtPath(Box<dyn Iterator<Item = walkdir::Result<DirEntry>>>);
 
 impl FilesAtPath {
     fn new<P>(path: P, predicate: Option<WalkDirFilter>) -> Self
@@ -223,9 +221,7 @@ impl FilesAtPath {
             Some(func) => Either::Right(entries.into_iter().filter_entry(func)),
         };
 
-        FilesAtPath {
-            iter: Box::new(entries.into_iter()),
-        }
+        FilesAtPath(Box::new(entries.into_iter()))
     }
 }
 
@@ -233,7 +229,7 @@ impl Iterator for FilesAtPath {
     type Item = DirEntry;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.iter.next() {
+        match self.0.next() {
             Some(Ok(entry)) => Some(entry),
             _ => None,
         }
