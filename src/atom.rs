@@ -156,8 +156,8 @@ impl fmt::Display for Atom {
 
 // Return Ordering if it's not equal.
 macro_rules! cmp_not_equal {
-    ($x:expr) => {
-        let cmp = $x;
+    ($x:expr, $y:expr) => {
+        let cmp = $x.cmp($y);
         if cmp != Ordering::Equal {
             return cmp;
         }
@@ -167,14 +167,14 @@ pub(crate) use cmp_not_equal;
 
 impl Ord for Atom {
     fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(self.category.cmp(&other.category));
-        cmp_not_equal!(self.package.cmp(&other.package));
-        cmp_not_equal!(self.op.cmp(&other.op));
-        cmp_not_equal!(self.version.cmp(&other.version));
-        cmp_not_equal!(self.block.cmp(&other.block));
-        cmp_not_equal!(self.slot.cmp(&other.slot));
-        cmp_not_equal!(self.subslot.cmp(&other.subslot));
-        cmp_not_equal!(self.use_deps.cmp(&other.use_deps));
+        cmp_not_equal!(&self.category, &other.category);
+        cmp_not_equal!(&self.package, &other.package);
+        cmp_not_equal!(&self.op, &other.op);
+        cmp_not_equal!(&self.version, &other.version);
+        cmp_not_equal!(&self.block, &other.block);
+        cmp_not_equal!(&self.slot, &other.slot);
+        cmp_not_equal!(&self.subslot, &other.subslot);
+        cmp_not_equal!(&self.use_deps, &other.use_deps);
         self.repo.cmp(&other.repo)
     }
 }

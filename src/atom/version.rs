@@ -172,7 +172,7 @@ impl Ord for Version {
     fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
         if self.base != other.base {
             // compare major versions
-            cmp_not_equal!(self.numbers[0].1.cmp(&other.numbers[0].1));
+            cmp_not_equal!(&self.numbers[0].1, &other.numbers[0].1);
 
             // iterate through the remaining version components
             for ((v1, n1), (v2, n2)) in zip(&self.numbers[1..], &other.numbers[1..]) {
@@ -184,23 +184,23 @@ impl Ord for Version {
                 // If one of the components starts with a "0" then they are compared as strings
                 // with trailing 0's stripped, otherwise they are compared as integers.
                 if v1.starts_with('0') || v2.starts_with('0') {
-                    cmp_not_equal!(v1.trim_end_matches('0').cmp(v2.trim_end_matches('0')));
+                    cmp_not_equal!(v1.trim_end_matches('0'), v2.trim_end_matches('0'));
                 } else {
-                    cmp_not_equal!(n1.cmp(n2));
+                    cmp_not_equal!(&n1, &n2);
                 }
             }
 
             // compare the number of version components
-            cmp_not_equal!(self.numbers.len().cmp(&other.numbers.len()));
+            cmp_not_equal!(&self.numbers.len(), &other.numbers.len());
 
             // dotted components were equal so compare letter suffixes
-            cmp_not_equal!(self.letter.cmp(&other.letter));
+            cmp_not_equal!(&self.letter, &other.letter);
 
             for ((s1, n1), (s2, n2)) in zip(&self.suffixes, &other.suffixes) {
                 // if suffixes differ, use them for comparison
-                cmp_not_equal!(s1.cmp(s2));
+                cmp_not_equal!(s1, s2);
                 // otherwise use the suffix versions for comparison
-                cmp_not_equal!(n1.cmp(n2));
+                cmp_not_equal!(n1, n2);
             }
 
             // If one version has more suffixes, use the last suffix to determine ordering.
