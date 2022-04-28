@@ -165,9 +165,20 @@ peg::parser! {
                 Ok(repo)
             }
 
-        pub(crate) rule cpv() -> (&'input str, &'input str, &'input str)
-            = cat:category() "/" pkg:package() "-" ver:$(version()) {
-                (cat, pkg, ver)
+        pub(crate) rule cpv() -> ParsedAtom<'input>
+            = cat:category() "/" pkg:package() "-" ver:version() {
+                ParsedAtom {
+                    category: cat,
+                    package: pkg,
+                    block: None,
+                    op: None,
+                    version: Some(ver),
+                    slot: None,
+                    subslot: None,
+                    slot_op: None,
+                    use_deps: None,
+                    repo: None,
+                }
             }
 
         pub(crate) rule dep(eapi: &'static Eapi) -> ParsedAtom<'input>
@@ -226,8 +237,9 @@ pub mod parse {
     }
 
     #[inline]
-    pub fn cpv(s: &str) -> Result<(&str, &str, &str)> {
-        pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))
+    pub fn cpv(s: &str) -> Result<Atom> {
+        let parsed_cpv = pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))?;
+        parsed_cpv.into_owned(s)
     }
 
     cached_key! {
