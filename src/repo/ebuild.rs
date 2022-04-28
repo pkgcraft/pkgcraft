@@ -192,9 +192,9 @@ impl Repo {
             match entry.file_name().to_str() {
                 Some(s) => match atom::parse::category(s) {
                     Ok(cat) => v.push(cat.into()),
-                    Err(e) => warn!("{e}"),
+                    Err(e) => warn!("{e}: {path:?}"),
                 },
-                None => warn!("non-unicode path: {:?}", path),
+                None => warn!("non-unicode path: {path:?}"),
             }
         }
         v
@@ -288,9 +288,9 @@ impl repo::Repo for Repo {
             match entry.file_name().to_str() {
                 Some(s) => match atom::parse::package(s) {
                     Ok(pn) => v.push(pn.into()),
-                    Err(e) => warn!("{e}"),
+                    Err(e) => warn!("{e}: {path:?}"),
                 },
-                None => warn!("non-unicode path: {:?}", path),
+                None => warn!("non-unicode path: {path:?}"),
             }
         }
         v
@@ -313,11 +313,11 @@ impl repo::Repo for Repo {
                 (Some(pn), Some(pf)) => match pn == &pf[..pn.len()] {
                     true => match atom::parse::version(&pf[pn.len() + 1..]) {
                         Ok(ver) => v.push(format!("{}", ver)),
-                        Err(e) => warn!("{e}"),
+                        Err(e) => warn!("{e}: {path:?}"),
                     },
-                    false => warn!("unmatched ebuild: {:?}", path),
+                    false => warn!("unmatched ebuild: {path:?}"),
                 },
-                _ => warn!("non-unicode path: {:?}", path),
+                _ => warn!("non-unicode path: {path:?}"),
             }
         }
         v
