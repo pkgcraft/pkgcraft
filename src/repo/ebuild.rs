@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 #[cfg(test)]
 use std::io::Write;
+use std::iter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, fmt, fs, io};
@@ -14,6 +15,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::config::Config;
 use crate::macros::build_from_paths;
+use crate::pkg::Pkg;
 use crate::types::WalkDirFilter;
 use crate::{atom, eapi, repo, Error, Result};
 
@@ -326,6 +328,10 @@ impl repo::Repo for Repo {
     fn id(&self) -> &str {
         &self.id
     }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
+        Box::new(iter::empty::<Box<dyn Pkg>>())
+    }
 }
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
@@ -405,6 +411,11 @@ impl repo::Repo for TempRepo {
     #[inline]
     fn id(&self) -> &str {
         &self.repo.id
+    }
+
+    #[inline]
+    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
+        self.repo.iter()
     }
 }
 

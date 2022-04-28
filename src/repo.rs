@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 
+use crate::pkg::Pkg;
 use crate::{Error, Result};
 
 pub(crate) mod ebuild;
@@ -95,12 +96,13 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
 });
 
 pub(crate) trait Repo: fmt::Debug + fmt::Display {
-    // TODO: convert to `impl Iterator` return type once supported within traits
-    // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
     fn id(&self) -> &str;
+    // TODO: convert to `impl Iterator` return type once supported within traits
+    // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
+    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>>;
 }
 
 impl fmt::Display for Repository {
@@ -142,6 +144,14 @@ impl Repo for Repository {
         match self {
             Repository::Ebuild(ref repo) => repo.id(),
             Repository::Fake(ref repo) => repo.id(),
+        }
+    }
+
+    #[inline]
+    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
+        match self {
+            Repository::Ebuild(ref repo) => repo.iter(),
+            Repository::Fake(ref repo) => repo.iter(),
         }
     }
 }

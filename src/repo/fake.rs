@@ -1,9 +1,11 @@
 use std::fmt;
 use std::fs;
+use std::iter;
 use std::path::Path;
 
 use indexmap::IndexSet;
 
+use crate::pkg::Pkg;
 use crate::{atom, repo, Error, Result};
 
 #[derive(Debug, Default)]
@@ -70,6 +72,10 @@ impl repo::Repo for Repo {
 
     fn id(&self) -> &str {
         &self.id
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
+        Box::new(iter::empty::<Box<dyn Pkg>>())
     }
 }
 

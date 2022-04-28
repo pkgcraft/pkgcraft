@@ -108,6 +108,18 @@ impl Atom {
             None => format!("{}/{}", self.category, self.package),
         }
     }
+
+    pub fn slot(&self) -> Option<&str> {
+        self.slot.as_deref()
+    }
+
+    pub fn subslot(&self) -> Option<&str> {
+        self.subslot.as_deref()
+    }
+
+    pub fn slot_op(&self) -> Option<&str> {
+        self.slot_op.as_deref()
+    }
 }
 
 impl fmt::Display for Atom {
@@ -132,7 +144,7 @@ impl fmt::Display for Atom {
         }
 
         // append slot data
-        match (&self.slot, &self.subslot, &self.slot_op) {
+        match (self.slot(), self.subslot(), self.slot_op()) {
             (Some(slot), Some(subslot), Some(op)) => s.push_str(&format!(":{slot}/{subslot}{op}")),
             (Some(slot), Some(subslot), None) => s.push_str(&format!(":{slot}/{subslot}")),
             (Some(slot), None, Some(op)) => s.push_str(&format!(":{slot}{op}")),
