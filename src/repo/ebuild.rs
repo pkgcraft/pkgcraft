@@ -9,6 +9,7 @@ use ini::Ini;
 use itertools::Either;
 use once_cell::sync::Lazy;
 use tempfile::TempDir;
+use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::config::Config;
@@ -187,9 +188,13 @@ impl Repo {
         let cats = FilesAtPath::new(&self.path, Some(filter));
         let mut v = vec![];
         for entry in cats {
-            let cat = entry.file_name().to_str().unwrap();
-            if let Ok(cat) = atom::parse::category(cat) {
-                v.push(cat.into());
+            let path = entry.path();
+            match entry.file_name().to_str() {
+                Some(s) => match atom::parse::category(s) {
+                    Ok(cat) => v.push(cat.into()),
+                    Err(e) => warn!("{e}"),
+                },
+                None => warn!("non-unicode path: {:?}", path),
             }
         }
         v
@@ -279,9 +284,13 @@ impl repo::Repo for Repo {
         let pkgs = FilesAtPath::new(&path, Some(filter));
         let mut v = vec![];
         for entry in pkgs {
-            let pn = entry.file_name().to_str().unwrap();
-            if let Ok(pn) = atom::parse::package(pn) {
-                v.push(pn.into());
+            let path = entry.path();
+            match entry.file_name().to_str() {
+                Some(s) => match atom::parse::package(s) {
+                    Ok(pn) => v.push(pn.into()),
+                    Err(e) => warn!("{e}"),
+                },
+                None => warn!("non-unicode path: {:?}", path),
             }
         }
         v
@@ -297,20 +306,18 @@ impl repo::Repo for Repo {
         let ebuilds = FilesAtPath::new(&path, Some(filter));
         let mut v = vec![];
         for entry in ebuilds {
-            let cpv = format!(
-                "{}/{}",
-                entry
-                    .path()
-                    .parent()
-                    .unwrap()
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap(),
-                entry.path().file_stem().unwrap().to_str().unwrap(),
-            );
-            if let Ok(cpv) = atom::parse::cpv(&cpv) {
-                v.push(format!("{}", cpv.version.unwrap()));
+            let path = entry.path();
+            let cat = path.parent().unwrap().file_name().unwrap().to_str();
+            let pf = path.file_stem().unwrap().to_str();
+            match (cat, pf) {
+                (Some(cat), Some(pf)) => {
+                    let cpv = format!("{}/{}", cat, pf);
+                    match atom::parse::cpv(&cpv) {
+                        Ok(cpv) => v.push(format!("{}", cpv.version.unwrap())),
+                        Err(e) => warn!("{e}"),
+                    }
+                }
+                _ => warn!("non-unicode path: {:?}", path),
             }
         }
         v
