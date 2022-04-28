@@ -96,20 +96,20 @@ thread_local! {
 }
 
 impl Config {
-    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Arc<Config>> {
+    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
         let path = ConfigPath::new(name, prefix, create)?;
         let repos = repo::Config::new(&path.config, &path.db, create)?;
         let config = Config { path, repos };
-        config.make_current();
-        Ok(Config::current())
+        Config::make_current(config.clone());
+        Ok(config)
     }
 
-    pub(crate) fn current() -> Arc<Config> {
+    pub fn current() -> Arc<Config> {
         CURRENT_CONFIG.with(|c| c.read().unwrap().clone())
     }
 
-    pub(crate) fn make_current(self) {
-        CURRENT_CONFIG.with(|c| *c.write().unwrap() = Arc::new(self))
+    pub fn make_current(config: Config) {
+        CURRENT_CONFIG.with(|c| *c.write().unwrap() = Arc::new(config))
     }
 }
 
