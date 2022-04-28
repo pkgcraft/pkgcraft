@@ -10,7 +10,7 @@ use crate::{Error, Result};
 
 mod repo;
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ConfigPath {
     pub cache: PathBuf,
     pub config: PathBuf,
@@ -85,7 +85,7 @@ impl ConfigPath {
     }
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Config {
     pub path: ConfigPath,
     pub repos: repo::Config,

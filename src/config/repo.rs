@@ -15,7 +15,7 @@ use crate::repo::Repository;
 use crate::sync::Syncer;
 use crate::{Error, Result};
 
-#[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RepoConfig {
     pub location: PathBuf,
     pub format: String,
@@ -62,7 +62,7 @@ impl Ord for RepoConfig {
     }
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct Config {
     config_dir: PathBuf,
     repo_dir: PathBuf,

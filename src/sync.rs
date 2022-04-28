@@ -13,7 +13,7 @@ use crate::error::Error;
 mod git;
 mod tar;
 
-#[derive(Debug, PartialEq, Eq, DeserializeFromStr, SerializeDisplay)]
+#[derive(Debug, Clone, PartialEq, Eq, DeserializeFromStr, SerializeDisplay)]
 pub(crate) enum Syncer {
     #[cfg(feature = "git")]
     Git(git::Repo),
