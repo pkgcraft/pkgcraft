@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 
-use crate::error::Error;
+use crate::{Error, Result};
 
 pub(crate) mod ebuild;
 mod fake;
@@ -49,7 +49,7 @@ pub enum Repository {
 
 impl Repository {
     /// Determine if a given repository format is supported.
-    pub(crate) fn is_supported<S: AsRef<str>>(format: S) -> crate::Result<()> {
+    pub(crate) fn is_supported<S: AsRef<str>>(format: S) -> Result<()> {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
             Some(_) => Ok(()),
@@ -58,10 +58,7 @@ impl Repository {
     }
 
     /// Try to load a repository from a given path.
-    pub(crate) fn from_path<P: AsRef<Path>>(
-        id: &str,
-        path: P,
-    ) -> crate::Result<(&'static str, Self)> {
+    pub(crate) fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<(&'static str, Self)> {
         let path = path.as_ref();
 
         for format in SUPPORTED_FORMATS.iter() {
@@ -77,11 +74,7 @@ impl Repository {
     }
 
     /// Try to load a certain repository type from a given path.
-    pub(crate) fn from_format<P: AsRef<Path>>(
-        id: &str,
-        path: P,
-        format: &str,
-    ) -> crate::Result<Self> {
+    pub(crate) fn from_format<P: AsRef<Path>>(id: &str, path: P, format: &str) -> Result<Self> {
         let path = path.as_ref();
 
         match format {

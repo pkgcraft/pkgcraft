@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
 use tar::Archive;
 use tempfile::Builder;
 
-use crate::error::Error;
 use crate::sync::{Syncable, Syncer};
+use crate::{Error, Result};
 
 static HANDLED_URI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^tar\+(?P<url>https://.+)$").unwrap());
@@ -28,7 +28,7 @@ pub(crate) struct Repo {
 
 #[async_trait]
 impl Syncable for Repo {
-    fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
+    fn uri_to_syncer(uri: &str) -> Result<Syncer> {
         match HANDLED_URI_RE.captures(uri) {
             Some(m) => Ok(Syncer::TarHttps(Repo {
                 uri: uri.to_string(),
@@ -38,7 +38,7 @@ impl Syncable for Repo {
         }
     }
 
-    async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()> {
+    async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> Result<()> {
         let path = path.as_ref();
         let repos_dir = path.parent().unwrap();
         let repo_name = path.file_name().unwrap().to_str().unwrap();
@@ -122,7 +122,7 @@ impl Syncable for Repo {
                 .entries()
                 .map_err(|e| Error::RepoSync(e.to_string()))?
                 .filter_map(|e| e.ok())
-                .map(|mut entry| -> crate::Result<PathBuf> {
+                .map(|mut entry| -> Result<PathBuf> {
                     // drop first directory component in archive paths
                     let stripped_path: PathBuf = entry
                         .path()

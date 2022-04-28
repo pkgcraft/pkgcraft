@@ -6,8 +6,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::error::Error;
 use crate::sync::{Syncable, Syncer};
+use crate::Error;
 
 static HANDLED_URI_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(https|git)://.+\.git$").unwrap());
 
