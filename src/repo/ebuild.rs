@@ -1,3 +1,5 @@
+#[cfg(test)]
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, fmt, fs, io};
@@ -51,7 +53,7 @@ impl Metadata {
     }
 
     #[cfg(test)]
-    pub(crate) fn set<S1, S2>(&mut self, key: S1, val: S2)
+    fn set<S1, S2>(&mut self, key: S1, val: S2)
     where
         S1: Into<String>,
         S2: Into<String>,
@@ -60,14 +62,22 @@ impl Metadata {
     }
 
     #[cfg(test)]
-    pub(crate) fn write(&self) -> Result<()> {
-        match &self.path {
-            Some(path) => self
-                .ini
+    fn write(&self, data: Option<&str>) -> Result<()> {
+        if let Some(path) = &self.path {
+            self.ini
                 .write_to_file(path)
-                .map_err(|e| Error::IO(e.to_string())),
-            None => Ok(()),
+                .map_err(|e| Error::IO(e.to_string()))?;
+
+            if let Some(data) = data {
+                let mut f = fs::File::options()
+                    .append(true)
+                    .open(path)
+                    .map_err(|e| Error::IO(e.to_string()))?;
+                write!(f, "{}", data).map_err(|e| Error::IO(e.to_string()))?;
+            }
         }
+
+        Ok(())
     }
 
     fn get_list<S: AsRef<str>>(&self, key: S) -> Vec<String> {
@@ -271,6 +281,7 @@ impl repo::Repo for TempRepo {
 mod tests {
     use maplit::hashset;
 
+    use crate::macros::assert_err_re;
     use crate::repo::Repo as RepoTrait;
     use crate::test::iter_to_set;
 
@@ -282,9 +293,18 @@ mod tests {
         let mut repo = temprepo.repo;
         assert!(repo.config.masters().is_empty());
         repo.config.set("masters", "a b c");
-        repo.config.write().unwrap();
+        repo.config.write(None).unwrap();
         let test_repo = Repo::from_path(repo.id, repo.path).unwrap();
         assert_eq!(test_repo.config.masters(), ["a", "b", "c"]);
+    }
+
+    #[test]
+    fn test_invalid_layout() {
+        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+        let repo = temprepo.repo;
+        repo.config.write(Some("data")).unwrap();
+        let r = Repo::from_path(repo.id, repo.path);
+        assert_err_re!(r, format!("^.* invalid repo layout: .*$"));
     }
 
     #[test]
