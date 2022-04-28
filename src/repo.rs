@@ -104,9 +104,9 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
 pub(crate) trait Repo: fmt::Debug + fmt::Display {
     // TODO: convert to `impl Iterator` return type once supported within traits
     // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
-    fn categories(&mut self) -> Vec<String>;
-    fn packages(&mut self, cat: &str) -> Vec<String>;
-    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String>;
+    fn categories(&self) -> Vec<String>;
+    fn packages(&self, cat: &str) -> Vec<String>;
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
     fn id(&self) -> &str;
 }
 
@@ -121,26 +121,26 @@ impl fmt::Display for Repository {
 
 impl Repo for Repository {
     #[inline]
-    fn categories(&mut self) -> Vec<String> {
+    fn categories(&self) -> Vec<String> {
         match self {
-            Repository::Ebuild(ref mut repo) => repo.categories(),
-            Repository::Fake(ref mut repo) => repo.categories(),
+            Repository::Ebuild(ref repo) => repo.categories(),
+            Repository::Fake(ref repo) => repo.categories(),
         }
     }
 
     #[inline]
-    fn packages(&mut self, cat: &str) -> Vec<String> {
+    fn packages(&self, cat: &str) -> Vec<String> {
         match self {
-            Repository::Ebuild(ref mut repo) => repo.packages(cat),
-            Repository::Fake(ref mut repo) => repo.packages(cat),
+            Repository::Ebuild(ref repo) => repo.packages(cat),
+            Repository::Fake(ref repo) => repo.packages(cat),
         }
     }
 
     #[inline]
-    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String> {
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         match self {
-            Repository::Ebuild(ref mut repo) => repo.versions(cat, pkg),
-            Repository::Fake(ref mut repo) => repo.versions(cat, pkg),
+            Repository::Ebuild(ref repo) => repo.versions(cat, pkg),
+            Repository::Fake(ref repo) => repo.versions(cat, pkg),
         }
     }
 

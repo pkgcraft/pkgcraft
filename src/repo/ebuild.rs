@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 #[cfg(test)]
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -5,15 +6,23 @@ use std::sync::Arc;
 use std::{env, fmt, fs, io};
 
 use ini::Ini;
+use itertools::Either;
+use once_cell::sync::Lazy;
 use tempfile::TempDir;
-use tracing::warn;
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 use crate::config::Config;
 use crate::macros::build_from_paths;
-use crate::{eapi, repo, Error, Result};
+use crate::types::WalkDirFilter;
+use crate::{atom, eapi, repo, Error, Result};
 
 const DEFAULT_SECTION: Option<String> = None;
+static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    ["eclass", "profiles", "metadata", "licenses"]
+        .iter()
+        .cloned()
+        .collect()
+});
 
 pub(crate) struct Metadata {
     path: Option<PathBuf>,
@@ -173,8 +182,17 @@ impl Repo {
     }
 
     pub fn category_dirs(&self) -> Vec<String> {
-        let mut dirs = vec![];
-        dirs
+        // filter out non-category dirs
+        let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
+        let cats = FilesAtPath::new(&self.path, Some(filter));
+        let mut v = vec![];
+        for entry in cats {
+            let cat = entry.file_name().to_str().unwrap();
+            if let Ok(cat) = atom::parse::category(cat) {
+                v.push(cat.into());
+            }
+        }
+        v
     }
 }
 
@@ -184,67 +202,122 @@ impl fmt::Display for Repo {
     }
 }
 
-struct DirsIter(walkdir::IntoIter);
-
-impl Iterator for DirsIter {
-    type Item = String;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let entry = self.0.next()?.ok()?;
-        let path = entry.path();
-        match path.to_str() {
-            Some(s) => Some(s.into()),
-            None => {
-                warn!("invalid unicode: {:?}", path);
-                None
-            }
-        }
-    }
+struct FilesAtPath {
+    iter: Box<dyn Iterator<Item = walkdir::Result<DirEntry>>>,
 }
 
-struct EbuildsIter(walkdir::IntoIter);
-
-impl Iterator for EbuildsIter {
-    type Item = String;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let entry = self.0.next()?.ok()?;
-        let path = entry.path();
-        match path.to_str() {
-            Some(s) => Some(s.into()),
-            None => {
-                warn!("invalid unicode: {:?}", path);
-                None
-            }
-        }
-    }
-}
-
-impl repo::Repo for Repo {
-    fn categories(&mut self) -> Vec<String> {
-        let entries = WalkDir::new(&self.path)
+impl FilesAtPath {
+    fn new<P>(path: P, predicate: Option<WalkDirFilter>) -> Self
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+        let entries = WalkDir::new(path)
             .sort_by_file_name()
             .min_depth(1)
             .max_depth(1);
-        DirsIter(entries.into_iter()).collect()
+
+        // optionally apply directory filtering
+        let entries = match predicate.as_ref().cloned() {
+            None => Either::Left(entries),
+            Some(func) => Either::Right(entries.into_iter().filter_entry(func)),
+        };
+
+        FilesAtPath {
+            iter: Box::new(entries.into_iter()),
+        }
+    }
+}
+
+impl Iterator for FilesAtPath {
+    type Item = DirEntry;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.iter.next() {
+            Some(Ok(entry)) => Some(entry),
+            _ => None,
+        }
+    }
+}
+
+fn is_dir(entry: &DirEntry) -> bool {
+    entry.path().is_dir()
+}
+
+fn is_file(entry: &DirEntry) -> bool {
+    entry.path().is_file()
+}
+
+fn has_ext(entry: &DirEntry, ext: &str) -> bool {
+    match entry.path().extension() {
+        Some(e) => e.to_str() == Some(ext),
+        _ => false,
+    }
+}
+
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with('.'))
+        .unwrap_or(false)
+}
+
+fn is_fake_category(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| FAKE_CATEGORIES.contains(s))
+        .unwrap_or(false)
+}
+
+impl repo::Repo for Repo {
+    fn categories(&self) -> Vec<String> {
+        // TODO: implement reading profiles/categories, falling back to category_dirs()
+        self.category_dirs()
     }
 
-    fn packages(&mut self, cat: &str) -> Vec<String> {
-        let dir = self.path.join(cat);
-        let entries = WalkDir::new(dir)
-            .sort_by_file_name()
-            .min_depth(2)
-            .max_depth(2);
-        DirsIter(entries.into_iter()).collect()
+    fn packages(&self, cat: &str) -> Vec<String> {
+        let path = self.path.join(cat.strip_prefix('/').unwrap_or(cat));
+        let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
+        let pkgs = FilesAtPath::new(&path, Some(filter));
+        let mut v = vec![];
+        for entry in pkgs {
+            let pn = entry.file_name().to_str().unwrap();
+            if let Ok(pn) = atom::parse::package(pn) {
+                v.push(pn.into());
+            }
+        }
+        v
     }
 
-    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String> {
-        let dir = build_from_paths!(&self.path, cat, pkg);
-        let entries = WalkDir::new(dir)
-            .sort_by_file_name()
-            .min_depth(3)
-            .max_depth(3);
-        EbuildsIter(entries.into_iter()).collect()
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+        let path = build_from_paths!(
+            &self.path,
+            cat.strip_prefix('/').unwrap_or(cat),
+            pkg.strip_prefix('/').unwrap_or(pkg)
+        );
+        let filter = |e: &DirEntry| -> bool { is_file(e) && !is_hidden(e) && has_ext(e, "ebuild") };
+        let ebuilds = FilesAtPath::new(&path, Some(filter));
+        let mut v = vec![];
+        for entry in ebuilds {
+            let cpv = format!(
+                "{}/{}",
+                entry
+                    .path()
+                    .parent()
+                    .unwrap()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap(),
+                entry.path().file_stem().unwrap().to_str().unwrap(),
+            );
+            if let Ok(cpv) = atom::parse::cpv(&cpv) {
+                v.push(format!("{}", cpv.version.unwrap()));
+            }
+        }
+        v
     }
 
     fn id(&self) -> &str {
@@ -312,17 +385,17 @@ impl fmt::Display for TempRepo {
 
 impl repo::Repo for TempRepo {
     #[inline]
-    fn categories(&mut self) -> Vec<String> {
+    fn categories(&self) -> Vec<String> {
         self.repo.categories()
     }
 
     #[inline]
-    fn packages(&mut self, cat: &str) -> Vec<String> {
+    fn packages(&self, cat: &str) -> Vec<String> {
         self.repo.packages(cat)
     }
 
     #[inline]
-    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String> {
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         self.repo.versions(cat, pkg)
     }
 
@@ -361,10 +434,13 @@ mod tests {
 
     #[test]
     fn test_empty_repo() {
-        let mut repo = TempRepo::new("test", None::<&str>, None).unwrap();
-        assert_eq!(repo.id(), "test");
-        assert_eq!(repo.categories(), Vec::<&str>::new());
-        assert_eq!(repo.packages("cat"), Vec::<&str>::new());
-        assert_eq!(repo.versions("cat", "pkg"), Vec::<&str>::new());
+        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+        assert_eq!(temprepo.id(), "test");
+        assert_eq!(temprepo.categories(), Vec::<&str>::new());
+        assert_eq!(temprepo.packages("cat"), Vec::<&str>::new());
+        assert_eq!(temprepo.versions("cat", "pkg"), Vec::<&str>::new());
+
+        let repo = temprepo.repo;
+        assert_eq!(repo.category_dirs(), Vec::<&str>::new());
     }
 }

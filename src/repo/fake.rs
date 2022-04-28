@@ -23,7 +23,7 @@ impl Repo {
         let mut cpvs = Vec::<atom::Atom>::new();
         for s in atoms.into_iter() {
             cpvs.push(atom::parse::cpv(s)?);
-        };
+        }
 
         cpvs.sort();
 
@@ -56,15 +56,15 @@ impl fmt::Display for Repo {
 }
 
 impl repo::Repo for Repo {
-    fn categories(&mut self) -> Vec<String> {
+    fn categories(&self) -> Vec<String> {
         self.pkgs.categories()
     }
 
-    fn packages(&mut self, cat: &str) -> Vec<String> {
+    fn packages(&self, cat: &str) -> Vec<String> {
         self.pkgs.packages(cat)
     }
 
-    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String> {
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         self.pkgs.versions(cat, pkg)
     }
 
