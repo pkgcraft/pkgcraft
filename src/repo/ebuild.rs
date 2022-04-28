@@ -6,8 +6,11 @@ use std::{env, fmt, fs, io};
 
 use ini::Ini;
 use tempfile::TempDir;
+use tracing::warn;
+use walkdir::WalkDir;
 
 use crate::config::Config;
+use crate::macros::build_from_paths;
 use crate::{eapi, repo, Error, Result};
 
 const DEFAULT_SECTION: Option<String> = None;
@@ -168,6 +171,11 @@ impl Repo {
         }
         Ok(trees)
     }
+
+    pub fn category_dirs(&self) -> Vec<String> {
+        let mut dirs = vec![];
+        dirs
+    }
 }
 
 impl fmt::Display for Repo {
@@ -176,18 +184,67 @@ impl fmt::Display for Repo {
     }
 }
 
-// TODO: fill out stub implementation
+struct DirsIter(walkdir::IntoIter);
+
+impl Iterator for DirsIter {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let entry = self.0.next()?.ok()?;
+        let path = entry.path();
+        match path.to_str() {
+            Some(s) => Some(s.into()),
+            None => {
+                warn!("invalid unicode: {:?}", path);
+                None
+            }
+        }
+    }
+}
+
+struct EbuildsIter(walkdir::IntoIter);
+
+impl Iterator for EbuildsIter {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let entry = self.0.next()?.ok()?;
+        let path = entry.path();
+        match path.to_str() {
+            Some(s) => Some(s.into()),
+            None => {
+                warn!("invalid unicode: {:?}", path);
+                None
+            }
+        }
+    }
+}
+
 impl repo::Repo for Repo {
-    fn categories(&mut self) -> repo::StringIter {
-        self.pkgs.categories()
+    fn categories(&mut self) -> Vec<String> {
+        let entries = WalkDir::new(&self.path)
+            .sort_by_file_name()
+            .min_depth(1)
+            .max_depth(1);
+        DirsIter(entries.into_iter()).collect()
     }
 
-    fn packages(&mut self, cat: &str) -> repo::StringIter {
-        self.pkgs.packages(cat)
+    fn packages(&mut self, cat: &str) -> Vec<String> {
+        let dir = self.path.join(cat);
+        let entries = WalkDir::new(dir)
+            .sort_by_file_name()
+            .min_depth(2)
+            .max_depth(2);
+        DirsIter(entries.into_iter()).collect()
     }
 
-    fn versions(&mut self, cat: &str, pkg: &str) -> repo::StringIter {
-        self.pkgs.versions(cat, pkg)
+    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String> {
+        let dir = build_from_paths!(&self.path, cat, pkg);
+        let entries = WalkDir::new(dir)
+            .sort_by_file_name()
+            .min_depth(3)
+            .max_depth(3);
+        EbuildsIter(entries.into_iter()).collect()
     }
 
     fn id(&self) -> &str {
@@ -277,11 +334,8 @@ impl repo::Repo for TempRepo {
 
 #[cfg(test)]
 mod tests {
-    use maplit::hashset;
-
     use crate::macros::assert_err_re;
     use crate::repo::Repo as RepoTrait;
-    use crate::test::iter_to_set;
 
     use super::*;
 
@@ -307,16 +361,10 @@ mod tests {
 
     #[test]
     fn test_empty_repo() {
-        let mut temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
-        assert_eq!(temprepo.id(), "test");
-        assert_eq!(iter_to_set(temprepo.categories()), hashset! {});
-        assert_eq!(iter_to_set(temprepo.packages("cat")), hashset! {});
-        assert_eq!(iter_to_set(temprepo.versions("cat", "pkg")), hashset! {});
-
-        let mut repo = temprepo.repo;
+        let mut repo = TempRepo::new("test", None::<&str>, None).unwrap();
         assert_eq!(repo.id(), "test");
-        assert_eq!(iter_to_set(repo.categories()), hashset! {});
-        assert_eq!(iter_to_set(repo.packages("cat")), hashset! {});
-        assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset! {});
+        assert_eq!(repo.categories(), Vec::<&str>::new());
+        assert_eq!(repo.packages("cat"), Vec::<&str>::new());
+        assert_eq!(repo.versions("cat", "pkg"), Vec::<&str>::new());
     }
 }
