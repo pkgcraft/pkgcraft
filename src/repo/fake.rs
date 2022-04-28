@@ -1,7 +1,8 @@
-use std::collections::HashSet;
 use std::fmt;
 use std::fs;
 use std::path::Path;
+
+use indexmap::IndexSet;
 
 use crate::{atom, repo, Error, Result};
 
@@ -19,14 +20,20 @@ impl Repo {
         I: IntoIterator<Item = &'a str>,
     {
         let mut pkgmap = repo::PkgMap::new();
+        let mut cpvs = Vec::<atom::Atom>::new();
         for s in atoms.into_iter() {
-            let (cat, pkg, ver) = atom::parse::cpv(s)?;
+            cpvs.push(atom::parse::cpv(s)?);
+        };
+
+        cpvs.sort();
+
+        for cpv in cpvs {
             pkgmap
-                .entry(cat.to_string())
+                .entry(cpv.category)
                 .or_insert_with(repo::VersionMap::new)
-                .entry(pkg.to_string())
-                .or_insert_with(HashSet::new)
-                .insert(ver.to_string());
+                .entry(cpv.package)
+                .or_insert_with(IndexSet::new)
+                .insert(cpv.version.unwrap().to_string());
         }
 
         let pkgs = repo::PkgCache { pkgmap };
@@ -68,10 +75,7 @@ impl repo::Repo for Repo {
 
 #[cfg(test)]
 mod tests {
-    use maplit::hashset;
-
     use crate::repo::Repo as RepoTrait;
-    use crate::test::iter_to_set;
 
     use super::*;
 
@@ -86,10 +90,10 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", []).unwrap();
-        assert_eq!(iter_to_set(repo.categories()), hashset! {});
+        assert_eq!(repo.categories(), Vec::<String>::new());
         // existing pkgs
         repo = Repo::new("fake", ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
-        assert_eq!(iter_to_set(repo.categories()), hashset! {"cat1", "cat2"});
+        assert_eq!(repo.categories(), ["cat1", "cat2"])
     }
 
     #[test]
@@ -97,12 +101,12 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", []).unwrap();
-        assert_eq!(iter_to_set(repo.packages("cat")), hashset! {});
+        assert_eq!(repo.packages("cat"), Vec::<String>::new());
         // existing pkgs
         repo = Repo::new("fake", ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
-        assert_eq!(iter_to_set(repo.packages("cat")), hashset! {});
-        assert_eq!(iter_to_set(repo.packages("cat1")), hashset! {"pkg-a", "pkg-b"});
-        assert_eq!(iter_to_set(repo.packages("cat2")), hashset! {"pkg-c"});
+        assert_eq!(repo.packages("cat"), Vec::<String>::new());
+        assert_eq!(repo.packages("cat1"), ["pkg-a", "pkg-b"]);
+        assert_eq!(repo.packages("cat2"), ["pkg-c"]);
     }
 
     #[test]
@@ -110,11 +114,11 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", []).unwrap();
-        assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset! {});
+        assert_eq!(repo.versions("cat", "pkg"), Vec::<String>::new());
         // existing pkgs
         repo = Repo::new("fake", ["cat1/pkg-a-1", "cat2/pkg-b-1", "cat2/pkg-b-2"]).unwrap();
-        assert_eq!(iter_to_set(repo.versions("cat", "pkg")), hashset! {});
-        assert_eq!(iter_to_set(repo.versions("cat1", "pkg-a")), hashset! {"1"});
-        assert_eq!(iter_to_set(repo.versions("cat2", "pkg-b")), hashset! {"1", "2"});
+        assert_eq!(repo.versions("cat", "pkg"), Vec::<String>::new());
+        assert_eq!(repo.versions("cat1", "pkg-a"), ["1"]);
+        assert_eq!(repo.versions("cat2", "pkg-b"), ["1", "2"]);
     }
 }

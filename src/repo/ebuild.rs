@@ -97,7 +97,6 @@ pub struct Repo {
     id: String,
     pub(super) path: PathBuf,
     pub(super) config: Metadata,
-    pkgs: repo::PkgCache,
 }
 
 impl Repo {
@@ -112,7 +111,6 @@ impl Repo {
             id: id.as_ref().to_string(),
             path: PathBuf::from(path.as_ref()),
             config,
-            ..Default::default()
         })
     }
 

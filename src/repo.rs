@@ -1,9 +1,7 @@
-use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::iter;
 use std::path::{Path, PathBuf};
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 
 use crate::error::Error;
@@ -11,9 +9,8 @@ use crate::error::Error;
 pub(crate) mod ebuild;
 mod fake;
 
-type VersionMap = HashMap<String, HashSet<String>>;
-type PkgMap = HashMap<String, VersionMap>;
-type StringIter<'a> = Box<dyn Iterator<Item = &'a str> + 'a>;
+type VersionMap = IndexMap<String, IndexSet<String>>;
+type PkgMap = IndexMap<String, VersionMap>;
 
 #[derive(Debug, Default)]
 struct PkgCache {
