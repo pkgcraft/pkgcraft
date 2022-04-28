@@ -49,15 +49,15 @@ impl fmt::Display for Repo {
 }
 
 impl repo::Repo for Repo {
-    fn categories(&mut self) -> repo::StringIter {
+    fn categories(&mut self) -> Vec<String> {
         self.pkgs.categories()
     }
 
-    fn packages(&mut self, cat: &str) -> repo::StringIter {
+    fn packages(&mut self, cat: &str) -> Vec<String> {
         self.pkgs.packages(cat)
     }
 
-    fn versions(&mut self, cat: &str, pkg: &str) -> repo::StringIter {
+    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String> {
         self.pkgs.versions(cat, pkg)
     }
 

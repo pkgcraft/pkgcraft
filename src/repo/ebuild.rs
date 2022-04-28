@@ -257,17 +257,17 @@ impl fmt::Display for TempRepo {
 
 impl repo::Repo for TempRepo {
     #[inline]
-    fn categories(&mut self) -> repo::StringIter {
+    fn categories(&mut self) -> Vec<String> {
         self.repo.categories()
     }
 
     #[inline]
-    fn packages(&mut self, cat: &str) -> repo::StringIter {
+    fn packages(&mut self, cat: &str) -> Vec<String> {
         self.repo.packages(cat)
     }
 
     #[inline]
-    fn versions(&mut self, cat: &str, pkg: &str) -> repo::StringIter {
+    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String> {
         self.repo.versions(cat, pkg)
     }
 

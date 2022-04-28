@@ -21,24 +21,24 @@ struct PkgCache {
 }
 
 impl PkgCache {
-    fn categories(&self) -> StringIter {
-        Box::new(self.pkgmap.keys().map(|s| s.as_str()))
+    fn categories(&self) -> Vec<String> {
+        self.pkgmap.clone().into_keys().collect()
     }
 
-    fn packages<S: AsRef<str>>(&self, cat: S) -> StringIter {
+    fn packages<S: AsRef<str>>(&self, cat: S) -> Vec<String> {
         match self.pkgmap.get(cat.as_ref()) {
-            Some(pkgs) => Box::new(pkgs.keys().map(|s| s.as_str())),
-            None => Box::new(iter::empty::<&str>()),
+            Some(pkgs) => pkgs.clone().into_keys().collect(),
+            None => vec![],
         }
     }
 
-    fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> StringIter {
+    fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Vec<String> {
         match self.pkgmap.get(cat.as_ref()) {
             Some(pkgs) => match pkgs.get(pkg.as_ref()) {
-                Some(vers) => Box::new(vers.iter().map(|s| s.as_str())),
-                None => Box::new(iter::empty::<&str>()),
+                Some(vers) => vers.clone().into_iter().collect(),
+                None => vec![],
             },
-            None => Box::new(iter::empty::<&str>()),
+            None => vec![],
         }
     }
 }
@@ -107,9 +107,9 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
 pub(crate) trait Repo: fmt::Debug + fmt::Display {
     // TODO: convert to `impl Iterator` return type once supported within traits
     // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
-    fn categories(&mut self) -> StringIter;
-    fn packages(&mut self, cat: &str) -> StringIter;
-    fn versions(&mut self, cat: &str, pkg: &str) -> StringIter;
+    fn categories(&mut self) -> Vec<String>;
+    fn packages(&mut self, cat: &str) -> Vec<String>;
+    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String>;
     fn id(&self) -> &str;
 }
 
@@ -124,7 +124,7 @@ impl fmt::Display for Repository {
 
 impl Repo for Repository {
     #[inline]
-    fn categories(&mut self) -> StringIter {
+    fn categories(&mut self) -> Vec<String> {
         match self {
             Repository::Ebuild(ref mut repo) => repo.categories(),
             Repository::Fake(ref mut repo) => repo.categories(),
@@ -132,7 +132,7 @@ impl Repo for Repository {
     }
 
     #[inline]
-    fn packages(&mut self, cat: &str) -> StringIter {
+    fn packages(&mut self, cat: &str) -> Vec<String> {
         match self {
             Repository::Ebuild(ref mut repo) => repo.packages(cat),
             Repository::Fake(ref mut repo) => repo.packages(cat),
@@ -140,7 +140,7 @@ impl Repo for Repository {
     }
 
     #[inline]
-    fn versions(&mut self, cat: &str, pkg: &str) -> StringIter {
+    fn versions(&mut self, cat: &str, pkg: &str) -> Vec<String> {
         match self {
             Repository::Ebuild(ref mut repo) => repo.versions(cat, pkg),
             Repository::Fake(ref mut repo) => repo.versions(cat, pkg),
