@@ -5,8 +5,8 @@ use std::sync::{Arc, RwLock};
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::Error;
 use crate::macros::build_from_paths;
+use crate::{Error, Result};
 
 mod repo;
 
@@ -20,7 +20,7 @@ pub struct ConfigPath {
 }
 
 impl ConfigPath {
-    fn new(name: &str, prefix: &str, create: bool) -> crate::Result<ConfigPath> {
+    fn new(name: &str, prefix: &str, create: bool) -> Result<ConfigPath> {
         let home = env::var("HOME").ok().unwrap_or_else(|| "/root".to_string());
         let (config, cache, data, db, run): (PathBuf, PathBuf, PathBuf, PathBuf, PathBuf);
 
@@ -96,7 +96,7 @@ thread_local! {
 }
 
 impl Config {
-    pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Arc<Config>> {
+    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Arc<Config>> {
         let path = ConfigPath::new(name, prefix, create)?;
         let repos = repo::Config::new(&path.config, &path.db, create)?;
         let config = Config { path, repos };
