@@ -307,16 +307,16 @@ impl repo::Repo for Repo {
         let mut v = vec![];
         for entry in ebuilds {
             let path = entry.path();
-            let cat = path.parent().unwrap().file_name().unwrap().to_str();
+            let pn = path.parent().unwrap().file_name().unwrap().to_str();
             let pf = path.file_stem().unwrap().to_str();
-            match (cat, pf) {
-                (Some(cat), Some(pf)) => {
-                    let cpv = format!("{}/{}", cat, pf);
-                    match atom::parse::cpv(&cpv) {
-                        Ok(cpv) => v.push(format!("{}", cpv.version.unwrap())),
+            match (pn, pf) {
+                (Some(pn), Some(pf)) => match pn == &pf[..pn.len()] {
+                    true => match atom::parse::version(&pf[pn.len() + 1..]) {
+                        Ok(ver) => v.push(format!("{}", ver)),
                         Err(e) => warn!("{e}"),
-                    }
-                }
+                    },
+                    false => warn!("unmatched ebuild: {:?}", path),
+                },
                 _ => warn!("non-unicode path: {:?}", path),
             }
         }
@@ -410,6 +410,8 @@ impl repo::Repo for TempRepo {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use crate::macros::assert_err_re;
     use crate::repo::Repo as RepoTrait;
 
@@ -436,14 +438,60 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_repo() {
+    fn test_id() {
         let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
         assert_eq!(temprepo.id(), "test");
-        assert_eq!(temprepo.categories(), Vec::<&str>::new());
-        assert_eq!(temprepo.packages("cat"), Vec::<&str>::new());
-        assert_eq!(temprepo.versions("cat", "pkg"), Vec::<&str>::new());
+        assert_eq!(temprepo.repo.id(), "test");
+    }
 
+    #[test]
+    fn test_categories() {
+        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
         let repo = temprepo.repo;
-        assert_eq!(repo.category_dirs(), Vec::<&str>::new());
+        assert_eq!(repo.categories(), Vec::<String>::new());
+        fs::create_dir(repo.path.join("cat")).unwrap();
+        assert_eq!(repo.categories(), ["cat"]);
+        fs::create_dir(repo.path.join("a-cat")).unwrap();
+        fs::create_dir(repo.path.join("z-cat")).unwrap();
+        assert_eq!(repo.categories(), ["a-cat", "cat", "z-cat"]);
+    }
+
+    #[test]
+    fn test_packages() {
+        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+        let repo = temprepo.repo;
+        assert_eq!(repo.packages("cat"), Vec::<String>::new());
+        fs::create_dir_all(repo.path.join("cat/pkg")).unwrap();
+        assert_eq!(repo.packages("cat"), ["pkg"]);
+        fs::create_dir_all(repo.path.join("a-cat/pkg-z")).unwrap();
+        fs::create_dir_all(repo.path.join("a-cat/pkg-a")).unwrap();
+        assert_eq!(repo.packages("a-cat"), ["pkg-a", "pkg-z"]);
+    }
+
+    #[test]
+    fn test_versions() {
+        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+        let repo = temprepo.repo;
+        assert_eq!(repo.versions("cat", "pkg"), Vec::<String>::new());
+        fs::create_dir_all(repo.path.join("cat/pkg")).unwrap();
+        fs::File::create(repo.path.join("cat/pkg/pkg-1.ebuild")).unwrap();
+        assert_eq!(repo.versions("cat", "pkg"), ["1"]);
+
+        // unmatching ebuilds are ignored
+        fs::File::create(repo.path.join("cat/pkg/foo-2.ebuild")).unwrap();
+        assert_eq!(repo.versions("cat", "pkg"), ["1"]);
+
+        // wrongly named files are ignored
+        fs::File::create(repo.path.join("cat/pkg/pkg-2.txt")).unwrap();
+        fs::File::create(repo.path.join("cat/pkg/pkg-2..ebuild")).unwrap();
+        fs::File::create(repo.path.join("cat/pkg/pkg-2ebuild")).unwrap();
+        assert_eq!(repo.versions("cat", "pkg"), ["1"]);
+
+        fs::File::create(repo.path.join("cat/pkg/pkg-2.ebuild")).unwrap();
+        assert_eq!(repo.versions("cat", "pkg"), ["1", "2"]);
+
+        fs::create_dir_all(repo.path.join("a-cat/pkg10a")).unwrap();
+        fs::File::create(repo.path.join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
+        assert_eq!(repo.versions("a-cat", "pkg10a"), ["0-r0"]);
     }
 }
