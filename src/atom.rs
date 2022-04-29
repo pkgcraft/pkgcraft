@@ -120,6 +120,10 @@ impl Atom {
     pub fn slot_op(&self) -> Option<&str> {
         self.slot_op.as_deref()
     }
+
+    pub fn repo(&self) -> Option<&str> {
+        self.repo.as_deref()
+    }
 }
 
 impl fmt::Display for Atom {
