@@ -7,6 +7,7 @@ pub mod config;
 pub mod depspec;
 pub mod eapi;
 mod error;
+pub(crate) mod files;
 mod macros;
 pub mod peg;
 pub mod pkg;
@@ -15,7 +16,6 @@ mod repo;
 mod sync;
 #[cfg(test)]
 pub(crate) mod test;
-mod types;
 mod utils;
 
 pub use self::error::{Error, Result};

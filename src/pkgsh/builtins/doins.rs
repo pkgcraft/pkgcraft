@@ -5,8 +5,8 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::files::NO_WALKDIR_FILTER;
 use crate::pkgsh::BUILD_DATA;
-use crate::types::NO_WALKDIR_FILTER;
 
 const LONG_DOC: &str = "Install files into INSDESTREE.";
 

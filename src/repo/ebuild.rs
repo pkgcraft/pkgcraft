@@ -10,12 +10,12 @@ use ini::Ini;
 use once_cell::sync::Lazy;
 use tempfile::TempDir;
 use tracing::warn;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::DirEntry;
 
 use crate::config::Config;
+use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
-use crate::types::WalkDirFilter;
 use crate::{atom, eapi, repo, Error, Result};
 
 const DEFAULT_SECTION: Option<String> = None;
@@ -186,9 +186,16 @@ impl Repo {
     pub fn category_dirs(&self) -> Vec<String> {
         // filter out non-category dirs
         let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
-        let cats = FilesAtPath::new(&self.path, Some(filter));
+        let cats = sorted_dir_list(&self.path).into_iter().filter_entry(filter);
         let mut v = vec![];
         for entry in cats {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(e) => {
+                    warn!("error walking {:?}: {e}", &self.path);
+                    continue;
+                }
+            };
             let path = entry.path();
             match entry.file_name().to_str() {
                 Some(s) => match atom::parse::category(s) {
@@ -208,74 +215,6 @@ impl fmt::Display for Repo {
     }
 }
 
-struct FilesAtPath {
-    iter: walkdir::IntoIter,
-    filter: Option<WalkDirFilter>,
-}
-
-impl FilesAtPath {
-    fn new<P>(path: P, filter: Option<WalkDirFilter>) -> Self
-    where
-        P: AsRef<Path>,
-    {
-        let path = path.as_ref();
-        let entries = WalkDir::new(path)
-            .sort_by_file_name()
-            .min_depth(1)
-            .max_depth(1);
-
-        FilesAtPath {
-            iter: entries.into_iter(),
-            filter,
-        }
-    }
-}
-
-impl Iterator for FilesAtPath {
-    type Item = DirEntry;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.iter.next() {
-                Some(Ok(entry)) => match self.filter {
-                    Some(f) => {
-                        if f(&entry) {
-                            return Some(entry);
-                        } else {
-                            continue;
-                        }
-                    }
-                    None => return Some(entry),
-                },
-                _ => return None,
-            }
-        }
-    }
-}
-
-fn is_dir(entry: &DirEntry) -> bool {
-    entry.path().is_dir()
-}
-
-fn is_file(entry: &DirEntry) -> bool {
-    entry.path().is_file()
-}
-
-fn has_ext(entry: &DirEntry, ext: &str) -> bool {
-    match entry.path().extension() {
-        Some(e) => e.to_str() == Some(ext),
-        _ => false,
-    }
-}
-
-fn is_hidden(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with('.'))
-        .unwrap_or(false)
-}
-
 fn is_fake_category(entry: &DirEntry) -> bool {
     entry
         .file_name()
@@ -293,9 +232,16 @@ impl repo::Repo for Repo {
     fn packages(&self, cat: &str) -> Vec<String> {
         let path = self.path.join(cat.strip_prefix('/').unwrap_or(cat));
         let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
-        let pkgs = FilesAtPath::new(&path, Some(filter));
+        let pkgs = sorted_dir_list(&path).into_iter().filter_entry(filter);
         let mut v = vec![];
         for entry in pkgs {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(e) => {
+                    warn!("error walking {:?}: {e}", &path);
+                    continue;
+                }
+            };
             let path = entry.path();
             match entry.file_name().to_str() {
                 Some(s) => match atom::parse::package(s) {
@@ -315,9 +261,16 @@ impl repo::Repo for Repo {
             pkg.strip_prefix('/').unwrap_or(pkg)
         );
         let filter = |e: &DirEntry| -> bool { is_file(e) && !is_hidden(e) && has_ext(e, "ebuild") };
-        let ebuilds = FilesAtPath::new(&path, Some(filter));
+        let ebuilds = sorted_dir_list(&path).into_iter().filter_entry(filter);
         let mut v = vec![];
         for entry in ebuilds {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(e) => {
+                    warn!("error walking {:?}: {e}", &path);
+                    continue;
+                }
+            };
             let path = entry.path();
             let pn = path.parent().unwrap().file_name().unwrap().to_str();
             let pf = path.file_stem().unwrap().to_str();
