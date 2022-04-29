@@ -1,10 +1,17 @@
 use std::fmt;
 
-use crate::{atom, eapi, pkg};
+use crate::{atom, eapi, pkg, Result};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Pkg {
     atom: atom::Atom,
+}
+
+impl Pkg {
+    pub fn new<S: AsRef<str>>(cpv: S) -> Result<Self> {
+        let atom = atom::parse::cpv(cpv.as_ref())?;
+        Ok(Pkg { atom })
+    }
 }
 
 impl fmt::Display for Pkg {
