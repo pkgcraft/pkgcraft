@@ -7,7 +7,6 @@ use std::sync::Arc;
 use std::{env, fmt, fs, io};
 
 use ini::Ini;
-use itertools::Either;
 use once_cell::sync::Lazy;
 use tempfile::TempDir;
 use tracing::warn;
@@ -209,10 +208,13 @@ impl fmt::Display for Repo {
     }
 }
 
-struct FilesAtPath(Box<dyn Iterator<Item = walkdir::Result<DirEntry>>>);
+struct FilesAtPath {
+    iter: walkdir::IntoIter,
+    filter: Option<WalkDirFilter>,
+}
 
 impl FilesAtPath {
-    fn new<P>(path: P, predicate: Option<WalkDirFilter>) -> Self
+    fn new<P>(path: P, filter: Option<WalkDirFilter>) -> Self
     where
         P: AsRef<Path>,
     {
@@ -222,13 +224,10 @@ impl FilesAtPath {
             .min_depth(1)
             .max_depth(1);
 
-        // optionally apply directory filtering
-        let entries = match predicate.as_ref().cloned() {
-            None => Either::Left(entries),
-            Some(func) => Either::Right(entries.into_iter().filter_entry(func)),
-        };
-
-        FilesAtPath(Box::new(entries.into_iter()))
+        FilesAtPath {
+            iter: entries.into_iter(),
+            filter,
+        }
     }
 }
 
@@ -236,9 +235,20 @@ impl Iterator for FilesAtPath {
     type Item = DirEntry;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0.next() {
-            Some(Ok(entry)) => Some(entry),
-            _ => None,
+        loop {
+            match self.iter.next() {
+                Some(Ok(entry)) => match self.filter {
+                    Some(f) => {
+                        if f(&entry) {
+                            return Some(entry);
+                        } else {
+                            continue;
+                        }
+                    }
+                    None => return Some(entry),
+                },
+                _ => return None,
+            }
         }
     }
 }
