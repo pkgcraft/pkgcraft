@@ -1,11 +1,10 @@
 use std::fmt;
 use std::fs;
-use std::iter;
 use std::path::Path;
 
 use indexmap::IndexSet;
 
-use crate::pkg::Pkg;
+use crate::pkg::Package;
 use crate::{atom, repo, Error, Result};
 
 #[derive(Debug, Default)]
@@ -74,8 +73,8 @@ impl repo::Repo for Repo {
         &self.id
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
-        Box::new(iter::empty::<Box<dyn Pkg>>())
+    fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
+        unimplemented!()
     }
 
     fn len(&self) -> usize {

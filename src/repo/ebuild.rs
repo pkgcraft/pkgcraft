@@ -15,7 +15,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::config::Config;
 use crate::macros::build_from_paths;
-use crate::pkg::Pkg;
+use crate::pkg::Package;
 use crate::types::WalkDirFilter;
 use crate::{atom, eapi, repo, Error, Result};
 
@@ -329,8 +329,8 @@ impl repo::Repo for Repo {
         &self.id
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
-        Box::new(iter::empty::<Box<dyn Pkg>>())
+    fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
+        Box::new(iter::empty::<Package>())
     }
 
     fn len(&self) -> usize {
@@ -418,7 +418,7 @@ impl repo::Repo for TempRepo {
     }
 
     #[inline]
-    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
+    fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
         self.repo.iter()
     }
 

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 
-use crate::pkg::Pkg;
+use crate::pkg::Package;
 use crate::{Error, Result};
 
 pub(crate) mod ebuild;
@@ -110,7 +110,7 @@ pub(crate) trait Repo: fmt::Debug + fmt::Display {
     fn id(&self) -> &str;
     // TODO: convert to `impl Iterator` return type once supported within traits
     // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
-    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>>;
+    fn iter(&self) -> Box<dyn Iterator<Item = Package>>;
     fn len(&self) -> usize;
 }
 
@@ -157,7 +157,7 @@ impl Repo for Repository {
     }
 
     #[inline]
-    fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
+    fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
         match self {
             Repository::Ebuild(ref repo) => repo.iter(),
             Repository::Fake(ref repo) => repo.iter(),
