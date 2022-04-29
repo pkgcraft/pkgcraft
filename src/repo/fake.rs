@@ -77,6 +77,10 @@ impl repo::Repo for Repo {
     fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
         Box::new(iter::empty::<Box<dyn Pkg>>())
     }
+
+    fn len(&self) -> usize {
+        self.pkgs.len()
+    }
 }
 
 #[cfg(test)]
@@ -126,5 +130,15 @@ mod tests {
         assert_eq!(repo.versions("cat", "pkg"), Vec::<String>::new());
         assert_eq!(repo.versions("cat1", "pkg-a"), ["1"]);
         assert_eq!(repo.versions("cat2", "pkg-b"), ["1", "2"]);
+    }
+
+    #[test]
+    fn test_len() {
+        let repo = Repo::new("fake", []).unwrap();
+        assert_eq!(repo.len(), 0);
+        let repo = Repo::new("fake", ["cat/pkg-0", "cat/pkg-0"]).unwrap();
+        assert_eq!(repo.len(), 1);
+        let repo = Repo::new("fake", ["cat/pkg-0", "cat1/pkg1-1", "cat2/pkg2-2"]).unwrap();
+        assert_eq!(repo.len(), 3);
     }
 }

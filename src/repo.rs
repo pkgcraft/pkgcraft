@@ -39,6 +39,14 @@ impl PkgCache {
             None => vec![],
         }
     }
+
+    fn len(&self) -> usize {
+        let mut len = 0;
+        for v in self.pkgmap.values() {
+            len += v.len();
+        }
+        len
+    }
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -103,6 +111,7 @@ pub(crate) trait Repo: fmt::Debug + fmt::Display {
     // TODO: convert to `impl Iterator` return type once supported within traits
     // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
     fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>>;
+    fn len(&self) -> usize;
 }
 
 impl fmt::Display for Repository {
@@ -152,6 +161,14 @@ impl Repo for Repository {
         match self {
             Repository::Ebuild(ref repo) => repo.iter(),
             Repository::Fake(ref repo) => repo.iter(),
+        }
+    }
+
+    #[inline]
+    fn len(&self) -> usize {
+        match self {
+            Repository::Ebuild(ref repo) => repo.len(),
+            Repository::Fake(ref repo) => repo.len(),
         }
     }
 }

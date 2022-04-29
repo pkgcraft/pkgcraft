@@ -332,6 +332,10 @@ impl repo::Repo for Repo {
     fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
         Box::new(iter::empty::<Box<dyn Pkg>>())
     }
+
+    fn len(&self) -> usize {
+        unimplemented!()
+    }
 }
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
@@ -416,6 +420,11 @@ impl repo::Repo for TempRepo {
     #[inline]
     fn iter(&self) -> Box<dyn Iterator<Item = Box<dyn Pkg>>> {
         self.repo.iter()
+    }
+
+    #[inline]
+    fn len(&self) -> usize {
+        self.repo.len()
     }
 }
 
