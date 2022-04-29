@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{atom, eapi, pkg};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Pkg {
     atom: atom::Atom,
 }

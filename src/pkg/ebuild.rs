@@ -10,7 +10,7 @@ use crate::{atom, eapi, pkg, Error, Result};
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Pkg {
     atom: atom::Atom,
     path: PathBuf,
