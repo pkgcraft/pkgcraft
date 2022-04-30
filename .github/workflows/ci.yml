@@ -52,11 +52,11 @@ jobs:
     - name: Update deps
       run: cargo update
 
-    - name: Build
-      run: cargo build --tests --all-features
+    - name: Install cargo-nextest
+      uses: taiki-e/install-action@nextest
 
-    - name: Test
-      run: cargo test --all-features
+    - name: Build and test
+      run: cargo nextest run --color always --all-features
 
   lint:
     runs-on: ubuntu-latest
