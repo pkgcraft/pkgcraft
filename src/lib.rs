@@ -12,7 +12,7 @@ mod macros;
 pub mod peg;
 pub mod pkg;
 pub mod pkgsh;
-mod repo;
+pub mod repo;
 mod sync;
 #[cfg(test)]
 pub(crate) mod test;

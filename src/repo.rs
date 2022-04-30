@@ -67,7 +67,7 @@ impl Repository {
     }
 
     /// Try to load a repository from a given path.
-    pub(crate) fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<(&'static str, Self)> {
+    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<(&'static str, Self)> {
         let path = path.as_ref();
 
         for format in SUPPORTED_FORMATS.iter() {
@@ -103,7 +103,7 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-pub(crate) trait Repo: fmt::Debug + fmt::Display {
+pub trait Repo: fmt::Debug + fmt::Display {
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
