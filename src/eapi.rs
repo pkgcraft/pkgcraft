@@ -217,12 +217,10 @@ impl Eapi {
         Atom::new(s.as_ref(), self)
     }
 
-    #[inline]
     pub(crate) fn phases(&self) -> &HashMap<String, PhaseFn> {
         &self.phases
     }
 
-    #[inline]
     pub(crate) fn archives_regex(&self) -> &Regex {
         self.archives_regex.get_or_init(|| {
             // Regex matches extensions from the longest to the shortest.
@@ -267,12 +265,10 @@ impl Eapi {
         Ok(ScopedBuiltins::new((&builtins, &[]))?)
     }
 
-    #[inline]
     pub(crate) fn incremental_keys(&self) -> &HashSet<String> {
         &self.incremental_keys
     }
 
-    #[inline]
     pub(crate) fn econf_options(&self) -> &EapiEconfOptions {
         &self.econf_options
     }

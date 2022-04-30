@@ -140,7 +140,6 @@ impl fmt::Display for Repository {
 
 // TODO: use a macro to create this wrapper implementation
 impl Repo for Repository {
-    #[inline]
     fn categories(&self) -> Vec<String> {
         match self {
             Repository::Ebuild(ref repo) => repo.categories(),
@@ -148,7 +147,6 @@ impl Repo for Repository {
         }
     }
 
-    #[inline]
     fn packages(&self, cat: &str) -> Vec<String> {
         match self {
             Repository::Ebuild(ref repo) => repo.packages(cat),
@@ -156,7 +154,6 @@ impl Repo for Repository {
         }
     }
 
-    #[inline]
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         match self {
             Repository::Ebuild(ref repo) => repo.versions(cat, pkg),
@@ -164,7 +161,6 @@ impl Repo for Repository {
         }
     }
 
-    #[inline]
     fn id(&self) -> &str {
         match self {
             Repository::Ebuild(ref repo) => repo.id(),
@@ -172,7 +168,6 @@ impl Repo for Repository {
         }
     }
 
-    #[inline]
     fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
         match self {
             Repository::Ebuild(ref repo) => repo.iter(),
@@ -180,7 +175,6 @@ impl Repo for Repository {
         }
     }
 
-    #[inline]
     fn len(&self) -> usize {
         match self {
             Repository::Ebuild(ref repo) => repo.len(),
@@ -188,7 +182,6 @@ impl Repo for Repository {
         }
     }
 
-    #[inline]
     fn is_empty(&self) -> bool {
         match self {
             Repository::Ebuild(ref repo) => repo.is_empty(),

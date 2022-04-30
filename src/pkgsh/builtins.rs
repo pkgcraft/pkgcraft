@@ -131,7 +131,6 @@ impl PkgBuiltin {
         PkgBuiltin { builtin, scope }
     }
 
-    #[inline]
     pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
         self.builtin.run(args)
     }
@@ -305,7 +304,6 @@ pub(crate) mod parse {
     use super::cmd;
     use crate::{Error, Result};
 
-    #[inline]
     pub(crate) fn range(s: &str, max: usize) -> Result<(usize, usize)> {
         let (start, end) =
             cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {s:?}"), s, e))?;

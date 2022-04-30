@@ -364,37 +364,30 @@ impl fmt::Display for TempRepo {
 }
 
 impl repo::Repo for TempRepo {
-    #[inline]
     fn categories(&self) -> Vec<String> {
         self.repo.categories()
     }
 
-    #[inline]
     fn packages(&self, cat: &str) -> Vec<String> {
         self.repo.packages(cat)
     }
 
-    #[inline]
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         self.repo.versions(cat, pkg)
     }
 
-    #[inline]
     fn id(&self) -> &str {
         &self.repo.id
     }
 
-    #[inline]
     fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
         self.repo.iter()
     }
 
-    #[inline]
     fn len(&self) -> usize {
         self.repo.len()
     }
 
-    #[inline]
     fn is_empty(&self) -> bool {
         self.repo.is_empty()
     }
