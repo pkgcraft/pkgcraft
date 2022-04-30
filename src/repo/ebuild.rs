@@ -299,6 +299,10 @@ impl repo::Repo for Repo {
     fn len(&self) -> usize {
         unimplemented!()
     }
+
+    fn is_empty(&self) -> bool {
+        unimplemented!()
+    }
 }
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
@@ -388,6 +392,11 @@ impl repo::Repo for TempRepo {
     #[inline]
     fn len(&self) -> usize {
         self.repo.len()
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.repo.is_empty()
     }
 }
 

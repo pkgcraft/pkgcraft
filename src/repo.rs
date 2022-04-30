@@ -47,6 +47,10 @@ impl PkgCache {
         }
         len
     }
+
+    fn is_empty(&self) -> bool {
+        self.pkgmap.is_empty()
+    }
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -122,6 +126,7 @@ pub trait Repo: fmt::Debug + fmt::Display {
     // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
     fn iter(&self) -> Box<dyn Iterator<Item = Package>>;
     fn len(&self) -> usize;
+    fn is_empty(&self) -> bool;
 }
 
 impl fmt::Display for Repository {
@@ -133,6 +138,7 @@ impl fmt::Display for Repository {
     }
 }
 
+// TODO: use a macro to create this wrapper implementation
 impl Repo for Repository {
     #[inline]
     fn categories(&self) -> Vec<String> {
@@ -179,6 +185,14 @@ impl Repo for Repository {
         match self {
             Repository::Ebuild(ref repo) => repo.len(),
             Repository::Fake(ref repo) => repo.len(),
+        }
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        match self {
+            Repository::Ebuild(ref repo) => repo.is_empty(),
+            Repository::Fake(ref repo) => repo.is_empty(),
         }
     }
 }

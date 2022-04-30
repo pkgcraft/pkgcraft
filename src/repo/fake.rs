@@ -80,6 +80,10 @@ impl repo::Repo for Repo {
     fn len(&self) -> usize {
         self.pkgs.len()
     }
+
+    fn is_empty(&self) -> bool {
+        self.pkgs.is_empty()
+    }
 }
 
 #[cfg(test)]
