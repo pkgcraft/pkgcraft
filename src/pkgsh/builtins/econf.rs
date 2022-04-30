@@ -124,28 +124,17 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 #[cfg(test)]
 mod tests {
     use std::fs::File;
-    use std::io::prelude::*;
-    use std::process::{Command, Stdio};
     use std::{env, str};
 
     use indexmap::IndexMap;
-    use indoc::indoc;
     use rusty_fork::rusty_fork_test;
     use scallop::variables::{ScopedVariable, Variables};
     use tempfile::tempdir;
 
     use super::BUILTIN as econf;
     use crate::command::last_command;
-    use crate::macros::assert_err_re;
+    use crate::macros::{assert_err_re, build_from_paths};
     use crate::pkgsh::BUILD_DATA;
-
-    const CONFIGURE_AC: &str = indoc! {"
-        AC_INIT([pkgcraft], [0.0.1], [pkgcraft@pkgcraft.org])
-        AM_INIT_AUTOMAKE([-Wall -Werror foreign])
-        LT_INIT
-        AC_PROG_CC
-        AC_OUTPUT
-    "};
 
     fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
         econf.run(args).unwrap();
@@ -177,17 +166,8 @@ mod tests {
         #[test]
         #[cfg_attr(target_os = "macos", ignore)]
         fn args() {
-            let dir = tempdir().unwrap();
-            let configure_ac = dir.path().join("configure.ac");
-            let file = File::create(configure_ac).unwrap();
-            env::set_current_dir(&dir).unwrap();
-            write!(&file, "{CONFIGURE_AC}").unwrap();
-            Command::new("autoreconf")
-                .arg("-i")
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .unwrap();
+            let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests", "econf");
+            env::set_current_dir(&configure_dir).unwrap();
 
             BUILD_DATA.with(|d| {
                 // TODO: add support for generating build state data for tests
