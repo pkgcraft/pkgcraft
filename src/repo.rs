@@ -67,8 +67,13 @@ impl Repository {
     }
 
     /// Try to load a repository from a given path.
-    pub fn from_path<P: AsRef<Path>>(id: &str, path: P) -> Result<(&'static str, Self)> {
+    pub fn from_path<P, S>(id: S, path: P) -> Result<(&'static str, Self)>
+    where
+        P: AsRef<Path>,
+        S: AsRef<str>,
+    {
         let path = path.as_ref();
+        let id = id.as_ref();
 
         for format in SUPPORTED_FORMATS.iter() {
             if let Ok(repo) = Self::from_format(id, path, format) {
@@ -83,13 +88,18 @@ impl Repository {
     }
 
     /// Try to load a certain repository type from a given path.
-    pub(crate) fn from_format<P: AsRef<Path>>(id: &str, path: P, format: &str) -> Result<Self> {
+    pub(crate) fn from_format<P, S>(id: S, path: P, format: &str) -> Result<Self>
+    where
+        P: AsRef<Path>,
+        S: AsRef<str>,
+    {
         let path = path.as_ref();
+        let id = id.as_ref();
 
         match format {
             ebuild::Repo::FORMAT => Ok(Repository::Ebuild(ebuild::Repo::from_path(id, path)?)),
             fake::Repo::FORMAT => Ok(Repository::Fake(fake::Repo::from_path(id, path)?)),
-            _ => Err(Error::RepoInit(format!("{id:?} repo: unknown format: {format:?}"))),
+            _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
         }
     }
 }
