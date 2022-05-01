@@ -1,6 +1,87 @@
+use std::ops::Deref;
 use std::path::Path;
+use std::str::FromStr;
 
+use nix::{sys::stat, unistd};
 use walkdir::{DirEntry, WalkDir};
+
+use crate::{Error, Result};
+
+#[derive(Debug)]
+pub(crate) struct Group {
+    inner: unistd::Group,
+}
+
+impl FromStr for Group {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match unistd::Group::from_name(s) {
+            Ok(Some(val)) => Ok(Group { inner: val }),
+            Ok(None) => Err(Error::InvalidValue(format!("unknown group: {s}"))),
+            Err(_) => Err(Error::InvalidValue(format!("invalid group: {s}"))),
+        }
+    }
+}
+
+impl Deref for Group {
+    type Target = unistd::Group;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct User {
+    inner: unistd::User,
+}
+
+impl Deref for User {
+    type Target = unistd::User;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl FromStr for User {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match unistd::User::from_name(s) {
+            Ok(Some(val)) => Ok(User { inner: val }),
+            Ok(None) => Err(Error::InvalidValue(format!("unknown user: {s}"))),
+            Err(_) => Err(Error::InvalidValue(format!("invalid user: {s}"))),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct Mode {
+    inner: stat::Mode,
+}
+
+impl Deref for Mode {
+    type Target = stat::Mode;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl FromStr for Mode {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let without_prefix = s.trim_start_matches("0o");
+        let mode = stat::mode_t::from_str_radix(without_prefix, 8)
+            .map_err(|_| Error::InvalidValue(format!("invalid mode: {s}")))?;
+        let mode = stat::Mode::from_bits(mode)
+            .ok_or_else(|| Error::InvalidValue(format!("invalid mode: {s}")))?;
+        Ok(Mode { inner: mode })
+    }
+}
 
 // None value coerced to a directory filtering predicate function pointer for use with
 // Option-wrapped closure parameter generics.

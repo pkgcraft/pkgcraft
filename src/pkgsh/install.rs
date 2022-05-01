@@ -1,7 +1,6 @@
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::str::FromStr;
 use std::{fs, io};
 
 use clap::Parser;
@@ -13,58 +12,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use super::BuildData;
 use crate::command::RunCommand;
-
-#[derive(Debug)]
-struct Group {
-    inner: unistd::Group,
-}
-
-impl FromStr for Group {
-    type Err = crate::Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        match unistd::Group::from_name(s) {
-            Ok(Some(val)) => Ok(Group { inner: val }),
-            Ok(None) => Err(crate::Error::InvalidValue(format!("unknown group: {s}"))),
-            Err(_) => Err(crate::Error::InvalidValue(format!("invalid group: {s}"))),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct User {
-    inner: unistd::User,
-}
-
-impl FromStr for User {
-    type Err = crate::Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        match unistd::User::from_name(s) {
-            Ok(Some(val)) => Ok(User { inner: val }),
-            Ok(None) => Err(crate::Error::InvalidValue(format!("unknown user: {s}"))),
-            Err(_) => Err(crate::Error::InvalidValue(format!("invalid user: {s}"))),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Mode {
-    inner: stat::Mode,
-}
-
-impl FromStr for Mode {
-    type Err = crate::Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        let without_prefix = s.trim_start_matches("0o");
-        let mode = stat::mode_t::from_str_radix(without_prefix, 8)
-            .map_err(|_| crate::Error::InvalidValue(format!("invalid mode: {s}")))?;
-        let mode = stat::Mode::from_bits(mode)
-            .ok_or_else(|| crate::Error::InvalidValue(format!("invalid mode: {s}")))?;
-        Ok(Mode { inner: mode })
-    }
-}
+use crate::files::{Group, Mode, User};
 
 #[derive(Parser, Debug, Default)]
 #[clap(name = "install")]
@@ -77,20 +25,6 @@ struct InstallOptions {
     mode: Option<Mode>,
     #[clap(short, long)]
     preserve_timestamps: bool,
-}
-
-impl InstallOptions {
-    fn gid(&self) -> Option<unistd::Gid> {
-        self.group.as_ref().map(|g| g.inner.gid)
-    }
-
-    fn uid(&self) -> Option<unistd::Uid> {
-        self.owner.as_ref().map(|o| o.inner.uid)
-    }
-
-    fn mode(&self) -> Option<stat::Mode> {
-        self.mode.as_ref().map(|m| m.inner)
-    }
 }
 
 enum InstallOpts {
@@ -215,16 +149,16 @@ impl Install {
 
     fn set_attributes<P: AsRef<Path>>(&self, opts: &InstallOptions, path: P) -> Result<()> {
         let path = path.as_ref();
-        let uid = opts.uid();
-        let gid = opts.gid();
+        let uid = opts.owner.as_ref().map(|o| o.uid);
+        let gid = opts.group.as_ref().map(|g| g.gid);
         if uid.is_some() || gid.is_some() {
             unistd::fchownat(None, path, uid, gid, unistd::FchownatFlags::NoFollowSymlink)
                 .map_err(|e| Error::Base(format!("failed setting file uid/gid: {path:?}: {e}")))?;
         }
 
-        if let Some(mode) = opts.mode() {
+        if let Some(mode) = &opts.mode {
             if !path.is_symlink() {
-                stat::fchmodat(None, path, mode, stat::FchmodatFlags::FollowSymlink)
+                stat::fchmodat(None, path, **mode, stat::FchmodatFlags::FollowSymlink)
                     .map_err(|e| Error::Base(format!("failed setting file mode: {path:?}: {e}")))?;
             }
         }
