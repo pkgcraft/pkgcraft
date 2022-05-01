@@ -108,8 +108,8 @@ impl Atom {
             .map(|u| u.iter().map(|s| s.as_str()).collect())
     }
 
-    pub fn fullver(&self) -> Option<String> {
-        self.version.as_ref().map(|ver| format!("{ver}"))
+    pub fn fullver(&self) -> Option<&str> {
+        self.version.as_ref().map(|v| v.as_str())
     }
 
     pub fn key(&self) -> String {
@@ -226,7 +226,6 @@ impl FromStr for Atom {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::macros::opt_str;
 
     #[test]
     fn test_fmt() {
@@ -273,13 +272,13 @@ mod tests {
         let mut atom: Atom;
         for (s, fullver) in [
             ("cat/pkg", None),
-            ("<cat/pkg-4", opt_str!("4")),
-            ("<=cat/pkg-4-r1", opt_str!("4-r1")),
-            ("=cat/pkg-4", opt_str!("4")),
-            ("=cat/pkg-4*", opt_str!("4")),
-            ("~cat/pkg-4", opt_str!("4")),
-            (">=cat/pkg-r1-2-r3", opt_str!("2-r3")),
-            (">cat/pkg-4-r1:0=", opt_str!("4-r1")),
+            ("<cat/pkg-4", Some("4")),
+            ("<=cat/pkg-4-r1", Some("4-r1")),
+            ("=cat/pkg-4", Some("4")),
+            ("=cat/pkg-4*", Some("4")),
+            ("~cat/pkg-4", Some("4")),
+            (">=cat/pkg-r1-2-r3", Some("2-r3")),
+            (">cat/pkg-4-r1:0=", Some("4-r1")),
         ] {
             atom = Atom::from_str(&s).unwrap();
             assert_eq!(atom.fullver(), fullver);

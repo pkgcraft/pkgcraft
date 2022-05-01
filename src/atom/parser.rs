@@ -33,8 +33,8 @@ peg::parser! {
         pub(crate) rule version() -> ParsedVersion<'input>
             = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
                 suffixes:("_" s:version_suffix() ++ "_" {s})?
-                end:position!() revision:revision()?
-            { ParsedVersion { start, end, numbers, letter, suffixes, revision } }
+                end_base:position!() revision:revision()? end:position!()
+            { ParsedVersion { start, end_base, end, numbers, letter, suffixes, revision } }
 
         rule revision() -> &'input str
             = "-r" s:$(quiet!{['0'..='9']+} / expected!("revision"))

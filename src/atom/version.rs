@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
-use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::iter::zip;
 use std::str::FromStr;
+use std::{fmt, str};
 
 use super::{cmp_not_equal, parse};
 use crate::{Error, Result};
@@ -33,7 +33,7 @@ impl FromStr for Suffix {
 
 #[derive(Debug, Default, Eq, Clone)]
 pub(crate) struct Revision {
-    pub(crate) value: Option<String>,
+    value: Option<String>,
     int: u64,
 }
 
@@ -52,11 +52,15 @@ impl FromStr for Revision {
 }
 
 impl Revision {
-    pub(crate) fn new(rev: Option<&str>) -> Result<Self> {
+    fn new(rev: Option<&str>) -> Result<Self> {
         match &rev {
             Some(s) => Revision::from_str(s),
             None => Ok(Revision::default()),
         }
+    }
+
+    fn as_str(&self) -> &str {
+        self.value.as_deref().unwrap_or("")
     }
 }
 
@@ -95,16 +99,14 @@ impl PartialOrd for Revision {
 
 impl fmt::Display for Revision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &self.value {
-            Some(s) => write!(f, "-r{s}"),
-            None => Ok(()),
-        }
+        write!(f, "{}", self.as_str())
     }
 }
 
 #[derive(Debug)]
 pub(crate) struct ParsedVersion<'a> {
     pub(crate) start: usize,
+    pub(crate) end_base: usize,
     pub(crate) end: usize,
     pub(crate) numbers: Vec<&'a str>,
     pub(crate) letter: Option<char>,
@@ -138,7 +140,8 @@ impl ParsedVersion<'_> {
         }
 
         Ok(Version {
-            base: input[self.start..self.end].to_string(),
+            end_base: self.end_base - self.start,
+            full: input[self.start..self.end].to_string(),
             numbers,
             letter: self.letter,
             suffixes,
@@ -149,16 +152,28 @@ impl ParsedVersion<'_> {
 
 #[derive(Debug, Eq, Clone)]
 pub struct Version {
-    base: String,
+    end_base: usize,
+    full: String,
     numbers: Vec<(String, u64)>,
     letter: Option<char>,
     suffixes: Vec<(Suffix, Option<u64>)>,
     revision: Revision,
 }
 
+impl Version {
+    pub fn as_str(&self) -> &str {
+        &self.full
+    }
+
+    fn base(&self) -> &str {
+        let base = &self.full.as_bytes()[..self.end_base];
+        str::from_utf8(base).unwrap()
+    }
+}
+
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}{}", self.base, self.revision)
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -170,7 +185,7 @@ impl PartialEq for Version {
 
 impl Ord for Version {
     fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
-        if self.base != other.base {
+        if self.base() != other.base() {
             // compare major versions
             cmp_not_equal!(&self.numbers[0].1, &other.numbers[0].1);
 
