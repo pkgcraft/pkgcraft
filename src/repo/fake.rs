@@ -34,7 +34,7 @@ impl Repo {
                 .or_insert_with(repo::VersionMap::new)
                 .entry(cpv.package().into())
                 .or_insert_with(IndexSet::new)
-                .insert(cpv.fullver().unwrap().into());
+                .insert(cpv.version().unwrap().as_str().into());
         }
 
         let pkgs = repo::PkgCache { pkgmap };

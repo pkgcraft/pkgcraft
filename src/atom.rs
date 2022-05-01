@@ -108,8 +108,8 @@ impl Atom {
             .map(|u| u.iter().map(|s| s.as_str()).collect())
     }
 
-    pub fn fullver(&self) -> Option<&str> {
-        self.version.as_ref().map(|v| v.as_str())
+    pub fn version(&self) -> Option<&Version> {
+        self.version.as_ref()
     }
 
     pub fn key(&self) -> String {
@@ -268,9 +268,9 @@ mod tests {
     }
 
     #[test]
-    fn test_atom_fullver() {
+    fn test_atom_version() {
         let mut atom: Atom;
-        for (s, fullver) in [
+        for (s, version) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", Some("4")),
             ("<=cat/pkg-4-r1", Some("4-r1")),
@@ -281,7 +281,8 @@ mod tests {
             (">cat/pkg-4-r1:0=", Some("4-r1")),
         ] {
             atom = Atom::from_str(&s).unwrap();
-            assert_eq!(atom.fullver(), fullver);
+            let version = version.map(|s| Version::from_str(s).unwrap());
+            assert_eq!(atom.version(), version.as_ref());
         }
     }
 
