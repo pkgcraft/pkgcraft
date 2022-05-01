@@ -32,7 +32,7 @@ impl FromStr for Suffix {
 }
 
 #[derive(Debug, Default, Eq, Clone)]
-pub(crate) struct Revision {
+pub struct Revision {
     value: Option<String>,
     int: u64,
 }
@@ -59,7 +59,7 @@ impl Revision {
         }
     }
 
-    fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         self.value.as_deref().unwrap_or("")
     }
 }
@@ -163,6 +163,10 @@ pub struct Version {
 impl Version {
     pub fn as_str(&self) -> &str {
         &self.full
+    }
+
+    pub fn revision(&self) -> Option<&Revision> {
+        self.revision.value.as_ref().map(|_| &self.revision)
     }
 
     fn base(&self) -> &str {

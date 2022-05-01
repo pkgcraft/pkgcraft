@@ -112,6 +112,10 @@ impl Atom {
         self.version.as_ref()
     }
 
+    pub fn revision(&self) -> Option<&version::Revision> {
+        self.version.as_ref().and_then(|v| v.revision())
+    }
+
     pub fn key(&self) -> String {
         format!("{}/{}", self.category, self.package)
     }
@@ -283,6 +287,22 @@ mod tests {
             atom = Atom::from_str(&s).unwrap();
             let version = version.map(|s| Version::from_str(s).unwrap());
             assert_eq!(atom.version(), version.as_ref());
+        }
+    }
+
+    #[test]
+    fn test_atom_revision() {
+        let mut atom: Atom;
+        for (s, revision) in [
+            ("cat/pkg", None),
+            ("<cat/pkg-4", None),
+            ("<=cat/pkg-4-r1", Some("1")),
+            (">=cat/pkg-r1-2-r3", Some("3")),
+            (">cat/pkg-4-r1:0=", Some("1")),
+        ] {
+            atom = Atom::from_str(&s).unwrap();
+            let revision = revision.map(|s| version::Revision::from_str(s).unwrap());
+            assert_eq!(atom.revision(), revision.as_ref());
         }
     }
 
