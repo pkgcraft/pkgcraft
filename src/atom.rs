@@ -77,21 +77,33 @@ impl ParsedAtom<'_> {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Atom {
-    pub category: String,
-    pub package: String,
-    pub block: Option<Blocker>,
-    pub op: Option<Operator>,
-    pub version: Option<Version>,
-    pub slot: Option<String>,
-    pub subslot: Option<String>,
-    pub slot_op: Option<String>,
-    pub use_deps: Option<Vec<String>>,
-    pub repo: Option<String>,
+    category: String,
+    package: String,
+    block: Option<Blocker>,
+    op: Option<Operator>,
+    version: Option<Version>,
+    slot: Option<String>,
+    subslot: Option<String>,
+    slot_op: Option<String>,
+    use_deps: Option<Vec<String>>,
+    repo: Option<String>,
 }
 
 impl Atom {
     pub fn new<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> Result<Self> {
         parse::dep(s.as_ref(), eapi.into_eapi()?)
+    }
+
+    pub fn category(&self) -> &str {
+        &self.category
+    }
+
+    pub fn package(&self) -> &str {
+        &self.package
+    }
+
+    pub fn use_deps(&self) -> Option<Vec<&str>> {
+        self.use_deps.as_ref().map(|u| u.iter().map(|s| s.as_str()).collect())
     }
 
     pub fn fullver(&self) -> Option<String> {

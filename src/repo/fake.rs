@@ -30,11 +30,11 @@ impl Repo {
 
         for cpv in cpvs {
             pkgmap
-                .entry(cpv.category)
+                .entry(cpv.category().into())
                 .or_insert_with(repo::VersionMap::new)
-                .entry(cpv.package)
+                .entry(cpv.package().into())
                 .or_insert_with(IndexSet::new)
-                .insert(cpv.version.unwrap().to_string());
+                .insert(cpv.fullver().unwrap());
         }
 
         let pkgs = repo::PkgCache { pkgmap };

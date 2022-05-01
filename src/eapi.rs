@@ -608,14 +608,14 @@ mod tests {
     fn test_atom_parsing() {
         let mut atom;
         atom = EAPI0.atom("cat/pkg").unwrap();
-        assert_eq!(atom.category, "cat");
-        assert_eq!(atom.package, "pkg");
+        assert_eq!(atom.category(), "cat");
+        assert_eq!(atom.package(), "pkg");
         assert_eq!(format!("{atom}"), "cat/pkg");
 
         atom = EAPI1.atom("cat/pkg:0").unwrap();
-        assert_eq!(atom.category, "cat");
-        assert_eq!(atom.package, "pkg");
-        assert_eq!(atom.slot.as_ref().unwrap(), "0");
+        assert_eq!(atom.category(), "cat");
+        assert_eq!(atom.package(), "pkg");
+        assert_eq!(atom.slot().unwrap(), "0");
         assert_eq!(format!("{atom}"), "cat/pkg:0");
     }
 }
