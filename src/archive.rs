@@ -413,7 +413,7 @@ macro_rules! make_archive {
                     $(
                         ext if ext == $x::EXTS[0] => Ok(Archive::$x($x { path })),
                     )*
-                    _ => Err(crate::Error::InvalidValue(format!("unknown archive format: {path:?}"))),
+                    _ => Err(Error::InvalidValue(format!("unknown archive format: {path:?}"))),
                 }
             }
         }
