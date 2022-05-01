@@ -224,11 +224,14 @@ pub mod parse {
         pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s:?}"), s, e))
     }
 
-    #[inline]
-    pub fn version(s: &str) -> Result<Version> {
-        let parsed_version =
-            pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
-        parsed_version.into_owned(s)
+    cached_key! {
+        VERSION_CACHE: SizedCache<String, Result<Version>> = SizedCache::with_size(1000);
+        Key = { s.to_string() };
+        fn version(s: &str) -> Result<Version> = {
+            let parsed_version =
+                pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
+            parsed_version.into_owned(s)
+        }
     }
 
     #[inline]
@@ -236,10 +239,13 @@ pub mod parse {
         pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
     }
 
-    #[inline]
-    pub fn cpv(s: &str) -> Result<Atom> {
-        let parsed_cpv = pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))?;
-        parsed_cpv.into_owned(s)
+    cached_key! {
+        CPV_CACHE: SizedCache<String, Result<Atom>> = SizedCache::with_size(1000);
+        Key = { s.to_string() };
+        fn cpv(s: &str) -> Result<Atom> = {
+            let parsed_cpv = pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))?;
+            parsed_cpv.into_owned(s)
+        }
     }
 
     cached_key! {
