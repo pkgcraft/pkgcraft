@@ -103,7 +103,9 @@ impl Atom {
     }
 
     pub fn use_deps(&self) -> Option<Vec<&str>> {
-        self.use_deps.as_ref().map(|u| u.iter().map(|s| s.as_str()).collect())
+        self.use_deps
+            .as_ref()
+            .map(|u| u.iter().map(|s| s.as_str()).collect())
     }
 
     pub fn fullver(&self) -> Option<String> {
