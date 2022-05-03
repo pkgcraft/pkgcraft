@@ -306,6 +306,21 @@ impl repo::Repo for Repo {
     }
 }
 
+impl<T: AsRef<Path>> repo::Contains<T> for Repo {
+    fn contains(&self, path: T) -> bool {
+        let path = path.as_ref();
+        if path.is_absolute() {
+            if let (Ok(path), Ok(repo_path)) = (path.canonicalize(), self.path.canonicalize()) {
+                path.starts_with(&repo_path) && path.exists()
+            } else {
+                false
+            }
+        } else {
+            self.path.join(path).exists()
+        }
+    }
+}
+
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub(crate) struct TempRepo {
@@ -432,7 +447,7 @@ mod tests {
     use std::fs;
 
     use crate::macros::assert_err_re;
-    use crate::repo::Repo as RepoTrait;
+    use crate::repo::{Contains, Repo as RepoTrait};
 
     use super::*;
 
@@ -512,5 +527,16 @@ mod tests {
         fs::create_dir_all(repo.path.join("a-cat/pkg10a")).unwrap();
         fs::File::create(repo.path.join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
         assert_eq!(repo.versions("a-cat", "pkg10a"), ["0-r0"]);
+    }
+
+    #[test]
+    fn test_contains_path() {
+        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+        let repo = &temprepo.repo;
+        assert!(!repo.contains("cat/pkg"));
+        temprepo.create_ebuild("cat/pkg-1", None).unwrap();
+        assert!(repo.contains("cat/pkg"));
+        assert!(repo.contains("cat/pkg/pkg-1.ebuild"));
+        assert!(!repo.contains("pkg-1.ebuild"));
     }
 }

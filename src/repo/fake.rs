@@ -86,9 +86,15 @@ impl repo::Repo for Repo {
     }
 }
 
+impl<T: AsRef<Path>> repo::Contains<T> for Repo {
+    fn contains(&self, _path: T) -> bool {
+        false
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::repo::Repo as RepoTrait;
+    use crate::repo::{Contains, Repo as RepoTrait};
 
     use super::*;
 
@@ -143,5 +149,11 @@ mod tests {
         assert_eq!(repo.len(), 1);
         let repo = Repo::new("fake", ["cat/pkg-0", "cat1/pkg1-1", "cat2/pkg2-2"]).unwrap();
         assert_eq!(repo.len(), 3);
+    }
+
+    #[test]
+    fn test_contains_path() {
+        let repo = Repo::new("fake", ["cat/pkg-0"]).unwrap();
+        assert!(!repo.contains("cat/pkg"));
     }
 }

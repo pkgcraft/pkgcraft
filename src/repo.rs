@@ -189,3 +189,17 @@ impl Repo for Repository {
         }
     }
 }
+
+/// A repo contains a given object.
+pub trait Contains<T> {
+    fn contains(&self, path: T) -> bool;
+}
+
+impl<T: AsRef<Path>> Contains<T> for Repository {
+    fn contains(&self, path: T) -> bool {
+        match self {
+            Repository::Ebuild(ref repo) => repo.contains(path),
+            Repository::Fake(ref repo) => repo.contains(path),
+        }
+    }
+}
