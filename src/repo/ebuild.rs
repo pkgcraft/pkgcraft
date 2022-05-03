@@ -1,10 +1,11 @@
 use std::collections::HashSet;
-#[cfg(test)]
-use std::io::Write;
 use std::iter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, fmt, fs, io};
+
+#[cfg(test)]
+use std::{collections::HashMap, io::Write};
 
 use ini::Ini;
 use once_cell::sync::Lazy;
@@ -340,6 +341,39 @@ impl TempRepo {
 
         let repo = Repo::from_path(id, temp_path)?;
         Ok(TempRepo { tempdir, repo })
+    }
+
+    /// Create an ebuild file in the repo.
+    #[cfg(test)]
+    pub(crate) fn create_ebuild(
+        &self,
+        cpv: &str,
+        data: Option<HashMap<&str, &str>>,
+    ) -> Result<PathBuf> {
+        let cpv = atom::parse::cpv(cpv)?;
+        let path = self.tempdir.path().join(format!(
+            "{}/{}-{}.ebuild",
+            cpv.key(),
+            cpv.package(),
+            cpv.version().unwrap()
+        ));
+        fs::create_dir_all(path.parent().unwrap())
+            .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
+        let mut f = fs::File::create(&path)
+            .map_err(|e| Error::IO(format!("failed creating {cpv} ebuild: {e}")))?;
+
+        let data = data.unwrap_or_else(|| HashMap::<&str, &str>::new());
+        let eapi = data.get("eapi").unwrap_or(&"7");
+        let slot = data.get("slot").unwrap_or(&"0");
+
+        let content = indoc::formatdoc! {"
+            EAPI=\"{eapi}\"
+            SLOT=\"{slot}\"
+        "};
+        f.write_all(content.as_bytes())
+            .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
+
+        Ok(path)
     }
 
     /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is
