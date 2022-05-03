@@ -267,7 +267,7 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-        for s in ["0", "0-r0", "1_alpha5-r1", "1.001.100r_beta1_p2"] {
+        for s in ["0", "0-r0", "1.0-r01", "1_alpha5-r1", "1.001.100r_beta1_p2"] {
             let ver = Version::from_str(s).unwrap();
             assert_eq!(format!("{ver}"), s);
         }
