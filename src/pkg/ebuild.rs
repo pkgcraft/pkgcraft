@@ -82,9 +82,11 @@ impl pkg::Pkg for Pkg {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::path::Path;
 
     use super::*;
+    use crate::eapi;
     use crate::repo::ebuild::TempRepo;
 
     #[test]
@@ -97,5 +99,20 @@ mod tests {
         let ebuild_path = temprepo.create_ebuild("cat/pkg-1", None).unwrap();
         let pkg = Pkg::new(&ebuild_path).unwrap();
         assert_path(pkg, &ebuild_path);
+    }
+
+    #[test]
+    fn test_eapi() {
+        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+
+        // temp repo ebuild creation defaults to the latest EAPI
+        let path = temprepo.create_ebuild("cat/pkg-1", None).unwrap();
+        let pkg = Pkg::new(path).unwrap();
+        assert_eq!(pkg.eapi, &*eapi::EAPI_LATEST);
+
+        let data = HashMap::from([("eapi", "0")]);
+        let path = temprepo.create_ebuild("cat/pkg-2", Some(data)).unwrap();
+        let pkg = Pkg::new(path).unwrap();
+        assert_eq!(pkg.eapi, &*eapi::EAPI0);
     }
 }

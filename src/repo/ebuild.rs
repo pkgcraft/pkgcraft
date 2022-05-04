@@ -378,8 +378,11 @@ impl TempRepo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} ebuild: {e}")))?;
 
         let data = data.unwrap_or_else(|| HashMap::<&str, &str>::new());
-        let eapi = data.get("eapi").unwrap_or(&"7");
-        let slot = data.get("slot").unwrap_or(&"0");
+        let eapi = data
+            .get("eapi")
+            .cloned()
+            .unwrap_or(eapi::EAPI_LATEST.as_str());
+        let slot = data.get("slot").cloned().unwrap_or("0");
 
         let content = indoc::formatdoc! {"
             EAPI=\"{eapi}\"
