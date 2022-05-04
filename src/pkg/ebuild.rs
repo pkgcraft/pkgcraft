@@ -5,14 +5,13 @@ use std::{fmt, fs};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::{atom, eapi, pkg, Error, Result};
+use crate::{eapi, pkg, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Pkg {
-    atom: atom::Atom,
     path: PathBuf,
     eapi: &'static eapi::Eapi,
 }
@@ -21,20 +20,10 @@ impl Pkg {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
         let eapi = Pkg::get_eapi(path)?;
-        let atom = atom::parse::dep("=cat/pkg-1", eapi)?;
         Ok(Pkg {
-            atom,
             path: PathBuf::from(path),
             eapi,
         })
-    }
-
-    pub fn slot(&self) -> Option<&str> {
-        self.atom.slot()
-    }
-
-    pub fn subslot(&self) -> Option<&str> {
-        self.atom.slot()
     }
 
     pub fn path(&self) -> &Path {
