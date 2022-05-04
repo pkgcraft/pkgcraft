@@ -62,6 +62,12 @@ impl Pkg {
     }
 }
 
+impl AsRef<Path> for Pkg {
+    fn as_ref(&self) -> &Path {
+        self.path()
+    }
+}
+
 impl fmt::Display for Pkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.path())
@@ -71,5 +77,25 @@ impl fmt::Display for Pkg {
 impl pkg::Pkg for Pkg {
     fn eapi(&self) -> &eapi::Eapi {
         self.eapi
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::*;
+    use crate::repo::ebuild::TempRepo;
+
+    #[test]
+    fn test_as_ref_path() {
+        fn assert_path<P: AsRef<Path>>(pkg: P, path: &Path) {
+            assert_eq!(pkg.as_ref(), path);
+        }
+
+        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+        let ebuild_path = temprepo.create_ebuild("cat/pkg-1", None).unwrap();
+        let pkg = Pkg::new(&ebuild_path).unwrap();
+        assert_path(pkg, &ebuild_path);
     }
 }
