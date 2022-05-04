@@ -159,8 +159,8 @@ impl Hash for Eapi {
 
 impl PartialOrd for Eapi {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let self_index = KNOWN_EAPIS.get_index_of(&self.id).unwrap();
-        let other_index = KNOWN_EAPIS.get_index_of(&other.id).unwrap();
+        let self_index = EAPIS.get_index_of(&self.id).unwrap();
+        let other_index = EAPIS.get_index_of(&other.id).unwrap();
         self_index.partial_cmp(&other_index)
     }
 }
@@ -334,7 +334,7 @@ impl fmt::Display for Eapi {
 
 /// Get a EAPI given its identifier.
 pub fn get_eapi(id: &str) -> Result<&'static Eapi> {
-    match KNOWN_EAPIS.get(id) {
+    match EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
         None => match VALID_EAPI_RE.is_match(id) {
             true => Err(Error::Eapi(format!("unknown EAPI: {id:?}"))),
@@ -545,7 +545,7 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| Eapi {
 });
 
 /// Ordered mapping of official EAPI identifiers to instances.
-pub static OFFICIAL_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
+pub static EAPIS_OFFICIAL: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
     let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
     let mut eapi: &Eapi = &EAPI_LATEST;
     while let Some(x) = eapi.parent {
@@ -558,16 +558,16 @@ pub static OFFICIAL_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::n
     eapis
 });
 
-/// Ordered mapping of known EAPI identifiers to instances.
-pub static KNOWN_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
-    let mut eapis = OFFICIAL_EAPIS.clone();
+/// Ordered mapping of EAPI identifiers to instances.
+pub static EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
+    let mut eapis = EAPIS_OFFICIAL.clone();
     eapis.insert(EAPI_PKGCRAFT.id, &EAPI_PKGCRAFT);
     eapis
 });
 
 pub(crate) fn supported<S: AsRef<str>>(val: S) -> Result<IndexSet<&'static Eapi>> {
-    let (start, end) = parse::range(val.as_ref(), KNOWN_EAPIS.len() - 1)?;
-    Ok((start..=end).map(|n| KNOWN_EAPIS[n]).collect())
+    let (start, end) = parse::range(val.as_ref(), EAPIS.len() - 1)?;
+    Ok((start..=end).map(|n| EAPIS[n]).collect())
 }
 
 #[cfg(test)]
@@ -604,7 +604,7 @@ mod tests {
 
     #[test]
     fn test_fmt() {
-        for (id, eapi) in KNOWN_EAPIS.iter() {
+        for (id, eapi) in EAPIS.iter() {
             assert_eq!(format!("{eapi}"), format!("{id}"));
         }
     }

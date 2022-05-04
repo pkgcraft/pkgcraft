@@ -55,7 +55,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use super::super::{assert_invalid_args, nonfatal};
     use super::{run as die, BUILTIN};
-    use crate::eapi::OFFICIAL_EAPIS;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
@@ -69,7 +69,7 @@ mod tests {
             assert_invalid_args(die, &[3]);
 
             BUILD_DATA.with(|d| {
-                for eapi in OFFICIAL_EAPIS.values().filter(|e| !e.has("nonfatal_die")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has("nonfatal_die")) {
                     d.borrow_mut().eapi = eapi;
                     assert_invalid_args(die, &[2]);
                 }

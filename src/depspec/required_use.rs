@@ -121,7 +121,7 @@ mod tests {
             "?? ( u1 u2 )",
             DepSpec::AtMostOneOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
         )] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 if eapi.has("required_use_one_of") {
                     result = parse(&s, eapi);
                     assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());

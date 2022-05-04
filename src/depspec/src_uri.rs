@@ -73,7 +73,7 @@ mod tests {
         // invalid data
         let mut result: Result<DepSpec, PegError>;
         for s in ["", "(", ")", "( )", "( uri)", "| ( uri )", "use ( uri )", "!use ( uri )"] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 assert!(parse(&s, eapi).is_err(), "{s:?} didn't fail");
             }
         }
@@ -101,7 +101,7 @@ mod tests {
                 ),
             ),
         ] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 result = parse(&s, eapi);
                 assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                 src_uri = result.unwrap();
@@ -111,7 +111,7 @@ mod tests {
 
         // SRC_URI renames
         for (s, expected) in [("uri1 -> file", DepSpec::Uris(vec![uri("uri1", Some("file"))]))] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 if eapi.has("src_uri_renames") {
                     result = parse(&s, eapi);
                     assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());

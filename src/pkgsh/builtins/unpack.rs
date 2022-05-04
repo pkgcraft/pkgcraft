@@ -125,7 +125,7 @@ mod tests {
     use super::{run as unpack, DIR_MODE, FILE_MODE};
     use crate::archive::{Archive, ArchiveFormat};
     use crate::command::run_commands;
-    use crate::eapi::OFFICIAL_EAPIS;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
@@ -156,7 +156,7 @@ mod tests {
                 let abs_path = prefix.join("dist/a.tar.gz");
                 fs::File::create(&abs_path).unwrap();
 
-                for eapi in OFFICIAL_EAPIS.values() {
+                for eapi in EAPIS_OFFICIAL.values() {
                     d.borrow_mut().eapi = eapi;
 
                     // case insensitive support

@@ -54,7 +54,7 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as usev;
-    use crate::eapi::OFFICIAL_EAPIS;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
@@ -64,7 +64,7 @@ mod tests {
             assert_invalid_args(usev, &[0, 3]);
 
             BUILD_DATA.with(|d| {
-                for eapi in OFFICIAL_EAPIS.values().filter(|e| !e.has("usev_two_args")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has("usev_two_args")) {
                     d.borrow_mut().eapi = eapi;
                     assert_invalid_args(usev, &[2]);
                 }
@@ -90,7 +90,7 @@ mod tests {
                 }
 
                 // check EAPIs that support two arg variant
-                for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("usev_two_args")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has("usev_two_args")) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "out"], ExecStatus::Failure(1), ""),
@@ -118,7 +118,7 @@ mod tests {
                 }
 
                 // check EAPIs that support two arg variant
-                for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("usev_two_args")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has("usev_two_args")) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "out"], ExecStatus::Success, "out"),

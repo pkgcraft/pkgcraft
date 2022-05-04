@@ -67,7 +67,7 @@ mod tests {
     use super::super::assert_invalid_args;
     use super::super::insopts::run as insopts;
     use super::run as doheader;
-    use crate::eapi::OFFICIAL_EAPIS;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
@@ -103,7 +103,7 @@ mod tests {
             // recursive
             fs::create_dir_all("pkgcraft").unwrap();
             fs::File::create("pkgcraft/pkgcraft.h").unwrap();
-            for eapi in OFFICIAL_EAPIS.values() {
+            for eapi in EAPIS_OFFICIAL.values() {
                 BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
                 insopts(&["-m0755"]).unwrap();
                 doheader(&["-r", "pkgcraft"]).unwrap();

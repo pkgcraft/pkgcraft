@@ -68,7 +68,7 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as dosym;
-    use crate::eapi::OFFICIAL_EAPIS;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
@@ -79,7 +79,7 @@ mod tests {
             assert_invalid_args(dosym, &[0, 1, 4]);
 
             BUILD_DATA.with(|d| {
-                for eapi in OFFICIAL_EAPIS.values().filter(|e| !e.has("dosym_relative")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has("dosym_relative")) {
                     d.borrow_mut().eapi = eapi;
                     assert_invalid_args(dosym, &[3]);
                 }

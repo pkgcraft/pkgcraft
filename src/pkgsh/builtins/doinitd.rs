@@ -47,7 +47,7 @@ mod tests {
     use super::super::assert_invalid_args;
     use super::super::exeopts::run as exeopts;
     use super::run as doinitd;
-    use crate::eapi::OFFICIAL_EAPIS;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
@@ -72,7 +72,7 @@ mod tests {
             "#));
 
             // verify exeopts are respected depending on EAPI
-            for eapi in OFFICIAL_EAPIS.values() {
+            for eapi in EAPIS_OFFICIAL.values() {
                 BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
                 exeopts(&["-m0777"]).unwrap();
                 doinitd(&["pkgcraft"]).unwrap();

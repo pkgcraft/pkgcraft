@@ -32,7 +32,7 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as use_with;
-    use crate::eapi::OFFICIAL_EAPIS;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
@@ -42,7 +42,7 @@ mod tests {
             assert_invalid_args(use_with, &[0, 4]);
 
             BUILD_DATA.with(|d| {
-                for eapi in OFFICIAL_EAPIS.values().filter(|e| !e.has("use_conf_arg")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has("use_conf_arg")) {
                     d.borrow_mut().eapi = eapi;
                     assert_invalid_args(use_with, &[3]);
                 }
@@ -70,7 +70,7 @@ mod tests {
                 }
 
                 // check EAPIs that support three arg variant
-                for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("use_conf_arg")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has("use_conf_arg")) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "opt", "val"], ExecStatus::Failure(1), "--without-opt=val"),
@@ -100,7 +100,7 @@ mod tests {
                 }
 
                 // check EAPIs that support three arg variant
-                for eapi in OFFICIAL_EAPIS.values().filter(|e| e.has("use_conf_arg")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has("use_conf_arg")) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),

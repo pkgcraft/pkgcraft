@@ -294,7 +294,7 @@ mod tests {
             "=a/b-0.*",
             "=a/b-0-r*",
         ] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 let result = parse::dep(&s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail");
             }
@@ -319,7 +319,7 @@ mod tests {
             (">=a/b-2", "a", "b", Some(Operator::GreaterOrEqual), version("2")),
             (">a/b-3-r0", "a", "b", Some(Operator::Greater), version("3-r0")),
         ] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 let result = parse::dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
                 let atom = result.unwrap();
@@ -350,7 +350,7 @@ mod tests {
             ("aBc", opt_str!("aBc")),
             ("a+b_c.d-e", opt_str!("a+b_c.d-e")),
         ] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = parse::dep(&s, eapi);
                 match eapi.has("slot_deps") {
@@ -384,7 +384,7 @@ mod tests {
             ("!!cat/pkg", Some(Blocker::Strong)),
             ("!!<cat/pkg-1", Some(Blocker::Strong)),
         ] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 let result = parse::dep(&s, eapi);
                 match eapi.has("blockers") {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
@@ -409,7 +409,7 @@ mod tests {
 
         // good deps
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = parse::dep(&s, eapi);
                 match eapi.has("use_deps") {
@@ -436,7 +436,7 @@ mod tests {
 
         // good deps
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = parse::dep(&s, eapi);
                 match eapi.has("use_dep_defaults") {
@@ -469,7 +469,7 @@ mod tests {
             ("_/_", opt_str!("_"), opt_str!("_"), None),
             ("0/a.b+c-d_e", opt_str!("0"), opt_str!("a.b+c-d_e"), None),
         ] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = parse::dep(&s, eapi);
                 match eapi.has("slot_ops") {
@@ -504,7 +504,7 @@ mod tests {
             ("0/1=", opt_str!("0"), opt_str!("1"), opt_str!("=")),
             ("a/b=", opt_str!("a"), opt_str!("b"), opt_str!("=")),
         ] {
-            for eapi in eapi::KNOWN_EAPIS.values() {
+            for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = parse::dep(&s, eapi);
                 match eapi.has("slot_ops") {
@@ -535,7 +535,7 @@ mod tests {
             let s = format!("cat/pkg::{repo}");
 
             // repo ids aren't supported in official EAPIs
-            for eapi in eapi::OFFICIAL_EAPIS.values() {
+            for eapi in eapi::EAPIS_OFFICIAL.values() {
                 assert!(parse::dep(&s, eapi).is_err(), "{s:?} didn't fail");
             }
 
