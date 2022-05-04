@@ -155,33 +155,39 @@ impl Repo {
     pub fn masters(&self) -> Result<Vec<Arc<repo::Repository>>> {
         let config = Config::current();
         let mut masters = vec![];
+        let mut nonexistent = vec![];
         for id in self.config.masters() {
             match config.repos.repos.get(&id) {
                 Some(r) => masters.push(r.clone()),
-                None => {
-                    return Err(Error::InvalidRepo {
-                        path: self.path.clone(),
-                        error: format!("nonexistent master: {id}"),
-                    })
-                }
+                None => nonexistent.push(id),
             }
         }
-        Ok(masters)
-    }
 
-    pub fn trees(&self) -> Result<Vec<Arc<repo::Repository>>> {
-        let mut trees = self.masters()?;
-        let config = Config::current();
-        match config.repos.repos.get(&self.id) {
-            Some(r) => trees.push(r.clone()),
-            None => {
-                return Err(Error::InvalidRepo {
+        match nonexistent.is_empty() {
+            true => Ok(masters),
+            false => {
+                let masters = nonexistent.join(", ");
+                Err(Error::InvalidRepo {
                     path: self.path.clone(),
-                    error: format!("unconfigured repo: {}", self.id),
+                    error: format!("nonexistent masters: {masters}"),
                 })
             }
         }
-        Ok(trees)
+    }
+
+    pub fn trees(&self) -> Result<Vec<Arc<repo::Repository>>> {
+        let config = Config::current();
+        let mut trees = self.masters()?;
+        match config.repos.repos.get(&self.id) {
+            Some(r) => {
+                trees.push(r.clone());
+                Ok(trees)
+            }
+            None => Err(Error::InvalidRepo {
+                path: self.path.clone(),
+                error: format!("unconfigured repo: {}", self.id),
+            }),
+        }
     }
 
     pub fn category_dirs(&self) -> Vec<String> {
@@ -463,6 +469,9 @@ mod tests {
         repo.config.write(None).unwrap();
         let test_repo = Repo::from_path(repo.id, repo.path).unwrap();
         assert_eq!(test_repo.config.masters(), ["a", "b", "c"]);
+        // repos don't exist so they'll be flagged if actually trying to access them
+        let r = test_repo.masters();
+        assert_err_re!(r, format!("^.* nonexistent masters: a, b, c$"));
     }
 
     #[test]
