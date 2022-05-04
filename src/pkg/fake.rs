@@ -22,6 +22,6 @@ impl fmt::Display for Pkg {
 
 impl pkg::Pkg for Pkg {
     fn eapi(&self) -> &eapi::Eapi {
-        eapi::EAPI_LATEST
+        &eapi::EAPI_LATEST
     }
 }

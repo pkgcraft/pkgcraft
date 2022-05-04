@@ -56,7 +56,7 @@ mod tests {
 
     use crate::atom::Atom;
     use crate::depspec::DepSpec;
-    use crate::eapi::EAPI_LATEST;
+    use crate::eapi;
     use crate::peg::PegError;
 
     use super::parse;
@@ -65,7 +65,7 @@ mod tests {
     fn test_parse_deps() {
         // invalid data
         for s in ["", "(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
-            assert!(parse(&s, EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(parse(&s, &eapi::EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         let atom = |s| Atom::from_str(s).unwrap();
@@ -77,7 +77,7 @@ mod tests {
             ("a/b", DepSpec::Atoms(vec![atom("a/b")])),
             ("a/b c/d", DepSpec::Atoms(vec![atom("a/b"), atom("c/d")])),
         ] {
-            result = parse(&s, EAPI_LATEST);
+            result = parse(&s, &eapi::EAPI_LATEST);
             assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
             deps = result.unwrap();
             assert_eq!(deps, expected);

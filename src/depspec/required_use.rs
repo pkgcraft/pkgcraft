@@ -68,7 +68,7 @@ mod tests {
     fn test_parse_required_use() {
         // invalid data
         for s in ["", "(", ")", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"] {
-            assert!(parse(&s, eapi::EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(parse(&s, &eapi::EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         // good data
@@ -110,7 +110,7 @@ mod tests {
                 ),
             ),
         ] {
-            result = parse(&s, eapi::EAPI_LATEST);
+            result = parse(&s, &eapi::EAPI_LATEST);
             assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
             required_use = result.unwrap();
             assert_eq!(required_use, expected);

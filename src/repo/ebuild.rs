@@ -340,7 +340,7 @@ impl TempRepo {
             Some(p) => PathBuf::from(p.as_ref()),
             None => env::temp_dir(),
         };
-        let eapi = format!("{}", eapi.unwrap_or(eapi::EAPI_LATEST));
+        let eapi = format!("{}", eapi.unwrap_or(&eapi::EAPI_LATEST));
         let tempdir = TempDir::new_in(path)
             .map_err(|e| Error::RepoInit(format!("failed creating temp repo {id:?}: {e}")))?;
         let temp_path = tempdir.path();

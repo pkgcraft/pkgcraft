@@ -168,7 +168,7 @@ impl PartialOrd for Eapi {
 // use the latest EAPI for the Default trait
 impl Default for &'static Eapi {
     fn default() -> &'static Eapi {
-        EAPI_LATEST
+        &EAPI_LATEST
     }
 }
 
@@ -530,12 +530,12 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| Eapi {
 });
 
 /// Reference to the latest registered EAPI.
-pub static EAPI_LATEST: &Lazy<Eapi> = &EAPI8;
+pub static EAPI_LATEST: Lazy<Eapi> = Lazy::new(|| EAPI8.clone());
 
 /// The latest EAPI with extensions on top.
 pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| Eapi {
     id: "pkgcraft",
-    parent: Some(EAPI_LATEST),
+    parent: Some(&EAPI_LATEST),
     options: EAPI_LATEST.update_options(&[("repo_ids", true)]),
     phases: EAPI_LATEST.phases.clone(),
     incremental_keys: EAPI_LATEST.incremental_keys.clone(),
@@ -547,7 +547,7 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| Eapi {
 /// Ordered mapping of official EAPI identifiers to instances.
 pub static OFFICIAL_EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
     let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
-    let mut eapi: &Eapi = EAPI_LATEST;
+    let mut eapi: &Eapi = &EAPI_LATEST;
     while let Some(x) = eapi.parent {
         eapis.insert(eapi.id, eapi);
         eapi = x;
@@ -583,11 +583,11 @@ mod tests {
 
     #[test]
     fn test_ordering() {
-        assert!(*EAPI0 < **EAPI_LATEST);
+        assert!(*EAPI0 < *EAPI_LATEST);
         assert!(*EAPI0 <= *EAPI0);
         assert!(*EAPI0 == *EAPI0);
         assert!(*EAPI0 >= *EAPI0);
-        assert!(**EAPI_LATEST > *EAPI0);
+        assert!(*EAPI_LATEST > *EAPI0);
     }
 
     #[test]
