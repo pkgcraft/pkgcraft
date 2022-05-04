@@ -203,6 +203,11 @@ impl IntoEapi for Option<&'static Eapi> {
 type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 
 impl Eapi {
+    /// Return the EAPI's identifier.
+    pub fn as_str(&self) -> &str {
+        self.id
+    }
+
     /// Check if an EAPI has a given feature.
     pub fn has(&self, opt: &str) -> bool {
         match self.options.get(opt) {
