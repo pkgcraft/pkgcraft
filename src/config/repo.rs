@@ -139,50 +139,62 @@ impl Config {
             return Err(Error::Config(format!("existing repo: {name:?} @ {:?}", &c.location)));
         }
 
-        let mut config = RepoConfig {
-            location: dest_dir.clone(),
-            ..Default::default()
-        };
+        let mut config: RepoConfig = Default::default();
+        let path = Path::new(uri);
 
-        match Syncer::from_str(uri) {
-            Ok(Syncer::Noop) | Err(_) => {
-                let mut path = PathBuf::from(uri);
-                if path.is_relative() {
-                    path = fs::canonicalize(&path).map_err(|e| {
-                        Error::Config(format!("failed canonicalizing path {path:?}: {e}"))
-                    })?;
-                }
-                if path.exists() {
-                    if path != dest_dir {
-                        symlink(&path, &dest_dir).map_err(|e| {
-                            Error::Config(format!(
-                                "failed symlinking repo {path:?} to {dest_dir:?}: {e}",
-                            ))
-                        })?;
+        let repo = match path.is_absolute() && path.exists() {
+            true => {
+                // add local, external repo
+                let (format, repo) = Repository::from_path(name, path)?;
+                config.format = format.to_string();
+                repo
+            }
+            false => {
+                config.location = dest_dir.clone();
+                match Syncer::from_str(uri) {
+                    Ok(Syncer::Noop) | Err(_) => {
+                        let mut path = PathBuf::from(uri);
+                        if path.is_relative() {
+                            path = fs::canonicalize(&path).map_err(|e| {
+                                Error::Config(format!("failed canonicalizing path {path:?}: {e}"))
+                            })?;
+                        }
+                        if path.exists() {
+                            if path != dest_dir {
+                                symlink(&path, &dest_dir).map_err(|e| {
+                                    Error::Config(format!(
+                                        "failed symlinking repo {path:?} to {dest_dir:?}: {e}",
+                                    ))
+                                })?;
+                            }
+                        } else {
+                            return Err(Error::Config(format!("nonexistent repo path: {path:?}")));
+                        }
                     }
-                } else {
-                    return Err(Error::Config(format!("nonexistent repo path: {path:?}")));
-                }
-            }
-            Ok(syncer) => {
-                config.sync = Some(syncer);
-                config.sync()?;
+                    Ok(syncer) => {
+                        config.sync = Some(syncer);
+                        config.sync()?;
+                    }
+                };
+
+                let (format, repo) = Repository::from_path(name, &config.location)?;
+                config.format = format.to_string();
+
+                // write repo config file to disk
+                let repo_conf_data = toml::to_string(&config).map_err(|e| {
+                    Error::Config(format!("failed serializing repo config to toml: {e}"))
+                })?;
+                let path = self.config_dir.join(name);
+                let mut file = fs::File::create(&path).map_err(|e| {
+                    Error::Config(format!("failed creating repo config file: {path:?}: {e}"))
+                })?;
+                file.write_all(repo_conf_data.as_bytes()).map_err(|e| {
+                    Error::Config(format!("failed writing repo config file: {path:?}: {e}"))
+                })?;
+
+                repo
             }
         };
-
-        let (format, repo) = Repository::from_path(name, &config.location)?;
-        config.format = format.to_string();
-
-        // write repo config file to disk
-        let repo_conf_data = toml::to_string(&config)
-            .map_err(|e| Error::Config(format!("failed serializing repo config to toml: {e}")))?;
-        let path = self.config_dir.join(name);
-        let mut file = fs::File::create(&path).map_err(|e| {
-            Error::Config(format!("failed creating repo config file: {path:?}: {e}"))
-        })?;
-        file.write_all(repo_conf_data.as_bytes()).map_err(|e| {
-            Error::Config(format!("failed writing repo config file: {path:?}: {e}"))
-        })?;
 
         let (configs, repos) = (&mut self.configs, &mut self.repos);
         configs.insert(name.to_string(), config);
