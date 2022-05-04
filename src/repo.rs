@@ -71,7 +71,7 @@ impl Repository {
     }
 
     /// Try to load a repository from a given path.
-    pub fn from_path<P, S>(id: S, path: P) -> Result<(&'static str, Self)>
+    pub(crate) fn from_path<P, S>(id: S, path: P) -> Result<(&'static str, Self)>
     where
         P: AsRef<Path>,
         S: AsRef<str>,
