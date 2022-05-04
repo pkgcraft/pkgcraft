@@ -3,6 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
@@ -91,9 +92,7 @@ pub struct Config {
     pub repos: repo::Config,
 }
 
-thread_local! {
-    static CURRENT_CONFIG: RwLock<Arc<Config>> = RwLock::new(Default::default());
-}
+static CURRENT_CONFIG: Lazy<RwLock<Arc<Config>>> = Lazy::new(|| RwLock::new(Default::default()));
 
 impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
@@ -105,11 +104,11 @@ impl Config {
     }
 
     pub fn current() -> Arc<Config> {
-        CURRENT_CONFIG.with(|c| c.read().unwrap().clone())
+        CURRENT_CONFIG.read().unwrap().clone()
     }
 
     pub fn make_current(config: Config) {
-        CURRENT_CONFIG.with(|c| *c.write().unwrap() = Arc::new(config))
+        *CURRENT_CONFIG.write().unwrap() = Arc::new(config)
     }
 }
 
