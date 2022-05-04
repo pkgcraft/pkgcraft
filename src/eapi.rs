@@ -573,6 +573,7 @@ pub(crate) fn supported<S: AsRef<str>>(val: S) -> Result<IndexSet<&'static Eapi>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::macros::assert_err_re;
 
     #[test]
     fn test_get_eapi() {
@@ -611,16 +612,20 @@ mod tests {
 
     #[test]
     fn test_atom_parsing() {
-        let mut atom;
-        atom = EAPI0.atom("cat/pkg").unwrap();
+        let atom = EAPI0.atom("cat/pkg").unwrap();
         assert_eq!(atom.category(), "cat");
         assert_eq!(atom.package(), "pkg");
         assert_eq!(format!("{atom}"), "cat/pkg");
 
-        atom = EAPI1.atom("cat/pkg:0").unwrap();
+        let atom = EAPI1.atom("cat/pkg:0").unwrap();
         assert_eq!(atom.category(), "cat");
         assert_eq!(atom.package(), "pkg");
         assert_eq!(atom.slot().unwrap(), "0");
         assert_eq!(format!("{atom}"), "cat/pkg:0");
+
+        let r = EAPI0.atom("cat/pkg:0");
+        assert_err_re!(r, format!("invalid atom: \"cat/pkg:0\""));
+        let r = EAPI_LATEST.atom("cat/pkg::repo");
+        assert_err_re!(r, format!("invalid atom: \"cat/pkg::repo\""));
     }
 }
