@@ -30,6 +30,11 @@ impl Pkg {
         &self.path
     }
 
+    pub fn ebuild(&self) -> String {
+        // IO errors should be caught on initialization in new().
+        fs::read_to_string(&self.path).unwrap()
+    }
+
     fn get_eapi<P: AsRef<Path>>(path: P) -> Result<&'static eapi::Eapi> {
         let mut eapi = &*eapi::EAPI0;
         let path = path.as_ref();
@@ -76,6 +81,7 @@ mod tests {
 
     use super::*;
     use crate::eapi;
+    use crate::pkg::Pkg as PkgTrait;
     use crate::repo::ebuild::TempRepo;
 
     #[test]
@@ -91,17 +97,20 @@ mod tests {
     }
 
     #[test]
-    fn test_eapi() {
+    fn test_pkg_methods() {
         let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
         let path = temprepo.create_ebuild("cat/pkg-1", None).unwrap();
-        let pkg = Pkg::new(path).unwrap();
-        assert_eq!(pkg.eapi, &*eapi::EAPI_LATEST);
+        let pkg = Pkg::new(&path).unwrap();
+        assert_eq!(pkg.eapi(), &*eapi::EAPI_LATEST);
+        assert_eq!(pkg.path(), &path);
+        assert!(!pkg.ebuild().is_empty());
 
         let data = HashMap::from([("eapi", "0")]);
         let path = temprepo.create_ebuild("cat/pkg-2", Some(data)).unwrap();
-        let pkg = Pkg::new(path).unwrap();
-        assert_eq!(pkg.eapi, &*eapi::EAPI0);
+        let pkg = Pkg::new(&path).unwrap();
+        assert_eq!(pkg.eapi(), &*eapi::EAPI0);
+        assert!(!pkg.ebuild().is_empty());
     }
 }
