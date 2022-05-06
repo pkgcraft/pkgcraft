@@ -187,6 +187,22 @@ impl PartialEq for Version {
     }
 }
 
+impl Hash for Version {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.numbers[0].1.hash(state);
+        for (v1, n1) in &self.numbers[1..] {
+            if v1.starts_with('0') {
+                v1.trim_end_matches('0').hash(state);
+            } else {
+                n1.hash(state);
+            }
+        }
+        self.letter.hash(state);
+        self.suffixes.hash(state);
+        self.revision.hash(state);
+    }
+}
+
 impl Ord for Version {
     fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
         if self.base() != other.base() {
@@ -258,7 +274,7 @@ impl FromStr for Version {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     use super::*;
     use crate::macros::*;
@@ -320,6 +336,20 @@ mod tests {
                     assert_eq!(v1.cmp(&v2), op, "failed comparing {expr}");
                     assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {expr}");
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn test_hash() {
+        // verify the required property: v1 == v2 -> hash(v1) == hash(v2)
+        for expr in VER_CMP_DATA {
+            let v: Vec<&str> = expr.split(' ').collect();
+            let v1 = Version::from_str(v[0]).unwrap();
+            let v2 = Version::from_str(v[2]).unwrap();
+            if v[1] == "==" {
+                let set = HashSet::from([v1, v2]);
+                assert_eq!(set.len(), 1, "failed hash {expr}");
             }
         }
     }

@@ -75,7 +75,7 @@ impl ParsedAtom<'_> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Atom {
     category: String,
     package: String,
