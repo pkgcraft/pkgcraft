@@ -40,10 +40,6 @@ impl<'a> Pkg<'a> {
         &self.path
     }
 
-    pub fn repo(&self) -> &repo::ebuild::Repo {
-        self.repo
-    }
-
     pub fn ebuild(&self) -> String {
         // IO errors should be caught on initialization in new().
         fs::read_to_string(&self.path).unwrap()
@@ -83,8 +79,14 @@ impl fmt::Display for Pkg<'_> {
 }
 
 impl pkg::Pkg for Pkg<'_> {
+    type Repo = repo::ebuild::Repo;
+
     fn eapi(&self) -> &eapi::Eapi {
         self.eapi
+    }
+
+    fn repo(&self) -> &Self::Repo {
+        self.repo
     }
 }
 

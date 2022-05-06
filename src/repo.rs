@@ -8,7 +8,7 @@ use crate::pkg::Package;
 use crate::{Error, Result};
 
 pub(crate) mod ebuild;
-mod fake;
+pub(crate) mod fake;
 
 type VersionMap = IndexMap<String, IndexSet<String>>;
 type PkgMap = IndexMap<String, VersionMap>;

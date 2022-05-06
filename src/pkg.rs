@@ -9,9 +9,12 @@ pub mod fake;
 #[derive(Debug, PartialEq)]
 pub enum Package<'a> {
     Ebuild(ebuild::Pkg<'a>),
-    Fake(fake::Pkg),
+    Fake(fake::Pkg<'a>),
 }
 
 pub trait Pkg: fmt::Debug + fmt::Display {
+    type Repo;
+
     fn eapi(&self) -> &eapi::Eapi;
+    fn repo(&self) -> &Self::Repo;
 }
