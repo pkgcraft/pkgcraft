@@ -335,21 +335,13 @@ mod tests {
                     let op = op_map[op];
                     assert_eq!(v1.cmp(&v2), op, "failed comparing {expr}");
                     assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {expr}");
-                }
-            }
-        }
-    }
 
-    #[test]
-    fn test_hash() {
-        // verify the required property: v1 == v2 -> hash(v1) == hash(v2)
-        for expr in VER_CMP_DATA {
-            let v: Vec<&str> = expr.split(' ').collect();
-            let v1 = Version::from_str(v[0]).unwrap();
-            let v2 = Version::from_str(v[2]).unwrap();
-            if v[1] == "==" {
-                let set = HashSet::from([v1, v2]);
-                assert_eq!(set.len(), 1, "failed hash {expr}");
+                    // verify the required property: v1 == v2 -> hash(v1) == hash(v2)
+                    if op == Ordering::Equal {
+                        let set = HashSet::from([v1, v2]);
+                        assert_eq!(set.len(), 1, "failed hash {expr}");
+                    }
+                }
             }
         }
     }
