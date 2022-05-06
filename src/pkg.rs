@@ -7,8 +7,8 @@ pub mod fake;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, PartialEq)]
-pub enum Package {
-    Ebuild(ebuild::Pkg),
+pub enum Package<'a> {
+    Ebuild(ebuild::Pkg<'a>),
     Fake(fake::Pkg),
 }
 

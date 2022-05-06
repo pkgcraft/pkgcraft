@@ -5,29 +5,43 @@ use std::{fmt, fs};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::{eapi, pkg, Error, Result};
+use crate::{eapi, pkg, repo, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Pkg {
+#[derive(Debug, Clone)]
+pub struct Pkg<'a> {
     path: PathBuf,
     eapi: &'static eapi::Eapi,
+    repo: &'a repo::ebuild::Repo,
 }
 
-impl Pkg {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+impl PartialEq for Pkg<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.path == other.path
+    }
+}
+
+impl Eq for Pkg<'_> {}
+
+impl<'a> Pkg<'a> {
+    pub fn new<P: AsRef<Path>>(path: P, repo: &'a repo::ebuild::Repo) -> Result<Self> {
         let path = path.as_ref();
         let eapi = Pkg::get_eapi(path)?;
         Ok(Pkg {
             path: PathBuf::from(path),
             eapi,
+            repo,
         })
     }
 
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    pub fn repo(&self) -> &repo::ebuild::Repo {
+        self.repo
     }
 
     pub fn ebuild(&self) -> String {
@@ -56,19 +70,19 @@ impl Pkg {
     }
 }
 
-impl AsRef<Path> for Pkg {
+impl AsRef<Path> for Pkg<'_> {
     fn as_ref(&self) -> &Path {
         self.path()
     }
 }
 
-impl fmt::Display for Pkg {
+impl fmt::Display for Pkg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.path())
     }
 }
 
-impl pkg::Pkg for Pkg {
+impl pkg::Pkg for Pkg<'_> {
     fn eapi(&self) -> &eapi::Eapi {
         self.eapi
     }
@@ -92,7 +106,7 @@ mod tests {
 
         let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
         let ebuild_path = temprepo.create_ebuild("cat/pkg-1", None).unwrap();
-        let pkg = Pkg::new(&ebuild_path).unwrap();
+        let pkg = Pkg::new(&ebuild_path, &temprepo.repo).unwrap();
         assert_path(pkg, &ebuild_path);
     }
 
@@ -102,14 +116,14 @@ mod tests {
 
         // temp repo ebuild creation defaults to the latest EAPI
         let path = temprepo.create_ebuild("cat/pkg-1", None).unwrap();
-        let pkg = Pkg::new(&path).unwrap();
+        let pkg = Pkg::new(&path, &temprepo.repo).unwrap();
         assert_eq!(pkg.eapi(), &*eapi::EAPI_LATEST);
         assert_eq!(pkg.path(), &path);
         assert!(!pkg.ebuild().is_empty());
 
         let data = HashMap::from([("eapi", "0")]);
         let path = temprepo.create_ebuild("cat/pkg-2", Some(data)).unwrap();
-        let pkg = Pkg::new(&path).unwrap();
+        let pkg = Pkg::new(&path, &temprepo.repo).unwrap();
         assert_eq!(pkg.eapi(), &*eapi::EAPI0);
         assert!(!pkg.ebuild().is_empty());
     }

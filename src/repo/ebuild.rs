@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::iter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, fmt, fs, io};
@@ -300,7 +299,7 @@ impl repo::Repo for Repo {
     }
 
     fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
-        Box::new(iter::empty::<Package>())
+        unimplemented!()
     }
 
     fn len(&self) -> usize {
@@ -331,7 +330,7 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
 #[derive(Debug)]
 pub(crate) struct TempRepo {
     tempdir: TempDir,
-    repo: Repo,
+    pub(crate) repo: Repo,
 }
 
 impl TempRepo {
