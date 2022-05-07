@@ -1,11 +1,11 @@
-use std::fmt;
 use std::path::{Path, PathBuf};
+use std::fmt;
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 
 use crate::pkg::Package;
-use crate::{Error, Result};
+use crate::{atom, Error, Result};
 
 pub(crate) mod ebuild;
 pub(crate) mod fake;
@@ -16,6 +16,7 @@ type PkgMap = IndexMap<String, VersionMap>;
 #[derive(Debug, Default)]
 struct PkgCache {
     pkgmap: PkgMap,
+    atoms: IndexSet<atom::Atom>,
 }
 
 impl PkgCache {

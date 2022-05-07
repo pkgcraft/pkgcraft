@@ -103,6 +103,12 @@ impl fmt::Display for Revision {
     }
 }
 
+impl From<&Revision> for String {
+    fn from(rev: &Revision) -> Self {
+        rev.as_str().into()
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct ParsedVersion<'a> {
     pub(crate) start: usize,
@@ -178,6 +184,12 @@ impl Version {
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.as_str())
+    }
+}
+
+impl From<&Version> for String {
+    fn from(ver: &Version) -> Self {
+        ver.as_str().into()
     }
 }
 

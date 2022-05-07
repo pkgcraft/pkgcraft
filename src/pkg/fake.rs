@@ -5,7 +5,7 @@ use crate::{atom, eapi, pkg, repo, Result};
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
-    atom: atom::Atom,
+    atom: &'a atom::Atom,
     repo: &'a repo::fake::Repo,
 }
 
@@ -18,8 +18,7 @@ impl PartialEq for Pkg<'_> {
 impl Eq for Pkg<'_> {}
 
 impl<'a> Pkg<'a> {
-    pub fn new<S: AsRef<str>>(cpv: S, repo: &'a repo::fake::Repo) -> Result<Self> {
-        let atom = atom::parse::cpv(cpv.as_ref())?;
+    pub fn new(atom: &'a atom::Atom, repo: &'a repo::fake::Repo) -> Result<Self> {
         Ok(Pkg { atom, repo })
     }
 }

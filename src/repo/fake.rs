@@ -21,23 +21,26 @@ impl Repo {
         I: IntoIterator<Item = &'a str>,
     {
         let mut pkgmap = repo::PkgMap::new();
-        let mut cpvs = Vec::<atom::Atom>::new();
+        let mut cpvs = IndexSet::<atom::Atom>::new();
         for s in atoms.into_iter() {
-            cpvs.push(atom::parse::cpv(s)?);
+            cpvs.insert(atom::parse::cpv(s)?);
         }
 
         cpvs.sort();
 
-        for cpv in cpvs {
+        for cpv in &cpvs {
             pkgmap
                 .entry(cpv.category().into())
                 .or_insert_with(repo::VersionMap::new)
                 .entry(cpv.package().into())
                 .or_insert_with(IndexSet::new)
-                .insert(cpv.version().unwrap().as_str().into());
+                .insert(cpv.version().unwrap().into());
         }
 
-        let pkgs = repo::PkgCache { pkgmap };
+        let pkgs = repo::PkgCache {
+            pkgmap,
+            atoms: cpvs,
+        };
         Ok(Repo {
             id: id.to_string(),
             pkgs,
