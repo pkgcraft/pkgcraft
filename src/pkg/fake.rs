@@ -1,21 +1,12 @@
 use std::fmt;
 
-use crate::repo::Repo as RepoTrait;
 use crate::{atom, eapi, pkg, repo, Result};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pkg<'a> {
     atom: &'a atom::Atom,
     repo: &'a repo::fake::Repo,
 }
-
-impl PartialEq for Pkg<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.atom == other.atom && self.repo.id() == other.repo.id()
-    }
-}
-
-impl Eq for Pkg<'_> {}
 
 impl<'a> Pkg<'a> {
     pub fn new(atom: &'a atom::Atom, repo: &'a repo::fake::Repo) -> Result<Self> {

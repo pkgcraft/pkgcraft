@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 use crate::pkg::Package;
 use crate::{atom, repo, Error, Result};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Repo {
     id: String,
     pkgs: repo::PkgCache,

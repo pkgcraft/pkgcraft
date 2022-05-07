@@ -13,7 +13,7 @@ pub(crate) mod fake;
 type VersionMap = IndexMap<String, IndexSet<String>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 struct PkgCache {
     pkgmap: PkgMap,
     atoms: IndexSet<atom::Atom>,
