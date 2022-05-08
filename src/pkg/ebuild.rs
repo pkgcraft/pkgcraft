@@ -106,26 +106,26 @@ mod tests {
             assert_eq!(pkg.as_ref(), path);
         }
 
-        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
-        let ebuild_path = temprepo.create_ebuild("cat/pkg-1", None).unwrap();
-        let pkg = Pkg::new(&ebuild_path, &temprepo.repo).unwrap();
+        let t = TempRepo::new("test", None::<&str>, None).unwrap();
+        let ebuild_path = t.create_ebuild("cat/pkg-1", None).unwrap();
+        let pkg = Pkg::new(&ebuild_path, &t.repo).unwrap();
         assert_path(pkg, &ebuild_path);
     }
 
     #[test]
     fn test_pkg_methods() {
-        let temprepo = TempRepo::new("test", None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", None::<&str>, None).unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
-        let path = temprepo.create_ebuild("cat/pkg-1", None).unwrap();
-        let pkg = Pkg::new(&path, &temprepo.repo).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", None).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
         assert_eq!(pkg.eapi(), &*eapi::EAPI_LATEST);
         assert_eq!(pkg.path(), &path);
         assert!(!pkg.ebuild().is_empty());
 
         let data = HashMap::from([("eapi", "0")]);
-        let path = temprepo.create_ebuild("cat/pkg-2", Some(data)).unwrap();
-        let pkg = Pkg::new(&path, &temprepo.repo).unwrap();
+        let path = t.create_ebuild("cat/pkg-2", Some(data)).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
         assert_eq!(pkg.eapi(), &*eapi::EAPI0);
         assert!(!pkg.ebuild().is_empty());
     }
