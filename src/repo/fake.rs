@@ -95,8 +95,21 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
     }
 }
 
+impl repo::Contains<&atom::Atom> for Repo {
+    fn contains(&self, atom: &atom::Atom) -> bool {
+        self.pkgs.atoms.contains(atom)
+    }
+}
+
+impl repo::Contains<atom::Atom> for Repo {
+    fn contains(&self, atom: atom::Atom) -> bool {
+        self.pkgs.atoms.contains(&atom)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::atom;
     use crate::repo::{Contains, Repo as RepoTrait};
 
     use super::*;
@@ -155,8 +168,13 @@ mod tests {
     }
 
     #[test]
-    fn test_contains_path() {
+    fn test_contains() {
         let repo = Repo::new("fake", ["cat/pkg-0"]).unwrap();
+        // path containment is always false due to fake repo
         assert!(!repo.contains("cat/pkg"));
+        // atom containment
+        let cpv = atom::parse::cpv("cat/pkg-0").unwrap();
+        assert!(repo.contains(&cpv));
+        assert!(repo.contains(cpv));
     }
 }

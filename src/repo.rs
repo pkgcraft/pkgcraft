@@ -193,7 +193,7 @@ impl Repo for Repository {
 
 /// A repo contains a given object.
 pub trait Contains<T> {
-    fn contains(&self, path: T) -> bool;
+    fn contains(&self, obj: T) -> bool;
 }
 
 impl<T: AsRef<Path>> Contains<T> for Repository {
