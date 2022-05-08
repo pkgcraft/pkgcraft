@@ -41,15 +41,11 @@ impl PkgCache {
     }
 
     fn len(&self) -> usize {
-        let mut len = 0;
-        for v in self.pkgmap.values() {
-            len += v.len();
-        }
-        len
+        self.atoms.len()
     }
 
     fn is_empty(&self) -> bool {
-        self.pkgmap.is_empty()
+        self.atoms.is_empty()
     }
 }
 
