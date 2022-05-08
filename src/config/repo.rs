@@ -85,7 +85,7 @@ impl Config {
             }
         }
 
-        let mut repo_configs: Vec<(RepoConfig, String)> = Vec::new();
+        let mut configs = IndexMap::<String, RepoConfig>::new();
         if config_dir.exists() {
             let entries = fs::read_dir(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
 
@@ -99,21 +99,22 @@ impl Config {
                     {
                         // ignore bad configs
                         match RepoConfig::new(&p) {
-                            Ok(repo_conf) => repo_configs.push((repo_conf, name)),
+                            Ok(repo_conf) => {
+                                configs.insert(name, repo_conf);
+                            }
                             Err(err) => warn!("{err}"),
                         }
                     }
                 }
             }
 
-            // sort repo configs by priority then by name
-            repo_configs.sort();
+            // sort configs by priority then by name
+            configs.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
         }
 
         // create hash tables of repos ordered by priority
-        let mut configs = IndexMap::<String, RepoConfig>::new();
         let mut repos = IndexMap::<String, Arc<Repository>>::new();
-        for (config, name) in repo_configs {
+        for (name, config) in configs.iter() {
             // ignore unsynced or nonexistent repos
             match Repository::from_format(&name, &config.location, &config.format) {
                 Ok(repo) => {
@@ -121,7 +122,6 @@ impl Config {
                 }
                 Err(err) => warn!("{err}"),
             }
-            configs.insert(name.clone(), config);
         }
 
         Ok(Config {
