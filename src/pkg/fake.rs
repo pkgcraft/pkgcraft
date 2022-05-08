@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{atom, eapi, pkg, repo, Result};
+use crate::{atom, eapi, pkg, repo};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pkg<'a> {
@@ -9,8 +9,8 @@ pub struct Pkg<'a> {
 }
 
 impl<'a> Pkg<'a> {
-    pub fn new(atom: &'a atom::Atom, repo: &'a repo::fake::Repo) -> Result<Self> {
-        Ok(Pkg { atom, repo })
+    pub fn new(atom: &'a atom::Atom, repo: &'a repo::fake::Repo) -> Self {
+        Pkg { atom, repo }
     }
 }
 

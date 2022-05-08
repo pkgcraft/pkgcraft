@@ -1,10 +1,9 @@
-use std::path::{Path, PathBuf};
 use std::fmt;
+use std::path::{Path, PathBuf};
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 
-use crate::pkg::Package;
 use crate::{atom, Error, Result};
 
 pub(crate) mod ebuild;
@@ -51,6 +50,29 @@ impl PkgCache {
 
     fn is_empty(&self) -> bool {
         self.pkgmap.is_empty()
+    }
+}
+
+impl<'a> IntoIterator for &'a PkgCache {
+    type Item = &'a atom::Atom;
+    type IntoIter = PkgCacheIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        PkgCacheIter {
+            iter: self.atoms.iter(),
+        }
+    }
+}
+
+pub struct PkgCacheIter<'a> {
+    iter: indexmap::set::Iter<'a, atom::Atom>,
+}
+
+impl<'a> Iterator for PkgCacheIter<'a> {
+    type Item = &'a atom::Atom;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
     }
 }
 
@@ -123,9 +145,6 @@ pub trait Repo: fmt::Debug + fmt::Display {
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
     fn id(&self) -> &str;
-    // TODO: convert to `impl Iterator` return type once supported within traits
-    // https://github.com/rust-lang/rfcs/blob/master/text/1522-conservative-impl-trait.md
-    fn iter(&self) -> Box<dyn Iterator<Item = Package>>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
 }
@@ -166,13 +185,6 @@ impl Repo for Repository {
         match self {
             Repository::Ebuild(ref repo) => repo.id(),
             Repository::Fake(ref repo) => repo.id(),
-        }
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
-        match self {
-            Repository::Ebuild(ref repo) => repo.iter(),
-            Repository::Fake(ref repo) => repo.iter(),
         }
     }
 

@@ -4,8 +4,7 @@ use std::path::Path;
 
 use indexmap::IndexSet;
 
-use crate::pkg::Package;
-use crate::{atom, repo, Error, Result};
+use crate::{atom, pkg, repo, Error, Result};
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Repo {
@@ -76,10 +75,6 @@ impl repo::Repo for Repo {
         &self.id
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
-        unimplemented!()
-    }
-
     fn len(&self) -> usize {
         self.pkgs.len()
     }
@@ -104,6 +99,31 @@ impl repo::Contains<&atom::Atom> for Repo {
 impl repo::Contains<atom::Atom> for Repo {
     fn contains(&self, atom: atom::Atom) -> bool {
         self.pkgs.atoms.contains(&atom)
+    }
+}
+
+impl<'a> IntoIterator for &'a Repo {
+    type Item = pkg::fake::Pkg<'a>;
+    type IntoIter = PkgIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        PkgIter {
+            iter: self.pkgs.into_iter(),
+            repo: self,
+        }
+    }
+}
+
+pub struct PkgIter<'a> {
+    iter: repo::PkgCacheIter<'a>,
+    repo: &'a Repo,
+}
+
+impl<'a> Iterator for PkgIter<'a> {
+    type Item = pkg::fake::Pkg<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|a| pkg::fake::Pkg::new(a, self.repo))
     }
 }
 
@@ -176,5 +196,13 @@ mod tests {
         let cpv = atom::parse::cpv("cat/pkg-0").unwrap();
         assert!(repo.contains(&cpv));
         assert!(repo.contains(cpv));
+    }
+
+    #[test]
+    fn test_into_iter() {
+        let expected = ["cat/pkg-0", "acat/bpkg-1"];
+        let repo = Repo::new("fake", expected).unwrap();
+        let atoms: Vec<String> = repo.into_iter().map(|a| format!("{}", a)).collect();
+        assert_eq!(atoms, ["acat/bpkg-1", "cat/pkg-0"]);
     }
 }

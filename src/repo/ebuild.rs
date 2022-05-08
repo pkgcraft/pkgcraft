@@ -15,7 +15,6 @@ use walkdir::DirEntry;
 use crate::config::Config;
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
-use crate::pkg::Package;
 use crate::{atom, eapi, repo, Error, Result};
 
 const DEFAULT_SECTION: Option<String> = None;
@@ -298,10 +297,6 @@ impl repo::Repo for Repo {
         &self.id
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
-        unimplemented!()
-    }
-
     fn len(&self) -> usize {
         unimplemented!()
     }
@@ -435,10 +430,6 @@ impl repo::Repo for TempRepo {
 
     fn id(&self) -> &str {
         &self.repo.id
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Package>> {
-        self.repo.iter()
     }
 
     fn len(&self) -> usize {
