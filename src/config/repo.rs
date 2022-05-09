@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::fs;
 use std::io::Write;
-use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -142,40 +141,20 @@ impl Config {
         let mut config: RepoConfig = Default::default();
         let path = Path::new(uri);
 
-        let repo = match path.is_absolute() && path.exists() {
+        let repo = match path.exists() {
             true => {
                 // add local, external repo
+                let path = path.canonicalize().map_err(|e| {
+                    Error::Config(format!("failed canonicalizing repo path {path:?}: {e}"))
+                })?;
                 let (format, repo) = Repository::from_path(name, path)?;
                 config.format = format.to_string();
                 repo
             }
             false => {
-                config.location = dest_dir.clone();
-                match Syncer::from_str(uri) {
-                    Ok(Syncer::Noop) | Err(_) => {
-                        let mut path = PathBuf::from(uri);
-                        if path.is_relative() {
-                            path = fs::canonicalize(&path).map_err(|e| {
-                                Error::Config(format!("failed canonicalizing path {path:?}: {e}"))
-                            })?;
-                        }
-                        if path.exists() {
-                            if path != dest_dir {
-                                symlink(&path, &dest_dir).map_err(|e| {
-                                    Error::Config(format!(
-                                        "failed symlinking repo {path:?} to {dest_dir:?}: {e}",
-                                    ))
-                                })?;
-                            }
-                        } else {
-                            return Err(Error::Config(format!("nonexistent repo path: {path:?}")));
-                        }
-                    }
-                    Ok(syncer) => {
-                        config.sync = Some(syncer);
-                        config.sync()?;
-                    }
-                };
+                config.location = dest_dir;
+                config.sync = Some(Syncer::from_str(uri)?);
+                config.sync()?;
 
                 let (format, repo) = Repository::from_path(name, &config.location)?;
                 config.format = format.to_string();

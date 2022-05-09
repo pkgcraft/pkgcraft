@@ -4,21 +4,23 @@ use std::path::Path;
 use std::str::FromStr;
 
 use async_trait::async_trait;
-use futures::executor::block_on;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::{Error, Result};
 
 #[cfg(feature = "git")]
 mod git;
+mod local;
+#[cfg(feature = "https")]
 mod tar;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeserializeFromStr, SerializeDisplay)]
 pub(crate) enum Syncer {
     #[cfg(feature = "git")]
     Git(git::Repo),
+    Local(local::Repo),
+    #[cfg(feature = "https")]
     TarHttps(tar::Repo),
-    Noop,
 }
 
 impl fmt::Display for Syncer {
@@ -26,8 +28,9 @@ impl fmt::Display for Syncer {
         match self {
             #[cfg(feature = "git")]
             Syncer::Git(repo) => write!(f, "{}", repo.uri),
+            #[cfg(feature = "https")]
             Syncer::TarHttps(repo) => write!(f, "{}", repo.uri),
-            Syncer::Noop => write!(f, "\"\""),
+            Syncer::Local(_) => write!(f, "\"\""),
         }
     }
 }
@@ -52,9 +55,10 @@ impl Syncer {
 
         match self {
             #[cfg(feature = "git")]
-            Syncer::Git(repo) => block_on(repo.sync(path)),
-            Syncer::TarHttps(repo) => block_on(repo.sync(path)),
-            Syncer::Noop => Ok(()),
+            Syncer::Git(repo) => futures::executor::block_on(repo.sync(path)),
+            #[cfg(feature = "https")]
+            Syncer::TarHttps(repo) => futures::executor::block_on(repo.sync(path)),
+            Syncer::Local(_) => Ok(()),
         }
     }
 }
@@ -67,17 +71,22 @@ impl FromStr for Syncer {
         let prioritized_syncers = [
             #[cfg(feature = "git")]
             git::Repo::uri_to_syncer,
+            #[cfg(feature = "https")]
             tar::Repo::uri_to_syncer,
+            local::Repo::uri_to_syncer,
         ];
 
-        let mut syncer = Syncer::Noop;
+        let mut syncer: Option<Syncer> = None;
         for func in prioritized_syncers.iter() {
             if let Ok(sync) = func(s) {
-                syncer = sync;
+                syncer = Some(sync);
                 break;
             }
         }
 
-        Ok(syncer)
+        match syncer {
+            Some(s) => Ok(s),
+            None => Err(Error::InvalidValue(format!("no syncers available: {s}"))),
+        }
     }
 }
