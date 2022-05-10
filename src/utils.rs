@@ -34,7 +34,7 @@ pub(crate) fn current_dir() -> Result<Utf8PathBuf> {
 // <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
-pub(crate) fn relpath<P, B>(path: P, base: B) -> Option<PathBuf>
+pub fn relpath<P, B>(path: P, base: B) -> Option<PathBuf>
 where
     P: AsRef<Path>,
     B: AsRef<Path>,
