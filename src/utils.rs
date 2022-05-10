@@ -1,9 +1,18 @@
+use std::collections::hash_map::DefaultHasher;
 use std::env;
+use std::hash::{Hash, Hasher};
 use std::path::{Component, Path, PathBuf};
 
 use camino::Utf8PathBuf;
 
 use crate::{Error, Result};
+
+// Return the hash of a given hashable object.
+pub fn hash<T: Hash>(obj: T) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    obj.hash(&mut hasher);
+    hasher.finish()
+}
 
 // Get the current working directory as a Utf8PathBuf.
 pub(crate) fn current_dir() -> Result<Utf8PathBuf> {
