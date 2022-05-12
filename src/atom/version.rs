@@ -175,7 +175,7 @@ impl Version {
         self.revision.value.as_ref().map(|_| &self.revision)
     }
 
-    fn base(&self) -> &str {
+    pub(crate) fn base(&self) -> &str {
         let base = &self.full.as_bytes()[..self.end_base];
         str::from_utf8(base).unwrap()
     }

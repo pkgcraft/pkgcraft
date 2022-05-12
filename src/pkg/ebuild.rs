@@ -13,6 +13,7 @@ static EAPI_LINE_RE: Lazy<Regex> =
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     path: PathBuf,
+    atom: &'a atom::Atom,
     eapi: &'static eapi::Eapi,
     repo: &'a repo::ebuild::Repo,
 }
@@ -30,7 +31,12 @@ impl<'a> Pkg<'a> {
         let (cat, pkg, ver) = (atom.category(), atom.package(), atom.version().unwrap().as_str());
         let path = repo.path().join(format!("{cat}/{pkg}/{pkg}-{ver}.ebuild"));
         let eapi = Pkg::get_eapi(&path)?;
-        Ok(Pkg { path, eapi, repo })
+        Ok(Pkg {
+            path,
+            atom,
+            eapi,
+            repo,
+        })
     }
 
     pub fn path(&self) -> &Path {
@@ -60,6 +66,10 @@ impl<'a> Pkg<'a> {
             }
         }
         Ok(eapi)
+    }
+
+    pub fn env(&self, var: &str) -> Result<String> {
+        self.atom.env(var)
     }
 }
 

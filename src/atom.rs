@@ -142,6 +142,22 @@ impl Atom {
     pub fn repo(&self) -> Option<&str> {
         self.repo.as_deref()
     }
+
+    pub fn env(&self, var: &str) -> Result<String> {
+        match self.version() {
+            Some(v) => match var {
+                "P" => Ok(format!("{}-{}", self.package, v.base())),
+                "PN" => Ok(self.package.clone()),
+                "PV" => Ok(v.base().into()),
+                "PR" => Ok(format!("r{}", v.revision().unwrap())),
+                "PVR" => Ok(v.as_str().into()),
+                "PF" => Ok(format!("{}-{v}", self.package)),
+                "CATEGORY" => Ok(self.category.clone()),
+                _ => Err(Error::InvalidValue("unknown package variable: {var}".into())),
+            },
+            None => Err(Error::InvalidValue("unversioned atom: {self}".into())),
+        }
+    }
 }
 
 impl fmt::Display for Atom {
