@@ -9,7 +9,7 @@ pub struct Pkg<'a> {
 }
 
 impl<'a> Pkg<'a> {
-    pub fn new(atom: &'a atom::Atom, repo: &'a repo::fake::Repo) -> Self {
+    pub(crate) fn new(atom: &'a atom::Atom, repo: &'a repo::fake::Repo) -> Self {
         Pkg { atom, repo }
     }
 }

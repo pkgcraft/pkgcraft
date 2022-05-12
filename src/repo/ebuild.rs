@@ -15,7 +15,7 @@ use walkdir::DirEntry;
 use crate::config::Config;
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
-use crate::{atom, eapi, repo, Error, Result};
+use crate::{atom, eapi, pkg, repo, Error, Result};
 
 const DEFAULT_SECTION: Option<String> = None;
 static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
@@ -110,6 +110,7 @@ pub struct Repo {
     id: String,
     pub(super) path: PathBuf,
     pub(super) config: Metadata,
+    pkgs: repo::PkgCache,
 }
 
 impl Repo {
@@ -124,6 +125,7 @@ impl Repo {
             id: id.as_ref().to_string(),
             path: PathBuf::from(path.as_ref()),
             config,
+            pkgs: repo::PkgCache::default(),
         })
     }
 
@@ -211,6 +213,14 @@ impl Repo {
             }
         }
         v
+    }
+
+    pub(crate) fn path(&self) -> &Path {
+        &self.path
+    }
+
+    pub fn iter(&self) -> PkgIter {
+        self.into_iter()
     }
 }
 
@@ -321,6 +331,51 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
     }
 }
 
+impl repo::Contains<atom::Atom> for Repo {
+    fn contains(&self, _atom: atom::Atom) -> bool {
+        unimplemented!()
+    }
+}
+
+impl repo::Contains<&atom::Atom> for Repo {
+    fn contains(&self, _atom: &atom::Atom) -> bool {
+        unimplemented!()
+    }
+}
+
+impl<'a> IntoIterator for &'a Repo {
+    type Item = pkg::ebuild::Pkg<'a>;
+    type IntoIter = PkgIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        PkgIter {
+            iter: self.pkgs.into_iter(),
+            repo: self,
+        }
+    }
+}
+
+pub struct PkgIter<'a> {
+    iter: repo::PkgCacheIter<'a>,
+    repo: &'a Repo,
+}
+
+impl<'a> Iterator for PkgIter<'a> {
+    type Item = pkg::ebuild::Pkg<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.iter.next() {
+                None => return None,
+                Some(a) => match pkg::ebuild::Pkg::new(a, self.repo) {
+                    Ok(p) => return Some(p),
+                    Err(e) => warn!("invalid package: {a}: {e}"),
+                },
+            }
+        }
+    }
+}
+
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub(crate) struct TempRepo {
@@ -364,7 +419,7 @@ impl TempRepo {
         &self,
         cpv: &str,
         data: Option<HashMap<&str, &str>>,
-    ) -> Result<PathBuf> {
+    ) -> Result<(atom::Atom, PathBuf)> {
         let cpv = atom::parse::cpv(cpv)?;
         let path = self.tempdir.path().join(format!(
             "{}/{}-{}.ebuild",
@@ -391,7 +446,7 @@ impl TempRepo {
         f.write_all(content.as_bytes())
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
 
-        Ok(path)
+        Ok((cpv, path))
     }
 
     /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is

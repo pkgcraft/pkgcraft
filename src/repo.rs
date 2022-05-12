@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 
-use crate::{atom, Error, Result};
+use crate::{atom, pkg, Error, Result};
 
 pub(crate) mod ebuild;
 pub(crate) mod fake;
@@ -125,6 +125,38 @@ impl Repository {
             _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
         }
     }
+
+    pub fn iter(&self) -> PackageIter {
+        self.into_iter()
+    }
+}
+
+pub enum PackageIter<'a> {
+    Ebuild(ebuild::PkgIter<'a>),
+    Fake(fake::PkgIter<'a>),
+}
+
+impl<'a> IntoIterator for &'a Repository {
+    type Item = pkg::Package<'a>;
+    type IntoIter = PackageIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Repository::Ebuild(ref repo) => PackageIter::Ebuild(repo.into_iter()),
+            Repository::Fake(ref repo) => PackageIter::Fake(repo.into_iter()),
+        }
+    }
+}
+
+impl<'a> Iterator for PackageIter<'a> {
+    type Item = pkg::Package<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            PackageIter::Ebuild(iter) => iter.next().map(pkg::Package::Ebuild),
+            PackageIter::Fake(iter) => iter.next().map(pkg::Package::Fake),
+        }
+    }
 }
 
 // externally supported repo formats
@@ -212,3 +244,17 @@ impl<T: AsRef<Path>> Contains<T> for Repository {
         }
     }
 }
+
+macro_rules! make_contains {
+    ($($x:ty),*) => {$(
+        impl Contains<$x> for Repository {
+            fn contains(&self, obj: $x) -> bool {
+                match self {
+                    Repository::Ebuild(ref repo) => repo.contains(obj),
+                    Repository::Fake(ref repo) => repo.contains(obj),
+                }
+            }
+        }
+    )*};
+}
+make_contains!(atom::Atom, &atom::Atom);

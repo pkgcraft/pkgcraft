@@ -50,6 +50,10 @@ impl Repo {
         let data = fs::read_to_string(path.as_ref()).map_err(|e| Error::RepoInit(e.to_string()))?;
         Repo::new(id, data.lines())
     }
+
+    pub fn iter(&self) -> PkgIter {
+        self.into_iter()
+    }
 }
 
 impl fmt::Display for Repo {
