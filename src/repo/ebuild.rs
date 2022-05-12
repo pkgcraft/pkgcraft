@@ -308,11 +308,11 @@ impl repo::Repo for Repo {
     }
 
     fn len(&self) -> usize {
-        unimplemented!()
+        self.pkgs.len()
     }
 
     fn is_empty(&self) -> bool {
-        unimplemented!()
+        self.pkgs.is_empty()
     }
 }
 
@@ -332,14 +332,14 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
 }
 
 impl repo::Contains<atom::Atom> for Repo {
-    fn contains(&self, _atom: atom::Atom) -> bool {
-        unimplemented!()
+    fn contains(&self, atom: atom::Atom) -> bool {
+        self.pkgs.atoms.contains(&atom)
     }
 }
 
 impl repo::Contains<&atom::Atom> for Repo {
-    fn contains(&self, _atom: &atom::Atom) -> bool {
-        unimplemented!()
+    fn contains(&self, atom: &atom::Atom) -> bool {
+        self.pkgs.atoms.contains(atom)
     }
 }
 
