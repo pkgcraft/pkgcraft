@@ -132,8 +132,6 @@ impl Config {
     }
 
     pub fn add(&mut self, name: &str, uri: &str) -> Result<()> {
-        let dest_dir = self.repo_dir.join(name);
-
         if let Some(c) = self.configs.get(name) {
             return Err(Error::Config(format!("existing repo: {name:?} @ {:?}", &c.location)));
         }
@@ -152,7 +150,7 @@ impl Config {
                 repo
             }
             false => {
-                config.location = dest_dir;
+                config.location = self.repo_dir.join(name);
                 config.sync = Some(Syncer::from_str(uri)?);
                 config.sync()?;
 
