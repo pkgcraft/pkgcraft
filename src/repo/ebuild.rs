@@ -369,7 +369,7 @@ impl<'a> Iterator for PkgIter<'a> {
                 None => return None,
                 Some(a) => match pkg::ebuild::Pkg::new(a, self.repo) {
                     Ok(p) => return Some(p),
-                    Err(e) => warn!("invalid package: {a}: {e}"),
+                    Err(e) => warn!("{}: invalid package: {a}: {e}", self.repo.id),
                 },
             }
         }
