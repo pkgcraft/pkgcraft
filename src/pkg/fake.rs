@@ -20,14 +20,14 @@ impl fmt::Display for Pkg<'_> {
     }
 }
 
-impl pkg::Pkg for Pkg<'_> {
-    type Repo = repo::fake::Repo;
+impl<'a> pkg::Pkg for Pkg<'a> {
+    type Repo = &'a repo::fake::Repo;
 
     fn eapi(&self) -> &eapi::Eapi {
         &eapi::EAPI_LATEST
     }
 
-    fn repo(&self) -> &Self::Repo {
+    fn repo(&self) -> Self::Repo {
         self.repo
     }
 }

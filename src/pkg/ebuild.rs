@@ -85,14 +85,14 @@ impl fmt::Display for Pkg<'_> {
     }
 }
 
-impl pkg::Pkg for Pkg<'_> {
-    type Repo = repo::ebuild::Repo;
+impl<'a> pkg::Pkg for Pkg<'a> {
+    type Repo = &'a repo::ebuild::Repo;
 
     fn eapi(&self) -> &eapi::Eapi {
         self.eapi
     }
 
-    fn repo(&self) -> &Self::Repo {
+    fn repo(&self) -> Self::Repo {
         self.repo
     }
 }
