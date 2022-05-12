@@ -226,7 +226,11 @@ impl Repo {
 
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.id, self.path.to_string_lossy())
+        let (id, path) = (self.id.as_str(), self.path.to_string_lossy());
+        match id == path {
+            true => write!(f, "{id}"),
+            false => write!(f, "{id}: {path}"),
+        }
     }
 }
 
