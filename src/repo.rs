@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
+use tracing::warn;
 
 use crate::{atom, pkg, Error, Result};
 
@@ -69,6 +70,34 @@ impl<'a> Iterator for PkgCacheIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
+    }
+}
+
+impl<'a> FromIterator<&'a str> for PkgCache {
+    fn from_iter<I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
+        let mut pkgmap = PkgMap::new();
+        let mut atoms = IndexSet::<atom::Atom>::new();
+        for s in iter {
+            match atom::parse::cpv(s) {
+                Ok(a) => {
+                    atoms.insert(a);
+                }
+                Err(e) => warn!("{e}"),
+            }
+        }
+
+        atoms.sort();
+
+        for a in &atoms {
+            pkgmap
+                .entry(a.category().into())
+                .or_insert_with(VersionMap::new)
+                .entry(a.package().into())
+                .or_insert_with(IndexSet::new)
+                .insert(a.version().unwrap().into());
+        }
+
+        PkgCache { pkgmap, atoms }
     }
 }
 

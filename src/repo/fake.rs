@@ -2,8 +2,6 @@ use std::fmt;
 use std::fs;
 use std::path::Path;
 
-use indexmap::IndexSet;
-
 use crate::{atom, pkg, repo, Error, Result};
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -19,30 +17,10 @@ impl Repo {
     where
         I: IntoIterator<Item = &'a str>,
     {
-        let mut pkgmap = repo::PkgMap::new();
-        let mut cpvs = IndexSet::<atom::Atom>::new();
-        for s in atoms.into_iter() {
-            cpvs.insert(atom::parse::cpv(s)?);
-        }
-
-        cpvs.sort();
-
-        for cpv in &cpvs {
-            pkgmap
-                .entry(cpv.category().into())
-                .or_insert_with(repo::VersionMap::new)
-                .entry(cpv.package().into())
-                .or_insert_with(IndexSet::new)
-                .insert(cpv.version().unwrap().into());
-        }
-
-        let pkgs = repo::PkgCache {
-            pkgmap,
-            atoms: cpvs,
-        };
+        // TODO: replace from_iter() usage with try_from_iter()
         Ok(Repo {
             id: id.to_string(),
-            pkgs,
+            pkgs: repo::PkgCache::from_iter(atoms),
         })
     }
 
