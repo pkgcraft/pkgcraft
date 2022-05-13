@@ -244,7 +244,7 @@ impl Eapi {
         self.archives_regex.get_or_init(|| {
             // Regex matches extensions from the longest to the shortest.
             let mut possible_exts: Vec<String> = self.archives.iter().map(|s| escape(s)).collect();
-            possible_exts.sort_by_cached_key(|s| s.len());
+            possible_exts.sort_by_key(|s| s.len());
             possible_exts.reverse();
             RegexBuilder::new(&format!(r"\.(?P<ext>{})$", possible_exts.join("|")))
                 .case_insensitive(self.has("unpack_case_insensitive"))
