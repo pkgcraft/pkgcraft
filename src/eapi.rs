@@ -137,9 +137,9 @@ pub struct Eapi {
     parent: Option<&'static Eapi>,
     options: EapiOptions,
     phases: HashMap<String, PhaseFn>,
-    incremental_keys: HashSet<String>,
+    incremental_keys: HashSet<&'static str>,
     econf_options: EapiEconfOptions,
-    archives: HashSet<String>,
+    archives: HashSet<&'static str>,
     archives_regex: OnceCell<Regex>,
 }
 
@@ -243,8 +243,7 @@ impl Eapi {
     pub(crate) fn archives_regex(&self) -> &Regex {
         self.archives_regex.get_or_init(|| {
             // Regex matches extensions from the longest to the shortest.
-            let mut possible_exts: Vec<String> =
-                self.archives.iter().map(|s| escape(s.as_str())).collect();
+            let mut possible_exts: Vec<String> = self.archives.iter().map(|s| escape(s)).collect();
             possible_exts.sort_by_cached_key(|s| s.len());
             possible_exts.reverse();
             RegexBuilder::new(&format!(r"\.(?P<ext>{})$", possible_exts.join("|")))
@@ -284,7 +283,7 @@ impl Eapi {
         Ok(ScopedBuiltins::new((&builtins, &[]))?)
     }
 
-    pub(crate) fn incremental_keys(&self) -> &HashSet<String> {
+    pub(crate) fn incremental_keys(&self) -> &HashSet<&str> {
         &self.incremental_keys
     }
 
@@ -308,8 +307,7 @@ impl Eapi {
     }
 
     fn update_keys(mut self, updates: &[&'static str]) -> Self {
-        self.incremental_keys
-            .extend(updates.iter().map(|s| s.to_string()));
+        self.incremental_keys.extend(updates);
         self
     }
 
@@ -326,8 +324,8 @@ impl Eapi {
         self
     }
 
-    fn update_archives(mut self, add: &[&str], remove: &[&str]) -> Self {
-        self.archives.extend(add.iter().map(|s| s.to_string()));
+    fn update_archives(mut self, add: &[&'static str], remove: &[&str]) -> Self {
+        self.archives.extend(add);
         for x in remove {
             if !self.archives.remove(*x) {
                 panic!("disabling unknown archive format: {x:?}");
