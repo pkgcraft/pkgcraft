@@ -185,7 +185,7 @@ impl IntoEapi for &'static Eapi {
 impl IntoEapi for Option<&str> {
     fn into_eapi(self) -> Result<&'static Eapi> {
         match self {
-            None => Ok(&EAPI_PKGCRAFT),
+            None => Ok(Default::default()),
             Some(s) => get_eapi(s),
         }
     }
@@ -194,7 +194,7 @@ impl IntoEapi for Option<&str> {
 impl IntoEapi for Option<&'static Eapi> {
     fn into_eapi(self) -> Result<&'static Eapi> {
         match self {
-            None => Ok(&EAPI_PKGCRAFT),
+            None => Ok(Default::default()),
             Some(eapi) => Ok(eapi),
         }
     }
