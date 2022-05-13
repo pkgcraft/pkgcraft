@@ -181,7 +181,7 @@ mod tests {
                     d.borrow_mut().eapi = eapi;
                     if !eapi.econf_options().is_empty() {
                         let opts = get_opts(&[]);
-                        let eapi_opts: Vec<&str> = eapi.econf_options().keys().map(|s| s.as_str()).collect();
+                        let eapi_opts: Vec<&str> = eapi.econf_options().keys().cloned().collect();
                         let cmd_opts: Vec<&str> = opts.keys().map(|s| s.as_str()).collect();
                         assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len() - eapi_opts.len()..]);
                     }

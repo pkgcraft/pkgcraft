@@ -6,7 +6,6 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::{Builtin, ExecStatus};
 
-use crate::macros::vec_str;
 use crate::{eapi, eapi::Eapi};
 
 mod _default_phase_func;
@@ -238,7 +237,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &ver_test::BUILTIN,
     ];
 
-    let static_scopes: Vec<String> = vec_str!(["global", "eclass"]);
+    let static_scopes: Vec<&str> = vec!["global", "eclass"];
     #[allow(clippy::mutable_key_type)]
     let mut builtins_map = EapiBuiltinsMap::new();
     for b in builtins.iter() {
@@ -250,7 +249,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
             let scopes = static_scopes.iter().chain(phase_scopes);
             for scope in scopes.filter(|s| re.is_match(s)) {
                 scope_map
-                    .entry(scope.into())
+                    .entry(scope.to_string())
                     .or_insert_with(BuiltinsMap::new)
                     .insert(b.builtin.name, b);
             }

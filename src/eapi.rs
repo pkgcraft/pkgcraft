@@ -129,14 +129,14 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
+type EapiEconfOptions = HashMap<&'static str, (IndexSet<String>, Option<String>)>;
 
 #[derive(Debug, Default, Clone)]
 pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
-    phases: HashMap<String, PhaseFn>,
+    phases: HashMap<&'static str, PhaseFn>,
     incremental_keys: HashSet<&'static str>,
     econf_options: EapiEconfOptions,
     archives: HashSet<&'static str>,
@@ -200,7 +200,7 @@ impl IntoEapi for Option<&'static Eapi> {
     }
 }
 
-type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
+type EconfUpdate<'a> = (&'static str, Option<&'a [&'a str]>, Option<&'a str>);
 
 impl Eapi {
     fn new(id: &'static str, parent: Option<&'static Eapi>) -> Eapi {
@@ -236,7 +236,7 @@ impl Eapi {
         Atom::new(s.as_ref(), self)
     }
 
-    pub(crate) fn phases(&self) -> &HashMap<String, PhaseFn> {
+    pub(crate) fn phases(&self) -> &HashMap<&str, PhaseFn> {
         &self.phases
     }
 
@@ -300,9 +300,8 @@ impl Eapi {
         self
     }
 
-    fn update_phases(mut self, updates: &[(&str, PhaseFn)]) -> Self {
-        self.phases
-            .extend(updates.iter().map(|(s, f)| (s.to_string(), *f)));
+    fn update_phases(mut self, updates: &[(&'static str, PhaseFn)]) -> Self {
+        self.phases.extend(updates.iter().map(|(s, f)| (*s, *f)));
         self
     }
 
@@ -319,7 +318,7 @@ impl Eapi {
                 .map(|s| s.to_string())
                 .collect();
             let val = val.map(|s| s.to_string());
-            self.econf_options.insert(opt.to_string(), (markers, val));
+            self.econf_options.insert(opt, (markers, val));
         }
         self
     }
