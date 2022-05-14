@@ -16,7 +16,6 @@ pub enum Restrict {
 
 pub(crate) trait Restriction<T> {
     fn matches(&self, object: T) -> bool;
-    fn len(&self) -> usize;
 }
 
 impl Restriction<&atom::Atom> for Restrict {
@@ -32,13 +31,6 @@ impl Restriction<&atom::Atom> for Restrict {
             // boolean
             Restrict::And(vals) => vals.iter().all(|r| r.matches(atom)),
             Restrict::Or(vals) => vals.iter().any(|r| r.matches(atom)),
-        }
-    }
-
-    fn len(&self) -> usize {
-        match self {
-            Restrict::And(vals) | Restrict::Or(vals) => vals.len(),
-            _ => 1,
         }
     }
 }
@@ -89,91 +81,78 @@ mod tests {
 
         // category
         let r = Restrict::Category("cat".to_string());
-        assert_eq!(r.len(), 1);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // package
         let r = Restrict::Package("pkg".to_string());
-        assert_eq!(r.len(), 1);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no version
         let r = Restrict::Version(None);
-        assert_eq!(r.len(), 1);
         assert!(r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // version
         let r = Restrict::Version(Some(Version::from_str("1").unwrap()));
-        assert_eq!(r.len(), 1);
         assert!(!r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no slot
         let r = Restrict::Slot(None);
-        assert_eq!(r.len(), 1);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // slot
         let r = Restrict::Slot(Some("2".to_string()));
-        assert_eq!(r.len(), 1);
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no subslot
         let r = Restrict::SubSlot(None);
-        assert_eq!(r.len(), 1);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // subslot
         let r = Restrict::SubSlot(Some("3".to_string()));
-        assert_eq!(r.len(), 1);
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no repo
         let r = Restrict::Repo(None);
-        assert_eq!(r.len(), 1);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // repo
         let r = Restrict::Repo(Some("repo".to_string()));
-        assert_eq!(r.len(), 1);
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // unversioned restriction
         let r = Restrict::from(&unversioned);
-        assert_eq!(r.len(), 2);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // cpv restriction
         let r = Restrict::from(&cpv);
-        assert_eq!(r.len(), 3);
         assert!(!r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // full atom restriction
         let r = Restrict::from(&full);
-        assert_eq!(r.len(), 6);
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
@@ -186,14 +165,12 @@ mod tests {
         let pkg = Restrict::Package("pkg".into());
         let r = Restrict::And(vec![Box::new(cat), Box::new(pkg)]);
         assert!(r.matches(&a));
-        assert_eq!(r.len(), 2);
 
         // one matched and one unmatched restriction
         let cat = Restrict::Category("cat".into());
         let pkg = Restrict::Package("pkga".into());
         let r = Restrict::And(vec![Box::new(cat), Box::new(pkg)]);
         assert!(!r.matches(&a));
-        assert_eq!(r.len(), 2);
 
         // matching against two atoms
         let a1 = Atom::from_str("cat/pkg1").unwrap();
@@ -210,14 +187,12 @@ mod tests {
         let pkg = Restrict::Package("pkg".into());
         let r = Restrict::Or(vec![Box::new(cat), Box::new(pkg)]);
         assert!(r.matches(&a));
-        assert_eq!(r.len(), 2);
 
         // one matched and one unmatched restriction
         let cat = Restrict::Category("cat".into());
         let pkg = Restrict::Package("pkga".into());
         let r = Restrict::Or(vec![Box::new(cat), Box::new(pkg)]);
         assert!(r.matches(&a));
-        assert_eq!(r.len(), 2);
 
         // matching against two atoms
         let a1 = Atom::from_str("cat/pkg1").unwrap();
