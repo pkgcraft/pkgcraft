@@ -1,4 +1,5 @@
-use crate::atom;
+use crate::pkg::Package;
+use crate::{atom, pkg};
 
 #[derive(Debug)]
 pub enum Restrict {
@@ -61,6 +62,12 @@ impl From<&atom::Atom> for Restrict {
         }
 
         Restrict::And(restricts)
+    }
+}
+
+impl From<&pkg::Pkg<'_>> for Restrict {
+    fn from(pkg: &pkg::Pkg) -> Self {
+        Restrict::from(pkg.atom())
     }
 }
 

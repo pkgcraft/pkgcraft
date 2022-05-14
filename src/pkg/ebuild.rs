@@ -88,6 +88,10 @@ impl fmt::Display for Pkg<'_> {
 impl<'a> pkg::Package for Pkg<'a> {
     type Repo = &'a repo::ebuild::Repo;
 
+    fn atom(&self) -> &atom::Atom {
+        self.atom
+    }
+
     fn eapi(&self) -> &eapi::Eapi {
         self.eapi
     }

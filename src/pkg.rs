@@ -1,7 +1,7 @@
 use std::fmt;
 
-use crate::eapi;
 use crate::repo::Repository;
+use crate::{atom, eapi};
 
 pub mod ebuild;
 pub mod fake;
@@ -16,12 +16,20 @@ pub enum Pkg<'a> {
 pub trait Package: fmt::Debug + fmt::Display {
     type Repo;
 
+    fn atom(&self) -> &atom::Atom;
     fn eapi(&self) -> &eapi::Eapi;
     fn repo(&self) -> Self::Repo;
 }
 
 impl<'a> Package for Pkg<'a> {
     type Repo = Box<&'a dyn Repository>;
+
+    fn atom(&self) -> &atom::Atom {
+        match self {
+            Pkg::Ebuild(ref pkg) => pkg.atom(),
+            Pkg::Fake(ref pkg) => pkg.atom(),
+        }
+    }
 
     fn eapi(&self) -> &eapi::Eapi {
         match self {

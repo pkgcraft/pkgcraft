@@ -23,6 +23,10 @@ impl fmt::Display for Pkg<'_> {
 impl<'a> pkg::Package for Pkg<'a> {
     type Repo = &'a repo::fake::Repo;
 
+    fn atom(&self) -> &atom::Atom {
+        self.atom
+    }
+
     fn eapi(&self) -> &eapi::Eapi {
         &eapi::EAPI_LATEST
     }
