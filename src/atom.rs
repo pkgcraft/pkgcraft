@@ -169,16 +169,17 @@ impl fmt::Display for Atom {
             s.push_str(&format!("{block}"));
         }
 
-        // append operator and version
+        // append version operator with cpv
+        let cpv = self.cpv();
         match &self.op {
-            Some(Operator::Less) => s.push_str(&format!("<{}", self.cpv())),
-            Some(Operator::LessOrEqual) => s.push_str(&format!("<={}", self.cpv())),
-            Some(Operator::Equal) => s.push_str(&format!("={}", self.cpv())),
-            Some(Operator::EqualGlob) => s.push_str(&format!("={}*", self.cpv())),
-            Some(Operator::Approximate) => s.push_str(&format!("~{}", self.cpv())),
-            Some(Operator::GreaterOrEqual) => s.push_str(&format!(">={}", self.cpv())),
-            Some(Operator::Greater) => s.push_str(&format!(">{}", self.cpv())),
-            None => s.push_str(&self.cpv()),
+            Some(Operator::Less) => s.push_str(&format!("<{cpv}")),
+            Some(Operator::LessOrEqual) => s.push_str(&format!("<={cpv}")),
+            Some(Operator::Equal) => s.push_str(&format!("={cpv}")),
+            Some(Operator::EqualGlob) => s.push_str(&format!("={cpv}*")),
+            Some(Operator::Approximate) => s.push_str(&format!("~{cpv}")),
+            Some(Operator::GreaterOrEqual) => s.push_str(&format!(">={cpv}")),
+            Some(Operator::Greater) => s.push_str(&format!(">{cpv}")),
+            None => s.push_str(&cpv),
         }
 
         // append slot data
