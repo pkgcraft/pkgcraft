@@ -159,6 +159,33 @@ mod tests {
     }
 
     #[test]
+    fn test_filtering() {
+        let atom_strs = vec!["cat/pkg", ">=cat/pkg-1", "=cat/pkg-1:2/3::repo"];
+        let atoms: Vec<Atom> = atom_strs
+            .iter()
+            .map(|s| Atom::from_str(s).unwrap())
+            .collect();
+
+        let filter = |r: Restrict, atoms: Vec<Atom>| -> Vec<String> {
+            atoms
+                .into_iter()
+                .filter(|a| r.matches(a))
+                .map(|a| a.to_string())
+                .collect()
+        };
+
+        let r = Restrict::Category("cat".to_string());
+        assert_eq!(filter(r, atoms.clone()), atom_strs);
+
+        let r = Restrict::Version(None);
+        assert_eq!(filter(r, atoms.clone()), ["cat/pkg"]);
+
+        let cpv = Atom::from_str("=cat/pkg-1").unwrap();
+        let r = Restrict::from(&cpv);
+        assert_eq!(filter(r, atoms.clone()), [">=cat/pkg-1", "=cat/pkg-1:2/3::repo"]);
+    }
+
+    #[test]
     fn test_and_restrict() {
         let a = Atom::from_str("cat/pkg").unwrap();
         let cat = Restrict::Category("cat".into());
