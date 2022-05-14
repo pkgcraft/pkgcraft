@@ -5,7 +5,8 @@ use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use tracing::warn;
 
-use crate::{atom, pkg, Error, Result};
+use crate::pkg::Pkg;
+use crate::{atom, Error, Result};
 
 pub(crate) mod ebuild;
 pub(crate) mod fake;
@@ -166,7 +167,7 @@ pub enum PackageIter<'a> {
 }
 
 impl<'a> IntoIterator for &'a Repo {
-    type Item = pkg::Package<'a>;
+    type Item = Pkg<'a>;
     type IntoIter = PackageIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -178,12 +179,12 @@ impl<'a> IntoIterator for &'a Repo {
 }
 
 impl<'a> Iterator for PackageIter<'a> {
-    type Item = pkg::Package<'a>;
+    type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            PackageIter::Ebuild(iter) => iter.next().map(pkg::Package::Ebuild),
-            PackageIter::Fake(iter) => iter.next().map(pkg::Package::Fake),
+            PackageIter::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
+            PackageIter::Fake(iter) => iter.next().map(Pkg::Fake),
         }
     }
 }

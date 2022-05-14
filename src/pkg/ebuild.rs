@@ -85,7 +85,7 @@ impl fmt::Display for Pkg<'_> {
     }
 }
 
-impl<'a> pkg::Pkg for Pkg<'a> {
+impl<'a> pkg::Package for Pkg<'a> {
     type Repo = &'a repo::ebuild::Repo;
 
     fn eapi(&self) -> &eapi::Eapi {
@@ -104,7 +104,7 @@ mod tests {
 
     use super::*;
     use crate::eapi;
-    use crate::pkg::Pkg as PkgTrait;
+    use crate::pkg::Package;
     use crate::repo::ebuild::TempRepo;
 
     #[test]

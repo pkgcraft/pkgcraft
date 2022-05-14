@@ -8,41 +8,41 @@ pub mod fake;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, PartialEq)]
-pub enum Package<'a> {
+pub enum Pkg<'a> {
     Ebuild(ebuild::Pkg<'a>),
     Fake(fake::Pkg<'a>),
 }
 
-pub trait Pkg: fmt::Debug + fmt::Display {
+pub trait Package: fmt::Debug + fmt::Display {
     type Repo;
 
     fn eapi(&self) -> &eapi::Eapi;
     fn repo(&self) -> Self::Repo;
 }
 
-impl<'a> Pkg for Package<'a> {
+impl<'a> Package for Pkg<'a> {
     type Repo = Box<&'a dyn Repository>;
 
     fn eapi(&self) -> &eapi::Eapi {
         match self {
-            Package::Ebuild(ref pkg) => pkg.eapi(),
-            Package::Fake(ref pkg) => pkg.eapi(),
+            Pkg::Ebuild(ref pkg) => pkg.eapi(),
+            Pkg::Fake(ref pkg) => pkg.eapi(),
         }
     }
 
     fn repo(&self) -> Self::Repo {
         match self {
-            Package::Ebuild(ref pkg) => Box::new(pkg.repo()),
-            Package::Fake(ref pkg) => Box::new(pkg.repo()),
+            Pkg::Ebuild(ref pkg) => Box::new(pkg.repo()),
+            Pkg::Fake(ref pkg) => Box::new(pkg.repo()),
         }
     }
 }
 
-impl fmt::Display for Package<'_> {
+impl fmt::Display for Pkg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Package::Ebuild(ref pkg) => write!(f, "{}", pkg),
-            Package::Fake(ref pkg) => write!(f, "{}", pkg),
+            Pkg::Ebuild(ref pkg) => write!(f, "{}", pkg),
+            Pkg::Fake(ref pkg) => write!(f, "{}", pkg),
         }
     }
 }

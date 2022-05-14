@@ -20,7 +20,7 @@ impl fmt::Display for Pkg<'_> {
     }
 }
 
-impl<'a> pkg::Pkg for Pkg<'a> {
+impl<'a> pkg::Package for Pkg<'a> {
     type Repo = &'a repo::fake::Repo;
 
     fn eapi(&self) -> &eapi::Eapi {
