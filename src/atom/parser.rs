@@ -140,7 +140,10 @@ peg::parser! {
                     ("<=", None) => Ok(Operator::LessOrEqual),
                     ("=", None) => Ok(Operator::Equal),
                     ("=", Some(_)) => Ok(Operator::EqualGlob),
-                    ("~", None) => Ok(Operator::Approximate),
+                    ("~", None) => match ver.revision {
+                        None => Ok(Operator::Approximate),
+                        Some(r) => Err("~ version operator can't be used with a revision"),
+                    },
                     (">=", None) => Ok(Operator::GreaterOrEqual),
                     (">", None) => Ok(Operator::Greater),
                     _ => Err("invalid version operator"),
@@ -286,6 +289,8 @@ mod tests {
             "~a/b-r1",
             ">a/b",
             ">=a/b-r1",
+            // '~' operator can't be used with a revision
+            "~a/b-1-r1",
             // '*' suffix can only be used with the '=' operator
             ">=a/b-0*",
             "~a/b-0*",
@@ -315,7 +320,7 @@ mod tests {
             ("=a/b-1-r1", "a", "b", Some(Operator::Equal), version("1-r1")),
             ("=a/b-3*", "a", "b", Some(Operator::EqualGlob), version("3")),
             ("=a/b-3-r1*", "a", "b", Some(Operator::EqualGlob), version("3-r1")),
-            ("~a/b-0-r1", "a", "b", Some(Operator::Approximate), version("0-r1")),
+            ("~a/b-0", "a", "b", Some(Operator::Approximate), version("0")),
             (">=a/b-2", "a", "b", Some(Operator::GreaterOrEqual), version("2")),
             (">a/b-3-r0", "a", "b", Some(Operator::Greater), version("3-r0")),
         ] {
