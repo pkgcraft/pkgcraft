@@ -40,7 +40,7 @@ impl fmt::Display for Repo {
     }
 }
 
-impl repo::Repo for Repo {
+impl repo::Repository for Repo {
     fn categories(&self) -> Vec<String> {
         self.pkgs.categories()
     }
@@ -112,7 +112,7 @@ impl<'a> Iterator for PkgIter<'a> {
 #[cfg(test)]
 mod tests {
     use crate::atom;
-    use crate::repo::{Contains, Repo as RepoTrait};
+    use crate::repo::{Contains, Repository};
 
     use super::*;
 

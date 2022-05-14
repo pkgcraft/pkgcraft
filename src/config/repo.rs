@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::repo::ebuild::TempRepo;
-use crate::repo::Repository;
+use crate::repo::Repo;
 use crate::sync::Syncer;
 use crate::{Error, Result};
 
@@ -32,7 +32,7 @@ impl RepoConfig {
             .map_err(|e| Error::Config(format!("failed loading repo config toml {path:?}: {e}")))?;
 
         // verify format is supported
-        Repository::is_supported(&repo_conf.format)?;
+        Repo::is_supported(&repo_conf.format)?;
 
         Ok(repo_conf)
     }
@@ -68,7 +68,7 @@ pub struct Config {
     #[serde(skip)]
     pub configs: IndexMap<String, RepoConfig>,
     #[serde(skip)]
-    pub repos: IndexMap<String, Arc<Repository>>,
+    pub repos: IndexMap<String, Arc<Repo>>,
 }
 
 impl Config {
@@ -112,10 +112,10 @@ impl Config {
         }
 
         // create hash tables of repos ordered by priority
-        let mut repos = IndexMap::<String, Arc<Repository>>::new();
+        let mut repos = IndexMap::<String, Arc<Repo>>::new();
         for (name, config) in configs.iter() {
             // ignore unsynced or nonexistent repos
-            match Repository::from_format(&name, &config.location, &config.format) {
+            match Repo::from_format(&name, &config.location, &config.format) {
                 Ok(repo) => {
                     repos.insert(name.clone(), Arc::new(repo));
                 }
@@ -145,7 +145,7 @@ impl Config {
                 let path = path.canonicalize().map_err(|e| {
                     Error::Config(format!("failed canonicalizing repo path {path:?}: {e}"))
                 })?;
-                let (format, repo) = Repository::from_path(name, path)?;
+                let (format, repo) = Repo::from_path(name, path)?;
                 config.format = format.to_string();
                 repo
             }
@@ -154,7 +154,7 @@ impl Config {
                 config.sync = Some(Syncer::from_str(uri)?);
                 config.sync()?;
 
-                let (format, repo) = Repository::from_path(name, &config.location)?;
+                let (format, repo) = Repo::from_path(name, &config.location)?;
                 config.format = format.to_string();
 
                 // write repo config file to disk
@@ -233,7 +233,7 @@ impl Config {
         Ok(())
     }
 
-    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repository> {
+    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repo> {
         let id = id.as_ref();
         match self.repos.get(id) {
             Some(repo) => Ok(repo),

@@ -1,6 +1,7 @@
 use std::fmt;
 
-use crate::{eapi, repo};
+use crate::eapi;
+use crate::repo::Repository;
 
 pub mod ebuild;
 pub mod fake;
@@ -20,7 +21,7 @@ pub trait Pkg: fmt::Debug + fmt::Display {
 }
 
 impl<'a> Pkg for Package<'a> {
-    type Repo = Box<&'a dyn repo::Repo>;
+    type Repo = Box<&'a dyn Repository>;
 
     fn eapi(&self) -> &eapi::Eapi {
         match self {

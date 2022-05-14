@@ -103,13 +103,13 @@ impl<'a> FromIterator<&'a str> for PkgCache {
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
-pub enum Repository {
+pub enum Repo {
     Ebuild(ebuild::Repo),
     Fake(fake::Repo),
 }
 
-impl Repository {
-    /// Determine if a given repository format is supported.
+impl Repo {
+    /// Determine if a given repo format is supported.
     pub(crate) fn is_supported<S: AsRef<str>>(format: S) -> Result<()> {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
@@ -118,7 +118,7 @@ impl Repository {
         }
     }
 
-    /// Try to load a repository from a given path.
+    /// Try to load a repo from a given path.
     pub(crate) fn from_path<P, S>(id: S, path: P) -> Result<(&'static str, Self)>
     where
         P: AsRef<Path>,
@@ -139,7 +139,7 @@ impl Repository {
         })
     }
 
-    /// Try to load a certain repository type from a given path.
+    /// Try to load a certain repo type from a given path.
     pub(crate) fn from_format<P, S>(id: S, path: P, format: &str) -> Result<Self>
     where
         P: AsRef<Path>,
@@ -149,8 +149,8 @@ impl Repository {
         let id = id.as_ref();
 
         match format {
-            ebuild::Repo::FORMAT => Ok(Repository::Ebuild(ebuild::Repo::from_path(id, path)?)),
-            fake::Repo::FORMAT => Ok(Repository::Fake(fake::Repo::from_path(id, path)?)),
+            ebuild::Repo::FORMAT => Ok(Repo::Ebuild(ebuild::Repo::from_path(id, path)?)),
+            fake::Repo::FORMAT => Ok(Repo::Fake(fake::Repo::from_path(id, path)?)),
             _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
         }
     }
@@ -165,14 +165,14 @@ pub enum PackageIter<'a> {
     Fake(fake::PkgIter<'a>),
 }
 
-impl<'a> IntoIterator for &'a Repository {
+impl<'a> IntoIterator for &'a Repo {
     type Item = pkg::Package<'a>;
     type IntoIter = PackageIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Repository::Ebuild(ref repo) => PackageIter::Ebuild(repo.into_iter()),
-            Repository::Fake(ref repo) => PackageIter::Fake(repo.into_iter()),
+            Repo::Ebuild(ref repo) => PackageIter::Ebuild(repo.into_iter()),
+            Repo::Fake(ref repo) => PackageIter::Fake(repo.into_iter()),
         }
     }
 }
@@ -197,7 +197,7 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-pub trait Repo: fmt::Debug + fmt::Display {
+pub trait Repository: fmt::Debug + fmt::Display {
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
@@ -206,56 +206,56 @@ pub trait Repo: fmt::Debug + fmt::Display {
     fn is_empty(&self) -> bool;
 }
 
-impl fmt::Display for Repository {
+impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Repository::Ebuild(ref repo) => write!(f, "{}", repo),
-            Repository::Fake(ref repo) => write!(f, "{}", repo),
+            Repo::Ebuild(ref repo) => write!(f, "{}", repo),
+            Repo::Fake(ref repo) => write!(f, "{}", repo),
         }
     }
 }
 
 // TODO: use a macro to create this wrapper implementation
-impl Repo for Repository {
+impl Repository for Repo {
     fn categories(&self) -> Vec<String> {
         match self {
-            Repository::Ebuild(ref repo) => repo.categories(),
-            Repository::Fake(ref repo) => repo.categories(),
+            Repo::Ebuild(ref repo) => repo.categories(),
+            Repo::Fake(ref repo) => repo.categories(),
         }
     }
 
     fn packages(&self, cat: &str) -> Vec<String> {
         match self {
-            Repository::Ebuild(ref repo) => repo.packages(cat),
-            Repository::Fake(ref repo) => repo.packages(cat),
+            Repo::Ebuild(ref repo) => repo.packages(cat),
+            Repo::Fake(ref repo) => repo.packages(cat),
         }
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         match self {
-            Repository::Ebuild(ref repo) => repo.versions(cat, pkg),
-            Repository::Fake(ref repo) => repo.versions(cat, pkg),
+            Repo::Ebuild(ref repo) => repo.versions(cat, pkg),
+            Repo::Fake(ref repo) => repo.versions(cat, pkg),
         }
     }
 
     fn id(&self) -> &str {
         match self {
-            Repository::Ebuild(ref repo) => repo.id(),
-            Repository::Fake(ref repo) => repo.id(),
+            Repo::Ebuild(ref repo) => repo.id(),
+            Repo::Fake(ref repo) => repo.id(),
         }
     }
 
     fn len(&self) -> usize {
         match self {
-            Repository::Ebuild(ref repo) => repo.len(),
-            Repository::Fake(ref repo) => repo.len(),
+            Repo::Ebuild(ref repo) => repo.len(),
+            Repo::Fake(ref repo) => repo.len(),
         }
     }
 
     fn is_empty(&self) -> bool {
         match self {
-            Repository::Ebuild(ref repo) => repo.is_empty(),
-            Repository::Fake(ref repo) => repo.is_empty(),
+            Repo::Ebuild(ref repo) => repo.is_empty(),
+            Repo::Fake(ref repo) => repo.is_empty(),
         }
     }
 }
@@ -265,22 +265,22 @@ pub trait Contains<T> {
     fn contains(&self, obj: T) -> bool;
 }
 
-impl<T: AsRef<Path>> Contains<T> for Repository {
+impl<T: AsRef<Path>> Contains<T> for Repo {
     fn contains(&self, path: T) -> bool {
         match self {
-            Repository::Ebuild(ref repo) => repo.contains(path),
-            Repository::Fake(ref repo) => repo.contains(path),
+            Repo::Ebuild(ref repo) => repo.contains(path),
+            Repo::Fake(ref repo) => repo.contains(path),
         }
     }
 }
 
 macro_rules! make_contains {
     ($($x:ty),*) => {$(
-        impl Contains<$x> for Repository {
+        impl Contains<$x> for Repo {
             fn contains(&self, obj: $x) -> bool {
                 match self {
-                    Repository::Ebuild(ref repo) => repo.contains(obj),
-                    Repository::Fake(ref repo) => repo.contains(obj),
+                    Repo::Ebuild(ref repo) => repo.contains(obj),
+                    Repo::Fake(ref repo) => repo.contains(obj),
                 }
             }
         }

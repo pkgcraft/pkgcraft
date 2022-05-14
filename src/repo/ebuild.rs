@@ -152,7 +152,7 @@ impl Repo {
         Repo::new(id, path, config)
     }
 
-    pub fn masters(&self) -> Result<Vec<Arc<repo::Repository>>> {
+    pub fn masters(&self) -> Result<Vec<Arc<repo::Repo>>> {
         let config = Config::current();
         let mut masters = vec![];
         let mut nonexistent = vec![];
@@ -175,7 +175,7 @@ impl Repo {
         }
     }
 
-    pub fn trees(&self) -> Result<Vec<Arc<repo::Repository>>> {
+    pub fn trees(&self) -> Result<Vec<Arc<repo::Repo>>> {
         let config = Config::current();
         let mut trees = self.masters()?;
         match config.repos.repos.get(&self.id) {
@@ -242,7 +242,7 @@ fn is_fake_category(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-impl repo::Repo for Repo {
+impl repo::Repository for Repo {
     fn categories(&self) -> Vec<String> {
         // TODO: implement reading profiles/categories, falling back to category_dirs()
         self.category_dirs()
@@ -479,7 +479,7 @@ mod tests {
     use std::fs;
 
     use crate::macros::assert_err_re;
-    use crate::repo::{Contains, Repo as RepoTrait};
+    use crate::repo::{Contains, Repository};
 
     use super::*;
 
