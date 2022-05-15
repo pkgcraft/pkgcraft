@@ -109,18 +109,43 @@ impl From<&Revision> for String {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct ParsedVersion<'a> {
     pub(crate) start: usize,
     pub(crate) end_base: usize,
     pub(crate) end: usize,
+    pub(crate) op: Option<Operator>,
     pub(crate) numbers: Vec<&'a str>,
     pub(crate) letter: Option<char>,
     pub(crate) suffixes: Option<Vec<(&'a str, Option<&'a str>)>>,
     pub(crate) revision: Option<&'a str>,
 }
 
-impl ParsedVersion<'_> {
+impl<'a> ParsedVersion<'a> {
+    // Used by the parser to inject the version operator value.
+    pub(super) fn with_op(
+        mut self,
+        op: &'a str,
+        glob: Option<()>,
+    ) -> std::result::Result<Self, &'static str> {
+        let op = match (op, glob) {
+            ("<", None) => Ok(Operator::Less),
+            ("<=", None) => Ok(Operator::LessOrEqual),
+            ("=", None) => Ok(Operator::Equal),
+            ("=", Some(_)) => Ok(Operator::EqualGlob),
+            ("~", None) => match self.revision {
+                None => Ok(Operator::Approximate),
+                Some(_) => Err("~ version operator can't be used with a revision"),
+            },
+            (">=", None) => Ok(Operator::GreaterOrEqual),
+            (">", None) => Ok(Operator::Greater),
+            _ => Err("invalid version operator"),
+        }?;
+
+        self.op = Some(op);
+        Ok(self)
+    }
+
     pub(crate) fn into_owned(self, input: &str) -> Result<Version> {
         let mut numbers = Vec::<(String, u64)>::new();
         for s in self.numbers.iter() {
@@ -148,6 +173,7 @@ impl ParsedVersion<'_> {
         Ok(Version {
             end_base: self.end_base - self.start,
             full: input[self.start..self.end].to_string(),
+            op: self.op,
             numbers,
             letter: self.letter,
             suffixes,
@@ -156,10 +182,22 @@ impl ParsedVersion<'_> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+pub enum Operator {
+    Less,           // <1
+    LessOrEqual,    // <=1
+    Equal,          // =1
+    EqualGlob,      // =1*
+    Approximate,    // ~1
+    GreaterOrEqual, // >=1
+    Greater,        // >1
+}
+
 #[derive(Debug, Eq, Clone)]
 pub struct Version {
     end_base: usize,
     full: String,
+    op: Option<Operator>,
     numbers: Vec<(String, u64)>,
     letter: Option<char>,
     suffixes: Vec<(Suffix, Option<u64>)>,
@@ -173,6 +211,10 @@ impl Version {
 
     pub fn revision(&self) -> Option<&Revision> {
         self.revision.value.as_ref().map(|_| &self.revision)
+    }
+
+    pub(crate) fn op(&self) -> Option<Operator> {
+        self.op
     }
 
     pub(crate) fn base(&self) -> &str {
@@ -264,8 +306,11 @@ impl Ord for Version {
             }
         }
 
-        // finally compare the revisions
-        self.revision.cmp(&other.revision)
+        // compare the revisions
+        cmp_not_equal!(&self.revision, &other.revision);
+
+        // finally compare the operators
+        self.op.cmp(&other.op)
     }
 }
 

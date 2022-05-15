@@ -1,7 +1,7 @@
 use peg;
 
 use super::version::ParsedVersion;
-use super::{Blocker, Operator, ParsedAtom};
+use super::{Blocker, ParsedAtom};
 use crate::eapi::Eapi;
 
 peg::parser! {
@@ -32,9 +32,37 @@ peg::parser! {
         // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
         pub(crate) rule version() -> ParsedVersion<'input>
             = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
-                suffixes:("_" s:version_suffix() ++ "_" {s})?
-                end_base:position!() revision:revision()? end:position!()
-            { ParsedVersion { start, end_base, end, numbers, letter, suffixes, revision } }
+                    suffixes:("_" s:version_suffix() ++ "_" {s})?
+                    end_base:position!() revision:revision()? end:position!() {
+                ParsedVersion {
+                    start,
+                    end_base,
+                    end,
+                    numbers,
+                    letter,
+                    suffixes,
+                    revision,
+                    ..Default::default()
+                }
+            }
+
+        pub(crate) rule version_with_op() -> ParsedVersion<'input>
+            = op:$(("<" "="?) / "=" / "~" / (">" "="?))
+                    start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
+                    suffixes:("_" s:version_suffix() ++ "_" {s})?
+                    end_base:position!() revision:revision()? end:position!() glob:"*"? {?
+                let ver = ParsedVersion {
+                    start,
+                    end_base,
+                    end,
+                    numbers,
+                    letter,
+                    suffixes,
+                    revision,
+                    ..Default::default()
+                };
+                ver.with_op(op, glob)
+            }
 
         rule revision() -> &'input str
             = "-r" s:$(quiet!{['0'..='9']+} / expected!("revision"))
@@ -129,27 +157,13 @@ peg::parser! {
                 }
             }
 
-        rule pkg_dep() -> (&'input str, &'input str, Option<Operator>, Option<ParsedVersion<'input>>)
+        rule pkg_dep() -> (&'input str, &'input str, Option<ParsedVersion<'input>>)
             = cat:category() "/" pkg:package() {
-                (cat, pkg, None, None)
+                (cat, pkg, None)
             } / op:$(("<" "="?) / "=" / "~" / (">" "="?))
                     cat:category() "/" pkg:package()
                     "-" ver:version() glob:"*"? {?
-                let op = match (op, glob) {
-                    ("<", None) => Ok(Operator::Less),
-                    ("<=", None) => Ok(Operator::LessOrEqual),
-                    ("=", None) => Ok(Operator::Equal),
-                    ("=", Some(_)) => Ok(Operator::EqualGlob),
-                    ("~", None) => match ver.revision {
-                        None => Ok(Operator::Approximate),
-                        Some(r) => Err("~ version operator can't be used with a revision"),
-                    },
-                    (">=", None) => Ok(Operator::GreaterOrEqual),
-                    (">", None) => Ok(Operator::Greater),
-                    _ => Err("invalid version operator"),
-                }?;
-
-                Ok((cat, pkg, Some(op), Some(ver)))
+                Ok((cat, pkg, Some(ver.with_op(op, glob)?)))
             }
 
         // repo must not begin with a hyphen and must also be a valid package name
@@ -174,7 +188,6 @@ peg::parser! {
                     category: cat,
                     package: pkg,
                     block: None,
-                    op: None,
                     version: Some(ver),
                     slot: None,
                     subslot: None,
@@ -187,13 +200,12 @@ peg::parser! {
         pub(crate) rule dep(eapi: &'static Eapi) -> ParsedAtom<'input>
             = block:blocks(eapi)? pkg_dep:pkg_dep() slot_dep:slot_dep(eapi)?
                     use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
-                let (cat, pkg, op, version) = pkg_dep;
+                let (cat, pkg, version) = pkg_dep;
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
                 ParsedAtom {
                     category: cat,
                     package: pkg,
                     block,
-                    op,
                     version,
                     slot,
                     subslot,
@@ -238,6 +250,13 @@ pub mod parse {
     }
 
     #[inline]
+    pub fn version_with_op(s: &str) -> Result<Version> {
+        let parsed_version = pkg::version_with_op(s)
+            .map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
+        parsed_version.into_owned(s)
+    }
+
+    #[inline]
     pub fn repo(s: &str) -> Result<&str> {
         pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
     }
@@ -266,7 +285,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::atom::version::Version;
-    use crate::atom::{Blocker, Operator};
+    use crate::atom::Blocker;
     use crate::eapi;
     use crate::macros::opt_str;
 
@@ -306,23 +325,23 @@ mod tests {
         }
 
         // convert &str to Option<Version>
-        let version = |s| Version::from_str(s).ok();
+        let version = |s| parse::version_with_op(s).ok();
 
         // good deps
-        for (s, cat, pkg, op, ver) in [
-            ("a/b", "a", "b", None, None),
-            ("_/_", "_", "_", None, None),
-            ("_.+-/_+-", "_.+-", "_+-", None, None),
-            ("a/b-", "a", "b-", None, None),
-            ("a/b-r100", "a", "b-r100", None, None),
-            ("<a/b-r0-1-r2", "a", "b-r0", Some(Operator::Less), version("1-r2")),
-            ("<=a/b-1", "a", "b", Some(Operator::LessOrEqual), version("1")),
-            ("=a/b-1-r1", "a", "b", Some(Operator::Equal), version("1-r1")),
-            ("=a/b-3*", "a", "b", Some(Operator::EqualGlob), version("3")),
-            ("=a/b-3-r1*", "a", "b", Some(Operator::EqualGlob), version("3-r1")),
-            ("~a/b-0", "a", "b", Some(Operator::Approximate), version("0")),
-            (">=a/b-2", "a", "b", Some(Operator::GreaterOrEqual), version("2")),
-            (">a/b-3-r0", "a", "b", Some(Operator::Greater), version("3-r0")),
+        for (s, cat, pkg, ver) in [
+            ("a/b", "a", "b", None),
+            ("_/_", "_", "_", None),
+            ("_.+-/_+-", "_.+-", "_+-", None),
+            ("a/b-", "a", "b-", None),
+            ("a/b-r100", "a", "b-r100", None),
+            ("<a/b-r0-1-r2", "a", "b-r0", version("<1-r2")),
+            ("<=a/b-1", "a", "b", version("<=1")),
+            ("=a/b-1-r1", "a", "b", version("=1-r1")),
+            ("=a/b-3*", "a", "b", version("=3*")),
+            ("=a/b-3-r1*", "a", "b", version("=3-r1*")),
+            ("~a/b-0", "a", "b", version("~0")),
+            (">=a/b-2", "a", "b", version(">=2")),
+            (">a/b-3-r0", "a", "b", version(">3-r0")),
         ] {
             for eapi in eapi::EAPIS.values() {
                 let result = parse::dep(&s, eapi);
@@ -330,7 +349,6 @@ mod tests {
                 let atom = result.unwrap();
                 assert_eq!(atom.category, cat);
                 assert_eq!(atom.package, pkg);
-                assert_eq!(atom.op, op);
                 assert_eq!(atom.version, ver);
                 assert_eq!(format!("{atom}"), s);
             }

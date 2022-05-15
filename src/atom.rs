@@ -3,7 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use self::version::ParsedVersion;
-pub use self::version::Version;
+pub use self::version::{Operator, Version};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::vec_str;
 use crate::{Error, Result};
@@ -28,23 +28,11 @@ impl fmt::Display for Blocker {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub enum Operator {
-    Less,           // <cat/pkg-1
-    LessOrEqual,    // <=cat/pkg-1
-    Equal,          // =cat/pkg-1
-    EqualGlob,      // =cat/pkg-1*
-    Approximate,    // ~cat/pkg-1
-    GreaterOrEqual, // >=cat/pkg-1
-    Greater,        // >cat/pkg-1
-}
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct ParsedAtom<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
     pub(crate) block: Option<Blocker>,
-    pub(crate) op: Option<Operator>,
     pub(crate) version: Option<ParsedVersion<'a>>,
     pub(crate) slot: Option<&'a str>,
     pub(crate) subslot: Option<&'a str>,
@@ -64,7 +52,6 @@ impl ParsedAtom<'_> {
             category: self.category.to_string(),
             package: self.package.to_string(),
             block: self.block,
-            op: self.op,
             version,
             slot: self.slot.map(|s| s.to_string()),
             subslot: self.subslot.map(|s| s.to_string()),
@@ -80,7 +67,6 @@ pub struct Atom {
     category: String,
     package: String,
     block: Option<Blocker>,
-    op: Option<Operator>,
     version: Option<Version>,
     slot: Option<String>,
     subslot: Option<String>,
@@ -171,7 +157,7 @@ impl fmt::Display for Atom {
 
         // append version operator with cpv
         let cpv = self.cpv();
-        match &self.op {
+        match self.version.as_ref().and_then(|v| v.op()) {
             Some(Operator::Less) => s.push_str(&format!("<{cpv}")),
             Some(Operator::LessOrEqual) => s.push_str(&format!("<={cpv}")),
             Some(Operator::Equal) => s.push_str(&format!("={cpv}")),
@@ -220,7 +206,6 @@ impl Ord for Atom {
     fn cmp(&self, other: &Self) -> Ordering {
         cmp_not_equal!(&self.category, &other.category);
         cmp_not_equal!(&self.package, &other.package);
-        cmp_not_equal!(&self.op, &other.op);
         cmp_not_equal!(&self.version, &other.version);
         cmp_not_equal!(&self.block, &other.block);
         cmp_not_equal!(&self.slot, &other.slot);
@@ -294,16 +279,16 @@ mod tests {
         let mut atom: Atom;
         for (s, version) in [
             ("cat/pkg", None),
-            ("<cat/pkg-4", Some("4")),
-            ("<=cat/pkg-4-r1", Some("4-r1")),
-            ("=cat/pkg-4", Some("4")),
-            ("=cat/pkg-4*", Some("4")),
-            ("~cat/pkg-4", Some("4")),
-            (">=cat/pkg-r1-2-r3", Some("2-r3")),
-            (">cat/pkg-4-r1:0=", Some("4-r1")),
+            ("<cat/pkg-4", Some("<4")),
+            ("<=cat/pkg-4-r1", Some("<=4-r1")),
+            ("=cat/pkg-4", Some("=4")),
+            ("=cat/pkg-4*", Some("=4*")),
+            ("~cat/pkg-4", Some("~4")),
+            (">=cat/pkg-r1-2-r3", Some(">=2-r3")),
+            (">cat/pkg-4-r1:0=", Some(">4-r1")),
         ] {
             atom = Atom::from_str(&s).unwrap();
-            let version = version.map(|s| Version::from_str(s).unwrap());
+            let version = version.map(|s| parse::version_with_op(s).unwrap());
             assert_eq!(atom.version(), version.as_ref());
         }
     }
