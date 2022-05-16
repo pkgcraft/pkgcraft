@@ -6,23 +6,36 @@ use crate::pkg::Package;
 
 #[derive(Debug)]
 pub enum AtomAttr {
-    Category,
-    Package,
-    Version,
-    Slot,
-    SubSlot,
-    Repo,
+    Category(Box<Restrict>),
+    Package(Box<Restrict>),
+    Version(Box<Restrict>),
+    Slot(Box<Restrict>),
+    SubSlot(Box<Restrict>),
+    Repo(Box<Restrict>),
 }
 
-impl AtomAttr {
-    fn get_value<'a>(&self, atom: &'a Atom) -> &'a str {
+impl Restriction<&Atom> for AtomAttr {
+    fn matches(&self, atom: &Atom) -> bool {
         match self {
-            Self::Category => atom.category(),
-            Self::Package => atom.package(),
-            Self::Version => atom.version().map_or_else(|| "", |v| v.as_str()),
-            Self::Slot => atom.slot().unwrap_or_default(),
-            Self::SubSlot => atom.subslot().unwrap_or_default(),
-            Self::Repo => atom.repo().unwrap_or_default(),
+            Self::Category(r) => r.matches(atom.category()),
+            Self::Package(r) => r.matches(atom.package()),
+            Self::Version(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
+            Self::Slot(r) => r.matches(atom.slot()),
+            Self::SubSlot(r) => r.matches(atom.subslot()),
+            Self::Repo(r) => r.matches(atom.repo()),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum PkgAttr {
+    Eapi(Box<Restrict>),
+}
+
+impl Restriction<&pkg::Pkg<'_>> for PkgAttr {
+    fn matches(&self, pkg: &pkg::Pkg) -> bool {
+        match self {
+            Self::Eapi(r) => r.matches(pkg.eapi().as_str()),
         }
     }
 }
@@ -34,14 +47,12 @@ pub enum Restrict {
     AlwaysFalse,
 
     // atom attributes
-    Category(String),
-    Package(String),
     Version(Option<Version>),
-    Slot(Option<String>),
-    SubSlot(Option<String>),
     Use(Vec<String>, Vec<String>),
-    Repo(Option<String>),
-    PkgAttr(AtomAttr, Box<Self>),
+
+    // object attributes
+    Atom(AtomAttr),
+    Pkg(PkgAttr),
 
     // boolean combinations
     And(Vec<Box<Self>>),
@@ -49,9 +60,42 @@ pub enum Restrict {
 
     // string
     StrMatch(String),
+    StrOptional(Option<String>),
     StrPrefix(String),
     StrRegex(Regex),
     StrSuffix(String),
+}
+
+impl Restrict {
+    pub fn category(s: &str) -> Self {
+        let s = s.to_string();
+        let r = AtomAttr::Category(Box::new(Self::StrMatch(s)));
+        Self::Atom(r)
+    }
+
+    pub fn package(s: &str) -> Self {
+        let s = s.to_string();
+        let r = AtomAttr::Package(Box::new(Self::StrMatch(s)));
+        Self::Atom(r)
+    }
+
+    pub fn slot(o: Option<&str>) -> Self {
+        let o = o.map(str::to_string);
+        let r = AtomAttr::Slot(Box::new(Self::StrOptional(o)));
+        Self::Atom(r)
+    }
+
+    pub fn subslot(o: Option<&str>) -> Self {
+        let o = o.map(str::to_string);
+        let r = AtomAttr::SubSlot(Box::new(Self::StrOptional(o)));
+        Self::Atom(r)
+    }
+
+    pub fn repo(o: Option<&str>) -> Self {
+        let o = o.map(str::to_string);
+        let r = AtomAttr::Repo(Box::new(Self::StrOptional(o)));
+        Self::Atom(r)
+    }
 }
 
 pub(crate) trait Restriction<T> {
@@ -65,8 +109,6 @@ impl Restriction<&Atom> for Restrict {
             Self::AlwaysTrue => true,
 
             // atom attributes
-            Self::Category(s) => s.as_str() == atom.category(),
-            Self::Package(s) => s.as_str() == atom.package(),
             Self::Version(v) => match (v, atom.version()) {
                 (Some(v), Some(ver)) => {
                     match v.op() {
@@ -83,13 +125,10 @@ impl Restriction<&Atom> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            Self::Slot(s) => s.as_deref() == atom.slot(),
-            Self::SubSlot(s) => s.as_deref() == atom.subslot(),
             Self::Use(_enabled, _disabled) => unimplemented!(),
-            Self::Repo(s) => s.as_deref() == atom.repo(),
 
-            // package attribute support
-            Self::PkgAttr(attr, r) => r.matches(attr.get_value(atom)),
+            // object attributes
+            Self::Atom(r) => r.matches(atom),
 
             // boolean combinations
             Self::And(vals) => vals.iter().all(|r| r.matches(atom)),
@@ -117,37 +156,47 @@ impl Restriction<&str> for Restrict {
     }
 }
 
+impl Restriction<Option<&str>> for Restrict {
+    fn matches(&self, val: Option<&str>) -> bool {
+        match self {
+            Self::AlwaysTrue => true,
+            Self::StrOptional(o) => val == o.as_deref(),
+            _ => false,
+        }
+    }
+}
+
 impl From<&Atom> for Restrict {
     fn from(atom: &Atom) -> Self {
         let mut restricts = vec![
-            Box::new(Self::Category(atom.category().to_string())),
-            Box::new(Self::Package(atom.package().to_string())),
+            Box::new(Self::category(atom.category())),
+            Box::new(Self::package(atom.package())),
         ];
 
         if let Some(v) = atom.version() {
             let r = match v.op() {
                 // equal glob operators are version string prefix checks
                 Some(Operator::EqualGlob) => {
-                    let r = Box::new(Self::StrPrefix(v.as_str().to_string()));
-                    Box::new(Self::PkgAttr(AtomAttr::Version, r))
+                    let r = AtomAttr::Version(Box::new(Self::StrPrefix(v.as_str().to_string())));
+                    Self::Atom(r)
                 }
-                _ => Box::new(Self::Version(Some(v.clone()))),
+                _ => Self::Version(Some(v.clone())),
             };
-            restricts.push(r);
+            restricts.push(Box::new(r));
         }
 
         if let Some(s) = atom.slot() {
-            restricts.push(Box::new(Self::Slot(Some(s.to_string()))));
+            restricts.push(Box::new(Self::slot(Some(s))));
         }
 
         if let Some(s) = atom.subslot() {
-            restricts.push(Box::new(Self::SubSlot(Some(s.to_string()))));
+            restricts.push(Box::new(Self::subslot(Some(s))));
         }
 
         // TODO: add use deps support
 
         if let Some(s) = atom.repo() {
-            restricts.push(Box::new(Self::Repo(Some(s.to_string()))));
+            restricts.push(Box::new(Self::repo(Some(s))));
         }
 
         Self::And(restricts)
@@ -176,13 +225,13 @@ mod tests {
         let full = Atom::from_str("=cat/pkg-1:2/3::repo").unwrap();
 
         // category
-        let r = Restrict::Category("cat".to_string());
+        let r = Restrict::category("cat");
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // package
-        let r = Restrict::Package("pkg".to_string());
+        let r = Restrict::package("pkg");
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
@@ -200,37 +249,37 @@ mod tests {
         assert!(r.matches(&full));
 
         // no slot
-        let r = Restrict::Slot(None);
+        let r = Restrict::slot(None);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // slot
-        let r = Restrict::Slot(Some("2".to_string()));
+        let r = Restrict::slot(Some("2"));
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no subslot
-        let r = Restrict::SubSlot(None);
+        let r = Restrict::subslot(None);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // subslot
-        let r = Restrict::SubSlot(Some("3".to_string()));
+        let r = Restrict::subslot(Some("3"));
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no repo
-        let r = Restrict::Repo(None);
+        let r = Restrict::repo(None);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // repo
-        let r = Restrict::Repo(Some("repo".to_string()));
+        let r = Restrict::repo(Some("repo"));
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
@@ -326,7 +375,7 @@ mod tests {
                 .collect()
         };
 
-        let r = Restrict::Category("cat".to_string());
+        let r = Restrict::category("cat");
         assert_eq!(filter(r, atoms.clone()), atom_strs);
 
         let r = Restrict::Version(None);
@@ -346,14 +395,14 @@ mod tests {
     #[test]
     fn test_and_restrict() {
         let a = Atom::from_str("cat/pkg").unwrap();
-        let cat = Restrict::Category("cat".into());
-        let pkg = Restrict::Package("pkg".into());
+        let cat = Restrict::category("cat");
+        let pkg = Restrict::package("pkg");
         let r = Restrict::And(vec![Box::new(cat), Box::new(pkg)]);
         assert!(r.matches(&a));
 
         // one matched and one unmatched restriction
-        let cat = Restrict::Category("cat".into());
-        let pkg = Restrict::Package("pkga".into());
+        let cat = Restrict::category("cat");
+        let pkg = Restrict::package("pkga");
         let r = Restrict::And(vec![Box::new(cat), Box::new(pkg)]);
         assert!(!r.matches(&a));
 
@@ -368,14 +417,14 @@ mod tests {
     #[test]
     fn test_or_restrict() {
         let a = Atom::from_str("cat/pkg").unwrap();
-        let cat = Restrict::Category("cat".into());
-        let pkg = Restrict::Package("pkg".into());
+        let cat = Restrict::category("cat");
+        let pkg = Restrict::package("pkg");
         let r = Restrict::Or(vec![Box::new(cat), Box::new(pkg)]);
         assert!(r.matches(&a));
 
         // one matched and one unmatched restriction
-        let cat = Restrict::Category("cat".into());
-        let pkg = Restrict::Package("pkga".into());
+        let cat = Restrict::category("cat");
+        let pkg = Restrict::package("pkga");
         let r = Restrict::Or(vec![Box::new(cat), Box::new(pkg)]);
         assert!(r.matches(&a));
 
