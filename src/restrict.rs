@@ -1,27 +1,49 @@
+use std::str::FromStr;
+
 use regex::Regex;
 
-use crate::atom::{Atom, NonOpVersion as no_op, NonRevisionVersion as no_rev, Operator, Version};
+use crate::atom::{NonOpVersion as no_op, NonRevisionVersion as no_rev, Operator as VerOp};
 use crate::pkg;
 use crate::pkg::Package;
+use crate::{atom, Result};
 
 #[derive(Debug)]
 pub enum AtomAttr {
     Category(Box<Restrict>),
     Package(Box<Restrict>),
-    Version(Box<Restrict>),
+    Version(Option<atom::Version>),
+    VersionStr(Box<Restrict>),
     Slot(Box<Restrict>),
     SubSlot(Box<Restrict>),
+    Use(Vec<String>, Vec<String>),
     Repo(Box<Restrict>),
 }
 
-impl Restriction<&Atom> for AtomAttr {
-    fn matches(&self, atom: &Atom) -> bool {
+impl Restriction<&atom::Atom> for AtomAttr {
+    fn matches(&self, atom: &atom::Atom) -> bool {
         match self {
             Self::Category(r) => r.matches(atom.category()),
             Self::Package(r) => r.matches(atom.package()),
-            Self::Version(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
+            Self::Version(v) => match (v, atom.version()) {
+                (Some(v), Some(ver)) => {
+                    match v.op() {
+                        Some(VerOp::Less) => no_op(ver) < no_op(v),
+                        Some(VerOp::LessOrEqual) => no_op(ver) <= no_op(v),
+                        Some(VerOp::Equal) | None => no_op(ver) == no_op(v),
+                        // TODO: requires string glob restriction support
+                        Some(VerOp::EqualGlob) => unimplemented!(),
+                        Some(VerOp::Approximate) => no_rev(ver) == no_rev(v),
+                        Some(VerOp::GreaterOrEqual) => no_op(ver) >= no_op(v),
+                        Some(VerOp::Greater) => no_op(ver) > no_op(v),
+                    }
+                }
+                (None, None) => true,
+                _ => false,
+            },
+            Self::VersionStr(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
             Self::Slot(r) => r.matches(atom.slot()),
             Self::SubSlot(r) => r.matches(atom.subslot()),
+            Self::Use(_enabled, _disabled) => unimplemented!(),
             Self::Repo(r) => r.matches(atom.repo()),
         }
     }
@@ -45,10 +67,6 @@ pub enum Restrict {
     // boolean
     AlwaysTrue,
     AlwaysFalse,
-
-    // atom attributes
-    Version(Option<Version>),
-    Use(Vec<String>, Vec<String>),
 
     // object attributes
     Atom(AtomAttr),
@@ -79,6 +97,15 @@ impl Restrict {
         Self::Atom(r)
     }
 
+    pub fn version(o: Option<&str>) -> Result<Self> {
+        let o = match o {
+            None => None,
+            Some(s) => Some(atom::Version::from_str(s)?),
+        };
+        let r = AtomAttr::Version(o);
+        Ok(Self::Atom(r))
+    }
+
     pub fn slot(o: Option<&str>) -> Self {
         let o = o.map(str::to_string);
         let r = AtomAttr::Slot(Box::new(Self::StrOptional(o)));
@@ -102,30 +129,11 @@ pub(crate) trait Restriction<T> {
     fn matches(&self, object: T) -> bool;
 }
 
-impl Restriction<&Atom> for Restrict {
-    fn matches(&self, atom: &Atom) -> bool {
+impl Restriction<&atom::Atom> for Restrict {
+    fn matches(&self, atom: &atom::Atom) -> bool {
         match self {
             // boolean
             Self::AlwaysTrue => true,
-
-            // atom attributes
-            Self::Version(v) => match (v, atom.version()) {
-                (Some(v), Some(ver)) => {
-                    match v.op() {
-                        Some(Operator::Less) => no_op(ver) < no_op(v),
-                        Some(Operator::LessOrEqual) => no_op(ver) <= no_op(v),
-                        Some(Operator::Equal) | None => no_op(ver) == no_op(v),
-                        // TODO: requires string glob restriction support
-                        Some(Operator::EqualGlob) => unimplemented!(),
-                        Some(Operator::Approximate) => no_rev(ver) == no_rev(v),
-                        Some(Operator::GreaterOrEqual) => no_op(ver) >= no_op(v),
-                        Some(Operator::Greater) => no_op(ver) > no_op(v),
-                    }
-                }
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Use(_enabled, _disabled) => unimplemented!(),
 
             // object attributes
             Self::Atom(r) => r.matches(atom),
@@ -166,8 +174,8 @@ impl Restriction<Option<&str>> for Restrict {
     }
 }
 
-impl From<&Atom> for Restrict {
-    fn from(atom: &Atom) -> Self {
+impl From<&atom::Atom> for Restrict {
+    fn from(atom: &atom::Atom) -> Self {
         let mut restricts = vec![
             Box::new(Self::category(atom.category())),
             Box::new(Self::package(atom.package())),
@@ -176,13 +184,12 @@ impl From<&Atom> for Restrict {
         if let Some(v) = atom.version() {
             let r = match v.op() {
                 // equal glob operators are version string prefix checks
-                Some(Operator::EqualGlob) => {
-                    let r = AtomAttr::Version(Box::new(Self::StrPrefix(v.as_str().to_string())));
-                    Self::Atom(r)
+                Some(VerOp::EqualGlob) => {
+                    AtomAttr::VersionStr(Box::new(Self::StrPrefix(v.as_str().to_string())))
                 }
-                _ => Self::Version(Some(v.clone())),
+                _ => AtomAttr::Version(Some(v.clone())),
             };
-            restricts.push(Box::new(r));
+            restricts.push(Box::new(Self::Atom(r)));
         }
 
         if let Some(s) = atom.slot() {
@@ -214,7 +221,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::atom::parse;
-    use crate::atom::{Atom, Version};
+    use crate::atom::Atom;
 
     use super::*;
 
@@ -237,13 +244,13 @@ mod tests {
         assert!(r.matches(&full));
 
         // no version
-        let r = Restrict::Version(None);
+        let r = Restrict::version(None).unwrap();
         assert!(r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // version
-        let r = Restrict::Version(Some(Version::from_str("1").unwrap()));
+        let r = Restrict::version(Some("1")).unwrap();
         assert!(!r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
@@ -378,7 +385,7 @@ mod tests {
         let r = Restrict::category("cat");
         assert_eq!(filter(r, atoms.clone()), atom_strs);
 
-        let r = Restrict::Version(None);
+        let r = Restrict::version(None).unwrap();
         assert_eq!(filter(r, atoms.clone()), ["cat/pkg"]);
 
         let cpv = Atom::from_str("=cat/pkg-1").unwrap();
