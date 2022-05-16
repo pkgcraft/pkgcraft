@@ -1,11 +1,12 @@
+use crate::atom::{Atom, NonOpVersion as no_op, NonRevisionVersion as no_rev, Operator, Version};
+use crate::pkg;
 use crate::pkg::Package;
-use crate::{atom, pkg};
 
 #[derive(Debug)]
 pub enum Restrict {
     Category(String),
     Package(String),
-    Version(Option<atom::Version>),
+    Version(Option<Version>),
     Slot(Option<String>),
     SubSlot(Option<String>),
     Use(Vec<String>, Vec<String>),
@@ -19,12 +20,27 @@ pub(crate) trait Restriction<T> {
     fn matches(&self, object: T) -> bool;
 }
 
-impl Restriction<&atom::Atom> for Restrict {
-    fn matches(&self, atom: &atom::Atom) -> bool {
+impl Restriction<&Atom> for Restrict {
+    fn matches(&self, atom: &Atom) -> bool {
         match self {
             Restrict::Category(s) => s.as_str() == atom.category(),
             Restrict::Package(s) => s.as_str() == atom.package(),
-            Restrict::Version(v) => v.as_ref() == atom.version(),
+            Restrict::Version(v) => match (v, atom.version()) {
+                (Some(v), Some(ver)) => {
+                    match v.op() {
+                        Some(Operator::Less) => no_op(ver) < no_op(v),
+                        Some(Operator::LessOrEqual) => no_op(ver) <= no_op(v),
+                        Some(Operator::Equal) | None => no_op(ver) == no_op(v),
+                        // TODO: requires string glob restriction support
+                        Some(Operator::EqualGlob) => unimplemented!(),
+                        Some(Operator::Approximate) => no_rev(ver) == no_rev(v),
+                        Some(Operator::GreaterOrEqual) => no_op(ver) >= no_op(v),
+                        Some(Operator::Greater) => no_op(ver) > no_op(v),
+                    }
+                }
+                (None, None) => true,
+                _ => false,
+            },
             Restrict::Slot(s) => s.as_deref() == atom.slot(),
             Restrict::SubSlot(s) => s.as_deref() == atom.subslot(),
             Restrict::Use(_enabled, _disabled) => unimplemented!(),
@@ -36,8 +52,8 @@ impl Restriction<&atom::Atom> for Restrict {
     }
 }
 
-impl From<&atom::Atom> for Restrict {
-    fn from(atom: &atom::Atom) -> Self {
+impl From<&Atom> for Restrict {
+    fn from(atom: &Atom) -> Self {
         let mut restricts = vec![
             Box::new(Restrict::Category(atom.category().to_string())),
             Box::new(Restrict::Package(atom.package().to_string())),

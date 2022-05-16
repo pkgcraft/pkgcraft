@@ -282,9 +282,6 @@ pub mod parse {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use crate::atom::version::Version;
     use crate::atom::Blocker;
     use crate::eapi;
     use crate::macros::opt_str;

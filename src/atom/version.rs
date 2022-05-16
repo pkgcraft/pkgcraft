@@ -223,6 +223,12 @@ impl Version {
     }
 }
 
+impl AsRef<Version> for Version {
+    fn as_ref(&self) -> &Version {
+        self
+    }
+}
+
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.as_str())
@@ -257,60 +263,72 @@ impl Hash for Version {
     }
 }
 
-impl Ord for Version {
-    fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
-        if self.base() != other.base() {
-            // compare major versions
-            cmp_not_equal!(&self.numbers[0].1, &other.numbers[0].1);
+fn ver_cmp<V: AsRef<Version>>(v1: V, v2: V, cmp_revs: bool, cmp_ops: bool) -> Ordering {
+    let (v1, v2) = (v1.as_ref(), v2.as_ref());
 
-            // iterate through the remaining version components
-            for ((v1, n1), (v2, n2)) in zip(&self.numbers[1..], &other.numbers[1..]) {
-                // if string is lexically equal, it is numerically equal too
-                if v1 == v2 {
-                    continue;
-                }
+    if v1.base() != v2.base() {
+        // compare major versions
+        cmp_not_equal!(&v1.numbers[0].1, &v2.numbers[0].1);
 
-                // If one of the components starts with a "0" then they are compared as strings
-                // with trailing 0's stripped, otherwise they are compared as integers.
-                if v1.starts_with('0') || v2.starts_with('0') {
-                    cmp_not_equal!(v1.trim_end_matches('0'), v2.trim_end_matches('0'));
-                } else {
-                    cmp_not_equal!(&n1, &n2);
-                }
+        // iterate through the remaining version components
+        for ((s1, n1), (s2, n2)) in zip(&v1.numbers[1..], &v2.numbers[1..]) {
+            // if string is lexically equal, it is numerically equal too
+            if s1 == s2 {
+                continue;
             }
 
-            // compare the number of version components
-            cmp_not_equal!(&self.numbers.len(), &other.numbers.len());
-
-            // dotted components were equal so compare letter suffixes
-            cmp_not_equal!(&self.letter, &other.letter);
-
-            for ((s1, n1), (s2, n2)) in zip(&self.suffixes, &other.suffixes) {
-                // if suffixes differ, use them for comparison
-                cmp_not_equal!(s1, s2);
-                // otherwise use the suffix versions for comparison
-                cmp_not_equal!(n1, n2);
-            }
-
-            // If one version has more suffixes, use the last suffix to determine ordering.
-            match self.suffixes.cmp(&other.suffixes) {
-                Ordering::Equal => (),
-                Ordering::Greater => match self.suffixes.last().unwrap().0 {
-                    Suffix::P => return Ordering::Greater,
-                    _ => return Ordering::Less,
-                },
-                Ordering::Less => match other.suffixes.last().unwrap().0 {
-                    Suffix::P => return Ordering::Less,
-                    _ => return Ordering::Greater,
-                },
+            // If one of the components starts with a "0" then they are compared as strings
+            // with trailing 0's stripped, otherwise they are compared as integers.
+            if s1.starts_with('0') || s2.starts_with('0') {
+                cmp_not_equal!(s1.trim_end_matches('0'), s2.trim_end_matches('0'));
+            } else {
+                cmp_not_equal!(&n1, &n2);
             }
         }
 
-        // compare the revisions
-        cmp_not_equal!(&self.revision, &other.revision);
+        // compare the number of version components
+        cmp_not_equal!(&v1.numbers.len(), &v2.numbers.len());
 
-        // finally compare the operators
-        self.op.cmp(&other.op)
+        // dotted components were equal so compare letter suffixes
+        cmp_not_equal!(&v1.letter, &v2.letter);
+
+        for ((s1, n1), (s2, n2)) in zip(&v1.suffixes, &v2.suffixes) {
+            // if suffixes differ, use them for comparison
+            cmp_not_equal!(s1, s2);
+            // otherwise use the suffix versions for comparison
+            cmp_not_equal!(n1, n2);
+        }
+
+        // If one version has more suffixes, use the last suffix to determine ordering.
+        match v1.suffixes.cmp(&v2.suffixes) {
+            Ordering::Equal => (),
+            Ordering::Greater => match v1.suffixes.last().unwrap().0 {
+                Suffix::P => return Ordering::Greater,
+                _ => return Ordering::Less,
+            },
+            Ordering::Less => match v2.suffixes.last().unwrap().0 {
+                Suffix::P => return Ordering::Less,
+                _ => return Ordering::Greater,
+            },
+        }
+    }
+
+    // compare the revisions
+    if cmp_revs {
+        cmp_not_equal!(&v1.revision, &v2.revision);
+    }
+
+    // compare the operators
+    if cmp_ops {
+        cmp_not_equal!(&v1.op, &v2.op);
+    }
+
+    Ordering::Equal
+}
+
+impl Ord for Version {
+    fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
+        ver_cmp(self, other, true, true)
     }
 }
 
@@ -326,6 +344,62 @@ impl FromStr for Version {
     #[inline]
     fn from_str(s: &str) -> Result<Self> {
         parse::version(s)
+    }
+}
+
+// Version wrapper that ignore revisions and operators during comparisons.
+#[derive(Debug, Eq, Hash, Clone)]
+pub(crate) struct NonRevisionVersion<'a>(pub(crate) &'a Version);
+
+impl AsRef<Version> for NonRevisionVersion<'_> {
+    fn as_ref(&self) -> &Version {
+        self.0
+    }
+}
+
+impl PartialEq for NonRevisionVersion<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Ord for NonRevisionVersion<'_> {
+    fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
+        ver_cmp(self, other, false, false)
+    }
+}
+
+impl PartialOrd for NonRevisionVersion<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+// Version wrapper that ignore operators during comparisons.
+#[derive(Debug, Eq, Hash, Clone)]
+pub(crate) struct NonOpVersion<'a>(pub(crate) &'a Version);
+
+impl AsRef<Version> for NonOpVersion<'_> {
+    fn as_ref(&self) -> &Version {
+        self.0
+    }
+}
+
+impl PartialEq for NonOpVersion<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Ord for NonOpVersion<'_> {
+    fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
+        ver_cmp(self, other, true, false)
+    }
+}
+
+impl PartialOrd for NonOpVersion<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
