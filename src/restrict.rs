@@ -1,3 +1,5 @@
+use regex::Regex;
+
 use crate::atom::{Atom, NonOpVersion as no_op, NonRevisionVersion as no_rev, Operator, Version};
 use crate::pkg;
 use crate::pkg::Package;
@@ -27,6 +29,11 @@ impl AtomAttr {
 
 #[derive(Debug)]
 pub enum Restrict {
+    // boolean
+    AlwaysTrue,
+    AlwaysFalse,
+
+    // atom attributes
     Category(String),
     Package(String),
     Version(Option<Version>),
@@ -35,11 +42,15 @@ pub enum Restrict {
     Use(Vec<String>, Vec<String>),
     Repo(Option<String>),
     PkgAttr(AtomAttr, Box<Restrict>),
-    // boolean
+
+    // boolean combinations
     And(Vec<Box<Restrict>>),
     Or(Vec<Box<Restrict>>),
+
     // string
+    StrMatch(String),
     StrPrefix(String),
+    StrRegex(Regex),
     StrSuffix(String),
 }
 
@@ -50,6 +61,10 @@ pub(crate) trait Restriction<T> {
 impl Restriction<&Atom> for Restrict {
     fn matches(&self, atom: &Atom) -> bool {
         match self {
+            // boolean
+            Restrict::AlwaysTrue => true,
+
+            // atom attributes
             Restrict::Category(s) => s.as_str() == atom.category(),
             Restrict::Package(s) => s.as_str() == atom.package(),
             Restrict::Version(v) => match (v, atom.version()) {
@@ -76,7 +91,7 @@ impl Restriction<&Atom> for Restrict {
             // package attribute support
             Restrict::PkgAttr(attr, r) => r.matches(attr.get_value(atom)),
 
-            // boolean
+            // boolean combinations
             Restrict::And(vals) => vals.iter().all(|r| r.matches(atom)),
             Restrict::Or(vals) => vals.iter().any(|r| r.matches(atom)),
 
@@ -88,8 +103,15 @@ impl Restriction<&Atom> for Restrict {
 impl Restriction<&str> for Restrict {
     fn matches(&self, val: &str) -> bool {
         match self {
+            // boolean
+            Restrict::AlwaysTrue => true,
+
+            // string
+            Restrict::StrMatch(s) => val == s,
             Restrict::StrPrefix(s) => val.starts_with(s),
+            Restrict::StrRegex(re) => re.is_match(val),
             Restrict::StrSuffix(s) => val.ends_with(s),
+
             _ => false,
         }
     }
@@ -313,6 +335,12 @@ mod tests {
         let cpv = Atom::from_str("=cat/pkg-1").unwrap();
         let r = Restrict::from(&cpv);
         assert_eq!(filter(r, atoms.clone()), [">=cat/pkg-1", "=cat/pkg-1:2/3::repo"]);
+
+        let r = Restrict::AlwaysTrue;
+        assert_eq!(filter(r, atoms.clone()), atom_strs);
+
+        let r = Restrict::AlwaysFalse;
+        assert!(filter(r, atoms.clone()).is_empty());
     }
 
     #[test]
