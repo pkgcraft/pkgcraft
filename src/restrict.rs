@@ -3,6 +3,29 @@ use crate::pkg;
 use crate::pkg::Package;
 
 #[derive(Debug)]
+pub enum AtomAttr {
+    Category,
+    Package,
+    Version,
+    Slot,
+    SubSlot,
+    Repo,
+}
+
+impl AtomAttr {
+    fn get_value<'a>(&self, atom: &'a Atom) -> &'a str {
+        match self {
+            AtomAttr::Category => atom.category(),
+            AtomAttr::Package => atom.package(),
+            AtomAttr::Version => atom.version().map_or_else(|| "", |v| v.as_str()),
+            AtomAttr::Slot => atom.slot().unwrap_or_default(),
+            AtomAttr::SubSlot => atom.subslot().unwrap_or_default(),
+            AtomAttr::Repo => atom.repo().unwrap_or_default(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Restrict {
     Category(String),
     Package(String),
@@ -11,9 +34,13 @@ pub enum Restrict {
     SubSlot(Option<String>),
     Use(Vec<String>, Vec<String>),
     Repo(Option<String>),
+    PkgAttr(AtomAttr, Box<Restrict>),
     // boolean
     And(Vec<Box<Restrict>>),
     Or(Vec<Box<Restrict>>),
+    // string
+    StrPrefix(String),
+    StrSuffix(String),
 }
 
 pub(crate) trait Restriction<T> {
@@ -45,9 +72,25 @@ impl Restriction<&Atom> for Restrict {
             Restrict::SubSlot(s) => s.as_deref() == atom.subslot(),
             Restrict::Use(_enabled, _disabled) => unimplemented!(),
             Restrict::Repo(s) => s.as_deref() == atom.repo(),
+
+            // package attribute support
+            Restrict::PkgAttr(attr, r) => r.matches(attr.get_value(atom)),
+
             // boolean
             Restrict::And(vals) => vals.iter().all(|r| r.matches(atom)),
             Restrict::Or(vals) => vals.iter().any(|r| r.matches(atom)),
+
+            _ => false,
+        }
+    }
+}
+
+impl Restriction<&str> for Restrict {
+    fn matches(&self, val: &str) -> bool {
+        match self {
+            Restrict::StrPrefix(s) => val.starts_with(s),
+            Restrict::StrSuffix(s) => val.ends_with(s),
+            _ => false,
         }
     }
 }
@@ -60,7 +103,15 @@ impl From<&Atom> for Restrict {
         ];
 
         if let Some(v) = atom.version() {
-            restricts.push(Box::new(Restrict::Version(Some(v.clone()))));
+            let r = match v.op() {
+                // equal glob operators are version string prefix checks
+                Some(Operator::EqualGlob) => {
+                    let r = Box::new(Restrict::StrPrefix(v.as_str().to_string()));
+                    Box::new(Restrict::PkgAttr(AtomAttr::Version, r))
+                }
+                _ => Box::new(Restrict::Version(Some(v.clone()))),
+            };
+            restricts.push(r);
         }
 
         if let Some(s) = atom.slot() {
@@ -179,6 +230,62 @@ mod tests {
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
+    }
+
+    #[test]
+    fn test_version_restricts() {
+        let lt = Atom::from_str("<cat/pkg-1-r1").unwrap();
+        let le = Atom::from_str("<=cat/pkg-1-r1").unwrap();
+        let eq = Atom::from_str("=cat/pkg-1-r1").unwrap();
+        let eq_glob = Atom::from_str("=cat/pkg-1*").unwrap();
+        let approx = Atom::from_str("~cat/pkg-1").unwrap();
+        let ge = Atom::from_str(">=cat/pkg-1-r1").unwrap();
+        let gt = Atom::from_str(">cat/pkg-1-r1").unwrap();
+
+        let lt_cpv = parse::cpv("cat/pkg-0").unwrap();
+        let gt_cpv = parse::cpv("cat/pkg-2").unwrap();
+
+        let r = Restrict::from(&lt);
+        assert!(r.matches(&lt_cpv));
+        assert!(!r.matches(&lt));
+        assert!(!r.matches(&gt_cpv));
+
+        let r = Restrict::from(&le);
+        assert!(r.matches(&lt_cpv));
+        assert!(r.matches(&le));
+        assert!(!r.matches(&gt_cpv));
+
+        let r = Restrict::from(&eq);
+        assert!(!r.matches(&lt_cpv));
+        assert!(r.matches(&eq));
+        assert!(!r.matches(&gt_cpv));
+
+        let r = Restrict::from(&eq_glob);
+        assert!(!r.matches(&lt_cpv));
+        assert!(r.matches(&eq_glob));
+        for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
+            let cpv = parse::cpv(s).unwrap();
+            assert!(r.matches(&cpv));
+        }
+        assert!(!r.matches(&gt_cpv));
+        let r = Restrict::from(&approx);
+        assert!(!r.matches(&lt_cpv));
+        assert!(r.matches(&approx));
+        for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
+            let cpv = parse::cpv(s).unwrap();
+            assert!(r.matches(&cpv));
+        }
+        assert!(!r.matches(&gt_cpv));
+
+        let r = Restrict::from(&ge);
+        assert!(!r.matches(&lt_cpv));
+        assert!(r.matches(&ge));
+        assert!(r.matches(&gt_cpv));
+
+        let r = Restrict::from(&gt);
+        assert!(!r.matches(&lt_cpv));
+        assert!(!r.matches(&gt));
+        assert!(r.matches(&gt_cpv));
     }
 
     #[test]
