@@ -17,12 +17,12 @@ pub enum AtomAttr {
 impl AtomAttr {
     fn get_value<'a>(&self, atom: &'a Atom) -> &'a str {
         match self {
-            AtomAttr::Category => atom.category(),
-            AtomAttr::Package => atom.package(),
-            AtomAttr::Version => atom.version().map_or_else(|| "", |v| v.as_str()),
-            AtomAttr::Slot => atom.slot().unwrap_or_default(),
-            AtomAttr::SubSlot => atom.subslot().unwrap_or_default(),
-            AtomAttr::Repo => atom.repo().unwrap_or_default(),
+            Self::Category => atom.category(),
+            Self::Package => atom.package(),
+            Self::Version => atom.version().map_or_else(|| "", |v| v.as_str()),
+            Self::Slot => atom.slot().unwrap_or_default(),
+            Self::SubSlot => atom.subslot().unwrap_or_default(),
+            Self::Repo => atom.repo().unwrap_or_default(),
         }
     }
 }
@@ -41,11 +41,11 @@ pub enum Restrict {
     SubSlot(Option<String>),
     Use(Vec<String>, Vec<String>),
     Repo(Option<String>),
-    PkgAttr(AtomAttr, Box<Restrict>),
+    PkgAttr(AtomAttr, Box<Self>),
 
     // boolean combinations
-    And(Vec<Box<Restrict>>),
-    Or(Vec<Box<Restrict>>),
+    And(Vec<Box<Self>>),
+    Or(Vec<Box<Self>>),
 
     // string
     StrMatch(String),
@@ -62,12 +62,12 @@ impl Restriction<&Atom> for Restrict {
     fn matches(&self, atom: &Atom) -> bool {
         match self {
             // boolean
-            Restrict::AlwaysTrue => true,
+            Self::AlwaysTrue => true,
 
             // atom attributes
-            Restrict::Category(s) => s.as_str() == atom.category(),
-            Restrict::Package(s) => s.as_str() == atom.package(),
-            Restrict::Version(v) => match (v, atom.version()) {
+            Self::Category(s) => s.as_str() == atom.category(),
+            Self::Package(s) => s.as_str() == atom.package(),
+            Self::Version(v) => match (v, atom.version()) {
                 (Some(v), Some(ver)) => {
                     match v.op() {
                         Some(Operator::Less) => no_op(ver) < no_op(v),
@@ -83,17 +83,17 @@ impl Restriction<&Atom> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            Restrict::Slot(s) => s.as_deref() == atom.slot(),
-            Restrict::SubSlot(s) => s.as_deref() == atom.subslot(),
-            Restrict::Use(_enabled, _disabled) => unimplemented!(),
-            Restrict::Repo(s) => s.as_deref() == atom.repo(),
+            Self::Slot(s) => s.as_deref() == atom.slot(),
+            Self::SubSlot(s) => s.as_deref() == atom.subslot(),
+            Self::Use(_enabled, _disabled) => unimplemented!(),
+            Self::Repo(s) => s.as_deref() == atom.repo(),
 
             // package attribute support
-            Restrict::PkgAttr(attr, r) => r.matches(attr.get_value(atom)),
+            Self::PkgAttr(attr, r) => r.matches(attr.get_value(atom)),
 
             // boolean combinations
-            Restrict::And(vals) => vals.iter().all(|r| r.matches(atom)),
-            Restrict::Or(vals) => vals.iter().any(|r| r.matches(atom)),
+            Self::And(vals) => vals.iter().all(|r| r.matches(atom)),
+            Self::Or(vals) => vals.iter().any(|r| r.matches(atom)),
 
             _ => false,
         }
@@ -104,13 +104,13 @@ impl Restriction<&str> for Restrict {
     fn matches(&self, val: &str) -> bool {
         match self {
             // boolean
-            Restrict::AlwaysTrue => true,
+            Self::AlwaysTrue => true,
 
             // string
-            Restrict::StrMatch(s) => val == s,
-            Restrict::StrPrefix(s) => val.starts_with(s),
-            Restrict::StrRegex(re) => re.is_match(val),
-            Restrict::StrSuffix(s) => val.ends_with(s),
+            Self::StrMatch(s) => val == s,
+            Self::StrPrefix(s) => val.starts_with(s),
+            Self::StrRegex(re) => re.is_match(val),
+            Self::StrSuffix(s) => val.ends_with(s),
 
             _ => false,
         }
@@ -120,43 +120,43 @@ impl Restriction<&str> for Restrict {
 impl From<&Atom> for Restrict {
     fn from(atom: &Atom) -> Self {
         let mut restricts = vec![
-            Box::new(Restrict::Category(atom.category().to_string())),
-            Box::new(Restrict::Package(atom.package().to_string())),
+            Box::new(Self::Category(atom.category().to_string())),
+            Box::new(Self::Package(atom.package().to_string())),
         ];
 
         if let Some(v) = atom.version() {
             let r = match v.op() {
                 // equal glob operators are version string prefix checks
                 Some(Operator::EqualGlob) => {
-                    let r = Box::new(Restrict::StrPrefix(v.as_str().to_string()));
-                    Box::new(Restrict::PkgAttr(AtomAttr::Version, r))
+                    let r = Box::new(Self::StrPrefix(v.as_str().to_string()));
+                    Box::new(Self::PkgAttr(AtomAttr::Version, r))
                 }
-                _ => Box::new(Restrict::Version(Some(v.clone()))),
+                _ => Box::new(Self::Version(Some(v.clone()))),
             };
             restricts.push(r);
         }
 
         if let Some(s) = atom.slot() {
-            restricts.push(Box::new(Restrict::Slot(Some(s.to_string()))));
+            restricts.push(Box::new(Self::Slot(Some(s.to_string()))));
         }
 
         if let Some(s) = atom.subslot() {
-            restricts.push(Box::new(Restrict::SubSlot(Some(s.to_string()))));
+            restricts.push(Box::new(Self::SubSlot(Some(s.to_string()))));
         }
 
         // TODO: add use deps support
 
         if let Some(s) = atom.repo() {
-            restricts.push(Box::new(Restrict::Repo(Some(s.to_string()))));
+            restricts.push(Box::new(Self::Repo(Some(s.to_string()))));
         }
 
-        Restrict::And(restricts)
+        Self::And(restricts)
     }
 }
 
 impl From<&pkg::Pkg<'_>> for Restrict {
     fn from(pkg: &pkg::Pkg) -> Self {
-        Restrict::from(pkg.atom())
+        Self::from(pkg.atom())
     }
 }
 
