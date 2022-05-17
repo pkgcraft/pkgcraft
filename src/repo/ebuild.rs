@@ -296,7 +296,7 @@ impl repo::Repository for Repo {
             match (pn, pf) {
                 (Some(pn), Some(pf)) => match pn == &pf[..pn.len()] {
                     true => match atom::parse::version(&pf[pn.len() + 1..]) {
-                        Ok(ver) => v.push(format!("{}", ver)),
+                        Ok(ver) => v.push(format!("{ver}")),
                         Err(e) => warn!("{e}: {path:?}"),
                     },
                     false => warn!("unmatched ebuild: {path:?}"),

@@ -184,7 +184,7 @@ mod tests {
     fn test_into_iter() {
         let expected = ["cat/pkg-0", "acat/bpkg-1"];
         let repo = Repo::new("fake", expected).unwrap();
-        let atoms: Vec<String> = repo.into_iter().map(|a| format!("{}", a)).collect();
+        let atoms: Vec<String> = repo.into_iter().map(|a| format!("{a}")).collect();
         assert_eq!(atoms, ["acat/bpkg-1", "cat/pkg-0"]);
     }
 }
