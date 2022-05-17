@@ -183,7 +183,7 @@ impl<'a> ParsedVersion<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub enum Operator {
+pub(crate) enum Operator {
     Less,           // <1
     LessOrEqual,    // <=1
     Equal,          // =1
@@ -227,8 +227,7 @@ impl Version {
             Some(Operator::Less) => NonOpVersion(other) < NonOpVersion(self),
             Some(Operator::LessOrEqual) => NonOpVersion(other) <= NonOpVersion(self),
             Some(Operator::Equal) | None => NonOpVersion(other) == NonOpVersion(self),
-            // TODO: requires string glob restriction support
-            Some(Operator::EqualGlob) => unimplemented!(),
+            Some(Operator::EqualGlob) => other.as_str().starts_with(self.as_str()),
             Some(Operator::Approximate) => NonRevisionVersion(other) == NonRevisionVersion(self),
             Some(Operator::GreaterOrEqual) => NonOpVersion(other) >= NonOpVersion(self),
             Some(Operator::Greater) => NonOpVersion(other) > NonOpVersion(self),

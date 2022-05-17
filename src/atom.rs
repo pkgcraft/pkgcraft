@@ -4,8 +4,8 @@ use std::str::FromStr;
 
 use indexmap::IndexSet;
 
-use self::version::ParsedVersion;
-pub use self::version::{Operator, Version};
+pub use self::version::Version;
+use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::vec_str;
 use crate::{Error, Result};

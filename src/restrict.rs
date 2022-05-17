@@ -4,7 +4,6 @@ use indexmap::IndexSet;
 use regex::Regex;
 use tracing::warn;
 
-use crate::atom::Operator as VerOp;
 use crate::pkg;
 use crate::pkg::Package;
 use crate::{atom, Result};
@@ -240,12 +239,7 @@ impl From<&atom::Atom> for Restrict {
         let mut restricts = vec![Self::category(atom.category()), Self::package(atom.package())];
 
         if let Some(v) = atom.version() {
-            let r = match v.op() {
-                // equal glob operators are version string prefix checks
-                Some(VerOp::EqualGlob) => AtomAttr::VersionStr(Str::Prefix(v.as_str().into())),
-                _ => AtomAttr::Version(Some(v.clone())),
-            };
-            restricts.push(Self::Atom(r));
+            restricts.push(Self::Atom(AtomAttr::Version(Some(v.clone()))));
         }
 
         if let Some(s) = atom.slot() {
