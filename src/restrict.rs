@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use indexmap::IndexSet;
 use regex::Regex;
+use tracing::warn;
 
 use crate::atom::{NonOpVersion as no_op, NonRevisionVersion as no_rev, Operator as VerOp};
 use crate::pkg;
@@ -76,6 +77,9 @@ pub enum Restrict {
     // boolean combinations
     And(Vec<Box<Self>>),
     Or(Vec<Box<Self>>),
+
+    // strings
+    Str(Str),
 }
 
 impl Restrict {
@@ -151,15 +155,41 @@ impl Restriction<&atom::Atom> for Restrict {
         match self {
             // boolean
             Self::True => true,
-
-            // object attributes
-            Self::Atom(r) => r.matches(atom),
+            Self::False => false,
 
             // boolean combinations
             Self::And(vals) => vals.iter().all(|r| r.matches(atom)),
             Self::Or(vals) => vals.iter().any(|r| r.matches(atom)),
 
-            _ => false,
+            // atom attributes
+            Self::Atom(r) => r.matches(atom),
+
+            _ => {
+                warn!("invalid restriction for atom matches: {self:?}");
+                false
+            }
+        }
+    }
+}
+
+impl Restriction<&str> for Restrict {
+    fn matches(&self, s: &str) -> bool {
+        match self {
+            // boolean
+            Self::True => true,
+            Self::False => false,
+
+            // boolean combinations
+            Self::And(vals) => vals.iter().all(|r| r.matches(s)),
+            Self::Or(vals) => vals.iter().any(|r| r.matches(s)),
+
+            // strings
+            Self::Str(r) => r.matches(s),
+
+            _ => {
+                warn!("invalid restriction for string matches: {self:?}");
+                false
+            }
         }
     }
 }
