@@ -30,7 +30,7 @@ flate2 = { version = "1.0", optional = true }
 futures = "0.3.16"
 git2 = { version = "0.14", optional = true }
 glob = "0.3.0"
-indexmap = { version = "1.7.0", features = ["serde"] }
+indexmap = { version = "1.8.0", features = ["serde"] }
 rust-ini = "0.18"
 is_executable = "1.0.1"
 itertools = "0.10.3"
