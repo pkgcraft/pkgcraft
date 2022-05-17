@@ -174,9 +174,9 @@ pub mod parse {
             restricts.push(Restrict::Atom(AtomAttr::Version(Some(v))));
         }
 
-        match restricts.len() {
-            0 => Ok(Restrict::True),
-            _ => Ok(Restrict::and(restricts)),
+        match restricts.is_empty() {
+            true => Ok(Restrict::True),
+            false => Ok(Restrict::and(restricts)),
         }
     }
 }
