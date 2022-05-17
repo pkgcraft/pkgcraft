@@ -17,7 +17,7 @@ pub enum AtomAttr {
     VersionStr(Str),
     Slot(Optional<String>),
     SubSlot(Optional<String>),
-    StaticUseDep(Set<String>),
+    StaticUseDep(Set),
     Repo(Optional<String>),
 }
 
@@ -78,6 +78,9 @@ pub enum Restrict {
     And(Vec<Box<Self>>),
     Or(Vec<Box<Self>>),
 
+    // sets
+    Set(Set),
+
     // strings
     Str(Str),
 }
@@ -119,7 +122,8 @@ impl Restrict {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let r = AtomAttr::StaticUseDep(Set::Subset(iter.into_iter().map(|s| s.into()).collect()));
+        let r =
+            AtomAttr::StaticUseDep(Set::StrSubset(iter.into_iter().map(|s| s.into()).collect()));
         Self::Atom(r)
     }
 
@@ -227,14 +231,14 @@ impl Restriction<Option<&str>> for Optional<String> {
 }
 
 #[derive(Debug)]
-pub enum Set<T> {
-    Subset(IndexSet<T>),
+pub enum Set {
+    StrSubset(IndexSet<String>),
 }
 
-impl Restriction<&IndexSet<&str>> for Set<String> {
+impl Restriction<&IndexSet<&str>> for Set {
     fn matches(&self, val: &IndexSet<&str>) -> bool {
         match self {
-            Self::Subset(s) => {
+            Self::StrSubset(s) => {
                 let set = s.iter().map(|s| s.as_str()).collect::<IndexSet<&str>>();
                 set.is_subset(val)
             }
