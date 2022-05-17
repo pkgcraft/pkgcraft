@@ -14,10 +14,10 @@ pub enum AtomAttr {
     Package(Str),
     Version(Option<atom::Version>),
     VersionStr(Str),
-    Slot(Optional<String>),
-    SubSlot(Optional<String>),
+    Slot(Option<Str>),
+    SubSlot(Option<Str>),
     StaticUseDep(Set),
-    Repo(Optional<String>),
+    Repo(Option<Str>),
 }
 
 impl Restriction<&atom::Atom> for AtomAttr {
@@ -31,10 +31,22 @@ impl Restriction<&atom::Atom> for AtomAttr {
                 _ => false,
             },
             Self::VersionStr(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
-            Self::Slot(r) => r.matches(atom.slot()),
-            Self::SubSlot(r) => r.matches(atom.subslot()),
+            Self::Slot(r) => match (r, atom.slot()) {
+                (Some(r), Some(slot)) => r.matches(slot),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::SubSlot(r) => match (r, atom.subslot()) {
+                (Some(r), Some(subslot)) => r.matches(subslot),
+                (None, None) => true,
+                _ => false,
+            },
             Self::StaticUseDep(r) => r.matches(&atom.use_deps_set()),
-            Self::Repo(r) => r.matches(atom.repo()),
+            Self::Repo(r) => match (r, atom.repo()) {
+                (Some(r), Some(repo)) => r.matches(repo),
+                (None, None) => true,
+                _ => false,
+            },
         }
     }
 }
@@ -94,15 +106,13 @@ impl Restrict {
     }
 
     pub fn slot(o: Option<&str>) -> Self {
-        let o = o.map(str::to_string);
-        let r = AtomAttr::Slot(Optional::Val(o));
-        Self::Atom(r)
+        let o = o.map(|s| Str::Match(s.to_string()));
+        Self::Atom(AtomAttr::Slot(o))
     }
 
     pub fn subslot(o: Option<&str>) -> Self {
-        let o = o.map(str::to_string);
-        let r = AtomAttr::SubSlot(Optional::Val(o));
-        Self::Atom(r)
+        let o = o.map(|s| Str::Match(s.to_string()));
+        Self::Atom(AtomAttr::SubSlot(o))
     }
 
     pub fn use_deps<I, S>(iter: I) -> Self
@@ -116,9 +126,8 @@ impl Restrict {
     }
 
     pub fn repo(o: Option<&str>) -> Self {
-        let o = o.map(str::to_string);
-        let r = AtomAttr::Repo(Optional::Val(o));
-        Self::Atom(r)
+        let o = o.map(|s| Str::Match(s.to_string()));
+        Self::Atom(AtomAttr::Repo(o))
     }
 
     pub fn and<I, T>(iter: I) -> Self
@@ -201,19 +210,6 @@ impl Restriction<&str> for Str {
             Self::Prefix(s) => val.starts_with(s),
             Self::Regex(re) => re.is_match(val),
             Self::Suffix(s) => val.ends_with(s),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum Optional<T> {
-    Val(Option<T>),
-}
-
-impl Restriction<Option<&str>> for Optional<String> {
-    fn matches(&self, val: Option<&str>) -> bool {
-        match self {
-            Self::Val(o) => val == o.as_deref(),
         }
     }
 }
