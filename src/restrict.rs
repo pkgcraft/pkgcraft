@@ -8,6 +8,11 @@ use crate::pkg;
 use crate::pkg::Package;
 use crate::{atom, Result};
 
+// export parser functionality
+pub use parser::parse;
+
+mod parser;
+
 #[derive(Debug)]
 pub enum AtomAttr {
     Category(Str),

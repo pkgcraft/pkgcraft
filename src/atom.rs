@@ -13,7 +13,7 @@ use crate::{Error, Result};
 pub use parser::parse;
 
 mod parser;
-mod version;
+pub(crate) mod version;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum Blocker {

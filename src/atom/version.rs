@@ -111,19 +111,19 @@ impl From<&Revision> for String {
 
 #[derive(Debug, Default)]
 pub(crate) struct ParsedVersion<'a> {
-    pub(super) start: usize,
-    pub(super) end_base: usize,
-    pub(super) end: usize,
-    pub(super) op: Option<Operator>,
-    pub(super) numbers: Vec<&'a str>,
-    pub(super) letter: Option<char>,
-    pub(super) suffixes: Option<Vec<(&'a str, Option<&'a str>)>>,
-    pub(super) revision: Option<&'a str>,
+    pub(crate) start: usize,
+    pub(crate) end_base: usize,
+    pub(crate) end: usize,
+    pub(crate) op: Option<Operator>,
+    pub(crate) numbers: Vec<&'a str>,
+    pub(crate) letter: Option<char>,
+    pub(crate) suffixes: Option<Vec<(&'a str, Option<&'a str>)>>,
+    pub(crate) revision: Option<&'a str>,
 }
 
 impl<'a> ParsedVersion<'a> {
     // Used by the parser to inject the version operator value.
-    pub(super) fn with_op(
+    pub(crate) fn with_op(
         mut self,
         op: &'a str,
         glob: Option<()>,
@@ -146,7 +146,7 @@ impl<'a> ParsedVersion<'a> {
         Ok(self)
     }
 
-    pub(super) fn into_owned(self, input: &str) -> Result<Version> {
+    pub(crate) fn into_owned(self, input: &str) -> Result<Version> {
         let mut numbers = Vec::<(String, u64)>::new();
         for s in self.numbers.iter() {
             let num = s
