@@ -4,7 +4,7 @@ use indexmap::IndexSet;
 use regex::Regex;
 use tracing::warn;
 
-use crate::atom::{NonOpVersion as no_op, NonRevisionVersion as no_rev, Operator as VerOp};
+use crate::atom::Operator as VerOp;
 use crate::pkg;
 use crate::pkg::Package;
 use crate::{atom, Result};
@@ -27,18 +27,7 @@ impl Restriction<&atom::Atom> for AtomAttr {
             Self::Category(r) => r.matches(atom.category()),
             Self::Package(r) => r.matches(atom.package()),
             Self::Version(v) => match (v, atom.version()) {
-                (Some(v), Some(ver)) => {
-                    match v.op() {
-                        Some(VerOp::Less) => no_op(ver) < no_op(v),
-                        Some(VerOp::LessOrEqual) => no_op(ver) <= no_op(v),
-                        Some(VerOp::Equal) | None => no_op(ver) == no_op(v),
-                        // TODO: requires string glob restriction support
-                        Some(VerOp::EqualGlob) => unimplemented!(),
-                        Some(VerOp::Approximate) => no_rev(ver) == no_rev(v),
-                        Some(VerOp::GreaterOrEqual) => no_op(ver) >= no_op(v),
-                        Some(VerOp::Greater) => no_op(ver) > no_op(v),
-                    }
-                }
+                (Some(v), Some(ver)) => v.op_cmp(ver),
                 (None, None) => true,
                 _ => false,
             },

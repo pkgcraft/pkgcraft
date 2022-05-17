@@ -5,7 +5,6 @@ use std::str::FromStr;
 use indexmap::IndexSet;
 
 use self::version::ParsedVersion;
-pub(crate) use self::version::{NonOpVersion, NonRevisionVersion};
 pub use self::version::{Operator, Version};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::vec_str;

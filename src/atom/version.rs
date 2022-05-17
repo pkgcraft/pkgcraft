@@ -221,6 +221,19 @@ impl Version {
         let base = &self.full.as_bytes()[..self.end_base];
         str::from_utf8(base).unwrap()
     }
+
+    pub(crate) fn op_cmp(&self, other: &Self) -> bool {
+        match self.op() {
+            Some(Operator::Less) => NonOpVersion(other) < NonOpVersion(self),
+            Some(Operator::LessOrEqual) => NonOpVersion(other) <= NonOpVersion(self),
+            Some(Operator::Equal) | None => NonOpVersion(other) == NonOpVersion(self),
+            // TODO: requires string glob restriction support
+            Some(Operator::EqualGlob) => unimplemented!(),
+            Some(Operator::Approximate) => NonRevisionVersion(other) == NonRevisionVersion(self),
+            Some(Operator::GreaterOrEqual) => NonOpVersion(other) >= NonOpVersion(self),
+            Some(Operator::Greater) => NonOpVersion(other) > NonOpVersion(self),
+        }
+    }
 }
 
 impl AsRef<Version> for Version {
@@ -349,7 +362,7 @@ impl FromStr for Version {
 
 // Version wrapper that ignore revisions and operators during comparisons.
 #[derive(Debug, Eq, Hash, Clone)]
-pub(crate) struct NonRevisionVersion<'a>(pub(crate) &'a Version);
+struct NonRevisionVersion<'a>(&'a Version);
 
 impl AsRef<Version> for NonRevisionVersion<'_> {
     fn as_ref(&self) -> &Version {
@@ -377,7 +390,7 @@ impl PartialOrd for NonRevisionVersion<'_> {
 
 // Version wrapper that ignore operators during comparisons.
 #[derive(Debug, Eq, Hash, Clone)]
-pub(crate) struct NonOpVersion<'a>(pub(crate) &'a Version);
+struct NonOpVersion<'a>(&'a Version);
 
 impl AsRef<Version> for NonOpVersion<'_> {
     fn as_ref(&self) -> &Version {
