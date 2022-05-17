@@ -10,14 +10,14 @@ use crate::{atom, Result};
 
 #[derive(Debug)]
 pub enum AtomAttr {
-    Category(Box<Restrict>),
-    Package(Box<Restrict>),
+    Category(Str),
+    Package(Str),
     Version(Option<atom::Version>),
-    VersionStr(Box<Restrict>),
-    Slot(Box<Restrict>),
-    SubSlot(Box<Restrict>),
-    StaticUseDep(Box<Restrict>),
-    Repo(Box<Restrict>),
+    VersionStr(Str),
+    Slot(Optional<String>),
+    SubSlot(Optional<String>),
+    StaticUseDep(Set<String>),
+    Repo(Optional<String>),
 }
 
 impl Restriction<&atom::Atom> for AtomAttr {
@@ -52,7 +52,7 @@ impl Restriction<&atom::Atom> for AtomAttr {
 
 #[derive(Debug)]
 pub enum PkgAttr {
-    Eapi(Box<Restrict>),
+    Eapi(Str),
 }
 
 impl Restriction<&pkg::Pkg<'_>> for PkgAttr {
@@ -66,8 +66,8 @@ impl Restriction<&pkg::Pkg<'_>> for PkgAttr {
 #[derive(Debug)]
 pub enum Restrict {
     // boolean
-    AlwaysTrue,
-    AlwaysFalse,
+    True,
+    False,
 
     // object attributes
     Atom(AtomAttr),
@@ -76,28 +76,16 @@ pub enum Restrict {
     // boolean combinations
     And(Vec<Box<Self>>),
     Or(Vec<Box<Self>>),
-
-    // sets
-    Contains(IndexSet<String>),
-
-    // strings
-    StrMatch(String),
-    StrOptional(Option<String>),
-    StrPrefix(String),
-    StrRegex(Regex),
-    StrSuffix(String),
 }
 
 impl Restrict {
     pub fn category(s: &str) -> Self {
-        let s = s.to_string();
-        let r = AtomAttr::Category(Box::new(Self::StrMatch(s)));
+        let r = AtomAttr::Category(Str::Match(s.into()));
         Self::Atom(r)
     }
 
     pub fn package(s: &str) -> Self {
-        let s = s.to_string();
-        let r = AtomAttr::Package(Box::new(Self::StrMatch(s)));
+        let r = AtomAttr::Package(Str::Match(s.into()));
         Self::Atom(r)
     }
 
@@ -112,13 +100,13 @@ impl Restrict {
 
     pub fn slot(o: Option<&str>) -> Self {
         let o = o.map(str::to_string);
-        let r = AtomAttr::Slot(Box::new(Self::StrOptional(o)));
+        let r = AtomAttr::Slot(Optional::Val(o));
         Self::Atom(r)
     }
 
     pub fn subslot(o: Option<&str>) -> Self {
         let o = o.map(str::to_string);
-        let r = AtomAttr::SubSlot(Box::new(Self::StrOptional(o)));
+        let r = AtomAttr::SubSlot(Optional::Val(o));
         Self::Atom(r)
     }
 
@@ -127,15 +115,13 @@ impl Restrict {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let r = AtomAttr::StaticUseDep(Box::new(Self::Contains(
-            iter.into_iter().map(|s| s.into()).collect(),
-        )));
+        let r = AtomAttr::StaticUseDep(Set::Subset(iter.into_iter().map(|s| s.into()).collect()));
         Self::Atom(r)
     }
 
     pub fn repo(o: Option<&str>) -> Self {
         let o = o.map(str::to_string);
-        let r = AtomAttr::Repo(Box::new(Self::StrOptional(o)));
+        let r = AtomAttr::Repo(Optional::Val(o));
         Self::Atom(r)
     }
 
@@ -164,7 +150,7 @@ impl Restriction<&atom::Atom> for Restrict {
     fn matches(&self, atom: &atom::Atom) -> bool {
         match self {
             // boolean
-            Self::AlwaysTrue => true,
+            Self::True => true,
 
             // object attributes
             Self::Atom(r) => r.matches(atom),
@@ -178,42 +164,50 @@ impl Restriction<&atom::Atom> for Restrict {
     }
 }
 
-impl Restriction<&str> for Restrict {
+#[derive(Debug)]
+pub enum Str {
+    Match(String),
+    Prefix(String),
+    Regex(Regex),
+    Suffix(String),
+}
+
+impl Restriction<&str> for Str {
     fn matches(&self, val: &str) -> bool {
         match self {
-            // boolean
-            Self::AlwaysTrue => true,
-
-            // string
-            Self::StrMatch(s) => val == s,
-            Self::StrPrefix(s) => val.starts_with(s),
-            Self::StrRegex(re) => re.is_match(val),
-            Self::StrSuffix(s) => val.ends_with(s),
-
-            _ => false,
+            Self::Match(s) => val == s,
+            Self::Prefix(s) => val.starts_with(s),
+            Self::Regex(re) => re.is_match(val),
+            Self::Suffix(s) => val.ends_with(s),
         }
     }
 }
 
-impl Restriction<Option<&str>> for Restrict {
+#[derive(Debug)]
+pub enum Optional<T> {
+    Val(Option<T>),
+}
+
+impl Restriction<Option<&str>> for Optional<String> {
     fn matches(&self, val: Option<&str>) -> bool {
         match self {
-            Self::AlwaysTrue => true,
-            Self::StrOptional(o) => val == o.as_deref(),
-            _ => false,
+            Self::Val(o) => val == o.as_deref(),
         }
     }
 }
 
-impl Restriction<&IndexSet<&str>> for Restrict {
+#[derive(Debug)]
+pub enum Set<T> {
+    Subset(IndexSet<T>),
+}
+
+impl Restriction<&IndexSet<&str>> for Set<String> {
     fn matches(&self, val: &IndexSet<&str>) -> bool {
         match self {
-            Self::AlwaysTrue => true,
-            Self::Contains(s) => {
+            Self::Subset(s) => {
                 let set = s.iter().map(|s| s.as_str()).collect::<IndexSet<&str>>();
                 set.is_subset(val)
             }
-            _ => false,
         }
     }
 }
@@ -225,9 +219,7 @@ impl From<&atom::Atom> for Restrict {
         if let Some(v) = atom.version() {
             let r = match v.op() {
                 // equal glob operators are version string prefix checks
-                Some(VerOp::EqualGlob) => {
-                    AtomAttr::VersionStr(Box::new(Self::StrPrefix(v.as_str().to_string())))
-                }
+                Some(VerOp::EqualGlob) => AtomAttr::VersionStr(Str::Prefix(v.as_str().into())),
                 _ => AtomAttr::Version(Some(v.clone())),
             };
             restricts.push(Self::Atom(r));
@@ -447,10 +439,10 @@ mod tests {
         let r = Restrict::from(&cpv);
         assert_eq!(filter(r, atoms.clone()), [">=cat/pkg-1", "=cat/pkg-1:2/3::repo"]);
 
-        let r = Restrict::AlwaysTrue;
+        let r = Restrict::True;
         assert_eq!(filter(r, atoms.clone()), atom_strs);
 
-        let r = Restrict::AlwaysFalse;
+        let r = Restrict::False;
         assert!(filter(r, atoms.clone()).is_empty());
     }
 
