@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use indexmap::IndexSet;
 use regex::Regex;
 
 use crate::atom::{NonOpVersion as no_op, NonRevisionVersion as no_rev, Operator as VerOp};
@@ -15,7 +16,7 @@ pub enum AtomAttr {
     VersionStr(Box<Restrict>),
     Slot(Box<Restrict>),
     SubSlot(Box<Restrict>),
-    Use(Vec<String>, Vec<String>),
+    StaticUseDep(Box<Restrict>),
     Repo(Box<Restrict>),
 }
 
@@ -43,7 +44,7 @@ impl Restriction<&atom::Atom> for AtomAttr {
             Self::VersionStr(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
             Self::Slot(r) => r.matches(atom.slot()),
             Self::SubSlot(r) => r.matches(atom.subslot()),
-            Self::Use(_enabled, _disabled) => unimplemented!(),
+            Self::StaticUseDep(r) => r.matches(&atom.use_deps_set()),
             Self::Repo(r) => r.matches(atom.repo()),
         }
     }
@@ -76,7 +77,10 @@ pub enum Restrict {
     And(Vec<Box<Self>>),
     Or(Vec<Box<Self>>),
 
-    // string
+    // sets
+    Contains(IndexSet<String>),
+
+    // strings
     StrMatch(String),
     StrOptional(Option<String>),
     StrPrefix(String),
@@ -115,6 +119,17 @@ impl Restrict {
     pub fn subslot(o: Option<&str>) -> Self {
         let o = o.map(str::to_string);
         let r = AtomAttr::SubSlot(Box::new(Self::StrOptional(o)));
+        Self::Atom(r)
+    }
+
+    pub fn use_deps<I, S>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        let r = AtomAttr::StaticUseDep(Box::new(Self::Contains(
+            iter.into_iter().map(|s| s.into()).collect(),
+        )));
         Self::Atom(r)
     }
 
@@ -169,6 +184,19 @@ impl Restriction<Option<&str>> for Restrict {
         match self {
             Self::AlwaysTrue => true,
             Self::StrOptional(o) => val == o.as_deref(),
+            _ => false,
+        }
+    }
+}
+
+impl Restriction<&IndexSet<&str>> for Restrict {
+    fn matches(&self, val: &IndexSet<&str>) -> bool {
+        match self {
+            Self::AlwaysTrue => true,
+            Self::Contains(s) => {
+                let set = s.iter().map(|s| s.as_str()).collect::<IndexSet<&str>>();
+                set.is_subset(val)
+            }
             _ => false,
         }
     }
@@ -229,7 +257,7 @@ mod tests {
     fn test_atom_restricts() {
         let unversioned = Atom::from_str("cat/pkg").unwrap();
         let cpv = parse::cpv("cat/pkg-1").unwrap();
-        let full = Atom::from_str("=cat/pkg-1:2/3::repo").unwrap();
+        let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
         let r = Restrict::category("cat");
@@ -278,6 +306,20 @@ mod tests {
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
+
+        // no use deps specified
+        let r = Restrict::use_deps([] as [&str; 0]);
+        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // use deps specified
+        for u in [vec!["u1"], vec!["u1", "u2"]] {
+            let r = Restrict::use_deps(u);
+            assert!(!r.matches(&unversioned));
+            assert!(!r.matches(&cpv));
+            assert!(r.matches(&full));
+        }
 
         // no repo
         let r = Restrict::repo(None);

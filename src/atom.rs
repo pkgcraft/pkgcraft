@@ -2,6 +2,8 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
+use indexmap::IndexSet;
+
 use self::version::ParsedVersion;
 pub(crate) use self::version::{NonOpVersion, NonRevisionVersion};
 pub use self::version::{Operator, Version};
@@ -87,6 +89,13 @@ impl Atom {
 
     pub fn package(&self) -> &str {
         &self.package
+    }
+
+    pub(crate) fn use_deps_set(&self) -> IndexSet<&str> {
+        match self.use_deps() {
+            None => IndexSet::<&str>::new(),
+            Some(u) => u.iter().copied().collect(),
+        }
     }
 
     pub fn use_deps(&self) -> Option<Vec<&str>> {
