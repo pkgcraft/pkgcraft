@@ -30,7 +30,7 @@ peg::parser! {
                 Ok((suffix, ver))
             }
 
-        pub(crate) rule version() -> ParsedVersion<'input>
+        rule version() -> ParsedVersion<'input>
             = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
                     suffixes:("_" s:version_suffix() ++ "_" {s})?
                     end_base:position!() revision:revision()? end:position!() {
