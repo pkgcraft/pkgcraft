@@ -199,9 +199,9 @@ mod tests {
             "cat/pkg:0",
             "cat/pkg:2.1",
             // subslotted
-            "cat/pkg:0/0",
             "cat/pkg:2/1.1",
             // versioned
+            "=cat/pkg-0-r0:0/0",
             "=cat/pkg-1",
             ">=cat/pkg-2",
             "<cat/pkg-3",
@@ -246,7 +246,7 @@ mod tests {
             (">=pkg-1", vec!["=cat/pkg-1", ">=cat/pkg-2", "<cat/pkg-3"]),
             ("=pkg-2", vec![">=cat/pkg-2"]),
             ("=*-2", vec![">=cat/pkg-2"]),
-            ("<pkg-3", vec!["=cat/pkg-1", ">=cat/pkg-2"]),
+            ("<pkg-3", vec!["=cat/pkg-0-r0:0/0", "=cat/pkg-1", ">=cat/pkg-2"]),
         ] {
             let r = parse::dep(s).unwrap();
             assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
@@ -254,10 +254,12 @@ mod tests {
 
         // slot globs
         for (s, expected) in [
-            ("*:*", vec!["cat/pkg:0", "cat/pkg:2.1", "cat/pkg:0/0", "cat/pkg:2/1.1"]),
-            ("*:0", vec!["cat/pkg:0", "cat/pkg:0/0"]),
+            ("*:*", vec!["cat/pkg:0", "cat/pkg:2.1", "cat/pkg:2/1.1", "=cat/pkg-0-r0:0/0"]),
+            ("*:0", vec!["cat/pkg:0", "=cat/pkg-0-r0:0/0"]),
             ("*:2", vec!["cat/pkg:2/1.1"]),
             ("*:2*", vec!["cat/pkg:2.1", "cat/pkg:2/1.1"]),
+            ("pkg*:2*", vec!["cat/pkg:2.1", "cat/pkg:2/1.1"]),
+            ("<pkg-1:*", vec!["=cat/pkg-0-r0:0/0"]),
         ] {
             let r = parse::dep(s).unwrap();
             assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
@@ -265,7 +267,7 @@ mod tests {
 
         // subslot globs
         for (s, expected) in [
-            ("*:*/*", vec!["cat/pkg:0/0", "cat/pkg:2/1.1"]),
+            ("*:*/*", vec!["cat/pkg:2/1.1", "=cat/pkg-0-r0:0/0"]),
             ("*:2/*", vec!["cat/pkg:2/1.1"]),
             ("*:2/1", vec![]),
             ("*:2/1*", vec!["cat/pkg:2/1.1"]),
