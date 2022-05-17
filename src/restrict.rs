@@ -138,6 +138,22 @@ impl Restrict {
         let r = AtomAttr::Repo(Box::new(Self::StrOptional(o)));
         Self::Atom(r)
     }
+
+    pub fn and<I, T>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<Restrict>,
+    {
+        Self::And(iter.into_iter().map(|x| Box::new(x.into())).collect())
+    }
+
+    pub fn or<I, T>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<Restrict>,
+    {
+        Self::Or(iter.into_iter().map(|x| Box::new(x.into())).collect())
+    }
 }
 
 pub(crate) trait Restriction<T> {
@@ -204,10 +220,7 @@ impl Restriction<&IndexSet<&str>> for Restrict {
 
 impl From<&atom::Atom> for Restrict {
     fn from(atom: &atom::Atom) -> Self {
-        let mut restricts = vec![
-            Box::new(Self::category(atom.category())),
-            Box::new(Self::package(atom.package())),
-        ];
+        let mut restricts = vec![Self::category(atom.category()), Self::package(atom.package())];
 
         if let Some(v) = atom.version() {
             let r = match v.op() {
@@ -217,24 +230,24 @@ impl From<&atom::Atom> for Restrict {
                 }
                 _ => AtomAttr::Version(Some(v.clone())),
             };
-            restricts.push(Box::new(Self::Atom(r)));
+            restricts.push(Self::Atom(r));
         }
 
         if let Some(s) = atom.slot() {
-            restricts.push(Box::new(Self::slot(Some(s))));
+            restricts.push(Self::slot(Some(s)));
         }
 
         if let Some(s) = atom.subslot() {
-            restricts.push(Box::new(Self::subslot(Some(s))));
+            restricts.push(Self::subslot(Some(s)));
         }
 
         // TODO: add use deps support
 
         if let Some(s) = atom.repo() {
-            restricts.push(Box::new(Self::repo(Some(s))));
+            restricts.push(Self::repo(Some(s)));
         }
 
-        Self::And(restricts)
+        Self::and(restricts)
     }
 }
 
@@ -446,19 +459,19 @@ mod tests {
         let a = Atom::from_str("cat/pkg").unwrap();
         let cat = Restrict::category("cat");
         let pkg = Restrict::package("pkg");
-        let r = Restrict::And(vec![Box::new(cat), Box::new(pkg)]);
+        let r = Restrict::and([cat, pkg]);
         assert!(r.matches(&a));
 
         // one matched and one unmatched restriction
         let cat = Restrict::category("cat");
         let pkg = Restrict::package("pkga");
-        let r = Restrict::And(vec![Box::new(cat), Box::new(pkg)]);
+        let r = Restrict::and([cat, pkg]);
         assert!(!r.matches(&a));
 
         // matching against two atoms
         let a1 = Atom::from_str("cat/pkg1").unwrap();
         let a2 = Atom::from_str("cat/pkg2").unwrap();
-        let r = Restrict::And(vec![Box::new(Restrict::from(&a1)), Box::new(Restrict::from(&a2))]);
+        let r = Restrict::and([&a1, &a2]);
         assert!(!r.matches(&a1));
         assert!(!r.matches(&a2));
     }
@@ -468,19 +481,19 @@ mod tests {
         let a = Atom::from_str("cat/pkg").unwrap();
         let cat = Restrict::category("cat");
         let pkg = Restrict::package("pkg");
-        let r = Restrict::Or(vec![Box::new(cat), Box::new(pkg)]);
+        let r = Restrict::or([cat, pkg]);
         assert!(r.matches(&a));
 
         // one matched and one unmatched restriction
         let cat = Restrict::category("cat");
         let pkg = Restrict::package("pkga");
-        let r = Restrict::Or(vec![Box::new(cat), Box::new(pkg)]);
+        let r = Restrict::or([cat, pkg]);
         assert!(r.matches(&a));
 
         // matching against two atoms
         let a1 = Atom::from_str("cat/pkg1").unwrap();
         let a2 = Atom::from_str("cat/pkg2").unwrap();
-        let r = Restrict::Or(vec![Box::new(Restrict::from(&a1)), Box::new(Restrict::from(&a2))]);
+        let r = Restrict::or([&a1, &a2]);
         assert!(r.matches(&a1));
         assert!(r.matches(&a2));
     }
