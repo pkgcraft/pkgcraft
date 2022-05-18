@@ -205,6 +205,12 @@ pub struct Version {
 }
 
 impl Version {
+    /// Verify a string represents a valid version.
+    pub fn valid<S: AsRef<str>>(s: S) -> Result<()> {
+        parse::version_str(s.as_ref())?;
+        Ok(())
+    }
+
     pub fn as_str(&self) -> &str {
         &self.full
     }
