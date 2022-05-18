@@ -219,64 +219,70 @@ peg::parser! {
 
 // provide public parsing functionality while converting error types
 pub mod parse {
-    use cached::{cached_key, SizedCache};
+    use cached::{proc_macro::cached, SizedCache};
 
-    use crate::atom::version::Version;
-    use crate::atom::Atom;
+    use crate::atom::version::{ParsedVersion, Version};
+    use crate::atom::{Atom, ParsedAtom};
     use crate::eapi::Eapi;
     use crate::peg::peg_error;
     use crate::Result;
 
     use super::pkg;
 
-    #[inline]
     pub fn category(s: &str) -> Result<&str> {
         pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s:?}"), s, e))
     }
 
-    #[inline]
     pub fn package(s: &str) -> Result<&str> {
         pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s:?}"), s, e))
     }
 
-    cached_key! {
-        VERSION_CACHE: SizedCache<String, Result<Version>> = SizedCache::with_size(1000);
-        Key = { s.to_string() };
-        fn version(s: &str) -> Result<Version> = {
-            let parsed_version =
-                pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
-            parsed_version.into_owned(s)
-        }
+    pub(crate) fn version_str(s: &str) -> Result<ParsedVersion> {
+        pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))
     }
 
-    #[inline]
+    #[cached(
+        type = "SizedCache<String, Result<Version>>",
+        create = "{ SizedCache::with_size(1000) }",
+        convert = r#"{ s.to_string() }"#
+    )]
+    pub fn version(s: &str) -> Result<Version> {
+        let version = version_str(s)?;
+        version.into_owned(s)
+    }
+
     pub fn version_with_op(s: &str) -> Result<Version> {
         let parsed_version = pkg::version_with_op(s)
             .map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
         parsed_version.into_owned(s)
     }
 
-    #[inline]
     pub fn repo(s: &str) -> Result<&str> {
         pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
     }
 
-    cached_key! {
-        CPV_CACHE: SizedCache<String, Result<Atom>> = SizedCache::with_size(1000);
-        Key = { s.to_string() };
-        fn cpv(s: &str) -> Result<Atom> = {
-            let parsed_cpv = pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))?;
-            parsed_cpv.into_owned(s)
-        }
+    #[cached(
+        type = "SizedCache<String, Result<Atom>>",
+        create = "{ SizedCache::with_size(1000) }",
+        convert = r#"{ s.to_string() }"#
+    )]
+    pub fn cpv(s: &str) -> Result<Atom> {
+        let parsed_cpv = pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))?;
+        parsed_cpv.into_owned(s)
     }
 
-    cached_key! {
-        ATOM_CACHE: SizedCache<(String, &Eapi), Result<Atom>> = SizedCache::with_size(1000);
-        Key = { (s.to_string(), eapi) };
-        fn dep(s: &str, eapi: &'static Eapi) -> Result<Atom> = {
-            let parsed_atom = pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))?;
-            parsed_atom.into_owned(s)
-        }
+    pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> Result<ParsedAtom<'a>> {
+        pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))
+    }
+
+    #[cached(
+        type = "SizedCache<(String, &Eapi), Result<Atom>>",
+        create = "{ SizedCache::with_size(1000) }",
+        convert = r#"{ (s.to_string(), eapi) }"#
+    )]
+    pub fn dep(s: &str, eapi: &'static Eapi) -> Result<Atom> {
+        let atom = dep_str(s, eapi)?;
+        atom.into_owned(s)
     }
 }
 
