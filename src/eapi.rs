@@ -182,6 +182,12 @@ impl IntoEapi for &'static Eapi {
     }
 }
 
+impl IntoEapi for &str {
+    fn into_eapi(self) -> Result<&'static Eapi> {
+        get_eapi(self)
+    }
+}
+
 impl IntoEapi for Option<&str> {
     fn into_eapi(self) -> Result<&'static Eapi> {
         match self {
