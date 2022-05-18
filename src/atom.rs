@@ -78,6 +78,13 @@ pub struct Atom {
 }
 
 impl Atom {
+    /// Verify a string represents a valid atom.
+    pub fn valid<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> Result<()> {
+        parse::dep_str(s.as_ref(), eapi.into_eapi()?)?;
+        Ok(())
+    }
+
+    /// Create a new Atom from a given string.
     pub fn new<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> Result<Self> {
         parse::dep(s.as_ref(), eapi.into_eapi()?)
     }
