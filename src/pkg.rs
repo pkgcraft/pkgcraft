@@ -6,6 +6,17 @@ use crate::{atom, eapi};
 pub mod ebuild;
 pub mod fake;
 
+#[derive(Debug)]
+pub enum Env {
+    P,
+    PN,
+    PV,
+    PR,
+    PVR,
+    PF,
+    CATEGORY,
+}
+
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, PartialEq)]
 pub enum Pkg<'a> {
@@ -16,9 +27,33 @@ pub enum Pkg<'a> {
 pub trait Package: fmt::Debug + fmt::Display {
     type Repo;
 
-    fn atom(&self) -> &atom::Atom;
+    /// Get a package's EAPI.
     fn eapi(&self) -> &eapi::Eapi;
+
+    /// Get a package's repo.
     fn repo(&self) -> Self::Repo;
+
+    /// Get a package's atom.
+    fn atom(&self) -> &atom::Atom;
+
+    /// Get a package's version.
+    fn version(&self) -> &atom::Version {
+        self.atom().version().unwrap()
+    }
+
+    /// Get a package's value for a specified environment variable.
+    fn env(&self, var: Env) -> String {
+        let (a, v) = (self.atom(), self.version());
+        match var {
+            Env::P => format!("{}-{}", a.package(), v.base()),
+            Env::PN => a.package().into(),
+            Env::PV => v.base().into(),
+            Env::PR => format!("r{}", v.revision().unwrap()),
+            Env::PVR => v.as_str().into(),
+            Env::PF => format!("{}-{v}", a.package()),
+            Env::CATEGORY => a.category().into(),
+        }
+    }
 }
 
 impl<'a> Package for Pkg<'a> {

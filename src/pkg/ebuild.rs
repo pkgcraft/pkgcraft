@@ -67,10 +67,6 @@ impl<'a> Pkg<'a> {
         }
         Ok(eapi)
     }
-
-    pub fn env(&self, var: &str) -> Result<String> {
-        self.atom.env(var)
-    }
 }
 
 impl AsRef<Path> for Pkg<'_> {
