@@ -642,5 +642,6 @@ mod tests {
             let pkg = iter.next();
             assert_eq!(pkg.map(|p| format!("{}", p.atom())), Some(cpv.to_string()));
         }
+        assert!(iter.next().is_none());
     }
 }
