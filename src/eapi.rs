@@ -347,7 +347,8 @@ impl fmt::Display for Eapi {
 }
 
 /// Get a EAPI given its identifier.
-pub fn get_eapi(id: &str) -> Result<&'static Eapi> {
+pub fn get_eapi<S: AsRef<str>>(id: S) -> Result<&'static Eapi> {
+    let id = id.as_ref();
     match EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
         None => match VALID_EAPI_RE.is_match(id) {
