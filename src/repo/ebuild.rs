@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::{env, fmt, fs, io};
 
 #[cfg(test)]
-use std::{collections::HashMap, io::Write};
+use std::io::Write;
 
 use ini::Ini;
 use once_cell::sync::Lazy;
@@ -469,11 +469,10 @@ impl TempRepo {
 
     /// Create an ebuild file in the repo.
     #[cfg(test)]
-    pub(crate) fn create_ebuild(
-        &self,
-        cpv: &str,
-        data: Option<HashMap<&str, &str>>,
-    ) -> Result<PathBuf> {
+    pub(crate) fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> Result<PathBuf>
+    where
+        I: IntoIterator<Item = (&'a str, &'a str)>,
+    {
         let cpv = atom::parse::cpv(cpv)?;
         let path = self.tempdir.path().join(format!(
             "{}/{}-{}.ebuild",
@@ -486,19 +485,26 @@ impl TempRepo {
         let mut f = fs::File::create(&path)
             .map_err(|e| Error::IO(format!("failed creating {cpv} ebuild: {e}")))?;
 
-        let data = data.unwrap_or_else(|| HashMap::<&str, &str>::new());
-        let eapi = data
-            .get("eapi")
-            .cloned()
-            .unwrap_or(eapi::EAPI_LATEST.as_str());
-        let slot = data.get("slot").cloned().unwrap_or("0");
+        // ebuild defaults
+        let mut values = indexmap::IndexMap::from([
+            ("eapi", eapi::EAPI_LATEST.as_str()),
+            ("slot", "0"),
+            ("description", "stub package description"),
+            ("homepage", "https://github.com/pkgcraft"),
+        ]);
 
-        let content = indoc::formatdoc! {"
-            EAPI=\"{eapi}\"
-            SLOT=\"{slot}\"
-        "};
-        f.write_all(content.as_bytes())
-            .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
+        // overrides defaults with specified values, removing the defaults for "-"
+        for (var, val) in data.into_iter() {
+            match val {
+                "-" => values.remove(var),
+                _ => values.insert(var, val),
+            };
+        }
+
+        for (var, val) in values {
+            f.write(format!("{}=\"{val}\"\n", var.to_uppercase()).as_bytes())
+                .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
+        }
 
         Ok(path)
     }
@@ -527,6 +533,8 @@ impl fmt::Display for TempRepo {
 #[cfg(test)]
 mod tests {
     use std::fs;
+
+    use rusty_fork::rusty_fork_test;
 
     use crate::macros::assert_err_re;
     use crate::repo::{Contains, Repository};
@@ -566,10 +574,10 @@ mod tests {
         let t = TempRepo::new("test", None::<&str>, None).unwrap();
         assert_eq!(t.repo.len(), 0);
         assert!(t.repo.is_empty());
-        t.create_ebuild("cat/pkg-1", None).unwrap();
+        t.create_ebuild("cat/pkg-1", []).unwrap();
         assert_eq!(t.repo.len(), 1);
         assert!(!t.repo.is_empty());
-        t.create_ebuild("cat2/pkg-1", None).unwrap();
+        t.create_ebuild("cat2/pkg-1", []).unwrap();
         assert_eq!(t.repo.len(), 2);
         assert!(!t.repo.is_empty());
     }
@@ -626,22 +634,25 @@ mod tests {
     fn test_contains_path() {
         let t = TempRepo::new("test", None::<&str>, None).unwrap();
         assert!(!t.repo.contains("cat/pkg"));
-        t.create_ebuild("cat/pkg-1", None).unwrap();
+        t.create_ebuild("cat/pkg-1", []).unwrap();
         assert!(t.repo.contains("cat/pkg"));
         assert!(t.repo.contains("cat/pkg/pkg-1.ebuild"));
         assert!(!t.repo.contains("pkg-1.ebuild"));
     }
 
-    #[test]
-    fn test_iter() {
-        let t = TempRepo::new("test", None::<&str>, None).unwrap();
-        t.create_ebuild("cat2/pkg-1", None).unwrap();
-        t.create_ebuild("cat1/pkg-1", None).unwrap();
-        let mut iter = t.repo.iter();
-        for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
-            let pkg = iter.next();
-            assert_eq!(pkg.map(|p| format!("{}", p.atom())), Some(cpv.to_string()));
+    // TODO: drop this once bash process pool support is added
+    rusty_fork_test! {
+        #[test]
+        fn test_iter() {
+            let t = TempRepo::new("test", None::<&str>, None).unwrap();
+            t.create_ebuild("cat2/pkg-1", []).unwrap();
+            t.create_ebuild("cat1/pkg-1", []).unwrap();
+            let mut iter = t.repo.iter();
+            for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
+                let pkg = iter.next();
+                assert_eq!(pkg.map(|p| format!("{}", p.atom())), Some(cpv.to_string()));
+            }
+            assert!(iter.next().is_none());
         }
-        assert!(iter.next().is_none());
     }
 }
