@@ -5,7 +5,8 @@ use std::{fmt, fs};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::{atom, eapi, pkg, repo, Error, Result};
+use crate::atom::Atom;
+use crate::{eapi, pkg, repo, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
@@ -13,7 +14,7 @@ static EAPI_LINE_RE: Lazy<Regex> =
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     path: PathBuf,
-    atom: &'a atom::Atom,
+    atom: Atom,
     eapi: &'static eapi::Eapi,
     repo: &'a repo::ebuild::Repo,
 }
@@ -27,12 +28,11 @@ impl PartialEq for Pkg<'_> {
 impl Eq for Pkg<'_> {}
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(atom: &'a atom::Atom, repo: &'a repo::ebuild::Repo) -> Result<Self> {
-        let (cat, pkg, ver) = (atom.category(), atom.package(), atom.version().unwrap().as_str());
-        let path = repo.path().join(format!("{cat}/{pkg}/{pkg}-{ver}.ebuild"));
+    pub(crate) fn new(path: &Path, repo: &'a repo::ebuild::Repo) -> Result<Self> {
+        let atom = repo.atom_from_path(path)?;
         let eapi = Pkg::get_eapi(&path)?;
         Ok(Pkg {
-            path,
+            path: path.to_path_buf(),
             atom,
             eapi,
             repo,
@@ -88,8 +88,8 @@ impl fmt::Display for Pkg<'_> {
 impl<'a> pkg::Package for Pkg<'a> {
     type Repo = &'a repo::ebuild::Repo;
 
-    fn atom(&self) -> &atom::Atom {
-        self.atom
+    fn atom(&self) -> &Atom {
+        &self.atom
     }
 
     fn eapi(&self) -> &eapi::Eapi {
@@ -118,8 +118,8 @@ mod tests {
         }
 
         let t = TempRepo::new("test", None::<&str>, None).unwrap();
-        let (atom, path) = t.create_ebuild("cat/pkg-1", None).unwrap();
-        let pkg = Pkg::new(&atom, &t.repo).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", None).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
         assert_path(pkg, &path);
     }
 
@@ -129,15 +129,15 @@ mod tests {
         let repo = &t.repo;
 
         // temp repo ebuild creation defaults to the latest EAPI
-        let (atom, path) = t.create_ebuild("cat/pkg-1", None).unwrap();
-        let pkg = Pkg::new(&atom, &repo).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", None).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.eapi(), &*eapi::EAPI_LATEST);
         assert_eq!(pkg.path(), &path);
         assert!(!pkg.ebuild().is_empty());
 
         let data = HashMap::from([("eapi", "0")]);
-        let (atom, path) = t.create_ebuild("cat/pkg-2", Some(data)).unwrap();
-        let pkg = Pkg::new(&atom, &repo).unwrap();
+        let path = t.create_ebuild("cat/pkg-2", Some(data)).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.eapi(), &*eapi::EAPI0);
         assert_eq!(pkg.path(), &path);
         assert!(!pkg.ebuild().is_empty());

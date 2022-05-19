@@ -161,6 +161,7 @@ impl Repo {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 pub enum PackageIter<'a> {
     Ebuild(ebuild::PkgIter<'a>),
     Fake(fake::PkgIter<'a>),

@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, fmt, fs, io};
@@ -8,15 +9,20 @@ use std::{collections::HashMap, io::Write};
 
 use ini::Ini;
 use once_cell::sync::Lazy;
+use regex::Regex;
 use tempfile::TempDir;
 use tracing::warn;
-use walkdir::DirEntry;
+use walkdir::WalkDir;
 
 use crate::config::Config;
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
+use crate::pkg::Package;
+use crate::repo::Repository;
 use crate::{atom, eapi, pkg, repo, Error, Result};
 
+static EBUILD_RELPATH_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
 const DEFAULT_SECTION: Option<String> = None;
 static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ["eclass", "profiles", "metadata", "licenses"]
@@ -110,7 +116,6 @@ pub struct Repo {
     id: String,
     pub(super) path: PathBuf,
     pub(super) config: Metadata,
-    pkgs: repo::PkgCache,
 }
 
 impl Repo {
@@ -125,7 +130,6 @@ impl Repo {
             id: id.as_ref().to_string(),
             path: PathBuf::from(path.as_ref()),
             config,
-            pkgs: repo::PkgCache::default(),
         })
     }
 
@@ -192,7 +196,8 @@ impl Repo {
 
     pub fn category_dirs(&self) -> Vec<String> {
         // filter out non-category dirs
-        let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
+        let filter =
+            |e: &walkdir::DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
         let cats = sorted_dir_list(&self.path).into_iter().filter_entry(filter);
         let mut v = vec![];
         for entry in cats {
@@ -219,6 +224,25 @@ impl Repo {
         &self.path
     }
 
+    /// Convert an ebuild path inside the repo into an Atom.
+    pub(crate) fn atom_from_path(&self, path: &Path) -> Result<atom::Atom> {
+        if let Ok(relpath) = path.strip_prefix(&self.path) {
+            if let Some(p) = relpath.to_str() {
+                if let Some(m) = EBUILD_RELPATH_RE.captures(p) {
+                    let cat = m.name("cat").unwrap().as_str();
+                    let pkg = m.name("pkg").unwrap().as_str();
+                    let p = m.name("p").unwrap().as_str();
+                    if let Ok(a) = atom::parse::cpv(&format!("{cat}/{p}")) {
+                        if a.package() == pkg {
+                            return Ok(a);
+                        }
+                    }
+                }
+            }
+        }
+        Err(Error::InvalidValue(format!("invalid ebuild path: {path:?}")))
+    }
+
     pub fn iter(&self) -> PkgIter {
         self.into_iter()
     }
@@ -234,7 +258,7 @@ impl fmt::Display for Repo {
     }
 }
 
-fn is_fake_category(entry: &DirEntry) -> bool {
+fn is_fake_category(entry: &walkdir::DirEntry) -> bool {
     entry
         .file_name()
         .to_str()
@@ -242,7 +266,7 @@ fn is_fake_category(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-impl repo::Repository for Repo {
+impl Repository for Repo {
     fn categories(&self) -> Vec<String> {
         // TODO: implement reading profiles/categories, falling back to category_dirs()
         self.category_dirs()
@@ -250,7 +274,7 @@ impl repo::Repository for Repo {
 
     fn packages(&self, cat: &str) -> Vec<String> {
         let path = self.path.join(cat.strip_prefix('/').unwrap_or(cat));
-        let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
+        let filter = |e: &walkdir::DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
         let pkgs = sorted_dir_list(&path).into_iter().filter_entry(filter);
         let mut v = vec![];
         for entry in pkgs {
@@ -279,8 +303,9 @@ impl repo::Repository for Repo {
             cat.strip_prefix('/').unwrap_or(cat),
             pkg.strip_prefix('/').unwrap_or(pkg)
         );
-        let filter = |e: &DirEntry| -> bool { is_file(e) && !is_hidden(e) && has_ext(e, "ebuild") };
-        let ebuilds = sorted_dir_list(&path).into_iter().filter_entry(filter);
+        let ebuilds = sorted_dir_list(&path)
+            .into_iter()
+            .filter_entry(ebuild_filter);
         let mut v = vec![];
         for entry in ebuilds {
             let entry = match entry {
@@ -312,11 +337,11 @@ impl repo::Repository for Repo {
     }
 
     fn len(&self) -> usize {
-        self.pkgs.len()
+        self.iter().count()
     }
 
     fn is_empty(&self) -> bool {
-        self.pkgs.is_empty()
+        self.iter().count() == 0
     }
 }
 
@@ -337,14 +362,18 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
 
 impl repo::Contains<atom::Atom> for Repo {
     fn contains(&self, atom: atom::Atom) -> bool {
-        self.pkgs.atoms.contains(&atom)
+        self.iter().any(|p| p.atom() == &atom)
     }
 }
 
 impl repo::Contains<&atom::Atom> for Repo {
     fn contains(&self, atom: &atom::Atom) -> bool {
-        self.pkgs.atoms.contains(atom)
+        self.iter().any(|p| p.atom() == atom)
     }
+}
+
+fn ebuild_filter(e: &walkdir::DirEntry) -> bool {
+    is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
 }
 
 impl<'a> IntoIterator for &'a Repo {
@@ -352,15 +381,27 @@ impl<'a> IntoIterator for &'a Repo {
     type IntoIter = PkgIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
+        #[allow(clippy::needless_collect)]
+        let ebuilds: Vec<WalkDir> = self
+            .categories()
+            .iter()
+            .map(|d| {
+                WalkDir::new(self.path().join(d))
+                    .sort_by_file_name()
+                    .min_depth(2)
+                    .max_depth(2)
+            })
+            .collect();
+
         PkgIter {
-            iter: self.pkgs.into_iter(),
+            iter: ebuilds.into_iter().flatten(),
             repo: self,
         }
     }
 }
 
 pub struct PkgIter<'a> {
-    iter: repo::PkgCacheIter<'a>,
+    iter: Flatten<std::vec::IntoIter<WalkDir>>,
     repo: &'a Repo,
 }
 
@@ -370,11 +411,17 @@ impl<'a> Iterator for PkgIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.iter.next() {
+                Some(Ok(e)) => {
+                    if ebuild_filter(&e) {
+                        let path = e.path();
+                        match pkg::ebuild::Pkg::new(path, self.repo) {
+                            Ok(p) => return Some(p),
+                            Err(e) => warn!("{}: invalid package: {path:?}: {e}", self.repo.id),
+                        }
+                    }
+                }
+                Some(Err(e)) => warn!("{}: failed walking repo: {e}", self.repo.id),
                 None => return None,
-                Some(a) => match pkg::ebuild::Pkg::new(a, self.repo) {
-                    Ok(p) => return Some(p),
-                    Err(e) => warn!("{}: invalid package: {a}: {e}", self.repo.id),
-                },
             }
         }
     }
@@ -423,7 +470,7 @@ impl TempRepo {
         &self,
         cpv: &str,
         data: Option<HashMap<&str, &str>>,
-    ) -> Result<(atom::Atom, PathBuf)> {
+    ) -> Result<PathBuf> {
         let cpv = atom::parse::cpv(cpv)?;
         let path = self.tempdir.path().join(format!(
             "{}/{}-{}.ebuild",
@@ -450,7 +497,7 @@ impl TempRepo {
         f.write_all(content.as_bytes())
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
 
-        Ok((cpv, path))
+        Ok(path)
     }
 
     /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is
@@ -512,6 +559,19 @@ mod tests {
     }
 
     #[test]
+    fn test_len() {
+        let t = TempRepo::new("test", None::<&str>, None).unwrap();
+        assert_eq!(t.repo.len(), 0);
+        assert!(t.repo.is_empty());
+        t.create_ebuild("cat/pkg-1", None).unwrap();
+        assert_eq!(t.repo.len(), 1);
+        assert!(!t.repo.is_empty());
+        t.create_ebuild("cat2/pkg-1", None).unwrap();
+        assert_eq!(t.repo.len(), 2);
+        assert!(!t.repo.is_empty());
+    }
+
+    #[test]
     fn test_categories() {
         let t = TempRepo::new("test", None::<&str>, None).unwrap();
         assert_eq!(t.repo.categories(), Vec::<String>::new());
@@ -567,5 +627,17 @@ mod tests {
         assert!(t.repo.contains("cat/pkg"));
         assert!(t.repo.contains("cat/pkg/pkg-1.ebuild"));
         assert!(!t.repo.contains("pkg-1.ebuild"));
+    }
+
+    #[test]
+    fn test_iter() {
+        let t = TempRepo::new("test", None::<&str>, None).unwrap();
+        t.create_ebuild("cat2/pkg-1", None).unwrap();
+        t.create_ebuild("cat1/pkg-1", None).unwrap();
+        let mut iter = t.repo.iter();
+        for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
+            let pkg = iter.next();
+            assert_eq!(pkg.map(|p| format!("{}", p.atom())), Some(cpv.to_string()));
+        }
     }
 }
