@@ -41,9 +41,12 @@ impl FromStr for Revision {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let int: u64 = s
-            .parse()
-            .map_err(|e| Error::InvalidValue(format!("invalid revision: {e}: {s}")))?;
+        let int = match s {
+            "" => 0,
+            s => s
+                .parse()
+                .map_err(|e| Error::InvalidValue(format!("invalid revision: {e}: {s}")))?,
+        };
         Ok(Revision {
             value: Some(s.to_string()),
             int,
@@ -60,7 +63,7 @@ impl Revision {
     }
 
     pub fn as_str(&self) -> &str {
-        self.value.as_deref().unwrap_or("")
+        self.value.as_deref().unwrap_or("0")
     }
 }
 
@@ -215,8 +218,8 @@ impl Version {
         &self.full
     }
 
-    pub fn revision(&self) -> Option<&Revision> {
-        self.revision.value.as_ref().map(|_| &self.revision)
+    pub fn revision(&self) -> &Revision {
+        &self.revision
     }
 
     pub(crate) fn op(&self) -> Option<Operator> {

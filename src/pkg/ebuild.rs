@@ -104,7 +104,7 @@ mod tests {
 
     use super::*;
     use crate::eapi;
-    use crate::pkg::Package;
+    use crate::pkg::{Env, Package};
     use crate::repo::ebuild::TempRepo;
 
     #[test]
@@ -137,5 +137,43 @@ mod tests {
         assert_eq!(pkg.eapi(), &*eapi::EAPI0);
         assert_eq!(pkg.path(), &path);
         assert!(!pkg.ebuild().is_empty());
+    }
+
+    #[test]
+    fn test_pkg_env() {
+        let t = TempRepo::new("test", None::<&str>, None).unwrap();
+
+        // no revision
+        let path = t.create_ebuild("cat/pkg-1", None).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.env(Env::P), "pkg-1");
+        assert_eq!(pkg.env(Env::PN), "pkg");
+        assert_eq!(pkg.env(Env::PV), "1");
+        assert_eq!(pkg.env(Env::PR), "r0");
+        assert_eq!(pkg.env(Env::PVR), "1");
+        assert_eq!(pkg.env(Env::PF), "pkg-1");
+        assert_eq!(pkg.env(Env::CATEGORY), "cat");
+
+        // revisioned
+        let path = t.create_ebuild("cat/pkg-1-r2", None).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.env(Env::P), "pkg-1");
+        assert_eq!(pkg.env(Env::PN), "pkg");
+        assert_eq!(pkg.env(Env::PV), "1");
+        assert_eq!(pkg.env(Env::PR), "r2");
+        assert_eq!(pkg.env(Env::PVR), "1-r2");
+        assert_eq!(pkg.env(Env::PF), "pkg-1-r2");
+        assert_eq!(pkg.env(Env::CATEGORY), "cat");
+
+        // explicit r0 revision
+        let path = t.create_ebuild("cat/pkg-2-r0", None).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.env(Env::P), "pkg-2");
+        assert_eq!(pkg.env(Env::PN), "pkg");
+        assert_eq!(pkg.env(Env::PV), "2");
+        assert_eq!(pkg.env(Env::PR), "r0");
+        assert_eq!(pkg.env(Env::PVR), "2");
+        assert_eq!(pkg.env(Env::PF), "pkg-2");
+        assert_eq!(pkg.env(Env::CATEGORY), "cat");
     }
 }

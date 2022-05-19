@@ -115,7 +115,7 @@ impl Atom {
     }
 
     pub fn revision(&self) -> Option<&version::Revision> {
-        self.version.as_ref().and_then(|v| v.revision())
+        self.version.as_ref().map(|v| v.revision())
     }
 
     pub fn key(&self) -> String {
@@ -298,14 +298,14 @@ mod tests {
         let mut atom: Atom;
         for (s, revision) in [
             ("cat/pkg", None),
-            ("<cat/pkg-4", None),
+            ("<cat/pkg-4", Some("0")),
             ("<=cat/pkg-4-r1", Some("1")),
             (">=cat/pkg-r1-2-r3", Some("3")),
             (">cat/pkg-4-r1:0=", Some("1")),
         ] {
             atom = Atom::from_str(&s).unwrap();
             let revision = revision.map(|s| version::Revision::from_str(s).unwrap());
-            assert_eq!(atom.revision(), revision.as_ref());
+            assert_eq!(atom.revision(), revision.as_ref(), "{s} failed");
         }
     }
 
