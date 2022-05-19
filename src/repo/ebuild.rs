@@ -21,7 +21,7 @@ use crate::pkg::Package;
 use crate::repo::Repository;
 use crate::{atom, eapi, pkg, repo, Error, Result};
 
-static EBUILD_RELPATH_RE: Lazy<Regex> =
+static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
 const DEFAULT_SECTION: Option<String> = None;
 static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
@@ -226,19 +226,23 @@ impl Repo {
 
     /// Convert an ebuild path inside the repo into an Atom.
     pub(crate) fn atom_from_path(&self, path: &Path) -> Result<atom::Atom> {
-        let err = || -> Error { Error::InvalidValue(format!("invalid ebuild path: {path:?}")) };
+        let err = |s: &str| -> Error {
+            Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
+        };
         path.strip_prefix(&self.path)
-            .map_err(|_| err())
-            .and_then(|p| p.to_str().ok_or_else(err))
-            .and_then(|s| EBUILD_RELPATH_RE.captures(s).ok_or_else(err))
+            .map_err(|_| err("missing repo prefix"))
+            .and_then(|p| p.to_str().ok_or_else(|| err("non-unicode")))
+            .and_then(|s| EBUILD_RE.captures(s).ok_or_else(|| err("unmatched file")))
             .and_then(|m| {
                 let cat = m.name("cat").unwrap().as_str();
                 let pkg = m.name("pkg").unwrap().as_str();
                 let p = m.name("p").unwrap().as_str();
-                atom::parse::cpv(&format!("{cat}/{p}")).and_then(|a| match a.package() == pkg {
-                    true => Ok(a),
-                    false => Err(err()),
-                })
+                atom::parse::cpv(&format!("{cat}/{p}"))
+                    .map_err(|_| err("invalid CPV"))
+                    .and_then(|a| match a.package() == pkg {
+                        true => Ok(a),
+                        false => Err(err("mismatched package dir")),
+                    })
             })
     }
 
