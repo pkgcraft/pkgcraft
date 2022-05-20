@@ -427,7 +427,7 @@ mod tests {
 
     use super::*;
     use crate::macros::*;
-    use crate::test::VER_CMP_DATA;
+    use crate::test::TestData;
     use crate::Error;
 
     #[test]
@@ -470,11 +470,10 @@ mod tests {
                 .cloned()
                 .collect();
 
-        for expr in VER_CMP_DATA {
-            let v: Vec<&str> = expr.split(' ').collect();
-            let v1 = Version::from_str(v[0]).unwrap();
-            let v2 = Version::from_str(v[2]).unwrap();
-            let op = v[1];
+        let data = TestData::load().unwrap();
+        for (expr, (v1, op, v2)) in data.ver_cmp() {
+            let v1 = Version::from_str(v1).unwrap();
+            let v2 = Version::from_str(v2).unwrap();
             match op {
                 "!=" => {
                     assert_ne!(v1, v2, "failed comparing {expr}");

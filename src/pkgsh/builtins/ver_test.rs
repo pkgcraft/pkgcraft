@@ -56,7 +56,7 @@ mod tests {
     use super::super::assert_invalid_args;
     use super::run as ver_test;
     use crate::macros::assert_err_re;
-    use crate::test::VER_CMP_DATA;
+    use crate::test::TestData;
 
     use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
@@ -124,10 +124,10 @@ mod tests {
 
             let mut pvr = Variable::new("PVR");
 
-            for expr in VER_CMP_DATA {
-                let v: Vec<&str> = expr.split(' ').collect();
-                let (v1, op, v2) = (v[0], op_map[v[1]], v[2]);
-                let inverted_op = op_map[inverted_op_map[v[1]]];
+            let data = TestData::load().unwrap();
+            for (expr, (v1, op, v2)) in data.ver_cmp() {
+                let inverted_op = op_map[inverted_op_map[op]];
+                let op = op_map[op];
                 let r = ver_test(&[v1, op, v2]);
                 assert_eq!(r.unwrap(), ExecStatus::Success, "failed comparing: {expr}");
                 let r = ver_test(&[v1, inverted_op, v2]);
