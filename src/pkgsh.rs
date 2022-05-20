@@ -8,7 +8,7 @@ use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, source, Error, Result};
 
-use crate::eapi::Eapi;
+use crate::eapi::{Eapi, Key};
 
 pub mod builtins;
 mod install;
@@ -226,18 +226,18 @@ impl BuildData {
         install::Install::new(self)
     }
 
-    fn get_deque(&mut self, name: &str) -> &mut VecDeque<String> {
-        match name {
-            "IUSE" => &mut self.iuse,
-            "REQUIRED_USE" => &mut self.required_use,
-            "DEPEND" => &mut self.depend,
-            "RDEPEND" => &mut self.rdepend,
-            "PDEPEND" => &mut self.pdepend,
-            "BDEPEND" => &mut self.bdepend,
-            "IDEPEND" => &mut self.idepend,
-            "PROPERTIES" => &mut self.properties,
-            "RESTRICT" => &mut self.restrict,
-            s => panic!("unknown field name: {s}"),
+    fn get_deque(&mut self, key: &Key) -> &mut VecDeque<String> {
+        match key {
+            Key::Iuse => &mut self.iuse,
+            Key::RequiredUse => &mut self.required_use,
+            Key::Depend => &mut self.depend,
+            Key::Rdepend => &mut self.rdepend,
+            Key::Pdepend => &mut self.pdepend,
+            Key::Bdepend => &mut self.bdepend,
+            Key::Idepend => &mut self.idepend,
+            Key::Properties => &mut self.properties,
+            Key::Restrict => &mut self.restrict,
+            _ => panic!("unknown field name: {key}"),
         }
     }
 }

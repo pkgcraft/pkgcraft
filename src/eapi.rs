@@ -131,16 +131,78 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
 type EapiEconfOptions = HashMap<&'static str, (IndexSet<String>, Option<String>)>;
 
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum Key {
+    Iuse,
+    RequiredUse,
+    Depend,
+    Rdepend,
+    Pdepend,
+    Bdepend,
+    Idepend,
+    Properties,
+    Restrict,
+    Description,
+    Slot,
+    DefinedPhases,
+    Eapi,
+    Homepage,
+    Inherit,
+    Inherited,
+    Keywords,
+    License,
+    SrcUri,
+}
+
+impl From<&Key> for &str {
+    fn from(key: &Key) -> &'static str {
+        match key {
+            Key::Iuse => "IUSE",
+            Key::RequiredUse => "REQUIRED_USE",
+            Key::Depend => "DEPEND",
+            Key::Rdepend => "RDEPEND",
+            Key::Pdepend => "PDEPEND",
+            Key::Bdepend => "BDEPEND",
+            Key::Idepend => "IDEPEND",
+            Key::Properties => "PROPERTIES",
+            Key::Restrict => "RESTRICT",
+            Key::Description => "DESCRIPTION",
+            Key::Slot => "SLOT",
+            Key::DefinedPhases => "DEFINED_PHASES",
+            Key::Eapi => "EAPI",
+            Key::Homepage => "HOMEPAGE",
+            Key::Inherit => "INHERIT",
+            Key::Inherited => "INHERITED",
+            Key::Keywords => "KEYWORDS",
+            Key::License => "LICENSE",
+            Key::SrcUri => "SRC_URI",
+        }
+    }
+}
+
+impl fmt::Display for Key {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s: &str = self.into();
+        write!(f, "{s}")
+    }
+}
+
+impl AsRef<str> for Key {
+    fn as_ref(&self) -> &str {
+        self.into()
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
     phases: HashMap<&'static str, PhaseFn>,
-    dep_keys: HashSet<&'static str>,
-    incremental_keys: HashSet<&'static str>,
-    mandatory_keys: HashSet<&'static str>,
-    metadata_keys: HashSet<&'static str>,
+    dep_keys: HashSet<Key>,
+    incremental_keys: HashSet<Key>,
+    mandatory_keys: HashSet<Key>,
+    metadata_keys: HashSet<Key>,
     econf_options: EapiEconfOptions,
     archives: HashSet<&'static str>,
     archives_regex: OnceCell<Regex>,
@@ -293,22 +355,22 @@ impl Eapi {
     }
 
     /// Metadata variables for dependencies.
-    pub fn dep_keys(&self) -> &HashSet<&str> {
+    pub fn dep_keys(&self) -> &HashSet<Key> {
         &self.dep_keys
     }
 
     /// Metadata variables that are incrementally handled.
-    pub(crate) fn incremental_keys(&self) -> &HashSet<&str> {
+    pub(crate) fn incremental_keys(&self) -> &HashSet<Key> {
         &self.incremental_keys
     }
 
     /// Metadata variables that must exist.
-    pub(crate) fn mandatory_keys(&self) -> &HashSet<&str> {
+    pub(crate) fn mandatory_keys(&self) -> &HashSet<Key> {
         &self.mandatory_keys
     }
 
     /// Metadata variables that may exist.
-    pub fn metadata_keys(&self) -> &HashSet<&str> {
+    pub fn metadata_keys(&self) -> &HashSet<Key> {
         &self.metadata_keys
     }
 
@@ -330,24 +392,24 @@ impl Eapi {
         self
     }
 
-    fn update_dep_keys(mut self, updates: &[&'static str]) -> Self {
+    fn update_dep_keys(mut self, updates: &[Key]) -> Self {
         self.dep_keys.extend(updates);
         self.metadata_keys.extend(updates);
         self
     }
 
-    fn update_incremental_keys(mut self, updates: &[&'static str]) -> Self {
+    fn update_incremental_keys(mut self, updates: &[Key]) -> Self {
         self.incremental_keys.extend(updates);
         self
     }
 
-    fn update_mandatory_keys(mut self, updates: &[&'static str]) -> Self {
+    fn update_mandatory_keys(mut self, updates: &[Key]) -> Self {
         self.mandatory_keys.extend(updates);
         self.metadata_keys.extend(updates);
         self
     }
 
-    fn update_metadata_keys(mut self, updates: &[&'static str]) -> Self {
+    fn update_metadata_keys(mut self, updates: &[Key]) -> Self {
         self.metadata_keys.extend(updates);
         self
     }
@@ -410,21 +472,21 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             ("src_test", eapi0::src_test as PhaseFn),
             ("src_install", phase_stub as PhaseFn),
         ])
-        .update_dep_keys(&["DEPEND", "RDEPEND", "PDEPEND"])
-        .update_incremental_keys(&["IUSE", "DEPEND", "RDEPEND", "PDEPEND"])
-        .update_mandatory_keys(&["DESCRIPTION", "SLOT"])
+        .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
+        .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
+        .update_mandatory_keys(&[Key::Description, Key::Slot])
         .update_metadata_keys(&[
-            "DEFINED_PHASES",
-            "EAPI",
-            "HOMEPAGE",
-            "INHERIT",
-            "INHERITED",
-            "IUSE",
-            "KEYWORDS",
-            "LICENSE",
-            "PROPERTIES",
-            "RESTRICT",
-            "SRC_URI",
+            Key::DefinedPhases,
+            Key::Eapi,
+            Key::Homepage,
+            Key::Inherit,
+            Key::Inherited,
+            Key::Iuse,
+            Key::Keywords,
+            Key::License,
+            Key::Properties,
+            Key::Restrict,
+            Key::SrcUri,
         ])
         .update_archives(
             &[
@@ -474,8 +536,8 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             ("pkg_pretend", phase_stub as PhaseFn),
             ("src_install", eapi4::src_install as PhaseFn),
         ])
-        .update_incremental_keys(&["REQUIRED_USE"])
-        .update_metadata_keys(&["REQUIRED_USE"])
+        .update_incremental_keys(&[Key::RequiredUse])
+        .update_metadata_keys(&[Key::RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
 });
 
@@ -514,8 +576,8 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
         .update_options(&[("export_desttree", false), ("export_insdesttree", false)])
-        .update_dep_keys(&["BDEPEND"])
-        .update_incremental_keys(&["BDEPEND"])
+        .update_dep_keys(&[Key::Bdepend])
+        .update_incremental_keys(&[Key::Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
 });
 
@@ -527,8 +589,8 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
             ("src_uri_unrestrict", true),
             ("usev_two_args", true),
         ])
-        .update_dep_keys(&["IDEPEND"])
-        .update_incremental_keys(&["IDEPEND", "PROPERTIES", "RESTRICT"])
+        .update_dep_keys(&[Key::Idepend])
+        .update_incremental_keys(&[Key::Idepend, Key::Properties, Key::Restrict])
         .update_econf(&[
             ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
             ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
