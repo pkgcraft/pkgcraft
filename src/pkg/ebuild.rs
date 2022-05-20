@@ -23,7 +23,7 @@ struct Metadata {
 impl Metadata {
     fn new(path: &Path, eapi: &'static eapi::Eapi) -> Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
-        source::file(path).unwrap();
+        source::file(path)?;
         let mut data = HashMap::new();
 
         // verify sourced EAPI matches parsed EAPI
@@ -50,15 +50,18 @@ impl Metadata {
     }
 
     fn description(&self) -> &str {
+        // mandatory key guaranteed to exist
         self.data.get("DESCRIPTION").unwrap()
     }
 
     fn slot(&self) -> &str {
+        // mandatory key guaranteed to exist
         let val = self.data.get("SLOT").unwrap();
         val.split_once('/').map_or(val, |x| x.0)
     }
 
     fn subslot(&self) -> &str {
+        // mandatory key guaranteed to exist
         let val = self.data.get("SLOT").unwrap();
         val.split_once('/').map_or(val, |x| x.1)
     }
