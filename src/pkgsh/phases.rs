@@ -12,8 +12,9 @@ pub(crate) mod eapi4;
 pub(crate) mod eapi6;
 
 pub(crate) type PhaseFn = fn() -> Result<ExecStatus>;
+pub(crate) static PHASE_STUB: PhaseFn = phase_stub;
 
-pub(crate) fn phase_stub() -> Result<ExecStatus> {
+fn phase_stub() -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 

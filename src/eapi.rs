@@ -459,18 +459,18 @@ pub fn get_eapi<S: AsRef<str>>(id: S) -> Result<&'static Eapi> {
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("0", None)
         .update_phases(&[
-            ("pkg_setup", phase_stub as PhaseFn),
-            ("pkg_config", phase_stub as PhaseFn),
-            ("pkg_info", phase_stub as PhaseFn),
-            ("pkg_nofetch", phase_stub as PhaseFn),
-            ("pkg_prerm", phase_stub as PhaseFn),
-            ("pkg_postrm", phase_stub as PhaseFn),
-            ("pkg_preinst", phase_stub as PhaseFn),
-            ("pkg_postinst", phase_stub as PhaseFn),
-            ("src_unpack", eapi0::src_unpack as PhaseFn),
-            ("src_compile", eapi0::src_compile as PhaseFn),
-            ("src_test", eapi0::src_test as PhaseFn),
-            ("src_install", phase_stub as PhaseFn),
+            ("pkg_setup", PHASE_STUB),
+            ("pkg_config", PHASE_STUB),
+            ("pkg_info", PHASE_STUB),
+            ("pkg_nofetch", PHASE_STUB),
+            ("pkg_prerm", PHASE_STUB),
+            ("pkg_postrm", PHASE_STUB),
+            ("pkg_preinst", PHASE_STUB),
+            ("pkg_postinst", PHASE_STUB),
+            ("src_unpack", eapi0::src_unpack),
+            ("src_compile", eapi0::src_compile),
+            ("src_test", eapi0::src_test),
+            ("src_install", PHASE_STUB),
         ])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
@@ -501,7 +501,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("1", Some(&EAPI0))
         .update_options(&[("slot_deps", true)])
-        .update_phases(&[("src_compile", eapi1::src_compile as PhaseFn)])
+        .update_phases(&[("src_compile", eapi1::src_compile)])
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
@@ -513,9 +513,9 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
             ("src_uri_renames", true),
         ])
         .update_phases(&[
-            ("src_prepare", phase_stub as PhaseFn),
-            ("src_compile", eapi2::src_compile as PhaseFn),
-            ("src_configure", eapi2::src_configure as PhaseFn),
+            ("src_prepare", PHASE_STUB),
+            ("src_compile", eapi2::src_compile),
+            ("src_configure", eapi2::src_configure),
         ])
 });
 
@@ -532,10 +532,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             ("use_conf_arg", true),
             ("use_dep_defaults", true),
         ])
-        .update_phases(&[
-            ("pkg_pretend", phase_stub as PhaseFn),
-            ("src_install", eapi4::src_install as PhaseFn),
-        ])
+        .update_phases(&[("pkg_pretend", PHASE_STUB), ("src_install", eapi4::src_install)])
         .update_incremental_keys(&[Key::RequiredUse])
         .update_metadata_keys(&[Key::RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
@@ -562,10 +559,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             ("unpack_extended_path", true),
             ("unpack_case_insensitive", true),
         ])
-        .update_phases(&[
-            ("src_prepare", eapi6::src_prepare as PhaseFn),
-            ("src_install", eapi6::src_install as PhaseFn),
-        ])
+        .update_phases(&[("src_prepare", eapi6::src_prepare), ("src_install", eapi6::src_install)])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
