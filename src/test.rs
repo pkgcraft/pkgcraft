@@ -15,11 +15,12 @@ static TEST_DATA_DIR: Lazy<PathBuf> =
 pub(crate) struct TestData {
     ver_cmp: Vec<String>,
     ver_sort: Vec<(Vec<String>, Vec<String>)>,
+    atom_sort: Vec<(Vec<String>, Vec<String>)>,
 }
 
 impl TestData {
     pub(crate) fn load() -> Result<Self> {
-        let path = TEST_DATA_DIR.join("cmp-data.toml");
+        let path = TEST_DATA_DIR.join("data.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading test data: {path:?}: {e}")))?;
         toml::from_str(&data)
@@ -35,6 +36,12 @@ impl TestData {
     pub(crate) fn ver_sort(&self) -> SortIter {
         SortIter {
             iter: self.ver_sort.iter(),
+        }
+    }
+
+    pub(crate) fn atom_sort(&self) -> SortIter {
+        SortIter {
+            iter: self.atom_sort.iter(),
         }
     }
 }

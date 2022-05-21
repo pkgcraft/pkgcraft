@@ -503,12 +503,12 @@ mod tests {
     fn test_sorting() {
         let data = TestData::load().unwrap();
         for (unsorted, expected) in data.ver_sort() {
-            let mut versions: Vec<Version> = unsorted
+            let mut versions: Vec<_> = unsorted
                 .iter()
                 .map(|s| Version::from_str(s).unwrap())
                 .collect();
             versions.sort();
-            let sorted: Vec<&str> = versions.iter().map(|v| v.as_str()).collect();
+            let sorted: Vec<_> = versions.iter().map(|x| format!("{x}")).collect();
             assert_eq!(sorted, expected);
         }
     }
