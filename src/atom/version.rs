@@ -501,28 +501,15 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        for (unsorted, expected) in [
-            // all equal versions shouldn't be sorted
-            ("0 00 0-r0 0-r00", "0 00 0-r0 0-r00"),
-            ("1.0.2 1.0.2-r0 1.000.2", "1.0.2 1.0.2-r0 1.000.2"),
-            // simple versions
-            ("3 2 1 0", "0 1 2 3"),
-            ("1.100 1.10 1.1", "1.1 1.10 1.100"),
-            // letter suffixes
-            ("1z 1y 1b 1a", "1a 1b 1y 1z"),
-            // release suffixes
-            ("1_p 1_rc 1_pre 1_beta 1_alpha", "1_alpha 1_beta 1_pre 1_rc 1_p"),
-            ("1_p2 1_p1 1_p0", "1_p0 1_p1 1_p2"),
-            // revisions
-            ("1-r2 1-r1 1-r0", "1-r0 1-r1 1-r2"),
-        ] {
+        let data = TestData::load().unwrap();
+        for (unsorted, expected) in data.ver_sort() {
             let mut versions: Vec<Version> = unsorted
-                .split(' ')
+                .iter()
                 .map(|s| Version::from_str(s).unwrap())
                 .collect();
             versions.sort();
-            let sorted: Vec<String> = versions.iter().map(|v| format!("{v}")).collect();
-            assert_eq!(sorted.join(" "), expected);
+            let sorted: Vec<&str> = versions.iter().map(|v| v.as_str()).collect();
+            assert_eq!(sorted, expected);
         }
     }
 }

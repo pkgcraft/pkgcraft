@@ -13,7 +13,8 @@ static TEST_DATA_DIR: Lazy<PathBuf> =
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TestData {
-    pub(crate) ver_cmp: Vec<String>,
+    ver_cmp: Vec<String>,
+    ver_sort: Vec<(Vec<String>, Vec<String>)>,
 }
 
 impl TestData {
@@ -30,6 +31,12 @@ impl TestData {
             iter: self.ver_cmp.iter(),
         }
     }
+
+    pub(crate) fn ver_sort(&self) -> SortIter {
+        SortIter {
+            iter: self.ver_sort.iter(),
+        }
+    }
 }
 
 pub(crate) struct CmpIter<'a> {
@@ -37,6 +44,7 @@ pub(crate) struct CmpIter<'a> {
 }
 
 impl<'a> Iterator for CmpIter<'a> {
+    // format: (string expression, (lhs, op, rhs))
     type Item = (&'a str, (&'a str, &'a str, &'a str));
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -44,5 +52,23 @@ impl<'a> Iterator for CmpIter<'a> {
         self.iter
             .next()
             .map(|s| (s.as_str(), s.split(' ').collect_tuple().unwrap()))
+    }
+}
+
+pub(crate) struct SortIter<'a> {
+    // format: (unsorted, sorted)
+    iter: std::slice::Iter<'a, (Vec<String>, Vec<String>)>,
+}
+
+impl<'a> Iterator for SortIter<'a> {
+    type Item = (Vec<&'a str>, Vec<&'a str>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // forcibly panic for wrong data format
+        self.iter.next().map(|(unsorted, expected)| {
+            let unsorted: Vec<_> = unsorted.iter().map(|s| s.as_str()).collect();
+            let expected: Vec<_> = expected.iter().map(|s| s.as_str()).collect();
+            (unsorted, expected)
+        })
     }
 }
