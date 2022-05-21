@@ -71,7 +71,6 @@ impl<'a> Iterator for SortIter<'a> {
     type Item = (Vec<&'a str>, Vec<&'a str>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        // forcibly panic for wrong data format
         self.iter.next().map(|(unsorted, expected)| {
             let unsorted: Vec<_> = unsorted.iter().map(|s| s.as_str()).collect();
             let expected: Vec<_> = expected.iter().map(|s| s.as_str()).collect();
