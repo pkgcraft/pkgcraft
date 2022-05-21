@@ -48,7 +48,7 @@ pub trait Package: fmt::Debug + fmt::Display {
             Env::P => format!("{}-{}", a.package(), v.base()),
             Env::PN => a.package().into(),
             Env::PV => v.base().into(),
-            Env::PR => format!("r{}", v.revision().as_str()),
+            Env::PR => format!("r{}", v.revision()),
             Env::PVR => match v.revision() == "0" {
                 true => v.base().into(),
                 false => v.into(),
