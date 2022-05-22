@@ -4,6 +4,7 @@ use std::io;
 use std::path::Path;
 
 use indexmap::IndexSet;
+use itertools::Itertools;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, source, Error, Result};
@@ -327,13 +328,15 @@ impl<'a> PkgShell<'a> {
             // prepend metadata keys that incrementally accumulate to eclass values
             let mut d = d.borrow_mut();
             for var in eapi.incremental_keys() {
+                let deque = d.get_deque(var);
                 if let Ok(data) = string_vec(var) {
-                    let deque = d.get_deque(var);
                     // TODO: extend_left() should be implemented upstream for VecDeque
                     for item in data.into_iter().rev() {
                         deque.push_front(item);
                     }
                 }
+                // export the incrementally accumulated value
+                bind(var, deque.iter().join(" "), None, None)?;
             }
             Ok(())
         })
