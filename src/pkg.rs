@@ -18,7 +18,7 @@ pub enum Env {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Pkg<'a> {
     Ebuild(ebuild::Pkg<'a>),
     Fake(fake::Pkg<'a>),

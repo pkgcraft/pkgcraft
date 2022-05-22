@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::io;
 use std::path::Path;
-use std::{io, str};
 
 use indexmap::IndexSet;
 use scallop::builtins::{ExecStatus, ScopedOptions};
@@ -12,7 +12,7 @@ use crate::eapi::{Eapi, Key};
 
 pub mod builtins;
 mod install;
-pub(crate) mod phases;
+pub(crate) mod phase;
 #[cfg(test)]
 pub(crate) mod test;
 pub(crate) mod unescape;
@@ -166,8 +166,7 @@ pub struct BuildData {
     pub distfiles: Vec<String>,
     pub user_patches: Vec<String>,
 
-    pub phase: String,
-    pub phase_func: String,
+    pub phase: Option<phase::Phase>,
     pub user_patches_applied: bool,
 
     pub desttree: String,
@@ -257,17 +256,20 @@ impl<'a> PkgShell<'a> {
         PkgShell { sh }
     }
 
-    pub fn run_phase<S: AsRef<str>>(&self, phase: S) -> Result<ExecStatus> {
+    pub fn run_phase(&mut self, phase: &phase::Phase) -> Result<ExecStatus> {
         BUILD_DATA.with(|d| -> Result<ExecStatus> {
-            let phase = phase.as_ref();
+            d.borrow_mut().phase = Some(*phase);
+
             let eapi = d.borrow().eapi;
-            let mut phase_func = ScopedVariable::new("EBUILD_PHASE_FUNC");
+            let mut phase_name = ScopedVariable::new("EBUILD_PHASE");
+            let mut phase_func_name = ScopedVariable::new("EBUILD_PHASE_FUNC");
 
             // enable phase builtins
             let _builtins = eapi.scoped_builtins(phase)?;
 
+            phase_name.bind(phase.short_name(), None, None)?;
             if eapi.has("ebuild_phase_func") {
-                phase_func.bind(phase, None, None)?;
+                phase_func_name.bind(phase, None, None)?;
             }
 
             // run user space pre-phase hooks
@@ -278,8 +280,8 @@ impl<'a> PkgShell<'a> {
             // run user space phase function, falling back to internal default
             match functions::find(phase) {
                 Some(mut func) => func.execute(&[])?,
-                None => match eapi.phases().get(phase) {
-                    Some(func) => func()?,
+                None => match eapi.phases().get(phase.name()) {
+                    Some(phase) => phase.run()?,
                     None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
                 },
             };

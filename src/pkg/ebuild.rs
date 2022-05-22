@@ -36,14 +36,15 @@ impl Metadata {
 
         // required metadata variables
         for key in eapi.mandatory_keys() {
-            let val = string_value(key)
+            let val = key
+                .get(eapi)
                 .ok_or_else(|| Error::InvalidValue(format!("missing required value: {key}")))?;
             data.insert(key.to_string(), val);
         }
 
         // metadata variables that default to empty
         for var in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
-            string_value(var).and_then(|v| data.insert(var.to_string(), v));
+            var.get(eapi).and_then(|v| data.insert(var.to_string(), v));
         }
 
         Ok(Self { data })

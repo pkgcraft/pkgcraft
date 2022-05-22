@@ -14,14 +14,14 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        let phase_func = &d.borrow().phase_func;
-        let builtins = d.borrow().eapi.builtins(phase_func)?;
-        let default_phase_func = format!("default_{phase_func}");
-        match builtins.get(default_phase_func.as_str()) {
+        let phase = &d.borrow().phase.unwrap();
+        let builtins = d.borrow().eapi.builtins(phase)?;
+        let default_phase = format!("default_{phase}");
+        match builtins.get(default_phase.as_str()) {
             Some(b) => b.run(&[]),
-            None => Err(Error::Builtin(format!(
-                "nonexistent default phase function: {default_phase_func}",
-            ))),
+            None => {
+                Err(Error::Builtin(format!("nonexistent default phase function: {default_phase}",)))
+            }
         }
     })
 }

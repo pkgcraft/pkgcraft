@@ -8,11 +8,13 @@ use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::{Lazy, OnceCell};
 use regex::{escape, Regex, RegexBuilder};
 use scallop::builtins::ScopedBuiltins;
+use scallop::functions;
+use scallop::variables::string_value;
 
 use crate::archive::Archive;
 use crate::atom::Atom;
 use crate::pkgsh::builtins::{parse, BuiltinsMap, BUILTINS_MAP};
-use crate::pkgsh::phases::*;
+use crate::pkgsh::phase::*;
 use crate::{Error, Result};
 
 static VALID_EAPI_RE: Lazy<Regex> =
@@ -154,6 +156,29 @@ pub enum Key {
     SrcUri,
 }
 
+impl Key {
+    pub(crate) fn get(&self, eapi: &'static Eapi) -> Option<String> {
+        match self {
+            Key::DefinedPhases => {
+                let mut phase_names = vec![];
+                for (name, phase) in eapi.phases() {
+                    if functions::find(name).is_some() {
+                        phase_names.push(phase.short_name());
+                    }
+                }
+                match phase_names.is_empty() {
+                    true => None,
+                    false => {
+                        phase_names.sort_unstable();
+                        Some(phase_names.join(" "))
+                    }
+                }
+            }
+            key => string_value(key),
+        }
+    }
+}
+
 impl From<&Key> for &str {
     fn from(key: &Key) -> &'static str {
         match key {
@@ -198,7 +223,7 @@ pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
-    phases: HashMap<&'static str, PhaseFn>,
+    phases: HashMap<&'static str, Phase>,
     dep_keys: HashSet<Key>,
     incremental_keys: HashSet<Key>,
     mandatory_keys: HashSet<Key>,
@@ -307,7 +332,7 @@ impl Eapi {
         Atom::new(s.as_ref(), self)
     }
 
-    pub(crate) fn phases(&self) -> &HashMap<&str, PhaseFn> {
+    pub(crate) fn phases(&self) -> &HashMap<&str, Phase> {
         &self.phases
     }
 
@@ -388,7 +413,8 @@ impl Eapi {
     }
 
     fn update_phases(mut self, updates: &[(&'static str, PhaseFn)]) -> Self {
-        self.phases.extend(updates.iter().map(|(s, f)| (*s, *f)));
+        self.phases
+            .extend(updates.iter().map(|(s, f)| (*s, Phase::new(s, *f))));
         self
     }
 
