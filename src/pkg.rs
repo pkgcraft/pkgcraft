@@ -60,7 +60,7 @@ pub trait Package: fmt::Debug + fmt::Display {
 }
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = Box<&'a dyn Repository>;
+    type Repo = &'a dyn Repository;
 
     fn atom(&self) -> &atom::Atom {
         match self {
@@ -78,8 +78,8 @@ impl<'a> Package for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         match self {
-            Pkg::Ebuild(ref pkg) => Box::new(pkg.repo()),
-            Pkg::Fake(ref pkg) => Box::new(pkg.repo()),
+            Pkg::Ebuild(ref pkg) => pkg.repo(),
+            Pkg::Fake(ref pkg) => pkg.repo(),
         }
     }
 }
