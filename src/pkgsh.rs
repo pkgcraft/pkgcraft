@@ -291,6 +291,8 @@ impl<'a> PkgShell<'a> {
                 func.execute(&[])?;
             }
 
+            d.borrow_mut().phase = None;
+
             Ok(ExecStatus::Success)
         })
     }
