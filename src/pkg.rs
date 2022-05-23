@@ -44,17 +44,18 @@ pub trait Package: fmt::Debug + fmt::Display {
     /// Get a package's value for a specified environment variable.
     fn env(&self, var: Env) -> String {
         let (a, v) = (self.atom(), self.version());
+        use Env::*;
         match var {
-            Env::P => format!("{}-{}", a.package(), v.base()),
-            Env::PN => a.package().into(),
-            Env::PV => v.base().into(),
-            Env::PR => format!("r{}", v.revision()),
-            Env::PVR => match v.revision() == "0" {
+            P => format!("{}-{}", a.package(), v.base()),
+            PN => a.package().into(),
+            PV => v.base().into(),
+            PR => format!("r{}", v.revision()),
+            PVR => match v.revision() == "0" {
                 true => v.base().into(),
                 false => v.into(),
             },
-            Env::PF => format!("{}-{}", a.package(), self.env(Env::PVR)),
-            Env::CATEGORY => a.category().into(),
+            PF => format!("{}-{}", a.package(), self.env(PVR)),
+            CATEGORY => a.category().into(),
         }
     }
 }

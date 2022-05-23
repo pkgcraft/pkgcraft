@@ -128,17 +128,18 @@ impl<'a> ParsedVersion<'a> {
         op: &'a str,
         glob: Option<()>,
     ) -> std::result::Result<Self, &'static str> {
+        use Operator::*;
         let op = match (op, glob) {
-            ("<", None) => Ok(Operator::Less),
-            ("<=", None) => Ok(Operator::LessOrEqual),
-            ("=", None) => Ok(Operator::Equal),
-            ("=", Some(_)) => Ok(Operator::EqualGlob),
+            ("<", None) => Ok(Less),
+            ("<=", None) => Ok(LessOrEqual),
+            ("=", None) => Ok(Equal),
+            ("=", Some(_)) => Ok(EqualGlob),
             ("~", None) => match self.revision {
-                None => Ok(Operator::Approximate),
+                None => Ok(Approximate),
                 Some(_) => Err("~ version operator can't be used with a revision"),
             },
-            (">=", None) => Ok(Operator::GreaterOrEqual),
-            (">", None) => Ok(Operator::Greater),
+            (">=", None) => Ok(GreaterOrEqual),
+            (">", None) => Ok(Greater),
             _ => Err("invalid version operator"),
         }?;
 
@@ -229,14 +230,15 @@ impl Version {
     }
 
     pub(crate) fn op_cmp(&self, other: &Self) -> bool {
+        use Operator::*;
         match self.op() {
-            Some(Operator::Less) => NonOpVersion(other) < NonOpVersion(self),
-            Some(Operator::LessOrEqual) => NonOpVersion(other) <= NonOpVersion(self),
-            Some(Operator::Equal) | None => NonOpVersion(other) == NonOpVersion(self),
-            Some(Operator::EqualGlob) => other.as_str().starts_with(self.as_str()),
-            Some(Operator::Approximate) => NonRevisionVersion(other) == NonRevisionVersion(self),
-            Some(Operator::GreaterOrEqual) => NonOpVersion(other) >= NonOpVersion(self),
-            Some(Operator::Greater) => NonOpVersion(other) > NonOpVersion(self),
+            Some(Less) => NonOpVersion(other) < NonOpVersion(self),
+            Some(LessOrEqual) => NonOpVersion(other) <= NonOpVersion(self),
+            Some(Equal) | None => NonOpVersion(other) == NonOpVersion(self),
+            Some(EqualGlob) => other.as_str().starts_with(self.as_str()),
+            Some(Approximate) => NonRevisionVersion(other) == NonRevisionVersion(self),
+            Some(GreaterOrEqual) => NonOpVersion(other) >= NonOpVersion(self),
+            Some(Greater) => NonOpVersion(other) > NonOpVersion(self),
         }
     }
 }
