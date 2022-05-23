@@ -65,22 +65,22 @@ impl<'a> Package for Pkg<'a> {
 
     fn atom(&self) -> &atom::Atom {
         match self {
-            Pkg::Ebuild(ref pkg) => pkg.atom(),
-            Pkg::Fake(ref pkg) => pkg.atom(),
+            Self::Ebuild(ref pkg) => pkg.atom(),
+            Self::Fake(ref pkg) => pkg.atom(),
         }
     }
 
     fn eapi(&self) -> &eapi::Eapi {
         match self {
-            Pkg::Ebuild(ref pkg) => pkg.eapi(),
-            Pkg::Fake(ref pkg) => pkg.eapi(),
+            Self::Ebuild(ref pkg) => pkg.eapi(),
+            Self::Fake(ref pkg) => pkg.eapi(),
         }
     }
 
     fn repo(&self) -> Self::Repo {
         match self {
-            Pkg::Ebuild(ref pkg) => pkg.repo(),
-            Pkg::Fake(ref pkg) => pkg.repo(),
+            Self::Ebuild(ref pkg) => pkg.repo(),
+            Self::Fake(ref pkg) => pkg.repo(),
         }
     }
 }
@@ -88,8 +88,8 @@ impl<'a> Package for Pkg<'a> {
 impl fmt::Display for Pkg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Pkg::Ebuild(ref pkg) => write!(f, "{}", pkg),
-            Pkg::Fake(ref pkg) => write!(f, "{}", pkg),
+            Self::Ebuild(ref pkg) => write!(f, "{}", pkg),
+            Self::Fake(ref pkg) => write!(f, "{}", pkg),
         }
     }
 }

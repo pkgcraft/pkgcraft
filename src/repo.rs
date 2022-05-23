@@ -150,8 +150,8 @@ impl Repo {
         let id = id.as_ref();
 
         match format {
-            ebuild::Repo::FORMAT => Ok(Repo::Ebuild(ebuild::Repo::from_path(id, path)?)),
-            fake::Repo::FORMAT => Ok(Repo::Fake(fake::Repo::from_path(id, path)?)),
+            ebuild::Repo::FORMAT => Ok(Self::Ebuild(ebuild::Repo::from_path(id, path)?)),
+            fake::Repo::FORMAT => Ok(Self::Fake(fake::Repo::from_path(id, path)?)),
             _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
         }
     }
@@ -184,8 +184,8 @@ impl<'a> Iterator for PackageIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            PackageIter::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
-            PackageIter::Fake(iter) => iter.next().map(Pkg::Fake),
+            Self::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
+            Self::Fake(iter) => iter.next().map(Pkg::Fake),
         }
     }
 }
@@ -211,8 +211,8 @@ pub trait Repository: fmt::Debug + fmt::Display {
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Repo::Ebuild(ref repo) => write!(f, "{}", repo),
-            Repo::Fake(ref repo) => write!(f, "{}", repo),
+            Self::Ebuild(ref repo) => write!(f, "{}", repo),
+            Self::Fake(ref repo) => write!(f, "{}", repo),
         }
     }
 }
@@ -221,43 +221,43 @@ impl fmt::Display for Repo {
 impl Repository for Repo {
     fn categories(&self) -> Vec<String> {
         match self {
-            Repo::Ebuild(ref repo) => repo.categories(),
-            Repo::Fake(ref repo) => repo.categories(),
+            Self::Ebuild(ref repo) => repo.categories(),
+            Self::Fake(ref repo) => repo.categories(),
         }
     }
 
     fn packages(&self, cat: &str) -> Vec<String> {
         match self {
-            Repo::Ebuild(ref repo) => repo.packages(cat),
-            Repo::Fake(ref repo) => repo.packages(cat),
+            Self::Ebuild(ref repo) => repo.packages(cat),
+            Self::Fake(ref repo) => repo.packages(cat),
         }
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         match self {
-            Repo::Ebuild(ref repo) => repo.versions(cat, pkg),
-            Repo::Fake(ref repo) => repo.versions(cat, pkg),
+            Self::Ebuild(ref repo) => repo.versions(cat, pkg),
+            Self::Fake(ref repo) => repo.versions(cat, pkg),
         }
     }
 
     fn id(&self) -> &str {
         match self {
-            Repo::Ebuild(ref repo) => repo.id(),
-            Repo::Fake(ref repo) => repo.id(),
+            Self::Ebuild(ref repo) => repo.id(),
+            Self::Fake(ref repo) => repo.id(),
         }
     }
 
     fn len(&self) -> usize {
         match self {
-            Repo::Ebuild(ref repo) => repo.len(),
-            Repo::Fake(ref repo) => repo.len(),
+            Self::Ebuild(ref repo) => repo.len(),
+            Self::Fake(ref repo) => repo.len(),
         }
     }
 
     fn is_empty(&self) -> bool {
         match self {
-            Repo::Ebuild(ref repo) => repo.is_empty(),
-            Repo::Fake(ref repo) => repo.is_empty(),
+            Self::Ebuild(ref repo) => repo.is_empty(),
+            Self::Fake(ref repo) => repo.is_empty(),
         }
     }
 }
@@ -270,8 +270,8 @@ pub trait Contains<T> {
 impl<T: AsRef<Path>> Contains<T> for Repo {
     fn contains(&self, path: T) -> bool {
         match self {
-            Repo::Ebuild(ref repo) => repo.contains(path),
-            Repo::Fake(ref repo) => repo.contains(path),
+            Self::Ebuild(ref repo) => repo.contains(path),
+            Self::Fake(ref repo) => repo.contains(path),
         }
     }
 }
@@ -281,8 +281,8 @@ macro_rules! make_contains {
         impl Contains<$x> for Repo {
             fn contains(&self, obj: $x) -> bool {
                 match self {
-                    Repo::Ebuild(ref repo) => repo.contains(obj),
-                    Repo::Fake(ref repo) => repo.contains(obj),
+                    Self::Ebuild(ref repo) => repo.contains(obj),
+                    Self::Fake(ref repo) => repo.contains(obj),
                 }
             }
         }
