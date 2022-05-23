@@ -24,14 +24,25 @@ invalid_atoms = [
     ["=a/b-0.*", "0-"],
     ["=a/b-0-r*", "0-"],
     # EAPI specific support
-    ['cat/pkg:0', '0'], # slot deps in EAPI >= 1
-    ['!cat/pkg', '0-1'], # blockers in EAPI >= 2
-    ['!!cat/pkg', '0-1'], # blockers in EAPI >= 2
-    ['cat/pkg[use]', '0-1'], # use deps in EAPI >= 2
-    ['cat/pkg[use(+)]', '0-3'], # use dep defaults in EAPI >= 4
-    ['cat/pkg:0/1', '0-4'], # subslot deps in EAPI >= 5
-    ['cat/pkg:0=', '0-4'], # slot operators in EAPI >= 5
-    ['cat/pkg::repo', '0~'], # repo deps in no official EAPI
+    # slot deps in EAPI >= 1
+    ['cat/pkg:0', '0'],
+    # blockers in EAPI >= 2
+    ['!cat/pkg', '0-1'],
+    ['!!cat/pkg', '0-1'],
+    # use deps in EAPI >= 2
+    ['cat/pkg[use]', '0-1'],
+    ['cat/pkg[a,b=,!c=,d?,!e?,-f]', '0-1'],
+    # use dep defaults in EAPI >= 4
+    ['cat/pkg[use(+)]', '0-3'],
+    ['cat/pkg[use(-)]', '0-3'],
+    # subslot deps in EAPI >= 5
+    ['cat/pkg:0/1', '0-4'],
+    # slot operators in EAPI >= 5
+    ['cat/pkg:*', '0-4'],
+    ['cat/pkg:=', '0-4'],
+    ['cat/pkg:0=', '0-4'],
+    # repo deps in no official EAPI
+    ['cat/pkg::repo', '0~'],
 ]
 
 # version comparison
