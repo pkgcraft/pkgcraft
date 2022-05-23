@@ -240,7 +240,7 @@ mod tests {
             assert_eq!(pkg.path(), &path);
             assert!(!pkg.ebuild().is_empty());
 
-            let path = t.create_ebuild("cat/pkg-2", [("eapi", "0")]).unwrap();
+            let path = t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
             let pkg = Pkg::new(&path, &repo).unwrap();
             assert_eq!(pkg.eapi(), &*eapi::EAPI0);
             assert_eq!(pkg.path(), &path);
@@ -296,13 +296,13 @@ mod tests {
             assert_eq!(pkg.subslot(), "0");
 
             // custom lacking subslot
-            let path = t.create_ebuild("cat/pkg-2", [("slot", "1")]).unwrap();
+            let path = t.create_ebuild("cat/pkg-2", [(Slot, "1")]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.slot(), "1");
             assert_eq!(pkg.subslot(), "1");
 
             // custom with subslot
-            let path = t.create_ebuild("cat/pkg-3", [("slot", "1/2")]).unwrap();
+            let path = t.create_ebuild("cat/pkg-3", [(Slot, "1/2")]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.slot(), "1");
             assert_eq!(pkg.subslot(), "2");
@@ -312,7 +312,7 @@ mod tests {
         fn test_description() {
             let t = TempRepo::new("test", None::<&str>, None).unwrap();
 
-            let path = t.create_ebuild("cat/pkg-1", [("description", "desc")]).unwrap();
+            let path = t.create_ebuild("cat/pkg-1", [(Description, "desc")]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.description(), "desc");
         }
@@ -322,12 +322,12 @@ mod tests {
             let t = TempRepo::new("test", None::<&str>, None).unwrap();
 
             // none
-            let path = t.create_ebuild("cat/pkg-1", [("homepage", "-")]).unwrap();
+            let path = t.create_ebuild("cat/pkg-1", [(Homepage, "-")]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert!(pkg.homepage().is_empty());
 
             // single line
-            let path = t.create_ebuild("cat/pkg-1", [("homepage", "home")]).unwrap();
+            let path = t.create_ebuild("cat/pkg-1", [(Homepage, "home")]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.homepage(), ["home"]);
 
@@ -337,7 +337,7 @@ mod tests {
                 b
                 c
             "};
-            let path = t.create_ebuild("cat/pkg-1", [("homepage", val)]).unwrap();
+            let path = t.create_ebuild("cat/pkg-1", [(Homepage, val)]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.homepage(), ["a", "b", "c"]);
         }
@@ -352,7 +352,7 @@ mod tests {
             assert!(pkg.keywords().is_empty());
 
             // single line
-            let path = t.create_ebuild("cat/pkg-1", [("keywords", "a b")]).unwrap();
+            let path = t.create_ebuild("cat/pkg-1", [(Keywords, "a b")]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
 
@@ -362,7 +362,7 @@ mod tests {
                 b
                 c
             "};
-            let path = t.create_ebuild("cat/pkg-1", [("keywords", val)]).unwrap();
+            let path = t.create_ebuild("cat/pkg-1", [(Keywords, val)]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
         }
@@ -377,7 +377,7 @@ mod tests {
             assert!(pkg.iuse().is_empty());
 
             // single line
-            let path = t.create_ebuild("cat/pkg-1", [("iuse", "a b")]).unwrap();
+            let path = t.create_ebuild("cat/pkg-1", [(Iuse, "a b")]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
 
@@ -387,7 +387,7 @@ mod tests {
                 b
                 c
             "};
-            let path = t.create_ebuild("cat/pkg-1", [("iuse", val)]).unwrap();
+            let path = t.create_ebuild("cat/pkg-1", [(Iuse, val)]).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
             assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
         }

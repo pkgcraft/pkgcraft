@@ -471,8 +471,9 @@ impl TempRepo {
     #[cfg(test)]
     pub(crate) fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> Result<PathBuf>
     where
-        I: IntoIterator<Item = (&'a str, &'a str)>,
+        I: IntoIterator<Item = (eapi::Key, &'a str)>,
     {
+        use crate::eapi::Key::*;
         let cpv = atom::parse::cpv(cpv)?;
         let path = self.tempdir.path().join(format!(
             "{}/{}-{}.ebuild",
@@ -487,22 +488,22 @@ impl TempRepo {
 
         // ebuild defaults
         let mut values = indexmap::IndexMap::from([
-            ("eapi", eapi::EAPI_LATEST.as_str()),
-            ("slot", "0"),
-            ("description", "stub package description"),
-            ("homepage", "https://github.com/pkgcraft"),
+            (Eapi, eapi::EAPI_LATEST.as_str()),
+            (Slot, "0"),
+            (Description, "stub package description"),
+            (Homepage, "https://github.com/pkgcraft"),
         ]);
 
         // overrides defaults with specified values, removing the defaults for "-"
-        for (var, val) in data.into_iter() {
+        for (key, val) in data.into_iter() {
             match val {
-                "-" => values.remove(var),
-                _ => values.insert(var, val),
+                "-" => values.remove(&key),
+                _ => values.insert(key, val),
             };
         }
 
-        for (var, val) in values {
-            f.write(format!("{}=\"{val}\"\n", var.to_uppercase()).as_bytes())
+        for (key, val) in values {
+            f.write(format!("{key}=\"{val}\"\n").as_bytes())
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
