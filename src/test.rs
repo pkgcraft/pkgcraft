@@ -13,6 +13,7 @@ static TEST_DATA_DIR: Lazy<PathBuf> =
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TestData {
+    pub(crate) invalid_atoms: Vec<(String, String)>,
     ver_cmp: Vec<String>,
     ver_sort: Vec<(Vec<String>, Vec<String>)>,
     atom_sort: Vec<(Vec<String>, Vec<String>)>,

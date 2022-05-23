@@ -288,42 +288,31 @@ pub mod parse {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexSet;
+
     use crate::atom::Blocker;
     use crate::eapi;
     use crate::macros::opt_str;
+    use crate::test::TestData;
 
     use super::parse;
 
     #[test]
     fn test_parse_versions() {
         // invalid deps
-        for s in [
-            // bad/missing category and/or package names
-            "",
-            "a",
-            "a/+b",
-            ".a/.b",
-            // package names can't end in a hyphen followed by anything matching a version
-            "a/b-0",
-            "<a/b-1-1",
-            // version operator with missing version
-            "~a/b",
-            "~a/b-r1",
-            ">a/b",
-            ">=a/b-r1",
-            // '~' operator can't be used with a revision
-            "~a/b-1-r1",
-            // '*' suffix can only be used with the '=' operator
-            ">=a/b-0*",
-            "~a/b-0*",
-            "a/b-0*",
-            // '*' suffix can only be used with valid version strings
-            "=a/b-0.*",
-            "=a/b-0-r*",
-        ] {
-            for eapi in eapi::EAPIS.values() {
+        let data = TestData::load().unwrap();
+        let all_eapis: IndexSet<&eapi::Eapi> = eapi::EAPIS.values().cloned().collect();
+        for (s, eapis) in data.invalid_atoms {
+            let failing_eapis = eapi::supported(eapis).expect("failed to parse EAPI range");
+            // verify parse failures
+            for eapi in &failing_eapis {
                 let result = parse::dep(&s, eapi);
-                assert!(result.is_err(), "{s:?} didn't fail");
+                assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
+            }
+            // verify parse successes
+            for eapi in all_eapis.difference(&failing_eapis) {
+                let result = parse::dep(&s, eapi);
+                assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
             }
         }
 

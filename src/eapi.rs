@@ -646,6 +646,7 @@ pub static EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
     eapis
 });
 
+/// Convert EAPI range into a Vector of EAPI objects, e.g. "0-" covers all EAPIs.
 pub(crate) fn supported<S: AsRef<str>>(val: S) -> Result<IndexSet<&'static Eapi>> {
     let (start, end) = parse::range(val.as_ref(), EAPIS.len() - 1)?;
     Ok((start..=end).map(|n| EAPIS[n]).collect())
