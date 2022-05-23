@@ -10,6 +10,7 @@ use scallop::source;
 use scallop::variables::string_value;
 
 use crate::atom::Atom;
+use crate::eapi::Key::*;
 use crate::{eapi, pkg, repo, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
@@ -17,7 +18,7 @@ static EAPI_LINE_RE: Lazy<Regex> =
 
 #[derive(Debug, Default, Clone)]
 struct Metadata {
-    data: HashMap<String, String>,
+    data: HashMap<eapi::Key, String>,
 }
 
 impl Metadata {
@@ -39,12 +40,12 @@ impl Metadata {
             let val = key
                 .get(eapi)
                 .ok_or_else(|| Error::InvalidValue(format!("missing required value: {key}")))?;
-            data.insert(key.to_string(), val);
+            data.insert(*key, val);
         }
 
         // metadata variables that default to empty
-        for var in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
-            var.get(eapi).and_then(|v| data.insert(var.to_string(), v));
+        for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
+            key.get(eapi).and_then(|v| data.insert(*key, v));
         }
 
         Ok(Self { data })
@@ -52,33 +53,33 @@ impl Metadata {
 
     fn description(&self) -> &str {
         // mandatory key guaranteed to exist
-        self.data.get("DESCRIPTION").unwrap()
+        self.data.get(&Description).unwrap()
     }
 
     fn slot(&self) -> &str {
         // mandatory key guaranteed to exist
-        let val = self.data.get("SLOT").unwrap();
+        let val = self.data.get(&Slot).unwrap();
         val.split_once('/').map_or(val, |x| x.0)
     }
 
     fn subslot(&self) -> &str {
         // mandatory key guaranteed to exist
-        let val = self.data.get("SLOT").unwrap();
+        let val = self.data.get(&Slot).unwrap();
         val.split_once('/').map_or(val, |x| x.1)
     }
 
     fn homepage(&self) -> Vec<&str> {
-        let val = self.data.get("HOMEPAGE").map(|s| s.as_str()).unwrap_or("");
+        let val = self.data.get(&Homepage).map(|s| s.as_str()).unwrap_or("");
         val.split_whitespace().collect()
     }
 
     fn keywords(&self) -> IndexSet<&str> {
-        let val = self.data.get("KEYWORDS").map(|s| s.as_str()).unwrap_or("");
+        let val = self.data.get(&Keywords).map(|s| s.as_str()).unwrap_or("");
         val.split_whitespace().collect()
     }
 
     fn iuse(&self) -> IndexSet<&str> {
-        let val = self.data.get("IUSE").map(|s| s.as_str()).unwrap_or("");
+        let val = self.data.get(&Iuse).map(|s| s.as_str()).unwrap_or("");
         val.split_whitespace().collect()
     }
 }
