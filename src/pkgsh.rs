@@ -281,7 +281,7 @@ impl<'a> PkgShell<'a> {
             // run user space phase function, falling back to internal default
             match functions::find(phase) {
                 Some(mut func) => func.execute(&[])?,
-                None => match eapi.phases().get(phase.name()) {
+                None => match eapi.phases().get(phase) {
                     Some(phase) => phase.run()?,
                     None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
                 },

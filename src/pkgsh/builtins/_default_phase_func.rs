@@ -11,7 +11,7 @@ pub(super) fn default_phase_func(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let phase = &d.borrow().phase.unwrap();
-        match eapi.phases().get(phase.name()) {
+        match eapi.phases().get(phase) {
             Some(phase) => phase.run(),
             None => Err(Error::Builtin(format!("nonexistent phase: {phase}"))),
         }

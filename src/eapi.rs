@@ -161,8 +161,8 @@ impl Key {
         match self {
             Key::DefinedPhases => {
                 let mut phase_names = vec![];
-                for (name, phase) in eapi.phases() {
-                    if functions::find(name).is_some() {
+                for phase in eapi.phases() {
+                    if functions::find(phase).is_some() {
                         phase_names.push(phase.short_name());
                     }
                 }
@@ -223,7 +223,7 @@ pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
     options: EapiOptions,
-    phases: HashMap<&'static str, Phase>,
+    phases: HashSet<Phase>,
     dep_keys: HashSet<Key>,
     incremental_keys: HashSet<Key>,
     mandatory_keys: HashSet<Key>,
@@ -332,7 +332,7 @@ impl Eapi {
         Atom::new(s.as_ref(), self)
     }
 
-    pub(crate) fn phases(&self) -> &HashMap<&str, Phase> {
+    pub(crate) fn phases(&self) -> &HashSet<Phase> {
         &self.phases
     }
 
@@ -414,7 +414,7 @@ impl Eapi {
 
     fn update_phases(mut self, updates: &[(&'static str, PhaseFn)]) -> Self {
         self.phases
-            .extend(updates.iter().map(|(s, f)| (*s, Phase::new(s, *f))));
+            .extend(updates.iter().map(|(s, f)| Phase::new(s, *f)));
         self
     }
 

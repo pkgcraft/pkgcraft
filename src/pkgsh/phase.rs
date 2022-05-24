@@ -1,4 +1,5 @@
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 use scallop::builtins::ExecStatus;
 use scallop::Result;
@@ -35,10 +36,24 @@ fn emake_install() -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Phase {
     name: &'static str,
     func: PhaseFn,
+}
+
+impl PartialEq for Phase {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for Phase {}
+
+impl Hash for Phase {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
 }
 
 impl From<&Phase> for &str {
@@ -66,11 +81,6 @@ impl Phase {
 
     pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
         (self.func)()
-    }
-
-    /// Return the phase function name, e.g. src_compile.
-    pub(crate) fn name(&self) -> &str {
-        self.name
     }
 
     /// Return the shortened phase function name, e.g. src_compile -> compile.

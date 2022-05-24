@@ -237,7 +237,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &ver_test::BUILTIN,
     ];
 
-    let static_scopes: Vec<&str> = vec!["global", "eclass"];
+    let static_scopes: Vec<_> = vec!["global", "eclass"];
     #[allow(clippy::mutable_key_type)]
     let mut builtins_map = EapiBuiltinsMap::new();
     for b in builtins.iter() {
@@ -245,8 +245,8 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
             let scope_map = builtins_map
                 .entry(eapi)
                 .or_insert_with(ScopeBuiltinsMap::new);
-            let phase_scopes = eapi.phases().keys();
-            let scopes = static_scopes.iter().chain(phase_scopes);
+            let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
+            let scopes = static_scopes.iter().chain(phase_scopes.iter());
             for scope in scopes.filter(|s| re.is_match(s)) {
                 scope_map
                     .entry(scope.to_string())
