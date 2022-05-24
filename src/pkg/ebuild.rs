@@ -82,6 +82,16 @@ impl Metadata {
         let val = self.data.get(&Iuse).map(|s| s.as_str()).unwrap_or("");
         val.split_whitespace().collect()
     }
+
+    fn inherit(&self) -> IndexSet<&str> {
+        let val = self.data.get(&Inherit).map(|s| s.as_str()).unwrap_or("");
+        val.split_whitespace().collect()
+    }
+
+    fn inherited(&self) -> IndexSet<&str> {
+        let val = self.data.get(&Inherited).map(|s| s.as_str()).unwrap_or("");
+        val.split_whitespace().collect()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -172,6 +182,16 @@ impl<'a> Pkg<'a> {
     /// Return a package's IUSE.
     pub fn iuse(&self) -> IndexSet<&str> {
         self.data.iuse()
+    }
+
+    /// Return the ordered set of directly inherited eclasses for a package.
+    pub fn inherit(&self) -> IndexSet<&str> {
+        self.data.inherit()
+    }
+
+    /// Return the ordered set of inherited eclasses for a package.
+    pub fn inherited(&self) -> IndexSet<&str> {
+        self.data.inherited()
     }
 }
 
