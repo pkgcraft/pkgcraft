@@ -1,4 +1,6 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -116,6 +118,32 @@ pub struct Repo {
     id: String,
     pub(super) path: PathBuf,
     pub(super) config: Metadata,
+}
+
+impl PartialEq for Repo {
+    fn eq(&self, other: &Self) -> bool {
+        self.id() == other.id()
+    }
+}
+
+impl Eq for Repo {}
+
+impl Hash for Repo {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id().hash(state);
+    }
+}
+
+impl PartialOrd for Repo {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.id().partial_cmp(other.id())
+    }
+}
+
+impl Ord for Repo {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id().cmp(other.id())
+    }
 }
 
 impl Repo {
