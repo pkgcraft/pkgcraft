@@ -208,59 +208,71 @@ pub trait Repository: fmt::Debug + fmt::Display {
     fn is_empty(&self) -> bool;
 }
 
-impl fmt::Display for Repo {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Ebuild(ref repo) => write!(f, "{}", repo),
-            Self::Fake(ref repo) => write!(f, "{}", repo),
-        }
-    }
+#[derive(Debug)]
+pub enum BorrowedRepo<'a> {
+    Ebuild(&'a ebuild::Repo),
+    Fake(&'a fake::Repo),
 }
 
-// TODO: use a macro to create this wrapper implementation
-impl Repository for Repo {
-    fn categories(&self) -> Vec<String> {
-        match self {
-            Self::Ebuild(ref repo) => repo.categories(),
-            Self::Fake(ref repo) => repo.categories(),
-        }
-    }
+macro_rules! make_repo {
+    ($($x:ty),*) => {
+        $(
+            impl fmt::Display for $x {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    match self {
+                        Self::Ebuild(ref repo) => write!(f, "{}", repo),
+                        Self::Fake(ref repo) => write!(f, "{}", repo),
+                    }
+                }
+            }
 
-    fn packages(&self, cat: &str) -> Vec<String> {
-        match self {
-            Self::Ebuild(ref repo) => repo.packages(cat),
-            Self::Fake(ref repo) => repo.packages(cat),
-        }
-    }
+            impl Repository for $x {
+                fn categories(&self) -> Vec<String> {
+                    match self {
+                        Self::Ebuild(ref repo) => repo.categories(),
+                        Self::Fake(ref repo) => repo.categories(),
+                    }
+                }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
-        match self {
-            Self::Ebuild(ref repo) => repo.versions(cat, pkg),
-            Self::Fake(ref repo) => repo.versions(cat, pkg),
-        }
-    }
+                fn packages(&self, cat: &str) -> Vec<String> {
+                    match self {
+                        Self::Ebuild(ref repo) => repo.packages(cat),
+                        Self::Fake(ref repo) => repo.packages(cat),
+                    }
+                }
 
-    fn id(&self) -> &str {
-        match self {
-            Self::Ebuild(ref repo) => repo.id(),
-            Self::Fake(ref repo) => repo.id(),
-        }
-    }
+                fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+                    match self {
+                        Self::Ebuild(ref repo) => repo.versions(cat, pkg),
+                        Self::Fake(ref repo) => repo.versions(cat, pkg),
+                    }
+                }
 
-    fn len(&self) -> usize {
-        match self {
-            Self::Ebuild(ref repo) => repo.len(),
-            Self::Fake(ref repo) => repo.len(),
-        }
-    }
+                fn id(&self) -> &str {
+                    match self {
+                        Self::Ebuild(ref repo) => repo.id(),
+                        Self::Fake(ref repo) => repo.id(),
+                    }
+                }
 
-    fn is_empty(&self) -> bool {
-        match self {
-            Self::Ebuild(ref repo) => repo.is_empty(),
-            Self::Fake(ref repo) => repo.is_empty(),
-        }
-    }
+                fn len(&self) -> usize {
+                    match self {
+                        Self::Ebuild(ref repo) => repo.len(),
+                        Self::Fake(ref repo) => repo.len(),
+                    }
+                }
+
+                fn is_empty(&self) -> bool {
+                    match self {
+                        Self::Ebuild(ref repo) => repo.is_empty(),
+                        Self::Fake(ref repo) => repo.is_empty(),
+                    }
+                }
+            }
+        )*
+    };
 }
+make_repo!(Repo, BorrowedRepo<'_>);
 
 /// A repo contains a given object.
 pub trait Contains<T> {

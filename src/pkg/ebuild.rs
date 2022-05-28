@@ -11,7 +11,8 @@ use scallop::variables::string_value;
 
 use crate::atom::Atom;
 use crate::eapi::Key::*;
-use crate::{eapi, pkg, repo, Error, Result};
+use crate::repo::{ebuild::Repo, BorrowedRepo};
+use crate::{eapi, pkg, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
@@ -99,7 +100,7 @@ pub struct Pkg<'a> {
     path: PathBuf,
     atom: Atom,
     eapi: &'static eapi::Eapi,
-    repo: &'a repo::ebuild::Repo,
+    repo: &'a Repo,
     data: Metadata,
 }
 
@@ -112,7 +113,7 @@ impl PartialEq for Pkg<'_> {
 impl Eq for Pkg<'_> {}
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(path: &Path, repo: &'a repo::ebuild::Repo) -> Result<Self> {
+    pub(crate) fn new(path: &Path, repo: &'a Repo) -> Result<Self> {
         let atom = repo.atom_from_path(path)?;
         let eapi = Pkg::get_eapi(path)?;
         let data = Metadata::new(path, eapi)?;
@@ -208,7 +209,7 @@ impl fmt::Display for Pkg<'_> {
 }
 
 impl<'a> pkg::Package for Pkg<'a> {
-    type Repo = &'a repo::ebuild::Repo;
+    type Repo = BorrowedRepo<'a>;
 
     fn atom(&self) -> &Atom {
         &self.atom
@@ -219,7 +220,7 @@ impl<'a> pkg::Package for Pkg<'a> {
     }
 
     fn repo(&self) -> Self::Repo {
-        self.repo
+        BorrowedRepo::Ebuild(self.repo)
     }
 }
 

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::repo::Repository;
+use crate::repo::{BorrowedRepo, Repository};
 use crate::{atom, eapi};
 
 pub mod ebuild;
@@ -25,7 +25,7 @@ pub enum Pkg<'a> {
 }
 
 pub trait Package: fmt::Debug + fmt::Display {
-    type Repo;
+    type Repo: Repository;
 
     /// Get a package's EAPI.
     fn eapi(&self) -> &eapi::Eapi;
@@ -61,7 +61,7 @@ pub trait Package: fmt::Debug + fmt::Display {
 }
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = &'a dyn Repository;
+    type Repo = BorrowedRepo<'a>;
 
     fn atom(&self) -> &atom::Atom {
         match self {
