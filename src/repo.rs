@@ -199,9 +199,7 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-pub trait Repository:
-    fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + std::hash::Hash
-{
+pub trait Repository: fmt::Debug + fmt::Display {
     // TODO: add Iterator type and iter() when GATs are stabilized
     // https://github.com/rust-lang/rust/issues/44265
     fn categories(&self) -> Vec<String>;
@@ -312,6 +310,7 @@ macro_rules! make_repo_traits {
     };
 }
 pub(self) use make_repo_traits;
+make_repo_traits!(dyn Repository);
 
 /// A repo contains a given object.
 pub trait Contains<T> {
@@ -340,3 +339,30 @@ macro_rules! make_contains {
     )*};
 }
 make_contains!(atom::Atom, &atom::Atom);
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use super::Repository;
+    use crate::repo::{ebuild, fake};
+
+    #[test]
+    fn test_traits() {
+        let t = ebuild::TempRepo::new("test", None::<&str>, None).unwrap();
+        let e_repo: &dyn Repository = &t.repo;
+        let fake_repo = fake::Repo::new("fake", []).unwrap();
+        let f_repo: &dyn Repository = &fake_repo;
+        assert!(e_repo != f_repo);
+        assert!(e_repo > f_repo);
+
+        let repos: HashSet<_> = HashSet::from([e_repo, f_repo]);
+        assert_eq!(repos.len(), 2);
+
+        let fake_test_repo = fake::Repo::new("test", []).unwrap();
+        let f_repo: &dyn Repository = &fake_test_repo;
+        assert!(e_repo == f_repo);
+        let repos: HashSet<_> = HashSet::from([e_repo, f_repo]);
+        assert_eq!(repos.len(), 1);
+    }
+}

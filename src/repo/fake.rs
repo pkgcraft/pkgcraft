@@ -16,7 +16,7 @@ make_repo_traits!(Repo);
 impl Repo {
     pub(super) const FORMAT: &'static str = "fake";
 
-    fn new<'a, I>(id: &str, atoms: I) -> Result<Repo>
+    pub(super) fn new<'a, I>(id: &str, atoms: I) -> Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
     {
