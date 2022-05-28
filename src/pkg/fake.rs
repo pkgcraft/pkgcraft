@@ -1,13 +1,16 @@
 use std::fmt;
 
+use super::{make_pkg_traits, Package};
 use crate::repo::{fake::Repo, BorrowedRepo};
-use crate::{atom, eapi, pkg};
+use crate::{atom, eapi};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     atom: &'a atom::Atom,
     repo: &'a Repo,
 }
+
+make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(atom: &'a atom::Atom, repo: &'a Repo) -> Self {
@@ -21,7 +24,7 @@ impl fmt::Display for Pkg<'_> {
     }
 }
 
-impl<'a> pkg::Package for Pkg<'a> {
+impl<'a> Package for Pkg<'a> {
     type Repo = BorrowedRepo<'a>;
 
     fn atom(&self) -> &atom::Atom {

@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
-use crate::macros::vec_str;
+use crate::macros::{cmp_not_equal, vec_str};
 use crate::{Error, Result};
 // export parser functionality
 pub use parser::parse;
@@ -190,17 +190,6 @@ impl fmt::Display for Atom {
         write!(f, "{s}")
     }
 }
-
-// Return Ordering if it's not equal.
-macro_rules! cmp_not_equal {
-    ($x:expr, $y:expr) => {
-        let cmp = $x.cmp($y);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-    };
-}
-pub(crate) use cmp_not_equal;
 
 impl Ord for Atom {
     fn cmp(&self, other: &Self) -> Ordering {

@@ -4,7 +4,8 @@ use std::iter::zip;
 use std::str::FromStr;
 use std::{fmt, str};
 
-use super::{cmp_not_equal, parse};
+use super::parse;
+use crate::macros::cmp_not_equal;
 use crate::{Error, Result};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

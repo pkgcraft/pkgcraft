@@ -9,10 +9,11 @@ use regex::Regex;
 use scallop::source;
 use scallop::variables::string_value;
 
+use super::{make_pkg_traits, Package};
 use crate::atom::Atom;
 use crate::eapi::Key::*;
 use crate::repo::{ebuild::Repo, BorrowedRepo};
-use crate::{eapi, pkg, Error, Result};
+use crate::{eapi, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
@@ -104,13 +105,7 @@ pub struct Pkg<'a> {
     data: Metadata,
 }
 
-impl PartialEq for Pkg<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.path == other.path
-    }
-}
-
-impl Eq for Pkg<'_> {}
+make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(path: &Path, repo: &'a Repo) -> Result<Self> {
@@ -208,7 +203,7 @@ impl fmt::Display for Pkg<'_> {
     }
 }
 
-impl<'a> pkg::Package for Pkg<'a> {
+impl<'a> Package for Pkg<'a> {
     type Repo = BorrowedRepo<'a>;
 
     fn atom(&self) -> &Atom {
@@ -232,7 +227,7 @@ mod tests {
 
     use super::*;
     use crate::eapi;
-    use crate::pkg::{Env, Package};
+    use crate::pkg::Env;
     use crate::repo::ebuild::TempRepo;
 
     // TODO: drop this once bash process pool support is added

@@ -18,13 +18,15 @@ pub enum Env {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Pkg<'a> {
     Ebuild(ebuild::Pkg<'a>),
     Fake(fake::Pkg<'a>),
 }
 
-pub trait Package: fmt::Debug + fmt::Display {
+make_pkg_traits!(Pkg<'_>);
+
+pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord {
     type Repo: Repository;
 
     /// Get a package's EAPI.
@@ -59,6 +61,41 @@ pub trait Package: fmt::Debug + fmt::Display {
         }
     }
 }
+
+macro_rules! make_pkg_traits {
+    ($($x:ty),*) => {
+        $(
+            impl PartialEq for $x {
+                fn eq(&self, other: &Self) -> bool {
+                    self.repo() == other.repo() && self.atom() == other.atom()
+                }
+            }
+
+            impl Eq for $x {}
+
+            impl std::hash::Hash for $x {
+                fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                    self.repo().hash(state);
+                    self.atom().hash(state);
+                }
+            }
+
+            impl PartialOrd for $x {
+                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                    Some(self.cmp(other))
+                }
+            }
+
+            impl Ord for $x {
+                fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                    crate::macros::cmp_not_equal!(&self.repo(), &other.repo());
+                    self.atom().cmp(other.atom())
+                }
+            }
+        )*
+    };
+}
+pub(self) use make_pkg_traits;
 
 impl<'a> Package for Pkg<'a> {
     type Repo = BorrowedRepo<'a>;

@@ -66,3 +66,14 @@ macro_rules! vec_str {
     };
 }
 pub(crate) use vec_str;
+
+// Return Ordering if it's not equal.
+macro_rules! cmp_not_equal {
+    ($x:expr, $y:expr) => {
+        let cmp = $x.cmp($y);
+        if cmp != ::std::cmp::Ordering::Equal {
+            return cmp;
+        }
+    };
+}
+pub(crate) use cmp_not_equal;
