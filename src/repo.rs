@@ -199,7 +199,9 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     ].iter().cloned().collect()
 });
 
-pub trait Repository: fmt::Debug + fmt::Display {
+pub trait Repository:
+    fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + std::hash::Hash
+{
     // TODO: add Iterator type and iter() when GATs are stabilized
     // https://github.com/rust-lang/rust/issues/44265
     fn categories(&self) -> Vec<String>;
@@ -271,10 +273,45 @@ macro_rules! make_repo {
                     }
                 }
             }
+
+            make_repo_traits!($x);
         )*
     };
 }
 make_repo!(Repo, BorrowedRepo<'_>);
+
+macro_rules! make_repo_traits {
+    ($($x:ty),*) => {
+        $(
+            impl PartialEq for $x {
+                fn eq(&self, other: &Self) -> bool {
+                    self.id() == other.id()
+                }
+            }
+
+            impl Eq for $x {}
+
+            impl std::hash::Hash for $x {
+                fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                    self.id().hash(state);
+                }
+            }
+
+            impl PartialOrd for $x {
+                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                    self.id().partial_cmp(other.id())
+                }
+            }
+
+            impl Ord for $x {
+                fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                    self.id().cmp(other.id())
+                }
+            }
+        )*
+    };
+}
+pub(self) use make_repo_traits;
 
 /// A repo contains a given object.
 pub trait Contains<T> {

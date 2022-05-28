@@ -2,13 +2,16 @@ use std::fmt;
 use std::fs;
 use std::path::Path;
 
+use crate::repo::{make_repo_traits, Repository};
 use crate::{atom, pkg, repo, Error, Result};
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default)]
 pub struct Repo {
     id: String,
     pkgs: repo::PkgCache,
 }
+
+make_repo_traits!(Repo);
 
 impl Repo {
     pub(super) const FORMAT: &'static str = "fake";
@@ -40,7 +43,7 @@ impl fmt::Display for Repo {
     }
 }
 
-impl repo::Repository for Repo {
+impl Repository for Repo {
     fn categories(&self) -> Vec<String> {
         self.pkgs.categories()
     }

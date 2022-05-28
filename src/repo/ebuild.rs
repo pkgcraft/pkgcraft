@@ -1,6 +1,4 @@
-use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -20,7 +18,7 @@ use crate::config::Config;
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
-use crate::repo::Repository;
+use crate::repo::{make_repo_traits, Repository};
 use crate::{atom, eapi, pkg, repo, Error, Result};
 
 static EBUILD_RE: Lazy<Regex> =
@@ -120,31 +118,7 @@ pub struct Repo {
     pub(super) config: Metadata,
 }
 
-impl PartialEq for Repo {
-    fn eq(&self, other: &Self) -> bool {
-        self.id() == other.id()
-    }
-}
-
-impl Eq for Repo {}
-
-impl Hash for Repo {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id().hash(state);
-    }
-}
-
-impl PartialOrd for Repo {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.id().partial_cmp(other.id())
-    }
-}
-
-impl Ord for Repo {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.id().cmp(other.id())
-    }
-}
+make_repo_traits!(Repo);
 
 impl Repo {
     pub(super) const FORMAT: &'static str = "ebuild";
