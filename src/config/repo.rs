@@ -131,7 +131,7 @@ impl Config {
         })
     }
 
-    pub fn add(&mut self, name: &str, uri: &str) -> Result<()> {
+    pub fn add(&mut self, name: &str, uri: &str) -> Result<Arc<Repo>> {
         if let Some(c) = self.configs.get(name) {
             return Err(Error::Config(format!("existing repo: {name:?} @ {:?}", &c.location)));
         }
@@ -177,17 +177,18 @@ impl Config {
         configs.insert(name.to_string(), config);
         // re-sort configs by RepoConfig ordering
         configs.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
-        repos.insert(name.to_string(), Arc::new(repo));
+        let repo = Arc::new(repo);
+        repos.insert(name.to_string(), repo.clone());
         // use sorted configs to re-sort repos
         repos.sort_by(|k1, _v1, k2, _v2| {
             let k1_index = configs.get_index_of(k1).unwrap();
             let k2_index = configs.get_index_of(k2).unwrap();
             k1_index.cmp(&k2_index)
         });
-        Ok(())
+        Ok(repo)
     }
 
-    pub fn create(&mut self, name: &str) -> Result<()> {
+    pub fn create(&mut self, name: &str) -> Result<Arc<Repo>> {
         match self.configs.get(name) {
             Some(c) => Err(Error::Config(format!("existing repo: {name:?} @ {:?}", c.location))),
             None => {
