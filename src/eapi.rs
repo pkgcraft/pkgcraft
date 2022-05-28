@@ -476,8 +476,8 @@ pub fn get_eapi<S: AsRef<str>>(id: S) -> Result<&'static Eapi> {
     match EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
         None => match VALID_EAPI_RE.is_match(id) {
-            true => Err(Error::Eapi(format!("unknown EAPI: {id:?}"))),
-            false => Err(Error::Eapi(format!("invalid EAPI: {id:?}"))),
+            true => Err(Error::Eapi(format!("unknown EAPI: {id}"))),
+            false => Err(Error::Eapi(format!("invalid EAPI: {id}"))),
         },
     }
 }

@@ -43,6 +43,22 @@ macro_rules! assert_err_re {
 #[cfg(test)]
 pub(crate) use assert_err_re;
 
+#[cfg(test)]
+macro_rules! assert_logs_re {
+    ($x:expr) => {
+        let re = ::regex::Regex::new($x.as_ref()).unwrap();
+        logs_assert(|lines: &[&str]| {
+            let s = lines.join("\n");
+            match re.is_match(&s) {
+                false => Err(format!("{s:?} does not match regex: {re}")),
+                true => Ok(()),
+            }
+        });
+    };
+}
+#[cfg(test)]
+pub(crate) use assert_logs_re;
+
 // convert Vec<&str> to Vec<String>
 macro_rules! vec_str {
     ($x:expr) => {

@@ -19,7 +19,7 @@ use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
 use crate::repo::{make_repo_traits, Repository};
-use crate::{atom, eapi, pkg, repo, Error, Result};
+use crate::{atom, eapi, pkg, repo, Error};
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
@@ -56,7 +56,7 @@ impl Default for Metadata {
 }
 
 impl Metadata {
-    fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+    fn new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         match Ini::load_from_file(path) {
             Ok(ini) => Ok(Metadata {
@@ -81,7 +81,7 @@ impl Metadata {
     }
 
     #[cfg(test)]
-    fn write(&self, data: Option<&str>) -> Result<()> {
+    fn write(&self, data: Option<&str>) -> crate::Result<()> {
         if let Some(path) = &self.path {
             self.ini
                 .write_to_file(path)
@@ -123,7 +123,7 @@ make_repo_traits!(Repo);
 impl Repo {
     pub(super) const FORMAT: &'static str = "ebuild";
 
-    fn new<S, P>(id: S, path: P, config: Metadata) -> Result<Self>
+    fn new<S, P>(id: S, path: P, config: Metadata) -> crate::Result<Self>
     where
         S: AsRef<str>,
         P: AsRef<Path>,
@@ -135,7 +135,7 @@ impl Repo {
         })
     }
 
-    pub(super) fn from_path<S, P>(id: S, path: P) -> Result<Self>
+    pub(super) fn from_path<S, P>(id: S, path: P) -> crate::Result<Self>
     where
         S: AsRef<str>,
         P: AsRef<Path>,
@@ -158,7 +158,7 @@ impl Repo {
         Repo::new(id, path, config)
     }
 
-    pub fn masters(&self) -> Result<Vec<Arc<repo::Repo>>> {
+    pub fn masters(&self) -> crate::Result<Vec<Arc<repo::Repo>>> {
         let config = Config::current();
         let mut masters = vec![];
         let mut nonexistent = vec![];
@@ -181,7 +181,7 @@ impl Repo {
         }
     }
 
-    pub fn trees(&self) -> Result<Vec<Arc<repo::Repo>>> {
+    pub fn trees(&self) -> crate::Result<Vec<Arc<repo::Repo>>> {
         let config = Config::current();
         let mut trees = self.masters()?;
         match config.repos.repos.get(&self.id) {
@@ -227,7 +227,7 @@ impl Repo {
     }
 
     /// Convert an ebuild path inside the repo into an Atom.
-    pub(crate) fn atom_from_path(&self, path: &Path) -> Result<atom::Atom> {
+    pub(crate) fn atom_from_path(&self, path: &Path) -> crate::Result<atom::Atom> {
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
         };
@@ -421,7 +421,7 @@ impl<'a> Iterator for PkgIter<'a> {
                         let path = e.path();
                         match pkg::ebuild::Pkg::new(path, self.repo) {
                             Ok(p) => return Some(p),
-                            Err(e) => warn!("{}: invalid package: {path:?}: {e}", self.repo.id),
+                            Err(e) => warn!("{} repo: invalid pkg: {path:?}: {e}", self.repo.id),
                         }
                     }
                 }
@@ -446,7 +446,7 @@ impl TempRepo {
         id: &str,
         path: Option<P>,
         eapi: Option<&eapi::Eapi>,
-    ) -> Result<Self> {
+    ) -> crate::Result<Self> {
         let path = match path {
             Some(p) => PathBuf::from(p.as_ref()),
             None => env::temp_dir(),
@@ -471,7 +471,7 @@ impl TempRepo {
 
     /// Create an ebuild file in the repo.
     #[cfg(test)]
-    pub(crate) fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> Result<PathBuf>
+    pub(crate) fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<PathBuf>
     where
         I: IntoIterator<Item = (eapi::Key, &'a str)>,
     {
@@ -514,7 +514,7 @@ impl TempRepo {
 
     /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is
     /// located.
-    pub(crate) fn persist<P: AsRef<Path>>(self, path: Option<P>) -> Result<PathBuf> {
+    pub(crate) fn persist<P: AsRef<Path>>(self, path: Option<P>) -> crate::Result<PathBuf> {
         let mut repo_path = self.tempdir.into_path();
         if let Some(path) = path {
             let path = path.as_ref();
@@ -538,8 +538,10 @@ mod tests {
     use std::fs;
 
     use rusty_fork::rusty_fork_test;
+    use tracing_test::traced_test;
 
-    use crate::macros::assert_err_re;
+    use crate::eapi::Key::*;
+    use crate::macros::{assert_err_re, assert_logs_re};
     use crate::repo::{Contains, Repository};
 
     use super::*;
@@ -656,6 +658,22 @@ mod tests {
                 assert_eq!(pkg.map(|p| format!("{}", p.atom())), Some(cpv.to_string()));
             }
             assert!(iter.next().is_none());
+        }
+
+        #[traced_test]
+        #[test]
+        fn test_invalid_pkgs() {
+            for (data, err) in [
+                    ([(Eapi, "-1")], "invalid EAPI: -1"),
+                    ([(Eapi, "a")], "unknown EAPI: a"),
+                    ([(Slot, "-")], "missing required value: SLOT"),
+                    ] {
+                let t = TempRepo::new("test", None::<&str>, None).unwrap();
+                t.create_ebuild("cat/pkg-0", data).unwrap();
+                let mut iter = t.repo.iter();
+                assert!(iter.next().is_none());
+                assert_logs_re!(format!("test repo: invalid pkg: .+: {err}$"));
+            }
         }
     }
 }
