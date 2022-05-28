@@ -200,6 +200,8 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
 });
 
 pub trait Repository: fmt::Debug + fmt::Display {
+    // TODO: add Iterator type and iter() when GATs are stabilized
+    // https://github.com/rust-lang/rust/issues/44265
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
