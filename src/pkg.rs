@@ -88,8 +88,8 @@ macro_rules! make_pkg_traits {
 
             impl Ord for $x {
                 fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                    crate::macros::cmp_not_equal!(&self.repo(), &other.repo());
-                    self.atom().cmp(other.atom())
+                    crate::macros::cmp_not_equal!(self.atom(), other.atom());
+                    self.repo().cmp(&other.repo())
                 }
             }
         )*
