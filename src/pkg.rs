@@ -128,3 +128,41 @@ impl<'a> Package for Pkg<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::repo::{ebuild::TempRepo, fake, Repo};
+
+    #[test]
+    fn test_ordering() {
+        // unmatching pkgs sorted by atom
+        let r1 = Repo::Fake(fake::Repo::new("b", 0, ["cat/pkg-1"]).unwrap());
+        let t = TempRepo::new("a", 0, None::<&str>, None).unwrap();
+        t.create_ebuild("cat/pkg-0", []).unwrap();
+        let r2 = Repo::Ebuild(t.repo);
+        let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        pkgs.sort();
+        let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
+        assert_eq!(atoms, ["cat/pkg-0::a", "cat/pkg-1::b"]);
+
+        // matching pkgs sorted by repo priority
+        let r1 = Repo::Fake(fake::Repo::new("a", 0, ["cat/pkg-0"]).unwrap());
+        let t = TempRepo::new("b", -1, None::<&str>, None).unwrap();
+        t.create_ebuild("cat/pkg-0", []).unwrap();
+        let r2 = Repo::Ebuild(t.repo);
+        let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        pkgs.sort();
+        let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
+        assert_eq!(atoms, ["cat/pkg-0::b", "cat/pkg-0::a"]);
+
+        // matching pkgs sorted by repo id since repos have matching priorities
+        let r1 = Repo::Fake(fake::Repo::new("b", 0, ["cat/pkg-0"]).unwrap());
+        let t = TempRepo::new("a", 0, None::<&str>, None).unwrap();
+        t.create_ebuild("cat/pkg-0", []).unwrap();
+        let r2 = Repo::Ebuild(t.repo);
+        let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        pkgs.sort();
+        let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
+        assert_eq!(atoms, ["cat/pkg-0::a", "cat/pkg-0::b"]);
+    }
+}
