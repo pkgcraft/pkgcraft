@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::{fmt, fs};
 
 use indexmap::IndexSet;
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use scallop::source;
 use scallop::variables::string_value;
@@ -19,11 +19,19 @@ static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
 
 #[derive(Debug, Default, Clone)]
-struct Metadata {
+struct Metadata<'a> {
     data: HashMap<eapi::Key, String>,
+    description: OnceCell<&'a str>,
+    slot: OnceCell<&'a str>,
+    subslot: OnceCell<&'a str>,
+    homepage: OnceCell<Vec<&'a str>>,
+    keywords: OnceCell<IndexSet<&'a str>>,
+    iuse: OnceCell<IndexSet<&'a str>>,
+    inherit: OnceCell<IndexSet<&'a str>>,
+    inherited: OnceCell<IndexSet<&'a str>>,
 }
 
-impl Metadata {
+impl<'a> Metadata<'a> {
     fn new(path: &Path, eapi: &'static eapi::Eapi) -> Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         source::file(path)?;
@@ -50,49 +58,69 @@ impl Metadata {
             key.get(eapi).and_then(|v| data.insert(*key, v));
         }
 
-        Ok(Self { data })
+        Ok(Self {
+            data,
+            ..Default::default()
+        })
     }
 
-    fn description(&self) -> &str {
+    fn description(&'a self) -> &'a str {
         // mandatory key guaranteed to exist
-        self.data.get(&Description).unwrap()
+        self.description
+            .get_or_init(|| self.data.get(&Description).unwrap())
     }
 
-    fn slot(&self) -> &str {
-        // mandatory key guaranteed to exist
-        let val = self.data.get(&Slot).unwrap();
-        val.split_once('/').map_or(val, |x| x.0)
+    fn slot(&'a self) -> &'a str {
+        self.slot.get_or_init(|| {
+            // mandatory key guaranteed to exist
+            let val = self.data.get(&Slot).unwrap();
+            val.split_once('/').map_or(val, |x| x.0)
+        })
     }
 
-    fn subslot(&self) -> &str {
-        // mandatory key guaranteed to exist
-        let val = self.data.get(&Slot).unwrap();
-        val.split_once('/').map_or(val, |x| x.1)
+    fn subslot(&'a self) -> &'a str {
+        self.subslot.get_or_init(|| {
+            // mandatory key guaranteed to exist
+            let val = self.data.get(&Slot).unwrap();
+            val.split_once('/').map_or(val, |x| x.1)
+        })
     }
 
-    fn homepage(&self) -> Vec<&str> {
-        let val = self.data.get(&Homepage).map(|s| s.as_str()).unwrap_or("");
-        val.split_whitespace().collect()
+    fn homepage(&'a self) -> &'a [&'a str] {
+        self.homepage
+            .get_or_init(|| {
+                let val = self.data.get(&Homepage).map(|s| s.as_str()).unwrap_or("");
+                val.split_whitespace().collect()
+            })
+            .as_slice()
     }
 
-    fn keywords(&self) -> IndexSet<&str> {
-        let val = self.data.get(&Keywords).map(|s| s.as_str()).unwrap_or("");
-        val.split_whitespace().collect()
+    fn keywords(&'a self) -> &'a IndexSet<&'a str> {
+        self.keywords.get_or_init(|| {
+            let val = self.data.get(&Keywords).map(|s| s.as_str()).unwrap_or("");
+            val.split_whitespace().collect()
+        })
     }
 
-    fn iuse(&self) -> IndexSet<&str> {
-        let val = self.data.get(&Iuse).map(|s| s.as_str()).unwrap_or("");
-        val.split_whitespace().collect()
+    fn iuse(&'a self) -> &'a IndexSet<&'a str> {
+        self.iuse.get_or_init(|| {
+            let val = self.data.get(&Iuse).map(|s| s.as_str()).unwrap_or("");
+            val.split_whitespace().collect()
+        })
     }
 
-    fn inherit(&self) -> IndexSet<&str> {
-        let val = self.data.get(&Inherit).map(|s| s.as_str()).unwrap_or("");
-        val.split_whitespace().collect()
+    fn inherit(&'a self) -> &'a IndexSet<&'a str> {
+        self.inherit.get_or_init(|| {
+            let val = self.data.get(&Inherit).map(|s| s.as_str()).unwrap_or("");
+            val.split_whitespace().collect()
+        })
     }
 
-    fn inherited(&self) -> IndexSet<&str> {
-        let val = self.data.get(&Inherited).map(|s| s.as_str()).unwrap_or("");
-        val.split_whitespace().collect()
+    fn inherited(&'a self) -> &'a IndexSet<&'a str> {
+        self.inherited.get_or_init(|| {
+            let val = self.data.get(&Inherited).map(|s| s.as_str()).unwrap_or("");
+            val.split_whitespace().collect()
+        })
     }
 }
 
@@ -102,7 +130,7 @@ pub struct Pkg<'a> {
     atom: Atom,
     eapi: &'static eapi::Eapi,
     repo: &'a Repo,
-    data: Metadata,
+    data: Metadata<'a>,
 }
 
 make_pkg_traits!(Pkg<'_>);
@@ -150,42 +178,42 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's description.
-    pub fn description(&self) -> &str {
+    pub fn description(&'a self) -> &'a str {
         self.data.description()
     }
 
     /// Return a package's slot.
-    pub fn slot(&self) -> &str {
+    pub fn slot(&'a self) -> &'a str {
         self.data.slot()
     }
 
     /// Return a package's subslot.
-    pub fn subslot(&self) -> &str {
+    pub fn subslot(&'a self) -> &'a str {
         self.data.subslot()
     }
 
     /// Return a package's subslot.
-    pub fn homepage(&self) -> Vec<&str> {
+    pub fn homepage(&'a self) -> &'a [&'a str] {
         self.data.homepage()
     }
 
     /// Return a package's keywords.
-    pub fn keywords(&self) -> IndexSet<&str> {
+    pub fn keywords(&'a self) -> &'a IndexSet<&'a str> {
         self.data.keywords()
     }
 
     /// Return a package's IUSE.
-    pub fn iuse(&self) -> IndexSet<&str> {
+    pub fn iuse(&'a self) -> &'a IndexSet<&'a str> {
         self.data.iuse()
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
-    pub fn inherit(&self) -> IndexSet<&str> {
+    pub fn inherit(&'a self) -> &'a IndexSet<&'a str> {
         self.data.inherit()
     }
 
     /// Return the ordered set of inherited eclasses for a package.
-    pub fn inherited(&self) -> IndexSet<&str> {
+    pub fn inherited(&'a self) -> &'a IndexSet<&'a str> {
         self.data.inherited()
     }
 }
