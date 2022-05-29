@@ -2,7 +2,7 @@ use std::fmt;
 use std::fs;
 use std::path::Path;
 
-use crate::repo::{make_repo_traits, Repository};
+use super::{make_repo_traits, Repository};
 use crate::{atom, pkg, repo, Error, Result};
 
 #[derive(Debug, Default)]
