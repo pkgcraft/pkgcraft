@@ -434,14 +434,6 @@ mod tests {
     use crate::Error;
 
     #[test]
-    fn test_from_str() {
-        for s in ["0", "0-r0", "1.0-r01", "1_alpha5-r1", "1.001.100r_beta1_p2"] {
-            let ver = Version::from_str(s).unwrap();
-            assert_eq!(format!("{ver}"), s);
-        }
-    }
-
-    #[test]
     fn test_overflow_version() {
         let u64_max: u128 = u64::MAX as u128;
 

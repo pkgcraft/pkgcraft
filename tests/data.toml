@@ -78,6 +78,7 @@ ver_cmp = [
     # version letter suffix
     "0a < 0b",
     "1.1z > 1.1a",
+    "1.010.1r_p < 1.0100.1s_beta",
     # release types
     "1_alpha < 1_beta",
     "1_beta < 1_pre",
