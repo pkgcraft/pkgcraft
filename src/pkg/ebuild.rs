@@ -242,13 +242,10 @@ impl<'a> Package for Pkg<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use rusty_fork::rusty_fork_test;
 
     use super::*;
-    use crate::eapi;
-    use crate::pkg::Env;
+    use crate::pkg::Env::*;
     use crate::repo::ebuild::TempRepo;
 
     // TODO: drop this once bash process pool support is added
@@ -291,35 +288,35 @@ mod tests {
             // no revision
             let path = t.create_ebuild("cat/pkg-1", []).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.env(Env::P), "pkg-1");
-            assert_eq!(pkg.env(Env::PN), "pkg");
-            assert_eq!(pkg.env(Env::PV), "1");
-            assert_eq!(pkg.env(Env::PR), "r0");
-            assert_eq!(pkg.env(Env::PVR), "1");
-            assert_eq!(pkg.env(Env::PF), "pkg-1");
-            assert_eq!(pkg.env(Env::CATEGORY), "cat");
+            assert_eq!(pkg.env(P), "pkg-1");
+            assert_eq!(pkg.env(PN), "pkg");
+            assert_eq!(pkg.env(PV), "1");
+            assert_eq!(pkg.env(PR), "r0");
+            assert_eq!(pkg.env(PVR), "1");
+            assert_eq!(pkg.env(PF), "pkg-1");
+            assert_eq!(pkg.env(CATEGORY), "cat");
 
             // revisioned
             let path = t.create_ebuild("cat/pkg-1-r2", []).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.env(Env::P), "pkg-1");
-            assert_eq!(pkg.env(Env::PN), "pkg");
-            assert_eq!(pkg.env(Env::PV), "1");
-            assert_eq!(pkg.env(Env::PR), "r2");
-            assert_eq!(pkg.env(Env::PVR), "1-r2");
-            assert_eq!(pkg.env(Env::PF), "pkg-1-r2");
-            assert_eq!(pkg.env(Env::CATEGORY), "cat");
+            assert_eq!(pkg.env(P), "pkg-1");
+            assert_eq!(pkg.env(PN), "pkg");
+            assert_eq!(pkg.env(PV), "1");
+            assert_eq!(pkg.env(PR), "r2");
+            assert_eq!(pkg.env(PVR), "1-r2");
+            assert_eq!(pkg.env(PF), "pkg-1-r2");
+            assert_eq!(pkg.env(CATEGORY), "cat");
 
             // explicit r0 revision
             let path = t.create_ebuild("cat/pkg-2-r0", []).unwrap();
             let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.env(Env::P), "pkg-2");
-            assert_eq!(pkg.env(Env::PN), "pkg");
-            assert_eq!(pkg.env(Env::PV), "2");
-            assert_eq!(pkg.env(Env::PR), "r0");
-            assert_eq!(pkg.env(Env::PVR), "2");
-            assert_eq!(pkg.env(Env::PF), "pkg-2");
-            assert_eq!(pkg.env(Env::CATEGORY), "cat");
+            assert_eq!(pkg.env(P), "pkg-2");
+            assert_eq!(pkg.env(PN), "pkg");
+            assert_eq!(pkg.env(PV), "2");
+            assert_eq!(pkg.env(PR), "r0");
+            assert_eq!(pkg.env(PVR), "2");
+            assert_eq!(pkg.env(PF), "pkg-2");
+            assert_eq!(pkg.env(CATEGORY), "cat");
         }
 
         #[test]
