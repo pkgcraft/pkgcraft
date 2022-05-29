@@ -145,9 +145,8 @@ impl<'a> Pkg<'a> {
         &self.path
     }
 
-    pub fn ebuild(&self) -> String {
-        // IO errors should be caught on initialization in new().
-        fs::read_to_string(&self.path).unwrap()
+    pub fn ebuild(&self) -> Result<String> {
+        fs::read_to_string(&self.path).map_err(|e| Error::IO(e.to_string()))
     }
 
     /// Return a package's description.
@@ -248,13 +247,13 @@ mod tests {
             let pkg = Pkg::new(&path, &repo).unwrap();
             assert_eq!(pkg.eapi(), &*eapi::EAPI_LATEST);
             assert_eq!(pkg.path(), &path);
-            assert!(!pkg.ebuild().is_empty());
+            assert!(!pkg.ebuild().unwrap().is_empty());
 
             let path = t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
             let pkg = Pkg::new(&path, &repo).unwrap();
             assert_eq!(pkg.eapi(), &*eapi::EAPI0);
             assert_eq!(pkg.path(), &path);
-            assert!(!pkg.ebuild().is_empty());
+            assert!(!pkg.ebuild().unwrap().is_empty());
         }
 
         #[test]
