@@ -200,7 +200,8 @@ impl Config {
                     .to_str()
                     .ok_or_else(|| Error::Config(format!("invalid repo name: {name:?}")))?;
                 // create temporary repo and persist it to disk
-                let temp_repo = TempRepo::new(name, Some(&self.repo_dir), None)?;
+                let temp_repo =
+                    TempRepo::new(name, priority.unwrap_or(0), Some(&self.repo_dir), None)?;
                 temp_repo.persist(Some(&repo_path))?;
                 // add repo to config
                 self.add(name, priority, location)

@@ -359,7 +359,7 @@ mod tests {
 
     #[test]
     fn test_traits() {
-        let t = ebuild::TempRepo::new("test", None::<&str>, None).unwrap();
+        let t = ebuild::TempRepo::new("test", 0, None::<&str>, None).unwrap();
         let e_repo = Repo::Ebuild(t.repo);
         let f_repo = Repo::Fake(fake::Repo::new("fake", 0, []).unwrap());
         assert!(&e_repo != &f_repo);
