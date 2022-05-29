@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::{make_pkg_traits, Package};
-use crate::repo::{fake::Repo, BorrowedRepo, Repository};
+use crate::repo::{fake::Repo, BorrowedRepo};
 use crate::{atom, eapi};
 
 #[derive(Debug, Clone)]
@@ -15,12 +15,6 @@ make_pkg_traits!(Pkg<'_>);
 impl<'a> Pkg<'a> {
     pub(crate) fn new(atom: &'a atom::Atom, repo: &'a Repo) -> Self {
         Pkg { atom, repo }
-    }
-}
-
-impl fmt::Display for Pkg<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}::{}", self.atom, self.repo.id())
     }
 }
 

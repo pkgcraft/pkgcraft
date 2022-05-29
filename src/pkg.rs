@@ -92,6 +92,13 @@ macro_rules! make_pkg_traits {
                     self.repo().cmp(&other.repo())
                 }
             }
+
+            impl fmt::Display for $x {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    use crate::repo::Repository;
+                    write!(f, "{}::{}", self.atom(), self.repo().id())
+                }
+            }
         )*
     };
 }
@@ -118,15 +125,6 @@ impl<'a> Package for Pkg<'a> {
         match self {
             Self::Ebuild(ref pkg) => pkg.repo(),
             Self::Fake(ref pkg) => pkg.repo(),
-        }
-    }
-}
-
-impl fmt::Display for Pkg<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Ebuild(ref pkg) => write!(f, "{}", pkg),
-            Self::Fake(ref pkg) => write!(f, "{}", pkg),
         }
     }
 }

@@ -197,12 +197,6 @@ impl AsRef<Path> for Pkg<'_> {
     }
 }
 
-impl fmt::Display for Pkg<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.path())
-    }
-}
-
 impl<'a> Package for Pkg<'a> {
     type Repo = BorrowedRepo<'a>;
 
