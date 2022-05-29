@@ -17,7 +17,7 @@ make_repo_traits!(Repo);
 impl Repo {
     pub(super) const FORMAT: &'static str = "fake";
 
-    pub(super) fn new<'a, I>(id: &str, priority: i32, atoms: I) -> Result<Repo>
+    pub(crate) fn new<'a, I>(id: &str, priority: i32, atoms: I) -> Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
     {
@@ -190,10 +190,10 @@ mod tests {
     }
 
     #[test]
-    fn test_into_iter() {
+    fn test_iter() {
         let expected = ["cat/pkg-0", "acat/bpkg-1"];
         let repo = Repo::new("fake", 0, expected).unwrap();
-        let atoms: Vec<String> = repo.into_iter().map(|a| format!("{a}")).collect();
-        assert_eq!(atoms, ["acat/bpkg-1", "cat/pkg-0"]);
+        let atoms: Vec<String> = repo.iter().map(|a| format!("{a}")).collect();
+        assert_eq!(atoms, ["acat/bpkg-1::fake", "cat/pkg-0::fake"]);
     }
 }
