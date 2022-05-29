@@ -15,7 +15,7 @@ use tracing::warn;
 use walkdir::WalkDir;
 
 use super::{make_repo_traits, Repository};
-use crate::config::Config;
+use crate::config::{Config, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
@@ -114,9 +114,8 @@ impl Metadata {
 #[derive(Debug, Default)]
 pub struct Repo {
     id: String,
-    priority: i32,
-    pub(super) path: PathBuf,
-    pub(super) config: Metadata,
+    config: RepoConfig,
+    pub(super) meta: Metadata,
 }
 
 make_repo_traits!(Repo);
@@ -124,16 +123,14 @@ make_repo_traits!(Repo);
 impl Repo {
     pub(super) const FORMAT: &'static str = "ebuild";
 
-    fn new<S, P>(id: S, priority: i32, path: P, config: Metadata) -> crate::Result<Self>
+    fn new<S>(id: S, config: Option<RepoConfig>, meta: Metadata) -> crate::Result<Self>
     where
         S: AsRef<str>,
-        P: AsRef<Path>,
     {
         Ok(Repo {
             id: id.as_ref().to_string(),
-            priority,
-            path: PathBuf::from(path.as_ref()),
-            config,
+            config: config.unwrap_or_default(),
+            meta,
         })
     }
 
@@ -152,19 +149,26 @@ impl Repo {
             });
         }
 
-        let config =
+        let meta =
             Metadata::new(path.join("metadata/layout.conf")).map_err(|e| Error::InvalidRepo {
                 path: PathBuf::from(path),
                 error: e.to_string(),
             })?;
-        Repo::new(id, priority, path, config)
+
+        let config = RepoConfig {
+            location: PathBuf::from(path),
+            priority,
+            ..Default::default()
+        };
+
+        Repo::new(id, Some(config), meta)
     }
 
     pub fn masters(&self) -> crate::Result<Vec<Arc<repo::Repo>>> {
         let config = Config::current();
         let mut masters = vec![];
         let mut nonexistent = vec![];
-        for id in self.config.masters() {
+        for id in self.meta.masters() {
             match config.repos.repos.get(&id) {
                 Some(r) => masters.push(r.clone()),
                 None => nonexistent.push(id),
@@ -176,7 +180,7 @@ impl Repo {
             false => {
                 let masters = nonexistent.join(", ");
                 Err(Error::InvalidRepo {
-                    path: self.path.clone(),
+                    path: self.path().into(),
                     error: format!("nonexistent masters: {masters}"),
                 })
             }
@@ -192,7 +196,7 @@ impl Repo {
                 Ok(trees)
             }
             None => Err(Error::InvalidRepo {
-                path: self.path.clone(),
+                path: self.path().into(),
                 error: format!("unconfigured repo: {}", self.id),
             }),
         }
@@ -202,13 +206,15 @@ impl Repo {
         // filter out non-category dirs
         let filter =
             |e: &walkdir::DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
-        let cats = sorted_dir_list(&self.path).into_iter().filter_entry(filter);
+        let cats = sorted_dir_list(self.path())
+            .into_iter()
+            .filter_entry(filter);
         let mut v = vec![];
         for entry in cats {
             let entry = match entry {
                 Ok(e) => e,
                 Err(e) => {
-                    warn!("error walking {:?}: {e}", &self.path);
+                    warn!("error walking {:?}: {e}", self.path());
                     continue;
                 }
             };
@@ -224,16 +230,12 @@ impl Repo {
         v
     }
 
-    pub(crate) fn path(&self) -> &Path {
-        &self.path
-    }
-
     /// Convert an ebuild path inside the repo into an Atom.
     pub(crate) fn atom_from_path(&self, path: &Path) -> crate::Result<atom::Atom> {
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
         };
-        path.strip_prefix(&self.path)
+        path.strip_prefix(self.path())
             .map_err(|_| err("missing repo prefix"))
             .and_then(|p| p.to_str().ok_or_else(|| err("non-unicode")))
             .and_then(|s| EBUILD_RE.captures(s).ok_or_else(|| err("unmatched file")))
@@ -257,7 +259,7 @@ impl Repo {
 
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (id, path) = (self.id.as_str(), self.path.to_string_lossy());
+        let (id, path) = (self.id.as_str(), self.path().to_string_lossy());
         match id == path {
             true => write!(f, "{id}"),
             false => write!(f, "{id}: {path}"),
@@ -280,7 +282,7 @@ impl Repository for Repo {
     }
 
     fn packages(&self, cat: &str) -> Vec<String> {
-        let path = self.path.join(cat.strip_prefix('/').unwrap_or(cat));
+        let path = self.path().join(cat.strip_prefix('/').unwrap_or(cat));
         let filter = |e: &walkdir::DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
         let pkgs = sorted_dir_list(&path).into_iter().filter_entry(filter);
         let mut v = vec![];
@@ -306,7 +308,7 @@ impl Repository for Repo {
 
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         let path = build_from_paths!(
-            &self.path,
+            self.path(),
             cat.strip_prefix('/').unwrap_or(cat),
             pkg.strip_prefix('/').unwrap_or(pkg)
         );
@@ -343,8 +345,8 @@ impl Repository for Repo {
         &self.id
     }
 
-    fn priority(&self) -> i32 {
-        self.priority
+    fn config(&self) -> &RepoConfig {
+        &self.config
     }
 
     fn len(&self) -> usize {
@@ -360,13 +362,13 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
     fn contains(&self, path: T) -> bool {
         let path = path.as_ref();
         if path.is_absolute() {
-            if let (Ok(path), Ok(repo_path)) = (path.canonicalize(), self.path.canonicalize()) {
+            if let (Ok(path), Ok(repo_path)) = (path.canonicalize(), self.path().canonicalize()) {
                 path.starts_with(&repo_path) && path.exists()
             } else {
                 false
             }
         } else {
-            self.path.join(path).exists()
+            self.path().join(path).exists()
         }
     }
 }
@@ -557,11 +559,11 @@ mod tests {
     fn test_masters() {
         let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
         let mut repo = t.repo;
-        assert!(repo.config.masters().is_empty());
-        repo.config.set("masters", "a b c");
-        repo.config.write(None).unwrap();
-        let test_repo = Repo::from_path(repo.id, 0, repo.path).unwrap();
-        assert_eq!(test_repo.config.masters(), ["a", "b", "c"]);
+        assert!(repo.meta.masters().is_empty());
+        repo.meta.set("masters", "a b c");
+        repo.meta.write(None).unwrap();
+        let test_repo = Repo::from_path(repo.id(), 0, repo.path()).unwrap();
+        assert_eq!(test_repo.meta.masters(), ["a", "b", "c"]);
         // repos don't exist so they'll be flagged if actually trying to access them
         let r = test_repo.masters();
         assert_err_re!(r, format!("^.* nonexistent masters: a, b, c$"));
@@ -570,8 +572,8 @@ mod tests {
     #[test]
     fn test_invalid_layout() {
         let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
-        t.repo.config.write(Some("data")).unwrap();
-        let r = Repo::from_path(t.repo.id, 0, t.repo.path);
+        t.repo.meta.write(Some("data")).unwrap();
+        let r = Repo::from_path(t.repo.id(), 0, t.repo.path());
         assert_err_re!(r, format!("^.* invalid repo layout: .*$"));
     }
 
@@ -598,10 +600,10 @@ mod tests {
     fn test_categories() {
         let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
         assert_eq!(t.repo.categories(), Vec::<String>::new());
-        fs::create_dir(t.repo.path.join("cat")).unwrap();
+        fs::create_dir(t.repo.path().join("cat")).unwrap();
         assert_eq!(t.repo.categories(), ["cat"]);
-        fs::create_dir(t.repo.path.join("a-cat")).unwrap();
-        fs::create_dir(t.repo.path.join("z-cat")).unwrap();
+        fs::create_dir(t.repo.path().join("a-cat")).unwrap();
+        fs::create_dir(t.repo.path().join("z-cat")).unwrap();
         assert_eq!(t.repo.categories(), ["a-cat", "cat", "z-cat"]);
     }
 
@@ -609,10 +611,10 @@ mod tests {
     fn test_packages() {
         let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
         assert_eq!(t.repo.packages("cat"), Vec::<String>::new());
-        fs::create_dir_all(t.repo.path.join("cat/pkg")).unwrap();
+        fs::create_dir_all(t.repo.path().join("cat/pkg")).unwrap();
         assert_eq!(t.repo.packages("cat"), ["pkg"]);
-        fs::create_dir_all(t.repo.path.join("a-cat/pkg-z")).unwrap();
-        fs::create_dir_all(t.repo.path.join("a-cat/pkg-a")).unwrap();
+        fs::create_dir_all(t.repo.path().join("a-cat/pkg-z")).unwrap();
+        fs::create_dir_all(t.repo.path().join("a-cat/pkg-a")).unwrap();
         assert_eq!(t.repo.packages("a-cat"), ["pkg-a", "pkg-z"]);
     }
 
@@ -620,25 +622,25 @@ mod tests {
     fn test_versions() {
         let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
         assert_eq!(t.repo.versions("cat", "pkg"), Vec::<String>::new());
-        fs::create_dir_all(t.repo.path.join("cat/pkg")).unwrap();
-        fs::File::create(t.repo.path.join("cat/pkg/pkg-1.ebuild")).unwrap();
+        fs::create_dir_all(t.repo.path().join("cat/pkg")).unwrap();
+        fs::File::create(t.repo.path().join("cat/pkg/pkg-1.ebuild")).unwrap();
         assert_eq!(t.repo.versions("cat", "pkg"), ["1"]);
 
         // unmatching ebuilds are ignored
-        fs::File::create(t.repo.path.join("cat/pkg/foo-2.ebuild")).unwrap();
+        fs::File::create(t.repo.path().join("cat/pkg/foo-2.ebuild")).unwrap();
         assert_eq!(t.repo.versions("cat", "pkg"), ["1"]);
 
         // wrongly named files are ignored
-        fs::File::create(t.repo.path.join("cat/pkg/pkg-2.txt")).unwrap();
-        fs::File::create(t.repo.path.join("cat/pkg/pkg-2..ebuild")).unwrap();
-        fs::File::create(t.repo.path.join("cat/pkg/pkg-2ebuild")).unwrap();
+        fs::File::create(t.repo.path().join("cat/pkg/pkg-2.txt")).unwrap();
+        fs::File::create(t.repo.path().join("cat/pkg/pkg-2..ebuild")).unwrap();
+        fs::File::create(t.repo.path().join("cat/pkg/pkg-2ebuild")).unwrap();
         assert_eq!(t.repo.versions("cat", "pkg"), ["1"]);
 
-        fs::File::create(t.repo.path.join("cat/pkg/pkg-2.ebuild")).unwrap();
+        fs::File::create(t.repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
         assert_eq!(t.repo.versions("cat", "pkg"), ["1", "2"]);
 
-        fs::create_dir_all(t.repo.path.join("a-cat/pkg10a")).unwrap();
-        fs::File::create(t.repo.path.join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
+        fs::create_dir_all(t.repo.path().join("a-cat/pkg10a")).unwrap();
+        fs::File::create(t.repo.path().join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
         assert_eq!(t.repo.versions("a-cat", "pkg10a"), ["0-r0"]);
     }
 

@@ -5,10 +5,12 @@ use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use tracing::warn;
 
+use crate::config::RepoConfig;
 use crate::pkg::Pkg;
 use crate::{atom, Error, Result};
 
 pub(crate) mod ebuild;
+pub(crate) mod empty;
 pub(crate) mod fake;
 
 type VersionMap = IndexMap<String, IndexSet<String>>;
@@ -107,6 +109,7 @@ impl<'a> FromIterator<&'a str> for PkgCache {
 pub enum Repo {
     Ebuild(ebuild::Repo),
     Fake(fake::Repo),
+    Config(empty::Repo),
 }
 
 make_repo_traits!(Repo);
@@ -122,7 +125,7 @@ impl Repo {
     }
 
     /// Try to load a repo from a given path.
-    pub(crate) fn from_path<P, S>(id: S, priority: i32, path: P) -> Result<(&'static str, Self)>
+    pub(crate) fn from_path<P, S>(id: S, priority: i32, path: P) -> Result<Self>
     where
         P: AsRef<Path>,
         S: AsRef<str>,
@@ -132,7 +135,7 @@ impl Repo {
 
         for format in SUPPORTED_FORMATS.iter() {
             if let Ok(repo) = Self::from_format(id, priority, path, format) {
-                return Ok((format, repo));
+                return Ok(repo);
             }
         }
 
@@ -148,12 +151,12 @@ impl Repo {
         P: AsRef<Path>,
         S: AsRef<str>,
     {
-        let path = path.as_ref();
         let id = id.as_ref();
 
         match format {
             ebuild::Repo::FORMAT => Ok(Self::Ebuild(ebuild::Repo::from_path(id, priority, path)?)),
             fake::Repo::FORMAT => Ok(Self::Fake(fake::Repo::from_path(id, priority, path)?)),
+            empty::Repo::FORMAT => Ok(Self::Config(empty::Repo::new(id)?)),
             _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
         }
     }
@@ -167,6 +170,7 @@ impl Repo {
 pub enum PackageIter<'a> {
     Ebuild(ebuild::PkgIter<'a>),
     Fake(fake::PkgIter<'a>),
+    Empty,
 }
 
 impl<'a> IntoIterator for &'a Repo {
@@ -177,6 +181,7 @@ impl<'a> IntoIterator for &'a Repo {
         match self {
             Repo::Ebuild(ref repo) => PackageIter::Ebuild(repo.into_iter()),
             Repo::Fake(ref repo) => PackageIter::Fake(repo.into_iter()),
+            Repo::Config(_) => PackageIter::Empty,
         }
     }
 }
@@ -188,6 +193,7 @@ impl<'a> Iterator for PackageIter<'a> {
         match self {
             Self::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
             Self::Fake(iter) => iter.next().map(Pkg::Fake),
+            Self::Empty => None,
         }
     }
 }
@@ -208,7 +214,16 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
     fn id(&self) -> &str;
-    fn priority(&self) -> i32;
+    fn config(&self) -> &RepoConfig;
+    fn priority(&self) -> i32 {
+        self.config().priority
+    }
+    fn path(&self) -> &Path {
+        &self.config().location
+    }
+    fn sync(&self) -> Result<()> {
+        self.config().sync()
+    }
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
 }
@@ -217,6 +232,7 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
 pub enum BorrowedRepo<'a> {
     Ebuild(&'a ebuild::Repo),
     Fake(&'a fake::Repo),
+    Config(&'a empty::Repo),
 }
 
 make_repo_traits!(BorrowedRepo<'_>);
@@ -229,6 +245,7 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => write!(f, "{}", repo),
                         Self::Fake(ref repo) => write!(f, "{}", repo),
+                        Self::Config(ref repo) => write!(f, "{}", repo),
                     }
                 }
             }
@@ -238,6 +255,7 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => repo.categories(),
                         Self::Fake(ref repo) => repo.categories(),
+                        Self::Config(ref repo) => repo.categories(),
                     }
                 }
 
@@ -245,6 +263,7 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => repo.packages(cat),
                         Self::Fake(ref repo) => repo.packages(cat),
+                        Self::Config(ref repo) => repo.packages(cat),
                     }
                 }
 
@@ -252,6 +271,7 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => repo.versions(cat, pkg),
                         Self::Fake(ref repo) => repo.versions(cat, pkg),
+                        Self::Config(ref repo) => repo.versions(cat, pkg),
                     }
                 }
 
@@ -259,6 +279,15 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => repo.id(),
                         Self::Fake(ref repo) => repo.id(),
+                        Self::Config(ref repo) => repo.id(),
+                    }
+                }
+
+                fn config(&self) -> &RepoConfig {
+                    match self {
+                        Self::Ebuild(ref repo) => repo.config(),
+                        Self::Fake(ref repo) => repo.config(),
+                        Self::Config(ref repo) => repo.config(),
                     }
                 }
 
@@ -266,6 +295,7 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => repo.priority(),
                         Self::Fake(ref repo) => repo.priority(),
+                        Self::Config(ref repo) => repo.priority(),
                     }
                 }
 
@@ -273,6 +303,7 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => repo.len(),
                         Self::Fake(ref repo) => repo.len(),
+                        Self::Config(ref repo) => repo.len(),
                     }
                 }
 
@@ -280,6 +311,7 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => repo.is_empty(),
                         Self::Fake(ref repo) => repo.is_empty(),
+                        Self::Config(ref repo) => repo.is_empty(),
                     }
                 }
             }
@@ -332,6 +364,7 @@ impl<T: AsRef<Path>> Contains<T> for Repo {
         match self {
             Self::Ebuild(ref repo) => repo.contains(path),
             Self::Fake(ref repo) => repo.contains(path),
+            Self::Config(ref repo) => repo.contains(path),
         }
     }
 }
@@ -343,6 +376,7 @@ macro_rules! make_contains {
                 match self {
                     Self::Ebuild(ref repo) => repo.contains(obj),
                     Self::Fake(ref repo) => repo.contains(obj),
+                    Self::Config(ref repo) => repo.contains(obj),
                 }
             }
         }

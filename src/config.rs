@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
 use crate::{Error, Result};
+pub(crate) use repo::RepoConfig;
 
 mod repo;
 

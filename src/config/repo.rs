@@ -10,16 +10,16 @@ use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::repo::ebuild::TempRepo;
-use crate::repo::Repo;
+use crate::repo::{Repo, Repository};
 use crate::sync::Syncer;
 use crate::{Error, Result};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RepoConfig {
-    pub location: PathBuf,
-    pub format: String,
-    pub priority: i32,
-    sync: Option<Syncer>,
+    pub(crate) location: PathBuf,
+    pub(crate) format: String,
+    pub(crate) priority: i32,
+    pub(crate) sync: Option<Syncer>,
 }
 
 impl RepoConfig {
@@ -28,16 +28,16 @@ impl RepoConfig {
         let data = fs::read_to_string(path)
             .map_err(|e| Error::Config(format!("failed loading repo config {path:?}: {e}")))?;
 
-        let repo_conf: RepoConfig = toml::from_str(&data)
+        let config: RepoConfig = toml::from_str(&data)
             .map_err(|e| Error::Config(format!("failed loading repo config toml {path:?}: {e}")))?;
 
         // verify format is supported
-        Repo::is_supported(&repo_conf.format)?;
+        Repo::is_supported(&config.format)?;
 
-        Ok(repo_conf)
+        Ok(config)
     }
 
-    fn sync(&self) -> Result<()> {
+    pub(crate) fn sync(&self) -> Result<()> {
         match &self.sync {
             Some(syncer) => syncer.sync(&self.location),
             None => Ok(()),
@@ -66,8 +66,6 @@ pub struct Config {
     config_dir: PathBuf,
     repo_dir: PathBuf,
     #[serde(skip)]
-    pub configs: IndexMap<String, RepoConfig>,
-    #[serde(skip)]
     pub repos: IndexMap<String, Arc<Repo>>,
 }
 
@@ -84,7 +82,7 @@ impl Config {
             }
         }
 
-        let mut configs = IndexMap::<String, RepoConfig>::new();
+        let mut configs = Vec::<(String, RepoConfig)>::new();
         if config_dir.exists() {
             let entries = fs::read_dir(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
 
@@ -98,8 +96,8 @@ impl Config {
                     {
                         // ignore bad configs
                         match RepoConfig::new(&p) {
-                            Ok(repo_conf) => {
-                                configs.insert(name, repo_conf);
+                            Ok(config) => {
+                                configs.push((name, config));
                             }
                             Err(err) => warn!("{err}"),
                         }
@@ -108,12 +106,12 @@ impl Config {
             }
 
             // sort configs by priority then by name
-            configs.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
+            configs.sort_by(|(_k1, v1), (_k2, v2)| v1.cmp(v2));
         }
 
         // create hash tables of repos ordered by priority
         let mut repos = IndexMap::<String, Arc<Repo>>::new();
-        for (name, c) in configs.iter() {
+        for (name, c) in configs.into_iter() {
             // ignore unsynced or nonexistent repos
             match Repo::from_format(&name, c.priority, &c.location, &c.format) {
                 Ok(repo) => {
@@ -126,20 +124,15 @@ impl Config {
         Ok(Config {
             config_dir,
             repo_dir,
-            configs,
             repos,
         })
     }
 
-    pub fn add(&mut self, name: &str, priority: Option<i32>, uri: &str) -> Result<Arc<Repo>> {
-        if let Some(c) = self.configs.get(name) {
-            return Err(Error::Config(format!("existing repo: {name:?} @ {:?}", &c.location)));
+    pub fn add(&mut self, name: &str, priority: i32, uri: &str) -> Result<Arc<Repo>> {
+        if self.repos.get(name).is_some() {
+            return Err(Error::Config(format!("existing repo: {name}")));
         }
 
-        let mut config = RepoConfig {
-            priority: priority.unwrap_or(0),
-            ..Default::default()
-        };
         let path = Path::new(uri);
 
         let repo = match path.exists() {
@@ -148,27 +141,28 @@ impl Config {
                 let path = path.canonicalize().map_err(|e| {
                     Error::Config(format!("failed canonicalizing repo path {path:?}: {e}"))
                 })?;
-                let (format, repo) = Repo::from_path(name, config.priority, path)?;
-                config.format = format.to_string();
-                repo
+                Repo::from_path(name, priority, path)?
             }
             false => {
-                config.location = self.repo_dir.join(name);
-                config.sync = Some(Syncer::from_str(uri)?);
+                let config = RepoConfig {
+                    location: self.repo_dir.join(name),
+                    priority,
+                    sync: Some(Syncer::from_str(uri)?),
+                    ..Default::default()
+                };
                 config.sync()?;
 
-                let (format, repo) = Repo::from_path(name, config.priority, &config.location)?;
-                config.format = format.to_string();
+                let repo = Repo::from_path(name, priority, config.location)?;
 
                 // write repo config file to disk
-                let repo_conf_data = toml::to_string(&config).map_err(|e| {
+                let data = toml::to_string(repo.config()).map_err(|e| {
                     Error::Config(format!("failed serializing repo config to toml: {e}"))
                 })?;
                 let path = self.config_dir.join(name);
                 let mut file = fs::File::create(&path).map_err(|e| {
                     Error::Config(format!("failed creating repo config file: {path:?}: {e}"))
                 })?;
-                file.write_all(repo_conf_data.as_bytes()).map_err(|e| {
+                file.write_all(data.as_bytes()).map_err(|e| {
                     Error::Config(format!("failed writing repo config file: {path:?}: {e}"))
                 })?;
 
@@ -176,32 +170,23 @@ impl Config {
             }
         };
 
-        let (configs, repos) = (&mut self.configs, &mut self.repos);
-        configs.insert(name.to_string(), config);
-        // re-sort configs by RepoConfig ordering
-        configs.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
+        let repos = &mut self.repos;
         let repo = Arc::new(repo);
         repos.insert(name.to_string(), repo.clone());
-        // use sorted configs to re-sort repos
-        repos.sort_by(|k1, _v1, k2, _v2| {
-            let k1_index = configs.get_index_of(k1).unwrap();
-            let k2_index = configs.get_index_of(k2).unwrap();
-            k1_index.cmp(&k2_index)
-        });
+        repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
         Ok(repo)
     }
 
-    pub fn create(&mut self, name: &str, priority: Option<i32>) -> Result<Arc<Repo>> {
-        match self.configs.get(name) {
-            Some(c) => Err(Error::Config(format!("existing repo: {name:?} @ {:?}", c.location))),
+    pub fn create(&mut self, name: &str, priority: i32) -> Result<Arc<Repo>> {
+        match self.repos.get(name) {
+            Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
             None => {
                 let repo_path = self.repo_dir.join(name);
                 let location = repo_path
                     .to_str()
                     .ok_or_else(|| Error::Config(format!("invalid repo name: {name:?}")))?;
                 // create temporary repo and persist it to disk
-                let temp_repo =
-                    TempRepo::new(name, priority.unwrap_or(0), Some(&self.repo_dir), None)?;
+                let temp_repo = TempRepo::new(name, priority, Some(&self.repo_dir), None)?;
                 temp_repo.persist(Some(&repo_path))?;
                 // add repo to config
                 self.add(name, priority, location)
@@ -213,45 +198,21 @@ impl Config {
         for name in repos {
             let name = name.as_ref();
             // error out if repo config is missing
-            let repo_config = self.config_from_id(name)?;
             // physical repo files are allowed to be missing
-            if let Ok(_repo) = self.repo_from_id(name) {
+            if let Some(repo) = self.repos.get(name) {
                 if clean {
-                    fs::remove_dir_all(&repo_config.location).map_err(|e| {
-                        Error::Config(format!(
-                            "failed removing repo files: {:?}: {e}",
-                            &repo_config.location
-                        ))
+                    fs::remove_dir_all(repo.path()).map_err(|e| {
+                        Error::Config(format!("failed removing repo files: {:?}: {e}", repo.path()))
+                    })?;
+                    let path = self.config_dir.join(&name);
+                    fs::remove_file(&path).map_err(|e| {
+                        Error::Config(format!("failed removing repo config: {path:?}: {e}"))
                     })?;
                 }
                 self.repos.shift_remove(name as &str);
             }
-
-            if clean {
-                let path = self.config_dir.join(&name);
-                fs::remove_file(&path).map_err(|e| {
-                    Error::Config(format!("failed removing repo config: {path:?}: {e}"))
-                })?;
-            }
-            self.configs.shift_remove(name as &str);
         }
         Ok(())
-    }
-
-    fn repo_from_id<S: AsRef<str>>(&self, id: S) -> Result<&Repo> {
-        let id = id.as_ref();
-        match self.repos.get(id) {
-            Some(repo) => Ok(repo),
-            None => Err(Error::Config(format!("nonexistent repo: {id:?}"))),
-        }
-    }
-
-    fn config_from_id<S: AsRef<str>>(&self, id: S) -> Result<&RepoConfig> {
-        let id = id.as_ref();
-        match self.configs.get(id) {
-            Some(config) => Ok(config),
-            None => Err(Error::Config(format!("nonexistent repo: {id:?}"))),
-        }
     }
 
     // TODO: add concurrent syncing support with output progress
@@ -259,14 +220,15 @@ impl Config {
         let repos: Vec<&str> = match &repos {
             names if !names.is_empty() => names.iter().map(|s| s.as_ref()).collect(),
             // sync all configured repos if none were passed
-            _ => self.configs.keys().map(|s| s.as_str()).collect(),
+            _ => self.repos.keys().map(|s| s.as_str()).collect(),
         };
 
         let mut failed: Vec<(&str, Error)> = Vec::new();
         for name in repos {
-            let repo_config = self.config_from_id(name)?;
-            if let Err(e) = repo_config.sync() {
-                failed.push((name, e));
+            if let Some(repo) = self.repos.get(name) {
+                if let Err(e) = repo.sync() {
+                    failed.push((name, e));
+                }
             }
         }
 

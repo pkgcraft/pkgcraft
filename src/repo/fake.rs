@@ -1,14 +1,15 @@
 use std::fmt;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::{make_repo_traits, Repository};
+use crate::config::RepoConfig;
 use crate::{atom, pkg, repo, Error, Result};
 
 #[derive(Debug, Default)]
 pub struct Repo {
     id: String,
-    priority: i32,
+    config: RepoConfig,
     pkgs: repo::PkgCache,
 }
 
@@ -17,21 +18,37 @@ make_repo_traits!(Repo);
 impl Repo {
     pub(super) const FORMAT: &'static str = "fake";
 
+    #[cfg(test)]
     pub(crate) fn new<'a, I>(id: &str, priority: i32, atoms: I) -> Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
     {
+        let config = RepoConfig {
+            priority,
+            ..Default::default()
+        };
+
         // TODO: replace from_iter() usage with try_from_iter()
         Ok(Repo {
             id: id.to_string(),
-            priority,
+            config,
             pkgs: repo::PkgCache::from_iter(atoms),
         })
     }
 
     pub(super) fn from_path<P: AsRef<Path>>(id: &str, priority: i32, path: P) -> Result<Self> {
-        let data = fs::read_to_string(path.as_ref()).map_err(|e| Error::RepoInit(e.to_string()))?;
-        Repo::new(id, priority, data.lines())
+        let path = path.as_ref();
+        let data = fs::read_to_string(path).map_err(|e| Error::RepoInit(e.to_string()))?;
+        let config = RepoConfig {
+            location: PathBuf::from(path),
+            priority,
+            ..Default::default()
+        };
+        Ok(Repo {
+            id: id.to_string(),
+            config,
+            pkgs: repo::PkgCache::from_iter(data.lines()),
+        })
     }
 
     pub fn iter(&self) -> PkgIter {
@@ -62,8 +79,8 @@ impl Repository for Repo {
         &self.id
     }
 
-    fn priority(&self) -> i32 {
-        self.priority
+    fn config(&self) -> &RepoConfig {
+        &self.config
     }
 
     fn len(&self) -> usize {
