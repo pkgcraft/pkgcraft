@@ -307,12 +307,13 @@ macro_rules! make_repo_traits {
 
             impl PartialOrd for $x {
                 fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                    self.id().partial_cmp(other.id())
+                    Some(self.cmp(other))
                 }
             }
 
             impl Ord for $x {
                 fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                    crate::macros::cmp_not_equal!(&self.priority(), &other.priority());
                     self.id().cmp(other.id())
                 }
             }
