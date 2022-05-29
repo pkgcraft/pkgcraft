@@ -114,6 +114,7 @@ impl Metadata {
 #[derive(Debug, Default)]
 pub struct Repo {
     id: String,
+    priority: i32,
     pub(super) path: PathBuf,
     pub(super) config: Metadata,
 }
@@ -123,19 +124,20 @@ make_repo_traits!(Repo);
 impl Repo {
     pub(super) const FORMAT: &'static str = "ebuild";
 
-    fn new<S, P>(id: S, path: P, config: Metadata) -> crate::Result<Self>
+    fn new<S, P>(id: S, priority: i32, path: P, config: Metadata) -> crate::Result<Self>
     where
         S: AsRef<str>,
         P: AsRef<Path>,
     {
         Ok(Repo {
             id: id.as_ref().to_string(),
+            priority,
             path: PathBuf::from(path.as_ref()),
             config,
         })
     }
 
-    pub(super) fn from_path<S, P>(id: S, path: P) -> crate::Result<Self>
+    pub(super) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
         S: AsRef<str>,
         P: AsRef<Path>,
@@ -155,7 +157,7 @@ impl Repo {
                 path: PathBuf::from(path),
                 error: e.to_string(),
             })?;
-        Repo::new(id, path, config)
+        Repo::new(id, priority, path, config)
     }
 
     pub fn masters(&self) -> crate::Result<Vec<Arc<repo::Repo>>> {
@@ -341,6 +343,10 @@ impl Repository for Repo {
         &self.id
     }
 
+    fn priority(&self) -> i32 {
+        self.priority
+    }
+
     fn len(&self) -> usize {
         self.iter().count()
     }
@@ -465,7 +471,7 @@ impl TempRepo {
         fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing temp repo EAPI: {e}")))?;
 
-        let repo = Repo::from_path(id, temp_path)?;
+        let repo = Repo::from_path(id, 0, temp_path)?;
         Ok(TempRepo { tempdir, repo })
     }
 
@@ -553,7 +559,7 @@ mod tests {
         assert!(repo.config.masters().is_empty());
         repo.config.set("masters", "a b c");
         repo.config.write(None).unwrap();
-        let test_repo = Repo::from_path(repo.id, repo.path).unwrap();
+        let test_repo = Repo::from_path(repo.id, 0, repo.path).unwrap();
         assert_eq!(test_repo.config.masters(), ["a", "b", "c"]);
         // repos don't exist so they'll be flagged if actually trying to access them
         let r = test_repo.masters();
@@ -564,7 +570,7 @@ mod tests {
     fn test_invalid_layout() {
         let t = TempRepo::new("test", None::<&str>, None).unwrap();
         t.repo.config.write(Some("data")).unwrap();
-        let r = Repo::from_path(t.repo.id, t.repo.path);
+        let r = Repo::from_path(t.repo.id, 0, t.repo.path);
         assert_err_re!(r, format!("^.* invalid repo layout: .*$"));
     }
 

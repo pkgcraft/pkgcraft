@@ -113,9 +113,9 @@ impl Config {
 
         // create hash tables of repos ordered by priority
         let mut repos = IndexMap::<String, Arc<Repo>>::new();
-        for (name, config) in configs.iter() {
+        for (name, c) in configs.iter() {
             // ignore unsynced or nonexistent repos
-            match Repo::from_format(&name, &config.location, &config.format) {
+            match Repo::from_format(&name, c.priority, &c.location, &c.format) {
                 Ok(repo) => {
                     repos.insert(name.clone(), Arc::new(repo));
                 }
@@ -131,12 +131,15 @@ impl Config {
         })
     }
 
-    pub fn add(&mut self, name: &str, uri: &str) -> Result<Arc<Repo>> {
+    pub fn add(&mut self, name: &str, priority: Option<i32>, uri: &str) -> Result<Arc<Repo>> {
         if let Some(c) = self.configs.get(name) {
             return Err(Error::Config(format!("existing repo: {name:?} @ {:?}", &c.location)));
         }
 
-        let mut config: RepoConfig = Default::default();
+        let mut config = RepoConfig {
+            priority: priority.unwrap_or(0),
+            ..Default::default()
+        };
         let path = Path::new(uri);
 
         let repo = match path.exists() {
@@ -145,7 +148,7 @@ impl Config {
                 let path = path.canonicalize().map_err(|e| {
                     Error::Config(format!("failed canonicalizing repo path {path:?}: {e}"))
                 })?;
-                let (format, repo) = Repo::from_path(name, path)?;
+                let (format, repo) = Repo::from_path(name, config.priority, path)?;
                 config.format = format.to_string();
                 repo
             }
@@ -154,7 +157,7 @@ impl Config {
                 config.sync = Some(Syncer::from_str(uri)?);
                 config.sync()?;
 
-                let (format, repo) = Repo::from_path(name, &config.location)?;
+                let (format, repo) = Repo::from_path(name, config.priority, &config.location)?;
                 config.format = format.to_string();
 
                 // write repo config file to disk
@@ -188,7 +191,7 @@ impl Config {
         Ok(repo)
     }
 
-    pub fn create(&mut self, name: &str) -> Result<Arc<Repo>> {
+    pub fn create(&mut self, name: &str, priority: Option<i32>) -> Result<Arc<Repo>> {
         match self.configs.get(name) {
             Some(c) => Err(Error::Config(format!("existing repo: {name:?} @ {:?}", c.location))),
             None => {
@@ -200,7 +203,7 @@ impl Config {
                 let temp_repo = TempRepo::new(name, Some(&self.repo_dir), None)?;
                 temp_repo.persist(Some(&repo_path))?;
                 // add repo to config
-                self.add(name, location)
+                self.add(name, priority, location)
             }
         }
     }

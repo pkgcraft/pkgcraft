@@ -122,7 +122,7 @@ impl Repo {
     }
 
     /// Try to load a repo from a given path.
-    pub(crate) fn from_path<P, S>(id: S, path: P) -> Result<(&'static str, Self)>
+    pub(crate) fn from_path<P, S>(id: S, priority: i32, path: P) -> Result<(&'static str, Self)>
     where
         P: AsRef<Path>,
         S: AsRef<str>,
@@ -131,7 +131,7 @@ impl Repo {
         let id = id.as_ref();
 
         for format in SUPPORTED_FORMATS.iter() {
-            if let Ok(repo) = Self::from_format(id, path, format) {
+            if let Ok(repo) = Self::from_format(id, priority, path, format) {
                 return Ok((format, repo));
             }
         }
@@ -143,7 +143,7 @@ impl Repo {
     }
 
     /// Try to load a certain repo type from a given path.
-    pub(crate) fn from_format<P, S>(id: S, path: P, format: &str) -> Result<Self>
+    pub(crate) fn from_format<P, S>(id: S, priority: i32, path: P, format: &str) -> Result<Self>
     where
         P: AsRef<Path>,
         S: AsRef<str>,
@@ -152,8 +152,8 @@ impl Repo {
         let id = id.as_ref();
 
         match format {
-            ebuild::Repo::FORMAT => Ok(Self::Ebuild(ebuild::Repo::from_path(id, path)?)),
-            fake::Repo::FORMAT => Ok(Self::Fake(fake::Repo::from_path(id, path)?)),
+            ebuild::Repo::FORMAT => Ok(Self::Ebuild(ebuild::Repo::from_path(id, priority, path)?)),
+            fake::Repo::FORMAT => Ok(Self::Fake(fake::Repo::from_path(id, priority, path)?)),
             _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
         }
     }
@@ -208,6 +208,7 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
     fn id(&self) -> &str;
+    fn priority(&self) -> i32;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
 }
@@ -258,6 +259,13 @@ macro_rules! make_repo {
                     match self {
                         Self::Ebuild(ref repo) => repo.id(),
                         Self::Fake(ref repo) => repo.id(),
+                    }
+                }
+
+                fn priority(&self) -> i32 {
+                    match self {
+                        Self::Ebuild(ref repo) => repo.priority(),
+                        Self::Fake(ref repo) => repo.priority(),
                     }
                 }
 
@@ -352,14 +360,14 @@ mod tests {
     fn test_traits() {
         let t = ebuild::TempRepo::new("test", None::<&str>, None).unwrap();
         let e_repo = Repo::Ebuild(t.repo);
-        let f_repo = Repo::Fake(fake::Repo::new("fake", []).unwrap());
+        let f_repo = Repo::Fake(fake::Repo::new("fake", 0, []).unwrap());
         assert!(&e_repo != &f_repo);
         assert!(&e_repo > &f_repo);
 
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
 
-        let f_repo = Repo::Fake(fake::Repo::new("test", []).unwrap());
+        let f_repo = Repo::Fake(fake::Repo::new("test", 0, []).unwrap());
         assert!(&e_repo == &f_repo);
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 1);
