@@ -42,6 +42,7 @@ reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"
 scallop = { path = "../scallop", version = "0.0.1" }
 serde = { version = "1.0", features = ["derive"] }
 serde_with = "1.9.4"
+strum = { version = "0.24", features = ["derive"] }
 tar = { version = "0.4.38", optional = true }
 tempfile = "3"
 thiserror = "1.0.26"

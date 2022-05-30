@@ -10,6 +10,7 @@ use regex::{escape, Regex, RegexBuilder};
 use scallop::builtins::ScopedBuiltins;
 use scallop::functions;
 use scallop::variables::string_value;
+use strum::{AsRefStr, Display};
 
 use crate::archive::Archive;
 use crate::atom::Atom;
@@ -133,7 +134,8 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
 type EapiEconfOptions = HashMap<&'static str, (IndexSet<String>, Option<String>)>;
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum Key {
     Iuse,
     RequiredUse,
@@ -176,45 +178,6 @@ impl Key {
             }
             key => string_value(key),
         }
-    }
-}
-
-impl From<&Key> for &str {
-    fn from(key: &Key) -> &'static str {
-        match key {
-            Key::Iuse => "IUSE",
-            Key::RequiredUse => "REQUIRED_USE",
-            Key::Depend => "DEPEND",
-            Key::Rdepend => "RDEPEND",
-            Key::Pdepend => "PDEPEND",
-            Key::Bdepend => "BDEPEND",
-            Key::Idepend => "IDEPEND",
-            Key::Properties => "PROPERTIES",
-            Key::Restrict => "RESTRICT",
-            Key::Description => "DESCRIPTION",
-            Key::Slot => "SLOT",
-            Key::DefinedPhases => "DEFINED_PHASES",
-            Key::Eapi => "EAPI",
-            Key::Homepage => "HOMEPAGE",
-            Key::Inherit => "INHERIT",
-            Key::Inherited => "INHERITED",
-            Key::Keywords => "KEYWORDS",
-            Key::License => "LICENSE",
-            Key::SrcUri => "SRC_URI",
-        }
-    }
-}
-
-impl fmt::Display for Key {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s: &str = self.into();
-        write!(f, "{s}")
-    }
-}
-
-impl AsRef<str> for Key {
-    fn as_ref(&self) -> &str {
-        self.into()
     }
 }
 
