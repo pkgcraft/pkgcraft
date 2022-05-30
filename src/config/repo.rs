@@ -244,4 +244,31 @@ impl Config {
             }
         }
     }
+
+    pub fn iter(&self) -> ReposIter {
+        self.into_iter()
+    }
+}
+
+pub struct ReposIter<'a> {
+    iter: indexmap::map::Iter<'a, String, Arc<Repo>>,
+}
+
+impl<'a> IntoIterator for &'a Config {
+    type Item = (&'a str, &'a Arc<Repo>);
+    type IntoIter = ReposIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ReposIter {
+            iter: self.repos.iter(),
+        }
+    }
+}
+
+impl<'a> Iterator for ReposIter<'a> {
+    type Item = (&'a str, &'a Arc<Repo>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(id, repo)| (id.as_str(), repo))
+    }
 }
