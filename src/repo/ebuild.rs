@@ -169,7 +169,7 @@ impl Repo {
         let mut masters = vec![];
         let mut nonexistent = vec![];
         for id in self.meta.masters() {
-            match config.repos.repos.get(&id) {
+            match config.repos.get(&id) {
                 Some(r) => masters.push(r.clone()),
                 None => nonexistent.push(id),
             }
@@ -190,7 +190,7 @@ impl Repo {
     pub fn trees(&self) -> crate::Result<Vec<Arc<repo::Repo>>> {
         let config = Config::current();
         let mut trees = self.masters()?;
-        match config.repos.repos.get(&self.id) {
+        match config.repos.get(&self.id) {
             Some(r) => {
                 trees.push(r.clone());
                 Ok(trees)

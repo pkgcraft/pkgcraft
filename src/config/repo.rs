@@ -66,7 +66,7 @@ pub struct Config {
     config_dir: PathBuf,
     repo_dir: PathBuf,
     #[serde(skip)]
-    pub repos: IndexMap<String, Arc<Repo>>,
+    repos: IndexMap<String, Arc<Repo>>,
 }
 
 impl Config {
@@ -247,6 +247,10 @@ impl Config {
 
     pub fn iter(&self) -> ReposIter {
         self.into_iter()
+    }
+
+    pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&Arc<Repo>> {
+        self.repos.get(key.as_ref())
     }
 }
 
