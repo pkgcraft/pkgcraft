@@ -3,7 +3,7 @@ use std::{fmt, iter};
 
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
-use crate::{atom, pkg, repo, Result};
+use crate::{atom, pkg, repo, Error, Result};
 
 #[derive(Debug, Default)]
 pub struct Repo {
@@ -14,13 +14,24 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub(super) const FORMAT: &'static str = "empty";
+    pub(crate) fn new(id: &str, priority: i32) -> Repo {
+        let config = RepoConfig {
+            priority,
+            ..Default::default()
+        };
 
-    pub(crate) fn new(id: &str) -> Result<Repo> {
-        Ok(Repo {
+        Repo {
             id: id.to_string(),
-            config: Default::default(),
-        })
+            config,
+        }
+    }
+
+    pub(super) fn from_path<P: AsRef<Path>>(id: &str, priority: i32, path: P) -> Result<Self> {
+        let path = path.as_ref();
+        match path.exists() {
+            false => Err(Error::RepoInit("not an empty repo".to_string())),
+            true => Ok(Repo::new(id, priority)),
+        }
     }
 
     pub fn iter(&self) -> iter::Empty<pkg::Pkg<'_>> {

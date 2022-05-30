@@ -16,8 +16,6 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub(super) const FORMAT: &'static str = "fake";
-
     #[cfg(test)]
     pub(crate) fn new<'a, I>(id: &str, priority: i32, atoms: I) -> Result<Repo>
     where

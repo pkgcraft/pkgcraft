@@ -121,8 +121,6 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub(super) const FORMAT: &'static str = "ebuild";
-
     fn new<S>(id: S, config: Option<RepoConfig>, meta: Metadata) -> crate::Result<Self>
     where
         S: AsRef<str>,

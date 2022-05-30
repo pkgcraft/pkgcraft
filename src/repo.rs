@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
+use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 use tracing::warn;
 
 use crate::config::RepoConfig;
@@ -105,7 +106,8 @@ impl<'a> FromIterator<&'a str> for PkgCache {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug)]
+#[derive(IntoStaticStr, EnumIter, Debug)]
+#[strum(serialize_all = "snake_case")]
 pub enum Repo {
     Ebuild(ebuild::Repo),
     Fake(fake::Repo),
@@ -120,7 +122,7 @@ impl Repo {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
             Some(_) => Ok(()),
-            None => Err(Error::RepoInit(format!("unknown repo format: {format:?}"))),
+            None => Err(Error::RepoInit(format!("unknown repo format: {format}"))),
         }
     }
 
@@ -154,9 +156,9 @@ impl Repo {
         let id = id.as_ref();
 
         match format {
-            ebuild::Repo::FORMAT => Ok(Self::Ebuild(ebuild::Repo::from_path(id, priority, path)?)),
-            fake::Repo::FORMAT => Ok(Self::Fake(fake::Repo::from_path(id, priority, path)?)),
-            empty::Repo::FORMAT => Ok(Self::Config(empty::Repo::new(id)?)),
+            "ebuild" => Ok(Self::Ebuild(ebuild::Repo::from_path(id, priority, path)?)),
+            "fake" => Ok(Self::Fake(fake::Repo::from_path(id, priority, path)?)),
+            "config" => Ok(Self::Config(empty::Repo::from_path(id, priority, path)?)),
             _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
         }
     }
@@ -201,10 +203,7 @@ impl<'a> Iterator for PackageIter<'a> {
 // externally supported repo formats
 #[rustfmt::skip]
 static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
-    [
-        ebuild::Repo::FORMAT,
-        fake::Repo::FORMAT,
-    ].iter().cloned().collect()
+    <Repo as IntoEnumIterator>::iter().map(|r| r.into()).collect()
 });
 
 pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord {
