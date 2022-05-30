@@ -237,90 +237,88 @@ pub enum BorrowedRepo<'a> {
 make_repo_traits!(BorrowedRepo<'_>);
 
 macro_rules! make_repo {
-    ($($x:ty),*) => {
-        $(
-            impl fmt::Display for $x {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    match self {
-                        Self::Ebuild(ref repo) => write!(f, "{}", repo),
-                        Self::Fake(ref repo) => write!(f, "{}", repo),
-                        Self::Config(ref repo) => write!(f, "{}", repo),
-                    }
+    ($($x:ty),+) => {$(
+        impl fmt::Display for $x {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                match self {
+                    Self::Ebuild(ref repo) => write!(f, "{}", repo),
+                    Self::Fake(ref repo) => write!(f, "{}", repo),
+                    Self::Config(ref repo) => write!(f, "{}", repo),
+                }
+            }
+        }
+
+        impl Repository for $x {
+            fn categories(&self) -> Vec<String> {
+                match self {
+                    Self::Ebuild(ref repo) => repo.categories(),
+                    Self::Fake(ref repo) => repo.categories(),
+                    Self::Config(ref repo) => repo.categories(),
                 }
             }
 
-            impl Repository for $x {
-                fn categories(&self) -> Vec<String> {
-                    match self {
-                        Self::Ebuild(ref repo) => repo.categories(),
-                        Self::Fake(ref repo) => repo.categories(),
-                        Self::Config(ref repo) => repo.categories(),
-                    }
-                }
-
-                fn packages(&self, cat: &str) -> Vec<String> {
-                    match self {
-                        Self::Ebuild(ref repo) => repo.packages(cat),
-                        Self::Fake(ref repo) => repo.packages(cat),
-                        Self::Config(ref repo) => repo.packages(cat),
-                    }
-                }
-
-                fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
-                    match self {
-                        Self::Ebuild(ref repo) => repo.versions(cat, pkg),
-                        Self::Fake(ref repo) => repo.versions(cat, pkg),
-                        Self::Config(ref repo) => repo.versions(cat, pkg),
-                    }
-                }
-
-                fn id(&self) -> &str {
-                    match self {
-                        Self::Ebuild(ref repo) => repo.id(),
-                        Self::Fake(ref repo) => repo.id(),
-                        Self::Config(ref repo) => repo.id(),
-                    }
-                }
-
-                fn config(&self) -> &RepoConfig {
-                    match self {
-                        Self::Ebuild(ref repo) => repo.config(),
-                        Self::Fake(ref repo) => repo.config(),
-                        Self::Config(ref repo) => repo.config(),
-                    }
-                }
-
-                fn priority(&self) -> i32 {
-                    match self {
-                        Self::Ebuild(ref repo) => repo.priority(),
-                        Self::Fake(ref repo) => repo.priority(),
-                        Self::Config(ref repo) => repo.priority(),
-                    }
-                }
-
-                fn len(&self) -> usize {
-                    match self {
-                        Self::Ebuild(ref repo) => repo.len(),
-                        Self::Fake(ref repo) => repo.len(),
-                        Self::Config(ref repo) => repo.len(),
-                    }
-                }
-
-                fn is_empty(&self) -> bool {
-                    match self {
-                        Self::Ebuild(ref repo) => repo.is_empty(),
-                        Self::Fake(ref repo) => repo.is_empty(),
-                        Self::Config(ref repo) => repo.is_empty(),
-                    }
+            fn packages(&self, cat: &str) -> Vec<String> {
+                match self {
+                    Self::Ebuild(ref repo) => repo.packages(cat),
+                    Self::Fake(ref repo) => repo.packages(cat),
+                    Self::Config(ref repo) => repo.packages(cat),
                 }
             }
-        )*
-    };
+
+            fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+                match self {
+                    Self::Ebuild(ref repo) => repo.versions(cat, pkg),
+                    Self::Fake(ref repo) => repo.versions(cat, pkg),
+                    Self::Config(ref repo) => repo.versions(cat, pkg),
+                }
+            }
+
+            fn id(&self) -> &str {
+                match self {
+                    Self::Ebuild(ref repo) => repo.id(),
+                    Self::Fake(ref repo) => repo.id(),
+                    Self::Config(ref repo) => repo.id(),
+                }
+            }
+
+            fn config(&self) -> &RepoConfig {
+                match self {
+                    Self::Ebuild(ref repo) => repo.config(),
+                    Self::Fake(ref repo) => repo.config(),
+                    Self::Config(ref repo) => repo.config(),
+                }
+            }
+
+            fn priority(&self) -> i32 {
+                match self {
+                    Self::Ebuild(ref repo) => repo.priority(),
+                    Self::Fake(ref repo) => repo.priority(),
+                    Self::Config(ref repo) => repo.priority(),
+                }
+            }
+
+            fn len(&self) -> usize {
+                match self {
+                    Self::Ebuild(ref repo) => repo.len(),
+                    Self::Fake(ref repo) => repo.len(),
+                    Self::Config(ref repo) => repo.len(),
+                }
+            }
+
+            fn is_empty(&self) -> bool {
+                match self {
+                    Self::Ebuild(ref repo) => repo.is_empty(),
+                    Self::Fake(ref repo) => repo.is_empty(),
+                    Self::Config(ref repo) => repo.is_empty(),
+                }
+            }
+        }
+    )*};
 }
 make_repo!(Repo, BorrowedRepo<'_>);
 
 macro_rules! make_repo_traits {
-    ($($x:ty),*) => {
+    ($($x:ty),+) => {
         $(
             impl PartialEq for $x {
                 fn eq(&self, other: &Self) -> bool {
@@ -348,7 +346,7 @@ macro_rules! make_repo_traits {
                     self.id().cmp(other.id())
                 }
             }
-        )*
+        )+
     };
 }
 pub(self) use make_repo_traits;
@@ -369,7 +367,7 @@ impl<T: AsRef<Path>> Contains<T> for Repo {
 }
 
 macro_rules! make_contains {
-    ($($x:ty),*) => {$(
+    ($($x:ty),+) => {$(
         impl Contains<$x> for Repo {
             fn contains(&self, obj: $x) -> bool {
                 match self {
@@ -379,7 +377,7 @@ macro_rules! make_contains {
                 }
             }
         }
-    )*};
+    )+};
 }
 make_contains!(atom::Atom, &atom::Atom);
 

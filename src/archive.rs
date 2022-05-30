@@ -357,12 +357,10 @@ impl ArchiveFormat for Lzma {
 }
 
 macro_rules! make_archive {
-    ($($x:ident),*) => {
+    ($($x:ident),+) => {
         #[derive(Debug)]
         pub(super) enum Archive {
-            $(
-                $x($x),
-            )*
+            $($x($x),)+
         }
 
         impl ArchiveFormat for Archive {
@@ -371,17 +369,13 @@ macro_rules! make_archive {
             fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
                 let archive = Archive::from_path(dest.as_ref())?;
                 match archive {
-                    $(
-                        Archive::$x(_) => $x::pack(src, dest),
-                    )*
+                    $(Archive::$x(_) => $x::pack(src, dest),)+
                 }
             }
 
             fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
                 match self {
-                    $(
-                        Archive::$x(a) => a.unpack(dest),
-                    )*
+                    $(Archive::$x(a) => a.unpack(dest),)+
                 }
             }
         }
@@ -397,7 +391,7 @@ macro_rules! make_archive {
                 let mut possible_exts = Vec::<(&str, &str)>::new();
                 $(
                     possible_exts.extend($x::EXTS.iter().map(|&s| (s, $x::EXTS[0])));
-                )*
+                )+
                 possible_exts.sort_by_cached_key(|(s, _)| s.len());
                 possible_exts.reverse();
 
@@ -410,9 +404,7 @@ macro_rules! make_archive {
                 }
 
                 match marker_ext {
-                    $(
-                        ext if ext == $x::EXTS[0] => Ok(Archive::$x($x { path })),
-                    )*
+                    $(ext if ext == $x::EXTS[0] => Ok(Archive::$x($x { path })),)+
                     _ => Err(Error::InvalidValue(format!("unknown archive format: {path:?}"))),
                 }
             }
