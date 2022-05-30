@@ -115,7 +115,7 @@ impl Config {
             // ignore unsynced or nonexistent repos
             match Repo::from_format(&name, c.priority, &c.location, &c.format) {
                 Ok(repo) => {
-                    repos.insert(name.clone(), Arc::new(repo));
+                    repos.insert(name, Arc::new(repo));
                 }
                 Err(err) => warn!("{err}"),
             }
