@@ -318,36 +318,34 @@ macro_rules! make_repo {
 make_repo!(Repo, BorrowedRepo<'_>);
 
 macro_rules! make_repo_traits {
-    ($($x:ty),+) => {
-        $(
-            impl PartialEq for $x {
-                fn eq(&self, other: &Self) -> bool {
-                    self.id() == other.id()
-                }
+    ($($x:ty),+) => {$(
+        impl PartialEq for $x {
+            fn eq(&self, other: &Self) -> bool {
+                self.id() == other.id()
             }
+        }
 
-            impl Eq for $x {}
+        impl Eq for $x {}
 
-            impl std::hash::Hash for $x {
-                fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-                    self.id().hash(state);
-                }
+        impl std::hash::Hash for $x {
+            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                self.id().hash(state);
             }
+        }
 
-            impl PartialOrd for $x {
-                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                    Some(self.cmp(other))
-                }
+        impl PartialOrd for $x {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
             }
+        }
 
-            impl Ord for $x {
-                fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                    crate::macros::cmp_not_equal!(&self.priority(), &other.priority());
-                    self.id().cmp(other.id())
-                }
+        impl Ord for $x {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                crate::macros::cmp_not_equal!(&self.priority(), &other.priority());
+                self.id().cmp(other.id())
             }
-        )+
-    };
+        }
+    )+};
 }
 pub(self) use make_repo_traits;
 
