@@ -1,12 +1,15 @@
 use std::fmt;
 
+use scallop::variables::bind;
+use strum::{AsRefStr, EnumIter, IntoEnumIterator};
+
 use crate::repo::{BorrowedRepo, Repository};
-use crate::{atom, eapi};
+use crate::{atom, eapi, Result};
 
 pub mod ebuild;
 pub mod fake;
 
-#[derive(Debug)]
+#[derive(AsRefStr, EnumIter, Debug, Copy, Clone)]
 pub enum Env {
     P,
     PN,
@@ -62,45 +65,54 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     }
 }
 
+pub(crate) trait PackageEnv: Package {
+    fn export_env(&self) -> Result<()> {
+        for var in Env::iter() {
+            bind(var, self.env(var), None, None)?;
+        }
+        Ok(())
+    }
+}
+
 macro_rules! make_pkg_traits {
-    ($($x:ty),*) => {
-        $(
-            impl PartialEq for $x {
-                fn eq(&self, other: &Self) -> bool {
-                    self.repo() == other.repo() && self.atom() == other.atom()
-                }
+    ($($x:ty),*) => {$(
+        impl PartialEq for $x {
+            fn eq(&self, other: &Self) -> bool {
+                self.repo() == other.repo() && self.atom() == other.atom()
             }
+        }
 
-            impl Eq for $x {}
+        impl Eq for $x {}
 
-            impl std::hash::Hash for $x {
-                fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-                    self.repo().hash(state);
-                    self.atom().hash(state);
-                }
+        impl std::hash::Hash for $x {
+            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                self.repo().hash(state);
+                self.atom().hash(state);
             }
+        }
 
-            impl PartialOrd for $x {
-                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-                    Some(self.cmp(other))
-                }
+        impl PartialOrd for $x {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
             }
+        }
 
-            impl Ord for $x {
-                fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                    crate::macros::cmp_not_equal!(self.atom(), other.atom());
-                    self.repo().cmp(&other.repo())
-                }
+        impl Ord for $x {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                crate::macros::cmp_not_equal!(self.atom(), other.atom());
+                self.repo().cmp(&other.repo())
             }
+        }
 
-            impl fmt::Display for $x {
-                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    use crate::repo::Repository;
-                    write!(f, "{}::{}", self.atom(), self.repo().id())
-                }
+        impl fmt::Display for $x {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                use crate::repo::Repository;
+                write!(f, "{}::{}", self.atom(), self.repo().id())
             }
-        )*
-    };
+        }
+
+        impl crate::pkg::PackageEnv for $x {}
+    )+};
 }
 pub(self) use make_pkg_traits;
 
