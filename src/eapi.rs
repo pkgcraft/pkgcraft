@@ -158,10 +158,11 @@ pub enum Key {
     SrcUri,
 }
 
+use Key::*;
 impl Key {
     pub(crate) fn get(&self, eapi: &'static Eapi) -> Option<String> {
         match self {
-            Key::DefinedPhases => {
+            DefinedPhases => {
                 let mut phase_names = vec![];
                 for phase in eapi.phases() {
                     if functions::find(phase).is_some() {
@@ -460,21 +461,21 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             ("src_test", eapi0::src_test),
             ("src_install", PHASE_STUB),
         ])
-        .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
-        .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
-        .update_mandatory_keys(&[Key::Description, Key::Slot])
+        .update_dep_keys(&[Depend, Rdepend, Pdepend])
+        .update_incremental_keys(&[Iuse, Depend, Rdepend, Pdepend])
+        .update_mandatory_keys(&[Description, Slot])
         .update_metadata_keys(&[
-            Key::DefinedPhases,
-            Key::Eapi,
-            Key::Homepage,
-            Key::Inherit,
-            Key::Inherited,
-            Key::Iuse,
-            Key::Keywords,
-            Key::License,
-            Key::Properties,
-            Key::Restrict,
-            Key::SrcUri,
+            DefinedPhases,
+            Eapi,
+            Homepage,
+            Inherit,
+            Inherited,
+            Iuse,
+            Keywords,
+            License,
+            Properties,
+            Restrict,
+            SrcUri,
         ])
         .update_archives(
             &[
@@ -521,8 +522,8 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             ("use_dep_defaults", true),
         ])
         .update_phases(&[("pkg_pretend", PHASE_STUB), ("src_install", eapi4::src_install)])
-        .update_incremental_keys(&[Key::RequiredUse])
-        .update_metadata_keys(&[Key::RequiredUse])
+        .update_incremental_keys(&[RequiredUse])
+        .update_metadata_keys(&[RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
 });
 
@@ -558,8 +559,8 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
         .update_options(&[("export_desttree", false), ("export_insdesttree", false)])
-        .update_dep_keys(&[Key::Bdepend])
-        .update_incremental_keys(&[Key::Bdepend])
+        .update_dep_keys(&[Bdepend])
+        .update_incremental_keys(&[Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
 });
 
@@ -571,8 +572,8 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
             ("src_uri_unrestrict", true),
             ("usev_two_args", true),
         ])
-        .update_dep_keys(&[Key::Idepend])
-        .update_incremental_keys(&[Key::Idepend, Key::Properties, Key::Restrict])
+        .update_dep_keys(&[Idepend])
+        .update_incremental_keys(&[Idepend, Properties, Restrict])
         .update_econf(&[
             ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
             ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
