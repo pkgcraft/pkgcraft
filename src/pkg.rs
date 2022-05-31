@@ -75,7 +75,7 @@ pub(crate) trait PackageEnv: Package {
 }
 
 macro_rules! make_pkg_traits {
-    ($($x:ty),*) => {$(
+    ($($x:ty),+) => {$(
         impl PartialEq for $x {
             fn eq(&self, other: &Self) -> bool {
                 self.repo() == other.repo() && self.atom() == other.atom()
