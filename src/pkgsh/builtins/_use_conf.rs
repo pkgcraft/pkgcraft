@@ -4,6 +4,7 @@ use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
 use super::use_::run as use_;
+use crate::eapi::Feature;
 use crate::pkgsh::{write_stdout, BUILD_DATA};
 
 // Underlying implementation for use_with and use_enable.
@@ -18,7 +19,7 @@ pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
                 }
             },
             2 => (&args[..1], args[1], String::from("")),
-            3 => match eapi.has("use_conf_arg") {
+            3 => match eapi.has(Feature::UseConfArg) {
                 true => (&args[..1], args[1], format!("={}", args[2])),
                 false => return Err(Error::Builtin("requires 1 or 2 args, got 3".into())),
             },

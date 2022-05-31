@@ -7,6 +7,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
 
 const LONG_DOC: &str = "Install man pages into /usr/share/man.";
@@ -49,10 +50,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 }
             };
 
-            if eapi.has("doman_lang_detect") {
+            if eapi.has(Feature::DomanLangDetect) {
                 if let Some(m) = DETECT_LANG_RE.captures(base) {
                     base = m.name("name").unwrap().as_str();
-                    if lang.is_empty() || !eapi.has("doman_lang_override") {
+                    if lang.is_empty() || !eapi.has(Feature::DomanLangOverride) {
                         lang = m.name("lang").unwrap().as_str();
                     }
                 }

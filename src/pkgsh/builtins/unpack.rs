@@ -9,6 +9,7 @@ use walkdir::WalkDir;
 
 use super::{PkgBuiltin, PHASE};
 use crate::archive::ArchiveFormat;
+use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
 use crate::utils::current_dir;
 
@@ -42,7 +43,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let determine_source = |path: &Utf8Path| -> Result<Utf8PathBuf> {
             if path.parent() == Some(Utf8Path::new("")) {
                 Ok(Utf8PathBuf::from(distdir).join(path))
-            } else if path.starts_with("./") || eapi.has("unpack_extended_path") {
+            } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
                 Ok(Utf8PathBuf::from(path))
             } else {
                 let adj = match path.is_absolute() {
@@ -125,7 +126,7 @@ mod tests {
     use super::{run as unpack, DIR_MODE, FILE_MODE};
     use crate::archive::{Archive, ArchiveFormat};
     use crate::command::run_commands;
-    use crate::eapi::EAPIS_OFFICIAL;
+    use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
@@ -161,7 +162,7 @@ mod tests {
 
                     // case insensitive support
                     let result = unpack(&["a.TAR.GZ"]);
-                    if eapi.has("unpack_case_insensitive") {
+                    if eapi.has(Feature::UnpackCaseInsensitive) {
                         result.unwrap();
                     } else {
                         assert_err_re!(result, "^unknown archive format: .*$");
@@ -169,7 +170,7 @@ mod tests {
 
                     // absolute path support
                     let result = unpack(&[abs_path.to_str().unwrap()]);
-                    if eapi.has("unpack_extended_path") {
+                    if eapi.has(Feature::UnpackExtendedPath) {
                         result.unwrap();
                     } else {
                         assert_err_re!(result, "^absolute paths not supported .*$");
@@ -180,7 +181,7 @@ mod tests {
 
                     // unprefixed are EAPI conditional
                     let result = unpack(&["dist/a.tar.gz"]);
-                    if eapi.has("unpack_extended_path") {
+                    if eapi.has(Feature::UnpackExtendedPath) {
                         result.unwrap();
                     } else {
                         assert_err_re!(result, "^relative paths not supported .*$");

@@ -2,7 +2,7 @@ use peg;
 
 use super::version::ParsedVersion;
 use super::{Blocker, ParsedAtom};
-use crate::eapi::Eapi;
+use crate::eapi::{Eapi, Feature};
 
 peg::parser! {
     pub(crate) grammar pkg() for str {
@@ -83,12 +83,12 @@ peg::parser! {
 
         rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<&'input str>)
             = op:$("*" / "=") {?
-                if !eapi.has("slot_ops") {
+                if !eapi.has(Feature::SlotOps) {
                     return Err("slot operators are supported in >= EAPI 5");
                 }
                 Ok((None, None, Some(op)))
             } / slot:slot(eapi) op:$("=")? {?
-                if op.is_some() && !eapi.has("slot_ops") {
+                if op.is_some() && !eapi.has(Feature::SlotOps) {
                     return Err("slot operators are supported in >= EAPI 5");
                 }
                 Ok((Some(slot.0), slot.1, op))
@@ -96,7 +96,7 @@ peg::parser! {
 
         rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<&'input str>)
             = ":" slot_parts:slot_str(eapi) {?
-                if !eapi.has("slot_deps") {
+                if !eapi.has(Feature::SlotDeps) {
                     return Err("slot deps are supported in >= EAPI 1");
                 }
                 Ok(slot_parts)
@@ -104,7 +104,7 @@ peg::parser! {
 
         rule blocks(eapi: &'static Eapi) -> Blocker
             = blocks:("!"*<1,2>) {?
-                if eapi.has("blockers") {
+                if eapi.has(Feature::Blockers) {
                     match blocks[..] {
                         [_] => Ok(Blocker::Weak),
                         [_, _] => Ok(Blocker::Strong),
@@ -132,7 +132,7 @@ peg::parser! {
 
         rule use_deps(eapi: &'static Eapi) -> Vec<&'input str>
             = "[" use_deps:use_dep(eapi) ++ "," "]" {?
-                if eapi.has("use_deps") {
+                if eapi.has(Feature::UseDeps) {
                     Ok(use_deps)
                 } else {
                     Err("use deps are supported in >= EAPI 2")
@@ -141,7 +141,7 @@ peg::parser! {
 
         rule use_dep_default(eapi: &'static Eapi) -> &'input str
             = s:$("(+)" / "(-)") {?
-                if eapi.has("use_dep_defaults") {
+                if eapi.has(Feature::UseDepDefaults) {
                     Ok(s)
                 } else {
                     Err("use dep defaults are supported in >= EAPI 4")
@@ -150,7 +150,7 @@ peg::parser! {
 
         rule subslot(eapi: &'static Eapi) -> &'input str
             = "/" s:slot_name() {?
-                if eapi.has("subslots") {
+                if eapi.has(Feature::Subslots) {
                     Ok(s)
                 } else {
                     Err("subslots are supported in >= EAPI 5")
@@ -176,7 +176,7 @@ peg::parser! {
 
         rule repo_dep(eapi: &'static Eapi) -> &'input str
             = "::" repo:repo() {?
-                if !eapi.has("repo_ids") {
+                if !eapi.has(Feature::RepoIds) {
                     return Err("repo deps aren't supported in EAPIs");
                 }
                 Ok(repo)
@@ -290,12 +290,11 @@ pub mod parse {
 mod tests {
     use indexmap::IndexSet;
 
-    use crate::atom::Blocker;
     use crate::eapi;
     use crate::macros::opt_str;
     use crate::test::TestData;
 
-    use super::parse;
+    use super::*;
 
     #[test]
     fn test_parse_versions() {
@@ -368,7 +367,7 @@ mod tests {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = parse::dep(&s, eapi);
-                match eapi.has("slot_deps") {
+                match eapi.has(Feature::SlotDeps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
                         assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -401,7 +400,7 @@ mod tests {
         ] {
             for eapi in eapi::EAPIS.values() {
                 let result = parse::dep(&s, eapi);
-                match eapi.has("blockers") {
+                match eapi.has(Feature::Blockers) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
                         assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -427,7 +426,7 @@ mod tests {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = parse::dep(&s, eapi);
-                match eapi.has("use_deps") {
+                match eapi.has(Feature::UseDeps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
                         assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -454,7 +453,7 @@ mod tests {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = parse::dep(&s, eapi);
-                match eapi.has("use_dep_defaults") {
+                match eapi.has(Feature::UseDepDefaults) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
                         assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -487,7 +486,7 @@ mod tests {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = parse::dep(&s, eapi);
-                match eapi.has("slot_ops") {
+                match eapi.has(Feature::SlotOps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
                         assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -522,7 +521,7 @@ mod tests {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = parse::dep(&s, eapi);
-                match eapi.has("slot_ops") {
+                match eapi.has(Feature::SlotOps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
                         assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());

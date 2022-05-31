@@ -6,6 +6,7 @@ use scallop::builtins::{raise_error, Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL, NONFATAL};
+use crate::eapi::Feature;
 use crate::pkgsh::{write_stderr, BUILD_DATA};
 
 const LONG_DOC: &str = "\
@@ -16,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let args = match args.len() {
-            1 | 2 if eapi.has("nonfatal_die") && args[0] == "-n" => {
+            1 | 2 if eapi.has(Feature::NonfatalDie) && args[0] == "-n" => {
                 if NONFATAL.load(Ordering::Relaxed) {
                     if args.len() == 2 {
                         write_stderr!("{}\n", args[1]);
@@ -55,7 +56,7 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use super::super::{assert_invalid_args, nonfatal};
     use super::{run as die, BUILTIN};
-    use crate::eapi::EAPIS_OFFICIAL;
+    use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
@@ -69,7 +70,7 @@ mod tests {
             assert_invalid_args(die, &[3]);
 
             BUILD_DATA.with(|d| {
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has("nonfatal_die")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has(Feature::NonfatalDie)) {
                     d.borrow_mut().eapi = eapi;
                     assert_invalid_args(die, &[2]);
                 }

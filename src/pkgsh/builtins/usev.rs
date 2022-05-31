@@ -5,6 +5,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{use_::run as use_, PkgBuiltin, PHASE};
+use crate::eapi::Feature;
 use crate::pkgsh::{write_stdout, BUILD_DATA};
 
 const LONG_DOC: &str = "\
@@ -19,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 let output = args[0].strip_prefix('!').unwrap_or(args[0]);
                 (&args[..1], output)
             }
-            2 => match eapi.has("usev_two_args") {
+            2 => match eapi.has(Feature::UsevTwoArgs) {
                 true => (&args[..1], args[1]),
                 false => return Err(Error::Builtin("requires 1 arg, got 2".into())),
             },
@@ -54,7 +55,7 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as usev;
-    use crate::eapi::EAPIS_OFFICIAL;
+    use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
@@ -64,7 +65,7 @@ mod tests {
             assert_invalid_args(usev, &[0, 3]);
 
             BUILD_DATA.with(|d| {
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has("usev_two_args")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has(Feature::UsevTwoArgs)) {
                     d.borrow_mut().eapi = eapi;
                     assert_invalid_args(usev, &[2]);
                 }
@@ -90,7 +91,7 @@ mod tests {
                 }
 
                 // check EAPIs that support two arg variant
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has("usev_two_args")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has(Feature::UsevTwoArgs)) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "out"], ExecStatus::Failure(1), ""),
@@ -118,7 +119,7 @@ mod tests {
                 }
 
                 // check EAPIs that support two arg variant
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has("usev_two_args")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has(Feature::UsevTwoArgs)) {
                     d.borrow_mut().eapi = eapi;
                     for (args, status, expected) in [
                             (&["use", "out"], ExecStatus::Success, "out"),

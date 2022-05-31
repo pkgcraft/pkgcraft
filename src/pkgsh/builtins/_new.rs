@@ -7,6 +7,7 @@ use scallop::builtins::{BuiltinFn, ExecStatus};
 use scallop::{Error, Result};
 use tempfile::tempdir;
 
+use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
 
 // Underlying implementation for new* builtins.
@@ -28,7 +29,7 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> Result<ExecStatus> {
             tempdir().map_err(|e| Error::Builtin(format!("failed creating tempdir: {e}")))?;
         let dest = tmp_dir.path().join(dest);
 
-        if eapi.has("new_supports_stdin") && source == "-" {
+        if eapi.has(Feature::NewSupportsStdin) && source == "-" {
             if isatty(0).unwrap_or(false) {
                 return Err(Error::Builtin("no input available, stdin is a tty".into()));
             }

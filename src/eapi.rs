@@ -21,116 +21,46 @@ use crate::{Error, Result};
 static VALID_EAPI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
 
-type EapiOptions = HashMap<&'static str, bool>;
-
-#[rustfmt::skip]
-static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
-    [
-        // EAPI 0
-
-        // RDEPEND=DEPEND if RDEPEND is unset
-        ("rdepend_default", true),
-
-        // DESTTREE is exported to the ebuild env
-        ("export_desttree", true),
-
-        // INSDESTTREE is exported to the ebuild env
-        ("export_insdesttree", true),
-
-        // EAPI 1
-
-        // IUSE defaults
-        ("iuse_defaults", false),
-
-        // atom slot deps -- cat/pkg:0
-        ("slot_deps", false),
-
-        // EAPI 2
-
-        // atom blockers -- !cat/pkg and !!cat/pkg
-        ("blockers", false),
-
-        // support language detection via filename for `doman`
-        ("doman_lang_detect", false),
-
-        // SRC_URI -> operator for url filename renaming
-        ("src_uri_renames", false),
-
-        // atom use deps -- cat/pkg[use]
-        ("use_deps", false),
-
-        // EAPI 4
-
-        // recursive install support via `dodoc -r`
-        ("dodoc_recursive", false),
-
-        // support `doman` language override via -i18n option
-        ("doman_lang_override", false),
-
-        // atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
-        ("use_dep_defaults", false),
-
-        // REQUIRED_USE support
-        ("required_use", false),
-
-        // use_with and use_enable support an optional third argument
-        ("use_conf_arg", false),
-
-        // EAPI 5
-
-        // export the running phase name as $EBUILD_PHASE_FUNC
-        ("ebuild_phase_func", false),
-
-        // new* helpers can use stdin for content instead of a file
-        ("new_supports_stdin", false),
-
-        // running tests in parallel is supported
-        ("parallel_tests", false),
-
-        // REQUIRED_USE ?? operator
-        ("required_use_one_of", false),
-
-        // atom slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
-        ("slot_ops", false),
-
-        // atom subslots -- cat/pkg:0/4
-        ("subslots", false),
-
-        // EAPI 6
-
-        // `die -n` supports nonfatal usage
-        ("nonfatal_die", false),
-
-        // failglob shell option is enabled in global scope
-        ("global_failglob", false),
-
-        // `unpack` supports absolute and relative paths
-        ("unpack_extended_path", false),
-
-        // `unpack` performs case-insensitive file extension matching
-        ("unpack_case_insensitive", false),
-
-        // EAPI 8
-
-        // improve insopts/exeopts consistency for install functions
-        // https://bugs.gentoo.org/657580
-        ("consistent_file_opts", false),
-
-        // relative path support via `dosym -r`
-        ("dosym_relative", false),
-
-        // SRC_URI supports fetch+ and mirror+ prefixes
-        ("src_uri_unrestrict", false),
-
-        // usev supports an optional second arg
-        ("usev_two_args", false),
-
-        // EAPI EXTENDED
-
-        // atom repo deps -- cat/pkg::repo
-        ("repo_ids", false),
-    ].into_iter().collect()
-});
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub(crate) enum Feature {
+    // EAPI 0
+    RdependDefault,    // RDEPEND=DEPEND if RDEPEND is unset
+    ExportDesttree,    // DESTTREE is exported to the ebuild env
+    ExportInsdesttree, // INSDESTTREE is exported to the ebuild env
+    // EAPI 1
+    IuseDefaults, // IUSE defaults
+    SlotDeps,     // atom slot deps -- cat/pkg:0
+    // EAPI 2
+    Blockers,        // atom blockers -- !cat/pkg and !!cat/pkg
+    DomanLangDetect, // support language detection via filename for `doman`
+    SrcUriRenames,   // SRC_URI -> operator for url filename renaming
+    UseDeps,         // atom use deps -- cat/pkg[use]
+    // EAPI 4
+    DodocRecursive,    // recursive install support via `dodoc -r`
+    DomanLangOverride, // support `doman` language override via -i18n option
+    UseDepDefaults,    // atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
+    RequiredUse,       // REQUIRED_USE support
+    UseConfArg,        // use_with and use_enable support an optional third argument
+    // EAPI 5
+    EbuildPhaseFunc,  // export the running phase name as $EBUILD_PHASE_FUNC
+    NewSupportsStdin, // new* helpers can use stdin for content instead of a file
+    ParallelTests,    // running tests in parallel is supported
+    RequiredUseOneOf, // REQUIRED_USE ?? operator
+    SlotOps,          // atom slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
+    Subslots,         // atom subslots -- cat/pkg:0/4
+    // EAPI 6
+    NonfatalDie,           // `die -n` supports nonfatal usage
+    GlobalFailglob,        // failglob shell option is enabled in global scope
+    UnpackExtendedPath,    // `unpack` supports absolute and relative paths
+    UnpackCaseInsensitive, // `unpack` performs case-insensitive file extension matching
+    // EAPI 8
+    ConsistentFileOpts, // improve insopts/exeopts consistency for install functions
+    DosymRelative,      // relative path support via `dosym -r`
+    SrcUriUnrestrict,   // SRC_URI supports fetch+ and mirror+ prefixes
+    UsevTwoArgs,        // usev supports an optional second arg
+    // EAPI EXTENDED
+    RepoIds, // atom repo deps -- cat/pkg::repo
+}
 
 type EapiEconfOptions = HashMap<&'static str, (IndexSet<String>, Option<String>)>;
 
@@ -186,7 +116,7 @@ impl Key {
 pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
-    options: EapiOptions,
+    features: HashSet<Feature>,
     phases: HashSet<Phase>,
     dep_keys: HashSet<Key>,
     incremental_keys: HashSet<Key>,
@@ -266,10 +196,7 @@ impl Eapi {
     fn new(id: &'static str, parent: Option<&'static Eapi>) -> Eapi {
         let mut eapi = match parent {
             Some(e) => e.clone(),
-            None => Eapi {
-                options: EAPI_OPTIONS.clone(),
-                ..Default::default()
-            },
+            None => Eapi::default(),
         };
         eapi.id = id;
         eapi.parent = parent;
@@ -282,11 +209,8 @@ impl Eapi {
     }
 
     /// Check if an EAPI has a given feature.
-    pub fn has(&self, opt: &str) -> bool {
-        match self.options.get(opt) {
-            Some(value) => *value,
-            None => panic!("unknown EAPI option {opt:?}"),
-        }
+    pub(crate) fn has(&self, feature: Feature) -> bool {
+        self.features.get(&feature).is_some()
     }
 
     /// Parse a package atom using EAPI specific support.
@@ -306,7 +230,7 @@ impl Eapi {
             possible_exts.sort_by_key(|s| s.len());
             possible_exts.reverse();
             RegexBuilder::new(&format!(r"\.(?P<ext>{})$", possible_exts.join("|")))
-                .case_insensitive(self.has("unpack_case_insensitive"))
+                .case_insensitive(self.has(Feature::UnpackCaseInsensitive))
                 .build()
                 .unwrap()
         })
@@ -366,10 +290,11 @@ impl Eapi {
         &self.econf_options
     }
 
-    fn update_options(mut self, updates: &[(&'static str, bool)]) -> Self {
-        for (key, val) in updates.iter() {
-            if self.options.insert(key, *val).is_none() {
-                panic!("option missing default: {key:?}");
+    fn update_features(mut self, add: &[Feature], remove: &[Feature]) -> Self {
+        self.features.extend(add);
+        for x in remove {
+            if !self.features.remove(x) {
+                panic!("disabling unset feature: {x:?}");
             }
         }
         self
@@ -447,6 +372,10 @@ pub fn get_eapi<S: AsRef<str>>(id: S) -> Result<&'static Eapi> {
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("0", None)
+        .update_features(
+            &[Feature::RdependDefault, Feature::ExportDesttree, Feature::ExportInsdesttree],
+            &[],
+        )
         .update_phases(&[
             ("pkg_setup", PHASE_STUB),
             ("pkg_config", PHASE_STUB),
@@ -489,18 +418,21 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("1", Some(&EAPI0))
-        .update_options(&[("slot_deps", true)])
+        .update_features(&[Feature::IuseDefaults, Feature::SlotDeps], &[])
         .update_phases(&[("src_compile", eapi1::src_compile)])
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("2", Some(&EAPI1))
-        .update_options(&[
-            ("blockers", true),
-            ("doman_lang_detect", true),
-            ("use_deps", true),
-            ("src_uri_renames", true),
-        ])
+        .update_features(
+            &[
+                Feature::Blockers,
+                Feature::DomanLangDetect,
+                Feature::UseDeps,
+                Feature::SrcUriRenames,
+            ],
+            &[],
+        )
         .update_phases(&[
             ("src_prepare", PHASE_STUB),
             ("src_compile", eapi2::src_compile),
@@ -513,14 +445,16 @@ pub static EAPI3: Lazy<Eapi> =
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("4", Some(&EAPI3))
-        .update_options(&[
-            ("dodoc_recursive", true),
-            ("doman_lang_override", true),
-            ("rdepend_default", false),
-            ("required_use", true),
-            ("use_conf_arg", true),
-            ("use_dep_defaults", true),
-        ])
+        .update_features(
+            &[
+                Feature::DodocRecursive,
+                Feature::DomanLangOverride,
+                Feature::RequiredUse,
+                Feature::UseConfArg,
+                Feature::UseDepDefaults,
+            ],
+            &[Feature::RdependDefault],
+        )
         .update_phases(&[("pkg_pretend", PHASE_STUB), ("src_install", eapi4::src_install)])
         .update_incremental_keys(&[RequiredUse])
         .update_metadata_keys(&[RequiredUse])
@@ -529,25 +463,31 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("5", Some(&EAPI4))
-        .update_options(&[
-            ("ebuild_phase_func", true),
-            ("new_supports_stdin", true),
-            ("parallel_tests", true),
-            ("required_use_one_of", true),
-            ("slot_ops", true),
-            ("subslots", true),
-        ])
+        .update_features(
+            &[
+                Feature::EbuildPhaseFunc,
+                Feature::NewSupportsStdin,
+                Feature::ParallelTests,
+                Feature::RequiredUseOneOf,
+                Feature::SlotOps,
+                Feature::Subslots,
+            ],
+            &[],
+        )
         .update_econf(&[("--disable-silent-rules", None, None)])
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("6", Some(&EAPI5))
-        .update_options(&[
-            ("nonfatal_die", true),
-            ("global_failglob", true),
-            ("unpack_extended_path", true),
-            ("unpack_case_insensitive", true),
-        ])
+        .update_features(
+            &[
+                Feature::NonfatalDie,
+                Feature::GlobalFailglob,
+                Feature::UnpackExtendedPath,
+                Feature::UnpackCaseInsensitive,
+            ],
+            &[],
+        )
         .update_phases(&[("src_prepare", eapi6::src_prepare), ("src_install", eapi6::src_install)])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
@@ -558,7 +498,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
-        .update_options(&[("export_desttree", false), ("export_insdesttree", false)])
+        .update_features(&[], &[Feature::ExportDesttree, Feature::ExportInsdesttree])
         .update_dep_keys(&[Bdepend])
         .update_incremental_keys(&[Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
@@ -566,12 +506,15 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("8", Some(&EAPI7))
-        .update_options(&[
-            ("consistent_file_opts", true),
-            ("dosym_relative", true),
-            ("src_uri_unrestrict", true),
-            ("usev_two_args", true),
-        ])
+        .update_features(
+            &[
+                Feature::ConsistentFileOpts,
+                Feature::DosymRelative,
+                Feature::SrcUriUnrestrict,
+                Feature::UsevTwoArgs,
+            ],
+            &[],
+        )
         .update_dep_keys(&[Idepend])
         .update_incremental_keys(&[Idepend, Properties, Restrict])
         .update_econf(&[
@@ -585,8 +528,9 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI_LATEST: Lazy<Eapi> = Lazy::new(|| EAPI8.clone());
 
 /// The latest EAPI with extensions on top.
-pub static EAPI_PKGCRAFT: Lazy<Eapi> =
-    Lazy::new(|| Eapi::new("pkgcraft", Some(&EAPI_LATEST)).update_options(&[("repo_ids", true)]));
+pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
+    Eapi::new("pkgcraft", Some(&EAPI_LATEST)).update_features(&[Feature::RepoIds], &[])
+});
 
 /// Ordered mapping of official EAPI identifiers to instances.
 pub static EAPIS_OFFICIAL: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
@@ -643,14 +587,8 @@ mod tests {
 
     #[test]
     fn test_has() {
-        assert!(!EAPI0.has("use_deps"));
-        assert!(EAPI_LATEST.has("use_deps"));
-    }
-
-    #[test]
-    #[should_panic(expected = "unknown EAPI option \"unknown\"")]
-    fn test_has_unknown() {
-        EAPI_LATEST.has("unknown");
+        assert!(!EAPI0.has(Feature::UseDeps));
+        assert!(EAPI_LATEST.has(Feature::UseDeps));
     }
 
     #[test]

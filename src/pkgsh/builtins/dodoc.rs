@@ -5,6 +5,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::pkgsh::BUILD_DATA;
 
@@ -15,7 +16,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (recursive, args) = match args.first() {
-            Some(&"-r") if eapi.has("dodoc_recursive") => (true, &args[1..]),
+            Some(&"-r") if eapi.has(Feature::DodocRecursive) => (true, &args[1..]),
             _ => (false, args),
         };
 

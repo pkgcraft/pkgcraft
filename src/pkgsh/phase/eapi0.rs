@@ -4,6 +4,7 @@ use is_executable::IsExecutable;
 use scallop::builtins::ExecStatus;
 use scallop::Result;
 
+use crate::eapi::Feature;
 use crate::pkgsh::builtins::{econf::run as econf, emake::run as emake, unpack::run as unpack};
 use crate::pkgsh::utils::makefile_exists;
 use crate::pkgsh::BUILD_DATA;
@@ -32,7 +33,7 @@ pub(crate) fn src_compile() -> Result<ExecStatus> {
 pub(crate) fn src_test() -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let mut args = Vec::<&str>::new();
-        if !d.borrow().eapi.has("parallel_tests") {
+        if !d.borrow().eapi.has(Feature::ParallelTests) {
             args.push("-j1");
         }
         for target in ["check", "test"] {

@@ -9,7 +9,7 @@ use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, source, Error, Result};
 
-use crate::eapi::{Eapi, Key};
+use crate::eapi::{Eapi, Feature, Key};
 
 pub mod builtins;
 mod install;
@@ -269,7 +269,7 @@ impl<'a> PkgShell<'a> {
             let _builtins = eapi.scoped_builtins(phase)?;
 
             phase_name.bind(phase.short_name(), None, None)?;
-            if eapi.has("ebuild_phase_func") {
+            if eapi.has(Feature::EbuildPhaseFunc) {
                 phase_func_name.bind(phase, None, None)?;
             }
 
@@ -311,7 +311,7 @@ impl<'a> PkgShell<'a> {
             // enable global builtins
             let _builtins = eapi.scoped_builtins("global")?;
 
-            if eapi.has("global_failglob") {
+            if eapi.has(Feature::GlobalFailglob) {
                 opts.toggle(&["failglob"], &[])?;
             }
 
@@ -320,7 +320,7 @@ impl<'a> PkgShell<'a> {
             // TODO: export default for $S
 
             // set RDEPEND=DEPEND if RDEPEND is unset
-            if eapi.has("rdepend_default") && string_value("RDEPEND").is_none() {
+            if eapi.has(Feature::RdependDefault) && string_value("RDEPEND").is_none() {
                 let depend = string_value("DEPEND").unwrap_or_else(|| String::from(""));
                 bind("RDEPEND", &depend, None, None)?;
             }

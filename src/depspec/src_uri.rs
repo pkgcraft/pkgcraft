@@ -1,7 +1,7 @@
 use peg;
 
 use super::{DepSpec, Uri};
-use crate::eapi::Eapi;
+use crate::eapi::{Eapi, Feature};
 
 peg::parser! {
     pub grammar depspec() for str {
@@ -21,7 +21,7 @@ peg::parser! {
             = uris:uri() ++ " " {
                 let mut uri_objs: Vec<Uri> = Vec::new();
 
-                if eapi.has("src_uri_renames") {
+                if eapi.has(Feature::SrcUriRenames) {
                     let mut uris = uris.iter().peekable();
                     while let Some(x) = uris.next() {
                         let rename = match uris.peek() {
@@ -63,7 +63,7 @@ pub use depspec::expr as parse;
 #[cfg(test)]
 mod tests {
     use crate::depspec::{DepSpec, Uri};
-    use crate::eapi;
+    use crate::eapi::{Feature, EAPIS};
     use crate::peg::PegError;
 
     use super::parse;
@@ -73,7 +73,7 @@ mod tests {
         // invalid data
         let mut result: Result<DepSpec, PegError>;
         for s in ["", "(", ")", "( )", "( uri)", "| ( uri )", "use ( uri )", "!use ( uri )"] {
-            for eapi in eapi::EAPIS.values() {
+            for eapi in EAPIS.values() {
                 assert!(parse(&s, eapi).is_err(), "{s:?} didn't fail");
             }
         }
@@ -101,7 +101,7 @@ mod tests {
                 ),
             ),
         ] {
-            for eapi in eapi::EAPIS.values() {
+            for eapi in EAPIS.values() {
                 result = parse(&s, eapi);
                 assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                 src_uri = result.unwrap();
@@ -111,8 +111,8 @@ mod tests {
 
         // SRC_URI renames
         for (s, expected) in [("uri1 -> file", DepSpec::Uris(vec![uri("uri1", Some("file"))]))] {
-            for eapi in eapi::EAPIS.values() {
-                if eapi.has("src_uri_renames") {
+            for eapi in EAPIS.values() {
+                if eapi.has(Feature::SrcUriRenames) {
                     result = parse(&s, eapi);
                     assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                     src_uri = result.unwrap();

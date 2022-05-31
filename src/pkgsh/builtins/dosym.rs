@@ -6,6 +6,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
 use crate::utils::relpath;
 
@@ -16,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (source, target, target_str) = match args.len() {
-            3 if args[0] == "-r" && eapi.has("dosym_relative") => {
+            3 if args[0] == "-r" && eapi.has(Feature::DosymRelative) => {
                 let (source, target) = (Path::new(args[1]), Path::new(args[2]));
                 if !source.is_absolute() {
                     return Err(Error::Builtin(format!(
@@ -68,7 +69,7 @@ mod tests {
 
     use super::super::assert_invalid_args;
     use super::run as dosym;
-    use crate::eapi::EAPIS_OFFICIAL;
+    use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
@@ -79,7 +80,7 @@ mod tests {
             assert_invalid_args(dosym, &[0, 1, 4]);
 
             BUILD_DATA.with(|d| {
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has("dosym_relative")) {
+                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has(Feature::DosymRelative)) {
                     d.borrow_mut().eapi = eapi;
                     assert_invalid_args(dosym, &[3]);
                 }

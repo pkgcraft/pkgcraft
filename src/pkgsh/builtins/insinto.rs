@@ -4,6 +4,7 @@ use scallop::variables::bind;
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
 
 const LONG_DOC: &str = "\
@@ -23,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let mut d = d.borrow_mut();
         d.insdesttree = path.to_string();
 
-        if d.eapi.has("export_insdesttree") {
+        if d.eapi.has(Feature::ExportInsdesttree) {
             bind("INSDESTTREE", path, None, None)?;
         }
         Ok(ExecStatus::Success)

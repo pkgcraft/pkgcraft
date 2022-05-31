@@ -5,6 +5,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
+use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::pkgsh::BUILD_DATA;
 
@@ -21,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
         let dest = "/usr/include";
-        let opts: Vec<&str> = match d.eapi.has("consistent_file_opts") {
+        let opts: Vec<&str> = match d.eapi.has(Feature::ConsistentFileOpts) {
             true => vec!["-m0644"],
             false => d.insopts.iter().map(|s| s.as_str()).collect(),
         };
@@ -67,7 +68,7 @@ mod tests {
     use super::super::assert_invalid_args;
     use super::super::insopts::run as insopts;
     use super::run as doheader;
-    use crate::eapi::EAPIS_OFFICIAL;
+    use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
@@ -107,7 +108,7 @@ mod tests {
                 BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
                 insopts(&["-m0755"]).unwrap();
                 doheader(&["-r", "pkgcraft"]).unwrap();
-                let mode = match eapi.has("consistent_file_opts") {
+                let mode = match eapi.has(Feature::ConsistentFileOpts) {
                     true => default_mode,
                     false => custom_mode,
                 };

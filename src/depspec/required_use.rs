@@ -1,7 +1,7 @@
 use peg;
 
 use super::DepSpec;
-use crate::eapi::Eapi;
+use crate::eapi::{Eapi, Feature};
 use crate::macros::vec_str;
 
 peg::parser! {
@@ -35,7 +35,7 @@ peg::parser! {
 
         rule at_most_one_of(eapi: &'static Eapi) -> DepSpec
             = "??" _ "(" _ e:expr(eapi) _ ")" {?
-                if !eapi.has("required_use_one_of") {
+                if !eapi.has(Feature::RequiredUseOneOf) {
                     return Err("?? groups are supported in >= EAPI 5");
                 }
                 Ok(DepSpec::AtMostOneOf(Box::new(e)))
@@ -58,7 +58,7 @@ pub use depspec::expr as parse;
 #[cfg(test)]
 mod tests {
     use crate::depspec::DepSpec;
-    use crate::eapi;
+    use crate::eapi::{Feature, EAPIS, EAPI_LATEST};
     use crate::macros::vec_str;
     use crate::peg::PegError;
 
@@ -68,7 +68,7 @@ mod tests {
     fn test_parse_required_use() {
         // invalid data
         for s in ["", "(", ")", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"] {
-            assert!(parse(&s, &eapi::EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(parse(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         // good data
@@ -110,7 +110,7 @@ mod tests {
                 ),
             ),
         ] {
-            result = parse(&s, &eapi::EAPI_LATEST);
+            result = parse(&s, &EAPI_LATEST);
             assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
             required_use = result.unwrap();
             assert_eq!(required_use, expected);
@@ -121,8 +121,8 @@ mod tests {
             "?? ( u1 u2 )",
             DepSpec::AtMostOneOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
         )] {
-            for eapi in eapi::EAPIS.values() {
-                if eapi.has("required_use_one_of") {
+            for eapi in EAPIS.values() {
+                if eapi.has(Feature::RequiredUseOneOf) {
                     result = parse(&s, eapi);
                     assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                     required_use = result.unwrap();
