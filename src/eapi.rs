@@ -291,10 +291,14 @@ impl Eapi {
     }
 
     fn update_features(mut self, add: &[Feature], remove: &[Feature]) -> Self {
-        self.features.extend(add);
+        for x in add {
+            if !self.features.insert(*x) {
+                panic!("EAPI {self}: enabling set feature: {x:?}");
+            }
+        }
         for x in remove {
             if !self.features.remove(x) {
-                panic!("disabling unset feature: {x:?}");
+                panic!("EAPI {self}: disabling unset feature: {x:?}");
             }
         }
         self
