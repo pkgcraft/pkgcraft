@@ -267,7 +267,6 @@ impl Eapi {
             Some(e) => e.clone(),
             None => Eapi {
                 options: EAPI_OPTIONS.clone(),
-                econf_options: EapiEconfOptions::new(),
                 ..Default::default()
             },
         };
