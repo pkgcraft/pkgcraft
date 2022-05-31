@@ -106,8 +106,7 @@ mod tests {
                 ("<=", "-le"),
                 (">=", "-ge"),
             ]
-            .iter()
-            .cloned()
+            .into_iter()
             .collect();
 
             let inverted_op_map: HashMap<&str, &str> = [
@@ -118,8 +117,7 @@ mod tests {
                 ("<=", ">"),
                 (">=", "<"),
             ]
-            .iter()
-            .cloned()
+            .into_iter()
             .collect();
 
             let mut pvr = Variable::new("PVR");

@@ -129,7 +129,7 @@ static EAPI_OPTIONS: Lazy<EapiOptions> = Lazy::new(|| {
 
         // atom repo deps -- cat/pkg::repo
         ("repo_ids", false),
-    ].iter().cloned().collect()
+    ].into_iter().collect()
 });
 
 type EapiEconfOptions = HashMap<&'static str, (IndexSet<String>, Option<String>)>;

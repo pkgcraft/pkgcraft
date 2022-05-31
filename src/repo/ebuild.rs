@@ -26,8 +26,7 @@ static EBUILD_RE: Lazy<Regex> =
 const DEFAULT_SECTION: Option<String> = None;
 static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ["eclass", "profiles", "metadata", "licenses"]
-        .iter()
-        .cloned()
+        .into_iter()
         .collect()
 });
 
