@@ -14,7 +14,6 @@ use crate::eapi::{Eapi, Feature, Key};
 pub mod builtins;
 mod install;
 pub(crate) mod phase;
-#[cfg(test)]
 pub(crate) mod test;
 pub(crate) mod unescape;
 mod utils;

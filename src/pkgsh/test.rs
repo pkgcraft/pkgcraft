@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
