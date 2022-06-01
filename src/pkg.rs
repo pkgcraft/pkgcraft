@@ -32,21 +32,21 @@ make_pkg_traits!(Pkg<'_>);
 pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord {
     type Repo: Repository;
 
-    /// Get a package's EAPI.
+    /// Return a package's EAPI.
     fn eapi(&self) -> &eapi::Eapi;
 
-    /// Get a package's repo.
+    /// Return a package's repo.
     fn repo(&self) -> Self::Repo;
 
-    /// Get a package's atom.
+    /// Return a package's atom.
     fn atom(&self) -> &atom::Atom;
 
-    /// Get a package's version.
+    /// Return a package's version.
     fn version(&self) -> &atom::Version {
         self.atom().version().unwrap()
     }
 
-    /// Get a package's value for a specified environment variable.
+    /// Return a package's value for a specified environment variable.
     fn env(&self, var: Env) -> String {
         let (a, v) = (self.atom(), self.version());
         use Env::*;

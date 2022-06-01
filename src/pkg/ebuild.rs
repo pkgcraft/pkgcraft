@@ -149,6 +149,7 @@ impl<'a> Pkg<'a> {
         })
     }
 
+    /// Get the parsed EAPI from a given ebuild file.
     fn get_eapi<P: AsRef<Path>>(path: P) -> Result<&'static eapi::Eapi> {
         let mut eapi = &*eapi::EAPI0;
         let path = path.as_ref();
@@ -169,10 +170,12 @@ impl<'a> Pkg<'a> {
         Ok(eapi)
     }
 
+    /// Return a package's ebuild file path.
     pub fn path(&self) -> &Path {
         &self.path
     }
 
+    /// Return a package's ebuild file content.
     pub fn ebuild(&self) -> Result<String> {
         fs::read_to_string(&self.path).map_err(|e| Error::IO(e.to_string()))
     }
