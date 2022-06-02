@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::str::FromStr;
 
 use indexmap::IndexSet;
@@ -235,8 +236,9 @@ impl Restriction<&IndexSet<&str>> for Set {
     }
 }
 
-impl From<&atom::Atom> for Restrict {
-    fn from(atom: &atom::Atom) -> Self {
+impl<T: Borrow<atom::Atom>> From<T> for Restrict {
+    fn from(atom: T) -> Self {
+        let atom = atom.borrow();
         let mut restricts = vec![Self::category(atom.category()), Self::package(atom.package())];
 
         if let Some(v) = atom.version() {

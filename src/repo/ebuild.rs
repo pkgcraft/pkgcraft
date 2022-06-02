@@ -19,6 +19,7 @@ use crate::config::{Config, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
+use crate::restrict::{Restrict, Restriction};
 use crate::{atom, eapi, pkg, repo, Error};
 
 static EBUILD_RE: Lazy<Regex> =
@@ -370,17 +371,17 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
     }
 }
 
-impl repo::Contains<atom::Atom> for Repo {
-    fn contains(&self, atom: atom::Atom) -> bool {
-        self.iter().any(|p| p.atom() == &atom)
-    }
+macro_rules! make_contains {
+    ($($x:ty),+) => {$(
+        impl repo::Contains<$x> for Repo {
+            fn contains(&self, atom: $x) -> bool {
+                let r: Restrict = atom.into();
+                self.iter().any(|p| r.matches(p.atom()))
+            }
+        }
+    )+};
 }
-
-impl repo::Contains<&atom::Atom> for Repo {
-    fn contains(&self, atom: &atom::Atom) -> bool {
-        self.iter().any(|p| p.atom() == atom)
-    }
-}
+make_contains!(atom::Atom, &atom::Atom);
 
 fn ebuild_filter(e: &walkdir::DirEntry) -> bool {
     is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
@@ -542,6 +543,7 @@ impl fmt::Display for TempRepo {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::str::FromStr;
 
     use rusty_fork::rusty_fork_test;
     use tracing_test::traced_test;
@@ -642,13 +644,23 @@ mod tests {
     }
 
     #[test]
-    fn test_contains_path() {
+    fn test_contains() {
         let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+
+        // paths
         assert!(!t.repo.contains("cat/pkg"));
         t.create_ebuild("cat/pkg-1", []).unwrap();
         assert!(t.repo.contains("cat/pkg"));
         assert!(t.repo.contains("cat/pkg/pkg-1.ebuild"));
         assert!(!t.repo.contains("pkg-1.ebuild"));
+
+        // atoms
+        let a = atom::Atom::from_str("cat/pkg").unwrap();
+        assert!(t.repo.contains(&a));
+        assert!(t.repo.contains(a));
+        let a = atom::Atom::from_str("cat/pkg-a").unwrap();
+        assert!(!t.repo.contains(&a));
+        assert!(!t.repo.contains(a));
     }
 
     // TODO: drop this once bash process pool support is added
