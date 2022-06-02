@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
+use crate::pkg::Package;
+use crate::restrict::Restriction;
 use crate::{atom, pkg, repo, Error, Result};
 
 #[derive(Debug, Default)]
@@ -96,18 +98,6 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
     }
 }
 
-impl repo::Contains<&atom::Atom> for Repo {
-    fn contains(&self, atom: &atom::Atom) -> bool {
-        self.pkgs.atoms.contains(atom)
-    }
-}
-
-impl repo::Contains<atom::Atom> for Repo {
-    fn contains(&self, atom: atom::Atom) -> bool {
-        self.pkgs.atoms.contains(&atom)
-    }
-}
-
 impl<'a> IntoIterator for &'a Repo {
     type Item = pkg::fake::Pkg<'a>;
     type IntoIter = PkgIter<'a>;
@@ -135,6 +125,8 @@ impl<'a> Iterator for PkgIter<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use crate::atom;
     use crate::repo::{Contains, Repository};
 
@@ -196,12 +188,25 @@ mod tests {
     #[test]
     fn test_contains() {
         let repo = Repo::new("fake", 0, ["cat/pkg-0"]).unwrap();
+
         // path containment is always false due to fake repo
         assert!(!repo.contains("cat/pkg"));
-        // atom containment
+
+        // cpv containment
         let cpv = atom::parse::cpv("cat/pkg-0").unwrap();
         assert!(repo.contains(&cpv));
         assert!(repo.contains(cpv));
+        let cpv = atom::parse::cpv("cat/pkg-1").unwrap();
+        assert!(!repo.contains(&cpv));
+        assert!(!repo.contains(cpv));
+
+        // atom containment
+        let a = atom::Atom::from_str("cat/pkg").unwrap();
+        assert!(repo.contains(&a));
+        assert!(repo.contains(a));
+        let a = atom::Atom::from_str("cat/pkg-a").unwrap();
+        assert!(!repo.contains(&a));
+        assert!(!repo.contains(a));
     }
 
     #[test]

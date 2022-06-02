@@ -3,6 +3,8 @@ use std::{fmt, iter};
 
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
+use crate::pkg::Package;
+use crate::restrict::Restriction;
 use crate::{atom, pkg, repo, Error, Result};
 
 #[derive(Debug, Default)]
@@ -81,14 +83,36 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
     }
 }
 
-impl repo::Contains<&atom::Atom> for Repo {
-    fn contains(&self, _atom: &atom::Atom) -> bool {
-        false
-    }
-}
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
 
-impl repo::Contains<atom::Atom> for Repo {
-    fn contains(&self, _atom: atom::Atom) -> bool {
-        false
+    use crate::atom;
+    use crate::repo::Contains;
+
+    use super::*;
+
+    #[test]
+    fn test_contains() {
+        let repo = Repo::new("empty", 0);
+
+        // path containment
+        assert!(!repo.contains("cat/pkg"));
+
+        // cpv containment
+        let cpv = atom::parse::cpv("cat/pkg-0").unwrap();
+        assert!(!repo.contains(&cpv));
+        assert!(!repo.contains(cpv));
+
+        // atom containment
+        let a = atom::Atom::from_str("cat/pkg").unwrap();
+        assert!(!repo.contains(&a));
+        assert!(!repo.contains(a));
+    }
+
+    #[test]
+    fn test_iter() {
+        let repo = Repo::new("empty", 0);
+        assert!(repo.iter().next().is_none());
     }
 }

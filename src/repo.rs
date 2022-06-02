@@ -7,7 +7,8 @@ use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 use tracing::warn;
 
 use crate::config::RepoConfig;
-use crate::pkg::Pkg;
+use crate::pkg::{Package, Pkg};
+use crate::restrict::Restriction;
 use crate::{atom, Error, Result};
 
 pub(crate) mod ebuild;
@@ -234,7 +235,26 @@ pub enum BorrowedRepo<'a> {
     Config(&'a empty::Repo),
 }
 
+impl<'a> IntoIterator for &'a BorrowedRepo<'_> {
+    type Item = Pkg<'a>;
+    type IntoIter = PackageIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            BorrowedRepo::Ebuild(repo) => PackageIter::Ebuild(repo.into_iter()),
+            BorrowedRepo::Fake(repo) => PackageIter::Fake(repo.into_iter()),
+            BorrowedRepo::Config(_) => PackageIter::Empty,
+        }
+    }
+}
+
 make_repo_traits!(BorrowedRepo<'_>);
+
+impl BorrowedRepo<'_> {
+    pub fn iter(&self) -> PackageIter {
+        self.into_iter()
+    }
+}
 
 macro_rules! make_repo {
     ($($x:ty),+) => {$(
@@ -341,13 +361,27 @@ macro_rules! make_repo_traits {
 
         impl Ord for $x {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                crate::macros::cmp_not_equal!(&self.priority(), &other.priority());
+                $crate::macros::cmp_not_equal!(&self.priority(), &other.priority());
                 self.id().cmp(other.id())
+            }
+        }
+
+        $crate::repo::make_contains_atom!($x [atom::Atom, &atom::Atom]);
+    )+};
+}
+pub(self) use make_repo_traits;
+
+macro_rules! make_contains_atom {
+    ($x:ty [$($y:ty),+]) => {$(
+        impl $crate::repo::Contains<$y> for $x {
+            fn contains(&self, atom: $y) -> bool {
+                let r: $crate::restrict::Restrict = atom.into();
+                self.iter().any(|p| r.matches(p.atom()))
             }
         }
     )+};
 }
-pub(self) use make_repo_traits;
+pub(self) use make_contains_atom;
 
 /// A repo contains a given object.
 pub trait Contains<T> {
@@ -363,21 +397,6 @@ impl<T: AsRef<Path>> Contains<T> for Repo {
         }
     }
 }
-
-macro_rules! make_contains {
-    ($($x:ty),+) => {$(
-        impl Contains<$x> for Repo {
-            fn contains(&self, obj: $x) -> bool {
-                match self {
-                    Self::Ebuild(ref repo) => repo.contains(obj),
-                    Self::Fake(ref repo) => repo.contains(obj),
-                    Self::Config(ref repo) => repo.contains(obj),
-                }
-            }
-        }
-    )+};
-}
-make_contains!(atom::Atom, &atom::Atom);
 
 #[cfg(test)]
 mod tests {

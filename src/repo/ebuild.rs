@@ -19,7 +19,7 @@ use crate::config::{Config, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
-use crate::restrict::{Restrict, Restriction};
+use crate::restrict::Restriction;
 use crate::{atom, eapi, pkg, repo, Error};
 
 static EBUILD_RE: Lazy<Regex> =
@@ -371,18 +371,6 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
     }
 }
 
-macro_rules! make_contains {
-    ($($x:ty),+) => {$(
-        impl repo::Contains<$x> for Repo {
-            fn contains(&self, atom: $x) -> bool {
-                let r: Restrict = atom.into();
-                self.iter().any(|p| r.matches(p.atom()))
-            }
-        }
-    )+};
-}
-make_contains!(atom::Atom, &atom::Atom);
-
 fn ebuild_filter(e: &walkdir::DirEntry) -> bool {
     is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
 }
@@ -647,14 +635,22 @@ mod tests {
     fn test_contains() {
         let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
 
-        // paths
+        // path containment
         assert!(!t.repo.contains("cat/pkg"));
         t.create_ebuild("cat/pkg-1", []).unwrap();
         assert!(t.repo.contains("cat/pkg"));
         assert!(t.repo.contains("cat/pkg/pkg-1.ebuild"));
         assert!(!t.repo.contains("pkg-1.ebuild"));
 
-        // atoms
+        // cpv containment
+        let cpv = atom::parse::cpv("cat/pkg-1").unwrap();
+        assert!(t.repo.contains(&cpv));
+        assert!(t.repo.contains(cpv));
+        let cpv = atom::parse::cpv("cat/pkg-2").unwrap();
+        assert!(!t.repo.contains(&cpv));
+        assert!(!t.repo.contains(cpv));
+
+        // atom containment
         let a = atom::Atom::from_str("cat/pkg").unwrap();
         assert!(t.repo.contains(&a));
         assert!(t.repo.contains(a));
