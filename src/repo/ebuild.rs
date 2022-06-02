@@ -8,7 +8,7 @@ use std::{env, fmt, fs, io};
 use std::io::Write;
 
 use ini::Ini;
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use tempfile::TempDir;
 use tracing::warn;
@@ -99,14 +99,14 @@ impl Metadata {
         Ok(())
     }
 
-    fn get_list<S: AsRef<str>>(&self, key: S) -> Vec<String> {
+    fn get_list<S: AsRef<str>>(&self, key: S) -> Vec<&str> {
         match self.ini.get_from(DEFAULT_SECTION, key.as_ref()) {
             None => vec![],
-            Some(s) => s.split_whitespace().map(|s| s.into()).collect(),
+            Some(s) => s.split_whitespace().collect(),
         }
     }
 
-    pub(crate) fn masters(&self) -> Vec<String> {
+    pub(crate) fn masters(&self) -> Vec<&str> {
         self.get_list("masters")
     }
 }
@@ -116,6 +116,8 @@ pub struct Repo {
     id: String,
     config: RepoConfig,
     meta: Metadata,
+    masters: OnceCell<Vec<Arc<Repo>>>,
+    trees: OnceCell<Vec<Arc<Repo>>>,
 }
 
 make_repo_traits!(Repo);
@@ -129,6 +131,7 @@ impl Repo {
             id: id.as_ref().to_string(),
             config: config.unwrap_or_default(),
             meta,
+            ..Default::default()
         })
     }
 
@@ -162,19 +165,19 @@ impl Repo {
         Repo::new(id, Some(config), meta)
     }
 
-    pub fn masters(&self) -> crate::Result<Vec<Arc<repo::Repo>>> {
+    pub(crate) fn finalize(&self) -> crate::Result<()> {
         let config = Config::current();
-        let mut masters = vec![];
         let mut nonexistent = vec![];
+
         for id in self.meta.masters() {
             match config.repos.get(&id) {
-                Some(r) => masters.push(r.clone()),
-                None => nonexistent.push(id),
+                Some(repo::Repo::Ebuild(_)) => (),
+                _ => nonexistent.push(id),
             }
         }
 
         match nonexistent.is_empty() {
-            true => Ok(masters),
+            true => Ok(()),
             false => {
                 let masters = nonexistent.join(", ");
                 Err(Error::InvalidRepo {
@@ -185,19 +188,37 @@ impl Repo {
         }
     }
 
-    pub fn trees(&self) -> crate::Result<Vec<Arc<repo::Repo>>> {
-        let config = Config::current();
-        let mut trees = self.masters()?;
-        match config.repos.get(&self.id) {
-            Some(r) => {
-                trees.push(r.clone());
-                Ok(trees)
-            }
-            None => Err(Error::InvalidRepo {
-                path: self.path().into(),
-                error: format!("unconfigured repo: {}", self.id),
-            }),
-        }
+    pub fn masters(&self) -> &[Arc<Repo>] {
+        self.masters
+            .get_or_init(|| {
+                let config = Config::current();
+                self.meta
+                    .masters()
+                    .iter()
+                    .map(|s| match config.repos.get(s) {
+                        Some(repo::Repo::Ebuild(r)) => r.clone(),
+                        _ => panic!("nonexistent repo: {s}"),
+                    })
+                    .collect()
+            })
+            .as_slice()
+    }
+
+    pub fn trees(&self) -> &[Arc<Repo>] {
+        self.trees
+            .get_or_init(|| {
+                let config = Config::current();
+                let mut repos = self.meta.masters();
+                repos.push(self.id());
+                repos
+                    .iter()
+                    .map(|s| match config.repos.get(s) {
+                        Some(repo::Repo::Ebuild(r)) => r.clone(),
+                        _ => panic!("nonexistent repo: {s}"),
+                    })
+                    .collect()
+            })
+            .as_slice()
     }
 
     pub fn category_dirs(&self) -> Vec<String> {
@@ -549,11 +570,11 @@ mod tests {
             assert!(repo.meta.masters().is_empty());
             repo.meta.set("masters", "a b c");
             repo.meta.write(None).unwrap();
-            let test_repo = Repo::from_path(repo.id(), 0, repo.path()).unwrap();
-            assert_eq!(test_repo.meta.masters(), ["a", "b", "c"]);
-            // repos don't exist so they'll be flagged if actually trying to access them
-            let r = test_repo.masters();
-            assert_err_re!(r, format!("^.* nonexistent masters: a, b, c$"));
+            let r = repo::Repo::from_path(repo.id(), 0, repo.path()).unwrap();
+            let r = r.as_ebuild().unwrap();
+            assert_eq!(r.meta.masters(), ["a", "b", "c"]);
+            // repos don't exist so they'll be flagged on init
+            assert_err_re!(r.finalize(), format!("^.* nonexistent masters: a, b, c$"));
         }
 
         #[test]

@@ -7,6 +7,7 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
+use crate::repo::Repo;
 use crate::{Error, Result};
 pub(crate) use repo::RepoConfig;
 
@@ -100,7 +101,7 @@ impl Config {
         let path = ConfigPath::new(name, prefix, create)?;
         let repos = repo::Config::new(&path.config, &path.db, create)?;
         let config = Config { path, repos };
-        Config::make_current(config.clone());
+        Config::make_current(config.clone())?;
         Ok(config)
     }
 
@@ -108,8 +109,26 @@ impl Config {
         CURRENT_CONFIG.read().unwrap().clone()
     }
 
-    pub fn make_current(config: Config) {
-        *CURRENT_CONFIG.write().unwrap() = Arc::new(config)
+    pub fn make_current(config: Config) -> Result<()> {
+        *CURRENT_CONFIG.write().unwrap() = Arc::new(config);
+        Config::current().repos.finalize()
+    }
+
+    pub fn add_repo(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
+        let r = self.repos.add(name, priority, uri)?;
+        Config::make_current(self.clone())?;
+        Ok(r)
+    }
+
+    pub fn create_repo(&mut self, name: &str, priority: i32) -> Result<Repo> {
+        let r = self.repos.create(name, priority)?;
+        Config::make_current(self.clone())?;
+        Ok(r)
+    }
+
+    pub fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> Result<()> {
+        self.repos.del(repos, clean)?;
+        Config::make_current(self.clone())
     }
 }
 

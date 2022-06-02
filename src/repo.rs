@@ -1,5 +1,6 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
@@ -107,12 +108,31 @@ impl<'a> FromIterator<&'a str> for PkgCache {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(IntoStaticStr, EnumIter, Debug)]
+#[derive(IntoStaticStr, EnumIter, Debug, Clone)]
+#[cfg_attr(test, derive(enum_as_inner::EnumAsInner))]
 #[strum(serialize_all = "snake_case")]
 pub enum Repo {
-    Ebuild(ebuild::Repo),
-    Fake(fake::Repo),
-    Config(empty::Repo),
+    Ebuild(Arc<ebuild::Repo>),
+    Fake(Arc<fake::Repo>),
+    Config(Arc<empty::Repo>),
+}
+
+impl From<ebuild::Repo> for Repo {
+    fn from(repo: ebuild::Repo) -> Self {
+        Self::Ebuild(Arc::new(repo))
+    }
+}
+
+impl From<fake::Repo> for Repo {
+    fn from(repo: fake::Repo) -> Self {
+        Self::Fake(Arc::new(repo))
+    }
+}
+
+impl From<empty::Repo> for Repo {
+    fn from(repo: empty::Repo) -> Self {
+        Self::Config(Arc::new(repo))
+    }
 }
 
 make_repo_traits!(Repo);
@@ -157,10 +177,17 @@ impl Repo {
         let id = id.as_ref();
 
         match format {
-            "ebuild" => Ok(Self::Ebuild(ebuild::Repo::from_path(id, priority, path)?)),
-            "fake" => Ok(Self::Fake(fake::Repo::from_path(id, priority, path)?)),
-            "config" => Ok(Self::Config(empty::Repo::from_path(id, priority, path)?)),
+            "ebuild" => Ok(ebuild::Repo::from_path(id, priority, path)?.into()),
+            "fake" => Ok(fake::Repo::from_path(id, priority, path)?.into()),
+            "config" => Ok(empty::Repo::from_path(id, priority, path)?.into()),
             _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
+        }
+    }
+
+    pub(crate) fn finalize(&self) -> Result<()> {
+        match self {
+            Self::Ebuild(repo) => repo.finalize(),
+            _ => Ok(()),
         }
     }
 
@@ -408,15 +435,15 @@ mod tests {
     #[test]
     fn test_traits() {
         let t = ebuild::TempRepo::new("test", 0, None::<&str>, None).unwrap();
-        let e_repo = Repo::Ebuild(t.repo);
-        let f_repo = Repo::Fake(fake::Repo::new("fake", 0, []).unwrap());
+        let e_repo: Repo = t.repo.into();
+        let f_repo: Repo = fake::Repo::new("fake", 0, []).unwrap().into();
         assert!(&e_repo != &f_repo);
         assert!(&e_repo > &f_repo);
 
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
 
-        let f_repo = Repo::Fake(fake::Repo::new("test", 0, []).unwrap());
+        let f_repo: Repo = fake::Repo::new("test", 0, []).unwrap().into();
         assert!(&e_repo == &f_repo);
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 1);

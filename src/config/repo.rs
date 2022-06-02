@@ -3,7 +3,6 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::sync::Arc;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -66,11 +65,11 @@ pub struct Config {
     config_dir: PathBuf,
     repo_dir: PathBuf,
     #[serde(skip)]
-    repos: IndexMap<String, Arc<Repo>>,
+    repos: IndexMap<String, Repo>,
 }
 
 impl Config {
-    pub fn new<P: AsRef<Path>>(config_dir: P, db_dir: P, create: bool) -> Result<Config> {
+    pub(super) fn new<P: AsRef<Path>>(config_dir: P, db_dir: P, create: bool) -> Result<Config> {
         let (config_dir, db_dir) = (config_dir.as_ref(), db_dir.as_ref());
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
@@ -104,22 +103,22 @@ impl Config {
                     }
                 }
             }
-
-            // sort configs by priority then by name
-            configs.sort_by(|(_k1, v1), (_k2, v2)| v1.cmp(v2));
         }
 
         // create hash tables of repos ordered by priority
-        let mut repos = IndexMap::<String, Arc<Repo>>::new();
+        let mut repos = IndexMap::<String, Repo>::new();
         for (name, c) in configs.into_iter() {
             // ignore unsynced or nonexistent repos
             match Repo::from_format(&name, c.priority, &c.location, &c.format) {
                 Ok(repo) => {
-                    repos.insert(name, Arc::new(repo));
+                    repos.insert(name, repo);
                 }
                 Err(err) => warn!("{err}"),
             }
         }
+
+        // sort repos by priority then by name
+        repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
 
         Ok(Config {
             config_dir,
@@ -128,7 +127,14 @@ impl Config {
         })
     }
 
-    pub fn add(&mut self, name: &str, priority: i32, uri: &str) -> Result<Arc<Repo>> {
+    pub(super) fn finalize(&self) -> Result<()> {
+        for repo in self.repos.values() {
+            repo.finalize()?;
+        }
+        Ok(())
+    }
+
+    pub(super) fn add(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
         if self.repos.get(name).is_some() {
             return Err(Error::Config(format!("existing repo: {name}")));
         }
@@ -171,13 +177,12 @@ impl Config {
         };
 
         let repos = &mut self.repos;
-        let repo = Arc::new(repo);
         repos.insert(name.to_string(), repo.clone());
         repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
         Ok(repo)
     }
 
-    pub fn create(&mut self, name: &str, priority: i32) -> Result<Arc<Repo>> {
+    pub(super) fn create(&mut self, name: &str, priority: i32) -> Result<Repo> {
         match self.repos.get(name) {
             Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
             None => {
@@ -194,7 +199,7 @@ impl Config {
         }
     }
 
-    pub fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> Result<()> {
+    pub(super) fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> Result<()> {
         for name in repos {
             let name = name.as_ref();
             // error out if repo config is missing
@@ -216,7 +221,7 @@ impl Config {
     }
 
     // TODO: add concurrent syncing support with output progress
-    pub fn sync<S: AsRef<str>>(&mut self, repos: Vec<S>) -> Result<()> {
+    pub fn sync<S: AsRef<str>>(&self, repos: Vec<S>) -> Result<()> {
         let repos: Vec<&str> = match &repos {
             names if !names.is_empty() => names.iter().map(|s| s.as_ref()).collect(),
             // sync all configured repos if none were passed
@@ -249,17 +254,17 @@ impl Config {
         self.into_iter()
     }
 
-    pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&Arc<Repo>> {
+    pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&Repo> {
         self.repos.get(key.as_ref())
     }
 }
 
 pub struct ReposIter<'a> {
-    iter: indexmap::map::Iter<'a, String, Arc<Repo>>,
+    iter: indexmap::map::Iter<'a, String, Repo>,
 }
 
 impl<'a> IntoIterator for &'a Config {
-    type Item = (&'a str, &'a Arc<Repo>);
+    type Item = (&'a str, &'a Repo);
     type IntoIter = ReposIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -270,7 +275,7 @@ impl<'a> IntoIterator for &'a Config {
 }
 
 impl<'a> Iterator for ReposIter<'a> {
-    type Item = (&'a str, &'a Arc<Repo>);
+    type Item = (&'a str, &'a Repo);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(id, repo)| (id.as_str(), repo))

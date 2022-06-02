@@ -53,6 +53,7 @@ walkdir = "2"
 
 [dev-dependencies]
 criterion = "0.3"
+enum-as-inner = "0.5.0"
 indoc = "1.0.3"
 maplit = "1.0.2"
 rusty-fork = "0.3.0"
