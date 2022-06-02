@@ -10,10 +10,9 @@ use scallop::source;
 use scallop::variables::string_value;
 
 use super::{make_pkg_traits, Package};
-use crate::atom::Atom;
 use crate::eapi::Key::*;
 use crate::repo::{ebuild::Repo, BorrowedRepo};
-use crate::{eapi, Error, Result};
+use crate::{atom, eapi, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
@@ -127,7 +126,7 @@ impl<'a> Metadata<'a> {
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     path: PathBuf,
-    atom: Atom,
+    atom: atom::Atom,
     eapi: &'static eapi::Eapi,
     repo: &'a Repo,
     data: Metadata<'a>,
@@ -230,7 +229,7 @@ impl AsRef<Path> for Pkg<'_> {
 impl<'a> Package for Pkg<'a> {
     type Repo = BorrowedRepo<'a>;
 
-    fn atom(&self) -> &Atom {
+    fn atom(&self) -> &atom::Atom {
         &self.atom
     }
 
@@ -273,15 +272,32 @@ mod tests {
             // temp repo ebuild creation defaults to the latest EAPI
             let path = t.create_ebuild("cat/pkg-1", []).unwrap();
             let pkg = Pkg::new(&path, &repo).unwrap();
-            assert_eq!(pkg.eapi(), &*eapi::EAPI_LATEST);
             assert_eq!(pkg.path(), &path);
             assert!(!pkg.ebuild().unwrap().is_empty());
 
             let path = t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
             let pkg = Pkg::new(&path, &repo).unwrap();
-            assert_eq!(pkg.eapi(), &*eapi::EAPI0);
             assert_eq!(pkg.path(), &path);
             assert!(!pkg.ebuild().unwrap().is_empty());
+        }
+
+        #[test]
+        fn test_package_trait() {
+            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+            t.create_ebuild("cat/pkg-1", []).unwrap();
+            t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
+            let repo = &t.repo;
+
+            let mut iter = repo.iter();
+            let pkg1 = iter.next().unwrap();
+            let pkg2 = iter.next().unwrap();
+
+            // temp repo ebuild creation defaults to the latest EAPI
+            assert_eq!(pkg1.eapi(), &*eapi::EAPI_LATEST);
+            assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
+            assert_eq!(pkg1.atom(), &atom::parse::cpv("cat/pkg-1").unwrap());
+            assert_eq!(pkg2.atom(), &atom::parse::cpv("cat/pkg-2").unwrap());
+            assert_eq!(pkg1.repo(), pkg2.repo());
         }
 
         #[test]
