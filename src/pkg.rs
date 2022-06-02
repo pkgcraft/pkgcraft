@@ -121,22 +121,22 @@ impl<'a> Package for Pkg<'a> {
 
     fn atom(&self) -> &atom::Atom {
         match self {
-            Self::Ebuild(ref pkg) => pkg.atom(),
-            Self::Fake(ref pkg) => pkg.atom(),
+            Self::Ebuild(pkg) => pkg.atom(),
+            Self::Fake(pkg) => pkg.atom(),
         }
     }
 
     fn eapi(&self) -> &eapi::Eapi {
         match self {
-            Self::Ebuild(ref pkg) => pkg.eapi(),
-            Self::Fake(ref pkg) => pkg.eapi(),
+            Self::Ebuild(pkg) => pkg.eapi(),
+            Self::Fake(pkg) => pkg.eapi(),
         }
     }
 
     fn repo(&self) -> Self::Repo {
         match self {
-            Self::Ebuild(ref pkg) => pkg.repo(),
-            Self::Fake(ref pkg) => pkg.repo(),
+            Self::Ebuild(pkg) => pkg.repo(),
+            Self::Fake(pkg) => pkg.repo(),
         }
     }
 }
