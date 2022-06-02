@@ -115,7 +115,7 @@ impl Metadata {
 pub struct Repo {
     id: String,
     config: RepoConfig,
-    pub(super) meta: Metadata,
+    meta: Metadata,
 }
 
 make_repo_traits!(Repo);
