@@ -126,7 +126,7 @@ impl Config {
         Ok(r)
     }
 
-    pub fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> Result<()> {
+    pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> Result<()> {
         self.repos.del(repos, clean)?;
         Config::make_current(self.clone())
     }
