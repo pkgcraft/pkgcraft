@@ -310,9 +310,7 @@ impl Repository for Repo {
             cat.strip_prefix('/').unwrap_or(cat),
             pkg.strip_prefix('/').unwrap_or(pkg)
         );
-        let ebuilds = sorted_dir_list(&path)
-            .into_iter()
-            .filter_entry(ebuild_filter);
+        let ebuilds = sorted_dir_list(&path).into_iter().filter_entry(is_ebuild);
         let mut v = vec![];
         for entry in ebuilds {
             let entry = match entry {
@@ -371,7 +369,7 @@ impl<T: AsRef<Path>> repo::Contains<T> for Repo {
     }
 }
 
-fn ebuild_filter(e: &walkdir::DirEntry) -> bool {
+fn is_ebuild(e: &walkdir::DirEntry) -> bool {
     is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
 }
 
@@ -411,7 +409,7 @@ impl<'a> Iterator for PkgIter<'a> {
         loop {
             match self.iter.next() {
                 Some(Ok(e)) => {
-                    if ebuild_filter(&e) {
+                    if is_ebuild(&e) {
                         let path = e.path();
                         match pkg::ebuild::Pkg::new(path, self.repo) {
                             Ok(p) => return Some(p),
