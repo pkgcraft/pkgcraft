@@ -15,6 +15,7 @@ use strum::{AsRefStr, Display};
 use crate::archive::Archive;
 use crate::atom::Atom;
 use crate::pkgsh::builtins::{parse, BuiltinsMap, Scope, BUILTINS_MAP};
+use crate::pkgsh::phase::Phase::*;
 use crate::pkgsh::phase::*;
 use crate::{Error, Result};
 
@@ -304,9 +305,8 @@ impl Eapi {
         self
     }
 
-    fn update_phases(mut self, updates: &[(&'static str, PhaseFn)]) -> Self {
-        self.phases
-            .extend(updates.iter().map(|(s, f)| Phase::new(s, *f)));
+    fn update_phases(mut self, updates: &[Phase]) -> Self {
+        self.phases.extend(updates);
         self
     }
 
@@ -387,18 +387,19 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             &[],
         )
         .update_phases(&[
-            ("pkg_setup", PHASE_STUB),
-            ("pkg_config", PHASE_STUB),
-            ("pkg_info", PHASE_STUB),
-            ("pkg_nofetch", PHASE_STUB),
-            ("pkg_prerm", PHASE_STUB),
-            ("pkg_postrm", PHASE_STUB),
-            ("pkg_preinst", PHASE_STUB),
-            ("pkg_postinst", PHASE_STUB),
-            ("src_unpack", eapi0::src_unpack),
-            ("src_compile", eapi0::src_compile),
-            ("src_test", eapi0::src_test),
-            ("src_install", PHASE_STUB),
+            PkgSetup(PHASE_STUB),
+            PkgConfig(PHASE_STUB),
+            PkgInfo(PHASE_STUB),
+            PkgNofetch(PHASE_STUB),
+            PkgPrerm(PHASE_STUB),
+            PkgPostrm(PHASE_STUB),
+            PkgPreinst(PHASE_STUB),
+            PkgPostinst(PHASE_STUB),
+            SrcUnpack(PHASE_STUB),
+            SrcUnpack(eapi0::src_unpack),
+            SrcCompile(eapi0::src_compile),
+            SrcTest(eapi0::src_test),
+            SrcInstall(PHASE_STUB),
         ])
         .update_dep_keys(&[Depend, Rdepend, Pdepend])
         .update_incremental_keys(&[Iuse, Depend, Rdepend, Pdepend])
@@ -429,7 +430,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("1", Some(&EAPI0))
         .update_features(&[Feature::IuseDefaults, Feature::SlotDeps], &[])
-        .update_phases(&[("src_compile", eapi1::src_compile)])
+        .update_phases(&[SrcCompile(eapi1::src_compile)])
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
@@ -444,9 +445,9 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
             &[],
         )
         .update_phases(&[
-            ("src_prepare", PHASE_STUB),
-            ("src_compile", eapi2::src_compile),
-            ("src_configure", eapi2::src_configure),
+            SrcPrepare(PHASE_STUB),
+            SrcCompile(eapi2::src_compile),
+            SrcConfigure(eapi2::src_configure),
         ])
 });
 
@@ -465,7 +466,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             ],
             &[Feature::RdependDefault],
         )
-        .update_phases(&[("pkg_pretend", PHASE_STUB), ("src_install", eapi4::src_install)])
+        .update_phases(&[PkgPretend(PHASE_STUB), SrcInstall(eapi4::src_install)])
         .update_incremental_keys(&[RequiredUse])
         .update_metadata_keys(&[RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
@@ -498,7 +499,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             ],
             &[],
         )
-        .update_phases(&[("src_prepare", eapi6::src_prepare), ("src_install", eapi6::src_install)])
+        .update_phases(&[SrcPrepare(eapi6::src_prepare), SrcInstall(eapi6::src_install)])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),

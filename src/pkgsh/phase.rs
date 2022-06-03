@@ -1,8 +1,8 @@
-use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use scallop::builtins::ExecStatus;
 use scallop::Result;
+use strum::{AsRefStr, Display};
 
 use super::builtins::emake::run as emake;
 use super::utils::makefile_exists;
@@ -36,15 +36,29 @@ fn emake_install() -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct Phase {
-    name: &'static str,
-    func: PhaseFn,
+#[derive(AsRefStr, Display, Debug, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum Phase {
+    PkgSetup(PhaseFn),
+    PkgConfig(PhaseFn),
+    PkgInfo(PhaseFn),
+    PkgNofetch(PhaseFn),
+    PkgPrerm(PhaseFn),
+    PkgPostrm(PhaseFn),
+    PkgPreinst(PhaseFn),
+    PkgPostinst(PhaseFn),
+    PkgPretend(PhaseFn),
+    SrcUnpack(PhaseFn),
+    SrcPrepare(PhaseFn),
+    SrcConfigure(PhaseFn),
+    SrcCompile(PhaseFn),
+    SrcTest(PhaseFn),
+    SrcInstall(PhaseFn),
 }
 
 impl PartialEq for Phase {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.name() == other.name()
     }
 }
 
@@ -52,39 +66,41 @@ impl Eq for Phase {}
 
 impl Hash for Phase {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-    }
-}
-
-impl From<&Phase> for &str {
-    fn from(phase: &Phase) -> &'static str {
-        phase.name
-    }
-}
-
-impl fmt::Display for Phase {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl AsRef<str> for Phase {
-    fn as_ref(&self) -> &str {
-        self.name
+        self.name().hash(state);
     }
 }
 
 impl Phase {
-    pub(crate) fn new(name: &'static str, func: PhaseFn) -> Self {
-        Phase { name, func }
+    /// Run the phase function.
+    pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
+        use Phase::*;
+        match self {
+            PkgSetup(f) => f(),
+            PkgConfig(f) => f(),
+            PkgInfo(f) => f(),
+            PkgNofetch(f) => f(),
+            PkgPrerm(f) => f(),
+            PkgPostrm(f) => f(),
+            PkgPreinst(f) => f(),
+            PkgPostinst(f) => f(),
+            PkgPretend(f) => f(),
+            SrcUnpack(f) => f(),
+            SrcPrepare(f) => f(),
+            SrcConfigure(f) => f(),
+            SrcCompile(f) => f(),
+            SrcTest(f) => f(),
+            SrcInstall(f) => f(),
+        }
     }
 
-    pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
-        (self.func)()
+    /// Return the phase function name, e.g. src_compile.
+    pub(crate) fn name(&self) -> &str {
+        self.as_ref()
     }
 
     /// Return the shortened phase function name, e.g. src_compile -> compile.
     pub(crate) fn short_name(&self) -> &str {
-        self.name.split_once('_').map_or(self.name, |x| x.1)
+        let s = self.name();
+        s.split_once('_').map_or(s, |x| x.1)
     }
 }
