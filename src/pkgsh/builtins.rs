@@ -107,6 +107,7 @@ pub mod ver_cut;
 pub mod ver_rs;
 pub mod ver_test;
 
+#[derive(Debug)]
 pub(crate) struct PkgBuiltin {
     builtin: Builtin,
     scope: IndexMap<&'static Eapi, Regex>,
