@@ -100,8 +100,8 @@ impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
         let path = ConfigPath::new(name, prefix, create)?;
         let repos = repo::Config::new(&path.config, &path.db, create)?;
+        repos.finalize()?;
         let config = Config { path, repos };
-        config.repos.finalize()?;
         Config::make_current(config.clone());
         Ok(config)
     }
