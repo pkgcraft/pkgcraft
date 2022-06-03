@@ -1,6 +1,6 @@
 macro_rules! build_from_paths {
     ($base:expr, $($segment:expr),+) => {{
-        let mut base: ::std::path::PathBuf = $base.into();
+        let mut base: ::camino::Utf8PathBuf = $base.into();
         $(base.push($segment);)*
         base
     }}

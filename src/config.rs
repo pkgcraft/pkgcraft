@@ -1,8 +1,8 @@
 use std::env;
 use std::fs;
-use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
+use camino::Utf8PathBuf;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
@@ -15,41 +15,47 @@ mod repo;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ConfigPath {
-    pub cache: PathBuf,
-    pub config: PathBuf,
-    pub data: PathBuf,
-    pub db: PathBuf,
-    pub run: PathBuf,
+    pub cache: Utf8PathBuf,
+    pub config: Utf8PathBuf,
+    pub data: Utf8PathBuf,
+    pub db: Utf8PathBuf,
+    pub run: Utf8PathBuf,
 }
 
 impl ConfigPath {
     fn new(name: &str, prefix: &str, create: bool) -> Result<ConfigPath> {
         let home = env::var("HOME").ok().unwrap_or_else(|| "/root".to_string());
-        let (config, cache, data, db, run): (PathBuf, PathBuf, PathBuf, PathBuf, PathBuf);
+        let (config, cache, data, db, run): (
+            Utf8PathBuf,
+            Utf8PathBuf,
+            Utf8PathBuf,
+            Utf8PathBuf,
+            Utf8PathBuf,
+        );
 
         // prefix a given path
-        let prefixed = |p: PathBuf| -> PathBuf {
+        let prefixed = |p: Utf8PathBuf| -> Utf8PathBuf {
             match prefix.is_empty() {
                 true => p,
-                false => PathBuf::from(prefix).join(p.strip_prefix("/").unwrap_or(&p)),
+                false => Utf8PathBuf::from(prefix).join(p.strip_prefix("/").unwrap_or(&p)),
             }
         };
 
         // pull user config from $XDG_CONFIG_HOME, otherwise $HOME/.config
-        let user_config: PathBuf = match env::var("XDG_CONFIG_HOME") {
+        let user_config: Utf8PathBuf = match env::var("XDG_CONFIG_HOME") {
             Ok(x) => prefixed(build_from_paths!(&x, name)),
             Err(_) => prefixed(build_from_paths!(&home, ".config", name)),
         };
 
-        let system_config = prefixed(PathBuf::from(format!("/etc/{name}")));
+        let system_config = prefixed(Utf8PathBuf::from(format!("/etc/{name}")));
 
         // determine if user config or system config will be used
         config = match (user_config.exists(), system_config.exists() || home == "/root") {
             (false, true) => {
-                cache = prefixed(PathBuf::from(format!("/var/cache/{name}")));
-                data = prefixed(PathBuf::from(format!("/usr/share/{name}")));
-                db = prefixed(PathBuf::from(format!("/var/db/{name}")));
-                run = prefixed(PathBuf::from(format!("/run/{name}")));
+                cache = prefixed(Utf8PathBuf::from(format!("/var/cache/{name}")));
+                data = prefixed(Utf8PathBuf::from(format!("/usr/share/{name}")));
+                db = prefixed(Utf8PathBuf::from(format!("/var/db/{name}")));
+                run = prefixed(Utf8PathBuf::from(format!("/run/{name}")));
                 system_config
             }
             _ => {
@@ -152,30 +158,30 @@ mod tests {
 
         // XDG var and HOME are set
         let config = Config::new("pkgcraft", "", false).unwrap();
-        assert_eq!(config.path.cache, PathBuf::from("/cache/pkgcraft"));
-        assert_eq!(config.path.config, PathBuf::from("/config/pkgcraft"));
+        assert_eq!(config.path.cache, Utf8PathBuf::from("/cache/pkgcraft"));
+        assert_eq!(config.path.config, Utf8PathBuf::from("/config/pkgcraft"));
 
         // prefix
         let config = Config::new("pkgcraft", "/prefix", false).unwrap();
-        assert_eq!(config.path.cache, PathBuf::from("/prefix/cache/pkgcraft"));
-        assert_eq!(config.path.config, PathBuf::from("/prefix/config/pkgcraft"));
+        assert_eq!(config.path.cache, Utf8PathBuf::from("/prefix/cache/pkgcraft"));
+        assert_eq!(config.path.config, Utf8PathBuf::from("/prefix/config/pkgcraft"));
 
         env::remove_var("XDG_CACHE_HOME");
         env::remove_var("XDG_CONFIG_HOME");
 
         // XDG var is unset and HOME is set
         let config = Config::new("pkgcraft", "", false).unwrap();
-        assert_eq!(config.path.cache, PathBuf::from("/home/user/.cache/pkgcraft"));
-        assert_eq!(config.path.config, PathBuf::from("/home/user/.config/pkgcraft"));
+        assert_eq!(config.path.cache, Utf8PathBuf::from("/home/user/.cache/pkgcraft"));
+        assert_eq!(config.path.config, Utf8PathBuf::from("/home/user/.config/pkgcraft"));
 
         // prefix
         let config = Config::new("pkgcraft", "/prefix", false).unwrap();
-        assert_eq!(config.path.cache, PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
-        assert_eq!(config.path.config, PathBuf::from("/prefix/home/user/.config/pkgcraft"));
+        assert_eq!(config.path.cache, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
+        assert_eq!(config.path.config, Utf8PathBuf::from("/prefix/home/user/.config/pkgcraft"));
         env::remove_var("HOME");
 
         // XDG var and HOME are unset
         let config = Config::new("pkgcraft", "", false).unwrap();
-        assert_eq!(config.path.config, PathBuf::from("/etc/pkgcraft"));
+        assert_eq!(config.path.config, Utf8PathBuf::from("/etc/pkgcraft"));
     }
 }

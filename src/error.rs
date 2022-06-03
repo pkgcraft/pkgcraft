@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use camino::Utf8PathBuf;
 
 use crate::peg;
 
@@ -15,8 +15,8 @@ pub enum Error {
     Config(String),
     #[error("{0}")]
     InvalidValue(String),
-    #[error("invalid repo: {path:?}: {error}")]
-    InvalidRepo { path: PathBuf, error: String },
+    #[error("invalid repo: {path}: {error}")]
+    InvalidRepo { path: Utf8PathBuf, error: String },
     #[error("{0}")]
     IO(String),
     #[error("{0}")]

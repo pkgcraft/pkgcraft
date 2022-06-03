@@ -1,9 +1,10 @@
 use std::cmp::Ordering;
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str::FromStr;
 
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
@@ -15,7 +16,7 @@ use crate::{Error, Result};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RepoConfig {
-    pub(crate) location: PathBuf,
+    pub(crate) location: Utf8PathBuf,
     pub(crate) format: String,
     pub(crate) priority: i32,
     pub(crate) sync: Option<Syncer>,
@@ -62,15 +63,14 @@ impl Ord for RepoConfig {
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct Config {
-    config_dir: PathBuf,
-    repo_dir: PathBuf,
+    config_dir: Utf8PathBuf,
+    repo_dir: Utf8PathBuf,
     #[serde(skip)]
     repos: IndexMap<String, Repo>,
 }
 
 impl Config {
-    pub(super) fn new<P: AsRef<Path>>(config_dir: P, db_dir: P, create: bool) -> Result<Config> {
-        let (config_dir, db_dir) = (config_dir.as_ref(), db_dir.as_ref());
+    pub(super) fn new(config_dir: &Utf8Path, db_dir: &Utf8Path, create: bool) -> Result<Config> {
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
 
@@ -139,12 +139,12 @@ impl Config {
             return Err(Error::Config(format!("existing repo: {name}")));
         }
 
-        let path = Path::new(uri);
+        let path = Utf8PathBuf::from(uri);
 
         let repo = match path.exists() {
             true => {
                 // add local, external repo
-                let path = path.canonicalize().map_err(|e| {
+                let path = path.canonicalize_utf8().map_err(|e| {
                     Error::Config(format!("failed canonicalizing repo path {path:?}: {e}"))
                 })?;
                 Repo::from_path(name, priority, path)?
@@ -183,15 +183,12 @@ impl Config {
         match self.repos.get(name) {
             Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
             None => {
-                let repo_path = self.repo_dir.join(name);
-                let location = repo_path
-                    .to_str()
-                    .ok_or_else(|| Error::Config(format!("invalid repo name: {name:?}")))?;
+                let path = self.repo_dir.join(name);
                 // create temporary repo and persist it to disk
                 let temp_repo = TempRepo::new(name, priority, Some(&self.repo_dir), None)?;
-                temp_repo.persist(Some(&repo_path))?;
+                temp_repo.persist(Some(&path))?;
                 // add repo to config
-                self.add(name, priority, location)
+                self.add(name, priority, path.as_str())
             }
         }
     }

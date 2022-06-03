@@ -1,5 +1,6 @@
-use std::path::Path;
 use std::{fmt, iter};
+
+use camino::Utf8Path;
 
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
@@ -28,7 +29,7 @@ impl Repo {
         }
     }
 
-    pub(super) fn from_path<P: AsRef<Path>>(id: &str, priority: i32, path: P) -> Result<Self> {
+    pub(super) fn from_path<P: AsRef<Utf8Path>>(id: &str, priority: i32, path: P) -> Result<Self> {
         let path = path.as_ref();
         match path.exists() {
             false => Err(Error::RepoInit("not an empty repo".to_string())),
@@ -77,7 +78,7 @@ impl Repository for Repo {
     }
 }
 
-impl<T: AsRef<Path>> repo::Contains<T> for Repo {
+impl<T: AsRef<Utf8Path>> repo::Contains<T> for Repo {
     fn contains(&self, _path: T) -> bool {
         false
     }

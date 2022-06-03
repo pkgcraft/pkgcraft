@@ -1,7 +1,7 @@
 use std::fmt;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
@@ -150,7 +150,7 @@ impl Repo {
     /// Try to load a repo from a given path.
     pub(crate) fn from_path<P, S>(id: S, priority: i32, path: P) -> Result<Self>
     where
-        P: AsRef<Path>,
+        P: AsRef<Utf8Path>,
         S: AsRef<str>,
     {
         let path = path.as_ref();
@@ -163,7 +163,7 @@ impl Repo {
         }
 
         Err(Error::InvalidRepo {
-            path: PathBuf::from(path),
+            path: Utf8PathBuf::from(path),
             error: "unknown or invalid format".to_string(),
         })
     }
@@ -171,7 +171,7 @@ impl Repo {
     /// Try to load a certain repo type from a given path.
     pub(crate) fn from_format<P, S>(id: S, priority: i32, path: P, format: &str) -> Result<Self>
     where
-        P: AsRef<Path>,
+        P: AsRef<Utf8Path>,
         S: AsRef<str>,
     {
         let id = id.as_ref();
@@ -245,7 +245,7 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn priority(&self) -> i32 {
         self.config().priority
     }
-    fn path(&self) -> &Path {
+    fn path(&self) -> &Utf8Path {
         &self.config().location
     }
     fn sync(&self) -> Result<()> {
@@ -415,7 +415,7 @@ pub trait Contains<T> {
     fn contains(&self, obj: T) -> bool;
 }
 
-impl<T: AsRef<Path>> Contains<T> for Repo {
+impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
     fn contains(&self, path: T) -> bool {
         match self {
             Self::Ebuild(repo) => repo.contains(path),

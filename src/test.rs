@@ -1,6 +1,6 @@
 use std::fs;
-use std::path::PathBuf;
 
+use camino::Utf8PathBuf;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
@@ -8,7 +8,7 @@ use serde::Deserialize;
 use crate::macros::build_from_paths;
 use crate::{Error, Result};
 
-static TEST_DATA_DIR: Lazy<PathBuf> =
+static TEST_DATA_DIR: Lazy<Utf8PathBuf> =
     Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests"));
 
 #[derive(Debug, Deserialize)]

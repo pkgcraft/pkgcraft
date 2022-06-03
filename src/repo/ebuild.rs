@@ -7,6 +7,7 @@ use std::{env, fmt, fs, io};
 #[cfg(test)]
 use std::io::Write;
 
+use camino::{Utf8Path, Utf8PathBuf};
 use ini::Ini;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
@@ -32,7 +33,7 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 });
 
 pub(crate) struct Metadata {
-    path: Option<PathBuf>,
+    path: Option<Utf8PathBuf>,
     ini: Ini,
 }
 
@@ -56,15 +57,15 @@ impl Default for Metadata {
 }
 
 impl Metadata {
-    fn new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
+    fn new<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         match Ini::load_from_file(path) {
             Ok(ini) => Ok(Metadata {
-                path: Some(PathBuf::from(path)),
+                path: Some(Utf8PathBuf::from(path)),
                 ini,
             }),
             Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Metadata {
-                path: Some(PathBuf::from(path)),
+                path: Some(Utf8PathBuf::from(path)),
                 ini: Ini::new(),
             }),
             Err(e) => Err(Error::InvalidValue(format!("invalid repo layout: {path:?}: {e}"))),
@@ -138,26 +139,26 @@ impl Repo {
     pub(super) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
         S: AsRef<str>,
-        P: AsRef<Path>,
+        P: AsRef<Utf8Path>,
     {
         let path = path.as_ref();
         let profiles_base = path.join("profiles");
 
         if !profiles_base.exists() {
             return Err(Error::InvalidRepo {
-                path: PathBuf::from(path),
+                path: Utf8PathBuf::from(path),
                 error: "missing profiles dir".to_string(),
             });
         }
 
         let meta =
             Metadata::new(path.join("metadata/layout.conf")).map_err(|e| Error::InvalidRepo {
-                path: PathBuf::from(path),
+                path: Utf8PathBuf::from(path),
                 error: e.to_string(),
             })?;
 
         let config = RepoConfig {
-            location: PathBuf::from(path),
+            location: Utf8PathBuf::from(path),
             priority,
             ..Default::default()
         };
@@ -270,7 +271,7 @@ impl Repo {
 
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (id, path) = (self.id.as_str(), self.path().to_string_lossy());
+        let (id, path) = (self.id.as_str(), self.path().as_str());
         match id == path {
             true => write!(f, "{id}"),
             false => write!(f, "{id}: {path}"),
@@ -367,7 +368,7 @@ impl Repository for Repo {
     }
 }
 
-impl<T: AsRef<Path>> repo::Contains<T> for Repo {
+impl<T: AsRef<Utf8Path>> repo::Contains<T> for Repo {
     fn contains(&self, path: T) -> bool {
         let path = path.as_ref();
         if path.is_absolute() {
@@ -471,7 +472,9 @@ impl TempRepo {
         fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing temp repo EAPI: {e}")))?;
 
-        let repo = Repo::from_path(id, priority, temp_path)?;
+        let path = Utf8Path::from_path(temp_path)
+            .ok_or_else(|| Error::RepoInit(format!("non-unicode repo path: {temp_path:?}")))?;
+        let repo = Repo::from_path(id, priority, path)?;
         Ok(TempRepo { tempdir, repo })
     }
 
@@ -565,13 +568,13 @@ mod tests {
             assert!(repo.meta.masters().is_empty());
             repo.meta.set("masters", "a b c");
             repo.meta.write(None).unwrap();
-            let r = config.add_repo(repo.id(), 0, repo.path().to_str().unwrap());
+            let r = config.add_repo(repo.id(), 0, repo.path().as_str());
             assert_err_re!(r, format!("^.* nonexistent masters: a, b, c$"));
 
             // none
             let t = TempRepo::new("a", 0, None::<&str>, None).unwrap();
             let repo = t.repo;
-            config.add_repo(repo.id(), 0, repo.path().to_str().unwrap()).unwrap();
+            config.add_repo(repo.id(), 0, repo.path().as_str()).unwrap();
             let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
             assert!(r.masters().is_empty());
             let trees: Vec<_> = r.trees().iter().map(|r| r.id()).collect();
@@ -582,7 +585,7 @@ mod tests {
             let mut repo = t.repo;
             repo.meta.set("masters", "a");
             repo.meta.write(None).unwrap();
-            config.add_repo(repo.id(), 0, repo.path().to_str().unwrap()).unwrap();
+            config.add_repo(repo.id(), 0, repo.path().as_str()).unwrap();
             let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
             let masters: Vec<_> = r.masters().iter().map(|r| r.id()).collect();
             assert_eq!(masters, ["a"]);
@@ -594,7 +597,7 @@ mod tests {
             let mut repo = t.repo;
             repo.meta.set("masters", "a b");
             repo.meta.write(None).unwrap();
-            config.add_repo(repo.id(), 0, repo.path().to_str().unwrap()).unwrap();
+            config.add_repo(repo.id(), 0, repo.path().as_str()).unwrap();
             let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
             let masters: Vec<_> = r.masters().iter().map(|r| r.id()).collect();
             assert_eq!(masters, ["a", "b"]);

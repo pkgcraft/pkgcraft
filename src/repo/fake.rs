@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fs;
-use std::path::{Path, PathBuf};
+
+use camino::{Utf8Path, Utf8PathBuf};
 
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
@@ -36,11 +37,11 @@ impl Repo {
         })
     }
 
-    pub(super) fn from_path<P: AsRef<Path>>(id: &str, priority: i32, path: P) -> Result<Self> {
+    pub(super) fn from_path<P: AsRef<Utf8Path>>(id: &str, priority: i32, path: P) -> Result<Self> {
         let path = path.as_ref();
         let data = fs::read_to_string(path).map_err(|e| Error::RepoInit(e.to_string()))?;
         let config = RepoConfig {
-            location: PathBuf::from(path),
+            location: Utf8PathBuf::from(path),
             priority,
             ..Default::default()
         };
@@ -92,7 +93,7 @@ impl Repository for Repo {
     }
 }
 
-impl<T: AsRef<Path>> repo::Contains<T> for Repo {
+impl<T: AsRef<Utf8Path>> repo::Contains<T> for Repo {
     fn contains(&self, _path: T) -> bool {
         false
     }
