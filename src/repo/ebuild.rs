@@ -165,7 +165,7 @@ impl Repo {
         Repo::new(id, Some(config), meta)
     }
 
-    pub(crate) fn finalize(&self) -> crate::Result<()> {
+    pub(super) fn finalize(&self) -> crate::Result<()> {
         let config = Config::current();
         let mut nonexistent = vec![];
         let mut masters = vec![];

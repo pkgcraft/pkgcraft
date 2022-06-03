@@ -184,7 +184,7 @@ impl Repo {
         }
     }
 
-    pub(crate) fn finalize(&self) -> Result<()> {
+    pub(super) fn finalize(&self) -> Result<()> {
         match self {
             Self::Ebuild(repo) => repo.finalize(),
             _ => Ok(()),
