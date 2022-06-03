@@ -112,7 +112,7 @@ impl Key {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub struct Eapi {
     id: &'static str,
     parent: Option<&'static Eapi>,
@@ -359,6 +359,12 @@ impl Eapi {
 impl fmt::Display for Eapi {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.id)
+    }
+}
+
+impl fmt::Debug for Eapi {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Eapi {{ id: {} }}", self.id)
     }
 }
 
