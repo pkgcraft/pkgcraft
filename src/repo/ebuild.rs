@@ -168,55 +168,47 @@ impl Repo {
     pub(crate) fn finalize(&self) -> crate::Result<()> {
         let config = Config::current();
         let mut nonexistent = vec![];
+        let mut masters = vec![];
 
         for id in self.meta.masters() {
             match config.repos.get(&id) {
-                Some(repo::Repo::Ebuild(_)) => (),
+                Some(repo::Repo::Ebuild(r)) => masters.push(r.clone()),
                 _ => nonexistent.push(id),
             }
         }
 
         match nonexistent.is_empty() {
-            true => Ok(()),
+            true => {
+                if self.masters.set(masters).is_err() {
+                    panic!("masters already set: {}", self.id());
+                }
+                Ok(())
+            }
             false => {
-                let masters = nonexistent.join(", ");
+                let repos = nonexistent.join(", ");
                 Err(Error::InvalidRepo {
                     path: self.path().into(),
-                    error: format!("nonexistent masters: {masters}"),
+                    error: format!("nonexistent masters: {repos}"),
                 })
             }
         }
     }
 
     pub fn masters(&self) -> &[Arc<Repo>] {
-        self.masters
-            .get_or_init(|| {
-                let config = Config::current();
-                self.meta
-                    .masters()
-                    .iter()
-                    .map(|s| match config.repos.get(s) {
-                        Some(repo::Repo::Ebuild(r)) => r.clone(),
-                        _ => panic!("nonexistent repo: {s}"),
-                    })
-                    .collect()
-            })
-            .as_slice()
+        // guaranteed to be set via finalize()
+        self.masters.get().unwrap()
     }
 
     pub fn trees(&self) -> &[Arc<Repo>] {
         self.trees
             .get_or_init(|| {
                 let config = Config::current();
-                let mut repos = self.meta.masters();
-                repos.push(self.id());
-                repos
-                    .iter()
-                    .map(|s| match config.repos.get(s) {
-                        Some(repo::Repo::Ebuild(r)) => r.clone(),
-                        _ => panic!("nonexistent repo: {s}"),
-                    })
-                    .collect()
+                let mut trees = self.masters().to_vec();
+                match config.repos.get(self.id()) {
+                    Some(repo::Repo::Ebuild(r)) => trees.push(r.clone()),
+                    _ => panic!("unconfigured repo: {}", self.id()),
+                }
+                trees
             })
             .as_slice()
     }
@@ -565,16 +557,49 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn test_masters() {
+            let mut config = Config::new("pkgcraft", "", false).unwrap();
+
+            // nonexistent
             let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
             let mut repo = t.repo;
             assert!(repo.meta.masters().is_empty());
             repo.meta.set("masters", "a b c");
             repo.meta.write(None).unwrap();
-            let r = repo::Repo::from_path(repo.id(), 0, repo.path()).unwrap();
-            let r = r.as_ebuild().unwrap();
-            assert_eq!(r.meta.masters(), ["a", "b", "c"]);
-            // repos don't exist so they'll be flagged on init
-            assert_err_re!(r.finalize(), format!("^.* nonexistent masters: a, b, c$"));
+            let r = config.add_repo(repo.id(), 0, repo.path().to_str().unwrap());
+            assert_err_re!(r, format!("^.* nonexistent masters: a, b, c$"));
+
+            // none
+            let t = TempRepo::new("a", 0, None::<&str>, None).unwrap();
+            let repo = t.repo;
+            config.add_repo(repo.id(), 0, repo.path().to_str().unwrap()).unwrap();
+            let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
+            assert!(r.masters().is_empty());
+            let trees: Vec<_> = r.trees().iter().map(|r| r.id()).collect();
+            assert_eq!(trees, ["a"]);
+
+            // single
+            let t = TempRepo::new("b", 0, None::<&str>, None).unwrap();
+            let mut repo = t.repo;
+            repo.meta.set("masters", "a");
+            repo.meta.write(None).unwrap();
+            config.add_repo(repo.id(), 0, repo.path().to_str().unwrap()).unwrap();
+            let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
+            let masters: Vec<_> = r.masters().iter().map(|r| r.id()).collect();
+            assert_eq!(masters, ["a"]);
+            let trees: Vec<_> = r.trees().iter().map(|r| r.id()).collect();
+            assert_eq!(trees, ["a", "b"]);
+
+            // multiple
+            let t = TempRepo::new("c", 0, None::<&str>, None).unwrap();
+            let mut repo = t.repo;
+            repo.meta.set("masters", "a b");
+            repo.meta.write(None).unwrap();
+            config.add_repo(repo.id(), 0, repo.path().to_str().unwrap()).unwrap();
+            let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
+            let masters: Vec<_> = r.masters().iter().map(|r| r.id()).collect();
+            assert_eq!(masters, ["a", "b"]);
+            let trees: Vec<_> = r.trees().iter().map(|r| r.id()).collect();
+            assert_eq!(trees, ["a", "b", "c"]);
         }
 
         #[test]

@@ -176,9 +176,6 @@ impl Config {
             }
         };
 
-        let repos = &mut self.repos;
-        repos.insert(name.to_string(), repo.clone());
-        repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
         Ok(repo)
     }
 
@@ -256,6 +253,15 @@ impl Config {
 
     pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&Repo> {
         self.repos.get(key.as_ref())
+    }
+
+    pub(super) fn insert(&mut self, id: &str, repo: Repo) {
+        self.repos.insert(id.to_string(), repo);
+        self.sort()
+    }
+
+    pub(super) fn sort(&mut self) {
+        self.repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
     }
 }
 
