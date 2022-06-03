@@ -3,7 +3,7 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error, Result};
 
-use super::{PkgBuiltin, GLOBAL};
+use super::{PkgBuiltin, Scope, GLOBAL};
 use crate::pkgsh::BUILD_DATA;
 
 const LONG_DOC: &str = "Sources the given list of eclasses.";
@@ -21,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let mut inherited_var = Variable::new("INHERITED");
         let eapi = d.borrow().eapi;
         // enable eclass builtins
-        let _builtins = eapi.scoped_builtins("eclass")?;
+        let _builtins = eapi.scoped_builtins(Scope::Eclass)?;
 
         // track direct ebuild inherits
         if let Ok(source) = array_to_vec("BASH_SOURCE") {

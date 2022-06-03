@@ -15,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let phase = &d.borrow().phase.unwrap();
-        let builtins = d.borrow().eapi.builtins(phase)?;
+        let builtins = d.borrow().eapi.builtins(phase);
         let default_phase = format!("default_{phase}");
         match builtins.get(default_phase.as_str()) {
             Some(b) => b.run(&[]),

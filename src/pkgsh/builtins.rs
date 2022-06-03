@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 
@@ -6,6 +7,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::{Builtin, ExecStatus};
 
+use super::phase::Phase;
 use crate::{eapi, eapi::Eapi};
 
 mod _default_phase_func;
@@ -110,6 +112,29 @@ pub(crate) struct PkgBuiltin {
     scope: IndexMap<&'static Eapi, Regex>,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub(crate) enum Scope {
+    Eclass,
+    Global,
+    Phase(Phase),
+}
+
+impl<T: Borrow<Phase>> From<T> for Scope {
+    fn from(phase: T) -> Self {
+        Scope::Phase(*phase.borrow())
+    }
+}
+
+impl AsRef<str> for Scope {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Eclass => "eclass",
+            Self::Global => "global",
+            Self::Phase(p) => p.as_ref(),
+        }
+    }
+}
+
 // scope patterns
 const ALL: &str = ".+";
 const ECLASS: &str = "eclass";
@@ -136,7 +161,7 @@ impl PkgBuiltin {
 }
 
 pub(crate) type BuiltinsMap = HashMap<&'static str, &'static PkgBuiltin>;
-pub(crate) type ScopeBuiltinsMap = HashMap<String, BuiltinsMap>;
+pub(crate) type ScopeBuiltinsMap = HashMap<Scope, BuiltinsMap>;
 pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, ScopeBuiltinsMap>;
 
 // TODO: auto-generate the builtin module imports and vector creation via build script
@@ -237,7 +262,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
         &ver_test::BUILTIN,
     ];
 
-    let static_scopes: Vec<_> = vec!["global", "eclass"];
+    let static_scopes: Vec<_> = vec![Scope::Global, Scope::Eclass];
     #[allow(clippy::mutable_key_type)]
     let mut builtins_map = EapiBuiltinsMap::new();
     for b in builtins.iter() {
@@ -247,9 +272,9 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
                 .or_insert_with(ScopeBuiltinsMap::new);
             let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
             let scopes = static_scopes.iter().chain(phase_scopes.iter());
-            for scope in scopes.filter(|s| re.is_match(s)) {
+            for scope in scopes.filter(|s| re.is_match(s.as_ref())) {
                 scope_map
-                    .entry(scope.to_string())
+                    .entry(*scope)
                     .or_insert_with(BuiltinsMap::new)
                     .insert(b.builtin.name, b);
             }

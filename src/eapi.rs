@@ -14,7 +14,7 @@ use strum::{AsRefStr, Display};
 
 use crate::archive::Archive;
 use crate::atom::Atom;
-use crate::pkgsh::builtins::{parse, BuiltinsMap, BUILTINS_MAP};
+use crate::pkgsh::builtins::{parse, BuiltinsMap, Scope, BUILTINS_MAP};
 use crate::pkgsh::phase::*;
 use crate::{Error, Result};
 
@@ -252,17 +252,17 @@ impl Eapi {
         }
     }
 
-    pub(crate) fn builtins<S: AsRef<str>>(&self, scope: S) -> Result<&BuiltinsMap> {
-        let scope = scope.as_ref();
+    pub(crate) fn builtins<S: Into<Scope>>(&self, scope: S) -> &BuiltinsMap {
+        let scope = scope.into();
         BUILTINS_MAP
             .get(self)
             .unwrap()
-            .get(scope)
-            .ok_or_else(|| Error::Eapi(format!("EAPI {}, unknown scope: {scope}", self.id)))
+            .get(&scope)
+            .unwrap_or_else(|| panic!("EAPI {self}, unknown scope: {scope:?}"))
     }
 
-    pub(crate) fn scoped_builtins<S: AsRef<str>>(&self, scope: S) -> Result<ScopedBuiltins> {
-        let builtins: Vec<&str> = self.builtins(scope)?.keys().copied().collect();
+    pub(crate) fn scoped_builtins<S: Into<Scope>>(&self, scope: S) -> Result<ScopedBuiltins> {
+        let builtins: Vec<&str> = self.builtins(scope).keys().copied().collect();
         Ok(ScopedBuiltins::new((&builtins, &[]))?)
     }
 

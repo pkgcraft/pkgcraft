@@ -10,6 +10,7 @@ use scallop::variables::*;
 use scallop::{functions, source, Error, Result};
 
 use crate::eapi::{Eapi, Feature, Key};
+use crate::pkgsh::builtins::Scope;
 
 pub mod builtins;
 mod install;
@@ -308,7 +309,7 @@ impl<'a> PkgShell<'a> {
             let mut opts = ScopedOptions::new();
 
             // enable global builtins
-            let _builtins = eapi.scoped_builtins("global")?;
+            let _builtins = eapi.scoped_builtins(Scope::Global)?;
 
             if eapi.has(Feature::GlobalFailglob) {
                 opts.toggle(&["failglob"], &[])?;
