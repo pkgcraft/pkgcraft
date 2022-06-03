@@ -626,4 +626,19 @@ mod tests {
         let r = EAPI_LATEST.atom("cat/pkg::repo");
         assert_err_re!(r, format!("invalid atom: \"cat/pkg::repo\""));
     }
+
+    #[test]
+    fn test_builtins() {
+        let static_scopes: Vec<Scope> = vec![Scope::Global, Scope::Eclass];
+        for eapi in EAPIS.values() {
+            let phase_scopes: Vec<Scope> = eapi.phases().iter().map(|p| p.into()).collect();
+            let scopes = static_scopes.iter().chain(phase_scopes.iter());
+            for scope in scopes {
+                assert!(
+                    !eapi.builtins(*scope).is_empty(),
+                    "EAPI {eapi} failed for scope: {scope:?}"
+                );
+            }
+        }
+    }
 }
