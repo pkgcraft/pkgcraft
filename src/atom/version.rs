@@ -127,7 +127,7 @@ impl<'a> ParsedVersion<'a> {
     pub(crate) fn with_op(
         mut self,
         op: &'a str,
-        glob: Option<()>,
+        glob: Option<&'a str>,
     ) -> std::result::Result<Self, &'static str> {
         use Operator::*;
         let op = match (op, glob) {

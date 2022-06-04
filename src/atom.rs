@@ -36,6 +36,7 @@ pub(crate) struct ParsedAtom<'a> {
     pub(crate) package: &'a str,
     pub(crate) block: Option<Blocker>,
     pub(crate) version: Option<ParsedVersion<'a>>,
+    pub(crate) version_str: Option<&'a str>,
     pub(crate) slot: Option<&'a str>,
     pub(crate) subslot: Option<&'a str>,
     pub(crate) slot_op: Option<&'a str>,
@@ -44,10 +45,10 @@ pub(crate) struct ParsedAtom<'a> {
 }
 
 impl ParsedAtom<'_> {
-    pub(crate) fn into_owned(self, input: &str) -> Result<Atom> {
-        let version = match self.version {
-            None => None,
-            Some(v) => Some(v.into_owned(input)?),
+    pub(crate) fn into_owned(self) -> Result<Atom> {
+        let version = match (self.version, self.version_str) {
+            (Some(v), Some(s)) => Some(v.into_owned(s)?),
+            _ => None,
         };
 
         Ok(Atom {

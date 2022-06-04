@@ -85,7 +85,7 @@ peg::parser! {
         rule pkg_restricts() -> (Vec<Restrict>, Option<ParsedVersion<'input>>)
             = restricts:cp_restricts() { (restricts, None) }
             / op:$(("<" "="?) / "=" / "~" / (">" "="?))
-                    restricts:cp_restricts() "-" ver:version() glob:"*"?
+                    restricts:cp_restricts() "-" ver:version() glob:$("*")?
             {?
                 Ok((restricts, Some(ver.with_op(op, glob)?)))
             }

@@ -7,7 +7,7 @@ use crate::eapi::{Eapi, Feature};
 peg::parser! {
     pub(crate) grammar pkg() for str {
         // Categories must not begin with a hyphen, dot, or plus sign.
-        pub(crate) rule category() -> &'input str
+        pub(super) rule category() -> &'input str
             = s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
@@ -16,10 +16,11 @@ peg::parser! {
 
         // Packages must not begin with a hyphen or plus sign and must not end in a
         // hyphen followed by anything matching a version.
-        pub(crate) rule package() -> &'input str
+        pub(super) rule package() -> &'input str
             = s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-                (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] / ("-" !version()))*
+                (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] /
+                 ("-" !(version() ("-" version())? ![_])))*
             } / expected!("package name")
             ) { s }
 
@@ -30,7 +31,7 @@ peg::parser! {
 
         // TODO: figure out how to return string slice instead of positions
         // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
-        pub(crate) rule version() -> ParsedVersion<'input>
+        pub(super) rule version() -> ParsedVersion<'input>
             = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
                     suffixes:("_" s:version_suffix() ++ "_" {s})?
                     end_base:position!() revision:revision()? end:position!() {
@@ -46,11 +47,11 @@ peg::parser! {
                 }
             }
 
-        pub(crate) rule version_with_op() -> ParsedVersion<'input>
+        pub(super) rule version_with_op() -> ParsedVersion<'input>
             = op:$(("<" "="?) / "=" / "~" / (">" "="?))
                     start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
                     suffixes:("_" s:version_suffix() ++ "_" {s})?
-                    end_base:position!() revision:revision()? end:position!() glob:"*"? {?
+                    end_base:position!() revision:revision()? end:position!() glob:$("*")? {?
                 let ver = ParsedVersion {
                     start,
                     end_base,
@@ -157,17 +158,8 @@ peg::parser! {
                 }
             }
 
-        rule pkg_dep() -> (&'input str, &'input str, Option<ParsedVersion<'input>>)
-            = cat:category() "/" pkg:package() {
-                (cat, pkg, None)
-            } / op:$(("<" "="?) / "=" / "~" / (">" "="?))
-                    cat:category() "/" pkg:package()
-                    "-" ver:version() glob:"*"? {?
-                Ok((cat, pkg, Some(ver.with_op(op, glob)?)))
-            }
-
         // repo must not begin with a hyphen and must also be a valid package name
-        pub rule repo() -> &'input str
+        pub(super) rule repo() -> &'input str
             = s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
                 (['a'..='z' | 'A'..='Z' | '0'..='9' | '_'] / ("-" !version()))*
@@ -182,37 +174,36 @@ peg::parser! {
                 Ok(repo)
             }
 
-        pub(crate) rule cpv() -> ParsedAtom<'input>
+        pub(super) rule cpv() -> ParsedAtom<'input>
             = cat:category() "/" pkg:package() "-" ver:version() {
                 ParsedAtom {
                     category: cat,
                     package: pkg,
-                    block: None,
                     version: Some(ver),
-                    slot: None,
-                    subslot: None,
-                    slot_op: None,
-                    use_deps: None,
-                    repo: None,
+                    ..Default::default()
                 }
             }
 
-        pub(crate) rule dep(eapi: &'static Eapi) -> ParsedAtom<'input>
-            = block:blocks(eapi)? pkg_dep:pkg_dep() slot_dep:slot_dep(eapi)?
+        pub(super) rule cpv_or_cp() -> (bool, &'input str, &'input str, Option<&'input str>)
+            = op:$(("<" "="?) / "=" / "~" / (">" "="?)) cpv:$([^'*']+) glob:$("*")? {
+                (true, op, cpv, glob)
+            } / cat:category() "/" pkg:package() {
+                (false, cat, pkg, None)
+            }
+
+        pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedAtom<'input>)
+            = block:blocks(eapi)? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
                     use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
-                let (cat, pkg, version) = pkg_dep;
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
-                ParsedAtom {
-                    category: cat,
-                    package: pkg,
+                (dep, ParsedAtom {
                     block,
-                    version,
                     slot,
                     subslot,
                     slot_op,
                     use_deps,
                     repo,
-                }
+                    ..Default::default()
+                })
             }
     }
 }
@@ -225,7 +216,7 @@ pub mod parse {
     use crate::atom::{Atom, ParsedAtom};
     use crate::eapi::Eapi;
     use crate::peg::peg_error;
-    use crate::Result;
+    use crate::{Error, Result};
 
     use super::pkg;
 
@@ -267,12 +258,38 @@ pub mod parse {
         convert = r#"{ s.to_string() }"#
     )]
     pub fn cpv(s: &str) -> Result<Atom> {
-        let parsed_cpv = pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))?;
-        parsed_cpv.into_owned(s)
+        let mut parsed_cpv =
+            pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))?;
+        parsed_cpv.version_str = Some(s);
+        parsed_cpv.into_owned()
     }
 
     pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> Result<ParsedAtom<'a>> {
-        pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))
+        let (dep, mut atom) =
+            pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))?;
+        let attrs =
+            pkg::cpv_or_cp(dep).map_err(|e| peg_error(format!("invalid atom: {s:?}"), dep, e))?;
+
+        match attrs {
+            (true, op, cpv, glob) => {
+                let cpv_atom =
+                    pkg::cpv(cpv).map_err(|e| peg_error(format!("invalid atom: {s:?}"), cpv, e))?;
+                let ver = cpv_atom.version.unwrap();
+                atom.category = cpv_atom.category;
+                atom.package = cpv_atom.package;
+                atom.version = Some(
+                    ver.with_op(op, glob)
+                        .map_err(|e| Error::InvalidValue(format!("invalid atom: {s:?}: {e}")))?,
+                );
+                atom.version_str = Some(cpv);
+            }
+            (false, cat, pkg, _) => {
+                atom.category = cat;
+                atom.package = pkg;
+            }
+        }
+
+        Ok(atom)
     }
 
     #[cached(
@@ -282,7 +299,7 @@ pub mod parse {
     )]
     pub fn dep(s: &str, eapi: &'static Eapi) -> Result<Atom> {
         let atom = dep_str(s, eapi)?;
-        atom.into_owned(s)
+        atom.into_owned()
     }
 }
 
@@ -322,7 +339,9 @@ mod tests {
         for (s, cat, pkg, ver) in [
             ("a/b", "a", "b", None),
             ("_/_", "_", "_", None),
+            ("_/_-", "_", "_-", None),
             ("_.+-/_+-", "_.+-", "_+-", None),
+            ("_--/_--", "_--", "_--", None),
             ("a/b-", "a", "b-", None),
             ("a/b-r100", "a", "b-r100", None),
             ("<a/b-r0-1-r2", "a", "b-r0", version("<1-r2")),
@@ -333,9 +352,10 @@ mod tests {
             ("~a/b-0", "a", "b", version("~0")),
             (">=a/b-2", "a", "b", version(">=2")),
             (">a/b-3-r0", "a", "b", version(">3-r0")),
+            (">a/b-3-c-4-r3", "a", "b-3-c", version(">4-r3")),
         ] {
             for eapi in eapi::EAPIS.values() {
-                let result = parse::dep(&s, eapi);
+                let result = parse::dep(s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
                 let atom = result.unwrap();
                 assert_eq!(atom.category, cat);
@@ -384,7 +404,7 @@ mod tests {
     fn test_parse_blockers() {
         // invalid deps
         for s in ["!!!cat/pkg", "!cat/pkg-0", "!!cat/pkg-0-r1"] {
-            assert!(parse::dep(&s, &eapi::EAPI2).is_err(), "{s:?} didn't fail");
+            assert!(parse::dep(s, &eapi::EAPI2).is_err(), "{s:?} didn't fail");
         }
 
         // non-blocker
@@ -399,11 +419,15 @@ mod tests {
             ("!!<cat/pkg-1", Some(Blocker::Strong)),
         ] {
             for eapi in eapi::EAPIS.values() {
-                let result = parse::dep(&s, eapi);
+                let result = parse::dep(s, eapi);
                 match eapi.has(Feature::Blockers) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
-                        assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                        assert!(
+                            result.is_ok(),
+                            "{s:?} failed for EAPI {eapi}: {}",
+                            result.err().unwrap()
+                        );
                         let atom = result.unwrap();
                         assert_eq!(atom.block, block);
                         assert_eq!(format!("{atom}"), s);

@@ -9,6 +9,7 @@ invalid_atoms = [
     # package names can't end in a hyphen followed by anything matching a version
     ["a/b-0", "0-"],
     ["<a/b-1-1", "0-"],
+    ["=a/b-1-c-2-3", "0-"],
     # version operator with missing version
     ["~a/b", "0-"],
     ["~a/b-r1", "0-"],
