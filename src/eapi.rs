@@ -25,42 +25,78 @@ static VALID_EAPI_RE: Lazy<Regex> =
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub(crate) enum Feature {
     // EAPI 0
-    RdependDefault,    // RDEPEND=DEPEND if RDEPEND is unset
-    ExportDesttree,    // DESTTREE is exported to the ebuild env
-    ExportInsdesttree, // INSDESTTREE is exported to the ebuild env
+    /// RDEPEND=DEPEND if RDEPEND is unset
+    RdependDefault,
+    /// DESTTREE is exported to the ebuild env
+    ExportDesttree,
+    /// INSDESTTREE is exported to the ebuild env
+    ExportInsdesttree,
+
     // EAPI 1
-    IuseDefaults, // IUSE defaults
-    SlotDeps,     // atom slot deps -- cat/pkg:0
+    /// IUSE defaults
+    IuseDefaults,
+    /// atom slot deps -- cat/pkg:0
+    SlotDeps,
+
     // EAPI 2
-    Blockers,        // atom blockers -- !cat/pkg and !!cat/pkg
-    DomanLangDetect, // support language detection via filename for `doman`
-    SrcUriRenames,   // SRC_URI -> operator for url filename renaming
-    UseDeps,         // atom use deps -- cat/pkg[use]
+    /// atom blockers -- !cat/pkg and !!cat/pkg
+    Blockers,
+    /// support language detection via filename for `doman`
+    DomanLangDetect,
+    /// SRC_URI -> operator for url filename renaming
+    SrcUriRenames,
+    /// atom use deps -- cat/pkg\[use\]
+    UseDeps,
+
     // EAPI 4
-    DodocRecursive,    // recursive install support via `dodoc -r`
-    DomanLangOverride, // support `doman` language override via -i18n option
-    UseDepDefaults,    // atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
-    RequiredUse,       // REQUIRED_USE support
-    UseConfArg,        // use_with and use_enable support an optional third argument
+    /// recursive install support via `dodoc -r`
+    DodocRecursive,
+    /// support `doman` language override via -i18n option
+    DomanLangOverride,
+    /// atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
+    UseDepDefaults,
+    /// REQUIRED_USE support
+    RequiredUse,
+    /// use_with and use_enable support an optional third argument
+    UseConfArg,
+
     // EAPI 5
-    EbuildPhaseFunc,  // export the running phase name as $EBUILD_PHASE_FUNC
-    NewSupportsStdin, // new* helpers can use stdin for content instead of a file
-    ParallelTests,    // running tests in parallel is supported
-    RequiredUseOneOf, // REQUIRED_USE ?? operator
-    SlotOps,          // atom slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
-    Subslots,         // atom subslots -- cat/pkg:0/4
+    /// export the running phase name as $EBUILD_PHASE_FUNC
+    EbuildPhaseFunc,
+    /// new* helpers can use stdin for content instead of a file
+    NewSupportsStdin,
+    /// running tests in parallel is supported
+    ParallelTests,
+    /// REQUIRED_USE ?? operator
+    RequiredUseOneOf,
+    /// atom slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
+    SlotOps,
+    /// atom subslots -- cat/pkg:0/4
+    Subslots,
+
     // EAPI 6
-    NonfatalDie,           // `die -n` supports nonfatal usage
-    GlobalFailglob,        // failglob shell option is enabled in global scope
-    UnpackExtendedPath,    // `unpack` supports absolute and relative paths
-    UnpackCaseInsensitive, // `unpack` performs case-insensitive file extension matching
+    /// `die -n` supports nonfatal usage
+    NonfatalDie,
+    /// failglob shell option is enabled in global scope
+    GlobalFailglob,
+    /// `unpack` supports absolute and relative paths
+    UnpackExtendedPath,
+    /// `unpack` performs case-insensitive file extension matching
+    UnpackCaseInsensitive,
+
     // EAPI 8
-    ConsistentFileOpts, // improve insopts/exeopts consistency for install functions
-    DosymRelative,      // relative path support via `dosym -r`
-    SrcUriUnrestrict,   // SRC_URI supports fetch+ and mirror+ prefixes
-    UsevTwoArgs,        // usev supports an optional second arg
+    /// improve insopts/exeopts consistency for install functions
+    ConsistentFileOpts,
+    /// relative path support via `dosym -r`
+    DosymRelative,
+    /// SRC_URI supports fetch+ and mirror+ prefixes
+    SrcUriUnrestrict,
+    /// usev supports an optional second arg
+    UsevTwoArgs,
+
     // EAPI EXTENDED
-    RepoIds, // atom repo deps -- cat/pkg::repo
+    /// atom repo deps -- cat/pkg::repo
+    RepoIds,
 }
 
 type EapiEconfOptions = HashMap<&'static str, (IndexSet<String>, Option<String>)>;
