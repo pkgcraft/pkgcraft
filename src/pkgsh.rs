@@ -306,13 +306,13 @@ impl<'a> PkgShell<'a> {
 
         BUILD_DATA.with(|d| -> Result<()> {
             let eapi = d.borrow().eapi;
-            let mut opts = ScopedOptions::new();
+            let mut opts = ScopedOptions::default();
 
             // enable global builtins
             let _builtins = eapi.scoped_builtins(Scope::Global)?;
 
             if eapi.has(Feature::GlobalFailglob) {
-                opts.toggle(&["failglob"], &[])?;
+                opts.enable(["failglob"])?;
             }
 
             source::file(&ebuild)?;
