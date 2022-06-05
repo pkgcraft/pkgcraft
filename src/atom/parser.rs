@@ -212,13 +212,11 @@ peg::parser! {
 pub mod parse {
     use cached::{proc_macro::cached, SizedCache};
 
-    use crate::atom::version::{ParsedVersion, Version};
-    use crate::atom::{Atom, ParsedAtom};
-    use crate::eapi::Eapi;
+    use crate::atom::{Atom, Version};
     use crate::peg::peg_error;
     use crate::{Error, Result};
 
-    use super::pkg;
+    use super::*;
 
     pub fn category(s: &str) -> Result<&str> {
         pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s:?}"), s, e))
