@@ -106,9 +106,9 @@ peg::parser! {
         rule blocks(eapi: &'static Eapi) -> Blocker
             = blocks:("!"*<1,2>) {?
                 if eapi.has(Feature::Blockers) {
-                    match blocks[..] {
-                        [_] => Ok(Blocker::Weak),
-                        [_, _] => Ok(Blocker::Strong),
+                    match blocks.len() {
+                        1 => Ok(Blocker::Weak),
+                        2 => Ok(Blocker::Strong),
                         _ => Err("invalid blocker"),
                     }
                 } else {
