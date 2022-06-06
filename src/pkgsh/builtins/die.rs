@@ -80,7 +80,8 @@ mod tests {
         #[test]
         #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn main() {
-            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+            let sh = Shell::new("sh");
+            sh.builtins([&BUILTIN.builtin]);
             bind("VAR", "1", None, None).unwrap();
 
             let r = source::string("die && VAR=2");
@@ -97,7 +98,8 @@ mod tests {
         #[test]
         #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn subshell() {
-            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+            let sh = Shell::new("sh");
+            sh.builtins([&BUILTIN.builtin]);
             bind("VAR", "1", None, None).unwrap();
 
             let r = source::string("VAR=$(die); VAR=2");
@@ -114,7 +116,8 @@ mod tests {
         #[test]
         #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn nonfatal() {
-            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]));
+            let sh = Shell::new("sh");
+            sh.builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
             bind("VAR", "1", None, None).unwrap();
 
             // nonfatal requires `die -n` call

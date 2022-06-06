@@ -45,7 +45,7 @@ mod tests {
     rusty_fork_test! {
         #[test]
         fn invalid_args() {
-            let _sh = Shell::new("sh", None);
+            let _sh = Shell::new("sh");
             // make sure PIPESTATUS is set to cause failures
             source::string("true | false").unwrap();
 
@@ -61,7 +61,7 @@ mod tests {
 
         #[test]
         fn success() {
-            let _sh = Shell::new("sh", None);
+            let _sh = Shell::new("sh");
 
             // unset PIPESTATUS
             source::string("assert").unwrap();
@@ -73,7 +73,8 @@ mod tests {
         #[test]
         #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn main() {
-            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+            let sh = Shell::new("sh");
+            sh.builtins([&BUILTIN.builtin]);
             bind("VAR", "1", None, None).unwrap();
 
             let r = source::string("true | false | true; assert");
@@ -90,7 +91,8 @@ mod tests {
         #[test]
         #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn subshell() {
-            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin]));
+            let sh = Shell::new("sh");
+            sh.builtins([&BUILTIN.builtin]);
             bind("VAR", "1", None, None).unwrap();
 
             let r = source::string("VAR=$(true | false; assert); VAR=2");
@@ -107,7 +109,8 @@ mod tests {
         #[test]
         #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
         fn nonfatal() {
-            let _sh = Shell::new("sh", Some(vec![&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]));
+            let sh = Shell::new("sh");
+            sh.builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
 
             // nonfatal requires `die -n` call
             let r = source::string("true | false; nonfatal assert");

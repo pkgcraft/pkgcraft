@@ -65,7 +65,7 @@ mod tests {
 
         #[test]
         fn command() {
-            let _sh = Shell::new("sh", None);
+            let _sh = Shell::new("sh");
             let dir = tempdir().unwrap();
             let makefile = dir.path().join("makefile");
             File::create(makefile).unwrap();
