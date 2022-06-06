@@ -373,24 +373,16 @@ mod tests {
         }
 
         // good deps
-        for (slot_str, slot) in [
-            ("0", opt_str!("0")),
-            ("a", opt_str!("a")),
-            ("_", opt_str!("_")),
-            ("_a", opt_str!("_a")),
-            ("99", opt_str!("99")),
-            ("aBc", opt_str!("aBc")),
-            ("a+b_c.d-e", opt_str!("a+b_c.d-e")),
-        ] {
+        for slot in ["0", "a", "_", "_a", "99", "aBc", "a+b_c.d-e"] {
             for eapi in eapi::EAPIS.values() {
-                let s = format!("cat/pkg:{slot_str}");
+                let s = format!("cat/pkg:{slot}");
                 let result = parse::dep(&s, eapi);
                 match eapi.has(Feature::SlotDeps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
                         assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
                         let atom = result.unwrap();
-                        assert_eq!(atom.slot, slot);
+                        assert_eq!(atom.slot, Some(slot.into()));
                         assert_eq!(format!("{atom}"), s);
                     }
                 };
