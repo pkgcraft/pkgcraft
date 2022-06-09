@@ -18,6 +18,9 @@ pub(crate) struct Atom {
     pub(crate) category: String,
     pub(crate) package: String,
     pub(crate) version: Option<atom::Version>,
+    pub(crate) slot: Option<String>,
+    pub(crate) subslot: Option<String>,
+    pub(crate) slot_op: Option<String>,
 }
 
 impl<'de> Deserialize<'de> for atom::Version {

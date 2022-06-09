@@ -17,7 +17,7 @@ valid = [
   { atom = ">a/b-3-c-4-r3", eapis = "0-", category = "a", package = "b-3-c", version = ">4-r3" },
   ## EAPI specific validity
   # slot deps in EAPI >= 1
-  { atom = "a/b:0", eapis = "1-", category = "a", package = "b" },
+  { atom = "a/b:0", eapis = "1-", category = "a", package = "b", slot = "0" },
   # blockers in EAPI >= 2
   { atom = "!a/b", eapis = "2-", category = "a", package = "b" },
   { atom = "!!a/b", eapis = "2-", category = "a", package = "b" },
@@ -29,11 +29,11 @@ valid = [
   { atom = "a/b[use(-)]", eapis = "4-", category = "a", package = "b" },
   { atom = "a/b[a(-),b(+)=,!c(-)=,d(+)?,!e(-)?,-f(+)]", eapis = "4-", category = "a", package = "b" },
   # subslot deps in EAPI >= 5
-  { atom = "a/b:0/1", eapis = "5-", category = "a", package = "b" },
+  { atom = "a/b:0/1", eapis = "5-", category = "a", package = "b", slot = "0", subslot = "1" },
   # slot operators in EAPI >= 5
-  { atom = "a/b:*", eapis = "5-", category = "a", package = "b" },
-  { atom = "a/b:=", eapis = "5-", category = "a", package = "b" },
-  { atom = "a/b:0=", eapis = "5-", category = "a", package = "b" },
+  { atom = "a/b:*", eapis = "5-", category = "a", package = "b", slot_op = "*" },
+  { atom = "a/b:=", eapis = "5-", category = "a", package = "b", slot_op = "=" },
+  { atom = "a/b:0=", eapis = "5-", category = "a", package = "b", slot = "0", slot_op = "=" },
 ]
 
 # invalid atoms

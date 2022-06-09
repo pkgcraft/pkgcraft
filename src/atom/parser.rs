@@ -340,10 +340,13 @@ mod tests {
                 let result = parse::dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
                 let atom = result.unwrap();
-                assert_eq!(atom.category, a.category);
-                assert_eq!(atom.package, a.package);
-                assert_eq!(atom.version(), a.version.as_ref());
-                assert_eq!(format!("{atom}"), s);
+                assert_eq!(atom.category(), a.category, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.package(), a.package, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.version(), a.version.as_ref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.slot(), a.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.subslot(), a.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.slot_op(), a.slot_op.as_deref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(format!("{atom}"), s, "{s:?} failed for EAPI={eapi}");
             }
             // verify parse failures
             for eapi in all_eapis.difference(&passing_eapis) {
