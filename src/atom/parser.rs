@@ -307,15 +307,16 @@ mod tests {
 
     use crate::eapi;
     use crate::macros::opt_str;
-    use crate::test::TestData;
+    use crate::test::*;
 
     use super::*;
 
     #[test]
     fn test_parse_versions() {
+        let all_eapis: IndexSet<&eapi::Eapi> = eapi::EAPIS.values().cloned().collect();
+
         // invalid deps
         let data = TestData::load().unwrap();
-        let all_eapis: IndexSet<&eapi::Eapi> = eapi::EAPIS.values().cloned().collect();
         for (s, eapis) in data.invalid_atoms {
             let failing_eapis = eapi::supported(eapis).expect("failed to parse EAPI range");
             // verify parse failures
@@ -330,36 +331,25 @@ mod tests {
             }
         }
 
-        // convert &str to Option<Version>
-        let version = |s| parse::version_with_op(s).ok();
-
-        // good deps
-        for (s, cat, pkg, ver) in [
-            ("a/b", "a", "b", None),
-            ("_/_", "_", "_", None),
-            ("_/_-", "_", "_-", None),
-            ("_.+-/_+-", "_.+-", "_+-", None),
-            ("_--/_--", "_--", "_--", None),
-            ("a/b-", "a", "b-", None),
-            ("a/b-r100", "a", "b-r100", None),
-            ("<a/b-r0-1-r2", "a", "b-r0", version("<1-r2")),
-            ("<=a/b-1", "a", "b", version("<=1")),
-            ("=a/b-1-r1", "a", "b", version("=1-r1")),
-            ("=a/b-3*", "a", "b", version("=3*")),
-            ("=a/b-3-r1*", "a", "b", version("=3-r1*")),
-            ("~a/b-0", "a", "b", version("~0")),
-            (">=a/b-2", "a", "b", version(">=2")),
-            (">a/b-3-r0", "a", "b", version(">3-r0")),
-            (">a/b-3-c-4-r3", "a", "b-3-c", version(">4-r3")),
-        ] {
-            for eapi in eapi::EAPIS.values() {
-                let result = parse::dep(s, eapi);
-                assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+        // valid deps
+        let data = Atoms::load().unwrap();
+        for a in data.valid {
+            let s = a.atom.as_str();
+            let passing_eapis = eapi::supported(&a.eapis).expect("failed to parse EAPI range");
+            // verify parse successes
+            for eapi in &passing_eapis {
+                let result = parse::dep(&s, eapi);
+                assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
                 let atom = result.unwrap();
-                assert_eq!(atom.category, cat);
-                assert_eq!(atom.package, pkg);
-                assert_eq!(atom.version, ver);
+                assert_eq!(atom.category, a.category);
+                assert_eq!(atom.package, a.package);
+                assert_eq!(atom.version(), a.version.as_ref());
                 assert_eq!(format!("{atom}"), s);
+            }
+            // verify parse failures
+            for eapi in all_eapis.difference(&passing_eapis) {
+                let result = parse::dep(&s, eapi);
+                assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
     }

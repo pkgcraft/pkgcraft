@@ -1,0 +1,37 @@
+valid = [
+  { atom = "_/_", eapis = "0-", category = "_", package = "_" },
+  { atom = "_/_-", eapis = "0-", category = "_", package = "_-" },
+  { atom = "_.+-/_+-", eapis = "0-", category = "_.+-", package = "_+-" },
+  { atom = "_--/_--", eapis = "0-", category = "_--", package = "_--" },
+  { atom = "a/b", eapis = "0-", category = "a", package = "b" },
+  { atom = "a/b-", eapis = "0-", category = "a", package = "b-" },
+  { atom = "a/b-r100", eapis = "0-", category = "a", package = "b-r100" },
+  { atom = "<a/b-r0-1-r2", eapis = "0-", category = "a", package = "b-r0", version = "<1-r2" },
+  { atom = "<=a/b-1", eapis = "0-", category = "a", package = "b", version = "<=1" },
+  { atom = "=a/b-1-r1", eapis = "0-", category = "a", package = "b", version = "=1-r1" },
+  { atom = "=a/b-3*", eapis = "0-", category = "a", package = "b", version = "=3*" },
+  { atom = "=a/b-3-r1*", eapis = "0-", category = "a", package = "b", version = "=3-r1*" },
+  { atom = "~a/b-0", eapis = "0-", category = "a", package = "b", version = "~0" },
+  { atom = ">=a/b-2", eapis = "0-", category = "a", package = "b", version = ">=2" },
+  { atom = ">a/b-3-r0", eapis = "0-", category = "a", package = "b", version = ">3-r0" },
+  { atom = ">a/b-3-c-4-r3", eapis = "0-", category = "a", package = "b-3-c", version = ">4-r3" },
+  ## EAPI specific validity
+  # slot deps in EAPI >= 1
+  { atom = "a/b:0", eapis = "1-", category = "a", package = "b" },
+  # blockers in EAPI >= 2
+  { atom = "!a/b", eapis = "2-", category = "a", package = "b" },
+  { atom = "!!a/b", eapis = "2-", category = "a", package = "b" },
+  # use deps in EAPI >= 2
+  { atom = "a/b[use]", eapis = "2-", category = "a", package = "b" },
+  { atom = "a/b[a,b=,!c=,d?,!e?,-f]", eapis = "2-", category = "a", package = "b" },
+  # use dep defaults in EAPI >= 4
+  { atom = "a/b[use(+)]", eapis = "4-", category = "a", package = "b" },
+  { atom = "a/b[use(-)]", eapis = "4-", category = "a", package = "b" },
+  { atom = "a/b[a(-),b(+)=,!c(-)=,d(+)?,!e(-)?,-f(+)]", eapis = "4-", category = "a", package = "b" },
+  # subslot deps in EAPI >= 5
+  { atom = "a/b:0/1", eapis = "5-", category = "a", package = "b" },
+  # slot operators in EAPI >= 5
+  { atom = "a/b:*", eapis = "5-", category = "a", package = "b" },
+  { atom = "a/b:=", eapis = "5-", category = "a", package = "b" },
+  { atom = "a/b:0=", eapis = "5-", category = "a", package = "b" },
+]

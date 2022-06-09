@@ -10,6 +10,7 @@ invalid_atoms = [
     ["a/b-0", "0-"],
     ["<a/b-1-1", "0-"],
     ["=a/b-1-c-2-3", "0-"],
+    [">a/b-1-r2-3-r4", "0-"],
     # version operator with missing version
     ["~a/b", "0-"],
     ["~a/b-r1", "0-"],
@@ -24,25 +25,6 @@ invalid_atoms = [
     # '*' suffix can only be used with valid version strings
     ["=a/b-0.*", "0-"],
     ["=a/b-0-r*", "0-"],
-    # EAPI specific support
-    # slot deps in EAPI >= 1
-    ['cat/pkg:0', '0'],
-    # blockers in EAPI >= 2
-    ['!cat/pkg', '0-1'],
-    ['!!cat/pkg', '0-1'],
-    # use deps in EAPI >= 2
-    ['cat/pkg[use]', '0-1'],
-    ['cat/pkg[a,b=,!c=,d?,!e?,-f]', '0-1'],
-    # use dep defaults in EAPI >= 4
-    ['cat/pkg[use(+)]', '0-3'],
-    ['cat/pkg[use(-)]', '0-3'],
-    ['cat/pkg[a(-),b(+)=,!c(-)=,d(+)?,!e(-)?,-f(+)]', '0-3'],
-    # subslot deps in EAPI >= 5
-    ['cat/pkg:0/1', '0-4'],
-    # slot operators in EAPI >= 5
-    ['cat/pkg:*', '0-4'],
-    ['cat/pkg:=', '0-4'],
-    ['cat/pkg:0=', '0-4'],
     # repo deps in no official EAPI
     ['cat/pkg::repo', '0~'],
 ]

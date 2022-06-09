@@ -3,13 +3,46 @@ use std::fs;
 use camino::Utf8PathBuf;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use serde::Deserialize;
+use serde::{de, Deserialize, Deserializer};
 
 use crate::macros::build_from_paths;
-use crate::{Error, Result};
+use crate::{atom, Error};
 
 static TEST_DATA_DIR: Lazy<Utf8PathBuf> =
     Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests"));
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Atom {
+    pub(crate) atom: String,
+    pub(crate) eapis: String,
+    pub(crate) category: String,
+    pub(crate) package: String,
+    pub(crate) version: Option<atom::Version>,
+}
+
+impl<'de> Deserialize<'de> for atom::Version {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        atom::parse::version_with_op(s).map_err(de::Error::custom)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Atoms {
+    pub(crate) valid: Vec<Atom>,
+}
+
+impl Atoms {
+    pub(crate) fn load() -> crate::Result<Self> {
+        let path = TEST_DATA_DIR.join("atoms.toml");
+        let data = fs::read_to_string(&path)
+            .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
+        toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TestData {
@@ -20,12 +53,11 @@ pub(crate) struct TestData {
 }
 
 impl TestData {
-    pub(crate) fn load() -> Result<Self> {
+    pub(crate) fn load() -> crate::Result<Self> {
         let path = TEST_DATA_DIR.join("data.toml");
         let data = fs::read_to_string(&path)
-            .map_err(|e| Error::IO(format!("failed loading test data: {path:?}: {e}")))?;
-        toml::from_str(&data)
-            .map_err(|e| Error::IO(format!("invalid test data format: {path:?}: {e}")))
+            .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
+        toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
     }
 
     pub(crate) fn ver_cmp(&self) -> CmpIter {
