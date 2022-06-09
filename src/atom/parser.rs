@@ -314,10 +314,10 @@ mod tests {
     #[test]
     fn test_parse_versions() {
         let all_eapis: IndexSet<&eapi::Eapi> = eapi::EAPIS.values().cloned().collect();
+        let atoms = Atoms::load().unwrap();
 
         // invalid deps
-        let data = TestData::load().unwrap();
-        for (s, eapis) in data.invalid_atoms {
+        for (s, eapis) in atoms.invalid {
             let failing_eapis = eapi::supported(eapis).expect("failed to parse EAPI range");
             // verify parse failures
             for eapi in &failing_eapis {
@@ -332,8 +332,7 @@ mod tests {
         }
 
         // valid deps
-        let data = Atoms::load().unwrap();
-        for a in data.valid {
+        for a in atoms.valid {
             let s = a.atom.as_str();
             let passing_eapis = eapi::supported(&a.eapis).expect("failed to parse EAPI range");
             // verify parse successes

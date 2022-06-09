@@ -33,6 +33,7 @@ impl<'de> Deserialize<'de> for atom::Version {
 #[derive(Debug, Deserialize)]
 pub(crate) struct Atoms {
     pub(crate) valid: Vec<Atom>,
+    pub(crate) invalid: Vec<(String, String)>,
 }
 
 impl Atoms {
@@ -46,7 +47,6 @@ impl Atoms {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TestData {
-    pub(crate) invalid_atoms: Vec<(String, String)>,
     ver_cmp: Vec<String>,
     ver_sort: Vec<(Vec<String>, Vec<String>)>,
     atom_sort: Vec<(Vec<String>, Vec<String>)>,

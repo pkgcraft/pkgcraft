@@ -35,3 +35,34 @@ valid = [
   { atom = "a/b:=", eapis = "5-", category = "a", package = "b" },
   { atom = "a/b:0=", eapis = "5-", category = "a", package = "b" },
 ]
+
+# invalid atoms
+# format: [invalid atom, invalidity EAPI range]
+invalid = [
+    ["", "0-"],
+    ["a", "0-"],
+    ["/b", "0-"],
+    ["a/+b", "0-"],
+    [".a/.b", "0-"],
+    # package names can't end in a hyphen followed by anything matching a version
+    ["a/b-0", "0-"],
+    ["<a/b-1-1", "0-"],
+    ["=a/b-1-c-2-3", "0-"],
+    [">a/b-1-r2-3-r4", "0-"],
+    # version operator with missing version
+    ["~a/b", "0-"],
+    ["~a/b-r1", "0-"],
+    [">a/b", "0-"],
+    [">=a/b-r1", "0-"],
+    # '~' operator can't be used with a revision
+    ["~a/b-1-r1", "0-"],
+    # '*' suffix can only be used with the '=' operator
+    [">=a/b-0*", "0-"],
+    ["~a/b-0*", "0-"],
+    ["a/b-0*", "0-"],
+    # '*' suffix can only be used with valid version strings
+    ["=a/b-0.*", "0-"],
+    ["=a/b-0-r*", "0-"],
+    # repo deps in no official EAPI
+    ['cat/pkg::repo', '0~'],
+]
