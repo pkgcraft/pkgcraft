@@ -255,7 +255,7 @@ impl Repo {
                 let cat = m.name("cat").unwrap().as_str();
                 let pkg = m.name("pkg").unwrap().as_str();
                 let p = m.name("p").unwrap().as_str();
-                atom::parse::cpv(&format!("{cat}/{p}"))
+                atom::cpv(&format!("{cat}/{p}"))
                     .map_err(|_| err("invalid CPV"))
                     .and_then(|a| match a.package() == pkg {
                         true => Ok(a),
@@ -485,7 +485,7 @@ impl TempRepo {
         I: IntoIterator<Item = (eapi::Key, &'a str)>,
     {
         use crate::eapi::Key::*;
-        let cpv = atom::parse::cpv(cpv)?;
+        let cpv = atom::cpv(cpv)?;
         let path = self.tempdir.path().join(format!(
             "{}/{}-{}.ebuild",
             cpv.key(),
@@ -692,10 +692,10 @@ mod tests {
             assert!(!t.repo.contains("pkg-1.ebuild"));
 
             // cpv containment
-            let cpv = atom::parse::cpv("cat/pkg-1").unwrap();
+            let cpv = atom::cpv("cat/pkg-1").unwrap();
             assert!(t.repo.contains(&cpv));
             assert!(t.repo.contains(cpv));
-            let cpv = atom::parse::cpv("cat/pkg-2").unwrap();
+            let cpv = atom::cpv("cat/pkg-2").unwrap();
             assert!(!t.repo.contains(&cpv));
             assert!(!t.repo.contains(cpv));
 

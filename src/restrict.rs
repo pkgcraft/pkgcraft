@@ -273,7 +273,6 @@ impl From<&pkg::Pkg<'_>> for Restrict {
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom::parse;
     use crate::atom::Atom;
 
     use super::*;
@@ -281,7 +280,7 @@ mod tests {
     #[test]
     fn test_atom_restricts() {
         let unversioned = Atom::from_str("cat/pkg").unwrap();
-        let cpv = parse::cpv("cat/pkg-1").unwrap();
+        let cpv = atom::cpv("cat/pkg-1").unwrap();
         let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
@@ -387,8 +386,8 @@ mod tests {
         let ge = Atom::from_str(">=cat/pkg-1-r1").unwrap();
         let gt = Atom::from_str(">cat/pkg-1-r1").unwrap();
 
-        let lt_cpv = parse::cpv("cat/pkg-0").unwrap();
-        let gt_cpv = parse::cpv("cat/pkg-2").unwrap();
+        let lt_cpv = atom::cpv("cat/pkg-0").unwrap();
+        let gt_cpv = atom::cpv("cat/pkg-2").unwrap();
 
         let r = Restrict::from(&lt);
         assert!(r.matches(&lt_cpv));
@@ -409,7 +408,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&eq_glob));
         for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
-            let cpv = parse::cpv(s).unwrap();
+            let cpv = atom::cpv(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));
@@ -417,7 +416,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&approx));
         for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
-            let cpv = parse::cpv(s).unwrap();
+            let cpv = atom::cpv(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));

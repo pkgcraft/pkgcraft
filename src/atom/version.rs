@@ -213,6 +213,16 @@ impl Version {
         Ok(())
     }
 
+    /// Create a new Version from a given string.
+    pub fn new<S: AsRef<str>>(s: S) -> Result<Self> {
+        parse::version(s.as_ref())
+    }
+
+    /// Create a new Version from a given string with operators.
+    pub fn new_with_op<S: AsRef<str>>(s: S) -> Result<Self> {
+        parse::version_with_op(s.as_ref())
+    }
+
     pub fn as_str(&self) -> &str {
         &self.full
     }

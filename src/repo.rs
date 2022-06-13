@@ -84,7 +84,7 @@ impl<'a> FromIterator<&'a str> for PkgCache {
         let mut pkgmap = PkgMap::new();
         let mut atoms = IndexSet::<atom::Atom>::new();
         for s in iter {
-            match atom::parse::cpv(s) {
+            match atom::cpv(s) {
                 Ok(a) => {
                     atoms.insert(a);
                 }

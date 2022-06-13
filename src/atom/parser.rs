@@ -235,12 +235,12 @@ pub mod parse {
         create = "{ SizedCache::with_size(1000) }",
         convert = r#"{ s.to_string() }"#
     )]
-    pub fn version(s: &str) -> Result<Version> {
+    pub(crate) fn version(s: &str) -> Result<Version> {
         let version = version_str(s)?;
         version.into_owned(s)
     }
 
-    pub fn version_with_op(s: &str) -> Result<Version> {
+    pub(crate) fn version_with_op(s: &str) -> Result<Version> {
         let parsed_version = pkg::version_with_op(s)
             .map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
         parsed_version.into_owned(s)
@@ -250,16 +250,8 @@ pub mod parse {
         pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
     }
 
-    #[cached(
-        type = "SizedCache<String, Result<Atom>>",
-        create = "{ SizedCache::with_size(1000) }",
-        convert = r#"{ s.to_string() }"#
-    )]
-    pub fn cpv(s: &str) -> Result<Atom> {
-        let mut parsed_cpv =
-            pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))?;
-        parsed_cpv.version_str = Some(s);
-        parsed_cpv.into_owned()
+    pub(crate) fn cpv(s: &str) -> Result<ParsedAtom> {
+        pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))
     }
 
     pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> Result<ParsedAtom<'a>> {
@@ -295,7 +287,7 @@ pub mod parse {
         create = "{ SizedCache::with_size(1000) }",
         convert = r#"{ (s.to_string(), eapi) }"#
     )]
-    pub fn dep(s: &str, eapi: &'static Eapi) -> Result<Atom> {
+    pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> Result<Atom> {
         let atom = dep_str(s, eapi)?;
         atom.into_owned()
     }

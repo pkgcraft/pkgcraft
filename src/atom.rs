@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
+use cached::{proc_macro::cached, SizedCache};
 use indexmap::IndexSet;
 
 pub use self::version::Version;
@@ -78,10 +79,27 @@ pub struct Atom {
     repo: Option<String>,
 }
 
+#[cached(
+    type = "SizedCache<String, Result<Atom>>",
+    create = "{ SizedCache::with_size(1000) }",
+    convert = r#"{ s.to_string() }"#
+)]
+pub fn cpv(s: &str) -> Result<Atom> {
+    let mut atom = parse::cpv(s)?;
+    atom.version_str = Some(s);
+    atom.into_owned()
+}
+
 impl Atom {
     /// Verify a string represents a valid atom.
     pub fn valid<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> Result<()> {
         parse::dep_str(s.as_ref(), eapi.into_eapi()?)?;
+        Ok(())
+    }
+
+    /// Verify a string represents a valid atom.
+    pub fn valid_cpv<S: AsRef<str>>(s: S) -> Result<()> {
+        parse::cpv(s.as_ref())?;
         Ok(())
     }
 
