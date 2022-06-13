@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::ffi::CStr;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::os::raw::c_char;
 
 use camino::Utf8Path;
 use indexmap::{IndexMap, IndexSet};
@@ -223,6 +225,20 @@ impl IntoEapi for Option<&'static Eapi> {
         match self {
             None => Ok(Default::default()),
             Some(eapi) => Ok(eapi),
+        }
+    }
+}
+
+// Used by pkgcraft-c mapping NULL pointers to the default EAPI.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+impl IntoEapi for *const c_char {
+    fn into_eapi(self) -> Result<&'static Eapi> {
+        match self.is_null() {
+            true => Ok(Default::default()),
+            false => unsafe {
+                let s = CStr::from_ptr(self).to_string_lossy();
+                get_eapi(s)
+            },
         }
     }
 }
