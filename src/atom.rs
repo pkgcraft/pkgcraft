@@ -84,6 +84,7 @@ pub struct Atom {
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ s.to_string() }"#
 )]
+/// Create a new Atom from a given CPV string (e.g. cat/pkg-1).
 pub fn cpv(s: &str) -> Result<Atom> {
     let mut atom = parse::cpv(s)?;
     atom.version_str = Some(s);
