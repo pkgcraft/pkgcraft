@@ -16,10 +16,10 @@ pub use parser::parse;
 mod parser;
 pub(crate) mod version;
 
-#[repr(u8)]
+#[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum Blocker {
-    None,   // cat/pkg
+    NONE,   // cat/pkg
     Strong, // !!cat/pkg
     Weak,   // !cat/pkg
 }
@@ -27,14 +27,14 @@ pub enum Blocker {
 // use the latest EAPI for the Default trait
 impl Default for Blocker {
     fn default() -> Blocker {
-        Blocker::None
+        Blocker::NONE
     }
 }
 
 impl fmt::Display for Blocker {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Blocker::None => Ok(()),
+            Blocker::NONE => Ok(()),
             Blocker::Weak => write!(f, "!"),
             Blocker::Strong => write!(f, "!!"),
         }

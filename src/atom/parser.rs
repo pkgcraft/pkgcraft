@@ -383,7 +383,7 @@ mod tests {
 
         // non-blocker
         let atom = parse::dep("cat/pkg", &eapi::EAPI2).unwrap();
-        assert_eq!(atom.blocker, Blocker::None);
+        assert_eq!(atom.blocker, Blocker::NONE);
 
         // good deps
         for (s, blocker) in [
