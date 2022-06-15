@@ -103,10 +103,10 @@ peg::parser! {
                 Ok(slot_parts)
             }
 
-        rule blocks(eapi: &'static Eapi) -> Blocker
-            = blocks:("!"*<1,2>) {?
+        rule blocker(eapi: &'static Eapi) -> Blocker
+            = blocker:("!"*<1,2>) {?
                 if eapi.has(Feature::Blockers) {
-                    match blocks.len() {
+                    match blocker.len() {
                         1 => Ok(Blocker::Weak),
                         2 => Ok(Blocker::Strong),
                         _ => Err("invalid blocker"),
@@ -192,11 +192,11 @@ peg::parser! {
             }
 
         pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedAtom<'input>)
-            = block:blocks(eapi)? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
+            = blocker:blocker(eapi)? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
                     use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
                 (dep, ParsedAtom {
-                    block,
+                    blocker,
                     slot,
                     subslot,
                     slot_op,
@@ -383,10 +383,10 @@ mod tests {
 
         // non-blocker
         let atom = parse::dep("cat/pkg", &eapi::EAPI2).unwrap();
-        assert!(atom.block.is_none());
+        assert!(atom.blocker.is_none());
 
         // good deps
-        for (s, block) in [
+        for (s, blocker) in [
             ("!cat/pkg", Some(Blocker::Weak)),
             ("!cat/pkg:0", Some(Blocker::Weak)),
             ("!!cat/pkg", Some(Blocker::Strong)),
@@ -403,7 +403,7 @@ mod tests {
                             result.err().unwrap()
                         );
                         let atom = result.unwrap();
-                        assert_eq!(atom.block, block);
+                        assert_eq!(atom.blocker, blocker);
                         assert_eq!(format!("{atom}"), s);
                     }
                 };

@@ -35,7 +35,7 @@ impl fmt::Display for Blocker {
 pub(crate) struct ParsedAtom<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
-    pub(crate) block: Option<Blocker>,
+    pub(crate) blocker: Option<Blocker>,
     pub(crate) version: Option<ParsedVersion<'a>>,
     pub(crate) version_str: Option<&'a str>,
     pub(crate) slot: Option<&'a str>,
@@ -55,7 +55,7 @@ impl ParsedAtom<'_> {
         Ok(Atom {
             category: self.category.to_string(),
             package: self.package.to_string(),
-            block: self.block,
+            blocker: self.blocker,
             version,
             slot: self.slot.map(|s| s.to_string()),
             subslot: self.subslot.map(|s| s.to_string()),
@@ -70,7 +70,7 @@ impl ParsedAtom<'_> {
 pub struct Atom {
     category: String,
     package: String,
-    block: Option<Blocker>,
+    blocker: Option<Blocker>,
     version: Option<Version>,
     slot: Option<String>,
     subslot: Option<String>,
@@ -171,8 +171,8 @@ impl fmt::Display for Atom {
         let mut s = String::new();
 
         // append blocker
-        if let Some(block) = &self.block {
-            s.push_str(&format!("{block}"));
+        if let Some(blocker) = &self.blocker {
+            s.push_str(&format!("{blocker}"));
         }
 
         // append version operator with cpv
@@ -216,7 +216,7 @@ impl Ord for Atom {
         cmp_not_equal!(&self.category, &other.category);
         cmp_not_equal!(&self.package, &other.package);
         cmp_not_equal!(&self.version, &other.version);
-        cmp_not_equal!(&self.block, &other.block);
+        cmp_not_equal!(&self.blocker, &other.blocker);
         cmp_not_equal!(&self.slot, &other.slot);
         cmp_not_equal!(&self.subslot, &other.subslot);
         cmp_not_equal!(&self.use_deps, &other.use_deps);
