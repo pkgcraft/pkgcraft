@@ -16,15 +16,25 @@ pub use parser::parse;
 mod parser;
 pub(crate) mod version;
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum Blocker {
+    None,   // cat/pkg
     Strong, // !!cat/pkg
     Weak,   // !cat/pkg
+}
+
+// use the latest EAPI for the Default trait
+impl Default for Blocker {
+    fn default() -> Blocker {
+        Blocker::None
+    }
 }
 
 impl fmt::Display for Blocker {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Blocker::None => Ok(()),
             Blocker::Weak => write!(f, "!"),
             Blocker::Strong => write!(f, "!!"),
         }
@@ -35,7 +45,7 @@ impl fmt::Display for Blocker {
 pub(crate) struct ParsedAtom<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
-    pub(crate) blocker: Option<Blocker>,
+    pub(crate) blocker: Blocker,
     pub(crate) version: Option<ParsedVersion<'a>>,
     pub(crate) version_str: Option<&'a str>,
     pub(crate) slot: Option<&'a str>,
@@ -70,7 +80,7 @@ impl ParsedAtom<'_> {
 pub struct Atom {
     category: String,
     package: String,
-    blocker: Option<Blocker>,
+    blocker: Blocker,
     version: Option<Version>,
     slot: Option<String>,
     subslot: Option<String>,
@@ -115,6 +125,10 @@ impl Atom {
 
     pub fn package(&self) -> &str {
         &self.package
+    }
+
+    pub fn blocker(&self) -> Blocker {
+        self.blocker
     }
 
     pub(crate) fn use_deps_set(&self) -> IndexSet<&str> {
@@ -171,9 +185,7 @@ impl fmt::Display for Atom {
         let mut s = String::new();
 
         // append blocker
-        if let Some(blocker) = &self.blocker {
-            s.push_str(&format!("{blocker}"));
-        }
+        s.push_str(&format!("{}", self.blocker));
 
         // append version operator with cpv
         let cpv = self.cpv();
