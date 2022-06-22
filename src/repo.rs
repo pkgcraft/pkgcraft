@@ -191,13 +191,13 @@ impl Repo {
         }
     }
 
-    pub fn iter(&self) -> PackageIter {
+    pub fn iter(&self) -> PkgIter {
         self.into_iter()
     }
 }
 
 #[allow(clippy::large_enum_variant)]
-pub enum PackageIter<'a> {
+pub enum PkgIter<'a> {
     Ebuild(ebuild::PkgIter<'a>),
     Fake(fake::PkgIter<'a>),
     Empty,
@@ -205,18 +205,18 @@ pub enum PackageIter<'a> {
 
 impl<'a> IntoIterator for &'a Repo {
     type Item = Pkg<'a>;
-    type IntoIter = PackageIter<'a>;
+    type IntoIter = PkgIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Repo::Ebuild(repo) => PackageIter::Ebuild(repo.into_iter()),
-            Repo::Fake(repo) => PackageIter::Fake(repo.into_iter()),
-            Repo::Config(_) => PackageIter::Empty,
+            Repo::Ebuild(repo) => PkgIter::Ebuild(repo.into_iter()),
+            Repo::Fake(repo) => PkgIter::Fake(repo.into_iter()),
+            Repo::Config(_) => PkgIter::Empty,
         }
     }
 }
 
-impl<'a> Iterator for PackageIter<'a> {
+impl<'a> Iterator for PkgIter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -264,13 +264,13 @@ pub enum BorrowedRepo<'a> {
 
 impl<'a> IntoIterator for &'a BorrowedRepo<'_> {
     type Item = Pkg<'a>;
-    type IntoIter = PackageIter<'a>;
+    type IntoIter = PkgIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            BorrowedRepo::Ebuild(repo) => PackageIter::Ebuild(repo.into_iter()),
-            BorrowedRepo::Fake(repo) => PackageIter::Fake(repo.into_iter()),
-            BorrowedRepo::Config(_) => PackageIter::Empty,
+            BorrowedRepo::Ebuild(repo) => PkgIter::Ebuild(repo.into_iter()),
+            BorrowedRepo::Fake(repo) => PkgIter::Fake(repo.into_iter()),
+            BorrowedRepo::Config(_) => PkgIter::Empty,
         }
     }
 }
@@ -278,7 +278,7 @@ impl<'a> IntoIterator for &'a BorrowedRepo<'_> {
 make_repo_traits!(BorrowedRepo<'_>);
 
 impl BorrowedRepo<'_> {
-    pub fn iter(&self) -> PackageIter {
+    pub fn iter(&self) -> PkgIter {
         self.into_iter()
     }
 }
