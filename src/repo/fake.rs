@@ -111,6 +111,7 @@ impl<'a> IntoIterator for &'a Repo {
     }
 }
 
+#[derive(Debug)]
 pub struct PkgIter<'a> {
     iter: repo::PkgCacheIter<'a>,
     repo: &'a Repo,

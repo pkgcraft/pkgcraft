@@ -67,6 +67,7 @@ impl<'a> IntoIterator for &'a PkgCache {
     }
 }
 
+#[derive(Debug)]
 pub struct PkgCacheIter<'a> {
     iter: indexmap::set::Iter<'a, atom::Atom>,
 }
@@ -197,6 +198,7 @@ impl Repo {
 }
 
 #[allow(clippy::large_enum_variant)]
+#[derive(Debug)]
 pub enum PkgIter<'a> {
     Ebuild(ebuild::PkgIter<'a>),
     Fake(fake::PkgIter<'a>),

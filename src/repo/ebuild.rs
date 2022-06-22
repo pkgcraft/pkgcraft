@@ -411,6 +411,7 @@ impl<'a> IntoIterator for &'a Repo {
     }
 }
 
+#[derive(Debug)]
 pub struct PkgIter<'a> {
     iter: Flatten<std::vec::IntoIter<WalkDir>>,
     repo: &'a Repo,
