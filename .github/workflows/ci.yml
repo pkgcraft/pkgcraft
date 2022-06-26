@@ -15,18 +15,22 @@ jobs:
         rust-version: ['1.60.0', 'stable']
 
     steps:
-    - name: Checkout scallop
+    - name: Checkout workspace
       uses: actions/checkout@v3
       with:
-        repository: pkgcraft/scallop
-        path: scallop
-        submodules: true
+        repository: pkgcraft/pkgcraft-workspace
+        submodules: recursive
 
-    - name: Move scallop into expected location
-      run: mv scallop ../
+    - name: Pull submodule updates
+      run: git submodule update --recursive --remote
+
+    - name: Remove current repo from workspace
+      run: rm -rfv ${{ github.event.repository.name }}
 
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        path: ${{ github.event.repository.name }}
 
     - name: Set up rust toolchain
       uses: actions-rs/toolchain@v1
@@ -46,33 +50,37 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: v9-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v9-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v1-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v1-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
 
     - name: Update deps
-      run: cargo update
+      run: cargo update -p ${{ github.event.repository.name }}
 
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
 
     - name: Build and test
-      run: cargo nextest run --color always --all-features
+      run: cargo nextest run --color always --all-features -p ${{ github.event.repository.name }}
 
   lint:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout scallop
+    - name: Checkout workspace
       uses: actions/checkout@v3
       with:
-        repository: pkgcraft/scallop
-        path: scallop
-        submodules: true
+        repository: pkgcraft/pkgcraft-workspace
+        submodules: recursive
 
-    - name: Move scallop into expected location
-      run: mv scallop ../
+    - name: Pull submodule updates
+      run: git submodule update --recursive --remote
+
+    - name: Remove current repo from workspace
+      run: rm -rfv ${{ github.event.repository.name }}
 
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        path: ${{ github.event.repository.name }}
 
     - name: Set up rust toolchain
       uses: actions-rs/toolchain@v1
@@ -93,35 +101,40 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: v9-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v9-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v1-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v1-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
 
     - name: Update deps
-      run: cargo update
+      run: cargo update -p ${{ github.event.repository.name }}
 
     - name: Run rustfmt
-      run: cargo fmt --all -- --check
+      run: cargo fmt --check -p ${{ github.event.repository.name }}
 
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        args: -p ${{ github.event.repository.name }}
 
   bench:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout scallop
+    - name: Checkout workspace
       uses: actions/checkout@v3
       with:
-        repository: pkgcraft/scallop
-        path: scallop
-        submodules: true
+        repository: pkgcraft/pkgcraft-workspace
+        submodules: recursive
 
-    - name: Move scallop into expected location
-      run: mv scallop ../
+    - name: Pull submodule updates
+      run: git submodule update --recursive --remote
+
+    - name: Remove current repo from workspace
+      run: rm -rfv ${{ github.event.repository.name }}
 
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        path: ${{ github.event.repository.name }}
 
     - name: Set up rust toolchain
       uses: actions-rs/toolchain@v1
@@ -141,11 +154,11 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: v9-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v9-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v1-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v1-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
 
     - name: Update deps
-      run: cargo update
+      run: cargo update -p ${{ github.event.repository.name }}
 
     - name: Install cargo-criterion
       run: |
@@ -153,8 +166,8 @@ jobs:
         cargo install cargo-criterion || true
 
     - name: Build
-      run: cargo criterion --no-run
+      run: cargo criterion --no-run -p ${{ github.event.repository.name }}
 
     - name: Benchmark
       if: github.ref_name == 'bench'
-      run: cargo criterion --color always --output-format quiet
+      run: cargo criterion --color always --output-format quiet -p ${{ github.event.repository.name }}
