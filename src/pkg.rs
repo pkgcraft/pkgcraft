@@ -1,5 +1,6 @@
 use std::fmt;
 
+use enum_as_inner::EnumAsInner;
 use scallop::variables::bind;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
@@ -21,7 +22,7 @@ pub enum Env {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug)]
+#[derive(EnumAsInner, Debug)]
 pub enum Pkg<'a> {
     Ebuild(ebuild::Pkg<'a>),
     Fake(fake::Pkg<'a>),

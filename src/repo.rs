@@ -2,6 +2,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use enum_as_inner::EnumAsInner;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
@@ -12,7 +13,7 @@ use crate::pkg::{Package, Pkg};
 use crate::restrict::Restriction;
 use crate::{atom, Error, Result};
 
-pub(crate) mod ebuild;
+pub mod ebuild;
 pub(crate) mod empty;
 pub(crate) mod fake;
 
@@ -109,8 +110,7 @@ impl<'a> FromIterator<&'a str> for PkgCache {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(IntoStaticStr, EnumIter, Debug, Clone)]
-#[cfg_attr(test, derive(enum_as_inner::EnumAsInner))]
+#[derive(IntoStaticStr, EnumIter, EnumAsInner, Debug, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Repo {
     Ebuild(Arc<ebuild::Repo>),
