@@ -79,7 +79,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
     fn main() {
         Shell::init();
         Shell::builtins([&BUILTIN.builtin]);
@@ -97,7 +96,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
     fn subshell() {
         Shell::init();
         Shell::builtins([&BUILTIN.builtin]);
@@ -115,7 +113,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
     fn nonfatal() {
         Shell::init();
         Shell::builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
