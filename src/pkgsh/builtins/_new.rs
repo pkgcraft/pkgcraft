@@ -2,7 +2,6 @@ use std::fs::File;
 use std::path::Path;
 use std::{fs, io};
 
-use nix::unistd::isatty;
 use scallop::builtins::{BuiltinFn, ExecStatus};
 use scallop::{Error, Result};
 use tempfile::tempdir;
@@ -30,12 +29,9 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> Result<ExecStatus> {
         let dest = tmp_dir.path().join(dest);
 
         if eapi.has(Feature::NewSupportsStdin) && source == "-" {
-            if isatty(0).unwrap_or(false) {
-                return Err(Error::Builtin("no input available, stdin is a tty".into()));
-            }
             let mut file = File::create(&dest)
                 .map_err(|e| Error::Builtin(format!("failed opening file: {dest:?}: {e}")))?;
-            io::copy(d.borrow_mut().stdin(), &mut file).map_err(|e| {
+            io::copy(d.borrow_mut().stdin()?, &mut file).map_err(|e| {
                 Error::Builtin(format!("failed writing stdin to file: {dest:?}: {e}"))
             })?;
         } else {

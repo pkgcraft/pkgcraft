@@ -5,6 +5,7 @@ use std::path::Path;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
+use nix::unistd::isatty;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, source, Error, Result};
@@ -36,6 +37,15 @@ impl Default for Stdin {
         let inner = io::Cursor::new(vec![]);
 
         Stdin { inner }
+    }
+}
+
+impl Stdin {
+    fn get(&mut self) -> Result<&mut StdinType> {
+        if !cfg!(test) && isatty(0).unwrap_or(false) {
+            return Err(Error::Base("no input available, stdin is a tty".into()));
+        }
+        Ok(&mut self.inner)
     }
 }
 
@@ -218,8 +228,8 @@ impl BuildData {
         data
     }
 
-    fn stdin(&mut self) -> &mut StdinType {
-        &mut self.stdin.inner
+    fn stdin(&mut self) -> Result<&mut StdinType> {
+        self.stdin.get()
     }
 
     fn install(&self) -> install::Install {
