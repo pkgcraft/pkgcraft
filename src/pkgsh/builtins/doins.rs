@@ -61,8 +61,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::insinto::run as insinto;
     use super::super::insopts::run as insopts;
@@ -70,48 +68,50 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(doins, &[0]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(doins, &[0]);
 
-            let _file_tree = FileTree::new();
+        let _file_tree = FileTree::new();
 
-            // non-recursive directory
-            fs::create_dir("dir").unwrap();
-            let r = doins(&["dir"]);
-            assert_err_re!(r, format!("^trying to install directory as file: .*$"));
-        }
+        // non-recursive directory
+        fs::create_dir("dir").unwrap();
+        let r = doins(&["dir"]);
+        assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
 
-            let default_mode = 0o100644;
-            let custom_mode = 0o100755;
+        let default_mode = 0o100644;
+        let custom_mode = 0o100755;
 
-            // simple file
-            fs::File::create("file").unwrap();
-            doins(&["file"]).unwrap();
-            file_tree.assert(format!(r#"
+        // simple file
+        fs::File::create("file").unwrap();
+        doins(&["file"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/file"
+            mode = {default_mode}
+        "#
+        ));
+
+        for dir in ["newdir", "/newdir"] {
+            // recursive using `insinto` and `insopts`
+            fs::create_dir_all("dir/subdir").unwrap();
+            fs::File::create("dir/subdir/file").unwrap();
+            insinto(&[dir]).unwrap();
+            insopts(&["-m0755"]).unwrap();
+            doins(&["-r", "dir"]).unwrap();
+            file_tree.assert(format!(
+                r#"
                 [[files]]
-                path = "/file"
-                mode = {default_mode}
-            "#));
-
-            for dir in ["newdir", "/newdir"] {
-                // recursive using `insinto` and `insopts`
-                fs::create_dir_all("dir/subdir").unwrap();
-                fs::File::create("dir/subdir/file").unwrap();
-                insinto(&[dir]).unwrap();
-                insopts(&["-m0755"]).unwrap();
-                doins(&["-r", "dir"]).unwrap();
-                file_tree.assert(format!(r#"
-                    [[files]]
-                    path = "/newdir/dir/subdir/file"
-                    mode = {custom_mode}
-                "#));
-            }
+                path = "/newdir/dir/subdir/file"
+                mode = {custom_mode}
+            "#
+            ));
         }
     }
 }

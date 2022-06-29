@@ -123,11 +123,10 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::fs::File;
-    use std::{env, str};
+    use std::env;
 
-    use indexmap::IndexMap;
-    use rusty_fork::rusty_fork_test;
     use scallop::variables::{ScopedVariable, Variables};
     use tempfile::tempdir;
 
@@ -148,69 +147,84 @@ mod tests {
             .collect()
     }
 
-    rusty_fork_test! {
-        #[test]
-        fn nonexistent() {
-            assert_err_re!(econf.run(&[]), format!("^nonexistent configure .*$"));
-        }
+    #[test]
+    fn nonexistent() {
+        assert_err_re!(econf.run(&[]), format!("^nonexistent configure .*$"));
+    }
 
-        #[test]
-        fn nonexecutable() {
-            let dir = tempdir().unwrap();
-            let configure = dir.path().join("configure");
-            File::create(configure).unwrap();
-            env::set_current_dir(&dir).unwrap();
-            assert_err_re!(econf.run(&[]), format!("^nonexecutable configure .*$"));
-        }
+    #[test]
+    fn nonexecutable() {
+        let dir = tempdir().unwrap();
+        let configure = dir.path().join("configure");
+        File::create(configure).unwrap();
+        env::set_current_dir(&dir).unwrap();
+        assert_err_re!(econf.run(&[]), format!("^nonexecutable configure .*$"));
+    }
 
-        #[test]
-        #[cfg_attr(target_os = "macos", ignore)]
-        fn args() {
-            let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests", "econf");
-            env::set_current_dir(&configure_dir).unwrap();
+    /*#[test]
+    #[cfg_attr(target_os = "macos", ignore)]
+    fn args() {
+        let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests", "econf");
+        env::set_current_dir(&configure_dir).unwrap();
 
-            BUILD_DATA.with(|d| {
-                // TODO: add support for generating build state data for tests
-                d.borrow_mut().env.extend([
-                    ("EPREFIX".into(), "/eprefix".into()),
-                    ("CHOST".into(), "x86_64-pc-linux-gnu".into()),
-                ]);
+        BUILD_DATA.with(|d| {
+            // TODO: add support for generating build state data for tests
+            d.borrow_mut().env.extend([
+                ("EPREFIX".into(), "/eprefix".into()),
+                ("CHOST".into(), "x86_64-pc-linux-gnu".into()),
+            ]);
 
-                // verify EAPI specific options are added
-                for eapi in econf.scope.keys() {
-                    d.borrow_mut().eapi = eapi;
-                    if !eapi.econf_options().is_empty() {
-                        let opts = get_opts(&[]);
-                        let eapi_opts: Vec<&str> = eapi.econf_options().keys().cloned().collect();
-                        let cmd_opts: Vec<&str> = opts.keys().map(|s| s.as_str()).collect();
-                        assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len() - eapi_opts.len()..]);
-                    }
-                }
+            econf.run(&[]).unwrap();
+        });
+    }*/
 
-                // verify user args are respected
-                for (opt, expected) in [("--prefix", "/dir"), ("--libdir", "/dir"), ("CC", "gcc")] {
-                    let opts = get_opts(&[&format!("{opt}={expected}")]);
-                    let val = opts.get(opt).unwrap().as_ref().unwrap();
-                    assert_eq!(val, expected);
-                }
+    #[test]
+    #[cfg_attr(target_os = "macos", ignore)]
+    fn args() {
+        let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests", "econf");
+        env::set_current_dir(&configure_dir).unwrap();
 
-                // --libdir doesn't get passed if related variables are unset
-                let opts = get_opts(&[]);
-                assert!(opts.get("--libdir").is_none());
+        BUILD_DATA.with(|d| {
+            // TODO: add support for generating build state data for tests
+            d.borrow_mut().env.extend([
+                ("EPREFIX".into(), "/eprefix".into()),
+                ("CHOST".into(), "x86_64-pc-linux-gnu".into()),
+            ]);
 
-                // set required variables and verify --libdir
-                for (abi, libdir) in [("amd64", "lib64"), ("x86", "lib")] {
-                    // TODO: load this data from test profiles
-                    let mut abi_var = ScopedVariable::new("ABI");
-                    let mut libdir_var = ScopedVariable::new(format!("LIBDIR_{abi}"));
-                    abi_var.bind(abi, None, None).unwrap();
-                    libdir_var.bind(libdir, None, None).unwrap();
-
+            // verify EAPI specific options are added
+            for eapi in econf.scope.keys() {
+                d.borrow_mut().eapi = eapi;
+                if !eapi.econf_options().is_empty() {
                     let opts = get_opts(&[]);
-                    let val = opts.get("--libdir").unwrap().as_ref().unwrap();
-                    assert_eq!(val, &format!("/eprefix/usr/{libdir}"));
+                    let eapi_opts: Vec<&str> = eapi.econf_options().keys().cloned().collect();
+                    let cmd_opts: Vec<&str> = opts.keys().map(|s| s.as_str()).collect();
+                    assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len() - eapi_opts.len()..]);
                 }
-            });
-        }
+            }
+
+            // verify user args are respected
+            for (opt, expected) in [("--prefix", "/dir"), ("--libdir", "/dir"), ("CC", "gcc")] {
+                let opts = get_opts(&[&format!("{opt}={expected}")]);
+                let val = opts.get(opt).unwrap().as_ref().unwrap();
+                assert_eq!(val, expected);
+            }
+
+            // --libdir doesn't get passed if related variables are unset
+            let opts = get_opts(&[]);
+            assert!(opts.get("--libdir").is_none());
+
+            // set required variables and verify --libdir
+            for (abi, libdir) in [("amd64", "lib64"), ("x86", "lib")] {
+                // TODO: load this data from test profiles
+                let mut abi_var = ScopedVariable::new("ABI");
+                let mut libdir_var = ScopedVariable::new(format!("LIBDIR_{abi}"));
+                abi_var.bind(abi, None, None).unwrap();
+                libdir_var.bind(libdir, None, None).unwrap();
+
+                let opts = get_opts(&[]);
+                let val = opts.get("--libdir").unwrap().as_ref().unwrap();
+                assert_eq!(val, &format!("/eprefix/usr/{libdir}"));
+            }
+        });
     }
 }

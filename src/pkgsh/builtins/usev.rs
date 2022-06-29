@@ -50,7 +50,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
 
     use super::super::assert_invalid_args;
@@ -59,77 +58,82 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(usev, &[0, 3]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(usev, &[0, 3]);
 
-            BUILD_DATA.with(|d| {
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has(Feature::UsevTwoArgs)) {
-                    d.borrow_mut().eapi = eapi;
-                    assert_invalid_args(usev, &[2]);
-                }
-            });
-        }
+        BUILD_DATA.with(|d| {
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| !e.has(Feature::UsevTwoArgs))
+            {
+                d.borrow_mut().eapi = eapi;
+                assert_invalid_args(usev, &[2]);
+            }
+        });
+    }
 
-        #[test]
-        fn empty_iuse_effective() {
-            assert_err_re!(usev(&["use"]), "^.* not in IUSE$");
-        }
+    #[test]
+    fn empty_iuse_effective() {
+        assert_err_re!(usev(&["use"]), "^.* not in IUSE$");
+    }
 
-        #[test]
-        fn disabled() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().iuse_effective.insert("use".to_string());
+    #[test]
+    fn disabled() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().iuse_effective.insert("use".to_string());
 
+            for (args, status, expected) in
+                [(&["use"], ExecStatus::Failure(1), ""), (&["!use"], ExecStatus::Success, "use")]
+            {
+                assert_eq!(usev(args).unwrap(), status);
+                assert_stdout!(expected);
+            }
+
+            // check EAPIs that support two arg variant
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| e.has(Feature::UsevTwoArgs))
+            {
+                d.borrow_mut().eapi = eapi;
                 for (args, status, expected) in [
-                        (&["use"], ExecStatus::Failure(1), ""),
-                        (&["!use"], ExecStatus::Success, "use"),
-                        ] {
+                    (&["use", "out"], ExecStatus::Failure(1), ""),
+                    (&["!use", "out"], ExecStatus::Success, "out"),
+                ] {
                     assert_eq!(usev(args).unwrap(), status);
                     assert_stdout!(expected);
                 }
+            }
+        });
+    }
 
-                // check EAPIs that support two arg variant
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has(Feature::UsevTwoArgs)) {
-                    d.borrow_mut().eapi = eapi;
-                    for (args, status, expected) in [
-                            (&["use", "out"], ExecStatus::Failure(1), ""),
-                            (&["!use", "out"], ExecStatus::Success, "out"),
-                            ] {
-                        assert_eq!(usev(args).unwrap(), status);
-                        assert_stdout!(expected);
-                    }
-                }
-            });
-        }
+    #[test]
+    fn enabled() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().iuse_effective.insert("use".to_string());
+            d.borrow_mut().use_.insert("use".to_string());
 
-        #[test]
-        fn enabled() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().iuse_effective.insert("use".to_string());
-                d.borrow_mut().use_.insert("use".to_string());
+            for (args, status, expected) in
+                [(&["use"], ExecStatus::Success, "use"), (&["!use"], ExecStatus::Failure(1), "")]
+            {
+                assert_eq!(usev(args).unwrap(), status);
+                assert_stdout!(expected);
+            }
 
+            // check EAPIs that support two arg variant
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| e.has(Feature::UsevTwoArgs))
+            {
+                d.borrow_mut().eapi = eapi;
                 for (args, status, expected) in [
-                        (&["use"], ExecStatus::Success, "use"),
-                        (&["!use"], ExecStatus::Failure(1), ""),
-                        ] {
+                    (&["use", "out"], ExecStatus::Success, "out"),
+                    (&["!use", "out"], ExecStatus::Failure(1), ""),
+                ] {
                     assert_eq!(usev(args).unwrap(), status);
                     assert_stdout!(expected);
                 }
-
-                // check EAPIs that support two arg variant
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has(Feature::UsevTwoArgs)) {
-                    d.borrow_mut().eapi = eapi;
-                    for (args, status, expected) in [
-                            (&["use", "out"], ExecStatus::Success, "out"),
-                            (&["!use", "out"], ExecStatus::Failure(1), ""),
-                            ] {
-                        assert_eq!(usev(args).unwrap(), status);
-                        assert_stdout!(expected);
-                    }
-                }
-            });
-        }
+            }
+        });
     }
 }

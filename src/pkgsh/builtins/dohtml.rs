@@ -137,8 +137,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::docinto::run as docinto;
     use super::run as dohtml;
@@ -146,106 +144,122 @@ mod tests {
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(dohtml, &[0]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dohtml, &[0]);
 
-            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
-            let _file_tree = FileTree::new();
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let _file_tree = FileTree::new();
 
-            // non-recursive directory
-            fs::create_dir("dir").unwrap();
-            let r = dohtml(&["dir"]);
-            assert_err_re!(r, format!("^trying to install directory as file: .*$"));
-        }
+        // non-recursive directory
+        fs::create_dir("dir").unwrap();
+        let r = dohtml(&["dir"]);
+        assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+    }
 
-        #[test]
-        fn creation() {
-            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
-            let file_tree = FileTree::new();
+    #[test]
+    fn creation() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
 
-            // simple file
-            fs::File::create("pkgcraft.html").unwrap();
-            dohtml(&["pkgcraft.html"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/pkgcraft.html"
-            "#));
+        // simple file
+        fs::File::create("pkgcraft.html").unwrap();
+        dohtml(&["pkgcraft.html"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/pkgcraft.html"
+        "#
+        ));
 
-            // recursive
-            fs::create_dir_all("doc/subdir").unwrap();
-            fs::File::create("doc/subdir/pkgcraft.html").unwrap();
-            dohtml(&["-r", "doc"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/doc/subdir/pkgcraft.html"
-            "#);
+        // recursive
+        fs::create_dir_all("doc/subdir").unwrap();
+        fs::File::create("doc/subdir/pkgcraft.html").unwrap();
+        dohtml(&["-r", "doc"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/doc/subdir/pkgcraft.html"
+        "#,
+        );
 
-            // recursive using `docinto`
-            docinto(&["newdir"]).unwrap();
-            dohtml(&["-r", "doc"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/pkgcraft.html"
-            "#);
-        }
+        // recursive using `docinto`
+        docinto(&["newdir"]).unwrap();
+        dohtml(&["-r", "doc"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/pkgcraft.html"
+        "#,
+        );
+    }
 
-        #[test]
-        fn options() {
-            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
-            let file_tree = FileTree::new();
+    #[test]
+    fn options() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
 
-            fs::create_dir("doc").unwrap();
-            fs::File::create("doc/readme.html").unwrap();
-            fs::File::create("doc/readme.txt").unwrap();
+        fs::create_dir("doc").unwrap();
+        fs::File::create("doc/readme.html").unwrap();
+        fs::File::create("doc/readme.txt").unwrap();
 
-            // ignored files
-            dohtml(&["-r", "doc/."]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/readme.html"
-            "#);
+        // ignored files
+        dohtml(&["-r", "doc/."]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/readme.html"
+        "#,
+        );
 
-            // -A: extra allowed file exts
-            dohtml(&["-r", "doc/.", "-A", "txt,md"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/readme.html"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
-            "#);
+        // -A: extra allowed file exts
+        dohtml(&["-r", "doc/.", "-A", "txt,md"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/readme.html"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+        "#,
+        );
 
-            // -a: allowed file exts
-            dohtml(&["-r", "doc/.", "-a", "txt,md"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
-            "#);
+        // -a: allowed file exts
+        dohtml(&["-r", "doc/.", "-a", "txt,md"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+        "#,
+        );
 
-            // -f: allowed files
-            dohtml(&["-r", "doc/.", "-f", "readme.txt,readme.md"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
-            "#);
+        // -f: allowed files
+        dohtml(&["-r", "doc/.", "-f", "readme.txt,readme.md"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+        "#,
+        );
 
-            // -p: doc prefix
-            dohtml(&["-r", "doc/.", "-p", "prefix"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/prefix/readme.html"
-            "#);
+        // -p: doc prefix
+        dohtml(&["-r", "doc/.", "-p", "prefix"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/prefix/readme.html"
+        "#,
+        );
 
-            fs::create_dir("doc/subdir").unwrap();
-            fs::File::create("doc/subdir/excluded.html").unwrap();
+        fs::create_dir("doc/subdir").unwrap();
+        fs::File::create("doc/subdir/excluded.html").unwrap();
 
-            // -x: excluded dirs
-            dohtml(&["-r", "doc/.", "-x", "doc/subdir,doc/test"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/html/readme.html"
-            "#);
-        }
+        // -x: excluded dirs
+        dohtml(&["-r", "doc/.", "-x", "doc/subdir,doc/test"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/readme.html"
+        "#,
+        );
     }
 }

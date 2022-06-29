@@ -65,8 +65,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as dosym;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
@@ -74,53 +72,58 @@ mod tests {
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(dosym, &[0, 1, 4]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dosym, &[0, 1, 4]);
 
-            BUILD_DATA.with(|d| {
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has(Feature::DosymRelative)) {
-                    d.borrow_mut().eapi = eapi;
-                    assert_invalid_args(dosym, &[3]);
-                }
-            });
-        }
+        BUILD_DATA.with(|d| {
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| !e.has(Feature::DosymRelative))
+            {
+                d.borrow_mut().eapi = eapi;
+                assert_invalid_args(dosym, &[3]);
+            }
+        });
+    }
 
-        #[test]
-        fn errors() {
-            let _file_tree = FileTree::new();
+    #[test]
+    fn errors() {
+        let _file_tree = FileTree::new();
 
-            // dir targets aren't supported
-            let r = dosym(&["source", "target/"]);
-            assert_err_re!(r, format!("^missing filename target: .*$"));
+        // dir targets aren't supported
+        let r = dosym(&["source", "target/"]);
+        assert_err_re!(r, format!("^missing filename target: .*$"));
 
-            fs::create_dir("target").unwrap();
-            let r = dosym(&["source", "target"]);
-            assert_err_re!(r, format!("^missing filename target: .*$"));
+        fs::create_dir("target").unwrap();
+        let r = dosym(&["source", "target"]);
+        assert_err_re!(r, format!("^missing filename target: .*$"));
 
-            // relative source with `dosym -r`
-            let r = dosym(&["-r", "source", "target"]);
-            assert_err_re!(r, format!("^absolute source required .*$"));
-        }
+        // relative source with `dosym -r`
+        let r = dosym(&["-r", "source", "target"]);
+        assert_err_re!(r, format!("^absolute source required .*$"));
+    }
 
-        #[test]
-        fn linking() {
-            let file_tree = FileTree::new();
+    #[test]
+    fn linking() {
+        let file_tree = FileTree::new();
 
-            dosym(&["/usr/bin/source", "target"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/target"
-                link = "/usr/bin/source"
-            "#));
+        dosym(&["/usr/bin/source", "target"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/target"
+            link = "/usr/bin/source"
+        "#
+        ));
 
-            dosym(&["-r", "/usr/bin/source", "/usr/bin/target"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/bin/target"
-                link = "source"
-            "#));
-        }
+        dosym(&["-r", "/usr/bin/source", "/usr/bin/target"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/bin/target"
+            link = "source"
+        "#
+        ));
     }
 }

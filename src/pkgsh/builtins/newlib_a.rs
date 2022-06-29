@@ -30,40 +30,40 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::into::run as into;
     use super::run as newlib_a;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::write_stdin;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(newlib_a, &[0, 1, 3]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(newlib_a, &[0, 1, 3]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
 
-            fs::File::create("lib").unwrap();
-            newlib_a(&["lib", "pkgcraft.a"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/lib/pkgcraft.a"
-            "#);
+        fs::File::create("lib").unwrap();
+        newlib_a(&["lib", "pkgcraft.a"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/lib/pkgcraft.a"
+        "#,
+        );
 
-            // custom install dir using data from stdin
-            write_stdin!("pkgcraft");
-            into(&["/"]).unwrap();
-            newlib_a(&["-", "pkgcraft.a"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/lib/pkgcraft.a"
-                data = "pkgcraft"
-            "#);
-        }
+        // custom install dir using data from stdin
+        write_stdin!("pkgcraft");
+        into(&["/"]).unwrap();
+        newlib_a(&["-", "pkgcraft.a"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/lib/pkgcraft.a"
+            data = "pkgcraft"
+        "#,
+        );
     }
 }

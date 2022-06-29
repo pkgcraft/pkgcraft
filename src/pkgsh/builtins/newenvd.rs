@@ -30,38 +30,38 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as newenvd;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::write_stdin;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(newenvd, &[0, 1, 3]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(newenvd, &[0, 1, 3]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
 
-            fs::File::create("env").unwrap();
-            newenvd(&["env", "pkgcraft"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/etc/env.d/pkgcraft"
-            "#);
+        fs::File::create("env").unwrap();
+        newenvd(&["env", "pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/etc/env.d/pkgcraft"
+        "#,
+        );
 
-            // re-run using data from stdin
-            write_stdin!("pkgcraft");
-            newenvd(&["-", "pkgcraft"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/etc/env.d/pkgcraft"
-                data = "pkgcraft"
-            "#);
-        }
+        // re-run using data from stdin
+        write_stdin!("pkgcraft");
+        newenvd(&["-", "pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/etc/env.d/pkgcraft"
+            data = "pkgcraft"
+        "#,
+        );
     }
 }

@@ -49,20 +49,16 @@ mod tests {
     use super::run as insinto;
     use crate::pkgsh::BUILD_DATA;
 
-    use rusty_fork::rusty_fork_test;
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(insinto, &[0]);
+    }
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(insinto, &[0]);
-        }
-
-        #[test]
-        fn set_path() {
-            insinto(&["/test/path"]).unwrap();
-            BUILD_DATA.with(|d| {
-                assert_eq!(d.borrow().insdesttree, "/test/path");
-            });
-        }
+    #[test]
+    fn set_path() {
+        insinto(&["/test/path"]).unwrap();
+        BUILD_DATA.with(|d| {
+            assert_eq!(d.borrow().insdesttree, "/test/path");
+        });
     }
 }

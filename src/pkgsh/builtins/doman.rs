@@ -90,72 +90,75 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as doman;
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(doman, &[0]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(doman, &[0]);
+    }
+
+    #[test]
+    fn errors() {
+        let _file_tree = FileTree::new();
+
+        // no targets
+        let r = doman(&["-i18n=en"]);
+        assert_err_re!(r, format!("^missing filename target$"));
+
+        // `newman` target
+        let r = doman(&["manpage"]);
+        assert_err_re!(r, format!("^invalid file target, use `newman`: .*$"));
+    }
+
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o100644;
+
+        // standard file
+        fs::File::create("pkgcraft.1").unwrap();
+        doman(&["pkgcraft.1"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/share/man/man1/pkgcraft.1"
+            mode = {default_mode}
+        "#
+        ));
+
+        // -i18n option usage
+        doman(&["-i18n=en", "pkgcraft.1"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/man/en/man1/pkgcraft.1"
+        "#,
+        );
+
+        // filename lang detection
+        for (file, path) in
+            [("pkgcraft.en.1", "en/man1/pkgcraft.1"), ("pkgcraft.en_US.1", "en_US/man1/pkgcraft.1")]
+        {
+            fs::File::create(file).unwrap();
+            doman(&[file]).unwrap();
+            file_tree.assert(format!(
+                r#"
+                [[files]]
+                path = "/usr/share/man/{path}"
+            "#
+            ));
         }
 
-        #[test]
-        fn errors() {
-            let _file_tree = FileTree::new();
-
-            // no targets
-            let r = doman(&["-i18n=en"]);
-            assert_err_re!(r, format!("^missing filename target$"));
-
-            // `newman` target
-            let r = doman(&["manpage"]);
-            assert_err_re!(r, format!("^invalid file target, use `newman`: .*$"));
-        }
-
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o100644;
-
-            // standard file
-            fs::File::create("pkgcraft.1").unwrap();
-            doman(&["pkgcraft.1"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/share/man/man1/pkgcraft.1"
-                mode = {default_mode}
-            "#));
-
-            // -i18n option usage
-            doman(&["-i18n=en", "pkgcraft.1"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/man/en/man1/pkgcraft.1"
-            "#);
-
-            // filename lang detection
-            for (file, path) in [
-                ("pkgcraft.en.1", "en/man1/pkgcraft.1"),
-                ("pkgcraft.en_US.1", "en_US/man1/pkgcraft.1"),
-            ] {
-                fs::File::create(file).unwrap();
-                doman(&[file]).unwrap();
-                file_tree.assert(format!(r#"
-                    [[files]]
-                    path = "/usr/share/man/{path}"
-                "#));
-            }
-
-            // -i18n option overrides filename lang
-            doman(&["-i18n=zz", "pkgcraft.en.1"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/man/zz/man1/pkgcraft.1"
-            "#);
-        }
+        // -i18n option overrides filename lang
+        doman(&["-i18n=zz", "pkgcraft.en.1"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/man/zz/man1/pkgcraft.1"
+        "#,
+        );
     }
 }

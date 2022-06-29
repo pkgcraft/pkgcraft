@@ -30,38 +30,38 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as newman;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::write_stdin;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(newman, &[0, 1, 3]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(newman, &[0, 1, 3]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
 
-            fs::File::create("manpage").unwrap();
-            newman(&["manpage", "pkgcraft.1"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/man/man1/pkgcraft.1"
-            "#);
+        fs::File::create("manpage").unwrap();
+        newman(&["manpage", "pkgcraft.1"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/man/man1/pkgcraft.1"
+        "#,
+        );
 
-            // re-run using data from stdin
-            write_stdin!("pkgcraft");
-            newman(&["-", "pkgcraft.1"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/man/man1/pkgcraft.1"
-                data = "pkgcraft"
-            "#);
-        }
+        // re-run using data from stdin
+        write_stdin!("pkgcraft");
+        newman(&["-", "pkgcraft.1"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/man/man1/pkgcraft.1"
+            data = "pkgcraft"
+        "#,
+        );
     }
 }

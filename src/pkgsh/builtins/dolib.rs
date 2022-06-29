@@ -49,43 +49,43 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::into::run as into;
     use super::super::libopts::run as libopts;
     use super::run as dolib;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(dolib, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dolib, &[0]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o100644;
-            let custom_mode = 0o100755;
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o100644;
+        let custom_mode = 0o100755;
 
-            fs::File::create("pkgcraft").unwrap();
-            dolib(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/lib/pkgcraft"
-                mode = {default_mode}
-            "#));
+        fs::File::create("pkgcraft").unwrap();
+        dolib(&["pkgcraft"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/lib/pkgcraft"
+            mode = {default_mode}
+        "#
+        ));
 
-            // custom mode and install dir
-            into(&["/"]).unwrap();
-            libopts(&["-m0755"]).unwrap();
-            dolib(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/lib/pkgcraft"
-                mode = {custom_mode}
-            "#));
-        }
+        // custom mode and install dir
+        into(&["/"]).unwrap();
+        libopts(&["-m0755"]).unwrap();
+        dolib(&["pkgcraft"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/lib/pkgcraft"
+            mode = {custom_mode}
+        "#
+        ));
     }
 }

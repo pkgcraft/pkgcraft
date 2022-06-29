@@ -43,8 +43,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::exeopts::run as exeopts;
     use super::run as doinitd;
@@ -52,41 +50,43 @@ mod tests {
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(doinitd, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(doinitd, &[0]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o100755;
-            let custom_mode = 0o100777;
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o100755;
+        let custom_mode = 0o100777;
 
-            fs::File::create("pkgcraft").unwrap();
+        fs::File::create("pkgcraft").unwrap();
+        doinitd(&["pkgcraft"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/etc/init.d/pkgcraft"
+            mode = {default_mode}
+        "#
+        ));
+
+        // verify exeopts are respected depending on EAPI
+        for eapi in EAPIS_OFFICIAL.values() {
+            BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
+            exeopts(&["-m0777"]).unwrap();
             doinitd(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(r#"
+            let mode = match eapi.has(Feature::ConsistentFileOpts) {
+                true => default_mode,
+                false => custom_mode,
+            };
+            file_tree.assert(format!(
+                r#"
                 [[files]]
                 path = "/etc/init.d/pkgcraft"
-                mode = {default_mode}
-            "#));
-
-            // verify exeopts are respected depending on EAPI
-            for eapi in EAPIS_OFFICIAL.values() {
-                BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
-                exeopts(&["-m0777"]).unwrap();
-                doinitd(&["pkgcraft"]).unwrap();
-                let mode = match eapi.has(Feature::ConsistentFileOpts) {
-                    true => default_mode,
-                    false => custom_mode,
-                };
-                file_tree.assert(format!(r#"
-                    [[files]]
-                    path = "/etc/init.d/pkgcraft"
-                    mode = {mode}
-                "#));
-            }
+                mode = {mode}
+            "#
+            ));
         }
     }
 }

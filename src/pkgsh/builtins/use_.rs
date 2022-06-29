@@ -53,41 +53,38 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
-    use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(use_, &[0, 2]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(use_, &[0, 2]);
+    }
 
-        #[test]
-        fn empty_iuse_effective() {
-            assert_err_re!(use_(&["use"]), "^.* not in IUSE$");
-        }
+    #[test]
+    fn empty_iuse_effective() {
+        assert_err_re!(use_(&["use"]), "^.* not in IUSE$");
+    }
 
-        #[test]
-        fn disabled() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().iuse_effective.insert("use".to_string());
-                // use flag is disabled
-                assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Failure(1));
-                // inverted check
-                assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Success);
-            });
-        }
+    #[test]
+    fn disabled() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().iuse_effective.insert("use".to_string());
+            // use flag is disabled
+            assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Failure(1));
+            // inverted check
+            assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Success);
+        });
+    }
 
-        #[test]
-        fn enabled() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().iuse_effective.insert("use".to_string());
-                d.borrow_mut().use_.insert("use".to_string());
-                // use flag is enabled
-                assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Success);
-                // inverted check
-                assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Failure(1));
-            });
-        }
+    #[test]
+    fn enabled() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().iuse_effective.insert("use".to_string());
+            d.borrow_mut().use_.insert("use".to_string());
+            // use flag is enabled
+            assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Success);
+            // inverted check
+            assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Failure(1));
+        });
     }
 }

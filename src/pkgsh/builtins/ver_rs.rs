@@ -64,7 +64,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
     use scallop::variables::*;
 
@@ -73,53 +72,51 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::assert_stdout;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(ver_rs, &[0, 1]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(ver_rs, &[0, 1]);
+    }
+
+    #[test]
+    fn invalid_range() {
+        for rng in ["-", "-2"] {
+            let r = ver_rs(&[rng, "2", "1.2.3"]);
+            assert!(r.unwrap_err().to_string().contains("invalid range"));
         }
 
-        #[test]
-        fn invalid_range() {
-            for rng in ["-", "-2"] {
-                let r = ver_rs(&[rng, "2", "1.2.3"]);
-                assert!(r.unwrap_err().to_string().contains("invalid range"));
-            }
+        let r = ver_rs(&["3-2", "1", "1.2.3"]);
+        assert_err_re!(r, " is greater than end ");
+    }
 
-            let r = ver_rs(&["3-2", "1", "1.2.3"]);
-            assert_err_re!(r, " is greater than end ");
-        }
+    #[test]
+    fn output() {
+        let mut pv = Variable::new("PV");
+        for (mut args, expected) in [
+            (vec!["1", "-", "1.2.3"], "1-2.3"),
+            (vec!["2", "-", "1.2.3"], "1.2-3"),
+            (vec!["1-2", "-", "1.2.3.4"], "1-2-3.4"),
+            (vec!["2-", "-", "1.2.3.4"], "1.2-3-4"),
+            (vec!["2", ".", "1.2-3"], "1.2.3"),
+            (vec!["3", ".", "1.2.3a"], "1.2.3.a"),
+            (vec!["2-3", "-", "1.2_alpha4"], "1.2-alpha-4"),
+            (vec!["3", "-", "2", "", "1.2.3b_alpha4"], "1.23-b_alpha4"),
+            (vec!["3-5", "_", "4-6", "-", "a1b2c3d4e5"], "a1b_2-c-3-d4e5"),
+            (vec!["1", "-", ".1.2.3"], ".1-2.3"),
+            (vec!["0", "-", ".1.2.3"], "-1.2.3"),
+            (vec!["0", "-", "1.2.3"], "1.2.3"),
+            (vec!["3", ".", "1.2.3"], "1.2.3"),
+            (vec!["3-", ".", "1.2.3"], "1.2.3"),
+            (vec!["3-5", ".", "1.2.3"], "1.2.3"),
+        ] {
+            let r = ver_rs(&args).unwrap();
+            assert_stdout!(expected);
+            assert_eq!(r, ExecStatus::Success);
 
-        #[test]
-        fn output() {
-            let mut pv = Variable::new("PV");
-            for (mut args, expected) in [
-                    (vec!["1", "-", "1.2.3"], "1-2.3"),
-                    (vec!["2", "-", "1.2.3"], "1.2-3"),
-                    (vec!["1-2", "-", "1.2.3.4"], "1-2-3.4"),
-                    (vec!["2-", "-", "1.2.3.4"], "1.2-3-4"),
-                    (vec!["2", ".", "1.2-3"], "1.2.3"),
-                    (vec!["3", ".", "1.2.3a"], "1.2.3.a"),
-                    (vec!["2-3", "-", "1.2_alpha4"], "1.2-alpha-4"),
-                    (vec!["3", "-", "2", "", "1.2.3b_alpha4"], "1.23-b_alpha4"),
-                    (vec!["3-5", "_", "4-6", "-", "a1b2c3d4e5"], "a1b_2-c-3-d4e5"),
-                    (vec!["1", "-", ".1.2.3"], ".1-2.3"),
-                    (vec!["0", "-", ".1.2.3"], "-1.2.3"),
-                    (vec!["0", "-", "1.2.3"], "1.2.3"),
-                    (vec!["3", ".", "1.2.3"], "1.2.3"),
-                    (vec!["3-", ".", "1.2.3"], "1.2.3"),
-                    (vec!["3-5", ".", "1.2.3"], "1.2.3"),
-                    ] {
-                let r = ver_rs(&args).unwrap();
-                assert_stdout!(expected);
-                assert_eq!(r, ExecStatus::Success);
-
-                // test pulling version from $PV
-                pv.bind(args.pop().unwrap(), None, None).unwrap();
-                let r = ver_rs(&args).unwrap();
-                assert_stdout!(expected);
-                assert_eq!(r, ExecStatus::Success);
-            }
+            // test pulling version from $PV
+            pv.bind(args.pop().unwrap(), None, None).unwrap();
+            let r = ver_rs(&args).unwrap();
+            assert_stdout!(expected);
+            assert_eq!(r, ExecStatus::Success);
         }
     }
 }

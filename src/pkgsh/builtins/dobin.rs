@@ -52,42 +52,42 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::exeopts::run as exeopts;
     use super::super::into::run as into;
     use super::run as dobin;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(dobin, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dobin, &[0]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o100755;
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o100755;
 
-            fs::File::create("pkgcraft").unwrap();
-            dobin(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/bin/pkgcraft"
-                mode = {default_mode}
-            "#));
+        fs::File::create("pkgcraft").unwrap();
+        dobin(&["pkgcraft"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/bin/pkgcraft"
+            mode = {default_mode}
+        "#
+        ));
 
-            // custom install dir with libopts ignored
-            into(&["/"]).unwrap();
-            exeopts(&["-m0777"]).unwrap();
-            dobin(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/bin/pkgcraft"
-                mode = {default_mode}
-            "#));
-        }
+        // custom install dir with libopts ignored
+        into(&["/"]).unwrap();
+        exeopts(&["-m0777"]).unwrap();
+        dobin(&["pkgcraft"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/bin/pkgcraft"
+            mode = {default_mode}
+        "#
+        ));
     }
 }

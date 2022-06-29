@@ -32,42 +32,42 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::into::run as into;
     use super::super::libopts::run as libopts;
     use super::run as dolib_a;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(dolib_a, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dolib_a, &[0]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o100644;
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o100644;
 
-            fs::File::create("pkgcraft.a").unwrap();
-            dolib_a(&["pkgcraft.a"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/lib/pkgcraft.a"
-                mode = {default_mode}
-            "#));
+        fs::File::create("pkgcraft.a").unwrap();
+        dolib_a(&["pkgcraft.a"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/lib/pkgcraft.a"
+            mode = {default_mode}
+        "#
+        ));
 
-            // custom install dir with libopts ignored
-            into(&["/"]).unwrap();
-            libopts(&["-m0755"]).unwrap();
-            dolib_a(&["pkgcraft.a"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/lib/pkgcraft.a"
-                mode = {default_mode}
-            "#));
-        }
+        // custom install dir with libopts ignored
+        into(&["/"]).unwrap();
+        libopts(&["-m0755"]).unwrap();
+        dolib_a(&["pkgcraft.a"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/lib/pkgcraft.a"
+            mode = {default_mode}
+        "#
+        ));
     }
 }

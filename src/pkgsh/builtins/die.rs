@@ -60,79 +60,79 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
-    use rusty_fork::rusty_fork_test;
     use scallop::variables::*;
     use scallop::{source, Shell};
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(die, &[3]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(die, &[3]);
 
-            BUILD_DATA.with(|d| {
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has(Feature::NonfatalDie)) {
-                    d.borrow_mut().eapi = eapi;
-                    assert_invalid_args(die, &[2]);
-                }
-            });
-        }
+        BUILD_DATA.with(|d| {
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| !e.has(Feature::NonfatalDie))
+            {
+                d.borrow_mut().eapi = eapi;
+                assert_invalid_args(die, &[2]);
+            }
+        });
+    }
 
-        #[test]
-        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
-        fn main() {
-            let sh = Shell::new("sh");
-            sh.builtins([&BUILTIN.builtin]);
-            bind("VAR", "1", None, None).unwrap();
+    #[test]
+    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
+    fn main() {
+        Shell::init();
+        Shell::builtins([&BUILTIN.builtin]);
+        bind("VAR", "1", None, None).unwrap();
 
-            let r = source::string("die && VAR=2");
-            assert_err_re!(r, r"^die called: \(no error message\)");
+        let r = source::string("die && VAR=2");
+        assert_err_re!(r, r"^die called: \(no error message\)");
 
-            // verify bash state is reset
-            assert_eq!(string_value("VAR"), None);
+        // verify bash state is reset
+        assert_eq!(string_value("VAR"), None);
 
-            // verify message output
-            let r = source::string("die \"output message\"");
-            assert_err_re!(r, r"^die called: output message");
-        }
+        // verify message output
+        let r = source::string("die \"output message\"");
+        assert_err_re!(r, r"^die called: output message");
+    }
 
-        #[test]
-        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
-        fn subshell() {
-            let sh = Shell::new("sh");
-            sh.builtins([&BUILTIN.builtin]);
-            bind("VAR", "1", None, None).unwrap();
+    #[test]
+    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
+    fn subshell() {
+        Shell::init();
+        Shell::builtins([&BUILTIN.builtin]);
+        bind("VAR", "1", None, None).unwrap();
 
-            let r = source::string("VAR=$(die); VAR=2");
-            assert_err_re!(r, r"^die called: \(no error message\)");
+        let r = source::string("VAR=$(die); VAR=2");
+        assert_err_re!(r, r"^die called: \(no error message\)");
 
-            // verify bash state is reset
-            assert_eq!(string_value("VAR"), None);
+        // verify bash state is reset
+        assert_eq!(string_value("VAR"), None);
 
-            // verify message output
-            let r = source::string("VAR=$(die \"output message\")");
-            assert_err_re!(r, r"^die called: output message");
-        }
+        // verify message output
+        let r = source::string("VAR=$(die \"output message\")");
+        assert_err_re!(r, r"^die called: output message");
+    }
 
-        #[test]
-        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
-        fn nonfatal() {
-            let sh = Shell::new("sh");
-            sh.builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
-            bind("VAR", "1", None, None).unwrap();
+    #[test]
+    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
+    fn nonfatal() {
+        Shell::init();
+        Shell::builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
+        bind("VAR", "1", None, None).unwrap();
 
-            // nonfatal requires `die -n` call
-            let r = source::string("nonfatal die && VAR=2");
-            assert_err_re!(r, r"^die called: \(no error message\)");
+        // nonfatal requires `die -n` call
+        let r = source::string("nonfatal die && VAR=2");
+        assert_err_re!(r, r"^die called: \(no error message\)");
 
-            // nonfatal die in main process
-            bind("VAR", "1", None, None).unwrap();
-            source::string("nonfatal die -n && VAR=2").unwrap();
-            assert_eq!(string_value("VAR").unwrap(), "2");
+        // nonfatal die in main process
+        bind("VAR", "1", None, None).unwrap();
+        source::string("nonfatal die -n && VAR=2").unwrap();
+        assert_eq!(string_value("VAR").unwrap(), "2");
 
-            // nonfatal die in subshell
-            bind("VAR", "1", None, None).unwrap();
-            source::string("FOO=$(nonfatal die -n); VAR=2").unwrap();
-            assert_eq!(string_value("VAR").unwrap(), "2");
-        }
+        // nonfatal die in subshell
+        bind("VAR", "1", None, None).unwrap();
+        source::string("FOO=$(nonfatal die -n); VAR=2").unwrap();
+        assert_eq!(string_value("VAR").unwrap(), "2");
     }
 }

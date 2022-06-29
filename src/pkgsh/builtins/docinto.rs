@@ -43,20 +43,16 @@ mod tests {
     use super::run as docinto;
     use crate::pkgsh::BUILD_DATA;
 
-    use rusty_fork::rusty_fork_test;
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(docinto, &[0, 2]);
+    }
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(docinto, &[0, 2]);
-        }
-
-        #[test]
-        fn set_path() {
-            docinto(&["examples"]).unwrap();
-            BUILD_DATA.with(|d| {
-                assert_eq!(d.borrow().docdesttree, "examples");
-            });
-        }
+    #[test]
+    fn set_path() {
+        docinto(&["examples"]).unwrap();
+        BUILD_DATA.with(|d| {
+            assert_eq!(d.borrow().docdesttree, "examples");
+        });
     }
 }

@@ -8,7 +8,7 @@ use itertools::Itertools;
 use nix::unistd::isatty;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
-use scallop::{functions, source, Error, Result};
+use scallop::{functions, source, Shell, Error, Result};
 
 use crate::eapi::{Eapi, Feature, Key};
 use crate::pkgsh::builtins::Scope;
@@ -256,15 +256,13 @@ thread_local! {
     pub static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::new());
 }
 
-pub struct PkgShell<'a> {
-    sh: &'a mut scallop::Shell,
-}
+pub struct PkgShell {}
 
-impl<'a> PkgShell<'a> {
-    pub fn new(sh: &'a mut scallop::Shell, data: BuildData) -> Self {
+impl PkgShell {
+    pub fn new(data: BuildData) -> Self {
         // update thread local mutable for builtins
         BUILD_DATA.with(|d| d.replace(data));
-        PkgShell { sh }
+        PkgShell {}
     }
 
     pub fn run_phase(&mut self, phase: &phase::Phase) -> Result<ExecStatus> {
@@ -353,6 +351,6 @@ impl<'a> PkgShell<'a> {
     }
 
     pub fn reset(&mut self) {
-        self.sh.reset()
+        Shell::reset()
     }
 }

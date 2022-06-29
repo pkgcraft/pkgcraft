@@ -35,24 +35,20 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as exeopts;
     use crate::pkgsh::BUILD_DATA;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(exeopts, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(exeopts, &[0]);
+    }
 
-        #[test]
-        fn set_path() {
-            exeopts(&["-m0777", "-p"]).unwrap();
-            BUILD_DATA.with(|d| {
-                assert_eq!(d.borrow().exeopts, ["-m0777", "-p"]);
-            });
-        }
+    #[test]
+    fn set_path() {
+        exeopts(&["-m0777", "-p"]).unwrap();
+        BUILD_DATA.with(|d| {
+            assert_eq!(d.borrow().exeopts, ["-m0777", "-p"]);
+        });
     }
 }

@@ -40,29 +40,25 @@ mod tests {
     use std::fs;
     use std::os::unix::fs::MetadataExt;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as dohard;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(dohard, &[0, 1, 3]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dohard, &[0, 1, 3]);
+    }
 
-        #[test]
-        fn linking() {
-            let file_tree = FileTree::new();
-            fs::File::create("source").unwrap();
+    #[test]
+    fn linking() {
+        let file_tree = FileTree::new();
+        fs::File::create("source").unwrap();
 
-            dohard(&["source", "target"]).unwrap();
-            let source_meta = fs::metadata("source").unwrap();
-            let target_meta = fs::metadata(file_tree.install_dir.join("target")).unwrap();
-            // hard link inodes match
-            assert_eq!(source_meta.ino(), target_meta.ino());
-            assert_eq!(target_meta.nlink(), 2);
-        }
+        dohard(&["source", "target"]).unwrap();
+        let source_meta = fs::metadata("source").unwrap();
+        let target_meta = fs::metadata(file_tree.install_dir.join("target")).unwrap();
+        // hard link inodes match
+        assert_eq!(source_meta.ino(), target_meta.ino());
+        assert_eq!(target_meta.nlink(), 2);
     }
 }

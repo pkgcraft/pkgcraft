@@ -58,86 +58,77 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::test::TestData;
 
-    use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
     use scallop::variables::*;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(ver_test, &[0, 1, 4]);
-            // $PVR not defined
-            assert!(ver_test(&["-eq", "1"]).is_err());
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(ver_test, &[0, 1, 4]);
+        // $PVR not defined
+        assert!(ver_test(&["-eq", "1"]).is_err());
+    }
+
+    #[test]
+    fn overflow() {
+        let u64_max: u128 = u64::MAX as u128;
+        let (vb, vo) = (format!("{u64_max}"), format!("{}", u64_max + 1));
+        for args in [&[&vb, "-eq", &vo], &[&vo, "-eq", &vb]] {
+            let r = ver_test(args);
+            assert_err_re!(r, format!("^invalid version: .*: {vo}$"));
         }
+    }
 
-        #[test]
-        fn overflow() {
-            let u64_max: u128 = u64::MAX as u128;
-            let (vb, vo) = (format!("{u64_max}"), format!("{}", u64_max + 1));
-            for args in [&[&vb, "-eq", &vo], &[&vo, "-eq", &vb]] {
-                let r = ver_test(args);
-                assert_err_re!(r, format!("^invalid version: .*: {vo}$"));
-            }
+    #[test]
+    fn invalid_versions() {
+        for v in ["a", "1_1", "1-2"] {
+            let r = ver_test(&[v, "-eq", v]);
+            assert!(r.unwrap_err().to_string().contains("invalid version"));
         }
+    }
 
-        #[test]
-        fn invalid_versions() {
-            for v in ["a", "1_1", "1-2"] {
-                let r = ver_test(&[v, "-eq", v]);
-                assert!(r.unwrap_err().to_string().contains("invalid version"));
-            }
+    #[test]
+    fn invalid_op() {
+        for op in [">", ">=", "<", "<=", "==", "!="] {
+            let r = ver_test(&["1", op, "2"]);
+            assert_err_re!(r, format!("^invalid operator: {op}$"));
         }
+    }
 
-        #[test]
-        fn invalid_op() {
-            for op in [">", ">=", "<", "<=", "==", "!="] {
-                let r = ver_test(&["1", op, "2"]);
-                assert_err_re!(r, format!("^invalid operator: {op}$"));
-            }
-        }
+    #[test]
+    fn return_status() {
+        let op_map: HashMap<&str, &str> = [
+            ("==", "-eq"),
+            ("!=", "-ne"),
+            ("<", "-lt"),
+            (">", "-gt"),
+            ("<=", "-le"),
+            (">=", "-ge"),
+        ]
+        .into_iter()
+        .collect();
 
-        #[test]
-        fn return_status() {
-            let op_map: HashMap<&str, &str> = [
-                ("==", "-eq"),
-                ("!=", "-ne"),
-                ("<", "-lt"),
-                (">", "-gt"),
-                ("<=", "-le"),
-                (">=", "-ge"),
-            ]
-            .into_iter()
-            .collect();
+        let inverted_op_map: HashMap<&str, &str> =
+            [("==", "!="), ("!=", "=="), ("<", ">="), (">", "<="), ("<=", ">"), (">=", "<")]
+                .into_iter()
+                .collect();
 
-            let inverted_op_map: HashMap<&str, &str> = [
-                ("==", "!="),
-                ("!=", "=="),
-                ("<", ">="),
-                (">", "<="),
-                ("<=", ">"),
-                (">=", "<"),
-            ]
-            .into_iter()
-            .collect();
+        let mut pvr = Variable::new("PVR");
 
-            let mut pvr = Variable::new("PVR");
+        let data = TestData::load().unwrap();
+        for (expr, (v1, op, v2)) in data.ver_cmp() {
+            let inverted_op = op_map[inverted_op_map[op]];
+            let op = op_map[op];
+            let r = ver_test(&[v1, op, v2]);
+            assert_eq!(r.unwrap(), ExecStatus::Success, "failed comparing: {expr}");
+            let r = ver_test(&[v1, inverted_op, v2]);
+            assert_eq!(r.unwrap(), ExecStatus::Failure(1), "failed comparing: {expr}");
 
-            let data = TestData::load().unwrap();
-            for (expr, (v1, op, v2)) in data.ver_cmp() {
-                let inverted_op = op_map[inverted_op_map[op]];
-                let op = op_map[op];
-                let r = ver_test(&[v1, op, v2]);
-                assert_eq!(r.unwrap(), ExecStatus::Success, "failed comparing: {expr}");
-                let r = ver_test(&[v1, inverted_op, v2]);
-                assert_eq!(r.unwrap(), ExecStatus::Failure(1), "failed comparing: {expr}");
-
-                // test pulling v1 from $PVR
-                pvr.bind(v1, None, None).unwrap();
-                let r = ver_test(&[op, v2]);
-                assert_eq!(r.unwrap(), ExecStatus::Success, "failed comparing: {expr}");
-                let r = ver_test(&[inverted_op, v2]);
-                assert_eq!(r.unwrap(), ExecStatus::Failure(1), "failed comparing: {expr}");
-            }
+            // test pulling v1 from $PVR
+            pvr.bind(v1, None, None).unwrap();
+            let r = ver_test(&[op, v2]);
+            assert_eq!(r.unwrap(), ExecStatus::Success, "failed comparing: {expr}");
+            let r = ver_test(&[inverted_op, v2]);
+            assert_eq!(r.unwrap(), ExecStatus::Failure(1), "failed comparing: {expr}");
         }
     }
 }

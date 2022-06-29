@@ -56,7 +56,6 @@ walkdir = "2"
 criterion = "0.3"
 indoc = "1.0.3"
 maplit = "1.0.2"
-rusty-fork = "0.3.0"
 tracing-test = "0.2.1"
 
 [[bench]]

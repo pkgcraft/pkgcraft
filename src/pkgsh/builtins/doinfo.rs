@@ -38,30 +38,28 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as doinfo;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(doinfo, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(doinfo, &[0]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o100644;
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o100644;
 
-            fs::File::create("pkgcraft").unwrap();
-            doinfo(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/share/info/pkgcraft"
-                mode = {default_mode}
-            "#));
-        }
+        fs::File::create("pkgcraft").unwrap();
+        doinfo(&["pkgcraft"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/share/info/pkgcraft"
+            mode = {default_mode}
+        "#
+        ));
     }
 }

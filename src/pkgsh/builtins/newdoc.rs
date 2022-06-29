@@ -30,39 +30,35 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as newdoc;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::{write_stdin, BUILD_DATA};
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(newdoc, &[0, 1, 3]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(newdoc, &[0, 1, 3]);
+    }
 
-        #[test]
-        fn creation() {
-            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
-            let file_tree = FileTree::new();
+    #[test]
+    fn creation() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
 
-            fs::File::create("file").unwrap();
-            newdoc(&["file", "pkgcraft"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/pkgcraft"
-            "#);
+        fs::File::create("file").unwrap();
+        newdoc(&["file", "pkgcraft"]).unwrap();
+        file_tree.assert(r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/pkgcraft"
+        "#);
 
-            // re-run using data from stdin
-            write_stdin!("pkgcraft");
-            newdoc(&["-", "pkgcraft"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/pkgcraft"
-                data = "pkgcraft"
-            "#);
-        }
+        // re-run using data from stdin
+        write_stdin!("pkgcraft");
+        newdoc(&["-", "pkgcraft"]).unwrap();
+        file_tree.assert(r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/pkgcraft"
+            data = "pkgcraft"
+        "#);
     }
 }

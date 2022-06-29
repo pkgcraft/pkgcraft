@@ -38,93 +38,92 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
-    use rusty_fork::rusty_fork_test;
     use scallop::variables::*;
     use scallop::{source, Shell};
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            let _sh = Shell::new("sh");
-            // make sure PIPESTATUS is set to cause failures
-            source::string("true | false").unwrap();
+    #[test]
+    fn invalid_args() {
+        Shell::init();
+        // make sure PIPESTATUS is set to cause failures
+        source::string("true | false").unwrap();
 
-            assert_invalid_args(assert, &[3]);
+        assert_invalid_args(assert, &[3]);
 
-            BUILD_DATA.with(|d| {
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has(Feature::NonfatalDie)) {
-                    d.borrow_mut().eapi = eapi;
-                    assert_invalid_args(assert, &[2]);
-                }
-            });
-        }
+        BUILD_DATA.with(|d| {
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| !e.has(Feature::NonfatalDie))
+            {
+                d.borrow_mut().eapi = eapi;
+                assert_invalid_args(assert, &[2]);
+            }
+        });
+    }
 
-        #[test]
-        fn success() {
-            let _sh = Shell::new("sh");
+    #[test]
+    fn success() {
+        Shell::init();
+        // unset PIPESTATUS
+        source::string("assert").unwrap();
 
-            // unset PIPESTATUS
-            source::string("assert").unwrap();
+        // successful pipeline
+        source::string("true | true; assert").unwrap();
+    }
 
-            // successful pipeline
-            source::string("true | true; assert").unwrap();
-        }
+    #[test]
+    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
+    fn main() {
+        Shell::init();
+        Shell::builtins([&BUILTIN.builtin]);
+        bind("VAR", "1", None, None).unwrap();
 
-        #[test]
-        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
-        fn main() {
-            let sh = Shell::new("sh");
-            sh.builtins([&BUILTIN.builtin]);
-            bind("VAR", "1", None, None).unwrap();
+        let r = source::string("true | false | true; assert");
+        assert_err_re!(r, r"^die called: \(no error message\)");
 
-            let r = source::string("true | false | true; assert");
-            assert_err_re!(r, r"^die called: \(no error message\)");
+        // verify bash state is reset
+        assert_eq!(string_value("VAR"), None);
 
-            // verify bash state is reset
-            assert_eq!(string_value("VAR"), None);
+        // verify message output
+        let r = source::string("true | false | true; assert \"output message\"");
+        assert_err_re!(r, r"^die called: output message");
+    }
 
-            // verify message output
-            let r = source::string("true | false | true; assert \"output message\"");
-            assert_err_re!(r, r"^die called: output message");
-        }
+    #[test]
+    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
+    fn subshell() {
+        Shell::init();
+        Shell::builtins([&BUILTIN.builtin]);
+        bind("VAR", "1", None, None).unwrap();
 
-        #[test]
-        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
-        fn subshell() {
-            let sh = Shell::new("sh");
-            sh.builtins([&BUILTIN.builtin]);
-            bind("VAR", "1", None, None).unwrap();
+        let r = source::string("VAR=$(true | false; assert); VAR=2");
+        assert_err_re!(r, r"^die called: \(no error message\)");
 
-            let r = source::string("VAR=$(true | false; assert); VAR=2");
-            assert_err_re!(r, r"^die called: \(no error message\)");
+        // verify bash state is reset
+        assert_eq!(string_value("VAR"), None);
 
-            // verify bash state is reset
-            assert_eq!(string_value("VAR"), None);
+        // verify message output
+        let r = source::string("VAR=$(true | false; assert \"output message\")");
+        assert_err_re!(r, r"^die called: output message");
+    }
 
-            // verify message output
-            let r = source::string("VAR=$(true | false; assert \"output message\")");
-            assert_err_re!(r, r"^die called: output message");
-        }
+    #[test]
+    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
+    fn nonfatal() {
+        Shell::init();
+        Shell::builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
 
-        #[test]
-        #[cfg_attr(target_os = "macos", ignore)] // TODO: debug shared memory failures
-        fn nonfatal() {
-            let sh = Shell::new("sh");
-            sh.builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
+        // nonfatal requires `die -n` call
+        let r = source::string("true | false; nonfatal assert");
+        assert_err_re!(r, r"^die called: \(no error message\)");
 
-            // nonfatal requires `die -n` call
-            let r = source::string("true | false; nonfatal assert");
-            assert_err_re!(r, r"^die called: \(no error message\)");
+        // nonfatal die in main process
+        bind("VAR", "1", None, None).unwrap();
+        source::string("true | false; nonfatal assert -n && VAR=2").unwrap();
+        assert_eq!(string_value("VAR").unwrap(), "2");
 
-            // nonfatal die in main process
-            bind("VAR", "1", None, None).unwrap();
-            source::string("true | false; nonfatal assert -n && VAR=2").unwrap();
-            assert_eq!(string_value("VAR").unwrap(), "2");
-
-            // nonfatal die in subshell
-            bind("VAR", "1", None, None).unwrap();
-            source::string("FOO=$(true | false; nonfatal assert -n); VAR=2").unwrap();
-            assert_eq!(string_value("VAR").unwrap(), "2");
-        }
+        // nonfatal die in subshell
+        bind("VAR", "1", None, None).unwrap();
+        source::string("FOO=$(true | false; nonfatal assert -n); VAR=2").unwrap();
+        assert_eq!(string_value("VAR").unwrap(), "2");
     }
 }

@@ -119,7 +119,6 @@ mod tests {
     use std::{env, fs};
 
     use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode};
-    use rusty_fork::rusty_fork_test;
     use tempfile::tempdir;
 
     use super::super::assert_invalid_args;
@@ -130,139 +129,141 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(unpack, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(unpack, &[0]);
+    }
 
-        #[test]
-        fn nonexistent() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().env.insert("DISTDIR".into(), "dist".into());
-                assert_err_re!(unpack(&["a.tar.gz"]), "^nonexistent archive: .*$");
-            })
-        }
+    #[test]
+    fn nonexistent() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().env.insert("DISTDIR".into(), "dist".into());
+            assert_err_re!(unpack(&["a.tar.gz"]), "^nonexistent archive: .*$");
+        })
+    }
 
-        #[test]
-        fn eapi_features() {
-            BUILD_DATA.with(|d| {
-                let tmp_dir = tempdir().unwrap();
-                let prefix = tmp_dir.path();
-                let dist = prefix.join("dist");
-                fs::create_dir(&dist).unwrap();
-                env::set_current_dir(&prefix).unwrap();
-                d.borrow_mut().env.insert("DISTDIR".into(), dist.to_str().unwrap().into());
-                fs::File::create("dist/a.TAR.GZ").unwrap();
-                let abs_path = prefix.join("dist/a.tar.gz");
-                fs::File::create(&abs_path).unwrap();
+    #[test]
+    fn eapi_features() {
+        BUILD_DATA.with(|d| {
+            let tmp_dir = tempdir().unwrap();
+            let prefix = tmp_dir.path();
+            let dist = prefix.join("dist");
+            fs::create_dir(&dist).unwrap();
+            env::set_current_dir(&prefix).unwrap();
+            d.borrow_mut()
+                .env
+                .insert("DISTDIR".into(), dist.to_str().unwrap().into());
+            fs::File::create("dist/a.TAR.GZ").unwrap();
+            let abs_path = prefix.join("dist/a.tar.gz");
+            fs::File::create(&abs_path).unwrap();
 
-                for eapi in EAPIS_OFFICIAL.values() {
-                    d.borrow_mut().eapi = eapi;
+            for eapi in EAPIS_OFFICIAL.values() {
+                d.borrow_mut().eapi = eapi;
 
-                    // case insensitive support
-                    let result = unpack(&["a.TAR.GZ"]);
-                    if eapi.has(Feature::UnpackCaseInsensitive) {
-                        result.unwrap();
-                    } else {
-                        assert_err_re!(result, "^unknown archive format: .*$");
-                    }
-
-                    // absolute path support
-                    let result = unpack(&[abs_path.to_str().unwrap()]);
-                    if eapi.has(Feature::UnpackExtendedPath) {
-                        result.unwrap();
-                    } else {
-                        assert_err_re!(result, "^absolute paths not supported .*$");
-                    }
-
-                    // prefixed relative paths work everywhere
-                    unpack(&["./dist/a.tar.gz"]).unwrap();
-
-                    // unprefixed are EAPI conditional
-                    let result = unpack(&["dist/a.tar.gz"]);
-                    if eapi.has(Feature::UnpackExtendedPath) {
-                        result.unwrap();
-                    } else {
-                        assert_err_re!(result, "^relative paths not supported .*$");
-                    }
-                }
-            })
-        }
-
-        #[test]
-        #[cfg_attr(target_os = "macos", ignore)] // TODO: switch to builtin support?
-        fn archives() {
-            BUILD_DATA.with(|d| {
-                let tmp_dir = tempdir().unwrap();
-                let prefix = tmp_dir.path();
-                let datadir = prefix.join("data");
-                let distdir = prefix.join("dist");
-                fs::create_dir(&distdir).unwrap();
-                env::set_current_dir(&prefix).unwrap();
-                d.borrow_mut().env.insert("DISTDIR".into(), distdir.to_str().unwrap().into());
-
-                // create archive source
-                let dir = datadir.join("dir");
-                let file = dir.join("file");
-                fs::create_dir_all(&dir).unwrap();
-                fs::write(&file, "pkgcraft").unwrap();
-
-                // disable permissions that should get reset during unpack
-                fchmodat(None, &dir, DIR_MODE.bitxor(Mode::S_IXOTH), FollowSymlink).unwrap();
-                fchmodat(None, &file, FILE_MODE.bitxor(Mode::S_IWUSR), FollowSymlink).unwrap();
-
-                // compressed archives
-                for ext in ["tar.gz", "tar.bz2", "tar.xz"] {
-                    // create tarball, remove its source, and then unpack it
-                    run_commands(|| {
-                        let file = format!("a.{ext}");
-                        let path = distdir.join(&file);
-                        env::set_current_dir(&datadir).unwrap();
-                        Archive::pack("dir", path.to_str().unwrap()).unwrap();
-                        env::set_current_dir(&prefix).unwrap();
-                        unpack(&[&file]).unwrap();
-                    });
-
-                    // verify unpacked data
-                    assert_eq!(fs::read_to_string("dir/file").unwrap(), "pkgcraft");
-
-                    // verify permissions got reset
-                    let stat = lstat("dir").unwrap();
-                    let mode = Mode::from_bits_truncate(stat.st_mode);
-                    assert!(mode.contains(*DIR_MODE), "incorrect dir mode: {mode:#o}");
-                    let stat = lstat("dir/file").unwrap();
-                    let mode = Mode::from_bits_truncate(stat.st_mode);
-                    assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
-
-                    // remove unpacked data
-                    fs::remove_dir_all("dir").unwrap();
+                // case insensitive support
+                let result = unpack(&["a.TAR.GZ"]);
+                if eapi.has(Feature::UnpackCaseInsensitive) {
+                    result.unwrap();
+                } else {
+                    assert_err_re!(result, "^unknown archive format: .*$");
                 }
 
-                // compressed files
-                for ext in ["gz", "bz2", "xz"] {
-                    // create archive, remove its source, and then unpack it
-                    run_commands(|| {
-                        let file = format!("file.{ext}");
-                        let path = distdir.join(&file);
-                        env::set_current_dir(&dir).unwrap();
-                        Archive::pack("file", path.to_str().unwrap()).unwrap();
-                        env::set_current_dir(&prefix).unwrap();
-                        unpack(&[&file]).unwrap();
-                    });
-
-                    // verify unpacked data
-                    assert_eq!(fs::read_to_string("file").unwrap(), "pkgcraft");
-
-                    // verify permissions got reset
-                    let stat = lstat("file").unwrap();
-                    let mode = Mode::from_bits_truncate(stat.st_mode);
-                    assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
-
-                    // remove unpacked data
-                    fs::remove_file("file").unwrap();
+                // absolute path support
+                let result = unpack(&[abs_path.to_str().unwrap()]);
+                if eapi.has(Feature::UnpackExtendedPath) {
+                    result.unwrap();
+                } else {
+                    assert_err_re!(result, "^absolute paths not supported .*$");
                 }
-            })
-        }
+
+                // prefixed relative paths work everywhere
+                unpack(&["./dist/a.tar.gz"]).unwrap();
+
+                // unprefixed are EAPI conditional
+                let result = unpack(&["dist/a.tar.gz"]);
+                if eapi.has(Feature::UnpackExtendedPath) {
+                    result.unwrap();
+                } else {
+                    assert_err_re!(result, "^relative paths not supported .*$");
+                }
+            }
+        })
+    }
+
+    #[test]
+    #[cfg_attr(target_os = "macos", ignore)] // TODO: switch to builtin support?
+    fn archives() {
+        BUILD_DATA.with(|d| {
+            let tmp_dir = tempdir().unwrap();
+            let prefix = tmp_dir.path();
+            let datadir = prefix.join("data");
+            let distdir = prefix.join("dist");
+            fs::create_dir(&distdir).unwrap();
+            env::set_current_dir(&prefix).unwrap();
+            d.borrow_mut()
+                .env
+                .insert("DISTDIR".into(), distdir.to_str().unwrap().into());
+
+            // create archive source
+            let dir = datadir.join("dir");
+            let file = dir.join("file");
+            fs::create_dir_all(&dir).unwrap();
+            fs::write(&file, "pkgcraft").unwrap();
+
+            // disable permissions that should get reset during unpack
+            fchmodat(None, &dir, DIR_MODE.bitxor(Mode::S_IXOTH), FollowSymlink).unwrap();
+            fchmodat(None, &file, FILE_MODE.bitxor(Mode::S_IWUSR), FollowSymlink).unwrap();
+
+            // compressed archives
+            for ext in ["tar.gz", "tar.bz2", "tar.xz"] {
+                // create tarball, remove its source, and then unpack it
+                run_commands(|| {
+                    let file = format!("a.{ext}");
+                    let path = distdir.join(&file);
+                    env::set_current_dir(&datadir).unwrap();
+                    Archive::pack("dir", path.to_str().unwrap()).unwrap();
+                    env::set_current_dir(&prefix).unwrap();
+                    unpack(&[&file]).unwrap();
+                });
+
+                // verify unpacked data
+                assert_eq!(fs::read_to_string("dir/file").unwrap(), "pkgcraft");
+
+                // verify permissions got reset
+                let stat = lstat("dir").unwrap();
+                let mode = Mode::from_bits_truncate(stat.st_mode);
+                assert!(mode.contains(*DIR_MODE), "incorrect dir mode: {mode:#o}");
+                let stat = lstat("dir/file").unwrap();
+                let mode = Mode::from_bits_truncate(stat.st_mode);
+                assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
+
+                // remove unpacked data
+                fs::remove_dir_all("dir").unwrap();
+            }
+
+            // compressed files
+            for ext in ["gz", "bz2", "xz"] {
+                // create archive, remove its source, and then unpack it
+                run_commands(|| {
+                    let file = format!("file.{ext}");
+                    let path = distdir.join(&file);
+                    env::set_current_dir(&dir).unwrap();
+                    Archive::pack("file", path.to_str().unwrap()).unwrap();
+                    env::set_current_dir(&prefix).unwrap();
+                    unpack(&[&file]).unwrap();
+                });
+
+                // verify unpacked data
+                assert_eq!(fs::read_to_string("file").unwrap(), "pkgcraft");
+
+                // verify permissions got reset
+                let stat = lstat("file").unwrap();
+                let mode = Mode::from_bits_truncate(stat.st_mode);
+                assert!(mode.contains(*FILE_MODE), "incorrect file mode: {mode:#o}");
+
+                // remove unpacked data
+                fs::remove_file("file").unwrap();
+            }
+        })
     }
 }

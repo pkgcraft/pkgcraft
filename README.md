@@ -19,6 +19,10 @@ frontends.
 
 For bugs and feature requests please create an [issue][1].
 
+Note that using `cargo nextest` or another test runner that runs tests in
+separate processes is required, using `cargo test` will break as long as it
+uses threads since bash isn't thread-friendly in any fashion.
+
 Otherwise [discussions][2] can be used for general questions and support.
 
 [1]: <https://github.com/pkgcraft/pkgcraft/issues>

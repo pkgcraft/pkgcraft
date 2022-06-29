@@ -244,205 +244,202 @@ impl<'a> Package for Pkg<'a> {
 
 #[cfg(test)]
 mod tests {
-    use rusty_fork::rusty_fork_test;
-
     use super::*;
     use crate::pkg::Env::*;
     use crate::repo::ebuild::TempRepo;
 
-    // TODO: drop this once bash process pool support is added
-    rusty_fork_test! {
-        #[test]
-        fn test_as_ref_path() {
-            fn assert_path<P: AsRef<Path>>(pkg: P, path: &Path) {
-                assert_eq!(pkg.as_ref(), path);
-            }
-
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
-            let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_path(pkg, &path);
+    #[test]
+    fn test_as_ref_path() {
+        fn assert_path<P: AsRef<Path>>(pkg: P, path: &Path) {
+            assert_eq!(pkg.as_ref(), path);
         }
 
-        #[test]
-        fn test_pkg_methods() {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
-            let repo = &t.repo;
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_path(pkg, &path);
+    }
 
-            // temp repo ebuild creation defaults to the latest EAPI
-            let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-            let pkg = Pkg::new(&path, &repo).unwrap();
-            assert_eq!(pkg.path(), &path);
-            assert!(!pkg.ebuild().unwrap().is_empty());
+    #[test]
+    fn test_pkg_methods() {
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let repo = &t.repo;
 
-            let path = t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
-            let pkg = Pkg::new(&path, &repo).unwrap();
-            assert_eq!(pkg.path(), &path);
-            assert!(!pkg.ebuild().unwrap().is_empty());
-        }
+        // temp repo ebuild creation defaults to the latest EAPI
+        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert_eq!(pkg.path(), &path);
+        assert!(!pkg.ebuild().unwrap().is_empty());
 
-        #[test]
-        fn test_package_trait() {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
-            t.create_ebuild("cat/pkg-1", []).unwrap();
-            t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
-            let repo = &t.repo;
+        let path = t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert_eq!(pkg.path(), &path);
+        assert!(!pkg.ebuild().unwrap().is_empty());
+    }
 
-            let mut iter = repo.iter();
-            let pkg1 = iter.next().unwrap();
-            let pkg2 = iter.next().unwrap();
+    #[test]
+    fn test_package_trait() {
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        t.create_ebuild("cat/pkg-1", []).unwrap();
+        t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
+        let repo = &t.repo;
 
-            // temp repo ebuild creation defaults to the latest EAPI
-            assert_eq!(pkg1.eapi(), &*eapi::EAPI_LATEST);
-            assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
-            assert_eq!(pkg1.atom(), &atom::cpv("cat/pkg-1").unwrap());
-            assert_eq!(pkg2.atom(), &atom::cpv("cat/pkg-2").unwrap());
-            assert_eq!(pkg1.repo(), pkg2.repo());
-        }
+        let mut iter = repo.iter();
+        let pkg1 = iter.next().unwrap();
+        let pkg2 = iter.next().unwrap();
 
-        #[test]
-        fn test_pkg_env() {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        // temp repo ebuild creation defaults to the latest EAPI
+        assert_eq!(pkg1.eapi(), &*eapi::EAPI_LATEST);
+        assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
+        assert_eq!(pkg1.atom(), &atom::cpv("cat/pkg-1").unwrap());
+        assert_eq!(pkg2.atom(), &atom::cpv("cat/pkg-2").unwrap());
+        assert_eq!(pkg1.repo(), pkg2.repo());
+    }
 
-            // no revision
-            let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.env(P), "pkg-1");
-            assert_eq!(pkg.env(PN), "pkg");
-            assert_eq!(pkg.env(PV), "1");
-            assert_eq!(pkg.env(PR), "r0");
-            assert_eq!(pkg.env(PVR), "1");
-            assert_eq!(pkg.env(PF), "pkg-1");
-            assert_eq!(pkg.env(CATEGORY), "cat");
+    #[test]
+    fn test_pkg_env() {
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
 
-            // revisioned
-            let path = t.create_ebuild("cat/pkg-1-r2", []).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.env(P), "pkg-1");
-            assert_eq!(pkg.env(PN), "pkg");
-            assert_eq!(pkg.env(PV), "1");
-            assert_eq!(pkg.env(PR), "r2");
-            assert_eq!(pkg.env(PVR), "1-r2");
-            assert_eq!(pkg.env(PF), "pkg-1-r2");
-            assert_eq!(pkg.env(CATEGORY), "cat");
+        // no revision
+        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.env(P), "pkg-1");
+        assert_eq!(pkg.env(PN), "pkg");
+        assert_eq!(pkg.env(PV), "1");
+        assert_eq!(pkg.env(PR), "r0");
+        assert_eq!(pkg.env(PVR), "1");
+        assert_eq!(pkg.env(PF), "pkg-1");
+        assert_eq!(pkg.env(CATEGORY), "cat");
 
-            // explicit r0 revision
-            let path = t.create_ebuild("cat/pkg-2-r0", []).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.env(P), "pkg-2");
-            assert_eq!(pkg.env(PN), "pkg");
-            assert_eq!(pkg.env(PV), "2");
-            assert_eq!(pkg.env(PR), "r0");
-            assert_eq!(pkg.env(PVR), "2");
-            assert_eq!(pkg.env(PF), "pkg-2");
-            assert_eq!(pkg.env(CATEGORY), "cat");
-        }
+        // revisioned
+        let path = t.create_ebuild("cat/pkg-1-r2", []).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.env(P), "pkg-1");
+        assert_eq!(pkg.env(PN), "pkg");
+        assert_eq!(pkg.env(PV), "1");
+        assert_eq!(pkg.env(PR), "r2");
+        assert_eq!(pkg.env(PVR), "1-r2");
+        assert_eq!(pkg.env(PF), "pkg-1-r2");
+        assert_eq!(pkg.env(CATEGORY), "cat");
 
-        #[test]
-        fn test_slot() {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        // explicit r0 revision
+        let path = t.create_ebuild("cat/pkg-2-r0", []).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.env(P), "pkg-2");
+        assert_eq!(pkg.env(PN), "pkg");
+        assert_eq!(pkg.env(PV), "2");
+        assert_eq!(pkg.env(PR), "r0");
+        assert_eq!(pkg.env(PVR), "2");
+        assert_eq!(pkg.env(PF), "pkg-2");
+        assert_eq!(pkg.env(CATEGORY), "cat");
+    }
 
-            // default (injected by create_ebuild())
-            let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.slot(), "0");
-            assert_eq!(pkg.subslot(), "0");
+    #[test]
+    fn test_slot() {
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
 
-            // custom lacking subslot
-            let path = t.create_ebuild("cat/pkg-2", [(Slot, "1")]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.slot(), "1");
-            assert_eq!(pkg.subslot(), "1");
+        // default (injected by create_ebuild())
+        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.slot(), "0");
+        assert_eq!(pkg.subslot(), "0");
 
-            // custom with subslot
-            let path = t.create_ebuild("cat/pkg-3", [(Slot, "1/2")]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.slot(), "1");
-            assert_eq!(pkg.subslot(), "2");
-        }
+        // custom lacking subslot
+        let path = t.create_ebuild("cat/pkg-2", [(Slot, "1")]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.slot(), "1");
+        assert_eq!(pkg.subslot(), "1");
 
-        #[test]
-        fn test_description() {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        // custom with subslot
+        let path = t.create_ebuild("cat/pkg-3", [(Slot, "1/2")]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.slot(), "1");
+        assert_eq!(pkg.subslot(), "2");
+    }
 
-            let path = t.create_ebuild("cat/pkg-1", [(Description, "desc")]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.description(), "desc");
-        }
+    #[test]
+    fn test_description() {
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
 
-        #[test]
-        fn test_homepage() {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-1", [(Description, "desc")])
+            .unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.description(), "desc");
+    }
 
-            // none
-            let path = t.create_ebuild("cat/pkg-1", [(Homepage, "-")]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert!(pkg.homepage().is_empty());
+    #[test]
+    fn test_homepage() {
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
 
-            // single line
-            let path = t.create_ebuild("cat/pkg-1", [(Homepage, "home")]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.homepage(), ["home"]);
+        // none
+        let path = t.create_ebuild("cat/pkg-1", [(Homepage, "-")]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert!(pkg.homepage().is_empty());
 
-            // multiple lines
-            let val = indoc::indoc! {"
-                a
-                b
-                c
-            "};
-            let path = t.create_ebuild("cat/pkg-1", [(Homepage, val)]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.homepage(), ["a", "b", "c"]);
-        }
+        // single line
+        let path = t.create_ebuild("cat/pkg-1", [(Homepage, "home")]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.homepage(), ["home"]);
 
-        #[test]
-        fn test_keywords() {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        // multiple lines
+        let val = indoc::indoc! {"
+            a
+            b
+            c
+        "};
+        let path = t.create_ebuild("cat/pkg-1", [(Homepage, val)]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.homepage(), ["a", "b", "c"]);
+    }
 
-            // none
-            let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert!(pkg.keywords().is_empty());
+    #[test]
+    fn test_keywords() {
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
 
-            // single line
-            let path = t.create_ebuild("cat/pkg-1", [(Keywords, "a b")]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
+        // none
+        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert!(pkg.keywords().is_empty());
 
-            // multiple lines
-            let val = indoc::indoc! {"
-                a
-                b
-                c
-            "};
-            let path = t.create_ebuild("cat/pkg-1", [(Keywords, val)]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
-        }
+        // single line
+        let path = t.create_ebuild("cat/pkg-1", [(Keywords, "a b")]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
 
-        #[test]
-        fn test_iuse() {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        // multiple lines
+        let val = indoc::indoc! {"
+            a
+            b
+            c
+        "};
+        let path = t.create_ebuild("cat/pkg-1", [(Keywords, val)]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
+    }
 
-            // none
-            let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert!(pkg.iuse().is_empty());
+    #[test]
+    fn test_iuse() {
+        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
 
-            // single line
-            let path = t.create_ebuild("cat/pkg-1", [(Iuse, "a b")]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
+        // none
+        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert!(pkg.iuse().is_empty());
 
-            // multiple lines
-            let val = indoc::indoc! {"
-                a
-                b
-                c
-            "};
-            let path = t.create_ebuild("cat/pkg-1", [(Iuse, val)]).unwrap();
-            let pkg = Pkg::new(&path, &t.repo).unwrap();
-            assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
-        }
+        // single line
+        let path = t.create_ebuild("cat/pkg-1", [(Iuse, "a b")]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
+
+        // multiple lines
+        let val = indoc::indoc! {"
+            a
+            b
+            c
+        "};
+        let path = t.create_ebuild("cat/pkg-1", [(Iuse, val)]).unwrap();
+        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
     }
 }

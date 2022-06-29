@@ -48,8 +48,7 @@ mod tests {
     use std::env;
     use std::fs::File;
 
-    use rusty_fork::rusty_fork_test;
-    use scallop::shell::Shell;
+    use scallop::Shell;
     use scallop::variables::bind;
     use tempfile::tempdir;
 
@@ -57,46 +56,44 @@ mod tests {
     use crate::command::last_command;
     use crate::macros::assert_err_re;
 
-    rusty_fork_test! {
-        #[test]
-        fn nonexistent() {
-            assert_err_re!(emake(&[]), "^nonexistent makefile$");
-        }
+    #[test]
+    fn nonexistent() {
+        assert_err_re!(emake(&[]), "^nonexistent makefile$");
+    }
 
-        #[test]
-        fn command() {
-            let _sh = Shell::new("sh");
-            let dir = tempdir().unwrap();
-            let makefile = dir.path().join("makefile");
-            File::create(makefile).unwrap();
-            env::set_current_dir(&dir).unwrap();
+    #[test]
+    fn command() {
+        Shell::init();
+        let dir = tempdir().unwrap();
+        let makefile = dir.path().join("makefile");
+        File::create(makefile).unwrap();
+        env::set_current_dir(&dir).unwrap();
 
-            // default make prog
-            emake(&[]).unwrap();
-            let cmd = last_command().unwrap();
-            assert_eq!(cmd[0], "make");
+        // default make prog
+        emake(&[]).unwrap();
+        let cmd = last_command().unwrap();
+        assert_eq!(cmd[0], "make");
 
-            // custom args
-            let args = ["-C", "build", "install"];
-            emake(&args).unwrap();
-            let cmd = last_command().unwrap();
-            assert_eq!(cmd[1..], args);
+        // custom args
+        let args = ["-C", "build", "install"];
+        emake(&args).unwrap();
+        let cmd = last_command().unwrap();
+        assert_eq!(cmd[1..], args);
 
-            // using $MAKEOPTS settings
-            bind("MAKEOPTS", "-j10", None, None).unwrap();
-            emake(&[]).unwrap();
-            let cmd = last_command().unwrap();
-            assert_eq!(cmd[1..], ["-j10"]);
-            bind("MAKEOPTS", "-j20 -l 20", None, None).unwrap();
-            emake(&[]).unwrap();
-            let cmd = last_command().unwrap();
-            assert_eq!(cmd[1..], ["-j20", "-l", "20"]);
+        // using $MAKEOPTS settings
+        bind("MAKEOPTS", "-j10", None, None).unwrap();
+        emake(&[]).unwrap();
+        let cmd = last_command().unwrap();
+        assert_eq!(cmd[1..], ["-j10"]);
+        bind("MAKEOPTS", "-j20 -l 20", None, None).unwrap();
+        emake(&[]).unwrap();
+        let cmd = last_command().unwrap();
+        assert_eq!(cmd[1..], ["-j20", "-l", "20"]);
 
-            // custom $MAKE prog
-            bind("MAKE", "custom-make", None, None).unwrap();
-            emake(&[]).unwrap();
-            let cmd = last_command().unwrap();
-            assert_eq!(cmd[0], "custom-make");
-        }
+        // custom $MAKE prog
+        bind("MAKE", "custom-make", None, None).unwrap();
+        emake(&[]).unwrap();
+        let cmd = last_command().unwrap();
+        assert_eq!(cmd[0], "custom-make");
     }
 }

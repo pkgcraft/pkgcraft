@@ -63,8 +63,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::insopts::run as insopts;
     use super::run as doheader;
@@ -73,58 +71,62 @@ mod tests {
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(doheader, &[0]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(doheader, &[0]);
 
-            let _file_tree = FileTree::new();
+        let _file_tree = FileTree::new();
 
-            // non-recursive directory
-            fs::create_dir("dir").unwrap();
-            let r = doheader(&["dir"]);
-            assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+        // non-recursive directory
+        fs::create_dir("dir").unwrap();
+        let r = doheader(&["dir"]);
+        assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+    }
+
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o100644;
+        let custom_mode = 0o100755;
+
+        // simple file
+        fs::File::create("pkgcraft.h").unwrap();
+        doheader(&["pkgcraft.h"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/include/pkgcraft.h"
+            mode = {default_mode}
+        "#
+        ));
+
+        // recursive
+        fs::create_dir_all("pkgcraft").unwrap();
+        fs::File::create("pkgcraft/pkgcraft.h").unwrap();
+        for eapi in EAPIS_OFFICIAL.values() {
+            BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
+            insopts(&["-m0755"]).unwrap();
+            doheader(&["-r", "pkgcraft"]).unwrap();
+            let mode = match eapi.has(Feature::ConsistentFileOpts) {
+                true => default_mode,
+                false => custom_mode,
+            };
+            file_tree.assert(format!(
+                r#"
+                [[files]]
+                path = "/usr/include/pkgcraft/pkgcraft.h"
+                mode = {mode}
+            "#
+            ));
         }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o100644;
-            let custom_mode = 0o100755;
-
-            // simple file
-            fs::File::create("pkgcraft.h").unwrap();
-            doheader(&["pkgcraft.h"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/include/pkgcraft.h"
-                mode = {default_mode}
-            "#));
-
-            // recursive
-            fs::create_dir_all("pkgcraft").unwrap();
-            fs::File::create("pkgcraft/pkgcraft.h").unwrap();
-            for eapi in EAPIS_OFFICIAL.values() {
-                BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
-                insopts(&["-m0755"]).unwrap();
-                doheader(&["-r", "pkgcraft"]).unwrap();
-                let mode = match eapi.has(Feature::ConsistentFileOpts) {
-                    true => default_mode,
-                    false => custom_mode,
-                };
-                file_tree.assert(format!(r#"
-                    [[files]]
-                    path = "/usr/include/pkgcraft/pkgcraft.h"
-                    mode = {mode}
-                "#));
-            }
-
-            // handling for paths ending in '/.'
-            doheader(&["-r", "pkgcraft/."]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/include/pkgcraft.h"
-            "#);
-        }
+        // handling for paths ending in '/.'
+        doheader(&["-r", "pkgcraft/."]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/include/pkgcraft.h"
+        "#,
+        );
     }
 }

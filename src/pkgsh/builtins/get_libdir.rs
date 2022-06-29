@@ -36,7 +36,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
     use scallop::variables::*;
 
@@ -44,36 +43,31 @@ mod tests {
     use super::run as get_libdir;
     use crate::pkgsh::assert_stdout;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(get_libdir, &[1]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(get_libdir, &[1]);
+    }
 
-        #[test]
-        fn default() {
-            let mut abi_var = Variable::new("ABI");
-            for abi in [None, Some(""), Some("abi")] {
-                if let Some(val) = abi {
-                    abi_var.bind(val, None, None).unwrap();
-                }
-                assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
-                assert_stdout!("lib");
+    #[test]
+    fn default() {
+        let mut abi_var = Variable::new("ABI");
+        for abi in [None, Some(""), Some("abi")] {
+            if let Some(val) = abi {
+                abi_var.bind(val, None, None).unwrap();
             }
+            assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
+            assert_stdout!("lib");
         }
+    }
 
-        #[test]
-        fn abi() {
-            let mut abi_var = Variable::new("ABI");
-            for (abi, libdir) in [
-                    ("abi1", "libabi1"),
-                    ("abi2", "libabi2"),
-                    ] {
-                abi_var.bind(abi, None, None).unwrap();
-                bind(format!("LIBDIR_{abi}"), libdir, None, None).unwrap();
-                assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
-                assert_stdout!(libdir);
-            }
+    #[test]
+    fn abi() {
+        let mut abi_var = Variable::new("ABI");
+        for (abi, libdir) in [("abi1", "libabi1"), ("abi2", "libabi2")] {
+            abi_var.bind(abi, None, None).unwrap();
+            bind(format!("LIBDIR_{abi}"), libdir, None, None).unwrap();
+            assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
+            assert_stdout!(libdir);
         }
     }
 }

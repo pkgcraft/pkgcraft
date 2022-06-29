@@ -35,72 +35,74 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::diropts::run as diropts;
     use super::run as dodir;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(dodir, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dodir, &[0]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o40755;
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o40755;
 
-            for dirs in [
-                    vec!["dir"],
-                    vec!["path/to/dir"],
-                    vec!["/etc"],
-                    vec!["/usr/bin"],
-                    vec!["dir", "/usr/bin"],
-                    ] {
-                dodir(&dirs).unwrap();
-                let mut files = vec![];
-                for dir in dirs {
-                    let path = dir.trim_start_matches('/');
-                    files.push(format!(r#"
-                        [[files]]
-                        path = "/{path}"
-                        mode = {default_mode}
-                    "#));
-                }
-                file_tree.assert(files.join("\n"));
-            }
-        }
-
-        #[test]
-        fn custom_diropts() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o40755;
-            let custom_mode = 0o40777;
-
-            for dir in ["dir", "/usr/bin"] {
+        for dirs in [
+            vec!["dir"],
+            vec!["path/to/dir"],
+            vec!["/etc"],
+            vec!["/usr/bin"],
+            vec!["dir", "/usr/bin"],
+        ] {
+            dodir(&dirs).unwrap();
+            let mut files = vec![];
+            for dir in dirs {
                 let path = dir.trim_start_matches('/');
-
-                diropts(&["-m0755"]).unwrap();
-                dodir(&[dir]).unwrap();
-                file_tree.assert(format!(r#"
+                files.push(format!(
+                    r#"
                     [[files]]
                     path = "/{path}"
                     mode = {default_mode}
-                "#));
-
-                // change mode and re-run dodir()
-                diropts(&["-m0777"]).unwrap();
-                dodir(&[dir]).unwrap();
-                let path = dir.trim_start_matches('/');
-                file_tree.assert(format!(r#"
-                    [[files]]
-                    path = "/{path}"
-                    mode = {custom_mode}
-                "#));
+                "#
+                ));
             }
+            file_tree.assert(files.join("\n"));
+        }
+    }
+
+    #[test]
+    fn custom_diropts() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o40755;
+        let custom_mode = 0o40777;
+
+        for dir in ["dir", "/usr/bin"] {
+            let path = dir.trim_start_matches('/');
+
+            diropts(&["-m0755"]).unwrap();
+            dodir(&[dir]).unwrap();
+            file_tree.assert(format!(
+                r#"
+                [[files]]
+                path = "/{path}"
+                mode = {default_mode}
+            "#
+            ));
+
+            // change mode and re-run dodir()
+            diropts(&["-m0777"]).unwrap();
+            dodir(&[dir]).unwrap();
+            let path = dir.trim_start_matches('/');
+            file_tree.assert(format!(
+                r#"
+                [[files]]
+                path = "/{path}"
+                mode = {custom_mode}
+            "#
+            ));
         }
     }
 }

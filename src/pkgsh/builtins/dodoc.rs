@@ -69,8 +69,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::docinto::run as docinto;
     use super::run as dodoc;
@@ -78,52 +76,56 @@ mod tests {
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(dodoc, &[0]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dodoc, &[0]);
 
-            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
-            let _file_tree = FileTree::new();
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let _file_tree = FileTree::new();
 
-            // non-recursive directory
-            fs::create_dir("dir").unwrap();
-            let r = dodoc(&["dir"]);
-            assert_err_re!(r, format!("^trying to install directory as file: .*$"));
-        }
+        // non-recursive directory
+        fs::create_dir("dir").unwrap();
+        let r = dodoc(&["dir"]);
+        assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+    }
 
-        #[test]
-        fn creation() {
-            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
-            let file_tree = FileTree::new();
-            let default_mode = 0o100644;
+    #[test]
+    fn creation() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        let default_mode = 0o100644;
 
-            // simple file
-            fs::File::create("file").unwrap();
-            dodoc(&["file"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/file"
-                mode = {default_mode}
-            "#));
+        // simple file
+        fs::File::create("file").unwrap();
+        dodoc(&["file"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/file"
+            mode = {default_mode}
+        "#
+        ));
 
-            // recursive using `docinto`
-            fs::create_dir_all("doc/subdir").unwrap();
-            fs::File::create("doc/subdir/file").unwrap();
-            docinto(&["newdir"]).unwrap();
-            dodoc(&["-r", "doc"]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/file"
-            "#);
+        // recursive using `docinto`
+        fs::create_dir_all("doc/subdir").unwrap();
+        fs::File::create("doc/subdir/file").unwrap();
+        docinto(&["newdir"]).unwrap();
+        dodoc(&["-r", "doc"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/file"
+        "#,
+        );
 
-            // handling for paths ending in '/.'
-            docinto(&["/newdir"]).unwrap();
-            dodoc(&["-r", "doc/."]).unwrap();
-            file_tree.assert(r#"
-                [[files]]
-                path = "/usr/share/doc/pkgcraft-0/newdir/subdir/file"
-            "#);
-        }
+        // handling for paths ending in '/.'
+        docinto(&["/newdir"]).unwrap();
+        dodoc(&["-r", "doc/."]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/newdir/subdir/file"
+        "#,
+        );
     }
 }

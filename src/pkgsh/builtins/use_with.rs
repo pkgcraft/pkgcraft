@@ -27,7 +27,6 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use rusty_fork::rusty_fork_test;
     use scallop::builtins::ExecStatus;
 
     use super::super::assert_invalid_args;
@@ -36,81 +35,88 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(use_with, &[0, 4]);
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(use_with, &[0, 4]);
 
-            BUILD_DATA.with(|d| {
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| !e.has(Feature::UseConfArg)) {
-                    d.borrow_mut().eapi = eapi;
-                    assert_invalid_args(use_with, &[3]);
-                }
-            });
-        }
+        BUILD_DATA.with(|d| {
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| !e.has(Feature::UseConfArg))
+            {
+                d.borrow_mut().eapi = eapi;
+                assert_invalid_args(use_with, &[3]);
+            }
+        });
+    }
 
-        #[test]
-        fn empty_iuse_effective() {
-            assert_err_re!(use_with(&["use"]), "^.* not in IUSE$");
-        }
+    #[test]
+    fn empty_iuse_effective() {
+        assert_err_re!(use_with(&["use"]), "^.* not in IUSE$");
+    }
 
-        #[test]
-        fn disabled() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().iuse_effective.insert("use".to_string());
+    #[test]
+    fn disabled() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().iuse_effective.insert("use".to_string());
 
-                assert!(use_with(&["!use"]).is_err());
+            assert!(use_with(&["!use"]).is_err());
+            for (args, status, expected) in [
+                (vec!["use"], ExecStatus::Failure(1), "--without-use"),
+                (vec!["use", "opt"], ExecStatus::Failure(1), "--without-opt"),
+                (vec!["!use", "opt"], ExecStatus::Success, "--with-opt"),
+            ] {
+                assert_eq!(use_with(&args).unwrap(), status);
+                assert_stdout!(expected);
+            }
+
+            // check EAPIs that support three arg variant
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| e.has(Feature::UseConfArg))
+            {
+                d.borrow_mut().eapi = eapi;
                 for (args, status, expected) in [
-                        (vec!["use"], ExecStatus::Failure(1), "--without-use"),
-                        (vec!["use", "opt"], ExecStatus::Failure(1), "--without-opt"),
-                        (vec!["!use", "opt"], ExecStatus::Success, "--with-opt"),
-                        ] {
-                    assert_eq!(use_with(&args).unwrap(), status);
+                    (&["use", "opt", "val"], ExecStatus::Failure(1), "--without-opt=val"),
+                    (&["!use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
+                ] {
+                    assert_eq!(use_with(args).unwrap(), status);
                     assert_stdout!(expected);
                 }
+            }
+        });
+    }
 
-                // check EAPIs that support three arg variant
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has(Feature::UseConfArg)) {
-                    d.borrow_mut().eapi = eapi;
-                    for (args, status, expected) in [
-                            (&["use", "opt", "val"], ExecStatus::Failure(1), "--without-opt=val"),
-                            (&["!use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
-                            ] {
-                        assert_eq!(use_with(args).unwrap(), status);
-                        assert_stdout!(expected);
-                    }
-                }
-            });
-        }
+    #[test]
+    fn enabled() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().iuse_effective.insert("use".to_string());
+            d.borrow_mut().use_.insert("use".to_string());
 
-        #[test]
-        fn enabled() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().iuse_effective.insert("use".to_string());
-                d.borrow_mut().use_.insert("use".to_string());
+            assert!(use_with(&["!use"]).is_err());
+            for (args, status, expected) in [
+                (vec!["use"], ExecStatus::Success, "--with-use"),
+                (vec!["use", "opt"], ExecStatus::Success, "--with-opt"),
+                (vec!["!use", "opt"], ExecStatus::Failure(1), "--without-opt"),
+            ] {
+                assert_eq!(use_with(&args).unwrap(), status);
+                assert_stdout!(expected);
+            }
 
-                assert!(use_with(&["!use"]).is_err());
+            // check EAPIs that support three arg variant
+            for eapi in EAPIS_OFFICIAL
+                .values()
+                .filter(|e| e.has(Feature::UseConfArg))
+            {
+                d.borrow_mut().eapi = eapi;
                 for (args, status, expected) in [
-                        (vec!["use"], ExecStatus::Success, "--with-use"),
-                        (vec!["use", "opt"], ExecStatus::Success, "--with-opt"),
-                        (vec!["!use", "opt"], ExecStatus::Failure(1), "--without-opt"),
-                        ] {
-                    assert_eq!(use_with(&args).unwrap(), status);
+                    (&["use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
+                    (&["!use", "opt", "val"], ExecStatus::Failure(1), "--without-opt=val"),
+                ] {
+                    assert_eq!(use_with(args).unwrap(), status);
                     assert_stdout!(expected);
                 }
-
-                // check EAPIs that support three arg variant
-                for eapi in EAPIS_OFFICIAL.values().filter(|e| e.has(Feature::UseConfArg)) {
-                    d.borrow_mut().eapi = eapi;
-                    for (args, status, expected) in [
-                            (&["use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
-                            (&["!use", "opt", "val"], ExecStatus::Failure(1), "--without-opt=val"),
-                            ] {
-                        assert_eq!(use_with(args).unwrap(), status);
-                        assert_stdout!(expected);
-                    }
-                }
-            });
-        }
+            }
+        });
     }
 }

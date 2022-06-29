@@ -48,55 +48,51 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as usex;
     use crate::macros::assert_err_re;
     use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(usex, &[0, 6]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(usex, &[0, 6]);
+    }
 
-        #[test]
-        fn empty_iuse_effective() {
-            assert_err_re!(usex(&["use"]), "^.* not in IUSE$");
-        }
+    #[test]
+    fn empty_iuse_effective() {
+        assert_err_re!(usex(&["use"]), "^.* not in IUSE$");
+    }
 
-        #[test]
-        fn disabled() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().iuse_effective.insert("use".to_string());
-                for (args, expected) in [
-                        (vec!["use"], "no"),
-                        (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
-                        (vec!["!use"], "yes"),
-                        (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
-                        ] {
-                    usex(&args).unwrap();
-                    assert_stdout!(expected);
-                }
-            });
-        }
+    #[test]
+    fn disabled() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().iuse_effective.insert("use".to_string());
+            for (args, expected) in [
+                (vec!["use"], "no"),
+                (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
+                (vec!["!use"], "yes"),
+                (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
+            ] {
+                usex(&args).unwrap();
+                assert_stdout!(expected);
+            }
+        });
+    }
 
-        #[test]
-        fn enabled() {
-            BUILD_DATA.with(|d| {
-                d.borrow_mut().iuse_effective.insert("use".to_string());
-                d.borrow_mut().use_.insert("use".to_string());
-                for (args, expected) in [
-                        (vec!["use"], "yes"),
-                        (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
-                        (vec!["!use"], "no"),
-                        (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
-                        ] {
-                    usex(&args).unwrap();
-                    assert_stdout!(expected);
-                }
-            });
-        }
+    #[test]
+    fn enabled() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().iuse_effective.insert("use".to_string());
+            d.borrow_mut().use_.insert("use".to_string());
+            for (args, expected) in [
+                (vec!["use"], "yes"),
+                (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
+                (vec!["!use"], "no"),
+                (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
+            ] {
+                usex(&args).unwrap();
+                assert_stdout!(expected);
+            }
+        });
     }
 }

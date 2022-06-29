@@ -38,45 +38,45 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::super::exeinto::run as exeinto;
     use super::super::exeopts::run as exeopts;
     use super::run as doexe;
     use crate::pkgsh::test::FileTree;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(doexe, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(doexe, &[0]);
+    }
 
-        #[test]
-        fn creation() {
-            let file_tree = FileTree::new();
-            let default_mode = 0o100755;
-            let custom_mode = 0o100777;
+    #[test]
+    fn creation() {
+        let file_tree = FileTree::new();
+        let default_mode = 0o100755;
+        let custom_mode = 0o100777;
 
-            fs::File::create("pkgcraft").unwrap();
+        fs::File::create("pkgcraft").unwrap();
+        doexe(&["pkgcraft"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/pkgcraft"
+            mode = {default_mode}
+        "#
+        ));
+
+        // custom mode and install dir
+        for dir in ["/opt/bin", "opt/bin"] {
+            exeinto(&[dir]).unwrap();
+            exeopts(&["-m0777"]).unwrap();
             doexe(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(r#"
+            file_tree.assert(format!(
+                r#"
                 [[files]]
-                path = "/pkgcraft"
-                mode = {default_mode}
-            "#));
-
-            // custom mode and install dir
-            for dir in ["/opt/bin", "opt/bin"] {
-                exeinto(&[dir]).unwrap();
-                exeopts(&["-m0777"]).unwrap();
-                doexe(&["pkgcraft"]).unwrap();
-                file_tree.assert(format!(r#"
-                    [[files]]
-                    path = "/opt/bin/pkgcraft"
-                    mode = {custom_mode}
-                "#));
-            }
+                path = "/opt/bin/pkgcraft"
+                mode = {custom_mode}
+            "#
+            ));
         }
     }
 }

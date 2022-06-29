@@ -60,32 +60,30 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 mod tests {
     use std::fs;
 
-    use rusty_fork::rusty_fork_test;
-
     use super::super::assert_invalid_args;
     use super::run as domo;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
 
-    rusty_fork_test! {
-        #[test]
-        fn invalid_args() {
-            assert_invalid_args(domo, &[0]);
-        }
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(domo, &[0]);
+    }
 
-        #[test]
-        fn creation() {
-            BUILD_DATA.with(|d| d.borrow_mut().env.insert("PN".into(), "pkgcraft".into()));
-            let file_tree = FileTree::new();
-            let default_mode = 0o100644;
+    #[test]
+    fn creation() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PN".into(), "pkgcraft".into()));
+        let file_tree = FileTree::new();
+        let default_mode = 0o100644;
 
-            fs::File::create("en.mo").unwrap();
-            domo(&["en.mo"]).unwrap();
-            file_tree.assert(format!(r#"
-                [[files]]
-                path = "/usr/share/locale/en/LC_MESSAGES/pkgcraft.mo"
-                mode = {default_mode}
-            "#));
-        }
+        fs::File::create("en.mo").unwrap();
+        domo(&["en.mo"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/usr/share/locale/en/LC_MESSAGES/pkgcraft.mo"
+            mode = {default_mode}
+        "#
+        ));
     }
 }
