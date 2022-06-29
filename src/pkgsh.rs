@@ -8,7 +8,7 @@ use itertools::Itertools;
 use nix::unistd::isatty;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
-use scallop::{functions, source, Shell, Error, Result};
+use scallop::{functions, source, Error, Result, Shell};
 
 use crate::eapi::{Eapi, Feature, Key};
 use crate::pkgsh::builtins::Scope;

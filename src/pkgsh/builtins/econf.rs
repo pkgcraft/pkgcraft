@@ -124,8 +124,8 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
     use std::env;
+    use std::fs::File;
 
     use scallop::variables::{ScopedVariable, Variables};
     use tempfile::tempdir;

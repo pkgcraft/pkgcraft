@@ -47,18 +47,22 @@ mod tests {
 
         fs::File::create("file").unwrap();
         newdoc(&["file", "pkgcraft"]).unwrap();
-        file_tree.assert(r#"
+        file_tree.assert(
+            r#"
             [[files]]
             path = "/usr/share/doc/pkgcraft-0/pkgcraft"
-        "#);
+        "#,
+        );
 
         // re-run using data from stdin
         write_stdin!("pkgcraft");
         newdoc(&["-", "pkgcraft"]).unwrap();
-        file_tree.assert(r#"
+        file_tree.assert(
+            r#"
             [[files]]
             path = "/usr/share/doc/pkgcraft-0/pkgcraft"
             data = "pkgcraft"
-        "#);
+        "#,
+        );
     }
 }

@@ -48,8 +48,8 @@ mod tests {
     use std::env;
     use std::fs::File;
 
-    use scallop::Shell;
     use scallop::variables::bind;
+    use scallop::Shell;
     use tempfile::tempdir;
 
     use super::run as emake;
