@@ -161,23 +161,6 @@ mod tests {
         assert_err_re!(econf.run(&[]), format!("^nonexecutable configure .*$"));
     }
 
-    /*#[test]
-    #[cfg_attr(target_os = "macos", ignore)]
-    fn args() {
-        let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests", "econf");
-        env::set_current_dir(&configure_dir).unwrap();
-
-        BUILD_DATA.with(|d| {
-            // TODO: add support for generating build state data for tests
-            d.borrow_mut().env.extend([
-                ("EPREFIX".into(), "/eprefix".into()),
-                ("CHOST".into(), "x86_64-pc-linux-gnu".into()),
-            ]);
-
-            econf.run(&[]).unwrap();
-        });
-    }*/
-
     #[test]
     #[cfg_attr(target_os = "macos", ignore)]
     fn args() {
