@@ -162,7 +162,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_os = "macos", ignore)]
     fn args() {
         let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests", "econf");
         env::set_current_dir(&configure_dir).unwrap();
