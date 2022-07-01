@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
@@ -185,38 +185,38 @@ impl fmt::Display for Atom {
         let mut s = String::new();
 
         // append blocker
-        s.push_str(&format!("{}", self.blocker));
+        write!(s, "{}", self.blocker)?;
 
         // append version operator with cpv
         let cpv = self.cpv();
         match self.version.as_ref().and_then(|v| v.op()) {
-            Some(Operator::Less) => s.push_str(&format!("<{cpv}")),
-            Some(Operator::LessOrEqual) => s.push_str(&format!("<={cpv}")),
-            Some(Operator::Equal) => s.push_str(&format!("={cpv}")),
-            Some(Operator::EqualGlob) => s.push_str(&format!("={cpv}*")),
-            Some(Operator::Approximate) => s.push_str(&format!("~{cpv}")),
-            Some(Operator::GreaterOrEqual) => s.push_str(&format!(">={cpv}")),
-            Some(Operator::Greater) => s.push_str(&format!(">{cpv}")),
+            Some(Operator::Less) => write!(s, "<{cpv}")?,
+            Some(Operator::LessOrEqual) => write!(s, "<={cpv}")?,
+            Some(Operator::Equal) => write!(s, "={cpv}")?,
+            Some(Operator::EqualGlob) => write!(s, "={cpv}*")?,
+            Some(Operator::Approximate) => write!(s, "~{cpv}")?,
+            Some(Operator::GreaterOrEqual) => write!(s, ">={cpv}")?,
+            Some(Operator::Greater) => write!(s, ">{cpv}")?,
             None => s.push_str(&cpv),
         }
 
         // append slot data
         match (self.slot(), self.subslot(), self.slot_op()) {
-            (Some(slot), Some(subslot), Some(op)) => s.push_str(&format!(":{slot}/{subslot}{op}")),
-            (Some(slot), Some(subslot), None) => s.push_str(&format!(":{slot}/{subslot}")),
-            (Some(slot), None, Some(op)) => s.push_str(&format!(":{slot}{op}")),
-            (Some(x), None, None) | (None, None, Some(x)) => s.push_str(&format!(":{x}")),
+            (Some(slot), Some(subslot), Some(op)) => write!(s, ":{slot}/{subslot}{op}")?,
+            (Some(slot), Some(subslot), None) => write!(s, ":{slot}/{subslot}")?,
+            (Some(slot), None, Some(op)) => write!(s, ":{slot}{op}")?,
+            (Some(x), None, None) | (None, None, Some(x)) => write!(s, ":{x}")?,
             _ => (),
         }
 
         // append use deps
         if let Some(x) = &self.use_deps {
-            s.push_str(&format!("[{}]", &x.join(",")));
+            write!(s, "[{}]", &x.join(","))?;
         }
 
         // append repo
         if let Some(repo) = &self.repo {
-            s.push_str(&format!("::{repo}"));
+            write!(s, "::{repo}")?;
         }
 
         write!(f, "{s}")
