@@ -121,6 +121,8 @@ impl Config {
     }
 
     pub fn add_repo(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
+        // Note that references can't be returned since the underlying map structure alters them
+        // during mutations that cause repo indexing to change.
         let r = self.repos.add(name, priority, uri)?;
         r.finalize()?;
         self.repos.insert(name, r.clone());
