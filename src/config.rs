@@ -120,24 +120,37 @@ impl Config {
         *CURRENT_CONFIG.write().unwrap() = Arc::new(config);
     }
 
-    pub fn add_repo(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
-        // Note that references can't be returned since the underlying map structure alters them
-        // during mutations that cause repo indexing to change.
-        let r = self.repos.add(name, priority, uri)?;
+    // Note that repo references can't be returned since the underlying map structure alters them
+    // during mutations causing references to change.
+
+    /// Add local repo from a filesystem path.
+    pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> Result<Repo> {
+        let r = self.repos.add_path(name, priority, path)?;
         r.finalize()?;
-        self.repos.insert(name, r.clone());
+        self.repos.insert(name, r.clone(), true);
         Config::make_current(self.clone());
         Ok(r)
     }
 
+    /// Add external repo from a URI.
+    pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
+        let r = self.repos.add_uri(name, priority, uri)?;
+        r.finalize()?;
+        self.repos.insert(name, r.clone(), false);
+        Config::make_current(self.clone());
+        Ok(r)
+    }
+
+    /// Create a new repo.
     pub fn create_repo(&mut self, name: &str, priority: i32) -> Result<Repo> {
         let r = self.repos.create(name, priority)?;
         r.finalize()?;
-        self.repos.insert(name, r.clone());
+        self.repos.insert(name, r.clone(), false);
         Config::make_current(self.clone());
         Ok(r)
     }
 
+    /// Remove configured repos.
     pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> Result<()> {
         self.repos.del(repos, clean)?;
         self.repos.finalize()?;

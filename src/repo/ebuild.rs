@@ -117,6 +117,8 @@ pub struct Repo {
     id: String,
     config: RepoConfig,
     meta: Metadata,
+    profiles_base: Utf8PathBuf,
+    name: String,
     masters: OnceCell<Vec<Arc<Repo>>>,
     trees: OnceCell<Vec<Arc<Repo>>>,
 }
@@ -124,18 +126,6 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    fn new<S>(id: S, config: Option<RepoConfig>, meta: Metadata) -> crate::Result<Self>
-    where
-        S: AsRef<str>,
-    {
-        Ok(Repo {
-            id: id.as_ref().to_string(),
-            config: config.unwrap_or_default(),
-            meta,
-            ..Default::default()
-        })
-    }
-
     pub(super) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
         S: AsRef<str>,
@@ -144,18 +134,35 @@ impl Repo {
         let path = path.as_ref();
         let profiles_base = path.join("profiles");
 
-        if !profiles_base.exists() {
-            return Err(Error::InvalidRepo {
+        let invalid_repo = |error: String| -> Error {
+            Error::InvalidRepo {
                 path: Utf8PathBuf::from(path),
-                error: "missing profiles dir".to_string(),
-            });
+                error,
+            }
+        };
+
+        if !profiles_base.exists() {
+            return Err(invalid_repo("missing profiles dir".to_string()));
         }
 
-        let meta =
-            Metadata::new(path.join("metadata/layout.conf")).map_err(|e| Error::InvalidRepo {
-                path: Utf8PathBuf::from(path),
-                error: e.to_string(),
-            })?;
+        let repo_name_path = profiles_base.join("repo_name");
+        let name = match fs::read_to_string(&repo_name_path) {
+            Ok(data) => match data.lines().next() {
+                // TODO: verify repo name matches spec
+                Some(s) => s.trim_end().to_string(),
+                None => {
+                    let err = format!("invalid repo name: {:?}", &repo_name_path);
+                    return Err(invalid_repo(err));
+                }
+            },
+            Err(e) => {
+                let err = format!("missing repo name: {:?}: {e}", &repo_name_path);
+                return Err(invalid_repo(err));
+            }
+        };
+
+        let meta = Metadata::new(path.join("metadata/layout.conf"))
+            .map_err(|e| invalid_repo(e.to_string()))?;
 
         let config = RepoConfig {
             location: Utf8PathBuf::from(path),
@@ -163,7 +170,14 @@ impl Repo {
             ..Default::default()
         };
 
-        Repo::new(id, Some(config), meta)
+        Ok(Self {
+            id: id.as_ref().to_string(),
+            config,
+            meta,
+            profiles_base,
+            name,
+            ..Default::default()
+        })
     }
 
     pub(super) fn finalize(&self) -> crate::Result<()> {
@@ -172,7 +186,15 @@ impl Repo {
         let mut masters = vec![];
 
         for id in self.meta.masters() {
-            match config.repos.get(&id) {
+            // map external repo ids to their config names
+            let id = config
+                .repos
+                .externals
+                .get(id)
+                .map(|s| s.as_str())
+                .unwrap_or(id);
+
+            match config.repos.get(id) {
                 Some(repo::Repo::Ebuild(r)) => masters.push(r.clone()),
                 _ => nonexistent.push(id),
             }
@@ -262,6 +284,10 @@ impl Repo {
                         false => Err(err("mismatched package dir")),
                     })
             })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn iter(&self) -> PkgIter {

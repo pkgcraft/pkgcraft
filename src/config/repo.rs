@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -67,6 +68,8 @@ pub struct Config {
     repo_dir: Utf8PathBuf,
     #[serde(skip)]
     repos: IndexMap<String, Repo>,
+    #[serde(skip)]
+    pub(crate) externals: HashMap<String, String>,
 }
 
 impl Config {
@@ -124,6 +127,7 @@ impl Config {
             config_dir,
             repo_dir,
             repos,
+            ..Default::default()
         })
     }
 
@@ -134,47 +138,50 @@ impl Config {
         Ok(())
     }
 
-    pub(super) fn add(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
+    /// Add local repo from a filesystem path.
+    pub(super) fn add_path(&mut self, name: &str, priority: i32, path: &str) -> Result<Repo> {
         if self.repos.get(name).is_some() {
             return Err(Error::Config(format!("existing repo: {name}")));
         }
 
-        let path = Utf8PathBuf::from(uri);
+        let path = Utf8PathBuf::from(path);
+        if !path.exists() {
+            return Err(Error::Config(format!("nonexistent repo path: {path:?}")));
+        }
 
-        let repo = match path.exists() {
-            true => {
-                // add local, external repo
-                let path = path.canonicalize_utf8().map_err(|e| {
-                    Error::Config(format!("failed canonicalizing repo path {path:?}: {e}"))
-                })?;
-                Repo::from_path(name, priority, path)?
-            }
-            false => {
-                let config = RepoConfig {
-                    location: self.repo_dir.join(name),
-                    priority,
-                    sync: Some(Syncer::from_str(uri)?),
-                    ..Default::default()
-                };
-                config.sync()?;
+        let path = path
+            .canonicalize_utf8()
+            .map_err(|e| Error::Config(format!("failed canonicalizing repo path {path:?}: {e}")))?;
 
-                let repo = Repo::from_path(name, priority, config.location)?;
+        Repo::from_path(name, priority, path)
+    }
 
-                // write repo config file to disk
-                let data = toml::to_string(repo.config()).map_err(|e| {
-                    Error::Config(format!("failed serializing repo config to toml: {e}"))
-                })?;
-                let path = self.config_dir.join(name);
-                let mut file = fs::File::create(&path).map_err(|e| {
-                    Error::Config(format!("failed creating repo config file: {path:?}: {e}"))
-                })?;
-                file.write_all(data.as_bytes()).map_err(|e| {
-                    Error::Config(format!("failed writing repo config file: {path:?}: {e}"))
-                })?;
+    /// Add external repo from a URI.
+    pub(super) fn add_uri(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
+        if self.repos.get(name).is_some() {
+            return Err(Error::Config(format!("existing repo: {name}")));
+        }
 
-                repo
-            }
+        let config = RepoConfig {
+            location: self.repo_dir.join(name),
+            priority,
+            sync: Some(Syncer::from_str(uri)?),
+            ..Default::default()
         };
+        config.sync()?;
+
+        let repo = Repo::from_path(name, priority, config.location)?;
+
+        // write repo config file to disk
+        let data = toml::to_string(repo.config())
+            .map_err(|e| Error::Config(format!("failed serializing repo config to toml: {e}")))?;
+        let path = self.config_dir.join(name);
+        let mut file = fs::File::create(&path).map_err(|e| {
+            Error::Config(format!("failed creating repo config file: {path:?}: {e}"))
+        })?;
+        file.write_all(data.as_bytes()).map_err(|e| {
+            Error::Config(format!("failed writing repo config file: {path:?}: {e}"))
+        })?;
 
         Ok(repo)
     }
@@ -188,7 +195,7 @@ impl Config {
                 let temp_repo = TempRepo::new(name, priority, Some(&self.repo_dir), None)?;
                 temp_repo.persist(Some(&path))?;
                 // add repo to config
-                self.add(name, priority, path.as_str())
+                self.add_path(name, priority, path.as_str())
             }
         }
     }
@@ -252,7 +259,15 @@ impl Config {
         self.repos.get(key.as_ref())
     }
 
-    pub(super) fn insert(&mut self, id: &str, repo: Repo) {
+    pub(super) fn insert(&mut self, id: &str, repo: Repo, external: bool) {
+        // populate external repo mapping for masters finalization
+        if external {
+            if let Some(r) = repo.as_ebuild() {
+                self.externals
+                    .insert(r.name().to_string(), r.path().to_string());
+            }
+        }
+
         self.repos.insert(id.to_string(), repo);
         self.sort()
     }
