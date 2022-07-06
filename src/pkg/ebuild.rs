@@ -254,7 +254,7 @@ mod tests {
             assert_eq!(pkg.as_ref(), path);
         }
 
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
         let pkg = Pkg::new(&path, &t.repo).unwrap();
         assert_path(pkg, &path);
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn test_pkg_methods() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         let repo = &t.repo;
 
         // temp repo ebuild creation defaults to the latest EAPI
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn test_package_trait() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         t.create_ebuild("cat/pkg-1", []).unwrap();
         t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
         let repo = &t.repo;
@@ -298,7 +298,7 @@ mod tests {
 
     #[test]
     fn test_pkg_env() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
 
         // no revision
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn test_slot() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
 
         // default (injected by create_ebuild())
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
@@ -359,7 +359,7 @@ mod tests {
 
     #[test]
     fn test_description() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
 
         let path = t
             .create_ebuild("cat/pkg-1", [(Description, "desc")])
@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     fn test_homepage() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
 
         // none
         let path = t.create_ebuild("cat/pkg-1", [(Homepage, "-")]).unwrap();
@@ -395,7 +395,7 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
 
         // none
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
@@ -420,7 +420,7 @@ mod tests {
 
     #[test]
     fn test_iuse() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
 
         // none
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();

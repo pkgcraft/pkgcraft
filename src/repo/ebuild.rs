@@ -490,14 +490,14 @@ pub(crate) struct TempRepo {
 impl TempRepo {
     /// Attempts to create a temporary repo inside an optional path or inside `env::temp_dir()` if
     /// no path is specified.
-    pub(crate) fn new<P: AsRef<Path>>(
+    pub(crate) fn new(
         id: &str,
         priority: i32,
-        path: Option<P>,
+        path: Option<&Utf8Path>,
         eapi: Option<&eapi::Eapi>,
     ) -> crate::Result<Self> {
         let path = match path {
-            Some(p) => PathBuf::from(p.as_ref()),
+            Some(p) => p.to_path_buf().into_std_path_buf(),
             None => env::temp_dir(),
         };
         let eapi = format!("{}", eapi.unwrap_or(&eapi::EAPI_LATEST));
@@ -602,7 +602,7 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
 
         // nonexistent
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         let mut repo = t.repo;
         assert!(repo.meta.masters().is_empty());
         repo.meta.set("masters", "a b c");
@@ -611,7 +611,7 @@ mod tests {
         assert_err_re!(r, format!("^.* nonexistent masters: a, b, c$"));
 
         // none
-        let t = TempRepo::new("a", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("a", 0, None, None).unwrap();
         let repo = t.repo;
         config.add_repo(repo.id(), 0, repo.path().as_str()).unwrap();
         let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
@@ -620,7 +620,7 @@ mod tests {
         assert_eq!(trees, ["a"]);
 
         // single
-        let t = TempRepo::new("b", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("b", 0, None, None).unwrap();
         let mut repo = t.repo;
         repo.meta.set("masters", "a");
         repo.meta.write(None).unwrap();
@@ -632,7 +632,7 @@ mod tests {
         assert_eq!(trees, ["a", "b"]);
 
         // multiple
-        let t = TempRepo::new("c", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("c", 0, None, None).unwrap();
         let mut repo = t.repo;
         repo.meta.set("masters", "a b");
         repo.meta.write(None).unwrap();
@@ -646,7 +646,7 @@ mod tests {
 
     #[test]
     fn test_invalid_layout() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         t.repo.meta.write(Some("data")).unwrap();
         let r = Repo::from_path(t.repo.id(), 0, t.repo.path());
         assert_err_re!(r, format!("^.* invalid repo layout: .*$"));
@@ -654,13 +654,13 @@ mod tests {
 
     #[test]
     fn test_id() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         assert_eq!(t.repo.id(), "test");
     }
 
     #[test]
     fn test_len() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         assert_eq!(t.repo.len(), 0);
         assert!(t.repo.is_empty());
         t.create_ebuild("cat/pkg-1", []).unwrap();
@@ -673,7 +673,7 @@ mod tests {
 
     #[test]
     fn test_categories() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         assert_eq!(t.repo.categories(), Vec::<String>::new());
         fs::create_dir(t.repo.path().join("cat")).unwrap();
         assert_eq!(t.repo.categories(), ["cat"]);
@@ -684,7 +684,7 @@ mod tests {
 
     #[test]
     fn test_packages() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         assert_eq!(t.repo.packages("cat"), Vec::<String>::new());
         fs::create_dir_all(t.repo.path().join("cat/pkg")).unwrap();
         assert_eq!(t.repo.packages("cat"), ["pkg"]);
@@ -695,7 +695,7 @@ mod tests {
 
     #[test]
     fn test_versions() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         assert_eq!(t.repo.versions("cat", "pkg"), Vec::<String>::new());
         fs::create_dir_all(t.repo.path().join("cat/pkg")).unwrap();
         fs::File::create(t.repo.path().join("cat/pkg/pkg-1.ebuild")).unwrap();
@@ -721,7 +721,7 @@ mod tests {
 
     #[test]
     fn test_contains() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
 
         // path containment
         assert!(!t.repo.contains("cat/pkg"));
@@ -749,7 +749,7 @@ mod tests {
 
     #[test]
     fn test_iter() {
-        let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+        let t = TempRepo::new("test", 0, None, None).unwrap();
         t.create_ebuild("cat2/pkg-1", []).unwrap();
         t.create_ebuild("cat1/pkg-1", []).unwrap();
         let mut iter = t.repo.iter();
@@ -768,7 +768,7 @@ mod tests {
             ([(Eapi, "a")], "unknown EAPI: a"),
             ([(Slot, "-")], "missing required value: SLOT"),
         ] {
-            let t = TempRepo::new("test", 0, None::<&str>, None).unwrap();
+            let t = TempRepo::new("test", 0, None, None).unwrap();
             t.create_ebuild("cat/pkg-0", data).unwrap();
             let mut iter = t.repo.iter();
             assert!(iter.next().is_none());
