@@ -264,6 +264,14 @@ impl Repo {
         v
     }
 
+    fn pms_categories(&self) -> Vec<String> {
+        let mut cats = vec![];
+        if let Ok(data) = fs::read_to_string(self.profiles_base.join("categories")) {
+            cats.extend(data.lines().map(|s| s.to_string()));
+        }
+        cats
+    }
+
     /// Convert an ebuild path inside the repo into an Atom.
     pub(crate) fn atom_from_path(&self, path: &Path) -> crate::Result<atom::Atom> {
         let err = |s: &str| -> Error {
@@ -315,8 +323,15 @@ fn is_fake_category(entry: &walkdir::DirEntry) -> bool {
 
 impl Repository for Repo {
     fn categories(&self) -> Vec<String> {
-        // TODO: implement reading profiles/categories, falling back to category_dirs()
-        self.category_dirs()
+        // use profiles/categories from repos, falling back to raw fs dirs
+        let mut categories = HashSet::<String>::new();
+        for r in self.trees() {
+            categories.extend(r.pms_categories())
+        }
+        match categories.is_empty() {
+            false => categories.into_iter().collect(),
+            true => self.category_dirs(),
+        }
     }
 
     fn packages(&self, cat: &str) -> Vec<String> {
