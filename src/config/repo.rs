@@ -69,7 +69,7 @@ pub struct Config {
     #[serde(skip)]
     repos: IndexMap<String, Repo>,
     #[serde(skip)]
-    pub(crate) externals: HashMap<String, String>,
+    pub(crate) externals: HashMap<String, Repo>,
 }
 
 impl Config {
@@ -192,10 +192,22 @@ impl Config {
             None => {
                 let path = self.repo_dir.join(name);
                 // create temporary repo and persist it to disk
-                let temp_repo = TempRepo::new(name, priority, Some(&self.repo_dir), None)?;
+                let temp_repo = TempRepo::new(name, Some(&self.repo_dir), None)?;
                 temp_repo.persist(Some(&path))?;
                 // add repo to config
                 self.add_path(name, priority, path.as_str())
+            }
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn create_temp(&mut self, name: &str, priority: i32) -> Result<(TempRepo, Repo)> {
+        match self.repos.get(name) {
+            Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
+            None => {
+                let temp_repo = TempRepo::new(name, None, None)?;
+                let r = self.add_path(name, priority, temp_repo.path.as_str())?;
+                Ok((temp_repo, r))
             }
         }
     }
@@ -263,8 +275,7 @@ impl Config {
         // populate external repo mapping for masters finalization
         if external {
             if let Some(r) = repo.as_ebuild() {
-                self.externals
-                    .insert(r.name().to_string(), r.path().to_string());
+                self.externals.insert(r.path().to_string(), repo.clone());
             }
         }
 

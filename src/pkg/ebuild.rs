@@ -245,8 +245,9 @@ impl<'a> Package for Pkg<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::config::Config;
     use crate::pkg::Env::*;
-    use crate::repo::ebuild::TempRepo;
 
     #[test]
     fn test_as_ref_path() {
@@ -254,16 +255,17 @@ mod tests {
             assert_eq!(pkg.as_ref(), path);
         }
 
-        let t = TempRepo::new("test", 0, None, None).unwrap();
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_path(pkg, &path);
     }
 
     #[test]
     fn test_pkg_methods() {
-        let t = TempRepo::new("test", 0, None, None).unwrap();
-        let repo = &t.repo;
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
@@ -279,10 +281,10 @@ mod tests {
 
     #[test]
     fn test_package_trait() {
-        let t = TempRepo::new("test", 0, None, None).unwrap();
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
         t.create_ebuild("cat/pkg-1", []).unwrap();
         t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
-        let repo = &t.repo;
 
         let mut iter = repo.iter();
         let pkg1 = iter.next().unwrap();
@@ -298,11 +300,12 @@ mod tests {
 
     #[test]
     fn test_pkg_env() {
-        let t = TempRepo::new("test", 0, None, None).unwrap();
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // no revision
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.env(P), "pkg-1");
         assert_eq!(pkg.env(PN), "pkg");
         assert_eq!(pkg.env(PV), "1");
@@ -313,7 +316,7 @@ mod tests {
 
         // revisioned
         let path = t.create_ebuild("cat/pkg-1-r2", []).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.env(P), "pkg-1");
         assert_eq!(pkg.env(PN), "pkg");
         assert_eq!(pkg.env(PV), "1");
@@ -324,7 +327,7 @@ mod tests {
 
         // explicit r0 revision
         let path = t.create_ebuild("cat/pkg-2-r0", []).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.env(P), "pkg-2");
         assert_eq!(pkg.env(PN), "pkg");
         assert_eq!(pkg.env(PV), "2");
@@ -336,50 +339,53 @@ mod tests {
 
     #[test]
     fn test_slot() {
-        let t = TempRepo::new("test", 0, None, None).unwrap();
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // default (injected by create_ebuild())
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.slot(), "0");
         assert_eq!(pkg.subslot(), "0");
 
         // custom lacking subslot
         let path = t.create_ebuild("cat/pkg-2", [(Slot, "1")]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "1");
 
         // custom with subslot
         let path = t.create_ebuild("cat/pkg-3", [(Slot, "1/2")]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "2");
     }
 
     #[test]
     fn test_description() {
-        let t = TempRepo::new("test", 0, None, None).unwrap();
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         let path = t
             .create_ebuild("cat/pkg-1", [(Description, "desc")])
             .unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.description(), "desc");
     }
 
     #[test]
     fn test_homepage() {
-        let t = TempRepo::new("test", 0, None, None).unwrap();
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
         let path = t.create_ebuild("cat/pkg-1", [(Homepage, "-")]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(pkg.homepage().is_empty());
 
         // single line
         let path = t.create_ebuild("cat/pkg-1", [(Homepage, "home")]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.homepage(), ["home"]);
 
         // multiple lines
@@ -389,22 +395,23 @@ mod tests {
             c
         "};
         let path = t.create_ebuild("cat/pkg-1", [(Homepage, val)]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.homepage(), ["a", "b", "c"]);
     }
 
     #[test]
     fn test_keywords() {
-        let t = TempRepo::new("test", 0, None, None).unwrap();
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(pkg.keywords().is_empty());
 
         // single line
         let path = t.create_ebuild("cat/pkg-1", [(Keywords, "a b")]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
 
         // multiple lines
@@ -414,22 +421,23 @@ mod tests {
             c
         "};
         let path = t.create_ebuild("cat/pkg-1", [(Keywords, val)]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
     }
 
     #[test]
     fn test_iuse() {
-        let t = TempRepo::new("test", 0, None, None).unwrap();
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
         let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(pkg.iuse().is_empty());
 
         // single line
         let path = t.create_ebuild("cat/pkg-1", [(Iuse, "a b")]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
 
         // multiple lines
@@ -439,7 +447,7 @@ mod tests {
             c
         "};
         let path = t.create_ebuild("cat/pkg-1", [(Iuse, val)]).unwrap();
-        let pkg = Pkg::new(&path, &t.repo).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
     }
 }

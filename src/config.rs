@@ -157,6 +157,21 @@ impl Config {
         Config::make_current(self.clone());
         Ok(())
     }
+
+    /// Create a new temporary ebuild repo.
+    #[cfg(test)]
+    pub(crate) fn temp_repo(
+        &mut self,
+        name: &str,
+        priority: i32,
+    ) -> Result<(crate::repo::ebuild::TempRepo, Arc<crate::repo::ebuild::Repo>)> {
+        let (temp_repo, r) = self.repos.create_temp(name, priority)?;
+        r.finalize()?;
+        self.repos.insert(name, r.clone(), false);
+        Config::make_current(self.clone());
+        let repo = self.repos.get(name).unwrap().as_ebuild().unwrap();
+        Ok((temp_repo, repo.clone()))
+    }
 }
 
 #[cfg(test)]

@@ -144,15 +144,18 @@ impl<'a> Package for Pkg<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::repo::{ebuild::TempRepo, fake, Repo};
+    use crate::config::Config;
+    use crate::repo::{fake, Repo};
 
     #[test]
     fn test_ordering() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+
         // unmatching pkgs sorted by atom
         let r1: Repo = fake::Repo::new("b", 0, ["cat/pkg-1"]).unwrap().into();
-        let t = TempRepo::new("a", 0, None, None).unwrap();
+        let (t, repo) = config.temp_repo("a", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
-        let r2: Repo = t.repo.into();
+        let r2 = Repo::Ebuild(repo);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
         let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
@@ -160,22 +163,22 @@ mod tests {
 
         // matching pkgs sorted by repo priority
         let r1: Repo = fake::Repo::new("a", 0, ["cat/pkg-0"]).unwrap().into();
-        let t = TempRepo::new("b", -1, None, None).unwrap();
+        let (t, repo) = config.temp_repo("b", -1).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
-        let r2: Repo = t.repo.into();
+        let r2 = Repo::Ebuild(repo);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
         let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
         assert_eq!(atoms, ["cat/pkg-0::b", "cat/pkg-0::a"]);
 
         // matching pkgs sorted by repo id since repos have matching priorities
-        let r1: Repo = fake::Repo::new("b", 0, ["cat/pkg-0"]).unwrap().into();
-        let t = TempRepo::new("a", 0, None, None).unwrap();
+        let r1: Repo = fake::Repo::new("2", 0, ["cat/pkg-0"]).unwrap().into();
+        let (t, repo) = config.temp_repo("1", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
-        let r2: Repo = t.repo.into();
+        let r2 = Repo::Ebuild(repo);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
         let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
-        assert_eq!(atoms, ["cat/pkg-0::a", "cat/pkg-0::b"]);
+        assert_eq!(atoms, ["cat/pkg-0::1", "cat/pkg-0::2"]);
     }
 }
