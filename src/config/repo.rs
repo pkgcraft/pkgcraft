@@ -149,10 +149,6 @@ impl Config {
             return Err(Error::Config(format!("nonexistent repo path: {path:?}")));
         }
 
-        let path = path
-            .canonicalize_utf8()
-            .map_err(|e| Error::Config(format!("failed canonicalizing repo path {path:?}: {e}")))?;
-
         Repo::from_path(name, priority, path)
     }
 
