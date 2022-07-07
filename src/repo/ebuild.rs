@@ -196,7 +196,7 @@ impl Repo {
         let mut masters = vec![];
 
         for id in self.meta.masters() {
-            // map external repo ids to their config names
+            // match against configured repos, falling back to external repos
             match config
                 .repos
                 .get(id)
