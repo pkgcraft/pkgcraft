@@ -285,7 +285,7 @@ impl Repo {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
         };
         path.strip_prefix(self.path())
-            .map_err(|_| err("missing repo prefix"))
+            .map_err(|_| err(&format!("missing repo prefix: {:?}", self.path())))
             .and_then(|p| p.to_str().ok_or_else(|| err("non-unicode")))
             .and_then(|s| EBUILD_RE.captures(s).ok_or_else(|| err("unmatched file")))
             .and_then(|m| {
