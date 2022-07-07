@@ -280,14 +280,17 @@ impl Repo {
     }
 
     /// Convert an ebuild path inside the repo into an Atom.
-    pub(crate) fn atom_from_path(&self, path: &Path) -> crate::Result<atom::Atom> {
+    pub(crate) fn atom_from_path(&self, path: &Utf8Path) -> crate::Result<atom::Atom> {
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
         };
         path.strip_prefix(self.path())
             .map_err(|_| err(&format!("missing repo prefix: {:?}", self.path())))
-            .and_then(|p| p.to_str().ok_or_else(|| err("non-unicode")))
-            .and_then(|s| EBUILD_RE.captures(s).ok_or_else(|| err("unmatched file")))
+            .and_then(|p| {
+                EBUILD_RE
+                    .captures(p.as_str())
+                    .ok_or_else(|| err("unmatched file"))
+            })
             .and_then(|m| {
                 let cat = m.name("cat").unwrap().as_str();
                 let pkg = m.name("pkg").unwrap().as_str();
@@ -473,7 +476,7 @@ impl<'a> Iterator for PkgIter<'a> {
             match self.iter.next() {
                 Some(Ok(e)) => {
                     if is_ebuild(&e) {
-                        let path = e.path();
+                        let path: &Utf8Path = e.path().try_into().unwrap();
                         match pkg::ebuild::Pkg::new(path, self.repo) {
                             Ok(p) => return Some(p),
                             Err(e) => warn!("{} repo: invalid pkg: {path:?}: {e}", self.repo.id),
@@ -527,13 +530,13 @@ impl TempRepo {
 
     /// Create an ebuild file in the repo.
     #[cfg(test)]
-    pub(crate) fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<PathBuf>
+    pub(crate) fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<Utf8PathBuf>
     where
         I: IntoIterator<Item = (eapi::Key, &'a str)>,
     {
         use crate::eapi::Key::*;
         let cpv = atom::cpv(cpv)?;
-        let path = self.tempdir.path().join(format!(
+        let path = self.path.join(format!(
             "{}/{}-{}.ebuild",
             cpv.key(),
             cpv.package(),

@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::io::{self, prelude::*};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::{fmt, fs};
 
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
@@ -31,7 +32,7 @@ struct Metadata<'a> {
 }
 
 impl<'a> Metadata<'a> {
-    fn new(path: &Path, eapi: &'static eapi::Eapi) -> Result<Self> {
+    fn new(path: &Utf8Path, eapi: &'static eapi::Eapi) -> Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         source::file(path)?;
         let mut data = HashMap::new();
@@ -125,7 +126,7 @@ impl<'a> Metadata<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
-    path: PathBuf,
+    path: Utf8PathBuf,
     atom: atom::Atom,
     eapi: &'static eapi::Eapi,
     repo: &'a Repo,
@@ -135,7 +136,7 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(path: &Path, repo: &'a Repo) -> Result<Self> {
+    pub(crate) fn new(path: &Utf8Path, repo: &'a Repo) -> Result<Self> {
         let atom = repo.atom_from_path(path)?;
         let eapi = Pkg::get_eapi(path)?;
         let data = Metadata::new(path, eapi)?;
@@ -170,7 +171,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's ebuild file path.
-    pub fn path(&self) -> &Path {
+    pub fn path(&self) -> &Utf8Path {
         &self.path
     }
 
@@ -220,8 +221,8 @@ impl<'a> Pkg<'a> {
     }
 }
 
-impl AsRef<Path> for Pkg<'_> {
-    fn as_ref(&self) -> &Path {
+impl AsRef<Utf8Path> for Pkg<'_> {
+    fn as_ref(&self) -> &Utf8Path {
         self.path()
     }
 }
@@ -251,8 +252,8 @@ mod tests {
 
     #[test]
     fn test_as_ref_path() {
-        fn assert_path<P: AsRef<Path>>(pkg: P, path: &Path) {
-            assert_eq!(pkg.as_ref(), path);
+        fn assert_path<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(pkg: P, path: Q) {
+            assert_eq!(pkg.as_ref(), path.as_ref());
         }
 
         let mut config = Config::new("pkgcraft", "", false).unwrap();
