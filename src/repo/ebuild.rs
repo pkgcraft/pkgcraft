@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use std::{env, fmt, fs, io};
 
 #[cfg(test)]
@@ -119,8 +119,8 @@ pub struct Repo {
     meta: Metadata,
     profiles_base: Utf8PathBuf,
     name: String,
-    masters: OnceCell<Vec<Arc<Repo>>>,
-    trees: OnceCell<Vec<Arc<Repo>>>,
+    masters: OnceCell<Vec<Weak<Repo>>>,
+    trees: OnceCell<Vec<Weak<Repo>>>,
 }
 
 impl fmt::Debug for Repo {
@@ -202,7 +202,7 @@ impl Repo {
                 .get(id)
                 .or_else(|| config.repos.externals.get(id))
             {
-                Some(repo::Repo::Ebuild(r)) => masters.push(r.clone()),
+                Some(repo::Repo::Ebuild(r)) => masters.push(Arc::downgrade(r)),
                 _ => nonexistent.push(id),
             }
         }
@@ -224,23 +224,29 @@ impl Repo {
         }
     }
 
-    pub fn masters(&self) -> &[Arc<Repo>] {
-        // guaranteed to be set via finalize()
-        self.masters.get().unwrap()
+    pub fn masters(&self) -> Vec<Arc<Repo>> {
+        self.masters
+            .get()
+            .expect("finalize() uncalled")
+            .iter()
+            .map(|p| p.upgrade().expect("unconfigured repo"))
+            .collect()
     }
 
-    pub fn trees(&self) -> &[Arc<Repo>] {
+    pub fn trees(&self) -> Vec<Arc<Repo>> {
         self.trees
             .get_or_init(|| {
                 let config = Config::current();
-                let mut trees = self.masters().to_vec();
+                let mut trees = self.masters();
                 match config.repos.get(self.id()) {
                     Some(repo::Repo::Ebuild(r)) => trees.push(r.clone()),
                     _ => panic!("unconfigured repo: {}", self.id()),
                 }
-                trees
+                trees.iter().map(Arc::downgrade).collect()
             })
-            .as_slice()
+            .iter()
+            .map(|p| p.upgrade().expect("unconfigured repo"))
+            .collect()
     }
 
     pub fn category_dirs(&self) -> Vec<String> {
@@ -626,7 +632,7 @@ mod tests {
             .unwrap();
         let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
         assert!(r.masters().is_empty());
-        let trees: Vec<_> = r.trees().iter().map(|r| r.id()).collect();
+        let trees: Vec<_> = r.trees().iter().map(|r| r.id().to_string()).collect();
         assert_eq!(trees, ["a"]);
 
         // single
@@ -638,9 +644,9 @@ mod tests {
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
         let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
-        let masters: Vec<_> = r.masters().iter().map(|r| r.id()).collect();
+        let masters: Vec<_> = r.masters().iter().map(|r| r.id().to_string()).collect();
         assert_eq!(masters, ["a"]);
-        let trees: Vec<_> = r.trees().iter().map(|r| r.id()).collect();
+        let trees: Vec<_> = r.trees().iter().map(|r| r.id().to_string()).collect();
         assert_eq!(trees, ["a", "b"]);
 
         // multiple
@@ -652,9 +658,9 @@ mod tests {
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
         let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
-        let masters: Vec<_> = r.masters().iter().map(|r| r.id()).collect();
+        let masters: Vec<_> = r.masters().iter().map(|r| r.id().to_string()).collect();
         assert_eq!(masters, ["a", "b"]);
-        let trees: Vec<_> = r.trees().iter().map(|r| r.id()).collect();
+        let trees: Vec<_> = r.trees().into_iter().map(|r| r.id().to_string()).collect();
         assert_eq!(trees, ["a", "b", "c"]);
     }
 
