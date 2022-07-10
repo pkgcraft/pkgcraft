@@ -257,6 +257,33 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn is_empty(&self) -> bool;
 }
 
+impl<'a, T> Repository for &'a T
+where
+    T: Repository,
+{
+    fn categories(&self) -> Vec<String> {
+        (*self).categories()
+    }
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+        (*self).versions(cat, pkg)
+    }
+    fn id(&self) -> &str {
+        (*self).id()
+    }
+    fn config(&self) -> &RepoConfig {
+        (*self).config()
+    }
+    fn packages(&self, cat: &str) -> Vec<String> {
+        (*self).packages(cat)
+    }
+    fn len(&self) -> usize {
+        (*self).len()
+    }
+    fn is_empty(&self) -> bool {
+        (*self).is_empty()
+    }
+}
+
 #[derive(Debug)]
 pub enum BorrowedRepo<'a> {
     Ebuild(&'a ebuild::Repo),

@@ -12,7 +12,7 @@ use scallop::variables::string_value;
 
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
-use crate::repo::{ebuild::Repo, BorrowedRepo};
+use crate::repo::ebuild::Repo;
 use crate::{atom, eapi, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
@@ -228,7 +228,7 @@ impl AsRef<Utf8Path> for Pkg<'_> {
 }
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = BorrowedRepo<'a>;
+    type Repo = &'a Repo;
 
     fn atom(&self) -> &atom::Atom {
         &self.atom
@@ -239,7 +239,7 @@ impl<'a> Package for Pkg<'a> {
     }
 
     fn repo(&self) -> Self::Repo {
-        BorrowedRepo::Ebuild(self.repo)
+        self.repo
     }
 }
 
@@ -296,7 +296,12 @@ mod tests {
         assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
         assert_eq!(pkg1.atom(), &atom::cpv("cat/pkg-1").unwrap());
         assert_eq!(pkg2.atom(), &atom::cpv("cat/pkg-2").unwrap());
+
+        // repo attribute allows recursion
         assert_eq!(pkg1.repo(), pkg2.repo());
+        let mut i = pkg1.repo().iter();
+        assert_eq!(pkg1, i.next().unwrap());
+        assert_eq!(pkg2, i.next().unwrap());
     }
 
     #[test]

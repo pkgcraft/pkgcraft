@@ -136,8 +136,8 @@ impl<'a> Package for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         match self {
-            Self::Ebuild(pkg) => pkg.repo(),
-            Self::Fake(pkg) => pkg.repo(),
+            Self::Ebuild(pkg) => BorrowedRepo::Ebuild(pkg.repo()),
+            Self::Fake(pkg) => BorrowedRepo::Fake(pkg.repo()),
         }
     }
 }

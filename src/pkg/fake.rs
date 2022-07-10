@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::{make_pkg_traits, Package};
-use crate::repo::{fake::Repo, BorrowedRepo};
+use crate::repo::fake::Repo;
 use crate::{atom, eapi};
 
 #[derive(Debug, Clone)]
@@ -19,7 +19,7 @@ impl<'a> Pkg<'a> {
 }
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = BorrowedRepo<'a>;
+    type Repo = &'a Repo;
 
     fn atom(&self) -> &atom::Atom {
         self.atom
@@ -30,7 +30,7 @@ impl<'a> Package for Pkg<'a> {
     }
 
     fn repo(&self) -> Self::Repo {
-        BorrowedRepo::Fake(self.repo)
+        self.repo
     }
 }
 
