@@ -200,8 +200,8 @@ impl Repo {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum PkgIter<'a> {
-    Ebuild(ebuild::PkgIter<'a>),
-    Fake(fake::PkgIter<'a>),
+    Ebuild(ebuild::PkgIter<'a>, &'a Repo),
+    Fake(fake::PkgIter<'a>, &'a Repo),
     Empty,
 }
 
@@ -211,8 +211,8 @@ impl<'a> IntoIterator for &'a Repo {
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Repo::Ebuild(repo) => PkgIter::Ebuild(repo.into_iter()),
-            Repo::Fake(repo) => PkgIter::Fake(repo.into_iter()),
+            Repo::Ebuild(repo) => PkgIter::Ebuild(repo.into_iter(), self),
+            Repo::Fake(repo) => PkgIter::Fake(repo.into_iter(), self),
             Repo::Config(_) => PkgIter::Empty,
         }
     }
@@ -223,8 +223,8 @@ impl<'a> Iterator for PkgIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
-            Self::Fake(iter) => iter.next().map(Pkg::Fake),
+            Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo)),
+            Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo)),
             Self::Empty => None,
         }
     }
@@ -284,114 +284,81 @@ where
     }
 }
 
-#[derive(Debug)]
-pub enum BorrowedRepo<'a> {
-    Ebuild(&'a ebuild::Repo),
-    Fake(&'a fake::Repo),
-    Config(&'a empty::Repo),
-}
-
-impl<'a> IntoIterator for &'a BorrowedRepo<'_> {
-    type Item = Pkg<'a>;
-    type IntoIter = PkgIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
+impl fmt::Display for Repo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            BorrowedRepo::Ebuild(repo) => PkgIter::Ebuild(repo.into_iter()),
-            BorrowedRepo::Fake(repo) => PkgIter::Fake(repo.into_iter()),
-            BorrowedRepo::Config(_) => PkgIter::Empty,
+            Self::Ebuild(repo) => write!(f, "{}", repo),
+            Self::Fake(repo) => write!(f, "{}", repo),
+            Self::Config(repo) => write!(f, "{}", repo),
         }
     }
 }
 
-make_repo_traits!(BorrowedRepo<'_>);
+impl Repository for Repo {
+    fn categories(&self) -> Vec<String> {
+        match self {
+            Self::Ebuild(repo) => repo.categories(),
+            Self::Fake(repo) => repo.categories(),
+            Self::Config(repo) => repo.categories(),
+        }
+    }
 
-impl BorrowedRepo<'_> {
-    pub fn iter(&self) -> PkgIter {
-        self.into_iter()
+    fn packages(&self, cat: &str) -> Vec<String> {
+        match self {
+            Self::Ebuild(repo) => repo.packages(cat),
+            Self::Fake(repo) => repo.packages(cat),
+            Self::Config(repo) => repo.packages(cat),
+        }
+    }
+
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+        match self {
+            Self::Ebuild(repo) => repo.versions(cat, pkg),
+            Self::Fake(repo) => repo.versions(cat, pkg),
+            Self::Config(repo) => repo.versions(cat, pkg),
+        }
+    }
+
+    fn id(&self) -> &str {
+        match self {
+            Self::Ebuild(repo) => repo.id(),
+            Self::Fake(repo) => repo.id(),
+            Self::Config(repo) => repo.id(),
+        }
+    }
+
+    fn config(&self) -> &RepoConfig {
+        match self {
+            Self::Ebuild(repo) => repo.config(),
+            Self::Fake(repo) => repo.config(),
+            Self::Config(repo) => repo.config(),
+        }
+    }
+
+    fn priority(&self) -> i32 {
+        match self {
+            Self::Ebuild(repo) => repo.priority(),
+            Self::Fake(repo) => repo.priority(),
+            Self::Config(repo) => repo.priority(),
+        }
+    }
+
+    fn len(&self) -> usize {
+        match self {
+            Self::Ebuild(repo) => repo.len(),
+            Self::Fake(repo) => repo.len(),
+            Self::Config(repo) => repo.len(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::Ebuild(repo) => repo.is_empty(),
+            Self::Fake(repo) => repo.is_empty(),
+            Self::Config(repo) => repo.is_empty(),
+        }
     }
 }
-
-macro_rules! make_repo {
-    ($($x:ty),+) => {$(
-        impl fmt::Display for $x {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                match self {
-                    Self::Ebuild(repo) => write!(f, "{}", repo),
-                    Self::Fake(repo) => write!(f, "{}", repo),
-                    Self::Config(repo) => write!(f, "{}", repo),
-                }
-            }
-        }
-
-        impl Repository for $x {
-            fn categories(&self) -> Vec<String> {
-                match self {
-                    Self::Ebuild(repo) => repo.categories(),
-                    Self::Fake(repo) => repo.categories(),
-                    Self::Config(repo) => repo.categories(),
-                }
-            }
-
-            fn packages(&self, cat: &str) -> Vec<String> {
-                match self {
-                    Self::Ebuild(repo) => repo.packages(cat),
-                    Self::Fake(repo) => repo.packages(cat),
-                    Self::Config(repo) => repo.packages(cat),
-                }
-            }
-
-            fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
-                match self {
-                    Self::Ebuild(repo) => repo.versions(cat, pkg),
-                    Self::Fake(repo) => repo.versions(cat, pkg),
-                    Self::Config(repo) => repo.versions(cat, pkg),
-                }
-            }
-
-            fn id(&self) -> &str {
-                match self {
-                    Self::Ebuild(repo) => repo.id(),
-                    Self::Fake(repo) => repo.id(),
-                    Self::Config(repo) => repo.id(),
-                }
-            }
-
-            fn config(&self) -> &RepoConfig {
-                match self {
-                    Self::Ebuild(repo) => repo.config(),
-                    Self::Fake(repo) => repo.config(),
-                    Self::Config(repo) => repo.config(),
-                }
-            }
-
-            fn priority(&self) -> i32 {
-                match self {
-                    Self::Ebuild(repo) => repo.priority(),
-                    Self::Fake(repo) => repo.priority(),
-                    Self::Config(repo) => repo.priority(),
-                }
-            }
-
-            fn len(&self) -> usize {
-                match self {
-                    Self::Ebuild(repo) => repo.len(),
-                    Self::Fake(repo) => repo.len(),
-                    Self::Config(repo) => repo.len(),
-                }
-            }
-
-            fn is_empty(&self) -> bool {
-                match self {
-                    Self::Ebuild(repo) => repo.is_empty(),
-                    Self::Fake(repo) => repo.is_empty(),
-                    Self::Config(repo) => repo.is_empty(),
-                }
-            }
-        }
-    )*};
-}
-make_repo!(Repo, BorrowedRepo<'_>);
 
 macro_rules! make_repo_traits {
     ($($x:ty),+) => {$(

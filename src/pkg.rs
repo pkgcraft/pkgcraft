@@ -4,7 +4,7 @@ use enum_as_inner::EnumAsInner;
 use scallop::variables::bind;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
-use crate::repo::{BorrowedRepo, Repository};
+use crate::repo::{Repo, Repository};
 use crate::{atom, eapi, Result};
 
 pub mod ebuild;
@@ -24,8 +24,8 @@ pub enum Env {
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Debug)]
 pub enum Pkg<'a> {
-    Ebuild(ebuild::Pkg<'a>),
-    Fake(fake::Pkg<'a>),
+    Ebuild(ebuild::Pkg<'a>, &'a Repo),
+    Fake(fake::Pkg<'a>, &'a Repo),
 }
 
 make_pkg_traits!(Pkg<'_>);
@@ -118,26 +118,26 @@ macro_rules! make_pkg_traits {
 pub(self) use make_pkg_traits;
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = BorrowedRepo<'a>;
+    type Repo = &'a Repo;
 
     fn atom(&self) -> &atom::Atom {
         match self {
-            Self::Ebuild(pkg) => pkg.atom(),
-            Self::Fake(pkg) => pkg.atom(),
+            Self::Ebuild(pkg, _) => pkg.atom(),
+            Self::Fake(pkg, _) => pkg.atom(),
         }
     }
 
     fn eapi(&self) -> &eapi::Eapi {
         match self {
-            Self::Ebuild(pkg) => pkg.eapi(),
-            Self::Fake(pkg) => pkg.eapi(),
+            Self::Ebuild(pkg, _) => pkg.eapi(),
+            Self::Fake(pkg, _) => pkg.eapi(),
         }
     }
 
     fn repo(&self) -> Self::Repo {
         match self {
-            Self::Ebuild(pkg) => BorrowedRepo::Ebuild(pkg.repo()),
-            Self::Fake(pkg) => BorrowedRepo::Fake(pkg.repo()),
+            Self::Ebuild(_, repo) => repo,
+            Self::Fake(_, repo) => repo,
         }
     }
 }
