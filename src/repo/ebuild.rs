@@ -344,8 +344,10 @@ impl Repository for Repo {
         for r in self.trees() {
             categories.extend(r.pms_categories())
         }
+        let mut categories: Vec<_> = categories.into_iter().collect();
+        categories.sort();
         match categories.is_empty() {
-            false => categories.into_iter().collect(),
+            false => categories,
             true => self.category_dirs(),
         }
     }
