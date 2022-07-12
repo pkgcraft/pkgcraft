@@ -195,7 +195,7 @@ impl<'a> Pkg<'a> {
         self.data.subslot()
     }
 
-    /// Return a package's subslot.
+    /// Return a package's homepage.
     pub fn homepage(&'a self) -> &'a [&'a str] {
         self.data.homepage()
     }
