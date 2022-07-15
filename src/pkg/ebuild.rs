@@ -13,7 +13,7 @@ use scallop::variables::string_value;
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
 use crate::repo::ebuild::Repo;
-use crate::{atom, eapi, Error, Result};
+use crate::{atom, eapi, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
@@ -32,7 +32,7 @@ struct Metadata<'a> {
 }
 
 impl<'a> Metadata<'a> {
-    fn new(path: &Utf8Path, eapi: &'static eapi::Eapi) -> Result<Self> {
+    fn new(path: &Utf8Path, eapi: &'static eapi::Eapi) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         source::file(path)?;
         let mut data = HashMap::new();
@@ -136,7 +136,7 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(path: &Utf8Path, repo: &'a Repo) -> Result<Self> {
+    pub(crate) fn new(path: &Utf8Path, repo: &'a Repo) -> crate::Result<Self> {
         let atom = repo.atom_from_path(path)?;
         let eapi = Pkg::get_eapi(path)?;
         let data = Metadata::new(path, eapi)?;
@@ -150,7 +150,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Get the parsed EAPI from a given ebuild file.
-    fn get_eapi<P: AsRef<Path>>(path: P) -> Result<&'static eapi::Eapi> {
+    fn get_eapi<P: AsRef<Path>>(path: P) -> crate::Result<&'static eapi::Eapi> {
         let mut eapi = &*eapi::EAPI0;
         let path = path.as_ref();
         let f = fs::File::open(path).map_err(|e| Error::IO(e.to_string()))?;
@@ -176,7 +176,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's ebuild file content.
-    pub fn ebuild(&self) -> Result<String> {
+    pub fn ebuild(&self) -> crate::Result<String> {
         fs::read_to_string(&self.path).map_err(|e| Error::IO(e.to_string()))
     }
 

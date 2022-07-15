@@ -12,7 +12,7 @@ use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::{cmp_not_equal, vec_str};
 use crate::restrict::{self, Restriction};
-use crate::{Error, Result};
+use crate::Error;
 // export parser functionality
 pub use parser::parse;
 
@@ -61,7 +61,7 @@ pub(crate) struct ParsedAtom<'a> {
 }
 
 impl ParsedAtom<'_> {
-    pub(crate) fn into_owned(self) -> Result<Atom> {
+    pub(crate) fn into_owned(self) -> crate::Result<Atom> {
         let version = match (self.version, self.version_str) {
             (Some(v), Some(s)) => Some(v.into_owned(s)?),
             _ => None,
@@ -95,12 +95,12 @@ pub struct Atom {
 }
 
 #[cached(
-    type = "SizedCache<String, Result<Atom>>",
+    type = "SizedCache<String, crate::Result<Atom>>",
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ s.to_string() }"#
 )]
 /// Create a new Atom from a given CPV string (e.g. cat/pkg-1).
-pub fn cpv(s: &str) -> Result<Atom> {
+pub fn cpv(s: &str) -> crate::Result<Atom> {
     let mut atom = parse::cpv(s)?;
     atom.version_str = Some(s);
     atom.into_owned()
@@ -108,19 +108,19 @@ pub fn cpv(s: &str) -> Result<Atom> {
 
 impl Atom {
     /// Verify a string represents a valid atom.
-    pub fn valid<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> Result<()> {
+    pub fn valid<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> crate::Result<()> {
         parse::dep_str(s.as_ref(), eapi.into_eapi()?)?;
         Ok(())
     }
 
     /// Verify a string represents a valid atom.
-    pub fn valid_cpv<S: AsRef<str>>(s: S) -> Result<()> {
+    pub fn valid_cpv<S: AsRef<str>>(s: S) -> crate::Result<()> {
         parse::cpv(s.as_ref())?;
         Ok(())
     }
 
     /// Create a new Atom from a given string.
-    pub fn new<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> Result<Self> {
+    pub fn new<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> crate::Result<Self> {
         parse::dep(s.as_ref(), eapi.into_eapi()?)
     }
 
@@ -250,7 +250,7 @@ impl PartialOrd for Atom {
 impl FromStr for Atom {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> crate::Result<Self> {
         Atom::new(s, &*EAPI_PKGCRAFT)
     }
 }
@@ -278,7 +278,7 @@ impl Restrict {
         BaseRestrict::Atom(r)
     }
 
-    pub fn version(o: Option<&str>) -> Result<BaseRestrict> {
+    pub fn version(o: Option<&str>) -> crate::Result<BaseRestrict> {
         let o = match o {
             None => None,
             Some(s) => Some(Version::from_str(s)?),

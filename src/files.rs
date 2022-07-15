@@ -5,7 +5,7 @@ use std::str::FromStr;
 use nix::{sys::stat, unistd};
 use walkdir::{DirEntry, WalkDir};
 
-use crate::{Error, Result};
+use crate::Error;
 
 #[derive(Debug)]
 pub(crate) struct Group {
@@ -15,7 +15,7 @@ pub(crate) struct Group {
 impl FromStr for Group {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> crate::Result<Self> {
         match unistd::Group::from_name(s) {
             Ok(Some(val)) => Ok(Group { inner: val }),
             Ok(None) => Err(Error::InvalidValue(format!("unknown group: {s}"))),
@@ -48,7 +48,7 @@ impl Deref for User {
 impl FromStr for User {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> crate::Result<Self> {
         match unistd::User::from_name(s) {
             Ok(Some(val)) => Ok(User { inner: val }),
             Ok(None) => Err(Error::InvalidValue(format!("unknown user: {s}"))),
@@ -73,7 +73,7 @@ impl Deref for Mode {
 impl FromStr for Mode {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> crate::Result<Self> {
         let without_prefix = s.trim_start_matches("0o");
         let mode = stat::mode_t::from_str_radix(without_prefix, 8)
             .map_err(|_| Error::InvalidValue(format!("invalid mode: {s}")))?;

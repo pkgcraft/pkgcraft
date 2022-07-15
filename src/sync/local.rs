@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::sync::{Syncable, Syncer};
-use crate::{Error, Result};
+use crate::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct Repo {
@@ -13,7 +13,7 @@ pub(crate) struct Repo {
 
 #[async_trait]
 impl Syncable for Repo {
-    fn uri_to_syncer(uri: &str) -> Result<Syncer> {
+    fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
         let path = PathBuf::from(uri);
         match path.exists() {
             true => Ok(Syncer::Local(Repo {
@@ -23,7 +23,7 @@ impl Syncable for Repo {
         }
     }
 
-    async fn sync<P: AsRef<Path> + Send>(&self, _path: P) -> Result<()> {
+    async fn sync<P: AsRef<Path> + Send>(&self, _path: P) -> crate::Result<()> {
         Ok(())
     }
 }

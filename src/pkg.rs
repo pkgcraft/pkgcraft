@@ -5,7 +5,7 @@ use scallop::variables::bind;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
 use crate::repo::{Repo, Repository};
-use crate::{atom, eapi, restrict, Result};
+use crate::{atom, eapi, restrict};
 
 pub mod ebuild;
 pub mod fake;
@@ -67,7 +67,7 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
 }
 
 pub(crate) trait PackageEnv: Package {
-    fn export_env(&self) -> Result<()> {
+    fn export_env(&self) -> crate::Result<()> {
         for var in Env::iter() {
             bind(var, self.env(var), None, None)?;
         }

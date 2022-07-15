@@ -8,7 +8,7 @@ use itertools::Itertools;
 use nix::unistd::isatty;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
-use scallop::{functions, source, Error, Result, Shell};
+use scallop::{functions, source, Error, Shell};
 
 use crate::eapi::{Eapi, Feature, Key};
 use crate::pkgsh::builtins::Scope;
@@ -41,7 +41,7 @@ impl Default for Stdin {
 }
 
 impl Stdin {
-    fn get(&mut self) -> Result<&mut StdinType> {
+    fn get(&mut self) -> scallop::Result<&mut StdinType> {
         if !cfg!(test) && isatty(0).unwrap_or(false) {
             return Err(Error::Base("no input available, stdin is a tty".into()));
         }
@@ -228,7 +228,7 @@ impl BuildData {
         data
     }
 
-    fn stdin(&mut self) -> Result<&mut StdinType> {
+    fn stdin(&mut self) -> scallop::Result<&mut StdinType> {
         self.stdin.get()
     }
 
@@ -265,8 +265,8 @@ impl PkgShell {
         PkgShell {}
     }
 
-    pub fn run_phase(&mut self, phase: &phase::Phase) -> Result<ExecStatus> {
-        BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    pub fn run_phase(&mut self, phase: &phase::Phase) -> scallop::Result<ExecStatus> {
+        BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
             d.borrow_mut().phase = Some(*phase);
 
             let eapi = d.borrow().eapi;
@@ -306,13 +306,13 @@ impl PkgShell {
         })
     }
 
-    pub fn source_ebuild<P: AsRef<Path>>(&mut self, ebuild: P) -> Result<()> {
+    pub fn source_ebuild<P: AsRef<Path>>(&mut self, ebuild: P) -> scallop::Result<()> {
         let ebuild = ebuild.as_ref();
         if !ebuild.exists() {
             return Err(Error::Base(format!("nonexistent ebuild: {ebuild:?}")));
         }
 
-        BUILD_DATA.with(|d| -> Result<()> {
+        BUILD_DATA.with(|d| -> scallop::Result<()> {
             let eapi = d.borrow().eapi;
             let mut opts = ScopedOptions::default();
 

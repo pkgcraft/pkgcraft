@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
 use crate::repo::Repo;
-use crate::{Error, Result};
+use crate::Error;
 pub(crate) use repo::RepoConfig;
 
 mod repo;
@@ -23,7 +23,7 @@ pub struct ConfigPath {
 }
 
 impl ConfigPath {
-    fn new(name: &str, prefix: &str, create: bool) -> Result<ConfigPath> {
+    fn new(name: &str, prefix: &str, create: bool) -> crate::Result<ConfigPath> {
         let home = env::var("HOME").ok().unwrap_or_else(|| "/root".to_string());
         let (config, cache, data, db, run): (
             Utf8PathBuf,
@@ -103,7 +103,7 @@ pub struct Config {
 static CURRENT_CONFIG: Lazy<RwLock<Arc<Config>>> = Lazy::new(|| RwLock::new(Default::default()));
 
 impl Config {
-    pub fn new(name: &str, prefix: &str, create: bool) -> Result<Config> {
+    pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Config> {
         let path = ConfigPath::new(name, prefix, create)?;
         let repos = repo::Config::new(&path.config, &path.db, create)?;
         repos.finalize()?;
@@ -124,7 +124,7 @@ impl Config {
     // during mutations causing references to change.
 
     /// Add local repo from a filesystem path.
-    pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> Result<Repo> {
+    pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> crate::Result<Repo> {
         let r = self.repos.add_path(name, priority, path)?;
         r.finalize()?;
         self.repos.insert(name, r.clone(), true);
@@ -133,7 +133,7 @@ impl Config {
     }
 
     /// Add external repo from a URI.
-    pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
+    pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;
         r.finalize()?;
         self.repos.insert(name, r.clone(), false);
@@ -142,7 +142,7 @@ impl Config {
     }
 
     /// Create a new repo.
-    pub fn create_repo(&mut self, name: &str, priority: i32) -> Result<Repo> {
+    pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
         let r = self.repos.create(name, priority)?;
         r.finalize()?;
         self.repos.insert(name, r.clone(), false);
@@ -151,7 +151,7 @@ impl Config {
     }
 
     /// Remove configured repos.
-    pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> Result<()> {
+    pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
         self.repos.del(repos, clean)?;
         self.repos.finalize()?;
         Config::make_current(self.clone());
@@ -164,7 +164,7 @@ impl Config {
         &mut self,
         name: &str,
         priority: i32,
-    ) -> Result<(crate::repo::ebuild::TempRepo, Arc<crate::repo::ebuild::Repo>)> {
+    ) -> crate::Result<(crate::repo::ebuild::TempRepo, Arc<crate::repo::ebuild::Repo>)> {
         let (temp_repo, r) = self.repos.create_temp(name, priority)?;
         r.finalize()?;
         self.repos.insert(name, r.clone(), false);

@@ -4,12 +4,12 @@ use std::process::Command;
 use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::command::RunCommand;
-use crate::{Error, Result};
+use crate::Error;
 
 pub(super) trait ArchiveFormat {
     const EXTS: &'static [&'static str];
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()>;
-    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()>;
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()>;
+    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()>;
 }
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ pub(super) struct Tar {
 impl ArchiveFormat for Tar {
     const EXTS: &'static [&'static str] = &["tar"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
@@ -28,7 +28,7 @@ impl ArchiveFormat for Tar {
         cmd.run()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
         cmd.arg("xf").arg(&self.path);
         cmd.run()
@@ -43,7 +43,7 @@ pub(super) struct TarGz {
 impl ArchiveFormat for TarGz {
     const EXTS: &'static [&'static str] = &["tar.gz", "tgz", "tar.z"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
@@ -51,7 +51,7 @@ impl ArchiveFormat for TarGz {
         cmd.run()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
         cmd.args(["xf", self.path.as_str(), "-I", "gzip"]);
         cmd.run()
@@ -66,7 +66,7 @@ pub(super) struct TarBz2 {
 impl ArchiveFormat for TarBz2 {
     const EXTS: &'static [&'static str] = &["tar.bz2", "tbz2", "tbz"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
@@ -74,7 +74,7 @@ impl ArchiveFormat for TarBz2 {
         cmd.run()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
         cmd.args(["xf", self.path.as_str(), "-I", "bzip2"]);
         cmd.run()
@@ -89,7 +89,7 @@ pub(super) struct TarLzma {
 impl ArchiveFormat for TarLzma {
     const EXTS: &'static [&'static str] = &["tar.lzma"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
@@ -97,7 +97,7 @@ impl ArchiveFormat for TarLzma {
         cmd.run()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
         cmd.args(["xf", self.path.as_str(), "-I", "lzma"]);
         cmd.run()
@@ -112,7 +112,7 @@ pub(super) struct TarXz {
 impl ArchiveFormat for TarXz {
     const EXTS: &'static [&'static str] = &["tar.xz", "txz"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
@@ -120,7 +120,7 @@ impl ArchiveFormat for TarXz {
         cmd.run()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
         cmd.args(["xf", self.path.as_str(), "-I", "xz"]);
         cmd.run()
@@ -135,11 +135,11 @@ pub(super) struct Zip {
 impl ArchiveFormat for Zip {
     const EXTS: &'static [&'static str] = &["zip", "jar"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> crate::Result<()> {
         unimplemented!()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("unzip");
         cmd.args(["-qo", self.path.as_str()]);
         cmd.run()
@@ -154,7 +154,7 @@ pub(super) struct Gz {
 impl ArchiveFormat for Gz {
     const EXTS: &'static [&'static str] = &["gz", "z"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let src =
             File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
@@ -168,7 +168,7 @@ impl ArchiveFormat for Gz {
         cmd.run()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
         let src = &self.path;
         let src = File::open(src)
             .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
@@ -191,7 +191,7 @@ pub(super) struct Bz2 {
 impl ArchiveFormat for Bz2 {
     const EXTS: &'static [&'static str] = &["bz2", "bz"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let src =
             File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
@@ -205,7 +205,7 @@ impl ArchiveFormat for Bz2 {
         cmd.run()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
         let src = &self.path;
         let src = File::open(src)
             .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
@@ -228,7 +228,7 @@ pub(super) struct Xz {
 impl ArchiveFormat for Xz {
     const EXTS: &'static [&'static str] = &["xz"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let src =
             File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
@@ -242,7 +242,7 @@ impl ArchiveFormat for Xz {
         cmd.run()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
         let src = &self.path;
         let src = File::open(src)
             .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
@@ -265,11 +265,11 @@ pub(super) struct _7z {
 impl ArchiveFormat for _7z {
     const EXTS: &'static [&'static str] = &["7z"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> crate::Result<()> {
         unimplemented!()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("7z");
         cmd.args(["x", "-y", self.path.as_str()]);
         cmd.run()
@@ -284,11 +284,11 @@ pub(super) struct Rar {
 impl ArchiveFormat for Rar {
     const EXTS: &'static [&'static str] = &["rar"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> crate::Result<()> {
         unimplemented!()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("unrar");
         cmd.args(["x", "-idq", "-o+", self.path.as_str()]);
         cmd.run()
@@ -303,11 +303,11 @@ pub(super) struct Lha {
 impl ArchiveFormat for Lha {
     const EXTS: &'static [&'static str] = &["lha", "lzh"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> crate::Result<()> {
         unimplemented!()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("lha");
         cmd.args(["xfq", self.path.as_str()]);
         cmd.run()
@@ -322,11 +322,11 @@ pub(super) struct Ar {
 impl ArchiveFormat for Ar {
     const EXTS: &'static [&'static str] = &["deb", "a"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> crate::Result<()> {
         unimplemented!()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("ar");
         cmd.args(["x", self.path.as_str()]);
         cmd.run()
@@ -341,11 +341,11 @@ pub(super) struct Lzma {
 impl ArchiveFormat for Lzma {
     const EXTS: &'static [&'static str] = &["lzma"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> Result<()> {
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> crate::Result<()> {
         unimplemented!()
     }
 
-    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
+    fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
         let dest = dest.as_ref();
         let dest = File::create(dest)
             .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
@@ -366,14 +366,14 @@ macro_rules! make_archive {
         impl ArchiveFormat for Archive {
             const EXTS: &'static [&'static str] = &[];
 
-            fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> Result<()> {
+            fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
                 let archive = Archive::from_path(dest.as_ref())?;
                 match archive {
                     $(Archive::$x(_) => $x::pack(src, dest),)+
                 }
             }
 
-            fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> Result<()> {
+            fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
                 match self {
                     $(Archive::$x(a) => a.unpack(dest),)+
                 }
@@ -381,7 +381,7 @@ macro_rules! make_archive {
         }
 
         impl Archive {
-            pub(super) fn from_path<P: AsRef<Utf8Path>>(path: P) -> Result<Archive> {
+            pub(super) fn from_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Archive> {
                 let path = path.as_ref();
                 let path = Utf8PathBuf::from(path);
                 let filename = path.file_name().ok_or_else(||

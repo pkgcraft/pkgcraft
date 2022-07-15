@@ -6,7 +6,7 @@ use std::str::FromStr;
 use async_trait::async_trait;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::{Error, Result};
+use crate::Error;
 
 #[cfg(feature = "git")]
 mod git;
@@ -37,12 +37,12 @@ impl fmt::Display for Syncer {
 
 #[async_trait]
 pub(self) trait Syncable {
-    fn uri_to_syncer(uri: &str) -> Result<Syncer>;
-    async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> Result<()>;
+    fn uri_to_syncer(uri: &str) -> crate::Result<Syncer>;
+    async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()>;
 }
 
 impl Syncer {
-    pub(crate) fn sync<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+    pub(crate) fn sync<P: AsRef<Path>>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
 
         // make sure repos dir exists
@@ -66,7 +66,7 @@ impl Syncer {
 impl FromStr for Syncer {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> crate::Result<Self> {
         #[rustfmt::skip]
         let prioritized_syncers = [
             #[cfg(feature = "git")]

@@ -13,7 +13,7 @@ use tracing::warn;
 use crate::repo::ebuild::TempRepo;
 use crate::repo::{Repo, Repository};
 use crate::sync::Syncer;
-use crate::{Error, Result};
+use crate::Error;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RepoConfig {
@@ -24,7 +24,7 @@ pub struct RepoConfig {
 }
 
 impl RepoConfig {
-    fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+    fn new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         let data = fs::read_to_string(path)
             .map_err(|e| Error::Config(format!("failed loading repo config {path:?}: {e}")))?;
@@ -38,7 +38,7 @@ impl RepoConfig {
         Ok(config)
     }
 
-    pub(crate) fn sync(&self) -> Result<()> {
+    pub(crate) fn sync(&self) -> crate::Result<()> {
         match &self.sync {
             Some(syncer) => syncer.sync(&self.location),
             None => Ok(()),
@@ -73,7 +73,11 @@ pub struct Config {
 }
 
 impl Config {
-    pub(super) fn new(config_dir: &Utf8Path, db_dir: &Utf8Path, create: bool) -> Result<Config> {
+    pub(super) fn new(
+        config_dir: &Utf8Path,
+        db_dir: &Utf8Path,
+        create: bool,
+    ) -> crate::Result<Config> {
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
 
@@ -131,7 +135,7 @@ impl Config {
         })
     }
 
-    pub(super) fn finalize(&self) -> Result<()> {
+    pub(super) fn finalize(&self) -> crate::Result<()> {
         for repo in self.repos.values() {
             repo.finalize()?;
         }
@@ -139,7 +143,12 @@ impl Config {
     }
 
     /// Add local repo from a filesystem path.
-    pub(super) fn add_path(&mut self, name: &str, priority: i32, path: &str) -> Result<Repo> {
+    pub(super) fn add_path(
+        &mut self,
+        name: &str,
+        priority: i32,
+        path: &str,
+    ) -> crate::Result<Repo> {
         if self.repos.get(name).is_some() {
             return Err(Error::Config(format!("existing repo: {name}")));
         }
@@ -153,7 +162,7 @@ impl Config {
     }
 
     /// Add external repo from a URI.
-    pub(super) fn add_uri(&mut self, name: &str, priority: i32, uri: &str) -> Result<Repo> {
+    pub(super) fn add_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         if self.repos.get(name).is_some() {
             return Err(Error::Config(format!("existing repo: {name}")));
         }
@@ -182,7 +191,7 @@ impl Config {
         Ok(repo)
     }
 
-    pub(super) fn create(&mut self, name: &str, priority: i32) -> Result<Repo> {
+    pub(super) fn create(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
         match self.repos.get(name) {
             Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
             None => {
@@ -197,7 +206,11 @@ impl Config {
     }
 
     #[cfg(test)]
-    pub(super) fn create_temp(&mut self, name: &str, priority: i32) -> Result<(TempRepo, Repo)> {
+    pub(super) fn create_temp(
+        &mut self,
+        name: &str,
+        priority: i32,
+    ) -> crate::Result<(TempRepo, Repo)> {
         match self.repos.get(name) {
             Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
             None => {
@@ -208,7 +221,7 @@ impl Config {
         }
     }
 
-    pub(super) fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> Result<()> {
+    pub(super) fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
         for name in repos {
             let name = name.as_ref();
             // error out if repo config is missing
@@ -230,7 +243,7 @@ impl Config {
     }
 
     // TODO: add concurrent syncing support with output progress
-    pub fn sync<S: AsRef<str>>(&self, repos: Vec<S>) -> Result<()> {
+    pub fn sync<S: AsRef<str>>(&self, repos: Vec<S>) -> crate::Result<()> {
         let repos: Vec<&str> = match &repos {
             names if !names.is_empty() => names.iter().map(|s| s.as_ref()).collect(),
             // sync all configured repos if none were passed

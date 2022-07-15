@@ -6,7 +6,7 @@ use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
 use crate::pkg::Package;
 use crate::restrict::Restriction;
-use crate::{atom, pkg, repo, Error, Result};
+use crate::{atom, pkg, repo, Error};
 
 #[derive(Debug, Default)]
 pub struct Repo {
@@ -29,7 +29,11 @@ impl Repo {
         }
     }
 
-    pub(super) fn from_path<P: AsRef<Utf8Path>>(id: &str, priority: i32, path: P) -> Result<Self> {
+    pub(super) fn from_path<P: AsRef<Utf8Path>>(
+        id: &str,
+        priority: i32,
+        path: P,
+    ) -> crate::Result<Self> {
         let path = path.as_ref();
         match path.exists() {
             false => Err(Error::RepoInit("not an empty repo".to_string())),

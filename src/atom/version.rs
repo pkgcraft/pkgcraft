@@ -6,7 +6,7 @@ use std::{fmt, str};
 
 use super::parse;
 use crate::macros::cmp_not_equal;
-use crate::{Error, Result};
+use crate::Error;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Suffix {
@@ -20,7 +20,7 @@ enum Suffix {
 impl FromStr for Suffix {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Suffix> {
+    fn from_str(s: &str) -> crate::Result<Suffix> {
         match s {
             "alpha" => Ok(Suffix::Alpha),
             "beta" => Ok(Suffix::Beta),
@@ -41,7 +41,7 @@ pub struct Revision {
 impl FromStr for Revision {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> crate::Result<Self> {
         let int = s
             .parse()
             .map_err(|e| Error::InvalidValue(format!("invalid revision: {e}: {s}")))?;
@@ -53,7 +53,7 @@ impl FromStr for Revision {
 }
 
 impl Revision {
-    fn new(rev: Option<&str>) -> Result<Self> {
+    fn new(rev: Option<&str>) -> crate::Result<Self> {
         match &rev {
             Some(s) => Revision::from_str(s),
             None => Ok(Revision::default()),
@@ -128,7 +128,7 @@ impl<'a> ParsedVersion<'a> {
         mut self,
         op: &'a str,
         glob: Option<&'a str>,
-    ) -> std::result::Result<Self, &'static str> {
+    ) -> Result<Self, &'static str> {
         use Operator::*;
         let op = match (op, glob) {
             ("<", None) => Ok(Less),
@@ -148,7 +148,7 @@ impl<'a> ParsedVersion<'a> {
         Ok(self)
     }
 
-    pub(crate) fn into_owned(self, input: &str) -> Result<Version> {
+    pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
         let mut numbers = Vec::<(String, u64)>::new();
         for s in self.numbers.iter() {
             let num = s
@@ -208,18 +208,18 @@ pub struct Version {
 
 impl Version {
     /// Verify a string represents a valid version.
-    pub fn valid<S: AsRef<str>>(s: S) -> Result<()> {
+    pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
         parse::version_str(s.as_ref())?;
         Ok(())
     }
 
     /// Create a new Version from a given string.
-    pub fn new<S: AsRef<str>>(s: S) -> Result<Self> {
+    pub fn new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
         parse::version(s.as_ref())
     }
 
     /// Create a new Version from a given string with operators.
-    pub fn new_with_op<S: AsRef<str>>(s: S) -> Result<Self> {
+    pub fn new_with_op<S: AsRef<str>>(s: S) -> crate::Result<Self> {
         parse::version_with_op(s.as_ref())
     }
 
@@ -373,7 +373,7 @@ impl FromStr for Version {
     type Err = Error;
 
     #[inline]
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> crate::Result<Self> {
         parse::version(s)
     }
 }

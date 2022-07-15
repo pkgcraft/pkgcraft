@@ -7,7 +7,7 @@ use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
 use crate::pkg::Package;
 use crate::restrict::Restriction;
-use crate::{atom, pkg, repo, Error, Result};
+use crate::{atom, pkg, repo, Error};
 
 #[derive(Debug, Default)]
 pub struct Repo {
@@ -20,7 +20,7 @@ make_repo_traits!(Repo);
 
 impl Repo {
     #[cfg(test)]
-    pub(crate) fn new<'a, I>(id: &str, priority: i32, atoms: I) -> Result<Repo>
+    pub(crate) fn new<'a, I>(id: &str, priority: i32, atoms: I) -> crate::Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
     {
@@ -37,7 +37,11 @@ impl Repo {
         })
     }
 
-    pub(super) fn from_path<P: AsRef<Utf8Path>>(id: &str, priority: i32, path: P) -> Result<Self> {
+    pub(super) fn from_path<P: AsRef<Utf8Path>>(
+        id: &str,
+        priority: i32,
+        path: P,
+    ) -> crate::Result<Self> {
         let path = path.as_ref();
         let data = fs::read_to_string(path).map_err(|e| Error::RepoInit(e.to_string()))?;
         let config = RepoConfig {

@@ -212,47 +212,47 @@ pub mod parse {
 
     use crate::atom::{Atom, Version};
     use crate::peg::peg_error;
-    use crate::{Error, Result};
+    use crate::Error;
 
     use super::*;
 
-    pub fn category(s: &str) -> Result<&str> {
+    pub fn category(s: &str) -> crate::Result<&str> {
         pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s:?}"), s, e))
     }
 
-    pub fn package(s: &str) -> Result<&str> {
+    pub fn package(s: &str) -> crate::Result<&str> {
         pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s:?}"), s, e))
     }
 
-    pub(crate) fn version_str(s: &str) -> Result<ParsedVersion> {
+    pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
         pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))
     }
 
     #[cached(
-        type = "SizedCache<String, Result<Version>>",
+        type = "SizedCache<String, crate::Result<Version>>",
         create = "{ SizedCache::with_size(1000) }",
         convert = r#"{ s.to_string() }"#
     )]
-    pub(crate) fn version(s: &str) -> Result<Version> {
+    pub(crate) fn version(s: &str) -> crate::Result<Version> {
         let version = version_str(s)?;
         version.into_owned(s)
     }
 
-    pub(crate) fn version_with_op(s: &str) -> Result<Version> {
+    pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
         let parsed_version = pkg::version_with_op(s)
             .map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
         parsed_version.into_owned(s)
     }
 
-    pub fn repo(s: &str) -> Result<&str> {
+    pub fn repo(s: &str) -> crate::Result<&str> {
         pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
     }
 
-    pub(crate) fn cpv(s: &str) -> Result<ParsedAtom> {
+    pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
         pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))
     }
 
-    pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> Result<ParsedAtom<'a>> {
+    pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
         let (dep, mut atom) =
             pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))?;
         let attrs =
@@ -281,11 +281,11 @@ pub mod parse {
     }
 
     #[cached(
-        type = "SizedCache<(String, &Eapi), Result<Atom>>",
+        type = "SizedCache<(String, &Eapi), crate::Result<Atom>>",
         create = "{ SizedCache::with_size(1000) }",
         convert = r#"{ (s.to_string(), eapi) }"#
     )]
-    pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> Result<Atom> {
+    pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
         let atom = dep_str(s, eapi)?;
         atom.into_owned()
     }

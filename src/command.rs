@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::process::Command;
 
-use crate::{Error, Result};
+use crate::Error;
 
-fn run_cmd(cmd: &mut Command) -> Result<()> {
+fn run_cmd(cmd: &mut Command) -> crate::Result<()> {
     match cmd.status() {
         Ok(r) => match r.success() {
             true => Ok(()),
@@ -18,7 +18,7 @@ fn run_cmd(cmd: &mut Command) -> Result<()> {
 /// Various command object functionality.
 pub(crate) trait RunCommand {
     /// Run the command.
-    fn run(&mut self) -> Result<()>;
+    fn run(&mut self) -> crate::Result<()>;
     /// Convert the command into a vector of its arguments.
     fn to_vec(&self) -> Vec<Cow<str>>;
 }
@@ -31,16 +31,16 @@ impl RunCommand for Command {
     }
 
     #[cfg(not(test))]
-    fn run(&mut self) -> Result<()> {
+    fn run(&mut self) -> crate::Result<()> {
         run_cmd(self)
     }
 
     #[cfg(test)]
-    fn run(&mut self) -> Result<()> {
+    fn run(&mut self) -> crate::Result<()> {
         let cmd = self.to_vec().into_iter().map(|s| String::from(s)).collect();
         COMMANDS.with(|cmds| cmds.borrow_mut().push(cmd));
 
-        RUN_COMMAND.with(|d| -> Result<()> {
+        RUN_COMMAND.with(|d| -> crate::Result<()> {
             match *d.borrow() {
                 true => run_cmd(self),
                 false => Ok(()),

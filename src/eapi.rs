@@ -19,7 +19,7 @@ use crate::atom::Atom;
 use crate::pkgsh::builtins::{parse, BuiltinsMap, Scope, BUILTINS_MAP};
 use crate::pkgsh::phase::Phase::*;
 use crate::pkgsh::phase::*;
-use crate::{Error, Result};
+use crate::Error;
 
 static VALID_EAPI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
@@ -196,23 +196,23 @@ impl Default for &'static Eapi {
 }
 
 pub trait IntoEapi {
-    fn into_eapi(self) -> Result<&'static Eapi>;
+    fn into_eapi(self) -> crate::Result<&'static Eapi>;
 }
 
 impl IntoEapi for &'static Eapi {
-    fn into_eapi(self) -> Result<&'static Eapi> {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
         Ok(self)
     }
 }
 
 impl IntoEapi for &str {
-    fn into_eapi(self) -> Result<&'static Eapi> {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
         get_eapi(self)
     }
 }
 
 impl IntoEapi for Option<&str> {
-    fn into_eapi(self) -> Result<&'static Eapi> {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
         match self {
             None => Ok(Default::default()),
             Some(s) => get_eapi(s),
@@ -221,7 +221,7 @@ impl IntoEapi for Option<&str> {
 }
 
 impl IntoEapi for Option<&'static Eapi> {
-    fn into_eapi(self) -> Result<&'static Eapi> {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
         match self {
             None => Ok(Default::default()),
             Some(eapi) => Ok(eapi),
@@ -232,7 +232,7 @@ impl IntoEapi for Option<&'static Eapi> {
 // Used by pkgcraft-c mapping NULL pointers to the default EAPI.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 impl IntoEapi for *const c_char {
-    fn into_eapi(self) -> Result<&'static Eapi> {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
         match self.is_null() {
             true => Ok(Default::default()),
             false => unsafe {
@@ -268,7 +268,7 @@ impl Eapi {
 
     /// Parse a package atom using EAPI specific support.
     #[inline]
-    pub fn atom<S: AsRef<str>>(&'static self, s: S) -> Result<Atom> {
+    pub fn atom<S: AsRef<str>>(&'static self, s: S) -> crate::Result<Atom> {
         Atom::new(s.as_ref(), self)
     }
 
@@ -289,7 +289,7 @@ impl Eapi {
         })
     }
 
-    pub(crate) fn archive_from_path<P>(&self, path: P) -> Result<(String, Archive)>
+    pub(crate) fn archive_from_path<P>(&self, path: P) -> crate::Result<(String, Archive)>
     where
         P: AsRef<Utf8Path>,
     {
@@ -314,7 +314,10 @@ impl Eapi {
             .unwrap_or_else(|| panic!("EAPI {self}, unknown scope: {scope:?}"))
     }
 
-    pub(crate) fn scoped_builtins<S: Into<Scope>>(&self, scope: S) -> Result<ScopedBuiltins> {
+    pub(crate) fn scoped_builtins<S: Into<Scope>>(
+        &self,
+        scope: S,
+    ) -> crate::Result<ScopedBuiltins> {
         let builtins: Vec<&str> = self.builtins(scope).keys().copied().collect();
         Ok(ScopedBuiltins::new((&builtins, &[]))?)
     }
@@ -421,7 +424,7 @@ impl fmt::Debug for Eapi {
 }
 
 /// Get an EAPI given its identifier.
-pub fn get_eapi<S: AsRef<str>>(id: S) -> Result<&'static Eapi> {
+pub fn get_eapi<S: AsRef<str>>(id: S) -> crate::Result<&'static Eapi> {
     let id = id.as_ref();
     match EAPIS.get(id) {
         Some(eapi) => Ok(eapi),
@@ -618,7 +621,7 @@ pub static EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
 
 /// Convert EAPI range into a Vector of EAPI objects, for example "0-" covers all EAPIs and "0~"
 /// covers all official EAPIs.
-pub(crate) fn supported<S: AsRef<str>>(s: S) -> Result<IndexSet<&'static Eapi>> {
+pub(crate) fn supported<S: AsRef<str>>(s: S) -> crate::Result<IndexSet<&'static Eapi>> {
     let (s, max) = match s.as_ref() {
         s if s.ends_with('~') => (s.replace('~', "-"), EAPIS_OFFICIAL.len() - 1),
         s => (s.to_string(), EAPIS.len() - 1),

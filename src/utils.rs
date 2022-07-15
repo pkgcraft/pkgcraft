@@ -5,7 +5,7 @@ use std::path::{Component, Path, PathBuf};
 
 use camino::Utf8PathBuf;
 
-use crate::{Error, Result};
+use crate::Error;
 
 // Return the hash of a given hashable object.
 pub fn hash<T: Hash>(obj: T) -> u64 {
@@ -15,7 +15,7 @@ pub fn hash<T: Hash>(obj: T) -> u64 {
 }
 
 // Get the current working directory as a Utf8PathBuf.
-pub(crate) fn current_dir() -> Result<Utf8PathBuf> {
+pub(crate) fn current_dir() -> crate::Result<Utf8PathBuf> {
     let dir = env::current_dir()
         .map_err(|e| Error::InvalidValue(format!("can't get current dir: {e}")))?;
     Utf8PathBuf::try_from(dir)

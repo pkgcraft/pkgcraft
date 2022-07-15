@@ -11,7 +11,7 @@ use tracing::warn;
 use crate::config::RepoConfig;
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restriction;
-use crate::{atom, Error, Result};
+use crate::{atom, Error};
 
 pub mod ebuild;
 pub(crate) mod empty;
@@ -140,7 +140,7 @@ make_repo_traits!(Repo);
 
 impl Repo {
     /// Determine if a given repo format is supported.
-    pub(crate) fn is_supported<S: AsRef<str>>(format: S) -> Result<()> {
+    pub(crate) fn is_supported<S: AsRef<str>>(format: S) -> crate::Result<()> {
         let format = format.as_ref();
         match SUPPORTED_FORMATS.get(format) {
             Some(_) => Ok(()),
@@ -149,7 +149,7 @@ impl Repo {
     }
 
     /// Try to load a repo from a given path.
-    pub(crate) fn from_path<P, S>(id: S, priority: i32, path: P) -> Result<Self>
+    pub(crate) fn from_path<P, S>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
         P: AsRef<Utf8Path>,
         S: AsRef<str>,
@@ -170,7 +170,12 @@ impl Repo {
     }
 
     /// Try to load a certain repo type from a given path.
-    pub(crate) fn from_format<P, S>(id: S, priority: i32, path: P, format: &str) -> Result<Self>
+    pub(crate) fn from_format<P, S>(
+        id: S,
+        priority: i32,
+        path: P,
+        format: &str,
+    ) -> crate::Result<Self>
     where
         P: AsRef<Utf8Path>,
         S: AsRef<str>,
@@ -185,7 +190,7 @@ impl Repo {
         }
     }
 
-    pub(super) fn finalize(&self) -> Result<()> {
+    pub(super) fn finalize(&self) -> crate::Result<()> {
         match self {
             Self::Ebuild(repo) => repo.finalize(),
             _ => Ok(()),
@@ -250,7 +255,7 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn path(&self) -> &Utf8Path {
         &self.config().location
     }
-    fn sync(&self) -> Result<()> {
+    fn sync(&self) -> crate::Result<()> {
         self.config().sync()
     }
     fn len(&self) -> usize;
