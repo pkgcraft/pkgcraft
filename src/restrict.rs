@@ -5,8 +5,7 @@ use indexmap::IndexSet;
 use regex::Regex;
 use tracing::warn;
 
-use crate::pkg;
-use crate::pkg::Package;
+use crate::pkg::RestrictPkg;
 use crate::{atom, Result};
 
 // export parser functionality
@@ -58,19 +57,6 @@ impl Restriction<&atom::Atom> for AtomAttr {
 }
 
 #[derive(Debug)]
-pub enum PkgAttr {
-    Eapi(Str),
-}
-
-impl Restriction<&pkg::Pkg<'_>> for PkgAttr {
-    fn matches(&self, pkg: &pkg::Pkg) -> bool {
-        match self {
-            Self::Eapi(r) => r.matches(pkg.eapi().as_str()),
-        }
-    }
-}
-
-#[derive(Debug)]
 pub enum Restrict {
     // boolean
     True,
@@ -78,7 +64,7 @@ pub enum Restrict {
 
     // object attributes
     Atom(AtomAttr),
-    Pkg(PkgAttr),
+    Pkg(RestrictPkg),
 
     // boolean combinations
     And(Vec<Box<Self>>),
@@ -260,12 +246,6 @@ impl<T: Borrow<atom::Atom>> From<T> for Restrict {
         }
 
         Self::and(restricts)
-    }
-}
-
-impl From<&pkg::Pkg<'_>> for Restrict {
-    fn from(pkg: &pkg::Pkg) -> Self {
-        Self::from(pkg.atom())
     }
 }
 

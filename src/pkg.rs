@@ -5,7 +5,7 @@ use scallop::variables::bind;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
 use crate::repo::{Repo, Repository};
-use crate::{atom, eapi, Result};
+use crate::{atom, eapi, restrict, Result};
 
 pub mod ebuild;
 pub mod fake;
@@ -112,6 +112,20 @@ macro_rules! make_pkg_traits {
             }
         }
 
+        impl From<&$x> for crate::restrict::Restrict {
+            fn from(pkg: &Pkg) -> Self {
+                Self::from(pkg.atom())
+            }
+        }
+
+        impl crate::restrict::Restriction<&$x> for crate::pkg::RestrictPkg {
+            fn matches(&self, pkg: &Pkg) -> bool {
+                match self {
+                    Self::Eapi(r) => r.matches(pkg.eapi().as_str()),
+                }
+            }
+        }
+
         impl crate::pkg::PackageEnv for $x {}
     )+};
 }
@@ -140,6 +154,11 @@ impl<'a> Package for Pkg<'a> {
             Self::Fake(_, repo) => repo,
         }
     }
+}
+
+#[derive(Debug)]
+pub enum RestrictPkg {
+    Eapi(restrict::Str),
 }
 
 #[cfg(test)]

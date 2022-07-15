@@ -832,11 +832,17 @@ mod tests {
         t.create_ebuild("cat/pkg-1", []).unwrap();
         t.create_ebuild("cat/pkg-2", []).unwrap();
 
-        // single match
+        // single match via CPV
         let cpv = atom::cpv("cat/pkg-1").unwrap();
         let iter = repo.iter_restrict((&cpv).into());
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, [cpv.to_string()]);
+
+        // single match via package
+        let pkg = repo.iter().next().unwrap();
+        let iter = repo.iter_restrict((&pkg).into());
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, [pkg.atom().to_string()]);
 
         // multiple matches
         let restrict = Restrict::package("pkg");
