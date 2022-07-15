@@ -506,4 +506,166 @@ mod tests {
             assert_eq!(sorted, expected);
         }
     }
+
+    #[test]
+    fn test_restrict_methods() {
+        let unversioned = Atom::from_str("cat/pkg").unwrap();
+        let cpv = cpv("cat/pkg-1").unwrap();
+        let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+
+        // category
+        let r = Restrict::category("cat");
+        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // package
+        let r = Restrict::package("pkg");
+        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // no version
+        let r = Restrict::version(None).unwrap();
+        assert!(r.matches(&unversioned));
+        assert!(!r.matches(&cpv));
+        assert!(!r.matches(&full));
+
+        // version
+        let r = Restrict::version(Some("1")).unwrap();
+        assert!(!r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // no slot
+        let r = Restrict::slot(None);
+        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(!r.matches(&full));
+
+        // slot
+        let r = Restrict::slot(Some("2"));
+        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // no subslot
+        let r = Restrict::subslot(None);
+        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(!r.matches(&full));
+
+        // subslot
+        let r = Restrict::subslot(Some("3"));
+        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // no use deps specified
+        let r = Restrict::use_deps([] as [&str; 0]);
+        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // use deps specified
+        for u in [vec!["u1"], vec!["u1", "u2"]] {
+            let r = Restrict::use_deps(u);
+            assert!(!r.matches(&unversioned));
+            assert!(!r.matches(&cpv));
+            assert!(r.matches(&full));
+        }
+
+        // no repo
+        let r = Restrict::repo(None);
+        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(!r.matches(&full));
+
+        // repo
+        let r = Restrict::repo(Some("repo"));
+        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpv));
+        assert!(r.matches(&full));
+    }
+
+    #[test]
+    fn test_restrict_conversion() {
+        let unversioned = Atom::from_str("cat/pkg").unwrap();
+        let cpv = cpv("cat/pkg-1").unwrap();
+        let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+
+        // unversioned restriction
+        let r = restrict::Restrict::from(&unversioned);
+        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // cpv restriction
+        let r = restrict::Restrict::from(&cpv);
+        assert!(!r.matches(&unversioned));
+        assert!(r.matches(&cpv));
+        assert!(r.matches(&full));
+
+        // full atom restriction
+        let r = restrict::Restrict::from(&full);
+        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpv));
+        assert!(r.matches(&full));
+    }
+
+    #[test]
+    fn test_restrict_versions() {
+        let lt = Atom::from_str("<cat/pkg-1-r1").unwrap();
+        let le = Atom::from_str("<=cat/pkg-1-r1").unwrap();
+        let eq = Atom::from_str("=cat/pkg-1-r1").unwrap();
+        let eq_glob = Atom::from_str("=cat/pkg-1*").unwrap();
+        let approx = Atom::from_str("~cat/pkg-1").unwrap();
+        let ge = Atom::from_str(">=cat/pkg-1-r1").unwrap();
+        let gt = Atom::from_str(">cat/pkg-1-r1").unwrap();
+
+        let lt_cpv = cpv("cat/pkg-0").unwrap();
+        let gt_cpv = cpv("cat/pkg-2").unwrap();
+
+        let r = restrict::Restrict::from(&lt);
+        assert!(r.matches(&lt_cpv));
+        assert!(!r.matches(&lt));
+        assert!(!r.matches(&gt_cpv));
+
+        let r = restrict::Restrict::from(&le);
+        assert!(r.matches(&lt_cpv));
+        assert!(r.matches(&le));
+        assert!(!r.matches(&gt_cpv));
+
+        let r = restrict::Restrict::from(&eq);
+        assert!(!r.matches(&lt_cpv));
+        assert!(r.matches(&eq));
+        assert!(!r.matches(&gt_cpv));
+
+        let r = restrict::Restrict::from(&eq_glob);
+        assert!(!r.matches(&lt_cpv));
+        assert!(r.matches(&eq_glob));
+        for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
+            let cpv = cpv(s).unwrap();
+            assert!(r.matches(&cpv));
+        }
+        assert!(!r.matches(&gt_cpv));
+        let r = restrict::Restrict::from(&approx);
+        assert!(!r.matches(&lt_cpv));
+        assert!(r.matches(&approx));
+        for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
+            let cpv = cpv(s).unwrap();
+            assert!(r.matches(&cpv));
+        }
+        assert!(!r.matches(&gt_cpv));
+
+        let r = restrict::Restrict::from(&ge);
+        assert!(!r.matches(&lt_cpv));
+        assert!(r.matches(&ge));
+        assert!(r.matches(&gt_cpv));
+
+        let r = restrict::Restrict::from(&gt);
+        assert!(!r.matches(&lt_cpv));
+        assert!(!r.matches(&gt));
+        assert!(r.matches(&gt_cpv));
+    }
 }
