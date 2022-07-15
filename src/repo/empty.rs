@@ -5,7 +5,7 @@ use camino::Utf8Path;
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
 use crate::pkg::Package;
-use crate::restrict::Restriction;
+use crate::restrict::{Restrict, Restriction};
 use crate::{atom, pkg, repo, Error};
 
 #[derive(Debug, Default)]
@@ -42,6 +42,10 @@ impl Repo {
     }
 
     pub fn iter(&self) -> iter::Empty<pkg::Pkg<'_>> {
+        iter::empty::<pkg::Pkg<'_>>()
+    }
+
+    pub fn iter_restrict<T: Into<Restrict>>(&self, _val: T) -> iter::Empty<pkg::Pkg<'_>> {
         iter::empty::<pkg::Pkg<'_>>()
     }
 }

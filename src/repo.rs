@@ -10,7 +10,7 @@ use tracing::warn;
 
 use crate::config::RepoConfig;
 use crate::pkg::{Package, Pkg};
-use crate::restrict::Restriction;
+use crate::restrict::{Restrict, Restriction};
 use crate::{atom, Error};
 
 pub mod ebuild;
@@ -200,6 +200,14 @@ impl Repo {
     pub fn iter(&self) -> PkgIter {
         self.into_iter()
     }
+
+    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
+        match self {
+            Self::Ebuild(repo) => RestrictPkgIter::Ebuild(repo.iter_restrict(val), self),
+            Self::Fake(repo) => RestrictPkgIter::Fake(repo.iter_restrict(val), self),
+            _ => RestrictPkgIter::Empty,
+        }
+    }
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -218,12 +226,32 @@ impl<'a> IntoIterator for &'a Repo {
         match self {
             Repo::Ebuild(repo) => PkgIter::Ebuild(repo.into_iter(), self),
             Repo::Fake(repo) => PkgIter::Fake(repo.into_iter(), self),
-            Repo::Config(_) => PkgIter::Empty,
+            _ => PkgIter::Empty,
         }
     }
 }
 
 impl<'a> Iterator for PkgIter<'a> {
+    type Item = Pkg<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo)),
+            Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo)),
+            Self::Empty => None,
+        }
+    }
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug)]
+pub enum RestrictPkgIter<'a> {
+    Ebuild(ebuild::RestrictPkgIter<'a>, &'a Repo),
+    Fake(fake::RestrictPkgIter<'a>, &'a Repo),
+    Empty,
+}
+
+impl<'a> Iterator for RestrictPkgIter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {

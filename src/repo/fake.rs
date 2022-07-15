@@ -6,7 +6,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
 use crate::pkg::Package;
-use crate::restrict::Restriction;
+use crate::restrict::{Restrict, Restriction};
 use crate::{atom, pkg, repo, Error};
 
 #[derive(Debug, Default)]
@@ -58,6 +58,13 @@ impl Repo {
 
     pub fn iter(&self) -> PkgIter {
         self.into_iter()
+    }
+
+    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
+        RestrictPkgIter {
+            iter: self.into_iter(),
+            restrict: val.into(),
+        }
     }
 }
 
@@ -126,6 +133,29 @@ impl<'a> Iterator for PkgIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|a| pkg::fake::Pkg::new(a, self.repo))
+    }
+}
+
+#[derive(Debug)]
+pub struct RestrictPkgIter<'a> {
+    iter: PkgIter<'a>,
+    restrict: Restrict,
+}
+
+impl<'a> Iterator for RestrictPkgIter<'a> {
+    type Item = pkg::fake::Pkg<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.iter.next() {
+                Some(p) => {
+                    if self.restrict.matches(&p) {
+                        return Some(p);
+                    }
+                }
+                None => return None,
+            }
+        }
     }
 }
 
