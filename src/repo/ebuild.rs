@@ -20,7 +20,7 @@ use crate::config::{Config, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
-use crate::restrict::Restriction;
+use crate::restrict::{Restrict, Restriction};
 use crate::{atom, eapi, pkg, repo, Error};
 
 static EBUILD_RE: Lazy<Regex> =
@@ -317,6 +317,13 @@ impl Repo {
     pub fn iter(&self) -> PkgIter {
         self.into_iter()
     }
+
+    pub fn iter_restrict(&self, restrict: Restrict) -> RestrictPkgIter {
+        RestrictPkgIter {
+            iter: self.into_iter(),
+            restrict,
+        }
+    }
 }
 
 impl fmt::Display for Repo {
@@ -498,6 +505,29 @@ impl<'a> Iterator for PkgIter<'a> {
     }
 }
 
+#[derive(Debug)]
+pub struct RestrictPkgIter<'a> {
+    iter: PkgIter<'a>,
+    restrict: Restrict,
+}
+
+impl<'a> Iterator for RestrictPkgIter<'a> {
+    type Item = pkg::ebuild::Pkg<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.iter.next() {
+                Some(p) => {
+                    if self.restrict.matches(&p) {
+                        return Some(p);
+                    }
+                }
+                None => return None,
+            }
+        }
+    }
+}
+
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub(crate) struct TempRepo {
@@ -607,7 +637,7 @@ mod tests {
 
     use tracing_test::traced_test;
 
-    use crate::eapi::Key::*;
+    use crate::eapi::Key;
     use crate::macros::{assert_err_re, assert_logs_re};
     use crate::repo::{Contains, Repository};
 
@@ -795,13 +825,33 @@ mod tests {
         assert!(iter.next().is_none());
     }
 
+    #[test]
+    fn test_iter_restrict() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        t.create_ebuild("cat/pkg-1", []).unwrap();
+        t.create_ebuild("cat/pkg-2", []).unwrap();
+
+        // single match
+        let cpv = atom::cpv("cat/pkg-1").unwrap();
+        let iter = repo.iter_restrict((&cpv).into());
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, [cpv.to_string()]);
+
+        // multiple matches
+        let restrict = Restrict::package("pkg");
+        let iter = repo.iter_restrict(restrict);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
+    }
+
     #[traced_test]
     #[test]
     fn test_invalid_pkgs() {
         for (data, err) in [
-            ([(Eapi, "-1")], "invalid EAPI: -1"),
-            ([(Eapi, "a")], "unknown EAPI: a"),
-            ([(Slot, "-")], "missing required value: SLOT"),
+            ([(Key::Eapi, "-1")], "invalid EAPI: -1"),
+            ([(Key::Eapi, "a")], "unknown EAPI: a"),
+            ([(Key::Slot, "-")], "missing required value: SLOT"),
         ] {
             let mut config = Config::new("pkgcraft", "", false).unwrap();
             let (t, repo) = config.temp_repo("test", 0).unwrap();

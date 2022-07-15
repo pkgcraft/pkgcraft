@@ -9,10 +9,12 @@ use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use scallop::source;
 use scallop::variables::string_value;
+use tracing::warn;
 
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
 use crate::repo::ebuild::Repo;
+use crate::restrict::{Restrict, Restriction};
 use crate::{atom, eapi, Error, Result};
 
 static EAPI_LINE_RE: Lazy<Regex> =
@@ -240,6 +242,27 @@ impl<'a> Package for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         self.repo
+    }
+}
+
+impl Restriction<&Pkg<'_>> for Restrict {
+    fn matches(&self, pkg: &Pkg) -> bool {
+        match self {
+            // boolean
+            Self::True => true,
+            Self::False => false,
+
+            // boolean combinations
+            Self::And(vals) => vals.iter().all(|r| r.matches(pkg)),
+            Self::Or(vals) => vals.iter().any(|r| r.matches(pkg)),
+
+            Self::Atom(r) => r.matches(pkg.atom()),
+
+            _ => {
+                warn!("invalid restriction for ebuild pkg matches: {self:?}");
+                false
+            }
+        }
     }
 }
 
