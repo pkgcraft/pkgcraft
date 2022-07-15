@@ -178,7 +178,7 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Restrict {
     Eapi(restrict::Str),
 }

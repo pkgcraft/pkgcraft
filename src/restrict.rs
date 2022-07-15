@@ -9,7 +9,7 @@ pub use parser::parse;
 
 mod parser;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Restrict {
     // boolean
     True,
@@ -74,7 +74,7 @@ impl Restriction<&str> for Restrict {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Str {
     Match(String),
     Prefix(String),
@@ -95,7 +95,7 @@ impl Restriction<&str> for Str {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Set {
     StrSubset(IndexSet<String>),
 }

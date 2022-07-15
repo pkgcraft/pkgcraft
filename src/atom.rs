@@ -255,7 +255,7 @@ impl FromStr for Atom {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Restrict {
     Category(restrict::Str),
     Package(restrict::Str),
