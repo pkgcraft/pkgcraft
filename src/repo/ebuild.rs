@@ -318,10 +318,10 @@ impl Repo {
         self.into_iter()
     }
 
-    pub fn iter_restrict(&self, restrict: Restrict) -> RestrictPkgIter {
+    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
         RestrictPkgIter {
             iter: self.into_iter(),
-            restrict,
+            restrict: val.into(),
         }
     }
 }
@@ -832,13 +832,13 @@ mod tests {
 
         // single match via CPV
         let cpv = atom::cpv("cat/pkg-1").unwrap();
-        let iter = repo.iter_restrict((&cpv).into());
+        let iter = repo.iter_restrict(&cpv);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, [cpv.to_string()]);
 
         // single match via package
         let pkg = repo.iter().next().unwrap();
-        let iter = repo.iter_restrict((&pkg).into());
+        let iter = repo.iter_restrict(&pkg);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, [pkg.atom().to_string()]);
 
