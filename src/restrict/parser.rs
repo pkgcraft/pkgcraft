@@ -159,12 +159,10 @@ peg::parser! {
 
 pub mod parse {
     use crate::peg::peg_error;
-    use crate::Result;
 
     use super::*;
 
-    #[inline]
-    pub fn dep(s: &str) -> Result<Restrict> {
+    pub fn dep(s: &str) -> crate::Result<Restrict> {
         let (mut restricts, ver) =
             restrict::dep(s).map_err(|e| peg_error(format!("invalid dep glob: {s:?}"), s, e))?;
 
