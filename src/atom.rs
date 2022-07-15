@@ -269,12 +269,12 @@ pub enum Restrict {
 
 impl Restrict {
     pub fn category(s: &str) -> BaseRestrict {
-        let r = Restrict::Category(restrict::Str::Match(s.into()));
+        let r = Restrict::Category(restrict::Str::Match(s.to_string()));
         BaseRestrict::Atom(r)
     }
 
     pub fn package(s: &str) -> BaseRestrict {
-        let r = Restrict::Package(restrict::Str::Match(s.into()));
+        let r = Restrict::Package(restrict::Str::Match(s.to_string()));
         BaseRestrict::Atom(r)
     }
 
