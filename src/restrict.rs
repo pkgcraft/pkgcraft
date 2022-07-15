@@ -79,6 +79,7 @@ pub enum Str {
     Match(String),
     Prefix(String),
     Regex(Regex),
+    Substr(String),
     Suffix(String),
 }
 
@@ -88,6 +89,7 @@ impl Restriction<&str> for Str {
             Self::Match(s) => val == s,
             Self::Prefix(s) => val.starts_with(s),
             Self::Regex(re) => re.is_match(val),
+            Self::Substr(s) => val.contains(s),
             Self::Suffix(s) => val.ends_with(s),
         }
     }
