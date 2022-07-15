@@ -1,10 +1,10 @@
-use std::borrow::Borrow;
 use std::str::FromStr;
 
 use indexmap::IndexSet;
 use regex::Regex;
 use tracing::warn;
 
+use crate::atom::RestrictAtom;
 use crate::pkg::RestrictPkg;
 use crate::{atom, Result};
 
@@ -14,56 +14,13 @@ pub use parser::parse;
 mod parser;
 
 #[derive(Debug)]
-pub enum AtomAttr {
-    Category(Str),
-    Package(Str),
-    Version(Option<atom::Version>),
-    VersionStr(Str),
-    Slot(Option<Str>),
-    SubSlot(Option<Str>),
-    StaticUseDep(Set),
-    Repo(Option<Str>),
-}
-
-impl Restriction<&atom::Atom> for AtomAttr {
-    fn matches(&self, atom: &atom::Atom) -> bool {
-        match self {
-            Self::Category(r) => r.matches(atom.category()),
-            Self::Package(r) => r.matches(atom.package()),
-            Self::Version(v) => match (v, atom.version()) {
-                (Some(v), Some(ver)) => v.op_cmp(ver),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::VersionStr(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
-            Self::Slot(r) => match (r, atom.slot()) {
-                (Some(r), Some(slot)) => r.matches(slot),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::SubSlot(r) => match (r, atom.subslot()) {
-                (Some(r), Some(subslot)) => r.matches(subslot),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::StaticUseDep(r) => r.matches(&atom.use_deps_set()),
-            Self::Repo(r) => match (r, atom.repo()) {
-                (Some(r), Some(repo)) => r.matches(repo),
-                (None, None) => true,
-                _ => false,
-            },
-        }
-    }
-}
-
-#[derive(Debug)]
 pub enum Restrict {
     // boolean
     True,
     False,
 
     // object attributes
-    Atom(AtomAttr),
+    Atom(RestrictAtom),
     Pkg(RestrictPkg),
 
     // boolean combinations
@@ -79,12 +36,12 @@ pub enum Restrict {
 
 impl Restrict {
     pub fn category(s: &str) -> Self {
-        let r = AtomAttr::Category(Str::Match(s.into()));
+        let r = RestrictAtom::Category(Str::Match(s.into()));
         Self::Atom(r)
     }
 
     pub fn package(s: &str) -> Self {
-        let r = AtomAttr::Package(Str::Match(s.into()));
+        let r = RestrictAtom::Package(Str::Match(s.into()));
         Self::Atom(r)
     }
 
@@ -93,18 +50,18 @@ impl Restrict {
             None => None,
             Some(s) => Some(atom::Version::from_str(s)?),
         };
-        let r = AtomAttr::Version(o);
+        let r = RestrictAtom::Version(o);
         Ok(Self::Atom(r))
     }
 
     pub fn slot(o: Option<&str>) -> Self {
         let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(AtomAttr::Slot(o))
+        Self::Atom(RestrictAtom::Slot(o))
     }
 
     pub fn subslot(o: Option<&str>) -> Self {
         let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(AtomAttr::SubSlot(o))
+        Self::Atom(RestrictAtom::SubSlot(o))
     }
 
     pub fn use_deps<I, S>(iter: I) -> Self
@@ -112,14 +69,15 @@ impl Restrict {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let r =
-            AtomAttr::StaticUseDep(Set::StrSubset(iter.into_iter().map(|s| s.into()).collect()));
+        let r = RestrictAtom::StaticUseDep(Set::StrSubset(
+            iter.into_iter().map(|s| s.into()).collect(),
+        ));
         Self::Atom(r)
     }
 
     pub fn repo(o: Option<&str>) -> Self {
         let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(AtomAttr::Repo(o))
+        Self::Atom(RestrictAtom::Repo(o))
     }
 
     pub fn and<I, T>(iter: I) -> Self
@@ -141,28 +99,6 @@ impl Restrict {
 
 pub(crate) trait Restriction<T> {
     fn matches(&self, object: T) -> bool;
-}
-
-impl Restriction<&atom::Atom> for Restrict {
-    fn matches(&self, atom: &atom::Atom) -> bool {
-        match self {
-            // boolean
-            Self::True => true,
-            Self::False => false,
-
-            // boolean combinations
-            Self::And(vals) => vals.iter().all(|r| r.matches(atom)),
-            Self::Or(vals) => vals.iter().any(|r| r.matches(atom)),
-
-            // atom attributes
-            Self::Atom(r) => r.matches(atom),
-
-            _ => {
-                warn!("invalid restriction for atom matches: {self:?}");
-                false
-            }
-        }
-    }
 }
 
 impl Restriction<&str> for Restrict {
@@ -219,33 +155,6 @@ impl Restriction<&IndexSet<&str>> for Set {
                 set.is_subset(val)
             }
         }
-    }
-}
-
-impl<T: Borrow<atom::Atom>> From<T> for Restrict {
-    fn from(atom: T) -> Self {
-        let atom = atom.borrow();
-        let mut restricts = vec![Self::category(atom.category()), Self::package(atom.package())];
-
-        if let Some(v) = atom.version() {
-            restricts.push(Self::Atom(AtomAttr::Version(Some(v.clone()))));
-        }
-
-        if let Some(s) = atom.slot() {
-            restricts.push(Self::slot(Some(s)));
-        }
-
-        if let Some(s) = atom.subslot() {
-            restricts.push(Self::subslot(Some(s)));
-        }
-
-        // TODO: add use deps support
-
-        if let Some(s) = atom.repo() {
-            restricts.push(Self::repo(Some(s)));
-        }
-
-        Self::and(restricts)
     }
 }
 
