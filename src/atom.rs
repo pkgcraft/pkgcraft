@@ -11,7 +11,7 @@ pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::{cmp_not_equal, vec_str};
-use crate::restrict::{self, Restrict, Restriction};
+use crate::restrict::{self, Restriction};
 use crate::{Error, Result};
 // export parser functionality
 pub use parser::parse;
@@ -254,7 +254,7 @@ impl FromStr for Atom {
 }
 
 #[derive(Debug)]
-pub enum RestrictAtom {
+pub enum Restrict {
     Category(restrict::Str),
     Package(restrict::Str),
     Version(Option<Version>),
@@ -265,7 +265,7 @@ pub enum RestrictAtom {
     Repo(Option<restrict::Str>),
 }
 
-impl Restriction<&Atom> for RestrictAtom {
+impl Restriction<&Atom> for Restrict {
     fn matches(&self, atom: &Atom) -> bool {
         match self {
             Self::Category(r) => r.matches(atom.category()),
@@ -296,7 +296,7 @@ impl Restriction<&Atom> for RestrictAtom {
     }
 }
 
-impl Restriction<&Atom> for Restrict {
+impl Restriction<&Atom> for restrict::Restrict {
     fn matches(&self, atom: &Atom) -> bool {
         match self {
             // boolean
@@ -318,13 +318,13 @@ impl Restriction<&Atom> for Restrict {
     }
 }
 
-impl<T: Borrow<Atom>> From<T> for Restrict {
+impl<T: Borrow<Atom>> From<T> for restrict::Restrict {
     fn from(atom: T) -> Self {
         let atom = atom.borrow();
         let mut restricts = vec![Self::category(atom.category()), Self::package(atom.package())];
 
         if let Some(v) = atom.version() {
-            restricts.push(Self::Atom(RestrictAtom::Version(Some(v.clone()))));
+            restricts.push(Self::Atom(Restrict::Version(Some(v.clone()))));
         }
 
         if let Some(s) = atom.slot() {

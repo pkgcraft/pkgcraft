@@ -1,8 +1,8 @@
 use peg;
 use regex::{escape, Regex};
 
-use super::{Restrict, RestrictAtom, Str};
-use crate::atom::version::ParsedVersion;
+use super::{Restrict, Str};
+use crate::atom::{self, version::ParsedVersion};
 
 // Convert globbed string to regex, escaping all meta characters except '*'.
 fn str_to_regex_restrict(s: &str) -> Str {
@@ -57,7 +57,7 @@ peg::parser! {
                     0 => restricts.push(Restrict::category(cat)),
                     _ => {
                         let r = str_to_regex_restrict(cat);
-                        restricts.push(Restrict::Atom(RestrictAtom::Category(r)))
+                        restricts.push(Restrict::Atom(atom::Restrict::Category(r)))
                     }
                 }
 
@@ -66,7 +66,7 @@ peg::parser! {
                     1 if pkg == "*" && restricts.is_empty() => (),
                     _ => {
                         let r = str_to_regex_restrict(pkg);
-                        restricts.push(Restrict::Atom(RestrictAtom::Package(r)))
+                        restricts.push(Restrict::Atom(atom::Restrict::Package(r)))
                     }
                 }
 
@@ -77,7 +77,7 @@ peg::parser! {
                     1 if s == "*" => vec![],
                     _ => {
                         let r = str_to_regex_restrict(s);
-                        vec![Restrict::Atom(RestrictAtom::Package(r))]
+                        vec![Restrict::Atom(atom::Restrict::Package(r))]
                     }
                 }
             }
@@ -102,7 +102,7 @@ peg::parser! {
                     0 => Restrict::slot(Some(s)),
                     _ => {
                         let r = str_to_regex_restrict(s);
-                        Restrict::Atom(RestrictAtom::Slot(Some(r)))
+                        Restrict::Atom(atom::Restrict::Slot(Some(r)))
                     }
                 }
             }
@@ -113,7 +113,7 @@ peg::parser! {
                     0 => Restrict::subslot(Some(s)),
                     _ => {
                         let r = str_to_regex_restrict(s);
-                        Restrict::Atom(RestrictAtom::SubSlot(Some(r)))
+                        Restrict::Atom(atom::Restrict::SubSlot(Some(r)))
                     }
                 }
             }
@@ -139,7 +139,7 @@ peg::parser! {
                     0 => Restrict::repo(Some(s)),
                     _ => {
                         let r = str_to_regex_restrict(s);
-                        Restrict::Atom(RestrictAtom::Repo(Some(r)))
+                        Restrict::Atom(atom::Restrict::Repo(Some(r)))
                     }
                 }
             }
@@ -162,8 +162,7 @@ pub mod parse {
     use crate::peg::peg_error;
     use crate::Result;
 
-    use super::restrict;
-    use crate::restrict::{Restrict, RestrictAtom};
+    use super::*;
 
     #[inline]
     pub fn dep(s: &str) -> Result<Restrict> {
@@ -172,7 +171,7 @@ pub mod parse {
 
         if let Some(v) = ver {
             let v = v.into_owned(s)?;
-            restricts.push(Restrict::Atom(RestrictAtom::Version(Some(v))));
+            restricts.push(Restrict::Atom(atom::Restrict::Version(Some(v))));
         }
 
         match restricts.is_empty() {

@@ -118,7 +118,7 @@ macro_rules! make_pkg_traits {
             }
         }
 
-        impl crate::restrict::Restriction<&$x> for crate::pkg::RestrictPkg {
+        impl crate::restrict::Restriction<&$x> for crate::pkg::Restrict {
             fn matches(&self, pkg: &Pkg) -> bool {
                 match self {
                     Self::Eapi(r) => r.matches(pkg.eapi().as_str()),
@@ -157,7 +157,7 @@ impl<'a> Package for Pkg<'a> {
 }
 
 #[derive(Debug)]
-pub enum RestrictPkg {
+pub enum Restrict {
     Eapi(restrict::Str),
 }
 

@@ -4,9 +4,7 @@ use indexmap::IndexSet;
 use regex::Regex;
 use tracing::warn;
 
-use crate::atom::RestrictAtom;
-use crate::pkg::RestrictPkg;
-use crate::{atom, Result};
+use crate::{atom, pkg, Result};
 
 // export parser functionality
 pub use parser::parse;
@@ -20,8 +18,8 @@ pub enum Restrict {
     False,
 
     // object attributes
-    Atom(RestrictAtom),
-    Pkg(RestrictPkg),
+    Atom(atom::Restrict),
+    Pkg(pkg::Restrict),
 
     // boolean combinations
     And(Vec<Box<Self>>),
@@ -36,12 +34,12 @@ pub enum Restrict {
 
 impl Restrict {
     pub fn category(s: &str) -> Self {
-        let r = RestrictAtom::Category(Str::Match(s.into()));
+        let r = atom::Restrict::Category(Str::Match(s.into()));
         Self::Atom(r)
     }
 
     pub fn package(s: &str) -> Self {
-        let r = RestrictAtom::Package(Str::Match(s.into()));
+        let r = atom::Restrict::Package(Str::Match(s.into()));
         Self::Atom(r)
     }
 
@@ -50,18 +48,18 @@ impl Restrict {
             None => None,
             Some(s) => Some(atom::Version::from_str(s)?),
         };
-        let r = RestrictAtom::Version(o);
+        let r = atom::Restrict::Version(o);
         Ok(Self::Atom(r))
     }
 
     pub fn slot(o: Option<&str>) -> Self {
         let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(RestrictAtom::Slot(o))
+        Self::Atom(atom::Restrict::Slot(o))
     }
 
     pub fn subslot(o: Option<&str>) -> Self {
         let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(RestrictAtom::SubSlot(o))
+        Self::Atom(atom::Restrict::SubSlot(o))
     }
 
     pub fn use_deps<I, S>(iter: I) -> Self
@@ -69,7 +67,7 @@ impl Restrict {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let r = RestrictAtom::StaticUseDep(Set::StrSubset(
+        let r = atom::Restrict::StaticUseDep(Set::StrSubset(
             iter.into_iter().map(|s| s.into()).collect(),
         ));
         Self::Atom(r)
@@ -77,7 +75,7 @@ impl Restrict {
 
     pub fn repo(o: Option<&str>) -> Self {
         let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(RestrictAtom::Repo(o))
+        Self::Atom(atom::Restrict::Repo(o))
     }
 
     pub fn and<I, T>(iter: I) -> Self
