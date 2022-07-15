@@ -1,4 +1,3 @@
-use peg;
 use regex::{escape, Regex};
 
 use super::{Restrict, Str};

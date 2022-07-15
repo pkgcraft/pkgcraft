@@ -1,5 +1,3 @@
-use peg;
-
 use super::version::ParsedVersion;
 use super::{Blocker, ParsedAtom};
 use crate::eapi::{Eapi, Feature};
