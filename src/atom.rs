@@ -252,7 +252,7 @@ impl FromStr for Atom {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::TestData;
+    use crate::test::Atoms;
 
     use super::*;
 
@@ -352,8 +352,8 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let data = TestData::load().unwrap();
-        for (unsorted, expected) in data.atom_sort() {
+        let atoms = Atoms::load().unwrap();
+        for (unsorted, expected) in atoms.sorting() {
             let mut atoms: Vec<_> = unsorted
                 .iter()
                 .map(|s| Atom::from_str(s).unwrap())

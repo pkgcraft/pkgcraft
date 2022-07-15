@@ -440,7 +440,7 @@ mod tests {
 
     use super::*;
     use crate::macros::*;
-    use crate::test::TestData;
+    use crate::test::Versions;
     use crate::Error;
 
     #[test]
@@ -474,8 +474,8 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        let data = TestData::load().unwrap();
-        for (expr, (v1, op, v2)) in data.ver_cmp() {
+        let data = Versions::load().unwrap();
+        for (expr, (v1, op, v2)) in data.compares() {
             let v1 = Version::from_str(v1).unwrap();
             let v2 = Version::from_str(v2).unwrap();
             match op {
@@ -505,8 +505,8 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let data = TestData::load().unwrap();
-        for (unsorted, expected) in data.ver_sort() {
+        let data = Versions::load().unwrap();
+        for (unsorted, expected) in data.sorting() {
             let mut versions: Vec<_> = unsorted
                 .iter()
                 .map(|s| Version::from_str(s).unwrap())

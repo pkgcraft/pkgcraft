@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn args() {
-        let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests", "econf");
+        let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "builtins", "econf");
         env::set_current_dir(&configure_dir).unwrap();
 
         BUILD_DATA.with(|d| {

@@ -56,7 +56,7 @@ mod tests {
     use super::super::assert_invalid_args;
     use super::run as ver_test;
     use crate::macros::assert_err_re;
-    use crate::test::TestData;
+    use crate::test::Versions;
 
     use scallop::builtins::ExecStatus;
     use scallop::variables::*;
@@ -114,8 +114,8 @@ mod tests {
 
         let mut pvr = Variable::new("PVR");
 
-        let data = TestData::load().unwrap();
-        for (expr, (v1, op, v2)) in data.ver_cmp() {
+        let data = Versions::load().unwrap();
+        for (expr, (v1, op, v2)) in data.compares() {
             let inverted_op = op_map[inverted_op_map[op]];
             let op = op_map[op];
             let r = ver_test(&[v1, op, v2]);

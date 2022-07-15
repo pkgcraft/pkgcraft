@@ -8,8 +8,8 @@ use serde::{de, Deserialize, Deserializer};
 use crate::macros::build_from_paths;
 use crate::{atom, Error};
 
-static TEST_DATA_DIR: Lazy<Utf8PathBuf> =
-    Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "tests"));
+static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
+    Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "toml"));
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Atom {
@@ -37,56 +37,56 @@ impl<'de> Deserialize<'de> for atom::Version {
 pub(crate) struct Atoms {
     pub(crate) valid: Vec<Atom>,
     pub(crate) invalid: Vec<(String, String)>,
+    sorting: Vec<(Vec<String>, Vec<String>)>,
 }
 
 impl Atoms {
     pub(crate) fn load() -> crate::Result<Self> {
-        let path = TEST_DATA_DIR.join("atoms.toml");
+        let path = TOML_DATA_DIR.join("atoms.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
+    }
+
+    pub(crate) fn sorting(&self) -> SortIter {
+        SortIter {
+            iter: self.sorting.iter(),
+        }
     }
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct TestData {
-    ver_cmp: Vec<String>,
-    ver_sort: Vec<(Vec<String>, Vec<String>)>,
-    atom_sort: Vec<(Vec<String>, Vec<String>)>,
+pub(crate) struct Versions {
+    compares: Vec<String>,
+    sorting: Vec<(Vec<String>, Vec<String>)>,
 }
 
-impl TestData {
+impl Versions {
     pub(crate) fn load() -> crate::Result<Self> {
-        let path = TEST_DATA_DIR.join("data.toml");
+        let path = TOML_DATA_DIR.join("versions.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
     }
 
-    pub(crate) fn ver_cmp(&self) -> CmpIter {
-        CmpIter {
-            iter: self.ver_cmp.iter(),
+    pub(crate) fn compares(&self) -> ComparesIter {
+        ComparesIter {
+            iter: self.compares.iter(),
         }
     }
 
-    pub(crate) fn ver_sort(&self) -> SortIter {
+    pub(crate) fn sorting(&self) -> SortIter {
         SortIter {
-            iter: self.ver_sort.iter(),
-        }
-    }
-
-    pub(crate) fn atom_sort(&self) -> SortIter {
-        SortIter {
-            iter: self.atom_sort.iter(),
+            iter: self.sorting.iter(),
         }
     }
 }
 
-pub(crate) struct CmpIter<'a> {
+pub(crate) struct ComparesIter<'a> {
     iter: std::slice::Iter<'a, String>,
 }
 
-impl<'a> Iterator for CmpIter<'a> {
+impl<'a> Iterator for ComparesIter<'a> {
     // format: (string expression, (lhs, op, rhs))
     type Item = (&'a str, (&'a str, &'a str, &'a str));
 
