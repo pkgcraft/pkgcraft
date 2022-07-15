@@ -15,7 +15,7 @@ use tempfile::TempDir;
 use tracing::warn;
 use walkdir::WalkDir;
 
-use super::{make_repo_traits, Repository};
+use super::{make_repo_traits, Contains, Repository};
 use crate::config::{Config, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
@@ -434,7 +434,7 @@ impl Repository for Repo {
     }
 }
 
-impl<T: AsRef<Utf8Path>> repo::Contains<T> for Repo {
+impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
     fn contains(&self, path: T) -> bool {
         let path = path.as_ref();
         if path.is_absolute() {
@@ -632,14 +632,12 @@ impl fmt::Display for TempRepo {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
     use std::str::FromStr;
 
     use tracing_test::traced_test;
 
     use crate::eapi::Key;
     use crate::macros::{assert_err_re, assert_logs_re};
-    use crate::repo::{Contains, Repository};
 
     use super::*;
 
@@ -845,7 +843,7 @@ mod tests {
         assert_eq!(atoms, [pkg.atom().to_string()]);
 
         // multiple matches
-        let restrict = Restrict::package("pkg");
+        let restrict = atom::Restrict::package("pkg");
         let iter = repo.iter_restrict(restrict);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);

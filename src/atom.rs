@@ -265,6 +265,53 @@ pub enum Restrict {
     Repo(Option<restrict::Str>),
 }
 
+impl Restrict {
+    pub fn category(s: &str) -> restrict::Restrict {
+        let r = Restrict::Category(restrict::Str::Match(s.into()));
+        restrict::Restrict::Atom(r)
+    }
+
+    pub fn package(s: &str) -> restrict::Restrict {
+        let r = Restrict::Package(restrict::Str::Match(s.into()));
+        restrict::Restrict::Atom(r)
+    }
+
+    pub fn version(o: Option<&str>) -> Result<restrict::Restrict> {
+        let o = match o {
+            None => None,
+            Some(s) => Some(Version::from_str(s)?),
+        };
+        let r = Restrict::Version(o);
+        Ok(restrict::Restrict::Atom(r))
+    }
+
+    pub fn slot(o: Option<&str>) -> restrict::Restrict {
+        let o = o.map(|s| restrict::Str::Match(s.to_string()));
+        restrict::Restrict::Atom(Restrict::Slot(o))
+    }
+
+    pub fn subslot(o: Option<&str>) -> restrict::Restrict {
+        let o = o.map(|s| restrict::Str::Match(s.to_string()));
+        restrict::Restrict::Atom(Restrict::SubSlot(o))
+    }
+
+    pub fn use_deps<I, S>(iter: I) -> restrict::Restrict
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        let r = Restrict::StaticUseDep(restrict::Set::StrSubset(
+            iter.into_iter().map(|s| s.into()).collect(),
+        ));
+        restrict::Restrict::Atom(r)
+    }
+
+    pub fn repo(o: Option<&str>) -> restrict::Restrict {
+        let o = o.map(|s| restrict::Str::Match(s.to_string()));
+        restrict::Restrict::Atom(Restrict::Repo(o))
+    }
+}
+
 impl Restriction<&Atom> for Restrict {
     fn matches(&self, atom: &Atom) -> bool {
         match self {
@@ -321,24 +368,25 @@ impl Restriction<&Atom> for restrict::Restrict {
 impl<T: Borrow<Atom>> From<T> for restrict::Restrict {
     fn from(atom: T) -> Self {
         let atom = atom.borrow();
-        let mut restricts = vec![Self::category(atom.category()), Self::package(atom.package())];
+        let mut restricts =
+            vec![Restrict::category(atom.category()), Restrict::package(atom.package())];
 
         if let Some(v) = atom.version() {
             restricts.push(Self::Atom(Restrict::Version(Some(v.clone()))));
         }
 
         if let Some(s) = atom.slot() {
-            restricts.push(Self::slot(Some(s)));
+            restricts.push(Restrict::slot(Some(s)));
         }
 
         if let Some(s) = atom.subslot() {
-            restricts.push(Self::subslot(Some(s)));
+            restricts.push(Restrict::subslot(Some(s)));
         }
 
         // TODO: add use deps support
 
         if let Some(s) = atom.repo() {
-            restricts.push(Self::repo(Some(s)));
+            restricts.push(Restrict::repo(Some(s)));
         }
 
         Self::and(restricts)

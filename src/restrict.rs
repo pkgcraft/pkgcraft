@@ -1,10 +1,8 @@
-use std::str::FromStr;
-
 use indexmap::IndexSet;
 use regex::Regex;
 use tracing::warn;
 
-use crate::{atom, pkg, Result};
+use crate::{atom, pkg};
 
 // export parser functionality
 pub use parser::parse;
@@ -33,51 +31,6 @@ pub enum Restrict {
 }
 
 impl Restrict {
-    pub fn category(s: &str) -> Self {
-        let r = atom::Restrict::Category(Str::Match(s.into()));
-        Self::Atom(r)
-    }
-
-    pub fn package(s: &str) -> Self {
-        let r = atom::Restrict::Package(Str::Match(s.into()));
-        Self::Atom(r)
-    }
-
-    pub fn version(o: Option<&str>) -> Result<Self> {
-        let o = match o {
-            None => None,
-            Some(s) => Some(atom::Version::from_str(s)?),
-        };
-        let r = atom::Restrict::Version(o);
-        Ok(Self::Atom(r))
-    }
-
-    pub fn slot(o: Option<&str>) -> Self {
-        let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(atom::Restrict::Slot(o))
-    }
-
-    pub fn subslot(o: Option<&str>) -> Self {
-        let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(atom::Restrict::SubSlot(o))
-    }
-
-    pub fn use_deps<I, S>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        let r = atom::Restrict::StaticUseDep(Set::StrSubset(
-            iter.into_iter().map(|s| s.into()).collect(),
-        ));
-        Self::Atom(r)
-    }
-
-    pub fn repo(o: Option<&str>) -> Self {
-        let o = o.map(|s| Str::Match(s.to_string()));
-        Self::Atom(atom::Restrict::Repo(o))
-    }
-
     pub fn and<I, T>(iter: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -171,75 +124,75 @@ mod tests {
         let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
-        let r = Restrict::category("cat");
+        let r = atom::Restrict::category("cat");
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // package
-        let r = Restrict::package("pkg");
+        let r = atom::Restrict::package("pkg");
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no version
-        let r = Restrict::version(None).unwrap();
+        let r = atom::Restrict::version(None).unwrap();
         assert!(r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // version
-        let r = Restrict::version(Some("1")).unwrap();
+        let r = atom::Restrict::version(Some("1")).unwrap();
         assert!(!r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no slot
-        let r = Restrict::slot(None);
+        let r = atom::Restrict::slot(None);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // slot
-        let r = Restrict::slot(Some("2"));
+        let r = atom::Restrict::slot(Some("2"));
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no subslot
-        let r = Restrict::subslot(None);
+        let r = atom::Restrict::subslot(None);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // subslot
-        let r = Restrict::subslot(Some("3"));
+        let r = atom::Restrict::subslot(Some("3"));
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no use deps specified
-        let r = Restrict::use_deps([] as [&str; 0]);
+        let r = atom::Restrict::use_deps([] as [&str; 0]);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // use deps specified
         for u in [vec!["u1"], vec!["u1", "u2"]] {
-            let r = Restrict::use_deps(u);
+            let r = atom::Restrict::use_deps(u);
             assert!(!r.matches(&unversioned));
             assert!(!r.matches(&cpv));
             assert!(r.matches(&full));
         }
 
         // no repo
-        let r = Restrict::repo(None);
+        let r = atom::Restrict::repo(None);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // repo
-        let r = Restrict::repo(Some("repo"));
+        let r = atom::Restrict::repo(Some("repo"));
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
@@ -335,10 +288,10 @@ mod tests {
                 .collect()
         };
 
-        let r = Restrict::category("cat");
+        let r = atom::Restrict::category("cat");
         assert_eq!(filter(r, atoms.clone()), atom_strs);
 
-        let r = Restrict::version(None).unwrap();
+        let r = atom::Restrict::version(None).unwrap();
         assert_eq!(filter(r, atoms.clone()), ["cat/pkg"]);
 
         let cpv = Atom::from_str("=cat/pkg-1").unwrap();
@@ -355,14 +308,14 @@ mod tests {
     #[test]
     fn test_and_restrict() {
         let a = Atom::from_str("cat/pkg").unwrap();
-        let cat = Restrict::category("cat");
-        let pkg = Restrict::package("pkg");
+        let cat = atom::Restrict::category("cat");
+        let pkg = atom::Restrict::package("pkg");
         let r = Restrict::and([cat, pkg]);
         assert!(r.matches(&a));
 
         // one matched and one unmatched restriction
-        let cat = Restrict::category("cat");
-        let pkg = Restrict::package("pkga");
+        let cat = atom::Restrict::category("cat");
+        let pkg = atom::Restrict::package("pkga");
         let r = Restrict::and([cat, pkg]);
         assert!(!r.matches(&a));
 
@@ -377,14 +330,14 @@ mod tests {
     #[test]
     fn test_or_restrict() {
         let a = Atom::from_str("cat/pkg").unwrap();
-        let cat = Restrict::category("cat");
-        let pkg = Restrict::package("pkg");
+        let cat = atom::Restrict::category("cat");
+        let pkg = atom::Restrict::package("pkg");
         let r = Restrict::or([cat, pkg]);
         assert!(r.matches(&a));
 
         // one matched and one unmatched restriction
-        let cat = Restrict::category("cat");
-        let pkg = Restrict::package("pkga");
+        let cat = atom::Restrict::category("cat");
+        let pkg = atom::Restrict::package("pkga");
         let r = Restrict::or([cat, pkg]);
         assert!(r.matches(&a));
 

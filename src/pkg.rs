@@ -138,6 +138,7 @@ macro_rules! make_pkg_traits {
                     Self::Or(vals) => vals.iter().any(|r| r.matches(pkg)),
 
                     Self::Atom(r) => r.matches(pkg.atom()),
+                    Self::Pkg(r) => r.matches(pkg),
 
                     _ => {
                         tracing::warn!("invalid restriction for pkg matches: {self:?}");
