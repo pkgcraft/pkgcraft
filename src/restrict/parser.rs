@@ -163,8 +163,8 @@ pub mod parse {
     use super::*;
 
     pub fn dep(s: &str) -> crate::Result<Restrict> {
-        let (mut restricts, ver) =
-            restrict::dep(s).map_err(|e| peg_error(format!("invalid dep glob: {s:?}"), s, e))?;
+        let (mut restricts, ver) = restrict::dep(s)
+            .map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
         if let Some(v) = ver {
             let v = v.into_owned(s)?;
@@ -219,7 +219,7 @@ mod tests {
                 .collect()
         };
 
-        // category and package globs
+        // category and package
         for (s, expected) in [
             ("*", &atom_strs[..]),
             ("*/*", &atom_strs[..]),
@@ -238,7 +238,7 @@ mod tests {
             assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
         }
 
-        // package and version globs
+        // package and version
         for (s, expected) in [
             (">=pkg-1", vec!["=cat/pkg-1", ">=cat/pkg-2", "<cat/pkg-3"]),
             ("=pkg-2", vec![">=cat/pkg-2"]),
@@ -249,7 +249,7 @@ mod tests {
             assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
         }
 
-        // slot globs
+        // slot
         for (s, expected) in [
             ("*:*", vec!["cat/pkg:0", "cat/pkg:2.1", "cat/pkg:2/1.1", "=cat/pkg-0-r0:0/0.+"]),
             ("*:0", vec!["cat/pkg:0", "=cat/pkg-0-r0:0/0.+"]),
@@ -262,7 +262,7 @@ mod tests {
             assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
         }
 
-        // subslot globs
+        // subslot
         for (s, expected) in [
             ("*:*/*", vec!["cat/pkg:2/1.1", "=cat/pkg-0-r0:0/0.+"]),
             ("*:2/*", vec!["cat/pkg:2/1.1"]),
@@ -274,7 +274,7 @@ mod tests {
             assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
         }
 
-        // repo globs
+        // repo
         for (s, expected) in [
             ("*::*", vec!["cat/pkg::repo", "cat/pkg::repo-ed"]),
             ("*::r*", vec!["cat/pkg::repo", "cat/pkg::repo-ed"]),
