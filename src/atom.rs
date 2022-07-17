@@ -135,7 +135,7 @@ impl Atom {
         self.blocker
     }
 
-    pub(crate) fn use_deps_set(&self) -> IndexSet<&str> {
+    fn use_deps_set(&self) -> IndexSet<&str> {
         match self.use_deps() {
             None => IndexSet::<&str>::new(),
             Some(u) => u.iter().copied().collect(),
