@@ -128,22 +128,10 @@ macro_rules! make_pkg_traits {
 
         impl crate::restrict::Restriction<&$x> for crate::restrict::Restrict {
             fn matches(&self, pkg: &Pkg) -> bool {
-                match self {
-                    // boolean
-                    Self::True => true,
-                    Self::False => false,
-
-                    // boolean combinations
-                    Self::And(vals) => vals.iter().all(|r| r.matches(pkg)),
-                    Self::Or(vals) => vals.iter().any(|r| r.matches(pkg)),
-
+                crate::restrict::restrict_match! {
+                    self, pkg,
                     Self::Atom(r) => r.matches(pkg.atom()),
-                    Self::Pkg(r) => r.matches(pkg),
-
-                    _ => {
-                        tracing::warn!("invalid restriction for pkg matches: {self:?}");
-                        false
-                    }
+                    Self::Pkg(r) => r.matches(pkg)
                 }
             }
         }

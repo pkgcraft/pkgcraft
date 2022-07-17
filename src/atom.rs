@@ -5,7 +5,6 @@ use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
 use indexmap::IndexSet;
-use tracing::warn;
 
 pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
@@ -347,22 +346,9 @@ impl Restriction<&Atom> for Restrict {
 
 impl Restriction<&Atom> for BaseRestrict {
     fn matches(&self, atom: &Atom) -> bool {
-        match self {
-            // boolean
-            Self::True => true,
-            Self::False => false,
-
-            // boolean combinations
-            Self::And(vals) => vals.iter().all(|r| r.matches(atom)),
-            Self::Or(vals) => vals.iter().any(|r| r.matches(atom)),
-
-            // atom attributes
-            Self::Atom(r) => r.matches(atom),
-
-            _ => {
-                warn!("invalid restriction for atom matches: {self:?}");
-                false
-            }
+        crate::restrict::restrict_match! {
+            self, atom,
+            Self::Atom(r) => r.matches(atom)
         }
     }
 }

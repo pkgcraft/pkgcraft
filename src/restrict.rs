@@ -1,6 +1,5 @@
 use indexmap::IndexSet;
 use regex::Regex;
-use tracing::warn;
 
 use crate::{atom, pkg};
 
@@ -15,13 +14,13 @@ pub enum Restrict {
     True,
     False,
 
-    // object attributes
-    Atom(atom::Restrict),
-    Pkg(pkg::Restrict),
-
     // boolean combinations
     And(Vec<Box<Self>>),
     Or(Vec<Box<Self>>),
+
+    // object attributes
+    Atom(atom::Restrict),
+    Pkg(pkg::Restrict),
 
     // sets
     Set(Set),
@@ -29,6 +28,28 @@ pub enum Restrict {
     // strings
     Str(Str),
 }
+
+macro_rules! restrict_match {
+   ($r:expr, $obj:expr, $($matcher:pat $(if $pred:expr)* => $result:expr),+) => {
+       match $r {
+           $($matcher $(if $pred)* => $result,)+
+
+            // boolean
+            crate::restrict::Restrict::True => true,
+            crate::restrict::Restrict::False => false,
+
+            // boolean combinations
+            crate::restrict::Restrict::And(vals) => vals.iter().all(|r| r.matches($obj)),
+            crate::restrict::Restrict::Or(vals) => vals.iter().any(|r| r.matches($obj)),
+
+            _ => {
+                tracing::warn!("invalid restriction {:?} for matching {:?}", $r, $obj);
+                false
+            }
+       }
+   }
+}
+pub(crate) use restrict_match;
 
 impl Restrict {
     pub fn and<I, T>(iter: I) -> Self
@@ -54,22 +75,9 @@ pub(crate) trait Restriction<T> {
 
 impl Restriction<&str> for Restrict {
     fn matches(&self, s: &str) -> bool {
-        match self {
-            // boolean
-            Self::True => true,
-            Self::False => false,
-
-            // boolean combinations
-            Self::And(vals) => vals.iter().all(|r| r.matches(s)),
-            Self::Or(vals) => vals.iter().any(|r| r.matches(s)),
-
-            // strings
-            Self::Str(r) => r.matches(s),
-
-            _ => {
-                warn!("invalid restriction for string matches: {self:?}");
-                false
-            }
+        restrict_match! {
+            self, s,
+            Self::Str(r) => r.matches(s)
         }
     }
 }
