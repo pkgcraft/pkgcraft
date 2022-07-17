@@ -17,6 +17,7 @@ pub enum Restrict {
     // boolean combinations
     And(Vec<Box<Self>>),
     Or(Vec<Box<Self>>),
+    Not(Box<Self>),
 
     // object attributes
     Atom(atom::Restrict),
@@ -41,6 +42,7 @@ macro_rules! restrict_match {
             // boolean combinations
             crate::restrict::Restrict::And(vals) => vals.iter().all(|r| r.matches($obj)),
             crate::restrict::Restrict::Or(vals) => vals.iter().any(|r| r.matches($obj)),
+            crate::restrict::Restrict::Not(r) => !r.matches($obj),
 
             _ => {
                 tracing::warn!("invalid restriction {:?} for matching {:?}", $r, $obj);
@@ -66,6 +68,13 @@ impl Restrict {
         T: Into<Restrict>,
     {
         Self::Or(iter.into_iter().map(|x| Box::new(x.into())).collect())
+    }
+
+    pub fn not<T>(obj: T) -> Self
+    where
+        T: Into<Restrict>,
+    {
+        Self::Not(Box::new(obj.into()))
     }
 }
 
@@ -167,12 +176,16 @@ mod tests {
         let pkg = atom::Restrict::package("pkg");
         let r = Restrict::and([cat, pkg]);
         assert!(r.matches(&a));
+        let not_r = Restrict::not(r);
+        assert!(!not_r.matches(&a));
 
         // one matched and one unmatched restriction
         let cat = atom::Restrict::category("cat");
         let pkg = atom::Restrict::package("pkga");
         let r = Restrict::and([cat, pkg]);
         assert!(!r.matches(&a));
+        let not_r = Restrict::not(r);
+        assert!(not_r.matches(&a));
 
         // matching against two atoms
         let a1 = Atom::from_str("cat/pkg1").unwrap();
@@ -180,6 +193,9 @@ mod tests {
         let r = Restrict::and([&a1, &a2]);
         assert!(!r.matches(&a1));
         assert!(!r.matches(&a2));
+        let not_r = Restrict::not(r);
+        assert!(not_r.matches(&a1));
+        assert!(not_r.matches(&a2));
     }
 
     #[test]
@@ -189,12 +205,16 @@ mod tests {
         let pkg = atom::Restrict::package("pkg");
         let r = Restrict::or([cat, pkg]);
         assert!(r.matches(&a));
+        let not_r = Restrict::not(r);
+        assert!(!not_r.matches(&a));
 
         // one matched and one unmatched restriction
         let cat = atom::Restrict::category("cat");
         let pkg = atom::Restrict::package("pkga");
         let r = Restrict::or([cat, pkg]);
         assert!(r.matches(&a));
+        let not_r = Restrict::not(r);
+        assert!(!not_r.matches(&a));
 
         // matching against two atoms
         let a1 = Atom::from_str("cat/pkg1").unwrap();
@@ -202,5 +222,22 @@ mod tests {
         let r = Restrict::or([&a1, &a2]);
         assert!(r.matches(&a1));
         assert!(r.matches(&a2));
+        let not_r = Restrict::not(r);
+        assert!(!not_r.matches(&a1));
+        assert!(!not_r.matches(&a2));
+    }
+
+    #[test]
+    fn test_not_restrict() {
+        let a = Atom::from_str("cat/pkg").unwrap();
+        let cat_r = atom::Restrict::category("cat1");
+
+        // restrict matches
+        let r = Restrict::not(cat_r.clone());
+        assert!(r.matches(&a));
+
+        // inverse doesn't match
+        let r = Restrict::not(r);
+        assert!(!r.matches(&a));
     }
 }
