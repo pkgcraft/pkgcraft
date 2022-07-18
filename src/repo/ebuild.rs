@@ -227,8 +227,8 @@ pub struct PkgMetadata {
 impl PkgMetadata {
     fn new(path: &Utf8Path) -> Self {
         match fs::read_to_string(path) {
-            Err(_) => PkgMetadata::default(),
-            Ok(s) => PkgMetadata::parse_xml(&s),
+            Err(_) => Self::default(),
+            Ok(s) => Self::parse_xml(&s),
         }
     }
 
@@ -261,12 +261,12 @@ impl PkgMetadata {
     }
 
     fn parse_xml(xml: &str) -> Self {
-        let mut data = PkgMetadata::default();
+        let mut data = Self::default();
         if let Ok(doc) = Document::parse(xml) {
             for node in doc.descendants() {
                 match node.tag_name().name() {
-                    "maintainer" => PkgMetadata::parse_maintainer(node, &mut data),
-                    "upstream" => PkgMetadata::parse_upstreams(node, &mut data),
+                    "maintainer" => Self::parse_maintainer(node, &mut data),
+                    "upstream" => Self::parse_upstreams(node, &mut data),
                     _ => (),
                 }
             }
