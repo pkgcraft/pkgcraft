@@ -14,7 +14,7 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use ini::Ini;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
-use roxmltree::Document;
+use roxmltree::{Document, Node};
 use tempfile::TempDir;
 use tracing::warn;
 use walkdir::WalkDir;
@@ -116,7 +116,7 @@ impl Metadata {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Maintainer {
     email: Option<String>,
     name: Option<String>,
@@ -195,36 +195,79 @@ impl Hash for Maintainer {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Upstream {
+    site: String,
+    name: String,
+}
+
+impl Upstream {
+    fn new(site: &str, name: &str) -> Self {
+        Self {
+            site: site.to_string(),
+            name: name.to_string(),
+        }
+    }
+
+    pub fn site(&self) -> &str {
+        &self.site
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct PkgMetadata {
     maintainers: Vec<Maintainer>,
+    upstreams: Vec<Upstream>,
 }
 
 impl PkgMetadata {
     fn new(path: &Utf8Path) -> Self {
-        let mut data = PkgMetadata::default();
         match fs::read_to_string(path) {
-            Err(_) => (),
-            Ok(s) => {
-                let doc = Document::parse(&s).unwrap();
-                let (mut email, mut name, mut description) = (None, None, None);
-                for node in doc
-                    .descendants()
-                    .filter(|n| n.tag_name().name() == "maintainer")
-                {
-                    for n in node.children() {
-                        match n.tag_name().name() {
-                            "email" => email = n.text(),
-                            "name" => name = n.text(),
-                            "description" => description = n.text(),
-                            _ => (),
-                        }
-                    }
-                    let maint_type = node.attribute("type");
-                    let proxied = node.attribute("proxied");
-                    if let Ok(m) = Maintainer::new(email, name, description, maint_type, proxied) {
-                        data.maintainers.push(m);
-                    }
+            Err(_) => PkgMetadata::default(),
+            Ok(s) => PkgMetadata::parse_xml(&s),
+        }
+    }
+
+    fn parse_maintainer(node: Node, data: &mut Self) {
+        let (mut email, mut name, mut description) = (None, None, None);
+        for n in node.children() {
+            match n.tag_name().name() {
+                "email" => email = n.text(),
+                "name" => name = n.text(),
+                "description" => description = n.text(),
+                _ => (),
+            }
+        }
+        let maint_type = node.attribute("type");
+        let proxied = node.attribute("proxied");
+        if let Ok(m) = Maintainer::new(email, name, description, maint_type, proxied) {
+            data.maintainers.push(m);
+        }
+    }
+
+    fn parse_upstreams(node: Node, data: &mut Self) {
+        let nodes = node
+            .children()
+            .filter(|n| n.tag_name().name() == "remote-id");
+        for n in nodes {
+            if let (Some(site), Some(name)) = (n.attribute("type"), n.text()) {
+                data.upstreams.push(Upstream::new(site, name));
+            }
+        }
+    }
+
+    fn parse_xml(xml: &str) -> Self {
+        let mut data = PkgMetadata::default();
+        if let Ok(doc) = Document::parse(xml) {
+            for node in doc.descendants() {
+                match node.tag_name().name() {
+                    "maintainer" => PkgMetadata::parse_maintainer(node, &mut data),
+                    "upstream" => PkgMetadata::parse_upstreams(node, &mut data),
+                    _ => (),
                 }
             }
         }
@@ -233,6 +276,10 @@ impl PkgMetadata {
 
     pub fn maintainers(&self) -> &[Maintainer] {
         &self.maintainers
+    }
+
+    pub fn upstreams(&self) -> &[Upstream] {
+        &self.upstreams
     }
 }
 

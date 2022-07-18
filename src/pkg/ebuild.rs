@@ -13,7 +13,7 @@ use scallop::variables::string_value;
 
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
-use crate::repo::ebuild::{Maintainer, PkgMetadata, Repo};
+use crate::repo::ebuild::{Maintainer, PkgMetadata, Repo, Upstream};
 use crate::{atom, eapi, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
@@ -230,8 +230,14 @@ impl<'a> Pkg<'a> {
             .as_ref()
     }
 
+    /// Return a package's maintainers.
     pub fn maintainers(&self) -> &[Maintainer] {
         self.shared_data().maintainers()
+    }
+
+    /// Return a package's upstreams.
+    pub fn upstreams(&self) -> &[Upstream] {
+        self.shared_data().upstreams()
     }
 }
 
@@ -481,7 +487,7 @@ mod tests {
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(pkg.maintainers().is_empty());
 
-        // single maintainer
+        // single
         let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
@@ -504,7 +510,7 @@ mod tests {
             assert_eq!(m[0].name(), Some("A Person"));
         }
 
-        // multiple maintainers
+        // multiple
         let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
@@ -531,6 +537,64 @@ mod tests {
             assert_eq!(m[0].name(), Some("A Person"));
             assert_eq!(m[1].email(), Some("b.person@email.com"));
             assert_eq!(m[1].name(), Some("B Person"));
+        }
+    }
+
+    #[test]
+    fn test_upstreams() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("xml", 0).unwrap();
+
+        // none
+        let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(pkg.upstreams().is_empty());
+
+        // single
+        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <upstream>
+                    <remote-id type="github">pkgcraft/pkgcraft</remote-id>
+                </upstream>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            let m = pkg.upstreams();
+            assert_eq!(m.len(), 1);
+            assert_eq!(m[0].site(), "github");
+            assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
+        }
+
+        // multiple
+        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <upstream>
+                    <remote-id type="github">pkgcraft/pkgcraft</remote-id>
+                    <remote-id type="pypi">pkgcraft</remote-id>
+                </upstream>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            let m = pkg.upstreams();
+            assert_eq!(m.len(), 2);
+            assert_eq!(m[0].site(), "github");
+            assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
+            assert_eq!(m[1].site(), "pypi");
+            assert_eq!(m[1].name(), "pkgcraft");
         }
     }
 }
