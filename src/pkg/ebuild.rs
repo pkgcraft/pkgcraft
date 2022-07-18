@@ -239,6 +239,11 @@ impl<'a> Pkg<'a> {
     pub fn upstreams(&self) -> &[Upstream] {
         self.shared_data().upstreams()
     }
+
+    /// Return a package's local USE flag mapping.
+    pub fn local_use(&self) -> &HashMap<String, String> {
+        self.shared_data().local_use()
+    }
 }
 
 impl AsRef<Utf8Path> for Pkg<'_> {
@@ -595,6 +600,59 @@ mod tests {
             assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
             assert_eq!(m[1].site(), "pypi");
             assert_eq!(m[1].name(), "pkgcraft");
+        }
+    }
+
+    #[test]
+    fn test_local_use() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("xml", 0).unwrap();
+
+        // none
+        let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(pkg.local_use().is_empty());
+
+        // single
+        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <use>
+                    <flag name="flag">flag desc</flag>
+                </use>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            assert_eq!(pkg.local_use().len(), 1);
+            assert_eq!(pkg.local_use().get("flag").unwrap(), "flag desc");
+        }
+
+        // multiple
+        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <use>
+                    <flag name="flag1">flag1 desc</flag>
+                    <flag name="flag2">flag2 desc</flag>
+                </use>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            assert_eq!(pkg.local_use().len(), 2);
+            assert_eq!(pkg.local_use().get("flag1").unwrap(), "flag1 desc");
+            assert_eq!(pkg.local_use().get("flag2").unwrap(), "flag2 desc");
         }
     }
 }

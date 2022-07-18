@@ -222,6 +222,7 @@ impl Upstream {
 pub struct PkgMetadata {
     maintainers: Vec<Maintainer>,
     upstreams: Vec<Upstream>,
+    local_use: HashMap<String, String>,
 }
 
 impl PkgMetadata {
@@ -260,13 +261,24 @@ impl PkgMetadata {
         }
     }
 
+    fn parse_use(node: Node, data: &mut Self) {
+        let nodes = node.children().filter(|n| n.tag_name().name() == "flag");
+        for n in nodes {
+            if let (Some(name), Some(desc)) = (n.attribute("name"), n.text()) {
+                data.local_use.insert(name.to_string(), desc.to_string());
+            }
+        }
+    }
+
     fn parse_xml(xml: &str) -> Self {
         let mut data = Self::default();
         if let Ok(doc) = Document::parse(xml) {
             for node in doc.descendants() {
+                let lang = node.attribute("lang").unwrap_or("en");
                 match node.tag_name().name() {
                     "maintainer" => Self::parse_maintainer(node, &mut data),
                     "upstream" => Self::parse_upstreams(node, &mut data),
+                    "use" if lang == "en" => Self::parse_use(node, &mut data),
                     _ => (),
                 }
             }
@@ -280,6 +292,10 @@ impl PkgMetadata {
 
     pub fn upstreams(&self) -> &[Upstream] {
         &self.upstreams
+    }
+
+    pub fn local_use(&self) -> &HashMap<String, String> {
+        &self.local_use
     }
 }
 
