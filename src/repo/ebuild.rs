@@ -1,4 +1,6 @@
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
@@ -20,7 +22,7 @@ use walkdir::WalkDir;
 use super::{make_repo_traits, Contains, Repository};
 use crate::config::{Config, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
-use crate::macros::build_from_paths;
+use crate::macros::{build_from_paths, cmp_not_equal};
 use crate::pkg::Package;
 use crate::restrict::{Restrict, Restriction};
 use crate::{atom, eapi, pkg, repo, Error};
@@ -114,7 +116,7 @@ impl Metadata {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Maintainer {
     email: Option<String>,
     name: Option<String>,
@@ -148,6 +150,34 @@ impl Maintainer {
 
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
+    }
+}
+
+impl PartialEq for Maintainer {
+    fn eq(&self, other: &Self) -> bool {
+        self.email == other.email && self.name == other.name
+    }
+}
+
+impl Eq for Maintainer {}
+
+impl Ord for Maintainer {
+    fn cmp(&self, other: &Self) -> Ordering {
+        cmp_not_equal!(&self.email, &other.email);
+        self.name.cmp(&other.name)
+    }
+}
+
+impl PartialOrd for Maintainer {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Hash for Maintainer {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.email.hash(state);
+        self.name.hash(state);
     }
 }
 
