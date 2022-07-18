@@ -32,7 +32,7 @@ impl FromStr for Suffix {
     }
 }
 
-#[derive(Debug, Default, Eq, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Revision {
     value: Option<String>,
     int: u64,
@@ -70,6 +70,8 @@ impl PartialEq for Revision {
         self.int == other.int
     }
 }
+
+impl Eq for Revision {}
 
 impl Hash for Revision {
     fn hash<H: Hasher>(&self, state: &mut H) {
