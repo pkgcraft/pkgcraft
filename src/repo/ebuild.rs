@@ -121,6 +121,8 @@ pub struct Maintainer {
     email: Option<String>,
     name: Option<String>,
     description: Option<String>,
+    maint_type: Option<String>,
+    proxied: Option<String>,
 }
 
 impl Maintainer {
@@ -128,6 +130,8 @@ impl Maintainer {
         email: Option<&str>,
         name: Option<&str>,
         description: Option<&str>,
+        maint_type: Option<&str>,
+        proxied: Option<&str>,
     ) -> crate::Result<Self> {
         if email.is_none() && name.is_none() {
             return Err(Error::InvalidValue("either email or name must exist".to_string()));
@@ -137,6 +141,8 @@ impl Maintainer {
             email: email.map(String::from),
             name: name.map(String::from),
             description: description.map(String::from),
+            maint_type: maint_type.map(String::from),
+            proxied: proxied.map(String::from),
         })
     }
 
@@ -150,6 +156,14 @@ impl Maintainer {
 
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
+    }
+
+    pub fn maint_type(&self) -> Option<&str> {
+        self.maint_type.as_deref()
+    }
+
+    pub fn proxied(&self) -> Option<&str> {
+        self.proxied.as_deref()
     }
 }
 
@@ -194,19 +208,21 @@ impl PkgMetadata {
             Ok(s) => {
                 let doc = Document::parse(&s).unwrap();
                 let (mut email, mut name, mut description) = (None, None, None);
-                for n in doc
+                for node in doc
                     .descendants()
                     .filter(|n| n.tag_name().name() == "maintainer")
                 {
-                    for node in n.children() {
-                        match node.tag_name().name() {
-                            "email" => email = node.text(),
-                            "name" => name = node.text(),
-                            "description" => description = node.text(),
+                    for n in node.children() {
+                        match n.tag_name().name() {
+                            "email" => email = n.text(),
+                            "name" => name = n.text(),
+                            "description" => description = n.text(),
                             _ => (),
                         }
                     }
-                    if let Ok(m) = Maintainer::new(email, name, description) {
+                    let maint_type = node.attribute("type");
+                    let proxied = node.attribute("proxied");
+                    if let Ok(m) = Maintainer::new(email, name, description, maint_type, proxied) {
                         data.maintainers.push(m);
                     }
                 }
