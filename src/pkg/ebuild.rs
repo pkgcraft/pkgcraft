@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::io::{self, prelude::*};
 use std::path::Path;
+use std::sync::Arc;
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -12,7 +13,7 @@ use scallop::variables::string_value;
 
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
-use crate::repo::ebuild::Repo;
+use crate::repo::ebuild::{Maintainer, PkgMetadata, Repo};
 use crate::{atom, eapi, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
@@ -131,6 +132,7 @@ pub struct Pkg<'a> {
     eapi: &'static eapi::Eapi,
     repo: &'a Repo,
     data: Metadata<'a>,
+    shared_data: OnceCell<Arc<PkgMetadata>>,
 }
 
 make_pkg_traits!(Pkg<'_>);
@@ -146,6 +148,7 @@ impl<'a> Pkg<'a> {
             eapi,
             repo,
             data,
+            shared_data: OnceCell::new(),
         })
     }
 
@@ -218,6 +221,17 @@ impl<'a> Pkg<'a> {
     /// Return the ordered set of inherited eclasses for a package.
     pub fn inherited(&'a self) -> &'a IndexSet<&'a str> {
         self.data.inherited()
+    }
+
+    /// Return a package's XML metadata.
+    fn shared_data(&self) -> &PkgMetadata {
+        self.shared_data
+            .get_or_init(|| self.repo.pkg_metadata(&self.atom))
+            .as_ref()
+    }
+
+    pub fn maintainers(&self) -> &[Maintainer] {
+        self.shared_data().maintainers()
     }
 }
 
@@ -455,5 +469,68 @@ mod tests {
         let path = t.create_ebuild("cat/pkg-1", [(Iuse, val)]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
+    }
+
+    #[test]
+    fn test_maintainers() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("xml", 0).unwrap();
+
+        // none
+        let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(pkg.maintainers().is_empty());
+
+        // single maintainer
+        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <maintainer type="person">
+                    <email>a.person@email.com</email>
+                    <name>A Person</name>
+                </maintainer>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            let m = pkg.maintainers();
+            assert_eq!(m.len(), 1);
+            assert_eq!(m[0].email(), Some("a.person@email.com"));
+            assert_eq!(m[0].name(), Some("A Person"));
+        }
+
+        // multiple maintainers
+        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <maintainer type="person">
+                    <email>a.person@email.com</email>
+                    <name>A Person</name>
+                </maintainer>
+                <maintainer type="person">
+                    <email>b.person@email.com</email>
+                    <name>B Person</name>
+                </maintainer>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            let m = pkg.maintainers();
+            assert_eq!(m.len(), 2);
+            assert_eq!(m[0].email(), Some("a.person@email.com"));
+            assert_eq!(m[0].name(), Some("A Person"));
+            assert_eq!(m[1].email(), Some("b.person@email.com"));
+            assert_eq!(m[1].name(), Some("B Person"));
+        }
     }
 }

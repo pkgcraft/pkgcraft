@@ -1,16 +1,18 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
-use std::{env, fmt, fs, io};
+use std::{env, fmt, fs, io, thread};
 
 #[cfg(test)]
 use std::io::Write;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use ini::Ini;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
+use roxmltree::Document;
 use tempfile::TempDir;
 use tracing::warn;
 use walkdir::WalkDir;
@@ -112,6 +114,143 @@ impl Metadata {
     }
 }
 
+#[derive(Debug)]
+pub struct Maintainer {
+    email: Option<String>,
+    name: Option<String>,
+    description: Option<String>,
+}
+
+impl Maintainer {
+    fn new(
+        email: Option<&str>,
+        name: Option<&str>,
+        description: Option<&str>,
+    ) -> crate::Result<Self> {
+        if email.is_none() && name.is_none() {
+            return Err(Error::InvalidValue("either email or name must exist".to_string()));
+        }
+
+        Ok(Self {
+            email: email.map(String::from),
+            name: name.map(String::from),
+            description: description.map(String::from),
+        })
+    }
+
+    pub fn email(&self) -> Option<&str> {
+        self.email.as_deref()
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct PkgMetadata {
+    maintainers: Vec<Maintainer>,
+}
+
+impl PkgMetadata {
+    fn new(path: &Utf8Path) -> Self {
+        let mut data = PkgMetadata::default();
+        match fs::read_to_string(path) {
+            Err(_) => (),
+            Ok(s) => {
+                let doc = Document::parse(&s).unwrap();
+                let (mut email, mut name, mut description) = (None, None, None);
+                for n in doc
+                    .descendants()
+                    .filter(|n| n.tag_name().name() == "maintainer")
+                {
+                    for node in n.children() {
+                        match node.tag_name().name() {
+                            "email" => email = node.text(),
+                            "name" => name = node.text(),
+                            "description" => description = node.text(),
+                            _ => (),
+                        }
+                    }
+                    if let Ok(m) = Maintainer::new(email, name, description) {
+                        data.maintainers.push(m);
+                    }
+                }
+            }
+        }
+        data
+    }
+
+    pub fn maintainers(&self) -> &[Maintainer] {
+        &self.maintainers
+    }
+}
+
+#[derive(Debug)]
+struct SharedPkgMetadata {
+    thread: Option<thread::JoinHandle<()>>,
+    sender: Sender<Msg>,
+    receiver: Receiver<Arc<PkgMetadata>>,
+}
+
+enum Msg {
+    Key(String),
+    Stop,
+}
+
+impl SharedPkgMetadata {
+    fn new(repo: &Repo) -> Self {
+        let (path_sender, path_receiver) = bounded::<Msg>(10);
+        let (meta_sender, meta_receiver) = bounded::<Arc<PkgMetadata>>(10);
+        let path = Utf8PathBuf::from(repo.path());
+
+        // Note that this thread will currently be killed without joining on exit since
+        // SharedPkgMetadata is stored in a OnceCell for Repo objects which doesn't call drop().
+        let thread = thread::spawn(move || {
+            let repo_path = path;
+            let mut pkg_data = HashMap::<String, Arc<PkgMetadata>>::new();
+            loop {
+                match path_receiver.recv() {
+                    Ok(Msg::Stop) | Err(RecvError) => break,
+                    Ok(Msg::Key(s)) => {
+                        let data = match pkg_data.get(&s) {
+                            Some(data) => data.clone(),
+                            None => {
+                                let xml_path = build_from_paths!(&repo_path, &s, "metadata.xml");
+                                let xml_data = Arc::new(PkgMetadata::new(&xml_path));
+                                pkg_data.insert(s.clone(), xml_data.clone());
+                                xml_data
+                            }
+                        };
+                        meta_sender
+                            .send(data)
+                            .expect("failed sending shared pkg data");
+                    }
+                }
+            }
+        });
+
+        SharedPkgMetadata {
+            thread: Some(thread),
+            sender: path_sender,
+            receiver: meta_receiver,
+        }
+    }
+}
+
+impl Drop for SharedPkgMetadata {
+    fn drop(&mut self) {
+        self.sender.send(Msg::Stop).unwrap();
+        if let Some(thread) = self.thread.take() {
+            thread.join().unwrap();
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Repo {
     id: String,
@@ -121,6 +260,7 @@ pub struct Repo {
     name: String,
     masters: OnceCell<Vec<Weak<Repo>>>,
     trees: OnceCell<Vec<Weak<Repo>>>,
+    shared_pkg_data: OnceCell<SharedPkgMetadata>,
 }
 
 impl fmt::Debug for Repo {
@@ -308,6 +448,23 @@ impl Repo {
                         false => Err(err("mismatched package dir")),
                     })
             })
+    }
+
+    fn shared_pkg_data(&self) -> &SharedPkgMetadata {
+        self.shared_pkg_data
+            .get_or_init(|| SharedPkgMetadata::new(self))
+    }
+
+    pub(crate) fn pkg_metadata(&self, cpv: &atom::Atom) -> Arc<PkgMetadata> {
+        let key = format!("{}/{}", cpv.category(), cpv.package());
+        self.shared_pkg_data()
+            .sender
+            .send(Msg::Key(key))
+            .expect("failed requesting shared pkg data");
+        self.shared_pkg_data()
+            .receiver
+            .recv()
+            .expect("failed receiving shared pkg data")
     }
 
     pub fn name(&self) -> &str {
