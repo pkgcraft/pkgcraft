@@ -639,7 +639,11 @@ mod tests {
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
             <pkgmetadata>
-                <use>
+                <use lang="en">
+                    <flag name="flag1">flag1 desc</flag>
+                    <flag name="flag2">flag2 desc</flag>
+                </use>
+                <use lang="zx">
                     <flag name="flag1">flag1 desc</flag>
                     <flag name="flag2">flag2 desc</flag>
                 </use>
