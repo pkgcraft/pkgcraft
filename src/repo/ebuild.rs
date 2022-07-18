@@ -223,6 +223,7 @@ pub struct PkgMetadata {
     maintainers: Vec<Maintainer>,
     upstreams: Vec<Upstream>,
     local_use: HashMap<String, String>,
+    long_desc: Option<String>,
 }
 
 impl PkgMetadata {
@@ -270,15 +271,24 @@ impl PkgMetadata {
         }
     }
 
+    fn parse_long_desc(node: Node, data: &mut Self) {
+        data.long_desc = node.text().map(|s| {
+            let (text, _opts) = textwrap::unfill(textwrap::dedent(s).trim());
+            text
+        });
+    }
+
     fn parse_xml(xml: &str) -> Self {
         let mut data = Self::default();
         if let Ok(doc) = Document::parse(xml) {
             for node in doc.descendants() {
                 let lang = node.attribute("lang").unwrap_or("en");
+                let en = lang == "en";
                 match node.tag_name().name() {
                     "maintainer" => Self::parse_maintainer(node, &mut data),
                     "upstream" => Self::parse_upstreams(node, &mut data),
-                    "use" if lang == "en" => Self::parse_use(node, &mut data),
+                    "use" if en => Self::parse_use(node, &mut data),
+                    "longdescription" if en => Self::parse_long_desc(node, &mut data),
                     _ => (),
                 }
             }
@@ -286,16 +296,20 @@ impl PkgMetadata {
         data
     }
 
-    pub fn maintainers(&self) -> &[Maintainer] {
+    pub(crate) fn maintainers(&self) -> &[Maintainer] {
         &self.maintainers
     }
 
-    pub fn upstreams(&self) -> &[Upstream] {
+    pub(crate) fn upstreams(&self) -> &[Upstream] {
         &self.upstreams
     }
 
-    pub fn local_use(&self) -> &HashMap<String, String> {
+    pub(crate) fn local_use(&self) -> &HashMap<String, String> {
         &self.local_use
+    }
+
+    pub(crate) fn long_desc(&self) -> Option<&str> {
+        self.long_desc.as_deref()
     }
 }
 

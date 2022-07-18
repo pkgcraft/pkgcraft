@@ -244,6 +244,11 @@ impl<'a> Pkg<'a> {
     pub fn local_use(&self) -> &HashMap<String, String> {
         self.shared_data().local_use()
     }
+
+    /// Return a package's long description.
+    pub fn long_desc(&self) -> Option<&str> {
+        self.shared_data().long_desc()
+    }
 }
 
 impl AsRef<Utf8Path> for Pkg<'_> {
@@ -657,6 +662,72 @@ mod tests {
             assert_eq!(pkg.local_use().len(), 2);
             assert_eq!(pkg.local_use().get("flag1").unwrap(), "flag1 desc");
             assert_eq!(pkg.local_use().get("flag2").unwrap(), "flag2 desc");
+        }
+    }
+
+    #[test]
+    fn test_long_desc() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("xml", 0).unwrap();
+
+        // none
+        let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(pkg.long_desc().is_none());
+
+        // single
+        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <longdescription>
+                    A wrapped
+                    sentence.
+                    Another sentence.
+
+                    New paragraph.
+                </longdescription>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            assert_eq!(
+                pkg.long_desc().unwrap(),
+                "A wrapped sentence. Another sentence.  New paragraph."
+            );
+        }
+
+        // multiple
+        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <longdescription lang="en">
+                    A wrapped
+                    sentence.
+                    Another sentence.
+
+                    New paragraph.
+                </longdescription>
+                <longdescription lang="zx">
+                    zx
+                </longdescription>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            assert_eq!(
+                pkg.long_desc().unwrap(),
+                "A wrapped sentence. Another sentence.  New paragraph."
+            );
         }
     }
 }
