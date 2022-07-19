@@ -54,14 +54,15 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, nonfatal};
-    use super::{run as die, BUILTIN};
+    use scallop::variables::*;
+    use scallop::{builtins, source};
+
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
-    use scallop::variables::*;
-    use scallop::{source, Shell};
+    use super::super::assert_invalid_args;
+    use super::run as die;
 
     #[test]
     fn invalid_args() {
@@ -80,8 +81,7 @@ mod tests {
 
     #[test]
     fn main() {
-        Shell::init();
-        Shell::builtins([&BUILTIN.builtin]);
+        builtins::enable(&["die"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("die && VAR=2");
@@ -97,8 +97,7 @@ mod tests {
 
     #[test]
     fn subshell() {
-        Shell::init();
-        Shell::builtins([&BUILTIN.builtin]);
+        builtins::enable(&["die"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("VAR=$(die); VAR=2");
@@ -114,8 +113,7 @@ mod tests {
 
     #[test]
     fn nonfatal() {
-        Shell::init();
-        Shell::builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
+        builtins::enable(&["die", "nonfatal"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
         // nonfatal requires `die -n` call

@@ -7,12 +7,12 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
-use scallop::source;
 use scallop::variables::string_value;
 
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
+use crate::pkgsh::source_ebuild;
 use crate::repo::ebuild::Repo;
 use crate::{atom, eapi, pkg, restrict, Error};
 
@@ -35,7 +35,7 @@ struct Metadata<'a> {
 impl<'a> Metadata<'a> {
     fn new(path: &Utf8Path, eapi: &'static eapi::Eapi) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
-        source::file(path)?;
+        source_ebuild(path)?;
         let mut data = HashMap::new();
 
         // verify sourced EAPI matches parsed EAPI

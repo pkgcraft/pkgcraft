@@ -49,12 +49,12 @@ mod tests {
     use std::fs::File;
 
     use scallop::variables::bind;
-    use scallop::Shell;
     use tempfile::tempdir;
 
-    use super::run as emake;
     use crate::command::last_command;
     use crate::macros::assert_err_re;
+
+    use super::run as emake;
 
     #[test]
     fn nonexistent() {
@@ -63,7 +63,6 @@ mod tests {
 
     #[test]
     fn command() {
-        Shell::init();
         let dir = tempdir().unwrap();
         let makefile = dir.path().join("makefile");
         File::create(makefile).unwrap();

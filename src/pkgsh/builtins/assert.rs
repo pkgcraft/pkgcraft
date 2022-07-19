@@ -32,18 +32,18 @@ pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, nonfatal};
-    use super::{run as assert, BUILTIN};
+    use scallop::variables::*;
+    use scallop::{builtins, source};
+
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
-    use scallop::variables::*;
-    use scallop::{source, Shell};
+    use super::super::assert_invalid_args;
+    use super::run as assert;
 
     #[test]
     fn invalid_args() {
-        Shell::init();
         // make sure PIPESTATUS is set to cause failures
         source::string("true | false").unwrap();
 
@@ -62,7 +62,6 @@ mod tests {
 
     #[test]
     fn success() {
-        Shell::init();
         // unset PIPESTATUS
         source::string("assert").unwrap();
 
@@ -72,8 +71,7 @@ mod tests {
 
     #[test]
     fn main() {
-        Shell::init();
-        Shell::builtins([&BUILTIN.builtin]);
+        builtins::enable(&["assert"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("true | false | true; assert");
@@ -89,8 +87,7 @@ mod tests {
 
     #[test]
     fn subshell() {
-        Shell::init();
-        Shell::builtins([&BUILTIN.builtin]);
+        builtins::enable(&["assert"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("VAR=$(true | false; assert); VAR=2");
@@ -106,8 +103,7 @@ mod tests {
 
     #[test]
     fn nonfatal() {
-        Shell::init();
-        Shell::builtins([&BUILTIN.builtin, &nonfatal::BUILTIN.builtin]);
+        builtins::enable(&["assert", "nonfatal"]).unwrap();
 
         // nonfatal requires `die -n` call
         let r = source::string("true | false; nonfatal assert");

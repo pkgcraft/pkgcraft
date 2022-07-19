@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
-use std::path::Path;
 
+use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use nix::unistd::isatty;
@@ -11,7 +11,7 @@ use scallop::variables::*;
 use scallop::{functions, source, Error, Shell};
 
 use crate::eapi::{Eapi, Feature, Key};
-use crate::pkgsh::builtins::Scope;
+use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
 
 pub mod builtins;
 mod install;
@@ -253,7 +253,98 @@ impl BuildData {
 }
 
 thread_local! {
-    pub static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::new());
+    pub(crate) static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::new());
+}
+
+/// Initialize bash for library usage.
+pub fn bash_init() {
+    Shell::init();
+    let builtins: Vec<_> = ALL_BUILTINS.iter().map(|&b| b.into()).collect();
+    scallop::builtins::register(&builtins);
+}
+
+pub fn run_phase(phase: &phase::Phase) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
+        d.borrow_mut().phase = Some(*phase);
+
+        let eapi = d.borrow().eapi;
+        let mut phase_name = ScopedVariable::new("EBUILD_PHASE");
+        let mut phase_func_name = ScopedVariable::new("EBUILD_PHASE_FUNC");
+
+        // enable phase builtins
+        let _builtins = eapi.scoped_builtins(phase)?;
+
+        phase_name.bind(phase.short_name(), None, None)?;
+        if eapi.has(Feature::EbuildPhaseFunc) {
+            phase_func_name.bind(phase, None, None)?;
+        }
+
+        // run user space pre-phase hooks
+        if let Some(mut func) = functions::find(format!("pre_{phase}")) {
+            func.execute(&[])?;
+        }
+
+        // run user space phase function, falling back to internal default
+        match functions::find(phase) {
+            Some(mut func) => func.execute(&[])?,
+            None => match eapi.phases().get(phase) {
+                Some(phase) => phase.run()?,
+                None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
+            },
+        };
+
+        // run user space post-phase hooks
+        if let Some(mut func) = functions::find(format!("post_{phase}")) {
+            func.execute(&[])?;
+        }
+
+        d.borrow_mut().phase = None;
+
+        Ok(ExecStatus::Success)
+    })
+}
+
+pub fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
+    if !path.exists() {
+        return Err(Error::Base(format!("nonexistent ebuild: {path:?}")));
+    }
+
+    BUILD_DATA.with(|d| -> scallop::Result<()> {
+        let eapi = d.borrow().eapi;
+        let mut opts = ScopedOptions::default();
+
+        // enable global builtins
+        let _builtins = eapi.scoped_builtins(Scope::Global)?;
+
+        if eapi.has(Feature::GlobalFailglob) {
+            opts.enable(["failglob"])?;
+        }
+
+        source::file(path)?;
+
+        // TODO: export default for $S
+
+        // set RDEPEND=DEPEND if RDEPEND is unset
+        if eapi.has(Feature::RdependDefault) && string_value("RDEPEND").is_none() {
+            let depend = string_value("DEPEND").unwrap_or_else(|| String::from(""));
+            bind("RDEPEND", &depend, None, None)?;
+        }
+
+        // prepend metadata keys that incrementally accumulate to eclass values
+        let mut d = d.borrow_mut();
+        for var in eapi.incremental_keys() {
+            let deque = d.get_deque(var);
+            if let Ok(data) = string_vec(var) {
+                // TODO: extend_left() should be implemented upstream for VecDeque
+                for item in data.into_iter().rev() {
+                    deque.push_front(item);
+                }
+            }
+            // export the incrementally accumulated value
+            bind(var, deque.iter().join(" "), None, None)?;
+        }
+        Ok(())
+    })
 }
 
 pub struct PkgShell {}
@@ -263,91 +354,6 @@ impl PkgShell {
         // update thread local mutable for builtins
         BUILD_DATA.with(|d| d.replace(data));
         PkgShell {}
-    }
-
-    pub fn run_phase(&mut self, phase: &phase::Phase) -> scallop::Result<ExecStatus> {
-        BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-            d.borrow_mut().phase = Some(*phase);
-
-            let eapi = d.borrow().eapi;
-            let mut phase_name = ScopedVariable::new("EBUILD_PHASE");
-            let mut phase_func_name = ScopedVariable::new("EBUILD_PHASE_FUNC");
-
-            // enable phase builtins
-            let _builtins = eapi.scoped_builtins(phase)?;
-
-            phase_name.bind(phase.short_name(), None, None)?;
-            if eapi.has(Feature::EbuildPhaseFunc) {
-                phase_func_name.bind(phase, None, None)?;
-            }
-
-            // run user space pre-phase hooks
-            if let Some(mut func) = functions::find(format!("pre_{phase}")) {
-                func.execute(&[])?;
-            }
-
-            // run user space phase function, falling back to internal default
-            match functions::find(phase) {
-                Some(mut func) => func.execute(&[])?,
-                None => match eapi.phases().get(phase) {
-                    Some(phase) => phase.run()?,
-                    None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
-                },
-            };
-
-            // run user space post-phase hooks
-            if let Some(mut func) = functions::find(format!("post_{phase}")) {
-                func.execute(&[])?;
-            }
-
-            d.borrow_mut().phase = None;
-
-            Ok(ExecStatus::Success)
-        })
-    }
-
-    pub fn source_ebuild<P: AsRef<Path>>(&mut self, ebuild: P) -> scallop::Result<()> {
-        let ebuild = ebuild.as_ref();
-        if !ebuild.exists() {
-            return Err(Error::Base(format!("nonexistent ebuild: {ebuild:?}")));
-        }
-
-        BUILD_DATA.with(|d| -> scallop::Result<()> {
-            let eapi = d.borrow().eapi;
-            let mut opts = ScopedOptions::default();
-
-            // enable global builtins
-            let _builtins = eapi.scoped_builtins(Scope::Global)?;
-
-            if eapi.has(Feature::GlobalFailglob) {
-                opts.enable(["failglob"])?;
-            }
-
-            source::file(&ebuild)?;
-
-            // TODO: export default for $S
-
-            // set RDEPEND=DEPEND if RDEPEND is unset
-            if eapi.has(Feature::RdependDefault) && string_value("RDEPEND").is_none() {
-                let depend = string_value("DEPEND").unwrap_or_else(|| String::from(""));
-                bind("RDEPEND", &depend, None, None)?;
-            }
-
-            // prepend metadata keys that incrementally accumulate to eclass values
-            let mut d = d.borrow_mut();
-            for var in eapi.incremental_keys() {
-                let deque = d.get_deque(var);
-                if let Ok(data) = string_vec(var) {
-                    // TODO: extend_left() should be implemented upstream for VecDeque
-                    for item in data.into_iter().rev() {
-                        deque.push_front(item);
-                    }
-                }
-                // export the incrementally accumulated value
-                bind(var, deque.iter().join(" "), None, None)?;
-            }
-            Ok(())
-        })
     }
 
     pub fn reset(&mut self) {
