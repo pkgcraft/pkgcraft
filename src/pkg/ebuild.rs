@@ -13,7 +13,8 @@ use scallop::variables::string_value;
 
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
-use crate::repo::ebuild::{Distfile, Maintainer, Manifest, Repo, Upstream, XmlMetadata};
+use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
+use crate::repo::ebuild::Repo;
 use crate::{atom, eapi, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
