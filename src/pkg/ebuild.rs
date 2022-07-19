@@ -13,7 +13,7 @@ use scallop::variables::string_value;
 
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
-use crate::repo::ebuild::{Maintainer, PkgMetadata, Repo, Upstream};
+use crate::repo::ebuild::{Distfile, Maintainer, Manifest, Repo, Upstream, XmlMetadata};
 use crate::{atom, eapi, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
@@ -132,7 +132,8 @@ pub struct Pkg<'a> {
     eapi: &'static eapi::Eapi,
     repo: &'a Repo,
     data: Metadata<'a>,
-    shared_data: OnceCell<Arc<PkgMetadata>>,
+    xml: OnceCell<Arc<XmlMetadata>>,
+    manifest: OnceCell<Arc<Manifest>>,
 }
 
 make_pkg_traits!(Pkg<'_>);
@@ -148,7 +149,8 @@ impl<'a> Pkg<'a> {
             eapi,
             repo,
             data,
-            shared_data: OnceCell::new(),
+            xml: OnceCell::new(),
+            manifest: OnceCell::new(),
         })
     }
 
@@ -224,30 +226,42 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's XML metadata.
-    fn shared_data(&self) -> &PkgMetadata {
-        self.shared_data
-            .get_or_init(|| self.repo.pkg_metadata(&self.atom))
+    fn xml(&self) -> &XmlMetadata {
+        self.xml
+            .get_or_init(|| self.repo.pkg_xml(&self.atom))
             .as_ref()
     }
 
     /// Return a package's maintainers.
     pub fn maintainers(&self) -> &[Maintainer] {
-        self.shared_data().maintainers()
+        self.xml().maintainers()
     }
 
     /// Return a package's upstreams.
     pub fn upstreams(&self) -> &[Upstream] {
-        self.shared_data().upstreams()
+        self.xml().upstreams()
     }
 
     /// Return a package's local USE flag mapping.
     pub fn local_use(&self) -> &HashMap<String, String> {
-        self.shared_data().local_use()
+        self.xml().local_use()
     }
 
     /// Return a package's long description.
     pub fn long_desc(&self) -> Option<&str> {
-        self.shared_data().long_desc()
+        self.xml().long_desc()
+    }
+
+    /// Return a package's manifest.
+    fn manifest(&self) -> &Manifest {
+        self.manifest
+            .get_or_init(|| self.repo.pkg_manifest(&self.atom))
+            .as_ref()
+    }
+
+    /// Return a package's long description.
+    pub fn distfiles(&self) -> &[Distfile] {
+        self.manifest().distfiles()
     }
 }
 
@@ -728,6 +742,58 @@ mod tests {
                 pkg.long_desc().unwrap(),
                 "A wrapped sentence. Another sentence.  New paragraph."
             );
+        }
+    }
+
+    #[test]
+    fn test_distfiles() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("manifest", 0).unwrap();
+
+        // none
+        let path = t.create_ebuild("nomanifest/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(pkg.distfiles().is_empty());
+
+        // single
+        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B a SHA512 b
+        "#};
+        fs::write(path.parent().unwrap().join("Manifest"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            let dist = pkg.distfiles();
+            assert_eq!(dist.len(), 1);
+            assert_eq!(dist[0].name(), "a.tar.gz");
+            assert_eq!(dist[0].size(), 1);
+            assert_eq!(dist[0].checksums()[0], ("blake2b".into(), "a".into()));
+            assert_eq!(dist[0].checksums()[1], ("sha512".into(), "b".into()));
+        }
+
+        // multiple
+        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B a SHA512 b
+            DIST b.tar.gz 2 BLAKE2B c SHA512 d
+        "#};
+        fs::write(path.parent().unwrap().join("Manifest"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            let dist = pkg.distfiles();
+            assert_eq!(dist.len(), 2);
+            assert_eq!(dist[0].name(), "a.tar.gz");
+            assert_eq!(dist[0].size(), 1);
+            assert_eq!(dist[0].checksums()[0], ("blake2b".into(), "a".into()));
+            assert_eq!(dist[0].checksums()[1], ("sha512".into(), "b".into()));
+            assert_eq!(dist[1].name(), "b.tar.gz");
+            assert_eq!(dist[1].size(), 2);
+            assert_eq!(dist[1].checksums()[0], ("blake2b".into(), "c".into()));
+            assert_eq!(dist[1].checksums()[1], ("sha512".into(), "d".into()));
         }
     }
 }

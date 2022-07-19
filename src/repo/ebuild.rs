@@ -12,6 +12,7 @@ use std::io::Write;
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use ini::Ini;
+use itertools::Itertools;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use roxmltree::{Document, Node};
@@ -218,22 +219,29 @@ impl Upstream {
     }
 }
 
+/// Shared data cache trait.
+trait CacheData {
+    fn new(path: &Utf8Path) -> Self;
+}
+
 #[derive(Debug, Default)]
-pub struct PkgMetadata {
+pub struct XmlMetadata {
     maintainers: Vec<Maintainer>,
     upstreams: Vec<Upstream>,
     local_use: HashMap<String, String>,
     long_desc: Option<String>,
 }
 
-impl PkgMetadata {
+impl CacheData for XmlMetadata {
     fn new(path: &Utf8Path) -> Self {
-        match fs::read_to_string(path) {
+        match fs::read_to_string(path.join("metadata.xml")) {
             Err(_) => Self::default(),
             Ok(s) => Self::parse_xml(&s),
         }
     }
+}
 
+impl XmlMetadata {
     fn parse_maintainer(node: Node, data: &mut Self) {
         let (mut email, mut name, mut description) = (None, None, None);
         for n in node.children() {
@@ -313,11 +321,78 @@ impl PkgMetadata {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Distfile {
+    name: String,
+    size: u64,
+    checksums: Vec<(String, String)>,
+}
+
+impl Distfile {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn size(&self) -> u64 {
+        self.size
+    }
+
+    pub fn checksums(&self) -> &[(String, String)] {
+        &self.checksums
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Manifest {
+    dist: Vec<Distfile>,
+}
+
+impl CacheData for Manifest {
+    fn new(path: &Utf8Path) -> Self {
+        match fs::read_to_string(path.join("Manifest")) {
+            Err(_) => Self::default(),
+            Ok(s) => Self::parse_manifest(&s),
+        }
+    }
+}
+
+impl Manifest {
+    // TODO: handle error checking
+    fn parse_manifest(data: &str) -> Self {
+        let mut dist = vec![];
+        for line in data.lines() {
+            let mut fields = line.split_whitespace();
+            // TODO: support other field types
+            if let Some("DIST") = fields.next() {
+                let filename = fields.next().unwrap();
+                let size = fields.next().unwrap();
+                let checksums = fields
+                    .tuples()
+                    .map(|(s, val)| (s.to_ascii_lowercase(), val.to_string()))
+                    .collect::<Vec<(String, String)>>();
+                dist.push(Distfile {
+                    name: filename.to_string(),
+                    size: size.parse().unwrap(),
+                    checksums,
+                })
+            }
+        }
+        Manifest { dist }
+    }
+
+    pub(crate) fn distfiles(&self) -> &[Distfile] {
+        &self.dist
+    }
+}
+
 #[derive(Debug)]
-struct SharedPkgMetadata {
+struct Cache<T>
+where
+    T: CacheData + Send + Sync,
+{
     thread: Option<thread::JoinHandle<()>>,
     sender: Sender<Msg>,
-    receiver: Receiver<Arc<PkgMetadata>>,
+    receiver: Receiver<Arc<T>>,
 }
 
 enum Msg {
@@ -325,28 +400,30 @@ enum Msg {
     Stop,
 }
 
-impl SharedPkgMetadata {
-    fn new(repo: &Repo) -> Self {
+impl<T> Cache<T>
+where
+    T: CacheData + Send + Sync + 'static,
+{
+    fn new(repo: &Repo) -> Cache<T> {
         let (path_sender, path_receiver) = bounded::<Msg>(10);
-        let (meta_sender, meta_receiver) = bounded::<Arc<PkgMetadata>>(10);
+        let (meta_sender, meta_receiver) = bounded::<Arc<T>>(10);
         let path = Utf8PathBuf::from(repo.path());
 
-        // Note that this thread will currently be killed without joining on exit since
-        // SharedPkgMetadata is stored in a OnceCell for Repo objects which doesn't call drop().
         let thread = thread::spawn(move || {
             let repo_path = path;
-            let mut pkg_data = HashMap::<String, Arc<PkgMetadata>>::new();
+            let mut pkg_data = HashMap::<String, Arc<T>>::new();
             loop {
                 match path_receiver.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
                     Ok(Msg::Key(s)) => {
+                        // TODO: evict cache entries based on file modification time
                         let data = match pkg_data.get(&s) {
                             Some(data) => data.clone(),
                             None => {
-                                let xml_path = build_from_paths!(&repo_path, &s, "metadata.xml");
-                                let xml_data = Arc::new(PkgMetadata::new(&xml_path));
-                                pkg_data.insert(s.clone(), xml_data.clone());
-                                xml_data
+                                let path = repo_path.join(&s);
+                                let data = Arc::new(T::new(&path));
+                                pkg_data.insert(s, data.clone());
+                                data
                             }
                         };
                         meta_sender
@@ -357,7 +434,7 @@ impl SharedPkgMetadata {
             }
         });
 
-        SharedPkgMetadata {
+        Self {
             thread: Some(thread),
             sender: path_sender,
             receiver: meta_receiver,
@@ -365,7 +442,12 @@ impl SharedPkgMetadata {
     }
 }
 
-impl Drop for SharedPkgMetadata {
+// Note that the thread will currently be killed without joining on exit since
+// Cache is contained in a OnceCell that doesn't call drop().
+impl<T> Drop for Cache<T>
+where
+    T: CacheData + Send + Sync,
+{
     fn drop(&mut self) {
         self.sender.send(Msg::Stop).unwrap();
         if let Some(thread) = self.thread.take() {
@@ -383,7 +465,8 @@ pub struct Repo {
     name: String,
     masters: OnceCell<Vec<Weak<Repo>>>,
     trees: OnceCell<Vec<Weak<Repo>>>,
-    shared_pkg_data: OnceCell<SharedPkgMetadata>,
+    xml_cache: OnceCell<Cache<XmlMetadata>>,
+    manifest_cache: OnceCell<Cache<Manifest>>,
 }
 
 impl fmt::Debug for Repo {
@@ -573,21 +656,38 @@ impl Repo {
             })
     }
 
-    fn shared_pkg_data(&self) -> &SharedPkgMetadata {
-        self.shared_pkg_data
-            .get_or_init(|| SharedPkgMetadata::new(self))
+    fn xml_cache(&self) -> &Cache<XmlMetadata> {
+        self.xml_cache
+            .get_or_init(|| Cache::<XmlMetadata>::new(self))
     }
 
-    pub(crate) fn pkg_metadata(&self, cpv: &atom::Atom) -> Arc<PkgMetadata> {
+    fn manifest_cache(&self) -> &Cache<Manifest> {
+        self.manifest_cache
+            .get_or_init(|| Cache::<Manifest>::new(self))
+    }
+
+    pub(crate) fn pkg_xml(&self, cpv: &atom::Atom) -> Arc<XmlMetadata> {
         let key = format!("{}/{}", cpv.category(), cpv.package());
-        self.shared_pkg_data()
+        self.xml_cache()
             .sender
             .send(Msg::Key(key))
-            .expect("failed requesting shared pkg data");
-        self.shared_pkg_data()
+            .expect("failed requesting pkg xml data");
+        self.xml_cache()
             .receiver
             .recv()
-            .expect("failed receiving shared pkg data")
+            .expect("failed receiving pkg xml data")
+    }
+
+    pub(crate) fn pkg_manifest(&self, cpv: &atom::Atom) -> Arc<Manifest> {
+        let key = format!("{}/{}", cpv.category(), cpv.package());
+        self.manifest_cache()
+            .sender
+            .send(Msg::Key(key))
+            .expect("failed requesting pkg manifest data");
+        self.manifest_cache()
+            .receiver
+            .recv()
+            .expect("failed receiving pkg manifest data")
     }
 
     pub fn name(&self) -> &str {
