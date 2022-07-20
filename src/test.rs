@@ -1,3 +1,4 @@
+#![cfg(test)]
 use std::fs;
 
 use camino::Utf8PathBuf;
@@ -113,4 +114,20 @@ impl<'a> Iterator for SortIter<'a> {
             (unsorted, expected)
         })
     }
+}
+
+/// Compare two iterables via sorted lists.
+pub(crate) fn eq_sorted<I, J, T, S>(a: I, b: J) -> bool
+where
+    I: IntoIterator<Item = T>,
+    J: IntoIterator<Item = S>,
+    T: PartialEq<S> + Ord,
+    S: PartialEq<T> + Ord,
+{
+    let mut a: Vec<_> = a.into_iter().collect();
+    let mut b: Vec<_> = b.into_iter().collect();
+    a.sort();
+    b.sort();
+
+    a == b
 }

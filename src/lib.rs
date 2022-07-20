@@ -16,7 +16,6 @@ pub mod pkgsh;
 pub mod repo;
 pub mod restrict;
 mod sync;
-#[cfg(test)]
 pub(crate) mod test;
 pub mod utils;
 

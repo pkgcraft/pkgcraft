@@ -34,12 +34,21 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         .collect()
 });
 
-pub(crate) struct Metadata {
+struct Layout {
     path: Option<Utf8PathBuf>,
     ini: Ini,
 }
 
-impl fmt::Debug for Metadata {
+impl Default for Layout {
+    fn default() -> Self {
+        Layout {
+            path: None,
+            ini: Ini::new(),
+        }
+    }
+}
+
+impl fmt::Debug for Layout {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let section = self.ini.section(DEFAULT_SECTION);
         f.debug_struct("Metadata")
@@ -49,25 +58,16 @@ impl fmt::Debug for Metadata {
     }
 }
 
-impl Default for Metadata {
-    fn default() -> Self {
-        Metadata {
-            path: None,
-            ini: Ini::new(),
-        }
-    }
-}
-
-impl Metadata {
-    fn new<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Self> {
-        let path = path.as_ref();
-        match Ini::load_from_file(path) {
-            Ok(ini) => Ok(Metadata {
-                path: Some(Utf8PathBuf::from(path)),
+impl Layout {
+    fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
+        let path = repo_path.join("metadata/layout.conf");
+        match Ini::load_from_file(&path) {
+            Ok(ini) => Ok(Self {
+                path: Some(path),
                 ini,
             }),
-            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Metadata {
-                path: Some(Utf8PathBuf::from(path)),
+            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Self {
+                path: Some(path),
                 ini: Ini::new(),
             }),
             Err(e) => Err(Error::InvalidValue(format!("invalid repo layout: {path:?}: {e}"))),
@@ -109,8 +109,38 @@ impl Metadata {
         }
     }
 
-    pub(crate) fn masters(&self) -> Vec<&str> {
+    fn masters(&self) -> Vec<&str> {
         self.get_list("masters")
+    }
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct Metadata {
+    profiles_base: Utf8PathBuf,
+    arches: OnceCell<HashSet<String>>,
+}
+
+impl Metadata {
+    fn new(repo_path: &Utf8Path) -> Self {
+        Self {
+            profiles_base: repo_path.join("profiles"),
+            ..Default::default()
+        }
+    }
+
+    fn arches(&self) -> &HashSet<String> {
+        self.arches.get_or_init(|| {
+            let path = self.profiles_base.join("arch.list");
+            match fs::read_to_string(&path) {
+                Ok(s) => s
+                    .lines()
+                    .map(|s| s.trim())
+                    .filter(|s| !s.starts_with('#'))
+                    .map(String::from)
+                    .collect(),
+                Err(_) => HashSet::new(),
+            }
+        })
     }
 }
 
@@ -194,6 +224,7 @@ where
 pub struct Repo {
     id: String,
     config: RepoConfig,
+    layout: Layout,
     metadata: Metadata,
     profiles_base: Utf8PathBuf,
     name: String,
@@ -251,19 +282,19 @@ impl Repo {
             }
         };
 
-        let metadata = Metadata::new(path.join("metadata/layout.conf"))
-            .map_err(|e| invalid_repo(e.to_string()))?;
-
         let config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,
             ..Default::default()
         };
 
+        let layout = Layout::new(path).map_err(|e| invalid_repo(e.to_string()))?;
+
         Ok(Self {
             id: id.as_ref().to_string(),
             config,
-            metadata,
+            layout,
+            metadata: Metadata::new(path),
             profiles_base,
             name,
             ..Default::default()
@@ -275,7 +306,7 @@ impl Repo {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
-        for id in self.metadata.masters() {
+        for id in self.layout.masters() {
             // match against configured repos, falling back to external repos
             match config
                 .repos
@@ -426,6 +457,10 @@ impl Repo {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn arches(&self) -> &HashSet<String> {
+        self.metadata.arches()
     }
 
     pub fn iter(&self) -> PkgIter {
@@ -752,6 +787,7 @@ mod tests {
 
     use crate::eapi::Key;
     use crate::macros::{assert_err_re, assert_logs_re};
+    use crate::test::eq_sorted;
 
     use super::*;
 
@@ -762,9 +798,9 @@ mod tests {
         // nonexistent
         let t = TempRepo::new("test", None, None).unwrap();
         let mut repo = Repo::from_path("test", 0, t.path).unwrap();
-        assert!(repo.meta.masters().is_empty());
-        repo.meta.set("masters", "a b c");
-        repo.meta.write(None).unwrap();
+        assert!(repo.layout.masters().is_empty());
+        repo.layout.set("masters", "a b c");
+        repo.layout.write(None).unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str());
         assert_err_re!(r, format!("^.* unconfigured repos: a, b, c$"));
 
@@ -782,8 +818,8 @@ mod tests {
         // single
         let t = TempRepo::new("b", None, None).unwrap();
         let mut repo = Repo::from_path("b", 0, t.path).unwrap();
-        repo.meta.set("masters", "a");
-        repo.meta.write(None).unwrap();
+        repo.layout.set("masters", "a");
+        repo.layout.write(None).unwrap();
         config
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
@@ -796,8 +832,8 @@ mod tests {
         // multiple
         let t = TempRepo::new("c", None, None).unwrap();
         let mut repo = Repo::from_path("c", 0, t.path).unwrap();
-        repo.meta.set("masters", "a b");
-        repo.meta.write(None).unwrap();
+        repo.layout.set("masters", "a b");
+        repo.layout.write(None).unwrap();
         config
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
@@ -813,7 +849,7 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
-        repo.meta.write(Some("data")).unwrap();
+        repo.layout.write(Some("data")).unwrap();
         let r = Repo::from_path(repo.id(), 0, repo.path());
         assert_err_re!(r, format!("^.* invalid repo layout: .*$"));
     }
@@ -921,6 +957,25 @@ mod tests {
         let a = atom::Atom::from_str("cat/pkg-a").unwrap();
         assert!(!repo.contains(&a));
         assert!(!repo.contains(a));
+    }
+
+    #[test]
+    fn test_arches() {
+        // empty
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (_t, repo) = config.temp_repo("test", 0).unwrap();
+        assert!(repo.arches().is_empty());
+
+        // multiple
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (_t, repo) = config.temp_repo("test", 0).unwrap();
+        let data = indoc::indoc! {r#"
+            amd64
+            arm64
+            amd64-linux
+        "#};
+        fs::write(repo.profiles_base.join("arch.list"), data).unwrap();
+        assert!(eq_sorted(repo.arches(), ["amd64", "arm64", "amd64-linux"]));
     }
 
     #[test]

@@ -170,18 +170,12 @@ impl Repo {
     }
 
     /// Try to load a certain repo type from a given path.
-    pub(crate) fn from_format<P, S>(
-        id: S,
+    pub(crate) fn from_format(
+        id: &str,
         priority: i32,
-        path: P,
+        path: &Utf8Path,
         format: &str,
-    ) -> crate::Result<Self>
-    where
-        P: AsRef<Utf8Path>,
-        S: AsRef<str>,
-    {
-        let id = id.as_ref();
-
+    ) -> crate::Result<Self> {
         match format {
             "ebuild" => Ok(ebuild::Repo::from_path(id, priority, path)?.into()),
             "fake" => Ok(fake::Repo::from_path(id, priority, path)?.into()),
