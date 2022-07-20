@@ -21,7 +21,7 @@ https = ["flate2", "reqwest", "tar", "tokio"]
 
 [dependencies]
 async-trait = "0.1.51"
-cached = "0.36"
+cached = "0.37"
 camino = { version = "1.0.7", features = ["serde1"] }
 chic = "1"
 clap = { version = "3.1.0", features = ["derive"] }
@@ -44,7 +44,7 @@ reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"
 roxmltree = "0.14.1"
 scallop = { path = "../scallop", version = "0.0.1" }
 serde = { version = "1.0", features = ["derive"] }
-serde_with = "1.9.4"
+serde_with = "2.0.0"
 strum = { version = "0.24", features = ["derive"] }
 tar = { version = "0.4.38", optional = true }
 tempfile = "3"
