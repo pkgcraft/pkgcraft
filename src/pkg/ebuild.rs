@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::io::{self, prelude::*};
-use std::path::Path;
 use std::sync::Arc;
 use std::{fmt, fs};
 
@@ -156,9 +155,8 @@ impl<'a> Pkg<'a> {
     }
 
     /// Get the parsed EAPI from a given ebuild file.
-    fn get_eapi<P: AsRef<Path>>(path: P) -> crate::Result<&'static eapi::Eapi> {
+    fn get_eapi(path: &Utf8Path) -> crate::Result<&'static eapi::Eapi> {
         let mut eapi = &*eapi::EAPI0;
-        let path = path.as_ref();
         let f = fs::File::open(path).map_err(|e| Error::IO(e.to_string()))?;
         let reader = io::BufReader::new(f);
         for line in reader.lines() {
