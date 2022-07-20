@@ -35,7 +35,7 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         .collect()
 });
 
-struct Config {
+pub struct Config {
     path: Option<Utf8PathBuf>,
     ini: Ini,
 }
@@ -108,6 +108,14 @@ impl Config {
             None => "".split_whitespace(),
             Some(s) => s.split_whitespace(),
         }
+    }
+
+    pub fn properties_allowed(&self) -> HashSet<&str> {
+        self.iter("properties-allowed").collect()
+    }
+
+    pub fn restrict_allowed(&self) -> HashSet<&str> {
+        self.iter("restrict-allowed").collect()
     }
 }
 
@@ -334,6 +342,10 @@ impl Repo {
 
     pub(super) fn repo_config(&self) -> &RepoConfig {
         &self.repo_config
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.config
     }
 
     pub fn masters(&self) -> Vec<Arc<Repo>> {
@@ -985,6 +997,24 @@ mod tests {
         "#};
         fs::write(repo.profiles_base.join("arch.list"), data).unwrap();
         assert!(eq_sorted(repo.arches(), ["amd64", "arm64", "amd64-linux"]));
+    }
+
+    #[test]
+    fn test_config() {
+        // empty
+        let t = TempRepo::new("test", None, None).unwrap();
+        let repo = Repo::from_path("c", 0, t.path).unwrap();
+        assert!(repo.config().properties_allowed().is_empty());
+        assert!(repo.config().restrict_allowed().is_empty());
+
+        // existing
+        let t = TempRepo::new("test", None, None).unwrap();
+        let mut repo = Repo::from_path("c", 0, t.path).unwrap();
+        repo.config.set("properties-allowed", "interactive live");
+        repo.config.set("restrict-allowed", "fetch mirror");
+        repo.config.write(None).unwrap();
+        assert!(eq_sorted(repo.config().properties_allowed(), ["live", "interactive"]));
+        assert!(eq_sorted(repo.config().restrict_allowed(), ["fetch", "mirror"]));
     }
 
     #[test]
