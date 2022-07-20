@@ -9,6 +9,7 @@ use std::io::Write;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
+use indexmap::IndexSet;
 use ini::Ini;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
@@ -117,7 +118,7 @@ impl Layout {
 #[derive(Debug, Default)]
 pub(crate) struct Metadata {
     profiles_base: Utf8PathBuf,
-    arches: OnceCell<HashSet<String>>,
+    arches: OnceCell<IndexSet<String>>,
 }
 
 impl Metadata {
@@ -128,7 +129,7 @@ impl Metadata {
         }
     }
 
-    fn arches(&self) -> &HashSet<String> {
+    fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
             let path = self.profiles_base.join("arch.list");
             match fs::read_to_string(&path) {
@@ -138,7 +139,7 @@ impl Metadata {
                     .filter(|s| !s.starts_with('#'))
                     .map(String::from)
                     .collect(),
-                Err(_) => HashSet::new(),
+                Err(_) => IndexSet::new(),
             }
         })
     }
@@ -459,7 +460,7 @@ impl Repo {
         &self.name
     }
 
-    pub fn arches(&self) -> &HashSet<String> {
+    pub fn arches(&self) -> &IndexSet<String> {
         self.metadata.arches()
     }
 
