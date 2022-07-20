@@ -194,7 +194,7 @@ where
 pub struct Repo {
     id: String,
     config: RepoConfig,
-    meta: Metadata,
+    metadata: Metadata,
     profiles_base: Utf8PathBuf,
     name: String,
     masters: OnceCell<Vec<Weak<Repo>>>,
@@ -251,7 +251,7 @@ impl Repo {
             }
         };
 
-        let meta = Metadata::new(path.join("metadata/layout.conf"))
+        let metadata = Metadata::new(path.join("metadata/layout.conf"))
             .map_err(|e| invalid_repo(e.to_string()))?;
 
         let config = RepoConfig {
@@ -263,7 +263,7 @@ impl Repo {
         Ok(Self {
             id: id.as_ref().to_string(),
             config,
-            meta,
+            metadata,
             profiles_base,
             name,
             ..Default::default()
@@ -275,7 +275,7 @@ impl Repo {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
-        for id in self.meta.masters() {
+        for id in self.metadata.masters() {
             // match against configured repos, falling back to external repos
             match config
                 .repos
