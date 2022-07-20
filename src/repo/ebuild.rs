@@ -103,15 +103,11 @@ impl Layout {
         Ok(())
     }
 
-    fn get_list<S: AsRef<str>>(&self, key: S) -> Vec<&str> {
-        match self.ini.get_from(DEFAULT_SECTION, key.as_ref()) {
-            None => vec![],
-            Some(s) => s.split_whitespace().collect(),
+    fn iter(&self, key: &str) -> std::str::SplitWhitespace {
+        match self.ini.get_from(DEFAULT_SECTION, key) {
+            None => "".split_whitespace(),
+            Some(s) => s.split_whitespace(),
         }
-    }
-
-    fn masters(&self) -> Vec<&str> {
-        self.get_list("masters")
     }
 }
 
@@ -307,7 +303,7 @@ impl Repo {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
-        for id in self.layout.masters() {
+        for id in self.layout.iter("masters") {
             // match against configured repos, falling back to external repos
             match config
                 .repos
@@ -811,7 +807,6 @@ mod tests {
         // nonexistent
         let t = TempRepo::new("test", None, None).unwrap();
         let mut repo = Repo::from_path("test", 0, t.path).unwrap();
-        assert!(repo.layout.masters().is_empty());
         repo.layout.set("masters", "a b c");
         repo.layout.write(None).unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str());
