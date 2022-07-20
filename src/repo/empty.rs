@@ -11,21 +11,21 @@ use crate::{atom, pkg, repo, Error};
 #[derive(Debug, Default)]
 pub struct Repo {
     id: String,
-    config: RepoConfig,
+    repo_config: RepoConfig,
 }
 
 make_repo_traits!(Repo);
 
 impl Repo {
     pub(crate) fn new(id: &str, priority: i32) -> Repo {
-        let config = RepoConfig {
+        let repo_config = RepoConfig {
             priority,
             ..Default::default()
         };
 
         Repo {
             id: id.to_string(),
-            config,
+            repo_config,
         }
     }
 
@@ -39,6 +39,10 @@ impl Repo {
             false => Err(Error::RepoInit("not an empty repo".to_string())),
             true => Ok(Repo::new(id, priority)),
         }
+    }
+
+    pub(super) fn repo_config(&self) -> &RepoConfig {
+        &self.repo_config
     }
 
     pub fn iter(&self) -> iter::Empty<pkg::Pkg<'_>> {
@@ -73,8 +77,16 @@ impl Repository for Repo {
         &self.id
     }
 
-    fn config(&self) -> &RepoConfig {
-        &self.config
+    fn priority(&self) -> i32 {
+        self.repo_config.priority
+    }
+
+    fn path(&self) -> &Utf8Path {
+        &self.repo_config.location
+    }
+
+    fn sync(&self) -> crate::Result<()> {
+        self.repo_config.sync()
     }
 
     fn len(&self) -> usize {

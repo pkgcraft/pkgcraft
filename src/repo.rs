@@ -115,7 +115,7 @@ impl<'a> FromIterator<&'a str> for PkgCache {
 pub enum Repo {
     Ebuild(Arc<ebuild::Repo>),
     Fake(Arc<fake::Repo>),
-    Config(Arc<empty::Repo>),
+    Unsynced(Arc<empty::Repo>),
 }
 
 impl From<ebuild::Repo> for Repo {
@@ -132,7 +132,7 @@ impl From<fake::Repo> for Repo {
 
 impl From<empty::Repo> for Repo {
     fn from(repo: empty::Repo) -> Self {
-        Self::Config(Arc::new(repo))
+        Self::Unsynced(Arc::new(repo))
     }
 }
 
@@ -188,6 +188,14 @@ impl Repo {
         match self {
             Self::Ebuild(repo) => repo.finalize(),
             _ => Ok(()),
+        }
+    }
+
+    pub(super) fn repo_config(&self) -> &RepoConfig {
+        match self {
+            Self::Ebuild(repo) => repo.repo_config(),
+            Self::Fake(repo) => repo.repo_config(),
+            Self::Unsynced(repo) => repo.repo_config(),
         }
     }
 
@@ -270,16 +278,9 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
     fn id(&self) -> &str;
-    fn config(&self) -> &RepoConfig;
-    fn priority(&self) -> i32 {
-        self.config().priority
-    }
-    fn path(&self) -> &Utf8Path {
-        &self.config().location
-    }
-    fn sync(&self) -> crate::Result<()> {
-        self.config().sync()
-    }
+    fn priority(&self) -> i32;
+    fn path(&self) -> &Utf8Path;
+    fn sync(&self) -> crate::Result<()>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
 }
@@ -297,8 +298,14 @@ where
     fn id(&self) -> &str {
         (*self).id()
     }
-    fn config(&self) -> &RepoConfig {
-        (*self).config()
+    fn priority(&self) -> i32 {
+        (*self).priority()
+    }
+    fn path(&self) -> &Utf8Path {
+        (*self).path()
+    }
+    fn sync(&self) -> crate::Result<()> {
+        (*self).sync()
     }
     fn packages(&self, cat: &str) -> Vec<String> {
         (*self).packages(cat)
@@ -316,7 +323,7 @@ impl fmt::Display for Repo {
         match self {
             Self::Ebuild(repo) => write!(f, "{}", repo),
             Self::Fake(repo) => write!(f, "{}", repo),
-            Self::Config(repo) => write!(f, "{}", repo),
+            Self::Unsynced(repo) => write!(f, "{}", repo),
         }
     }
 }
@@ -326,7 +333,7 @@ impl Repository for Repo {
         match self {
             Self::Ebuild(repo) => repo.categories(),
             Self::Fake(repo) => repo.categories(),
-            Self::Config(repo) => repo.categories(),
+            Self::Unsynced(repo) => repo.categories(),
         }
     }
 
@@ -334,7 +341,7 @@ impl Repository for Repo {
         match self {
             Self::Ebuild(repo) => repo.packages(cat),
             Self::Fake(repo) => repo.packages(cat),
-            Self::Config(repo) => repo.packages(cat),
+            Self::Unsynced(repo) => repo.packages(cat),
         }
     }
 
@@ -342,7 +349,7 @@ impl Repository for Repo {
         match self {
             Self::Ebuild(repo) => repo.versions(cat, pkg),
             Self::Fake(repo) => repo.versions(cat, pkg),
-            Self::Config(repo) => repo.versions(cat, pkg),
+            Self::Unsynced(repo) => repo.versions(cat, pkg),
         }
     }
 
@@ -350,15 +357,7 @@ impl Repository for Repo {
         match self {
             Self::Ebuild(repo) => repo.id(),
             Self::Fake(repo) => repo.id(),
-            Self::Config(repo) => repo.id(),
-        }
-    }
-
-    fn config(&self) -> &RepoConfig {
-        match self {
-            Self::Ebuild(repo) => repo.config(),
-            Self::Fake(repo) => repo.config(),
-            Self::Config(repo) => repo.config(),
+            Self::Unsynced(repo) => repo.id(),
         }
     }
 
@@ -366,7 +365,23 @@ impl Repository for Repo {
         match self {
             Self::Ebuild(repo) => repo.priority(),
             Self::Fake(repo) => repo.priority(),
-            Self::Config(repo) => repo.priority(),
+            Self::Unsynced(repo) => repo.priority(),
+        }
+    }
+
+    fn path(&self) -> &Utf8Path {
+        match self {
+            Self::Ebuild(repo) => repo.path(),
+            Self::Fake(repo) => repo.path(),
+            Self::Unsynced(repo) => repo.path(),
+        }
+    }
+
+    fn sync(&self) -> crate::Result<()> {
+        match self {
+            Self::Ebuild(repo) => repo.sync(),
+            Self::Fake(repo) => repo.sync(),
+            Self::Unsynced(repo) => repo.sync(),
         }
     }
 
@@ -374,7 +389,7 @@ impl Repository for Repo {
         match self {
             Self::Ebuild(repo) => repo.len(),
             Self::Fake(repo) => repo.len(),
-            Self::Config(repo) => repo.len(),
+            Self::Unsynced(repo) => repo.len(),
         }
     }
 
@@ -382,7 +397,7 @@ impl Repository for Repo {
         match self {
             Self::Ebuild(repo) => repo.is_empty(),
             Self::Fake(repo) => repo.is_empty(),
-            Self::Config(repo) => repo.is_empty(),
+            Self::Unsynced(repo) => repo.is_empty(),
         }
     }
 }
@@ -443,7 +458,7 @@ impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
         match self {
             Self::Ebuild(repo) => repo.contains(path),
             Self::Fake(repo) => repo.contains(path),
-            Self::Config(repo) => repo.contains(path),
+            Self::Unsynced(repo) => repo.contains(path),
         }
     }
 }

@@ -16,7 +16,7 @@ use crate::sync::Syncer;
 use crate::Error;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct RepoConfig {
+pub(crate) struct RepoConfig {
     pub(crate) location: Utf8PathBuf,
     pub(crate) format: String,
     pub(crate) priority: i32,
@@ -178,7 +178,7 @@ impl Config {
         let repo = Repo::from_path(name, priority, config.location)?;
 
         // write repo config file to disk
-        let data = toml::to_string(repo.config())
+        let data = toml::to_string(repo.repo_config())
             .map_err(|e| Error::Config(format!("failed serializing repo config to toml: {e}")))?;
         let path = self.config_dir.join(name);
         let mut file = fs::File::create(&path).map_err(|e| {

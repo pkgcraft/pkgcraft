@@ -12,7 +12,7 @@ use crate::{atom, pkg, repo, Error};
 #[derive(Debug, Default)]
 pub struct Repo {
     id: String,
-    config: RepoConfig,
+    repo_config: RepoConfig,
     pkgs: repo::PkgCache,
 }
 
@@ -24,7 +24,7 @@ impl Repo {
     where
         I: IntoIterator<Item = &'a str>,
     {
-        let config = RepoConfig {
+        let repo_config = RepoConfig {
             priority,
             ..Default::default()
         };
@@ -32,7 +32,7 @@ impl Repo {
         // TODO: replace from_iter() usage with try_from_iter()
         Ok(Repo {
             id: id.to_string(),
-            config,
+            repo_config,
             pkgs: repo::PkgCache::from_iter(atoms),
         })
     }
@@ -44,16 +44,20 @@ impl Repo {
     ) -> crate::Result<Self> {
         let path = path.as_ref();
         let data = fs::read_to_string(path).map_err(|e| Error::RepoInit(e.to_string()))?;
-        let config = RepoConfig {
+        let repo_config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,
             ..Default::default()
         };
         Ok(Repo {
             id: id.to_string(),
-            config,
+            repo_config,
             pkgs: repo::PkgCache::from_iter(data.lines()),
         })
+    }
+
+    pub(super) fn repo_config(&self) -> &RepoConfig {
+        &self.repo_config
     }
 
     pub fn iter(&self) -> PkgIter {
@@ -91,8 +95,16 @@ impl Repository for Repo {
         &self.id
     }
 
-    fn config(&self) -> &RepoConfig {
-        &self.config
+    fn priority(&self) -> i32 {
+        self.repo_config.priority
+    }
+
+    fn path(&self) -> &Utf8Path {
+        &self.repo_config.location
+    }
+
+    fn sync(&self) -> crate::Result<()> {
+        self.repo_config.sync()
     }
 
     fn len(&self) -> usize {

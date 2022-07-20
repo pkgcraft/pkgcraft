@@ -224,7 +224,7 @@ where
 #[derive(Default)]
 pub struct Repo {
     id: String,
-    config: RepoConfig,
+    repo_config: RepoConfig,
     layout: Layout,
     metadata: Metadata,
     profiles_base: Utf8PathBuf,
@@ -239,7 +239,7 @@ impl fmt::Debug for Repo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Repo")
             .field("id", &self.id)
-            .field("config", &self.config)
+            .field("repo_config", &self.repo_config)
             .field("name", &self.name)
             .finish()
     }
@@ -283,7 +283,7 @@ impl Repo {
             }
         };
 
-        let config = RepoConfig {
+        let repo_config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,
             ..Default::default()
@@ -293,7 +293,7 @@ impl Repo {
 
         Ok(Self {
             id: id.as_ref().to_string(),
-            config,
+            repo_config,
             layout,
             metadata: Metadata::new(path),
             profiles_base,
@@ -334,6 +334,10 @@ impl Repo {
                 })
             }
         }
+    }
+
+    pub(super) fn repo_config(&self) -> &RepoConfig {
+        &self.repo_config
     }
 
     pub fn masters(&self) -> Vec<Arc<Repo>> {
@@ -571,8 +575,16 @@ impl Repository for Repo {
         &self.id
     }
 
-    fn config(&self) -> &RepoConfig {
-        &self.config
+    fn priority(&self) -> i32 {
+        self.repo_config.priority
+    }
+
+    fn path(&self) -> &Utf8Path {
+        &self.repo_config.location
+    }
+
+    fn sync(&self) -> crate::Result<()> {
+        self.repo_config.sync()
     }
 
     fn len(&self) -> usize {
