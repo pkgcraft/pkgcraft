@@ -18,7 +18,7 @@ use tracing::warn;
 use walkdir::WalkDir;
 
 use super::{make_repo_traits, Contains, Repository};
-use crate::config::{Config, RepoConfig};
+use crate::config::{self, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
@@ -35,21 +35,21 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         .collect()
 });
 
-struct Layout {
+struct Config {
     path: Option<Utf8PathBuf>,
     ini: Ini,
 }
 
-impl Default for Layout {
+impl Default for Config {
     fn default() -> Self {
-        Layout {
+        Config {
             path: None,
             ini: Ini::new(),
         }
     }
 }
 
-impl fmt::Debug for Layout {
+impl fmt::Debug for Config {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let section = self.ini.section(DEFAULT_SECTION);
         f.debug_struct("Metadata")
@@ -59,7 +59,7 @@ impl fmt::Debug for Layout {
     }
 }
 
-impl Layout {
+impl Config {
     fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
         let path = repo_path.join("metadata/layout.conf");
         match Ini::load_from_file(&path) {
@@ -71,7 +71,7 @@ impl Layout {
                 path: Some(path),
                 ini: Ini::new(),
             }),
-            Err(e) => Err(Error::InvalidValue(format!("invalid repo layout: {path:?}: {e}"))),
+            Err(e) => Err(Error::InvalidValue(format!("invalid repo config: {path:?}: {e}"))),
         }
     }
 
@@ -221,7 +221,7 @@ where
 pub struct Repo {
     id: String,
     repo_config: RepoConfig,
-    layout: Layout,
+    config: Config,
     metadata: Metadata,
     profiles_base: Utf8PathBuf,
     name: String,
@@ -285,12 +285,12 @@ impl Repo {
             ..Default::default()
         };
 
-        let layout = Layout::new(path).map_err(|e| invalid_repo(e.to_string()))?;
+        let config = Config::new(path).map_err(|e| invalid_repo(e.to_string()))?;
 
         Ok(Self {
             id: id.as_ref().to_string(),
             repo_config,
-            layout,
+            config,
             metadata: Metadata::new(path),
             profiles_base,
             name,
@@ -299,11 +299,11 @@ impl Repo {
     }
 
     pub(super) fn finalize(&self) -> crate::Result<()> {
-        let config = Config::current();
+        let config = config::Config::current();
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
-        for id in self.layout.iter("masters") {
+        for id in self.config.iter("masters") {
             // match against configured repos, falling back to external repos
             match config
                 .repos
@@ -348,7 +348,7 @@ impl Repo {
     pub fn trees(&self) -> Vec<Arc<Repo>> {
         self.trees
             .get_or_init(|| {
-                let config = Config::current();
+                let config = config::Config::current();
                 let mut trees = self.masters();
                 match config.repos.get(self.id()) {
                     Some(repo::Repo::Ebuild(r)) => trees.push(r.clone()),
@@ -794,6 +794,7 @@ mod tests {
 
     use tracing_test::traced_test;
 
+    use crate::config::Config;
     use crate::eapi::Key;
     use crate::macros::{assert_err_re, assert_logs_re};
     use crate::test::eq_sorted;
@@ -807,8 +808,8 @@ mod tests {
         // nonexistent
         let t = TempRepo::new("test", None, None).unwrap();
         let mut repo = Repo::from_path("test", 0, t.path).unwrap();
-        repo.layout.set("masters", "a b c");
-        repo.layout.write(None).unwrap();
+        repo.config.set("masters", "a b c");
+        repo.config.write(None).unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str());
         assert_err_re!(r, format!("^.* unconfigured repos: a, b, c$"));
 
@@ -826,8 +827,8 @@ mod tests {
         // single
         let t = TempRepo::new("b", None, None).unwrap();
         let mut repo = Repo::from_path("b", 0, t.path).unwrap();
-        repo.layout.set("masters", "a");
-        repo.layout.write(None).unwrap();
+        repo.config.set("masters", "a");
+        repo.config.write(None).unwrap();
         config
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
@@ -840,8 +841,8 @@ mod tests {
         // multiple
         let t = TempRepo::new("c", None, None).unwrap();
         let mut repo = Repo::from_path("c", 0, t.path).unwrap();
-        repo.layout.set("masters", "a b");
-        repo.layout.write(None).unwrap();
+        repo.config.set("masters", "a b");
+        repo.config.write(None).unwrap();
         config
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
@@ -853,13 +854,13 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_layout() {
+    fn test_invalid_config() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
-        repo.layout.write(Some("data")).unwrap();
+        repo.config.write(Some("data")).unwrap();
         let r = Repo::from_path(repo.id(), 0, repo.path());
-        assert_err_re!(r, format!("^.* invalid repo layout: .*$"));
+        assert_err_re!(r, format!("^.* invalid repo config: .*$"));
     }
 
     #[test]
