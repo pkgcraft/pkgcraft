@@ -140,12 +140,11 @@ make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(path: &Utf8Path, repo: &'a Repo) -> crate::Result<Self> {
-        let atom = repo.atom_from_path(path)?;
-        let eapi = Pkg::get_eapi(path)?;
+        let eapi = Pkg::parse_eapi(path)?;
         let data = Metadata::new(path, eapi)?;
         Ok(Pkg {
             path: path.to_path_buf(),
-            atom,
+            atom: repo.atom_from_path(path)?,
             eapi,
             repo,
             data,
@@ -155,7 +154,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Get the parsed EAPI from a given ebuild file.
-    fn get_eapi(path: &Utf8Path) -> crate::Result<&'static eapi::Eapi> {
+    fn parse_eapi(path: &Utf8Path) -> crate::Result<&'static eapi::Eapi> {
         let mut eapi = &*eapi::EAPI0;
         let f = fs::File::open(path).map_err(|e| Error::IO(e.to_string()))?;
         let reader = io::BufReader::new(f);
