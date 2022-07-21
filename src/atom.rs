@@ -148,10 +148,8 @@ impl Atom {
     }
 
     /// Return an atom's USE flag dependencies.
-    pub fn use_deps(&self) -> Option<Vec<&str>> {
-        self.use_deps
-            .as_ref()
-            .map(|u| u.iter().map(|s| s.as_str()).collect())
+    pub fn use_deps(&self) -> Option<&[String]> {
+        self.use_deps.as_deref()
     }
 
     /// Return an atom's version.
