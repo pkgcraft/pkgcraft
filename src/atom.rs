@@ -281,12 +281,12 @@ pub enum Restrict {
 
 impl Restrict {
     pub fn category(s: &str) -> BaseRestrict {
-        let r = Restrict::Category(restrict::Str::Match(s.to_string()));
+        let r = Restrict::Category(restrict::Str::matches(s));
         BaseRestrict::Atom(r)
     }
 
     pub fn package(s: &str) -> BaseRestrict {
-        let r = Restrict::Package(restrict::Str::Match(s.to_string()));
+        let r = Restrict::Package(restrict::Str::matches(s));
         BaseRestrict::Atom(r)
     }
 
@@ -300,12 +300,12 @@ impl Restrict {
     }
 
     pub fn slot(o: Option<&str>) -> BaseRestrict {
-        let o = o.map(|s| restrict::Str::Match(s.to_string()));
+        let o = o.map(restrict::Str::matches);
         BaseRestrict::Atom(Restrict::Slot(o))
     }
 
     pub fn subslot(o: Option<&str>) -> BaseRestrict {
-        let o = o.map(|s| restrict::Str::Match(s.to_string()));
+        let o = o.map(restrict::Str::matches);
         BaseRestrict::Atom(Restrict::SubSlot(o))
     }
 
@@ -321,7 +321,7 @@ impl Restrict {
     }
 
     pub fn repo(o: Option<&str>) -> BaseRestrict {
-        let o = o.map(|s| restrict::Str::Match(s.to_string()));
+        let o = o.map(restrict::Str::matches);
         BaseRestrict::Atom(Restrict::Repo(o))
     }
 }

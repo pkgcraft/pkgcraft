@@ -1,5 +1,6 @@
 use indexmap::IndexSet;
 use regex::Regex;
+use std::{fmt, ptr};
 
 use crate::{atom, pkg};
 
@@ -91,19 +92,60 @@ impl Restriction<&str> for Restrict {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Str {
-    Match(String),
+    Custom(fn(&str) -> bool),
+    Matches(String),
     Prefix(String),
     Regex(Regex),
     Substr(String),
     Suffix(String),
 }
 
+impl Str {
+    pub fn custom(f: fn(&str) -> bool) -> Self {
+        Self::Custom(f)
+    }
+
+    pub fn matches<S: Into<String>>(s: S) -> Self {
+        Self::Matches(s.into())
+    }
+
+    pub fn prefix<S: Into<String>>(s: S) -> Self {
+        Self::Prefix(s.into())
+    }
+
+    pub fn regex(re: Regex) -> Self {
+        Self::Regex(re)
+    }
+
+    pub fn substr<S: Into<String>>(s: S) -> Self {
+        Self::Substr(s.into())
+    }
+
+    pub fn suffix<S: Into<String>>(s: S) -> Self {
+        Self::Suffix(s.into())
+    }
+}
+
+impl fmt::Debug for Str {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::Matches(s) => write!(f, "Matches({s:?})"),
+            Self::Prefix(s) => write!(f, "Prefix({s:?})"),
+            Self::Regex(re) => write!(f, "Regex({re:?})"),
+            Self::Substr(s) => write!(f, "Substr({s:?})"),
+            Self::Suffix(s) => write!(f, "Suffix({s:?})"),
+        }
+    }
+}
+
 impl Restriction<&str> for Str {
     fn matches(&self, val: &str) -> bool {
         match self {
-            Self::Match(s) => val == s,
+            Self::Custom(func) => func(val),
+            Self::Matches(s) => val == s,
             Self::Prefix(s) => val.starts_with(s),
             Self::Regex(re) => re.is_match(val),
             Self::Substr(s) => val.contains(s),
@@ -239,5 +281,47 @@ mod tests {
         // inverse doesn't match
         let r = Restrict::not(r);
         assert!(!r.matches(&a));
+    }
+
+    #[test]
+    fn test_str_restrict() {
+        // custom
+        let f = |s: &str| -> bool { s == "a" };
+        let r = Str::custom(f);
+        assert!(r.matches("a"));
+        assert!(!r.matches("b"));
+
+        // matches
+        let r = Str::matches("a");
+        assert!(r.matches("a"));
+        assert!(!r.matches("b"));
+
+        // prefix
+        let r = Str::prefix("ab");
+        assert!(r.matches("ab"));
+        assert!(r.matches("abc"));
+        assert!(!r.matches("a"));
+        assert!(!r.matches("cab"));
+
+        // regex
+        let re = Regex::new("^(a|b)$").unwrap();
+        let r = Str::regex(re);
+        assert!(r.matches("a"));
+        assert!(r.matches("b"));
+        assert!(!r.matches("ab"));
+
+        // substr
+        let r = Str::substr("ab");
+        assert!(r.matches("ab"));
+        assert!(r.matches("cab"));
+        assert!(r.matches("cabo"));
+        assert!(!r.matches("acb"));
+
+        // suffix
+        let r = Str::suffix("ab");
+        assert!(r.matches("ab"));
+        assert!(r.matches("cab"));
+        assert!(!r.matches("a"));
+        assert!(!r.matches("abc"));
     }
 }
