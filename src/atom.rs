@@ -38,7 +38,7 @@ impl Default for Blocker {
 
 impl fmt::Display for Blocker {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             Blocker::NONE => Ok(()),
             Blocker::Weak => write!(f, "!"),
             Blocker::Strong => write!(f, "!!"),
