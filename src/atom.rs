@@ -46,6 +46,34 @@ impl fmt::Display for Blocker {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+pub enum SlotOperator {
+    Equal,
+    Star,
+}
+
+impl fmt::Display for SlotOperator {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Equal => write!(f, "="),
+            Self::Star => write!(f, "*"),
+        }
+    }
+}
+
+impl FromStr for SlotOperator {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        match s {
+            "*" => Ok(SlotOperator::Star),
+            "=" => Ok(SlotOperator::Equal),
+            _ => Err(Error::InvalidValue("invalid slot operator".to_string())),
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct ParsedAtom<'a> {
     pub(crate) category: &'a str,
@@ -55,7 +83,7 @@ pub(crate) struct ParsedAtom<'a> {
     pub(crate) version_str: Option<&'a str>,
     pub(crate) slot: Option<&'a str>,
     pub(crate) subslot: Option<&'a str>,
-    pub(crate) slot_op: Option<&'a str>,
+    pub(crate) slot_op: Option<SlotOperator>,
     pub(crate) use_deps: Option<Vec<&'a str>>,
     pub(crate) repo: Option<&'a str>,
 }
@@ -74,7 +102,7 @@ impl ParsedAtom<'_> {
             version,
             slot: self.slot.map(|s| s.to_string()),
             subslot: self.subslot.map(|s| s.to_string()),
-            slot_op: self.slot_op.map(|s| s.to_string()),
+            slot_op: self.slot_op,
             use_deps: self.use_deps.as_ref().map(|u| vec_str!(u)),
             repo: self.repo.map(|s| s.to_string()),
         })
@@ -89,7 +117,7 @@ pub struct Atom {
     version: Option<Version>,
     slot: Option<String>,
     subslot: Option<String>,
-    slot_op: Option<String>,
+    slot_op: Option<SlotOperator>,
     use_deps: Option<Vec<String>>,
     repo: Option<String>,
 }
@@ -186,8 +214,8 @@ impl Atom {
     }
 
     /// Return an atom's slot operator.
-    pub fn slot_op(&self) -> Option<&str> {
-        self.slot_op.as_deref()
+    pub fn slot_op(&self) -> Option<SlotOperator> {
+        self.slot_op
     }
 
     /// Return an atom's repository.
@@ -221,7 +249,8 @@ impl fmt::Display for Atom {
             (Some(slot), Some(subslot), Some(op)) => write!(s, ":{slot}/{subslot}{op}")?,
             (Some(slot), Some(subslot), None) => write!(s, ":{slot}/{subslot}")?,
             (Some(slot), None, Some(op)) => write!(s, ":{slot}{op}")?,
-            (Some(x), None, None) | (None, None, Some(x)) => write!(s, ":{x}")?,
+            (Some(x), None, None) => write!(s, ":{x}")?,
+            (None, None, Some(x)) => write!(s, ":{x}")?,
             _ => (),
         }
 

@@ -1,5 +1,6 @@
 #![cfg(test)]
 use std::fs;
+use std::str::FromStr;
 
 use camino::Utf8PathBuf;
 use itertools::Itertools;
@@ -21,7 +22,7 @@ pub(crate) struct Atom {
     pub(crate) version: Option<atom::Version>,
     pub(crate) slot: Option<String>,
     pub(crate) subslot: Option<String>,
-    pub(crate) slot_op: Option<String>,
+    pub(crate) slot_op: Option<atom::SlotOperator>,
 }
 
 impl<'de> Deserialize<'de> for atom::Version {
@@ -31,6 +32,16 @@ impl<'de> Deserialize<'de> for atom::Version {
     {
         let s: &str = Deserialize::deserialize(deserializer)?;
         atom::parse::version_with_op(s).map_err(de::Error::custom)
+    }
+}
+
+impl<'de> Deserialize<'de> for atom::SlotOperator {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        atom::SlotOperator::from_str(s).map_err(de::Error::custom)
     }
 }
 

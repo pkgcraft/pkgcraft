@@ -1,5 +1,5 @@
 use super::version::ParsedVersion;
-use super::{Blocker, ParsedAtom};
+use super::{Blocker, ParsedAtom, SlotOperator};
 use crate::eapi::{Eapi, Feature};
 
 peg::parser! {
@@ -80,20 +80,26 @@ peg::parser! {
                 (slot, subslot)
             }
 
-        rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<&'input str>)
+        rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
             = op:$("*" / "=") {?
                 if !eapi.has(Feature::SlotOps) {
                     return Err("slot operators are supported in >= EAPI 5");
                 }
+                let op = match op {
+                    "*" => SlotOperator::Star,
+                    "=" => SlotOperator::Equal,
+                    _ => return Err("invalid slot operator"),
+                };
                 Ok((None, None, Some(op)))
             } / slot:slot(eapi) op:$("=")? {?
                 if op.is_some() && !eapi.has(Feature::SlotOps) {
                     return Err("slot operators are supported in >= EAPI 5");
                 }
+                let op = op.map(|_| SlotOperator::Equal);
                 Ok((Some(slot.0), slot.1, op))
             }
 
-        rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<&'input str>)
+        rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
             = ":" slot_parts:slot_str(eapi) {?
                 if !eapi.has(Feature::SlotDeps) {
                     return Err("slot deps are supported in >= EAPI 1");
@@ -335,7 +341,7 @@ mod tests {
                 assert_eq!(atom.version(), a.version.as_ref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.slot(), a.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.subslot(), a.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(atom.slot_op(), a.slot_op.as_deref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.slot_op(), a.slot_op, "{s:?} failed for EAPI={eapi}");
                 assert_eq!(format!("{atom}"), s, "{s:?} failed for EAPI={eapi}");
             }
             // verify parse failures
@@ -507,12 +513,12 @@ mod tests {
 
         // good deps
         for (slot_str, slot, subslot, slot_op) in [
-            ("*", None, None, opt_str!("*")),
-            ("=", None, None, opt_str!("=")),
-            ("0=", opt_str!("0"), None, opt_str!("=")),
-            ("a=", opt_str!("a"), None, opt_str!("=")),
-            ("0/1=", opt_str!("0"), opt_str!("1"), opt_str!("=")),
-            ("a/b=", opt_str!("a"), opt_str!("b"), opt_str!("=")),
+            ("*", None, None, Some(SlotOperator::Star)),
+            ("=", None, None, Some(SlotOperator::Equal)),
+            ("0=", opt_str!("0"), None, Some(SlotOperator::Equal)),
+            ("a=", opt_str!("a"), None, Some(SlotOperator::Equal)),
+            ("0/1=", opt_str!("0"), opt_str!("1"), Some(SlotOperator::Equal)),
+            ("a/b=", opt_str!("a"), opt_str!("b"), Some(SlotOperator::Equal)),
         ] {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
