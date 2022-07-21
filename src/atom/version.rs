@@ -210,19 +210,19 @@ pub struct Version {
 
 impl Version {
     /// Verify a string represents a valid version.
-    pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
-        parse::version_str(s.as_ref())?;
+    pub fn valid(s: &str) -> crate::Result<()> {
+        parse::version_str(s)?;
         Ok(())
     }
 
     /// Create a new Version from a given string.
-    pub fn new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        parse::version(s.as_ref())
+    pub fn new(s: &str) -> crate::Result<Self> {
+        parse::version(s)
     }
 
     /// Create a new Version from a given string with operators.
-    pub fn new_with_op<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        parse::version_with_op(s.as_ref())
+    pub fn new_with_op(s: &str) -> crate::Result<Self> {
+        parse::version_with_op(s)
     }
 
     pub fn as_str(&self) -> &str {
