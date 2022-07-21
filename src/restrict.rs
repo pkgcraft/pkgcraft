@@ -156,12 +156,14 @@ impl Restriction<&str> for Str {
 
 #[derive(Debug, Clone)]
 pub enum Set {
+    Empty,
     StrSubset(IndexSet<String>),
 }
 
 impl Restriction<&IndexSet<&str>> for Set {
     fn matches(&self, val: &IndexSet<&str>) -> bool {
         match self {
+            Self::Empty => val.is_empty(),
             Self::StrSubset(s) => {
                 let set = s.iter().map(|s| s.as_str()).collect::<IndexSet<&str>>();
                 set.is_subset(val)
