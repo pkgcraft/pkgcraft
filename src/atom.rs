@@ -408,7 +408,9 @@ impl<T: Borrow<Atom>> From<T> for BaseRestrict {
             restricts.push(Restrict::subslot(Some(s)));
         }
 
-        // TODO: add use deps support
+        if let Some(u) = atom.use_deps() {
+            restricts.push(Restrict::use_deps(Some(u)));
+        }
 
         if let Some(s) = atom.repo() {
             restricts.push(Restrict::repo(Some(s)));
