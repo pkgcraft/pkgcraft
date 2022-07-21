@@ -123,18 +123,22 @@ impl Atom {
         parse::dep(s, eapi.into_eapi()?)
     }
 
+    /// Return an atom's category.
     pub fn category(&self) -> &str {
         &self.category
     }
 
+    /// Return an atom's package.
     pub fn package(&self) -> &str {
         &self.package
     }
 
+    /// Return an atom's blocker.
     pub fn blocker(&self) -> Blocker {
         self.blocker
     }
 
+    /// Return the set of an atom's USE flag dependencies.
     fn use_deps_set(&self) -> IndexSet<&str> {
         match self.use_deps() {
             None => IndexSet::<&str>::new(),
@@ -142,24 +146,29 @@ impl Atom {
         }
     }
 
+    /// Return an atom's USE flag dependencies.
     pub fn use_deps(&self) -> Option<Vec<&str>> {
         self.use_deps
             .as_ref()
             .map(|u| u.iter().map(|s| s.as_str()).collect())
     }
 
+    /// Return an atom's version.
     pub fn version(&self) -> Option<&Version> {
         self.version.as_ref()
     }
 
+    /// Return an atom's revision.
     pub fn revision(&self) -> Option<&version::Revision> {
         self.version.as_ref().map(|v| v.revision())
     }
 
+    /// Return an atom's CAT/PN value, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg`.
     pub fn key(&self) -> String {
         format!("{}/{}", self.category, self.package)
     }
 
+    /// Return an atom's CPV, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg-1-r2`.
     pub fn cpv(&self) -> String {
         match &self.version {
             Some(ver) => format!("{}/{}-{ver}", self.category, self.package),
@@ -167,18 +176,22 @@ impl Atom {
         }
     }
 
+    /// Return an atom's slot.
     pub fn slot(&self) -> Option<&str> {
         self.slot.as_deref()
     }
 
+    /// Return an atom's subslot.
     pub fn subslot(&self) -> Option<&str> {
         self.subslot.as_deref()
     }
 
+    /// Return an atom's slot operator.
     pub fn slot_op(&self) -> Option<&str> {
         self.slot_op.as_deref()
     }
 
+    /// Return an atom's repository.
     pub fn repo(&self) -> Option<&str> {
         self.repo.as_deref()
     }
