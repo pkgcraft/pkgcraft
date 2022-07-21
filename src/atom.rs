@@ -273,6 +273,7 @@ pub enum Restrict {
     Custom(fn(&Atom) -> bool),
     Category(restrict::Str),
     Package(restrict::Str),
+    Blocker(Blocker),
     Version(Option<Version>),
     VersionStr(restrict::Str),
     Slot(Option<restrict::Str>),
@@ -287,6 +288,7 @@ impl fmt::Debug for Restrict {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
             Self::Category(r) => write!(f, "Category({r:?})"),
             Self::Package(r) => write!(f, "Package({r:?})"),
+            Self::Blocker(b) => write!(f, "Blocker({b:?})"),
             Self::Version(v) => write!(f, "Version({v:?})"),
             Self::VersionStr(s) => write!(f, "VersionStr({s:?})"),
             Self::Slot(r) => write!(f, "Slot({r:?})"),
@@ -341,6 +343,7 @@ impl Restriction<&Atom> for Restrict {
             Self::Custom(func) => func(atom),
             Self::Category(r) => r.matches(atom.category()),
             Self::Package(r) => r.matches(atom.package()),
+            Self::Blocker(b) => *b == atom.blocker(),
             Self::Version(v) => match (v, atom.version()) {
                 (Some(v), Some(ver)) => v.op_cmp(ver),
                 (None, None) => true,
@@ -385,8 +388,11 @@ impl Restriction<&Atom> for BaseRestrict {
 impl<T: Borrow<Atom>> From<T> for BaseRestrict {
     fn from(atom: T) -> Self {
         let atom = atom.borrow();
-        let mut restricts =
-            vec![Restrict::category(atom.category()), Restrict::package(atom.package())];
+        let mut restricts = vec![
+            Restrict::category(atom.category()),
+            Restrict::package(atom.package()),
+            Restrict::Blocker(atom.blocker()),
+        ];
 
         if let Some(v) = atom.version() {
             restricts.push(Restrict::Version(Some(v.clone())));
@@ -527,60 +533,82 @@ mod tests {
     #[test]
     fn test_restrict_methods() {
         let unversioned = Atom::from_str("cat/pkg").unwrap();
+        let blocker = Atom::from_str("!cat/pkg").unwrap();
         let cpv = cpv("cat/pkg-1").unwrap();
         let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
         let r = Restrict::category("cat");
         assert!(r.matches(&unversioned));
+        assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // package
         let r = Restrict::package("pkg");
         assert!(r.matches(&unversioned));
+        assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
+
+        // blocker
+        let r = Restrict::Blocker(Blocker::NONE);
+        assert!(r.matches(&unversioned));
+        assert!(!r.matches(&blocker));
+        assert!(r.matches(&cpv));
+        assert!(r.matches(&full));
+        let r = Restrict::Blocker(Blocker::Weak);
+        assert!(!r.matches(&unversioned));
+        assert!(r.matches(&blocker));
+        assert!(!r.matches(&cpv));
+        assert!(!r.matches(&full));
 
         // no version
         let r = Restrict::version(None).unwrap();
         assert!(r.matches(&unversioned));
+        assert!(r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // version
         let r = Restrict::version(Some("1")).unwrap();
         assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no slot
         let r = Restrict::slot(None);
         assert!(r.matches(&unversioned));
+        assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // slot
         let r = Restrict::slot(Some("2"));
         assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no subslot
         let r = Restrict::subslot(None);
         assert!(r.matches(&unversioned));
+        assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // subslot
         let r = Restrict::subslot(Some("3"));
         assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no use deps specified
         let r = Restrict::use_deps([] as [&str; 0]);
         assert!(r.matches(&unversioned));
+        assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
@@ -588,6 +616,7 @@ mod tests {
         for u in [vec!["u1"], vec!["u1", "u2"]] {
             let r = Restrict::use_deps(u);
             assert!(!r.matches(&unversioned));
+            assert!(!r.matches(&blocker));
             assert!(!r.matches(&cpv));
             assert!(r.matches(&full));
         }
@@ -595,12 +624,14 @@ mod tests {
         // no repo
         let r = Restrict::repo(None);
         assert!(r.matches(&unversioned));
+        assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // repo
         let r = Restrict::repo(Some("repo"));
         assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
     }
