@@ -324,12 +324,16 @@ impl Restrict {
         Self::SubSlot(o.map(restrict::Str::matches))
     }
 
-    pub fn use_deps<I, S>(iter: I) -> Self
+    pub fn use_deps<I, S>(iter: Option<I>) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        Self::StaticUseDep(restrict::Set::StrSubset(iter.into_iter().map(|s| s.into()).collect()))
+        let r = match iter {
+            None => restrict::Set::Empty,
+            Some(i) => restrict::Set::StrSubset(i.into_iter().map(|s| s.into()).collect()),
+        };
+        Self::StaticUseDep(r)
     }
 
     pub fn repo(o: Option<&str>) -> Self {
@@ -606,15 +610,15 @@ mod tests {
         assert!(r.matches(&full));
 
         // no use deps specified
-        let r = Restrict::use_deps([] as [&str; 0]);
+        let r = Restrict::use_deps(None::<&[String]>);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
-        assert!(r.matches(&full));
+        assert!(!r.matches(&full));
 
         // use deps specified
         for u in [vec!["u1"], vec!["u1", "u2"]] {
-            let r = Restrict::use_deps(u);
+            let r = Restrict::use_deps(Some(u));
             assert!(!r.matches(&unversioned));
             assert!(!r.matches(&blocker));
             assert!(!r.matches(&cpv));
