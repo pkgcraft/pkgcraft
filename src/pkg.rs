@@ -171,6 +171,12 @@ pub enum Restrict {
     Eapi(restrict::Str),
 }
 
+impl From<Restrict> for restrict::Restrict {
+    fn from(r: Restrict) -> Self {
+        Self::Pkg(r)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
