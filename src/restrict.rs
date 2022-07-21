@@ -102,6 +102,19 @@ pub enum Str {
     Suffix(String),
 }
 
+impl fmt::Debug for Str {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::Matches(s) => write!(f, "Matches({s:?})"),
+            Self::Prefix(s) => write!(f, "Prefix({s:?})"),
+            Self::Regex(re) => write!(f, "Regex({re:?})"),
+            Self::Substr(s) => write!(f, "Substr({s:?})"),
+            Self::Suffix(s) => write!(f, "Suffix({s:?})"),
+        }
+    }
+}
+
 impl Str {
     pub fn custom(f: fn(&str) -> bool) -> Self {
         Self::Custom(f)
@@ -125,19 +138,6 @@ impl Str {
 
     pub fn suffix<S: Into<String>>(s: S) -> Self {
         Self::Suffix(s.into())
-    }
-}
-
-impl fmt::Debug for Str {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Self::Matches(s) => write!(f, "Matches({s:?})"),
-            Self::Prefix(s) => write!(f, "Prefix({s:?})"),
-            Self::Regex(re) => write!(f, "Regex({re:?})"),
-            Self::Substr(s) => write!(f, "Substr({s:?})"),
-            Self::Suffix(s) => write!(f, "Suffix({s:?})"),
-        }
     }
 }
 

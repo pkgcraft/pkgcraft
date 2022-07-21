@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt::{self, Write};
+use std::ptr;
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
@@ -267,8 +268,9 @@ impl FromStr for Atom {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Restrict {
+    Custom(fn(&Atom) -> bool),
     Category(restrict::Str),
     Package(restrict::Str),
     Version(Option<Version>),
@@ -277,6 +279,22 @@ pub enum Restrict {
     SubSlot(Option<restrict::Str>),
     StaticUseDep(restrict::Set),
     Repo(Option<restrict::Str>),
+}
+
+impl fmt::Debug for Restrict {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::Category(r) => write!(f, "Category({r:?})"),
+            Self::Package(r) => write!(f, "Package({r:?})"),
+            Self::Version(v) => write!(f, "Version({v:?})"),
+            Self::VersionStr(s) => write!(f, "VersionStr({s:?})"),
+            Self::Slot(r) => write!(f, "Slot({r:?})"),
+            Self::SubSlot(r) => write!(f, "SubSlot({r:?})"),
+            Self::StaticUseDep(r) => write!(f, "StaticUseDep({r:?})"),
+            Self::Repo(r) => write!(f, "Repo({r:?})"),
+        }
+    }
 }
 
 impl Restrict {
@@ -329,6 +347,7 @@ impl Restrict {
 impl Restriction<&Atom> for Restrict {
     fn matches(&self, atom: &Atom) -> bool {
         match self {
+            Self::Custom(func) => func(atom),
             Self::Category(r) => r.matches(atom.category()),
             Self::Package(r) => r.matches(atom.package()),
             Self::Version(v) => match (v, atom.version()) {
