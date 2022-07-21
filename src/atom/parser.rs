@@ -200,7 +200,7 @@ peg::parser! {
                     use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
                 (dep, ParsedAtom {
-                    blocker: blocker.unwrap_or_default(),
+                    blocker,
                     slot,
                     subslot,
                     slot_op,
@@ -387,14 +387,14 @@ mod tests {
 
         // non-blocker
         let atom = parse::dep("cat/pkg", &eapi::EAPI2).unwrap();
-        assert_eq!(atom.blocker, Blocker::NONE);
+        assert!(atom.blocker.is_none());
 
         // good deps
         for (s, blocker) in [
-            ("!cat/pkg", Blocker::Weak),
-            ("!cat/pkg:0", Blocker::Weak),
-            ("!!cat/pkg", Blocker::Strong),
-            ("!!<cat/pkg-1", Blocker::Strong),
+            ("!cat/pkg", Some(Blocker::Weak)),
+            ("!cat/pkg:0", Some(Blocker::Weak)),
+            ("!!cat/pkg", Some(Blocker::Strong)),
+            ("!!<cat/pkg-1", Some(Blocker::Strong)),
         ] {
             for eapi in eapi::EAPIS.values() {
                 let result = parse::dep(s, eapi);

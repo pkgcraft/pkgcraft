@@ -24,22 +24,13 @@ type BaseRestrict = restrict::Restrict;
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum Blocker {
-    NONE,   // cat/pkg
     Strong, // !!cat/pkg
     Weak,   // !cat/pkg
-}
-
-// use the latest EAPI for the Default trait
-impl Default for Blocker {
-    fn default() -> Blocker {
-        Blocker::NONE
-    }
 }
 
 impl fmt::Display for Blocker {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Blocker::NONE => Ok(()),
             Blocker::Weak => write!(f, "!"),
             Blocker::Strong => write!(f, "!!"),
         }
@@ -78,7 +69,7 @@ impl FromStr for SlotOperator {
 pub(crate) struct ParsedAtom<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
-    pub(crate) blocker: Blocker,
+    pub(crate) blocker: Option<Blocker>,
     pub(crate) version: Option<ParsedVersion<'a>>,
     pub(crate) version_str: Option<&'a str>,
     pub(crate) slot: Option<&'a str>,
@@ -113,7 +104,7 @@ impl ParsedAtom<'_> {
 pub struct Atom {
     category: String,
     package: String,
-    blocker: Blocker,
+    blocker: Option<Blocker>,
     version: Option<Version>,
     slot: Option<String>,
     subslot: Option<String>,
@@ -163,7 +154,7 @@ impl Atom {
     }
 
     /// Return an atom's blocker.
-    pub fn blocker(&self) -> Blocker {
+    pub fn blocker(&self) -> Option<Blocker> {
         self.blocker
     }
 
@@ -229,7 +220,9 @@ impl fmt::Display for Atom {
         let mut s = String::new();
 
         // append blocker
-        write!(s, "{}", self.blocker)?;
+        if let Some(blocker) = self.blocker {
+            write!(s, "{}", blocker)?;
+        }
 
         // append version operator with cpv
         let cpv = self.cpv();
@@ -300,7 +293,7 @@ pub enum Restrict {
     Custom(fn(&Atom) -> bool),
     Category(restrict::Str),
     Package(restrict::Str),
-    Blocker(Blocker),
+    Blocker(Option<Blocker>),
     Version(Option<Version>),
     VersionStr(restrict::Str),
     Slot(Option<restrict::Str>),
@@ -374,7 +367,11 @@ impl Restriction<&Atom> for Restrict {
             Self::Custom(func) => func(atom),
             Self::Category(r) => r.matches(atom.category()),
             Self::Package(r) => r.matches(atom.package()),
-            Self::Blocker(b) => *b == atom.blocker(),
+            Self::Blocker(b) => match (b, atom.blocker()) {
+                (Some(b), Some(blocker)) => *b == blocker,
+                (None, None) => true,
+                _ => false,
+            },
             Self::Version(v) => match (v, atom.version()) {
                 (Some(v), Some(ver)) => v.op_cmp(ver),
                 (None, None) => true,
@@ -585,12 +582,12 @@ mod tests {
         assert!(r.matches(&full));
 
         // blocker
-        let r = Restrict::Blocker(Blocker::NONE);
+        let r = Restrict::Blocker(None);
         assert!(r.matches(&unversioned));
         assert!(!r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
-        let r = Restrict::Blocker(Blocker::Weak);
+        let r = Restrict::Blocker(Some(Blocker::Weak));
         assert!(!r.matches(&unversioned));
         assert!(r.matches(&blocker));
         assert!(!r.matches(&cpv));
