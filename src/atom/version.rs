@@ -225,23 +225,28 @@ impl Version {
         parse::version_with_op(s)
     }
 
+    /// Return a version's string value.
     pub fn as_str(&self) -> &str {
         &self.full
     }
 
+    /// Return a version's revision.
     pub fn revision(&self) -> &Revision {
         &self.revision
     }
 
+    /// Return a version's operator, if one exists.
     pub(crate) fn op(&self) -> Option<Operator> {
         self.op
     }
 
+    /// Return a version's base -- all components except the revision.
     pub(crate) fn base(&self) -> &str {
         let base = &self.full.as_bytes()[..self.end_base];
         str::from_utf8(base).unwrap()
     }
 
+    /// Compare two versions for restrictions.
     pub(crate) fn op_cmp(&self, other: &Self) -> bool {
         use Operator::*;
         match self.op() {
@@ -380,7 +385,7 @@ impl FromStr for Version {
     }
 }
 
-// Version wrapper that ignore revisions and operators during comparisons.
+/// Version wrapper that ignores revisions and operators during comparisons.
 #[derive(Debug, Eq, Hash, Clone)]
 struct NonRevisionVersion<'a>(&'a Version);
 
@@ -408,7 +413,7 @@ impl PartialOrd for NonRevisionVersion<'_> {
     }
 }
 
-// Version wrapper that ignore operators during comparisons.
+/// Version wrapper that ignores operators during comparisons.
 #[derive(Debug, Eq, Hash, Clone)]
 struct NonOpVersion<'a>(&'a Version);
 
