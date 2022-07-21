@@ -278,7 +278,7 @@ pub enum Restrict {
     VersionStr(restrict::Str),
     Slot(Option<restrict::Str>),
     SubSlot(Option<restrict::Str>),
-    StaticUseDep(restrict::Set),
+    UseDeps(restrict::Set),
     Repo(Option<restrict::Str>),
 }
 
@@ -293,7 +293,7 @@ impl fmt::Debug for Restrict {
             Self::VersionStr(s) => write!(f, "VersionStr({s:?})"),
             Self::Slot(r) => write!(f, "Slot({r:?})"),
             Self::SubSlot(r) => write!(f, "SubSlot({r:?})"),
-            Self::StaticUseDep(r) => write!(f, "StaticUseDep({r:?})"),
+            Self::UseDeps(r) => write!(f, "UseDeps({r:?})"),
             Self::Repo(r) => write!(f, "Repo({r:?})"),
         }
     }
@@ -333,7 +333,7 @@ impl Restrict {
             None => restrict::Set::Empty,
             Some(i) => restrict::Set::StrSubset(i.into_iter().map(|s| s.into()).collect()),
         };
-        Self::StaticUseDep(r)
+        Self::UseDeps(r)
     }
 
     pub fn repo(o: Option<&str>) -> Self {
@@ -364,7 +364,7 @@ impl Restriction<&Atom> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            Self::StaticUseDep(r) => r.matches(&atom.use_deps_set()),
+            Self::UseDeps(r) => r.matches(&atom.use_deps_set()),
             Self::Repo(r) => match (r, atom.repo()) {
                 (Some(r), Some(repo)) => r.matches(repo),
                 (None, None) => true,
