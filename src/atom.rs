@@ -107,20 +107,20 @@ pub fn cpv(s: &str) -> crate::Result<Atom> {
 
 impl Atom {
     /// Verify a string represents a valid atom.
-    pub fn valid<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> crate::Result<()> {
-        parse::dep_str(s.as_ref(), eapi.into_eapi()?)?;
+    pub fn valid<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<()> {
+        parse::dep_str(s, eapi.into_eapi()?)?;
         Ok(())
     }
 
     /// Verify a string represents a valid atom.
-    pub fn valid_cpv<S: AsRef<str>>(s: S) -> crate::Result<()> {
-        parse::cpv(s.as_ref())?;
+    pub fn valid_cpv(s: &str) -> crate::Result<()> {
+        parse::cpv(s)?;
         Ok(())
     }
 
     /// Create a new Atom from a given string.
-    pub fn new<S: AsRef<str>, E: IntoEapi>(s: S, eapi: E) -> crate::Result<Self> {
-        parse::dep(s.as_ref(), eapi.into_eapi()?)
+    pub fn new<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<Self> {
+        parse::dep(s, eapi.into_eapi()?)
     }
 
     pub fn category(&self) -> &str {
