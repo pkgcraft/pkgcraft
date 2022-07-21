@@ -298,49 +298,40 @@ impl fmt::Debug for Restrict {
 }
 
 impl Restrict {
-    pub fn category(s: &str) -> BaseRestrict {
-        let r = Restrict::Category(restrict::Str::matches(s));
-        BaseRestrict::Atom(r)
+    pub fn category(s: &str) -> Self {
+        Self::Category(restrict::Str::matches(s))
     }
 
-    pub fn package(s: &str) -> BaseRestrict {
-        let r = Restrict::Package(restrict::Str::matches(s));
-        BaseRestrict::Atom(r)
+    pub fn package(s: &str) -> Self {
+        Self::Package(restrict::Str::matches(s))
     }
 
-    pub fn version(o: Option<&str>) -> crate::Result<BaseRestrict> {
+    pub fn version(o: Option<&str>) -> crate::Result<Self> {
         let o = match o {
             None => None,
             Some(s) => Some(Version::from_str(s)?),
         };
-        let r = Restrict::Version(o);
-        Ok(BaseRestrict::Atom(r))
+        Ok(Self::Version(o))
     }
 
-    pub fn slot(o: Option<&str>) -> BaseRestrict {
-        let o = o.map(restrict::Str::matches);
-        BaseRestrict::Atom(Restrict::Slot(o))
+    pub fn slot(o: Option<&str>) -> Self {
+        Self::Slot(o.map(restrict::Str::matches))
     }
 
-    pub fn subslot(o: Option<&str>) -> BaseRestrict {
-        let o = o.map(restrict::Str::matches);
-        BaseRestrict::Atom(Restrict::SubSlot(o))
+    pub fn subslot(o: Option<&str>) -> Self {
+        Self::SubSlot(o.map(restrict::Str::matches))
     }
 
-    pub fn use_deps<I, S>(iter: I) -> BaseRestrict
+    pub fn use_deps<I, S>(iter: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let r = Restrict::StaticUseDep(restrict::Set::StrSubset(
-            iter.into_iter().map(|s| s.into()).collect(),
-        ));
-        BaseRestrict::Atom(r)
+        Self::StaticUseDep(restrict::Set::StrSubset(iter.into_iter().map(|s| s.into()).collect()))
     }
 
-    pub fn repo(o: Option<&str>) -> BaseRestrict {
-        let o = o.map(restrict::Str::matches);
-        BaseRestrict::Atom(Restrict::Repo(o))
+    pub fn repo(o: Option<&str>) -> Self {
+        Self::Repo(o.map(restrict::Str::matches))
     }
 }
 
@@ -376,6 +367,12 @@ impl Restriction<&Atom> for Restrict {
     }
 }
 
+impl From<Restrict> for BaseRestrict {
+    fn from(r: Restrict) -> Self {
+        Self::Atom(r)
+    }
+}
+
 impl Restriction<&Atom> for BaseRestrict {
     fn matches(&self, atom: &Atom) -> bool {
         crate::restrict::restrict_match! {
@@ -392,7 +389,7 @@ impl<T: Borrow<Atom>> From<T> for BaseRestrict {
             vec![Restrict::category(atom.category()), Restrict::package(atom.package())];
 
         if let Some(v) = atom.version() {
-            restricts.push(Self::Atom(Restrict::Version(Some(v.clone()))));
+            restricts.push(Restrict::Version(Some(v.clone())));
         }
 
         if let Some(s) = atom.slot() {
@@ -409,7 +406,7 @@ impl<T: Borrow<Atom>> From<T> for BaseRestrict {
             restricts.push(Restrict::repo(Some(s)));
         }
 
-        Self::and(restricts)
+        Self::and(restricts.into_iter().map(Self::Atom))
     }
 }
 

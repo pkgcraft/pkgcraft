@@ -53,7 +53,7 @@ peg::parser! {
             = cat:category() pkg:(quiet!{"/"} s:package() { s }) {
                 let mut restricts = vec![];
                 match cat.matches('*').count() {
-                    0 => restricts.push(atom::Restrict::category(cat)),
+                    0 => restricts.push(Restrict::Atom(atom::Restrict::category(cat))),
                     _ => {
                         let r = str_to_regex_restrict(cat);
                         restricts.push(Restrict::Atom(atom::Restrict::Category(r)))
@@ -61,7 +61,7 @@ peg::parser! {
                 }
 
                 match pkg.matches('*').count() {
-                    0 => restricts.push(atom::Restrict::package(pkg)),
+                    0 => restricts.push(Restrict::Atom(atom::Restrict::package(pkg))),
                     1 if pkg == "*" && restricts.is_empty() => (),
                     _ => {
                         let r = str_to_regex_restrict(pkg);
@@ -72,7 +72,7 @@ peg::parser! {
                 restricts
             } / s:package() {
                 match s.matches('*').count() {
-                    0 => vec![atom::Restrict::package(s)],
+                    0 => vec![Restrict::Atom(atom::Restrict::package(s))],
                     1 if s == "*" => vec![],
                     _ => {
                         let r = str_to_regex_restrict(s);
@@ -98,7 +98,7 @@ peg::parser! {
         rule slot_restrict() -> Restrict
             = s:slot_glob() {
                 match s.matches('*').count() {
-                    0 => atom::Restrict::slot(Some(s)),
+                    0 => Restrict::Atom(atom::Restrict::slot(Some(s))),
                     _ => {
                         let r = str_to_regex_restrict(s);
                         Restrict::Atom(atom::Restrict::Slot(Some(r)))
@@ -109,7 +109,7 @@ peg::parser! {
         rule subslot_restrict() -> Restrict
             = "/" s:slot_glob() {
                 match s.matches('*').count() {
-                    0 => atom::Restrict::subslot(Some(s)),
+                    0 => Restrict::Atom(atom::Restrict::subslot(Some(s))),
                     _ => {
                         let r = str_to_regex_restrict(s);
                         Restrict::Atom(atom::Restrict::SubSlot(Some(r)))
@@ -135,7 +135,7 @@ peg::parser! {
         rule repo_restrict() -> Restrict
             = "::" s:repo_glob() {
                 match s.matches('*').count() {
-                    0 => atom::Restrict::repo(Some(s)),
+                    0 => Restrict::Atom(atom::Restrict::repo(Some(s))),
                     _ => {
                         let r = str_to_regex_restrict(s);
                         Restrict::Atom(atom::Restrict::Repo(Some(r)))

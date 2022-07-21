@@ -194,10 +194,10 @@ mod tests {
                 .collect()
         };
 
-        let r = atom::Restrict::category("cat");
+        let r = Restrict::Atom(atom::Restrict::category("cat"));
         assert_eq!(filter(r, atoms.clone()), atom_strs);
 
-        let r = atom::Restrict::version(None).unwrap();
+        let r = Restrict::Atom(atom::Restrict::version(None).unwrap());
         assert_eq!(filter(r, atoms.clone()), ["cat/pkg"]);
 
         let cpv = Atom::from_str("=cat/pkg-1").unwrap();
