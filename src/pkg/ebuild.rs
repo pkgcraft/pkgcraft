@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{self, prelude::*};
 use std::sync::Arc;
-use std::{fmt, fs};
+use std::{fmt, fs, ptr};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
@@ -14,7 +14,7 @@ use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::repo::ebuild::Repo;
-use crate::{atom, eapi, Error};
+use crate::{atom, eapi, pkg, restrict, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
@@ -282,6 +282,27 @@ impl<'a> Package for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         self.repo
+    }
+}
+
+#[derive(Clone)]
+pub enum Restrict {
+    Custom(fn(&Pkg) -> bool),
+    Description(restrict::Str),
+}
+
+impl fmt::Debug for Restrict {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::Description(r) => write!(f, "Description({r:?})"),
+        }
+    }
+}
+
+impl From<Restrict> for restrict::Restrict {
+    fn from(r: Restrict) -> Self {
+        Self::Pkg(pkg::Restrict::Ebuild(r))
     }
 }
 

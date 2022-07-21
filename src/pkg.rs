@@ -120,8 +120,11 @@ macro_rules! make_pkg_traits {
 
         impl crate::restrict::Restriction<&$x> for crate::pkg::Restrict {
             fn matches(&self, pkg: &Pkg) -> bool {
+                use crate::repo::Repository;
                 match self {
                     Self::Eapi(r) => r.matches(pkg.eapi().as_str()),
+                    Self::Repo(r) => r.matches(pkg.repo().id()),
+                    _ => false,
                 }
             }
         }
@@ -169,6 +172,8 @@ impl<'a> Package for Pkg<'a> {
 #[derive(Debug, Clone)]
 pub enum Restrict {
     Eapi(restrict::Str),
+    Ebuild(ebuild::Restrict),
+    Repo(restrict::Str),
 }
 
 impl From<Restrict> for restrict::Restrict {
