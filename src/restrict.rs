@@ -1,6 +1,7 @@
-use indexmap::IndexSet;
-use regex::Regex;
+use std::collections::HashSet;
 use std::{fmt, ptr};
+
+use regex::Regex;
 
 use crate::{atom, pkg};
 
@@ -157,17 +158,14 @@ impl Restriction<&str> for Str {
 #[derive(Debug, Clone)]
 pub enum Set {
     Empty,
-    StrSubset(IndexSet<String>),
+    StrSubset(HashSet<String>),
 }
 
-impl Restriction<&IndexSet<&str>> for Set {
-    fn matches(&self, val: &IndexSet<&str>) -> bool {
+impl Restriction<&HashSet<String>> for Set {
+    fn matches(&self, val: &HashSet<String>) -> bool {
         match self {
             Self::Empty => val.is_empty(),
-            Self::StrSubset(s) => {
-                let set = s.iter().map(|s| s.as_str()).collect::<IndexSet<&str>>();
-                set.is_subset(val)
-            }
+            Self::StrSubset(s) => s.is_subset(val),
         }
     }
 }

@@ -1,11 +1,11 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::fmt::{self, Write};
 use std::ptr;
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
-use indexmap::IndexSet;
 
 pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
@@ -140,10 +140,10 @@ impl Atom {
     }
 
     /// Return the set of an atom's USE flag dependencies.
-    fn use_deps_set(&self) -> IndexSet<&str> {
+    fn use_deps_set(&self) -> HashSet<String> {
         match self.use_deps() {
-            None => IndexSet::<&str>::new(),
-            Some(u) => u.iter().copied().collect(),
+            None => HashSet::<String>::new(),
+            Some(u) => u.iter().map(|s| s.to_string()).collect(),
         }
     }
 
