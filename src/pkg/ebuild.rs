@@ -246,7 +246,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's long description.
-    pub fn long_desc(&self) -> Option<&str> {
+    pub fn long_description(&self) -> Option<&str> {
         self.xml().long_desc()
     }
 
