@@ -17,7 +17,7 @@ use crate::repo::ebuild::Repo;
 use crate::{atom, eapi, pkg, restrict, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[A-Za-z0-9+_.-]*)['\"]?[\t ]*(?:#.*)?").unwrap());
+    Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[^'\"]*)['\"]?[\t ]*(?:#.*)?").unwrap());
 
 #[derive(Debug, Default, Clone)]
 struct Metadata<'a> {
@@ -311,7 +311,20 @@ mod tests {
     use super::*;
 
     use crate::config::Config;
+    use crate::macros::assert_err_re;
     use crate::pkg::Env::*;
+
+    #[test]
+    fn test_invalid_eapi() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", [(Eapi, "$EAPI")]).unwrap();
+        let r = Pkg::new(&path, &repo);
+        assert_err_re!(r, r"^invalid EAPI: \$EAPI");
+        let path = t.create_ebuild("cat/pkg-1", [(Eapi, "unknown")]).unwrap();
+        let r = Pkg::new(&path, &repo);
+        assert_err_re!(r, r"^unknown EAPI: unknown");
+    }
 
     #[test]
     fn test_as_ref_path() {
