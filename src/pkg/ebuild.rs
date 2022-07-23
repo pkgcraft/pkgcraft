@@ -706,7 +706,7 @@ mod tests {
         // none
         let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
-        assert!(pkg.long_desc().is_none());
+        assert!(pkg.long_description().is_none());
 
         // single
         let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
@@ -729,7 +729,7 @@ mod tests {
         let pkg2 = Pkg::new(&path, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(
-                pkg.long_desc().unwrap(),
+                pkg.long_description().unwrap(),
                 "A wrapped sentence. Another sentence.  New paragraph."
             );
         }
@@ -758,7 +758,7 @@ mod tests {
         let pkg2 = Pkg::new(&path, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(
-                pkg.long_desc().unwrap(),
+                pkg.long_description().unwrap(),
                 "A wrapped sentence. Another sentence.  New paragraph."
             );
         }
