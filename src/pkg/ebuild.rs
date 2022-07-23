@@ -699,7 +699,7 @@ mod tests {
     }
 
     #[test]
-    fn test_long_desc() {
+    fn test_long_description() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
@@ -707,6 +707,39 @@ mod tests {
         let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(pkg.long_description().is_none());
+
+        // empty
+        let path = t.create_ebuild("empty/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <pkgmetadata>
+                <longdescription>
+                </longdescription>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("empty/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            assert_eq!(pkg.long_description().unwrap(), "");
+        }
+
+        // invalid XML
+        let path = t.create_ebuild("invalid/pkg-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <pkgmetadata>
+                <longdescription>
+                    long description
+                </longdescription>
+            </pkg>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        let pkg1 = Pkg::new(&path, &repo).unwrap();
+        let path = t.create_ebuild("invalid/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        for pkg in [pkg1, pkg2] {
+            assert!(pkg.long_description().is_none());
+        }
 
         // single
         let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
