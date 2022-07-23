@@ -349,11 +349,6 @@ mod tests {
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.path(), &path);
         assert!(!pkg.ebuild().unwrap().is_empty());
-
-        let path = t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
-        assert_eq!(pkg.path(), &path);
-        assert!(!pkg.ebuild().unwrap().is_empty());
     }
 
     #[test]
