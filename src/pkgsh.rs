@@ -337,18 +337,21 @@ pub fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
         }
 
         // prepend metadata keys that incrementally accumulate to eclass values
-        let mut d = d.borrow_mut();
-        for var in eapi.incremental_keys() {
-            let deque = d.get_deque(var);
-            if let Ok(data) = string_vec(var) {
-                // TODO: extend_left() should be implemented upstream for VecDeque
-                for item in data.into_iter().rev() {
-                    deque.push_front(item);
+        if !d.borrow().inherited.is_empty() {
+            let mut d = d.borrow_mut();
+            for var in eapi.incremental_keys() {
+                let deque = d.get_deque(var);
+                if let Ok(data) = string_vec(var) {
+                    // TODO: extend_left() should be implemented upstream for VecDeque
+                    for item in data.into_iter().rev() {
+                        deque.push_front(item);
+                    }
                 }
+                // export the incrementally accumulated value
+                bind(var, deque.iter().join(" "), None, None)?;
             }
-            // export the incrementally accumulated value
-            bind(var, deque.iter().join(" "), None, None)?;
         }
+
         Ok(())
     })
 }
