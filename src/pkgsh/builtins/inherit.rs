@@ -3,8 +3,11 @@ use scallop::builtins::{Builtin, ExecStatus};
 use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error, Result};
 
-use super::{PkgBuiltin, Scope, GLOBAL};
+use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
+use crate::repo::Repository;
+
+use super::{PkgBuiltin, Scope, GLOBAL};
 
 const LONG_DOC: &str = "Sources the given list of eclasses.";
 
@@ -42,7 +45,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             }
 
             eclass_var.bind(&eclass, None, None)?;
-            source::file(&format!("{}/eclass/{eclass}.eclass", d.borrow().repo)).unwrap();
+            let path =
+                build_from_paths!(d.borrow().repo.path(), "eclass", format!("{eclass}.eclass"));
+            if let Err(e) = source::file(&path) {
+                let msg = match path.exists() {
+                    false => format!("unknown eclass: {eclass}"),
+                    true => format!("failed loading eclass: {eclass}: {e}"),
+                };
+                return Err(Error::Builtin(msg));
+            }
 
             let mut d = d.borrow_mut();
             // append metadata keys that incrementally accumulate
