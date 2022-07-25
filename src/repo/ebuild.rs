@@ -1063,7 +1063,7 @@ mod tests {
         for (data, err) in [
             ([(Key::Eapi, "-1")], "invalid EAPI: -1"),
             ([(Key::Eapi, "a")], "unknown EAPI: a"),
-            ([(Key::Slot, "-")], "missing required value: SLOT"),
+            ([(Key::Slot, "-")], "missing required values: SLOT"),
         ] {
             let mut config = Config::new("pkgcraft", "", false).unwrap();
             let (t, repo) = config.temp_repo("test", 0).unwrap();

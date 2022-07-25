@@ -47,11 +47,18 @@ impl<'a> Metadata<'a> {
         }
 
         // required metadata variables
+        let mut missing = Vec::<&str>::new();
         for key in eapi.mandatory_keys() {
-            let val = key
-                .get(eapi)
-                .ok_or_else(|| Error::InvalidValue(format!("missing required value: {key}")))?;
-            data.insert(*key, val);
+            match key.get(eapi) {
+                Some(val) => drop(data.insert(*key, val)),
+                None => missing.push(key.as_ref()),
+            }
+        }
+
+        if !missing.is_empty() {
+            missing.sort();
+            let keys = missing.join(", ");
+            return Err(Error::InvalidValue(format!("missing required values: {keys}")));
         }
 
         // metadata variables that default to empty
