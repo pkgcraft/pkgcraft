@@ -315,11 +315,14 @@ impl From<Restrict> for restrict::Restrict {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkg::Env::*;
+    use crate::pkgsh::{BuildData, BUILD_DATA};
+    use crate::repo::Repository;
+    use crate::test::eq_sorted;
+
+    use super::*;
 
     #[test]
     fn test_invalid_eapi() {
@@ -533,6 +536,39 @@ mod tests {
         let path = t.create_ebuild("cat/pkg-1", [(Iuse, val)]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
+
+        // inherited from eclass
+        BuildData::reset();
+        let eclass = indoc::indoc! {r#"
+            IUSE="foo"
+        "#};
+        t.create_eclass("test", eclass).unwrap();
+        let data = indoc::indoc! {r#"
+            inherit test
+            DESCRIPTION="testing inherited IUSE"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.path().to_string();
+            let pkg = Pkg::new(&path, &repo).unwrap();
+            assert!(eq_sorted(pkg.iuse(), &["foo"]));
+        });
+
+        // accumulated from eclass
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            inherit test
+            DESCRIPTION="testing accumulated IUSE"
+            IUSE="bar"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.path().to_string();
+            let pkg = Pkg::new(&path, &repo).unwrap();
+            assert!(eq_sorted(pkg.iuse(), &["bar", "foo"]));
+        });
     }
 
     #[test]
