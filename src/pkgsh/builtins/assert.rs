@@ -74,15 +74,15 @@ mod tests {
         builtins::enable(&["assert"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("true | false | true; assert");
-        assert_err_re!(r, r"^die called: \(no error message\)");
+        let r = source::string("true | false | true; assert && VAR=2");
+        assert_err_re!(r, r"^assert: error: \(no error message\)");
 
-        // verify bash state is reset
-        assert_eq!(string_value("VAR"), None);
+        // verify bash state
+        assert_eq!(string_value("VAR").unwrap(), "1");
 
         // verify message output
         let r = source::string("true | false | true; assert \"output message\"");
-        assert_err_re!(r, r"^die called: output message");
+        assert_err_re!(r, r"^assert: error: output message");
     }
 
     #[test]
@@ -91,15 +91,15 @@ mod tests {
         builtins::enable(&["assert"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("VAR=$(true | false; assert); VAR=2");
-        assert_err_re!(r, r"^die called: \(no error message\)");
+        let r = source::string("FOO=$(true | false; assert); VAR=2");
+        assert_err_re!(r, r"^assert: error: \(no error message\)");
 
-        // verify bash state is reset
-        assert_eq!(string_value("VAR"), None);
+        // verify bash state
+        assert_eq!(string_value("VAR").unwrap(), "1");
 
         // verify message output
         let r = source::string("VAR=$(true | false; assert \"output message\")");
-        assert_err_re!(r, r"^die called: output message");
+        assert_err_re!(r, r"^assert: error: output message");
     }
 
     #[test]
@@ -108,7 +108,7 @@ mod tests {
 
         // nonfatal requires `die -n` call
         let r = source::string("true | false; nonfatal assert");
-        assert_err_re!(r, r"^die called: \(no error message\)");
+        assert_err_re!(r, r"^assert: error: \(no error message\)");
 
         // nonfatal die in main process
         bind("VAR", "1", None, None).unwrap();

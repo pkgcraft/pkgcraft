@@ -2,7 +2,7 @@ use std::io::Write;
 use std::sync::atomic::Ordering;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{raise_error, Builtin, ExecStatus};
+use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL, NONFATAL};
@@ -36,7 +36,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
 
         // TODO: add bash backtrace to output
-        raise_error(format!("die called: {msg}"))
+        Err(Error::Builtin(msg.to_string()))
     })
 }
 
@@ -85,14 +85,14 @@ mod tests {
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("die && VAR=2");
-        assert_err_re!(r, r"^die called: \(no error message\)");
+        assert_err_re!(r, r"^die: error: \(no error message\)");
 
-        // verify bash state is reset
-        assert_eq!(string_value("VAR"), None);
+        // verify bash state
+        assert_eq!(string_value("VAR").unwrap(), "1");
 
         // verify message output
         let r = source::string("die \"output message\"");
-        assert_err_re!(r, r"^die called: output message");
+        assert_err_re!(r, r"^die: error: output message");
     }
 
     #[test]
@@ -101,15 +101,15 @@ mod tests {
         builtins::enable(&["die"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("VAR=$(die); VAR=2");
-        assert_err_re!(r, r"^die called: \(no error message\)");
+        let r = source::string("FOO=$(die); VAR=2");
+        assert_err_re!(r, r"^die: error: \(no error message\)");
 
-        // verify bash state is reset
-        assert_eq!(string_value("VAR"), None);
+        // verify bash state
+        assert_eq!(string_value("VAR").unwrap(), "1");
 
         // verify message output
         let r = source::string("VAR=$(die \"output message\")");
-        assert_err_re!(r, r"^die called: output message");
+        assert_err_re!(r, r"^die: error: output message");
     }
 
     #[test]
@@ -119,7 +119,7 @@ mod tests {
 
         // nonfatal requires `die -n` call
         let r = source::string("nonfatal die && VAR=2");
-        assert_err_re!(r, r"^die called: \(no error message\)");
+        assert_err_re!(r, r"^die: error: \(no error message\)");
 
         // nonfatal die in main process
         bind("VAR", "1", None, None).unwrap();
