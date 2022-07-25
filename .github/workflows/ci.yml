@@ -24,6 +24,11 @@ jobs:
     - name: Pull submodule updates
       run: git submodule update --recursive --remote
 
+    - name: Get bash submodule commit hash
+      working-directory: scallop
+      id: bash
+      run: echo "::set-output name=commit::$(git rev-parse --short HEAD:bash)"
+
     - name: Remove current repo from workspace
       run: rm -rfv ${{ github.event.repository.name }}
 
@@ -51,8 +56,8 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: v3-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v3-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v3-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: v3-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
 
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
