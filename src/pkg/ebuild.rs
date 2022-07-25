@@ -525,7 +525,7 @@ mod tests {
         // single line
         let path = t.create_ebuild("cat/pkg-1", [(Iuse, "a b")]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
-        assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
+        assert!(eq_sorted(pkg.iuse(), &["a", "b"]));
 
         // multiple lines
         let val = indoc::indoc! {"
@@ -535,7 +535,7 @@ mod tests {
         "};
         let path = t.create_ebuild("cat/pkg-1", [(Iuse, val)]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
-        assert_eq!(pkg.iuse().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
+        assert!(eq_sorted(pkg.iuse(), &["a", "b", "c"]));
 
         // inherited from eclass
         BuildData::reset();
