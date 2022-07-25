@@ -163,8 +163,8 @@ use assert_stderr;
 
 #[derive(Default)]
 pub struct BuildData {
-    pub repo: String,
     pub eapi: &'static Eapi,
+    pub repo: String,
 
     stdin: Stdin,
     stdout: Stdout,
@@ -226,6 +226,12 @@ impl BuildData {
         data.exeopts.push("-m0755".into());
         data.desttree = "/usr".into();
         data
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reset() {
+        Shell::reset();
+        BUILD_DATA.with(|d| d.replace(BuildData::new()));
     }
 
     fn stdin(&mut self) -> scallop::Result<&mut StdinType> {
