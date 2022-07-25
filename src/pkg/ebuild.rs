@@ -276,7 +276,7 @@ impl<'a> Package for Pkg<'a> {
         &self.atom
     }
 
-    fn eapi(&self) -> &eapi::Eapi {
+    fn eapi(&self) -> &'static eapi::Eapi {
         self.eapi
     }
 

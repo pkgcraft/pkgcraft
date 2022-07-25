@@ -34,7 +34,7 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     type Repo: Repository;
 
     /// Return a package's EAPI.
-    fn eapi(&self) -> &eapi::Eapi;
+    fn eapi(&self) -> &'static eapi::Eapi;
 
     /// Return a package's repo.
     fn repo(&self) -> Self::Repo;
@@ -154,7 +154,7 @@ impl<'a> Package for Pkg<'a> {
         }
     }
 
-    fn eapi(&self) -> &eapi::Eapi {
+    fn eapi(&self) -> &'static eapi::Eapi {
         match self {
             Self::Ebuild(pkg, _) => pkg.eapi(),
             Self::Fake(pkg, _) => pkg.eapi(),
