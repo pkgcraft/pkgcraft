@@ -779,6 +779,33 @@ impl TempRepo {
         Ok(path)
     }
 
+    /// Create an ebuild file in the repo from raw data.
+    #[cfg(test)]
+    pub(crate) fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<Utf8PathBuf> {
+        let cpv = atom::cpv(cpv)?;
+        let path = self.path.join(format!(
+            "{}/{}-{}.ebuild",
+            cpv.key(),
+            cpv.package(),
+            cpv.version().unwrap()
+        ));
+        fs::create_dir_all(path.parent().unwrap())
+            .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
+        fs::write(&path, data)
+            .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
+        Ok(path)
+    }
+
+    /// Create an eclass in the repo.
+    #[cfg(test)]
+    pub(crate) fn create_eclass<'a>(&self, name: &str, data: &str) -> crate::Result<Utf8PathBuf> {
+        let path = self.path.join(format!("eclass/{name}.eclass"));
+        fs::create_dir_all(path.parent().unwrap())
+            .map_err(|e| Error::IO(format!("failed creating eclass dir: {e}")))?;
+        fs::write(&path, data).map_err(|e| Error::IO(format!("failed writing to eclass: {e}")))?;
+        Ok(path)
+    }
+
     /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is
     /// located.
     pub(crate) fn persist<P: AsRef<Path>>(self, path: Option<P>) -> crate::Result<PathBuf> {
