@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
+use std::sync::Arc;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -12,6 +13,7 @@ use scallop::{functions, source, Error, Shell};
 
 use crate::eapi::{Eapi, Feature, Key};
 use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
+use crate::repo::ebuild;
 
 pub mod builtins;
 mod install;
@@ -164,7 +166,7 @@ use assert_stderr;
 #[derive(Default)]
 pub struct BuildData {
     pub eapi: &'static Eapi,
-    pub repo: String,
+    pub repo: Arc<ebuild::Repo>,
 
     stdin: Stdin,
     stdout: Stdout,
