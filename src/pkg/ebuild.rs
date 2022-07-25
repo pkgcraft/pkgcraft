@@ -319,7 +319,6 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::Env::*;
     use crate::pkgsh::{BuildData, BUILD_DATA};
-    use crate::repo::Repository;
     use crate::test::eq_sorted;
 
     use super::*;
@@ -537,37 +536,72 @@ mod tests {
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["a", "b", "c"]));
 
-        // inherited from eclass
-        BuildData::reset();
+        // create eclasses
         let eclass = indoc::indoc! {r#"
-            IUSE="foo"
+            IUSE="use1"
         "#};
-        t.create_eclass("test", eclass).unwrap();
+        t.create_eclass("use1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            IUSE="use2"
+        "#};
+        t.create_eclass("use2", eclass).unwrap();
+
+        // inherited from single eclass
+        BuildData::reset();
         let data = indoc::indoc! {r#"
-            inherit test
+            inherit use1
             DESCRIPTION="testing inherited IUSE"
             SLOT=0
         "#};
         let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.path().to_string();
+            d.borrow_mut().repo = repo.clone();
             let pkg = Pkg::new(&path, &repo).unwrap();
-            assert!(eq_sorted(pkg.iuse(), &["foo"]));
+            assert!(eq_sorted(pkg.iuse(), &["use1"]));
         });
 
-        // accumulated from eclass
+        // inherited from multiple eclasses
         BuildData::reset();
         let data = indoc::indoc! {r#"
-            inherit test
-            DESCRIPTION="testing accumulated IUSE"
-            IUSE="bar"
+            inherit use1 use2
+            DESCRIPTION="testing inherited IUSE"
             SLOT=0
         "#};
         let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.path().to_string();
+            d.borrow_mut().repo = repo.clone();
             let pkg = Pkg::new(&path, &repo).unwrap();
-            assert!(eq_sorted(pkg.iuse(), &["bar", "foo"]));
+            assert!(eq_sorted(pkg.iuse(), &["use1", "use2"]));
+        });
+
+        // accumulated from single eclass
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            inherit use1
+            DESCRIPTION="testing accumulated IUSE"
+            IUSE="a"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            let pkg = Pkg::new(&path, &repo).unwrap();
+            assert!(eq_sorted(pkg.iuse(), &["a", "use1"]));
+        });
+
+        // accumulated from multiple eclasses
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            inherit use1 use2
+            DESCRIPTION="testing accumulated IUSE"
+            IUSE="a"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            let pkg = Pkg::new(&path, &repo).unwrap();
+            assert!(eq_sorted(pkg.iuse(), &["a", "use1", "use2"]));
         });
     }
 
