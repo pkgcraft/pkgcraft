@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::{self, prelude::*};
+use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, fs, ptr};
 
@@ -8,12 +9,14 @@ use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use scallop::variables::string_value;
+use tracing::warn;
 
 use super::{make_pkg_traits, Package};
 use crate::eapi::Key::*;
+use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::pkgsh::source_ebuild;
-use crate::repo::ebuild::Repo;
+use crate::repo::{ebuild::Repo, Repository};
 use crate::{atom, eapi, pkg, restrict, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
@@ -33,7 +36,34 @@ struct Metadata<'a> {
 }
 
 impl<'a> Metadata<'a> {
-    fn new(path: &Utf8Path, eapi: &'static eapi::Eapi) -> crate::Result<Self> {
+    /// Load metadata from cache.
+    fn load(atom: &atom::Atom, eapi: &'static eapi::Eapi, repo: &Repo) -> Option<Self> {
+        // TODO: validate cache entries in some fashion?
+        let path = build_from_paths!(repo.path(), "metadata", "md5-cache", atom.to_string());
+        match fs::read_to_string(&path) {
+            Ok(s) => {
+                let data = s
+                    .lines()
+                    .filter_map(|l| l.split_once('='))
+                    .filter_map(|(k, v)| eapi::Key::from_str(k).ok().map(|k| (k, v)))
+                    .filter(|(k, _)| eapi.metadata_keys().contains(k))
+                    .map(|(k, v)| (k, v.to_string()))
+                    .collect();
+                Some(Self {
+                    data,
+                    ..Default::default()
+                })
+            }
+            Err(e) if e.kind() == io::ErrorKind::NotFound => None,
+            Err(e) => {
+                warn!("error loading ebuild metadata: {:?}: {e}", &path);
+                None
+            }
+        }
+    }
+
+    /// Source ebuild to determine metadata.
+    fn source(path: &Utf8Path, eapi: &'static eapi::Eapi) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         source_ebuild(path)?;
         let mut data = HashMap::new();
@@ -148,10 +178,15 @@ make_pkg_traits!(Pkg<'_>);
 impl<'a> Pkg<'a> {
     pub(crate) fn new(path: &Utf8Path, repo: &'a Repo) -> crate::Result<Self> {
         let eapi = Pkg::parse_eapi(path)?;
-        let data = Metadata::new(path, eapi)?;
+        let atom = repo.atom_from_path(path)?;
+        // TODO: compare ebuild mtime vs cache mtime
+        let data = match Metadata::load(&atom, eapi, repo) {
+            Some(data) => data,
+            None => Metadata::source(path, eapi)?,
+        };
         Ok(Pkg {
             path: path.to_path_buf(),
-            atom: repo.atom_from_path(path)?,
+            atom,
             eapi,
             repo,
             data,

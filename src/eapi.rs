@@ -12,7 +12,7 @@ use regex::{escape, Regex, RegexBuilder};
 use scallop::builtins::ScopedBuiltins;
 use scallop::functions;
 use scallop::variables::string_value;
-use strum::{AsRefStr, Display};
+use strum::{AsRefStr, Display, EnumString};
 
 use crate::archive::Archive;
 use crate::atom::Atom;
@@ -103,7 +103,7 @@ pub(crate) enum Feature {
 
 type EapiEconfOptions = HashMap<&'static str, (IndexSet<String>, Option<String>)>;
 
-#[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(AsRefStr, EnumString, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum Key {
     Iuse,
