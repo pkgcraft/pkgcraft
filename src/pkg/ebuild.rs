@@ -670,7 +670,7 @@ mod tests {
         for pkg in [pkg1, pkg2] {
             let m = pkg.maintainers();
             assert_eq!(m.len(), 1);
-            assert_eq!(m[0].email(), Some("a.person@email.com"));
+            assert_eq!(m[0].email(), "a.person@email.com");
             assert_eq!(m[0].name(), Some("A Person"));
         }
 
@@ -697,9 +697,9 @@ mod tests {
         for pkg in [pkg1, pkg2] {
             let m = pkg.maintainers();
             assert_eq!(m.len(), 2);
-            assert_eq!(m[0].email(), Some("a.person@email.com"));
+            assert_eq!(m[0].email(), "a.person@email.com");
             assert_eq!(m[0].name(), Some("A Person"));
-            assert_eq!(m[1].email(), Some("b.person@email.com"));
+            assert_eq!(m[1].email(), "b.person@email.com");
             assert_eq!(m[1].name(), Some("B Person"));
         }
     }

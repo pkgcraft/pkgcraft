@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::fs;
 use std::hash::{Hash, Hasher};
+use std::{fs, io};
 
 use camino::Utf8Path;
 use itertools::Itertools;
 use roxmltree::{Document, Node};
+use tracing::warn;
 
 use crate::macros::cmp_not_equal;
 use crate::repo::ebuild::CacheData;
@@ -13,7 +14,7 @@ use crate::Error;
 
 #[derive(Debug)]
 pub struct Maintainer {
-    email: Option<String>,
+    email: String,
     name: Option<String>,
     description: Option<String>,
     maint_type: Option<String>,
@@ -28,21 +29,20 @@ impl Maintainer {
         maint_type: Option<&str>,
         proxied: Option<&str>,
     ) -> crate::Result<Self> {
-        if email.is_none() && name.is_none() {
-            return Err(Error::InvalidValue("either email or name must exist".to_string()));
+        match email {
+            Some(email) => Ok(Self {
+                email: String::from(email),
+                name: name.map(String::from),
+                description: description.map(String::from),
+                maint_type: maint_type.map(String::from),
+                proxied: proxied.map(String::from),
+            }),
+            None => Err(Error::InvalidValue("maintainer missing required email".to_string())),
         }
-
-        Ok(Self {
-            email: email.map(String::from),
-            name: name.map(String::from),
-            description: description.map(String::from),
-            maint_type: maint_type.map(String::from),
-            proxied: proxied.map(String::from),
-        })
     }
 
-    pub fn email(&self) -> Option<&str> {
-        self.email.as_deref()
+    pub fn email(&self) -> &str {
+        &self.email
     }
 
     pub fn name(&self) -> Option<&str> {
@@ -123,15 +123,24 @@ pub struct XmlMetadata {
 
 impl CacheData for XmlMetadata {
     fn new(path: &Utf8Path) -> Self {
-        match fs::read_to_string(path.join("metadata.xml")) {
-            Err(_) => Self::default(),
-            Ok(s) => Self::parse_xml(&s),
+        let path = path.join("metadata.xml");
+        let warn = |e: Error| {
+            warn!("invalid XML metadata: {path}: {e}");
+        };
+        match fs::read_to_string(&path) {
+            Ok(s) => Self::parse_xml(&s, warn),
+            Err(e) => {
+                if e.kind() != io::ErrorKind::NotFound {
+                    warn!("failed loading XML metadata: {path}: {e}");
+                }
+                Self::default()
+            }
         }
     }
 }
 
 impl XmlMetadata {
-    fn parse_maintainer(node: Node, data: &mut Self) {
+    fn parse_maintainer<F: Fn(Error)>(node: Node, data: &mut Self, warn: F) {
         let (mut email, mut name, mut description) = (None, None, None);
         for n in node.children() {
             match n.tag_name().name() {
@@ -143,8 +152,9 @@ impl XmlMetadata {
         }
         let maint_type = node.attribute("type");
         let proxied = node.attribute("proxied");
-        if let Ok(m) = Maintainer::new(email, name, description, maint_type, proxied) {
-            data.maintainers.push(m);
+        match Maintainer::new(email, name, description, maint_type, proxied) {
+            Ok(m) => data.maintainers.push(m),
+            Err(e) => warn(e),
         }
     }
 
@@ -175,14 +185,14 @@ impl XmlMetadata {
         });
     }
 
-    fn parse_xml(xml: &str) -> Self {
+    fn parse_xml<F: Fn(Error)>(xml: &str, warn: F) -> Self {
         let mut data = Self::default();
         if let Ok(doc) = Document::parse(xml) {
             for node in doc.descendants() {
                 let lang = node.attribute("lang").unwrap_or("en");
                 let en = lang == "en";
                 match node.tag_name().name() {
-                    "maintainer" => Self::parse_maintainer(node, &mut data),
+                    "maintainer" => Self::parse_maintainer(node, &mut data, &warn),
                     "upstream" => Self::parse_upstreams(node, &mut data),
                     "use" if en => Self::parse_use(node, &mut data),
                     "longdescription" if en => Self::parse_long_desc(node, &mut data),
