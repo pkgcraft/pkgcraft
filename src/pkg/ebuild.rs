@@ -54,9 +54,10 @@ impl<'a> Metadata<'a> {
                     ..Default::default()
                 })
             }
-            Err(e) if e.kind() == io::ErrorKind::NotFound => None,
             Err(e) => {
-                warn!("error loading ebuild metadata: {:?}: {e}", &path);
+                if e.kind() != io::ErrorKind::NotFound {
+                    warn!("error loading ebuild metadata: {:?}: {e}", &path);
+                }
                 None
             }
         }
