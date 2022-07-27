@@ -5,9 +5,10 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{Builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, ALL, NONFATAL};
 use crate::eapi::Feature;
 use crate::pkgsh::{write_stderr, BUILD_DATA};
+
+use super::{PkgBuiltin, ALL, NONFATAL};
 
 const LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
@@ -36,7 +37,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         };
 
         // TODO: add bash backtrace to output
-        Err(Error::Builtin(msg.to_string()))
+        Err(Error::Bail(msg.to_string()))
     })
 }
 
