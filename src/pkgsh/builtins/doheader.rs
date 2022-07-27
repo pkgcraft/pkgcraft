@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
@@ -47,17 +47,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "doheader",
-            func: run,
-            help: LONG_DOC,
-            usage: "doheader [-r] path/to/header.h",
-        },
-        &[("5-", &["src_install"])],
-    )
-});
+make_builtin!("doheader", doheader_builtin, run, LONG_DOC, "doheader [-r] path/to/header.h");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("5-", &["src_install"])]));
 
 #[cfg(test)]
 mod tests {

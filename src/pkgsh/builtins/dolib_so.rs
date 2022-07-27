@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::dolib::install_lib;
@@ -16,17 +16,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     install_lib(args, Some(vec!["-m0755"]))
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "dolib.so",
-            func: run,
-            help: LONG_DOC,
-            usage: "dolib.so path/to/lib.so",
-        },
-        &[("0-", &["src_install"])],
-    )
-});
+make_builtin!("dolib.so", dolib_so_builtin, run, LONG_DOC, "dolib.so path/to/lib.so");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
 
 #[cfg(test)]
 mod tests {

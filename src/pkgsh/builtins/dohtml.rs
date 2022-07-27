@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 use walkdir::DirEntry;
 
@@ -121,17 +121,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "dohtml",
-            func: run,
-            help: LONG_DOC,
-            usage: "dohtml path/to/html/files",
-        },
-        &[("0-6", &["src_install"])],
-    )
-});
+make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, "dohtml path/to/html/files");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-6", &["src_install"])]));
 
 #[cfg(test)]
 mod tests {

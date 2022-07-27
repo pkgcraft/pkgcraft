@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error, Result};
 
@@ -77,17 +77,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "inherit",
-            func: run,
-            help: LONG_DOC,
-            usage: "inherit eclass1 eclass2",
-        },
-        &[("0-", &[GLOBAL])],
-    )
-});
+make_builtin!("inherit", inherit_builtin, run, LONG_DOC, "inherit eclass1 eclass2");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[GLOBAL])]));
 
 #[cfg(test)]
 mod tests {

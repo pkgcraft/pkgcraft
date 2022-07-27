@@ -1,7 +1,7 @@
 use std::fs::hard_link;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::PkgBuiltin;
@@ -23,17 +23,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "dohard",
-            func: run,
-            help: LONG_DOC,
-            usage: "dohard path/to/source /path/to/target",
-        },
-        &[("0-3", &["src_install"])],
-    )
-});
+make_builtin!("dohard", dohard_builtin, run, LONG_DOC, "dohard path/to/source /path/to/target");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-3", &["src_install"])]));
 
 #[cfg(test)]
 mod tests {

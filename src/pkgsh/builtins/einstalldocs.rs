@@ -2,7 +2,7 @@ use std::fs;
 
 use glob::glob;
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::variables::var_to_vec;
 use scallop::{Error, Result};
 
@@ -90,17 +90,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "einstalldocs",
-            func: run,
-            help: LONG_DOC,
-            usage: "einstalldocs",
-        },
-        &[("6-", &["src_install"])],
-    )
-});
+make_builtin!("einstalldocs", einstalldocs_builtin, run, LONG_DOC, "einstalldocs");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("6-", &["src_install"])]));
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, ALL};
@@ -18,17 +18,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::from(haystack.contains(needle)))
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "has",
-            func: run,
-            help: LONG_DOC,
-            usage: "has needle ${haystack}",
-        },
-        &[("0-", &[ALL])],
-    )
-});
+make_builtin!("has", has_builtin, run, LONG_DOC, "has needle ${haystack}");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ALL])]));
 
 #[cfg(test)]
 mod tests {

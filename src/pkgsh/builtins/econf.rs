@@ -6,7 +6,7 @@ use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::variables::{expand, string_value};
 use scallop::{Error, Result};
 
@@ -109,16 +109,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "econf",
-            func: run,
-            help: LONG_DOC,
-            usage: "econf --enable-feature",
-        },
-        &[("0-1", &["src_compile"]), ("2-", &["src_configure"])],
-    )
+make_builtin!("econf", econf_builtin, run, LONG_DOC, "econf --enable-feature");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
+    PkgBuiltin::new(BUILTIN, &[("0-1", &["src_compile"]), ("2-", &["src_configure"])])
 });
 
 #[cfg(test)]
@@ -130,7 +124,7 @@ mod tests {
     use scallop::variables::{ScopedVariable, Variables};
     use tempfile::tempdir;
 
-    use super::BUILTIN as econf;
+    use super::PKG_BUILTIN as econf;
     use crate::command::last_command;
     use crate::macros::{assert_err_re, build_from_paths};
     use crate::pkgsh::BUILD_DATA;

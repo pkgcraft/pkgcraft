@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::Result;
 
 use super::_use_conf::use_conf;
@@ -13,17 +13,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     use_conf(args, "enable", "disable")
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "use_enable",
-            func: run,
-            help: LONG_DOC,
-            usage: "use_enable flag",
-        },
-        &[("0-", &[PHASE])],
-    )
-});
+make_builtin!("use_enable", use_enable_builtin, run, LONG_DOC, "use_enable flag");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
 
 #[cfg(test)]
 mod tests {

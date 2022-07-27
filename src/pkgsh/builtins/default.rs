@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{PkgBuiltin, PHASE};
@@ -26,17 +26,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "default",
-            func: run,
-            help: LONG_DOC,
-            usage: "default",
-        },
-        &[("2-", &[PHASE])],
-    )
-});
+make_builtin!("default", default_builtin, run, LONG_DOC, "default");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("2-", &[PHASE])]));
 
 #[cfg(test)]
 mod tests {

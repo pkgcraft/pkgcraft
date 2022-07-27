@@ -31,10 +31,6 @@ pub enum Error {
 
 impl From<Error> for scallop::Error {
     fn from(e: Error) -> Self {
-        let s = e.to_string();
-        match scallop::builtins::running_builtin() {
-            Some(_) => scallop::Error::Builtin(s),
-            None => scallop::Error::Base(s),
-        }
+        scallop::Error::Base(e.to_string())
     }
 }

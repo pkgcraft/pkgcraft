@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::Result;
 
 use super::{has::run as has, PkgBuiltin, ALL};
@@ -19,17 +19,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ret)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "hasv",
-            func: run,
-            help: LONG_DOC,
-            usage: "hasv needle ${haystack}",
-        },
-        &[("0-7", &[ALL])],
-    )
-});
+make_builtin!("hasv", hasv_builtin, run, LONG_DOC, "hasv needle ${haystack}");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-7", &[ALL])]));
 
 #[cfg(test)]
 mod tests {

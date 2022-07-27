@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::Result;
 
 use super::_new::new;
@@ -13,17 +13,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     new(args, doheader)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "newheader",
-            func: run,
-            help: LONG_DOC,
-            usage: "newheader path/to/header.h new_filename",
-        },
-        &[("5-", &["src_install"])],
-    )
-});
+make_builtin!(
+    "newheader",
+    newheader_builtin,
+    run,
+    LONG_DOC,
+    "newheader path/to/header.h new_filename"
+);
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("5-", &["src_install"])]));
 
 #[cfg(test)]
 mod tests {

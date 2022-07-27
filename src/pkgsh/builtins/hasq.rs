@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::Result;
 
 use super::{has::run as has, PkgBuiltin, ALL};
@@ -11,14 +11,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     has(args)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "hasq",
-            func: run,
-            help: LONG_DOC,
-            usage: "hasq needle ${haystack}",
-        },
-        &[("0-7", &[ALL])],
-    )
-});
+make_builtin!("hasq", hasq_builtin, run, LONG_DOC, "hasq needle ${haystack}");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-7", &[ALL])]));

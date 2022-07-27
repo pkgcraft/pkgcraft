@@ -3,7 +3,7 @@ use std::ops::BitOr;
 use camino::{Utf8Path, Utf8PathBuf};
 use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 use walkdir::WalkDir;
 
@@ -70,11 +70,11 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         // ensure proper permissions on unpacked files with minimal syscalls
         for entry in WalkDir::new(&current_dir).min_depth(1) {
-            let entry =
-                entry.map_err(|e| Error::Base(format!("failed walking {current_dir:?}: {e}")))?;
+            let entry = entry
+                .map_err(|e| Error::Builtin(format!("failed walking {current_dir:?}: {e}")))?;
             let path = entry.path();
-            let stat =
-                lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
+            let stat = lstat(path)
+                .map_err(|e| Error::Builtin(format!("failed file stat {path:?}: {e}")))?;
             let mode = Mode::from_bits_truncate(stat.st_mode);
             let new_mode = match SFlag::from_bits_truncate(stat.st_mode) {
                 flags if flags.contains(SFlag::S_IFLNK) => continue,
@@ -94,24 +94,17 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 }
             };
             fchmodat(None, path, new_mode, FollowSymlink)
-                .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))?;
+                .map_err(|e| Error::Builtin(format!("failed file chmod {path:?}: {e}")))?;
         }
 
         Ok(ExecStatus::Success)
     })
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "unpack",
-            func: run,
-            help: LONG_DOC,
-            usage: "unpack file.tar.gz",
-        },
-        &[("0-", &[PHASE])],
-    )
-});
+make_builtin!("unpack", unpack_builtin, run, LONG_DOC, "unpack file.tar.gz");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
 
 #[cfg(test)]
 mod tests {

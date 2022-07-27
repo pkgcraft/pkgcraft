@@ -2,7 +2,7 @@ use std::io::Write;
 use std::sync::atomic::Ordering;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use crate::eapi::Feature;
@@ -41,17 +41,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "die",
-            func: run,
-            help: LONG_DOC,
-            usage: "die \"error message\"",
-        },
-        &[("0-", &[ALL])],
-    )
-});
+make_builtin!("die", die_builtin, run, LONG_DOC, "die \"error message\"");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ALL])]));
 
 #[cfg(test)]
 mod tests {

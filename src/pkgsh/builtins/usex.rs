@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::{use_::run as use_, PkgBuiltin, PHASE};
@@ -34,17 +34,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "usex",
-            func: run,
-            help: LONG_DOC,
-            usage: "usex flag",
-        },
-        &[("5-", &[PHASE])],
-    )
-});
+make_builtin!("usex", usex_builtin, run, LONG_DOC, "usex flag");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("5-", &[PHASE])]));
 
 #[cfg(test)]
 mod tests {

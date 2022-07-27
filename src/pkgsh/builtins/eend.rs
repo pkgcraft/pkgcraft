@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
 use super::super::unescape::unescape_vec;
@@ -37,17 +37,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ret)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "eend",
-            func: run,
-            help: LONG_DOC,
-            usage: "eend $? [\"message\"]",
-        },
-        &[("0-", &[ALL])],
-    )
-});
+make_builtin!("eend", eend_builtin, run, LONG_DOC, "eend $? [\"message\"]");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ALL])]));
 
 #[cfg(test)]
 mod tests {

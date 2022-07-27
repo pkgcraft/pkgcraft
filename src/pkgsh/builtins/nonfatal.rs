@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::command::Command;
 use scallop::{Error, Result};
 
@@ -27,17 +27,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "nonfatal",
-            func: run,
-            help: LONG_DOC,
-            usage: "nonfatal cmd arg1 arg2",
-        },
-        &[("4-", &[PHASE])],
-    )
-});
+make_builtin!("nonfatal", nonfatal_builtin, run, LONG_DOC, "nonfatal cmd arg1 arg2");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("4-", &[PHASE])]));
 
 #[cfg(test)]
 mod tests {

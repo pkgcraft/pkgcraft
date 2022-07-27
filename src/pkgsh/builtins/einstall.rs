@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::Result;
 
 use super::{emake::run as emake, PkgBuiltin};
@@ -32,14 +32,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "einstall",
-            func: run,
-            help: LONG_DOC,
-            usage: "einstall",
-        },
-        &[("0-5", &["src_install"])],
-    )
-});
+make_builtin!("einstall", einstall_builtin, run, LONG_DOC, "einstall");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-5", &["src_install"])]));

@@ -2,7 +2,7 @@ use std::io::Write;
 use std::process::Command;
 
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::variables::{string_value, string_vec};
 use scallop::{Error, Result};
 
@@ -31,17 +31,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(
-        Builtin {
-            name: "emake",
-            func: run,
-            help: LONG_DOC,
-            usage: "emake -C builddir",
-        },
-        &[("0-", &[PHASE])],
-    )
-});
+make_builtin!("emake", emake_builtin, run, LONG_DOC, "emake -C builddir");
+
+pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
 
 #[cfg(test)]
 mod tests {
