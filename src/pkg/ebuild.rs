@@ -128,7 +128,11 @@ impl<'a> Metadata<'a> {
     fn homepage(&'a self) -> &'a [&'a str] {
         self.homepage
             .get_or_init(|| {
-                let val = self.data.get(&Homepage).map(|s| s.as_str()).unwrap_or("");
+                let val = self
+                    .data
+                    .get(&Homepage)
+                    .map(|s| s.as_str())
+                    .unwrap_or_default();
                 val.split_whitespace().collect()
             })
             .as_slice()
@@ -136,28 +140,40 @@ impl<'a> Metadata<'a> {
 
     fn keywords(&'a self) -> &'a IndexSet<&'a str> {
         self.keywords.get_or_init(|| {
-            let val = self.data.get(&Keywords).map(|s| s.as_str()).unwrap_or("");
+            let val = self
+                .data
+                .get(&Keywords)
+                .map(|s| s.as_str())
+                .unwrap_or_default();
             val.split_whitespace().collect()
         })
     }
 
     fn iuse(&'a self) -> &'a IndexSet<&'a str> {
         self.iuse.get_or_init(|| {
-            let val = self.data.get(&Iuse).map(|s| s.as_str()).unwrap_or("");
+            let val = self.data.get(&Iuse).map(|s| s.as_str()).unwrap_or_default();
             val.split_whitespace().collect()
         })
     }
 
     fn inherit(&'a self) -> &'a IndexSet<&'a str> {
         self.inherit.get_or_init(|| {
-            let val = self.data.get(&Inherit).map(|s| s.as_str()).unwrap_or("");
+            let val = self
+                .data
+                .get(&Inherit)
+                .map(|s| s.as_str())
+                .unwrap_or_default();
             val.split_whitespace().collect()
         })
     }
 
     fn inherited(&'a self) -> &'a IndexSet<&'a str> {
         self.inherited.get_or_init(|| {
-            let val = self.data.get(&Inherited).map(|s| s.as_str()).unwrap_or("");
+            let val = self
+                .data
+                .get(&Inherited)
+                .map(|s| s.as_str())
+                .unwrap_or_default();
             val.split_whitespace().collect()
         })
     }
