@@ -81,6 +81,10 @@ pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use scallop::variables::bind;
+
     use crate::config::Config;
     use crate::macros::assert_err_re;
 
@@ -116,7 +120,6 @@ mod tests {
         "#};
         t.create_eclass("e1", eclass).unwrap();
 
-        // nonexistent eclass
         BUILD_DATA.with(|d| {
             d.borrow_mut().repo = repo.clone();
             inherit(&["e1"]).unwrap();
@@ -139,7 +142,6 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
-        // nonexistent eclass
         BUILD_DATA.with(|d| {
             d.borrow_mut().repo = repo.clone();
             inherit(&["e1", "e2"]).unwrap();
@@ -163,7 +165,6 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
-        // nonexistent eclass
         BUILD_DATA.with(|d| {
             d.borrow_mut().repo = repo.clone();
             inherit(&["e2"]).unwrap();
@@ -192,11 +193,39 @@ mod tests {
         "#};
         t.create_eclass("e3", eclass).unwrap();
 
-        // nonexistent eclass
         BUILD_DATA.with(|d| {
             d.borrow_mut().repo = repo.clone();
             inherit(&["e3"]).unwrap();
             assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
+        });
+    }
+
+    #[test]
+    fn test_skip_reinherits() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        bind("TEMP_FILE", temp_file.path().to_string_lossy(), None, None).unwrap();
+
+        // create eclasses
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            echo e1 >> ${TEMP_FILE}
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            inherit e1
+            echo e2 >> ${TEMP_FILE}
+        "#};
+        t.create_eclass("e2", eclass).unwrap();
+
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            inherit(&["e1", "e2"]).unwrap();
+            let inherits = fs::read_to_string(temp_file.path()).unwrap();
+            let inherits: Vec<_> = inherits.split_whitespace().collect();
+            assert_eq!(inherits, ["e1", "e2"]);
         });
     }
 }
