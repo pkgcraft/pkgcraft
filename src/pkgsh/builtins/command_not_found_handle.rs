@@ -9,8 +9,8 @@ use super::{PkgBuiltin, ALL, NONFATAL};
 static LONG_DOC: &str = "\
 Executed when the search for a command is unsuccessful.
 
-This allows PATH search failures to be caught and handled within scallop instead of using the
-command_not_found_handle() function method instead.
+This handles PATH search failures instead of using the command_not_found_handle() function method
+instead.
 ";
 
 #[doc = stringify!(LONG_DOC)]
