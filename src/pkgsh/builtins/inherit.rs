@@ -117,6 +117,7 @@ mod tests {
         // create eclass
         let eclass = indoc::indoc! {r#"
             # stub eclass
+            [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e1", eclass).unwrap();
 
@@ -135,10 +136,12 @@ mod tests {
         // create eclasses
         let eclass = indoc::indoc! {r#"
             # stub eclass
+            [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e1", eclass).unwrap();
         let eclass = indoc::indoc! {r#"
             # stub eclass
+            [[ ${ECLASS} == e2 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
@@ -157,11 +160,13 @@ mod tests {
         // create eclasses
         let eclass = indoc::indoc! {r#"
             # stub eclass
+            [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e1", eclass).unwrap();
         let eclass = indoc::indoc! {r#"
             # stub eclass
             inherit e1
+            [[ ${ECLASS} == e2 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
@@ -180,16 +185,19 @@ mod tests {
         // create eclasses
         let eclass = indoc::indoc! {r#"
             # stub eclass
+            [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e1", eclass).unwrap();
         let eclass = indoc::indoc! {r#"
             # stub eclass
             inherit e1
+            [[ ${ECLASS} == e2 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e2", eclass).unwrap();
         let eclass = indoc::indoc! {r#"
             # stub eclass
             inherit e2
+            [[ ${ECLASS} == e3 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e3", eclass).unwrap();
 
