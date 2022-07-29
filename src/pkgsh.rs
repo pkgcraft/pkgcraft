@@ -202,7 +202,7 @@ pub struct BuildData {
     pub use_: HashSet<String>,
 
     /// Eclasses directly inherited by an ebuild.
-    pub inherit: Vec<String>,
+    pub inherit: IndexSet<String>,
     /// Full set of eclasses inherited by an ebuild.
     pub inherited: IndexSet<String>,
 
