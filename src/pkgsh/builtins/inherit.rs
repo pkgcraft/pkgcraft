@@ -7,7 +7,7 @@ use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
 use crate::repo::Repository;
 
-use super::{PkgBuiltin, Scope, GLOBAL};
+use super::{PkgBuiltin, Scope, ECLASS, GLOBAL};
 
 const LONG_DOC: &str = "Sources the given list of eclasses.";
 
@@ -77,7 +77,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 make_builtin!("inherit", inherit_builtin, run, LONG_DOC, "inherit eclass1 eclass2");
 
 pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[GLOBAL])]));
+    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[GLOBAL, ECLASS])]));
 
 #[cfg(test)]
 mod tests {
