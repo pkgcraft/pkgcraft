@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
-    let eclasses: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+    let eclasses: Vec<_> = args.iter().map(|s| s.to_string()).collect();
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let mut eclass_var = ScopedVariable::new("ECLASS");
@@ -48,10 +48,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             let path =
                 build_from_paths!(d.borrow().repo.path(), "eclass", format!("{eclass}.eclass"));
             if let Err(e) = source::file(&path) {
-                let msg = match path.exists() {
-                    false => format!("unknown eclass: {eclass}"),
-                    true => format!("failed loading eclass: {eclass}: {e}"),
-                };
+                let msg = format!("failed loading eclass: {eclass}: {e}");
                 return Err(Error::Builtin(msg));
             }
 
