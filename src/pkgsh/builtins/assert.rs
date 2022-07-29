@@ -38,7 +38,7 @@ mod tests {
     #[test]
     fn invalid_args() {
         // make sure PIPESTATUS is set to cause failures
-        source::string("true | false").unwrap();
+        source::string("true | false").ok();
 
         assert_invalid_args(assert, &[3]);
 
@@ -55,6 +55,8 @@ mod tests {
 
     #[test]
     fn success() {
+        builtins::enable(&["assert"]).unwrap();
+
         // unset PIPESTATUS
         source::string("assert").unwrap();
 
