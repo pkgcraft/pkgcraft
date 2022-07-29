@@ -18,6 +18,7 @@ pub(super) mod addpredict;
 pub(super) mod addread;
 pub(super) mod addwrite;
 pub(super) mod assert;
+pub(super) mod command_not_found_handle;
 pub(super) mod debug_print;
 pub(super) mod debug_print_function;
 pub(super) mod debug_print_section;
@@ -180,6 +181,7 @@ pub(crate) static ALL_BUILTINS: Lazy<Vec<&PkgBuiltin>> = Lazy::new(|| {
         &*addread::PKG_BUILTIN,
         &*addwrite::PKG_BUILTIN,
         &*assert::PKG_BUILTIN,
+        &*command_not_found_handle::PKG_BUILTIN,
         &*debug_print::PKG_BUILTIN,
         &*debug_print_function::PKG_BUILTIN,
         &*debug_print_section::PKG_BUILTIN,
