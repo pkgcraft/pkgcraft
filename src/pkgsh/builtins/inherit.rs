@@ -81,11 +81,122 @@ pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
 
 #[cfg(test)]
 mod tests {
+    use crate::config::Config;
+    use crate::macros::assert_err_re;
+
     use super::super::assert_invalid_args;
     use super::run as inherit;
+    use super::*;
 
     #[test]
     fn invalid_args() {
         assert_invalid_args(inherit, &[0]);
+    }
+
+    #[test]
+    fn test_nonexistent() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (_t, repo) = config.temp_repo("test", 0).unwrap();
+
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            let r = inherit(&["nonexistent"]);
+            assert_err_re!(r, r"^failed loading eclass: nonexistent");
+        });
+    }
+
+    #[test]
+    fn test_single() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // create eclass
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+
+        // nonexistent eclass
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            inherit(&["e1"]).unwrap();
+            assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
+        });
+    }
+
+    #[test]
+    fn test_multiple() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // create eclasses
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+        "#};
+        t.create_eclass("e2", eclass).unwrap();
+
+        // nonexistent eclass
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            inherit(&["e1", "e2"]).unwrap();
+            assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
+        });
+    }
+
+    #[test]
+    fn test_nested_single() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // create eclasses
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            inherit e1
+        "#};
+        t.create_eclass("e2", eclass).unwrap();
+
+        // nonexistent eclass
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            inherit(&["e2"]).unwrap();
+            assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
+        });
+    }
+
+    #[test]
+    fn test_nested_multiple() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // create eclasses
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            inherit e1
+        "#};
+        t.create_eclass("e2", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            inherit e2
+        "#};
+        t.create_eclass("e3", eclass).unwrap();
+
+        // nonexistent eclass
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            inherit(&["e3"]).unwrap();
+            assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
+        });
     }
 }
