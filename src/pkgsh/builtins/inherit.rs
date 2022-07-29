@@ -1,6 +1,6 @@
 use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
-use scallop::variables::{array_to_vec, string_vec, unbind, ScopedVariable, Variable, Variables};
+use scallop::builtins::{builtin_level, make_builtin, ExecStatus};
+use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error, Result};
 
 use crate::macros::build_from_paths;
@@ -26,11 +26,11 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         // enable eclass builtins
         let _builtins = eapi.scoped_builtins(Scope::Eclass)?;
 
-        // track direct ebuild inherits
-        if let Ok(source) = array_to_vec("BASH_SOURCE") {
-            if source.len() == 1 && source[0].ends_with(".ebuild") {
-                d.borrow_mut().inherit.extend(eclasses.clone());
-            }
+        // Track direct ebuild inherits, note that this assumes the first level is via an ebuild
+        // inherit, i.e. calling this function directly won't increment the value and thus won't
+        // work as expected.
+        if builtin_level() == 1 {
+            d.borrow_mut().inherit.extend(eclasses.clone());
         }
 
         for eclass in eclasses {
