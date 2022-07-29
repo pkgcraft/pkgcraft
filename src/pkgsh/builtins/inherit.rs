@@ -110,6 +110,25 @@ mod tests {
     }
 
     #[test]
+    fn test_source_failure() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // create eclass
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            unknown_cmd
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            let r = inherit(&["e1"]);
+            assert_err_re!(r, r"^failed loading eclass: e1: unknown command: unknown_cmd$");
+        });
+    }
+
+    #[test]
     fn test_single() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
