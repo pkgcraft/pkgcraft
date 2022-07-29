@@ -19,8 +19,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     NONFATAL.store(true, Ordering::Relaxed);
-    let orig_cmd = args.join(" ");
-    let cmd = Command::new(orig_cmd, None)?;
+    let cmd = Command::new(args.join(" "), None)?;
     cmd.execute().ok();
     NONFATAL.store(false, Ordering::Relaxed);
 
