@@ -87,6 +87,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
+    use crate::pkg::ebuild::Pkg;
 
     use super::super::assert_invalid_args;
     use super::run as inherit;
@@ -224,6 +225,33 @@ mod tests {
             d.borrow_mut().repo = repo.clone();
             inherit(&["e3"]).unwrap();
             assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
+        });
+    }
+
+    #[test]
+    fn test_pkg_env() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // create eclass
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+
+        // inherited from single eclass
+        let data = indoc::indoc! {r#"
+            inherit e1
+            DESCRIPTION="testing for eclass env transit"
+            SLOT=0
+            [[ -z ${ECLASS} ]] || die "\$ECLASS shouldn't be defined"
+            [[ -n ${INHERITED} ]] || die "\$INHERITED should be defined"
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().repo = repo.clone();
+            Pkg::new(&path, &repo).unwrap();
         });
     }
 
