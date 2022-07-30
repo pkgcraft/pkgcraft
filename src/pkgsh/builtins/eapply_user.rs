@@ -40,4 +40,6 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(eapply_user, &[1]);
     }
+
+    // TODO: add tests
 }

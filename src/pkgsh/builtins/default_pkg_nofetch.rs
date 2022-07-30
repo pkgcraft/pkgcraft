@@ -33,4 +33,6 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(default_pkg_nofetch, &[1]);
     }
+
+    // TODO: add tests
 }

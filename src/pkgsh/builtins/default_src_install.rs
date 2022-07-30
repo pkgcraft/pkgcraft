@@ -33,4 +33,6 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(default_src_install, &[1]);
     }
+
+    // TODO: add tests
 }

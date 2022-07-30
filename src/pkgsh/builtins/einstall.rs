@@ -36,3 +36,5 @@ make_builtin!("einstall", einstall_builtin, run, LONG_DOC, "einstall");
 
 pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
     Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-5", &["src_install"])]));
+
+// TODO: add tests

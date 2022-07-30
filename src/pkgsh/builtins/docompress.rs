@@ -26,3 +26,5 @@ make_builtin!("docompress", docompress_builtin, run, LONG_DOC, "docompress [-x] 
 
 pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
     Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("4-", &["src_install"])]));
+
+// TODO: add tests

@@ -40,4 +40,6 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(default, &[1]);
     }
+
+    // TODO: add tests
 }

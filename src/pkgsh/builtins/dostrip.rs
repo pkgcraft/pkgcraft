@@ -26,3 +26,5 @@ make_builtin!("dostrip", dostrip_builtin, run, LONG_DOC, "dostrip [-x] path/to/s
 
 pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
     Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("7-", &["src_install"])]));
+
+// TODO: add tests
