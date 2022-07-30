@@ -107,7 +107,7 @@ mod tests {
 
         // nonfatal die in main process
         bind("VAR", "1", None, None).unwrap();
-        source::string("true | false; nonfatal assert -n && VAR=2").unwrap();
+        source::string("true | false; nonfatal assert -n\nVAR=2").unwrap();
         assert_eq!(string_value("VAR").unwrap(), "2");
 
         // nonfatal die in subshell

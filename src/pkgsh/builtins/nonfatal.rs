@@ -20,10 +20,14 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     NONFATAL.store(true, Ordering::Relaxed);
     let cmd = Command::new(args.join(" "), None)?;
-    cmd.execute().ok();
+    let status = match cmd.execute() {
+        Ok(s) => s,
+        Err(Error::Status(s, _)) => s,
+        _ => ExecStatus::Failure(1),
+    };
     NONFATAL.store(false, Ordering::Relaxed);
 
-    Ok(ExecStatus::Success)
+    Ok(status)
 }
 
 make_builtin!("nonfatal", nonfatal_builtin, run, LONG_DOC, "nonfatal cmd arg1 arg2");
@@ -40,4 +44,6 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(nonfatal, &[0]);
     }
+
+    // TODO: add tests
 }
