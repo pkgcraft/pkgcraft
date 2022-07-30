@@ -240,7 +240,6 @@ mod tests {
         "#};
         t.create_eclass("e1", eclass).unwrap();
 
-        // inherited from single eclass
         let data = indoc::indoc! {r#"
             inherit e1
             DESCRIPTION="testing for eclass env transit"
