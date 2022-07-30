@@ -53,7 +53,7 @@ mod tests {
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::{assert_stderr, BUILD_DATA};
 
     use super::super::assert_invalid_args;
     use super::run as die;
@@ -117,7 +117,8 @@ mod tests {
 
         // nonfatal die in main process
         bind("VAR", "1", None, None).unwrap();
-        source::string("nonfatal die -n\nVAR=2").unwrap();
+        source::string("nonfatal die -n message\nVAR=2").unwrap();
+        assert_stderr!("message\n");
         assert_eq!(string_value("VAR").unwrap(), "2");
 
         // nonfatal die in subshell
