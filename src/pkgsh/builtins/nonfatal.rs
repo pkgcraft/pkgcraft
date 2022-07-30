@@ -37,6 +37,8 @@ pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
 
 #[cfg(test)]
 mod tests {
+    use scallop::builtins;
+
     use super::super::assert_invalid_args;
     use super::run as nonfatal;
 
@@ -45,5 +47,16 @@ mod tests {
         assert_invalid_args(nonfatal, &[0]);
     }
 
-    // TODO: add tests
+    #[test]
+    fn test_nonzero_exit_status() {
+        let status = nonfatal(&["nonexistent_cmd"]).unwrap();
+        assert!(i32::from(status) != 0);
+    }
+
+    #[test]
+    fn test_nonfatal_die() {
+        builtins::enable(&["die"]).unwrap();
+        let status = nonfatal(&["die", "-n", "message"]).unwrap();
+        assert!(i32::from(status) != 0);
+    }
 }
