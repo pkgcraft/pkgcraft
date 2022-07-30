@@ -3,20 +3,12 @@ use std::fs;
 use std::str::FromStr;
 
 use camino::Utf8PathBuf;
-use ctor::ctor;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::{de, Deserialize, Deserializer};
 
 use crate::macros::build_from_paths;
-use crate::pkgsh::bash_init;
 use crate::{atom, Error};
-
-/// Initialize bash for all test executables.
-#[ctor]
-fn initialize() {
-    bash_init();
-}
 
 static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
     Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "toml"));

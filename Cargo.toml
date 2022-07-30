@@ -16,8 +16,12 @@ name = "pkgcraft"
 path = "src/lib.rs"
 
 [features]
+# enable git repo syncing support
 git = ["git2"]
+# enable repo syncing over https, e.g. tar+https
 https = ["flate2", "reqwest", "tar", "tokio"]
+# run initialization procedures on startup (required for scallop to work as expected)
+init = ["ctor"]
 
 [dependencies]
 async-trait = "0.1.51"
@@ -26,6 +30,7 @@ camino = { version = "1.0.7", features = ["serde1"] }
 chic = "1"
 clap = { version = "3.1.0", features = ["derive"] }
 crossbeam-channel = "0.5.5"
+ctor = { version = "0.1.22", optional = true }
 enum-as-inner = "0.5.0"
 filetime = "0.2"
 flate2 = { version = "1.0", optional = true }
@@ -57,7 +62,6 @@ walkdir = "2"
 
 [dev-dependencies]
 criterion = "0.3"
-ctor = "0.1.22"
 indoc = "1.0.3"
 maplit = "1.0.2"
 tracing-test = "0.2.1"

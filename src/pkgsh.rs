@@ -12,7 +12,7 @@ use scallop::variables::*;
 use scallop::{functions, source, Error, Shell};
 
 use crate::eapi::{Eapi, Feature, Key};
-use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
+use crate::pkgsh::builtins::Scope;
 use crate::repo::ebuild;
 
 pub mod builtins;
@@ -265,7 +265,10 @@ thread_local! {
 }
 
 /// Initialize bash for library usage.
-pub fn bash_init() {
+#[cfg(feature = "init")]
+#[ctor::ctor]
+fn initialize() {
+    use crate::pkgsh::builtins::ALL_BUILTINS;
     Shell::init();
     let builtins: Vec<_> = ALL_BUILTINS.iter().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
