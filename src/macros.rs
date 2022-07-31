@@ -32,10 +32,17 @@ pub(crate) use assert_err;
 #[cfg(test)]
 macro_rules! assert_err_re {
     ($res:expr, $x:expr) => {
+        crate::macros::assert_err_re!($res, $x, "");
+    };
+    ($res:expr, $re:expr, $msg:expr) => {
         let err = $res.unwrap_err();
         let s = err.to_string();
-        let re = ::regex::Regex::new($x.as_ref()).unwrap();
-        assert!(re.is_match(&s), "{s:?} does not match regex: {re}");
+        let re = ::regex::Regex::new($re.as_ref()).unwrap();
+        let err_msg = format!("{s:?} does not match regex: {:?}", $re);
+        match $msg.is_empty() {
+            true => assert!(re.is_match(&s), "{}", err_msg),
+            false => assert!(re.is_match(&s), "{}", format!("{err_msg}: {}", $msg)),
+        };
     };
 }
 #[cfg(test)]
