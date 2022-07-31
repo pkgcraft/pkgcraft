@@ -34,19 +34,24 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("use", use_builtin, run, LONG_DOC, "use flag");
+const USAGE: &str = "use flag";
+make_builtin!("use", use_builtin, run, LONG_DOC, USAGE);
 
 pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
     Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as use_;
+    use scallop::builtins::ExecStatus;
+
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
 
-    use scallop::builtins::ExecStatus;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as use_;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

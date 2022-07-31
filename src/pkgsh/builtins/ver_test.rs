@@ -37,7 +37,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::from(ret))
 }
 
-make_builtin!("ver_test", ver_test_builtin, run, LONG_DOC, "ver_test 1 -lt 2-r1");
+const USAGE: &str = "ver_test 1 -lt 2-r1";
+make_builtin!("ver_test", ver_test_builtin, run, LONG_DOC, USAGE);
 
 pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
     Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("7-", &[ALL])]));
@@ -46,13 +47,17 @@ pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
 mod tests {
     use std::collections::HashMap;
 
-    use super::super::assert_invalid_args;
-    use super::run as ver_test;
+    use scallop::builtins::ExecStatus;
+    use scallop::variables::*;
+
     use crate::macros::assert_err_re;
     use crate::test::Versions;
 
-    use scallop::builtins::ExecStatus;
-    use scallop::variables::*;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as ver_test;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

@@ -12,7 +12,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     use_(args)
 }
 
-make_builtin!("useq", useq_builtin, run, LONG_DOC, "useq flag");
+const USAGE: &str = "useq flag";
+make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE);
 
 pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
     Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-7", &[PHASE])]));
+
+#[cfg(test)]
+mod tests {
+    use super::super::builtin_scope_tests;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
+}

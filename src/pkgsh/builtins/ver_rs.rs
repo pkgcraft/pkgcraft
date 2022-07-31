@@ -50,7 +50,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("ver_rs", ver_rs_builtin, run, LONG_DOC, "ver_rs 2 - 1.2.3");
+const USAGE: &str = "ver_rs 2 - 1.2.3";
+make_builtin!("ver_rs", ver_rs_builtin, run, LONG_DOC, USAGE);
 
 pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
     Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("7-", &[ALL])]));
@@ -60,10 +61,14 @@ mod tests {
     use scallop::builtins::ExecStatus;
     use scallop::variables::*;
 
-    use super::super::assert_invalid_args;
-    use super::run as ver_rs;
     use crate::macros::assert_err_re;
     use crate::pkgsh::assert_stdout;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as ver_rs;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

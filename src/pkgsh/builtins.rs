@@ -364,3 +364,87 @@ fn assert_invalid_args(func: ::scallop::builtins::BuiltinFn, nums: &[u32]) {
         crate::macros::assert_err_re!(func(&args), re);
     }
 }
+
+#[cfg(test)]
+macro_rules! builtin_scope_tests {
+    ($cmd:expr) => {
+        #[test]
+        fn test_builtin_scope() {
+            use crate::config::Config;
+            use crate::eapi::EAPIS_OFFICIAL;
+            use crate::macros::assert_err_re;
+            use crate::pkgsh::{
+                builtins::Scope::*, run_phase, source_ebuild, BuildData, BUILD_DATA,
+            };
+
+            let cmd = $cmd;
+            let name = cmd.split(' ').next().unwrap();
+            let err = format!("unknown command: {name}");
+            let mut config = Config::new("pkgcraft", "", false).unwrap();
+            let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+            let static_scopes: Vec<_> = vec![Global, Eclass];
+            for eapi in EAPIS_OFFICIAL.values() {
+                let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
+                let scopes = static_scopes.iter().chain(phase_scopes.iter());
+                for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {
+                    let info = format!("EAPI={}, scope: {:?}", eapi, scope);
+
+                    // initialize build state
+                    BuildData::reset();
+                    BUILD_DATA.with(|d| {
+                        d.borrow_mut().eapi = eapi;
+                        d.borrow_mut().repo = repo.clone();
+                    });
+
+                    match scope {
+                        Eclass => {
+                            // create eclass
+                            let eclass = indoc::formatdoc! {r#"
+                                # stub eclass
+                                {cmd}
+                            "#};
+                            t.create_eclass("e1", &eclass).unwrap();
+                            let data = indoc::formatdoc! {r#"
+                                EAPI={eapi}
+                                inherit e1
+                                DESCRIPTION="testing builtin eclass scope failures"
+                                SLOT=0
+                            "#};
+                            let path = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let r = source_ebuild(&path);
+                            assert_err_re!(r, err, &info);
+                        }
+                        Global => {
+                            let data = indoc::formatdoc! {r#"
+                                EAPI={eapi}
+                                DESCRIPTION="testing builtin global scope failures"
+                                SLOT=0
+                                {cmd}
+                            "#};
+                            let path = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let r = source_ebuild(&path);
+                            assert_err_re!(r, err, &info);
+                        }
+                        Phase(phase) => {
+                            let data = indoc::formatdoc! {r#"
+                                EAPI={eapi}
+                                DESCRIPTION="testing builtin phase scope failures"
+                                SLOT=0
+                                {phase}() {{
+                                    {cmd}
+                                }}
+                            "#};
+                            let path = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            source_ebuild(&path).unwrap();
+                            let r = run_phase(phase);
+                            assert_err_re!(r, err, &info);
+                        }
+                    }
+                }
+            }
+        }
+    };
+}
+#[cfg(test)]
+pub(self) use builtin_scope_tests;
