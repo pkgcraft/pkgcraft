@@ -2,16 +2,16 @@ use std::ops::BitOr;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 use walkdir::WalkDir;
 
-use super::{PkgBuiltin, PHASE};
 use crate::archive::ArchiveFormat;
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
 use crate::utils::current_dir;
+
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "\
 Unpacks one or more source archives, in order, into the current directory.";
@@ -101,10 +101,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("unpack", unpack_builtin, run, LONG_DOC, "unpack file.tar.gz");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
+const USAGE: &str = "unpack file.tar.gz";
+make_builtin!("unpack", unpack_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {
@@ -114,13 +112,17 @@ mod tests {
     use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode};
     use tempfile::tempdir;
 
-    use super::super::assert_invalid_args;
-    use super::{run as unpack, DIR_MODE, FILE_MODE};
     use crate::archive::{Archive, ArchiveFormat};
     use crate::command::run_commands;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::BUILD_DATA;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::*;
+    use super::{run as unpack, DIR_MODE, FILE_MODE};
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

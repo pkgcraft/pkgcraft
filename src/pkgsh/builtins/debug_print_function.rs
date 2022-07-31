@@ -1,8 +1,7 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
-use super::{PkgBuiltin, ALL};
+use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "\
 Calls debug-print with $1: entering function as the first argument and the remaining arguments as
@@ -14,13 +13,22 @@ pub(crate) fn run(_args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
+const USAGE: &str = "debug-print-function arg1 arg2";
 make_builtin!(
     "debug-print-function",
     debug_print_function_builtin,
     run,
     LONG_DOC,
-    "debug-print-function arg1 arg2"
+    USAGE,
+    &[("0-", &[ALL])]
 );
 
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ALL])]));
+#[cfg(test)]
+mod tests {
+    use super::super::builtin_scope_tests;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
+
+    // TODO: add usage tests
+}

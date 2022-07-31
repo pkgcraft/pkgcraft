@@ -1,13 +1,13 @@
 use std::fs;
 
 use glob::glob;
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::var_to_vec;
 use scallop::{Error, Result};
 
-use super::{dodoc::run as dodoc, PkgBuiltin};
 use crate::pkgsh::BUILD_DATA;
+
+use super::{dodoc::run as dodoc, make_builtin};
 
 const LONG_DOC: &str = "\
 Installs the files specified by the DOCS and HTML_DOCS variables or a default set of files.";
@@ -90,20 +90,28 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("einstalldocs", einstalldocs_builtin, run, LONG_DOC, "einstalldocs");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("6-", &["src_install"])]));
+const USAGE: &str = "einstalldocs";
+make_builtin!(
+    "einstalldocs",
+    einstalldocs_builtin,
+    run,
+    LONG_DOC,
+    USAGE,
+    &[("6-", &["src_install"])]
+);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as einstalldocs;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
         assert_invalid_args(einstalldocs, &[1]);
     }
 
-    // TODO: add tests
+    // TODO: add usage tests
 }

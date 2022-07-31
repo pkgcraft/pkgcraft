@@ -368,6 +368,62 @@ pub(crate) mod parse {
     }
 }
 
+/// Create C compatible builtin function wrapper converting between rust and C types.
+#[macro_export]
+macro_rules! make_builtin {
+    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr) => {
+        use std::os::raw::c_int;
+
+        use once_cell::sync::Lazy;
+        use scallop::builtins::Builtin;
+        use scallop::traits::IntoWords;
+
+        use $crate::pkgsh::builtins::{PkgBuiltin, ALL_BUILTINS};
+
+        #[no_mangle]
+        extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> c_int {
+            let words = list.into_words(false);
+            let args: Vec<_> = words.into_iter().collect();
+
+            let run_builtin = || -> ExecStatus {
+                $crate::pkgsh::BUILD_DATA.with(|d| {
+                    let cmd = $name;
+                    let scope = d.borrow().scope;
+                    let eapi = d.borrow().eapi;
+
+                    if eapi.builtins(scope).contains_key(cmd) {
+                        match $func(&args) {
+                            Ok(ret) => ret,
+                            Err(e) => scallop::builtins::handle_error(cmd, e),
+                        }
+                    } else {
+                        let pkg_builtin = ALL_BUILTINS.get(cmd).expect("unknown builtin");
+                        let msg = match pkg_builtin.scope.get(eapi) {
+                            Some(_) => format!("{scope} scope doesn't enable command: {cmd}"),
+                            None => format!("EAPI={eapi} doesn't enable command: {cmd}"),
+                        };
+                        scallop::builtins::handle_error(cmd, scallop::Error::Base(msg))
+                    }
+                })
+            };
+
+            i32::from(run_builtin())
+        }
+
+        pub(super) static BUILTIN: Builtin = Builtin {
+            name: $name,
+            func: $func,
+            cfunc: $func_name,
+            help: $long_doc,
+            usage: $usage,
+        };
+
+        pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
+            Lazy::new(|| PkgBuiltin::new(BUILTIN, $scope));
+    };
+}
+pub(self) use make_builtin;
+
 #[cfg(test)]
 fn assert_invalid_args(func: ::scallop::builtins::BuiltinFn, nums: &[u32]) {
     for n in nums {
@@ -400,7 +456,7 @@ macro_rules! builtin_scope_tests {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
                 let scopes = static_scopes.iter().chain(phase_scopes.iter());
                 for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {
-                    let err = format!("{scope} scope doesn't enable command: {name}");
+                    let err = format!(" doesn't enable command: {name}");
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
                     // initialize build state

@@ -1,10 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
 use super::_new::new;
 use super::doexe::run as doexe;
-use super::PkgBuiltin;
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
 
@@ -13,22 +12,24 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     new(args, doexe)
 }
 
-make_builtin!("newexe", newexe_builtin, run, LONG_DOC, "newexe path/to/executable new_filename");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "newexe path/to/executable new_filename";
+make_builtin!("newexe", newexe_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
     use std::io::Write;
 
-    use super::super::assert_invalid_args;
-    use super::super::exeinto::run as exeinto;
-    use super::super::exeopts::run as exeopts;
-    use super::run as newexe;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::write_stdin;
+
+    use super::super::exeinto::run as exeinto;
+    use super::super::exeopts::run as exeopts;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as newexe;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

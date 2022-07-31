@@ -1,12 +1,12 @@
 use std::io::Write;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, ALL};
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::write_stdout;
+
+use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "Output the libdir name.";
 
@@ -22,19 +22,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("get_libdir", get_libdir_builtin, run, LONG_DOC, "get_libdir");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("6-", &[ALL])]));
+const USAGE: &str = "get_libdir";
+make_builtin!("get_libdir", get_libdir_builtin, run, LONG_DOC, USAGE, &[("6-", &[ALL])]);
 
 #[cfg(test)]
 mod tests {
     use scallop::builtins::ExecStatus;
     use scallop::variables::*;
 
-    use super::super::assert_invalid_args;
-    use super::run as get_libdir;
     use crate::pkgsh::assert_stdout;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as get_libdir;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

@@ -1,12 +1,12 @@
 use std::io::Write;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::super::unescape::unescape_vec;
-use super::{PkgBuiltin, ALL};
 use crate::pkgsh::write_stderr;
+
+use super::super::unescape::unescape_vec;
+use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "Display information message when starting a process.";
 
@@ -37,17 +37,19 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ret)
 }
 
-make_builtin!("eend", eend_builtin, run, LONG_DOC, "eend $? [\"message\"]");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ALL])]));
+const USAGE: &str = "eend $?";
+make_builtin!("eend", eend_builtin, run, LONG_DOC, USAGE, &[("0-", &[ALL])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as eend;
     use crate::macros::assert_err_re;
     use crate::pkgsh::assert_stderr;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as eend;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

@@ -1,9 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Include or exclude paths for compression.";
 
@@ -22,9 +22,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("docompress", docompress_builtin, run, LONG_DOC, "docompress [-x] /path/to/compress");
+const USAGE: &str = "docompress /path/to/compress";
+make_builtin!("docompress", docompress_builtin, run, LONG_DOC, USAGE, &[("4-", &["src_install"])]);
 
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("4-", &["src_install"])]));
+#[cfg(test)]
+mod tests {
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as docompress;
+    use super::*;
 
-// TODO: add tests
+    builtin_scope_tests!(USAGE);
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(docompress, &[0]);
+    }
+
+    // TODO: add usage tests
+}

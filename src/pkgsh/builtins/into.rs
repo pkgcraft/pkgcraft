@@ -1,11 +1,11 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::bind;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Takes exactly one argument and sets the value of DESTTREE.";
@@ -31,16 +31,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("into", into_builtin, run, LONG_DOC, "into /install/path");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "into /install/path";
+make_builtin!("into", into_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as into;
     use crate::pkgsh::BUILD_DATA;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as into;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

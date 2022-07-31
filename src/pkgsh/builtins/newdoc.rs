@@ -1,10 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
 use super::_new::new;
 use super::dodoc::run as dodoc;
-use super::PkgBuiltin;
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed documentation files.";
 
@@ -13,20 +12,22 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     new(args, dodoc)
 }
 
-make_builtin!("newdoc", newdoc_builtin, run, LONG_DOC, "newdoc path/to/doc/file new_filename");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "newdoc path/to/doc/file new_filename";
+make_builtin!("newdoc", newdoc_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
     use std::io::Write;
 
-    use super::super::assert_invalid_args;
-    use super::run as newdoc;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::{write_stdin, BUILD_DATA};
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as newdoc;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install gettext *.mo files.";
 
@@ -44,19 +44,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("domo", domo_builtin, run, LONG_DOC, "domo path/to/mo/file");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "domo path/to/mo/file";
+make_builtin!("domo", domo_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use super::super::assert_invalid_args;
-    use super::run as domo;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as domo;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

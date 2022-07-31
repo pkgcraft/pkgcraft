@@ -1,12 +1,12 @@
 use std::io::Write;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::super::unescape::unescape_vec;
-use super::{PkgBuiltin, ALL};
 use crate::pkgsh::write_stderr;
+
+use super::super::unescape::unescape_vec;
+use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "Display informational message without trailing newline.";
 
@@ -23,16 +23,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("einfon", einfon_builtin, run, LONG_DOC, "einfon \"message\"");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ALL])]));
+const USAGE: &str = "einfon \"message\"";
+make_builtin!("einfon", einfon_builtin, run, LONG_DOC, USAGE, &[("0-", &[ALL])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as einfon;
     use crate::pkgsh::assert_stderr;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as einfon;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

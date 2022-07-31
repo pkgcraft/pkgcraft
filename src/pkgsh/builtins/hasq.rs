@@ -1,8 +1,7 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
-use super::{has::run as has, PkgBuiltin, ALL};
+use super::{has::run as has, make_builtin, ALL};
 
 const LONG_DOC: &str = "Deprecated synonym for has.";
 
@@ -11,7 +10,13 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     has(args)
 }
 
-make_builtin!("hasq", hasq_builtin, run, LONG_DOC, "hasq needle ${haystack}");
+const USAGE: &str = "hasq needle ${haystack}";
+make_builtin!("hasq", hasq_builtin, run, LONG_DOC, USAGE, &[("0-7", &[ALL])]);
 
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-7", &[ALL])]));
+#[cfg(test)]
+mod tests {
+    use super::super::builtin_scope_tests;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
+}

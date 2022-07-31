@@ -1,5 +1,4 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{builtin_level, make_builtin, ExecStatus};
+use scallop::builtins::{builtin_level, ExecStatus};
 use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error, Result};
 
@@ -7,7 +6,7 @@ use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
 use crate::repo::Repository;
 
-use super::{PkgBuiltin, Scope, ECLASS, GLOBAL};
+use super::{make_builtin, Scope, ECLASS, GLOBAL};
 
 const LONG_DOC: &str = "Sources the given list of eclasses.";
 
@@ -25,7 +24,6 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         let eapi = d.borrow().eapi;
         d.borrow_mut().scope = Scope::Eclass;
-        let _builtins = d.borrow().scoped_builtins()?;
 
         // Track direct ebuild inherits, note that this assumes the first level is via an ebuild
         // inherit, i.e. calling this function directly won't increment the value and thus won't
@@ -75,10 +73,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("inherit", inherit_builtin, run, LONG_DOC, "inherit eclass1 eclass2");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[GLOBAL, ECLASS])]));
+const USAGE: &str = "inherit eclass1 eclass2";
+make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, &[("0-", &[GLOBAL, ECLASS])]);
 
 #[cfg(test)]
 mod tests {
@@ -90,9 +86,11 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::Pkg;
 
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as inherit;
     use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

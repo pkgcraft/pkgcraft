@@ -1,11 +1,11 @@
 use std::fs::hard_link;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Create hard links.";
 
@@ -23,19 +23,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("dohard", dohard_builtin, run, LONG_DOC, "dohard path/to/source /path/to/target");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-3", &["src_install"])]));
+const USAGE: &str = "dohard path/to/source /path/to/target";
+make_builtin!("dohard", dohard_builtin, run, LONG_DOC, USAGE, &[("0-3", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
     use std::os::unix::fs::MetadataExt;
 
-    use super::super::assert_invalid_args;
-    use super::run as dohard;
     use crate::pkgsh::test::FileTree;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as dohard;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

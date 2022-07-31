@@ -1,10 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
 use super::_new::new;
 use super::doman::run as doman;
-use super::PkgBuiltin;
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed man pages into /usr/share/man.";
 
@@ -13,20 +12,22 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     new(args, doman)
 }
 
-make_builtin!("newman", newman_builtin, run, LONG_DOC, "newman path/to/man/page new_filename");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "newman path/to/man/page new_filename";
+make_builtin!("newman", newman_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
     use std::io::Write;
 
-    use super::super::assert_invalid_args;
-    use super::run as newman;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::write_stdin;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as newman;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

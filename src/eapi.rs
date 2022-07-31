@@ -9,7 +9,6 @@ use camino::Utf8Path;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::{Lazy, OnceCell};
 use regex::{escape, Regex, RegexBuilder};
-use scallop::builtins::ScopedBuiltins;
 use scallop::functions;
 use scallop::variables::string_value;
 use strum::{AsRefStr, Display, EnumString};
@@ -312,14 +311,6 @@ impl Eapi {
             .unwrap()
             .get(&scope)
             .unwrap_or_else(|| panic!("EAPI {self}, unknown scope: {scope:?}"))
-    }
-
-    pub(crate) fn scoped_builtins<S: Into<Scope>>(
-        &self,
-        scope: S,
-    ) -> crate::Result<ScopedBuiltins> {
-        let builtins: Vec<&str> = self.builtins(scope).keys().copied().collect();
-        Ok(ScopedBuiltins::new((&builtins, &[]))?)
     }
 
     /// Metadata variables for dependencies.

@@ -1,10 +1,10 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
-use super::{emake::run as emake, PkgBuiltin};
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::BUILD_DATA;
+
+use super::{emake::run as emake, make_builtin};
 
 const LONG_DOC: &str = "Run `emake install` for a package.";
 
@@ -32,9 +32,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("einstall", einstall_builtin, run, LONG_DOC, "einstall");
+const USAGE: &str = "einstall";
+make_builtin!("einstall", einstall_builtin, run, LONG_DOC, USAGE, &[("0-5", &["src_install"])]);
 
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-5", &["src_install"])]));
+#[cfg(test)]
+mod tests {
+    use super::super::builtin_scope_tests;
+    use super::*;
 
-// TODO: add tests
+    builtin_scope_tests!(USAGE);
+
+    // TODO: add usage tests
+}

@@ -1,9 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Takes exactly one argument and sets the install path for doexe and newexe.";
@@ -25,16 +25,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("exeinto", exeinto_builtin, run, LONG_DOC, "exeinto /install/path");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "exeinto /install/path";
+make_builtin!("exeinto", exeinto_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as exeinto;
     use crate::pkgsh::BUILD_DATA;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as exeinto;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

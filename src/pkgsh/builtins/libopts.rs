@@ -1,9 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Sets the options for installing libraries via `dolib` and similar commands.";
@@ -21,16 +21,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("libopts", libopts_builtin, run, LONG_DOC, "libopts -m0644");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-6", &["src_install"])]));
+const USAGE: &str = "libopts -m0644";
+make_builtin!("libopts", libopts_builtin, run, LONG_DOC, USAGE, &[("0-6", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as libopts;
     use crate::pkgsh::BUILD_DATA;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as libopts;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

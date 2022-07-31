@@ -1,9 +1,8 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
 use super::dolib::install_lib;
-use super::PkgBuiltin;
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install shared libraries.";
 
@@ -16,20 +15,22 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     install_lib(args, Some(vec!["-m0755"]))
 }
 
-make_builtin!("dolib.so", dolib_so_builtin, run, LONG_DOC, "dolib.so path/to/lib.so");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "dolib.so path/to/lib.so";
+make_builtin!("dolib.so", dolib_so_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use super::super::assert_invalid_args;
+    use crate::pkgsh::test::FileTree;
+
     use super::super::into::run as into;
     use super::super::libopts::run as libopts;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as dolib_so;
-    use crate::pkgsh::test::FileTree;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

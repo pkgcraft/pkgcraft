@@ -4,17 +4,17 @@ use std::str;
 
 use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;
-use once_cell::sync::Lazy;
 use regex::Regex;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::{expand, string_value};
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::command::RunCommand;
 use crate::pkgsh::utils::{configure, get_libdir};
 use crate::pkgsh::write_stdout;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
 const LONG_DOC: &str = "Run a package's configure script.";
@@ -109,25 +109,33 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("econf", econf_builtin, run, LONG_DOC, "econf --enable-feature");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(BUILTIN, &[("0-1", &["src_compile"]), ("2-", &["src_configure"])])
-});
+const USAGE: &str = "econf --enable-feature";
+make_builtin!(
+    "econf",
+    econf_builtin,
+    run,
+    LONG_DOC,
+    USAGE,
+    &[("0-1", &["src_compile"]), ("2-", &["src_configure"])]
+);
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::env;
     use std::fs::File;
 
     use scallop::variables::{ScopedVariable, Variables};
     use tempfile::tempdir;
 
-    use super::PKG_BUILTIN as econf;
     use crate::command::last_command;
     use crate::macros::{assert_err_re, build_from_paths};
     use crate::pkgsh::BUILD_DATA;
+
+    use super::super::builtin_scope_tests;
+    use super::PKG_BUILTIN as econf;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
         econf.run(args).unwrap();

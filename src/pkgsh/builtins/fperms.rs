@@ -1,13 +1,13 @@
 use std::path::Path;
 use std::process::Command;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::command::RunCommand;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Run `chmod` taking paths relative to the image directory.";
 
@@ -36,21 +36,28 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("fperms", fperms_builtin, run, LONG_DOC, "fperms mode /path/to/file");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-    PkgBuiltin::new(BUILTIN, &[("0-", &["src_install", "pkg_preinst", "pkg_postinst"])])
-});
+const USAGE: &str = "fperms mode /path/to/file";
+make_builtin!(
+    "fperms",
+    fperms_builtin,
+    run,
+    LONG_DOC,
+    USAGE,
+    &[("0-", &["src_install", "pkg_preinst", "pkg_postinst"])]
+);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as fperms;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
         assert_invalid_args(fperms, &[0, 1]);
     }
 
-    // TODO: add tests
+    // TODO: add usage tests
 }

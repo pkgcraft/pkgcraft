@@ -1,9 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::BUILD_DATA;
+
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "\
 Returns success if the USE flag argument is found in IUSE_EFFECTIVE, failure otherwise.";
@@ -21,18 +21,20 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("in_iuse", in_iuse_builtin, run, LONG_DOC, "in_iuse flag");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("6-", &[PHASE])]));
+const USAGE: &str = "in_iuse flag";
+make_builtin!("in_iuse", in_iuse_builtin, run, LONG_DOC, USAGE, &[("6-", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as in_iuse;
+    use scallop::builtins::ExecStatus;
+
     use crate::pkgsh::BUILD_DATA;
 
-    use scallop::builtins::ExecStatus;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as in_iuse;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

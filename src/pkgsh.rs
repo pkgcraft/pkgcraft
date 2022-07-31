@@ -7,7 +7,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use nix::unistd::isatty;
-use scallop::builtins::{ExecStatus, ScopedOptions, ScopedBuiltins};
+use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, source, Error, Shell};
 
@@ -259,11 +259,6 @@ impl BuildData {
             _ => panic!("unknown field name: {key}"),
         }
     }
-
-    /// Enable builtins according to the build's EAPI and current scope.
-    fn scoped_builtins(&self) -> crate::Result<ScopedBuiltins> {
-        self.eapi.scoped_builtins(self.scope)
-    }
 }
 
 thread_local! {
@@ -278,6 +273,7 @@ fn initialize() {
     Shell::init();
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
+    scallop::builtins::enable(&builtins).expect("failed enabling builtins");
 }
 
 // TODO: remove allow when public package building support is added
@@ -287,7 +283,6 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         d.borrow_mut().phase = Some(phase);
         d.borrow_mut().scope = Scope::Phase(phase);
-        let _builtins = d.borrow().scoped_builtins()?;
 
         let mut phase_name = ScopedVariable::new("EBUILD_PHASE");
         let mut phase_func_name = ScopedVariable::new("EBUILD_PHASE_FUNC");
@@ -330,7 +325,6 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
     BUILD_DATA.with(|d| -> scallop::Result<()> {
         let eapi = d.borrow().eapi;
         d.borrow_mut().scope = Scope::Global;
-        let _builtins = d.borrow().scoped_builtins()?;
 
         let mut opts = ScopedOptions::default();
         if eapi.has(Feature::GlobalFailglob) {

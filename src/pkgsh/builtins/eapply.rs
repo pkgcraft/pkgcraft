@@ -4,13 +4,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 use walkdir::{DirEntry, WalkDir};
 
-use super::PkgBuiltin;
 use crate::pkgsh::write_stdout;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
@@ -119,10 +119,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("eapply", eapply_builtin, run, LONG_DOC, "eapply file.patch");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("6-", &["src_prepare"])]));
+const USAGE: &str = "eapply file.patch";
+make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, &[("6-", &["src_prepare"])]);
 
 #[cfg(test)]
 mod tests {
@@ -132,9 +130,13 @@ mod tests {
     use indoc::indoc;
     use tempfile::tempdir;
 
-    use super::super::assert_invalid_args;
-    use super::run as eapply;
     use crate::macros::assert_err_re;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as eapply;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

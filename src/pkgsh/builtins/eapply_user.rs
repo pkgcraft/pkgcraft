@@ -1,9 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::{eapply::run as eapply, PkgBuiltin};
 use crate::pkgsh::BUILD_DATA;
+
+use super::{eapply::run as eapply, make_builtin};
 
 const LONG_DOC: &str = "Apply user patches.";
 
@@ -26,15 +26,23 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("eapply_user", eapply_user_builtin, run, LONG_DOC, "eapply_user");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("6-", &["src_prepare"])]));
+const USAGE: &str = "eapply_user";
+make_builtin!(
+    "eapply_user",
+    eapply_user_builtin,
+    run,
+    LONG_DOC,
+    USAGE,
+    &[("6-", &["src_prepare"])]
+);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as eapply_user;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

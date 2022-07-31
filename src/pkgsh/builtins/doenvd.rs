@@ -1,10 +1,10 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install environment files into /etc/env.d/.";
 
@@ -27,21 +27,23 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("doenvd", doenvd_builtin, run, LONG_DOC, "doenvd path/to/env/file");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "doenvd path/to/env/file";
+make_builtin!("doenvd", doenvd_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use super::super::assert_invalid_args;
-    use super::super::insopts::run as insopts;
-    use super::run as doenvd;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
+
+    use super::super::insopts::run as insopts;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as doenvd;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

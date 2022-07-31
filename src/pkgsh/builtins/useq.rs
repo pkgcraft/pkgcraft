@@ -1,9 +1,8 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
 use super::use_::run as use_;
-use super::{PkgBuiltin, PHASE};
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "Deprecated synonym for use.";
 
@@ -13,10 +12,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 }
 
 const USAGE: &str = "useq flag";
-make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE);
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-7", &[PHASE])]));
+make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE, &[("0-7", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {

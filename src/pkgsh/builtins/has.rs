@@ -1,8 +1,7 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, ALL};
+use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "\
 Returns success if the first argument is found in subsequent arguments, failure otherwise.";
@@ -18,17 +17,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::from(haystack.contains(needle)))
 }
 
-make_builtin!("has", has_builtin, run, LONG_DOC, "has needle ${haystack}");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ALL])]));
+const USAGE: &str = "has needle ${haystack}";
+make_builtin!("has", has_builtin, run, LONG_DOC, USAGE, &[("0-", &[ALL])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
-    use super::run as has;
-
     use scallop::builtins::ExecStatus;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as has;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

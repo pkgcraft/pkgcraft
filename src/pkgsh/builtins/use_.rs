@@ -1,9 +1,9 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, PHASE};
 use crate::pkgsh::BUILD_DATA;
+
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "\
 Returns success if the USE flag argument is enabled, failure otherwise.
@@ -35,10 +35,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 }
 
 const USAGE: &str = "use flag";
-make_builtin!("use", use_builtin, run, LONG_DOC, USAGE);
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
+make_builtin!("use", use_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {

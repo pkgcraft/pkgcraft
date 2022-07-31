@@ -1,14 +1,14 @@
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
 use crate::utils::relpath;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Create symbolic links.";
 
@@ -49,21 +49,23 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("dosym", dosym_builtin, run, LONG_DOC, "dosym path/to/source /path/to/target");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "dosym path/to/source /path/to/target";
+make_builtin!("dosym", dosym_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use super::super::assert_invalid_args;
-    use super::run as dosym;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BUILD_DATA;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as dosym;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

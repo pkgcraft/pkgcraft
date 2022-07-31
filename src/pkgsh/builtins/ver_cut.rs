@@ -1,12 +1,11 @@
 use std::cmp;
 use std::io::Write;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
-use super::{parse, version_split, PkgBuiltin, ALL};
+use super::{make_builtin, parse, version_split, ALL};
 use crate::pkgsh::write_stdout;
 
 const LONG_DOC: &str = "Output substring from package version string and range arguments.";
@@ -36,10 +35,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 }
 
 const USAGE: &str = "ver_cut 1-2 - 1.2.3";
-make_builtin!("ver_cut", ver_cut_builtin, run, LONG_DOC, USAGE);
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("7-", &[ALL])]));
+make_builtin!("ver_cut", ver_cut_builtin, run, LONG_DOC, USAGE, &[("7-", &[ALL])]);
 
 #[cfg(test)]
 mod tests {

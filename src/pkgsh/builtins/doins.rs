@@ -1,12 +1,12 @@
 use std::path::Path;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install files into INSDESTREE.";
 
@@ -45,21 +45,23 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("doins", doins_builtin, run, LONG_DOC, "doins [-r] path/to/file");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "doins path/to/file";
+make_builtin!("doins", doins_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use super::super::assert_invalid_args;
-    use super::super::insinto::run as insinto;
-    use super::super::insopts::run as insopts;
-    use super::run as doins;
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
+
+    use super::super::insinto::run as insinto;
+    use super::super::insopts::run as insopts;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as doins;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

@@ -1,9 +1,8 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::string_value;
 use scallop::{source, Error, Result};
 
-use super::{PkgBuiltin, ECLASS};
+use super::{make_builtin, ECLASS};
 
 const LONG_DOC: &str = "\
 Export stub functions that call the eclass's functions, thereby making them default.
@@ -34,16 +33,15 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
+const USAGE: &str = "EXPORT_FUNCTIONS src_configure src_compile";
 make_builtin!(
     "EXPORT_FUNCTIONS",
     export_functions_builtin,
     run,
     LONG_DOC,
-    "EXPORT_FUNCTIONS src_configure src_compile"
+    USAGE,
+    &[("0-", &[ECLASS])]
 );
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ECLASS])]));
 
 #[cfg(test)]
 mod tests {
@@ -55,8 +53,11 @@ mod tests {
     use crate::config::Config;
     use crate::pkgsh::{source_ebuild, BUILD_DATA};
 
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as export_functions;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

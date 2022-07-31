@@ -1,9 +1,8 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
 use super::_use_conf::use_conf;
-use super::{PkgBuiltin, PHASE};
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "\
 Returns --enable-${opt} and --disable-${opt} configure flags based on a given USE flag.";
@@ -13,20 +12,22 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     use_conf(args, "enable", "disable")
 }
 
-make_builtin!("use_enable", use_enable_builtin, run, LONG_DOC, "use_enable flag");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
+const USAGE: &str = "use_enable flag";
+make_builtin!("use_enable", use_enable_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {
     use scallop::builtins::ExecStatus;
 
-    use super::super::assert_invalid_args;
-    use super::run as use_enable;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::{assert_stdout, BUILD_DATA};
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as use_enable;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

@@ -1,8 +1,7 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, PHASE};
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "Run sed patterns across files.";
 
@@ -17,15 +16,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("dosed", dosed_builtin, run, LONG_DOC, "dosed [pattern] [file]");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-3", &[PHASE])]));
+const USAGE: &str = "dosed pattern file";
+make_builtin!("dosed", dosed_builtin, run, LONG_DOC, USAGE, &[("0-3", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as dosed;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

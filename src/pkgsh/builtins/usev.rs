@@ -1,10 +1,9 @@
 use std::io::Write;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::{use_::run as use_, PkgBuiltin, PHASE};
+use super::{make_builtin, use_::run as use_, PHASE};
 use crate::eapi::Feature;
 use crate::pkgsh::{write_stdout, BUILD_DATA};
 
@@ -36,20 +35,22 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("usev", usev_builtin, run, LONG_DOC, "usev flag");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
+const USAGE: &str = "usev flag";
+make_builtin!("usev", usev_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {
     use scallop::builtins::ExecStatus;
 
-    use super::super::assert_invalid_args;
-    use super::run as usev;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::{assert_stdout, BUILD_DATA};
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as usev;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

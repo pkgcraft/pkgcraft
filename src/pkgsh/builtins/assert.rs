@@ -1,9 +1,8 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::array_to_vec;
 use scallop::Result;
 
-use super::{die::run as die, PkgBuiltin, ALL};
+use super::{die::run as die, make_builtin, ALL};
 
 const LONG_DOC: &str = "\
 Calls `die` with passed arguments if any process in the most recently-executed foreground pipeline
@@ -18,10 +17,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 }
 
-make_builtin!("assert", assert_builtin, run, LONG_DOC, "assert \"error message\"");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[ALL])]));
+const USAGE: &str = "assert \"error message\"";
+make_builtin!("assert", assert_builtin, run, LONG_DOC, USAGE, &[("0-", &[ALL])]);
 
 #[cfg(test)]
 mod tests {
@@ -30,10 +27,14 @@ mod tests {
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::phase::{Phase, PHASE_STUB};
+    use crate::pkgsh::{Scope, BUILD_DATA};
 
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as assert;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
@@ -101,18 +102,24 @@ mod tests {
     fn nonfatal() {
         builtins::enable(&["assert", "nonfatal"]).unwrap();
 
-        // nonfatal requires `die -n` call
-        let r = source::string("true | false; nonfatal assert");
-        assert_err_re!(r, r"^assert: error: \(no error message\)");
+        BUILD_DATA.with(|d| {
+            let phase = Phase::SrcInstall(PHASE_STUB);
+            d.borrow_mut().phase = Some(phase);
+            d.borrow_mut().scope = Scope::Phase(phase);
 
-        // nonfatal die in main process
-        bind("VAR", "1", None, None).unwrap();
-        source::string("true | false; nonfatal assert -n\nVAR=2").unwrap();
-        assert_eq!(string_value("VAR").unwrap(), "2");
+            // nonfatal requires `die -n` call
+            let r = source::string("true | false; nonfatal assert");
+            assert_err_re!(r, r"^assert: error: \(no error message\)");
 
-        // nonfatal die in subshell
-        bind("VAR", "1", None, None).unwrap();
-        source::string("FOO=$(true | false; nonfatal assert -n); VAR=2").unwrap();
-        assert_eq!(string_value("VAR").unwrap(), "2");
+            // nonfatal die in main process
+            bind("VAR", "1", None, None).unwrap();
+            source::string("true | false; nonfatal assert -n\nVAR=2").unwrap();
+            assert_eq!(string_value("VAR").unwrap(), "2");
+
+            // nonfatal die in subshell
+            bind("VAR", "1", None, None).unwrap();
+            source::string("FOO=$(true | false; nonfatal assert -n); VAR=2").unwrap();
+            assert_eq!(string_value("VAR").unwrap(), "2");
+        })
     }
 }

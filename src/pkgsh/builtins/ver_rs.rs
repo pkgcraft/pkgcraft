@@ -1,12 +1,12 @@
 use std::io::Write;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::string_value;
 use scallop::{Error, Result};
 
-use super::{parse, version_split, PkgBuiltin, ALL};
 use crate::pkgsh::write_stdout;
+
+use super::{make_builtin, parse, version_split, ALL};
 
 const LONG_DOC: &str = "Perform string substitution on package version strings.";
 
@@ -51,10 +51,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 }
 
 const USAGE: &str = "ver_rs 2 - 1.2.3";
-make_builtin!("ver_rs", ver_rs_builtin, run, LONG_DOC, USAGE);
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("7-", &[ALL])]));
+make_builtin!("ver_rs", ver_rs_builtin, run, LONG_DOC, USAGE, &[("7-", &[ALL])]);
 
 #[cfg(test)]
 mod tests {

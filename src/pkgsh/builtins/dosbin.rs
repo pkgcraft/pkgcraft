@@ -1,9 +1,8 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
 use super::dobin::install_bin;
-use super::PkgBuiltin;
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install executables into DESTTREE/sbin.";
 
@@ -16,20 +15,22 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     install_bin(args, "sbin")
 }
 
-make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, "dosbin path/to/executable");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "dosbin /path/to/executable";
+make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use super::super::assert_invalid_args;
+    use crate::pkgsh::test::FileTree;
+
     use super::super::exeopts::run as exeopts;
     use super::super::into::run as into;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as dosbin;
-    use crate::pkgsh::test::FileTree;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

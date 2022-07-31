@@ -1,15 +1,15 @@
 use std::io::Write;
 use std::process::Command;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::{string_value, string_vec};
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, PHASE};
 use crate::command::RunCommand;
 use crate::pkgsh::utils::makefile_exists;
 use crate::pkgsh::write_stdout;
+
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "Run the make command for a package.";
 
@@ -31,10 +31,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("emake", emake_builtin, run, LONG_DOC, "emake -C builddir");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &[PHASE])]));
+const USAGE: &str = "emake -C builddir";
+make_builtin!("emake", emake_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {
@@ -47,7 +45,11 @@ mod tests {
     use crate::command::last_command;
     use crate::macros::assert_err_re;
 
+    use super::super::builtin_scope_tests;
     use super::run as emake;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn nonexistent() {

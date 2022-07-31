@@ -1,11 +1,11 @@
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::macros::build_from_paths;
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install libraries.";
 
@@ -33,20 +33,22 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     install_lib(args, None)
 }
 
-make_builtin!("dolib", dolib_builtin, run, LONG_DOC, "dolib path/to/lib");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-6", &["src_install"])]));
+const USAGE: &str = "dolib path/to/lib";
+make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, &[("0-6", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use super::super::assert_invalid_args;
+    use crate::pkgsh::test::FileTree;
+
     use super::super::into::run as into;
     use super::super::libopts::run as libopts;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as dolib;
-    use crate::pkgsh::test::FileTree;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

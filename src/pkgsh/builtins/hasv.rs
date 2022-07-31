@@ -1,10 +1,9 @@
 use std::io::Write;
 
-use once_cell::sync::Lazy;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Result;
 
-use super::{has::run as has, PkgBuiltin, ALL};
+use super::{has::run as has, make_builtin, ALL};
 use crate::pkgsh::write_stdout;
 
 const LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
@@ -19,15 +18,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     Ok(ret)
 }
 
-make_builtin!("hasv", hasv_builtin, run, LONG_DOC, "hasv needle ${haystack}");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-7", &[ALL])]));
+const USAGE: &str = "hasv needle ${haystack}";
+make_builtin!("hasv", hasv_builtin, run, LONG_DOC, USAGE, &[("0-7", &[ALL])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::assert_invalid_args;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as hasv;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {

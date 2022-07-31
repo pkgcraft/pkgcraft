@@ -1,14 +1,14 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use once_cell::sync::Lazy;
 use regex::Regex;
-use scallop::builtins::{make_builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
 
-use super::PkgBuiltin;
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install man pages into /usr/share/man.";
 
@@ -74,19 +74,21 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-make_builtin!("doman", doman_builtin, run, LONG_DOC, "doman [-i18n=lang] path/to/man/page");
-
-pub(super) static PKG_BUILTIN: Lazy<PkgBuiltin> =
-    Lazy::new(|| PkgBuiltin::new(BUILTIN, &[("0-", &["src_install"])]));
+const USAGE: &str = "doman path/to/man/page";
+make_builtin!("doman", doman_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
     use std::fs;
 
-    use super::super::assert_invalid_args;
-    use super::run as doman;
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
+
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as doman;
+    use super::*;
+
+    builtin_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
