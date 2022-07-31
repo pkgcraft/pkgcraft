@@ -38,7 +38,7 @@ fn emake_install() -> Result<ExecStatus> {
 
 #[derive(AsRefStr, Display, Debug, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
-pub enum Phase {
+pub(crate) enum Phase {
     PkgSetup(PhaseFn),
     PkgConfig(PhaseFn),
     PkgInfo(PhaseFn),

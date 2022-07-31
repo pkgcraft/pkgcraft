@@ -164,58 +164,59 @@ macro_rules! assert_stderr {
 use assert_stderr;
 
 #[derive(Default)]
-pub struct BuildData {
-    pub eapi: &'static Eapi,
-    pub repo: Arc<ebuild::Repo>,
+pub(crate) struct BuildData {
+    pub(crate) eapi: &'static Eapi,
+    pub(crate) repo: Arc<ebuild::Repo>,
 
     stdin: Stdin,
     stdout: Stdout,
     stderr: Stderr,
 
     // mapping of variables conditionally exported to the build environment
-    pub env: HashMap<String, String>,
+    pub(crate) env: HashMap<String, String>,
 
     // TODO: proxy these fields via borrowed package reference
-    pub distfiles: Vec<String>,
-    pub user_patches: Vec<String>,
+    pub(crate) distfiles: Vec<String>,
+    pub(crate) user_patches: Vec<String>,
 
-    pub phase: Option<phase::Phase>,
-    pub user_patches_applied: bool,
+    pub(crate) phase: Option<phase::Phase>,
+    pub(crate) scope: Scope,
+    pub(crate) user_patches_applied: bool,
 
-    pub desttree: String,
-    pub docdesttree: String,
-    pub exedesttree: String,
-    pub insdesttree: String,
+    pub(crate) desttree: String,
+    pub(crate) docdesttree: String,
+    pub(crate) exedesttree: String,
+    pub(crate) insdesttree: String,
 
-    pub insopts: Vec<String>,
-    pub diropts: Vec<String>,
-    pub exeopts: Vec<String>,
-    pub libopts: Vec<String>,
+    pub(crate) insopts: Vec<String>,
+    pub(crate) diropts: Vec<String>,
+    pub(crate) exeopts: Vec<String>,
+    pub(crate) libopts: Vec<String>,
 
     // TODO: add default values listed in the spec
-    pub compress_include: HashSet<String>,
-    pub compress_exclude: HashSet<String>,
-    pub strip_include: HashSet<String>,
-    pub strip_exclude: HashSet<String>,
+    pub(crate) compress_include: HashSet<String>,
+    pub(crate) compress_exclude: HashSet<String>,
+    pub(crate) strip_include: HashSet<String>,
+    pub(crate) strip_exclude: HashSet<String>,
 
-    pub iuse_effective: HashSet<String>,
-    pub use_: HashSet<String>,
+    pub(crate) iuse_effective: HashSet<String>,
+    pub(crate) use_: HashSet<String>,
 
     /// Eclasses directly inherited by an ebuild.
-    pub inherit: IndexSet<String>,
+    pub(crate) inherit: IndexSet<String>,
     /// Full set of eclasses inherited by an ebuild.
-    pub inherited: IndexSet<String>,
+    pub(crate) inherited: IndexSet<String>,
 
     // ebuild metadata fields
-    pub iuse: VecDeque<String>,
-    pub required_use: VecDeque<String>,
-    pub depend: VecDeque<String>,
-    pub rdepend: VecDeque<String>,
-    pub pdepend: VecDeque<String>,
-    pub bdepend: VecDeque<String>,
-    pub idepend: VecDeque<String>,
-    pub properties: VecDeque<String>,
-    pub restrict: VecDeque<String>,
+    pub(crate) iuse: VecDeque<String>,
+    pub(crate) required_use: VecDeque<String>,
+    pub(crate) depend: VecDeque<String>,
+    pub(crate) rdepend: VecDeque<String>,
+    pub(crate) pdepend: VecDeque<String>,
+    pub(crate) bdepend: VecDeque<String>,
+    pub(crate) idepend: VecDeque<String>,
+    pub(crate) properties: VecDeque<String>,
+    pub(crate) restrict: VecDeque<String>,
 }
 
 impl BuildData {
@@ -359,18 +360,4 @@ pub fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
 
         Ok(())
     })
-}
-
-pub struct PkgShell {}
-
-impl PkgShell {
-    pub fn new(data: BuildData) -> Self {
-        // update thread local mutable for builtins
-        BUILD_DATA.with(|d| d.replace(data));
-        PkgShell {}
-    }
-
-    pub fn reset(&mut self) {
-        Shell::reset()
-    }
 }
