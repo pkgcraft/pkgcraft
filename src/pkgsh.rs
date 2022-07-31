@@ -7,7 +7,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use nix::unistd::isatty;
-use scallop::builtins::{ExecStatus, ScopedOptions};
+use scallop::builtins::{ExecStatus, ScopedOptions, ScopedBuiltins};
 use scallop::variables::*;
 use scallop::{functions, source, Error, Shell};
 
@@ -259,6 +259,11 @@ impl BuildData {
             _ => panic!("unknown field name: {key}"),
         }
     }
+
+    /// Enable builtins according to the build's EAPI and current scope.
+    fn scoped_builtins(&self) -> crate::Result<ScopedBuiltins> {
+        self.eapi.scoped_builtins(self.scope)
+    }
 }
 
 thread_local! {
@@ -271,20 +276,21 @@ thread_local! {
 fn initialize() {
     use crate::pkgsh::builtins::ALL_BUILTINS;
     Shell::init();
-    let builtins: Vec<_> = ALL_BUILTINS.iter().map(|&b| b.into()).collect();
+    let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
 }
 
-pub fn run_phase(phase: &phase::Phase) -> scallop::Result<ExecStatus> {
+// TODO: remove allow when public package building support is added
+#[allow(dead_code)]
+pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        d.borrow_mut().phase = Some(*phase);
-
         let eapi = d.borrow().eapi;
+        d.borrow_mut().phase = Some(phase);
+        d.borrow_mut().scope = Scope::Phase(phase);
+        let _builtins = d.borrow().scoped_builtins()?;
+
         let mut phase_name = ScopedVariable::new("EBUILD_PHASE");
         let mut phase_func_name = ScopedVariable::new("EBUILD_PHASE_FUNC");
-
-        // enable phase builtins
-        let _builtins = eapi.scoped_builtins(phase)?;
 
         phase_name.bind(phase.short_name(), None, None)?;
         if eapi.has(Feature::EbuildPhaseFunc) {
@@ -299,7 +305,7 @@ pub fn run_phase(phase: &phase::Phase) -> scallop::Result<ExecStatus> {
         // run user space phase function, falling back to internal default
         match functions::find(phase) {
             Some(mut func) => func.execute(&[])?,
-            None => match eapi.phases().get(phase) {
+            None => match eapi.phases().get(&phase) {
                 Some(phase) => phase.run()?,
                 None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
             },
@@ -316,18 +322,17 @@ pub fn run_phase(phase: &phase::Phase) -> scallop::Result<ExecStatus> {
     })
 }
 
-pub fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
+pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
     if !path.exists() {
         return Err(Error::Base(format!("nonexistent ebuild: {path:?}")));
     }
 
     BUILD_DATA.with(|d| -> scallop::Result<()> {
         let eapi = d.borrow().eapi;
+        d.borrow_mut().scope = Scope::Global;
+        let _builtins = d.borrow().scoped_builtins()?;
+
         let mut opts = ScopedOptions::default();
-
-        // enable global builtins
-        let _builtins = eapi.scoped_builtins(Scope::Global)?;
-
         if eapi.has(Feature::GlobalFailglob) {
             opts.enable(["failglob"])?;
         }

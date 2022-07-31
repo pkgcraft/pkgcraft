@@ -22,9 +22,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let mut eclass_var = ScopedVariable::new("ECLASS");
         let mut inherited_var = Variable::new("INHERITED");
+
         let eapi = d.borrow().eapi;
-        // enable eclass builtins
-        let _builtins = eapi.scoped_builtins(Scope::Eclass)?;
+        d.borrow_mut().scope = Scope::Eclass;
+        let _builtins = d.borrow().scoped_builtins()?;
 
         // Track direct ebuild inherits, note that this assumes the first level is via an ebuild
         // inherit, i.e. calling this function directly won't increment the value and thus won't

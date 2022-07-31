@@ -4,7 +4,9 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{make_builtin, ExecStatus};
 use scallop::{Error, Result};
 
-use super::{PkgBuiltin, ALL, NONFATAL};
+use crate::pkgsh::BUILD_DATA;
+
+use super::{PkgBuiltin, ALL, ALL_BUILTINS, NONFATAL};
 
 static LONG_DOC: &str = "\
 Executed when the search for a command is unsuccessful.
@@ -15,11 +17,18 @@ instead.
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    let msg = format!("unknown command: {}", args[0]);
-    match NONFATAL.load(Ordering::Relaxed) {
-        true => Err(Error::Base(msg)),
-        false => Err(Error::Bail(msg)),
-    }
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+        let cmd = args[0];
+        let scope = d.borrow().scope;
+        let msg = match ALL_BUILTINS.contains_key(cmd) {
+            true => format!("{scope} scope doesn't enable command: {cmd}"),
+            false => format!("unknown command: {cmd}"),
+        };
+        match NONFATAL.load(Ordering::Relaxed) {
+            true => Err(Error::Base(msg)),
+            false => Err(Error::Bail(msg)),
+        }
+    })
 }
 
 make_builtin!(

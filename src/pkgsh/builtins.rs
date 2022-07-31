@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::atomic::AtomicBool;
 
 use indexmap::IndexMap;
@@ -120,10 +121,11 @@ impl From<&PkgBuiltin> for Builtin {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub(crate) enum Scope {
-    Eclass,
+    #[default]
     Global,
+    Eclass,
     Phase(Phase),
 }
 
@@ -140,6 +142,12 @@ impl AsRef<str> for Scope {
             Self::Global => "global",
             Self::Phase(p) => p.as_ref(),
         }
+    }
+}
+
+impl fmt::Display for Scope {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_ref())
     }
 }
 
@@ -168,13 +176,17 @@ impl PkgBuiltin {
     pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
         self.builtin.run(args)
     }
+
+    pub(crate) fn name(&self) -> &'static str {
+        self.builtin.name
+    }
 }
 
 pub(crate) type BuiltinsMap = HashMap<&'static str, &'static PkgBuiltin>;
 pub(crate) type ScopeBuiltinsMap = HashMap<Scope, BuiltinsMap>;
 pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, ScopeBuiltinsMap>;
 
-pub(crate) static ALL_BUILTINS: Lazy<Vec<&PkgBuiltin>> = Lazy::new(|| {
+pub(crate) static ALL_BUILTINS: Lazy<HashMap<&'static str, &PkgBuiltin>> = Lazy::new(|| {
     [
         &*adddeny::PKG_BUILTIN,
         &*addpredict::PKG_BUILTIN,
@@ -272,6 +284,7 @@ pub(crate) static ALL_BUILTINS: Lazy<Vec<&PkgBuiltin>> = Lazy::new(|| {
         &*ver_test::PKG_BUILTIN,
     ]
     .into_iter()
+    .map(|b| (b.name(), b))
     .collect()
 });
 
@@ -280,7 +293,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
     let static_scopes: Vec<_> = vec![Scope::Global, Scope::Eclass];
     #[allow(clippy::mutable_key_type)]
     let mut builtins_map = EapiBuiltinsMap::new();
-    for b in ALL_BUILTINS.iter() {
+    for b in ALL_BUILTINS.values() {
         for (eapi, re) in b.scope.iter() {
             let scope_map = builtins_map
                 .entry(eapi)
@@ -291,7 +304,7 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
                 scope_map
                     .entry(*scope)
                     .or_insert_with(BuiltinsMap::new)
-                    .insert(b.builtin.name, b);
+                    .insert(b.name(), b);
             }
         }
     }
@@ -379,7 +392,6 @@ macro_rules! builtin_scope_tests {
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
-            let err = format!("unknown command: {name}");
             let mut config = Config::new("pkgcraft", "", false).unwrap();
             let (t, repo) = config.temp_repo("test", 0).unwrap();
 
@@ -388,7 +400,8 @@ macro_rules! builtin_scope_tests {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
                 let scopes = static_scopes.iter().chain(phase_scopes.iter());
                 for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {
-                    let info = format!("EAPI={}, scope: {:?}", eapi, scope);
+                    let err = format!("{scope} scope doesn't enable command: {name}");
+                    let info = format!("EAPI={eapi}, scope: {scope}");
 
                     // initialize build state
                     BuildData::reset();
@@ -437,7 +450,7 @@ macro_rules! builtin_scope_tests {
                             "#};
                             let path = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             source_ebuild(&path).unwrap();
-                            let r = run_phase(phase);
+                            let r = run_phase(*phase);
                             assert_err_re!(r, err, &info);
                         }
                     }
