@@ -11,19 +11,12 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Install documentation files.";
 
-#[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+/// Install document files from a given iterable of paths.
+pub(crate) fn install_docs<'a, I>(recursive: bool, paths: I) -> Result<ExecStatus>
+where
+    I: IntoIterator<Item = &'a Path>,
+{
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
-        let (recursive, args) = match args.first() {
-            Some(&"-r") if eapi.has(Feature::DodocRecursive) => (true, &args[1..]),
-            _ => (false, args),
-        };
-
-        if args.is_empty() {
-            return Err(Error::Builtin("requires 1 or more targets, got 0".into()));
-        }
-
         let dest: PathBuf = [
             "/usr/share/doc",
             d.borrow().env.get("PF").expect("$PF undefined"),
@@ -33,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         .collect();
         let install = d.borrow().install().dest(&dest)?;
 
-        let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
+        let (dirs, files): (Vec<_>, Vec<_>) = paths.into_iter().partition(|p| p.is_dir());
 
         if !dirs.is_empty() {
             if recursive {
@@ -47,8 +40,24 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         }
 
         install.files(files)?;
-
         Ok(ExecStatus::Success)
+    })
+}
+
+#[doc = stringify!(LONG_DOC)]
+pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+        let eapi = d.borrow().eapi;
+        let (recursive, args) = match args.first() {
+            Some(&"-r") if eapi.has(Feature::DodocRecursive) => (true, &args[1..]),
+            _ => (false, args),
+        };
+
+        if args.is_empty() {
+            return Err(Error::Builtin("requires 1 or more targets, got 0".into()));
+        }
+
+        install_docs(recursive, args.iter().map(Path::new))
     })
 }
 

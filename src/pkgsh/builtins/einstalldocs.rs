@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use glob::glob;
 use scallop::builtins::ExecStatus;
@@ -8,7 +8,7 @@ use scallop::{Error, Result};
 
 use crate::pkgsh::BUILD_DATA;
 
-use super::{dodoc::run as dodoc, make_builtin};
+use super::{dodoc::install_docs, make_builtin};
 
 const LONG_DOC: &str = "\
 Installs the files specified by the DOCS and HTML_DOCS variables or a default set of files.";
@@ -37,22 +37,18 @@ fn has_data(path: &Path) -> bool {
 // Perform file expansion on doc strings.
 // TODO: replace glob usage with native bash pathname expansion?
 // TODO: need to perform word expansion on each string as well
-fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> Result<Vec<String>> {
-    let mut args = vec![];
+fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> Result<Vec<PathBuf>> {
+    let mut files = vec![];
     // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
         let paths = glob(f.as_ref()).map_err(|e| Error::Builtin(e.to_string()))?;
-        for path in paths.flatten().filter(|p| force || has_data(p)) {
-            let s = path
-                .to_str()
-                .ok_or_else(|| Error::Builtin(format!("unsupported file name: {:?}", path)))?;
-            args.push(s.to_string());
-        }
+        files.extend(paths.flatten().filter(|p| force || has_data(p)));
     }
-    Ok(args)
+    Ok(files)
 }
 
-pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
+/// Install document files from a given variable.
+pub(crate) fn install_docs_from(var: &str) -> Result<ExecStatus> {
     let (defaults, docdesttree) = match var {
         "DOCS" => (Some(DOCS_DEFAULTS), ""),
         "HTML_DOCS" => (None, "html"),
@@ -60,21 +56,21 @@ pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
     };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        let (mut args, files) = match var_to_vec(var) {
-            Ok(v) => (vec!["-r"], expand_docs(&v, true)?),
+        let (recursive, paths) = match var_to_vec(var) {
+            Ok(v) => (true, expand_docs(&v, true)?),
             _ => match defaults {
-                Some(v) => (vec![], expand_docs(v, false)?),
-                None => (vec![], vec![]),
+                Some(v) => (false, expand_docs(v, false)?),
+                None => (false, vec![]),
             },
         };
 
-        if !files.is_empty() {
+        if !paths.is_empty() {
             // save original docdesttree value and use custom value
             let orig_docdestree = d.borrow().docdesttree.clone();
             d.borrow_mut().docdesttree = String::from(docdesttree);
 
-            args.extend(files.iter().map(|s| s.as_str()));
-            dodoc(&args)?;
+            let paths = paths.iter().map(|p| p.as_path());
+            install_docs(recursive, paths)?;
 
             // restore original docdesttree value
             d.borrow_mut().docdesttree = orig_docdestree;
@@ -91,7 +87,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     for var in ["DOCS", "HTML_DOCS"] {
-        install_docs(var)?;
+        install_docs_from(var)?;
     }
 
     Ok(ExecStatus::Success)
