@@ -18,7 +18,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     };
 
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more targets, got 0".into()));
+        return Err(Error::Base("requires 1 or more targets, got 0".into()));
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -32,7 +32,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             if recursive {
                 install.recursive(dirs, NO_WALKDIR_FILTER)?;
             } else {
-                return Err(Error::Builtin(format!(
+                return Err(Error::Base(format!(
                     "trying to install directory as file: {:?}",
                     dirs[0]
                 )));

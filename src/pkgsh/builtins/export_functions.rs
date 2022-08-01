@@ -14,11 +14,10 @@ src_unpack() { base_src_unpack; }";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    let eclass =
-        string_value("ECLASS").ok_or_else(|| Error::Builtin("no ECLASS defined".into()))?;
+    let eclass = string_value("ECLASS").ok_or_else(|| Error::Base("no ECLASS defined".into()))?;
 
     // TODO: verify phase function existence?
     let funcs: Vec<_> = args

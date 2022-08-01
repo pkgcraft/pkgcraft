@@ -15,28 +15,27 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (source, dest) = match args.len() {
             2 => (args[0], Path::new(args[1])),
-            n => return Err(Error::Builtin(format!("requires 2, got {n}"))),
+            n => return Err(Error::Base(format!("requires 2, got {n}"))),
         };
 
         // filename can't contain a path separator
         if dest.parent() != Some(Path::new("")) {
-            return Err(Error::Builtin(format!("invalid filename: {dest:?}")));
+            return Err(Error::Base(format!("invalid filename: {dest:?}")));
         }
 
         // TODO: create tempdir in $T to avoid cross-fs issues as much as possible
         let tmp_dir =
-            tempdir().map_err(|e| Error::Builtin(format!("failed creating tempdir: {e}")))?;
+            tempdir().map_err(|e| Error::Base(format!("failed creating tempdir: {e}")))?;
         let dest = tmp_dir.path().join(dest);
 
         if eapi.has(Feature::NewSupportsStdin) && source == "-" {
             let mut file = File::create(&dest)
-                .map_err(|e| Error::Builtin(format!("failed opening file: {dest:?}: {e}")))?;
-            io::copy(d.borrow_mut().stdin()?, &mut file).map_err(|e| {
-                Error::Builtin(format!("failed writing stdin to file: {dest:?}: {e}"))
-            })?;
+                .map_err(|e| Error::Base(format!("failed opening file: {dest:?}: {e}")))?;
+            io::copy(d.borrow_mut().stdin()?, &mut file)
+                .map_err(|e| Error::Base(format!("failed writing stdin to file: {dest:?}: {e}")))?;
         } else {
             fs::copy(source, &dest).map_err(|e| {
-                Error::Builtin(format!("failed copying file {source:?} to {dest:?}: {e}"))
+                Error::Base(format!("failed copying file {source:?} to {dest:?}: {e}"))
             })?;
         }
 

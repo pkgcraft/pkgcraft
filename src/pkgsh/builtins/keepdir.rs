@@ -12,7 +12,7 @@ const LONG_DOC: &str = "Install directories.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -24,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             // TODO: add pkg data to file name
             let keep = install.prefix(path).join(".keep");
             File::create(&keep)
-                .map_err(|e| Error::Builtin(format!("failed creating keep file: {keep:?}: {e}")))?;
+                .map_err(|e| Error::Base(format!("failed creating keep file: {keep:?}: {e}")))?;
         }
         Ok(ExecStatus::Success)
     })

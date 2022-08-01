@@ -48,11 +48,11 @@ fn expand_csv(data: Vec<String>) -> Vec<String> {
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let opts = match Options::try_parse_from(&[&["dohtml"], args].concat()) {
         Ok(opts) => opts,
-        Err(e) => return Err(Error::Builtin(format!("invalid args: {e}"))),
+        Err(e) => return Err(Error::Base(format!("invalid args: {e}"))),
     };
 
     if opts.targets.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     let mut allowed_file_exts: HashSet<String> =
@@ -107,7 +107,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             if opts.recursive {
                 install.recursive(dirs, Some(is_allowed))?;
             } else {
-                return Err(Error::Builtin(format!(
+                return Err(Error::Base(format!(
                     "trying to install directory as file: {:?}",
                     dirs[0]
                 )));

@@ -16,7 +16,7 @@ const LONG_DOC: &str = "Run the make command for a package.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !makefile_exists() {
-        return Err(Error::Builtin("nonexistent makefile".into()));
+        return Err(Error::Base("nonexistent makefile".into()));
     }
 
     let make_prog = string_value("MAKE").unwrap_or_else(|| String::from("make"));

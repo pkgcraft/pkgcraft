@@ -14,7 +14,7 @@ const LONG_DOC: &str = "Install header files into /usr/include/.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (recursive, args) = match args.first() {
-        None => return Err(Error::Builtin("requires 1 or more args, got 0".into())),
+        None => return Err(Error::Base("requires 1 or more args, got 0".into())),
         Some(&"-r") => (true, &args[1..]),
         _ => (false, args),
     };
@@ -34,7 +34,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             if recursive {
                 install.recursive(dirs, NO_WALKDIR_FILTER)?;
             } else {
-                return Err(Error::Builtin(format!(
+                return Err(Error::Base(format!(
                     "trying to install directory as file: {:?}",
                     dirs[0]
                 )));

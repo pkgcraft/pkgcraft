@@ -9,7 +9,7 @@ const LONG_DOC: &str = "Calls the default_* function for the current phase.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !args.is_empty() {
-        return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
+        return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -19,7 +19,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         match builtins.get(default_phase.as_str()) {
             Some(b) => b.run(&[]),
             None => {
-                Err(Error::Builtin(format!("nonexistent default phase function: {default_phase}",)))
+                Err(Error::Base(format!("nonexistent default phase function: {default_phase}",)))
             }
         }
     })

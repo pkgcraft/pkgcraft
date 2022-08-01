@@ -10,7 +10,7 @@ const LONG_DOC: &str = "Apply user patches.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !args.is_empty() {
-        return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
+        return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {

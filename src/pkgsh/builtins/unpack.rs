@@ -27,7 +27,7 @@ static DIR_MODE: Lazy<Mode> =
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     let current_dir = current_dir()?;
@@ -51,14 +51,14 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                     false => "relative",
                 };
                 let err = format!("{adj} paths not supported in EAPI {eapi}: {path:?}");
-                Err(Error::Builtin(err))
+                Err(Error::Base(err))
             }
         };
 
         for path in args.iter().map(Utf8Path::new) {
             let source = determine_source(path)?;
             if !source.exists() {
-                return Err(Error::Builtin(format!("nonexistent archive: {path}")));
+                return Err(Error::Base(format!("nonexistent archive: {path}")));
             }
 
             let (ext, archive) = eapi.archive_from_path(&source)?;
@@ -70,11 +70,11 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
         // ensure proper permissions on unpacked files with minimal syscalls
         for entry in WalkDir::new(&current_dir).min_depth(1) {
-            let entry = entry
-                .map_err(|e| Error::Builtin(format!("failed walking {current_dir:?}: {e}")))?;
+            let entry =
+                entry.map_err(|e| Error::Base(format!("failed walking {current_dir:?}: {e}")))?;
             let path = entry.path();
-            let stat = lstat(path)
-                .map_err(|e| Error::Builtin(format!("failed file stat {path:?}: {e}")))?;
+            let stat =
+                lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
             let mode = Mode::from_bits_truncate(stat.st_mode);
             let new_mode = match SFlag::from_bits_truncate(stat.st_mode) {
                 flags if flags.contains(SFlag::S_IFLNK) => continue,
@@ -94,7 +94,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 }
             };
             fchmodat(None, path, new_mode, FollowSymlink)
-                .map_err(|e| Error::Builtin(format!("failed file chmod {path:?}: {e}")))?;
+                .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))?;
         }
 
         Ok(ExecStatus::Success)

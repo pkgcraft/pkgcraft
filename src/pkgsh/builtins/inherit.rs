@@ -13,7 +13,7 @@ const LONG_DOC: &str = "Sources the given list of eclasses.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     let eclasses: Vec<_> = args.iter().map(|s| s.to_string()).collect();
@@ -48,7 +48,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 build_from_paths!(d.borrow().repo.path(), "eclass", format!("{eclass}.eclass"));
             if let Err(e) = source::file(&path) {
                 let msg = format!("failed loading eclass: {eclass}: {e}");
-                return Err(Error::Builtin(msg));
+                return Err(Error::Base(msg));
             }
 
             let mut d = d.borrow_mut();

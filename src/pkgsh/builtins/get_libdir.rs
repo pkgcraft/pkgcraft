@@ -13,7 +13,7 @@ const LONG_DOC: &str = "Output the libdir name.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !args.is_empty() {
-        return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
+        return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
     let libdir = get_libdir(Some("lib")).unwrap();

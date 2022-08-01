@@ -27,7 +27,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 &args[1..]
             }
             0 | 1 => args,
-            n => return Err(Error::Builtin(format!("takes up to 1 arg, got {n}"))),
+            n => return Err(Error::Base(format!("takes up to 1 arg, got {n}"))),
         };
 
         let msg = match args.is_empty() {

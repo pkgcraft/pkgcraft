@@ -18,7 +18,7 @@ static DETECT_LANG_RE: Lazy<Regex> =
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (args, mut lang) = match args.is_empty() {
-        true => return Err(Error::Builtin("requires 1 or more args, got 0".into())),
+        true => return Err(Error::Base("requires 1 or more args, got 0".into())),
         false => match args[0].strip_prefix("-i18n=") {
             None => (args, ""),
             Some(lang) => (&args[1..], lang.trim_matches('"')),
@@ -27,7 +27,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
 
     // only the -i18n option was specified
     if args.is_empty() {
-        return Err(Error::Builtin("missing filename target".into()));
+        return Err(Error::Base("missing filename target".into()));
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -44,9 +44,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             ) {
                 (Some(Some(base)), Some(Some(ext))) => (base, ext),
                 _ => {
-                    return Err(Error::Builtin(format!(
-                        "invalid file target, use `newman`: {path:?}"
-                    )))
+                    return Err(Error::Base(format!("invalid file target, use `newman`: {path:?}")))
                 }
             };
 

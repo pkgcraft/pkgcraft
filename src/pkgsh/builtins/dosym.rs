@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             3 if args[0] == "-r" && eapi.has(Feature::DosymRelative) => {
                 let (source, target) = (Path::new(args[1]), Path::new(args[2]));
                 if !source.is_absolute() {
-                    return Err(Error::Builtin(format!(
+                    return Err(Error::Base(format!(
                         "absolute source required with '-r': {source:?}",
                     )));
                 }
@@ -29,17 +29,17 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                     parent.push(p)
                 }
                 let source = relpath(&source, &parent).ok_or_else(|| {
-                    Error::Builtin(format!("invalid relative path: {source:?} -> {target:?}"))
+                    Error::Base(format!("invalid relative path: {source:?} -> {target:?}"))
                 })?;
                 (source, target, args[2])
             }
             2 => (PathBuf::from(args[0]), Path::new(args[1]), args[1]),
-            n => return Err(Error::Builtin(format!("requires 2 args, got {n}"))),
+            n => return Err(Error::Base(format!("requires 2 args, got {n}"))),
         };
 
         // check for unsupported dir target arg -- https://bugs.gentoo.org/379899
         if target_str.ends_with('/') || (target.is_dir() && !target.is_symlink()) {
-            return Err(Error::Builtin(format!("missing filename target: {target:?}")));
+            return Err(Error::Base(format!("missing filename target: {target:?}")));
         }
 
         let install = d.borrow().install();

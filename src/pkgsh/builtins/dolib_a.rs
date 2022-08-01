@@ -9,7 +9,7 @@ const LONG_DOC: &str = "Install static libraries.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     install_lib(args, Some(vec!["-m0644"]))

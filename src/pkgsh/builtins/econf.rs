@@ -24,8 +24,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let configure = configure();
     if !configure.is_executable() {
         match configure.exists() {
-            true => return Err(Error::Builtin("nonexecutable configure script".into())),
-            false => return Err(Error::Builtin("nonexistent configure script".into())),
+            true => return Err(Error::Base("nonexecutable configure script".into())),
+            false => return Err(Error::Base("nonexistent configure script".into())),
         }
     }
 
@@ -42,7 +42,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let conf_help = Command::new(&configure)
         .arg("--help")
         .output()
-        .map_err(|e| Error::Builtin(format!("failed running: {e}")))?;
+        .map_err(|e| Error::Base(format!("failed running: {e}")))?;
     let mut known_opts = IndexSet::<String>::new();
     let conf_help = str::from_utf8(&conf_help.stdout).expect("failed decoding configure output");
     for line in conf_help.split('\n') {

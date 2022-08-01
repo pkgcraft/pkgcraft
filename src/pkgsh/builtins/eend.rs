@@ -13,13 +13,13 @@ const LONG_DOC: &str = "Display information message when starting a process.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     let ret = args[0];
     let ret = ret
         .parse::<i32>()
-        .map_err(|_| Error::Builtin(format!("invalid return value: {ret}")))?;
+        .map_err(|_| Error::Base(format!("invalid return value: {ret}")))?;
     let ret = ExecStatus::from(ret);
 
     // TODO: support column-based formatting for success/failure indicators

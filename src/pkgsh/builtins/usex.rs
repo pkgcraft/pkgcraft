@@ -21,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             vals[1..stop].clone_from_slice(&args[1..stop]);
             (&args[..1], vals)
         }
-        n => return Err(Error::Builtin(format!("requires 1 to 5 args, got {n}"))),
+        n => return Err(Error::Base(format!("requires 1 to 5 args, got {n}"))),
     };
 
     match use_(flag)? {

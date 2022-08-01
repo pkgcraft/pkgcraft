@@ -21,9 +21,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             }
             2 => match eapi.has(Feature::UsevTwoArgs) {
                 true => (&args[..1], args[1]),
-                false => return Err(Error::Builtin("requires 1 arg, got 2".into())),
+                false => return Err(Error::Base("requires 1 arg, got 2".into())),
             },
-            n => return Err(Error::Builtin(format!("requires 1 or 2 args, got {n}"))),
+            n => return Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
         };
 
         let ret = use_(flag)?;

@@ -10,7 +10,7 @@ Returns success if the first argument is found in subsequent arguments, failure 
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let needle = match args.first() {
         Some(s) => s,
-        None => return Err(Error::Builtin("requires 1 or more args, got 0".into())),
+        None => return Err(Error::Base("requires 1 or more args, got 0".into())),
     };
 
     let haystack = &args[1..];

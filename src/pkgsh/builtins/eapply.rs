@@ -42,13 +42,13 @@ fn find_patches(paths: &[&str]) -> Result<Patches> {
                 .map(|e| e.path().into())
                 .collect();
             if dir_patches.is_empty() {
-                return Err(Error::Builtin(format!("no patches in directory: {p:?}")));
+                return Err(Error::Base(format!("no patches in directory: {p:?}")));
             }
             patches.push((Some(path.into()), dir_patches));
         } else if path.exists() {
             patches.push((None, vec![path.into()]));
         } else {
-            return Err(Error::Builtin(format!("nonexistent file: {p}")));
+            return Err(Error::Base(format!("nonexistent file: {p}")));
         }
     }
 
@@ -58,7 +58,7 @@ fn find_patches(paths: &[&str]) -> Result<Patches> {
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::Builtin("requires 1 or more args, got 0".into()));
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     let mut options = Vec::<&str>::new();
@@ -66,9 +66,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     for (i, arg) in args.iter().enumerate() {
         if arg.starts_with('-') {
             if !files.is_empty() {
-                return Err(Error::Builtin(
-                    "options must be specified before file arguments".into(),
-                ));
+                return Err(Error::Base("options must be specified before file arguments".into()));
             }
             if arg == &"--" {
                 files.extend(&args[i + 1..]);
@@ -82,7 +80,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     if files.is_empty() {
-        return Err(Error::Builtin("no patches specified".to_string()));
+        return Err(Error::Base("no patches specified".to_string()));
     }
 
     let patches = find_patches(&files)?;
@@ -102,16 +100,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 _ => write_stdout!("{msg_prefix}{name}...\n"),
             }
             let data = File::open(f)
-                .map_err(|e| Error::Builtin(format!("failed reading patch {f:?}: {e}")))?;
+                .map_err(|e| Error::Base(format!("failed reading patch {f:?}: {e}")))?;
             let output = Command::new("patch")
                 .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
                 .args(&options)
                 .stdin(data)
                 .output()
-                .map_err(|e| Error::Builtin(format!("failed running patch: {e}")))?;
+                .map_err(|e| Error::Base(format!("failed running patch: {e}")))?;
             if !output.status.success() {
                 let error = str::from_utf8(&output.stdout).expect("failed decoding patch output");
-                return Err(Error::Builtin(format!("failed applying: {name}\n{error}")));
+                return Err(Error::Base(format!("failed applying: {name}\n{error}")));
             }
         }
     }

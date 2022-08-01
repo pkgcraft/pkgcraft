@@ -14,7 +14,7 @@ const LONG_DOC: &str = "Run `chmod` taking paths relative to the image directory
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if args.len() < 2 {
-        return Err(Error::Builtin(format!("requires at least 2 args, got {}", args.len())));
+        return Err(Error::Base(format!("requires at least 2 args, got {}", args.len())));
     }
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {

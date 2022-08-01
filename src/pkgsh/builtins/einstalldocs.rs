@@ -41,7 +41,7 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> Result<Vec<PathBuf>> 
     let mut files = vec![];
     // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
-        let paths = glob(f.as_ref()).map_err(|e| Error::Builtin(e.to_string()))?;
+        let paths = glob(f.as_ref()).map_err(|e| Error::Base(e.to_string()))?;
         files.extend(paths.flatten().filter(|p| force || has_data(p)));
     }
     Ok(files)
@@ -52,7 +52,7 @@ pub(crate) fn install_docs_from(var: &str) -> Result<ExecStatus> {
     let (defaults, docdesttree) = match var {
         "DOCS" => (Some(DOCS_DEFAULTS), ""),
         "HTML_DOCS" => (None, "html"),
-        _ => return Err(Error::Builtin(format!("unknown variable: {var}"))),
+        _ => return Err(Error::Base(format!("unknown variable: {var}"))),
     };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
@@ -83,7 +83,7 @@ pub(crate) fn install_docs_from(var: &str) -> Result<ExecStatus> {
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     if !args.is_empty() {
-        return Err(Error::Builtin(format!("takes no args, got {}", args.len())));
+        return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
     for var in ["DOCS", "HTML_DOCS"] {

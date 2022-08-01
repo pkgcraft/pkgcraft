@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let (set, args) = match args.first() {
             Some(&"-x") => (&mut d.strip_exclude, &args[1..]),
             Some(_) => (&mut d.strip_include, args),
-            None => return Err(Error::Builtin("requires 1 or more args, got 0".into())),
+            None => return Err(Error::Base("requires 1 or more args, got 0".into())),
         };
 
         set.extend(args.iter().map(|s| s.to_string()));
