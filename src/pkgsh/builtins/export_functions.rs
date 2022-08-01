@@ -17,10 +17,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Builtin("requires 1 or more args, got 0".into()));
     }
 
-    let eclass = match string_value("ECLASS") {
-        Some(val) => val,
-        None => return Err(Error::Builtin("no ECLASS defined".into())),
-    };
+    let eclass =
+        string_value("ECLASS").ok_or_else(|| Error::Builtin("no ECLASS defined".into()))?;
 
     // TODO: verify phase function existence?
     let funcs: Vec<_> = args
