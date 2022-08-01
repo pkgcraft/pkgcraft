@@ -179,13 +179,17 @@ mod tests {
     fn test_docs_array() {
         BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
         let file_tree = FileTree::new();
-        source::string("DOCS=( NEWS subdir )").unwrap();
+        source::string("DOCS=( NEWS subdir dir/. )").unwrap();
         fs::File::create("NEWS").unwrap();
-        fs::create_dir_all("subdir").unwrap();
+        fs::create_dir("subdir").unwrap();
         fs::File::create("subdir/README").unwrap();
+        fs::create_dir("dir").unwrap();
+        fs::File::create("dir/AUTHORS").unwrap();
         einstalldocs(&[]).unwrap();
         file_tree.assert(
             r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/AUTHORS"
             [[files]]
             path = "/usr/share/doc/pkgcraft-0/NEWS"
             [[files]]
@@ -198,13 +202,17 @@ mod tests {
     fn test_docs_string() {
         BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
         let file_tree = FileTree::new();
-        source::string("DOCS=\"NEWS subdir\"").unwrap();
+        source::string("DOCS=\"NEWS subdir dir/.\"").unwrap();
         fs::File::create("NEWS").unwrap();
-        fs::create_dir_all("subdir").unwrap();
+        fs::create_dir("subdir").unwrap();
         fs::File::create("subdir/README").unwrap();
+        fs::create_dir("dir").unwrap();
+        fs::File::create("dir/AUTHORS").unwrap();
         einstalldocs(&[]).unwrap();
         file_tree.assert(
             r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/AUTHORS"
             [[files]]
             path = "/usr/share/doc/pkgcraft-0/NEWS"
             [[files]]
@@ -217,15 +225,19 @@ mod tests {
     fn test_html_docs_array() {
         BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
         let file_tree = FileTree::new();
-        source::string("HTML_DOCS=( a.html subdir )").unwrap();
+        source::string("HTML_DOCS=( a.html subdir dir/. )").unwrap();
         fs::File::create("a.html").unwrap();
-        fs::create_dir_all("subdir").unwrap();
+        fs::create_dir("subdir").unwrap();
         fs::File::create("subdir/b.html").unwrap();
+        fs::create_dir("dir").unwrap();
+        fs::File::create("dir/c.html").unwrap();
         einstalldocs(&[]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/doc/pkgcraft-0/html/a.html"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/c.html"
             [[files]]
             path = "/usr/share/doc/pkgcraft-0/html/subdir/b.html"
         "#,
@@ -236,15 +248,19 @@ mod tests {
     fn test_html_docs_string() {
         BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
         let file_tree = FileTree::new();
-        source::string("HTML_DOCS=\"a.html subdir\"").unwrap();
+        source::string("HTML_DOCS=\"a.html subdir dir/.\"").unwrap();
         fs::File::create("a.html").unwrap();
-        fs::create_dir_all("subdir").unwrap();
+        fs::create_dir("subdir").unwrap();
         fs::File::create("subdir/b.html").unwrap();
+        fs::create_dir("dir").unwrap();
+        fs::File::create("dir/c.html").unwrap();
         einstalldocs(&[]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/doc/pkgcraft-0/html/a.html"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/c.html"
             [[files]]
             path = "/usr/share/doc/pkgcraft-0/html/subdir/b.html"
         "#,
