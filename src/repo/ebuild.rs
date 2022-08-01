@@ -929,7 +929,7 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
-        assert_eq!(repo.categories(), Vec::<String>::new());
+        assert!(repo.categories().is_empty());
         fs::create_dir(repo.path().join("cat")).unwrap();
         assert_eq!(repo.categories(), ["cat"]);
         fs::create_dir(repo.path().join("a-cat")).unwrap();
@@ -942,7 +942,7 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
-        assert_eq!(repo.packages("cat"), Vec::<String>::new());
+        assert!(repo.packages("cat").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
         assert_eq!(repo.packages("cat"), ["pkg"]);
         fs::create_dir_all(repo.path().join("a-cat/pkg-z")).unwrap();
@@ -955,7 +955,7 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
-        assert_eq!(repo.versions("cat", "pkg"), Vec::<String>::new());
+        assert!(repo.versions("cat", "pkg").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-1.ebuild")).unwrap();
         assert_eq!(repo.versions("cat", "pkg"), ["1"]);

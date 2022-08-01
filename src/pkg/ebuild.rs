@@ -550,7 +550,7 @@ mod tests {
         // single line
         let path = t.create_ebuild("cat/pkg-1", [(Keywords, "a b")]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
-        assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b"]);
+        assert!(eq_sorted(pkg.keywords(), &["a", "b"]));
 
         // multiple lines
         let val = indoc::indoc! {"
@@ -560,7 +560,7 @@ mod tests {
         "};
         let path = t.create_ebuild("cat/pkg-1", [(Keywords, val)]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
-        assert_eq!(pkg.keywords().iter().cloned().collect::<Vec<&str>>(), ["a", "b", "c"]);
+        assert!(eq_sorted(pkg.keywords(), &["a", "b", "c"]));
     }
 
     #[test]

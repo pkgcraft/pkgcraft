@@ -191,7 +191,7 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", 0, []).unwrap();
-        assert_eq!(repo.categories(), Vec::<String>::new());
+        assert!(repo.categories().is_empty());
         // existing pkgs
         repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
         assert_eq!(repo.categories(), ["cat1", "cat2"])
@@ -202,10 +202,10 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", 0, []).unwrap();
-        assert_eq!(repo.packages("cat"), Vec::<String>::new());
+        assert!(repo.packages("cat").is_empty());
         // existing pkgs
         repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
-        assert_eq!(repo.packages("cat"), Vec::<String>::new());
+        assert!(repo.packages("cat").is_empty());
         assert_eq!(repo.packages("cat1"), ["pkg-a", "pkg-b"]);
         assert_eq!(repo.packages("cat2"), ["pkg-c"]);
     }
@@ -215,10 +215,10 @@ mod tests {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", 0, []).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), Vec::<String>::new());
+        assert!(repo.versions("cat", "pkg").is_empty());
         // existing pkgs
         repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat2/pkg-b-1", "cat2/pkg-b-2"]).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), Vec::<String>::new());
+        assert!(repo.versions("cat", "pkg").is_empty());
         assert_eq!(repo.versions("cat1", "pkg-a"), ["1"]);
         assert_eq!(repo.versions("cat2", "pkg-b"), ["1", "2"]);
     }
@@ -261,7 +261,7 @@ mod tests {
     fn test_iter() {
         let expected = ["cat/pkg-0", "acat/bpkg-1"];
         let repo = Repo::new("fake", 0, expected).unwrap();
-        let atoms: Vec<String> = repo.iter().map(|a| format!("{a}")).collect();
+        let atoms: Vec<_> = repo.iter().map(|a| format!("{a}")).collect();
         assert_eq!(atoms, ["acat/bpkg-1::fake", "cat/pkg-0::fake"]);
     }
 }
