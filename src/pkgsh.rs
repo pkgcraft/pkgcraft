@@ -9,7 +9,7 @@ use itertools::Itertools;
 use nix::unistd::isatty;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
-use scallop::{functions, source, Error, Shell};
+use scallop::{functions, source, Error};
 
 use crate::eapi::{Eapi, Feature, Key};
 use crate::pkgsh::builtins::Scope;
@@ -233,7 +233,7 @@ impl BuildData {
 
     #[cfg(test)]
     pub(crate) fn reset() {
-        Shell::reset();
+        scallop::Shell::reset();
         BUILD_DATA.with(|d| d.replace(BuildData::new()));
     }
 
@@ -270,7 +270,7 @@ thread_local! {
 #[ctor::ctor]
 fn initialize() {
     use crate::pkgsh::builtins::ALL_BUILTINS;
-    Shell::init();
+    scallop::Shell::init();
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
