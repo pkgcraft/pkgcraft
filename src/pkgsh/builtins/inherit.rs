@@ -32,12 +32,12 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             d.borrow_mut().inherit.extend(eclasses.clone());
         }
 
-        for eclass in eclasses {
-            // don't re-inherit eclasses
-            if d.borrow().inherited.contains(&eclass) {
-                continue;
-            }
+        // skip eclasses that have already been inherited
+        let eclasses = eclasses
+            .into_iter()
+            .filter(|s| !d.borrow().inherited.contains(s));
 
+        for eclass in eclasses {
             // unset metadata keys that incrementally accumulate
             for var in eapi.incremental_keys() {
                 unbind(var)?;
