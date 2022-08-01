@@ -19,7 +19,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Base("nonexistent makefile".into()));
     }
 
-    let make_prog = string_value("MAKE").unwrap_or_else(|| String::from("make"));
+    let make_prog = string_value("MAKE");
+    let make_prog = make_prog.as_deref().unwrap_or("make");
     let mut emake = Command::new(make_prog);
     if let Ok(opts) = string_vec("MAKEOPTS") {
         emake.args(&opts);

@@ -70,7 +70,8 @@ impl<'a> Metadata<'a> {
         let mut data = HashMap::new();
 
         // verify sourced EAPI matches parsed EAPI
-        let sourced_eapi = string_value("EAPI").unwrap_or_else(|| "0".into());
+        let sourced_eapi = string_value("EAPI");
+        let sourced_eapi = sourced_eapi.as_deref().unwrap_or("0");
         if eapi::get_eapi(&sourced_eapi)? != eapi {
             return Err(Error::InvalidValue(format!(
                 "mismatched sourced and parsed EAPIs: {sourced_eapi} != {eapi}"

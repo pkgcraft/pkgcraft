@@ -337,7 +337,7 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
 
         // set RDEPEND=DEPEND if RDEPEND is unset
         if eapi.has(Feature::RdependDefault) && string_value("RDEPEND").is_none() {
-            let depend = string_value("DEPEND").unwrap_or_else(|| String::from(""));
+            let depend = string_value("DEPEND").unwrap_or_default();
             bind("RDEPEND", &depend, None, None)?;
         }
 
