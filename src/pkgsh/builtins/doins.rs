@@ -29,14 +29,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
 
         if !dirs.is_empty() {
-            if recursive {
-                install.recursive(dirs, NO_WALKDIR_FILTER)?;
-            } else {
-                return Err(Error::Base(format!(
-                    "trying to install directory as file: {:?}",
-                    dirs[0]
-                )));
-            }
+            match recursive {
+                true => install.recursive(dirs, NO_WALKDIR_FILTER),
+                false => Err(Error::Base(format!("non-recursive dir install: {:?}", dirs[0]))),
+            }?;
         }
 
         install.files(files)?;
@@ -71,7 +67,7 @@ mod tests {
         // non-recursive directory
         fs::create_dir("dir").unwrap();
         let r = doins(&["dir"]);
-        assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+        assert_err_re!(r, format!("^non-recursive dir install: .*$"));
     }
 
     #[test]

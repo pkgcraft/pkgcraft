@@ -9,9 +9,9 @@ Returns success if the first argument is found in subsequent arguments, failure 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let needle = match args.first() {
-        Some(s) => s,
-        None => return Err(Error::Base("requires 1 or more args, got 0".into())),
-    };
+        Some(s) => Ok(s),
+        None => Err(Error::Base("requires 1 or more args, got 0".into())),
+    }?;
 
     let haystack = &args[1..];
     Ok(ExecStatus::from(haystack.contains(needle)))

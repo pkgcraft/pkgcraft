@@ -28,14 +28,16 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 if let Some(p) = target.parent() {
                     parent.push(p)
                 }
-                let source = relpath(&source, &parent).ok_or_else(|| {
-                    Error::Base(format!("invalid relative path: {source:?} -> {target:?}"))
-                })?;
-                (source, target, args[2])
+                match relpath(&source, &parent) {
+                    Some(source) => Ok((source, target, args[2])),
+                    None => {
+                        Err(Error::Base(format!("invalid relative path: {source:?} -> {target:?}")))
+                    }
+                }
             }
-            2 => (PathBuf::from(args[0]), Path::new(args[1]), args[1]),
-            n => return Err(Error::Base(format!("requires 2 args, got {n}"))),
-        };
+            2 => Ok((PathBuf::from(args[0]), Path::new(args[1]), args[1])),
+            n => Err(Error::Base(format!("requires 2 args, got {n}"))),
+        }?;
 
         // check for unsupported dir target arg -- https://bugs.gentoo.org/379899
         if target_str.ends_with('/') || (target.is_dir() && !target.is_symlink()) {

@@ -13,11 +13,11 @@ The return values are inverted if the flag name is prefixed with !.";
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (negated, flag) = match args.len() {
         1 => match args[0].starts_with('!') {
-            false => (false, args[0]),
-            true => (true, &args[0][1..]),
+            false => Ok((false, args[0])),
+            true => Ok((true, &args[0][1..])),
         },
-        n => return Err(Error::Base(format!("requires 1 arg, got {n}"))),
-    };
+        n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
+    }?;
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();

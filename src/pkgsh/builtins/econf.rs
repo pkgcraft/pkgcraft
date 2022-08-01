@@ -23,10 +23,11 @@ const LONG_DOC: &str = "Run a package's configure script.";
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let configure = configure();
     if !configure.is_executable() {
-        match configure.exists() {
-            true => return Err(Error::Base("nonexecutable configure script".into())),
-            false => return Err(Error::Base("nonexistent configure script".into())),
-        }
+        let msg = match configure.exists() {
+            true => "nonexecutable configure script",
+            false => "nonexistent configure script",
+        };
+        return Err(Error::Base(msg.to_string()));
     }
 
     // convert args into an indexed set so they can be easily merged with the default options

@@ -46,10 +46,8 @@ fn expand_csv(data: Vec<String>) -> Vec<String> {
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    let opts = match Options::try_parse_from(&[&["dohtml"], args].concat()) {
-        Ok(opts) => opts,
-        Err(e) => return Err(Error::Base(format!("invalid args: {e}"))),
-    };
+    let opts = Options::try_parse_from(&[&["dohtml"], args].concat())
+        .map_err(|e| Error::Base(format!("invalid args: {e}")))?;
 
     if opts.targets.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));

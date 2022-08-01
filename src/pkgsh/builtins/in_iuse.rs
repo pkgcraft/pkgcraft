@@ -11,9 +11,9 @@ Returns success if the USE flag argument is found in IUSE_EFFECTIVE, failure oth
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let flag = match args.len() {
-        1 => args[0],
-        n => return Err(Error::Base(format!("requires 1 arg, got {n}"))),
-    };
+        1 => Ok(args[0]),
+        n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
+    }?;
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let iuse_effective = &d.borrow().iuse_effective;

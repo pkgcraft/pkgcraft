@@ -14,11 +14,11 @@ Takes exactly one argument and sets the value of DESTTREE.";
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let path = match args.len() {
         1 => match args[0] {
-            "/" => "",
-            s => s,
+            "/" => Ok(""),
+            s => Ok(s),
         },
-        n => return Err(Error::Base(format!("requires 1 arg, got {n}"))),
-    };
+        n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
+    }?;
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let mut d = d.borrow_mut();

@@ -18,12 +18,12 @@ static DETECT_LANG_RE: Lazy<Regex> =
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (args, mut lang) = match args.is_empty() {
-        true => return Err(Error::Base("requires 1 or more args, got 0".into())),
+        true => Err(Error::Base("requires 1 or more args, got 0".into())),
         false => match args[0].strip_prefix("-i18n=") {
-            None => (args, ""),
-            Some(lang) => (&args[1..], lang.trim_matches('"')),
+            None => Ok((args, "")),
+            Some(lang) => Ok((&args[1..], lang.trim_matches('"'))),
         },
-    };
+    }?;
 
     // only the -i18n option was specified
     if args.is_empty() {
@@ -42,11 +42,9 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 path.file_stem().map(|s| s.to_str()),
                 path.extension().map(|s| s.to_str()),
             ) {
-                (Some(Some(base)), Some(Some(ext))) => (base, ext),
-                _ => {
-                    return Err(Error::Base(format!("invalid file target, use `newman`: {path:?}")))
-                }
-            };
+                (Some(Some(base)), Some(Some(ext))) => Ok((base, ext)),
+                _ => Err(Error::Base(format!("invalid file target, use `newman`: {path:?}"))),
+            }?;
 
             if eapi.has(Feature::DomanLangDetect) {
                 if let Some(m) = DETECT_LANG_RE.captures(base) {

@@ -13,16 +13,16 @@ Tests if a given USE flag is enabled and outputs a string related to its status.
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let defaults = ["", "yes", "no", "", ""];
     let (flag, vals) = match args.len() {
-        1 => (&args[..1], defaults),
+        1 => Ok((&args[..1], defaults)),
         2..=5 => {
             // override default values with args
             let stop = args.len();
             let mut vals = defaults;
             vals[1..stop].clone_from_slice(&args[1..stop]);
-            (&args[..1], vals)
+            Ok((&args[..1], vals))
         }
-        n => return Err(Error::Base(format!("requires 1 to 5 args, got {n}"))),
-    };
+        n => Err(Error::Base(format!("requires 1 to 5 args, got {n}"))),
+    }?;
 
     match use_(flag)? {
         ExecStatus::Success => write_stdout!("{}{}", vals[1], vals[3]),

@@ -13,16 +13,16 @@ pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<E
         let eapi = d.borrow().eapi;
         let (flag, opt, suffix) = match args.len() {
             1 => match args[0].starts_with('!') {
-                false => (&args[..1], args[0], String::from("")),
-                true => return Err(Error::Base("USE flag inversion requires 2 or 3 args".into())),
+                false => Ok((&args[..1], args[0], String::from(""))),
+                true => Err(Error::Base("USE flag inversion requires 2 or 3 args".into())),
             },
-            2 => (&args[..1], args[1], String::from("")),
+            2 => Ok((&args[..1], args[1], String::from(""))),
             3 => match eapi.has(Feature::UseConfArg) {
-                true => (&args[..1], args[1], format!("={}", args[2])),
-                false => return Err(Error::Base("requires 1 or 2 args, got 3".into())),
+                true => Ok((&args[..1], args[1], format!("={}", args[2]))),
+                false => Err(Error::Base("requires 1 or 2 args, got 3".into())),
             },
-            n => return Err(Error::Base(format!("requires 1, 2, or 3 args, got {n}"))),
-        };
+            n => Err(Error::Base(format!("requires 1, 2, or 3 args, got {n}"))),
+        }?;
 
         let ret = use_(flag)?;
         match ret {

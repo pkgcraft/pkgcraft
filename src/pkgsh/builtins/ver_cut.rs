@@ -14,10 +14,10 @@ const LONG_DOC: &str = "Output substring from package version string and range a
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pv = string_value("PV").unwrap_or_default();
     let (range, ver) = match args.len() {
-        1 => (args[0], pv.as_str()),
-        2 => (args[0], args[1]),
-        n => return Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
-    };
+        1 => Ok((args[0], pv.as_str())),
+        2 => Ok((args[0], args[1])),
+        n => Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
+    }?;
 
     let version_parts = version_split(ver);
     let len = version_parts.len();

@@ -14,9 +14,9 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (source, dest) = match args.len() {
-            2 => (args[0], Path::new(args[1])),
-            n => return Err(Error::Base(format!("requires 2, got {n}"))),
-        };
+            2 => Ok((args[0], Path::new(args[1]))),
+            n => Err(Error::Base(format!("requires 2, got {n}"))),
+        }?;
 
         // filename can't contain a path separator
         if dest.parent() != Some(Path::new("")) {

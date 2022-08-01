@@ -15,11 +15,11 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let pvr = string_value("PVR").unwrap_or_default();
     let pvr = pvr.as_str();
     let (v1, op, v2) = match args.len() {
-        2 if pvr.is_empty() => return Err(Error::Base("$PVR is undefined".into())),
-        2 => (pvr, args[0], args[1]),
-        3 => (args[0], args[1], args[2]),
-        n => return Err(Error::Base(format!("only accepts 2 or 3 args, got {n}"))),
-    };
+        2 if pvr.is_empty() => Err(Error::Base("$PVR is undefined".into())),
+        2 => Ok((pvr, args[0], args[1])),
+        3 => Ok((args[0], args[1], args[2])),
+        n => Err(Error::Base(format!("only accepts 2 or 3 args, got {n}"))),
+    }?;
 
     let v1 = Version::from_str(v1)?;
     let v2 = Version::from_str(v2)?;
