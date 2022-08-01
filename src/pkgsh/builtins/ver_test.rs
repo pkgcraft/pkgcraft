@@ -12,7 +12,7 @@ const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    let pvr = string_value("PVR").unwrap_or_else(|| String::from(""));
+    let pvr = string_value("PVR").unwrap_or_default();
     let pvr = pvr.as_str();
     let (v1, op, v2) = match args.len() {
         2 if pvr.is_empty() => return Err(Error::Base("$PVR is undefined".into())),

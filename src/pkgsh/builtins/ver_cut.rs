@@ -12,7 +12,7 @@ const LONG_DOC: &str = "Output substring from package version string and range a
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    let pv = string_value("PV").unwrap_or_else(|| String::from(""));
+    let pv = string_value("PV").unwrap_or_default();
     let (range, ver) = match args.len() {
         1 => (args[0], pv.as_str()),
         2 => (args[0], args[1]),

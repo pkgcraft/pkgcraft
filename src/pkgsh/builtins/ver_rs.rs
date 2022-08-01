@@ -12,7 +12,7 @@ const LONG_DOC: &str = "Perform string substitution on package version strings."
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    let pv = string_value("PV").unwrap_or_else(|| String::from(""));
+    let pv = string_value("PV").unwrap_or_default();
     let (ver, args) = match args.len() {
         n if n < 2 => return Err(Error::Base(format!("requires 2 or more args, got {n}"))),
 
