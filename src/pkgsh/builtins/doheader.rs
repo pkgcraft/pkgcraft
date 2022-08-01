@@ -22,14 +22,13 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
         let dest = "/usr/include";
-        let opts: Vec<&str> = match d.eapi.has(Feature::ConsistentFileOpts) {
+        let opts: Vec<_> = match d.eapi.has(Feature::ConsistentFileOpts) {
             true => vec!["-m0644"],
             false => d.insopts.iter().map(|s| s.as_str()).collect(),
         };
         let install = d.install().dest(&dest)?.file_options(opts);
 
-        let (dirs, files): (Vec<&Path>, Vec<&Path>) =
-            args.iter().map(Path::new).partition(|p| p.is_dir());
+        let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
 
         if !dirs.is_empty() {
             if recursive {

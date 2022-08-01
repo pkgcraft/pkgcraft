@@ -26,8 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let opts = &d.borrow().insopts;
         let install = d.borrow().install().dest(&dest)?.file_options(opts);
 
-        let (dirs, files): (Vec<&Path>, Vec<&Path>) =
-            args.iter().map(Path::new).partition(|p| p.is_dir());
+        let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
 
         if !dirs.is_empty() {
             if recursive {

@@ -17,11 +17,11 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let d = d.borrow();
         let dest = "/etc/env.d";
-        let opts: Vec<&str> = match d.eapi.has(Feature::ConsistentFileOpts) {
+        let opts: Vec<_> = match d.eapi.has(Feature::ConsistentFileOpts) {
             true => vec!["-m0644"],
             false => d.insopts.iter().map(|s| s.as_str()).collect(),
         };
-        let install = d.install().dest(&dest)?.file_options(opts.iter().copied());
+        let install = d.install().dest(&dest)?.file_options(opts);
         install.files(args)?;
         Ok(ExecStatus::Success)
     })

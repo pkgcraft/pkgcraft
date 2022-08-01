@@ -16,7 +16,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         if !d.borrow().user_patches_applied {
             let patches = &d.borrow().user_patches;
-            let args: Vec<&str> = patches.iter().map(|s| s.as_str()).collect();
+            let args: Vec<_> = patches.iter().map(|s| s.as_str()).collect();
             if !args.is_empty() {
                 eapply(&args)?;
             }

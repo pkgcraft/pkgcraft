@@ -30,7 +30,7 @@ const DOCS_DEFAULTS: &[&str] = &[
 // TODO: replace glob usage with native bash pathname expansion?
 // TODO: need to perform word expansion on each string as well
 fn expand_docs<S: AsRef<str>>(globs: &[S]) -> Result<Vec<String>> {
-    let mut args = Vec::<String>::new();
+    let mut args = vec![];
     // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
         let paths = glob(f.as_ref()).map_err(|e| Error::Builtin(e.to_string()))?;
@@ -52,7 +52,7 @@ pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
     };
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
-        let (opts, files) = match var_to_vec(var) {
+        let (mut args, files) = match var_to_vec(var) {
             Ok(v) => (vec!["-r"], expand_docs(&v)?),
             _ => match defaults {
                 Some(v) => (vec![], expand_docs(v)?),
@@ -65,7 +65,6 @@ pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
             let orig_docdestree = d.borrow().docdesttree.clone();
             d.borrow_mut().docdesttree = String::from(docdesttree);
 
-            let mut args: Vec<&str> = opts;
             args.extend(files.iter().map(|s| s.as_str()));
             dodoc(&args)?;
 

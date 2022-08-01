@@ -100,7 +100,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let dest = build_from_paths!("/usr/share/doc", pf, subdir, doc_prefix);
         let install = d.install().dest(&dest)?;
 
-        let (dirs, files): (Vec<&Path>, Vec<&Path>) =
+        let (dirs, files): (Vec<_>, Vec<_>) =
             opts.targets.iter().map(Path::new).partition(|p| p.is_dir());
 
         if !dirs.is_empty() {
