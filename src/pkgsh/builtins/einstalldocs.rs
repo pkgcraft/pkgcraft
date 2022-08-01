@@ -47,7 +47,7 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> Result<Vec<PathBuf>> 
     Ok(files)
 }
 
-/// Install document files from a given variable.
+/// Install document files defined in a given variable.
 pub(crate) fn install_docs_from(var: &str) -> Result<ExecStatus> {
     let (defaults, docdesttree) = match var {
         "DOCS" => (Some(DOCS_DEFAULTS), ""),
