@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 
 use glob::glob;
 use scallop::builtins::ExecStatus;
@@ -26,19 +27,26 @@ const DOCS_DEFAULTS: &[&str] = &[
     "CHANGELOG",
 ];
 
+fn has_data(path: &Path) -> bool {
+    match fs::metadata(path) {
+        Ok(m) => m.len() > 0,
+        _ => false,
+    }
+}
+
 // Perform file expansion on doc strings.
 // TODO: replace glob usage with native bash pathname expansion?
 // TODO: need to perform word expansion on each string as well
-fn expand_docs<S: AsRef<str>>(globs: &[S]) -> Result<Vec<String>> {
+fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> Result<Vec<String>> {
     let mut args = vec![];
     // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
         let paths = glob(f.as_ref()).map_err(|e| Error::Builtin(e.to_string()))?;
-        for path in paths.flatten() {
-            let m = fs::metadata(&path).map_err(|e| Error::Builtin(e.to_string()))?;
-            if m.len() > 0 {
-                args.push(path.to_str().unwrap().to_string());
-            }
+        for path in paths.flatten().filter(|p| force || has_data(p)) {
+            let s = path
+                .to_str()
+                .ok_or_else(|| Error::Builtin(format!("unsupported file name: {:?}", path)))?;
+            args.push(s.to_string());
         }
     }
     Ok(args)
@@ -53,9 +61,9 @@ pub(crate) fn install_docs(var: &str) -> Result<ExecStatus> {
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let (mut args, files) = match var_to_vec(var) {
-            Ok(v) => (vec!["-r"], expand_docs(&v)?),
+            Ok(v) => (vec!["-r"], expand_docs(&v, true)?),
             _ => match defaults {
-                Some(v) => (vec![], expand_docs(v)?),
+                Some(v) => (vec![], expand_docs(v, false)?),
                 None => (vec![], vec![]),
             },
         };
@@ -101,6 +109,10 @@ make_builtin!(
 
 #[cfg(test)]
 mod tests {
+    use scallop::source;
+
+    use crate::pkgsh::test::FileTree;
+
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as einstalldocs;
     use super::*;
@@ -112,5 +124,134 @@ mod tests {
         assert_invalid_args(einstalldocs, &[1]);
     }
 
-    // TODO: add usage tests
+    #[test]
+    fn test_no_files() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        einstalldocs(&[]).unwrap();
+        assert!(file_tree.is_empty());
+    }
+
+    #[test]
+    fn test_default_files_empty() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        for f in DOCS_DEFAULTS {
+            fs::File::create(f.trim_end_matches('*')).unwrap();
+        }
+        einstalldocs(&[]).unwrap();
+        assert!(file_tree.is_empty());
+    }
+
+    #[test]
+    fn test_default_files() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        for f in ["README", "NEWS"] {
+            fs::write(f, "data").unwrap();
+        }
+        einstalldocs(&[]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/NEWS"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/README"
+        "#,
+        );
+    }
+
+    #[test]
+    fn test_default_files_globs() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        for f in ["README-1", "READMEa"] {
+            fs::write(f, "data").unwrap();
+        }
+        einstalldocs(&[]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/README-1"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/READMEa"
+        "#,
+        );
+    }
+
+    #[test]
+    fn test_docs_array() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        source::string("DOCS=( NEWS subdir )").unwrap();
+        fs::File::create("NEWS").unwrap();
+        fs::create_dir_all("subdir").unwrap();
+        fs::File::create("subdir/README").unwrap();
+        einstalldocs(&[]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/NEWS"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/subdir/README"
+        "#,
+        );
+    }
+
+    #[test]
+    fn test_docs_string() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        source::string("DOCS=\"NEWS subdir\"").unwrap();
+        fs::File::create("NEWS").unwrap();
+        fs::create_dir_all("subdir").unwrap();
+        fs::File::create("subdir/README").unwrap();
+        einstalldocs(&[]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/NEWS"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/subdir/README"
+        "#,
+        );
+    }
+
+    #[test]
+    fn test_html_docs_array() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        source::string("HTML_DOCS=( a.html subdir )").unwrap();
+        fs::File::create("a.html").unwrap();
+        fs::create_dir_all("subdir").unwrap();
+        fs::File::create("subdir/b.html").unwrap();
+        einstalldocs(&[]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/a.html"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/subdir/b.html"
+        "#,
+        );
+    }
+
+    #[test]
+    fn test_html_docs_string() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let file_tree = FileTree::new();
+        source::string("HTML_DOCS=\"a.html subdir\"").unwrap();
+        fs::File::create("a.html").unwrap();
+        fs::create_dir_all("subdir").unwrap();
+        fs::File::create("subdir/b.html").unwrap();
+        einstalldocs(&[]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/a.html"
+            [[files]]
+            path = "/usr/share/doc/pkgcraft-0/html/subdir/b.html"
+        "#,
+        );
+    }
 }

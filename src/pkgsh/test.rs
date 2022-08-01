@@ -103,4 +103,12 @@ impl FileTree {
 
         self.wipe();
     }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        WalkDir::new(&self.install_dir)
+            .min_depth(1)
+            .into_iter()
+            .next()
+            .is_none()
+    }
 }
