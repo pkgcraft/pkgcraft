@@ -28,9 +28,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         .map(|func| format!("{func}() {{ {eclass}_{func} \"$@\"; }}", func = func, eclass = eclass))
         .collect();
 
-    source::string(funcs.join("\n"))?;
-
-    Ok(ExecStatus::Success)
+    source::string(funcs.join("\n"))
 }
 
 const USAGE: &str = "EXPORT_FUNCTIONS src_configure src_compile";
