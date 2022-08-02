@@ -234,10 +234,7 @@ impl IntoEapi for *const c_char {
     fn into_eapi(self) -> crate::Result<&'static Eapi> {
         match self.is_null() {
             true => Ok(Default::default()),
-            false => unsafe {
-                let s = CStr::from_ptr(self).to_string_lossy();
-                get_eapi(s)
-            },
+            false => get_eapi(unsafe { CStr::from_ptr(self).to_string_lossy() }),
         }
     }
 }
@@ -621,8 +618,12 @@ pub(crate) fn supported<S: AsRef<str>>(s: S) -> crate::Result<IndexSet<&'static 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::ffi::CString;
+    use std::ptr;
+
     use crate::macros::assert_err_re;
+
+    use super::*;
 
     #[test]
     fn test_get_eapi() {
@@ -670,6 +671,28 @@ mod tests {
         assert_err_re!(r, format!("invalid atom: \"cat/pkg:0\""));
         let r = EAPI_LATEST.atom("cat/pkg::repo");
         assert_err_re!(r, format!("invalid atom: \"cat/pkg::repo\""));
+    }
+
+    #[test]
+    fn test_into_eapi() {
+        assert_eq!(&*EAPI0, EAPI0.into_eapi().unwrap());
+        assert_eq!(&*EAPI1, "1".into_eapi().unwrap());
+
+        let mut arg: Option<&str> = None;
+        assert_eq!(&*EAPI_PKGCRAFT, arg.into_eapi().unwrap());
+        arg = Some("1");
+        assert_eq!(&*EAPI1, arg.into_eapi().unwrap());
+
+        let mut arg: Option<&'static Eapi> = None;
+        assert_eq!(&*EAPI_PKGCRAFT, arg.into_eapi().unwrap());
+        arg = Some(&EAPI1);
+        assert_eq!(&*EAPI1, arg.into_eapi().unwrap());
+
+        let mut arg: *const c_char = ptr::null();
+        assert_eq!(&*EAPI_PKGCRAFT, arg.into_eapi().unwrap());
+        let s = CString::new("1").unwrap();
+        arg = s.as_ptr();
+        assert_eq!(&*EAPI1, arg.into_eapi().unwrap());
     }
 
     #[test]
