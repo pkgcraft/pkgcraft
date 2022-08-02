@@ -100,7 +100,7 @@ pub(crate) enum Feature {
     RepoIds,
 }
 
-type EapiEconfOptions = HashMap<&'static str, (IndexSet<String>, Option<String>)>;
+type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 
 #[derive(AsRefStr, EnumString, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
@@ -152,7 +152,7 @@ impl Key {
 
 #[derive(Default, Clone)]
 pub struct Eapi {
-    id: &'static str,
+    id: String,
     parent: Option<&'static Eapi>,
     features: HashSet<Feature>,
     phases: HashSet<Phase>,
@@ -161,7 +161,7 @@ pub struct Eapi {
     mandatory_keys: HashSet<Key>,
     metadata_keys: HashSet<Key>,
     econf_options: EapiEconfOptions,
-    archives: HashSet<&'static str>,
+    archives: HashSet<String>,
     archives_regex: OnceCell<Regex>,
 }
 
@@ -181,8 +181,8 @@ impl Hash for Eapi {
 
 impl PartialOrd for Eapi {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let self_index = EAPIS.get_index_of(&self.id).unwrap();
-        let other_index = EAPIS.get_index_of(&other.id).unwrap();
+        let self_index = EAPIS.get_index_of(self.id.as_str()).unwrap();
+        let other_index = EAPIS.get_index_of(other.id.as_str()).unwrap();
         self_index.partial_cmp(&other_index)
     }
 }
@@ -242,22 +242,22 @@ impl IntoEapi for *const c_char {
     }
 }
 
-type EconfUpdate<'a> = (&'static str, Option<&'a [&'a str]>, Option<&'a str>);
+type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 
 impl Eapi {
-    fn new(id: &'static str, parent: Option<&'static Eapi>) -> Eapi {
+    fn new(id: &str, parent: Option<&'static Eapi>) -> Eapi {
         let mut eapi = match parent {
             Some(e) => e.clone(),
             None => Eapi::default(),
         };
-        eapi.id = id;
+        eapi.id = id.to_string();
         eapi.parent = parent;
         eapi
     }
 
     /// Return the EAPI's identifier.
     pub fn as_str(&self) -> &str {
-        self.id
+        &self.id
     }
 
     /// Check if an EAPI has a given feature.
@@ -386,13 +386,13 @@ impl Eapi {
                 .map(|s| s.to_string())
                 .collect();
             let val = val.map(|s| s.to_string());
-            self.econf_options.insert(opt, (markers, val));
+            self.econf_options.insert(opt.to_string(), (markers, val));
         }
         self
     }
 
-    fn update_archives(mut self, add: &[&'static str], remove: &[&str]) -> Self {
-        self.archives.extend(add);
+    fn update_archives(mut self, add: &[&str], remove: &[&str]) -> Self {
+        self.archives.extend(add.iter().map(|s| s.to_string()));
         for x in remove {
             if !self.archives.remove(*x) {
                 panic!("disabling unknown archive format: {x:?}");
@@ -590,23 +590,23 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
 });
 
 /// Ordered mapping of official EAPI identifiers to instances.
-pub static EAPIS_OFFICIAL: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
-    let mut eapis: IndexMap<&'static str, &'static Eapi> = IndexMap::new();
+pub static EAPIS_OFFICIAL: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
+    let mut eapis: IndexMap<String, &'static Eapi> = IndexMap::new();
     let mut eapi: &Eapi = &EAPI_LATEST;
     while let Some(x) = eapi.parent {
-        eapis.insert(eapi.id, eapi);
+        eapis.insert(eapi.id.clone(), eapi);
         eapi = x;
     }
-    eapis.insert(eapi.id, eapi);
+    eapis.insert(eapi.id.clone(), eapi);
     // reverse so it's in chronological order
     eapis.reverse();
     eapis
 });
 
 /// Ordered mapping of EAPI identifiers to instances.
-pub static EAPIS: Lazy<IndexMap<&'static str, &'static Eapi>> = Lazy::new(|| {
+pub static EAPIS: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
     let mut eapis = EAPIS_OFFICIAL.clone();
-    eapis.insert(EAPI_PKGCRAFT.id, &EAPI_PKGCRAFT);
+    eapis.insert(EAPI_PKGCRAFT.id.clone(), &EAPI_PKGCRAFT);
     eapis
 });
 
