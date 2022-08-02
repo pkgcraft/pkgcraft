@@ -337,14 +337,24 @@ impl Eapi {
         &self.econf_options
     }
 
-    fn update_features(mut self, add: &[Feature], remove: &[Feature]) -> Self {
-        for x in add {
-            if !self.features.insert(*x) {
+    fn add_features<I>(mut self, features: I) -> Self
+    where
+        I: IntoIterator<Item = Feature>,
+    {
+        for x in features.into_iter() {
+            if !self.features.insert(x) {
                 panic!("EAPI {self}: enabling set feature: {x:?}");
             }
         }
-        for x in remove {
-            if !self.features.remove(x) {
+        self
+    }
+
+    fn remove_features<I>(mut self, features: I) -> Self
+    where
+        I: IntoIterator<Item = Feature>,
+    {
+        for x in features.into_iter() {
+            if !self.features.remove(&x) {
                 panic!("EAPI {self}: disabling unset feature: {x:?}");
             }
         }
@@ -428,10 +438,11 @@ pub fn get_eapi<S: AsRef<str>>(id: S) -> crate::Result<&'static Eapi> {
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("0", None)
-        .update_features(
-            &[Feature::RdependDefault, Feature::ExportDesttree, Feature::ExportInsdesttree],
-            &[],
-        )
+        .add_features([
+            Feature::RdependDefault,
+            Feature::ExportDesttree,
+            Feature::ExportInsdesttree,
+        ])
         .update_phases(&[
             PkgSetup(PHASE_STUB),
             PkgConfig(PHASE_STUB),
@@ -475,21 +486,18 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("1", Some(&EAPI0))
-        .update_features(&[Feature::IuseDefaults, Feature::SlotDeps], &[])
+        .add_features([Feature::IuseDefaults, Feature::SlotDeps])
         .update_phases(&[SrcCompile(eapi1::src_compile)])
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("2", Some(&EAPI1))
-        .update_features(
-            &[
-                Feature::Blockers,
-                Feature::DomanLangDetect,
-                Feature::UseDeps,
-                Feature::SrcUriRenames,
-            ],
-            &[],
-        )
+        .add_features([
+            Feature::Blockers,
+            Feature::DomanLangDetect,
+            Feature::UseDeps,
+            Feature::SrcUriRenames,
+        ])
         .update_phases(&[
             SrcPrepare(PHASE_STUB),
             SrcCompile(eapi2::src_compile),
@@ -502,16 +510,14 @@ pub static EAPI3: Lazy<Eapi> =
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("4", Some(&EAPI3))
-        .update_features(
-            &[
-                Feature::DodocRecursive,
-                Feature::DomanLangOverride,
-                Feature::RequiredUse,
-                Feature::UseConfArg,
-                Feature::UseDepDefaults,
-            ],
-            &[Feature::RdependDefault],
-        )
+        .add_features([
+            Feature::DodocRecursive,
+            Feature::DomanLangOverride,
+            Feature::RequiredUse,
+            Feature::UseConfArg,
+            Feature::UseDepDefaults,
+        ])
+        .remove_features([Feature::RdependDefault])
         .update_phases(&[PkgPretend(PHASE_STUB), SrcInstall(eapi4::src_install)])
         .update_incremental_keys(&[RequiredUse])
         .update_metadata_keys(&[RequiredUse])
@@ -520,31 +526,25 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("5", Some(&EAPI4))
-        .update_features(
-            &[
-                Feature::EbuildPhaseFunc,
-                Feature::NewSupportsStdin,
-                Feature::ParallelTests,
-                Feature::RequiredUseOneOf,
-                Feature::SlotOps,
-                Feature::Subslots,
-            ],
-            &[],
-        )
+        .add_features([
+            Feature::EbuildPhaseFunc,
+            Feature::NewSupportsStdin,
+            Feature::ParallelTests,
+            Feature::RequiredUseOneOf,
+            Feature::SlotOps,
+            Feature::Subslots,
+        ])
         .update_econf(&[("--disable-silent-rules", None, None)])
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("6", Some(&EAPI5))
-        .update_features(
-            &[
-                Feature::NonfatalDie,
-                Feature::GlobalFailglob,
-                Feature::UnpackExtendedPath,
-                Feature::UnpackCaseInsensitive,
-            ],
-            &[],
-        )
+        .add_features([
+            Feature::NonfatalDie,
+            Feature::GlobalFailglob,
+            Feature::UnpackExtendedPath,
+            Feature::UnpackCaseInsensitive,
+        ])
         .update_phases(&[SrcPrepare(eapi6::src_prepare), SrcInstall(eapi6::src_install)])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
@@ -555,7 +555,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
-        .update_features(&[], &[Feature::ExportDesttree, Feature::ExportInsdesttree])
+        .remove_features([Feature::ExportDesttree, Feature::ExportInsdesttree])
         .update_dep_keys(&[Bdepend])
         .update_incremental_keys(&[Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
@@ -563,15 +563,12 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("8", Some(&EAPI7))
-        .update_features(
-            &[
-                Feature::ConsistentFileOpts,
-                Feature::DosymRelative,
-                Feature::SrcUriUnrestrict,
-                Feature::UsevTwoArgs,
-            ],
-            &[],
-        )
+        .add_features([
+            Feature::ConsistentFileOpts,
+            Feature::DosymRelative,
+            Feature::SrcUriUnrestrict,
+            Feature::UsevTwoArgs,
+        ])
         .update_dep_keys(&[Idepend])
         .update_incremental_keys(&[Idepend, Properties, Restrict])
         .update_econf(&[
@@ -585,9 +582,8 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI_LATEST: Lazy<Eapi> = Lazy::new(|| EAPI8.clone());
 
 /// The latest EAPI with extensions on top.
-pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::new("pkgcraft", Some(&EAPI_LATEST)).update_features(&[Feature::RepoIds], &[])
-});
+pub static EAPI_PKGCRAFT: Lazy<Eapi> =
+    Lazy::new(|| Eapi::new("pkgcraft", Some(&EAPI_LATEST)).add_features([Feature::RepoIds]));
 
 /// Ordered mapping of official EAPI identifiers to instances.
 pub static EAPIS_OFFICIAL: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
