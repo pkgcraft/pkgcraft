@@ -1,4 +1,6 @@
 use std::collections::HashSet;
+use std::fmt;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
@@ -7,7 +9,7 @@ use scallop::{Error, Result};
 use walkdir::DirEntry;
 
 use crate::macros::build_from_paths;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::{write_stderr, BUILD_DATA};
 
 use super::make_builtin;
 
@@ -21,7 +23,7 @@ struct Options {
     #[clap(short = 'V')]
     verbose: bool,
     #[clap(short = 'A')]
-    extra_allowed_file_exts: Vec<String>,
+    extra_file_exts: Vec<String>,
     #[clap(short = 'a', default_value = "css,gif,htm,html,jpeg,jpg,js,png")]
     allowed_file_exts: Vec<String>,
     #[clap(short = 'f')]
@@ -32,6 +34,38 @@ struct Options {
     doc_prefix: Option<String>,
     // file targets
     targets: Vec<String>,
+}
+
+impl fmt::Display for Options {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let csv_or_none = |val: &[String]| -> String {
+            match val.is_empty() {
+                true => "none".to_string(),
+                false => val.join(","),
+            }
+        };
+
+        let s = indoc::formatdoc! {r#"
+            dohtml:
+              recursive: {}
+              verbose: {}
+              extra file exts: {}
+              allowed file exts: {}
+              allowed files: {}
+              excluded dirs: {}
+              doc prefix: {}
+        "#,
+        self.recursive,
+        self.verbose,
+        csv_or_none(&self.extra_file_exts),
+        csv_or_none(&self.allowed_file_exts),
+        csv_or_none(&self.allowed_files),
+        csv_or_none(&self.excluded_dirs),
+        self.doc_prefix.as_deref().unwrap_or("none"),
+        };
+
+        write!(f, "{s}")
+    }
 }
 
 // Expand a vector of command-separated strings into a vector of values.
@@ -53,16 +87,18 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
+    if opts.verbose {
+        write_stderr!("{opts}");
+    }
+
     let mut allowed_file_exts: HashSet<String> =
         expand_csv(opts.allowed_file_exts).into_iter().collect();
-    allowed_file_exts.extend(expand_csv(opts.extra_allowed_file_exts));
+    allowed_file_exts.extend(expand_csv(opts.extra_file_exts));
     let excluded_dirs: HashSet<PathBuf> = expand_csv(opts.excluded_dirs)
         .iter()
         .map(PathBuf::from)
         .collect();
     let allowed_files: HashSet<String> = expand_csv(opts.allowed_files).into_iter().collect();
-
-    // TODO: output info if verbose option is enabled
 
     // determine if a file is allowed
     let allowed_file = |path: &Path| -> bool {
@@ -128,7 +164,7 @@ mod tests {
 
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::{assert_stderr, BUILD_DATA};
 
     use super::super::docinto::run as docinto;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -148,6 +184,41 @@ mod tests {
         fs::create_dir("dir").unwrap();
         let r = dohtml(&["dir"]);
         assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+    }
+
+    #[test]
+    fn verbose_output() {
+        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        let _file_tree = FileTree::new();
+        fs::File::create("pkgcraft.html").unwrap();
+
+        // defaults
+        dohtml(&["-V", "pkgcraft.html"]).unwrap();
+        let s = indoc::formatdoc! {r#"
+            dohtml:
+              recursive: false
+              verbose: true
+              extra file exts: none
+              allowed file exts: css,gif,htm,html,jpeg,jpg,js,png
+              allowed files: none
+              excluded dirs: none
+              doc prefix: none
+        "#};
+        assert_stderr!(s);
+
+        // extra options
+        dohtml(&["-V", "-A", "svg,tiff", "-p", "docs", "pkgcraft.html"]).unwrap();
+        let s = indoc::formatdoc! {r#"
+            dohtml:
+              recursive: false
+              verbose: true
+              extra file exts: svg,tiff
+              allowed file exts: css,gif,htm,html,jpeg,jpg,js,png
+              allowed files: none
+              excluded dirs: none
+              doc prefix: docs
+        "#};
+        assert_stderr!(s);
     }
 
     #[test]
