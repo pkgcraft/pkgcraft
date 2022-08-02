@@ -393,8 +393,7 @@ impl Eapi {
     }
 
     fn enable_archives(mut self, types: &[&str]) -> Self {
-        self.archives
-            .extend(types.iter().map(|s| s.to_string()));
+        self.archives.extend(types.iter().map(|s| s.to_string()));
         self
     }
 
