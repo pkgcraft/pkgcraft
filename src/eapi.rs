@@ -401,10 +401,15 @@ impl Eapi {
         self
     }
 
-    fn update_archives(mut self, add: &[&str], remove: &[&str]) -> Self {
-        self.archives.extend(add.iter().map(|s| s.to_string()));
-        for x in remove {
-            if !self.archives.remove(*x) {
+    fn add_archive_types<'a, I: IntoIterator<Item = &'a str>>(mut self, types: I) -> Self {
+        self.archives
+            .extend(types.into_iter().map(|s| s.to_string()));
+        self
+    }
+
+    fn remove_archive_types<'a, I: IntoIterator<Item = &'a str>>(mut self, types: I) -> Self {
+        for x in types.into_iter() {
+            if !self.archives.remove(x) {
                 panic!("disabling unknown archive format: {x:?}");
             }
         }
@@ -474,14 +479,11 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             Restrict,
             SrcUri,
         ])
-        .update_archives(
-            &[
-                "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2",
-                "tar.bz", "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa",
-                "lha", "lzh", "a", "deb", "lzma", "tar.lzma",
-            ],
-            &[],
-        )
+        .add_archive_types([
+            "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2", "tar.bz",
+            "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh", "a",
+            "deb", "lzma", "tar.lzma",
+        ])
 });
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
@@ -506,7 +508,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI3: Lazy<Eapi> =
-    Lazy::new(|| Eapi::new("3", Some(&EAPI2)).update_archives(&["tar.xz", "xz"], &[]));
+    Lazy::new(|| Eapi::new("3", Some(&EAPI2)).add_archive_types(["tar.xz", "xz"]));
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("4", Some(&EAPI3))
@@ -550,7 +552,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
         ])
-        .update_archives(&["txz"], &[])
+        .add_archive_types(["txz"])
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
@@ -575,7 +577,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
             ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
             ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
         ])
-        .update_archives(&[], &["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
+        .remove_archive_types(["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
 
 /// Reference to the latest registered EAPI.
