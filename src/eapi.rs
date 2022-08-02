@@ -337,7 +337,7 @@ impl Eapi {
         &self.econf_options
     }
 
-    fn add_features<I>(mut self, features: I) -> Self
+    fn enable_features<I>(mut self, features: I) -> Self
     where
         I: IntoIterator<Item = Feature>,
     {
@@ -349,7 +349,7 @@ impl Eapi {
         self
     }
 
-    fn remove_features<I>(mut self, features: I) -> Self
+    fn disable_features<I>(mut self, features: I) -> Self
     where
         I: IntoIterator<Item = Feature>,
     {
@@ -401,13 +401,13 @@ impl Eapi {
         self
     }
 
-    fn add_archive_types<'a, I: IntoIterator<Item = &'a str>>(mut self, types: I) -> Self {
+    fn enable_archives<'a, I: IntoIterator<Item = &'a str>>(mut self, types: I) -> Self {
         self.archives
             .extend(types.into_iter().map(|s| s.to_string()));
         self
     }
 
-    fn remove_archive_types<'a, I: IntoIterator<Item = &'a str>>(mut self, types: I) -> Self {
+    fn disable_archives<'a, I: IntoIterator<Item = &'a str>>(mut self, types: I) -> Self {
         for x in types.into_iter() {
             if !self.archives.remove(x) {
                 panic!("disabling unknown archive format: {x:?}");
@@ -443,7 +443,7 @@ pub fn get_eapi<S: AsRef<str>>(id: S) -> crate::Result<&'static Eapi> {
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("0", None)
-        .add_features([
+        .enable_features([
             Feature::RdependDefault,
             Feature::ExportDesttree,
             Feature::ExportInsdesttree,
@@ -479,7 +479,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             Restrict,
             SrcUri,
         ])
-        .add_archive_types([
+        .enable_archives([
             "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2", "tar.bz",
             "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh", "a",
             "deb", "lzma", "tar.lzma",
@@ -488,13 +488,13 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("1", Some(&EAPI0))
-        .add_features([Feature::IuseDefaults, Feature::SlotDeps])
+        .enable_features([Feature::IuseDefaults, Feature::SlotDeps])
         .update_phases(&[SrcCompile(eapi1::src_compile)])
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("2", Some(&EAPI1))
-        .add_features([
+        .enable_features([
             Feature::Blockers,
             Feature::DomanLangDetect,
             Feature::UseDeps,
@@ -508,18 +508,18 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI3: Lazy<Eapi> =
-    Lazy::new(|| Eapi::new("3", Some(&EAPI2)).add_archive_types(["tar.xz", "xz"]));
+    Lazy::new(|| Eapi::new("3", Some(&EAPI2)).enable_archives(["tar.xz", "xz"]));
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("4", Some(&EAPI3))
-        .add_features([
+        .enable_features([
             Feature::DodocRecursive,
             Feature::DomanLangOverride,
             Feature::RequiredUse,
             Feature::UseConfArg,
             Feature::UseDepDefaults,
         ])
-        .remove_features([Feature::RdependDefault])
+        .disable_features([Feature::RdependDefault])
         .update_phases(&[PkgPretend(PHASE_STUB), SrcInstall(eapi4::src_install)])
         .update_incremental_keys(&[RequiredUse])
         .update_metadata_keys(&[RequiredUse])
@@ -528,7 +528,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("5", Some(&EAPI4))
-        .add_features([
+        .enable_features([
             Feature::EbuildPhaseFunc,
             Feature::NewSupportsStdin,
             Feature::ParallelTests,
@@ -541,7 +541,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("6", Some(&EAPI5))
-        .add_features([
+        .enable_features([
             Feature::NonfatalDie,
             Feature::GlobalFailglob,
             Feature::UnpackExtendedPath,
@@ -552,12 +552,12 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
         ])
-        .add_archive_types(["txz"])
+        .enable_archives(["txz"])
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
-        .remove_features([Feature::ExportDesttree, Feature::ExportInsdesttree])
+        .disable_features([Feature::ExportDesttree, Feature::ExportInsdesttree])
         .update_dep_keys(&[Bdepend])
         .update_incremental_keys(&[Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
@@ -565,7 +565,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("8", Some(&EAPI7))
-        .add_features([
+        .enable_features([
             Feature::ConsistentFileOpts,
             Feature::DosymRelative,
             Feature::SrcUriUnrestrict,
@@ -577,7 +577,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
             ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
             ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
         ])
-        .remove_archive_types(["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
+        .disable_archives(["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
 
 /// Reference to the latest registered EAPI.
@@ -585,7 +585,7 @@ pub static EAPI_LATEST: Lazy<Eapi> = Lazy::new(|| EAPI8.clone());
 
 /// The latest EAPI with extensions on top.
 pub static EAPI_PKGCRAFT: Lazy<Eapi> =
-    Lazy::new(|| Eapi::new("pkgcraft", Some(&EAPI_LATEST)).add_features([Feature::RepoIds]));
+    Lazy::new(|| Eapi::new("pkgcraft", Some(&EAPI_LATEST)).enable_features([Feature::RepoIds]));
 
 /// Ordered mapping of official EAPI identifiers to instances.
 pub static EAPIS_OFFICIAL: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
