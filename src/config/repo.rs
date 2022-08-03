@@ -244,13 +244,13 @@ impl Config {
 
     // TODO: add concurrent syncing support with output progress
     pub fn sync<S: AsRef<str>>(&self, repos: Vec<S>) -> crate::Result<()> {
-        let repos: Vec<&str> = match &repos {
+        let repos: Vec<_> = match &repos {
             names if !names.is_empty() => names.iter().map(|s| s.as_ref()).collect(),
             // sync all configured repos if none were passed
             _ => self.repos.keys().map(|s| s.as_str()).collect(),
         };
 
-        let mut failed: Vec<(&str, Error)> = Vec::new();
+        let mut failed = Vec::<(&str, Error)>::new();
         for name in repos {
             if let Some(repo) = self.repos.get(name) {
                 if let Err(e) = repo.sync() {

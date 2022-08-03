@@ -206,7 +206,7 @@ mod tests {
             "cat/pkg::repo",
             "cat/pkg::repo-ed",
         ];
-        let atoms: Vec<Atom> = atom_strs
+        let atoms: Vec<_> = atom_strs
             .iter()
             .map(|s| Atom::from_str(s).unwrap())
             .collect();

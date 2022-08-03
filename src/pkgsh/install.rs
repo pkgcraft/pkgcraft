@@ -74,7 +74,7 @@ impl Install {
         I: IntoIterator<Item = T>,
         T: Into<String>,
     {
-        let options: Vec<String> = options.into_iter().map(|s| s.into()).collect();
+        let options: Vec<_> = options.into_iter().map(|s| s.into()).collect();
         let mut to_parse = vec!["install"];
         to_parse.extend(options.iter().map(|s| s.as_str()));
 
@@ -347,7 +347,7 @@ impl Install {
         }
 
         // group and install sets of files by destination to decrease `install` calls
-        let files_to_install: Vec<(&Path, &Path)> = files
+        let files_to_install: Vec<_> = files
             .iter()
             .map(|(p, q)| (p.as_path(), q.as_path()))
             .sorted_by_key(|x| x.1)
