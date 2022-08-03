@@ -211,10 +211,10 @@ mod tests {
             .map(|s| Atom::from_str(s).unwrap())
             .collect();
 
-        let filter = |r: Restrict, atoms: Vec<Atom>| -> Vec<String> {
+        let filter = |r: Restrict, atoms: &[Atom]| -> Vec<String> {
             atoms
                 .into_iter()
-                .filter(|a| r.matches(a))
+                .filter(|&a| r.matches(a))
                 .map(|a| a.to_string())
                 .collect()
         };
@@ -235,7 +235,7 @@ mod tests {
             ("pkg*", &atom_strs[..]),
         ] {
             let r = parse::dep(s).unwrap();
-            assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
+            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
 
         // package and version
@@ -246,7 +246,7 @@ mod tests {
             ("<pkg-3", vec!["=cat/pkg-0-r0:0/0.+", "=cat/pkg-1", ">=cat/pkg-2"]),
         ] {
             let r = parse::dep(s).unwrap();
-            assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
+            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
 
         // slot
@@ -259,7 +259,7 @@ mod tests {
             ("<pkg-1:*", vec!["=cat/pkg-0-r0:0/0.+"]),
         ] {
             let r = parse::dep(s).unwrap();
-            assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
+            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
 
         // subslot
@@ -271,7 +271,7 @@ mod tests {
             ("*:*/*.+", vec!["=cat/pkg-0-r0:0/0.+"]),
         ] {
             let r = parse::dep(s).unwrap();
-            assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
+            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
 
         // repo
@@ -283,7 +283,7 @@ mod tests {
             ("*::repo", vec!["cat/pkg::repo"]),
         ] {
             let r = parse::dep(s).unwrap();
-            assert_eq!(filter(r, atoms.clone()), expected, "{s:?} failed");
+            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
     }
 }
