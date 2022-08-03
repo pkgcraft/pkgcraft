@@ -233,7 +233,7 @@ impl BuildData {
 
     #[cfg(test)]
     pub(crate) fn reset() {
-        scallop::Shell::reset();
+        scallop::shell::Shell::reset();
         BUILD_DATA.with(|d| d.replace(BuildData::new()));
     }
 
@@ -270,7 +270,7 @@ thread_local! {
 #[ctor::ctor]
 fn initialize() {
     use crate::pkgsh::builtins::ALL_BUILTINS;
-    scallop::Shell::init();
+    scallop::shell::Shell::init();
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
