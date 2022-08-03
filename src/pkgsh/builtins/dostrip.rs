@@ -22,15 +22,35 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     })
 }
 
-const USAGE: &str = "dostrip path/to/strip";
+const USAGE: &str = "dostrip /path/to/strip";
 make_builtin!("dostrip", dostrip_builtin, run, LONG_DOC, USAGE, &[("7-", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {
-    use super::super::builtin_scope_tests;
+    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::run as dostrip;
     use super::*;
 
     builtin_scope_tests!(USAGE);
 
-    // TODO: add usage tests
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(dostrip, &[0]);
+    }
+
+    #[test]
+    fn test_include() {
+        dostrip(&["/test/path"]).unwrap();
+        BUILD_DATA.with(|d| {
+            assert!(d.borrow().strip_include.contains("/test/path"));
+        });
+    }
+
+    #[test]
+    fn test_exclude() {
+        dostrip(&["-x", "/test/path"]).unwrap();
+        BUILD_DATA.with(|d| {
+            assert!(d.borrow().strip_exclude.contains("/test/path"));
+        });
+    }
 }

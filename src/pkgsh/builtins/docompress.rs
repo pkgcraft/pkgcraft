@@ -38,5 +38,19 @@ mod tests {
         assert_invalid_args(docompress, &[0]);
     }
 
-    // TODO: add usage tests
+    #[test]
+    fn test_include() {
+        docompress(&["/test/path"]).unwrap();
+        BUILD_DATA.with(|d| {
+            assert!(d.borrow().compress_include.contains("/test/path"));
+        });
+    }
+
+    #[test]
+    fn test_exclude() {
+        docompress(&["-x", "/test/path"]).unwrap();
+        BUILD_DATA.with(|d| {
+            assert!(d.borrow().compress_exclude.contains("/test/path"));
+        });
+    }
 }
