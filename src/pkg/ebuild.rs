@@ -12,10 +12,11 @@ use scallop::variables::string_value;
 use tracing::warn;
 
 use super::{make_pkg_traits, Package};
+use crate::config::Config;
 use crate::eapi::Key::*;
 use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
-use crate::pkgsh::source_ebuild;
+use crate::pkgsh::{source_ebuild, BUILD_DATA};
 use crate::repo::{ebuild::Repo, Repository};
 use crate::{atom, eapi, pkg, restrict, Error};
 
@@ -64,7 +65,17 @@ impl<'a> Metadata<'a> {
     }
 
     /// Source ebuild to determine metadata.
-    fn source(path: &Utf8Path, eapi: &'static eapi::Eapi) -> crate::Result<Self> {
+    fn source(path: &Utf8Path, eapi: &'static eapi::Eapi, repo: &Repo) -> crate::Result<Self> {
+        // TODO: rework BuildData handling to drop this hack required by builtins like `inherit`
+        let config = Config::current();
+        let r = config
+            .repos
+            .get(repo.id())
+            .expect("failed getting repo")
+            .as_ebuild()
+            .expect("unsupported repo type");
+        BUILD_DATA.with(|d| d.borrow_mut().repo = r.clone());
+
         // TODO: run sourcing via an external process pool returning the requested variables
         source_ebuild(path)?;
         let mut data = HashMap::new();
@@ -200,7 +211,7 @@ impl<'a> Pkg<'a> {
         // TODO: compare ebuild mtime vs cache mtime
         let data = match Metadata::load(&atom, eapi, repo) {
             Some(data) => data,
-            None => Metadata::source(path, eapi)?,
+            None => Metadata::source(path, eapi, repo)?,
         };
         Ok(Pkg {
             path: path.to_path_buf(),

@@ -2,9 +2,7 @@ use scallop::builtins::{builtin_level, ExecStatus};
 use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error, Result};
 
-use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
-use crate::repo::Repository;
 
 use super::{make_builtin, Scope, ECLASS, GLOBAL};
 
@@ -44,8 +42,13 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             }
 
             eclass_var.bind(&eclass, None, None)?;
-            let path =
-                build_from_paths!(d.borrow().repo.path(), "eclass", format!("{eclass}.eclass"));
+            let path = d
+                .borrow()
+                .repo
+                .eclasses()
+                .get(&eclass)
+                .map(|p| p.to_string())
+                .ok_or_else(|| Error::Base(format!("unknown eclass: {eclass}")))?;
             if let Err(e) = source::file(&path) {
                 let msg = format!("failed loading eclass: {eclass}: {e}");
                 return Err(Error::Base(msg));
@@ -105,7 +108,7 @@ mod tests {
         BUILD_DATA.with(|d| {
             d.borrow_mut().repo = repo.clone();
             let r = inherit(&["nonexistent"]);
-            assert_err_re!(r, r"^failed loading eclass: nonexistent");
+            assert_err_re!(r, r"^unknown eclass: nonexistent");
         });
     }
 
