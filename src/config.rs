@@ -173,6 +173,7 @@ impl Config {
 
         // copy original config that is reverted to if an error occurs
         let orig_config = Config::current().as_ref().clone();
+        let mut repos = vec![];
 
         for f in files {
             Ini::load_from_file(&f)
@@ -194,17 +195,22 @@ impl Config {
 
                         let r = self.repos.add_path(name, priority, path)?;
                         self.repos.insert(name, r.clone(), true);
-                        Config::make_current(self.clone());
+                        repos.push(r);
                     }
                     Ok(())
                 })?;
         }
 
-        self.repos.finalize().map_err(|e| {
-            // revert to previous config without any repos from repos.conf files
-            Config::make_current(orig_config);
-            e
-        })
+        Config::make_current(self.clone());
+        for repo in repos {
+            if let Err(e) = repo.finalize() {
+                // revert to previous config without any repos from repos.conf files
+                Config::make_current(orig_config);
+                return Err(e);
+            }
+        }
+
+        Ok(())
     }
 
     /// Create a new temporary ebuild repo.
