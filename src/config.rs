@@ -1,8 +1,10 @@
 use std::env;
 use std::fs;
+use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
+use ini::Ini;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
@@ -156,6 +158,59 @@ impl Config {
         self.repos.finalize()?;
         Config::make_current(self.clone());
         Ok(())
+    }
+
+    /// Load repos from a given path to a portage-compatible repos.conf directory or file.
+    pub fn load_repos_conf<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<()> {
+        let path = path.as_ref();
+        let files: Vec<_> = match path.read_dir() {
+            Ok(entries) => Ok(entries.filter_map(|d| d.ok()).map(|d| d.path()).collect()),
+            // TODO: switch to `e.kind() == ErrorKind::NotADirectory` on rust stabilization
+            // https://github.com/rust-lang/rust/issues/86442
+            Err(e) if e.raw_os_error() == Some(20) => Ok(vec![PathBuf::from(path)]),
+            Err(e) => Err(Error::IO(format!("failed reading repos.conf: {path:?}: {e}"))),
+        }?;
+
+        // copy original config that is reverted to if an error occurs
+        let orig_config = Config::current().as_ref().clone();
+
+        for f in files {
+            Ini::load_from_file(&f)
+                .map_err(|e| Error::InvalidValue(format!("invalid repos.conf file: {f:?}: {e}")))
+                .and_then(|ini| {
+                    for s in ini.sections().filter(|&s| s != Some("DEFAULT")) {
+                        // pull supported fields from config
+                        let name = s.unwrap();
+                        let priority = ini
+                            .get_from(s, "priority")
+                            .unwrap_or("0")
+                            .parse()
+                            .unwrap_or(0);
+                        let path = ini.get_from(s, "location").ok_or_else(|| {
+                            Error::InvalidValue(format!(
+                                "invalid repos.conf file: {f:?}: missing location field for {name:?} repo"
+                            ))
+                        })?;
+
+                        let r = self.repos.add_path(name, priority, path)?;
+                        self.repos.insert(name, r.clone(), true);
+                        Config::make_current(self.clone());
+                    }
+                    Ok(())
+                })?;
+        }
+
+        match self.repos.finalize() {
+            Ok(_) => {
+                Config::make_current(self.clone());
+                Ok(())
+            }
+            e => {
+                // revert to previous config without any repos from repos.conf files
+                Config::make_current(orig_config);
+                e
+            }
+        }
     }
 
     /// Create a new temporary ebuild repo.
