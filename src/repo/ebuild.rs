@@ -235,6 +235,7 @@ pub struct Repo {
     name: String,
     masters: OnceCell<Vec<Weak<Repo>>>,
     trees: OnceCell<Vec<Weak<Repo>>>,
+    eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
     manifest_cache: OnceCell<Cache<Manifest>>,
 }
@@ -366,6 +367,24 @@ impl Repo {
             .iter()
             .map(|p| p.upgrade().expect("unconfigured repo"))
             .collect()
+    }
+
+    pub fn eclasses(&self) -> &HashMap<String, Utf8PathBuf> {
+        self.eclasses.get_or_init(|| {
+            self.trees()
+                .iter()
+                .filter_map(|repo| repo.path().join("eclass").read_dir_utf8().ok())
+                .flatten()
+                .filter_map(|e| e.ok())
+                .filter_map(|e| {
+                    let path = e.path();
+                    match (path.file_stem(), path.extension()) {
+                        (Some(f), Some("eclass")) => Some((f.to_string(), path.to_path_buf())),
+                        _ => None,
+                    }
+                })
+                .collect()
+        })
     }
 
     pub fn category_dirs(&self) -> Vec<String> {
