@@ -161,7 +161,7 @@ impl Config {
     }
 
     /// Load repos from a given path to a portage-compatible repos.conf directory or file.
-    pub fn load_repos_conf<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<()> {
+    pub fn load_repos_conf<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Vec<Repo>> {
         let path = path.as_ref();
         let files: Vec<_> = match path.read_dir() {
             Ok(entries) => Ok(entries.filter_map(|d| d.ok()).map(|d| d.path()).collect()),
@@ -202,7 +202,7 @@ impl Config {
         }
 
         Config::make_current(self.clone());
-        for repo in repos {
+        for repo in &repos {
             if let Err(e) = repo.finalize() {
                 // revert to previous config without any repos from repos.conf files
                 Config::make_current(orig_config);
@@ -210,7 +210,7 @@ impl Config {
             }
         }
 
-        Ok(())
+        Ok(repos)
     }
 
     /// Create a new temporary ebuild repo.
