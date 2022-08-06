@@ -312,12 +312,7 @@ impl Repo {
         let mut masters = vec![];
 
         for id in self.config.iter("masters") {
-            // match against configured repos, falling back to external repos
-            match config
-                .repos
-                .get(id)
-                .or_else(|| config.repos.externals.get(id))
-            {
+            match config.repos.get(id) {
                 Some(repo::Repo::Ebuild(r)) => masters.push(Arc::downgrade(r)),
                 _ => nonexistent.push(id),
             }

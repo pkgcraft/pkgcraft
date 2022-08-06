@@ -69,7 +69,7 @@ pub struct Config {
     #[serde(skip)]
     repos: IndexMap<String, Repo>,
     #[serde(skip)]
-    pub(crate) externals: HashMap<String, Repo>,
+    externals: HashMap<String, Repo>,
 }
 
 impl Config {
@@ -276,8 +276,9 @@ impl Config {
         self.into_iter()
     }
 
-    pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&Repo> {
-        self.repos.get(key.as_ref())
+    /// Get a configured repo, falling back to external repos on nonexistence.
+    pub fn get(&self, key: &str) -> Option<&Repo> {
+        self.repos.get(key).or_else(|| self.externals.get(key))
     }
 
     pub(super) fn insert(&mut self, id: &str, repo: Repo, external: bool) {
