@@ -200,17 +200,11 @@ impl Config {
                 })?;
         }
 
-        match self.repos.finalize() {
-            Ok(_) => {
-                Config::make_current(self.clone());
-                Ok(())
-            }
-            e => {
-                // revert to previous config without any repos from repos.conf files
-                Config::make_current(orig_config);
-                e
-            }
-        }
+        self.repos.finalize().map_err(|e| {
+            // revert to previous config without any repos from repos.conf files
+            Config::make_current(orig_config);
+            e
+        })
     }
 
     /// Create a new temporary ebuild repo.
