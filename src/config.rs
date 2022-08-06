@@ -168,7 +168,7 @@ impl Config {
             // TODO: switch to `e.kind() == ErrorKind::NotADirectory` on rust stabilization
             // https://github.com/rust-lang/rust/issues/86442
             Err(e) if e.raw_os_error() == Some(20) => Ok(vec![PathBuf::from(path)]),
-            Err(e) => Err(Error::IO(format!("failed reading repos.conf: {path:?}: {e}"))),
+            Err(e) => Err(Error::Config(format!("failed reading repos.conf: {path:?}: {e}"))),
         }?;
 
         // copy original config that is reverted to if an error occurs
@@ -177,7 +177,7 @@ impl Config {
 
         for f in files {
             Ini::load_from_file(&f)
-                .map_err(|e| Error::InvalidValue(format!("invalid repos.conf file: {f:?}: {e}")))
+                .map_err(|e| Error::Config(format!("invalid repos.conf file: {f:?}: {e}")))
                 .and_then(|ini| {
                     for s in ini.sections().filter(|&s| s != Some("DEFAULT")) {
                         // pull supported fields from config
@@ -188,7 +188,7 @@ impl Config {
                             .parse()
                             .unwrap_or(0);
                         let path = ini.get_from(s, "location").ok_or_else(|| {
-                            Error::InvalidValue(format!(
+                            Error::Config(format!(
                                 "invalid repos.conf file: {f:?}: missing location field for {name:?} repo"
                             ))
                         })?;
