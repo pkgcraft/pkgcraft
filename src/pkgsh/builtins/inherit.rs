@@ -250,10 +250,7 @@ mod tests {
             [[ -n ${INHERITED} ]] || die "\$INHERITED should be defined"
         "#};
         let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            Pkg::new(&path, &repo).unwrap();
-        });
+        Pkg::new(&path, &repo).unwrap();
     }
 
     #[test]

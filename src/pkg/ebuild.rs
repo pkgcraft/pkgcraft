@@ -382,7 +382,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkg::Env::*;
-    use crate::pkgsh::{BuildData, BUILD_DATA};
+    use crate::pkgsh::BuildData;
     use crate::test::eq_sorted;
 
     use super::*;
@@ -618,11 +618,8 @@ mod tests {
             SLOT=0
         "#};
         let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            let pkg = Pkg::new(&path, &repo).unwrap();
-            assert!(eq_sorted(pkg.iuse(), &["use1"]));
-        });
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.iuse(), &["use1"]));
 
         // inherited from multiple eclasses
         BuildData::reset();
@@ -632,11 +629,8 @@ mod tests {
             SLOT=0
         "#};
         let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            let pkg = Pkg::new(&path, &repo).unwrap();
-            assert!(eq_sorted(pkg.iuse(), &["use1", "use2"]));
-        });
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.iuse(), &["use1", "use2"]));
 
         // accumulated from single eclass
         BuildData::reset();
@@ -647,11 +641,8 @@ mod tests {
             SLOT=0
         "#};
         let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            let pkg = Pkg::new(&path, &repo).unwrap();
-            assert!(eq_sorted(pkg.iuse(), &["a", "use1"]));
-        });
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.iuse(), &["a", "use1"]));
 
         // accumulated from multiple eclasses
         BuildData::reset();
@@ -662,11 +653,8 @@ mod tests {
             SLOT=0
         "#};
         let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            let pkg = Pkg::new(&path, &repo).unwrap();
-            assert!(eq_sorted(pkg.iuse(), &["a", "use1", "use2"]));
-        });
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.iuse(), &["a", "use1", "use2"]));
     }
 
     #[test]
