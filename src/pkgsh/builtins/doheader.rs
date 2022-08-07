@@ -14,9 +14,9 @@ const LONG_DOC: &str = "Install header files into /usr/include/.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let (recursive, args) = match args.first() {
-        None => Err(Error::Base("requires 1 or more args, got 0".into())),
         Some(&"-r") => Ok((true, &args[1..])),
-        _ => Ok((false, args)),
+        Some(_) => Ok((false, args)),
+        None => Err(Error::Base("requires 1 or more args, got 0".into())),
     }?;
 
     BUILD_DATA.with(|d| -> Result<ExecStatus> {

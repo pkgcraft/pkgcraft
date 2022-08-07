@@ -45,13 +45,10 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (recursive, args) = match args.first() {
-            Some(&"-r") if eapi.has(Feature::DodocRecursive) => (true, &args[1..]),
-            _ => (false, args),
-        };
-
-        if args.is_empty() {
-            return Err(Error::Base("requires 1 or more targets, got 0".into()));
-        }
+            Some(&"-r") if eapi.has(Feature::DodocRecursive) => Ok((true, &args[1..])),
+            Some(_) => Ok((false, args)),
+            None => Err(Error::Base("requires 1 or more targets, got 0".into())),
+        }?;
 
         install_docs(recursive, args.iter().map(Path::new))
     })
