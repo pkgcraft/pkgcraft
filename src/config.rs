@@ -179,9 +179,9 @@ impl Config {
             Ini::load_from_file(&f)
                 .map_err(|e| Error::Config(format!("invalid repos.conf file: {f:?}: {e}")))
                 .and_then(|ini| {
-                    for s in ini.sections().filter(|&s| s != Some("DEFAULT")) {
+                    for s in ini.sections().filter(|&s| s.is_some() && s != Some("DEFAULT")) {
                         // pull supported fields from config
-                        let name = s.unwrap();
+                        let name = s.expect("repo name missing");
                         let priority = ini
                             .get_from(s, "priority")
                             .unwrap_or("0")
