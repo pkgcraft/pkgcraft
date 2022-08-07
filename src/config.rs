@@ -197,23 +197,28 @@ impl Config {
                         })?;
 
                         let r = self.repos.add_path(name, priority, path)?;
-                        self.repos.insert(name, r.clone(), true);
-                        repos.push(r);
+                        repos.push((name.to_string(), r));
                     }
                     Ok(())
                 })?;
         }
 
-        Config::make_current(self.clone());
-        for repo in &repos {
-            if let Err(e) = repo.finalize() {
-                // revert to previous config without any repos from repos.conf files
-                Config::make_current(orig_config);
-                return Err(e);
+        if !repos.is_empty() {
+            // add repos to config
+            self.repos.extend(&repos, true);
+            Config::make_current(self.clone());
+
+            // verify new repos
+            for (_name, repo) in &repos {
+                if let Err(e) = repo.finalize() {
+                    // revert to previous config without any repos from repos.conf files
+                    Config::make_current(orig_config);
+                    return Err(e);
+                }
             }
         }
 
-        Ok(repos)
+        Ok(repos.into_iter().map(|(_, r)| r).collect())
     }
 
     /// Create a new temporary ebuild repo.
