@@ -179,15 +179,18 @@ impl Config {
             Ini::load_from_file(&f)
                 .map_err(|e| Error::Config(format!("invalid repos.conf file: {f:?}: {e}")))
                 .and_then(|ini| {
-                    for s in ini.sections().filter(|&s| s.is_some() && s != Some("DEFAULT")) {
+                    for (name, settings) in ini.iter().filter_map(|(section, p)| {
+                        match section {
+                            Some(s) if s != "DEFAULT" => Some((s, p)),
+                            _ => None,
+                        }
+                    }) {
                         // pull supported fields from config
-                        let name = s.expect("repo name missing");
-                        let priority = ini
-                            .get_from(s, "priority")
+                        let priority = settings.get("priority")
                             .unwrap_or("0")
                             .parse()
                             .unwrap_or(0);
-                        let path = ini.get_from(s, "location").ok_or_else(|| {
+                        let path = settings.get("location").ok_or_else(|| {
                             Error::Config(format!(
                                 "invalid repos.conf file: {f:?}: missing location field for {name:?} repo"
                             ))
