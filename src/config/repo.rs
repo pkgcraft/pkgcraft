@@ -284,14 +284,20 @@ impl Config {
     }
 
     pub(super) fn insert(&mut self, id: &str, repo: Repo, external: bool) {
-        // populate external repo mapping for masters finalization
-        if external {
-            if let Some(r) = repo.as_ebuild() {
-                self.externals.insert(r.path().to_string(), repo.clone());
+        self.extend(&[(id, repo)], external)
+    }
+
+    pub(super) fn extend<S: ToString>(&mut self, repos: &[(S, Repo)], external: bool) {
+        for (id, repo) in repos {
+            // populate external repo mapping for masters finalization
+            if external {
+                if let Some(r) = repo.as_ebuild() {
+                    self.externals.insert(r.path().to_string(), repo.clone());
+                }
             }
+            self.repos.insert(id.to_string(), repo.clone());
         }
 
-        self.repos.insert(id.to_string(), repo);
         self.sort()
     }
 
