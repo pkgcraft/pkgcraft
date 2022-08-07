@@ -124,15 +124,17 @@ impl Config {
             }
         }
 
-        // sort repos by priority then by name
-        repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
-
-        Ok(Config {
+        let mut config = Config {
             config_dir,
             repo_dir,
             repos,
             ..Default::default()
-        })
+        };
+
+        // sort repos
+        config.sort();
+
+        Ok(config)
     }
 
     pub(super) fn finalize(&self) -> crate::Result<()> {
