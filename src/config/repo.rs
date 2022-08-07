@@ -293,7 +293,8 @@ impl Config {
         self.sort()
     }
 
-    pub(super) fn sort(&mut self) {
+    /// Sort repos by priority then by name.
+    fn sort(&mut self) {
         self.repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
     }
 }
