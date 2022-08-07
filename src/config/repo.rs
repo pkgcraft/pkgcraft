@@ -283,10 +283,12 @@ impl Config {
         self.repos.get(key).or_else(|| self.externals.get(key))
     }
 
+    /// Insert a single repo into the config.
     pub(super) fn insert(&mut self, id: &str, repo: Repo, external: bool) {
         self.extend(&[(id, repo)], external)
     }
 
+    /// Extend the config with multiple repos.
     pub(super) fn extend<S: ToString>(&mut self, repos: &[(S, Repo)], external: bool) {
         for (id, repo) in repos {
             // populate external repo mapping for masters finalization
