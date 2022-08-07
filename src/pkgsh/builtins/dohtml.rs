@@ -68,12 +68,6 @@ impl fmt::Display for Options {
     }
 }
 
-// Expand a vector of comma-separated strings into a vector of values.
-// TODO: replace with internal clap derive parsing?
-fn expand_csv(data: &[String]) -> Vec<&str> {
-    data.iter().flat_map(|s| s.split(',')).collect()
-}
-
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     let opts = Options::try_parse_from(&[&["dohtml"], args].concat())
@@ -87,14 +81,24 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         write_stderr!("{opts}");
     }
 
-    let mut allowed_file_exts: HashSet<_> =
-        expand_csv(&opts.allowed_file_exts).into_iter().collect();
-    allowed_file_exts.extend(expand_csv(&opts.extra_file_exts));
-    let excluded_dirs: HashSet<PathBuf> = expand_csv(&opts.excluded_dirs)
+    // TODO: replace csv expansion with clap arg parsing?
+    let mut allowed_file_exts: HashSet<_> = opts
+        .allowed_file_exts
         .iter()
+        .flat_map(|s| s.split(','))
+        .collect();
+    allowed_file_exts.extend(opts.extra_file_exts.iter().flat_map(|s| s.split(',')));
+    let excluded_dirs: HashSet<_> = opts
+        .excluded_dirs
+        .iter()
+        .flat_map(|s| s.split(','))
         .map(PathBuf::from)
         .collect();
-    let allowed_files: HashSet<_> = expand_csv(&opts.allowed_files).into_iter().collect();
+    let allowed_files: HashSet<_> = opts
+        .allowed_files
+        .iter()
+        .flat_map(|s| s.split(','))
+        .collect();
 
     // determine if a file is allowed
     let allowed_file = |path: &Path| -> bool {
