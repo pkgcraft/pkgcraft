@@ -344,6 +344,7 @@ impl Repo {
         &self.config
     }
 
+    /// Return the list of inherited repos.
     pub fn masters(&self) -> Vec<Arc<Repo>> {
         self.masters
             .get()
@@ -353,6 +354,7 @@ impl Repo {
             .collect()
     }
 
+    /// Return a repo's inheritance list including itself.
     pub fn trees(&self) -> Vec<Arc<Repo>> {
         self.trees
             .get_or_init(|| {
@@ -369,6 +371,7 @@ impl Repo {
             .collect()
     }
 
+    /// Return the mapping of inherited eclass names to file paths.
     pub fn eclasses(&self) -> &HashMap<String, Utf8PathBuf> {
         self.eclasses.get_or_init(|| {
             self.trees()
@@ -387,6 +390,7 @@ impl Repo {
         })
     }
 
+    /// Return a repo's category dirs from the filesystem.
     pub fn category_dirs(&self) -> Vec<String> {
         // filter out non-category dirs
         let filter =
@@ -415,6 +419,7 @@ impl Repo {
         v
     }
 
+    /// Return a repo's configured categories from the `profiles/categories` file.
     fn pms_categories(&self) -> Vec<String> {
         let mut cats = vec![];
         if let Ok(data) = fs::read_to_string(self.profiles_base.join("categories")) {
