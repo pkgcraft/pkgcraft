@@ -5,13 +5,13 @@ pub mod pkgdep;
 pub mod required_use;
 pub mod src_uri;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Uri {
     pub uri: String,
     pub rename: Option<String>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum DepSpec {
     Strings(Vec<String>),
     Atoms(Vec<Atom>),

@@ -125,10 +125,8 @@ impl Install {
         }
 
         // capture target value before it's prefixed
-        let failed = |e: io::Error| {
-            return Err(Error::Base(format!(
-                "failed creating link: {source:?} -> {target:?}: {e}"
-            )));
+        let failed = |e: io::Error| -> Error {
+            Error::Base(format!("failed creating link: {source:?} -> {target:?}: {e}"))
         };
 
         let target = self.prefix(target);
@@ -138,9 +136,9 @@ impl Install {
             match link(source, &target) {
                 Ok(_) => break,
                 Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-                    fs::remove_file(&target).or_else(failed)?
+                    fs::remove_file(&target).map_err(failed)?
                 }
-                Err(e) => return failed(e),
+                Err(e) => return Err(failed(e)),
             }
         }
 
