@@ -167,7 +167,7 @@ mod tests {
     }
 
     #[test]
-    fn failure() {
+    fn patch_failures() {
         let file_content: &str = indoc! {"
             1
         "};
@@ -197,16 +197,16 @@ mod tests {
     }
 
     #[test]
-    fn success() {
+    fn file_patch() {
         let file_content: &str = indoc! {"
-            1
+            0
         "};
         let good_content: &str = indoc! {"
             --- a/file.txt
             +++ a/file.txt
             @@ -1 +1 @@
-            -1
-            +2
+            -0
+            +1
         "};
         let different_prefix: &str = indoc! {"
             --- a/b/file.txt
@@ -218,16 +218,18 @@ mod tests {
 
         let dir = tempdir().unwrap();
         env::set_current_dir(&dir).unwrap();
+        fs::write("file.txt", file_content).unwrap();
+        assert_eq!(fs::read_to_string("file.txt").unwrap(), "0\n");
         for (opts, data) in [(vec![], good_content), (vec!["-p2"], different_prefix)] {
-            fs::write("file.txt", file_content).unwrap();
             fs::write("file.patch", data).unwrap();
             let args = [opts, vec!["file.patch"]].concat();
             eapply(&args).unwrap();
         }
+        assert_eq!(fs::read_to_string("file.txt").unwrap(), "2\n");
     }
 
     #[test]
-    fn dir() {
+    fn dir_patches() {
         let file_content: &str = indoc! {"
             0
         "};
@@ -254,6 +256,8 @@ mod tests {
             let file = format!("files/{i}.patch");
             fs::write(file, data).unwrap();
         }
+        assert_eq!(fs::read_to_string("file.txt").unwrap(), "0\n");
         eapply(&["files"]).unwrap();
+        assert_eq!(fs::read_to_string("file.txt").unwrap(), "2\n");
     }
 }
