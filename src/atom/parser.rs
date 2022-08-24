@@ -35,30 +35,32 @@ peg::parser! {
                     end_base:position!() revision:revision()? end:position!() {
                 ParsedVersion {
                     start,
+                    start_base: start,
                     end_base,
                     end,
+                    op: None,
                     numbers,
                     letter,
                     suffixes,
                     revision,
-                    ..Default::default()
                 }
             }
 
         pub(super) rule version_with_op() -> ParsedVersion<'input>
-            = op:$(("<" "="?) / "=" / "~" / (">" "="?))
-                    start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
+            = start:position!() op:$(("<" "="?) / "=" / "~" / (">" "="?))
+                    start_base:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
                     suffixes:("_" s:version_suffix() ++ "_" {s})?
                     end_base:position!() revision:revision()? end:position!() glob:$("*")? {?
                 let ver = ParsedVersion {
                     start,
+                    start_base,
                     end_base,
                     end,
+                    op: None,
                     numbers,
                     letter,
                     suffixes,
                     revision,
-                    ..Default::default()
                 };
                 ver.with_op(op, glob)
             }

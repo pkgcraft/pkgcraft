@@ -35,13 +35,14 @@ peg::parser! {
                     end_base:position!() revision:revision()? end:position!() {
                 ParsedVersion {
                     start,
+                    start_base: start,
                     end_base,
                     end,
+                    op: None,
                     numbers,
                     letter,
                     suffixes,
                     revision,
-                    ..Default::default()
                 }
             }
 
