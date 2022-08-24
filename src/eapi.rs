@@ -180,11 +180,17 @@ impl Hash for Eapi {
     }
 }
 
-impl PartialOrd for Eapi {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl Ord for Eapi {
+    fn cmp(&self, other: &Self) -> Ordering {
         let self_index = EAPIS.get_index_of(self.id.as_str()).unwrap();
         let other_index = EAPIS.get_index_of(other.id.as_str()).unwrap();
-        self_index.partial_cmp(&other_index)
+        self_index.cmp(&other_index)
+    }
+}
+
+impl PartialOrd for Eapi {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
