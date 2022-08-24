@@ -112,7 +112,7 @@ impl From<&Revision> for String {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct ParsedVersion<'a> {
     pub(crate) start: usize,
     pub(crate) start_base: usize,
