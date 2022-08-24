@@ -310,7 +310,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_versions() {
+    fn test_parse() {
         let all_eapis: IndexSet<&eapi::Eapi> = eapi::EAPIS.values().cloned().collect();
         let atoms = Atoms::load().unwrap();
 
@@ -356,12 +356,6 @@ mod tests {
 
     #[test]
     fn test_parse_slots() {
-        // invalid deps
-        for slot in ["", "+", "+0", ".a", "-b", "a@b", "0/1"] {
-            let s = format!("cat/pkg:{slot}");
-            assert!(parse::dep(&s, &eapi::EAPI1).is_err(), "{s:?} didn't fail");
-        }
-
         // good deps
         for slot in ["0", "a", "_", "_a", "99", "aBc", "a+b_c.d-e"] {
             for eapi in eapi::EAPIS.values() {
@@ -382,11 +376,6 @@ mod tests {
 
     #[test]
     fn test_parse_blockers() {
-        // invalid deps
-        for s in ["!!!cat/pkg", "!cat/pkg-0", "!!cat/pkg-0-r1"] {
-            assert!(parse::dep(s, &eapi::EAPI2).is_err(), "{s:?} didn't fail");
-        }
-
         // non-blocker
         let atom = parse::dep("cat/pkg", &eapi::EAPI2).unwrap();
         assert!(atom.blocker.is_none());
@@ -419,12 +408,6 @@ mod tests {
 
     #[test]
     fn test_parse_use_deps() {
-        // invalid deps
-        for use_deps in ["", "-", "-a?", "!a"] {
-            let s = format!("cat/pkg[{use_deps}]");
-            assert!(parse::dep(&s, &eapi::EAPI2).is_err(), "{s:?} didn't fail");
-        }
-
         // good deps
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
             for eapi in eapi::EAPIS.values() {
@@ -446,12 +429,6 @@ mod tests {
 
     #[test]
     fn test_parse_use_dep_defaults() {
-        // invalid deps
-        for use_dep in ["(-)", "(+)", "a()", "a(?)", "a(b)", "a(-+)", "a(++)", "a((+))", "a(-)b"] {
-            let s = format!("cat/pkg[{use_dep}]");
-            assert!(parse::dep(&s, &eapi::EAPI4).is_err(), "{s:?} didn't fail");
-        }
-
         // good deps
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
             for eapi in eapi::EAPIS.values() {
@@ -473,12 +450,6 @@ mod tests {
 
     #[test]
     fn test_parse_subslots() {
-        // invalid deps
-        for slot in ["/", "/0", "0/", "0/+1", "0//1", "0/1/2"] {
-            let s = format!("cat/pkg:{slot}");
-            assert!(parse::dep(&s, &eapi::EAPI5).is_err(), "{s:?} didn't fail");
-        }
-
         // good deps
         for (slot_str, slot, subslot, slot_op) in [
             ("0/1", opt_str!("0"), opt_str!("1"), None),
@@ -507,12 +478,6 @@ mod tests {
 
     #[test]
     fn test_parse_slot_ops() {
-        // invalid deps
-        for slot in ["*0", "=0", "*=", "=="] {
-            let s = format!("cat/pkg:{slot}");
-            assert!(parse::dep(&s, &eapi::EAPI5).is_err(), "{s:?} didn't fail");
-        }
-
         // good deps
         for (slot_str, slot, subslot, slot_op) in [
             ("*", None, None, Some(SlotOperator::Star)),
@@ -542,12 +507,6 @@ mod tests {
 
     #[test]
     fn test_parse_repos() {
-        // invalid repos
-        for s in ["", "-repo", "repo-1", "repo@path"] {
-            let result = parse::repo(&s);
-            assert!(result.is_err(), "{s:?} didn't fail");
-        }
-
         // repo deps
         for repo in ["_", "a", "repo", "repo_a", "repo-a"] {
             let s = format!("cat/pkg::{repo}");
