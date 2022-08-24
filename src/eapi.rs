@@ -23,8 +23,9 @@ use crate::Error;
 static VALID_EAPI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-pub(crate) enum Feature {
+#[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum Feature {
     // EAPI 0
     /// RDEPEND=DEPEND if RDEPEND is unset
     RdependDefault,
@@ -258,7 +259,7 @@ impl Eapi {
     }
 
     /// Check if an EAPI has a given feature.
-    pub(crate) fn has(&self, feature: Feature) -> bool {
+    pub fn has(&self, feature: Feature) -> bool {
         self.features.get(&feature).is_some()
     }
 
