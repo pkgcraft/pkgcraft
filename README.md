@@ -3,28 +3,19 @@
 
 # Pkgcraft
 
-Pkgcraft is a highly experimental, rust-based, tooling ecosystem for Gentoo. It
-aims to provide bindings for other programming languages targeting
-Gentoo-specific functionality as well as a new approach to package management,
-leveraging a client-server design that will potentially support various
-frontends.
-
-## Components
-
-- **pkgcraft**: core library supporting various Gentoo-related functionality
-- **arcanist**: daemon focused on package querying, building, and merging
-- **pakt**: command-line client for arcanist
+Core library supporting various Gentoo-related functionality.
 
 ## Development
 
-Note that using `cargo nextest` or another test runner that runs tests in
-separate processes is required. Using `cargo test` will break as long as it
-uses threads since pkgcraft runs many bash-related tests and bash isn't
+Using `cargo nextest` or another test runner that runs tests in separate
+processes is required. Running tests via `cargo test` will break due to its
+threaded approach since pkgcraft runs many bash-related tests and bash isn't
 thread-friendly in any fashion.
 
-For bugs and feature requests please create an [issue][1].
+For bugs or other requests please create an [issue][1].
 
-Otherwise [discussions][2] can be used for general questions and support.
+For general support or questions use [discussions][2] or the #pkgcraft IRC
+channel on libera.
 
 [1]: <https://github.com/pkgcraft/pkgcraft/issues>
 [2]: <https://github.com/pkgcraft/pkgcraft/discussions>
