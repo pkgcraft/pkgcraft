@@ -3,7 +3,7 @@ use std::{fmt, ptr};
 
 use regex::Regex;
 
-use crate::{atom, pkg};
+use crate::{atom, pkg, Error};
 
 // export parser functionality
 pub use parser::parse;
@@ -129,8 +129,9 @@ impl Str {
         Self::Prefix(s.into())
     }
 
-    pub fn regex(re: Regex) -> Self {
-        Self::Regex(re)
+    pub fn regex(s: &str) -> crate::Result<Self> {
+        let re = Regex::new(s).map_err(|e| Error::InvalidValue(e.to_string()))?;
+        Ok(Self::Regex(re))
     }
 
     pub fn substr<S: Into<String>>(s: S) -> Self {
@@ -304,8 +305,7 @@ mod tests {
         assert!(!r.matches("cab"));
 
         // regex
-        let re = Regex::new("^(a|b)$").unwrap();
-        let r = Str::regex(re);
+        let r = Str::regex("^(a|b)$").unwrap();
         assert!(r.matches("a"));
         assert!(r.matches("b"));
         assert!(!r.matches("ab"));
