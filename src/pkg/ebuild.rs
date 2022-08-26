@@ -1031,9 +1031,14 @@ mod tests {
         let r = Restrict::Description(restrict::Str::matches("desc2"));
         assert!(r.matches(&pkg));
 
-        // verify repo restriction
+        // verify repo restrictions
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-2"]);
+
+        let r = Restrict::Description(restrict::Str::regex("desc").unwrap());
+        let iter = repo.iter_restrict(r);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
     }
 }
