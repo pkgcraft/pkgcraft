@@ -1,7 +1,8 @@
 use regex::{escape, Regex};
 
-use super::{Restrict, Str};
 use crate::atom::{self, version::ParsedVersion};
+use crate::peg::peg_error;
+use crate::restrict::{Restrict, Str};
 
 // Convert globbed string to regex, escaping all meta characters except '*'.
 fn str_to_regex_restrict(s: &str) -> Str {
@@ -158,24 +159,19 @@ peg::parser! {
     }
 }
 
-pub mod parse {
-    use crate::peg::peg_error;
+/// Convert a globbed dep string into a Restriction.
+pub fn dep(s: &str) -> crate::Result<Restrict> {
+    let (mut restricts, ver) =
+        restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
-    use super::*;
+    if let Some(v) = ver {
+        let v = v.into_owned(s)?;
+        restricts.push(Restrict::Atom(atom::Restrict::Version(Some(v))));
+    }
 
-    pub fn dep(s: &str) -> crate::Result<Restrict> {
-        let (mut restricts, ver) = restrict::dep(s)
-            .map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
-
-        if let Some(v) = ver {
-            let v = v.into_owned(s)?;
-            restricts.push(Restrict::Atom(atom::Restrict::Version(Some(v))));
-        }
-
-        match restricts.is_empty() {
-            true => Ok(Restrict::True),
-            false => Ok(Restrict::and(restricts)),
-        }
+    match restricts.is_empty() {
+        true => Ok(Restrict::True),
+        false => Ok(Restrict::and(restricts)),
     }
 }
 
@@ -235,7 +231,7 @@ mod tests {
             ("*2", &["cat-abc/pkg2"]),
             ("pkg*", &atom_strs[..]),
         ] {
-            let r = parse::dep(s).unwrap();
+            let r = dep(s).unwrap();
             assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
 
@@ -246,7 +242,7 @@ mod tests {
             ("=*-2", vec![">=cat/pkg-2"]),
             ("<pkg-3", vec!["=cat/pkg-0-r0:0/0.+", "=cat/pkg-1", ">=cat/pkg-2"]),
         ] {
-            let r = parse::dep(s).unwrap();
+            let r = dep(s).unwrap();
             assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
 
@@ -259,7 +255,7 @@ mod tests {
             ("pkg*:2*", vec!["cat/pkg:2.1", "cat/pkg:2/1.1"]),
             ("<pkg-1:*", vec!["=cat/pkg-0-r0:0/0.+"]),
         ] {
-            let r = parse::dep(s).unwrap();
+            let r = dep(s).unwrap();
             assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
 
@@ -271,7 +267,7 @@ mod tests {
             ("*:2/1*", vec!["cat/pkg:2/1.1"]),
             ("*:*/*.+", vec!["=cat/pkg-0-r0:0/0.+"]),
         ] {
-            let r = parse::dep(s).unwrap();
+            let r = dep(s).unwrap();
             assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
 
@@ -283,7 +279,7 @@ mod tests {
             ("*::repo*", vec!["cat/pkg::repo", "cat/pkg::repo-ed"]),
             ("*::repo", vec!["cat/pkg::repo"]),
         ] {
-            let r = parse::dep(s).unwrap();
+            let r = dep(s).unwrap();
             assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
     }

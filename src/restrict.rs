@@ -6,10 +6,7 @@ use regex::Regex;
 
 use crate::{atom, pkg, Error};
 
-// export parser functionality
-pub use parser::parse;
-
-mod parser;
+pub mod parse;
 
 #[derive(Debug, Clone)]
 pub enum Restrict {
