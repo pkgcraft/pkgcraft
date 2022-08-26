@@ -80,7 +80,7 @@ impl Restrict {
     }
 }
 
-pub(crate) trait Restriction<T> {
+pub(crate) trait Restriction<T>: fmt::Debug {
     fn matches(&self, object: T) -> bool;
 }
 
