@@ -3,7 +3,7 @@ use super::{Blocker, ParsedAtom, SlotOperator};
 use crate::eapi::{Eapi, Feature};
 
 peg::parser! {
-    pub(crate) grammar pkg() for str {
+    grammar pkg() for str {
         // Categories must not begin with a hyphen, dot, or plus sign.
         pub(super) rule category() -> &'input str
             = s:$(quiet!{
