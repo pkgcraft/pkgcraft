@@ -360,7 +360,10 @@ impl<'a> Package for Pkg<'a> {
 #[derive(Clone)]
 pub enum Restrict {
     Custom(fn(&Pkg) -> bool),
+    Ebuild(restrict::Str),
     Description(restrict::Str),
+    Slot(restrict::Str),
+    Subslot(restrict::Str),
     LongDescription(Option<restrict::Str>),
 }
 
@@ -368,7 +371,10 @@ impl fmt::Debug for Restrict {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::Ebuild(r) => write!(f, "Ebuild({r:?})"),
             Self::Description(r) => write!(f, "Description({r:?})"),
+            Self::Slot(r) => write!(f, "Slot({r:?})"),
+            Self::Subslot(r) => write!(f, "Subslot({r:?})"),
             Self::LongDescription(r) => write!(f, "LongDescription({r:?})"),
         }
     }
@@ -394,7 +400,13 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
         match self {
             Self::Custom(func) => func(pkg),
+            Self::Ebuild(r) => match pkg.ebuild() {
+                Ok(s) => r.matches(&s),
+                Err(_) => false,
+            },
             Self::Description(r) => r.matches(pkg.description()),
+            Self::Slot(r) => r.matches(pkg.slot()),
+            Self::Subslot(r) => r.matches(pkg.subslot()),
             Self::LongDescription(r) => match (r, pkg.long_description()) {
                 (Some(r), Some(long_desc)) => r.matches(long_desc),
                 (None, None) => true,
