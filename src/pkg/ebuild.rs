@@ -364,6 +364,7 @@ pub enum Restrict {
     Description(restrict::Str),
     Slot(restrict::Str),
     Subslot(restrict::Str),
+    Homepage(Option<restrict::SliceStrs>),
     LongDescription(Option<restrict::Str>),
 }
 
@@ -375,6 +376,7 @@ impl fmt::Debug for Restrict {
             Self::Description(r) => write!(f, "Description({r:?})"),
             Self::Slot(r) => write!(f, "Slot({r:?})"),
             Self::Subslot(r) => write!(f, "Subslot({r:?})"),
+            Self::Homepage(r) => write!(f, "Homepage({r:?})"),
             Self::LongDescription(r) => write!(f, "LongDescription({r:?})"),
         }
     }
@@ -407,6 +409,10 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
             Self::Description(r) => r.matches(pkg.description()),
             Self::Slot(r) => r.matches(pkg.slot()),
             Self::Subslot(r) => r.matches(pkg.subslot()),
+            Self::Homepage(r) => match (r, pkg.homepage()) {
+                (Some(r), urls) => r.matches(urls),
+                (None, urls) => urls.is_empty(),
+            },
             Self::LongDescription(r) => match (r, pkg.long_description()) {
                 (Some(r), Some(long_desc)) => r.matches(long_desc),
                 (None, None) => true,

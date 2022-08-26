@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::{fmt, ptr};
 
@@ -27,6 +28,9 @@ pub enum Restrict {
 
     // sets
     Set(Set),
+
+    // slices
+    Slice(SliceStrs),
 
     // strings
     Str(Str),
@@ -167,6 +171,53 @@ impl Restriction<&HashSet<String>> for Set {
         match self {
             Self::Empty => val.is_empty(),
             Self::StrSubset(s) => s.is_subset(val),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum SliceStrs {
+    Custom(fn(&[&str]) -> bool),
+    First(Option<Str>),
+    Last(Option<Str>),
+    Len(Ordering, usize),
+    Regex(Regex),
+}
+
+impl fmt::Debug for SliceStrs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::First(r) => write!(f, "First({r:?})"),
+            Self::Last(r) => write!(f, "Last({r:?})"),
+            Self::Len(ordering, size) => write!(f, "Len({ordering:?}, {size})"),
+            Self::Regex(re) => write!(f, "Regex({re:?})"),
+        }
+    }
+}
+
+impl From<SliceStrs> for Restrict {
+    fn from(r: SliceStrs) -> Self {
+        Restrict::Slice(r)
+    }
+}
+
+impl Restriction<&[&str]> for SliceStrs {
+    fn matches(&self, strings: &[&str]) -> bool {
+        match self {
+            Self::Custom(func) => func(strings),
+            Self::First(r) => match (r, strings.first()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Last(r) => match (r, strings.last()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Len(ordering, size) => strings.len().cmp(size) == *ordering,
+            Self::Regex(re) => strings.iter().any(|s| re.is_match(s)),
         }
     }
 }
