@@ -2,6 +2,7 @@ use std::fmt;
 
 use super::{make_pkg_traits, Package};
 use crate::repo::fake::Repo;
+use crate::restrict::{self, Restriction};
 use crate::{atom, eapi};
 
 #[derive(Debug, Clone)]
@@ -31,6 +32,15 @@ impl<'a> Package for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         self.repo
+    }
+}
+
+impl Restriction<&Pkg<'_>> for restrict::Restrict {
+    fn matches(&self, pkg: &Pkg) -> bool {
+        restrict::restrict_match! {
+            self, pkg,
+            Self::Atom(r) => r.matches(pkg.atom())
+        }
     }
 }
 

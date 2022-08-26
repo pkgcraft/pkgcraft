@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
-use std::{env, fmt, fs, io, thread};
+use std::{env, fmt, fs, io, mem, thread};
 
 #[cfg(test)]
 use std::io::Write;
@@ -22,9 +22,9 @@ use crate::config::{self, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
-use crate::pkg::Package;
+use crate::pkg::{ebuild::Pkg, Package};
 use crate::restrict::{Restrict, Restriction};
-use crate::{atom, eapi, pkg, repo, Error};
+use crate::{atom, eapi, repo, Error};
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
@@ -643,7 +643,7 @@ fn is_ebuild(e: &walkdir::DirEntry) -> bool {
 }
 
 impl<'a> IntoIterator for &'a Repo {
-    type Item = pkg::ebuild::Pkg<'a>;
+    type Item = Pkg<'a>;
     type IntoIter = PkgIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -673,7 +673,7 @@ pub struct PkgIter<'a> {
 }
 
 impl<'a> Iterator for PkgIter<'a> {
-    type Item = pkg::ebuild::Pkg<'a>;
+    type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -681,8 +681,8 @@ impl<'a> Iterator for PkgIter<'a> {
                 Some(Ok(e)) => {
                     if is_ebuild(&e) {
                         let path: &Utf8Path = e.path().try_into().unwrap();
-                        match pkg::ebuild::Pkg::new(path, self.repo) {
-                            Ok(p) => return Some(p),
+                        match Pkg::new(path, self.repo) {
+                            Ok(pkg) => return Some(pkg),
                             Err(e) => warn!("{} repo: invalid pkg: {path:?}: {e}", self.repo.id),
                         }
                     }
@@ -701,14 +701,24 @@ pub struct RestrictPkgIter<'a> {
 }
 
 impl<'a> Iterator for RestrictPkgIter<'a> {
-    type Item = pkg::ebuild::Pkg<'a>;
+    type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.iter.next() {
-                Some(p) => {
-                    if self.restrict.matches(&p) {
-                        return Some(p);
+                Some(pkg) => {
+                    // Drop package lifetime to avoid issues with rust's current borrow checker
+                    // that doesn't always perform correctly when dealing with conditional returns
+                    // combined with reference usage [1, 2].
+                    //
+                    // References:
+                    // 1: https://users.rust-lang.org/t/solved-borrow-doesnt-drop-returning-this-value-requires-that/24182
+                    // 2: https://smallcultfollowing.com/babysteps/blog/2018/06/15/mir-based-borrow-check-nll-status-update/#polonius
+                    //
+                    // TODO: Drop this hack when the rust borrow checker is updated.
+                    let pkg_ref = unsafe { mem::transmute::<&Pkg, &Pkg>(&pkg) };
+                    if self.restrict.matches(pkg_ref) {
+                        return Some(pkg);
                     }
                 }
                 None => return None,

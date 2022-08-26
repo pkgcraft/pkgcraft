@@ -5,7 +5,8 @@ use scallop::variables::bind;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
 use crate::repo::{Repo, Repository};
-use crate::{atom, eapi, restrict};
+use crate::restrict::{self, Restriction};
+use crate::{atom, eapi};
 
 pub mod ebuild;
 pub mod fake;
@@ -118,27 +119,6 @@ macro_rules! make_pkg_traits {
             }
         }
 
-        impl crate::restrict::Restriction<&$x> for crate::pkg::Restrict {
-            fn matches(&self, pkg: &Pkg) -> bool {
-                use crate::repo::Repository;
-                match self {
-                    Self::Eapi(r) => r.matches(pkg.eapi().as_str()),
-                    Self::Repo(r) => r.matches(pkg.repo().id()),
-                    _ => false,
-                }
-            }
-        }
-
-        impl crate::restrict::Restriction<&$x> for crate::restrict::Restrict {
-            fn matches(&self, pkg: &Pkg) -> bool {
-                crate::restrict::restrict_match! {
-                    self, pkg,
-                    Self::Atom(r) => r.matches(pkg.atom()),
-                    Self::Pkg(r) => r.matches(pkg)
-                }
-            }
-        }
-
         impl crate::pkg::PackageEnv for $x {}
     )+};
 }
@@ -179,6 +159,29 @@ pub enum Restrict {
 impl From<Restrict> for restrict::Restrict {
     fn from(r: Restrict) -> Self {
         Self::Pkg(r)
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        match self {
+            Self::Eapi(r) => r.matches(pkg.eapi().as_str()),
+            Self::Repo(r) => r.matches(pkg.repo().id()),
+            Self::Ebuild(r) => match pkg {
+                Pkg::Ebuild(p, _) => r.matches(p),
+                _ => false,
+            },
+        }
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        restrict::restrict_match! {
+            self, pkg,
+            Self::Atom(r) => r.matches(pkg.atom()),
+            Self::Pkg(r) => r.matches(pkg)
+        }
     }
 }
 

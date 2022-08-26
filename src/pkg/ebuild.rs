@@ -18,7 +18,8 @@ use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::pkgsh::{source_ebuild, BUILD_DATA};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::{atom, eapi, pkg, restrict, Error};
+use crate::restrict::{self, Restriction};
+use crate::{atom, eapi, pkg, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[^'\"]*)['\"]?[\t ]*(?:#.*)?").unwrap());
@@ -360,6 +361,7 @@ impl<'a> Package for Pkg<'a> {
 pub enum Restrict {
     Custom(fn(&Pkg) -> bool),
     Description(restrict::Str),
+    LongDescription(Option<restrict::Str>),
 }
 
 impl fmt::Debug for Restrict {
@@ -367,6 +369,7 @@ impl fmt::Debug for Restrict {
         match self {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
             Self::Description(r) => write!(f, "Description({r:?})"),
+            Self::LongDescription(r) => write!(f, "LongDescription({r:?})"),
         }
     }
 }
@@ -374,6 +377,30 @@ impl fmt::Debug for Restrict {
 impl From<Restrict> for restrict::Restrict {
     fn from(r: Restrict) -> Self {
         Self::Pkg(pkg::Restrict::Ebuild(r))
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        restrict::restrict_match! {
+            self, pkg,
+            Self::Atom(r) => r.matches(pkg.atom()),
+            Self::Pkg(pkg::Restrict::Ebuild(r)) => r.matches(pkg)
+        }
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        match self {
+            Self::Custom(func) => func(pkg),
+            Self::Description(r) => r.matches(pkg.description()),
+            Self::LongDescription(r) => match (r, pkg.long_description()) {
+                (Some(r), Some(long_desc)) => r.matches(long_desc),
+                (None, None) => true,
+                _ => false,
+            },
+        }
     }
 }
 
@@ -984,5 +1011,29 @@ mod tests {
             assert_eq!(dist[1].checksums()[0], ("blake2b".into(), "c".into()));
             assert_eq!(dist[1].checksums()[1], ("sha512".into(), "d".into()));
         }
+    }
+
+    #[test]
+    fn test_restrict_description() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        t.create_ebuild("cat/pkg-1", [(Description, "desc1")])
+            .unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-2", [(Description, "desc2")])
+            .unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+
+        // verify pkg restriction
+        let r = Restrict::Description(restrict::Str::matches("no match"));
+        assert!(!r.matches(&pkg));
+        let r = Restrict::Description(restrict::Str::matches("desc2"));
+        assert!(r.matches(&pkg));
+
+        // verify repo restriction
+        let iter = repo.iter_restrict(r);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-2"]);
     }
 }
