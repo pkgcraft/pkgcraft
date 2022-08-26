@@ -11,7 +11,7 @@ fn str_to_regex_restrict(s: &str) -> Str {
 }
 
 peg::parser! {
-    pub(crate) grammar restrict() for str {
+    grammar restrict() for str {
         rule category() -> &'input str
             = s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']
@@ -144,7 +144,7 @@ peg::parser! {
                 }
             }
 
-        pub(crate) rule dep() -> (Vec<Restrict>, Option<ParsedVersion<'input>>)
+        pub(super) rule dep() -> (Vec<Restrict>, Option<ParsedVersion<'input>>)
             = pkg_r:pkg_restricts() slot_r:slot_restricts()? repo_r:repo_restrict()? {
                 let (mut restricts, ver) = pkg_r;
                 if let Some(r) = slot_r {
