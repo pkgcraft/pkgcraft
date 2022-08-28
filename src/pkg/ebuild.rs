@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{self, prelude::*};
 use std::sync::Arc;
@@ -101,6 +101,11 @@ impl<'a> Pkg<'a> {
     /// Return a package's homepage.
     pub fn homepage(&self) -> &[String] {
         self.data.homepage()
+    }
+
+    /// Return a package's defined phases
+    pub fn defined_phases(&self) -> &HashSet<String> {
+        self.data.defined_phases()
     }
 
     /// Return a package's keywords.
@@ -366,6 +371,105 @@ mod tests {
             .unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.homepage(), ["a", "b", "c"]);
+    }
+
+    #[test]
+    fn test_defined_phases() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // none
+        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(pkg.defined_phases().is_empty());
+
+        // single
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            DESCRIPTION="testing defined phases"
+            SLOT=0
+            src_compile() { :; }
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.defined_phases(), &["compile"]));
+
+        // multiple
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing defined phases"
+            SLOT=0
+            src_prepare() { :; }
+            src_compile() { :; }
+            src_install() { :; }
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.defined_phases(), &["prepare", "compile", "install"]));
+
+        // create eclasses
+        let eclass = indoc::indoc! {r#"
+            EXPORT_FUNCTIONS src_prepare
+            e1_src_prepare() { :; }
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            EXPORT_FUNCTIONS src_compile src_install
+            e2_src_compile() { :; }
+            e2_src_install() { :; }
+        "#};
+        t.create_eclass("e2", eclass).unwrap();
+
+        // single from eclass
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            inherit e1
+            DESCRIPTION="testing defined phases"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.defined_phases(), &["prepare"]));
+
+        // single overlapping from eclass and ebuild
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            inherit e1
+            DESCRIPTION="testing defined phases"
+            SLOT=0
+            src_prepare() { :; }
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.defined_phases(), &["prepare"]));
+
+        // multiple from eclasses
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            inherit e1 e2
+            DESCRIPTION="testing defined phases"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.defined_phases(), &["prepare", "compile", "install"]));
+
+        // multiple from eclass and ebuild
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            inherit e1
+            DESCRIPTION="testing defined phases"
+            SLOT=0
+            src_test() { :; }
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.defined_phases(), &["prepare", "test"]));
     }
 
     #[test]

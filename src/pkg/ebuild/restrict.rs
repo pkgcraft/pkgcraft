@@ -13,6 +13,7 @@ pub enum Restrict {
     Slot(restrict::Str),
     Subslot(restrict::Str),
     Homepage(Option<restrict::SliceStrs>),
+    DefinedPhases(Option<restrict::HashSetStrs>),
     Keywords(Option<restrict::IndexSetStrs>),
     Iuse(Option<restrict::IndexSetStrs>),
     Inherit(Option<restrict::IndexSetStrs>),
@@ -29,6 +30,7 @@ impl fmt::Debug for Restrict {
             Self::Slot(r) => write!(f, "Slot({r:?})"),
             Self::Subslot(r) => write!(f, "Subslot({r:?})"),
             Self::Homepage(r) => write!(f, "Homepage({r:?})"),
+            Self::DefinedPhases(r) => write!(f, "DefinedPhases({r:?})"),
             Self::Keywords(r) => write!(f, "Keywords({r:?})"),
             Self::Iuse(r) => write!(f, "Iuse({r:?})"),
             Self::Inherit(r) => write!(f, "Inherit({r:?})"),
@@ -66,6 +68,10 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
             Self::Slot(r) => r.matches(pkg.slot()),
             Self::Subslot(r) => r.matches(pkg.subslot()),
             Self::Homepage(r) => match (r, pkg.homepage()) {
+                (Some(r), strings) => r.matches(strings),
+                (None, strings) => strings.is_empty(),
+            },
+            Self::DefinedPhases(r) => match (r, pkg.defined_phases()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
