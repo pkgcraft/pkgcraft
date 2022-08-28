@@ -176,9 +176,10 @@ impl Restriction<&HashSet<String>> for HashSetStrs {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum IndexSetStrs {
     Empty,
+    Custom(fn(&IndexSet<String>) -> bool),
     Subset(IndexSet<String>),
     Superset(IndexSet<String>),
     First(Option<Str>),
@@ -186,10 +187,31 @@ pub enum IndexSetStrs {
     Len(Ordering, usize),
 }
 
+impl fmt::Debug for IndexSetStrs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => write!(f, "Empty"),
+            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::Subset(s) => write!(f, "Subset({s:?})"),
+            Self::Superset(s) => write!(f, "Superset({s:?})"),
+            Self::First(s) => write!(f, "First({s:?})"),
+            Self::Last(s) => write!(f, "Last({s:?})"),
+            Self::Len(ordering, size) => write!(f, "Len({ordering:?}, {size})"),
+        }
+    }
+}
+
+impl From<IndexSetStrs> for Restrict {
+    fn from(r: IndexSetStrs) -> Self {
+        Restrict::IndexSetStrs(r)
+    }
+}
+
 impl Restriction<&IndexSet<String>> for IndexSetStrs {
     fn matches(&self, val: &IndexSet<String>) -> bool {
         match self {
             Self::Empty => val.is_empty(),
+            Self::Custom(func) => func(val),
             Self::Subset(s) => s.is_subset(val),
             Self::Superset(s) => s.is_superset(val),
             Self::First(r) => match (r, val.first()) {
