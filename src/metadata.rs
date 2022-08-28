@@ -46,12 +46,11 @@ impl Key {
     pub(crate) fn get(&self, eapi: &'static eapi::Eapi) -> Option<String> {
         match self {
             Key::DefinedPhases => {
-                let mut phase_names = vec![];
-                for phase in eapi.phases() {
-                    if functions::find(phase).is_some() {
-                        phase_names.push(phase.short_name());
-                    }
-                }
+                let mut phase_names: Vec<_> = eapi
+                    .phases()
+                    .iter()
+                    .filter_map(|p| functions::find(p).map(|_| p.short_name()))
+                    .collect();
                 match phase_names.is_empty() {
                     true => None,
                     false => {
