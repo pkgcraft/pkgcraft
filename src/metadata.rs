@@ -74,7 +74,7 @@ impl Key {
 #[derive(Debug, Default, Clone)]
 pub(crate) struct Metadata {
     description: String,
-    fullslot: String,
+    slot: String,
     homepage: Vec<String>,
     keywords: IndexSet<String>,
     iuse: IndexSet<String>,
@@ -88,7 +88,7 @@ impl Metadata {
         use Key::*;
         match key {
             Description => self.description = val,
-            Slot => self.fullslot = val,
+            Slot => self.slot = val,
             Homepage => self.homepage = val.split_whitespace().map(String::from).collect(),
             Keywords => self.keywords = val.split_whitespace().map(String::from).collect(),
             Iuse => self.iuse = val.split_whitespace().map(String::from).collect(),
@@ -181,12 +181,12 @@ impl Metadata {
     }
 
     pub(crate) fn slot(&self) -> &str {
-        let s = self.fullslot.as_str();
+        let s = self.slot.as_str();
         s.split_once('/').map_or(s, |x| x.0)
     }
 
     pub(crate) fn subslot(&self) -> &str {
-        let s = self.fullslot.as_str();
+        let s = self.slot.as_str();
         s.split_once('/').map_or(s, |x| x.1)
     }
 
