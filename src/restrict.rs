@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::{fmt, ptr};
 
+use indexmap::IndexSet;
 use regex::Regex;
 
 use crate::{atom, pkg, Error};
@@ -25,6 +26,7 @@ pub enum Restrict {
 
     // sets
     HashSetStrs(HashSetStrs),
+    IndexSetStrs(IndexSetStrs),
 
     // slices
     Slice(SliceStrs),
@@ -170,6 +172,37 @@ impl Restriction<&HashSet<String>> for HashSetStrs {
             Self::Empty => val.is_empty(),
             Self::Subset(s) => s.is_subset(val),
             Self::Superset(s) => s.is_superset(val),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum IndexSetStrs {
+    Empty,
+    Subset(IndexSet<String>),
+    Superset(IndexSet<String>),
+    First(Option<Str>),
+    Last(Option<Str>),
+    Len(Ordering, usize),
+}
+
+impl Restriction<&IndexSet<String>> for IndexSetStrs {
+    fn matches(&self, val: &IndexSet<String>) -> bool {
+        match self {
+            Self::Empty => val.is_empty(),
+            Self::Subset(s) => s.is_subset(val),
+            Self::Superset(s) => s.is_superset(val),
+            Self::First(r) => match (r, val.first()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Last(r) => match (r, val.last()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
         }
     }
 }
