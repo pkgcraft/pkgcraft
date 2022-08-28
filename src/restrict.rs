@@ -162,6 +162,7 @@ impl Restriction<&str> for Str {
 #[derive(Debug, Clone)]
 pub enum HashSetStrs {
     Empty,
+    Contains(String),
     Subset(HashSet<String>),
     Superset(HashSet<String>),
 }
@@ -170,6 +171,7 @@ impl Restriction<&HashSet<String>> for HashSetStrs {
     fn matches(&self, val: &HashSet<String>) -> bool {
         match self {
             Self::Empty => val.is_empty(),
+            Self::Contains(s) => val.contains(s),
             Self::Subset(s) => s.is_subset(val),
             Self::Superset(s) => s.is_superset(val),
         }
@@ -180,6 +182,7 @@ impl Restriction<&HashSet<String>> for HashSetStrs {
 pub enum IndexSetStrs {
     Empty,
     Custom(fn(&IndexSet<String>) -> bool),
+    Contains(String),
     Subset(IndexSet<String>),
     Superset(IndexSet<String>),
     First(Option<Str>),
@@ -192,6 +195,7 @@ impl fmt::Debug for IndexSetStrs {
         match self {
             Self::Empty => write!(f, "Empty"),
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::Contains(s) => write!(f, "Contains({s:?})"),
             Self::Subset(s) => write!(f, "Subset({s:?})"),
             Self::Superset(s) => write!(f, "Superset({s:?})"),
             Self::First(s) => write!(f, "First({s:?})"),
@@ -212,6 +216,7 @@ impl Restriction<&IndexSet<String>> for IndexSetStrs {
         match self {
             Self::Empty => val.is_empty(),
             Self::Custom(func) => func(val),
+            Self::Contains(s) => val.contains(s),
             Self::Subset(s) => s.is_subset(val),
             Self::Superset(s) => s.is_superset(val),
             Self::First(r) => match (r, val.first()) {
