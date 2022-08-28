@@ -59,13 +59,13 @@ impl Key {
                     }
                 }
             }
-            Key::Inherit => {
-                let inherit = BUILD_DATA.with(|d| d.borrow().inherit.iter().join(" "));
+            Key::Inherit => BUILD_DATA.with(|d| {
+                let inherit = &d.borrow().inherit;
                 match inherit.is_empty() {
                     true => None,
-                    false => Some(inherit),
+                    false => Some(inherit.iter().join(" ")),
                 }
-            }
+            }),
             key => string_value(key),
         }
     }
