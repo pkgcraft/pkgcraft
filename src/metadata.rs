@@ -82,6 +82,12 @@ pub(crate) struct Metadata {
     inherited: IndexSet<String>,
 }
 
+macro_rules! split {
+    ($s:expr) => {
+        $s.split_whitespace().map(String::from).collect()
+    };
+}
+
 impl Metadata {
     /// Convert raw metadata key value to stored value.
     fn convert(&mut self, key: &Key, val: String) {
@@ -89,11 +95,11 @@ impl Metadata {
         match key {
             Description => self.description = val,
             Slot => self.slot = val,
-            Homepage => self.homepage = val.split_whitespace().map(String::from).collect(),
-            Keywords => self.keywords = val.split_whitespace().map(String::from).collect(),
-            Iuse => self.iuse = val.split_whitespace().map(String::from).collect(),
-            Inherit => self.inherit = val.split_whitespace().map(String::from).collect(),
-            Inherited => self.inherited = val.split_whitespace().map(String::from).collect(),
+            Homepage => self.homepage = split!(val),
+            Keywords => self.keywords = split!(val),
+            Iuse => self.iuse = split!(val),
+            Inherit => self.inherit = split!(val),
+            Inherited => self.inherited = split!(val),
             _ => (),
         }
     }
