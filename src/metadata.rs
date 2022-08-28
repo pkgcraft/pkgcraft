@@ -61,19 +61,6 @@ impl Key {
             key => string_value(key),
         }
     }
-
-    pub(crate) fn convert(&self, m: &mut Metadata, val: String) {
-        match self {
-            Key::Description => m.description = val,
-            Key::Slot => m.fullslot = val,
-            Key::Homepage => m.homepage = val.split_whitespace().map(String::from).collect(),
-            Key::Keywords => m.keywords = val.split_whitespace().map(String::from).collect(),
-            Key::Iuse => m.iuse = val.split_whitespace().map(String::from).collect(),
-            Key::Inherit => m.inherit = val.split_whitespace().map(String::from).collect(),
-            Key::Inherited => m.inherited = val.split_whitespace().map(String::from).collect(),
-            _ => (),
-        }
-    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -88,6 +75,21 @@ pub(crate) struct Metadata {
 }
 
 impl Metadata {
+    /// Convert raw metadata key value to stored value.
+    fn convert(&mut self, key: &Key, val: String) {
+        use Key::*;
+        match key {
+            Description => self.description = val,
+            Slot => self.fullslot = val,
+            Homepage => self.homepage = val.split_whitespace().map(String::from).collect(),
+            Keywords => self.keywords = val.split_whitespace().map(String::from).collect(),
+            Iuse => self.iuse = val.split_whitespace().map(String::from).collect(),
+            Inherit => self.inherit = val.split_whitespace().map(String::from).collect(),
+            Inherited => self.inherited = val.split_whitespace().map(String::from).collect(),
+            _ => (),
+        }
+    }
+
     /// Load metadata from cache.
     pub(crate) fn load(atom: &atom::Atom, eapi: &'static eapi::Eapi, repo: &Repo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
@@ -99,7 +101,7 @@ impl Metadata {
                     .filter_map(|l| l.split_once('='))
                     .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
                     .filter(|(k, _)| eapi.metadata_keys().contains(k))
-                    .for_each(|(k, v)| k.convert(&mut meta, v.to_string()));
+                    .for_each(|(k, v)| meta.convert(&k, v.to_string()));
                 Some(meta)
             }
             Err(e) => {
@@ -145,7 +147,7 @@ impl Metadata {
         let mut missing = Vec::<&str>::new();
         for key in eapi.mandatory_keys() {
             match key.get(eapi) {
-                Some(val) => key.convert(&mut meta, val),
+                Some(val) => meta.convert(key, val),
                 None => missing.push(key.as_ref()),
             }
         }
@@ -159,7 +161,7 @@ impl Metadata {
         // metadata variables that default to empty
         for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
             if let Some(val) = key.get(eapi) {
-                key.convert(&mut meta, val);
+                meta.convert(key, val);
             }
         }
 
