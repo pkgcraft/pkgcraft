@@ -1,5 +1,3 @@
-use std::fmt;
-
 use super::{make_pkg_traits, Package};
 use crate::repo::fake::Repo;
 use crate::restrict::{self, Restriction};

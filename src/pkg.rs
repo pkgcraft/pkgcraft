@@ -106,8 +106,8 @@ macro_rules! make_pkg_traits {
             }
         }
 
-        impl fmt::Display for $x {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        impl std::fmt::Display for $x {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 use crate::repo::Repository;
                 write!(f, "{}::{}", self.atom(), self.repo().id())
             }
