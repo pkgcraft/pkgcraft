@@ -26,7 +26,7 @@ pub struct Pkg<'a> {
     atom: atom::Atom,
     eapi: &'static eapi::Eapi,
     repo: &'a Repo,
-    data: Metadata,
+    meta: Metadata,
     xml: OnceCell<Arc<XmlMetadata>>,
     manifest: OnceCell<Arc<Manifest>>,
 }
@@ -38,7 +38,7 @@ impl<'a> Pkg<'a> {
         let eapi = Pkg::parse_eapi(path)?;
         let atom = repo.atom_from_path(path)?;
         // TODO: compare ebuild mtime vs cache mtime
-        let data = match Metadata::load(&atom, eapi, repo) {
+        let meta = match Metadata::load(&atom, eapi, repo) {
             Some(data) => data,
             None => Metadata::source(path, eapi, repo)?,
         };
@@ -47,7 +47,7 @@ impl<'a> Pkg<'a> {
             atom,
             eapi,
             repo,
-            data,
+            meta,
             xml: OnceCell::new(),
             manifest: OnceCell::new(),
         })
@@ -85,47 +85,47 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's description.
     pub fn description(&self) -> &str {
-        self.data.description()
+        self.meta.description()
     }
 
     /// Return a package's slot.
     pub fn slot(&self) -> &str {
-        self.data.slot()
+        self.meta.slot()
     }
 
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
-        self.data.subslot()
+        self.meta.subslot()
     }
 
     /// Return a package's homepage.
     pub fn homepage(&self) -> &[String] {
-        self.data.homepage()
+        self.meta.homepage()
     }
 
     /// Return a package's defined phases
     pub fn defined_phases(&self) -> &HashSet<String> {
-        self.data.defined_phases()
+        self.meta.defined_phases()
     }
 
     /// Return a package's keywords.
     pub fn keywords(&self) -> &IndexSet<String> {
-        self.data.keywords()
+        self.meta.keywords()
     }
 
     /// Return a package's IUSE.
     pub fn iuse(&self) -> &IndexSet<String> {
-        self.data.iuse()
+        self.meta.iuse()
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
     pub fn inherit(&self) -> &IndexSet<String> {
-        self.data.inherit()
+        self.meta.inherit()
     }
 
     /// Return the ordered set of inherited eclasses for a package.
     pub fn inherited(&self) -> &IndexSet<String> {
-        self.data.inherited()
+        self.meta.inherited()
     }
 
     /// Return a package's XML metadata.
