@@ -176,7 +176,7 @@ impl Restriction<&HashSet<String>> for HashSetStrs {
 
 #[derive(Clone)]
 pub enum SliceStrs {
-    Custom(fn(&[&str]) -> bool),
+    Custom(fn(&[String]) -> bool),
     First(Option<Str>),
     Last(Option<Str>),
     Len(Ordering, usize),
@@ -201,8 +201,8 @@ impl From<SliceStrs> for Restrict {
     }
 }
 
-impl Restriction<&[&str]> for SliceStrs {
-    fn matches(&self, strings: &[&str]) -> bool {
+impl Restriction<&[String]> for SliceStrs {
+    fn matches(&self, strings: &[String]) -> bool {
         match self {
             Self::Custom(func) => func(strings),
             Self::First(r) => match (r, strings.first()) {
