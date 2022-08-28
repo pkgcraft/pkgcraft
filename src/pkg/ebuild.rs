@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::io::{self, prelude::*};
-use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, fs, ptr};
 
@@ -8,189 +7,16 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
-use scallop::variables::string_value;
-use tracing::warn;
 
 use super::{make_pkg_traits, Package};
-use crate::config::Config;
-use crate::eapi::Key::*;
-use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
-use crate::pkgsh::{source_ebuild, BUILD_DATA};
-use crate::repo::{ebuild::Repo, Repository};
+use crate::metadata::Metadata;
+use crate::repo::ebuild::Repo;
 use crate::restrict::{self, Restriction};
 use crate::{atom, eapi, pkg, Error};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[^'\"]*)['\"]?[\t ]*(?:#.*)?").unwrap());
-
-#[derive(Debug, Default, Clone)]
-struct Metadata<'a> {
-    data: HashMap<eapi::Key, String>,
-    description: OnceCell<&'a str>,
-    slot: OnceCell<&'a str>,
-    subslot: OnceCell<&'a str>,
-    homepage: OnceCell<Vec<&'a str>>,
-    keywords: OnceCell<IndexSet<&'a str>>,
-    iuse: OnceCell<IndexSet<&'a str>>,
-    inherit: OnceCell<IndexSet<&'a str>>,
-    inherited: OnceCell<IndexSet<&'a str>>,
-}
-
-impl<'a> Metadata<'a> {
-    /// Load metadata from cache.
-    fn load(atom: &atom::Atom, eapi: &'static eapi::Eapi, repo: &Repo) -> Option<Self> {
-        // TODO: validate cache entries in some fashion?
-        let path = build_from_paths!(repo.path(), "metadata", "md5-cache", atom.to_string());
-        match fs::read_to_string(&path) {
-            Ok(s) => {
-                let data = s
-                    .lines()
-                    .filter_map(|l| l.split_once('='))
-                    .filter_map(|(k, v)| eapi::Key::from_str(k).ok().map(|k| (k, v)))
-                    .filter(|(k, _)| eapi.metadata_keys().contains(k))
-                    .map(|(k, v)| (k, v.to_string()))
-                    .collect();
-                Some(Self {
-                    data,
-                    ..Default::default()
-                })
-            }
-            Err(e) => {
-                if e.kind() != io::ErrorKind::NotFound {
-                    warn!("error loading ebuild metadata: {:?}: {e}", &path);
-                }
-                None
-            }
-        }
-    }
-
-    /// Source ebuild to determine metadata.
-    fn source(path: &Utf8Path, eapi: &'static eapi::Eapi, repo: &Repo) -> crate::Result<Self> {
-        // TODO: rework BuildData handling to drop this hack required by builtins like `inherit`
-        let config = Config::current();
-        let r = config
-            .repos
-            .get(repo.id())
-            .expect("failed getting repo")
-            .as_ebuild()
-            .expect("unsupported repo type");
-        BUILD_DATA.with(|d| d.borrow_mut().repo = r.clone());
-
-        // TODO: run sourcing via an external process pool returning the requested variables
-        source_ebuild(path)?;
-        let mut data = HashMap::new();
-
-        // verify sourced EAPI matches parsed EAPI
-        let sourced_eapi = string_value("EAPI");
-        let sourced_eapi = sourced_eapi.as_deref().unwrap_or("0");
-        if eapi::get_eapi(&sourced_eapi)? != eapi {
-            return Err(Error::InvalidValue(format!(
-                "mismatched sourced and parsed EAPIs: {sourced_eapi} != {eapi}"
-            )));
-        }
-
-        // required metadata variables
-        let mut missing = Vec::<&str>::new();
-        for key in eapi.mandatory_keys() {
-            match key.get(eapi) {
-                Some(val) => drop(data.insert(*key, val)),
-                None => missing.push(key.as_ref()),
-            }
-        }
-
-        if !missing.is_empty() {
-            missing.sort();
-            let keys = missing.join(", ");
-            return Err(Error::InvalidValue(format!("missing required values: {keys}")));
-        }
-
-        // metadata variables that default to empty
-        for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
-            key.get(eapi).and_then(|v| data.insert(*key, v));
-        }
-
-        Ok(Self {
-            data,
-            ..Default::default()
-        })
-    }
-
-    fn description(&'a self) -> &'a str {
-        // mandatory key guaranteed to exist
-        self.description
-            .get_or_init(|| self.data.get(&Description).unwrap())
-    }
-
-    fn slot(&'a self) -> &'a str {
-        self.slot.get_or_init(|| {
-            // mandatory key guaranteed to exist
-            let val = self.data.get(&Slot).unwrap();
-            val.split_once('/').map_or(val, |x| x.0)
-        })
-    }
-
-    fn subslot(&'a self) -> &'a str {
-        self.subslot.get_or_init(|| {
-            // mandatory key guaranteed to exist
-            let val = self.data.get(&Slot).unwrap();
-            val.split_once('/').map_or(val, |x| x.1)
-        })
-    }
-
-    fn homepage(&'a self) -> &'a [&'a str] {
-        self.homepage
-            .get_or_init(|| {
-                let val = self
-                    .data
-                    .get(&Homepage)
-                    .map(|s| s.as_str())
-                    .unwrap_or_default();
-                val.split_whitespace().collect()
-            })
-            .as_slice()
-    }
-
-    fn keywords(&'a self) -> &'a IndexSet<&'a str> {
-        self.keywords.get_or_init(|| {
-            let val = self
-                .data
-                .get(&Keywords)
-                .map(|s| s.as_str())
-                .unwrap_or_default();
-            val.split_whitespace().collect()
-        })
-    }
-
-    fn iuse(&'a self) -> &'a IndexSet<&'a str> {
-        self.iuse.get_or_init(|| {
-            let val = self.data.get(&Iuse).map(|s| s.as_str()).unwrap_or_default();
-            val.split_whitespace().collect()
-        })
-    }
-
-    fn inherit(&'a self) -> &'a IndexSet<&'a str> {
-        self.inherit.get_or_init(|| {
-            let val = self
-                .data
-                .get(&Inherit)
-                .map(|s| s.as_str())
-                .unwrap_or_default();
-            val.split_whitespace().collect()
-        })
-    }
-
-    fn inherited(&'a self) -> &'a IndexSet<&'a str> {
-        self.inherited.get_or_init(|| {
-            let val = self
-                .data
-                .get(&Inherited)
-                .map(|s| s.as_str())
-                .unwrap_or_default();
-            val.split_whitespace().collect()
-        })
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
@@ -198,7 +24,7 @@ pub struct Pkg<'a> {
     atom: atom::Atom,
     eapi: &'static eapi::Eapi,
     repo: &'a Repo,
-    data: Metadata<'a>,
+    data: Metadata,
     xml: OnceCell<Arc<XmlMetadata>>,
     manifest: OnceCell<Arc<Manifest>>,
 }
@@ -256,42 +82,42 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's description.
-    pub fn description(&'a self) -> &'a str {
+    pub fn description(&self) -> &str {
         self.data.description()
     }
 
     /// Return a package's slot.
-    pub fn slot(&'a self) -> &'a str {
+    pub fn slot(&self) -> &str {
         self.data.slot()
     }
 
     /// Return a package's subslot.
-    pub fn subslot(&'a self) -> &'a str {
+    pub fn subslot(&self) -> &str {
         self.data.subslot()
     }
 
     /// Return a package's homepage.
-    pub fn homepage(&'a self) -> &'a [&'a str] {
+    pub fn homepage(&self) -> &[String] {
         self.data.homepage()
     }
 
     /// Return a package's keywords.
-    pub fn keywords(&'a self) -> &'a IndexSet<&'a str> {
+    pub fn keywords(&self) -> &IndexSet<String> {
         self.data.keywords()
     }
 
     /// Return a package's IUSE.
-    pub fn iuse(&'a self) -> &'a IndexSet<&'a str> {
+    pub fn iuse(&self) -> &IndexSet<String> {
         self.data.iuse()
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
-    pub fn inherit(&'a self) -> &'a IndexSet<&'a str> {
+    pub fn inherit(&self) -> &IndexSet<String> {
         self.data.inherit()
     }
 
     /// Return the ordered set of inherited eclasses for a package.
-    pub fn inherited(&'a self) -> &'a IndexSet<&'a str> {
+    pub fn inherited(&self) -> &IndexSet<String> {
         self.data.inherited()
     }
 
@@ -426,6 +252,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
+    use crate::metadata::Key;
     use crate::pkg::Env::*;
     use crate::pkgsh::BuildData;
     use crate::test::eq_sorted;
@@ -436,10 +263,14 @@ mod tests {
     fn test_invalid_eapi() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
-        let path = t.create_ebuild("cat/pkg-1", [(Eapi, "$EAPI")]).unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-1", [(Key::Eapi, "$EAPI")])
+            .unwrap();
         let r = Pkg::new(&path, &repo);
         assert_err_re!(r, r"^invalid EAPI: \$EAPI");
-        let path = t.create_ebuild("cat/pkg-1", [(Eapi, "unknown")]).unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-1", [(Key::Eapi, "unknown")])
+            .unwrap();
         let r = Pkg::new(&path, &repo);
         assert_err_re!(r, r"^unknown EAPI: unknown");
     }
@@ -474,7 +305,7 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         t.create_ebuild("cat/pkg-1", []).unwrap();
-        t.create_ebuild("cat/pkg-2", [(Eapi, "0")]).unwrap();
+        t.create_ebuild("cat/pkg-2", [(Key::Eapi, "0")]).unwrap();
 
         let mut iter = repo.iter();
         let pkg1 = iter.next().unwrap();
@@ -544,13 +375,13 @@ mod tests {
         assert_eq!(pkg.subslot(), "0");
 
         // custom lacking subslot
-        let path = t.create_ebuild("cat/pkg-2", [(Slot, "1")]).unwrap();
+        let path = t.create_ebuild("cat/pkg-2", [(Key::Slot, "1")]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "1");
 
         // custom with subslot
-        let path = t.create_ebuild("cat/pkg-3", [(Slot, "1/2")]).unwrap();
+        let path = t.create_ebuild("cat/pkg-3", [(Key::Slot, "1/2")]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "2");
@@ -562,7 +393,7 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         let path = t
-            .create_ebuild("cat/pkg-1", [(Description, "desc")])
+            .create_ebuild("cat/pkg-1", [(Key::Description, "desc")])
             .unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.description(), "desc");
@@ -574,12 +405,16 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("cat/pkg-1", [(Homepage, "-")]).unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-1", [(Key::Homepage, "-")])
+            .unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(pkg.homepage().is_empty());
 
         // single line
-        let path = t.create_ebuild("cat/pkg-1", [(Homepage, "home")]).unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-1", [(Key::Homepage, "home")])
+            .unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.homepage(), ["home"]);
 
@@ -589,7 +424,9 @@ mod tests {
             b
             c
         "};
-        let path = t.create_ebuild("cat/pkg-1", [(Homepage, val)]).unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-1", [(Key::Homepage, val)])
+            .unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert_eq!(pkg.homepage(), ["a", "b", "c"]);
     }
@@ -605,7 +442,9 @@ mod tests {
         assert!(pkg.keywords().is_empty());
 
         // single line
-        let path = t.create_ebuild("cat/pkg-1", [(Keywords, "a b")]).unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-1", [(Key::Keywords, "a b")])
+            .unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(eq_sorted(pkg.keywords(), &["a", "b"]));
 
@@ -615,7 +454,9 @@ mod tests {
             b
             c
         "};
-        let path = t.create_ebuild("cat/pkg-1", [(Keywords, val)]).unwrap();
+        let path = t
+            .create_ebuild("cat/pkg-1", [(Key::Keywords, val)])
+            .unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(eq_sorted(pkg.keywords(), &["a", "b", "c"]));
     }
@@ -631,7 +472,7 @@ mod tests {
         assert!(pkg.iuse().is_empty());
 
         // single line
-        let path = t.create_ebuild("cat/pkg-1", [(Iuse, "a b")]).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", [(Key::Iuse, "a b")]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["a", "b"]));
 
@@ -641,7 +482,7 @@ mod tests {
             b
             c
         "};
-        let path = t.create_ebuild("cat/pkg-1", [(Iuse, val)]).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", [(Key::Iuse, val)]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["a", "b", "c"]));
 
@@ -1036,10 +877,10 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
-        t.create_ebuild("cat/pkg-1", [(Description, "desc1")])
+        t.create_ebuild("cat/pkg-1", [(Key::Description, "desc1")])
             .unwrap();
         let path = t
-            .create_ebuild("cat/pkg-2", [(Description, "desc2")])
+            .create_ebuild("cat/pkg-2", [(Key::Description, "desc2")])
             .unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
 

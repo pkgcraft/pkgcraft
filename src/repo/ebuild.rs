@@ -769,9 +769,9 @@ impl TempRepo {
     #[cfg(test)]
     pub(crate) fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<Utf8PathBuf>
     where
-        I: IntoIterator<Item = (eapi::Key, &'a str)>,
+        I: IntoIterator<Item = (crate::metadata::Key, &'a str)>,
     {
-        use crate::eapi::Key::*;
+        use crate::metadata::Key::*;
         let cpv = atom::cpv(cpv)?;
         let path = self.path.join(format!(
             "{}/{}-{}.ebuild",
@@ -863,8 +863,8 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::config::Config;
-    use crate::eapi::Key;
     use crate::macros::{assert_err_re, assert_logs_re};
+    use crate::metadata::Key;
     use crate::test::eq_sorted;
 
     use super::*;

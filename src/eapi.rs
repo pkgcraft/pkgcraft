@@ -9,12 +9,11 @@ use camino::Utf8Path;
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::{Lazy, OnceCell};
 use regex::{escape, Regex, RegexBuilder};
-use scallop::functions;
-use scallop::variables::string_value;
-use strum::{AsRefStr, Display, EnumString};
+use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::atom::Atom;
+use crate::metadata::Key::{self, *};
 use crate::pkgsh::builtins::{parse, BuiltinsMap, Scope, BUILTINS_MAP};
 use crate::pkgsh::phase::Phase::*;
 use crate::pkgsh::phase::*;
@@ -102,54 +101,6 @@ pub enum Feature {
 }
 
 type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
-
-#[derive(AsRefStr, EnumString, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-pub enum Key {
-    Iuse,
-    RequiredUse,
-    Depend,
-    Rdepend,
-    Pdepend,
-    Bdepend,
-    Idepend,
-    Properties,
-    Restrict,
-    Description,
-    Slot,
-    DefinedPhases,
-    Eapi,
-    Homepage,
-    Inherit,
-    Inherited,
-    Keywords,
-    License,
-    SrcUri,
-}
-
-use Key::*;
-impl Key {
-    pub(crate) fn get(&self, eapi: &'static Eapi) -> Option<String> {
-        match self {
-            DefinedPhases => {
-                let mut phase_names = vec![];
-                for phase in eapi.phases() {
-                    if functions::find(phase).is_some() {
-                        phase_names.push(phase.short_name());
-                    }
-                }
-                match phase_names.is_empty() {
-                    true => None,
-                    false => {
-                        phase_names.sort_unstable();
-                        Some(phase_names.join(" "))
-                    }
-                }
-            }
-            key => string_value(key),
-        }
-    }
-}
 
 #[derive(Default, Clone)]
 pub struct Eapi {

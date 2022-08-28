@@ -11,7 +11,8 @@ use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, source, Error};
 
-use crate::eapi::{Eapi, Feature, Key};
+use crate::eapi::{Eapi, Feature};
+use crate::metadata::Key;
 use crate::pkgsh::builtins::Scope;
 use crate::repo::ebuild;
 
