@@ -298,7 +298,7 @@ pub enum Restrict {
     VersionStr(restrict::Str),
     Slot(Option<restrict::Str>),
     SubSlot(Option<restrict::Str>),
-    UseDeps(restrict::Set),
+    UseDeps(restrict::HashSetStrs),
     Repo(Option<restrict::Str>),
 }
 
@@ -350,8 +350,8 @@ impl Restrict {
         S: Into<String>,
     {
         let r = match iter {
-            None => restrict::Set::Empty,
-            Some(i) => restrict::Set::StrSubset(i.into_iter().map(|s| s.into()).collect()),
+            None => restrict::HashSetStrs::Empty,
+            Some(i) => restrict::HashSetStrs::Subset(i.into_iter().map(|s| s.into()).collect()),
         };
         Self::UseDeps(r)
     }
