@@ -481,6 +481,65 @@ mod tests {
     }
 
     #[test]
+    fn test_inherits() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // none
+        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(pkg.inherit().is_empty());
+        assert!(pkg.inherited().is_empty());
+
+        // create eclasses
+        let eclass = indoc::indoc! {r#"
+            # eclass1
+        "#};
+        t.create_eclass("eclass1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # eclass2
+            inherit eclass1
+        "#};
+        t.create_eclass("eclass2", eclass).unwrap();
+
+        // single inherit
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            inherit eclass1
+            DESCRIPTION="testing inherits"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.inherit(), &["eclass1"]));
+        assert!(eq_sorted(pkg.inherited(), &["eclass1"]));
+
+        // eclass with indirect inherit
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            inherit eclass2
+            DESCRIPTION="testing inherits"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.inherit(), &["eclass2"]));
+        assert!(eq_sorted(pkg.inherited(), &["eclass2", "eclass1"]));
+
+        // multiple inherits
+        BuildData::reset();
+        let data = indoc::indoc! {r#"
+            inherit eclass1 eclass2
+            DESCRIPTION="testing inherits"
+            SLOT=0
+        "#};
+        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(eq_sorted(pkg.inherit(), &["eclass1", "eclass2"]));
+        assert!(eq_sorted(pkg.inherited(), &["eclass1", "eclass2"]));
+    }
+
+    #[test]
     fn test_maintainers() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
