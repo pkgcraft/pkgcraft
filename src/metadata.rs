@@ -3,6 +3,7 @@ use std::{fs, io};
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
+use itertools::Itertools;
 use scallop::functions;
 use scallop::variables::string_value;
 use strum::{AsRefStr, Display, EnumString};
@@ -56,6 +57,13 @@ impl Key {
                         phase_names.sort_unstable();
                         Some(phase_names.join(" "))
                     }
+                }
+            }
+            Key::Inherit => {
+                let inherit = BUILD_DATA.with(|d| d.borrow().inherit.iter().join(" "));
+                match inherit.is_empty() {
+                    true => None,
+                    false => Some(inherit),
                 }
             }
             key => string_value(key),
