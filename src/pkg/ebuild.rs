@@ -164,6 +164,7 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's distfiles.
     pub fn distfiles(&self) -> &[Distfile] {
+        // TODO: parse SRC_URI to determine version specific distfiles
         self.manifest().distfiles()
     }
 }
