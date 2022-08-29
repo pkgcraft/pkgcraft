@@ -193,9 +193,9 @@ impl Metadata {
         s.split_once('/').map_or(s, |x| x.0)
     }
 
-    pub(crate) fn subslot(&self) -> &str {
+    pub(crate) fn subslot(&self) -> Option<&str> {
         let s = self.slot.as_str();
-        s.split_once('/').map_or(s, |x| x.1)
+        s.split_once('/').map(|x| x.1)
     }
 
     pub(crate) fn homepage(&self) -> &[String] {

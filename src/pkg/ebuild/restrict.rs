@@ -11,6 +11,7 @@ pub enum Restrict {
     Ebuild(restrict::Str),
     Description(restrict::Str),
     Slot(restrict::Str),
+    RawSubslot(Option<restrict::Str>),
     Subslot(restrict::Str),
     Homepage(Option<restrict::SliceStrs>),
     DefinedPhases(Option<restrict::HashSetStrs>),
@@ -28,6 +29,7 @@ impl fmt::Debug for Restrict {
             Self::Ebuild(r) => write!(f, "Ebuild({r:?})"),
             Self::Description(r) => write!(f, "Description({r:?})"),
             Self::Slot(r) => write!(f, "Slot({r:?})"),
+            Self::RawSubslot(r) => write!(f, "RawSubslot({r:?})"),
             Self::Subslot(r) => write!(f, "Subslot({r:?})"),
             Self::Homepage(r) => write!(f, "Homepage({r:?})"),
             Self::DefinedPhases(r) => write!(f, "DefinedPhases({r:?})"),
@@ -66,6 +68,11 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
             },
             Self::Description(r) => r.matches(pkg.description()),
             Self::Slot(r) => r.matches(pkg.slot()),
+            Self::RawSubslot(r) => match (r, pkg.meta.subslot()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
             Self::Subslot(r) => r.matches(pkg.subslot()),
             Self::Homepage(r) => match (r, pkg.homepage()) {
                 (Some(r), strings) => r.matches(strings),
@@ -169,7 +176,12 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
-        t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
+        // no explicit subslot
+        let path = t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+        let r = Restrict::RawSubslot(None);
+        assert!(r.matches(&pkg));
+
         let path = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
 

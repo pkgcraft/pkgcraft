@@ -95,7 +95,7 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
-        self.meta.subslot()
+        self.meta.subslot().unwrap_or_else(|| self.slot())
     }
 
     /// Return a package's homepage.
