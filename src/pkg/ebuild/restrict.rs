@@ -139,6 +139,58 @@ mod tests {
     }
 
     #[test]
+    fn test_slot() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+
+        // verify pkg restrictions
+        let r = Restrict::Slot(restrict::Str::matches("2"));
+        assert!(!r.matches(&pkg));
+        let r = Restrict::Slot(restrict::Str::matches("1"));
+        assert!(r.matches(&pkg));
+
+        // verify repo restrictions
+        let iter = repo.iter_restrict(r);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-1"]);
+
+        let r = Restrict::Slot(restrict::Str::regex("0|1").unwrap());
+        let iter = repo.iter_restrict(r);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-1"]);
+    }
+
+    #[test]
+    fn test_subslot() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
+        let path = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+
+        // verify pkg restrictions
+        let r = Restrict::Subslot(restrict::Str::matches("1"));
+        assert!(!r.matches(&pkg));
+        let r = Restrict::Subslot(restrict::Str::matches("2"));
+        assert!(r.matches(&pkg));
+
+        // verify repo restrictions
+        let iter = repo.iter_restrict(r);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-1"]);
+
+        let r = Restrict::Subslot(restrict::Str::regex("0|2").unwrap());
+        let iter = repo.iter_restrict(r);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-1"]);
+    }
+
+    #[test]
     fn test_long_description() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
