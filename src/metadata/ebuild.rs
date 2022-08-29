@@ -276,7 +276,7 @@ impl Manifest {
                 })
             }
         }
-        Manifest { dist }
+        Self { dist }
     }
 
     pub(crate) fn distfiles(&self) -> &[Distfile] {
