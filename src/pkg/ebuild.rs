@@ -162,7 +162,7 @@ impl<'a> Pkg<'a> {
             .as_ref()
     }
 
-    /// Return a package's long description.
+    /// Return a package's distfiles.
     pub fn distfiles(&self) -> &[Distfile] {
         self.manifest().distfiles()
     }
