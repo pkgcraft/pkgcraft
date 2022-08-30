@@ -184,6 +184,7 @@ mod tests {
 
         let path = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
         let pkg = Pkg::new(&path, &repo).unwrap();
+        assert!(!r.matches(&pkg));
 
         // verify pkg restrictions
         let r = Restrict::Subslot(restrict::Str::matches("1"));
