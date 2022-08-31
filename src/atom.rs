@@ -327,12 +327,9 @@ impl Restrict {
         Self::Package(restrict::Str::matches(s))
     }
 
-    pub fn version(o: Option<&str>) -> crate::Result<Self> {
-        let o = match o {
-            None => None,
-            Some(s) => Some(Version::from_str(s)?),
-        };
-        Ok(Self::Version(o))
+    pub fn version(s: &str) -> crate::Result<Self> {
+        let v = Version::from_str(s)?;
+        Ok(Self::Version(Some(v)))
     }
 
     pub fn slot(o: Option<&str>) -> Self {
@@ -598,14 +595,14 @@ mod tests {
         assert!(!r.matches(&full));
 
         // no version
-        let r = Restrict::version(None).unwrap();
+        let r = Restrict::Version(None);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // version
-        let r = Restrict::version(Some("1")).unwrap();
+        let r = Restrict::version("1").unwrap();
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&blocker));
         assert!(r.matches(&cpv));
