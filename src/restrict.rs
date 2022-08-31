@@ -29,7 +29,7 @@ pub enum Restrict {
     IndexSetStrs(IndexSetStrs),
 
     // slices
-    Slice(SliceStrs),
+    SliceStrs(SliceStrs),
 
     // strings
     Str(Str),
@@ -257,7 +257,7 @@ impl fmt::Debug for SliceStrs {
 
 impl From<SliceStrs> for Restrict {
     fn from(r: SliceStrs) -> Self {
-        Restrict::Slice(r)
+        Restrict::SliceStrs(r)
     }
 }
 
