@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt::{self, Write};
@@ -413,9 +412,8 @@ impl Restriction<&Atom> for BaseRestrict {
     }
 }
 
-impl<T: Borrow<Atom>> From<T> for BaseRestrict {
-    fn from(atom: T) -> Self {
-        let atom = atom.borrow();
+impl From<&Atom> for BaseRestrict {
+    fn from(atom: &Atom) -> Self {
         let mut restricts = vec![
             Restrict::category(atom.category()),
             Restrict::package(atom.package()),
@@ -443,6 +441,12 @@ impl<T: Borrow<Atom>> From<T> for BaseRestrict {
         }
 
         Self::and(restricts.into_iter().map(Self::Atom))
+    }
+}
+
+impl From<Atom> for BaseRestrict {
+    fn from(atom: Atom) -> Self {
+        (&atom).into()
     }
 }
 
