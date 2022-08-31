@@ -117,6 +117,43 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_ebuild() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // single
+        let data = indoc::indoc! {r#"
+            DESCRIPTION="testing ebuild restrict"
+            SLOT=0
+        "#};
+        t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let data = indoc::indoc! {r#"
+            DESCRIPTION="testing ebuild restrict"
+            SLOT=0
+            VAR="a b c"
+        "#};
+        t.create_ebuild_raw("cat/pkg-2", data).unwrap();
+        let path = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
+        let pkg = Pkg::new(&path, &repo).unwrap();
+
+        // verify pkg restrictions
+        let r = Restrict::Ebuild(restrict::Str::matches("no match"));
+        assert!(!r.matches(&pkg));
+        let r = Restrict::Ebuild(restrict::Str::regex("VAR=").unwrap());
+        assert!(r.matches(&pkg));
+
+        // verify repo restrictions
+        let iter = repo.iter_restrict(r);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-2"]);
+
+        let r = Restrict::Ebuild(restrict::Str::regex("SLOT=").unwrap());
+        let iter = repo.iter_restrict(r);
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
+    }
+
+    #[test]
     fn test_description() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
