@@ -9,7 +9,9 @@ use roxmltree::{Document, Node};
 use tracing::warn;
 
 use crate::macros::cmp_not_equal;
+use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
+use crate::restrict::{self, Restriction};
 use crate::Error;
 
 #[derive(Debug)]
@@ -90,6 +92,76 @@ impl Hash for Maintainer {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum MaintainerRestrict {
+    Email(restrict::Str),
+    Name(Option<restrict::Str>),
+    Description(Option<restrict::Str>),
+    Type(Option<restrict::Str>),
+    Proxied(Option<restrict::Str>),
+}
+
+impl Restriction<&Maintainer> for MaintainerRestrict {
+    fn matches(&self, m: &Maintainer) -> bool {
+        match self {
+            Self::Email(r) => r.matches(m.email()),
+            Self::Name(r) => match (r, m.name()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Description(r) => match (r, m.description()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Type(r) => match (r, m.maint_type()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Proxied(r) => match (r, m.proxied()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SliceMaintainers {
+    First(Option<MaintainerRestrict>),
+    Last(Option<MaintainerRestrict>),
+    Contains(MaintainerRestrict),
+    Len(Ordering, usize),
+}
+
+impl From<SliceMaintainers> for restrict::Restrict {
+    fn from(r: SliceMaintainers) -> Self {
+        EbuildRestrict::Maintainers(Some(r)).into()
+    }
+}
+
+impl Restriction<&[Maintainer]> for SliceMaintainers {
+    fn matches(&self, val: &[Maintainer]) -> bool {
+        match self {
+            Self::First(r) => match (r, val.first()) {
+                (Some(r), Some(m)) => r.matches(m),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Last(r) => match (r, val.last()) {
+                (Some(r), Some(m)) => r.matches(m),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Contains(r) => val.iter().any(|m| r.matches(m)),
+            Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Upstream {
     site: String,
@@ -110,6 +182,54 @@ impl Upstream {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum UpstreamRestrict {
+    Site(restrict::Str),
+    Name(restrict::Str),
+}
+
+impl Restriction<&Upstream> for UpstreamRestrict {
+    fn matches(&self, u: &Upstream) -> bool {
+        match self {
+            Self::Site(r) => r.matches(u.site()),
+            Self::Name(r) => r.matches(u.name()),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SliceUpstreams {
+    First(Option<UpstreamRestrict>),
+    Last(Option<UpstreamRestrict>),
+    Contains(UpstreamRestrict),
+    Len(Ordering, usize),
+}
+
+impl From<SliceUpstreams> for restrict::Restrict {
+    fn from(r: SliceUpstreams) -> Self {
+        EbuildRestrict::Upstreams(Some(r)).into()
+    }
+}
+
+impl Restriction<&[Upstream]> for SliceUpstreams {
+    fn matches(&self, val: &[Upstream]) -> bool {
+        match self {
+            Self::First(r) => match (r, val.first()) {
+                (Some(r), Some(m)) => r.matches(m),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Last(r) => match (r, val.last()) {
+                (Some(r), Some(m)) => r.matches(m),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Contains(r) => val.iter().any(|m| r.matches(m)),
+            Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
+        }
     }
 }
 

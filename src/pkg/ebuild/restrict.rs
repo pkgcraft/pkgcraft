@@ -1,5 +1,6 @@
 use std::{fmt, ptr};
 
+use crate::metadata::ebuild::{SliceMaintainers, SliceUpstreams};
 use crate::pkg::{self, Package};
 use crate::restrict::{self, Restriction};
 
@@ -11,8 +12,8 @@ pub enum Restrict {
     Ebuild(restrict::Str),
     Description(restrict::Str),
     Slot(restrict::Str),
-    RawSubslot(Option<restrict::Str>),
     Subslot(restrict::Str),
+    RawSubslot(Option<restrict::Str>),
     Homepage(Option<restrict::SliceStrs>),
     DefinedPhases(Option<restrict::HashSetStrs>),
     Keywords(Option<restrict::IndexSetStrs>),
@@ -20,6 +21,8 @@ pub enum Restrict {
     Inherit(Option<restrict::IndexSetStrs>),
     Inherited(Option<restrict::IndexSetStrs>),
     LongDescription(Option<restrict::Str>),
+    Maintainers(Option<SliceMaintainers>),
+    Upstreams(Option<SliceUpstreams>),
 }
 
 impl fmt::Debug for Restrict {
@@ -29,8 +32,8 @@ impl fmt::Debug for Restrict {
             Self::Ebuild(r) => write!(f, "Ebuild({r:?})"),
             Self::Description(r) => write!(f, "Description({r:?})"),
             Self::Slot(r) => write!(f, "Slot({r:?})"),
-            Self::RawSubslot(r) => write!(f, "RawSubslot({r:?})"),
             Self::Subslot(r) => write!(f, "Subslot({r:?})"),
+            Self::RawSubslot(r) => write!(f, "RawSubslot({r:?})"),
             Self::Homepage(r) => write!(f, "Homepage({r:?})"),
             Self::DefinedPhases(r) => write!(f, "DefinedPhases({r:?})"),
             Self::Keywords(r) => write!(f, "Keywords({r:?})"),
@@ -38,6 +41,8 @@ impl fmt::Debug for Restrict {
             Self::Inherit(r) => write!(f, "Inherit({r:?})"),
             Self::Inherited(r) => write!(f, "Inherited({r:?})"),
             Self::LongDescription(r) => write!(f, "LongDescription({r:?})"),
+            Self::Maintainers(r) => write!(f, "Maintainers({r:?})"),
+            Self::Upstreams(r) => write!(f, "Upstreams({r:?})"),
         }
     }
 }
@@ -68,12 +73,12 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
             },
             Self::Description(r) => r.matches(pkg.description()),
             Self::Slot(r) => r.matches(pkg.slot()),
+            Self::Subslot(r) => r.matches(pkg.subslot()),
             Self::RawSubslot(r) => match (r, pkg.meta.subslot()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
             },
-            Self::Subslot(r) => r.matches(pkg.subslot()),
             Self::Homepage(r) => match (r, pkg.homepage()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
@@ -99,9 +104,17 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
                 (None, strings) => strings.is_empty(),
             },
             Self::LongDescription(r) => match (r, pkg.long_description()) {
-                (Some(r), Some(long_desc)) => r.matches(long_desc),
+                (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
+            },
+            Self::Maintainers(r) => match r {
+                Some(r) => r.matches(pkg.maintainers()),
+                None => pkg.maintainers().is_empty(),
+            },
+            Self::Upstreams(r) => match r {
+                Some(r) => r.matches(pkg.upstreams()),
+                None => pkg.upstreams().is_empty(),
             },
         }
     }
@@ -291,5 +304,104 @@ mod tests {
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-b-1", "cat/pkg-c-1"]);
+    }
+
+    #[test]
+    fn test_maintainers() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("xml", 0).unwrap();
+
+        // none
+        t.create_ebuild("noxml/pkg-1", []).unwrap();
+
+        // single
+        let path = t.create_ebuild("cat/pkg-a-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <maintainer type="project">
+                    <email>a.project@email.com</email>
+                    <name>A Project</name>
+                </maintainer>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+
+        // multiple
+        let path = t.create_ebuild("cat/pkg-b-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <maintainer type="person" proxied="yes">
+                    <email>a.person@email.com</email>
+                    <name>A Person</name>
+                </maintainer>
+                <maintainer type="person" proxied="proxy">
+                    <email>b.person@email.com</email>
+                    <name>B Person</name>
+                </maintainer>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+
+        // pkgs with no maintainers
+        let r = Restrict::Maintainers(None);
+        let iter = repo.iter_restrict(r.clone());
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["noxml/pkg-1"]);
+
+        // pkgs with maintainers
+        let iter = repo.iter_restrict(restrict::Restrict::not(r));
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-a-1", "cat/pkg-b-1"]);
+    }
+
+    #[test]
+    fn test_upstreams() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, repo) = config.temp_repo("xml", 0).unwrap();
+
+        // none
+        t.create_ebuild("noxml/pkg-1", []).unwrap();
+
+        // single
+        let path = t.create_ebuild("cat/pkg-a-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <upstream>
+                    <remote-id type="github">user/project</remote-id>
+                </upstream>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+
+        // multiple
+        let path = t.create_ebuild("cat/pkg-b-1", []).unwrap();
+        let data = indoc::indoc! {r#"
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+            <pkgmetadata>
+                <upstream>
+                    <remote-id type="github">pkgcraft/pkgcraft</remote-id>
+                    <remote-id type="pypi">pkgcraft</remote-id>
+                </upstream>
+            </pkgmetadata>
+        "#};
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+
+        // pkgs with no upstreams
+        let r = Restrict::Upstreams(None);
+        let iter = repo.iter_restrict(r.clone());
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["noxml/pkg-1"]);
+
+        // pkgs with upstreams
+        let iter = repo.iter_restrict(restrict::Restrict::not(r));
+        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
+        assert_eq!(atoms, ["cat/pkg-a-1", "cat/pkg-b-1"]);
     }
 }
