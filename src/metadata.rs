@@ -12,7 +12,7 @@ use tracing::warn;
 
 use crate::config::Config;
 use crate::macros::build_from_paths;
-use crate::pkgsh::{source_ebuild, BUILD_DATA};
+use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
 use crate::repo::{ebuild::Repo, Repository};
 use crate::{atom, eapi, Error};
 
@@ -181,6 +181,8 @@ impl Metadata {
             }
         }
 
+        // TODO: handle resets in external process pool
+        BuildData::reset();
         Ok(meta)
     }
 

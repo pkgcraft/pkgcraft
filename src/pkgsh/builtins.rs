@@ -442,9 +442,7 @@ macro_rules! builtin_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
-            use crate::pkgsh::{
-                builtins::Scope::*, run_phase, source_ebuild, BuildData, BUILD_DATA,
-            };
+            use crate::pkgsh::{builtins::Scope::*, run_phase, source_ebuild, BUILD_DATA};
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
@@ -460,7 +458,6 @@ macro_rules! builtin_scope_tests {
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
                     // initialize build state
-                    BuildData::reset();
                     BUILD_DATA.with(|d| {
                         d.borrow_mut().eapi = eapi;
                         d.borrow_mut().repo = repo.clone();

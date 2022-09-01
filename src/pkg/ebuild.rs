@@ -197,7 +197,6 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::metadata::Key;
     use crate::pkg::Env::*;
-    use crate::pkgsh::BuildData;
     use crate::test::eq_sorted;
 
     use super::*;
@@ -385,7 +384,6 @@ mod tests {
         assert!(pkg.defined_phases().is_empty());
 
         // single
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             DESCRIPTION="testing defined phases"
             SLOT=0
@@ -396,7 +394,6 @@ mod tests {
         assert!(eq_sorted(pkg.defined_phases(), &["compile"]));
 
         // multiple
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing defined phases"
@@ -423,7 +420,6 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         // single from eclass
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
@@ -435,7 +431,6 @@ mod tests {
         assert!(eq_sorted(pkg.defined_phases(), &["prepare"]));
 
         // single overlapping from eclass and ebuild
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
@@ -448,7 +443,6 @@ mod tests {
         assert!(eq_sorted(pkg.defined_phases(), &["prepare"]));
 
         // multiple from eclasses
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1 e2
@@ -460,7 +454,6 @@ mod tests {
         assert!(eq_sorted(pkg.defined_phases(), &["prepare", "compile", "install"]));
 
         // multiple from eclass and ebuild
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
@@ -539,7 +532,6 @@ mod tests {
         t.create_eclass("use2", eclass).unwrap();
 
         // inherited from single eclass
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             inherit use1
             DESCRIPTION="testing inherited IUSE"
@@ -550,7 +542,6 @@ mod tests {
         assert!(eq_sorted(pkg.iuse(), &["use1"]));
 
         // inherited from multiple eclasses
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             inherit use1 use2
             DESCRIPTION="testing inherited IUSE"
@@ -561,7 +552,6 @@ mod tests {
         assert!(eq_sorted(pkg.iuse(), &["use1", "use2"]));
 
         // accumulated from single eclass
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             inherit use1
             DESCRIPTION="testing accumulated IUSE"
@@ -573,7 +563,6 @@ mod tests {
         assert!(eq_sorted(pkg.iuse(), &["a", "use1"]));
 
         // accumulated from multiple eclasses
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             inherit use1 use2
             DESCRIPTION="testing accumulated IUSE"
@@ -608,7 +597,6 @@ mod tests {
         t.create_eclass("eclass2", eclass).unwrap();
 
         // single inherit
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             inherit eclass1
             DESCRIPTION="testing inherits"
@@ -620,7 +608,6 @@ mod tests {
         assert!(eq_sorted(pkg.inherited(), &["eclass1"]));
 
         // eclass with indirect inherit
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             inherit eclass2
             DESCRIPTION="testing inherits"
@@ -632,7 +619,6 @@ mod tests {
         assert!(eq_sorted(pkg.inherited(), &["eclass2", "eclass1"]));
 
         // multiple inherits
-        BuildData::reset();
         let data = indoc::indoc! {r#"
             inherit eclass1 eclass2
             DESCRIPTION="testing inherits"
