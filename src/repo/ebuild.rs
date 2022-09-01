@@ -500,6 +500,9 @@ impl Repo {
     }
 
     pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
+        // TODO: Use more specific iterator when possible, e.g. when an exact category match is
+        // part of the restriction, only those packages within the category must be checked rather
+        // than the entire repo.
         RestrictPkgIter {
             iter: self.into_iter(),
             restrict: val.into(),
