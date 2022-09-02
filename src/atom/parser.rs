@@ -316,7 +316,7 @@ mod tests {
 
         // invalid deps
         for (s, eapis) in atoms.invalid {
-            let failing_eapis = eapi::supported(eapis).expect("failed to parse EAPI range");
+            let failing_eapis = eapi::range(eapis).expect("failed to parse EAPI range");
             // verify parse failures
             for eapi in &failing_eapis {
                 let result = parse::dep(&s, eapi);
@@ -332,7 +332,7 @@ mod tests {
         // valid deps
         for a in atoms.valid {
             let s = a.atom.as_str();
-            let passing_eapis = eapi::supported(&a.eapis).expect("failed to parse EAPI range");
+            let passing_eapis = eapi::range(&a.eapis).expect("failed to parse EAPI range");
             // verify parse successes
             for eapi in &passing_eapis {
                 let result = parse::dep(&s, eapi);
