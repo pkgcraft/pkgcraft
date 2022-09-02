@@ -71,6 +71,7 @@ impl Atoms {
 pub(crate) struct Versions {
     compares: Vec<String>,
     sorting: Vec<(Vec<String>, Vec<String>)>,
+    pub(crate) hashing: Vec<(Vec<String>, usize)>,
 }
 
 impl Versions {

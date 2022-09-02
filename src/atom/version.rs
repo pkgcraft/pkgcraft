@@ -526,4 +526,16 @@ mod tests {
             assert_eq!(sorted, expected);
         }
     }
+
+    #[test]
+    fn test_hashing() {
+        let data = Versions::load().unwrap();
+        for (versions, size) in data.hashing.iter() {
+            let versions: HashSet<_> = versions
+                .iter()
+                .map(|s| Version::from_str(s).unwrap())
+                .collect();
+            assert_eq!(versions.len(), *size);
+        }
+    }
 }
