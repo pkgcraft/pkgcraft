@@ -49,7 +49,7 @@ impl<'de> Deserialize<'de> for atom::SlotOperator {
 pub(crate) struct Atoms {
     pub(crate) valid: Vec<Atom>,
     pub(crate) invalid: Vec<(String, String)>,
-    sorting: Vec<(Vec<String>, Vec<String>)>,
+    pub(crate) sorting: Vec<(Vec<String>, Vec<String>)>,
 }
 
 impl Atoms {
@@ -59,18 +59,12 @@ impl Atoms {
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
     }
-
-    pub(crate) fn sorting(&self) -> SortIter {
-        SortIter {
-            iter: self.sorting.iter(),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Versions {
     compares: Vec<String>,
-    sorting: Vec<(Vec<String>, Vec<String>)>,
+    pub(crate) sorting: Vec<(Vec<String>, Vec<String>)>,
     pub(crate) hashing: Vec<(Vec<String>, usize)>,
 }
 
@@ -85,12 +79,6 @@ impl Versions {
     pub(crate) fn compares(&self) -> ComparesIter {
         ComparesIter {
             iter: self.compares.iter(),
-        }
-    }
-
-    pub(crate) fn sorting(&self) -> SortIter {
-        SortIter {
-            iter: self.sorting.iter(),
         }
     }
 }
@@ -108,23 +96,6 @@ impl<'a> Iterator for ComparesIter<'a> {
         self.iter
             .next()
             .map(|s| (s.as_str(), s.split(' ').collect_tuple().unwrap()))
-    }
-}
-
-pub(crate) struct SortIter<'a> {
-    // format: (unsorted, sorted)
-    iter: std::slice::Iter<'a, (Vec<String>, Vec<String>)>,
-}
-
-impl<'a> Iterator for SortIter<'a> {
-    type Item = (Vec<&'a str>, Vec<&'a str>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(unsorted, expected)| {
-            let unsorted: Vec<_> = unsorted.iter().map(|s| s.as_str()).collect();
-            let expected: Vec<_> = expected.iter().map(|s| s.as_str()).collect();
-            (unsorted, expected)
-        })
     }
 }
 

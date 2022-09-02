@@ -550,14 +550,14 @@ mod tests {
     #[test]
     fn test_sorting() {
         let atoms = Atoms::load().unwrap();
-        for (unsorted, expected) in atoms.sorting() {
+        for (unsorted, expected) in atoms.sorting.iter() {
             let mut atoms: Vec<_> = unsorted
                 .iter()
                 .map(|s| Atom::from_str(s).unwrap())
                 .collect();
             atoms.sort();
             let sorted: Vec<_> = atoms.iter().map(|x| format!("{x}")).collect();
-            assert_eq!(sorted, expected);
+            assert_eq!(&sorted, expected);
         }
     }
 

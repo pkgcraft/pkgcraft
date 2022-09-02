@@ -516,14 +516,14 @@ mod tests {
     #[test]
     fn test_sorting() {
         let data = Versions::load().unwrap();
-        for (unsorted, expected) in data.sorting() {
+        for (unsorted, expected) in data.sorting.iter() {
             let mut versions: Vec<_> = unsorted
                 .iter()
                 .map(|s| Version::from_str(s).unwrap())
                 .collect();
             versions.sort();
             let sorted: Vec<_> = versions.iter().map(|x| format!("{x}")).collect();
-            assert_eq!(sorted, expected);
+            assert_eq!(&sorted, expected);
         }
     }
 
