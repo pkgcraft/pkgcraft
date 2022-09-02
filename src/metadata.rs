@@ -11,10 +11,11 @@ use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
 use crate::config::Config;
+use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::{atom, eapi, Error};
+use crate::{atom, Error};
 
 pub mod ebuild;
 
@@ -43,7 +44,7 @@ pub enum Key {
 }
 
 impl Key {
-    pub(crate) fn get(&self, eapi: &'static eapi::Eapi) -> Option<String> {
+    pub(crate) fn get(&self, eapi: &'static Eapi) -> Option<String> {
         match self {
             Key::DefinedPhases => {
                 let mut phase_names: Vec<_> = eapi
@@ -107,7 +108,7 @@ impl Metadata {
     }
 
     /// Load metadata from cache.
-    pub(crate) fn load(atom: &atom::Atom, eapi: &'static eapi::Eapi, repo: &Repo) -> Option<Self> {
+    pub(crate) fn load(atom: &atom::Atom, eapi: &'static Eapi, repo: &Repo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
         let path = build_from_paths!(repo.path(), "metadata", "md5-cache", atom.to_string());
         match fs::read_to_string(&path) {
@@ -130,11 +131,7 @@ impl Metadata {
     }
 
     /// Source ebuild to determine metadata.
-    pub(crate) fn source(
-        path: &Utf8Path,
-        eapi: &'static eapi::Eapi,
-        repo: &Repo,
-    ) -> crate::Result<Self> {
+    pub(crate) fn source(path: &Utf8Path, eapi: &'static Eapi, repo: &Repo) -> crate::Result<Self> {
         // TODO: rework BuildData handling to drop this hack required by builtins like `inherit`
         let config = Config::current();
         let r = config
@@ -153,7 +150,7 @@ impl Metadata {
         // verify sourced EAPI matches parsed EAPI
         let sourced_eapi = string_value("EAPI");
         let sourced_eapi = sourced_eapi.as_deref().unwrap_or("0");
-        if eapi::get_eapi(&sourced_eapi)? != eapi {
+        if <&Eapi>::from_str(sourced_eapi)? != eapi {
             return Err(Error::InvalidValue(format!(
                 "mismatched sourced and parsed EAPIs: {sourced_eapi} != {eapi}"
             )));

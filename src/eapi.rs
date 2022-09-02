@@ -4,6 +4,7 @@ use std::ffi::CStr;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::os::raw::c_char;
+use std::str::FromStr;
 
 use camino::Utf8Path;
 use indexmap::{IndexMap, IndexSet};
@@ -102,6 +103,7 @@ pub enum Feature {
 
 type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 
+/// EAPI object.
 #[derive(Default, Clone)]
 pub struct Eapi {
     id: String,
@@ -164,7 +166,7 @@ impl IntoEapi for &'static Eapi {
 
 impl IntoEapi for &str {
     fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        get_eapi(self)
+        <&Eapi>::from_str(self)
     }
 }
 
@@ -172,7 +174,7 @@ impl IntoEapi for Option<&str> {
     fn into_eapi(self) -> crate::Result<&'static Eapi> {
         match self {
             None => Ok(Default::default()),
-            Some(s) => get_eapi(s),
+            Some(s) => <&Eapi>::from_str(s),
         }
     }
 }
@@ -192,7 +194,10 @@ impl IntoEapi for *const c_char {
     fn into_eapi(self) -> crate::Result<&'static Eapi> {
         match self.is_null() {
             true => Ok(Default::default()),
-            false => get_eapi(unsafe { CStr::from_ptr(self).to_string_lossy() }),
+            false => {
+                let s = unsafe { CStr::from_ptr(self).to_string_lossy() };
+                <&Eapi>::from_str(&s)
+            }
         }
     }
 }
@@ -377,15 +382,17 @@ impl fmt::Debug for Eapi {
     }
 }
 
-/// Get an EAPI given its identifier.
-pub fn get_eapi<S: AsRef<str>>(id: S) -> crate::Result<&'static Eapi> {
-    let id = id.as_ref();
-    match EAPIS.get(id) {
-        Some(eapi) => Ok(eapi),
-        None => match VALID_EAPI_RE.is_match(id) {
-            true => Err(Error::Eapi(format!("unknown EAPI: {id}"))),
-            false => Err(Error::Eapi(format!("invalid EAPI: {id}"))),
-        },
+impl FromStr for &'static Eapi {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        match EAPIS.get(s) {
+            Some(eapi) => Ok(eapi),
+            None => match VALID_EAPI_RE.is_match(s) {
+                true => Err(Error::Eapi(format!("unknown EAPI: {s}"))),
+                false => Err(Error::Eapi(format!("invalid EAPI: {s}"))),
+            },
+        }
     }
 }
 
@@ -577,10 +584,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_get_eapi() {
-        assert!(get_eapi("-invalid").is_err());
-        assert!(get_eapi("unknown").is_err());
-        assert_eq!(*get_eapi("8").unwrap(), *EAPI8);
+    fn test_from_str() {
+        assert!(<&Eapi>::from_str("-invalid").is_err());
+        assert!(<&Eapi>::from_str("unknown").is_err());
+        assert_eq!(<&Eapi>::from_str("8").unwrap(), &*EAPI8);
     }
 
     #[test]

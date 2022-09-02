@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{self, prelude::*};
+use std::str::FromStr;
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -8,11 +9,13 @@ use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 
-use super::{make_pkg_traits, Package};
+use crate::eapi::{self, Eapi};
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::metadata::Metadata;
 use crate::repo::ebuild::Repo;
-use crate::{atom, eapi, Error};
+use crate::{atom, Error};
+
+use super::{make_pkg_traits, Package};
 
 mod restrict;
 pub use restrict::Restrict;
@@ -24,7 +27,7 @@ static EAPI_LINE_RE: Lazy<Regex> =
 pub struct Pkg<'a> {
     path: Utf8PathBuf,
     atom: atom::Atom,
-    eapi: &'static eapi::Eapi,
+    eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata,
     xml: OnceCell<Arc<XmlMetadata>>,
@@ -54,7 +57,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Get the parsed EAPI from a given ebuild file.
-    fn parse_eapi(path: &Utf8Path) -> crate::Result<&'static eapi::Eapi> {
+    fn parse_eapi(path: &Utf8Path) -> crate::Result<&'static Eapi> {
         let mut eapi = &*eapi::EAPI0;
         let f = fs::File::open(path).map_err(|e| Error::IO(e.to_string()))?;
         let reader = io::BufReader::new(f);
@@ -64,7 +67,7 @@ impl<'a> Pkg<'a> {
                 None | Some('#') => continue,
                 _ => {
                     if let Some(c) = EAPI_LINE_RE.captures(&line) {
-                        eapi = eapi::get_eapi(c.name("EAPI").unwrap().as_str())?;
+                        eapi = <&Eapi>::from_str(c.name("EAPI").unwrap().as_str())?;
                     }
                     break;
                 }
@@ -182,7 +185,7 @@ impl<'a> Package for Pkg<'a> {
         &self.atom
     }
 
-    fn eapi(&self) -> &'static eapi::Eapi {
+    fn eapi(&self) -> &'static Eapi {
         self.eapi
     }
 
