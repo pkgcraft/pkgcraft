@@ -233,6 +233,7 @@ impl BuildData {
     }
 
     pub(crate) fn reset() {
+        #[cfg(feature = "init")]
         scallop::shell::Shell::reset();
         BUILD_DATA.with(|d| d.replace(BuildData::new()));
     }
