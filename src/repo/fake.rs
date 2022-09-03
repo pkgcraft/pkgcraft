@@ -158,16 +158,12 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.iter.next() {
-                Some(p) => {
-                    if self.restrict.matches(&p) {
-                        return Some(p);
-                    }
-                }
-                None => return None,
+        for pkg in &mut self.iter {
+            if self.restrict.matches(&pkg) {
+                return Some(pkg);
             }
         }
+        None
     }
 }
 
