@@ -556,10 +556,18 @@ pub static EAPIS_OFFICIAL: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| 
     eapis
 });
 
+/// Ordered mapping of unofficial EAPI identifiers to instances.
+pub static EAPIS_UNOFFICIAL: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
+    [&*EAPI_PKGCRAFT]
+        .into_iter()
+        .map(|e| (e.id.clone(), e))
+        .collect()
+});
+
 /// Ordered mapping of EAPI identifiers to instances.
 pub static EAPIS: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
     let mut eapis = EAPIS_OFFICIAL.clone();
-    eapis.insert(EAPI_PKGCRAFT.id.clone(), &EAPI_PKGCRAFT);
+    eapis.extend(EAPIS_UNOFFICIAL.clone());
     eapis
 });
 
