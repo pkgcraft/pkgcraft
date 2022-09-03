@@ -449,7 +449,7 @@ impl From<Atom> for BaseRestrict {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::Atoms;
+    use crate::test::{Atoms, Versions};
 
     use super::*;
 
@@ -558,6 +558,18 @@ mod tests {
             atoms.sort();
             let sorted: Vec<_> = atoms.iter().map(|x| format!("{x}")).collect();
             assert_eq!(&sorted, expected);
+        }
+    }
+
+    #[test]
+    fn test_hashing() {
+        let data = Versions::load().unwrap();
+        for (versions, size) in data.hashing.iter() {
+            let atoms: HashSet<_> = versions
+                .iter()
+                .map(|s| Atom::from_str(&format!("=cat/pkg-{s}")).unwrap())
+                .collect();
+            assert_eq!(atoms.len(), *size);
         }
     }
 
