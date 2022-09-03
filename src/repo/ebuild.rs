@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
-use std::{env, fmt, fs, io, mem, thread};
+use std::{env, fmt, fs, io, thread};
 
 #[cfg(test)]
 use std::io::Write;
@@ -748,26 +748,12 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.iter.next() {
-                Some(pkg) => {
-                    // Drop package lifetime to avoid issues with rust's current borrow checker
-                    // that doesn't always perform correctly when dealing with conditional returns
-                    // combined with reference usage [1, 2].
-                    //
-                    // References:
-                    // 1: https://users.rust-lang.org/t/solved-borrow-doesnt-drop-returning-this-value-requires-that/24182
-                    // 2: https://smallcultfollowing.com/babysteps/blog/2018/06/15/mir-based-borrow-check-nll-status-update/#polonius
-                    //
-                    // TODO: Drop this hack when the rust borrow checker is updated.
-                    let pkg_ref = unsafe { mem::transmute::<&Pkg, &Pkg>(&pkg) };
-                    if self.restrict.matches(pkg_ref) {
-                        return Some(pkg);
-                    }
-                }
-                None => return None,
+        for pkg in &mut self.iter {
+            if self.restrict.matches(&pkg) {
+                return Some(pkg);
             }
         }
+        None
     }
 }
 
