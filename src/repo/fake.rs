@@ -5,9 +5,9 @@ use camino::{Utf8Path, Utf8PathBuf};
 
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
-use crate::pkg::Package;
+use crate::pkg::{fake::Pkg, Package};
 use crate::restrict::{Restrict, Restriction};
-use crate::{atom, pkg, repo, Error};
+use crate::{atom, repo, Error};
 
 #[derive(Debug, Default)]
 pub struct Repo {
@@ -123,7 +123,7 @@ impl<T: AsRef<Utf8Path>> repo::Contains<T> for Repo {
 }
 
 impl<'a> IntoIterator for &'a Repo {
-    type Item = pkg::fake::Pkg<'a>;
+    type Item = Pkg<'a>;
     type IntoIter = PkgIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -141,10 +141,10 @@ pub struct PkgIter<'a> {
 }
 
 impl<'a> Iterator for PkgIter<'a> {
-    type Item = pkg::fake::Pkg<'a>;
+    type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|a| pkg::fake::Pkg::new(a, self.repo))
+        self.iter.next().map(|a| Pkg::new(a, self.repo))
     }
 }
 
@@ -155,7 +155,7 @@ pub struct RestrictPkgIter<'a> {
 }
 
 impl<'a> Iterator for RestrictPkgIter<'a> {
-    type Item = pkg::fake::Pkg<'a>;
+    type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
