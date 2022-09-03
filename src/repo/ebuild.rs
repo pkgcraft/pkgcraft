@@ -692,8 +692,7 @@ impl<'a> PkgIter<'a> {
             .into_iter()
             .filter(move |s| cat_restrict.matches(s.as_str()))
             .flat_map(|d| {
-                WalkDir::new(repo.path().join(d))
-                    .sort_by_file_name()
+                let mut paths: Vec<_> = WalkDir::new(repo.path().join(d))
                     .min_depth(2)
                     .max_depth(2)
                     .into_iter()
@@ -714,8 +713,12 @@ impl<'a> PkgIter<'a> {
                             None
                         }
                     })
+                    .filter_map(|p| repo.atom_from_path(&p).ok().map(|atom| (p, atom)))
+                    .collect();
+
+                paths.sort_by(|(_p1, a1), (_p2, a2)| a1.cmp(a2));
+                paths.into_iter()
             })
-            .filter_map(|p| repo.atom_from_path(&p).ok().map(|atom| (p, atom)))
             .filter(move |(_, atom)| pkg_restrict.matches(atom));
 
         Self {
