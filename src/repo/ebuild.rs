@@ -21,7 +21,8 @@ use crate::config::{self, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
-use crate::pkg::{ebuild::Pkg, Package};
+use crate::pkg::ebuild::{Pkg, Restrict as EbuildRestrict};
+use crate::pkg::{Package, Restrict as PkgRestrict};
 use crate::restrict::{Restrict, Restriction};
 use crate::{atom, eapi, repo, Error};
 
@@ -670,6 +671,9 @@ impl<'a> PkgIter<'a> {
                     Restrict::Atom(Category(r)) => cat_restricts.push(r.clone()),
                     r @ Restrict::Atom(Package(_)) => pkg_restricts.push(r.clone()),
                     r @ Restrict::Atom(Version(_)) => pkg_restricts.push(r.clone()),
+                    Restrict::Pkg(PkgRestrict::Ebuild(EbuildRestrict::Category(r))) => {
+                        cat_restricts.push(r.clone())
+                    }
                     _ => (),
                 };
             }
