@@ -729,15 +729,13 @@ impl<'a> Iterator for PkgIter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.iter.next() {
-                Some((path, atom)) => match Pkg::new(path, atom, self.repo) {
-                    Ok(pkg) => return Some(pkg),
-                    Err(e) => warn!("{} repo: {e}", self.repo.id),
-                },
-                None => return None,
+        for (path, atom) in &mut self.iter {
+            match Pkg::new(path, atom, self.repo) {
+                Ok(pkg) => return Some(pkg),
+                Err(e) => warn!("{} repo: {e}", self.repo.id),
             }
         }
+        None
     }
 }
 
