@@ -2,6 +2,7 @@ use std::{fmt, ptr};
 
 use crate::metadata::ebuild::{SliceMaintainers, SliceUpstreams};
 use crate::pkg::{self, Package};
+use crate::repo::Repository;
 use crate::restrict::{self, Restriction};
 
 use super::Pkg;
@@ -55,8 +56,12 @@ impl From<Restrict> for restrict::Restrict {
 
 impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use crate::atom::Restrict::{Repo, Slot, Subslot};
         restrict::restrict_match! {
             self, pkg,
+            Self::Atom(Slot(Some(r))) => r.matches(pkg.slot()),
+            Self::Atom(Subslot(Some(r))) => r.matches(pkg.subslot()),
+            Self::Atom(Repo(Some(r))) => r.matches(pkg.repo().id()),
             Self::Atom(r) => r.matches(pkg.atom()),
             Self::Pkg(pkg::Restrict::Ebuild(r)) => r.matches(pkg)
         }
