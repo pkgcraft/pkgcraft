@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 use std::{env, fmt, fs, io, mem, thread};
@@ -261,10 +260,10 @@ impl Repo {
         let path = path.as_ref();
         let profiles_base = path.join("profiles");
 
-        let invalid_repo = |error: String| -> Error {
+        let invalid_repo = |err: String| -> Error {
             Error::InvalidRepo {
                 path: Utf8PathBuf::from(path),
-                error,
+                err,
             }
         };
 
@@ -330,7 +329,7 @@ impl Repo {
                 let repos = nonexistent.join(", ");
                 Err(Error::InvalidRepo {
                     path: self.path().into(),
-                    error: format!("unconfigured repos: {repos}"),
+                    err: format!("unconfigured repos: {repos}"),
                 })
             }
         }
@@ -500,12 +499,10 @@ impl Repo {
     }
 
     pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
-        // TODO: Use more specific iterator when possible, e.g. when an exact category match is
-        // part of the restriction, only those packages within the category must be checked rather
-        // than the entire repo.
+        let restrict = val.into();
         RestrictPkgIter {
-            iter: self.into_iter(),
-            restrict: val.into(),
+            iter: PkgIter::new(self, Some(&restrict)),
+            restrict,
         }
     }
 }
@@ -650,29 +647,85 @@ impl<'a> IntoIterator for &'a Repo {
     type IntoIter = PkgIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        #[allow(clippy::needless_collect)]
-        let ebuilds: Vec<WalkDir> = self
-            .categories()
-            .iter()
-            .map(|d| {
-                WalkDir::new(self.path().join(d))
-                    .sort_by_file_name()
-                    .min_depth(2)
-                    .max_depth(2)
-            })
-            .collect();
-
-        PkgIter {
-            iter: ebuilds.into_iter().flatten(),
-            repo: self,
-        }
+        PkgIter::new(self, None)
     }
 }
 
 #[derive(Debug)]
 pub struct PkgIter<'a> {
-    iter: Flatten<std::vec::IntoIter<WalkDir>>,
+    iter: std::vec::IntoIter<(Utf8PathBuf, atom::Atom)>,
     repo: &'a Repo,
+}
+
+impl<'a> PkgIter<'a> {
+    fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
+        use atom::Restrict::{Category, Package, Version};
+        let (mut cat_restricts, mut pkg_restricts) = (vec![], vec![]);
+
+        // extract atom restrictions for package filtering
+        if let Some(restrict) = restrict {
+            let mut restricts = vec![restrict];
+            while let Some(r) = restricts.pop() {
+                match r {
+                    Restrict::And(vals) => restricts.extend(vals.iter().map(|r| r.as_ref())),
+                    Restrict::Atom(Category(r)) => cat_restricts.push(r.clone()),
+                    r @ Restrict::Atom(Package(_)) => pkg_restricts.push(r.clone()),
+                    r @ Restrict::Atom(Version(_)) => pkg_restricts.push(r.clone()),
+                    _ => (),
+                };
+            }
+        };
+
+        let cat_restrict = match &cat_restricts[..] {
+            [] => Restrict::True,
+            [_] => cat_restricts.remove(0).into(),
+            _ => Restrict::and(cat_restricts),
+        };
+
+        let pkg_restrict = match &pkg_restricts[..] {
+            [] => Restrict::True,
+            [_] => pkg_restricts.remove(0),
+            _ => Restrict::and(pkg_restricts),
+        };
+
+        #[allow(clippy::needless_collect)]
+        let ebuilds: Vec<_> = repo
+            .categories()
+            .iter()
+            .filter(|s| cat_restrict.matches(s.as_str()))
+            .flat_map(|d| {
+                WalkDir::new(repo.path().join(d))
+                    .sort_by_file_name()
+                    .min_depth(2)
+                    .max_depth(2)
+                    .into_iter()
+                    .filter_entry(is_ebuild)
+                    .filter_map(|r| match r {
+                        Ok(e) => {
+                            let path = e.path();
+                            match <&Utf8Path>::try_from(path) {
+                                Ok(p) => Some(p.to_path_buf()),
+                                Err(e) => {
+                                    warn!("{}: invalid unicode path: {path:?}: {e}", repo.id);
+                                    None
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            warn!("{}: failed walking repo: {e}", repo.id);
+                            None
+                        }
+                    })
+                    .filter_map(|p| repo.atom_from_path(&p).ok().map(|atom| (p, atom)))
+                    .filter(|(_, atom)| pkg_restrict.matches(atom))
+            })
+            .collect();
+
+        Self {
+            iter: ebuilds.into_iter(),
+            repo,
+        }
+    }
 }
 
 impl<'a> Iterator for PkgIter<'a> {
@@ -681,16 +734,10 @@ impl<'a> Iterator for PkgIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.iter.next() {
-                Some(Ok(e)) => {
-                    if is_ebuild(&e) {
-                        let path: &Utf8Path = e.path().try_into().unwrap();
-                        match Pkg::new(path, self.repo) {
-                            Ok(pkg) => return Some(pkg),
-                            Err(e) => warn!("{} repo: invalid pkg: {path:?}: {e}", self.repo.id),
-                        }
-                    }
-                }
-                Some(Err(e)) => warn!("{}: failed walking repo: {e}", self.repo.id),
+                Some((path, atom)) => match Pkg::new(path, atom, self.repo) {
+                    Ok(pkg) => return Some(pkg),
+                    Err(e) => warn!("{} repo: {e}", self.repo.id),
+                },
                 None => return None,
             }
         }
@@ -770,7 +817,11 @@ impl TempRepo {
 
     /// Create an ebuild file in the repo.
     #[cfg(test)]
-    pub(crate) fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<Utf8PathBuf>
+    pub(crate) fn create_ebuild<'a, I>(
+        &self,
+        cpv: &str,
+        data: I,
+    ) -> crate::Result<(Utf8PathBuf, atom::Atom)>
     where
         I: IntoIterator<Item = (crate::metadata::Key, &'a str)>,
     {
@@ -808,12 +859,16 @@ impl TempRepo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
-        Ok(path)
+        Ok((path, cpv))
     }
 
     /// Create an ebuild file in the repo from raw data.
     #[cfg(test)]
-    pub(crate) fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<Utf8PathBuf> {
+    pub(crate) fn create_ebuild_raw(
+        &self,
+        cpv: &str,
+        data: &str,
+    ) -> crate::Result<(Utf8PathBuf, atom::Atom)> {
         let cpv = atom::cpv(cpv)?;
         let path = self.path.join(format!(
             "{}/{}-{}.ebuild",
@@ -825,7 +880,7 @@ impl TempRepo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        Ok(path)
+        Ok((path, cpv))
     }
 
     /// Create an eclass in the repo.

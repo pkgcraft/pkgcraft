@@ -82,7 +82,7 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let (path, _) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         BUILD_DATA.with(|d| {
             d.borrow_mut().repo = repo.clone();
             source_ebuild(&path).unwrap();

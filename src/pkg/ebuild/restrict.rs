@@ -146,8 +146,8 @@ mod tests {
             VAR="a b c"
         "#};
         t.create_ebuild_raw("cat/pkg-2", data).unwrap();
-        let path = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
         let r = Restrict::Ebuild(restrict::Str::matches("no match"));
@@ -173,10 +173,10 @@ mod tests {
 
         t.create_ebuild("cat/pkg-1", [(Key::Description, "desc1")])
             .unwrap();
-        let path = t
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-2", [(Key::Description, "desc2")])
             .unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
         let r = Restrict::Description(restrict::Str::matches("no match"));
@@ -201,8 +201,8 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
-        let path = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
         let r = Restrict::Slot(restrict::Str::matches("2"));
@@ -227,13 +227,13 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // no explicit subslot
-        let path = t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         let r = Restrict::RawSubslot(None);
         assert!(r.matches(&pkg));
 
-        let path = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(!r.matches(&pkg));
 
         // verify pkg restrictions
@@ -258,14 +258,14 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
-        let path = t.create_ebuild("cat/pkg-a-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-a-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // pkg lacking long description
         let r = Restrict::LongDescription(None);
         assert!(r.matches(&pkg));
 
-        let path = t.create_ebuild("cat/pkg-b-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-b-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -276,7 +276,7 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // pkg with long description
         let r = Restrict::LongDescription(Some(restrict::Str::regex(".").unwrap()));
@@ -287,7 +287,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-b-1"]);
 
-        let path = t.create_ebuild("cat/pkg-c-1", []).unwrap();
+        let (path, _) = t.create_ebuild("cat/pkg-c-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -315,7 +315,7 @@ mod tests {
         t.create_ebuild("noxml/pkg-1", []).unwrap();
 
         // single
-        let path = t.create_ebuild("cat/pkg-a-1", []).unwrap();
+        let (path, _) = t.create_ebuild("cat/pkg-a-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -329,7 +329,7 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // multiple
-        let path = t.create_ebuild("cat/pkg-b-1", []).unwrap();
+        let (path, _) = t.create_ebuild("cat/pkg-b-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -367,7 +367,7 @@ mod tests {
         t.create_ebuild("noxml/pkg-1", []).unwrap();
 
         // single
-        let path = t.create_ebuild("cat/pkg-a-1", []).unwrap();
+        let (path, _) = t.create_ebuild("cat/pkg-a-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -380,7 +380,7 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // multiple
-        let path = t.create_ebuild("cat/pkg-b-1", []).unwrap();
+        let (path, _) = t.create_ebuild("cat/pkg-b-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">

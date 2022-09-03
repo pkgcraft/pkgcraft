@@ -140,6 +140,12 @@ impl fmt::Debug for Str {
     }
 }
 
+impl From<Str> for Restrict {
+    fn from(r: Str) -> Self {
+        Restrict::Str(r)
+    }
+}
+
 impl Str {
     pub fn custom(f: fn(&str) -> bool) -> Self {
         Self::Custom(f)
@@ -186,6 +192,12 @@ pub enum HashSetStrs {
     Contains(String),
     Subset(HashSet<String>),
     Superset(HashSet<String>),
+}
+
+impl From<HashSetStrs> for Restrict {
+    fn from(r: HashSetStrs) -> Self {
+        Restrict::HashSetStrs(r)
+    }
 }
 
 impl Restriction<&HashSet<String>> for HashSetStrs {

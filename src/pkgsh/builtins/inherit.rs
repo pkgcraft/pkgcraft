@@ -249,8 +249,8 @@ mod tests {
             [[ -z ${ECLASS} ]] || die "\$ECLASS shouldn't be defined"
             [[ -n ${INHERITED} ]] || die "\$INHERITED should be defined"
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        Pkg::new(path, cpv, &repo).unwrap();
     }
 
     #[test]

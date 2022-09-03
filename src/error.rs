@@ -15,8 +15,10 @@ pub enum Error {
     Config(String),
     #[error("{0}")]
     InvalidValue(String),
-    #[error("invalid repo: {path}: {error}")]
-    InvalidRepo { path: Utf8PathBuf, error: String },
+    #[error("invalid repo: {path}: {err}")]
+    InvalidRepo { path: Utf8PathBuf, err: String },
+    #[error("invalid pkg: {path}: {err}")]
+    InvalidPkg { path: Utf8PathBuf, err: String },
     #[error("{0}")]
     IO(String),
     #[error("{0}")]

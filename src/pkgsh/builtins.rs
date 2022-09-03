@@ -477,7 +477,7 @@ macro_rules! builtin_scope_tests {
                                 DESCRIPTION="testing builtin eclass scope failures"
                                 SLOT=0
                             "#};
-                            let path = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             let r = source_ebuild(&path);
                             assert_err_re!(r, err, &info);
                         }
@@ -488,7 +488,7 @@ macro_rules! builtin_scope_tests {
                                 SLOT=0
                                 {cmd}
                             "#};
-                            let path = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             let r = source_ebuild(&path);
                             assert_err_re!(r, err, &info);
                         }
@@ -501,7 +501,7 @@ macro_rules! builtin_scope_tests {
                                     {cmd}
                                 }}
                             "#};
-                            let path = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             source_ebuild(&path).unwrap();
                             let r = run_phase(*phase);
                             assert_err_re!(r, err, &info);

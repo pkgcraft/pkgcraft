@@ -165,7 +165,7 @@ impl Repo {
 
         Err(Error::InvalidRepo {
             path: Utf8PathBuf::from(path),
-            error: "unknown or invalid format".to_string(),
+            err: "unknown or invalid format".to_string(),
         })
     }
 

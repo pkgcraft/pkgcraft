@@ -37,16 +37,22 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(path: &Utf8Path, repo: &'a Repo) -> crate::Result<Self> {
-        let eapi = Pkg::parse_eapi(path)?;
-        let atom = repo.atom_from_path(path)?;
+    pub(crate) fn new(path: Utf8PathBuf, atom: atom::Atom, repo: &'a Repo) -> crate::Result<Self> {
+        let err = |e: Error| -> Error {
+            Error::InvalidPkg {
+                path: path.clone(),
+                err: e.to_string(),
+            }
+        };
+
+        let eapi = Pkg::parse_eapi(&path).map_err(err)?;
         // TODO: compare ebuild mtime vs cache mtime
         let meta = match Metadata::load(&atom, eapi, repo) {
             Some(data) => data,
-            None => Metadata::source(path, eapi, repo)?,
+            None => Metadata::source(&path, eapi, repo).map_err(err)?,
         };
         Ok(Pkg {
-            path: path.to_path_buf(),
+            path,
             atom,
             eapi,
             repo,
@@ -208,16 +214,16 @@ mod tests {
     fn test_invalid_eapi() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
-        let path = t
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Eapi, "$EAPI")])
             .unwrap();
-        let r = Pkg::new(&path, &repo);
-        assert_err_re!(r, r"^invalid EAPI: \$EAPI");
-        let path = t
+        let r = Pkg::new(path, cpv, &repo);
+        assert_err_re!(r, r"invalid EAPI: \$EAPI");
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Eapi, "unknown")])
             .unwrap();
-        let r = Pkg::new(&path, &repo);
-        assert_err_re!(r, r"^unknown EAPI: unknown");
+        let r = Pkg::new(path, cpv, &repo);
+        assert_err_re!(r, r"unknown EAPI: unknown");
     }
 
     #[test]
@@ -228,8 +234,8 @@ mod tests {
 
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
-        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path.clone(), cpv, &repo).unwrap();
         assert_path(pkg, &path);
     }
 
@@ -239,8 +245,8 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
-        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path.clone(), cpv, &repo).unwrap();
         assert_eq!(pkg.path(), &path);
         assert!(!pkg.ebuild().unwrap().is_empty());
     }
@@ -275,8 +281,8 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // no revision
-        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.env(P), "pkg-1");
         assert_eq!(pkg.env(PN), "pkg");
         assert_eq!(pkg.env(PV), "1");
@@ -286,8 +292,8 @@ mod tests {
         assert_eq!(pkg.env(CATEGORY), "cat");
 
         // revisioned
-        let path = t.create_ebuild("cat/pkg-1-r2", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1-r2", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.env(P), "pkg-1");
         assert_eq!(pkg.env(PN), "pkg");
         assert_eq!(pkg.env(PV), "1");
@@ -297,8 +303,8 @@ mod tests {
         assert_eq!(pkg.env(CATEGORY), "cat");
 
         // explicit r0 revision
-        let path = t.create_ebuild("cat/pkg-2-r0", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-2-r0", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.env(P), "pkg-2");
         assert_eq!(pkg.env(PN), "pkg");
         assert_eq!(pkg.env(PV), "2");
@@ -314,20 +320,20 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // default (injected by create_ebuild())
-        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.slot(), "0");
         assert_eq!(pkg.subslot(), "0");
 
         // custom lacking subslot
-        let path = t.create_ebuild("cat/pkg-2", [(Key::Slot, "1")]).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-2", [(Key::Slot, "1")]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "1");
 
         // custom with subslot
-        let path = t.create_ebuild("cat/pkg-3", [(Key::Slot, "1/2")]).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-3", [(Key::Slot, "1/2")]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "2");
     }
@@ -337,10 +343,10 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
-        let path = t
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Description, "desc")])
             .unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.description(), "desc");
     }
 
@@ -350,17 +356,17 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
-        let path = t
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Homepage, "-")])
             .unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.homepage().is_empty());
 
         // single line
-        let path = t
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Homepage, "home")])
             .unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.homepage(), ["home"]);
 
         // multiple lines
@@ -369,10 +375,10 @@ mod tests {
             b
             c
         "};
-        let path = t
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Homepage, val)])
             .unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert_eq!(pkg.homepage(), ["a", "b", "c"]);
     }
 
@@ -382,8 +388,8 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.defined_phases().is_empty());
 
         // single
@@ -392,8 +398,8 @@ mod tests {
             SLOT=0
             src_compile() { :; }
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.defined_phases(), &["compile"]));
 
         // multiple
@@ -405,8 +411,8 @@ mod tests {
             src_compile() { :; }
             src_install() { :; }
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.defined_phases(), &["prepare", "compile", "install"]));
 
         // create eclasses
@@ -429,8 +435,8 @@ mod tests {
             DESCRIPTION="testing defined phases"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.defined_phases(), &["prepare"]));
 
         // single overlapping from eclass and ebuild
@@ -441,8 +447,8 @@ mod tests {
             SLOT=0
             src_prepare() { :; }
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.defined_phases(), &["prepare"]));
 
         // multiple from eclasses
@@ -452,8 +458,8 @@ mod tests {
             DESCRIPTION="testing defined phases"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.defined_phases(), &["prepare", "compile", "install"]));
 
         // multiple from eclass and ebuild
@@ -464,8 +470,8 @@ mod tests {
             SLOT=0
             src_test() { :; }
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.defined_phases(), &["prepare", "test"]));
     }
 
@@ -475,15 +481,15 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.keywords().is_empty());
 
         // single line
-        let path = t
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Keywords, "a b")])
             .unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.keywords(), &["a", "b"]));
 
         // multiple lines
@@ -492,10 +498,10 @@ mod tests {
             b
             c
         "};
-        let path = t
+        let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Keywords, val)])
             .unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.keywords(), &["a", "b", "c"]));
     }
 
@@ -505,13 +511,13 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.iuse().is_empty());
 
         // single line
-        let path = t.create_ebuild("cat/pkg-1", [(Key::Iuse, "a b")]).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Iuse, "a b")]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["a", "b"]));
 
         // multiple lines
@@ -520,8 +526,8 @@ mod tests {
             b
             c
         "};
-        let path = t.create_ebuild("cat/pkg-1", [(Key::Iuse, val)]).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Iuse, val)]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["a", "b", "c"]));
 
         // create eclasses
@@ -540,8 +546,8 @@ mod tests {
             DESCRIPTION="testing inherited IUSE"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["use1"]));
 
         // inherited from multiple eclasses
@@ -550,8 +556,8 @@ mod tests {
             DESCRIPTION="testing inherited IUSE"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["use1", "use2"]));
 
         // accumulated from single eclass
@@ -561,8 +567,8 @@ mod tests {
             IUSE="a"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["a", "use1"]));
 
         // accumulated from multiple eclasses
@@ -572,8 +578,8 @@ mod tests {
             IUSE="a"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.iuse(), &["a", "use1", "use2"]));
     }
 
@@ -583,8 +589,8 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.inherit().is_empty());
         assert!(pkg.inherited().is_empty());
 
@@ -605,8 +611,8 @@ mod tests {
             DESCRIPTION="testing inherits"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.inherit(), &["eclass1"]));
         assert!(eq_sorted(pkg.inherited(), &["eclass1"]));
 
@@ -616,8 +622,8 @@ mod tests {
             DESCRIPTION="testing inherits"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.inherit(), &["eclass2"]));
         assert!(eq_sorted(pkg.inherited(), &["eclass2", "eclass1"]));
 
@@ -627,8 +633,8 @@ mod tests {
             DESCRIPTION="testing inherits"
             SLOT=0
         "#};
-        let path = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(eq_sorted(pkg.inherit(), &["eclass1", "eclass2"]));
         assert!(eq_sorted(pkg.inherited(), &["eclass1", "eclass2"]));
     }
@@ -639,12 +645,12 @@ mod tests {
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.maintainers().is_empty());
 
         // single
-        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -656,9 +662,9 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             let m = pkg.maintainers();
             assert_eq!(m.len(), 1);
@@ -667,7 +673,7 @@ mod tests {
         }
 
         // multiple
-        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -683,9 +689,9 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             let m = pkg.maintainers();
             assert_eq!(m.len(), 2);
@@ -702,12 +708,12 @@ mod tests {
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.upstreams().is_empty());
 
         // single
-        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -718,9 +724,9 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             let m = pkg.upstreams();
             assert_eq!(m.len(), 1);
@@ -729,7 +735,7 @@ mod tests {
         }
 
         // multiple
-        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -741,9 +747,9 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             let m = pkg.upstreams();
             assert_eq!(m.len(), 2);
@@ -760,12 +766,12 @@ mod tests {
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.local_use().is_empty());
 
         // single
-        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -776,16 +782,16 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(pkg.local_use().len(), 1);
             assert_eq!(pkg.local_use().get("flag").unwrap(), "flag desc");
         }
 
         // multiple
-        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -801,9 +807,9 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(pkg.local_use().len(), 2);
             assert_eq!(pkg.local_use().get("flag1").unwrap(), "flag1 desc");
@@ -817,12 +823,12 @@ mod tests {
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("noxml/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.long_description().is_none());
 
         // empty
-        let path = t.create_ebuild("empty/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("empty/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <pkgmetadata>
                 <longdescription>
@@ -830,15 +836,15 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("empty/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("empty/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(pkg.long_description().unwrap(), "");
         }
 
         // invalid XML
-        let path = t.create_ebuild("invalid/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("invalid/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <pkgmetadata>
                 <longdescription>
@@ -847,15 +853,15 @@ mod tests {
             </pkg>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("invalid/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("invalid/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert!(pkg.long_description().is_none());
         }
 
         // single
-        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -870,9 +876,9 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(
                 pkg.long_description().unwrap(),
@@ -881,7 +887,7 @@ mod tests {
         }
 
         // multiple
-        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -899,9 +905,9 @@ mod tests {
             </pkgmetadata>
         "#};
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(
                 pkg.long_description().unwrap(),
@@ -916,19 +922,19 @@ mod tests {
         let (t, repo) = config.temp_repo("manifest", 0).unwrap();
 
         // none
-        let path = t.create_ebuild("nomanifest/pkg-1", []).unwrap();
-        let pkg = Pkg::new(&path, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("nomanifest/pkg-1", []).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(pkg.distfiles().is_empty());
 
         // single
-        let path = t.create_ebuild("cat1/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
         fs::write(path.parent().unwrap().join("Manifest"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat1/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             let dist = pkg.distfiles();
             assert_eq!(dist.len(), 1);
@@ -939,15 +945,15 @@ mod tests {
         }
 
         // multiple
-        let path = t.create_ebuild("cat2/pkg-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
             DIST b.tar.gz 2 BLAKE2B c SHA512 d
         "#};
         fs::write(path.parent().unwrap().join("Manifest"), data).unwrap();
-        let pkg1 = Pkg::new(&path, &repo).unwrap();
-        let path = t.create_ebuild("cat2/pkg-2", []).unwrap();
-        let pkg2 = Pkg::new(&path, &repo).unwrap();
+        let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
+        let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             let dist = pkg.distfiles();
             assert_eq!(dist.len(), 2);
