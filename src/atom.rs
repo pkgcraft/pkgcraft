@@ -296,7 +296,7 @@ pub enum Restrict {
     Version(Option<Version>),
     VersionStr(restrict::Str),
     Slot(Option<restrict::Str>),
-    SubSlot(Option<restrict::Str>),
+    Subslot(Option<restrict::Str>),
     UseDeps(restrict::HashSetStrs),
     Repo(Option<restrict::Str>),
 }
@@ -311,7 +311,7 @@ impl fmt::Debug for Restrict {
             Self::Version(v) => write!(f, "Version({v:?})"),
             Self::VersionStr(s) => write!(f, "VersionStr({s:?})"),
             Self::Slot(r) => write!(f, "Slot({r:?})"),
-            Self::SubSlot(r) => write!(f, "SubSlot({r:?})"),
+            Self::Subslot(r) => write!(f, "Subslot({r:?})"),
             Self::UseDeps(r) => write!(f, "UseDeps({r:?})"),
             Self::Repo(r) => write!(f, "Repo({r:?})"),
         }
@@ -337,7 +337,7 @@ impl Restrict {
     }
 
     pub fn subslot(o: Option<&str>) -> Self {
-        Self::SubSlot(o.map(restrict::Str::matches))
+        Self::Subslot(o.map(restrict::Str::matches))
     }
 
     pub fn use_deps<I, S>(iter: Option<I>) -> Self
@@ -379,7 +379,7 @@ impl Restriction<&Atom> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            Self::SubSlot(r) => match (r, atom.subslot()) {
+            Self::Subslot(r) => match (r, atom.subslot()) {
                 (Some(r), Some(subslot)) => r.matches(subslot),
                 (None, None) => true,
                 _ => false,

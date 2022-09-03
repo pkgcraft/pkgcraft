@@ -114,7 +114,7 @@ peg::parser! {
                     0 => Restrict::Atom(atom::Restrict::subslot(Some(s))),
                     _ => {
                         let r = str_to_regex_restrict(s);
-                        Restrict::Atom(atom::Restrict::SubSlot(Some(r)))
+                        Restrict::Atom(atom::Restrict::Subslot(Some(r)))
                     }
                 }
             }
