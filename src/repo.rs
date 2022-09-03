@@ -213,7 +213,6 @@ impl Repo {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug)]
 pub enum PkgIter<'a> {
     Ebuild(ebuild::PkgIter<'a>, &'a Repo),
     Fake(fake::PkgIter<'a>, &'a Repo),
@@ -246,7 +245,6 @@ impl<'a> Iterator for PkgIter<'a> {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug)]
 pub enum RestrictPkgIter<'a> {
     Ebuild(ebuild::RestrictPkgIter<'a>, &'a Repo),
     Fake(fake::RestrictPkgIter<'a>, &'a Repo),

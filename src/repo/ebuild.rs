@@ -651,9 +651,8 @@ impl<'a> IntoIterator for &'a Repo {
     }
 }
 
-#[derive(Debug)]
 pub struct PkgIter<'a> {
-    iter: std::vec::IntoIter<(Utf8PathBuf, atom::Atom)>,
+    iter: Box<dyn Iterator<Item = (Utf8PathBuf, atom::Atom)> + 'a>,
     repo: &'a Repo,
 }
 
@@ -688,11 +687,10 @@ impl<'a> PkgIter<'a> {
             _ => Restrict::and(pkg_restricts),
         };
 
-        #[allow(clippy::needless_collect)]
-        let ebuilds: Vec<_> = repo
+        let ebuilds = repo
             .categories()
-            .iter()
-            .filter(|s| cat_restrict.matches(s.as_str()))
+            .into_iter()
+            .filter(move |s| cat_restrict.matches(s.as_str()))
             .flat_map(|d| {
                 WalkDir::new(repo.path().join(d))
                     .sort_by_file_name()
@@ -716,13 +714,12 @@ impl<'a> PkgIter<'a> {
                             None
                         }
                     })
-                    .filter_map(|p| repo.atom_from_path(&p).ok().map(|atom| (p, atom)))
-                    .filter(|(_, atom)| pkg_restrict.matches(atom))
             })
-            .collect();
+            .filter_map(|p| repo.atom_from_path(&p).ok().map(|atom| (p, atom)))
+            .filter(move |(_, atom)| pkg_restrict.matches(atom));
 
         Self {
-            iter: ebuilds.into_iter(),
+            iter: Box::new(ebuilds),
             repo,
         }
     }
@@ -744,7 +741,6 @@ impl<'a> Iterator for PkgIter<'a> {
     }
 }
 
-#[derive(Debug)]
 pub struct RestrictPkgIter<'a> {
     iter: PkgIter<'a>,
     restrict: Restrict,
