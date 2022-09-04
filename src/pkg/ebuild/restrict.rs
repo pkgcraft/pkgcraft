@@ -155,7 +155,6 @@ mod tests {
             SLOT=0
             VAR="a b c"
         "#};
-        t.create_ebuild_raw("cat/pkg-2", data).unwrap();
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
