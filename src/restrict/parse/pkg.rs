@@ -49,6 +49,32 @@ peg::parser! {
         rule number_ops() -> &'input str
             = quiet!{" "*} op:$((['<' | '>'] "="?) / "==") quiet!{" "*} { op }
 
+        rule pkg_restrict() -> Restrict
+            = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string() {?
+                use crate::pkg::Restrict::*;
+                let restrict_fn = match attr {
+                    "eapi" => Eapi,
+                    "repo" => Repo,
+                    _ => return Err("unknown package attribute"),
+                };
+
+                let r: Restrict = match op {
+                    "==" => restrict_fn(Str::matches(s)).into(),
+                    "!=" => Restrict::not(restrict_fn(Str::matches(s))),
+                    "=~" => match Regex::new(s) {
+                        Ok(r) => restrict_fn(Str::Regex(r)).into(),
+                        Err(_) => return Err("invalid regex"),
+                    },
+                    "!~" => match Regex::new(s) {
+                        Ok(r) => Restrict::not(restrict_fn(Str::Regex(r))),
+                        Err(_) => return Err("invalid regex"),
+                    },
+                    _ => return Err("invalid string operator"),
+                };
+
+                Ok(r)
+            }
+
         rule str_restrict() -> Restrict
             = attr:$((
                     "ebuild"
@@ -175,6 +201,7 @@ peg::parser! {
         rule expr() -> Restrict
             = quiet!{" "*} invert:quiet!{"!"}?
                     r:(attr_optional()
+                       / pkg_restrict()
                        / str_restrict()
                        / maintainers()
                     ) quiet!{" "*} {
