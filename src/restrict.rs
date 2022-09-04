@@ -226,10 +226,10 @@ pub enum IndexSetStrs {
     Empty,
     Custom(fn(&IndexSet<String>) -> bool),
     Contains(String),
+    First(Str),
+    Last(Str),
     Subset(IndexSet<String>),
     Superset(IndexSet<String>),
-    First(Option<Str>),
-    Last(Option<Str>),
     Len(Ordering, usize),
 }
 
@@ -239,10 +239,10 @@ impl fmt::Debug for IndexSetStrs {
             Self::Empty => write!(f, "Empty"),
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
             Self::Contains(s) => write!(f, "Contains({s:?})"),
+            Self::First(r) => write!(f, "First({r:?})"),
+            Self::Last(r) => write!(f, "Last({r:?})"),
             Self::Subset(s) => write!(f, "Subset({s:?})"),
             Self::Superset(s) => write!(f, "Superset({s:?})"),
-            Self::First(s) => write!(f, "First({s:?})"),
-            Self::Last(s) => write!(f, "Last({s:?})"),
             Self::Len(ordering, size) => write!(f, "Len({ordering:?}, {size})"),
         }
     }
@@ -260,18 +260,10 @@ impl Restriction<&IndexSet<String>> for IndexSetStrs {
             Self::Empty => val.is_empty(),
             Self::Custom(func) => func(val),
             Self::Contains(s) => val.contains(s),
+            Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
+            Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Subset(s) => s.is_subset(val),
             Self::Superset(s) => s.is_superset(val),
-            Self::First(r) => match (r, val.first()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Last(r) => match (r, val.last()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
             Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
         }
     }
@@ -280,10 +272,10 @@ impl Restriction<&IndexSet<String>> for IndexSetStrs {
 #[derive(Clone)]
 pub enum SliceStrs {
     Custom(fn(&[String]) -> bool),
-    First(Option<Str>),
-    Last(Option<Str>),
-    Len(Ordering, usize),
+    First(Str),
+    Last(Str),
     Regex(Regex),
+    Len(Ordering, usize),
 }
 
 impl fmt::Debug for SliceStrs {
@@ -292,8 +284,8 @@ impl fmt::Debug for SliceStrs {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
             Self::First(r) => write!(f, "First({r:?})"),
             Self::Last(r) => write!(f, "Last({r:?})"),
-            Self::Len(ordering, size) => write!(f, "Len({ordering:?}, {size})"),
             Self::Regex(re) => write!(f, "Regex({re:?})"),
+            Self::Len(ordering, size) => write!(f, "Len({ordering:?}, {size})"),
         }
     }
 }
@@ -305,21 +297,13 @@ impl From<SliceStrs> for Restrict {
 }
 
 impl Restriction<&[String]> for SliceStrs {
-    fn matches(&self, strings: &[String]) -> bool {
+    fn matches(&self, val: &[String]) -> bool {
         match self {
-            Self::Custom(func) => func(strings),
-            Self::First(r) => match (r, strings.first()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Last(r) => match (r, strings.last()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Len(ordering, size) => strings.len().cmp(size) == *ordering,
-            Self::Regex(re) => strings.iter().any(|s| re.is_match(s)),
+            Self::Custom(func) => func(val),
+            Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
+            Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
+            Self::Regex(re) => val.iter().any(|s| re.is_match(s)),
+            Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
         }
     }
 }

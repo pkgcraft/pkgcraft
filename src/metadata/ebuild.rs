@@ -131,8 +131,8 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
 
 #[derive(Debug, Clone)]
 pub enum SliceMaintainers {
-    First(Option<MaintainerRestrict>),
-    Last(Option<MaintainerRestrict>),
+    First(MaintainerRestrict),
+    Last(MaintainerRestrict),
     Contains(MaintainerRestrict),
     Len(Ordering, usize),
 }
@@ -146,17 +146,9 @@ impl From<SliceMaintainers> for restrict::Restrict {
 impl Restriction<&[Maintainer]> for SliceMaintainers {
     fn matches(&self, val: &[Maintainer]) -> bool {
         match self {
-            Self::First(r) => match (r, val.first()) {
-                (Some(r), Some(m)) => r.matches(m),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Last(r) => match (r, val.last()) {
-                (Some(r), Some(m)) => r.matches(m),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Contains(r) => val.iter().any(|m| r.matches(m)),
+            Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
+            Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
+            Self::Contains(r) => val.iter().any(|v| r.matches(v)),
             Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
         }
     }
@@ -202,8 +194,8 @@ impl Restriction<&Upstream> for UpstreamRestrict {
 
 #[derive(Debug, Clone)]
 pub enum SliceUpstreams {
-    First(Option<UpstreamRestrict>),
-    Last(Option<UpstreamRestrict>),
+    First(UpstreamRestrict),
+    Last(UpstreamRestrict),
     Contains(UpstreamRestrict),
     Len(Ordering, usize),
 }
@@ -217,17 +209,9 @@ impl From<SliceUpstreams> for restrict::Restrict {
 impl Restriction<&[Upstream]> for SliceUpstreams {
     fn matches(&self, val: &[Upstream]) -> bool {
         match self {
-            Self::First(r) => match (r, val.first()) {
-                (Some(r), Some(m)) => r.matches(m),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Last(r) => match (r, val.last()) {
-                (Some(r), Some(m)) => r.matches(m),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Contains(r) => val.iter().any(|m| r.matches(m)),
+            Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
+            Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
+            Self::Contains(r) => val.iter().any(|v| r.matches(v)),
             Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
         }
     }

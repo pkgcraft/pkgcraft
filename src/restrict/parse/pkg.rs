@@ -84,7 +84,7 @@ peg::parser! {
             }
 
         rule maintainers() -> Restrict
-            = "maintainers" r:maintainers_contains() { r }
+            = "maintainers" r:maintainers_ops() { r }
 
         rule maintainers_attr_optional() -> MaintainerRestrict
             = attr:$(("name" / "description" / "type" / "proxied"))
@@ -131,13 +131,20 @@ peg::parser! {
                 Ok(r)
             }
 
-        rule maintainers_contains() -> Restrict
-            = quiet!{" "+} "contains" quiet!{" "+}
+        rule maintainers_ops() -> Restrict
+            = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
                     r:(maintainers_attr_optional()
                        / maintainers_str_restrict()
-                    ) {
-                use crate::metadata::ebuild::SliceMaintainers::Contains;
-                Contains(r).into()
+                    )
+            {?
+                use crate::metadata::ebuild::SliceMaintainers::*;
+                let r = match op {
+                    "contains" => Contains(r),
+                    "first" => First(r),
+                    "last" => Last(r),
+                    _ => return Err("unknown maintainers operation"),
+                };
+                Ok(r.into())
             }
 
         rule expr() -> Restrict
