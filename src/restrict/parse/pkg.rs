@@ -7,6 +7,22 @@ use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict::{self as PkgRestrict, *};
 use crate::restrict::{Restrict, Str};
 
+fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
+    match op {
+        "==" => Ok(Str::matches(s)),
+        "!=" => Ok(Str::not(Str::matches(s))),
+        "=~" => {
+            let re = Regex::new(s).map_err(|_| "invalid regex")?;
+            Ok(Str::Regex(re))
+        }
+        "!~" => {
+            let re = Regex::new(s).map_err(|_| "invalid regex")?;
+            Ok(Str::not(Str::Regex(re)))
+        }
+        _ => Err("invalid string operator"),
+    }
+}
+
 peg::parser! {
     grammar restrict() for str {
         rule attr_optional() -> Restrict
@@ -58,24 +74,11 @@ peg::parser! {
                     _ => return Err("unknown package attribute"),
                 };
 
-                let r: Restrict = match op {
-                    "==" => restrict_fn(Str::matches(s)).into(),
-                    "!=" => Restrict::not(restrict_fn(Str::matches(s))),
-                    "=~" => match Regex::new(s) {
-                        Ok(r) => restrict_fn(Str::Regex(r)).into(),
-                        Err(_) => return Err("invalid regex"),
-                    },
-                    "!~" => match Regex::new(s) {
-                        Ok(r) => Restrict::not(restrict_fn(Str::Regex(r))),
-                        Err(_) => return Err("invalid regex"),
-                    },
-                    _ => return Err("invalid string operator"),
-                };
-
-                Ok(r)
+                let r = str_restrict(op, s)?;
+                Ok(restrict_fn(r).into())
             }
 
-        rule str_restrict() -> Restrict
+        rule attr_str_restrict() -> Restrict
             = attr:$((
                     "ebuild"
                     / "category"
@@ -97,21 +100,8 @@ peg::parser! {
                     _ => return Err("unknown package attribute"),
                 };
 
-                let r: Restrict = match op {
-                    "==" => restrict_fn(Str::matches(s)).into(),
-                    "!=" => Restrict::not(restrict_fn(Str::matches(s))),
-                    "=~" => match Regex::new(s) {
-                        Ok(r) => restrict_fn(Str::Regex(r)).into(),
-                        Err(_) => return Err("invalid regex"),
-                    },
-                    "!~" => match Regex::new(s) {
-                        Ok(r) => Restrict::not(restrict_fn(Str::Regex(r))),
-                        Err(_) => return Err("invalid regex"),
-                    },
-                    _ => return Err("invalid string operator"),
-                };
-
-                Ok(r)
+                let r = str_restrict(op, s)?;
+                Ok(restrict_fn(r).into())
             }
 
         rule maintainers() -> Restrict
@@ -145,21 +135,8 @@ peg::parser! {
                     _ => return Err("unknown maintainer attribute"),
                 };
 
-                let r = match op {
-                    "==" => restrict_fn(Str::matches(s)),
-                    "!=" => restrict_fn(Str::not(Str::matches(s))),
-                    "=~" => match Regex::new(s) {
-                        Ok(r) => restrict_fn(Str::Regex(r)),
-                        Err(_) => return Err("invalid regex"),
-                    },
-                    "!~" => match Regex::new(s) {
-                        Ok(r) => restrict_fn(Str::not(Str::Regex(r))),
-                        Err(_) => return Err("invalid regex"),
-                    },
-                    _ => return Err("invalid string operator"),
-                };
-
-                Ok(r)
+                let r = str_restrict(op, s)?;
+                Ok(restrict_fn(r))
             }
 
         rule maintainers_str_ops() -> SliceMaintainers
@@ -202,7 +179,7 @@ peg::parser! {
             = quiet!{" "*} invert:quiet!{"!"}?
                     r:(attr_optional()
                        / pkg_restrict()
-                       / str_restrict()
+                       / attr_str_restrict()
                        / maintainers()
                     ) quiet!{" "*} {
                 match invert {
