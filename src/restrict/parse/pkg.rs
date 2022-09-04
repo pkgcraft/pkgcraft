@@ -8,7 +8,19 @@ use crate::restrict::{Restrict, Str};
 peg::parser! {
     grammar restrict() for str {
         rule attr_optional() -> Restrict
-            = attr:$(['a'..='z' | '_']+) " is " ("None" / "none") {?
+            = attr:$((
+                    "raw_subslot"
+                    / "homepage"
+                    / "defined_phases"
+                    / "keywords"
+                    / "iuse"
+                    / "inherit"
+                    / "inherited"
+                    / "long_description"
+                    / "maintainers"
+                    / "upstreams"
+                )) " is " ("None" / "none")
+            {?
                 let r = match attr {
                     "raw_subslot" => RawSubslot(None),
                     "homepage" => Homepage(None),
@@ -30,10 +42,18 @@ peg::parser! {
             / "\'" s:$([^ '\'']+) "\'" { s }
 
         rule string_ops() -> &'input str
-            = " "* op:$("==" / "!=" / "=~" / "!~") " "* { op }
+            = quiet!{" "*} op:$("==" / "!=" / "=~" / "!~") quiet!{" "*} { op }
 
         rule str_restrict() -> Restrict
-            = attr:$(['a'..='z' | '_']+) op:string_ops() s:quoted_string()
+            = attr:$((
+                    "ebuild"
+                    / "category"
+                    / "description"
+                    / "slot"
+                    / "subslot"
+                    / "raw_subslot"
+                    / "long_description"
+                )) op:string_ops() s:quoted_string()
             {?
                 let restrict_fn = match attr {
                     "ebuild" => Ebuild,
@@ -67,7 +87,8 @@ peg::parser! {
             = "maintainers" r:maintainers_contains() { r }
 
         rule maintainers_attr_optional() -> MaintainerRestrict
-            = attr:$(['a'..='z' | '_']+) " is " ("None" / "none") {?
+            = attr:$(("name" / "description" / "type" / "proxied"))
+                    " is " ("None" / "none") {?
                 use crate::metadata::ebuild::MaintainerRestrict::*;
                 let r = match attr {
                     "name" => Name(None),
@@ -111,7 +132,7 @@ peg::parser! {
             }
 
         rule maintainers_contains() -> Restrict
-            = " "+ "contains" " "+
+            = quiet!{" "+} "contains" quiet!{" "+}
                     r:(maintainers_attr_optional()
                        / maintainers_str_restrict()
                     ) {
@@ -120,30 +141,29 @@ peg::parser! {
             }
 
         rule expr() -> Restrict
-            = " "* invert:"!"?
+            = quiet!{" "*} invert:quiet!{"!"}?
                     r:(attr_optional()
                        / str_restrict()
                        / maintainers()
-                    ) " "* {
-                let mut restrict = r;
-                if invert.is_some() {
-                    restrict = Restrict::not(restrict);
+                    ) quiet!{" "*} {
+                match invert {
+                    Some(_) => Restrict::not(r),
+                    None => r,
                 }
-                restrict
             }
 
         rule and() -> Restrict
-            = "(" exprs:query() ++ "&&" ")" {
+            = quiet!{"("} exprs:query() ++ "&&" quiet!{")"} {
                 Restrict::and(exprs)
             }
 
         rule or() -> Restrict
-            = "(" exprs:query() ++ "||" ")" {
+            = quiet!{"("} exprs:query() ++ "||" quiet!{")"} {
                 Restrict::or(exprs)
             }
 
         rule xor() -> Restrict
-            = "(" exprs:query() ++ "^^" ")" {
+            = quiet!{"("} exprs:query() ++ "^^" quiet!{")"} {
                 Restrict::xor(exprs)
             }
 
