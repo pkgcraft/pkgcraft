@@ -9,19 +9,19 @@ peg::parser! {
         rule attr_optional() -> Restrict
             = attr:$(['a'..='z' | '_']+) " is " ("None" / "none") {?
                 let r = match attr {
-                    "raw_subslot" => RawSubslot(None).into(),
-                    "homepage" => Homepage(None).into(),
-                    "defined_phases" => DefinedPhases(None).into(),
-                    "keywords" => Keywords(None).into(),
-                    "iuse" => Iuse(None).into(),
-                    "inherit" => Inherit(None).into(),
-                    "inherited" => Inherited(None).into(),
-                    "long_description" => LongDescription(None).into(),
-                    "maintainers" => Maintainers(None).into(),
-                    "upstreams" => Upstreams(None).into(),
+                    "raw_subslot" => RawSubslot(None),
+                    "homepage" => Homepage(None),
+                    "defined_phases" => DefinedPhases(None),
+                    "keywords" => Keywords(None),
+                    "iuse" => Iuse(None),
+                    "inherit" => Inherit(None),
+                    "inherited" => Inherited(None),
+                    "long_description" => LongDescription(None),
+                    "maintainers" => Maintainers(None),
+                    "upstreams" => Upstreams(None),
                     _ => return Err("unknown optional package attribute"),
                 };
-                Ok(r)
+                Ok(r.into())
             }
 
         rule quoted_string() -> &'input str
