@@ -13,7 +13,7 @@ peg::parser! {
         rule string_ops() -> &'input str
             = " "* op:$("==" / "!=" / "=~" / "!~") " "* { op }
 
-        rule non_optional_str() -> Restrict
+        rule str_restrict() -> Restrict
             = attr:$(['a'..='z' | '_']+) op:string_ops() s:quoted_string()
             {?
                 let restrict_fn = match attr {
@@ -42,15 +42,26 @@ peg::parser! {
                 Ok(r)
             }
 
-        rule optional_str() -> Restrict
+        rule attr_optional() -> Restrict
             = attr:$(['a'..='z' | '_']+) " is " ("None" / "none") {?
-                let restrict_fn = match attr {
-                    "raw_subslot" => RawSubslot,
-                    "long_description" => LongDescription,
+                let r = match attr {
+                    "raw_subslot" => RawSubslot(None).into(),
+                    "homepage" => Homepage(None).into(),
+                    "defined_phases" => DefinedPhases(None).into(),
+                    "keywords" => Keywords(None).into(),
+                    "iuse" => Iuse(None).into(),
+                    "inherit" => Inherit(None).into(),
+                    "inherited" => Inherited(None).into(),
+                    "long_description" => LongDescription(None).into(),
+                    "maintainers" => Maintainers(None).into(),
+                    "upstreams" => Upstreams(None).into(),
                     _ => return Err("unknown optional package attribute"),
                 };
-                Ok(restrict_fn(None).into())
-            } / attr:$(['a'..='z' | '_']+) op:string_ops() s:quoted_string() {?
+                Ok(r)
+            }
+
+        rule str_restrict_optional() -> Restrict
+            = attr:$(['a'..='z' | '_']+) op:string_ops() s:quoted_string() {?
                 let restrict_fn = match attr {
                     "raw_subslot" => RawSubslot,
                     "long_description" => LongDescription,
@@ -75,7 +86,7 @@ peg::parser! {
             }
 
         rule expr() -> Restrict
-            = " "* invert:"!"? r:(non_optional_str() / optional_str()) " "* {
+            = " "* invert:"!"? r:(attr_optional() / str_restrict() / str_restrict_optional()) " "* {
                 let mut restrict = r;
                 if invert.is_some() {
                     restrict = Restrict::not(restrict);
