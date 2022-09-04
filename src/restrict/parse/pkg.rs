@@ -74,7 +74,7 @@ peg::parser! {
                 Ok(r)
             }
 
-        pub rule expr() -> Restrict
+        rule expr() -> Restrict
             = " "* invert:"!"? r:(non_optional_str() / optional_str()) " "* {
                 let mut restrict = r;
                 if invert.is_some() {
@@ -83,17 +83,17 @@ peg::parser! {
                 restrict
             }
 
-        pub rule and() -> Restrict
+        rule and() -> Restrict
             = "(" exprs:query() ++ "&&" ")" {
                 Restrict::and(exprs)
             }
 
-        pub rule or() -> Restrict
+        rule or() -> Restrict
             = "(" exprs:query() ++ "||" ")" {
                 Restrict::or(exprs)
             }
 
-        pub rule xor() -> Restrict
+        rule xor() -> Restrict
             = "(" exprs:query() ++ "^^" ")" {
                 Restrict::xor(exprs)
             }
