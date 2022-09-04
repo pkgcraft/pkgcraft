@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::metadata::ebuild::{MaintainerRestrict, SliceMaintainers};
 use crate::peg::peg_error;
-use crate::pkg::ebuild::Restrict::{self as PkgRestrict, *};
+use crate::pkg::ebuild::Restrict::*;
 use crate::restrict::{Restrict, Str};
 
 fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
@@ -68,14 +68,12 @@ peg::parser! {
         rule pkg_restrict() -> Restrict
             = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string() {?
                 use crate::pkg::Restrict::*;
-                let restrict_fn = match attr {
-                    "eapi" => Eapi,
-                    "repo" => Repo,
-                    _ => return Err("unknown package attribute"),
-                };
-
                 let r = str_restrict(op, s)?;
-                Ok(restrict_fn(r).into())
+                match attr {
+                    "eapi" => Ok(Eapi(r).into()),
+                    "repo" => Ok(Repo(r).into()),
+                    _ => Err("unknown package attribute"),
+                }
             }
 
         rule attr_str_restrict() -> Restrict
@@ -89,19 +87,17 @@ peg::parser! {
                     / "long_description"
                 )) op:string_ops() s:quoted_string()
             {?
-                let restrict_fn = match attr {
-                    "ebuild" => Ebuild,
-                    "category" => Category,
-                    "description" => Description,
-                    "slot" => Slot,
-                    "subslot" => Subslot,
-                    "raw_subslot" => |r: Str| -> PkgRestrict { RawSubslot(Some(r)) },
-                    "long_description" => |r: Str| -> PkgRestrict { LongDescription(Some(r)) },
-                    _ => return Err("unknown package attribute"),
-                };
-
                 let r = str_restrict(op, s)?;
-                Ok(restrict_fn(r).into())
+                match attr {
+                    "ebuild" => Ok(Ebuild(r).into()),
+                    "category" => Ok(Category(r).into()),
+                    "description" => Ok(Description(r).into()),
+                    "slot" => Ok(Slot(r).into()),
+                    "subslot" => Ok(Subslot(r).into()),
+                    "raw_subslot" => Ok(RawSubslot(Some(r)).into()),
+                    "long_description" => Ok(LongDescription(Some(r)).into()),
+                    _ => Err("unknown package attribute"),
+                }
             }
 
         rule maintainers() -> Restrict
@@ -126,17 +122,15 @@ peg::parser! {
                 op:string_ops() s:quoted_string()
             {?
                 use crate::metadata::ebuild::MaintainerRestrict::*;
-                let restrict_fn = match attr {
-                    "email" => Email,
-                    "name" => |r: Str| -> MaintainerRestrict { Name(Some(r)) },
-                    "description" => |r: Str| -> MaintainerRestrict { Description(Some(r)) },
-                    "type" => |r: Str| -> MaintainerRestrict { Type(Some(r)) },
-                    "proxied" => |r: Str| -> MaintainerRestrict { Proxied(Some(r)) },
-                    _ => return Err("unknown maintainer attribute"),
-                };
-
                 let r = str_restrict(op, s)?;
-                Ok(restrict_fn(r))
+                match attr {
+                    "email" => Ok(Email(r)),
+                    "name" => Ok(Name(Some(r))),
+                    "description" => Ok(Description(Some(r))),
+                    "type" => Ok(Type(Some(r))),
+                    "proxied" => Ok(Proxied(Some(r))),
+                    _ => Err("unknown maintainer attribute"),
+                }
             }
 
         rule maintainers_str_ops() -> SliceMaintainers
