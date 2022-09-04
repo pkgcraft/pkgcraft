@@ -134,7 +134,7 @@ pub enum SliceMaintainers {
     First(MaintainerRestrict),
     Last(MaintainerRestrict),
     Contains(MaintainerRestrict),
-    Len(Ordering, usize),
+    Count(Vec<Ordering>, usize),
 }
 
 impl From<SliceMaintainers> for restrict::Restrict {
@@ -149,7 +149,7 @@ impl Restriction<&[Maintainer]> for SliceMaintainers {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Contains(r) => val.iter().any(|v| r.matches(v)),
-            Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
+            Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }
 }
@@ -197,7 +197,7 @@ pub enum SliceUpstreams {
     First(UpstreamRestrict),
     Last(UpstreamRestrict),
     Contains(UpstreamRestrict),
-    Len(Ordering, usize),
+    Count(Vec<Ordering>, usize),
 }
 
 impl From<SliceUpstreams> for restrict::Restrict {
@@ -212,7 +212,7 @@ impl Restriction<&[Upstream]> for SliceUpstreams {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Contains(r) => val.iter().any(|v| r.matches(v)),
-            Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
+            Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }
 }

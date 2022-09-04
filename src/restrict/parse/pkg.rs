@@ -1,6 +1,8 @@
+use std::cmp::Ordering;
+
 use regex::Regex;
 
-use crate::metadata::ebuild::MaintainerRestrict;
+use crate::metadata::ebuild::{MaintainerRestrict, SliceMaintainers};
 use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict::{self as PkgRestrict, *};
 use crate::restrict::{Restrict, Str};
@@ -44,6 +46,9 @@ peg::parser! {
         rule string_ops() -> &'input str
             = quiet!{" "*} op:$("==" / "!=" / "=~" / "!~") quiet!{" "*} { op }
 
+        rule number_ops() -> &'input str
+            = quiet!{" "*} op:$((['<' | '>'] "="?) / "==") quiet!{" "*} { op }
+
         rule str_restrict() -> Restrict
             = attr:$((
                     "ebuild"
@@ -84,7 +89,7 @@ peg::parser! {
             }
 
         rule maintainers() -> Restrict
-            = "maintainers" r:maintainers_ops() { r }
+            = "maintainers" r:(maintainers_str_ops() / maintainers_count()) { r.into() }
 
         rule maintainers_attr_optional() -> MaintainerRestrict
             = attr:$(("name" / "description" / "type" / "proxied"))
@@ -131,7 +136,7 @@ peg::parser! {
                 Ok(r)
             }
 
-        rule maintainers_ops() -> Restrict
+        rule maintainers_str_ops() -> SliceMaintainers
             = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
                     r:(maintainers_attr_optional()
                        / maintainers_str_restrict()
@@ -144,7 +149,27 @@ peg::parser! {
                     "last" => Last(r),
                     _ => return Err("unknown maintainers operation"),
                 };
-                Ok(r.into())
+                Ok(r)
+            }
+
+        rule maintainers_count() -> SliceMaintainers
+            = quiet!{" "+} op:number_ops() count:$(['0'..='9']+) {?
+                use crate::metadata::ebuild::SliceMaintainers::Count;
+                let cmps = match op {
+                    "<" => vec![Ordering::Less],
+                    "<=" => vec![Ordering::Less, Ordering::Equal],
+                    "==" => vec![Ordering::Equal],
+                    ">=" => vec![Ordering::Greater, Ordering::Equal],
+                    ">" => vec![Ordering::Greater],
+                    _ => return Err("unknown count operator"),
+                };
+
+                let size: usize = match count.parse() {
+                    Ok(v) => v,
+                    Err(_) => return Err("invalid count size"),
+                };
+
+                Ok(Count(cmps, size))
             }
 
         rule expr() -> Restrict

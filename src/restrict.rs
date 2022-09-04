@@ -230,7 +230,7 @@ pub enum IndexSetStrs {
     Last(Str),
     Subset(IndexSet<String>),
     Superset(IndexSet<String>),
-    Len(Ordering, usize),
+    Count(Vec<Ordering>, usize),
 }
 
 impl fmt::Debug for IndexSetStrs {
@@ -243,7 +243,7 @@ impl fmt::Debug for IndexSetStrs {
             Self::Last(r) => write!(f, "Last({r:?})"),
             Self::Subset(s) => write!(f, "Subset({s:?})"),
             Self::Superset(s) => write!(f, "Superset({s:?})"),
-            Self::Len(ordering, size) => write!(f, "Len({ordering:?}, {size})"),
+            Self::Count(ordering, size) => write!(f, "Count({ordering:?}, {size})"),
         }
     }
 }
@@ -264,7 +264,7 @@ impl Restriction<&IndexSet<String>> for IndexSetStrs {
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Subset(s) => s.is_subset(val),
             Self::Superset(s) => s.is_superset(val),
-            Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
+            Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }
 }
@@ -275,7 +275,7 @@ pub enum SliceStrs {
     First(Str),
     Last(Str),
     Regex(Regex),
-    Len(Ordering, usize),
+    Count(Vec<Ordering>, usize),
 }
 
 impl fmt::Debug for SliceStrs {
@@ -285,7 +285,7 @@ impl fmt::Debug for SliceStrs {
             Self::First(r) => write!(f, "First({r:?})"),
             Self::Last(r) => write!(f, "Last({r:?})"),
             Self::Regex(re) => write!(f, "Regex({re:?})"),
-            Self::Len(ordering, size) => write!(f, "Len({ordering:?}, {size})"),
+            Self::Count(ordering, size) => write!(f, "Count({ordering:?}, {size})"),
         }
     }
 }
@@ -303,7 +303,7 @@ impl Restriction<&[String]> for SliceStrs {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Regex(re) => val.iter().any(|s| re.is_match(s)),
-            Self::Len(ordering, size) => val.len().cmp(size) == *ordering,
+            Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }
 }
