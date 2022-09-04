@@ -1,5 +1,6 @@
 use regex::Regex;
 
+use crate::metadata::ebuild::MaintainerRestrict;
 use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict::{self as PkgRestrict, *};
 use crate::restrict::{Restrict, Str};
@@ -63,54 +64,59 @@ peg::parser! {
             }
 
         rule maintainers() -> Restrict
-            = "maintainer"
-                    r:(maintainers_attr_optional()
-                       / maintainers_contains()
-                    ) " "* { r }
+            = "maintainers" r:maintainers_contains() { r }
 
-        rule maintainers_attr_optional() -> Restrict
+        rule maintainers_attr_optional() -> MaintainerRestrict
             = attr:$(['a'..='z' | '_']+) " is " ("None" / "none") {?
                 use crate::metadata::ebuild::MaintainerRestrict::*;
-                use crate::metadata::ebuild::SliceMaintainers::Contains;
                 let r = match attr {
-                    "name" => Contains(Name(None)),
-                    "description" => Contains(Description(None)),
-                    "type" => Contains(Type(None)),
-                    "proxied" => Contains(Proxied(None)),
+                    "name" => Name(None),
+                    "description" => Description(None),
+                    "type" => Type(None),
+                    "proxied" => Proxied(None),
                     _ => return Err("unknown optional maintainer attribute"),
                 };
-                Ok(r.into())
+                Ok(r)
             }
 
-        rule maintainers_contains() -> Restrict
-            = "contains" " " attr:$(['a'..='z' | '_']+) op:string_ops() s:quoted_string() {?
-                use crate::metadata::ebuild::MaintainerRestrict::{self, *};
-                use crate::metadata::ebuild::SliceMaintainers::{self, Contains};
-
+        rule maintainers_str_restrict() -> MaintainerRestrict
+            = attr:$(("email" / "name" / "description" / "type" / "proxied"))
+                op:string_ops() s:quoted_string()
+            {?
+                use crate::metadata::ebuild::MaintainerRestrict::*;
                 let restrict_fn = match attr {
-                    "email" => |r: Str| -> SliceMaintainers { Contains(Email(r)) },
-                    "name" => |r: Str| -> SliceMaintainers { Contains(Name(Some(r))) },
-                    "description" => |r: Str| -> SliceMaintainers { Contains(Description(Some(r))) },
-                    "type" => |r: Str| -> SliceMaintainers { Contains(Type(Some(r))) },
-                    "proxied" => |r: Str| -> SliceMaintainers { Contains(Proxied(Some(r))) },
+                    "email" => Email,
+                    "name" => |r: Str| -> MaintainerRestrict { Name(Some(r)) },
+                    "description" => |r: Str| -> MaintainerRestrict { Description(Some(r)) },
+                    "type" => |r: Str| -> MaintainerRestrict { Type(Some(r)) },
+                    "proxied" => |r: Str| -> MaintainerRestrict { Proxied(Some(r)) },
                     _ => return Err("unknown maintainer attribute"),
                 };
 
-                let r: Restrict = match op {
-                    "==" => restrict_fn(Str::matches(s)).into(),
-                    "!=" => Restrict::not(restrict_fn(Str::matches(s))),
+                let r = match op {
+                    "==" => restrict_fn(Str::matches(s)),
+                    "!=" => restrict_fn(Str::not(Str::matches(s))),
                     "=~" => match Regex::new(s) {
-                        Ok(r) => restrict_fn(Str::Regex(r)).into(),
+                        Ok(r) => restrict_fn(Str::Regex(r)),
                         Err(_) => return Err("invalid regex"),
                     },
                     "!~" => match Regex::new(s) {
-                        Ok(r) => Restrict::not(restrict_fn(Str::Regex(r))),
+                        Ok(r) => restrict_fn(Str::not(Str::Regex(r))),
                         Err(_) => return Err("invalid regex"),
                     },
                     _ => return Err("invalid string operator"),
                 };
 
                 Ok(r)
+            }
+
+        rule maintainers_contains() -> Restrict
+            = " "+ "contains" " "+
+                    r:(maintainers_attr_optional()
+                       / maintainers_str_restrict()
+                    ) {
+                use crate::metadata::ebuild::SliceMaintainers::Contains;
+                Contains(r).into()
             }
 
         rule expr() -> Restrict

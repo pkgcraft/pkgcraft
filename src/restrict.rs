@@ -120,6 +120,7 @@ impl Restriction<&str> for Restrict {
 #[derive(Clone)]
 pub enum Str {
     Custom(fn(&str) -> bool),
+    Not(Box<Self>),
     Matches(String),
     Prefix(String),
     Regex(Regex),
@@ -131,6 +132,7 @@ impl fmt::Debug for Str {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Self::Not(r) => write!(f, "Not({r:?})"),
             Self::Matches(s) => write!(f, "Matches({s:?})"),
             Self::Prefix(s) => write!(f, "Prefix({s:?})"),
             Self::Regex(re) => write!(f, "Regex({re:?})"),
@@ -149,6 +151,13 @@ impl From<Str> for Restrict {
 impl Str {
     pub fn custom(f: fn(&str) -> bool) -> Self {
         Self::Custom(f)
+    }
+
+    pub fn not<T>(obj: T) -> Self
+    where
+        T: Into<Str>,
+    {
+        Self::Not(Box::new(obj.into()))
     }
 
     pub fn matches<S: Into<String>>(s: S) -> Self {
@@ -177,6 +186,7 @@ impl Restriction<&str> for Str {
     fn matches(&self, val: &str) -> bool {
         match self {
             Self::Custom(func) => func(val),
+            Self::Not(r) => !r.matches(val),
             Self::Matches(s) => val == s,
             Self::Prefix(s) => val.starts_with(s),
             Self::Regex(re) => re.is_match(val),
