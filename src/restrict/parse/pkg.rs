@@ -1,7 +1,7 @@
 use regex::Regex;
 
 use crate::peg::peg_error;
-use crate::pkg::ebuild::Restrict::*;
+use crate::pkg::ebuild::Restrict::{self as PkgRestrict, *};
 use crate::restrict::{Restrict, Str};
 
 peg::parser! {
@@ -40,6 +40,8 @@ peg::parser! {
                     "description" => Description,
                     "slot" => Slot,
                     "subslot" => Subslot,
+                    "raw_subslot" => |r: Str| -> PkgRestrict { RawSubslot(Some(r)) },
+                    "long_description" => |r: Str| -> PkgRestrict { LongDescription(Some(r)) },
                     _ => return Err("unknown package attribute"),
                 };
 
@@ -52,31 +54,6 @@ peg::parser! {
                     },
                     "!~" => match Regex::new(s) {
                         Ok(r) => Restrict::not(restrict_fn(Str::Regex(r))),
-                        Err(_) => return Err("invalid regex"),
-                    },
-                    _ => return Err("invalid string operator"),
-                };
-
-                Ok(r)
-            }
-
-        rule str_restrict_optional() -> Restrict
-            = attr:$(['a'..='z' | '_']+) op:string_ops() s:quoted_string() {?
-                let restrict_fn = match attr {
-                    "raw_subslot" => RawSubslot,
-                    "long_description" => LongDescription,
-                    _ => return Err("unknown optional package attribute"),
-                };
-
-                let r: Restrict = match op {
-                    "==" => restrict_fn(Some(Str::matches(s))).into(),
-                    "!=" => Restrict::not(restrict_fn(Some(Str::matches(s)))),
-                    "=~" => match Regex::new(s) {
-                        Ok(r) => restrict_fn(Some(Str::Regex(r))).into(),
-                        Err(_) => return Err("invalid regex"),
-                    },
-                    "!~" => match Regex::new(s) {
-                        Ok(r) => Restrict::not(restrict_fn(Some(Str::Regex(r)))),
                         Err(_) => return Err("invalid regex"),
                     },
                     _ => return Err("invalid string operator"),
@@ -140,7 +117,6 @@ peg::parser! {
             = " "* invert:"!"?
                     r:(attr_optional()
                        / str_restrict()
-                       / str_restrict_optional()
                        / maintainers()
                     ) " "* {
                 let mut restrict = r;
