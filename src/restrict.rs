@@ -38,17 +38,18 @@ pub enum Restrict {
 
 macro_rules! restrict_match {
    ($r:expr, $obj:expr, $($matcher:pat $(if $pred:expr)* => $result:expr),+) => {
+       use crate::restrict::Restrict;
        match $r {
            $($matcher $(if $pred)* => $result,)+
 
             // boolean
-            crate::restrict::Restrict::True => true,
-            crate::restrict::Restrict::False => false,
+            Restrict::True => true,
+            Restrict::False => false,
 
             // boolean combinations
-            crate::restrict::Restrict::And(vals) => vals.iter().all(|r| r.matches($obj)),
-            crate::restrict::Restrict::Or(vals) => vals.iter().any(|r| r.matches($obj)),
-            crate::restrict::Restrict::Xor(vals) => {
+            Restrict::And(vals) => vals.iter().all(|r| r.matches($obj)),
+            Restrict::Or(vals) => vals.iter().any(|r| r.matches($obj)),
+            Restrict::Xor(vals) => {
                 let mut curr: Option<bool>;
                 let mut prev: Option<bool> = None;
                 for r in vals.iter() {
@@ -60,7 +61,7 @@ macro_rules! restrict_match {
                 }
                 false
             },
-            crate::restrict::Restrict::Not(r) => !r.matches($obj),
+            Restrict::Not(r) => !r.matches($obj),
 
             _ => {
                 tracing::warn!("invalid restriction {:?} for matching {:?}", $r, $obj);
