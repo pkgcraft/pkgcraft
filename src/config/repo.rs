@@ -207,7 +207,6 @@ impl Config {
         }
     }
 
-    #[cfg(test)]
     pub(super) fn create_temp(
         &mut self,
         name: &str,

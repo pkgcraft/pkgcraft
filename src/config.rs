@@ -9,6 +9,7 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
+use crate::repo::ebuild::{Repo as EbuildRepo, TempRepo};
 use crate::repo::Repo;
 use crate::Error;
 pub(crate) use repo::RepoConfig;
@@ -222,15 +223,14 @@ impl Config {
     }
 
     /// Create a new temporary ebuild repo.
-    #[cfg(test)]
-    pub(crate) fn temp_repo(
+    pub fn temp_repo(
         &mut self,
         name: &str,
         priority: i32,
-    ) -> crate::Result<(crate::repo::ebuild::TempRepo, Arc<crate::repo::ebuild::Repo>)> {
+    ) -> crate::Result<(TempRepo, Arc<EbuildRepo>)> {
         let (temp_repo, r) = self.repos.create_temp(name, priority)?;
         r.finalize()?;
-        self.repos.insert(name, r.clone(), false);
+        self.repos.insert(name, r, false);
         Config::make_current(self.clone());
         let repo = self.repos.get(name).unwrap().as_ebuild().unwrap();
         Ok((temp_repo, repo.clone()))

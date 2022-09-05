@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 use std::{env, fmt, fs, io, thread};
-
-#[cfg(test)]
-use std::io::Write;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
@@ -766,7 +764,7 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
-pub(crate) struct TempRepo {
+pub struct TempRepo {
     tempdir: TempDir,
     pub(crate) path: Utf8PathBuf,
 }
@@ -803,8 +801,7 @@ impl TempRepo {
     }
 
     /// Create an ebuild file in the repo.
-    #[cfg(test)]
-    pub(crate) fn create_ebuild<'a, I>(
+    pub fn create_ebuild<'a, I>(
         &self,
         cpv: &str,
         data: I,
@@ -850,8 +847,7 @@ impl TempRepo {
     }
 
     /// Create an ebuild file in the repo from raw data.
-    #[cfg(test)]
-    pub(crate) fn create_ebuild_raw(
+    pub fn create_ebuild_raw(
         &self,
         cpv: &str,
         data: &str,
@@ -871,8 +867,7 @@ impl TempRepo {
     }
 
     /// Create an eclass in the repo.
-    #[cfg(test)]
-    pub(crate) fn create_eclass<'a>(&self, name: &str, data: &str) -> crate::Result<Utf8PathBuf> {
+    pub fn create_eclass(&self, name: &str, data: &str) -> crate::Result<Utf8PathBuf> {
         let path = self.path.join(format!("eclass/{name}.eclass"));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating eclass dir: {e}")))?;
