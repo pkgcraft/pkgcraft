@@ -151,7 +151,7 @@ impl<'a> ParsedVersion<'a> {
         Ok(self)
     }
 
-    pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
+    pub(crate) fn to_owned(&self, input: &str) -> crate::Result<Version> {
         let mut numbers = Vec::<(String, u64)>::new();
         for s in self.numbers.iter() {
             let num = s
@@ -161,7 +161,7 @@ impl<'a> ParsedVersion<'a> {
         }
 
         let mut suffixes = Vec::<(Suffix, Option<u64>)>::new();
-        if let Some(vals) = self.suffixes {
+        if let Some(vals) = self.suffixes.as_ref() {
             for (s, v) in vals.iter() {
                 let suffix = Suffix::from_str(s)?;
                 let num =

@@ -242,14 +242,14 @@ pub mod parse {
         convert = r#"{ s.to_string() }"#
     )]
     pub(crate) fn version(s: &str) -> crate::Result<Version> {
-        let version = version_str(s)?;
-        version.into_owned(s)
+        let ver = version_str(s)?;
+        ver.to_owned(s)
     }
 
     pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
-        let parsed_version = pkg::version_with_op(s)
+        let ver = pkg::version_with_op(s)
             .map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
-        parsed_version.into_owned(s)
+        ver.to_owned(s)
     }
 
     pub fn repo(s: &str) -> crate::Result<&str> {
@@ -295,7 +295,7 @@ pub mod parse {
     )]
     pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
         let atom = dep_str(s, eapi)?;
-        atom.into_owned()
+        atom.to_owned()
     }
 }
 

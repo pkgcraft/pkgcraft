@@ -165,7 +165,7 @@ pub fn dep(s: &str) -> crate::Result<Restrict> {
         restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
     if let Some(v) = ver {
-        let v = v.into_owned(s)?;
+        let v = v.to_owned(s)?;
         restricts.push(Restrict::Atom(atom::Restrict::Version(Some(v))));
     }
 
