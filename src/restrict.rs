@@ -278,7 +278,7 @@ pub enum SliceStrs {
     Custom(fn(&[String]) -> bool),
     First(Str),
     Last(Str),
-    Regex(Regex),
+    Contains(Str),
     Count(Vec<Ordering>, usize),
 }
 
@@ -288,7 +288,7 @@ impl fmt::Debug for SliceStrs {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
             Self::First(r) => write!(f, "First({r:?})"),
             Self::Last(r) => write!(f, "Last({r:?})"),
-            Self::Regex(re) => write!(f, "Regex({re:?})"),
+            Self::Contains(r) => write!(f, "Contains({r:?})"),
             Self::Count(ordering, size) => write!(f, "Count({ordering:?}, {size})"),
         }
     }
@@ -306,7 +306,7 @@ impl Restriction<&[String]> for SliceStrs {
             Self::Custom(func) => func(val),
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Regex(re) => val.iter().any(|s| re.is_match(s)),
+            Self::Contains(r) => val.iter().any(|v| r.matches(v)),
             Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }
