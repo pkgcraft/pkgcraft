@@ -127,6 +127,7 @@ pub enum Str {
     Regex(Regex),
     Substr(String),
     Suffix(String),
+    Length(Vec<Ordering>, usize),
 }
 
 impl fmt::Debug for Str {
@@ -139,6 +140,7 @@ impl fmt::Debug for Str {
             Self::Regex(re) => write!(f, "Regex({re:?})"),
             Self::Substr(s) => write!(f, "Substr({s:?})"),
             Self::Suffix(s) => write!(f, "Suffix({s:?})"),
+            Self::Length(ordering, size) => write!(f, "Length({ordering:?}, {size})"),
         }
     }
 }
@@ -193,6 +195,7 @@ impl Restriction<&str> for Str {
             Self::Regex(re) => re.is_match(val),
             Self::Substr(s) => val.contains(s),
             Self::Suffix(s) => val.ends_with(s),
+            Self::Length(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }
 }
