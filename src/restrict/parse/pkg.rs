@@ -154,9 +154,25 @@ peg::parser! {
                 }
             }
 
+        rule maintainer_and() -> MaintainerRestrict
+            = lparen() exprs:(
+                    maintainer_attr_optional()
+                    / maintainer_restrict()
+                ) ++ (" "+ "&&" " "+) rparen()
+            {
+                use crate::metadata::ebuild::MaintainerRestrict::*;
+                And(exprs.into_iter().map(Box::new).collect())
+            }
+
+        pub(super) rule maintainer_query() -> MaintainerRestrict
+            = r:(maintainer_attr_optional() / maintainer_restrict() / maintainer_and())
+            { r }
+
         rule maintainers_ops() -> SliceMaintainers
             = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
-                    r:(maintainer_attr_optional() / maintainer_restrict())
+                r:(maintainer_attr_optional()
+                   / maintainer_restrict()
+                   / maintainer_and())
             {?
                 use crate::metadata::ebuild::SliceMaintainers::*;
                 let r = match op {
@@ -176,30 +192,34 @@ peg::parser! {
             }
 
         rule expr() -> Restrict
-            = quiet!{" "*} invert:quiet!{"!"}?
-                    r:(attr_optional()
-                       / pkg_restrict()
-                       / attr_str_restrict()
-                       / maintainers()
-                    ) quiet!{" "*} {
+            = invert:quiet!{"!"}?
+                r:(attr_optional()
+                   / pkg_restrict()
+                   / attr_str_restrict()
+                   / maintainers()
+                )
+            {
                 match invert {
                     Some(_) => Restrict::not(r),
                     None => r,
                 }
             }
 
+        rule lparen() = quiet!{" "*} "(" quiet!{" "*}
+        rule rparen() = quiet!{" "*} ")" quiet!{" "*}
+
         rule and() -> Restrict
-            = quiet!{"("} exprs:query() ++ "&&" quiet!{")"} {
+            = lparen() exprs:query() ++ (" "+ "&&" " "+) rparen() {
                 Restrict::and(exprs)
             }
 
         rule or() -> Restrict
-            = quiet!{"("} exprs:query() ++ "||" quiet!{")"} {
+            = lparen() exprs:query() ++ (" "+ "||" " "+) rparen() {
                 Restrict::or(exprs)
             }
 
         rule xor() -> Restrict
-            = quiet!{"("} exprs:query() ++ "^^" quiet!{")"} {
+            = lparen() exprs:query() ++ (" "+ "^^" " "+) rparen() {
                 Restrict::xor(exprs)
             }
 

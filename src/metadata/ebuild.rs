@@ -99,6 +99,9 @@ pub enum MaintainerRestrict {
     Description(Option<restrict::Str>),
     Type(Option<restrict::Str>),
     Proxied(Option<restrict::Str>),
+
+    // boolean
+    And(Vec<Box<Self>>),
 }
 
 impl Restriction<&Maintainer> for MaintainerRestrict {
@@ -125,6 +128,7 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
                 (None, None) => true,
                 _ => false,
             },
+            Self::And(vals) => vals.iter().all(|r| r.matches(m)),
         }
     }
 }
