@@ -54,7 +54,7 @@ peg::parser! {
                     / "long_description"
                     / "maintainers"
                     / "upstreams"
-                )) " is " ("None" / "none")
+                )) is_op() ("None" / "none")
             {?
                 use crate::pkg::ebuild::Restrict::*;
                 let r = match attr {
@@ -126,7 +126,7 @@ peg::parser! {
 
         rule maintainer_attr_optional() -> MaintainerRestrict
             = attr:$(("name" / "description" / "type" / "proxied"))
-                    " is " ("None" / "none") {?
+                    is_op() ("None" / "none") {?
                 use crate::metadata::ebuild::MaintainerRestrict::*;
                 let r = match attr {
                     "name" => Name(None),
@@ -207,6 +207,7 @@ peg::parser! {
 
         rule lparen() = quiet!{" "*} "(" quiet!{" "*}
         rule rparen() = quiet!{" "*} ")" quiet!{" "*}
+        rule is_op() = quiet!{" "+} "is" quiet!{" "+}
 
         rule and() -> Restrict
             = lparen() exprs:query() ++ (" "+ "&&" " "+) rparen() {
