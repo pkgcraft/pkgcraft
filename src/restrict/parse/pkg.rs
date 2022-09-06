@@ -46,7 +46,7 @@ peg::parser! {
     grammar restrict() for str {
         rule attr_optional() -> Restrict
             = attr:$((
-                    "raw_subslot"
+                    "subslot"
                     / "homepage"
                     / "defined_phases"
                     / "keywords"
@@ -60,7 +60,7 @@ peg::parser! {
             {?
                 use crate::pkg::ebuild::Restrict::*;
                 let r = match attr {
-                    "raw_subslot" => RawSubslot(None),
+                    "subslot" => RawSubslot(None),
                     "homepage" => Homepage(None),
                     "defined_phases" => DefinedPhases(None),
                     "keywords" => Keywords(None),
@@ -103,7 +103,6 @@ peg::parser! {
                     / "description"
                     / "slot"
                     / "subslot"
-                    / "raw_subslot"
                     / "long_description"
                 )) op:string_ops() s:quoted_string()
             {?
@@ -115,7 +114,6 @@ peg::parser! {
                     "description" => Description(r),
                     "slot" => Slot(r),
                     "subslot" => Subslot(r),
-                    "raw_subslot" => RawSubslot(Some(r)),
                     "long_description" => LongDescription(Some(r)),
                     _ => return Err("unknown package attribute"),
                 };
