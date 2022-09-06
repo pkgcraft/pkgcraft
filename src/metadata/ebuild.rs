@@ -185,6 +185,9 @@ impl Upstream {
 pub enum UpstreamRestrict {
     Site(restrict::Str),
     Name(restrict::Str),
+
+    // boolean
+    And(Vec<Box<Self>>),
 }
 
 impl Restriction<&Upstream> for UpstreamRestrict {
@@ -192,6 +195,7 @@ impl Restriction<&Upstream> for UpstreamRestrict {
         match self {
             Self::Site(r) => r.matches(u.site()),
             Self::Name(r) => r.matches(u.name()),
+            Self::And(vals) => vals.iter().all(|r| r.matches(u)),
         }
     }
 }

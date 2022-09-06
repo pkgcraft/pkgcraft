@@ -2,7 +2,9 @@ use std::cmp::Ordering;
 
 use regex::Regex;
 
-use crate::metadata::ebuild::{MaintainerRestrict, SliceMaintainers};
+use crate::metadata::ebuild::{
+    MaintainerRestrict, SliceMaintainers, SliceUpstreams, UpstreamRestrict,
+};
 use crate::peg::peg_error;
 use crate::restrict::{Restrict, Str};
 
@@ -160,13 +162,9 @@ peg::parser! {
                     / maintainer_restrict()
                 ) ++ (" "+ "&&" " "+) rparen()
             {
-                use crate::metadata::ebuild::MaintainerRestrict::*;
+                use crate::metadata::ebuild::MaintainerRestrict::And;
                 And(exprs.into_iter().map(Box::new).collect())
             }
-
-        pub(super) rule maintainer_query() -> MaintainerRestrict
-            = r:(maintainer_attr_optional() / maintainer_restrict() / maintainer_and())
-            { r }
 
         rule maintainers_ops() -> SliceMaintainers
             = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
@@ -185,10 +183,53 @@ peg::parser! {
             }
 
         rule maintainers_count() -> SliceMaintainers
-            = quiet!{" "+} op:number_ops() count:$(['0'..='9']+) {?
-                use crate::metadata::ebuild::SliceMaintainers::Count;
+            = op:number_ops() count:$(['0'..='9']+) {?
                 let (cmps, size) = len_restrict(op, count)?;
-                Ok(Count(cmps, size))
+                Ok(SliceMaintainers::Count(cmps, size))
+            }
+
+        rule upstreams() -> Restrict
+            = "upstreams" r:(upstreams_ops() / upstreams_count())
+            { r.into() }
+
+        rule upstreams_ops() -> SliceUpstreams
+            = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
+                r:(upstream_restrict() / upstream_and())
+            {?
+                use crate::metadata::ebuild::SliceUpstreams::*;
+                let r = match op {
+                    "contains" => Contains(r),
+                    "first" => First(r),
+                    "last" => Last(r),
+                    _ => return Err("unknown upstreams operation"),
+                };
+                Ok(r)
+            }
+
+        rule upstream_restrict() -> UpstreamRestrict
+            = attr:$(("site" / "name"))
+                op:string_ops() s:quoted_string()
+            {?
+                use crate::metadata::ebuild::UpstreamRestrict::*;
+                let r = str_restrict(op, s)?;
+                match attr {
+                    "site" => Ok(Site(r)),
+                    "name" => Ok(Name(r)),
+                    _ => Err("unknown upstream attribute"),
+                }
+            }
+
+        rule upstream_and() -> UpstreamRestrict
+            = lparen() exprs:upstream_restrict() ++ (" "+ "&&" " "+) rparen()
+            {
+                use crate::metadata::ebuild::UpstreamRestrict::And;
+                And(exprs.into_iter().map(Box::new).collect())
+            }
+
+        rule upstreams_count() -> SliceUpstreams
+            = op:number_ops() count:$(['0'..='9']+) {?
+                let (cmps, size) = len_restrict(op, count)?;
+                Ok(SliceUpstreams::Count(cmps, size))
             }
 
         rule expr() -> Restrict
@@ -197,6 +238,7 @@ peg::parser! {
                    / pkg_restrict()
                    / attr_str_restrict()
                    / maintainers()
+                   / upstreams()
                 )
             {
                 match invert {
