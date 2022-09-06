@@ -25,10 +25,6 @@ pub enum Restrict {
     Atom(atom::Restrict),
     Pkg(pkg::Restrict),
 
-    // sets
-    HashSetStrs(HashSetStrs),
-    IndexSetStrs(IndexSetStrs),
-
     // strings
     Str(Str),
 }
@@ -200,20 +196,14 @@ impl Restriction<&str> for Str {
 }
 
 #[derive(Debug, Clone)]
-pub enum HashSetStrs {
+pub enum HashSetRestrict<T> {
     Empty,
-    Contains(String),
-    Subset(HashSet<String>),
-    Superset(HashSet<String>),
+    Contains(T),
+    Subset(HashSet<T>),
+    Superset(HashSet<T>),
 }
 
-impl From<HashSetStrs> for Restrict {
-    fn from(r: HashSetStrs) -> Self {
-        Restrict::HashSetStrs(r)
-    }
-}
-
-impl Restriction<&HashSet<String>> for HashSetStrs {
+impl Restriction<&HashSet<String>> for HashSetRestrict<String> {
     fn matches(&self, val: &HashSet<String>) -> bool {
         match self {
             Self::Empty => val.is_empty(),
@@ -224,44 +214,21 @@ impl Restriction<&HashSet<String>> for HashSetStrs {
     }
 }
 
-#[derive(Clone)]
-pub enum IndexSetStrs {
+#[derive(Debug, Clone)]
+pub enum IndexSetRestrict<T> {
     Empty,
-    Custom(fn(&IndexSet<String>) -> bool),
-    Contains(String),
+    Contains(T),
     First(Str),
     Last(Str),
-    Subset(IndexSet<String>),
-    Superset(IndexSet<String>),
+    Subset(IndexSet<T>),
+    Superset(IndexSet<T>),
     Count(Vec<Ordering>, usize),
 }
 
-impl fmt::Debug for IndexSetStrs {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => write!(f, "Empty"),
-            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Self::Contains(s) => write!(f, "Contains({s:?})"),
-            Self::First(r) => write!(f, "First({r:?})"),
-            Self::Last(r) => write!(f, "Last({r:?})"),
-            Self::Subset(s) => write!(f, "Subset({s:?})"),
-            Self::Superset(s) => write!(f, "Superset({s:?})"),
-            Self::Count(ordering, size) => write!(f, "Count({ordering:?}, {size})"),
-        }
-    }
-}
-
-impl From<IndexSetStrs> for Restrict {
-    fn from(r: IndexSetStrs) -> Self {
-        Restrict::IndexSetStrs(r)
-    }
-}
-
-impl Restriction<&IndexSet<String>> for IndexSetStrs {
+impl Restriction<&IndexSet<String>> for IndexSetRestrict<String> {
     fn matches(&self, val: &IndexSet<String>) -> bool {
         match self {
             Self::Empty => val.is_empty(),
-            Self::Custom(func) => func(val),
             Self::Contains(s) => val.contains(s),
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),

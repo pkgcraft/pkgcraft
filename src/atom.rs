@@ -10,7 +10,7 @@ pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::{cmp_not_equal, vec_str};
-use crate::restrict::{self, Restriction};
+use crate::restrict::{self, HashSetRestrict, Restriction, Str};
 use crate::Error;
 // export parser functionality
 pub use parser::parse;
@@ -290,15 +290,15 @@ impl FromStr for Atom {
 #[derive(Clone)]
 pub enum Restrict {
     Custom(fn(&Atom) -> bool),
-    Category(restrict::Str),
-    Package(restrict::Str),
+    Category(Str),
+    Package(Str),
     Blocker(Option<Blocker>),
     Version(Option<Version>),
-    VersionStr(restrict::Str),
-    Slot(Option<restrict::Str>),
-    Subslot(Option<restrict::Str>),
-    UseDeps(restrict::HashSetStrs),
-    Repo(Option<restrict::Str>),
+    VersionStr(Str),
+    Slot(Option<Str>),
+    Subslot(Option<Str>),
+    UseDeps(HashSetRestrict<String>),
+    Repo(Option<Str>),
 }
 
 impl fmt::Debug for Restrict {
@@ -320,11 +320,11 @@ impl fmt::Debug for Restrict {
 
 impl Restrict {
     pub fn category(s: &str) -> Self {
-        Self::Category(restrict::Str::matches(s))
+        Self::Category(Str::matches(s))
     }
 
     pub fn package(s: &str) -> Self {
-        Self::Package(restrict::Str::matches(s))
+        Self::Package(Str::matches(s))
     }
 
     pub fn version(s: &str) -> crate::Result<Self> {
@@ -333,11 +333,11 @@ impl Restrict {
     }
 
     pub fn slot(o: Option<&str>) -> Self {
-        Self::Slot(o.map(restrict::Str::matches))
+        Self::Slot(o.map(Str::matches))
     }
 
     pub fn subslot(o: Option<&str>) -> Self {
-        Self::Subslot(o.map(restrict::Str::matches))
+        Self::Subslot(o.map(Str::matches))
     }
 
     pub fn use_deps<I, S>(iter: Option<I>) -> Self
@@ -346,14 +346,14 @@ impl Restrict {
         S: Into<String>,
     {
         let r = match iter {
-            None => restrict::HashSetStrs::Empty,
-            Some(i) => restrict::HashSetStrs::Subset(i.into_iter().map(|s| s.into()).collect()),
+            None => HashSetRestrict::Empty,
+            Some(i) => HashSetRestrict::Subset(i.into_iter().map(|s| s.into()).collect()),
         };
         Self::UseDeps(r)
     }
 
     pub fn repo(o: Option<&str>) -> Self {
-        Self::Repo(o.map(restrict::Str::matches))
+        Self::Repo(o.map(Str::matches))
     }
 }
 

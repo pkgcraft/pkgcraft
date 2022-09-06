@@ -3,7 +3,7 @@ use std::{fmt, ptr};
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::pkg::{self, Package};
 use crate::repo::Repository;
-use crate::restrict::{self, Restriction, SliceRestrict, Str};
+use crate::restrict::{self, *};
 
 use super::Pkg;
 
@@ -17,11 +17,11 @@ pub enum Restrict {
     Subslot(Str),
     RawSubslot(Option<Str>),
     Homepage(Option<SliceRestrict<Str>>),
-    DefinedPhases(Option<restrict::HashSetStrs>),
-    Keywords(Option<restrict::IndexSetStrs>),
-    Iuse(Option<restrict::IndexSetStrs>),
-    Inherit(Option<restrict::IndexSetStrs>),
-    Inherited(Option<restrict::IndexSetStrs>),
+    DefinedPhases(Option<HashSetRestrict<String>>),
+    Keywords(Option<IndexSetRestrict<String>>),
+    Iuse(Option<IndexSetRestrict<String>>),
+    Inherit(Option<IndexSetRestrict<String>>),
+    Inherited(Option<IndexSetRestrict<String>>),
     LongDescription(Option<Str>),
     Maintainers(Option<SliceRestrict<MaintainerRestrict>>),
     Upstreams(Option<SliceRestrict<UpstreamRestrict>>),
