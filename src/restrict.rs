@@ -71,7 +71,14 @@ impl Restrict {
         I: IntoIterator<Item = T>,
         T: Into<Restrict>,
     {
-        Self::And(iter.into_iter().map(|x| Box::new(x.into())).collect())
+        let mut restricts = vec![];
+        for r in iter.into_iter().map(|x| x.into()) {
+            match r {
+                Self::And(vals) => restricts.extend(vals),
+                _ => restricts.push(Box::new(r)),
+            }
+        }
+        Self::And(restricts)
     }
 
     pub fn or<I, T>(iter: I) -> Self
@@ -79,7 +86,14 @@ impl Restrict {
         I: IntoIterator<Item = T>,
         T: Into<Restrict>,
     {
-        Self::Or(iter.into_iter().map(|x| Box::new(x.into())).collect())
+        let mut restricts = vec![];
+        for r in iter.into_iter().map(|x| x.into()) {
+            match r {
+                Self::Or(vals) => restricts.extend(vals),
+                _ => restricts.push(Box::new(r)),
+            }
+        }
+        Self::Or(restricts)
     }
 
     pub fn xor<I, T>(iter: I) -> Self
@@ -87,7 +101,14 @@ impl Restrict {
         I: IntoIterator<Item = T>,
         T: Into<Restrict>,
     {
-        Self::Xor(iter.into_iter().map(|x| Box::new(x.into())).collect())
+        let mut restricts = vec![];
+        for r in iter.into_iter().map(|x| x.into()) {
+            match r {
+                Self::Xor(vals) => restricts.extend(vals),
+                _ => restricts.push(Box::new(r)),
+            }
+        }
+        Self::Xor(restricts)
     }
 
     pub fn not<T>(obj: T) -> Self
