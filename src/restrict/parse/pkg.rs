@@ -119,7 +119,7 @@ peg::parser! {
             }
 
         rule maintainers() -> Restrict
-            = "maintainers" r:(maintainers_ops() / maintainers_count())
+            = "maintainers" r:(maintainers_ops() / slice_count())
             { r.into() }
 
         rule maintainer_attr_optional() -> MaintainerRestrict
@@ -178,14 +178,14 @@ peg::parser! {
                 Ok(r)
             }
 
-        rule maintainers_count() -> SliceRestrict<MaintainerRestrict>
+        rule slice_count<T>() -> SliceRestrict<T>
             = op:number_ops() count:$(['0'..='9']+) {?
                 let (cmps, size) = len_restrict(op, count)?;
                 Ok(SliceRestrict::Count(cmps, size))
             }
 
         rule upstreams() -> Restrict
-            = "upstreams" r:(upstreams_ops() / upstreams_count())
+            = "upstreams" r:(upstreams_ops() / slice_count())
             { r.into() }
 
         rule upstreams_ops() -> SliceRestrict<UpstreamRestrict>
@@ -220,12 +220,6 @@ peg::parser! {
             {
                 use crate::metadata::ebuild::UpstreamRestrict::And;
                 And(exprs.into_iter().map(Box::new).collect())
-            }
-
-        rule upstreams_count() -> SliceRestrict<UpstreamRestrict>
-            = op:number_ops() count:$(['0'..='9']+) {?
-                let (cmps, size) = len_restrict(op, count)?;
-                Ok(SliceRestrict::Count(cmps, size))
             }
 
         rule expr() -> Restrict
