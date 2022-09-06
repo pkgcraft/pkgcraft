@@ -129,7 +129,13 @@ impl fmt::Debug for Str {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            r => write!(f, "{r:?}"),
+            Self::Matches(s) => write!(f, "Matches({s:?})"),
+            Self::Prefix(s) => write!(f, "Prefix({s:?})"),
+            Self::Regex(re) => write!(f, "Regex({re:?})"),
+            Self::Substr(s) => write!(f, "Substr({s:?})"),
+            Self::Suffix(s) => write!(f, "Suffix({s:?})"),
+            Self::Length(ordering, size) => write!(f, "Length({ordering:?}, {size})"),
+            Self::Not(r) => write!(f, "Not({r:?})"),
         }
     }
 }

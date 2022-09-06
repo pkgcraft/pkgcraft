@@ -305,7 +305,15 @@ impl fmt::Debug for Restrict {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            r => write!(f, "{r:?}"),
+            Self::Category(r) => write!(f, "Category({r:?})"),
+            Self::Package(r) => write!(f, "Package({r:?})"),
+            Self::Blocker(b) => write!(f, "Blocker({b:?})"),
+            Self::Version(v) => write!(f, "Version({v:?})"),
+            Self::VersionStr(s) => write!(f, "VersionStr({s:?})"),
+            Self::Slot(r) => write!(f, "Slot({r:?})"),
+            Self::Subslot(r) => write!(f, "Subslot({r:?})"),
+            Self::UseDeps(r) => write!(f, "UseDeps({r:?})"),
+            Self::Repo(r) => write!(f, "Repo({r:?})"),
         }
     }
 }
