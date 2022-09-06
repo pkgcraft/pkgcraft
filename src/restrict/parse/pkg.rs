@@ -2,11 +2,9 @@ use std::cmp::Ordering;
 
 use regex::Regex;
 
-use crate::metadata::ebuild::{
-    MaintainerRestrict, SliceMaintainers, SliceUpstreams, UpstreamRestrict,
-};
+use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
-use crate::restrict::{Restrict, Str};
+use crate::restrict::{Restrict, SliceRestrict, Str};
 
 fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     match op {
@@ -164,13 +162,13 @@ peg::parser! {
                 And(exprs.into_iter().map(Box::new).collect())
             }
 
-        rule maintainers_ops() -> SliceMaintainers
+        rule maintainers_ops() -> SliceRestrict<MaintainerRestrict>
             = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
                 r:(maintainer_attr_optional()
                    / maintainer_restrict()
                    / maintainer_and())
             {?
-                use crate::metadata::ebuild::SliceMaintainers::*;
+                use crate::restrict::SliceRestrict::*;
                 let r = match op {
                     "contains" => Contains(r),
                     "first" => First(r),
@@ -180,21 +178,21 @@ peg::parser! {
                 Ok(r)
             }
 
-        rule maintainers_count() -> SliceMaintainers
+        rule maintainers_count() -> SliceRestrict<MaintainerRestrict>
             = op:number_ops() count:$(['0'..='9']+) {?
                 let (cmps, size) = len_restrict(op, count)?;
-                Ok(SliceMaintainers::Count(cmps, size))
+                Ok(SliceRestrict::Count(cmps, size))
             }
 
         rule upstreams() -> Restrict
             = "upstreams" r:(upstreams_ops() / upstreams_count())
             { r.into() }
 
-        rule upstreams_ops() -> SliceUpstreams
+        rule upstreams_ops() -> SliceRestrict<UpstreamRestrict>
             = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
                 r:(upstream_restrict() / upstream_and())
             {?
-                use crate::metadata::ebuild::SliceUpstreams::*;
+                use crate::restrict::SliceRestrict::*;
                 let r = match op {
                     "contains" => Contains(r),
                     "first" => First(r),
@@ -224,10 +222,10 @@ peg::parser! {
                 And(exprs.into_iter().map(Box::new).collect())
             }
 
-        rule upstreams_count() -> SliceUpstreams
+        rule upstreams_count() -> SliceRestrict<UpstreamRestrict>
             = op:number_ops() count:$(['0'..='9']+) {?
                 let (cmps, size) = len_restrict(op, count)?;
-                Ok(SliceUpstreams::Count(cmps, size))
+                Ok(SliceRestrict::Count(cmps, size))
             }
 
         rule expr() -> Restrict

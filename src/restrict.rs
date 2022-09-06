@@ -29,9 +29,6 @@ pub enum Restrict {
     HashSetStrs(HashSetStrs),
     IndexSetStrs(IndexSetStrs),
 
-    // slices
-    SliceStrs(SliceStrs),
-
     // strings
     Str(Str),
 }
@@ -275,37 +272,17 @@ impl Restriction<&IndexSet<String>> for IndexSetStrs {
     }
 }
 
-#[derive(Clone)]
-pub enum SliceStrs {
-    Custom(fn(&[String]) -> bool),
-    First(Str),
-    Last(Str),
-    Contains(Str),
+#[derive(Debug, Clone)]
+pub enum SliceRestrict<T> {
+    First(T),
+    Last(T),
+    Contains(T),
     Count(Vec<Ordering>, usize),
 }
 
-impl fmt::Debug for SliceStrs {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Self::First(r) => write!(f, "First({r:?})"),
-            Self::Last(r) => write!(f, "Last({r:?})"),
-            Self::Contains(r) => write!(f, "Contains({r:?})"),
-            Self::Count(ordering, size) => write!(f, "Count({ordering:?}, {size})"),
-        }
-    }
-}
-
-impl From<SliceStrs> for Restrict {
-    fn from(r: SliceStrs) -> Self {
-        Restrict::SliceStrs(r)
-    }
-}
-
-impl Restriction<&[String]> for SliceStrs {
+impl Restriction<&[String]> for SliceRestrict<Str> {
     fn matches(&self, val: &[String]) -> bool {
         match self {
-            Self::Custom(func) => func(val),
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Contains(r) => val.iter().any(|v| r.matches(v)),

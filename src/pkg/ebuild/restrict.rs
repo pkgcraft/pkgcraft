@@ -1,30 +1,30 @@
 use std::{fmt, ptr};
 
-use crate::metadata::ebuild::{SliceMaintainers, SliceUpstreams};
+use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::pkg::{self, Package};
 use crate::repo::Repository;
-use crate::restrict::{self, Restriction};
+use crate::restrict::{self, Restriction, SliceRestrict, Str};
 
 use super::Pkg;
 
 #[derive(Clone)]
 pub enum Restrict {
     Custom(fn(&Pkg) -> bool),
-    Ebuild(restrict::Str),
-    Category(restrict::Str),
-    Description(restrict::Str),
-    Slot(restrict::Str),
-    Subslot(restrict::Str),
-    RawSubslot(Option<restrict::Str>),
-    Homepage(Option<restrict::SliceStrs>),
+    Ebuild(Str),
+    Category(Str),
+    Description(Str),
+    Slot(Str),
+    Subslot(Str),
+    RawSubslot(Option<Str>),
+    Homepage(Option<SliceRestrict<Str>>),
     DefinedPhases(Option<restrict::HashSetStrs>),
     Keywords(Option<restrict::IndexSetStrs>),
     Iuse(Option<restrict::IndexSetStrs>),
     Inherit(Option<restrict::IndexSetStrs>),
     Inherited(Option<restrict::IndexSetStrs>),
-    LongDescription(Option<restrict::Str>),
-    Maintainers(Option<SliceMaintainers>),
-    Upstreams(Option<SliceUpstreams>),
+    LongDescription(Option<Str>),
+    Maintainers(Option<SliceRestrict<MaintainerRestrict>>),
+    Upstreams(Option<SliceRestrict<UpstreamRestrict>>),
 }
 
 impl fmt::Debug for Restrict {

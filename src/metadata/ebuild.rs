@@ -11,7 +11,7 @@ use tracing::warn;
 use crate::macros::cmp_not_equal;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
-use crate::restrict::{self, Restriction};
+use crate::restrict::{self, Restriction, SliceRestrict, Str};
 use crate::Error;
 
 #[derive(Debug)]
@@ -94,11 +94,11 @@ impl Hash for Maintainer {
 
 #[derive(Debug, Clone)]
 pub enum MaintainerRestrict {
-    Email(restrict::Str),
-    Name(Option<restrict::Str>),
-    Description(Option<restrict::Str>),
-    Type(Option<restrict::Str>),
-    Proxied(Option<restrict::Str>),
+    Email(Str),
+    Name(Option<Str>),
+    Description(Option<Str>),
+    Type(Option<Str>),
+    Proxied(Option<Str>),
 
     // boolean
     And(Vec<Box<Self>>),
@@ -133,21 +133,13 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum SliceMaintainers {
-    First(MaintainerRestrict),
-    Last(MaintainerRestrict),
-    Contains(MaintainerRestrict),
-    Count(Vec<Ordering>, usize),
-}
-
-impl From<SliceMaintainers> for restrict::Restrict {
-    fn from(r: SliceMaintainers) -> Self {
+impl From<SliceRestrict<MaintainerRestrict>> for restrict::Restrict {
+    fn from(r: SliceRestrict<MaintainerRestrict>) -> Self {
         EbuildRestrict::Maintainers(Some(r)).into()
     }
 }
 
-impl Restriction<&[Maintainer]> for SliceMaintainers {
+impl Restriction<&[Maintainer]> for SliceRestrict<MaintainerRestrict> {
     fn matches(&self, val: &[Maintainer]) -> bool {
         match self {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
@@ -183,8 +175,8 @@ impl Upstream {
 
 #[derive(Debug, Clone)]
 pub enum UpstreamRestrict {
-    Site(restrict::Str),
-    Name(restrict::Str),
+    Site(Str),
+    Name(Str),
 
     // boolean
     And(Vec<Box<Self>>),
@@ -200,21 +192,13 @@ impl Restriction<&Upstream> for UpstreamRestrict {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum SliceUpstreams {
-    First(UpstreamRestrict),
-    Last(UpstreamRestrict),
-    Contains(UpstreamRestrict),
-    Count(Vec<Ordering>, usize),
-}
-
-impl From<SliceUpstreams> for restrict::Restrict {
-    fn from(r: SliceUpstreams) -> Self {
+impl From<SliceRestrict<UpstreamRestrict>> for restrict::Restrict {
+    fn from(r: SliceRestrict<UpstreamRestrict>) -> Self {
         EbuildRestrict::Upstreams(Some(r)).into()
     }
 }
 
-impl Restriction<&[Upstream]> for SliceUpstreams {
+impl Restriction<&[Upstream]> for SliceRestrict<UpstreamRestrict> {
     fn matches(&self, val: &[Upstream]) -> bool {
         match self {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
