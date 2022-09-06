@@ -77,10 +77,10 @@ peg::parser!(grammar restrict() for str {
         / "\'" s:$([^ '\'']+) "\'" { s }
 
     rule string_ops() -> &'input str
-        = quiet!{" "*} op:$("==" / "!=" / "=~" / "!~") quiet!{" "*} { op }
+        = opt_ws() op:$("==" / "!=" / "=~" / "!~") opt_ws() { op }
 
     rule number_ops() -> &'input str
-        = quiet!{" "*} op:$((['<' | '>'] "="?) / "==") quiet!{" "*} { op }
+        = opt_ws() op:$((['<' | '>'] "="?) / "==") opt_ws() { op }
 
     rule pkg_restrict() -> Restrict
         = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string() {?
@@ -155,14 +155,14 @@ peg::parser!(grammar restrict() for str {
         = lparen() exprs:(
                 maintainer_attr_optional()
                 / maintainer_restrict()
-            ) ++ (" "+ "&&" " "+) rparen()
+            ) ++ (ws() "&&" ws()) rparen()
         {
             use crate::metadata::ebuild::MaintainerRestrict::And;
             And(exprs.into_iter().map(Box::new).collect())
         }
 
     rule maintainers_ops() -> SliceRestrict<MaintainerRestrict>
-        = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
+        = ws() op:$(("contains" / "first" / "last")) ws()
             r:(maintainer_attr_optional()
                 / maintainer_restrict()
                 / maintainer_and())
@@ -188,7 +188,7 @@ peg::parser!(grammar restrict() for str {
         { r.into() }
 
     rule upstreams_ops() -> SliceRestrict<UpstreamRestrict>
-        = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
+        = ws() op:$(("contains" / "first" / "last")) ws()
             r:(upstream_restrict() / upstream_and())
         {?
             use crate::restrict::SliceRestrict::*;
@@ -215,48 +215,41 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule upstream_and() -> UpstreamRestrict
-        = lparen() exprs:upstream_restrict() ++ (" "+ "&&" " "+) rparen()
+        = lparen() exprs:upstream_restrict() ++ (ws() "&&" ws()) rparen()
         {
             use crate::metadata::ebuild::UpstreamRestrict::And;
             And(exprs.into_iter().map(Box::new).collect())
         }
 
+    rule ws() = quiet!{[' ' | '\n' | '\t']+}
+    rule opt_ws() = quiet!{[' ' | '\n' | '\t']*}
+
+    rule lparen() = opt_ws() "(" opt_ws()
+    rule rparen() = opt_ws() ")" opt_ws()
+    rule is_op() = ws() "is" ws()
+
     rule expr() -> Restrict
-        = invert:quiet!{"!"}?
-            r:(attr_optional()
-                / pkg_restrict()
-                / attr_str_restrict()
-                / maintainers()
-                / upstreams()
-            )
-        {
-            match invert {
-                Some(_) => Restrict::not(r),
-                None => r,
-            }
-        }
+        = r:(attr_optional()
+           / pkg_restrict()
+           / attr_str_restrict()
+           / maintainers()
+           / upstreams()
+        ) { r }
 
-    rule lparen() = quiet!{" "*} "(" quiet!{" "*}
-    rule rparen() = quiet!{" "*} ")" quiet!{" "*}
-    rule is_op() = quiet!{" "+} "is" quiet!{" "+}
+    pub(crate) rule query() -> Restrict = precedence!{
+        x:(@) opt_ws() "||" opt_ws() y:@ { Restrict::or([x, y]) }
+        --
+        x:(@) opt_ws() "^^" opt_ws() y:@ { Restrict::xor([x, y]) }
+        --
+        x:(@) opt_ws() "&&" opt_ws() y:@ { Restrict::and([x, y]) }
+        --
+        "!" x:(@) { Restrict::not(x) }
+        --
+        lparen() v:query() rparen() { v }
+        e:expr() { e }
+    }
 
-    rule and() -> Restrict
-        = lparen() exprs:query() ++ (" "+ "&&" " "+) rparen() {
-            Restrict::and(exprs)
-        }
 
-    rule or() -> Restrict
-        = lparen() exprs:query() ++ (" "+ "||" " "+) rparen() {
-            Restrict::or(exprs)
-        }
-
-    rule xor() -> Restrict
-        = lparen() exprs:query() ++ (" "+ "^^" " "+) rparen() {
-            Restrict::xor(exprs)
-        }
-
-    pub(super) rule query() -> Restrict
-        = r:(expr() / and() / or() / xor()) { r }
 });
 
 /// Convert a package query string into a Restriction.
