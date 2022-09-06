@@ -40,226 +40,224 @@ fn len_restrict(op: &str, s: &str) -> Result<(Vec<Ordering>, usize), &'static st
     Ok((cmps, size))
 }
 
-peg::parser! {
-    grammar restrict() for str {
-        rule attr_optional() -> Restrict
-            = attr:$((
-                    "subslot"
-                    / "homepage"
-                    / "defined_phases"
-                    / "keywords"
-                    / "iuse"
-                    / "inherit"
-                    / "inherited"
-                    / "long_description"
-                    / "maintainers"
-                    / "upstreams"
-                )) is_op() ("None" / "none")
-            {?
-                use crate::pkg::ebuild::Restrict::*;
-                let r = match attr {
-                    "subslot" => RawSubslot(None),
-                    "homepage" => Homepage(None),
-                    "defined_phases" => DefinedPhases(None),
-                    "keywords" => Keywords(None),
-                    "iuse" => Iuse(None),
-                    "inherit" => Inherit(None),
-                    "inherited" => Inherited(None),
-                    "long_description" => LongDescription(None),
-                    "maintainers" => Maintainers(None),
-                    "upstreams" => Upstreams(None),
-                    _ => return Err("unknown optional package attribute"),
-                };
-                Ok(r.into())
+peg::parser!(grammar restrict() for str {
+    rule attr_optional() -> Restrict
+        = attr:$((
+                "subslot"
+                / "homepage"
+                / "defined_phases"
+                / "keywords"
+                / "iuse"
+                / "inherit"
+                / "inherited"
+                / "long_description"
+                / "maintainers"
+                / "upstreams"
+            )) is_op() ("None" / "none")
+        {?
+            use crate::pkg::ebuild::Restrict::*;
+            let r = match attr {
+                "subslot" => RawSubslot(None),
+                "homepage" => Homepage(None),
+                "defined_phases" => DefinedPhases(None),
+                "keywords" => Keywords(None),
+                "iuse" => Iuse(None),
+                "inherit" => Inherit(None),
+                "inherited" => Inherited(None),
+                "long_description" => LongDescription(None),
+                "maintainers" => Maintainers(None),
+                "upstreams" => Upstreams(None),
+                _ => return Err("unknown optional package attribute"),
+            };
+            Ok(r.into())
+        }
+
+    rule quoted_string() -> &'input str
+        = "\"" s:$([^ '\"']+) "\"" { s }
+        / "\'" s:$([^ '\'']+) "\'" { s }
+
+    rule string_ops() -> &'input str
+        = quiet!{" "*} op:$("==" / "!=" / "=~" / "!~") quiet!{" "*} { op }
+
+    rule number_ops() -> &'input str
+        = quiet!{" "*} op:$((['<' | '>'] "="?) / "==") quiet!{" "*} { op }
+
+    rule pkg_restrict() -> Restrict
+        = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string() {?
+            use crate::pkg::Restrict::*;
+            let r = str_restrict(op, s)?;
+            match attr {
+                "eapi" => Ok(Eapi(r).into()),
+                "repo" => Ok(Repo(r).into()),
+                _ => Err("unknown package attribute"),
             }
+        }
 
-        rule quoted_string() -> &'input str
-            = "\"" s:$([^ '\"']+) "\"" { s }
-            / "\'" s:$([^ '\'']+) "\'" { s }
+    rule attr_str_restrict() -> Restrict
+        = attr:$((
+                "ebuild"
+                / "category"
+                / "description"
+                / "slot"
+                / "subslot"
+                / "long_description"
+            )) op:string_ops() s:quoted_string()
+        {?
+            use crate::pkg::ebuild::Restrict::*;
+            let r = str_restrict(op, s)?;
+            let ebuild_r = match attr {
+                "ebuild" => Ebuild(r),
+                "category" => Category(r),
+                "description" => Description(r),
+                "slot" => Slot(r),
+                "subslot" => Subslot(r),
+                "long_description" => LongDescription(Some(r)),
+                _ => return Err("unknown package attribute"),
+            };
+            Ok(ebuild_r.into())
+        }
 
-        rule string_ops() -> &'input str
-            = quiet!{" "*} op:$("==" / "!=" / "=~" / "!~") quiet!{" "*} { op }
+    rule maintainers() -> Restrict
+        = "maintainers" r:(maintainers_ops() / slice_count())
+        { r.into() }
 
-        rule number_ops() -> &'input str
-            = quiet!{" "*} op:$((['<' | '>'] "="?) / "==") quiet!{" "*} { op }
+    rule maintainer_attr_optional() -> MaintainerRestrict
+        = attr:$(("name" / "description" / "type" / "proxied"))
+                is_op() ("None" / "none") {?
+            use crate::metadata::ebuild::MaintainerRestrict::*;
+            let r = match attr {
+                "name" => Name(None),
+                "description" => Description(None),
+                "type" => Type(None),
+                "proxied" => Proxied(None),
+                _ => return Err("unknown optional maintainer attribute"),
+            };
+            Ok(r)
+        }
 
-        rule pkg_restrict() -> Restrict
-            = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string() {?
-                use crate::pkg::Restrict::*;
-                let r = str_restrict(op, s)?;
-                match attr {
-                    "eapi" => Ok(Eapi(r).into()),
-                    "repo" => Ok(Repo(r).into()),
-                    _ => Err("unknown package attribute"),
-                }
+    rule maintainer_restrict() -> MaintainerRestrict
+        = attr:$(("email" / "name" / "description" / "type" / "proxied"))
+            op:string_ops() s:quoted_string()
+        {?
+            use crate::metadata::ebuild::MaintainerRestrict::*;
+            let r = str_restrict(op, s)?;
+            match attr {
+                "email" => Ok(Email(r)),
+                "name" => Ok(Name(Some(r))),
+                "description" => Ok(Description(Some(r))),
+                "type" => Ok(Type(Some(r))),
+                "proxied" => Ok(Proxied(Some(r))),
+                _ => Err("unknown maintainer attribute"),
             }
+        }
 
-        rule attr_str_restrict() -> Restrict
-            = attr:$((
-                    "ebuild"
-                    / "category"
-                    / "description"
-                    / "slot"
-                    / "subslot"
-                    / "long_description"
-                )) op:string_ops() s:quoted_string()
-            {?
-                use crate::pkg::ebuild::Restrict::*;
-                let r = str_restrict(op, s)?;
-                let ebuild_r = match attr {
-                    "ebuild" => Ebuild(r),
-                    "category" => Category(r),
-                    "description" => Description(r),
-                    "slot" => Slot(r),
-                    "subslot" => Subslot(r),
-                    "long_description" => LongDescription(Some(r)),
-                    _ => return Err("unknown package attribute"),
-                };
-                Ok(ebuild_r.into())
+    rule maintainer_and() -> MaintainerRestrict
+        = lparen() exprs:(
+                maintainer_attr_optional()
+                / maintainer_restrict()
+            ) ++ (" "+ "&&" " "+) rparen()
+        {
+            use crate::metadata::ebuild::MaintainerRestrict::And;
+            And(exprs.into_iter().map(Box::new).collect())
+        }
+
+    rule maintainers_ops() -> SliceRestrict<MaintainerRestrict>
+        = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
+            r:(maintainer_attr_optional()
+                / maintainer_restrict()
+                / maintainer_and())
+        {?
+            use crate::restrict::SliceRestrict::*;
+            let r = match op {
+                "contains" => Contains(r),
+                "first" => First(r),
+                "last" => Last(r),
+                _ => return Err("unknown maintainers operation"),
+            };
+            Ok(r)
+        }
+
+    rule slice_count<T>() -> SliceRestrict<T>
+        = op:number_ops() count:$(['0'..='9']+) {?
+            let (cmps, size) = len_restrict(op, count)?;
+            Ok(SliceRestrict::Count(cmps, size))
+        }
+
+    rule upstreams() -> Restrict
+        = "upstreams" r:(upstreams_ops() / slice_count())
+        { r.into() }
+
+    rule upstreams_ops() -> SliceRestrict<UpstreamRestrict>
+        = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
+            r:(upstream_restrict() / upstream_and())
+        {?
+            use crate::restrict::SliceRestrict::*;
+            let r = match op {
+                "contains" => Contains(r),
+                "first" => First(r),
+                "last" => Last(r),
+                _ => return Err("unknown upstreams operation"),
+            };
+            Ok(r)
+        }
+
+    rule upstream_restrict() -> UpstreamRestrict
+        = attr:$(("site" / "name"))
+            op:string_ops() s:quoted_string()
+        {?
+            use crate::metadata::ebuild::UpstreamRestrict::*;
+            let r = str_restrict(op, s)?;
+            match attr {
+                "site" => Ok(Site(r)),
+                "name" => Ok(Name(r)),
+                _ => Err("unknown upstream attribute"),
             }
+        }
 
-        rule maintainers() -> Restrict
-            = "maintainers" r:(maintainers_ops() / slice_count())
-            { r.into() }
+    rule upstream_and() -> UpstreamRestrict
+        = lparen() exprs:upstream_restrict() ++ (" "+ "&&" " "+) rparen()
+        {
+            use crate::metadata::ebuild::UpstreamRestrict::And;
+            And(exprs.into_iter().map(Box::new).collect())
+        }
 
-        rule maintainer_attr_optional() -> MaintainerRestrict
-            = attr:$(("name" / "description" / "type" / "proxied"))
-                    is_op() ("None" / "none") {?
-                use crate::metadata::ebuild::MaintainerRestrict::*;
-                let r = match attr {
-                    "name" => Name(None),
-                    "description" => Description(None),
-                    "type" => Type(None),
-                    "proxied" => Proxied(None),
-                    _ => return Err("unknown optional maintainer attribute"),
-                };
-                Ok(r)
+    rule expr() -> Restrict
+        = invert:quiet!{"!"}?
+            r:(attr_optional()
+                / pkg_restrict()
+                / attr_str_restrict()
+                / maintainers()
+                / upstreams()
+            )
+        {
+            match invert {
+                Some(_) => Restrict::not(r),
+                None => r,
             }
+        }
 
-        rule maintainer_restrict() -> MaintainerRestrict
-            = attr:$(("email" / "name" / "description" / "type" / "proxied"))
-                op:string_ops() s:quoted_string()
-            {?
-                use crate::metadata::ebuild::MaintainerRestrict::*;
-                let r = str_restrict(op, s)?;
-                match attr {
-                    "email" => Ok(Email(r)),
-                    "name" => Ok(Name(Some(r))),
-                    "description" => Ok(Description(Some(r))),
-                    "type" => Ok(Type(Some(r))),
-                    "proxied" => Ok(Proxied(Some(r))),
-                    _ => Err("unknown maintainer attribute"),
-                }
-            }
+    rule lparen() = quiet!{" "*} "(" quiet!{" "*}
+    rule rparen() = quiet!{" "*} ")" quiet!{" "*}
+    rule is_op() = quiet!{" "+} "is" quiet!{" "+}
 
-        rule maintainer_and() -> MaintainerRestrict
-            = lparen() exprs:(
-                    maintainer_attr_optional()
-                    / maintainer_restrict()
-                ) ++ (" "+ "&&" " "+) rparen()
-            {
-                use crate::metadata::ebuild::MaintainerRestrict::And;
-                And(exprs.into_iter().map(Box::new).collect())
-            }
+    rule and() -> Restrict
+        = lparen() exprs:query() ++ (" "+ "&&" " "+) rparen() {
+            Restrict::and(exprs)
+        }
 
-        rule maintainers_ops() -> SliceRestrict<MaintainerRestrict>
-            = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
-                r:(maintainer_attr_optional()
-                   / maintainer_restrict()
-                   / maintainer_and())
-            {?
-                use crate::restrict::SliceRestrict::*;
-                let r = match op {
-                    "contains" => Contains(r),
-                    "first" => First(r),
-                    "last" => Last(r),
-                    _ => return Err("unknown maintainers operation"),
-                };
-                Ok(r)
-            }
+    rule or() -> Restrict
+        = lparen() exprs:query() ++ (" "+ "||" " "+) rparen() {
+            Restrict::or(exprs)
+        }
 
-        rule slice_count<T>() -> SliceRestrict<T>
-            = op:number_ops() count:$(['0'..='9']+) {?
-                let (cmps, size) = len_restrict(op, count)?;
-                Ok(SliceRestrict::Count(cmps, size))
-            }
+    rule xor() -> Restrict
+        = lparen() exprs:query() ++ (" "+ "^^" " "+) rparen() {
+            Restrict::xor(exprs)
+        }
 
-        rule upstreams() -> Restrict
-            = "upstreams" r:(upstreams_ops() / slice_count())
-            { r.into() }
-
-        rule upstreams_ops() -> SliceRestrict<UpstreamRestrict>
-            = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
-                r:(upstream_restrict() / upstream_and())
-            {?
-                use crate::restrict::SliceRestrict::*;
-                let r = match op {
-                    "contains" => Contains(r),
-                    "first" => First(r),
-                    "last" => Last(r),
-                    _ => return Err("unknown upstreams operation"),
-                };
-                Ok(r)
-            }
-
-        rule upstream_restrict() -> UpstreamRestrict
-            = attr:$(("site" / "name"))
-                op:string_ops() s:quoted_string()
-            {?
-                use crate::metadata::ebuild::UpstreamRestrict::*;
-                let r = str_restrict(op, s)?;
-                match attr {
-                    "site" => Ok(Site(r)),
-                    "name" => Ok(Name(r)),
-                    _ => Err("unknown upstream attribute"),
-                }
-            }
-
-        rule upstream_and() -> UpstreamRestrict
-            = lparen() exprs:upstream_restrict() ++ (" "+ "&&" " "+) rparen()
-            {
-                use crate::metadata::ebuild::UpstreamRestrict::And;
-                And(exprs.into_iter().map(Box::new).collect())
-            }
-
-        rule expr() -> Restrict
-            = invert:quiet!{"!"}?
-                r:(attr_optional()
-                   / pkg_restrict()
-                   / attr_str_restrict()
-                   / maintainers()
-                   / upstreams()
-                )
-            {
-                match invert {
-                    Some(_) => Restrict::not(r),
-                    None => r,
-                }
-            }
-
-        rule lparen() = quiet!{" "*} "(" quiet!{" "*}
-        rule rparen() = quiet!{" "*} ")" quiet!{" "*}
-        rule is_op() = quiet!{" "+} "is" quiet!{" "+}
-
-        rule and() -> Restrict
-            = lparen() exprs:query() ++ (" "+ "&&" " "+) rparen() {
-                Restrict::and(exprs)
-            }
-
-        rule or() -> Restrict
-            = lparen() exprs:query() ++ (" "+ "||" " "+) rparen() {
-                Restrict::or(exprs)
-            }
-
-        rule xor() -> Restrict
-            = lparen() exprs:query() ++ (" "+ "^^" " "+) rparen() {
-                Restrict::xor(exprs)
-            }
-
-        pub(super) rule query() -> Restrict
-            = r:(expr() / and() / or() / xor()) { r }
-    }
-}
+    pub(super) rule query() -> Restrict
+        = r:(expr() / and() / or() / xor()) { r }
+});
 
 /// Convert a package query string into a Restriction.
 pub fn pkg(s: &str) -> crate::Result<Restrict> {
