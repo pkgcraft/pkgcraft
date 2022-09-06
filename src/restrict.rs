@@ -215,17 +215,17 @@ impl Restriction<&HashSet<String>> for HashSetRestrict<String> {
 }
 
 #[derive(Debug, Clone)]
-pub enum IndexSetRestrict<T> {
+pub enum IndexSetRestrict<T, R> {
     Empty,
     Contains(T),
-    First(Str),
-    Last(Str),
+    First(R),
+    Last(R),
     Subset(IndexSet<T>),
     Superset(IndexSet<T>),
     Count(Vec<Ordering>, usize),
 }
 
-impl Restriction<&IndexSet<String>> for IndexSetRestrict<String> {
+impl Restriction<&IndexSet<String>> for IndexSetRestrict<String, Str> {
     fn matches(&self, val: &IndexSet<String>) -> bool {
         match self {
             Self::Empty => val.is_empty(),
