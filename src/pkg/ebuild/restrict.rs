@@ -31,21 +31,7 @@ impl fmt::Debug for Restrict {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Self::Ebuild(r) => write!(f, "Ebuild({r:?})"),
-            Self::Category(r) => write!(f, "Category({r:?})"),
-            Self::Description(r) => write!(f, "Description({r:?})"),
-            Self::Slot(r) => write!(f, "Slot({r:?})"),
-            Self::Subslot(r) => write!(f, "Subslot({r:?})"),
-            Self::RawSubslot(r) => write!(f, "RawSubslot({r:?})"),
-            Self::Homepage(r) => write!(f, "Homepage({r:?})"),
-            Self::DefinedPhases(r) => write!(f, "DefinedPhases({r:?})"),
-            Self::Keywords(r) => write!(f, "Keywords({r:?})"),
-            Self::Iuse(r) => write!(f, "Iuse({r:?})"),
-            Self::Inherit(r) => write!(f, "Inherit({r:?})"),
-            Self::Inherited(r) => write!(f, "Inherited({r:?})"),
-            Self::LongDescription(r) => write!(f, "LongDescription({r:?})"),
-            Self::Maintainers(r) => write!(f, "Maintainers({r:?})"),
-            Self::Upstreams(r) => write!(f, "Upstreams({r:?})"),
+            r => write!(f, "{r:?}"),
         }
     }
 }
