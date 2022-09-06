@@ -4,7 +4,6 @@ use regex::Regex;
 
 use crate::metadata::ebuild::{MaintainerRestrict, SliceMaintainers};
 use crate::peg::peg_error;
-use crate::pkg::ebuild::Restrict::*;
 use crate::restrict::{Restrict, Str};
 
 fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
@@ -23,6 +22,24 @@ fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     }
 }
 
+fn len_restrict(op: &str, s: &str) -> Result<(Vec<Ordering>, usize), &'static str> {
+    let cmps = match op {
+        "<" => vec![Ordering::Less],
+        "<=" => vec![Ordering::Less, Ordering::Equal],
+        "==" => vec![Ordering::Equal],
+        ">=" => vec![Ordering::Greater, Ordering::Equal],
+        ">" => vec![Ordering::Greater],
+        _ => return Err("unknown count operator"),
+    };
+
+    let size: usize = match s.parse() {
+        Ok(v) => v,
+        Err(_) => return Err("invalid count size"),
+    };
+
+    Ok((cmps, size))
+}
+
 peg::parser! {
     grammar restrict() for str {
         rule attr_optional() -> Restrict
@@ -39,6 +56,7 @@ peg::parser! {
                     / "upstreams"
                 )) " is " ("None" / "none")
             {?
+                use crate::pkg::ebuild::Restrict::*;
                 let r = match attr {
                     "raw_subslot" => RawSubslot(None),
                     "homepage" => Homepage(None),
@@ -87,23 +105,26 @@ peg::parser! {
                     / "long_description"
                 )) op:string_ops() s:quoted_string()
             {?
+                use crate::pkg::ebuild::Restrict::*;
                 let r = str_restrict(op, s)?;
-                match attr {
-                    "ebuild" => Ok(Ebuild(r).into()),
-                    "category" => Ok(Category(r).into()),
-                    "description" => Ok(Description(r).into()),
-                    "slot" => Ok(Slot(r).into()),
-                    "subslot" => Ok(Subslot(r).into()),
-                    "raw_subslot" => Ok(RawSubslot(Some(r)).into()),
-                    "long_description" => Ok(LongDescription(Some(r)).into()),
-                    _ => Err("unknown package attribute"),
-                }
+                let ebuild_r = match attr {
+                    "ebuild" => Ebuild(r),
+                    "category" => Category(r),
+                    "description" => Description(r),
+                    "slot" => Slot(r),
+                    "subslot" => Subslot(r),
+                    "raw_subslot" => RawSubslot(Some(r)),
+                    "long_description" => LongDescription(Some(r)),
+                    _ => return Err("unknown package attribute"),
+                };
+                Ok(ebuild_r.into())
             }
 
         rule maintainers() -> Restrict
-            = "maintainers" r:(maintainers_str_ops() / maintainers_count()) { r.into() }
+            = "maintainers" r:(maintainers_ops() / maintainers_count())
+            { r.into() }
 
-        rule maintainers_attr_optional() -> MaintainerRestrict
+        rule maintainer_attr_optional() -> MaintainerRestrict
             = attr:$(("name" / "description" / "type" / "proxied"))
                     " is " ("None" / "none") {?
                 use crate::metadata::ebuild::MaintainerRestrict::*;
@@ -117,7 +138,7 @@ peg::parser! {
                 Ok(r)
             }
 
-        rule maintainers_str_restrict() -> MaintainerRestrict
+        rule maintainer_restrict() -> MaintainerRestrict
             = attr:$(("email" / "name" / "description" / "type" / "proxied"))
                 op:string_ops() s:quoted_string()
             {?
@@ -133,11 +154,9 @@ peg::parser! {
                 }
             }
 
-        rule maintainers_str_ops() -> SliceMaintainers
+        rule maintainers_ops() -> SliceMaintainers
             = quiet!{" "+} op:$(("contains" / "first" / "last")) quiet!{" "+}
-                    r:(maintainers_attr_optional()
-                       / maintainers_str_restrict()
-                    )
+                    r:(maintainer_attr_optional() / maintainer_restrict())
             {?
                 use crate::metadata::ebuild::SliceMaintainers::*;
                 let r = match op {
@@ -152,20 +171,7 @@ peg::parser! {
         rule maintainers_count() -> SliceMaintainers
             = quiet!{" "+} op:number_ops() count:$(['0'..='9']+) {?
                 use crate::metadata::ebuild::SliceMaintainers::Count;
-                let cmps = match op {
-                    "<" => vec![Ordering::Less],
-                    "<=" => vec![Ordering::Less, Ordering::Equal],
-                    "==" => vec![Ordering::Equal],
-                    ">=" => vec![Ordering::Greater, Ordering::Equal],
-                    ">" => vec![Ordering::Greater],
-                    _ => return Err("unknown count operator"),
-                };
-
-                let size: usize = match count.parse() {
-                    Ok(v) => v,
-                    Err(_) => return Err("invalid count size"),
-                };
-
+                let (cmps, size) = len_restrict(op, count)?;
                 Ok(Count(cmps, size))
             }
 
