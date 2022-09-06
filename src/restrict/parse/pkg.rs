@@ -248,8 +248,6 @@ peg::parser!(grammar restrict() for str {
         lparen() v:query() rparen() { v }
         e:expr() { e }
     }
-
-
 });
 
 /// Convert a package query string into a Restriction.
