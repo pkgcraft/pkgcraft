@@ -72,10 +72,10 @@ impl Restrict {
         T: Into<Restrict>,
     {
         let mut restricts = vec![];
-        for r in iter.into_iter().map(|x| x.into()) {
-            match r {
+        for x in iter.into_iter() {
+            match x.into() {
                 Self::And(vals) => restricts.extend(vals),
-                _ => restricts.push(Box::new(r)),
+                r => restricts.push(Box::new(r)),
             }
         }
         Self::And(restricts)
@@ -87,10 +87,10 @@ impl Restrict {
         T: Into<Restrict>,
     {
         let mut restricts = vec![];
-        for r in iter.into_iter().map(|x| x.into()) {
-            match r {
+        for x in iter.into_iter() {
+            match x.into() {
                 Self::Or(vals) => restricts.extend(vals),
-                _ => restricts.push(Box::new(r)),
+                r => restricts.push(Box::new(r)),
             }
         }
         Self::Or(restricts)
@@ -102,10 +102,10 @@ impl Restrict {
         T: Into<Restrict>,
     {
         let mut restricts = vec![];
-        for r in iter.into_iter().map(|x| x.into()) {
-            match r {
+        for x in iter.into_iter() {
+            match x.into() {
                 Self::Xor(vals) => restricts.extend(vals),
-                _ => restricts.push(Box::new(r)),
+                r => restricts.push(Box::new(r)),
             }
         }
         Self::Xor(restricts)
