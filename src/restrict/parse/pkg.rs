@@ -93,17 +93,17 @@ peg::parser!(grammar restrict() for str {
         / "\'" s:$([^ '\'']+) "\'" { s }
 
     rule string_ops() -> &'input str
-        = opt_ws() op:$("==" / "!=" / "=~" / "!~") opt_ws() { op }
+        = __ op:$("==" / "!=" / "=~" / "!~") __ { op }
 
     rule set_ops() -> &'input str
-        = opt_ws() op:$("<" / "<=" / "==" / ">=" / ">" / "%") opt_ws() { op }
+        = __ op:$("<" / "<=" / "==" / ">=" / ">" / "%") __ { op }
 
     rule quoted_string_set() -> Vec<&'input str>
-        = opt_ws() "{" e:(quoted_string() ** (opt_ws() "," opt_ws())) "}" opt_ws()
+        = __ "{" e:(quoted_string() ** (__ "," __)) "}" __
         { e }
 
     rule number_ops() -> &'input str
-        = opt_ws() op:$((['<' | '>'] "="?) / "==") opt_ws() { op }
+        = __ op:$((['<' | '>'] "="?) / "==") __ { op }
 
     rule pkg_restrict() -> Restrict
         = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string()
@@ -169,7 +169,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule ordered_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
-        = ws() op:$(("matches" / "first" / "last")) ws() r:(exprs())
+        = _ op:$(("matches" / "first" / "last")) _ r:(exprs())
         {?
             use crate::restrict::OrderedRestrict::*;
             let r = match op {
@@ -224,7 +224,7 @@ peg::parser!(grammar restrict() for str {
         = lparen() exprs:(
                 maintainer_attr_optional()
                 / maintainer_restrict()
-            ) ++ (ws() "&&" ws()) rparen()
+            ) ++ (_ "&&" _) rparen()
         {
             use crate::metadata::ebuild::MaintainerRestrict::And;
             And(exprs.into_iter().map(Box::new).collect())
@@ -251,18 +251,18 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule upstream_and() -> UpstreamRestrict
-        = lparen() exprs:upstream_restrict() ++ (ws() "&&" ws()) rparen()
+        = lparen() exprs:upstream_restrict() ++ (_ "&&" _) rparen()
         {
             use crate::metadata::ebuild::UpstreamRestrict::And;
             And(exprs.into_iter().map(Box::new).collect())
         }
 
-    rule ws() = quiet!{[' ' | '\n' | '\t']+}
-    rule opt_ws() = quiet!{[' ' | '\n' | '\t']*}
+    rule _ = quiet!{[' ' | '\n' | '\t']+}
+    rule __ = quiet!{[' ' | '\n' | '\t']*}
 
-    rule lparen() = opt_ws() "(" opt_ws()
-    rule rparen() = opt_ws() ")" opt_ws()
-    rule is_op() = ws() "is" ws()
+    rule lparen() = __ "(" __
+    rule rparen() = __ ")" __
+    rule is_op() = _ "is" _
 
     rule expr() -> Restrict
         = r:(attr_optional()
@@ -274,11 +274,11 @@ peg::parser!(grammar restrict() for str {
         ) { r }
 
     pub(super) rule query() -> Restrict = precedence!{
-        x:(@) opt_ws() "||" opt_ws() y:@ { Restrict::or([x, y]) }
+        x:(@) __ "||" __ y:@ { Restrict::or([x, y]) }
         --
-        x:(@) opt_ws() "^^" opt_ws() y:@ { Restrict::xor([x, y]) }
+        x:(@) __ "^^" __ y:@ { Restrict::xor([x, y]) }
         --
-        x:(@) opt_ws() "&&" opt_ws() y:@ { Restrict::and([x, y]) }
+        x:(@) __ "&&" __ y:@ { Restrict::and([x, y]) }
         --
         "!" x:(@) { Restrict::not(x) }
         --
