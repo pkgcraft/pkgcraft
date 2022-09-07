@@ -347,7 +347,7 @@ impl Restrict {
     {
         let r = match iter {
             None => SetRestrict::Empty,
-            Some(i) => SetRestrict::Subset(i.into_iter().map(|s| s.into()).collect()),
+            Some(i) => SetRestrict::Superset(i.into_iter().map(|s| s.into()).collect()),
         };
         Self::UseDeps(r)
     }
