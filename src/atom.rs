@@ -10,7 +10,7 @@ pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::{cmp_not_equal, vec_str};
-use crate::restrict::{self, HashSetRestrict, Restriction, Str};
+use crate::restrict::{self, HashSetRestrict, Restriction, SetRestrict, Str};
 use crate::Error;
 // export parser functionality
 pub use parser::parse;
@@ -346,8 +346,8 @@ impl Restrict {
         S: Into<String>,
     {
         let r = match iter {
-            None => HashSetRestrict::Empty,
-            Some(i) => HashSetRestrict::Subset(i.into_iter().map(|s| s.into()).collect()),
+            None => SetRestrict::Empty,
+            Some(i) => SetRestrict::Subset(i.into_iter().map(|s| s.into()).collect()),
         };
         Self::UseDeps(r)
     }

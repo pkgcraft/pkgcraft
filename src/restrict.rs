@@ -217,52 +217,56 @@ impl Restriction<&str> for Str {
 }
 
 #[derive(Debug, Clone)]
-pub enum HashSetRestrict<T> {
+pub enum SetRestrict<S, T> {
     Empty,
     Contains(T),
-    Subset(HashSet<T>),
-    Superset(HashSet<T>),
+    Subset(S),
+    Superset(S),
 }
 
-impl Restriction<&HashSet<String>> for HashSetRestrict<String> {
-    fn matches(&self, val: &HashSet<String>) -> bool {
-        match self {
-            Self::Empty => val.is_empty(),
-            Self::Contains(s) => val.contains(s),
-            Self::Subset(s) => s.is_subset(val),
-            Self::Superset(s) => s.is_superset(val),
+macro_rules! make_set_restriction {
+    ($(($container:ty, $element:ty)),+) => {$(
+        impl Restriction<&$container> for SetRestrict<$container, $element> {
+            fn matches(&self, val: &$container) -> bool {
+                match self {
+                    Self::Empty => val.is_empty(),
+                    Self::Contains(s) => val.contains(s),
+                    Self::Subset(s) => s.is_subset(val),
+                    Self::Superset(s) => s.is_superset(val),
+                }
+            }
         }
-    }
+    )+};
 }
+pub(crate) use make_set_restriction;
+make_set_restriction!((HashSet<String>, String), (IndexSet<String>, String));
+
+pub(crate) type HashSetRestrict<T> = SetRestrict<HashSet<T>, T>;
 
 #[derive(Debug, Clone)]
 pub enum IndexSetRestrict<T, R> {
-    Empty,
     Ordered(OrderedRestrict<R>),
-    Subset(IndexSet<T>),
-    Superset(IndexSet<T>),
+    Set(SetRestrict<IndexSet<T>, T>),
 }
 
 impl Restriction<&IndexSet<String>> for IndexSetRestrict<String, Str> {
     fn matches(&self, val: &IndexSet<String>) -> bool {
         match self {
-            Self::Empty => val.is_empty(),
             Self::Ordered(r) => r.matches(val),
-            Self::Subset(s) => s.is_subset(val),
-            Self::Superset(s) => s.is_superset(val),
+            Self::Set(r) => r.matches(val),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum OrderedRestrict<T> {
-    First(T),
-    Last(T),
-    Contains(T),
+pub enum OrderedRestrict<R> {
+    First(R),
+    Last(R),
+    Contains(R),
     Count(Vec<Ordering>, usize),
 }
 
-macro_rules! make_ordered_trait {
+macro_rules! make_ordered_restriction {
     ($(($x:ty, $r:ty)),+) => {$(
         impl Restriction<$x> for OrderedRestrict<$r> {
             fn matches(&self, val: $x) -> bool {
@@ -276,9 +280,8 @@ macro_rules! make_ordered_trait {
         }
     )+};
 }
-pub(crate) use make_ordered_trait;
-
-make_ordered_trait!((&[String], Str), (&IndexSet<String>, Str));
+pub(crate) use make_ordered_restriction;
+make_ordered_restriction!((&[String], Str), (&IndexSet<String>, Str));
 
 #[cfg(test)]
 mod tests {

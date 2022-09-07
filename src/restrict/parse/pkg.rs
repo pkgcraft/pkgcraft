@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
-use crate::restrict::{Restrict, OrderedRestrict, Str};
+use crate::restrict::{OrderedRestrict, Restrict, Str};
 
 fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     match op {

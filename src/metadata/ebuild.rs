@@ -11,7 +11,7 @@ use tracing::warn;
 use crate::macros::cmp_not_equal;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
-use crate::restrict::{self, Restriction, OrderedRestrict, Str};
+use crate::restrict::{self, OrderedRestrict, Restriction, Str};
 use crate::Error;
 
 #[derive(Debug)]
