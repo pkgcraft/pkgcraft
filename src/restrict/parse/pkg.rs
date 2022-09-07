@@ -93,17 +93,17 @@ peg::parser!(grammar restrict() for str {
         / "\'" s:$([^ '\'']+) "\'" { s }
 
     rule string_ops() -> &'input str
-        = __ op:$("==" / "!=" / "=~" / "!~") __ { op }
+        = _ op:$("==" / "!=" / "=~" / "!~") _ { op }
 
     rule set_ops() -> &'input str
-        = __ op:$("<" / "<=" / "==" / ">=" / ">" / "%") __ { op }
+        = _ op:$("<" / "<=" / "==" / ">=" / ">" / "%") _ { op }
 
     rule quoted_string_set() -> Vec<&'input str>
-        = __ "{" e:(quoted_string() ** (__ "," __)) "}" __
+        = _ "{" e:(quoted_string() ** (_ "," _)) "}" _
         { e }
 
     rule number_ops() -> &'input str
-        = __ op:$((['<' | '>'] "="?) / "==") __ { op }
+        = _ op:$((['<' | '>'] "="?) / "==") _ { op }
 
     rule pkg_restrict() -> Restrict
         = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string()
@@ -169,7 +169,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule ordered_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
-        = _ op:$(("matches" / "first" / "last")) _ r:(exprs())
+        = __ op:$(("matches" / "first" / "last")) __ r:(exprs())
         {?
             use crate::restrict::OrderedRestrict::*;
             let r = match op {
@@ -256,11 +256,11 @@ peg::parser!(grammar restrict() for str {
             And(exprs.into_iter().map(Box::new).collect())
         }
 
-    rule _ = quiet!{[' ' | '\n' | '\t']+}
-    rule __ = quiet!{[' ' | '\n' | '\t']*}
+    rule _ = quiet!{[' ' | '\n' | '\t']*}
+    rule __ = quiet!{[' ' | '\n' | '\t']+}
 
-    rule parens<T>(expr: rule<T>) -> T = __ "(" __ v:expr() __ ")" __ { v }
-    rule is_op() = _ "is" _
+    rule parens<T>(expr: rule<T>) -> T = _ "(" _ v:expr() _ ")" _ { v }
+    rule is_op() = __ "is" __
 
     rule expr() -> Restrict
         = r:(attr_optional()
@@ -272,11 +272,11 @@ peg::parser!(grammar restrict() for str {
         ) { r }
 
     pub(super) rule query() -> Restrict = precedence!{
-        x:(@) __ "||" __ y:@ { Restrict::or([x, y]) }
+        x:(@) _ "||" _ y:@ { Restrict::or([x, y]) }
         --
-        x:(@) __ "^^" __ y:@ { Restrict::xor([x, y]) }
+        x:(@) _ "^^" _ y:@ { Restrict::xor([x, y]) }
         --
-        x:(@) __ "&&" __ y:@ { Restrict::and([x, y]) }
+        x:(@) _ "&&" _ y:@ { Restrict::and([x, y]) }
         --
         "!" x:(@) { Restrict::not(x) }
         --
