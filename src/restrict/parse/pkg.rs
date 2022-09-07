@@ -64,8 +64,8 @@ peg::parser!(grammar restrict() for str {
                 / "defined_phases"
                 / "keywords"
                 / "iuse"
-                / "inherit"
                 / "inherited"
+                / "inherit"
                 / "long_description"
                 / "maintainers"
                 / "upstreams"
@@ -78,8 +78,8 @@ peg::parser!(grammar restrict() for str {
                 "defined_phases" => DefinedPhases(None),
                 "keywords" => Keywords(None),
                 "iuse" => Iuse(None),
-                "inherit" => Inherit(None),
                 "inherited" => Inherited(None),
+                "inherit" => Inherit(None),
                 "long_description" => LongDescription(None),
                 "maintainers" => Maintainers(None),
                 "upstreams" => Upstreams(None),
@@ -147,8 +147,8 @@ peg::parser!(grammar restrict() for str {
                 / "defined_phases"
                 / "keywords"
                 / "iuse"
-                / "inherit"
                 / "inherited"
+                / "inherit"
             )) op:set_ops() vals:quoted_string_set()
         {?
             use crate::pkg::ebuild::Restrict::*;
@@ -158,8 +158,8 @@ peg::parser!(grammar restrict() for str {
                 "defined_phases" => DefinedPhases(Some(set_restrict(op, &vals)?)),
                 "keywords" => Keywords(Some(f(set_restrict(op, &vals)?))),
                 "iuse" => Iuse(Some(f(set_restrict(op, &vals)?))),
-                "inherit" => Inherit(Some(f(set_restrict(op, &vals)?))),
                 "inherited" => Inherited(Some(f(set_restrict(op, &vals)?))),
+                "inherit" => Inherit(Some(f(set_restrict(op, &vals)?))),
                 _ => return Err("unknown package attribute"),
             };
             Ok(ebuild_r.into())
