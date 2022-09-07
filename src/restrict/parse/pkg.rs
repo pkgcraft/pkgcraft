@@ -83,7 +83,8 @@ peg::parser!(grammar restrict() for str {
         = opt_ws() op:$((['<' | '>'] "="?) / "==") opt_ws() { op }
 
     rule pkg_restrict() -> Restrict
-        = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string() {?
+        = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string()
+        {?
             use crate::pkg::Restrict::*;
             let r = str_restrict(op, s)?;
             match attr {
@@ -118,14 +119,14 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule slice_count<T>() -> SliceRestrict<T>
-        = op:number_ops() count:$(['0'..='9']+) {?
+        = op:number_ops() count:$(['0'..='9']+)
+        {?
             let (cmps, size) = len_restrict(op, count)?;
             Ok(SliceRestrict::Count(cmps, size))
         }
 
     rule slice_ops<T>(x: rule<T>) -> SliceRestrict<T>
-        = ws() op:$(("contains" / "first" / "last")) ws()
-            r:(x())
+        = ws() op:$(("contains" / "first" / "last")) ws() r:(x())
         {?
             use crate::restrict::SliceRestrict::*;
             let r = match op {
@@ -142,11 +143,13 @@ peg::parser!(grammar restrict() for str {
         { r.into() }
 
     rule maintainer_exprs() -> MaintainerRestrict
-        = r:(maintainer_attr_optional() / maintainer_restrict() / maintainer_and()) { r }
+        = r:(maintainer_attr_optional() / maintainer_restrict() / maintainer_and())
+        { r }
 
     rule maintainer_attr_optional() -> MaintainerRestrict
         = attr:$(("name" / "description" / "type" / "proxied"))
-                is_op() ("None" / "none") {?
+                is_op() ("None" / "none")
+        {?
             use crate::metadata::ebuild::MaintainerRestrict::*;
             let r = match attr {
                 "name" => Name(None),
