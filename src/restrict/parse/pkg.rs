@@ -12,8 +12,10 @@ fn set_restrict<S: FromIterator<String>>(
 ) -> Result<SetRestrict<S, String>, &'static str> {
     let vals = vals.iter().map(|x| x.to_string()).collect();
     match op {
+        "<" => Ok(SetRestrict::ProperSubset(vals)),
         "<=" => Ok(SetRestrict::Subset(vals)),
         ">=" => Ok(SetRestrict::Superset(vals)),
+        ">" => Ok(SetRestrict::ProperSuperset(vals)),
         _ => Err("invalid set operator"),
     }
 }
@@ -92,7 +94,7 @@ peg::parser!(grammar restrict() for str {
         = opt_ws() op:$("==" / "!=" / "=~" / "!~") opt_ws() { op }
 
     rule set_ops() -> &'input str
-        = opt_ws() op:$("<=" / ">=") opt_ws() { op }
+        = opt_ws() op:$("<" / "<=" / ">=" / ">") opt_ws() { op }
 
     rule quoted_string_set() -> Vec<&'input str>
         = opt_ws() "{" e:(quoted_string() ++ (opt_ws() "," opt_ws())) "}" opt_ws()

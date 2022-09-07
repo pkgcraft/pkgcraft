@@ -222,7 +222,9 @@ pub enum SetRestrict<S, T> {
     Contains(T),
     Disjoint(S),
     Subset(S),
+    ProperSubset(S),
     Superset(S),
+    ProperSuperset(S),
 }
 
 macro_rules! make_set_restriction {
@@ -234,7 +236,9 @@ macro_rules! make_set_restriction {
                     Self::Contains(s) => val.contains(s),
                     Self::Disjoint(s) => val.is_disjoint(s),
                     Self::Subset(s) => val.is_subset(s),
+                    Self::ProperSubset(s) => val.is_subset(s) && val != s,
                     Self::Superset(s) => val.is_superset(s),
+                    Self::ProperSuperset(s) => val.is_superset(s) && val != s,
                 }
             }
         }
