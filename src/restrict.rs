@@ -232,9 +232,9 @@ macro_rules! make_set_restriction {
                 match self {
                     Self::Empty => val.is_empty(),
                     Self::Contains(s) => val.contains(s),
-                    Self::Disjoint(s) => s.is_disjoint(val),
-                    Self::Subset(s) => s.is_subset(val),
-                    Self::Superset(s) => s.is_superset(val),
+                    Self::Disjoint(s) => val.is_disjoint(s),
+                    Self::Subset(s) => val.is_subset(s),
+                    Self::Superset(s) => val.is_superset(s),
                 }
             }
         }
