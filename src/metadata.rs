@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::{fs, io};
 
@@ -76,7 +77,7 @@ pub(crate) struct Metadata {
     description: String,
     slot: String,
     homepage: IndexSet<String>,
-    defined_phases: IndexSet<String>,
+    defined_phases: HashSet<String>,
     keywords: IndexSet<String>,
     iuse: IndexSet<String>,
     inherit: IndexSet<String>,
@@ -200,7 +201,7 @@ impl Metadata {
         &self.homepage
     }
 
-    pub(crate) fn defined_phases(&self) -> &IndexSet<String> {
+    pub(crate) fn defined_phases(&self) -> &HashSet<String> {
         &self.defined_phases
     }
 

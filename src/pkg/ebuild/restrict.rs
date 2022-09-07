@@ -17,7 +17,7 @@ pub enum Restrict {
     Subslot(Str),
     RawSubslot(Option<Str>),
     Homepage(Option<IndexSetRestrict<String, Str>>),
-    DefinedPhases(Option<IndexSetRestrict<String, Str>>),
+    DefinedPhases(Option<HashSetRestrict<String>>),
     Keywords(Option<IndexSetRestrict<String, Str>>),
     Iuse(Option<IndexSetRestrict<String, Str>>),
     Inherit(Option<IndexSetRestrict<String, Str>>),

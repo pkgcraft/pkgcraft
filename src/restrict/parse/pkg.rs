@@ -152,14 +152,14 @@ peg::parser!(grammar restrict() for str {
             )) op:set_ops() vals:quoted_string_set()
         {?
             use crate::pkg::ebuild::Restrict::*;
-            let r = IndexSetRestrict::Set(set_restrict(op, &vals)?);
+            let f = IndexSetRestrict::Set;
             let ebuild_r = match attr {
-                "homepage" => Homepage(Some(r)),
-                "defined_phases" => DefinedPhases(Some(r)),
-                "keywords" => Keywords(Some(r)),
-                "iuse" => Iuse(Some(r)),
-                "inherit" => Inherit(Some(r)),
-                "inherited" => Inherited(Some(r)),
+                "homepage" => Homepage(Some(f(set_restrict(op, &vals)?))),
+                "defined_phases" => DefinedPhases(Some(set_restrict(op, &vals)?)),
+                "keywords" => Keywords(Some(f(set_restrict(op, &vals)?))),
+                "iuse" => Iuse(Some(f(set_restrict(op, &vals)?))),
+                "inherit" => Inherit(Some(f(set_restrict(op, &vals)?))),
+                "inherited" => Inherited(Some(f(set_restrict(op, &vals)?))),
                 _ => return Err("unknown package attribute"),
             };
             Ok(ebuild_r.into())

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{self, prelude::*};
 use std::str::FromStr;
@@ -113,7 +113,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's defined phases
-    pub fn defined_phases(&self) -> &IndexSet<String> {
+    pub fn defined_phases(&self) -> &HashSet<String> {
         self.meta.defined_phases()
     }
 
