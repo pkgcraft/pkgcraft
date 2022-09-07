@@ -220,6 +220,7 @@ impl Restriction<&str> for Str {
 pub enum SetRestrict<S, T> {
     Empty,
     Contains(T),
+    Disjoint(S),
     Subset(S),
     Superset(S),
 }
@@ -231,6 +232,7 @@ macro_rules! make_set_restriction {
                 match self {
                     Self::Empty => val.is_empty(),
                     Self::Contains(s) => val.contains(s),
+                    Self::Disjoint(s) => s.is_disjoint(val),
                     Self::Subset(s) => s.is_subset(val),
                     Self::Superset(s) => s.is_superset(val),
                 }
