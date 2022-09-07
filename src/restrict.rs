@@ -262,16 +262,23 @@ pub enum OrderedRestrict<T> {
     Count(Vec<Ordering>, usize),
 }
 
-impl Restriction<&[String]> for OrderedRestrict<Str> {
-    fn matches(&self, val: &[String]) -> bool {
-        match self {
-            Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Contains(r) => val.iter().any(|v| r.matches(v)),
-            Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
+macro_rules! make_ordered_trait {
+    ($(($x:ty, $r:ty)),+) => {$(
+        impl Restriction<$x> for OrderedRestrict<$r> {
+            fn matches(&self, val: $x) -> bool {
+                match self {
+                    Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
+                    Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
+                    Self::Contains(r) => val.iter().any(|v| r.matches(v)),
+                    Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
+                }
+            }
         }
-    }
+    )+};
 }
+pub(crate) use make_ordered_trait;
+
+make_ordered_trait!((&[String], Str), (&IndexSet<String>, Str));
 
 #[cfg(test)]
 mod tests {
