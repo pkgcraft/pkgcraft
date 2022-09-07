@@ -25,9 +25,8 @@ peg::parser!(grammar restrict() for str {
         { s }
 
     rule version_suffix() -> (&'input str, Option<&'input str>)
-        = suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
-            Ok((suffix, ver))
-        }
+        = suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)?
+        { (suffix, ver) }
 
     rule version() -> ParsedVersion<'input>
         = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?

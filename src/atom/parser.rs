@@ -23,9 +23,8 @@ peg::parser! {
             ) { s }
 
         rule version_suffix() -> (&'input str, Option<&'input str>)
-            = suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
-                Ok((suffix, ver))
-            }
+            = suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)?
+            { (suffix, ver) }
 
         // TODO: figure out how to return string slice instead of positions
         // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
