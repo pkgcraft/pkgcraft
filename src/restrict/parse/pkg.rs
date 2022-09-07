@@ -168,8 +168,8 @@ peg::parser!(grammar restrict() for str {
             Ok(OrderedRestrict::Count(cmps, size))
         }
 
-    rule slice_ops<T>(x: rule<T>) -> OrderedRestrict<T>
-        = ws() op:$(("matches" / "first" / "last")) ws() r:(x())
+    rule slice_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
+        = ws() op:$(("matches" / "first" / "last")) ws() r:(exprs())
         {?
             use crate::restrict::OrderedRestrict::*;
             let r = match op {
