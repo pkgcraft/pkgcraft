@@ -4,7 +4,19 @@ use regex::Regex;
 
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
-use crate::restrict::{OrderedRestrict, Restrict, Str};
+use crate::restrict::*;
+
+fn set_restrict<S: FromIterator<String>>(
+    op: &str,
+    vals: &[&str],
+) -> Result<SetRestrict<S, String>, &'static str> {
+    let vals = vals.iter().map(|x| x.to_string()).collect();
+    match op {
+        "<=" => Ok(SetRestrict::Subset(vals)),
+        ">=" => Ok(SetRestrict::Superset(vals)),
+        _ => Err("invalid set operator"),
+    }
+}
 
 fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     match op {
@@ -79,6 +91,13 @@ peg::parser!(grammar restrict() for str {
     rule string_ops() -> &'input str
         = opt_ws() op:$("==" / "!=" / "=~" / "!~") opt_ws() { op }
 
+    rule set_ops() -> &'input str
+        = opt_ws() op:$("<=" / ">=") opt_ws() { op }
+
+    rule quoted_string_set() -> Vec<&'input str>
+        = opt_ws() "{" e:(quoted_string() ++ (opt_ws() "," opt_ws())) "}" opt_ws()
+        { e }
+
     rule number_ops() -> &'input str
         = opt_ws() op:$((['<' | '>'] "="?) / "==") opt_ws() { op }
 
@@ -113,6 +132,26 @@ peg::parser!(grammar restrict() for str {
                 "slot" => Slot(r),
                 "subslot" => Subslot(r),
                 "long_description" => LongDescription(Some(r)),
+                _ => return Err("unknown package attribute"),
+            };
+            Ok(ebuild_r.into())
+        }
+
+    rule attr_ordered_str_restrict() -> Restrict
+        = attr:$((
+                "keywords"
+                / "iuse"
+                / "inherit"
+                / "inherited"
+            )) op:set_ops() vals:quoted_string_set()
+        {?
+            use crate::pkg::ebuild::Restrict::*;
+            let r = IndexSetRestrict::Set(set_restrict(op, &vals)?);
+            let ebuild_r = match attr {
+                "keywords" => Keywords(Some(r)),
+                "iuse" => Iuse(Some(r)),
+                "inherit" => Inherit(Some(r)),
+                "inherited" => Inherited(Some(r)),
                 _ => return Err("unknown package attribute"),
             };
             Ok(ebuild_r.into())
@@ -223,10 +262,11 @@ peg::parser!(grammar restrict() for str {
 
     rule expr() -> Restrict
         = r:(attr_optional()
-           / pkg_restrict()
            / attr_str_restrict()
+           / attr_ordered_str_restrict()
            / maintainers()
            / upstreams()
+           / pkg_restrict()
         ) { r }
 
     pub(super) rule query() -> Restrict = precedence!{
