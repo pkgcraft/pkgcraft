@@ -117,9 +117,32 @@ peg::parser!(grammar restrict() for str {
             Ok(ebuild_r.into())
         }
 
+    rule slice_count<T>() -> SliceRestrict<T>
+        = op:number_ops() count:$(['0'..='9']+) {?
+            let (cmps, size) = len_restrict(op, count)?;
+            Ok(SliceRestrict::Count(cmps, size))
+        }
+
+    rule slice_ops<T>(x: rule<T>) -> SliceRestrict<T>
+        = ws() op:$(("contains" / "first" / "last")) ws()
+            r:(x())
+        {?
+            use crate::restrict::SliceRestrict::*;
+            let r = match op {
+                "contains" => Contains(r),
+                "first" => First(r),
+                "last" => Last(r),
+                _ => return Err("unknown upstreams operation"),
+            };
+            Ok(r)
+        }
+
     rule maintainers() -> Restrict
-        = "maintainers" r:(maintainers_ops() / slice_count())
+        = "maintainers" r:(slice_ops(<maintainer_exprs()>) / slice_count())
         { r.into() }
+
+    rule maintainer_exprs() -> MaintainerRestrict
+        = r:(maintainer_attr_optional() / maintainer_restrict() / maintainer_and()) { r }
 
     rule maintainer_attr_optional() -> MaintainerRestrict
         = attr:$(("name" / "description" / "type" / "proxied"))
@@ -161,45 +184,12 @@ peg::parser!(grammar restrict() for str {
             And(exprs.into_iter().map(Box::new).collect())
         }
 
-    rule maintainers_ops() -> SliceRestrict<MaintainerRestrict>
-        = ws() op:$(("contains" / "first" / "last")) ws()
-            r:(maintainer_attr_optional()
-                / maintainer_restrict()
-                / maintainer_and())
-        {?
-            use crate::restrict::SliceRestrict::*;
-            let r = match op {
-                "contains" => Contains(r),
-                "first" => First(r),
-                "last" => Last(r),
-                _ => return Err("unknown maintainers operation"),
-            };
-            Ok(r)
-        }
-
-    rule slice_count<T>() -> SliceRestrict<T>
-        = op:number_ops() count:$(['0'..='9']+) {?
-            let (cmps, size) = len_restrict(op, count)?;
-            Ok(SliceRestrict::Count(cmps, size))
-        }
-
     rule upstreams() -> Restrict
-        = "upstreams" r:(upstreams_ops() / slice_count())
+        = "upstreams" r:(slice_ops(<upstream_exprs()>) / slice_count())
         { r.into() }
 
-    rule upstreams_ops() -> SliceRestrict<UpstreamRestrict>
-        = ws() op:$(("contains" / "first" / "last")) ws()
-            r:(upstream_restrict() / upstream_and())
-        {?
-            use crate::restrict::SliceRestrict::*;
-            let r = match op {
-                "contains" => Contains(r),
-                "first" => First(r),
-                "last" => Last(r),
-                _ => return Err("unknown upstreams operation"),
-            };
-            Ok(r)
-        }
+    rule upstream_exprs() -> UpstreamRestrict
+        = r:(upstream_restrict() / upstream_and()) { r }
 
     rule upstream_restrict() -> UpstreamRestrict
         = attr:$(("site" / "name"))
