@@ -126,11 +126,11 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule slice_ops<T>(x: rule<T>) -> OrderedRestrict<T>
-        = ws() op:$(("contains" / "first" / "last")) ws() r:(x())
+        = ws() op:$(("matches" / "first" / "last")) ws() r:(x())
         {?
             use crate::restrict::OrderedRestrict::*;
             let r = match op {
-                "contains" => Contains(r),
+                "matches" => Matches(r),
                 "first" => First(r),
                 "last" => Last(r),
                 _ => return Err("unknown upstreams operation"),

@@ -144,7 +144,7 @@ impl Restriction<&[Maintainer]> for OrderedRestrict<MaintainerRestrict> {
         match self {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Contains(r) => val.iter().any(|v| r.matches(v)),
+            Self::Matches(r) => val.iter().any(|v| r.matches(v)),
             Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }
@@ -203,7 +203,7 @@ impl Restriction<&[Upstream]> for OrderedRestrict<UpstreamRestrict> {
         match self {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
             Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Contains(r) => val.iter().any(|v| r.matches(v)),
+            Self::Matches(r) => val.iter().any(|v| r.matches(v)),
             Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }

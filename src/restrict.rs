@@ -264,7 +264,7 @@ impl Restriction<&IndexSet<String>> for IndexSetRestrict<String, Str> {
 pub enum OrderedRestrict<R> {
     First(R),
     Last(R),
-    Contains(R),
+    Matches(R),
     Count(Vec<Ordering>, usize),
 }
 
@@ -275,7 +275,7 @@ macro_rules! make_ordered_restriction {
                 match self {
                     Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
                     Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
-                    Self::Contains(r) => val.iter().any(|v| r.matches(v)),
+                    Self::Matches(r) => val.iter().any(|v| r.matches(v)),
                     Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
                 }
             }
