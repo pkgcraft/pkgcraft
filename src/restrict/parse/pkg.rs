@@ -186,8 +186,10 @@ peg::parser!(grammar restrict() for str {
         { r.into() }
 
     rule maintainer_exprs() -> MaintainerRestrict
-        = r:(maintainer_attr_optional() / maintainer_restrict() / maintainer_and())
-        { r }
+        = r:(maintainer_attr_optional()
+             / maintainer_restrict()
+             / parens(<maintainer_and()>)
+        ) { r }
 
     rule maintainer_attr_optional() -> MaintainerRestrict
         = attr:$(("name" / "description" / "type" / "proxied"))
@@ -221,10 +223,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule maintainer_and() -> MaintainerRestrict
-        = lparen() exprs:(
-                maintainer_attr_optional()
-                / maintainer_restrict()
-            ) ++ (_ "&&" _) rparen()
+        = exprs:(maintainer_attr_optional() / maintainer_restrict()) ++ (_ "&&" _)
         {
             use crate::metadata::ebuild::MaintainerRestrict::And;
             And(exprs.into_iter().map(Box::new).collect())
@@ -235,7 +234,7 @@ peg::parser!(grammar restrict() for str {
         { r.into() }
 
     rule upstream_exprs() -> UpstreamRestrict
-        = r:(upstream_restrict() / upstream_and()) { r }
+        = r:(upstream_restrict() / parens(<upstream_and()>)) { r }
 
     rule upstream_restrict() -> UpstreamRestrict
         = attr:$(("site" / "name"))
@@ -251,7 +250,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule upstream_and() -> UpstreamRestrict
-        = lparen() exprs:upstream_restrict() ++ (_ "&&" _) rparen()
+        = exprs:upstream_restrict() ++ (_ "&&" _)
         {
             use crate::metadata::ebuild::UpstreamRestrict::And;
             And(exprs.into_iter().map(Box::new).collect())
@@ -260,8 +259,7 @@ peg::parser!(grammar restrict() for str {
     rule _ = quiet!{[' ' | '\n' | '\t']+}
     rule __ = quiet!{[' ' | '\n' | '\t']*}
 
-    rule lparen() = __ "(" __
-    rule rparen() = __ ")" __
+    rule parens<T>(expr: rule<T>) -> T = __ "(" __ v:expr() __ ")" __ { v }
     rule is_op() = _ "is" _
 
     rule expr() -> Restrict
@@ -282,7 +280,7 @@ peg::parser!(grammar restrict() for str {
         --
         "!" x:(@) { Restrict::not(x) }
         --
-        lparen() v:query() rparen() { v }
+        v:parens(<query()>) { v }
         e:expr() { e }
     }
 });
