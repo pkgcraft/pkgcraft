@@ -229,7 +229,7 @@ peg::parser!(grammar restrict() for str {
            / upstreams()
         ) { r }
 
-    pub(crate) rule query() -> Restrict = precedence!{
+    pub(super) rule query() -> Restrict = precedence!{
         x:(@) opt_ws() "||" opt_ws() y:@ { Restrict::or([x, y]) }
         --
         x:(@) opt_ws() "^^" opt_ws() y:@ { Restrict::xor([x, y]) }
