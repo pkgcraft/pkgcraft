@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 use std::io::{self, prelude::*};
 use std::str::FromStr;
@@ -108,12 +108,12 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's homepage.
-    pub fn homepage(&self) -> &[String] {
+    pub fn homepage(&self) -> &IndexSet<String> {
         self.meta.homepage()
     }
 
     /// Return a package's defined phases
-    pub fn defined_phases(&self) -> &HashSet<String> {
+    pub fn defined_phases(&self) -> &IndexSet<String> {
         self.meta.defined_phases()
     }
 
@@ -206,7 +206,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::metadata::Key;
     use crate::pkg::Env::*;
-    use crate::test::eq_sorted;
+    use crate::test::{eq_ordered, eq_sorted};
 
     use super::*;
 
@@ -367,7 +367,7 @@ mod tests {
             .create_ebuild("cat/pkg-1", [(Key::Homepage, "home")])
             .unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert_eq!(pkg.homepage(), ["home"]);
+        assert!(eq_ordered(pkg.homepage(), ["home"]));
 
         // multiple lines
         let val = indoc::indoc! {"
@@ -379,7 +379,7 @@ mod tests {
             .create_ebuild("cat/pkg-1", [(Key::Homepage, val)])
             .unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert_eq!(pkg.homepage(), ["a", "b", "c"]);
+        assert!(eq_ordered(pkg.homepage(), ["a", "b", "c"]));
     }
 
     #[test]

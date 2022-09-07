@@ -114,3 +114,16 @@ where
 
     a == b
 }
+
+/// Compare two ordered iterables.
+pub(crate) fn eq_ordered<I, J, T, S>(a: I, b: J) -> bool
+where
+    I: IntoIterator<Item = T>,
+    J: IntoIterator<Item = S>,
+    T: PartialEq<S> + Ord,
+    S: PartialEq<T> + Ord,
+{
+    let a: Vec<_> = a.into_iter().collect();
+    let b: Vec<_> = b.into_iter().collect();
+    a == b
+}

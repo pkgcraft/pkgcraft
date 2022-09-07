@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::str::FromStr;
 use std::{fs, io};
 
@@ -76,8 +75,8 @@ impl Key {
 pub(crate) struct Metadata {
     description: String,
     slot: String,
-    homepage: Vec<String>,
-    defined_phases: HashSet<String>,
+    homepage: IndexSet<String>,
+    defined_phases: IndexSet<String>,
     keywords: IndexSet<String>,
     iuse: IndexSet<String>,
     inherit: IndexSet<String>,
@@ -197,11 +196,11 @@ impl Metadata {
         s.split_once('/').map(|x| x.1)
     }
 
-    pub(crate) fn homepage(&self) -> &[String] {
+    pub(crate) fn homepage(&self) -> &IndexSet<String> {
         &self.homepage
     }
 
-    pub(crate) fn defined_phases(&self) -> &HashSet<String> {
+    pub(crate) fn defined_phases(&self) -> &IndexSet<String> {
         &self.defined_phases
     }
 

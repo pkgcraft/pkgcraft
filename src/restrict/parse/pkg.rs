@@ -143,7 +143,9 @@ peg::parser!(grammar restrict() for str {
 
     rule attr_ordered_str_restrict() -> Restrict
         = attr:$((
-                "keywords"
+                "homepage"
+                / "defined_phases"
+                / "keywords"
                 / "iuse"
                 / "inherit"
                 / "inherited"
@@ -152,6 +154,8 @@ peg::parser!(grammar restrict() for str {
             use crate::pkg::ebuild::Restrict::*;
             let r = IndexSetRestrict::Set(set_restrict(op, &vals)?);
             let ebuild_r = match attr {
+                "homepage" => Homepage(Some(r)),
+                "defined_phases" => DefinedPhases(Some(r)),
                 "keywords" => Keywords(Some(r)),
                 "iuse" => Iuse(Some(r)),
                 "inherit" => Inherit(Some(r)),
