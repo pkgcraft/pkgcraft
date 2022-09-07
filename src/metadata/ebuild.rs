@@ -11,7 +11,7 @@ use tracing::warn;
 use crate::macros::cmp_not_equal;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
-use crate::restrict::{self, OrderedRestrict, Restriction, Str};
+use crate::restrict::{self, make_ordered_restrictions, OrderedRestrict, Restriction, Str};
 use crate::Error;
 
 #[derive(Debug)]
@@ -139,17 +139,6 @@ impl From<OrderedRestrict<MaintainerRestrict>> for restrict::Restrict {
     }
 }
 
-impl Restriction<&[Maintainer]> for OrderedRestrict<MaintainerRestrict> {
-    fn matches(&self, val: &[Maintainer]) -> bool {
-        match self {
-            Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Matches(r) => val.iter().any(|v| r.matches(v)),
-            Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Upstream {
     site: String,
@@ -198,16 +187,7 @@ impl From<OrderedRestrict<UpstreamRestrict>> for restrict::Restrict {
     }
 }
 
-impl Restriction<&[Upstream]> for OrderedRestrict<UpstreamRestrict> {
-    fn matches(&self, val: &[Upstream]) -> bool {
-        match self {
-            Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Matches(r) => val.iter().any(|v| r.matches(v)),
-            Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
-        }
-    }
-}
+make_ordered_restrictions!((&[Maintainer], MaintainerRestrict), (&[Upstream], UpstreamRestrict));
 
 #[derive(Debug, Default)]
 pub struct XmlMetadata {

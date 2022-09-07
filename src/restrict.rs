@@ -268,7 +268,7 @@ pub enum OrderedRestrict<R> {
     Count(Vec<Ordering>, usize),
 }
 
-macro_rules! make_ordered_restriction {
+macro_rules! make_ordered_restrictions {
     ($(($x:ty, $r:ty)),+) => {$(
         impl Restriction<$x> for OrderedRestrict<$r> {
             fn matches(&self, val: $x) -> bool {
@@ -282,8 +282,8 @@ macro_rules! make_ordered_restriction {
         }
     )+};
 }
-pub(crate) use make_ordered_restriction;
-make_ordered_restriction!((&[String], Str), (&IndexSet<String>, Str));
+pub(crate) use make_ordered_restrictions;
+make_ordered_restrictions!((&[String], Str), (&IndexSet<String>, Str));
 
 #[cfg(test)]
 mod tests {
