@@ -99,7 +99,7 @@ peg::parser!(grammar restrict() for str {
         = opt_ws() op:$("<" / "<=" / "==" / ">=" / ">" / "%") opt_ws() { op }
 
     rule quoted_string_set() -> Vec<&'input str>
-        = opt_ws() "{" e:(quoted_string() ++ (opt_ws() "," opt_ws())) "}" opt_ws()
+        = opt_ws() "{" e:(quoted_string() ** (opt_ws() "," opt_ws())) "}" opt_ws()
         { e }
 
     rule number_ops() -> &'input str
