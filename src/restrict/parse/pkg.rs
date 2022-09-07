@@ -168,7 +168,7 @@ peg::parser!(grammar restrict() for str {
             Ok(OrderedRestrict::Count(cmps, size))
         }
 
-    rule slice_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
+    rule ordered_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
         = ws() op:$(("matches" / "first" / "last")) ws() r:(exprs())
         {?
             use crate::restrict::OrderedRestrict::*;
@@ -182,7 +182,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule maintainers() -> Restrict
-        = "maintainers" r:(slice_ops(<maintainer_exprs()>) / count())
+        = "maintainers" r:(ordered_ops(<maintainer_exprs()>) / count())
         { r.into() }
 
     rule maintainer_exprs() -> MaintainerRestrict
@@ -231,7 +231,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule upstreams() -> Restrict
-        = "upstreams" r:(slice_ops(<upstream_exprs()>) / count())
+        = "upstreams" r:(ordered_ops(<upstream_exprs()>) / count())
         { r.into() }
 
     rule upstream_exprs() -> UpstreamRestrict
