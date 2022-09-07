@@ -11,7 +11,7 @@ use tracing::warn;
 use crate::macros::cmp_not_equal;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
-use crate::restrict::{self, Restriction, SliceRestrict, Str};
+use crate::restrict::{self, Restriction, OrderedRestrict, Str};
 use crate::Error;
 
 #[derive(Debug)]
@@ -133,13 +133,13 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
     }
 }
 
-impl From<SliceRestrict<MaintainerRestrict>> for restrict::Restrict {
-    fn from(r: SliceRestrict<MaintainerRestrict>) -> Self {
+impl From<OrderedRestrict<MaintainerRestrict>> for restrict::Restrict {
+    fn from(r: OrderedRestrict<MaintainerRestrict>) -> Self {
         EbuildRestrict::Maintainers(Some(r)).into()
     }
 }
 
-impl Restriction<&[Maintainer]> for SliceRestrict<MaintainerRestrict> {
+impl Restriction<&[Maintainer]> for OrderedRestrict<MaintainerRestrict> {
     fn matches(&self, val: &[Maintainer]) -> bool {
         match self {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
@@ -192,13 +192,13 @@ impl Restriction<&Upstream> for UpstreamRestrict {
     }
 }
 
-impl From<SliceRestrict<UpstreamRestrict>> for restrict::Restrict {
-    fn from(r: SliceRestrict<UpstreamRestrict>) -> Self {
+impl From<OrderedRestrict<UpstreamRestrict>> for restrict::Restrict {
+    fn from(r: OrderedRestrict<UpstreamRestrict>) -> Self {
         EbuildRestrict::Upstreams(Some(r)).into()
     }
 }
 
-impl Restriction<&[Upstream]> for SliceRestrict<UpstreamRestrict> {
+impl Restriction<&[Upstream]> for OrderedRestrict<UpstreamRestrict> {
     fn matches(&self, val: &[Upstream]) -> bool {
         match self {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),

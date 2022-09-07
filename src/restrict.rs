@@ -238,37 +238,31 @@ impl Restriction<&HashSet<String>> for HashSetRestrict<String> {
 #[derive(Debug, Clone)]
 pub enum IndexSetRestrict<T, R> {
     Empty,
-    Contains(T),
-    First(R),
-    Last(R),
+    Ordered(OrderedRestrict<R>),
     Subset(IndexSet<T>),
     Superset(IndexSet<T>),
-    Count(Vec<Ordering>, usize),
 }
 
 impl Restriction<&IndexSet<String>> for IndexSetRestrict<String, Str> {
     fn matches(&self, val: &IndexSet<String>) -> bool {
         match self {
             Self::Empty => val.is_empty(),
-            Self::Contains(s) => val.contains(s),
-            Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
-            Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
+            Self::Ordered(r) => r.matches(val),
             Self::Subset(s) => s.is_subset(val),
             Self::Superset(s) => s.is_superset(val),
-            Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum SliceRestrict<T> {
+pub enum OrderedRestrict<T> {
     First(T),
     Last(T),
     Contains(T),
     Count(Vec<Ordering>, usize),
 }
 
-impl Restriction<&[String]> for SliceRestrict<Str> {
+impl Restriction<&[String]> for OrderedRestrict<Str> {
     fn matches(&self, val: &[String]) -> bool {
         match self {
             Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),

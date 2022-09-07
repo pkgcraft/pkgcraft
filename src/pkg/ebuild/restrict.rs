@@ -16,15 +16,15 @@ pub enum Restrict {
     Slot(Str),
     Subslot(Str),
     RawSubslot(Option<Str>),
-    Homepage(Option<SliceRestrict<Str>>),
+    Homepage(Option<OrderedRestrict<Str>>),
     DefinedPhases(Option<HashSetRestrict<String>>),
     Keywords(Option<IndexSetRestrict<String, Str>>),
     Iuse(Option<IndexSetRestrict<String, Str>>),
     Inherit(Option<IndexSetRestrict<String, Str>>),
     Inherited(Option<IndexSetRestrict<String, Str>>),
     LongDescription(Option<Str>),
-    Maintainers(Option<SliceRestrict<MaintainerRestrict>>),
-    Upstreams(Option<SliceRestrict<UpstreamRestrict>>),
+    Maintainers(Option<OrderedRestrict<MaintainerRestrict>>),
+    Upstreams(Option<OrderedRestrict<UpstreamRestrict>>),
 }
 
 impl fmt::Debug for Restrict {

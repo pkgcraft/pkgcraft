@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
-use crate::restrict::{Restrict, SliceRestrict, Str};
+use crate::restrict::{Restrict, OrderedRestrict, Str};
 
 fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     match op {
@@ -118,17 +118,17 @@ peg::parser!(grammar restrict() for str {
             Ok(ebuild_r.into())
         }
 
-    rule slice_count<T>() -> SliceRestrict<T>
+    rule count<T>() -> OrderedRestrict<T>
         = op:number_ops() count:$(['0'..='9']+)
         {?
             let (cmps, size) = len_restrict(op, count)?;
-            Ok(SliceRestrict::Count(cmps, size))
+            Ok(OrderedRestrict::Count(cmps, size))
         }
 
-    rule slice_ops<T>(x: rule<T>) -> SliceRestrict<T>
+    rule slice_ops<T>(x: rule<T>) -> OrderedRestrict<T>
         = ws() op:$(("contains" / "first" / "last")) ws() r:(x())
         {?
-            use crate::restrict::SliceRestrict::*;
+            use crate::restrict::OrderedRestrict::*;
             let r = match op {
                 "contains" => Contains(r),
                 "first" => First(r),
@@ -139,7 +139,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule maintainers() -> Restrict
-        = "maintainers" r:(slice_ops(<maintainer_exprs()>) / slice_count())
+        = "maintainers" r:(slice_ops(<maintainer_exprs()>) / count())
         { r.into() }
 
     rule maintainer_exprs() -> MaintainerRestrict
@@ -188,7 +188,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule upstreams() -> Restrict
-        = "upstreams" r:(slice_ops(<upstream_exprs()>) / slice_count())
+        = "upstreams" r:(slice_ops(<upstream_exprs()>) / count())
         { r.into() }
 
     rule upstream_exprs() -> UpstreamRestrict
