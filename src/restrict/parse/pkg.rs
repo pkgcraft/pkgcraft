@@ -141,10 +141,9 @@ peg::parser!(grammar restrict() for str {
             Ok(ebuild_r.into())
         }
 
-    rule attr_ordered_str_restrict() -> Restrict
+    rule attr_orderedset_str() -> Restrict
         = attr:$((
                 "homepage"
-                / "defined_phases"
                 / "keywords"
                 / "iuse"
                 / "inherited"
@@ -152,17 +151,23 @@ peg::parser!(grammar restrict() for str {
             )) op:set_ops() vals:quoted_string_set()
         {?
             use crate::pkg::ebuild::Restrict::*;
-            let f = IndexSetRestrict::Set;
+            let r = IndexSetRestrict::Set(set_restrict(op, &vals)?);
             let ebuild_r = match attr {
-                "homepage" => Homepage(Some(f(set_restrict(op, &vals)?))),
-                "defined_phases" => DefinedPhases(Some(set_restrict(op, &vals)?)),
-                "keywords" => Keywords(Some(f(set_restrict(op, &vals)?))),
-                "iuse" => Iuse(Some(f(set_restrict(op, &vals)?))),
-                "inherited" => Inherited(Some(f(set_restrict(op, &vals)?))),
-                "inherit" => Inherit(Some(f(set_restrict(op, &vals)?))),
+                "homepage" => Homepage(Some(r)),
+                "keywords" => Keywords(Some(r)),
+                "iuse" => Iuse(Some(r)),
+                "inherited" => Inherited(Some(r)),
+                "inherit" => Inherit(Some(r)),
                 _ => return Err("unknown package attribute"),
             };
             Ok(ebuild_r.into())
+        }
+
+    rule attr_hashset_str() -> Restrict
+        = "defined_phases" op:set_ops() vals:quoted_string_set() {?
+            use crate::pkg::ebuild::Restrict::*;
+            let r: HashSetRestrict<_> = set_restrict(op, &vals)?;
+            Ok(DefinedPhases(Some(r)).into())
         }
 
     rule count<T>() -> OrderedRestrict<T>
@@ -269,7 +274,8 @@ peg::parser!(grammar restrict() for str {
     rule expr() -> Restrict
         = r:(attr_optional()
            / attr_str_restrict()
-           / attr_ordered_str_restrict()
+           / attr_orderedset_str()
+           / attr_hashset_str()
            / maintainers()
            / upstreams()
            / pkg_restrict()
