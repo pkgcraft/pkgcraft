@@ -105,10 +105,11 @@ peg::parser!(grammar restrict() for str {
     rule number_ops() -> &'input str
         = _ op:$((['<' | '>'] "="?) / "==") _ { op }
 
-    rule atom_restrict() -> Restrict
+    rule atom_str_restrict() -> Restrict
         = attr:$((
                 "category"
                 / "package"
+                / "version"
             )) op:string_ops() s:quoted_string()
         {?
             use crate::atom::Restrict::*;
@@ -116,6 +117,7 @@ peg::parser!(grammar restrict() for str {
             match attr {
                 "category" => Ok(Category(r).into()),
                 "package" => Ok(Package(r).into()),
+                "version" => Ok(VersionStr(r).into()),
                 _ => Err("unknown atom attribute"),
             }
         }
@@ -286,7 +288,7 @@ peg::parser!(grammar restrict() for str {
 
     rule expr() -> Restrict
         = r:(attr_optional()
-           / atom_restrict()
+           / atom_str_restrict()
            / attr_str_restrict()
            / attr_orderedset_str()
            / attr_hashset_str()
