@@ -107,6 +107,28 @@ impl Metadata {
         }
     }
 
+    // TODO: use serde to support (de)serializing md5-cache metadata
+    fn deserialize(&mut self, key: Key, val: &str) {
+        use Key::*;
+        match key {
+            Description => self.description = val.to_string(),
+            Slot => self.slot = val.to_string(),
+            Homepage => self.homepage = split!(val),
+            DefinedPhases => self.defined_phases = split!(val),
+            Keywords => self.keywords = split!(val),
+            Iuse => self.iuse = split!(val),
+            Inherit => self.inherit = split!(val),
+            Inherited => {
+                self.inherited = val
+                    .split_whitespace()
+                    .tuples()
+                    .map(|(name, _chksum)| name.to_string())
+                    .collect();
+            }
+            _ => (),
+        }
+    }
+
     /// Load metadata from cache.
     pub(crate) fn load(atom: &atom::Atom, eapi: &'static Eapi, repo: &Repo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
@@ -115,10 +137,15 @@ impl Metadata {
             Ok(s) => {
                 let mut meta = Metadata::default();
                 s.lines()
-                    .filter_map(|l| l.split_once('='))
+                    .filter_map(|l| {
+                        l.split_once('=').map(|(s, v)| match s {
+                            "_eclasses_" => ("INHERITED", v),
+                            _ => (s, v),
+                        })
+                    })
                     .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
                     .filter(|(k, _)| eapi.metadata_keys().contains(k))
-                    .for_each(|(k, v)| meta.convert(k, v));
+                    .for_each(|(k, v)| meta.deserialize(k, v));
                 Some(meta)
             }
             Err(e) => {
