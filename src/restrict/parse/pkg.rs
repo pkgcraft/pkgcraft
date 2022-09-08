@@ -96,7 +96,7 @@ peg::parser!(grammar restrict() for str {
         = _ op:$("==" / "!=" / "=~" / "!~") _ { op }
 
     rule set_ops() -> &'input str
-        = _ op:$("<" / "<=" / "==" / ">=" / ">" / "%") _ { op }
+        = _ op:$((['<' | '>'] "="?) / "==" / "%") _ { op }
 
     rule quoted_string_set() -> Vec<&'input str>
         = _ "{" e:(quoted_string() ** (_ "," _)) "}" _
