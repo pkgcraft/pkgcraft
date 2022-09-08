@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::ops::{BitAnd, BitOr, BitXor, Not};
 use std::{fmt, ptr};
 
 use indexmap::IndexSet;
@@ -110,12 +111,37 @@ impl Restrict {
         }
         Self::Xor(restricts)
     }
+}
 
-    pub fn not<T>(obj: T) -> Self
-    where
-        T: Into<Restrict>,
-    {
-        Self::Not(Box::new(obj.into()))
+impl BitAnd for Restrict {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Restrict::and([self, rhs])
+    }
+}
+
+impl BitOr for Restrict {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Restrict::or([self, rhs])
+    }
+}
+
+impl BitXor for Restrict {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Restrict::xor([self, rhs])
+    }
+}
+
+impl Not for Restrict {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self::Not(Box::new(self))
     }
 }
 
@@ -339,26 +365,19 @@ mod tests {
         let pkg = atom::Restrict::package("pkg");
         let r = Restrict::and([cat, pkg]);
         assert!(r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(!not_r.matches(&a));
 
         // one matched and one unmatched restriction
         let cat = atom::Restrict::category("cat");
         let pkg = atom::Restrict::package("pkga");
         let r = Restrict::and([cat, pkg]);
-        assert!(!r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(not_r.matches(&a));
+        assert!(!(r.matches(&a)));
 
         // matching against two atoms
         let a1 = Atom::from_str("cat/pkg1").unwrap();
         let a2 = Atom::from_str("cat/pkg2").unwrap();
         let r = Restrict::and([&a1, &a2]);
-        assert!(!r.matches(&a1));
-        assert!(!r.matches(&a2));
-        let not_r = Restrict::not(r);
-        assert!(not_r.matches(&a1));
-        assert!(not_r.matches(&a2));
+        assert!(!(r.matches(&a1)));
+        assert!(!(r.matches(&a2)));
     }
 
     #[test]
@@ -368,16 +387,12 @@ mod tests {
         let pkg = atom::Restrict::package("pkg");
         let r = Restrict::or([cat, pkg]);
         assert!(r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(!not_r.matches(&a));
 
         // one matched and one unmatched restriction
         let cat = atom::Restrict::category("cat");
         let pkg = atom::Restrict::package("pkga");
         let r = Restrict::or([cat, pkg]);
         assert!(r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(!not_r.matches(&a));
 
         // matching against two atoms
         let a1 = Atom::from_str("cat/pkg1").unwrap();
@@ -385,9 +400,6 @@ mod tests {
         let r = Restrict::or([&a1, &a2]);
         assert!(r.matches(&a1));
         assert!(r.matches(&a2));
-        let not_r = Restrict::not(r);
-        assert!(!not_r.matches(&a1));
-        assert!(!not_r.matches(&a2));
     }
 
     #[test]
@@ -400,15 +412,11 @@ mod tests {
 
         // two matches
         let r = Restrict::xor([cat.clone(), pkg.clone()]);
-        assert!(!r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(not_r.matches(&a));
+        assert!(!(r.matches(&a)));
 
         // three matches
         let r = Restrict::xor([cat, pkg, nover.clone()]);
-        assert!(!r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(not_r.matches(&a));
+        assert!(!(r.matches(&a)));
 
         let cat = atom::Restrict::category("cat");
         let pkg = atom::Restrict::package("pkga");
@@ -417,20 +425,14 @@ mod tests {
         // one matched and one unmatched
         let r = Restrict::xor([cat.clone(), pkg.clone()]);
         assert!(r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(!not_r.matches(&a));
 
         // one matched and two unmatched
         let r = Restrict::xor([cat.clone(), pkg.clone(), ver]);
         assert!(r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(!not_r.matches(&a));
 
         // two matched and one unmatched
         let r = Restrict::xor([cat.clone(), pkg.clone(), nover]);
         assert!(r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(!not_r.matches(&a));
 
         let a1 = Atom::from_str("cat/pkg1").unwrap();
         let a2 = Atom::from_str("cat/pkg2").unwrap();
@@ -438,28 +440,22 @@ mod tests {
 
         // two non-matches
         let r = Restrict::xor([&a1, &a2]);
-        assert!(!r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(not_r.matches(&a));
+        assert!(!(r.matches(&a)));
 
         // three non-matches
         let r = Restrict::xor([&a1, &a2, &a3]);
-        assert!(!r.matches(&a));
-        let not_r = Restrict::not(r);
-        assert!(not_r.matches(&a));
+        assert!(!(r.matches(&a)));
     }
 
     #[test]
     fn test_not_restrict() {
         let a = Atom::from_str("cat/pkg").unwrap();
-        let cat_r = atom::Restrict::category("cat1");
+        let r: Restrict = atom::Restrict::category("cat1").into();
 
-        // restrict matches
-        let r = Restrict::not(cat_r.clone());
-        assert!(r.matches(&a));
+        // restrict doesn't match
+        assert!(!(r.matches(&a)));
 
-        // inverse doesn't match
-        let r = Restrict::not(r);
+        // inverse matches
         assert!(!r.matches(&a));
     }
 

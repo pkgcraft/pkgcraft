@@ -298,13 +298,13 @@ peg::parser!(grammar restrict() for str {
         ) { r }
 
     pub(super) rule query() -> Restrict = precedence!{
-        x:(@) _ "||" _ y:@ { Restrict::or([x, y]) }
+        x:(@) _ "||" _ y:@ { x | y }
         --
-        x:(@) _ "^^" _ y:@ { Restrict::xor([x, y]) }
+        x:(@) _ "^^" _ y:@ { x ^ y }
         --
-        x:(@) _ "&&" _ y:@ { Restrict::and([x, y]) }
+        x:(@) _ "&&" _ y:@ { x & y }
         --
-        "!" x:(@) { Restrict::not(x) }
+        "!" x:(@) { !x }
         --
         v:parens(<query()>) { v }
         e:expr() { e }

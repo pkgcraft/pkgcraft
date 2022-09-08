@@ -354,13 +354,13 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // pkgs with no maintainers
-        let r = Restrict::Maintainers(None);
+        let r: restrict::Restrict = Restrict::Maintainers(None).into();
         let iter = repo.iter_restrict(r.clone());
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["noxml/pkg-1"]);
 
         // pkgs with maintainers
-        let iter = repo.iter_restrict(restrict::Restrict::not(r));
+        let iter = repo.iter_restrict(!r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-a-1", "cat/pkg-b-1"]);
     }
@@ -401,13 +401,13 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // pkgs with no upstreams
-        let r = Restrict::Upstreams(None);
+        let r: restrict::Restrict = Restrict::Upstreams(None).into();
         let iter = repo.iter_restrict(r.clone());
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["noxml/pkg-1"]);
 
         // pkgs with upstreams
-        let iter = repo.iter_restrict(restrict::Restrict::not(r));
+        let iter = repo.iter_restrict(!r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-a-1", "cat/pkg-b-1"]);
     }
