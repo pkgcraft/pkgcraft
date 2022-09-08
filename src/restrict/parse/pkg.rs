@@ -105,6 +105,21 @@ peg::parser!(grammar restrict() for str {
     rule number_ops() -> &'input str
         = _ op:$((['<' | '>'] "="?) / "==") _ { op }
 
+    rule atom_restrict() -> Restrict
+        = attr:$((
+                "category"
+                / "package"
+            )) op:string_ops() s:quoted_string()
+        {?
+            use crate::atom::Restrict::*;
+            let r = str_restrict(op, s)?;
+            match attr {
+                "category" => Ok(Category(r).into()),
+                "package" => Ok(Package(r).into()),
+                _ => Err("unknown atom attribute"),
+            }
+        }
+
     rule pkg_restrict() -> Restrict
         = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string()
         {?
@@ -120,7 +135,6 @@ peg::parser!(grammar restrict() for str {
     rule attr_str_restrict() -> Restrict
         = attr:$((
                 "ebuild"
-                / "category"
                 / "description"
                 / "slot"
                 / "subslot"
@@ -131,7 +145,6 @@ peg::parser!(grammar restrict() for str {
             let r = str_restrict(op, s)?;
             let ebuild_r = match attr {
                 "ebuild" => Ebuild(r),
-                "category" => Category(r),
                 "description" => Description(r),
                 "slot" => Slot(r),
                 "subslot" => Subslot(r),
@@ -273,6 +286,7 @@ peg::parser!(grammar restrict() for str {
 
     rule expr() -> Restrict
         = r:(attr_optional()
+           / atom_restrict()
            / attr_str_restrict()
            / attr_orderedset_str()
            / attr_hashset_str()

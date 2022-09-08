@@ -11,7 +11,6 @@ use super::Pkg;
 pub enum Restrict {
     Custom(fn(&Pkg) -> bool),
     Ebuild(Str),
-    Category(Str),
     Description(Str),
     Slot(Str),
     Subslot(Str),
@@ -32,7 +31,6 @@ impl fmt::Debug for Restrict {
         match self {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
             Self::Ebuild(r) => write!(f, "Ebuild({r:?})"),
-            Self::Category(r) => write!(f, "Category({r:?})"),
             Self::Description(r) => write!(f, "Description({r:?})"),
             Self::Slot(r) => write!(f, "Slot({r:?})"),
             Self::Subslot(r) => write!(f, "Subslot({r:?})"),
@@ -81,7 +79,6 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
                 Ok(s) => r.matches(&s),
                 Err(_) => false,
             },
-            Self::Category(r) => r.matches(pkg.atom().category()),
             Self::Description(r) => r.matches(pkg.description()),
             Self::Slot(r) => r.matches(pkg.slot()),
             Self::Subslot(r) => r.matches(pkg.subslot()),
