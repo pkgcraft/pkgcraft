@@ -92,11 +92,11 @@ macro_rules! split {
 
 impl Metadata {
     /// Convert raw metadata key value to stored value.
-    fn convert(&mut self, key: &Key, val: String) {
+    fn convert(&mut self, key: &Key, val: &str) {
         use Key::*;
         match key {
-            Description => self.description = val,
-            Slot => self.slot = val,
+            Description => self.description = val.to_string(),
+            Slot => self.slot = val.to_string(),
             Homepage => self.homepage = split!(val),
             DefinedPhases => self.defined_phases = split!(val),
             Keywords => self.keywords = split!(val),
@@ -118,7 +118,7 @@ impl Metadata {
                     .filter_map(|l| l.split_once('='))
                     .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
                     .filter(|(k, _)| eapi.metadata_keys().contains(k))
-                    .for_each(|(k, v)| meta.convert(&k, v.to_string()));
+                    .for_each(|(k, v)| meta.convert(&k, v));
                 Some(meta)
             }
             Err(e) => {
@@ -160,7 +160,7 @@ impl Metadata {
         let mut missing = Vec::<&str>::new();
         for key in eapi.mandatory_keys() {
             match key.get(eapi) {
-                Some(val) => meta.convert(key, val),
+                Some(val) => meta.convert(key, &val),
                 None => missing.push(key.as_ref()),
             }
         }
@@ -174,7 +174,7 @@ impl Metadata {
         // metadata variables that default to empty
         for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
             if let Some(val) = key.get(eapi) {
-                meta.convert(key, val);
+                meta.convert(key, &val);
             }
         }
 
