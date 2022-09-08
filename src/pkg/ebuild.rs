@@ -13,7 +13,7 @@ use crate::eapi::{self, Eapi};
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::metadata::Metadata;
 use crate::repo::ebuild::Repo;
-use crate::{atom, Error};
+use crate::{atom, pkg, Error};
 
 use super::{make_pkg_traits, Package};
 
@@ -46,6 +46,7 @@ impl<'a> Pkg<'a> {
         };
 
         let eapi = Pkg::parse_eapi(&path).map_err(err)?;
+        pkg::export_env(&atom)?;
         // TODO: compare ebuild mtime vs cache mtime
         let meta = match Metadata::load(&atom, eapi, repo) {
             Some(data) => data,
@@ -205,7 +206,6 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::metadata::Key;
-    use crate::pkg::Env::*;
     use crate::test::{eq_ordered, eq_sorted};
 
     use super::*;
@@ -273,45 +273,6 @@ mod tests {
         let mut i = pkg1.repo().iter();
         assert_eq!(pkg1, i.next().unwrap());
         assert_eq!(pkg2, i.next().unwrap());
-    }
-
-    #[test]
-    fn test_pkg_env() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
-
-        // no revision
-        let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert_eq!(pkg.env(P), "pkg-1");
-        assert_eq!(pkg.env(PN), "pkg");
-        assert_eq!(pkg.env(PV), "1");
-        assert_eq!(pkg.env(PR), "r0");
-        assert_eq!(pkg.env(PVR), "1");
-        assert_eq!(pkg.env(PF), "pkg-1");
-        assert_eq!(pkg.env(CATEGORY), "cat");
-
-        // revisioned
-        let (path, cpv) = t.create_ebuild("cat/pkg-1-r2", []).unwrap();
-        let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert_eq!(pkg.env(P), "pkg-1");
-        assert_eq!(pkg.env(PN), "pkg");
-        assert_eq!(pkg.env(PV), "1");
-        assert_eq!(pkg.env(PR), "r2");
-        assert_eq!(pkg.env(PVR), "1-r2");
-        assert_eq!(pkg.env(PF), "pkg-1-r2");
-        assert_eq!(pkg.env(CATEGORY), "cat");
-
-        // explicit r0 revision
-        let (path, cpv) = t.create_ebuild("cat/pkg-2-r0", []).unwrap();
-        let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert_eq!(pkg.env(P), "pkg-2");
-        assert_eq!(pkg.env(PN), "pkg");
-        assert_eq!(pkg.env(PV), "2");
-        assert_eq!(pkg.env(PR), "r0");
-        assert_eq!(pkg.env(PVR), "2");
-        assert_eq!(pkg.env(PF), "pkg-2");
-        assert_eq!(pkg.env(CATEGORY), "cat");
     }
 
     #[test]

@@ -22,6 +22,26 @@ pub enum Env {
     CATEGORY,
 }
 
+impl Env {
+    /// Return an atom's value for a specified environment variable.
+    fn get(&self, a: &atom::Atom) -> String {
+        let v = a.version().expect("required versioned atom");
+        use Env::*;
+        match self {
+            P => format!("{}-{}", a.package(), v.base()),
+            PN => a.package().into(),
+            PV => v.base().into(),
+            PR => format!("r{}", v.revision()),
+            PVR => match v.revision() == "0" {
+                true => v.base().into(),
+                false => v.into(),
+            },
+            PF => format!("{}-{}", a.package(), PVR.get(a)),
+            CATEGORY => a.category().into(),
+        }
+    }
+}
+
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Debug)]
 pub enum Pkg<'a> {
@@ -47,33 +67,14 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     fn version(&self) -> &atom::Version {
         self.atom().version().unwrap()
     }
-
-    /// Return a package's value for a specified environment variable.
-    fn env(&self, var: Env) -> String {
-        let (a, v) = (self.atom(), self.version());
-        use Env::*;
-        match var {
-            P => format!("{}-{}", a.package(), v.base()),
-            PN => a.package().into(),
-            PV => v.base().into(),
-            PR => format!("r{}", v.revision()),
-            PVR => match v.revision() == "0" {
-                true => v.base().into(),
-                false => v.into(),
-            },
-            PF => format!("{}-{}", a.package(), self.env(PVR)),
-            CATEGORY => a.category().into(),
-        }
-    }
 }
 
-pub(crate) trait PackageEnv: Package {
-    fn export_env(&self) -> crate::Result<()> {
-        for var in Env::iter() {
-            bind(var, self.env(var), None, None)?;
-        }
-        Ok(())
+/// Export atom-related variables to the bash environment.
+fn export_env(a: &atom::Atom) -> crate::Result<()> {
+    for var in Env::iter() {
+        bind(var, var.get(a), None, None)?;
     }
+    Ok(())
 }
 
 macro_rules! make_pkg_traits {
@@ -118,8 +119,6 @@ macro_rules! make_pkg_traits {
                 Self::from(pkg.atom())
             }
         }
-
-        impl crate::pkg::PackageEnv for $x {}
     )+};
 }
 pub(self) use make_pkg_traits;
