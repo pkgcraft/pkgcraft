@@ -712,7 +712,13 @@ impl<'a> PkgIter<'a> {
                             None
                         }
                     })
-                    .filter_map(|p| repo.atom_from_path(&p).ok().map(|atom| (p, atom)))
+                    .filter_map(|p| match repo.atom_from_path(&p) {
+                        Ok(a) => Some((p, a)),
+                        Err(e) => {
+                            warn!("{}: {e}", repo.id);
+                            None
+                        }
+                    })
                     .collect();
 
                 paths.sort_by(|(_p1, a1), (_p2, a2)| a1.cmp(a2));
