@@ -12,7 +12,7 @@ use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use tempfile::TempDir;
 use tracing::warn;
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 use super::{make_repo_traits, Contains, Repository};
 use crate::config::{self, RepoConfig};
@@ -391,8 +391,7 @@ impl Repo {
     /// Return a repo's category dirs from the filesystem.
     pub fn category_dirs(&self) -> Vec<String> {
         // filter out non-category dirs
-        let filter =
-            |e: &walkdir::DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
+        let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
         let cats = sorted_dir_list(self.path())
             .into_iter()
             .filter_entry(filter);
@@ -516,7 +515,7 @@ impl fmt::Display for Repo {
     }
 }
 
-fn is_fake_category(entry: &walkdir::DirEntry) -> bool {
+fn is_fake_category(entry: &DirEntry) -> bool {
     entry
         .file_name()
         .to_str()
@@ -541,7 +540,7 @@ impl Repository for Repo {
 
     fn packages(&self, cat: &str) -> Vec<String> {
         let path = self.path().join(cat.strip_prefix('/').unwrap_or(cat));
-        let filter = |e: &walkdir::DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
+        let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
         let pkgs = sorted_dir_list(&path).into_iter().filter_entry(filter);
         let mut v = vec![];
         for entry in pkgs {
@@ -637,7 +636,7 @@ impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
     }
 }
 
-fn is_ebuild(e: &walkdir::DirEntry) -> bool {
+fn is_ebuild(e: &DirEntry) -> bool {
     is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
 }
 
@@ -686,44 +685,51 @@ impl<'a> PkgIter<'a> {
             _ => Restrict::and(pkg_restricts),
         };
 
+        // filter invalid ebuild paths
+        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<(Utf8PathBuf, atom::Atom)> {
+            match r {
+                Ok(e) => {
+                    let path = e.path();
+                    match <&Utf8Path>::try_from(path) {
+                        Ok(p) => match repo.atom_from_path(p) {
+                            Ok(a) => Some((p.to_path_buf(), a)),
+                            Err(e) => {
+                                warn!("{}: {e}", repo.id);
+                                None
+                            }
+                        },
+                        Err(e) => {
+                            warn!("{}: invalid unicode path: {path:?}: {e}", repo.id);
+                            None
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!("{}: failed walking repo: {e}", repo.id);
+                    None
+                }
+            }
+        };
+
+        // return valid ebuild (path, atom) tuples in a category
+        let category_ebuilds = move |cat: &str| -> Vec<(Utf8PathBuf, atom::Atom)> {
+            let mut paths: Vec<_> = WalkDir::new(repo.path().join(cat))
+                .min_depth(2)
+                .max_depth(2)
+                .into_iter()
+                .filter_entry(is_ebuild)
+                .filter_map(filter_path)
+                .collect();
+            paths.sort_by(|(_p1, a1), (_p2, a2)| a1.cmp(a2));
+            paths
+        };
+
+        // filter ebuilds using category and pkg restrictions before Pkg creation
         let ebuilds = repo
             .categories()
             .into_iter()
             .filter(move |s| cat_restrict.matches(s.as_str()))
-            .flat_map(|d| {
-                let mut paths: Vec<_> = WalkDir::new(repo.path().join(d))
-                    .min_depth(2)
-                    .max_depth(2)
-                    .into_iter()
-                    .filter_entry(is_ebuild)
-                    .filter_map(|r| match r {
-                        Ok(e) => {
-                            let path = e.path();
-                            match <&Utf8Path>::try_from(path) {
-                                Ok(p) => Some(p.to_path_buf()),
-                                Err(e) => {
-                                    warn!("{}: invalid unicode path: {path:?}: {e}", repo.id);
-                                    None
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            warn!("{}: failed walking repo: {e}", repo.id);
-                            None
-                        }
-                    })
-                    .filter_map(|p| match repo.atom_from_path(&p) {
-                        Ok(a) => Some((p, a)),
-                        Err(e) => {
-                            warn!("{}: {e}", repo.id);
-                            None
-                        }
-                    })
-                    .collect();
-
-                paths.sort_by(|(_p1, a1), (_p2, a2)| a1.cmp(a2));
-                paths.into_iter()
-            })
+            .flat_map(move |s| category_ebuilds(s.as_str()))
             .filter(move |(_, atom)| pkg_restrict.matches(atom));
 
         Self {
