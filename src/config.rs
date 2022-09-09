@@ -219,6 +219,7 @@ impl Config {
             }
         }
 
+        repos.sort_by(|(_, r1), (_, r2)| r1.cmp(r2));
         Ok(repos.into_iter().map(|(_, r)| r).collect())
     }
 
