@@ -117,7 +117,7 @@ impl BitAnd for Restrict {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        Restrict::and([self, rhs])
+        Self::and([self, rhs])
     }
 }
 
@@ -125,7 +125,7 @@ impl BitOr for Restrict {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        Restrict::or([self, rhs])
+        Self::or([self, rhs])
     }
 }
 
@@ -133,7 +133,7 @@ impl BitXor for Restrict {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Restrict::xor([self, rhs])
+        Self::xor([self, rhs])
     }
 }
 
@@ -173,7 +173,7 @@ pub enum Str {
 
 impl From<Str> for Restrict {
     fn from(r: Str) -> Self {
-        Restrict::Str(r)
+        Self::Str(r)
     }
 }
 
