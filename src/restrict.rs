@@ -145,7 +145,7 @@ impl Not for Restrict {
     }
 }
 
-pub(crate) trait Restriction<T>: fmt::Debug {
+pub trait Restriction<T>: fmt::Debug {
     fn matches(&self, object: T) -> bool;
 }
 
