@@ -336,10 +336,11 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
 
         // TODO: export default for $S
 
-        // set RDEPEND=DEPEND if RDEPEND is unset
+        // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
         if eapi.has(Feature::RdependDefault) && string_value("RDEPEND").is_none() {
-            let depend = string_value("DEPEND").unwrap_or_default();
-            bind("RDEPEND", &depend, None, None)?;
+            if let Some(depend) = string_value("DEPEND") {
+                bind("RDEPEND", &depend, None, None)?;
+            }
         }
 
         // prepend metadata keys that incrementally accumulate to eclass values
