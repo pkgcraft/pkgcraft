@@ -303,17 +303,18 @@ pub enum Restrict {
 
 impl fmt::Debug for Restrict {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use self::Restrict::*;
         match self {
-            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Self::Category(r) => write!(f, "Category({r:?})"),
-            Self::Package(r) => write!(f, "Package({r:?})"),
-            Self::Blocker(b) => write!(f, "Blocker({b:?})"),
-            Self::Version(v) => write!(f, "Version({v:?})"),
-            Self::VersionStr(s) => write!(f, "VersionStr({s:?})"),
-            Self::Slot(r) => write!(f, "Slot({r:?})"),
-            Self::Subslot(r) => write!(f, "Subslot({r:?})"),
-            Self::UseDeps(r) => write!(f, "UseDeps({r:?})"),
-            Self::Repo(r) => write!(f, "Repo({r:?})"),
+            Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Category(r) => write!(f, "Category({r:?})"),
+            Package(r) => write!(f, "Package({r:?})"),
+            Blocker(b) => write!(f, "Blocker({b:?})"),
+            Version(v) => write!(f, "Version({v:?})"),
+            VersionStr(s) => write!(f, "VersionStr({s:?})"),
+            Slot(r) => write!(f, "Slot({r:?})"),
+            Subslot(r) => write!(f, "Subslot({r:?})"),
+            UseDeps(r) => write!(f, "UseDeps({r:?})"),
+            Repo(r) => write!(f, "Repo({r:?})"),
         }
     }
 }
@@ -359,33 +360,34 @@ impl Restrict {
 
 impl Restriction<&Atom> for Restrict {
     fn matches(&self, atom: &Atom) -> bool {
+        use self::Restrict::*;
         match self {
-            Self::Custom(func) => func(atom),
-            Self::Category(r) => r.matches(atom.category()),
-            Self::Package(r) => r.matches(atom.package()),
-            Self::Blocker(b) => match (b, atom.blocker()) {
+            Custom(func) => func(atom),
+            Category(r) => r.matches(atom.category()),
+            Package(r) => r.matches(atom.package()),
+            Blocker(b) => match (b, atom.blocker()) {
                 (Some(b), Some(blocker)) => *b == blocker,
                 (None, None) => true,
                 _ => false,
             },
-            Self::Version(v) => match (v, atom.version()) {
+            Version(v) => match (v, atom.version()) {
                 (Some(v), Some(ver)) => v.op_cmp(ver),
                 (None, None) => true,
                 _ => false,
             },
-            Self::VersionStr(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
-            Self::Slot(r) => match (r, atom.slot()) {
+            VersionStr(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
+            Slot(r) => match (r, atom.slot()) {
                 (Some(r), Some(slot)) => r.matches(slot),
                 (None, None) => true,
                 _ => false,
             },
-            Self::Subslot(r) => match (r, atom.subslot()) {
+            Subslot(r) => match (r, atom.subslot()) {
                 (Some(r), Some(subslot)) => r.matches(subslot),
                 (None, None) => true,
                 _ => false,
             },
-            Self::UseDeps(r) => r.matches(&atom.use_deps_set()),
-            Self::Repo(r) => match (r, atom.repo()) {
+            UseDeps(r) => r.matches(&atom.use_deps_set()),
+            Repo(r) => match (r, atom.repo()) {
                 (Some(r), Some(repo)) => r.matches(repo),
                 (None, None) => true,
                 _ => false,

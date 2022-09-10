@@ -28,22 +28,23 @@ pub enum Restrict {
 
 impl fmt::Debug for Restrict {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use self::Restrict::*;
         match self {
-            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Self::Ebuild(r) => write!(f, "Ebuild({r:?})"),
-            Self::Description(r) => write!(f, "Description({r:?})"),
-            Self::Slot(r) => write!(f, "Slot({r:?})"),
-            Self::Subslot(r) => write!(f, "Subslot({r:?})"),
-            Self::RawSubslot(r) => write!(f, "RawSubslot({r:?})"),
-            Self::Homepage(r) => write!(f, "Homepage({r:?})"),
-            Self::DefinedPhases(r) => write!(f, "DefinedPhases({r:?})"),
-            Self::Keywords(r) => write!(f, "Keywords({r:?})"),
-            Self::Iuse(r) => write!(f, "Iuse({r:?})"),
-            Self::Inherit(r) => write!(f, "Inherit({r:?})"),
-            Self::Inherited(r) => write!(f, "Inherited({r:?})"),
-            Self::LongDescription(r) => write!(f, "LongDescription({r:?})"),
-            Self::Maintainers(r) => write!(f, "Maintainers({r:?})"),
-            Self::Upstreams(r) => write!(f, "Upstreams({r:?})"),
+            Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
+            Ebuild(r) => write!(f, "Ebuild({r:?})"),
+            Description(r) => write!(f, "Description({r:?})"),
+            Slot(r) => write!(f, "Slot({r:?})"),
+            Subslot(r) => write!(f, "Subslot({r:?})"),
+            RawSubslot(r) => write!(f, "RawSubslot({r:?})"),
+            Homepage(r) => write!(f, "Homepage({r:?})"),
+            DefinedPhases(r) => write!(f, "DefinedPhases({r:?})"),
+            Keywords(r) => write!(f, "Keywords({r:?})"),
+            Iuse(r) => write!(f, "Iuse({r:?})"),
+            Inherit(r) => write!(f, "Inherit({r:?})"),
+            Inherited(r) => write!(f, "Inherited({r:?})"),
+            LongDescription(r) => write!(f, "LongDescription({r:?})"),
+            Maintainers(r) => write!(f, "Maintainers({r:?})"),
+            Upstreams(r) => write!(f, "Upstreams({r:?})"),
         }
     }
 }
@@ -73,54 +74,55 @@ impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
 
 impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use self::Restrict::*;
         match self {
-            Self::Custom(func) => func(pkg),
-            Self::Ebuild(r) => match pkg.ebuild() {
+            Custom(func) => func(pkg),
+            Ebuild(r) => match pkg.ebuild() {
                 Ok(s) => r.matches(&s),
                 Err(_) => false,
             },
-            Self::Description(r) => r.matches(pkg.description()),
-            Self::Slot(r) => r.matches(pkg.slot()),
-            Self::Subslot(r) => r.matches(pkg.subslot()),
-            Self::RawSubslot(r) => match (r, pkg.meta.subslot()) {
+            Description(r) => r.matches(pkg.description()),
+            Slot(r) => r.matches(pkg.slot()),
+            Subslot(r) => r.matches(pkg.subslot()),
+            RawSubslot(r) => match (r, pkg.meta.subslot()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
             },
-            Self::Homepage(r) => match (r, pkg.homepage()) {
+            Homepage(r) => match (r, pkg.homepage()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
-            Self::DefinedPhases(r) => match (r, pkg.defined_phases()) {
+            DefinedPhases(r) => match (r, pkg.defined_phases()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
-            Self::Keywords(r) => match (r, pkg.keywords()) {
+            Keywords(r) => match (r, pkg.keywords()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
-            Self::Iuse(r) => match (r, pkg.iuse()) {
+            Iuse(r) => match (r, pkg.iuse()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
-            Self::Inherit(r) => match (r, pkg.inherit()) {
+            Inherit(r) => match (r, pkg.inherit()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
-            Self::Inherited(r) => match (r, pkg.inherited()) {
+            Inherited(r) => match (r, pkg.inherited()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
-            Self::LongDescription(r) => match (r, pkg.long_description()) {
+            LongDescription(r) => match (r, pkg.long_description()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
             },
-            Self::Maintainers(r) => match r {
+            Maintainers(r) => match r {
                 Some(r) => r.matches(pkg.maintainers()),
                 None => pkg.maintainers().is_empty(),
             },
-            Self::Upstreams(r) => match r {
+            Upstreams(r) => match r {
                 Some(r) => r.matches(pkg.upstreams()),
                 None => pkg.upstreams().is_empty(),
             },
