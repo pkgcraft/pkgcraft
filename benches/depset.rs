@@ -1,6 +1,6 @@
 use criterion::Criterion;
 
-use pkgcraft::depspec::parse;
+use pkgcraft::depset::parse;
 use pkgcraft::eapi::EAPI_LATEST;
 
 #[allow(unused_must_use)]
