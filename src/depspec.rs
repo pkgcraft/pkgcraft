@@ -17,7 +17,8 @@ pub enum DepSpec {
     AnyOf(Box<DepSpec>),
     ExactlyOneOf(Box<DepSpec>), // REQUIRED_USE only
     AtMostOneOf(Box<DepSpec>),  // REQUIRED_USE only
-    ConditionalUse(String, bool, Box<DepSpec>),
+    UseEnabled(String, Box<DepSpec>),
+    UseDisabled(String, Box<DepSpec>),
 }
 
 peg::parser!(grammar depspec() for str {
@@ -98,7 +99,11 @@ peg::parser!(grammar depspec() for str {
 
     rule conditional(expr: rule<DepSpec>) -> DepSpec
         = negate:"!"? u:useflag() "?" _ e:parens(<expr()>) {
-            DepSpec::ConditionalUse(u.to_string(), negate.is_some(), Box::new(e))
+            let f = match negate {
+                None => DepSpec::UseEnabled,
+                Some(_) => DepSpec::UseDisabled,
+            };
+            f(u.to_string(), Box::new(e))
         }
 
     rule exactly_one_of(expr: rule<DepSpec>) -> DepSpec
@@ -204,7 +209,7 @@ mod tests {
             ("|| ( l1 l2 )", Some(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1", "l2"])))))),
             (
                 "use? ( l1 )",
-                Some(DepSpec::ConditionalUse(
+                Some(DepSpec::UseEnabled(
                     "use".to_string(),
                     false,
                     Box::new(DepSpec::Values(vs!(["l1"]))),
@@ -212,7 +217,7 @@ mod tests {
             ),
             (
                 "use? ( l1 l2 )",
-                Some(DepSpec::ConditionalUse(
+                Some(DepSpec::UseEnabled(
                     "use".to_string(),
                     false,
                     Box::new(DepSpec::Values(vs!(["l1", "l2"]))),
@@ -220,7 +225,7 @@ mod tests {
             ),
             (
                 "use? ( || ( l1 l2 ) )",
-                Some(DepSpec::ConditionalUse(
+                Some(DepSpec::UseEnabled(
                     "use".to_string(),
                     false,
                     Box::new(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1", "l2"]))))),
@@ -261,7 +266,7 @@ mod tests {
             ),
             (
                 "use? ( uri1 )",
-                Some(DepSpec::ConditionalUse(
+                Some(DepSpec::UseEnabled(
                     "use".to_string(),
                     false,
                     Box::new(DepSpec::Uris(vec![uri("uri1", None)])),
@@ -311,7 +316,7 @@ mod tests {
             ),
             (
                 "u1? ( u2 )",
-                Some(DepSpec::ConditionalUse(
+                Some(DepSpec::UseEnabled(
                     "u1".to_string(),
                     false,
                     Box::new(DepSpec::Values(vs!(["u2"]))),
@@ -319,7 +324,7 @@ mod tests {
             ),
             (
                 "u1? ( u2 u3 )",
-                Some(DepSpec::ConditionalUse(
+                Some(DepSpec::UseEnabled(
                     "u1".to_string(),
                     false,
                     Box::new(DepSpec::Values(vs!(["u2", "u3"]))),
@@ -327,7 +332,7 @@ mod tests {
             ),
             (
                 "u1? ( || ( u2 u3 ) )",
-                Some(DepSpec::ConditionalUse(
+                Some(DepSpec::UseEnabled(
                     "u1".to_string(),
                     false,
                     Box::new(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u2", "u3"]))))),
