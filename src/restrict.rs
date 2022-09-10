@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::fmt;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
-use std::{fmt, ptr};
 
 use indexmap::IndexSet;
 use regex::Regex;
@@ -158,9 +158,8 @@ impl Restriction<&str> for Restrict {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Str {
-    Custom(fn(&str) -> bool),
     Equal(String),
     Prefix(String),
     Regex(Regex),
@@ -172,21 +171,6 @@ pub enum Str {
     Not(Box<Self>),
 }
 
-impl fmt::Debug for Str {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Self::Equal(s) => write!(f, "Equal({s:?})"),
-            Self::Prefix(s) => write!(f, "Prefix({s:?})"),
-            Self::Regex(re) => write!(f, "Regex({re:?})"),
-            Self::Substr(s) => write!(f, "Substr({s:?})"),
-            Self::Suffix(s) => write!(f, "Suffix({s:?})"),
-            Self::Length(ordering, size) => write!(f, "Length({ordering:?}, {size})"),
-            Self::Not(r) => write!(f, "Not({r:?})"),
-        }
-    }
-}
-
 impl From<Str> for Restrict {
     fn from(r: Str) -> Self {
         Restrict::Str(r)
@@ -194,10 +178,6 @@ impl From<Str> for Restrict {
 }
 
 impl Str {
-    pub fn custom(f: fn(&str) -> bool) -> Self {
-        Self::Custom(f)
-    }
-
     pub fn not<T>(obj: T) -> Self
     where
         T: Into<Str>,
@@ -230,7 +210,6 @@ impl Str {
 impl Restriction<&str> for Str {
     fn matches(&self, val: &str) -> bool {
         match self {
-            Self::Custom(func) => func(val),
             Self::Equal(s) => val == s,
             Self::Prefix(s) => val.starts_with(s),
             Self::Regex(re) => re.is_match(val),
@@ -461,12 +440,6 @@ mod tests {
 
     #[test]
     fn test_str_restrict() {
-        // custom
-        let f = |s: &str| -> bool { s == "a" };
-        let r = Str::custom(f);
-        assert!(r.matches("a"));
-        assert!(!r.matches("b"));
-
         // equal
         let r = Str::equal("a");
         assert!(r.matches("a"));
