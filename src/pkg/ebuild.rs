@@ -9,9 +9,10 @@ use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 
+use crate::depspec::DepSpec;
 use crate::eapi::{self, Eapi};
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
-use crate::metadata::Metadata;
+use crate::metadata::{Key, Metadata};
 use crate::repo::ebuild::Repo;
 use crate::{atom, pkg, Error};
 
@@ -106,6 +107,46 @@ impl<'a> Pkg<'a> {
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
         self.meta.subslot().unwrap_or_else(|| self.slot())
+    }
+
+    /// Return a package's DEPEND.
+    pub fn depend(&self) -> Option<&DepSpec> {
+        self.meta.depspec(Key::Depend)
+    }
+
+    /// Return a package's BDEPEND.
+    pub fn bdepend(&self) -> Option<&DepSpec> {
+        self.meta.depspec(Key::Bdepend)
+    }
+
+    /// Return a package's IDEPEND.
+    pub fn idepend(&self) -> Option<&DepSpec> {
+        self.meta.depspec(Key::Idepend)
+    }
+
+    /// Return a package's PDEPEND.
+    pub fn pdepend(&self) -> Option<&DepSpec> {
+        self.meta.depspec(Key::Pdepend)
+    }
+
+    /// Return a package's RDEPEND.
+    pub fn rdepend(&self) -> Option<&DepSpec> {
+        self.meta.depspec(Key::Rdepend)
+    }
+
+    /// Return a package's LICENSE.
+    pub fn license(&self) -> Option<&DepSpec> {
+        self.meta.depspec(Key::License)
+    }
+
+    /// Return a package's REQUIRED_USE.
+    pub fn required_use(&self) -> Option<&DepSpec> {
+        self.meta.depspec(Key::RequiredUse)
+    }
+
+    /// Return a package's SRC_URI.
+    pub fn src_uri(&self) -> Option<&DepSpec> {
+        self.meta.depspec(Key::SrcUri)
     }
 
     /// Return a package's homepage.
@@ -205,7 +246,6 @@ impl<'a> Package for Pkg<'a> {
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::metadata::Key;
     use crate::test::{eq_ordered, eq_sorted};
 
     use super::*;

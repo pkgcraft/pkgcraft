@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::{fs, io};
 
@@ -11,6 +11,7 @@ use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
 use crate::config::Config;
+use crate::depspec::{parse::pkgdep, DepSpec};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
@@ -76,6 +77,7 @@ impl Key {
 pub(crate) struct Metadata {
     description: String,
     slot: String,
+    depspec: HashMap<Key, DepSpec>,
     homepage: IndexSet<String>,
     defined_phases: HashSet<String>,
     keywords: IndexSet<String>,
@@ -92,11 +94,18 @@ macro_rules! split {
 
 impl Metadata {
     /// Convert raw metadata key value to stored value.
-    fn convert(&mut self, key: Key, val: &str) {
+    fn convert(&mut self, eapi: &'static Eapi, key: Key, val: &str) -> crate::Result<()> {
         use Key::*;
         match key {
             Description => self.description = val.to_string(),
             Slot => self.slot = val.to_string(),
+            Depend | Bdepend | Idepend | Rdepend | Pdepend | License | RequiredUse | SrcUri => {
+                if let Some(val) = pkgdep(val, eapi)
+                    .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
+                {
+                    self.depspec.insert(key, val);
+                }
+            }
             Homepage => self.homepage = split!(val),
             DefinedPhases => self.defined_phases = split!(val),
             Keywords => self.keywords = split!(val),
@@ -105,53 +114,73 @@ impl Metadata {
             Inherited => self.inherited = split!(val),
             _ => (),
         }
+        Ok(())
     }
 
     // TODO: use serde to support (de)serializing md5-cache metadata
-    fn deserialize(&mut self, key: Key, val: &str) {
+    fn deserialize(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
+        let mut meta = Metadata::default();
         use Key::*;
-        match key {
-            Description => self.description = val.to_string(),
-            Slot => self.slot = val.to_string(),
-            Homepage => self.homepage = split!(val),
-            DefinedPhases => self.defined_phases = split!(val),
-            Keywords => self.keywords = split!(val),
-            Iuse => self.iuse = split!(val),
-            Inherit => self.inherit = split!(val),
-            Inherited => {
-                self.inherited = val
-                    .split_whitespace()
-                    .tuples()
-                    .map(|(name, _chksum)| name.to_string())
-                    .collect();
+
+        let iter = s
+            .lines()
+            .filter_map(|l| {
+                l.split_once('=').map(|(s, v)| match s {
+                    "_eclasses_" => ("INHERITED", v),
+                    _ => (s, v),
+                })
+            })
+            .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
+            .filter(|(k, _)| eapi.metadata_keys().contains(k));
+
+        for (key, val) in iter {
+            match key {
+                Description => meta.description = val.to_string(),
+                Slot => meta.slot = val.to_string(),
+                Depend | Bdepend | Idepend | Rdepend | Pdepend | License | RequiredUse | SrcUri => {
+                    if let Some(val) = pkgdep(val, eapi)
+                        .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
+                    {
+                        meta.depspec.insert(key, val);
+                    }
+                }
+                Homepage => meta.homepage = split!(val),
+                DefinedPhases => meta.defined_phases = split!(val),
+                Keywords => meta.keywords = split!(val),
+                Iuse => meta.iuse = split!(val),
+                Inherit => meta.inherit = split!(val),
+                Inherited => {
+                    meta.inherited = val
+                        .split_whitespace()
+                        .tuples()
+                        .map(|(name, _chksum)| name.to_string())
+                        .collect();
+                }
+                _ => (),
             }
-            _ => (),
         }
+
+        Ok(meta)
     }
 
     /// Load metadata from cache.
     pub(crate) fn load(atom: &atom::Atom, eapi: &'static Eapi, repo: &Repo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
         let path = build_from_paths!(repo.path(), "metadata", "md5-cache", atom.to_string());
-        match fs::read_to_string(&path) {
-            Ok(s) => {
-                let mut meta = Metadata::default();
-                s.lines()
-                    .filter_map(|l| {
-                        l.split_once('=').map(|(s, v)| match s {
-                            "_eclasses_" => ("INHERITED", v),
-                            _ => (s, v),
-                        })
-                    })
-                    .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
-                    .filter(|(k, _)| eapi.metadata_keys().contains(k))
-                    .for_each(|(k, v)| meta.deserialize(k, v));
-                Some(meta)
-            }
+        let s = match fs::read_to_string(&path) {
+            Ok(s) => s,
             Err(e) => {
                 if e.kind() != io::ErrorKind::NotFound {
                     warn!("error loading ebuild metadata: {:?}: {e}", &path);
                 }
+                return None;
+            }
+        };
+
+        match Metadata::deserialize(&s, eapi) {
+            Ok(m) => Some(m),
+            Err(e) => {
+                warn!("error deserializing ebuild metadata: {:?}: {e}", &path);
                 None
             }
         }
@@ -187,7 +216,7 @@ impl Metadata {
         let mut missing = Vec::<&str>::new();
         for key in eapi.mandatory_keys() {
             match key.get(eapi) {
-                Some(val) => meta.convert(*key, &val),
+                Some(val) => meta.convert(eapi, *key, &val)?,
                 None => missing.push(key.as_ref()),
             }
         }
@@ -201,7 +230,7 @@ impl Metadata {
         // metadata variables that default to empty
         for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
             if let Some(val) = key.get(eapi) {
-                meta.convert(*key, &val);
+                meta.convert(eapi, *key, &val)?;
             }
         }
 
@@ -222,6 +251,10 @@ impl Metadata {
     pub(crate) fn subslot(&self) -> Option<&str> {
         let s = self.slot.as_str();
         s.split_once('/').map(|x| x.1)
+    }
+
+    pub(crate) fn depspec(&self, key: Key) -> Option<&DepSpec> {
+        self.depspec.get(&key)
     }
 
     pub(crate) fn homepage(&self) -> &IndexSet<String> {

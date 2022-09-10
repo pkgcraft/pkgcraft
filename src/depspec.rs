@@ -2,13 +2,13 @@ use crate::atom::Atom;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::vec_str as vs;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Uri {
     pub uri: String,
     pub rename: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DepSpec {
     Values(Vec<String>),
     Atoms(Vec<Atom>),
@@ -141,21 +141,40 @@ pub mod parse {
 
     use super::*;
 
-    pub fn license(s: &str) -> crate::Result<DepSpec> {
-        depspec::license(s).map_err(|e| peg_error(format!("invalid license: {s:?}"), s, e))
+    pub fn license(s: &str) -> crate::Result<Option<DepSpec>> {
+        match s.is_empty() {
+            true => Ok(None),
+            false => depspec::license(s)
+                .map(Some)
+                .map_err(|e| peg_error(format!("invalid license: {s:?}"), s, e)),
+        }
     }
 
-    pub fn src_uri(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec> {
-        depspec::src_uri(s, eapi).map_err(|e| peg_error(format!("invalid SRC_URI: {s:?}"), s, e))
+    pub fn src_uri(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSpec>> {
+        match s.is_empty() {
+            true => Ok(None),
+            false => depspec::src_uri(s, eapi)
+                .map(Some)
+                .map_err(|e| peg_error(format!("invalid SRC_URI: {s:?}"), s, e)),
+        }
     }
 
-    pub fn required_use(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec> {
-        depspec::required_use(s, eapi)
-            .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e))
+    pub fn required_use(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSpec>> {
+        match s.is_empty() {
+            true => Ok(None),
+            false => depspec::required_use(s, eapi)
+                .map(Some)
+                .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e)),
+        }
     }
 
-    pub fn pkgdep(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec> {
-        depspec::pkgdep(s, eapi).map_err(|e| peg_error(format!("invalid dependency: {s:?}"), s, e))
+    pub fn pkgdep(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSpec>> {
+        match s.is_empty() {
+            true => Ok(None),
+            false => depspec::pkgdep(s, eapi)
+                .map(Some)
+                .map_err(|e| peg_error(format!("invalid dependency: {s:?}"), s, e)),
+        }
     }
 }
 
@@ -170,41 +189,42 @@ mod tests {
     #[test]
     fn test_license() {
         // invalid data
-        for s in ["", "(", ")", "( )", "( l1)", "| ( l1 )", "foo ( l1 )", "!use ( l1 )"] {
+        for s in ["(", ")", "( )", "( l1)", "| ( l1 )", "foo ( l1 )", "!use ( l1 )"] {
             assert!(parse::license(&s).is_err(), "{s:?} didn't fail");
         }
 
         // good data
         for (s, expected) in [
-            ("l1", DepSpec::Values(vs!(["l1"]))),
-            ("l1 l2", DepSpec::Values(vs!(["l1", "l2"]))),
-            ("( l1 )", DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["l1"]))))),
-            ("( l1 l2 )", DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["l1", "l2"]))))),
-            ("|| ( l1 )", DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1"]))))),
-            ("|| ( l1 l2 )", DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1", "l2"]))))),
+            ("", None),
+            ("l1", Some(DepSpec::Values(vs!(["l1"])))),
+            ("l1 l2", Some(DepSpec::Values(vs!(["l1", "l2"])))),
+            ("( l1 )", Some(DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["l1"])))))),
+            ("( l1 l2 )", Some(DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["l1", "l2"])))))),
+            ("|| ( l1 )", Some(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1"])))))),
+            ("|| ( l1 l2 )", Some(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1", "l2"])))))),
             (
                 "use? ( l1 )",
-                DepSpec::ConditionalUse(
+                Some(DepSpec::ConditionalUse(
                     "use".to_string(),
                     false,
                     Box::new(DepSpec::Values(vs!(["l1"]))),
-                ),
+                )),
             ),
             (
                 "use? ( l1 l2 )",
-                DepSpec::ConditionalUse(
+                Some(DepSpec::ConditionalUse(
                     "use".to_string(),
                     false,
                     Box::new(DepSpec::Values(vs!(["l1", "l2"]))),
-                ),
+                )),
             ),
             (
                 "use? ( || ( l1 l2 ) )",
-                DepSpec::ConditionalUse(
+                Some(DepSpec::ConditionalUse(
                     "use".to_string(),
                     false,
                     Box::new(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1", "l2"]))))),
-                ),
+                )),
             ),
         ] {
             let result = parse::license(&s);
@@ -216,7 +236,7 @@ mod tests {
     #[test]
     fn test_src_uri() {
         // invalid data
-        for s in ["", "(", ")", "( )", "( uri)", "| ( uri )", "use ( uri )", "!use ( uri )"] {
+        for s in ["(", ")", "( )", "( uri)", "| ( uri )", "use ( uri )", "!use ( uri )"] {
             for eapi in EAPIS.values() {
                 assert!(parse::src_uri(&s, eapi).is_err(), "{s:?} didn't fail");
             }
@@ -228,39 +248,42 @@ mod tests {
         };
 
         // good data
-        let mut src_uri;
         for (s, expected) in [
-            ("uri1", DepSpec::Uris(vec![uri("uri1", None)])),
-            ("uri1 uri2", DepSpec::Uris(vec![uri("uri1", None), uri("uri2", None)])),
+            ("", None),
+            ("uri1", Some(DepSpec::Uris(vec![uri("uri1", None)]))),
+            ("uri1 uri2", Some(DepSpec::Uris(vec![uri("uri1", None), uri("uri2", None)]))),
             (
                 "( uri1 uri2 )",
-                DepSpec::AllOf(Box::new(DepSpec::Uris(vec![uri("uri1", None), uri("uri2", None)]))),
+                Some(DepSpec::AllOf(Box::new(DepSpec::Uris(vec![
+                    uri("uri1", None),
+                    uri("uri2", None),
+                ])))),
             ),
             (
                 "use? ( uri1 )",
-                DepSpec::ConditionalUse(
+                Some(DepSpec::ConditionalUse(
                     "use".to_string(),
                     false,
                     Box::new(DepSpec::Uris(vec![uri("uri1", None)])),
-                ),
+                )),
             ),
         ] {
             for eapi in EAPIS.values() {
                 let result = parse::src_uri(&s, eapi);
                 assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-                src_uri = result.unwrap();
-                assert_eq!(src_uri, expected);
+                assert_eq!(result.unwrap(), expected);
             }
         }
 
         // SRC_URI renames
-        for (s, expected) in [("uri1 -> file", DepSpec::Uris(vec![uri("uri1", Some("file"))]))] {
+        for (s, expected) in
+            [("uri1 -> file", Some(DepSpec::Uris(vec![uri("uri1", Some("file"))])))]
+        {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::SrcUriRenames) {
                     let result = parse::src_uri(&s, eapi);
                     assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-                    src_uri = result.unwrap();
-                    assert_eq!(src_uri, expected);
+                    assert_eq!(result.unwrap(), expected);
                 }
             }
         }
@@ -269,61 +292,63 @@ mod tests {
     #[test]
     fn test_required_use() {
         // invalid data
-        for s in ["", "(", ")", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"] {
+        for s in ["(", ")", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"] {
             assert!(parse::required_use(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         // good data
-        let mut required_use;
         for (s, expected) in [
-            ("u", DepSpec::Values(vs!(["u"]))),
-            ("u1 u2", DepSpec::Values(vs!(["u1", "u2"]))),
-            ("( u )", DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["u"]))))),
-            ("( u1 u2 )", DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["u1", "u2"]))))),
-            ("|| ( u )", DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u"]))))),
-            ("|| ( u1 u2 )", DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u1", "u2"]))))),
-            ("^^ ( u1 u2 )", DepSpec::ExactlyOneOf(Box::new(DepSpec::Values(vs!(["u1", "u2"]))))),
+            ("", None),
+            ("u", Some(DepSpec::Values(vs!(["u"])))),
+            ("u1 u2", Some(DepSpec::Values(vs!(["u1", "u2"])))),
+            ("( u )", Some(DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["u"])))))),
+            ("( u1 u2 )", Some(DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["u1", "u2"])))))),
+            ("|| ( u )", Some(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u"])))))),
+            ("|| ( u1 u2 )", Some(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u1", "u2"])))))),
+            (
+                "^^ ( u1 u2 )",
+                Some(DepSpec::ExactlyOneOf(Box::new(DepSpec::Values(vs!(["u1", "u2"]))))),
+            ),
             (
                 "u1? ( u2 )",
-                DepSpec::ConditionalUse(
+                Some(DepSpec::ConditionalUse(
                     "u1".to_string(),
                     false,
                     Box::new(DepSpec::Values(vs!(["u2"]))),
-                ),
+                )),
             ),
             (
                 "u1? ( u2 u3 )",
-                DepSpec::ConditionalUse(
+                Some(DepSpec::ConditionalUse(
                     "u1".to_string(),
                     false,
                     Box::new(DepSpec::Values(vs!(["u2", "u3"]))),
-                ),
+                )),
             ),
             (
                 "u1? ( || ( u2 u3 ) )",
-                DepSpec::ConditionalUse(
+                Some(DepSpec::ConditionalUse(
                     "u1".to_string(),
                     false,
                     Box::new(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u2", "u3"]))))),
-                ),
+                )),
             ),
         ] {
             let result = parse::required_use(&s, &EAPI_LATEST);
             assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-            required_use = result.unwrap();
-            assert_eq!(required_use, expected);
+            assert_eq!(result.unwrap(), expected);
         }
 
         // ?? operator
-        for (s, expected) in
-            [("?? ( u1 u2 )", DepSpec::AtMostOneOf(Box::new(DepSpec::Values(vs!(["u1", "u2"])))))]
-        {
+        for (s, expected) in [(
+            "?? ( u1 u2 )",
+            Some(DepSpec::AtMostOneOf(Box::new(DepSpec::Values(vs!(["u1", "u2"]))))),
+        )] {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::RequiredUseOneOf) {
                     let result = parse::required_use(&s, eapi);
                     assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-                    required_use = result.unwrap();
-                    assert_eq!(required_use, expected);
+                    assert_eq!(result.unwrap(), expected);
                 }
             }
         }
@@ -332,22 +357,21 @@ mod tests {
     #[test]
     fn test_pkgdep() {
         // invalid data
-        for s in ["", "(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
+        for s in ["(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
             assert!(parse::pkgdep(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         let atom = |s| Atom::from_str(s).unwrap();
 
         // good data
-        let mut deps;
         for (s, expected) in [
-            ("a/b", DepSpec::Atoms(vec![atom("a/b")])),
-            ("a/b c/d", DepSpec::Atoms(vec![atom("a/b"), atom("c/d")])),
+            ("", None),
+            ("a/b", Some(DepSpec::Atoms(vec![atom("a/b")]))),
+            ("a/b c/d", Some(DepSpec::Atoms(vec![atom("a/b"), atom("c/d")]))),
         ] {
             let result = parse::pkgdep(&s, &EAPI_LATEST);
             assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-            deps = result.unwrap();
-            assert_eq!(deps, expected);
+            assert_eq!(result.unwrap(), expected);
         }
     }
 }
