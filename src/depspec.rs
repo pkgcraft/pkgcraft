@@ -1,6 +1,6 @@
 use crate::atom::Atom;
 use crate::eapi::{Eapi, Feature};
-use crate::macros::vec_str;
+use crate::macros::vec_str as vs;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Uri {
@@ -10,7 +10,7 @@ pub struct Uri {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DepSpec {
-    Strings(Vec<String>),
+    Values(Vec<String>),
     Atoms(Vec<Atom>),
     Uris(Vec<Uri>),
     AllOf(Box<DepSpec>),
@@ -51,10 +51,10 @@ peg::parser!(grammar depspec() for str {
         = vals:dep(eapi) ++ " " { DepSpec::Atoms(vals) }
 
     rule licenses() -> DepSpec
-        = vals:license_name() ++ " " { DepSpec::Strings(vec_str!(vals)) }
+        = vals:license_name() ++ " " { DepSpec::Values(vs!(vals)) }
 
     rule useflags() -> DepSpec
-        = vals:useflag() ++ " " { DepSpec::Strings(vec_str!(vals)) }
+        = vals:useflag() ++ " " { DepSpec::Values(vs!(vals)) }
 
     rule uri() -> &'input str
         = s:$(quiet!{!['(' | ')'] [^' ']+}) { s }
@@ -176,18 +176,18 @@ mod tests {
 
         // good data
         for (s, expected) in [
-            ("l1", DepSpec::Strings(vec_str!(["l1"]))),
-            ("l1 l2", DepSpec::Strings(vec_str!(["l1", "l2"]))),
-            ("( l1 )", DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["l1"]))))),
-            ("( l1 l2 )", DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
-            ("|| ( l1 )", DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1"]))))),
-            ("|| ( l1 l2 )", DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
+            ("l1", DepSpec::Values(vs!(["l1"]))),
+            ("l1 l2", DepSpec::Values(vs!(["l1", "l2"]))),
+            ("( l1 )", DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["l1"]))))),
+            ("( l1 l2 )", DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["l1", "l2"]))))),
+            ("|| ( l1 )", DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1"]))))),
+            ("|| ( l1 l2 )", DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1", "l2"]))))),
             (
                 "use? ( l1 )",
                 DepSpec::ConditionalUse(
                     "use".to_string(),
                     false,
-                    Box::new(DepSpec::Strings(vec_str!(["l1"]))),
+                    Box::new(DepSpec::Values(vs!(["l1"]))),
                 ),
             ),
             (
@@ -195,7 +195,7 @@ mod tests {
                 DepSpec::ConditionalUse(
                     "use".to_string(),
                     false,
-                    Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))),
+                    Box::new(DepSpec::Values(vs!(["l1", "l2"]))),
                 ),
             ),
             (
@@ -203,7 +203,7 @@ mod tests {
                 DepSpec::ConditionalUse(
                     "use".to_string(),
                     false,
-                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["l1", "l2"]))))),
+                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["l1", "l2"]))))),
                 ),
             ),
         ] {
@@ -276,22 +276,19 @@ mod tests {
         // good data
         let mut required_use;
         for (s, expected) in [
-            ("u", DepSpec::Strings(vec_str!(["u"]))),
-            ("u1 u2", DepSpec::Strings(vec_str!(["u1", "u2"]))),
-            ("( u )", DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u"]))))),
-            ("( u1 u2 )", DepSpec::AllOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"]))))),
-            ("|| ( u )", DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u"]))))),
-            ("|| ( u1 u2 )", DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"]))))),
-            (
-                "^^ ( u1 u2 )",
-                DepSpec::ExactlyOneOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
-            ),
+            ("u", DepSpec::Values(vs!(["u"]))),
+            ("u1 u2", DepSpec::Values(vs!(["u1", "u2"]))),
+            ("( u )", DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["u"]))))),
+            ("( u1 u2 )", DepSpec::AllOf(Box::new(DepSpec::Values(vs!(["u1", "u2"]))))),
+            ("|| ( u )", DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u"]))))),
+            ("|| ( u1 u2 )", DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u1", "u2"]))))),
+            ("^^ ( u1 u2 )", DepSpec::ExactlyOneOf(Box::new(DepSpec::Values(vs!(["u1", "u2"]))))),
             (
                 "u1? ( u2 )",
                 DepSpec::ConditionalUse(
                     "u1".to_string(),
                     false,
-                    Box::new(DepSpec::Strings(vec_str!(["u2"]))),
+                    Box::new(DepSpec::Values(vs!(["u2"]))),
                 ),
             ),
             (
@@ -299,7 +296,7 @@ mod tests {
                 DepSpec::ConditionalUse(
                     "u1".to_string(),
                     false,
-                    Box::new(DepSpec::Strings(vec_str!(["u2", "u3"]))),
+                    Box::new(DepSpec::Values(vs!(["u2", "u3"]))),
                 ),
             ),
             (
@@ -307,7 +304,7 @@ mod tests {
                 DepSpec::ConditionalUse(
                     "u1".to_string(),
                     false,
-                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Strings(vec_str!(["u2", "u3"]))))),
+                    Box::new(DepSpec::AnyOf(Box::new(DepSpec::Values(vs!(["u2", "u3"]))))),
                 ),
             ),
         ] {
@@ -318,10 +315,9 @@ mod tests {
         }
 
         // ?? operator
-        for (s, expected) in [(
-            "?? ( u1 u2 )",
-            DepSpec::AtMostOneOf(Box::new(DepSpec::Strings(vec_str!(["u1", "u2"])))),
-        )] {
+        for (s, expected) in
+            [("?? ( u1 u2 )", DepSpec::AtMostOneOf(Box::new(DepSpec::Values(vs!(["u1", "u2"])))))]
+        {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::RequiredUseOneOf) {
                     let result = parse::required_use(&s, eapi);
