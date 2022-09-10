@@ -20,7 +20,7 @@ pub enum DepSpec {
     ConditionalUse(String, bool, Box<DepSpec>),
 }
 
-peg::parser!(pub grammar depspec() for str {
+peg::parser!(grammar depspec() for str {
     rule _ = [' ']
 
     // licenses must not begin with a hyphen, dot, or plus sign.
@@ -135,12 +135,35 @@ peg::parser!(pub grammar depspec() for str {
             / deps(eapi)
 });
 
+// provide public parsing functionality while converting error types
+pub mod parse {
+    use crate::peg::peg_error;
+
+    use super::*;
+
+    pub fn license(s: &str) -> crate::Result<DepSpec> {
+        depspec::license(s).map_err(|e| peg_error(format!("invalid license: {s:?}"), s, e))
+    }
+
+    pub fn src_uri(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec> {
+        depspec::src_uri(s, eapi).map_err(|e| peg_error(format!("invalid SRC_URI: {s:?}"), s, e))
+    }
+
+    pub fn required_use(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec> {
+        depspec::required_use(s, eapi)
+            .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e))
+    }
+
+    pub fn pkgdep(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec> {
+        depspec::pkgdep(s, eapi).map_err(|e| peg_error(format!("invalid dependency: {s:?}"), s, e))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
 
     use crate::eapi::{EAPIS, EAPI_LATEST};
-    use crate::peg::PegError;
 
     use super::*;
 
@@ -148,11 +171,10 @@ mod tests {
     fn test_license() {
         // invalid data
         for s in ["", "(", ")", "( )", "( l1)", "| ( l1 )", "foo ( l1 )", "!use ( l1 )"] {
-            assert!(depspec::license(&s).is_err(), "{s:?} didn't fail");
+            assert!(parse::license(&s).is_err(), "{s:?} didn't fail");
         }
 
         // good data
-        let mut result: Result<DepSpec, PegError>;
         for (s, expected) in [
             ("l1", DepSpec::Strings(vec_str!(["l1"]))),
             ("l1 l2", DepSpec::Strings(vec_str!(["l1", "l2"]))),
@@ -185,7 +207,7 @@ mod tests {
                 ),
             ),
         ] {
-            result = depspec::license(&s);
+            let result = parse::license(&s);
             assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
             assert_eq!(result.unwrap(), expected);
         }
@@ -194,10 +216,9 @@ mod tests {
     #[test]
     fn test_src_uri() {
         // invalid data
-        let mut result: Result<DepSpec, PegError>;
         for s in ["", "(", ")", "( )", "( uri)", "| ( uri )", "use ( uri )", "!use ( uri )"] {
             for eapi in EAPIS.values() {
-                assert!(depspec::src_uri(&s, eapi).is_err(), "{s:?} didn't fail");
+                assert!(parse::src_uri(&s, eapi).is_err(), "{s:?} didn't fail");
             }
         }
 
@@ -225,7 +246,7 @@ mod tests {
             ),
         ] {
             for eapi in EAPIS.values() {
-                result = depspec::src_uri(&s, eapi);
+                let result = parse::src_uri(&s, eapi);
                 assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                 src_uri = result.unwrap();
                 assert_eq!(src_uri, expected);
@@ -236,7 +257,7 @@ mod tests {
         for (s, expected) in [("uri1 -> file", DepSpec::Uris(vec![uri("uri1", Some("file"))]))] {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::SrcUriRenames) {
-                    result = depspec::src_uri(&s, eapi);
+                    let result = parse::src_uri(&s, eapi);
                     assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                     src_uri = result.unwrap();
                     assert_eq!(src_uri, expected);
@@ -249,12 +270,11 @@ mod tests {
     fn test_required_use() {
         // invalid data
         for s in ["", "(", ")", "( )", "( u)", "| ( u )", "u1 ( u2 )", "!u1 ( u2 )"] {
-            assert!(depspec::required_use(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(parse::required_use(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         // good data
         let mut required_use;
-        let mut result: Result<DepSpec, PegError>;
         for (s, expected) in [
             ("u", DepSpec::Strings(vec_str!(["u"]))),
             ("u1 u2", DepSpec::Strings(vec_str!(["u1", "u2"]))),
@@ -291,7 +311,7 @@ mod tests {
                 ),
             ),
         ] {
-            result = depspec::required_use(&s, &EAPI_LATEST);
+            let result = parse::required_use(&s, &EAPI_LATEST);
             assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
             required_use = result.unwrap();
             assert_eq!(required_use, expected);
@@ -304,7 +324,7 @@ mod tests {
         )] {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::RequiredUseOneOf) {
-                    result = depspec::required_use(&s, eapi);
+                    let result = parse::required_use(&s, eapi);
                     assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
                     required_use = result.unwrap();
                     assert_eq!(required_use, expected);
@@ -317,19 +337,18 @@ mod tests {
     fn test_pkgdep() {
         // invalid data
         for s in ["", "(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
-            assert!(depspec::pkgdep(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(parse::pkgdep(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         let atom = |s| Atom::from_str(s).unwrap();
 
         // good data
         let mut deps;
-        let mut result: Result<DepSpec, PegError>;
         for (s, expected) in [
             ("a/b", DepSpec::Atoms(vec![atom("a/b")])),
             ("a/b c/d", DepSpec::Atoms(vec![atom("a/b"), atom("c/d")])),
         ] {
-            result = depspec::pkgdep(&s, &EAPI_LATEST);
+            let result = parse::pkgdep(&s, &EAPI_LATEST);
             assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
             deps = result.unwrap();
             assert_eq!(deps, expected);
