@@ -24,8 +24,8 @@ fn set_restrict<S: FromIterator<String>>(
 
 fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     match op {
-        "==" => Ok(Str::matches(s)),
-        "!=" => Ok(Str::not(Str::matches(s))),
+        "==" => Ok(Str::equal(s)),
+        "!=" => Ok(Str::not(Str::equal(s))),
         "=~" => {
             let re = Regex::new(s).map_err(|_| "invalid regex")?;
             Ok(Str::Regex(re))

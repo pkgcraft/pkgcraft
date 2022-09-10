@@ -157,9 +157,9 @@ mod tests {
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
-        let r = Restrict::Ebuild(restrict::Str::matches("no match"));
+        let r = Restrict::Ebuild(Str::equal("no match"));
         assert!(!r.matches(&pkg));
-        let r = Restrict::Ebuild(restrict::Str::regex("VAR=").unwrap());
+        let r = Restrict::Ebuild(Str::regex("VAR=").unwrap());
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
@@ -167,7 +167,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-2"]);
 
-        let r = Restrict::Ebuild(restrict::Str::regex("SLOT=").unwrap());
+        let r = Restrict::Ebuild(Str::regex("SLOT=").unwrap());
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
@@ -186,9 +186,9 @@ mod tests {
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
-        let r = Restrict::Description(restrict::Str::matches("no match"));
+        let r = Restrict::Description(Str::equal("no match"));
         assert!(!r.matches(&pkg));
-        let r = Restrict::Description(restrict::Str::matches("desc2"));
+        let r = Restrict::Description(Str::equal("desc2"));
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
@@ -196,7 +196,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-2"]);
 
-        let r = Restrict::Description(restrict::Str::regex("desc").unwrap());
+        let r = Restrict::Description(Str::regex("desc").unwrap());
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
@@ -212,9 +212,9 @@ mod tests {
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
-        let r = Restrict::Slot(restrict::Str::matches("2"));
+        let r = Restrict::Slot(Str::equal("2"));
         assert!(!r.matches(&pkg));
-        let r = Restrict::Slot(restrict::Str::matches("1"));
+        let r = Restrict::Slot(Str::equal("1"));
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
@@ -222,7 +222,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1"]);
 
-        let r = Restrict::Slot(restrict::Str::regex("0|1").unwrap());
+        let r = Restrict::Slot(Str::regex("0|1").unwrap());
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-1"]);
@@ -244,9 +244,9 @@ mod tests {
         assert!(!r.matches(&pkg));
 
         // verify pkg restrictions
-        let r = Restrict::Subslot(restrict::Str::matches("1"));
+        let r = Restrict::Subslot(Str::equal("1"));
         assert!(!r.matches(&pkg));
-        let r = Restrict::Subslot(restrict::Str::matches("2"));
+        let r = Restrict::Subslot(Str::equal("2"));
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
@@ -254,7 +254,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1"]);
 
-        let r = Restrict::Subslot(restrict::Str::regex("0|2").unwrap());
+        let r = Restrict::Subslot(Str::regex("0|2").unwrap());
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-1"]);
@@ -286,7 +286,7 @@ mod tests {
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // pkg with long description
-        let r = Restrict::LongDescription(Some(restrict::Str::regex(".").unwrap()));
+        let r = Restrict::LongDescription(Some(Str::regex(".").unwrap()));
         assert!(r.matches(&pkg));
 
         // single repo match
@@ -307,7 +307,7 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // multiple repo matches
-        let r = Restrict::LongDescription(Some(restrict::Str::regex("desc").unwrap()));
+        let r = Restrict::LongDescription(Some(Str::regex("desc").unwrap()));
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-b-1", "cat/pkg-c-1"]);

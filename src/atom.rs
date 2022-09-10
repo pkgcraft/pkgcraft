@@ -320,11 +320,11 @@ impl fmt::Debug for Restrict {
 
 impl Restrict {
     pub fn category(s: &str) -> Self {
-        Self::Category(Str::matches(s))
+        Self::Category(Str::equal(s))
     }
 
     pub fn package(s: &str) -> Self {
-        Self::Package(Str::matches(s))
+        Self::Package(Str::equal(s))
     }
 
     pub fn version(s: &str) -> crate::Result<Self> {
@@ -333,11 +333,11 @@ impl Restrict {
     }
 
     pub fn slot(o: Option<&str>) -> Self {
-        Self::Slot(o.map(Str::matches))
+        Self::Slot(o.map(Str::equal))
     }
 
     pub fn subslot(o: Option<&str>) -> Self {
-        Self::Subslot(o.map(Str::matches))
+        Self::Subslot(o.map(Str::equal))
     }
 
     pub fn use_deps<I, S>(iter: Option<I>) -> Self
@@ -353,7 +353,7 @@ impl Restrict {
     }
 
     pub fn repo(o: Option<&str>) -> Self {
-        Self::Repo(o.map(Str::matches))
+        Self::Repo(o.map(Str::equal))
     }
 }
 

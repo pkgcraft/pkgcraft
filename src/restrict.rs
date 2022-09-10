@@ -161,7 +161,7 @@ impl Restriction<&str> for Restrict {
 #[derive(Clone)]
 pub enum Str {
     Custom(fn(&str) -> bool),
-    Matches(String),
+    Equal(String),
     Prefix(String),
     Regex(Regex),
     Substr(String),
@@ -176,7 +176,7 @@ impl fmt::Debug for Str {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Self::Matches(s) => write!(f, "Matches({s:?})"),
+            Self::Equal(s) => write!(f, "Equal({s:?})"),
             Self::Prefix(s) => write!(f, "Prefix({s:?})"),
             Self::Regex(re) => write!(f, "Regex({re:?})"),
             Self::Substr(s) => write!(f, "Substr({s:?})"),
@@ -205,8 +205,8 @@ impl Str {
         Self::Not(Box::new(obj.into()))
     }
 
-    pub fn matches<S: Into<String>>(s: S) -> Self {
-        Self::Matches(s.into())
+    pub fn equal<S: Into<String>>(s: S) -> Self {
+        Self::Equal(s.into())
     }
 
     pub fn prefix<S: Into<String>>(s: S) -> Self {
@@ -231,7 +231,7 @@ impl Restriction<&str> for Str {
     fn matches(&self, val: &str) -> bool {
         match self {
             Self::Custom(func) => func(val),
-            Self::Matches(s) => val == s,
+            Self::Equal(s) => val == s,
             Self::Prefix(s) => val.starts_with(s),
             Self::Regex(re) => re.is_match(val),
             Self::Substr(s) => val.contains(s),
@@ -467,8 +467,8 @@ mod tests {
         assert!(r.matches("a"));
         assert!(!r.matches("b"));
 
-        // matches
-        let r = Str::matches("a");
+        // equal
+        let r = Str::equal("a");
         assert!(r.matches("a"));
         assert!(!r.matches("b"));
 
