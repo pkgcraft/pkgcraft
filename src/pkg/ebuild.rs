@@ -9,12 +9,13 @@ use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 
-use crate::depspec::DepSpec;
+use crate::atom::Atom;
+use crate::depset::{DepSet, Uri};
 use crate::eapi::{self, Eapi};
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::metadata::{Key, Metadata};
 use crate::repo::ebuild::Repo;
-use crate::{atom, pkg, Error};
+use crate::{pkg, Error};
 
 use super::{make_pkg_traits, Package};
 
@@ -27,7 +28,7 @@ static EAPI_LINE_RE: Lazy<Regex> =
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     path: Utf8PathBuf,
-    atom: atom::Atom,
+    atom: Atom,
     eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata,
@@ -38,7 +39,7 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(path: Utf8PathBuf, atom: atom::Atom, repo: &'a Repo) -> crate::Result<Self> {
+    pub(crate) fn new(path: Utf8PathBuf, atom: Atom, repo: &'a Repo) -> crate::Result<Self> {
         let err = |e: Error| -> Error {
             Error::InvalidPkg {
                 path: path.clone(),
@@ -110,43 +111,43 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's DEPEND.
-    pub fn depend(&self) -> Option<&DepSpec> {
-        self.meta.depspec(Key::Depend)
+    pub fn depend(&self) -> Option<&DepSet<Atom>> {
+        self.meta.deps(Key::Depend)
     }
 
     /// Return a package's BDEPEND.
-    pub fn bdepend(&self) -> Option<&DepSpec> {
-        self.meta.depspec(Key::Bdepend)
+    pub fn bdepend(&self) -> Option<&DepSet<Atom>> {
+        self.meta.deps(Key::Bdepend)
     }
 
     /// Return a package's IDEPEND.
-    pub fn idepend(&self) -> Option<&DepSpec> {
-        self.meta.depspec(Key::Idepend)
+    pub fn idepend(&self) -> Option<&DepSet<Atom>> {
+        self.meta.deps(Key::Idepend)
     }
 
     /// Return a package's PDEPEND.
-    pub fn pdepend(&self) -> Option<&DepSpec> {
-        self.meta.depspec(Key::Pdepend)
+    pub fn pdepend(&self) -> Option<&DepSet<Atom>> {
+        self.meta.deps(Key::Pdepend)
     }
 
     /// Return a package's RDEPEND.
-    pub fn rdepend(&self) -> Option<&DepSpec> {
-        self.meta.depspec(Key::Rdepend)
+    pub fn rdepend(&self) -> Option<&DepSet<Atom>> {
+        self.meta.deps(Key::Rdepend)
     }
 
     /// Return a package's LICENSE.
-    pub fn license(&self) -> Option<&DepSpec> {
-        self.meta.depspec(Key::License)
+    pub fn license(&self) -> Option<&DepSet<String>> {
+        self.meta.license()
     }
 
     /// Return a package's REQUIRED_USE.
-    pub fn required_use(&self) -> Option<&DepSpec> {
-        self.meta.depspec(Key::RequiredUse)
+    pub fn required_use(&self) -> Option<&DepSet<String>> {
+        self.meta.required_use()
     }
 
     /// Return a package's SRC_URI.
-    pub fn src_uri(&self) -> Option<&DepSpec> {
-        self.meta.depspec(Key::SrcUri)
+    pub fn src_uri(&self) -> Option<&DepSet<Uri>> {
+        self.meta.src_uri()
     }
 
     /// Return a package's homepage.
@@ -229,7 +230,7 @@ impl AsRef<Utf8Path> for Pkg<'_> {
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn atom(&self) -> &atom::Atom {
+    fn atom(&self) -> &Atom {
         &self.atom
     }
 
@@ -244,6 +245,7 @@ impl<'a> Package for Pkg<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::atom;
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::test::{eq_ordered, eq_sorted};

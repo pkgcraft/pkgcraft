@@ -1,5 +1,7 @@
 use std::{fmt, ptr};
 
+use crate::atom::Restrict as AtomRestrict;
+use crate::depset::Restrict as DepSetRestrict;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::pkg::{self, Package};
 use crate::repo::Repository;
@@ -15,6 +17,14 @@ pub enum Restrict {
     Slot(Str),
     Subslot(Str),
     RawSubslot(Option<Str>),
+    Depend(Option<DepSetRestrict<AtomRestrict>>),
+    Bdepend(Option<DepSetRestrict<AtomRestrict>>),
+    Idepend(Option<DepSetRestrict<AtomRestrict>>),
+    Pdepend(Option<DepSetRestrict<AtomRestrict>>),
+    Rdepend(Option<DepSetRestrict<AtomRestrict>>),
+    License(Option<DepSetRestrict<Str>>),
+    RequiredUse(Option<DepSetRestrict<Str>>),
+    SrcUri(Option<DepSetRestrict<Str>>),
     Homepage(Option<IndexSetRestrict<String, Str>>),
     DefinedPhases(Option<HashSetRestrict<String>>),
     Keywords(Option<IndexSetRestrict<String, Str>>),
@@ -36,6 +46,14 @@ impl fmt::Debug for Restrict {
             Slot(r) => write!(f, "Slot({r:?})"),
             Subslot(r) => write!(f, "Subslot({r:?})"),
             RawSubslot(r) => write!(f, "RawSubslot({r:?})"),
+            Depend(r) => write!(f, "Depend({r:?})"),
+            Bdepend(r) => write!(f, "Bdepend({r:?})"),
+            Idepend(r) => write!(f, "Idepend({r:?})"),
+            Pdepend(r) => write!(f, "Pdepend({r:?})"),
+            Rdepend(r) => write!(f, "Rdepend({r:?})"),
+            License(r) => write!(f, "License({r:?})"),
+            RequiredUse(r) => write!(f, "RequiredUse({r:?})"),
+            SrcUri(r) => write!(f, "SrcUri({r:?})"),
             Homepage(r) => write!(f, "Homepage({r:?})"),
             DefinedPhases(r) => write!(f, "DefinedPhases({r:?})"),
             Keywords(r) => write!(f, "Keywords({r:?})"),
@@ -57,7 +75,6 @@ impl From<Restrict> for restrict::Restrict {
 
 impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
-        use crate::atom::Restrict as AtomRestrict;
         use crate::pkg::Restrict as PkgRestrict;
         restrict::restrict_match! {
             self, pkg,
@@ -86,6 +103,46 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
             Subslot(r) => r.matches(pkg.subslot()),
             RawSubslot(r) => match (r, pkg.meta.subslot()) {
                 (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Depend(r) => match (r, pkg.depend()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
+            Bdepend(r) => match (r, pkg.bdepend()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
+            Idepend(r) => match (r, pkg.idepend()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
+            Pdepend(r) => match (r, pkg.pdepend()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
+            Rdepend(r) => match (r, pkg.rdepend()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
+            License(r) => match (r, pkg.license()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
+            RequiredUse(r) => match (r, pkg.required_use()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
+            SrcUri(r) => match (r, pkg.src_uri()) {
+                (Some(r), Some(val)) => r.matches(val),
                 (None, None) => true,
                 _ => false,
             },

@@ -10,13 +10,14 @@ use scallop::variables::string_value;
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
+use crate::atom::Atom;
 use crate::config::Config;
-use crate::depspec::{parse::pkgdep, DepSpec};
+use crate::depset::{DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::{atom, Error};
+use crate::Error;
 
 pub mod ebuild;
 
@@ -77,7 +78,10 @@ impl Key {
 pub(crate) struct Metadata {
     description: String,
     slot: String,
-    depspec: HashMap<Key, DepSpec>,
+    deps: HashMap<Key, DepSet<Atom>>,
+    license: Option<DepSet<String>>,
+    required_use: Option<DepSet<String>>,
+    src_uri: Option<DepSet<Uri>>,
     homepage: IndexSet<String>,
     defined_phases: HashSet<String>,
     keywords: IndexSet<String>,
@@ -95,17 +99,21 @@ macro_rules! split {
 impl Metadata {
     /// Convert raw metadata key value to stored value.
     fn convert(&mut self, eapi: &'static Eapi, key: Key, val: &str) -> crate::Result<()> {
+        use crate::depset::parse;
         use Key::*;
         match key {
             Description => self.description = val.to_string(),
             Slot => self.slot = val.to_string(),
-            Depend | Bdepend | Idepend | Rdepend | Pdepend | License | RequiredUse | SrcUri => {
-                if let Some(val) = pkgdep(val, eapi)
+            Depend | Bdepend | Idepend | Rdepend | Pdepend => {
+                if let Some(val) = parse::pkgdep(val, eapi)
                     .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
                 {
-                    self.depspec.insert(key, val);
+                    self.deps.insert(key, val);
                 }
             }
+            License => self.license = parse::license(val)?,
+            RequiredUse => self.required_use = parse::required_use(val, eapi)?,
+            SrcUri => self.src_uri = parse::src_uri(val, eapi)?,
             Homepage => self.homepage = split!(val),
             DefinedPhases => self.defined_phases = split!(val),
             Keywords => self.keywords = split!(val),
@@ -120,6 +128,7 @@ impl Metadata {
     // TODO: use serde to support (de)serializing md5-cache metadata
     fn deserialize(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
         let mut meta = Metadata::default();
+        use crate::depset::parse;
         use Key::*;
 
         let iter = s
@@ -137,13 +146,16 @@ impl Metadata {
             match key {
                 Description => meta.description = val.to_string(),
                 Slot => meta.slot = val.to_string(),
-                Depend | Bdepend | Idepend | Rdepend | Pdepend | License | RequiredUse | SrcUri => {
-                    if let Some(val) = pkgdep(val, eapi)
+                Depend | Bdepend | Idepend | Rdepend | Pdepend => {
+                    if let Some(val) = parse::pkgdep(val, eapi)
                         .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
                     {
-                        meta.depspec.insert(key, val);
+                        meta.deps.insert(key, val);
                     }
                 }
+                License => meta.license = parse::license(val)?,
+                RequiredUse => meta.required_use = parse::required_use(val, eapi)?,
+                SrcUri => meta.src_uri = parse::src_uri(val, eapi)?,
                 Homepage => meta.homepage = split!(val),
                 DefinedPhases => meta.defined_phases = split!(val),
                 Keywords => meta.keywords = split!(val),
@@ -164,7 +176,7 @@ impl Metadata {
     }
 
     /// Load metadata from cache.
-    pub(crate) fn load(atom: &atom::Atom, eapi: &'static Eapi, repo: &Repo) -> Option<Self> {
+    pub(crate) fn load(atom: &Atom, eapi: &'static Eapi, repo: &Repo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
         let path = build_from_paths!(repo.path(), "metadata", "md5-cache", atom.to_string());
         let s = match fs::read_to_string(&path) {
@@ -253,8 +265,20 @@ impl Metadata {
         s.split_once('/').map(|x| x.1)
     }
 
-    pub(crate) fn depspec(&self, key: Key) -> Option<&DepSpec> {
-        self.depspec.get(&key)
+    pub(crate) fn deps(&self, key: Key) -> Option<&DepSet<Atom>> {
+        self.deps.get(&key)
+    }
+
+    pub(crate) fn license(&self) -> Option<&DepSet<String>> {
+        self.license.as_ref()
+    }
+
+    pub(crate) fn required_use(&self) -> Option<&DepSet<String>> {
+        self.required_use.as_ref()
+    }
+
+    pub(crate) fn src_uri(&self) -> Option<&DepSet<Uri>> {
+        self.src_uri.as_ref()
     }
 
     pub(crate) fn homepage(&self) -> &IndexSet<String> {
