@@ -69,7 +69,7 @@ impl Key {
                     false => Some(inherit.iter().join(" ")),
                 }
             }),
-            key => string_value(key),
+            key => string_value(key).map(|s| s.split_whitespace().join(" ")),
         }
     }
 }
