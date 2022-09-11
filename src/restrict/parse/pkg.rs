@@ -60,6 +60,14 @@ peg::parser!(grammar restrict() for str {
     rule attr_optional() -> Restrict
         = attr:$((
                 "subslot"
+                / "depend"
+                / "bdepend"
+                / "idepend"
+                / "pdepend"
+                / "rdepend"
+                / "license"
+                / "required_use"
+                / "src_uri"
                 / "homepage"
                 / "defined_phases"
                 / "keywords"
@@ -74,6 +82,14 @@ peg::parser!(grammar restrict() for str {
             use crate::pkg::ebuild::Restrict::*;
             let r = match attr {
                 "subslot" => RawSubslot(None),
+                "depend" => Depend(None),
+                "bdepend" => Bdepend(None),
+                "idepend" => Idepend(None),
+                "pdepend" => Pdepend(None),
+                "rdepend" => Rdepend(None),
+                "license" => License(None),
+                "required_use" => RequiredUse(None),
+                "src_uri" => SrcUri(None),
                 "homepage" => Homepage(None),
                 "defined_phases" => DefinedPhases(None),
                 "keywords" => Keywords(None),
