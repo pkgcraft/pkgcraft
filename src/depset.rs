@@ -1,4 +1,7 @@
 use std::collections::VecDeque;
+use std::fmt;
+
+use itertools::Itertools;
 
 use crate::atom::{Atom, Restrict as AtomRestrict};
 use crate::eapi::{Eapi, Feature};
@@ -20,6 +23,16 @@ impl Uri {
     }
 }
 
+impl fmt::Display for Uri {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.uri)?;
+        if let Some(s) = &self.rename {
+            write!(f, " -> {s}")?;
+        }
+        Ok(())
+    }
+}
+
 impl AsRef<str> for Uri {
     fn as_ref(&self) -> &str {
         &self.uri
@@ -29,6 +42,13 @@ impl AsRef<str> for Uri {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DepSet<T> {
     deps: Vec<DepRestrict<T>>,
+}
+
+impl<T: fmt::Display> fmt::Display for DepSet<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut dep_strings = self.deps.iter().map(|x| x.to_string());
+        write!(f, "{}", dep_strings.join(" "))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,6 +68,25 @@ impl<T> DepSet<T> {
         DepSetFlatten {
             deps: self.deps.iter().collect(),
             buffer: VecDeque::new(),
+        }
+    }
+}
+
+impl<T: fmt::Display> fmt::Display for DepRestrict<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let p = |args: &[Box<DepRestrict<T>>]| -> String {
+            args.iter().map(|x| x.to_string()).join(" ")
+        };
+
+        match self {
+            Self::Matches(val, true) => write!(f, "{val}"),
+            Self::Matches(val, false) => write!(f, "!{val}"),
+            Self::AllOf(vals) => write!(f, "( {} )", p(vals)),
+            Self::AnyOf(vals) => write!(f, "|| ( {} )", p(vals)),
+            Self::ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p(vals)),
+            Self::AtMostOneOf(vals) => write!(f, "?? ( {} )", p(vals)),
+            Self::UseEnabled(s, vals) => write!(f, "{s}? ( {} )", p(vals)),
+            Self::UseDisabled(s, vals) => write!(f, "!{s}? ( {} )", p(vals)),
         }
     }
 }
@@ -351,7 +390,7 @@ mod tests {
     }
 
     #[test]
-    fn test_license() {
+    fn test_license() -> crate::Result<()> {
         // invalid
         for s in ["(", ")", "( )", "( l1)", "| ( l1 )", "!use ( l1 )"] {
             assert!(parse::license(&s).is_err(), "{s:?} didn't fail");
@@ -368,6 +407,8 @@ mod tests {
             // groupings
             ("( l1 )", vec![allof(vec![vs("l1")])]),
             ("( l1 l2 )", vec![allof(vec![vs("l1"), vs("l2")])]),
+            ("( l1 ( l2 ) )", vec![allof(vec![vs("l1"), allof(vec![vs("l2")])])]),
+            ("( ( l1 ) )", vec![allof(vec![allof(vec![vs("l1")])])]),
             ("|| ( l1 )", vec![anyof(vec![vs("l1")])]),
             ("|| ( l1 l2 )", vec![anyof(vec![vs("l1"), vs("l2")])]),
             // conditionals
@@ -377,14 +418,16 @@ mod tests {
             ("l1 u? ( l2 )", vec![vs("l1"), use_enabled("u", [vs("l2")])]),
             ("!u? ( || ( l1 l2 ) )", vec![use_disabled("u", [anyof([vs("l1"), vs("l2")])])]),
         ] {
-            let result = parse::license(&s);
-            assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-            assert_eq!(result.unwrap().unwrap().deps, expected, "{s} failed");
+            let depset = parse::license(&s)?.unwrap();
+            assert_eq!(depset.deps, expected, "{s} failed");
+            assert_eq!(depset.to_string(), s);
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_src_uri() {
+    fn test_src_uri() -> crate::Result<()> {
         // empty string
         assert!(parse::src_uri("", &EAPI_LATEST).unwrap().is_none());
 
@@ -400,9 +443,9 @@ mod tests {
             ("u? ( http://uri1 )", vec![use_enabled("u", [vu("http://uri1", None)])]),
         ] {
             for eapi in EAPIS.values() {
-                let result = parse::src_uri(&s, eapi);
-                assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-                assert_eq!(result.unwrap().unwrap().deps, expected, "{s} failed");
+                let depset = parse::src_uri(&s, eapi)?.unwrap();
+                assert_eq!(depset.deps, expected, "{s} failed");
+                assert_eq!(depset.to_string(), s);
             }
         }
 
@@ -410,16 +453,18 @@ mod tests {
         for (s, expected) in [("http://uri -> file", vec![vu("http://uri", Some("file"))])] {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::SrcUriRenames) {
-                    let result = parse::src_uri(&s, eapi);
-                    assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-                    assert_eq!(result.unwrap().unwrap().deps, expected, "{s} failed");
+                    let depset = parse::src_uri(&s, eapi)?.unwrap();
+                    assert_eq!(depset.deps, expected, "{s} failed");
+                    assert_eq!(depset.to_string(), s);
                 }
             }
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_required_use() {
+    fn test_required_use() -> crate::Result<()> {
         // invalid
         for s in ["(", ")", "( )", "( u)", "| ( u )"] {
             assert!(parse::required_use(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
@@ -442,25 +487,27 @@ mod tests {
             ("u1? ( u2 !u3 )", vec![use_enabled("u1", [vs("u2"), vd("u3")])]),
             ("!u1? ( || ( u2 u3 ) )", vec![use_disabled("u1", [anyof([vs("u2"), vs("u3")])])]),
         ] {
-            let result = parse::required_use(&s, &EAPI_LATEST);
-            assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-            assert_eq!(result.unwrap().unwrap().deps, expected, "{s} failed");
+            let depset = parse::required_use(&s, &EAPI_LATEST)?.unwrap();
+            assert_eq!(depset.deps, expected, "{s} failed");
+            assert_eq!(depset.to_string(), s);
         }
 
         // ?? operator
         for (s, expected) in [("?? ( u1 u2 )", vec![at_most_one_of([vs("u1"), vs("u2")])])] {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::RequiredUseOneOf) {
-                    let result = parse::required_use(&s, eapi);
-                    assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-                    assert_eq!(result.unwrap().unwrap().deps, expected, "{s} failed");
+                    let depset = parse::required_use(&s, eapi)?.unwrap();
+                    assert_eq!(depset.deps, expected, "{s} failed");
+                    assert_eq!(depset.to_string(), s);
                 }
             }
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_pkgdep() {
+    fn test_pkgdep() -> crate::Result<()> {
         // invalid
         for s in ["(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
             assert!(parse::pkgdep(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
@@ -481,9 +528,11 @@ mod tests {
                 vec![use_enabled("u1", [va("a/b"), use_disabled("u2", [va("c/d")])])],
             ),
         ] {
-            let result = parse::pkgdep(&s, &EAPI_LATEST);
-            assert!(result.is_ok(), "{s} failed: {}", result.err().unwrap());
-            assert_eq!(result.unwrap().unwrap().deps, expected, "{s} failed");
+            let depset = parse::pkgdep(&s, &EAPI_LATEST)?.unwrap();
+            assert_eq!(depset.deps, expected, "{s} failed");
+            assert_eq!(depset.to_string(), s);
         }
+
+        Ok(())
     }
 }
