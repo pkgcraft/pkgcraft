@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
-use std::{env, fmt, fs, io, thread};
+use std::{env, fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
@@ -21,7 +21,7 @@ use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::Pkg;
 use crate::pkg::Package;
-use crate::restrict::{Restrict, Restriction};
+use crate::restrict::{Restrict, Restriction, Str};
 use crate::{atom, eapi, repo, Error};
 
 static EBUILD_RE: Lazy<Regex> =
@@ -656,8 +656,10 @@ pub struct PkgIter<'a> {
 
 impl<'a> PkgIter<'a> {
     fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
-        use atom::Restrict::{Category, Package, Version};
-        let (mut cat_restricts, mut pkg_restricts) = (vec![], vec![]);
+        use crate::atom::Restrict::{Category, Package, Version};
+        let mut cat_restricts = vec![];
+        let mut pkg_restricts = vec![];
+        let mut atom_restricts = vec![];
 
         // extract atom restrictions for package filtering
         if let Some(restrict) = restrict {
@@ -665,24 +667,27 @@ impl<'a> PkgIter<'a> {
             while let Some(r) = restricts.pop() {
                 match r {
                     Restrict::And(vals) => restricts.extend(vals.iter().map(|r| r.as_ref())),
-                    Restrict::Atom(Category(r)) => cat_restricts.push(r.clone()),
-                    r @ Restrict::Atom(Package(_)) => pkg_restricts.push(r.clone()),
-                    r @ Restrict::Atom(Version(_)) => pkg_restricts.push(r.clone()),
+                    Restrict::Atom(Category(r)) => {
+                        cat_restricts.push(r.clone());
+                        if let Str::Equal(s) = r {
+                            atom_restricts.push(s.as_str());
+                        }
+                    }
+                    r @ Restrict::Atom(Package(x)) => {
+                        pkg_restricts.push(r.clone());
+                        if let Str::Equal(s) = x {
+                            atom_restricts.push(s.as_str());
+                        }
+                    }
+                    r @ Restrict::Atom(Version(x)) => {
+                        pkg_restricts.push(r.clone());
+                        if let Some(v) = x {
+                            atom_restricts.push(v.as_str());
+                        }
+                    }
                     _ => (),
                 };
             }
-        };
-
-        let cat_restrict = match &cat_restricts[..] {
-            [] => Restrict::True,
-            [_] => cat_restricts.remove(0).into(),
-            _ => Restrict::and(cat_restricts),
-        };
-
-        let pkg_restrict = match &pkg_restricts[..] {
-            [] => Restrict::True,
-            [_] => pkg_restricts.remove(0),
-            _ => Restrict::and(pkg_restricts),
         };
 
         // filter invalid ebuild paths
@@ -724,16 +729,40 @@ impl<'a> PkgIter<'a> {
             paths
         };
 
-        // filter ebuilds using category and pkg restrictions before Pkg creation
-        let ebuilds = repo
-            .categories()
-            .into_iter()
-            .filter(move |s| cat_restrict.matches(s.as_str()))
-            .flat_map(move |s| category_ebuilds(s.as_str()))
-            .filter(move |(_, atom)| pkg_restrict.matches(atom));
-
         Self {
-            iter: Box::new(ebuilds),
+            iter: match &atom_restricts[..] {
+                // single atom restriction
+                [ver, pkg, cat] => {
+                    let s = format!("{cat}/{pkg}-{ver}");
+                    let cpv = atom::cpv(&s).expect("atom restrict failed");
+                    let path =
+                        build_from_paths!(repo.path(), cat, pkg, format!("{pkg}-{ver}.ebuild"));
+                    Box::new(iter::once((path, cpv)))
+                }
+
+                // complex restriction filtering
+                _ => {
+                    let cat_restrict = match &cat_restricts[..] {
+                        [] => Restrict::True,
+                        [_] => cat_restricts.remove(0).into(),
+                        _ => Restrict::and(cat_restricts),
+                    };
+
+                    let pkg_restrict = match &pkg_restricts[..] {
+                        [] => Restrict::True,
+                        [_] => pkg_restricts.remove(0),
+                        _ => Restrict::and(pkg_restricts),
+                    };
+
+                    Box::new(
+                        repo.categories()
+                            .into_iter()
+                            .filter(move |s| cat_restrict.matches(s.as_str()))
+                            .flat_map(move |s| category_ebuilds(s.as_str()))
+                            .filter(move |(_, atom)| pkg_restrict.matches(atom)),
+                    )
+                }
+            },
             repo,
         }
     }
