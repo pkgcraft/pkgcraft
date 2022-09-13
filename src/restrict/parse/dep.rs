@@ -1,8 +1,8 @@
 use regex::{escape, Regex};
 
-use crate::atom::{self, version::ParsedVersion};
+use crate::atom::{version::ParsedVersion, Restrict};
 use crate::peg::peg_error;
-use crate::restrict::{Restrict, Str};
+use crate::restrict::{Restrict as BaseRestrict, Str};
 
 // Convert globbed string to regex, escaping all meta characters except '*'.
 fn str_to_regex_restrict(s: &str) -> Str {
@@ -53,30 +53,30 @@ peg::parser!(grammar restrict() for str {
         = cat:category() pkg:(quiet!{"/"} s:package() { s }) {
             let mut restricts = vec![];
             match cat.matches('*').count() {
-                0 => restricts.push(Restrict::Atom(atom::Restrict::category(cat))),
+                0 => restricts.push(Restrict::category(cat)),
                 _ => {
                     let r = str_to_regex_restrict(cat);
-                    restricts.push(Restrict::Atom(atom::Restrict::Category(r)))
+                    restricts.push(Restrict::Category(r))
                 }
             }
 
             match pkg.matches('*').count() {
-                0 => restricts.push(Restrict::Atom(atom::Restrict::package(pkg))),
+                0 => restricts.push(Restrict::package(pkg)),
                 1 if pkg == "*" && restricts.is_empty() => (),
                 _ => {
                     let r = str_to_regex_restrict(pkg);
-                    restricts.push(Restrict::Atom(atom::Restrict::Package(r)))
+                    restricts.push(Restrict::Package(r))
                 }
             }
 
             restricts
         } / s:package() {
             match s.matches('*').count() {
-                0 => vec![Restrict::Atom(atom::Restrict::package(s))],
+                0 => vec![Restrict::package(s)],
                 1 if s == "*" => vec![],
                 _ => {
                     let r = str_to_regex_restrict(s);
-                    vec![Restrict::Atom(atom::Restrict::Package(r))]
+                    vec![Restrict::Package(r)]
                 }
             }
         }
@@ -98,10 +98,10 @@ peg::parser!(grammar restrict() for str {
     rule slot_restrict() -> Restrict
         = s:slot_glob() {
             match s.matches('*').count() {
-                0 => Restrict::Atom(atom::Restrict::slot(Some(s))),
+                0 => Restrict::slot(Some(s)),
                 _ => {
                     let r = str_to_regex_restrict(s);
-                    Restrict::Atom(atom::Restrict::Slot(Some(r)))
+                    Restrict::Slot(Some(r))
                 }
             }
         }
@@ -109,10 +109,10 @@ peg::parser!(grammar restrict() for str {
     rule subslot_restrict() -> Restrict
         = "/" s:slot_glob() {
             match s.matches('*').count() {
-                0 => Restrict::Atom(atom::Restrict::subslot(Some(s))),
+                0 => Restrict::subslot(Some(s)),
                 _ => {
                     let r = str_to_regex_restrict(s);
-                    Restrict::Atom(atom::Restrict::Subslot(Some(r)))
+                    Restrict::Subslot(Some(r))
                 }
             }
         }
@@ -135,10 +135,10 @@ peg::parser!(grammar restrict() for str {
     rule repo_restrict() -> Restrict
         = "::" s:repo_glob() {
             match s.matches('*').count() {
-                0 => Restrict::Atom(atom::Restrict::repo(Some(s))),
+                0 => Restrict::repo(Some(s)),
                 _ => {
                     let r = str_to_regex_restrict(s);
-                    Restrict::Atom(atom::Restrict::Repo(Some(r)))
+                    Restrict::Repo(Some(r))
                 }
             }
         }
@@ -157,18 +157,21 @@ peg::parser!(grammar restrict() for str {
 });
 
 /// Convert a globbed dep string into a Restriction.
-pub fn dep(s: &str) -> crate::Result<Restrict> {
+pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
     let (mut restricts, ver) =
         restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
     if let Some(v) = ver {
         let v = v.to_owned(s)?;
-        restricts.push(Restrict::Atom(atom::Restrict::Version(Some(v))));
+        restricts.push(Restrict::Version(Some(v)));
     }
 
     match restricts.is_empty() {
-        true => Ok(Restrict::True),
-        false => Ok(Restrict::and(restricts)),
+        true => Ok(BaseRestrict::True),
+        false => {
+            let restricts = restricts.into_iter().map(Box::new).collect();
+            Ok(BaseRestrict::Atom(Restrict::And(restricts)))
+        }
     }
 }
 
@@ -205,7 +208,7 @@ mod tests {
             .map(|s| Atom::from_str(s).unwrap())
             .collect();
 
-        let filter = |r: Restrict, atoms: &[Atom]| -> Vec<String> {
+        let filter = |r: BaseRestrict, atoms: &[Atom]| -> Vec<String> {
             atoms
                 .into_iter()
                 .filter(|&a| r.matches(a))
