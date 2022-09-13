@@ -1,6 +1,6 @@
 use regex::{escape, Regex};
 
-use crate::atom::{version::ParsedVersion, Restrict};
+use crate::atom::{version::ParsedVersion, Blocker, Restrict};
 use crate::peg::peg_error;
 use crate::restrict::{Restrict as BaseRestrict, Str};
 
@@ -83,11 +83,9 @@ peg::parser!(grammar restrict() for str {
 
     rule pkg_restricts() -> (Vec<Restrict>, Option<ParsedVersion<'input>>)
         = restricts:cp_restricts() { (restricts, None) }
-        / op:$(("<" "="?) / "=" / "~" / (">" "="?))
-                restricts:cp_restricts() "-" ver:version() glob:$("*")?
-        {?
-            Ok((restricts, Some(ver.with_op(op, glob)?)))
-        }
+            / op:$(("<" "="?) / "=" / "~" / (">" "="?))
+            restricts:cp_restricts() "-" ver:version() glob:$("*")?
+        {? Ok((restricts, Some(ver.with_op(op, glob)?))) }
 
     rule slot_glob() -> &'input str
         = s:$(quiet!{
@@ -143,15 +141,33 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
+    rule blocker_restrict() -> Restrict
+        = blocker:("!"*<1,2>) {?
+            match blocker.len() {
+                1 => Ok(Restrict::Blocker(Some(Blocker::Weak))),
+                2 => Ok(Restrict::Blocker(Some(Blocker::Strong))),
+                _ => Err("invalid blocker"),
+            }
+        }
+
     pub(super) rule dep() -> (Vec<Restrict>, Option<ParsedVersion<'input>>)
-        = pkg_r:pkg_restricts() slot_r:slot_restricts()? repo_r:repo_restrict()? {
+        = blocker_r:blocker_restrict()? pkg_r:pkg_restricts()
+            slot_r:slot_restricts()? repo_r:repo_restrict()?
+        {
             let (mut restricts, ver) = pkg_r;
+
+            if let Some(r) = blocker_r {
+                restricts.push(r);
+            }
+
             if let Some(r) = slot_r {
                 restricts.extend(r);
             }
+
             if let Some(r) = repo_r {
                 restricts.push(r);
             }
+
             (restricts, ver)
         }
 });
@@ -189,6 +205,9 @@ mod tests {
         let atom_strs = vec![
             "cat/pkg",
             "cat-abc/pkg2",
+            // blocked
+            "!cat/pkg",
+            "!!cat/pkg",
             // slotted
             "cat/pkg:0",
             "cat/pkg:2.1",
@@ -242,6 +261,12 @@ mod tests {
             ("=*-2", vec![">=cat/pkg-2"]),
             ("<pkg-3", vec!["=cat/pkg-0-r0:0/0.+", "=cat/pkg-1", ">=cat/pkg-2"]),
         ] {
+            let r = dep(s).unwrap();
+            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
+        }
+
+        // blocker
+        for (s, expected) in [("!*", vec!["!cat/pkg"]), ("!!*", vec!["!!cat/pkg"])] {
             let r = dep(s).unwrap();
             assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
         }
