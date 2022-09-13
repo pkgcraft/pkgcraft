@@ -20,7 +20,6 @@ use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::Pkg;
-use crate::pkg::Package;
 use crate::restrict::{Restrict, Restriction, Str};
 use crate::{atom, eapi, repo, Error};
 
@@ -943,6 +942,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::{assert_err_re, assert_logs_re};
     use crate::metadata::Key;
+    use crate::pkg::Package;
     use crate::test::eq_sorted;
 
     use super::*;

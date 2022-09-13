@@ -9,8 +9,8 @@ use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 use tracing::warn;
 
 use crate::config::RepoConfig;
-use crate::pkg::{Package, Pkg};
-use crate::restrict::{Restrict, Restriction};
+use crate::pkg::Pkg;
+use crate::restrict::Restrict;
 use crate::{atom, Error};
 
 pub mod ebuild;
@@ -439,7 +439,7 @@ macro_rules! make_contains_atom {
         impl $crate::repo::Contains<$y> for $x {
             fn contains(&self, atom: $y) -> bool {
                 let r: $crate::restrict::Restrict = atom.into();
-                self.iter().any(|p| r.matches(p.atom()))
+                self.iter_restrict(r).next().is_some()
             }
         }
     )+};

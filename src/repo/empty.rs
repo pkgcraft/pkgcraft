@@ -4,8 +4,7 @@ use camino::Utf8Path;
 
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
-use crate::pkg::Package;
-use crate::restrict::{Restrict, Restriction};
+use crate::restrict::Restrict;
 use crate::{atom, pkg, repo, Error};
 
 #[derive(Debug, Default)]
