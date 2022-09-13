@@ -209,11 +209,12 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule ordered_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
-        = __ op:$(("matches" / "first" / "last")) __ r:(exprs())
+        = __ op:$(("any" / "all" / "first" / "last")) __ r:(exprs())
         {?
             use crate::restrict::OrderedRestrict::*;
             let r = match op {
-                "matches" => Matches(r),
+                "any" => Any(r),
+                "all" => All(r),
                 "first" => First(r),
                 "last" => Last(r),
                 _ => return Err("unknown upstreams operation"),
