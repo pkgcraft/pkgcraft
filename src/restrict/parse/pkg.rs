@@ -111,17 +111,17 @@ peg::parser!(grammar restrict() for str {
         / "\'" s:$([^ '\'']+) "\'" { s }
 
     rule string_ops() -> &'input str
-        = _ op:$("==" / "!=" / "=~" / "!~") _ { op }
+        = _* op:$("==" / "!=" / "=~" / "!~") _* { op }
 
     rule set_ops() -> &'input str
-        = _ op:$((['<' | '>'] "="?) / "==" / "%") _ { op }
+        = _* op:$((['<' | '>'] "="?) / "==" / "%") _* { op }
 
     rule quoted_string_set() -> Vec<&'input str>
-        = _ "{" e:(quoted_string() ** (_ "," _)) "}" _
+        = _* "{" e:(quoted_string() ** (_* "," _*)) "}" _
         { e }
 
     rule number_ops() -> &'input str
-        = _ op:$((['<' | '>'] "="?) / "==") _ { op }
+        = _* op:$((['<' | '>'] "="?) / "==") _* { op }
 
     rule atom_str_restrict() -> Restrict
         = attr:$((
@@ -175,7 +175,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule attr_dep_restrict() -> Restrict
-        = attr:$(['b' | 'i' | 'p' | 'r']? "depend") __ "any" __ s:quoted_string()
+        = attr:$(['b' | 'i' | 'p' | 'r']? "depend") _ "any" _ s:quoted_string()
         {?
             use crate::pkg::ebuild::Restrict::*;
             use crate::depset::Restrict::*;
@@ -227,7 +227,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule ordered_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
-        = __ op:$(("any" / "all" / "first" / "last")) __ r:(exprs())
+        = _ op:$(("any" / "all" / "first" / "last")) _ r:(exprs())
         {?
             use crate::restrict::OrderedRestrict::*;
             let r = match op {
@@ -282,7 +282,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule maintainer_and() -> MaintainerRestrict
-        = exprs:(maintainer_attr_optional() / maintainer_restrict()) ++ (_ "&&" _)
+        = exprs:(maintainer_attr_optional() / maintainer_restrict()) ++ (_* "&&" _*)
         {
             use crate::metadata::ebuild::MaintainerRestrict::And;
             And(exprs.into_iter().map(Box::new).collect())
@@ -309,17 +309,16 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule upstream_and() -> UpstreamRestrict
-        = exprs:upstream_restrict() ++ (_ "&&" _)
+        = exprs:upstream_restrict() ++ (_* "&&" _*)
         {
             use crate::metadata::ebuild::UpstreamRestrict::And;
             And(exprs.into_iter().map(Box::new).collect())
         }
 
-    rule _ = quiet!{[' ' | '\n' | '\t']*}
-    rule __ = quiet!{[' ' | '\n' | '\t']+}
+    rule _ = quiet!{[' ' | '\n' | '\t']+}
 
-    rule parens<T>(expr: rule<T>) -> T = _ "(" _ v:expr() _ ")" _ { v }
-    rule is_op() = __ "is" __
+    rule parens<T>(expr: rule<T>) -> T = _* "(" _* v:expr() _* ")" _* { v }
+    rule is_op() = _ "is" _
 
     rule expr() -> Restrict
         = r:(attr_optional()
@@ -334,11 +333,11 @@ peg::parser!(grammar restrict() for str {
         ) { r }
 
     pub(super) rule query() -> Restrict = precedence!{
-        x:(@) _ "||" _ y:@ { x | y }
+        x:(@) _* "||" _* y:@ { x | y }
         --
-        x:(@) _ "^^" _ y:@ { x ^ y }
+        x:(@) _* "^^" _* y:@ { x ^ y }
         --
-        x:(@) _ "&&" _ y:@ { x & y }
+        x:(@) _* "&&" _* y:@ { x & y }
         --
         "!" x:(@) { !x }
         --
