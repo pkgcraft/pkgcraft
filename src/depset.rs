@@ -129,24 +129,17 @@ impl<'a, T> Iterator for DepSetFlatten<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
+        use DepRestrict::*;
         while self.buffer.front().is_none() && !self.deps.is_empty() {
             if let Some(d) = self.deps.pop_front() {
                 match d {
-                    DepRestrict::Matches(val, _) => self.buffer.push_back(val),
-                    DepRestrict::AllOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                    DepRestrict::AnyOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                    DepRestrict::ExactlyOneOf(vals) => {
-                        self.deps.extend(vals.iter().map(AsRef::as_ref))
-                    }
-                    DepRestrict::AtMostOneOf(vals) => {
-                        self.deps.extend(vals.iter().map(AsRef::as_ref))
-                    }
-                    DepRestrict::UseEnabled(_, vals) => {
-                        self.deps.extend(vals.iter().map(AsRef::as_ref))
-                    }
-                    DepRestrict::UseDisabled(_, vals) => {
-                        self.deps.extend(vals.iter().map(AsRef::as_ref))
-                    }
+                    Matches(val, _) => self.buffer.push_back(val),
+                    AllOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                    AnyOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                    ExactlyOneOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                    AtMostOneOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                    UseEnabled(_, vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                    UseDisabled(_, vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
                 }
             }
         }
