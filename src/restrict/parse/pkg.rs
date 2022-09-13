@@ -1,9 +1,7 @@
 use std::cmp::Ordering;
-use std::str::FromStr;
 
 use regex::Regex;
 
-use crate::atom::Atom;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
 use crate::restrict::*;
@@ -179,7 +177,10 @@ peg::parser!(grammar restrict() for str {
         {?
             use crate::pkg::ebuild::Restrict::*;
             use crate::depset::Restrict::*;
-            let r = Atom::from_str(s).map_err(|_| "invalid atom")?.into();
+            let r = match super::parse::dep(s) {
+                Ok(Restrict::Atom(r)) => r,
+                _ => return Err("invalid dep restriction"),
+            };
             match attr {
                 "depend" => Ok(Depend(Some(Any(r))).into()),
                 "bdepend" => Ok(Bdepend(Some(Any(r))).into()),
