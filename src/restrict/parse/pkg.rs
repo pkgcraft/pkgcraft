@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
+use std::str::FromStr;
 
 use regex::Regex;
 
+use crate::atom::Atom;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
 use crate::restrict::*;
@@ -172,6 +174,22 @@ peg::parser!(grammar restrict() for str {
             Ok(ebuild_r.into())
         }
 
+    rule attr_dep_restrict() -> Restrict
+        = attr:$(['b' | 'i' | 'p' | 'r']? "depend") __ "any" __ s:quoted_string()
+        {?
+            use crate::pkg::ebuild::Restrict::*;
+            use crate::depset::Restrict::*;
+            let r = Atom::from_str(s).map_err(|_| "invalid atom")?.into();
+            match attr {
+                "depend" => Ok(Depend(Some(Any(r))).into()),
+                "bdepend" => Ok(Bdepend(Some(Any(r))).into()),
+                "idepend" => Ok(Idepend(Some(Any(r))).into()),
+                "pdepend" => Ok(Pdepend(Some(Any(r))).into()),
+                "rdepend" => Ok(Rdepend(Some(Any(r))).into()),
+                _ => Err("unknown dep attribute"),
+            }
+        }
+
     rule attr_orderedset_str() -> Restrict
         = attr:$((
                 "homepage"
@@ -307,6 +325,7 @@ peg::parser!(grammar restrict() for str {
         = r:(attr_optional()
            / atom_str_restrict()
            / attr_str_restrict()
+           / attr_dep_restrict()
            / attr_orderedset_str()
            / attr_hashset_str()
            / maintainers()

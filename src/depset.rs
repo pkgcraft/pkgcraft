@@ -93,13 +93,13 @@ impl<T: fmt::Display> fmt::Display for DepRestrict<T> {
 
 #[derive(Debug, Clone)]
 pub enum Restrict<T> {
-    Matches(T),
+    Any(T),
 }
 
 impl Restriction<&DepSet<Atom>> for Restrict<AtomRestrict> {
     fn matches(&self, val: &DepSet<Atom>) -> bool {
         match self {
-            Self::Matches(r) => val.flatten().any(|v| r.matches(v)),
+            Self::Any(r) => val.flatten().any(|v| r.matches(v)),
         }
     }
 }
@@ -107,7 +107,7 @@ impl Restriction<&DepSet<Atom>> for Restrict<AtomRestrict> {
 impl Restriction<&DepSet<String>> for Restrict<Str> {
     fn matches(&self, val: &DepSet<String>) -> bool {
         match self {
-            Self::Matches(r) => val.flatten().any(|v| r.matches(v)),
+            Self::Any(r) => val.flatten().any(|v| r.matches(v)),
         }
     }
 }
@@ -115,7 +115,7 @@ impl Restriction<&DepSet<String>> for Restrict<Str> {
 impl Restriction<&DepSet<Uri>> for Restrict<Str> {
     fn matches(&self, val: &DepSet<Uri>) -> bool {
         match self {
-            Self::Matches(r) => val.flatten().any(|v| r.matches(v.as_ref())),
+            Self::Any(r) => val.flatten().any(|v| r.matches(v.as_ref())),
         }
     }
 }
