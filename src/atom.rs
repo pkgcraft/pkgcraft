@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt::{self, Write};
-use std::ptr;
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
@@ -287,9 +286,8 @@ impl FromStr for Atom {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Restrict {
-    Custom(fn(&Atom) -> bool),
     Category(Str),
     Package(Str),
     Blocker(Option<Blocker>),
@@ -299,24 +297,7 @@ pub enum Restrict {
     Subslot(Option<Str>),
     UseDeps(HashSetRestrict<String>),
     Repo(Option<Str>),
-}
 
-impl fmt::Debug for Restrict {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::Restrict::*;
-        match self {
-            Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Category(r) => write!(f, "Category({r:?})"),
-            Package(r) => write!(f, "Package({r:?})"),
-            Blocker(b) => write!(f, "Blocker({b:?})"),
-            Version(v) => write!(f, "Version({v:?})"),
-            VersionStr(s) => write!(f, "VersionStr({s:?})"),
-            Slot(r) => write!(f, "Slot({r:?})"),
-            Subslot(r) => write!(f, "Subslot({r:?})"),
-            UseDeps(r) => write!(f, "UseDeps({r:?})"),
-            Repo(r) => write!(f, "Repo({r:?})"),
-        }
-    }
 }
 
 impl Restrict {
@@ -362,7 +343,6 @@ impl Restriction<&Atom> for Restrict {
     fn matches(&self, atom: &Atom) -> bool {
         use self::Restrict::*;
         match self {
-            Custom(func) => func(atom),
             Category(r) => r.matches(atom.category()),
             Package(r) => r.matches(atom.package()),
             Blocker(b) => match (b, atom.blocker()) {
