@@ -438,8 +438,7 @@ macro_rules! make_contains_atom {
     ($x:ty [$($y:ty),+]) => {$(
         impl $crate::repo::Contains<$y> for $x {
             fn contains(&self, atom: $y) -> bool {
-                let r: $crate::restrict::Restrict = atom.into();
-                self.iter_restrict(r).next().is_some()
+                self.iter_restrict(atom).next().is_some()
             }
         }
     )+};
