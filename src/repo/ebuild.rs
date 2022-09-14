@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 use std::{env, fmt, fs, io, iter, thread};
@@ -655,33 +656,31 @@ pub struct PkgIter<'a> {
 
 impl<'a> PkgIter<'a> {
     fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
-        use crate::atom::Restrict::{Category, Package, Version};
+        use crate::atom::Restrict::{And, Category, Package, Version};
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
-        let mut atom_restricts = vec![];
+        let (mut cat, mut pkg, mut ver) = (None, None, None);
 
         // extract atom restrictions for package filtering
-        if let Some(restrict) = restrict {
-            let mut restricts = vec![restrict];
-            while let Some(r) = restricts.pop() {
+        if let Some(Restrict::Atom(And(vals))) = restrict {
+            for r in vals.iter().map(Deref::deref) {
                 match r {
-                    Restrict::And(vals) => restricts.extend(vals.iter().map(|r| r.as_ref())),
-                    Restrict::Atom(Category(r)) => {
+                    Category(r) => {
                         cat_restricts.push(r.clone());
                         if let Str::Equal(s) = r {
-                            atom_restricts.push(s.as_str());
+                            cat = Some(s.to_string());
                         }
                     }
-                    r @ Restrict::Atom(Package(x)) => {
+                    r @ Package(x) => {
                         pkg_restricts.push(r.clone());
                         if let Str::Equal(s) = x {
-                            atom_restricts.push(s.as_str());
+                            pkg = Some(s.to_string());
                         }
                     }
-                    r @ Restrict::Atom(Version(x)) => {
+                    r @ Version(x) => {
                         pkg_restricts.push(r.clone());
                         if let Some(v) = x {
-                            atom_restricts.push(v.as_str());
+                            ver = Some(v.to_string());
                         }
                     }
                     _ => (),
@@ -729,13 +728,13 @@ impl<'a> PkgIter<'a> {
         };
 
         Self {
-            iter: match &atom_restricts[..] {
+            iter: match (cat, pkg, ver) {
                 // single atom restriction
-                [ver, pkg, cat] => {
+                (Some(cat), Some(pkg), Some(ver)) => {
                     let s = format!("{cat}/{pkg}-{ver}");
                     let cpv = atom::cpv(&s).expect("atom restrict failed");
                     let path =
-                        build_from_paths!(repo.path(), cat, pkg, format!("{pkg}-{ver}.ebuild"));
+                        build_from_paths!(repo.path(), &cat, &pkg, format!("{pkg}-{ver}.ebuild"));
                     Box::new(iter::once((path, cpv)))
                 }
 
@@ -749,7 +748,7 @@ impl<'a> PkgIter<'a> {
 
                     let pkg_restrict = match &pkg_restricts[..] {
                         [] => Restrict::True,
-                        [_] => pkg_restricts.remove(0),
+                        [_] => pkg_restricts.remove(0).into(),
                         _ => Restrict::and(pkg_restricts),
                     };
 
