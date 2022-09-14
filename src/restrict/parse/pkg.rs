@@ -2,8 +2,10 @@ use std::cmp::Ordering;
 
 use regex::Regex;
 
+use crate::atom;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
+use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::restrict::*;
 
 fn set_restrict<S: FromIterator<String>>(
@@ -56,52 +58,100 @@ fn len_restrict(op: &str, s: &str) -> Result<(Vec<Ordering>, usize), &'static st
     Ok((cmps, size))
 }
 
+fn missing_restrict(attr: &str) -> EbuildRestrict {
+    use crate::pkg::ebuild::Restrict::*;
+    match attr {
+        "subslot" => RawSubslot(None),
+        "depend" => Depend(None),
+        "bdepend" => Bdepend(None),
+        "idepend" => Idepend(None),
+        "pdepend" => Pdepend(None),
+        "rdepend" => Rdepend(None),
+        "license" => License(None),
+        "required_use" => RequiredUse(None),
+        "src_uri" => SrcUri(None),
+        "homepage" => Homepage(None),
+        "defined_phases" => DefinedPhases(None),
+        "keywords" => Keywords(None),
+        "iuse" => Iuse(None),
+        "inherited" => Inherited(None),
+        "inherit" => Inherit(None),
+        "long_description" => LongDescription(None),
+        "maintainers" => Maintainers(None),
+        "upstreams" => Upstreams(None),
+        _ => panic!("unknown optional package attribute: {attr}"),
+    }
+}
+
+fn dep_restrict(attr: &str, r: atom::Restrict) -> EbuildRestrict {
+    use crate::depset::Restrict::*;
+    use crate::pkg::ebuild::Restrict::*;
+
+    match attr {
+        "depend" => Depend(Some(Any(r))),
+        "bdepend" => Bdepend(Some(Any(r))),
+        "idepend" => Idepend(Some(Any(r))),
+        "pdepend" => Pdepend(Some(Any(r))),
+        "rdepend" => Rdepend(Some(Any(r))),
+        _ => panic!("unknown dep attribute: {attr}"),
+    }
+}
+
+type LogicRestrict = fn(Vec<Box<EbuildRestrict>>) -> EbuildRestrict;
+
+fn logic_r(func: LogicRestrict, restricts: Vec<EbuildRestrict>) -> EbuildRestrict {
+    func(restricts.into_iter().map(Box::new).collect())
+}
+
 peg::parser!(grammar restrict() for str {
-    rule attr_optional() -> Restrict
+    rule optional_attr() -> &'input str
         = attr:$((
-                "subslot"
-                / "depend"
-                / "bdepend"
-                / "idepend"
-                / "pdepend"
-                / "rdepend"
-                / "license"
-                / "required_use"
-                / "src_uri"
-                / "homepage"
-                / "defined_phases"
-                / "keywords"
-                / "iuse"
-                / "inherited"
-                / "inherit"
-                / "long_description"
-                / "maintainers"
-                / "upstreams"
-            )) is_op() ("None" / "none")
-        {?
+            "subslot"
+            / "depend"
+            / "bdepend"
+            / "idepend"
+            / "pdepend"
+            / "rdepend"
+            / "license"
+            / "required_use"
+            / "src_uri"
+            / "homepage"
+            / "defined_phases"
+            / "keywords"
+            / "iuse"
+            / "inherited"
+            / "inherit"
+            / "long_description"
+            / "maintainers"
+            / "upstreams"
+        )) { attr }
+
+    rule attr_optional() -> Restrict
+        = attr:optional_attr() is_op() ("None" / "none")
+        {
+            missing_restrict(attr).into()
+        } / vals:(op:['&' | '|'] attr:optional_attr() { (op, attr) }) **<2,> ""
+            is_op() ("None" / "none")
+        {
             use crate::pkg::ebuild::Restrict::*;
-            let r = match attr {
-                "subslot" => RawSubslot(None),
-                "depend" => Depend(None),
-                "bdepend" => Bdepend(None),
-                "idepend" => Idepend(None),
-                "pdepend" => Pdepend(None),
-                "rdepend" => Rdepend(None),
-                "license" => License(None),
-                "required_use" => RequiredUse(None),
-                "src_uri" => SrcUri(None),
-                "homepage" => Homepage(None),
-                "defined_phases" => DefinedPhases(None),
-                "keywords" => Keywords(None),
-                "iuse" => Iuse(None),
-                "inherited" => Inherited(None),
-                "inherit" => Inherit(None),
-                "long_description" => LongDescription(None),
-                "maintainers" => Maintainers(None),
-                "upstreams" => Upstreams(None),
-                _ => return Err("unknown optional package attribute"),
-            };
-            Ok(r.into())
+            let mut and_restricts = vec![];
+            let mut or_restricts = vec![];
+
+            for (op, attr) in vals {
+                match op {
+                    '&' => and_restricts.push(missing_restrict(attr)),
+                    '|' => or_restricts.push(missing_restrict(attr)),
+                    _ => panic!("unknown operator: {op}"),
+                }
+            }
+
+            match (&and_restricts[..], &or_restricts[..]) {
+                ([..], []) => logic_r(And, and_restricts).into(),
+                ([], [..]) => logic_r(Or, or_restricts).into(),
+                ([..], [..]) => Restrict::and(
+                    [logic_r(And, and_restricts), logic_r(Or, or_restricts)]),
+                _ => panic!("missing optional attr restrictions"),
+            }
         }
 
     rule quoted_string() -> &'input str
@@ -172,22 +222,50 @@ peg::parser!(grammar restrict() for str {
             Ok(ebuild_r.into())
         }
 
+    rule dep_attr() -> &'input str
+        = attr:$((
+            "depend"
+            / "bdepend"
+            / "idepend"
+            / "pdepend"
+            / "rdepend"
+        )) { attr }
+
     rule attr_dep_restrict() -> Restrict
-        = attr:$(['b' | 'i' | 'p' | 'r']? "depend") _ "any" _ s:quoted_string()
+        = attr:dep_attr() _ "any" _ s:quoted_string()
         {?
-            use crate::pkg::ebuild::Restrict::*;
-            use crate::depset::Restrict::*;
-            let r = match super::parse::dep(s) {
+            let atom_r = match super::parse::dep(s) {
                 Ok(Restrict::Atom(r)) => r,
                 _ => return Err("invalid dep restriction"),
             };
-            match attr {
-                "depend" => Ok(Depend(Some(Any(r))).into()),
-                "bdepend" => Ok(Bdepend(Some(Any(r))).into()),
-                "idepend" => Ok(Idepend(Some(Any(r))).into()),
-                "pdepend" => Ok(Pdepend(Some(Any(r))).into()),
-                "rdepend" => Ok(Rdepend(Some(Any(r))).into()),
-                _ => Err("unknown dep attribute"),
+
+            Ok(dep_restrict(attr, atom_r).into())
+        } / vals:(op:['&' | '|'] attr:dep_attr() { (op, attr) }) **<2,> ""
+            _ "any" _ s:quoted_string()
+        {?
+            use crate::pkg::ebuild::Restrict::*;
+            let mut and_restricts = vec![];
+            let mut or_restricts = vec![];
+
+            let atom_r = match super::parse::dep(s) {
+                Ok(Restrict::Atom(r)) => r,
+                _ => return Err("invalid dep restriction"),
+            };
+
+            for (op, attr) in vals {
+                match op {
+                    '&' => and_restricts.push(dep_restrict(attr, atom_r.clone())),
+                    '|' => or_restricts.push(dep_restrict(attr, atom_r.clone())),
+                    _ => panic!("unknown operator: {op}"),
+                }
+            }
+
+            match (&and_restricts[..], &or_restricts[..]) {
+                ([..], []) => Ok(logic_r(And, and_restricts).into()),
+                ([], [..]) => Ok(logic_r(Or, or_restricts).into()),
+                ([..], [..]) => Ok(Restrict::and(
+                    [logic_r(And, and_restricts), logic_r(Or, or_restricts)])),
+                _ => panic!("missing optional attr restrictions"),
             }
         }
 
@@ -321,7 +399,7 @@ peg::parser!(grammar restrict() for str {
     rule parens<T>(expr: rule<T>) -> T = _* "(" _* v:expr() _* ")" _* { v }
     rule is_op() = _ "is" _
 
-    rule expr() -> Restrict
+    rule expression() -> Restrict
         = r:(attr_optional()
            / atom_str_restrict()
            / attr_str_restrict()
@@ -343,7 +421,7 @@ peg::parser!(grammar restrict() for str {
         "!" x:(@) { !x }
         --
         v:parens(<query()>) { v }
-        e:expr() { e }
+        e:expression() { e }
     }
 });
 

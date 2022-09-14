@@ -1,5 +1,3 @@
-use std::{fmt, ptr};
-
 use crate::atom::Restrict as AtomRestrict;
 use crate::depset::Restrict as DepSetRestrict;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
@@ -9,9 +7,8 @@ use crate::restrict::{self, *};
 
 use super::Pkg;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Restrict {
-    Custom(fn(&Pkg) -> bool),
     Ebuild(Str),
     Description(Str),
     Slot(Str),
@@ -34,37 +31,10 @@ pub enum Restrict {
     LongDescription(Option<Str>),
     Maintainers(Option<OrderedRestrict<MaintainerRestrict>>),
     Upstreams(Option<OrderedRestrict<UpstreamRestrict>>),
-}
 
-impl fmt::Debug for Restrict {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use self::Restrict::*;
-        match self {
-            Custom(func) => write!(f, "Custom(func: {:?})", ptr::addr_of!(func)),
-            Ebuild(r) => write!(f, "Ebuild({r:?})"),
-            Description(r) => write!(f, "Description({r:?})"),
-            Slot(r) => write!(f, "Slot({r:?})"),
-            Subslot(r) => write!(f, "Subslot({r:?})"),
-            RawSubslot(r) => write!(f, "RawSubslot({r:?})"),
-            Depend(r) => write!(f, "Depend({r:?})"),
-            Bdepend(r) => write!(f, "Bdepend({r:?})"),
-            Idepend(r) => write!(f, "Idepend({r:?})"),
-            Pdepend(r) => write!(f, "Pdepend({r:?})"),
-            Rdepend(r) => write!(f, "Rdepend({r:?})"),
-            License(r) => write!(f, "License({r:?})"),
-            RequiredUse(r) => write!(f, "RequiredUse({r:?})"),
-            SrcUri(r) => write!(f, "SrcUri({r:?})"),
-            Homepage(r) => write!(f, "Homepage({r:?})"),
-            DefinedPhases(r) => write!(f, "DefinedPhases({r:?})"),
-            Keywords(r) => write!(f, "Keywords({r:?})"),
-            Iuse(r) => write!(f, "Iuse({r:?})"),
-            Inherit(r) => write!(f, "Inherit({r:?})"),
-            Inherited(r) => write!(f, "Inherited({r:?})"),
-            LongDescription(r) => write!(f, "LongDescription({r:?})"),
-            Maintainers(r) => write!(f, "Maintainers({r:?})"),
-            Upstreams(r) => write!(f, "Upstreams({r:?})"),
-        }
-    }
+    // boolean
+    And(Vec<Box<Self>>),
+    Or(Vec<Box<Self>>),
 }
 
 impl From<Restrict> for restrict::Restrict {
@@ -93,7 +63,6 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
         use self::Restrict::*;
         match self {
-            Custom(func) => func(pkg),
             Ebuild(r) => match pkg.ebuild() {
                 Ok(s) => r.matches(&s),
                 Err(_) => false,
@@ -183,6 +152,8 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
                 Some(r) => r.matches(pkg.upstreams()),
                 None => pkg.upstreams().is_empty(),
             },
+            And(vals) => vals.iter().all(|r| r.matches(pkg)),
+            Or(vals) => vals.iter().any(|r| r.matches(pkg)),
         }
     }
 }
