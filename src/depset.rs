@@ -159,6 +159,10 @@ impl Restriction<&DepSet<Atom>> for restrict::Restrict {
 peg::parser!(grammar depset() for str {
     rule _ = [' ']
 
+    rule string_val() -> DepRestrict<String>
+        = s:$(quiet!{[^' ']+} / expected!("string value"))
+        { DepRestrict::Matches(s.to_string(), true) }
+
     // licenses must not begin with a hyphen, dot, or plus sign.
     rule license_val() -> DepRestrict<String>
         = s:$(quiet!{
@@ -230,42 +234,58 @@ peg::parser!(grammar depset() for str {
             Ok(DepRestrict::AtMostOneOf(vals))
         }
 
-    rule license_restrict() -> DepRestrict<String>
-        = use_cond(<license_restrict()>)
-            / any_of(<license_restrict()>)
-            / all_of(<license_restrict()>)
+    rule license_dep_restrict() -> DepRestrict<String>
+        = use_cond(<license_dep_restrict()>)
+            / any_of(<license_dep_restrict()>)
+            / all_of(<license_dep_restrict()>)
             / license_val()
 
-    rule src_uri_restrict(eapi: &'static Eapi) -> DepRestrict<Uri>
-        = use_cond(<src_uri_restrict(eapi)>)
-            / all_of(<src_uri_restrict(eapi)>)
+    rule src_uri_dep_restrict(eapi: &'static Eapi) -> DepRestrict<Uri>
+        = use_cond(<src_uri_dep_restrict(eapi)>)
+            / all_of(<src_uri_dep_restrict(eapi)>)
             / uri_val(eapi)
 
-    rule required_use_restrict(eapi: &'static Eapi) -> DepRestrict<String>
-        = use_cond(<required_use_restrict(eapi)>)
-            / any_of(<required_use_restrict(eapi)>)
-            / all_of(<required_use_restrict(eapi)>)
-            / exactly_one_of(<required_use_restrict(eapi)>)
-            / at_most_one_of(eapi, <required_use_restrict(eapi)>)
+    rule properties_dep_restrict() -> DepRestrict<String>
+        = use_cond(<properties_dep_restrict()>)
+            / all_of(<properties_dep_restrict()>)
+            / string_val()
+
+    rule required_use_dep_restrict(eapi: &'static Eapi) -> DepRestrict<String>
+        = use_cond(<required_use_dep_restrict(eapi)>)
+            / any_of(<required_use_dep_restrict(eapi)>)
+            / all_of(<required_use_dep_restrict(eapi)>)
+            / exactly_one_of(<required_use_dep_restrict(eapi)>)
+            / at_most_one_of(eapi, <required_use_dep_restrict(eapi)>)
             / useflag_val()
 
-    rule pkg_restrict(eapi: &'static Eapi) -> DepRestrict<Atom>
-        = use_cond(<pkg_restrict(eapi)>)
-            / any_of(<pkg_restrict(eapi)>)
-            / all_of(<pkg_restrict(eapi)>)
+    rule restrict_dep_restrict() -> DepRestrict<String>
+        = use_cond(<restrict_dep_restrict()>)
+            / all_of(<restrict_dep_restrict()>)
+            / string_val()
+
+    rule pkg_dep_restrict(eapi: &'static Eapi) -> DepRestrict<Atom>
+        = use_cond(<pkg_dep_restrict(eapi)>)
+            / any_of(<pkg_dep_restrict(eapi)>)
+            / all_of(<pkg_dep_restrict(eapi)>)
             / pkg_val(eapi)
 
     pub(super) rule license() -> DepSet<String>
-        = deps:license_restrict() ++ " " { DepSet { deps } }
+        = deps:license_dep_restrict() ++ " " { DepSet { deps } }
 
     pub(super) rule src_uri(eapi: &'static Eapi) -> DepSet<Uri>
-        = deps:src_uri_restrict(eapi) ++ " " { DepSet { deps } }
+        = deps:src_uri_dep_restrict(eapi) ++ " " { DepSet { deps } }
+
+    pub(super) rule properties() -> DepSet<String>
+        = deps:properties_dep_restrict() ++ " " { DepSet { deps } }
 
     pub(super) rule required_use(eapi: &'static Eapi) -> DepSet<String>
-        = deps:required_use_restrict(eapi) ++ " " { DepSet { deps } }
+        = deps:required_use_dep_restrict(eapi) ++ " " { DepSet { deps } }
+
+    pub(super) rule restrict() -> DepSet<String>
+        = deps:restrict_dep_restrict() ++ " " { DepSet { deps } }
 
     pub(super) rule pkgdep(eapi: &'static Eapi) -> DepSet<Atom>
-        = deps:pkg_restrict(eapi) ++ " " { DepSet { deps } }
+        = deps:pkg_dep_restrict(eapi) ++ " " { DepSet { deps } }
 });
 
 // provide public parsing functionality while converting error types
@@ -292,12 +312,30 @@ pub mod parse {
         }
     }
 
+    pub fn properties(s: &str) -> crate::Result<Option<DepSet<String>>> {
+        match s.is_empty() {
+            true => Ok(None),
+            false => depset::properties(s)
+                .map(Some)
+                .map_err(|e| peg_error(format!("invalid PROPERTIES: {s:?}"), s, e)),
+        }
+    }
+
     pub fn required_use(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<String>>> {
         match s.is_empty() {
             true => Ok(None),
             false => depset::required_use(s, eapi)
                 .map(Some)
                 .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e)),
+        }
+    }
+
+    pub fn restrict(s: &str) -> crate::Result<Option<DepSet<String>>> {
+        match s.is_empty() {
+            true => Ok(None),
+            false => depset::restrict(s)
+                .map(Some)
+                .map_err(|e| peg_error(format!("invalid RESTRICT: {s:?}"), s, e)),
         }
     }
 

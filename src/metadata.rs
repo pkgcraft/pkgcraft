@@ -80,7 +80,9 @@ pub(crate) struct Metadata {
     slot: String,
     deps: HashMap<Key, DepSet<Atom>>,
     license: Option<DepSet<String>>,
+    properties: Option<DepSet<String>>,
     required_use: Option<DepSet<String>>,
+    restrict: Option<DepSet<String>>,
     src_uri: Option<DepSet<Uri>>,
     homepage: IndexSet<String>,
     defined_phases: HashSet<String>,
@@ -112,7 +114,9 @@ impl Metadata {
                 }
             }
             License => self.license = parse::license(val)?,
+            Properties => self.properties = parse::properties(val)?,
             RequiredUse => self.required_use = parse::required_use(val, eapi)?,
+            Restrict => self.restrict = parse::restrict(val)?,
             SrcUri => self.src_uri = parse::src_uri(val, eapi)?,
             Homepage => self.homepage = split!(val),
             DefinedPhases => self.defined_phases = split!(val),
@@ -154,7 +158,9 @@ impl Metadata {
                     }
                 }
                 License => meta.license = parse::license(val)?,
+                Properties => meta.properties = parse::properties(val)?,
                 RequiredUse => meta.required_use = parse::required_use(val, eapi)?,
+                Restrict => meta.restrict = parse::restrict(val)?,
                 SrcUri => meta.src_uri = parse::src_uri(val, eapi)?,
                 Homepage => meta.homepage = split!(val),
                 DefinedPhases => meta.defined_phases = split!(val),
@@ -273,8 +279,16 @@ impl Metadata {
         self.license.as_ref()
     }
 
+    pub(crate) fn properties(&self) -> Option<&DepSet<String>> {
+        self.properties.as_ref()
+    }
+
     pub(crate) fn required_use(&self) -> Option<&DepSet<String>> {
         self.required_use.as_ref()
+    }
+
+    pub(crate) fn restrict(&self) -> Option<&DepSet<String>> {
+        self.restrict.as_ref()
     }
 
     pub(crate) fn src_uri(&self) -> Option<&DepSet<Uri>> {

@@ -140,9 +140,19 @@ impl<'a> Pkg<'a> {
         self.meta.license()
     }
 
+    /// Return a package's PROPERTIES.
+    pub fn properties(&self) -> Option<&DepSet<String>> {
+        self.meta.properties()
+    }
+
     /// Return a package's REQUIRED_USE.
     pub fn required_use(&self) -> Option<&DepSet<String>> {
         self.meta.required_use()
+    }
+
+    /// Return a package's RESTRICT.
+    pub fn restrict(&self) -> Option<&DepSet<String>> {
+        self.meta.restrict()
     }
 
     /// Return a package's SRC_URI.
