@@ -68,7 +68,9 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
         "pdepend" => Pdepend(None),
         "rdepend" => Rdepend(None),
         "license" => License(None),
+        "properties" => Properties(None),
         "required_use" => RequiredUse(None),
+        "restrict" => Restrict(None),
         "src_uri" => SrcUri(None),
         "homepage" => Homepage(None),
         "defined_phases" => DefinedPhases(None),
@@ -113,7 +115,9 @@ peg::parser!(grammar restrict() for str {
             / "pdepend"
             / "rdepend"
             / "license"
+            / "properties"
             / "required_use"
+            / "restrict"
             / "src_uri"
             / "homepage"
             / "defined_phases"
@@ -133,7 +137,7 @@ peg::parser!(grammar restrict() for str {
         } / vals:(op:['&' | '|'] attr:optional_attr() { (op, attr) }) **<2,> ""
             is_op() ("None" / "none")
         {
-            use crate::pkg::ebuild::Restrict::*;
+            use crate::pkg::ebuild::Restrict::{And, Or};
             let mut and_restricts = vec![];
             let mut or_restricts = vec![];
 
@@ -243,7 +247,7 @@ peg::parser!(grammar restrict() for str {
         } / vals:(op:['&' | '|'] attr:dep_attr() { (op, attr) }) **<2,> ""
             _ "any" _ s:quoted_string()
         {?
-            use crate::pkg::ebuild::Restrict::*;
+            use crate::pkg::ebuild::Restrict::{And, Or};
             let mut and_restricts = vec![];
             let mut or_restricts = vec![];
 

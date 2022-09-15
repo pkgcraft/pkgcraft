@@ -20,7 +20,9 @@ pub enum Restrict {
     Pdepend(Option<DepSetRestrict<AtomRestrict>>),
     Rdepend(Option<DepSetRestrict<AtomRestrict>>),
     License(Option<DepSetRestrict<Str>>),
+    Properties(Option<DepSetRestrict<Str>>),
     RequiredUse(Option<DepSetRestrict<Str>>),
+    Restrict(Option<DepSetRestrict<Str>>),
     SrcUri(Option<DepSetRestrict<Str>>),
     Homepage(Option<IndexSetRestrict<String, Str>>),
     DefinedPhases(Option<HashSetRestrict<String>>),
@@ -105,7 +107,17 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
+            Properties(r) => match (r, pkg.properties()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
             RequiredUse(r) => match (r, pkg.required_use()) {
+                (Some(r), Some(val)) => r.matches(val),
+                (None, None) => true,
+                _ => false,
+            },
+            Restrict(r) => match (r, pkg.restrict()) {
                 (Some(r), Some(val)) => r.matches(val),
                 (None, None) => true,
                 _ => false,
