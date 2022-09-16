@@ -1,6 +1,11 @@
-use super::version::ParsedVersion;
-use super::{Blocker, ParsedAtom, SlotOperator};
+use cached::{proc_macro::cached, SizedCache};
+
 use crate::eapi::{Eapi, Feature};
+use crate::peg::peg_error;
+use crate::Error;
+
+use super::version::ParsedVersion;
+use super::{Atom, Blocker, ParsedAtom, SlotOperator, Version};
 
 peg::parser! {
     grammar pkg() for str {
@@ -213,89 +218,78 @@ peg::parser! {
     }
 }
 
-// provide public parsing functionality while converting error types
-pub mod parse {
-    use cached::{proc_macro::cached, SizedCache};
+pub fn category(s: &str) -> crate::Result<&str> {
+    pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s:?}"), s, e))
+}
 
-    use crate::atom::{Atom, Version};
-    use crate::peg::peg_error;
-    use crate::Error;
+pub fn package(s: &str) -> crate::Result<&str> {
+    pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s:?}"), s, e))
+}
 
-    use super::*;
+pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
+    pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))
+}
 
-    pub fn category(s: &str) -> crate::Result<&str> {
-        pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s:?}"), s, e))
-    }
+#[cached(
+    type = "SizedCache<String, crate::Result<Version>>",
+    create = "{ SizedCache::with_size(1000) }",
+    convert = r#"{ s.to_string() }"#
+)]
+pub(crate) fn version(s: &str) -> crate::Result<Version> {
+    let ver = version_str(s)?;
+    ver.to_owned(s)
+}
 
-    pub fn package(s: &str) -> crate::Result<&str> {
-        pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s:?}"), s, e))
-    }
+pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
+    let ver =
+        pkg::version_with_op(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
+    ver.to_owned(s)
+}
 
-    pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
-        pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))
-    }
+pub fn repo(s: &str) -> crate::Result<&str> {
+    pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
+}
 
-    #[cached(
-        type = "SizedCache<String, crate::Result<Version>>",
-        create = "{ SizedCache::with_size(1000) }",
-        convert = r#"{ s.to_string() }"#
-    )]
-    pub(crate) fn version(s: &str) -> crate::Result<Version> {
-        let ver = version_str(s)?;
-        ver.to_owned(s)
-    }
+pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
+    pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))
+}
 
-    pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
-        let ver = pkg::version_with_op(s)
-            .map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
-        ver.to_owned(s)
-    }
+pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
+    let (dep, mut atom) =
+        pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))?;
+    let attrs =
+        pkg::cpv_or_cp(dep).map_err(|e| peg_error(format!("invalid atom: {s:?}"), dep, e))?;
 
-    pub fn repo(s: &str) -> crate::Result<&str> {
-        pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
-    }
-
-    pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
-        pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))
-    }
-
-    pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
-        let (dep, mut atom) =
-            pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))?;
-        let attrs =
-            pkg::cpv_or_cp(dep).map_err(|e| peg_error(format!("invalid atom: {s:?}"), dep, e))?;
-
-        match attrs {
-            (true, op, cpv, glob) => {
-                let cpv_atom =
-                    pkg::cpv(cpv).map_err(|e| peg_error(format!("invalid atom: {s:?}"), cpv, e))?;
-                let ver = cpv_atom.version.unwrap();
-                atom.category = cpv_atom.category;
-                atom.package = cpv_atom.package;
-                atom.version = Some(
-                    ver.with_op(op, glob)
-                        .map_err(|e| Error::InvalidValue(format!("invalid atom: {s:?}: {e}")))?,
-                );
-                atom.version_str = Some(cpv);
-            }
-            (false, cat, pkg, _) => {
-                atom.category = cat;
-                atom.package = pkg;
-            }
+    match attrs {
+        (true, op, cpv, glob) => {
+            let cpv_atom =
+                pkg::cpv(cpv).map_err(|e| peg_error(format!("invalid atom: {s:?}"), cpv, e))?;
+            let ver = cpv_atom.version.unwrap();
+            atom.category = cpv_atom.category;
+            atom.package = cpv_atom.package;
+            atom.version = Some(
+                ver.with_op(op, glob)
+                    .map_err(|e| Error::InvalidValue(format!("invalid atom: {s:?}: {e}")))?,
+            );
+            atom.version_str = Some(cpv);
         }
-
-        Ok(atom)
+        (false, cat, pkg, _) => {
+            atom.category = cat;
+            atom.package = pkg;
+        }
     }
 
-    #[cached(
-        type = "SizedCache<(String, &Eapi), crate::Result<Atom>>",
-        create = "{ SizedCache::with_size(1000) }",
-        convert = r#"{ (s.to_string(), eapi) }"#
-    )]
-    pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
-        let atom = dep_str(s, eapi)?;
-        atom.to_owned()
-    }
+    Ok(atom)
+}
+
+#[cached(
+    type = "SizedCache<(String, &Eapi), crate::Result<Atom>>",
+    create = "{ SizedCache::with_size(1000) }",
+    convert = r#"{ (s.to_string(), eapi) }"#
+)]
+pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
+    let atom = dep_str(s, eapi)?;
+    atom.to_owned()
 }
 
 #[cfg(test)]
@@ -318,12 +312,12 @@ mod tests {
             let failing_eapis = eapi::range(eapis).expect("failed to parse EAPI range");
             // verify parse failures
             for eapi in &failing_eapis {
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
             // verify parse successes
             for eapi in all_eapis.difference(&failing_eapis) {
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
             }
         }
@@ -334,7 +328,7 @@ mod tests {
             let passing_eapis = eapi::range(&a.eapis).expect("failed to parse EAPI range");
             // verify parse successes
             for eapi in &passing_eapis {
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
                 let atom = result.unwrap();
                 assert_eq!(atom.category(), a.category, "{s:?} failed for EAPI={eapi}");
@@ -347,7 +341,7 @@ mod tests {
             }
             // verify parse failures
             for eapi in all_eapis.difference(&passing_eapis) {
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
@@ -359,7 +353,7 @@ mod tests {
         for slot in ["0", "a", "_", "_a", "99", "aBc", "a+b_c.d-e"] {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot}");
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 match eapi.has(Feature::SlotDeps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
@@ -376,7 +370,7 @@ mod tests {
     #[test]
     fn test_parse_blockers() {
         // non-blocker
-        let atom = parse::dep("cat/pkg", &eapi::EAPI2).unwrap();
+        let atom = dep("cat/pkg", &eapi::EAPI2).unwrap();
         assert!(atom.blocker.is_none());
 
         // good deps
@@ -387,7 +381,7 @@ mod tests {
             ("!!<cat/pkg-1", Some(Blocker::Strong)),
         ] {
             for eapi in eapi::EAPIS.values() {
-                let result = parse::dep(s, eapi);
+                let result = dep(s, eapi);
                 match eapi.has(Feature::Blockers) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
@@ -411,7 +405,7 @@ mod tests {
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg[{use_deps}]");
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 match eapi.has(Feature::UseDeps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
@@ -432,7 +426,7 @@ mod tests {
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg[{use_deps}]");
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 match eapi.has(Feature::UseDepDefaults) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
@@ -459,7 +453,7 @@ mod tests {
         ] {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 match eapi.has(Feature::SlotOps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
@@ -488,7 +482,7 @@ mod tests {
         ] {
             for eapi in eapi::EAPIS.values() {
                 let s = format!("cat/pkg:{slot_str}");
-                let result = parse::dep(&s, eapi);
+                let result = dep(&s, eapi);
                 match eapi.has(Feature::SlotOps) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
                     true => {
@@ -512,10 +506,10 @@ mod tests {
 
             // repo ids aren't supported in official EAPIs
             for eapi in eapi::EAPIS_OFFICIAL.values() {
-                assert!(parse::dep(&s, eapi).is_err(), "{s:?} didn't fail");
+                assert!(dep(&s, eapi).is_err(), "{s:?} didn't fail");
             }
 
-            let result = parse::dep(&s, &eapi::EAPI_PKGCRAFT);
+            let result = dep(&s, &eapi::EAPI_PKGCRAFT);
             assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
             let atom = result.unwrap();
             assert_eq!(atom.repo, opt_str!(repo));

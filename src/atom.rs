@@ -11,11 +11,10 @@ use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::{cmp_not_equal, vec_str};
 use crate::Error;
 
-// re-export submodule functionality
-pub use parser::parse;
+// re-export Restrict
 pub use restrict::Restrict;
 
-mod parser;
+pub mod parse;
 pub mod restrict;
 pub(crate) mod version;
 
