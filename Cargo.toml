@@ -55,7 +55,6 @@ serde_with = "2.0.0"
 strum = { version = "0.24", features = ["derive"] }
 tar = { version = "0.4.38", optional = true }
 tempfile = "3"
-textwrap = "0.15"
 thiserror = "1.0.26"
 tokio = { version = "1.14", features = ["full"], optional = true }
 toml = "0.5.8"

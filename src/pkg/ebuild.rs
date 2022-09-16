@@ -895,7 +895,7 @@ mod tests {
         for pkg in [pkg1, pkg2] {
             assert_eq!(
                 pkg.long_description().unwrap(),
-                "A wrapped sentence. Another sentence.  New paragraph."
+                "A wrapped sentence. Another sentence. New paragraph."
             );
         }
 
@@ -924,7 +924,7 @@ mod tests {
         for pkg in [pkg1, pkg2] {
             assert_eq!(
                 pkg.long_description().unwrap(),
-                "A wrapped sentence. Another sentence.  New paragraph."
+                "A wrapped sentence. Another sentence. New paragraph."
             );
         }
     }

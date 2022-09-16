@@ -255,10 +255,7 @@ impl XmlMetadata {
     }
 
     fn parse_long_desc(node: Node, data: &mut Self) {
-        data.long_desc = node.text().map(|s| {
-            let (text, _opts) = textwrap::unfill(textwrap::dedent(s).trim());
-            text
-        });
+        data.long_desc = node.text().map(|s| s.split_whitespace().join(" "));
     }
 
     fn parse_xml<F: Fn(Error)>(xml: &str, warn: F) -> Self {
