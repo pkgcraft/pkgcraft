@@ -21,7 +21,7 @@ default = ["init"]
 git = ["dep:git2"]
 # enable repo syncing over https, e.g. tar+https
 https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
-# run initialization procedures on startup (required for scallop to work as expected)
+# run initialization procedures on startup for bash integration
 init = ["dep:ctor"]
 
 [dependencies]
