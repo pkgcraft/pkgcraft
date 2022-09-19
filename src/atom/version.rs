@@ -199,7 +199,7 @@ pub(crate) enum Operator {
     Greater,        // >1
 }
 
-#[derive(Debug, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Version {
     start_base: usize,
     end_base: usize,
@@ -287,6 +287,8 @@ impl PartialEq for Version {
         self.cmp(other) == Ordering::Equal
     }
 }
+
+impl Eq for Version {}
 
 impl Hash for Version {
     fn hash<H: Hasher>(&self, state: &mut H) {
