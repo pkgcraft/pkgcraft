@@ -570,7 +570,7 @@ impl Repository for Repo {
             pkg.strip_prefix('/').unwrap_or(pkg)
         );
         let ebuilds = sorted_dir_list(&path).into_iter().filter_entry(is_ebuild);
-        let mut v = vec![];
+        let mut versions = vec![];
         for entry in ebuilds {
             let entry = match entry {
                 Ok(e) => e,
@@ -584,8 +584,8 @@ impl Repository for Repo {
             let pf = path.file_stem().unwrap().to_str();
             match (pn, pf) {
                 (Some(pn), Some(pf)) => match pn == &pf[..pn.len()] {
-                    true => match atom::parse::version(&pf[pn.len() + 1..]) {
-                        Ok(ver) => v.push(format!("{ver}")),
+                    true => match atom::Version::new(&pf[pn.len() + 1..]) {
+                        Ok(v) => versions.push(v),
                         Err(e) => warn!("{e}: {path:?}"),
                     },
                     false => warn!("unmatched ebuild: {path:?}"),
@@ -593,7 +593,8 @@ impl Repository for Repo {
                 _ => warn!("non-unicode path: {path:?}"),
             }
         }
-        v
+        versions.sort();
+        versions.iter().map(|v| v.to_string()).collect()
     }
 
     fn id(&self) -> &str {
