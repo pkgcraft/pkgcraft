@@ -16,11 +16,12 @@ use crate::{atom, Error};
 pub mod ebuild;
 pub(crate) mod empty;
 pub(crate) mod fake;
+pub mod set;
 
 type VersionMap = IndexMap<String, IndexSet<String>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct PkgCache {
     pkgmap: PkgMap,
     atoms: IndexSet<atom::Atom>,
@@ -121,6 +122,12 @@ pub enum Repo {
 impl From<ebuild::Repo> for Repo {
     fn from(repo: ebuild::Repo) -> Self {
         Self::Ebuild(Arc::new(repo))
+    }
+}
+
+impl From<Arc<ebuild::Repo>> for Repo {
+    fn from(repo: Arc<ebuild::Repo>) -> Self {
+        Self::Ebuild(repo)
     }
 }
 
@@ -429,13 +436,13 @@ macro_rules! make_repo_traits {
             }
         }
 
-        $crate::repo::make_contains_atom!($x [atom::Atom, &atom::Atom]);
+        $crate::repo::make_contains_atom!($x, [atom::Atom, &atom::Atom]);
     )+};
 }
 pub(self) use make_repo_traits;
 
 macro_rules! make_contains_atom {
-    ($x:ty [$($y:ty),+]) => {$(
+    ($x:ty, [$($y:ty),+]) => {$(
         impl $crate::repo::Contains<$y> for $x {
             fn contains(&self, atom: $y) -> bool {
                 self.iter_restrict(atom).next().is_some()

@@ -9,7 +9,7 @@ use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::{atom, repo, Error};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Repo {
     id: String,
     repo_config: RepoConfig,
