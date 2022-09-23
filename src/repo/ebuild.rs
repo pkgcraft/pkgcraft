@@ -685,9 +685,9 @@ impl<'a> PkgIter<'a> {
                         }
                     }
                     _ => (),
-                };
+                }
             }
-        };
+        }
 
         // filter invalid ebuild paths
         let filter_path = |r: walkdir::Result<DirEntry>| -> Option<(Utf8PathBuf, atom::Atom)> {
