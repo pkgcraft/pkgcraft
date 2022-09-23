@@ -157,6 +157,7 @@ pub struct RestrictPkgIter<'a> {
 impl<'a> Iterator for RestrictPkgIter<'a> {
     type Item = Pkg<'a>;
 
+    #[allow(clippy::manual_find)]
     fn next(&mut self) -> Option<Self::Item> {
         for pkg in &mut self.iter {
             if self.restrict.matches(&pkg) {
