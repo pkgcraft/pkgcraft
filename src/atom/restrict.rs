@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::restrict::{self, HashSetRestrict, Restriction, SetRestrict, Str};
+use crate::restrict::{self, IndexSetRestrict, Restriction, SetRestrict, Str};
 
 use super::{Atom, Blocker, Version};
 
@@ -15,7 +15,7 @@ pub enum Restrict {
     VersionStr(Str),
     Slot(Option<Str>),
     Subslot(Option<Str>),
-    UseDeps(HashSetRestrict<String>),
+    UseDeps(Option<IndexSetRestrict<String, Str>>),
     Repo(Option<Str>),
 
     // boolean
@@ -49,11 +49,13 @@ impl Restrict {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let r = match iter {
-            None => SetRestrict::Empty,
-            Some(i) => SetRestrict::Superset(i.into_iter().map(|s| s.into()).collect()),
-        };
-        Self::UseDeps(r)
+        match iter {
+            None => Self::UseDeps(None),
+            Some(i) => {
+                let r = SetRestrict::Superset(i.into_iter().map(|s| s.into()).collect());
+                Self::UseDeps(Some(IndexSetRestrict::Set(r)))
+            }
+        }
     }
 
     pub fn repo(o: Option<&str>) -> Self {
@@ -88,7 +90,11 @@ impl Restriction<&Atom> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            UseDeps(r) => r.matches(&atom.use_deps_set()),
+            UseDeps(r) => match (r, atom.use_deps()) {
+                (Some(r), Some(vals)) => r.matches(vals),
+                (None, None) => true,
+                _ => false,
+            },
             Repo(r) => match (r, atom.repo()) {
                 (Some(r), Some(repo)) => r.matches(repo),
                 (None, None) => true,

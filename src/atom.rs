@@ -1,9 +1,11 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::fmt::{self, Write};
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
+use indexmap::IndexSet;
+use itertools::Itertools;
 
 pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
@@ -97,7 +99,7 @@ impl ParsedAtom<'_> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct Atom {
     category: String,
     package: String,
@@ -106,8 +108,34 @@ pub struct Atom {
     slot: Option<String>,
     subslot: Option<String>,
     slot_op: Option<SlotOperator>,
-    use_deps: Option<Vec<String>>,
+    use_deps: Option<IndexSet<String>>,
     repo: Option<String>,
+}
+
+impl PartialEq for Atom {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for Atom {}
+
+impl Hash for Atom {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.category.hash(state);
+        self.package.hash(state);
+        self.blocker.hash(state);
+        self.version.hash(state);
+        self.slot.hash(state);
+        self.subslot.hash(state);
+        self.slot_op.hash(state);
+        if let Some(vals) = &self.use_deps {
+            for e in vals {
+                e.hash(state);
+            }
+        }
+        self.repo.hash(state);
+    }
 }
 
 #[cached(
@@ -155,17 +183,9 @@ impl Atom {
         self.blocker
     }
 
-    /// Return the set of an atom's USE flag dependencies.
-    fn use_deps_set(&self) -> HashSet<String> {
-        match self.use_deps() {
-            None => HashSet::<String>::new(),
-            Some(u) => u.iter().map(|s| s.to_string()).collect(),
-        }
-    }
-
     /// Return an atom's USE flag dependencies.
-    pub fn use_deps(&self) -> Option<&[String]> {
-        self.use_deps.as_deref()
+    pub fn use_deps(&self) -> Option<&IndexSet<String>> {
+        self.use_deps.as_ref()
     }
 
     /// Return an atom's version.
@@ -246,7 +266,7 @@ impl fmt::Display for Atom {
 
         // append use deps
         if let Some(x) = &self.use_deps {
-            write!(s, "[{}]", &x.join(","))?;
+            write!(s, "[{}]", x.iter().join(","))?;
         }
 
         // append repo
@@ -266,7 +286,12 @@ impl Ord for Atom {
         cmp_not_equal!(&self.blocker, &other.blocker);
         cmp_not_equal!(&self.slot, &other.slot);
         cmp_not_equal!(&self.subslot, &other.subslot);
-        cmp_not_equal!(&self.use_deps, &other.use_deps);
+        match (&self.use_deps, &other.use_deps) {
+            (Some(u1), Some(u2)) => cmp_not_equal!(u1.iter(), u2.iter()),
+            (Some(_), None) => return Ordering::Greater,
+            (None, Some(_)) => return Ordering::Less,
+            _ => (),
+        }
         self.repo.cmp(&other.repo)
     }
 }
@@ -403,7 +428,7 @@ mod tests {
     fn test_hashing() {
         let data = Versions::load().unwrap();
         for (versions, size) in data.hashing.iter() {
-            let atoms: HashSet<_> = versions
+            let atoms: IndexSet<_> = versions
                 .iter()
                 .map(|s| Atom::from_str(&format!("=cat/pkg-{s}")).unwrap())
                 .collect();
