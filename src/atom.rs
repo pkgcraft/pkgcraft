@@ -64,6 +64,7 @@ impl FromStr for SlotOperator {
     }
 }
 
+/// Parsed package atom from borrowed input string
 #[derive(Debug, Default)]
 pub(crate) struct ParsedAtom<'a> {
     pub(crate) category: &'a str,
@@ -99,6 +100,7 @@ impl ParsedAtom<'_> {
     }
 }
 
+/// Package atom
 #[derive(Debug, Clone)]
 pub struct Atom {
     category: String,

@@ -97,6 +97,7 @@ impl ConfigPath {
     }
 }
 
+/// System config
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Config {
     pub path: ConfigPath,
