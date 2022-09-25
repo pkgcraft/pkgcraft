@@ -10,6 +10,7 @@ use crate::restrict::Restrict;
 
 use super::make_contains_atom;
 
+/// Ordered set of repos
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepoSet(IndexSet<Repo>);
 
