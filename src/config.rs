@@ -234,8 +234,10 @@ impl Config {
         r.finalize()?;
         self.repos.insert(name, r, false);
         Config::make_current(self.clone());
-        let repo = self.repos.get(name).unwrap().as_ebuild().unwrap();
-        Ok((temp_repo, repo.clone()))
+        match self.repos.get(name) {
+            Some(Repo::Ebuild(r)) => Ok((temp_repo, r.clone())),
+            _ => panic!("unknown temp repo: {}", name),
+        }
     }
 }
 

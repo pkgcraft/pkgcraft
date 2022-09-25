@@ -16,7 +16,7 @@ use crate::depset::{DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
-use crate::repo::{ebuild::Repo, Repository};
+use crate::repo::{ebuild::Repo as EbuildRepo, Repo, Repository};
 use crate::Error;
 
 pub mod ebuild;
@@ -182,7 +182,7 @@ impl Metadata {
     }
 
     /// Load metadata from cache.
-    pub(crate) fn load(atom: &Atom, eapi: &'static Eapi, repo: &Repo) -> Option<Self> {
+    pub(crate) fn load(atom: &Atom, eapi: &'static Eapi, repo: &EbuildRepo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
         let path = build_from_paths!(repo.path(), "metadata", "md5-cache", atom.to_string());
         let s = match fs::read_to_string(&path) {
@@ -205,17 +205,17 @@ impl Metadata {
     }
 
     /// Source ebuild to determine metadata.
-    pub(crate) fn source(path: &Utf8Path, eapi: &'static Eapi, repo: &Repo) -> crate::Result<Self> {
+    pub(crate) fn source(
+        path: &Utf8Path,
+        eapi: &'static Eapi,
+        repo: &EbuildRepo,
+    ) -> crate::Result<Self> {
         // TODO: rework BuildData handling to drop this hack required by builtins like `inherit`
         let config = Config::current();
-        let r = config
-            .repos
-            .get(repo.id())
-            .expect("failed getting repo")
-            .as_ebuild()
-            .expect("unsupported repo type");
-        BUILD_DATA.with(|d| d.borrow_mut().repo = r.clone());
-
+        match config.repos.get(repo.id()) {
+            Some(Repo::Ebuild(r)) => BUILD_DATA.with(|d| d.borrow_mut().repo = r.clone()),
+            _ => panic!("unknown repo: {}", repo.id()),
+        }
         // TODO: run sourcing via an external process pool returning the requested variables
         source_ebuild(path)?;
         //let mut data = HashMap::new();

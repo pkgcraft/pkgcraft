@@ -292,7 +292,7 @@ impl Config {
         for (id, repo) in repos {
             // populate external repo mapping for masters finalization
             if external {
-                if let Some(r) = repo.as_ebuild() {
+                if let Repo::Ebuild(r) = repo {
                     self.externals.insert(r.path().to_string(), repo.clone());
                 }
             }
