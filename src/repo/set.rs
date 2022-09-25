@@ -24,6 +24,10 @@ impl RepoSet {
         Self(repos)
     }
 
+    pub fn repos(&self) -> &IndexSet<Repo> {
+        &self.0
+    }
+
     pub fn iter(&self) -> PkgIter {
         self.into_iter()
     }
