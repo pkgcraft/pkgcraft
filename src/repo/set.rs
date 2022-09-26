@@ -1,5 +1,5 @@
 use std::iter::Flatten;
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Sub, SubAssign};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
 use indexmap::IndexSet;
 
@@ -109,6 +109,22 @@ impl BitOrAssign<&Self> for RepoSet {
     }
 }
 
+impl BitXor<&Self> for RepoSet {
+    type Output = Self;
+
+    fn bitxor(mut self, other: &Self) -> Self {
+        self ^= other;
+        self
+    }
+}
+
+impl BitXorAssign<&Self> for RepoSet {
+    fn bitxor_assign(&mut self, other: &Self) {
+        self.0 = &self.0 ^ &other.0;
+        self.0.sort();
+    }
+}
+
 impl Sub<&Self> for RepoSet {
     type Output = Self;
 
@@ -153,6 +169,22 @@ impl BitOrAssign<&Repo> for RepoSet {
         if self.0.insert(other.clone()) {
             self.0.sort();
         }
+    }
+}
+
+impl BitXor<&Repo> for RepoSet {
+    type Output = Self;
+
+    fn bitxor(mut self, other: &Repo) -> Self {
+        self ^= other;
+        self
+    }
+}
+
+impl BitXorAssign<&Repo> for RepoSet {
+    fn bitxor_assign(&mut self, other: &Repo) {
+        self.0 = &self.0 ^ &IndexSet::from([other.clone()]);
+        self.0.sort();
     }
 }
 
