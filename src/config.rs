@@ -16,6 +16,14 @@ pub(crate) use repo::RepoConfig;
 
 mod repo;
 
+/// Set types of configured repos
+#[repr(C)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+pub enum RepoSetType {
+    AllRepos,
+    EbuildRepos,
+}
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ConfigPath {
     pub cache: Utf8PathBuf,

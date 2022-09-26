@@ -11,9 +11,12 @@ use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::repo::ebuild::TempRepo;
+use crate::repo::set::RepoSet;
 use crate::repo::{Repo, Repository};
 use crate::sync::Syncer;
 use crate::Error;
+
+use super::RepoSetType;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct RepoConfig {
@@ -270,6 +273,16 @@ impl Config {
                     .join("\n\t");
                 Err(Error::Config(format!("failed syncing:\n\t{errors}")))
             }
+        }
+    }
+
+    /// RepoSet objects from matching configured repo types
+    pub fn set(&self, set_type: RepoSetType) -> RepoSet {
+        use RepoSetType::*;
+        let repos = self.repos.values();
+        match set_type {
+            AllRepos => RepoSet::new(repos),
+            EbuildRepos => RepoSet::new(repos.filter(|r| matches!(r, Repo::Ebuild(_)))),
         }
     }
 
