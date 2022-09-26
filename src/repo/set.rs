@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 use std::iter::Flatten;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
@@ -11,8 +13,36 @@ use crate::restrict::Restrict;
 use super::make_contains_atom;
 
 /// Ordered set of repos
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct RepoSet(IndexSet<Repo>);
+
+impl PartialEq for RepoSet {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for RepoSet {}
+
+impl Hash for RepoSet {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for r in self.repos() {
+            r.hash(state);
+        }
+    }
+}
+
+impl Ord for RepoSet {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.repos().iter().cmp(other.repos().iter())
+    }
+}
+
+impl PartialOrd for RepoSet {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 impl RepoSet {
     pub fn new<'a, I>(repos: I) -> Self
