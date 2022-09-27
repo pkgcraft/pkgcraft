@@ -6,14 +6,15 @@ use camino::{Utf8Path, Utf8PathBuf};
 use super::{make_repo_traits, Repository};
 use crate::config::RepoConfig;
 use crate::pkg::fake::Pkg;
+use crate::repo::{Contains, PkgCache, PkgCacheIter};
 use crate::restrict::{Restrict, Restriction};
-use crate::{atom, repo, Error};
+use crate::{atom, Error};
 
 #[derive(Debug, Default, Clone)]
 pub struct Repo {
     id: String,
     repo_config: RepoConfig,
-    pkgs: repo::PkgCache,
+    pkgs: PkgCache,
 }
 
 make_repo_traits!(Repo);
@@ -33,7 +34,7 @@ impl Repo {
         Ok(Repo {
             id: id.to_string(),
             repo_config,
-            pkgs: repo::PkgCache::from_iter(atoms),
+            pkgs: PkgCache::from_iter(atoms),
         })
     }
 
@@ -52,7 +53,7 @@ impl Repo {
         Ok(Repo {
             id: id.to_string(),
             repo_config,
-            pkgs: repo::PkgCache::from_iter(data.lines()),
+            pkgs: PkgCache::from_iter(data.lines()),
         })
     }
 
@@ -116,7 +117,7 @@ impl Repository for Repo {
     }
 }
 
-impl<T: AsRef<Utf8Path>> repo::Contains<T> for Repo {
+impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
     fn contains(&self, _path: T) -> bool {
         false
     }
@@ -136,7 +137,7 @@ impl<'a> IntoIterator for &'a Repo {
 
 #[derive(Debug)]
 pub struct PkgIter<'a> {
-    iter: repo::PkgCacheIter<'a>,
+    iter: PkgCacheIter<'a>,
     repo: &'a Repo,
 }
 
@@ -171,9 +172,6 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
-
-    use crate::atom;
-    use crate::repo::{Contains, Repository};
 
     use super::*;
 
