@@ -15,7 +15,7 @@ use crate::{atom, Error};
 
 pub mod ebuild;
 pub(crate) mod empty;
-pub(crate) mod fake;
+pub mod fake;
 pub mod set;
 
 type VersionMap = IndexMap<String, IndexSet<String>>;

@@ -20,8 +20,7 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    #[cfg(test)]
-    pub(crate) fn new<'a, I>(id: &str, priority: i32, atoms: I) -> crate::Result<Repo>
+    pub fn new<'a, I>(id: &str, priority: i32, atoms: I) -> crate::Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
     {
