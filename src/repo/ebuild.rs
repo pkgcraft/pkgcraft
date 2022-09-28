@@ -251,7 +251,7 @@ impl fmt::Debug for Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub(super) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
+    pub fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
         S: AsRef<str>,
         P: AsRef<Utf8Path>,

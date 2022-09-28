@@ -37,11 +37,7 @@ impl Repo {
         })
     }
 
-    pub(super) fn from_path<P: AsRef<Utf8Path>>(
-        id: &str,
-        priority: i32,
-        path: P,
-    ) -> crate::Result<Self> {
+    pub fn from_path<P: AsRef<Utf8Path>>(id: &str, priority: i32, path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         let data = fs::read_to_string(path).map_err(|e| Error::RepoInit(e.to_string()))?;
         let repo_config = RepoConfig {

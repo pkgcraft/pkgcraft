@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
 use crate::repo::ebuild::{Repo as EbuildRepo, TempRepo};
-use crate::repo::Repo;
+use crate::repo::{Repo, Repository};
 use crate::Error;
 pub(crate) use repo::RepoConfig;
 
@@ -138,27 +138,29 @@ impl Config {
     /// Add local repo from a filesystem path.
     pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> crate::Result<Repo> {
         let r = self.repos.add_path(name, priority, path)?;
-        r.finalize()?;
-        self.repos.insert(name, r.clone(), true);
-        Config::make_current(self.clone());
+        self.add_repo(&r, true)?;
         Ok(r)
     }
 
     /// Add external repo from a URI.
     pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;
-        r.finalize()?;
-        self.repos.insert(name, r.clone(), false);
-        Config::make_current(self.clone());
+        self.add_repo(&r, false)?;
         Ok(r)
+    }
+
+    /// Add a repo to the config.
+    pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<()> {
+        repo.finalize()?;
+        self.repos.insert(repo.id(), repo.clone(), external);
+        Config::make_current(self.clone());
+        Ok(())
     }
 
     /// Create a new repo.
     pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
         let r = self.repos.create(name, priority)?;
-        r.finalize()?;
-        self.repos.insert(name, r.clone(), false);
-        Config::make_current(self.clone());
+        self.add_repo(&r, false)?;
         Ok(r)
     }
 

@@ -156,7 +156,7 @@ impl Repo {
     }
 
     /// Try to load a repo from a given path.
-    pub(crate) fn from_path<P, S>(id: S, priority: i32, path: P) -> crate::Result<Self>
+    pub fn from_path<P, S>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
         P: AsRef<Utf8Path>,
         S: AsRef<str>,
