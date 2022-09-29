@@ -29,7 +29,7 @@ async-trait = "0.1.51"
 cached = "0.39"
 camino = { version = "1.0.7", features = ["serde1"] }
 chic = "1"
-clap = { version = "3.1.0", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 crossbeam-channel = "0.5.5"
 ctor = { version = "0.1.22", optional = true }
 enum-as-inner = "0.5.0"

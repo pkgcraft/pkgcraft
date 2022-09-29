@@ -7,7 +7,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Group {
     inner: unistd::Group,
 }
@@ -32,7 +32,7 @@ impl Deref for Group {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct User {
     inner: unistd::User,
 }
@@ -57,7 +57,7 @@ impl FromStr for User {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct Mode {
     inner: stat::Mode,
 }
