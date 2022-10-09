@@ -51,7 +51,7 @@ roxmltree = "0.15"
 rust-ini = "0.18"
 scallop = { path = "../scallop", version = "0.0.2" }
 serde = { version = "1.0", features = ["derive"] }
-serde_with = "2.0.0"
+serde_with = { version = "2", default-features = false, features = ["macros"] }
 strum = { version = "0.24", features = ["derive"] }
 tar = { version = "0.4.38", optional = true }
 tempfile = "3"
