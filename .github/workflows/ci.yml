@@ -27,7 +27,7 @@ jobs:
     - name: Get bash submodule commit hash
       working-directory: scallop
       id: bash
-      run: echo "::set-output name=commit::$(git rev-parse --short HEAD:bash)"
+      run: echo "commit=$(git rev-parse --short HEAD:bash)" >> $GITHUB_OUTPUT
 
     - name: Remove current repo from workspace
       run: rm -rfv ${{ github.event.repository.name }}
@@ -80,7 +80,7 @@ jobs:
     - name: Get bash submodule commit hash
       working-directory: scallop
       id: bash
-      run: echo "::set-output name=commit::$(git rev-parse --short HEAD:bash)"
+      run: echo "commit=$(git rev-parse --short HEAD:bash)" >> $GITHUB_OUTPUT
 
     - name: Remove current repo from workspace
       run: rm -rfv ${{ github.event.repository.name }}
