@@ -39,12 +39,10 @@ jobs:
         submodules: recursive
 
     - name: Set up rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@master
       id: rust
       with:
         toolchain: ${{ matrix.rust-version }}
-        profile: minimal
-        override: true
 
     - name: Set up rust cache
       uses: actions/cache@v3
@@ -56,8 +54,8 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: v3-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v3-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v4-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.cachekey }}
+        restore-keys: v4-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-
 
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
@@ -91,12 +89,9 @@ jobs:
         path: ${{ github.event.repository.name }}
 
     - name: Set up rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       id: rust
       with:
-        toolchain: stable
-        profile: minimal
-        override: true
         components: clippy, rustfmt
 
     - name: Set up rust cache
@@ -109,8 +104,8 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: v3-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v3-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v4-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.cachekey }}
+        restore-keys: v4-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-
 
     - name: Run rustfmt
       run: cargo fmt --check -p ${{ github.event.repository.name }}
@@ -147,12 +142,8 @@ jobs:
         path: ${{ github.event.repository.name }}
 
     - name: Set up rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       id: rust
-      with:
-        toolchain: stable
-        profile: minimal
-        override: true
 
     - name: Set up rust cache
       uses: actions/cache@v3
@@ -164,8 +155,8 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: v3-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: v3-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.rustc_hash }}-cargo-
+        key: v4-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.cachekey }}
+        restore-keys: v4-${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-
 
     - name: Install cargo-criterion
       run: |
