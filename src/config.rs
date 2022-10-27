@@ -172,7 +172,7 @@ impl Config {
         Ok(())
     }
 
-    /// Load repos from a given path to a portage-compatible repos.conf directory or file.
+    /// Load repos from a portage-compatible repos.conf directory or file.
     pub fn load_repos_conf<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Vec<Repo>> {
         let path = path.as_ref();
         let files: Vec<_> = match path.read_dir() {
