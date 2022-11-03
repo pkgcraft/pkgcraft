@@ -34,7 +34,7 @@ fn find_patches(paths: &[&str]) -> Result<Patches> {
     for p in paths {
         let path = Path::new(p);
         if path.is_dir() {
-            let dir_patches: Vec<PathBuf> = WalkDir::new(&path)
+            let dir_patches: Vec<PathBuf> = WalkDir::new(path)
                 .sort_by_file_name()
                 .into_iter()
                 .filter_map(|e| e.ok())

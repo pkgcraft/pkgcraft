@@ -28,7 +28,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 if let Some(p) = target.parent() {
                     parent.push(p)
                 }
-                match relpath(&source, &parent) {
+                match relpath(source, &parent) {
                     Some(source) => Ok((source, target, args[2])),
                     None => {
                         Err(Error::Base(format!("invalid relative path: {source:?} -> {target:?}")))

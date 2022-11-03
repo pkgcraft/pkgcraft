@@ -227,7 +227,7 @@ impl Install {
             };
 
             // optionally apply directory filtering
-            let entries = WalkDir::new(&dir).min_depth(depth);
+            let entries = WalkDir::new(dir).min_depth(depth);
             let entries = match predicate.as_ref() {
                 None => Either::Left(entries),
                 Some(func) => Either::Right(entries.into_iter().filter_entry(func)),

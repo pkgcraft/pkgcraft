@@ -235,7 +235,7 @@ impl Config {
                     fs::remove_dir_all(repo.path()).map_err(|e| {
                         Error::Config(format!("failed removing repo files: {:?}: {e}", repo.path()))
                     })?;
-                    let path = self.config_dir.join(&name);
+                    let path = self.config_dir.join(name);
                     fs::remove_file(&path).map_err(|e| {
                         Error::Config(format!("failed removing repo config: {path:?}: {e}"))
                     })?;

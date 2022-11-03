@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             true => vec!["-m0644"],
             false => d.insopts.iter().map(|s| s.as_str()).collect(),
         };
-        let install = d.install().dest(&dest)?.file_options(opts);
+        let install = d.install().dest(dest)?.file_options(opts);
 
         let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
 

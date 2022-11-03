@@ -21,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             true => vec!["-m0755"],
             false => d.exeopts.iter().map(|s| s.as_str()).collect(),
         };
-        let install = d.install().dest(&dest)?.file_options(opts);
+        let install = d.install().dest(dest)?.file_options(opts);
         install.files(args)?;
         Ok(ExecStatus::Success)
     })
