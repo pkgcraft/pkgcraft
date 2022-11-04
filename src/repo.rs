@@ -24,7 +24,7 @@ type PkgMap = IndexMap<String, VersionMap>;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct PkgCache {
     pkgmap: PkgMap,
-    atoms: IndexSet<atom::Atom>,
+    cpvs: IndexSet<atom::Atom>,
 }
 
 impl PkgCache {
@@ -50,11 +50,11 @@ impl PkgCache {
     }
 
     fn len(&self) -> usize {
-        self.atoms.len()
+        self.cpvs.len()
     }
 
     fn is_empty(&self) -> bool {
-        self.atoms.is_empty()
+        self.cpvs.is_empty()
     }
 }
 
@@ -64,7 +64,7 @@ impl<'a> IntoIterator for &'a PkgCache {
 
     fn into_iter(self) -> Self::IntoIter {
         PkgCacheIter {
-            iter: self.atoms.iter(),
+            iter: self.cpvs.iter(),
         }
     }
 }
@@ -85,28 +85,28 @@ impl<'a> Iterator for PkgCacheIter<'a> {
 impl<'a> FromIterator<&'a str> for PkgCache {
     fn from_iter<I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
         let mut pkgmap = PkgMap::new();
-        let mut atoms = IndexSet::<atom::Atom>::new();
+        let mut cpvs = IndexSet::<atom::Atom>::new();
         for s in iter {
             match atom::cpv(s) {
-                Ok(a) => {
-                    atoms.insert(a);
+                Ok(cpv) => {
+                    cpvs.insert(cpv);
                 }
                 Err(e) => warn!("{e}"),
             }
         }
 
-        atoms.sort();
+        cpvs.sort();
 
-        for a in &atoms {
+        for cpv in &cpvs {
             pkgmap
-                .entry(a.category().into())
+                .entry(cpv.category().into())
                 .or_insert_with(VersionMap::new)
-                .entry(a.package().into())
+                .entry(cpv.package().into())
                 .or_insert_with(IndexSet::new)
-                .insert(a.version().unwrap().into());
+                .insert(cpv.version().unwrap().into());
         }
 
-        PkgCache { pkgmap, atoms }
+        PkgCache { pkgmap, cpvs }
     }
 }
 
