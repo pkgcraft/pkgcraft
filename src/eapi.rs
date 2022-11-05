@@ -1,9 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::ffi::CStr;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::os::raw::c_char;
 use std::str::FromStr;
 
 use camino::Utf8Path;
@@ -190,14 +188,11 @@ impl IntoEapi for Option<&'static Eapi> {
 
 // Used by pkgcraft-c mapping NULL pointers to the default EAPI.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-impl IntoEapi for *const c_char {
+impl IntoEapi for *const Eapi {
     fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        match self.is_null() {
-            true => Ok(Default::default()),
-            false => {
-                let s = unsafe { CStr::from_ptr(self).to_string_lossy() };
-                <&Eapi>::from_str(&s)
-            }
+        match unsafe { self.as_ref() } {
+            Some(p) => Ok(p),
+            None => Ok(Default::default()),
         }
     }
 }
@@ -584,7 +579,6 @@ pub fn range<S: AsRef<str>>(s: S) -> crate::Result<IndexSet<&'static Eapi>> {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::CString;
     use std::ptr;
 
     use crate::macros::assert_err_re;
@@ -654,10 +648,9 @@ mod tests {
         arg = Some(&EAPI1);
         assert_eq!(&*EAPI1, arg.into_eapi().unwrap());
 
-        let mut arg: *const c_char = ptr::null();
+        let mut arg: *const Eapi = ptr::null();
         assert_eq!(&*EAPI_PKGCRAFT, arg.into_eapi().unwrap());
-        let s = CString::new("1").unwrap();
-        arg = s.as_ptr();
+        arg = &*EAPI1 as *const _;
         assert_eq!(&*EAPI1, arg.into_eapi().unwrap());
     }
 
