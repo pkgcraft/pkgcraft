@@ -160,9 +160,14 @@ impl Restriction<&DepSet<Atom>> for restrict::Restrict {
 peg::parser!(grammar depset() for str {
     rule _ = [' ']
 
-    rule string_val() -> DepRestrict<String>
-        = s:$(quiet!{[^' ']+} / expected!("string value"))
-        { DepRestrict::Matches(s.to_string(), true) }
+    // Technically PROPERTIES and RESTRICT tokens have no restrictions, but use license
+    // restrictions in order to properly parse use restrictions.
+    rule properties_restrict_val() -> DepRestrict<String>
+        = s:$(quiet!{
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
+        } / expected!("string value")
+        ) { DepRestrict::Matches(s.to_string(), true) }
 
     // licenses must not begin with a hyphen, dot, or plus sign.
     rule license_val() -> DepRestrict<String>
@@ -249,7 +254,7 @@ peg::parser!(grammar depset() for str {
     rule properties_dep_restrict() -> DepRestrict<String>
         = use_cond(<properties_dep_restrict()>)
             / all_of(<properties_dep_restrict()>)
-            / string_val()
+            / properties_restrict_val()
 
     rule required_use_dep_restrict(eapi: &'static Eapi) -> DepRestrict<String>
         = use_cond(<required_use_dep_restrict(eapi)>)
@@ -262,7 +267,7 @@ peg::parser!(grammar depset() for str {
     rule restrict_dep_restrict() -> DepRestrict<String>
         = use_cond(<restrict_dep_restrict()>)
             / all_of(<restrict_dep_restrict()>)
-            / string_val()
+            / properties_restrict_val()
 
     rule pkg_dep_restrict(eapi: &'static Eapi) -> DepRestrict<Atom>
         = use_cond(<pkg_dep_restrict(eapi)>)
