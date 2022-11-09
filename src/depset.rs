@@ -126,7 +126,7 @@ pub struct DepSetFlatten<'a, T> {
     buffer: VecDeque<&'a T>,
 }
 
-impl<'a, T> Iterator for DepSetFlatten<'a, T> {
+impl<'a, T: fmt::Debug> Iterator for DepSetFlatten<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
