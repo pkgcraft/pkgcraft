@@ -120,6 +120,7 @@ impl Restriction<&DepSet<Uri>> for Restrict<Str> {
     }
 }
 
+#[derive(Debug)]
 pub struct DepSetFlatten<'a, T> {
     deps: VecDeque<&'a DepRestrict<T>>,
     buffer: VecDeque<&'a T>,
