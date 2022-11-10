@@ -7,6 +7,7 @@ use crate::atom::{Atom, Restrict as AtomRestrict};
 use crate::eapi::{Eapi, Feature};
 use crate::restrict::{self, Restriction, Str};
 
+/// Uri object.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Uri {
     uri: String,
