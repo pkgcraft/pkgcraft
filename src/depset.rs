@@ -609,7 +609,7 @@ mod tests {
                 ("v1 u? ( v2 )", vec![vs("v1"), use_enabled("u", [vs("v2")])], vec!["v1", "v2"]),
             ] {
                 let depset = parse_func(&s)?.unwrap();
-                let flatten: Vec<_> = depset.flatten().into_iter().collect();
+                let flatten: Vec<_> = depset.flatten().collect();
                 assert_eq!(flatten, expected_flatten);
                 assert_eq!(depset.deps, expected, "{s} failed");
                 assert_eq!(depset.to_string(), s);
