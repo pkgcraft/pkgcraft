@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 use crate::atom::{Atom, Restrict as AtomRestrict};
 use crate::eapi::{Eapi, Feature};
+use crate::macros::extend_left;
 use crate::restrict::{self, Restriction, Str};
 
 /// Uri object.
@@ -133,12 +134,16 @@ impl<'a, T: fmt::Debug> Iterator for DepSetFlatten<'a, T> {
         loop {
             match self.deps.pop_front() {
                 Some(Matches(val, _)) => return Some(val),
-                Some(AllOf(vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                Some(AnyOf(vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                Some(ExactlyOneOf(vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                Some(AtMostOneOf(vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                Some(UseEnabled(_, vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                Some(UseDisabled(_, vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                Some(AllOf(vals)) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                Some(AnyOf(vals)) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                Some(ExactlyOneOf(vals)) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                Some(AtMostOneOf(vals)) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                Some(UseEnabled(_, vals)) => {
+                    extend_left!(self.deps, vals.iter().map(AsRef::as_ref))
+                }
+                Some(UseDisabled(_, vals)) => {
+                    extend_left!(self.deps, vals.iter().map(AsRef::as_ref))
+                }
                 None => return None,
             }
         }
