@@ -12,6 +12,7 @@ use scallop::variables::*;
 use scallop::{functions, source, Error};
 
 use crate::eapi::{Eapi, Feature};
+use crate::macros::extend_left;
 use crate::metadata::Key;
 use crate::pkgsh::builtins::Scope;
 use crate::repo::ebuild;
@@ -349,10 +350,7 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
             for var in eapi.incremental_keys() {
                 let deque = d.get_deque(var);
                 if let Ok(data) = string_vec(var) {
-                    // TODO: extend_left() should be implemented upstream for VecDeque
-                    for item in data.into_iter().rev() {
-                        deque.push_front(item);
-                    }
+                    extend_left!(deque, data.into_iter());
                 }
                 // export the incrementally accumulated value
                 bind(var, deque.iter().join(" "), None, None)?;
