@@ -68,7 +68,6 @@ impl<T> DepSet<T> {
     pub fn flatten(&self) -> DepSetFlatten<T> {
         DepSetFlatten {
             deps: self.deps.iter().collect(),
-            buffer: VecDeque::new(),
         }
     }
 }
@@ -124,7 +123,6 @@ impl Restriction<&DepSet<Uri>> for Restrict<Str> {
 #[derive(Debug)]
 pub struct DepSetFlatten<'a, T> {
     deps: VecDeque<&'a DepRestrict<T>>,
-    buffer: VecDeque<&'a T>,
 }
 
 impl<'a, T: fmt::Debug> Iterator for DepSetFlatten<'a, T> {
@@ -132,20 +130,18 @@ impl<'a, T: fmt::Debug> Iterator for DepSetFlatten<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         use DepRestrict::*;
-        while self.buffer.front().is_none() && !self.deps.is_empty() {
-            if let Some(d) = self.deps.pop_front() {
-                match d {
-                    Matches(val, _) => self.buffer.push_back(val),
-                    AllOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                    AnyOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                    ExactlyOneOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                    AtMostOneOf(vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                    UseEnabled(_, vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                    UseDisabled(_, vals) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
-                }
+        loop {
+            match self.deps.pop_front() {
+                Some(Matches(val, _)) => return Some(val),
+                Some(AllOf(vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                Some(AnyOf(vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                Some(ExactlyOneOf(vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                Some(AtMostOneOf(vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                Some(UseEnabled(_, vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                Some(UseDisabled(_, vals)) => self.deps.extend(vals.iter().map(AsRef::as_ref)),
+                None => return None,
             }
         }
-        self.buffer.pop_front()
     }
 }
 
