@@ -588,23 +588,29 @@ mod tests {
             assert!(parse_func("").unwrap().is_none());
 
             // valid
-            for (s, expected) in [
+            for (s, expected, expected_flatten) in [
                 // simple values
-                ("v", vec![vs("v")]),
-                ("v1 v2", vec![vs("v1"), vs("v2")]),
+                ("v", vec![vs("v")], vec!["v"]),
+                ("v1 v2", vec![vs("v1"), vs("v2")], vec!["v1", "v2"]),
                 // groupings
-                ("( v )", vec![allof(vec![vs("v")])]),
-                ("( v1 v2 )", vec![allof(vec![vs("v1"), vs("v2")])]),
-                ("( v1 ( v2 ) )", vec![allof(vec![vs("v1"), allof(vec![vs("v2")])])]),
-                ("( ( v ) )", vec![allof(vec![allof(vec![vs("v")])])]),
+                ("( v )", vec![allof(vec![vs("v")])], vec!["v"]),
+                ("( v1 v2 )", vec![allof(vec![vs("v1"), vs("v2")])], vec!["v1", "v2"]),
+                (
+                    "( v1 ( v2 ) )",
+                    vec![allof(vec![vs("v1"), allof(vec![vs("v2")])])],
+                    vec!["v1", "v2"],
+                ),
+                ("( ( v ) )", vec![allof(vec![allof(vec![vs("v")])])], vec!["v"]),
                 // conditionals
-                ("u? ( v )", vec![use_enabled("u", vec![vs("v")])]),
-                ("u? ( v1 v2 )", vec![use_enabled("u", [vs("v1"), vs("v2")])]),
-                ("!u? ( v1 v2 )", vec![use_disabled("u", [vs("v1"), vs("v2")])]),
+                ("u? ( v )", vec![use_enabled("u", vec![vs("v")])], vec!["v"]),
+                ("u? ( v1 v2 )", vec![use_enabled("u", [vs("v1"), vs("v2")])], vec!["v1", "v2"]),
+                ("!u? ( v1 v2 )", vec![use_disabled("u", [vs("v1"), vs("v2")])], vec!["v1", "v2"]),
                 // combinations
-                ("v1 u? ( v2 )", vec![vs("v1"), use_enabled("u", [vs("v2")])]),
+                ("v1 u? ( v2 )", vec![vs("v1"), use_enabled("u", [vs("v2")])], vec!["v1", "v2"]),
             ] {
                 let depset = parse_func(&s)?.unwrap();
+                let flatten: Vec<_> = depset.flatten().into_iter().collect();
+                assert_eq!(flatten, expected_flatten);
                 assert_eq!(depset.deps, expected, "{s} failed");
                 assert_eq!(depset.to_string(), s);
             }
