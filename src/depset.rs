@@ -386,46 +386,46 @@ mod tests {
         Matches(uri, true)
     }
 
-    fn allof<I, T>(iter: I) -> DepRestrict<T>
+    fn allof<I, T>(val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
     {
-        AllOf(iter.into_iter().map(Box::new).collect())
+        AllOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn anyof<I, T>(iter: I) -> DepRestrict<T>
+    fn anyof<I, T>(val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
     {
-        AnyOf(iter.into_iter().map(Box::new).collect())
+        AnyOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn exactly_one_of<I, T>(iter: I) -> DepRestrict<T>
+    fn exactly_one_of<I, T>(val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
     {
-        ExactlyOneOf(iter.into_iter().map(Box::new).collect())
+        ExactlyOneOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn at_most_one_of<I, T>(iter: I) -> DepRestrict<T>
+    fn at_most_one_of<I, T>(val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
     {
-        AtMostOneOf(iter.into_iter().map(Box::new).collect())
+        AtMostOneOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn use_enabled<I, T>(s: &str, iter: I) -> DepRestrict<T>
+    fn use_enabled<I, T>(s: &str, val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
     {
-        UseEnabled(s.to_string(), iter.into_iter().map(Box::new).collect())
+        UseEnabled(s.to_string(), val.into_iter().map(Box::new).collect())
     }
 
-    fn use_disabled<I, T>(s: &str, iter: I) -> DepRestrict<T>
+    fn use_disabled<I, T>(s: &str, val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
     {
-        UseDisabled(s.to_string(), iter.into_iter().map(Box::new).collect())
+        UseDisabled(s.to_string(), val.into_iter().map(Box::new).collect())
     }
 
     #[test]
