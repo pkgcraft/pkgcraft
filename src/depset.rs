@@ -574,4 +574,42 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_properties_restrict() -> crate::Result<()> {
+        for parse_func in [parse::properties, parse::restrict] {
+            // invalid
+            for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"]
+            {
+                assert!(parse_func(&s).is_err(), "{s:?} didn't fail");
+            }
+
+            // empty string
+            assert!(parse_func("").unwrap().is_none());
+
+            // valid
+            for (s, expected) in [
+                // simple values
+                ("v", vec![vs("v")]),
+                ("v1 v2", vec![vs("v1"), vs("v2")]),
+                // groupings
+                ("( v )", vec![allof(vec![vs("v")])]),
+                ("( v1 v2 )", vec![allof(vec![vs("v1"), vs("v2")])]),
+                ("( v1 ( v2 ) )", vec![allof(vec![vs("v1"), allof(vec![vs("v2")])])]),
+                ("( ( v ) )", vec![allof(vec![allof(vec![vs("v")])])]),
+                // conditionals
+                ("u? ( v )", vec![use_enabled("u", vec![vs("v")])]),
+                ("u? ( v1 v2 )", vec![use_enabled("u", [vs("v1"), vs("v2")])]),
+                ("!u? ( v1 v2 )", vec![use_disabled("u", [vs("v1"), vs("v2")])]),
+                // combinations
+                ("v1 u? ( v2 )", vec![vs("v1"), use_enabled("u", [vs("v2")])]),
+            ] {
+                let depset = parse_func(&s)?.unwrap();
+                assert_eq!(depset.deps, expected, "{s} failed");
+                assert_eq!(depset.to_string(), s);
+            }
+        }
+
+        Ok(())
+    }
 }
