@@ -9,7 +9,7 @@ use crate::macros::extend_left;
 use crate::restrict::{self, Restriction, Str};
 
 /// Uri object.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Uri {
     uri: String,
     rename: Option<String>,
@@ -41,7 +41,7 @@ impl AsRef<str> for Uri {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DepSet<T> {
     deps: Vec<DepRestrict<T>>,
 }
@@ -52,7 +52,7 @@ impl<T: fmt::Display> fmt::Display for DepSet<T> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DepRestrict<T> {
     Matches(T, bool),
     // logic conditionals
