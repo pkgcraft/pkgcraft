@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use std::fmt;
+use std::{fmt, slice};
 
 use itertools::Itertools;
 
@@ -52,6 +52,42 @@ impl<T: fmt::Display> fmt::Display for DepSet<T> {
     }
 }
 
+impl<T> DepSet<T> {
+    pub fn flatten(&self) -> DepSetFlatten<T> {
+        DepSetFlatten {
+            deps: self.deps.iter().collect(),
+        }
+    }
+
+    pub fn iter(&self) -> DepSetIter<T> {
+        self.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a DepSet<T> {
+    type Item = &'a DepRestrict<T>;
+    type IntoIter = DepSetIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        DepSetIter {
+            iter: self.deps.iter(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct DepSetIter<'a, T> {
+    iter: slice::Iter<'a, DepRestrict<T>>,
+}
+
+impl<'a, T> Iterator for DepSetIter<'a, T> {
+    type Item = &'a DepRestrict<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DepRestrict<T> {
     Matches(T, bool),
@@ -62,14 +98,6 @@ pub enum DepRestrict<T> {
     AtMostOneOf(Vec<Box<DepRestrict<T>>>),  // REQUIRED_USE only
     UseEnabled(String, Vec<Box<DepRestrict<T>>>),
     UseDisabled(String, Vec<Box<DepRestrict<T>>>),
-}
-
-impl<T> DepSet<T> {
-    pub fn flatten(&self) -> DepSetFlatten<T> {
-        DepSetFlatten {
-            deps: self.deps.iter().collect(),
-        }
-    }
 }
 
 impl<T: fmt::Display> fmt::Display for DepRestrict<T> {
