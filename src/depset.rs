@@ -486,9 +486,12 @@ mod tests {
                 vec!["http://uri1", "http://uri2"],
             ),
             (
-                "u? ( http://uri1 )",
-                vec![use_enabled("u", [vu("http://uri1", None)])],
-                vec!["http://uri1"],
+                "u1? ( http://uri1 !u2? ( http://uri2 ) )",
+                vec![use_enabled(
+                    "u1",
+                    [vu("http://uri1", None), use_disabled("u2", [vu("http://uri2", None)])],
+                )],
+                vec!["http://uri1", "http://uri2"],
             ),
         ] {
             for eapi in EAPIS.values() {
@@ -501,11 +504,18 @@ mod tests {
         }
 
         // SRC_URI renames
-        for (s, expected, expected_flatten) in [(
-            "http://uri -> file",
-            vec![vu("http://uri", Some("file"))],
-            vec!["http://uri -> file"],
-        )] {
+        for (s, expected, expected_flatten) in [
+            (
+                "http://uri -> file",
+                vec![vu("http://uri", Some("file"))],
+                vec!["http://uri -> file"],
+            ),
+            (
+                "u? ( http://uri -> file )",
+                vec![use_enabled("u", [vu("http://uri", Some("file"))])],
+                vec!["http://uri -> file"],
+            ),
+        ] {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::SrcUriRenames) {
                     let depset = parse::src_uri(&s, eapi)?.unwrap();
