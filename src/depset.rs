@@ -439,25 +439,31 @@ mod tests {
         assert!(parse::license("").unwrap().is_none());
 
         // valid
-        for (s, expected) in [
+        for (s, expected, expected_flatten) in [
             // simple values
-            ("l1", vec![vs("l1")]),
-            ("l1 l2", vec![vs("l1"), vs("l2")]),
+            ("v", vec![vs("v")], vec!["v"]),
+            ("v1 v2", vec![vs("v1"), vs("v2")], vec!["v1", "v2"]),
             // groupings
-            ("( l1 )", vec![allof(vec![vs("l1")])]),
-            ("( l1 l2 )", vec![allof(vec![vs("l1"), vs("l2")])]),
-            ("( l1 ( l2 ) )", vec![allof(vec![vs("l1"), allof(vec![vs("l2")])])]),
-            ("( ( l1 ) )", vec![allof(vec![allof(vec![vs("l1")])])]),
-            ("|| ( l1 )", vec![anyof(vec![vs("l1")])]),
-            ("|| ( l1 l2 )", vec![anyof(vec![vs("l1"), vs("l2")])]),
+            ("( v )", vec![allof(vec![vs("v")])], vec!["v"]),
+            ("( v1 v2 )", vec![allof(vec![vs("v1"), vs("v2")])], vec!["v1", "v2"]),
+            ("( v1 ( v2 ) )", vec![allof(vec![vs("v1"), allof(vec![vs("v2")])])], vec!["v1", "v2"]),
+            ("( ( v ) )", vec![allof(vec![allof(vec![vs("v")])])], vec!["v"]),
+            ("|| ( v )", vec![anyof(vec![vs("v")])], vec!["v"]),
+            ("|| ( v1 v2 )", vec![anyof(vec![vs("v1"), vs("v2")])], vec!["v1", "v2"]),
             // conditionals
-            ("u? ( l1 )", vec![use_enabled("u", vec![vs("l1")])]),
-            ("u? ( l1 l2 )", vec![use_enabled("u", [vs("l1"), vs("l2")])]),
+            ("u? ( v )", vec![use_enabled("u", vec![vs("v")])], vec!["v"]),
+            ("u? ( v1 v2 )", vec![use_enabled("u", [vs("v1"), vs("v2")])], vec!["v1", "v2"]),
             // combinations
-            ("l1 u? ( l2 )", vec![vs("l1"), use_enabled("u", [vs("l2")])]),
-            ("!u? ( || ( l1 l2 ) )", vec![use_disabled("u", [anyof([vs("l1"), vs("l2")])])]),
+            ("v1 u? ( v2 )", vec![vs("v1"), use_enabled("u", [vs("v2")])], vec!["v1", "v2"]),
+            (
+                "!u? ( || ( v1 v2 ) )",
+                vec![use_disabled("u", [anyof([vs("v1"), vs("v2")])])],
+                vec!["v1", "v2"],
+            ),
         ] {
             let depset = parse::license(&s)?.unwrap();
+            let flatten: Vec<_> = depset.flatten().collect();
+            assert_eq!(flatten, expected_flatten);
             assert_eq!(depset.deps, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
         }
@@ -471,28 +477,41 @@ mod tests {
         assert!(parse::src_uri("", &EAPI_LATEST).unwrap().is_none());
 
         // valid
-        for (s, expected) in [
-            ("uri", vec![vu("uri", None)]),
-            ("http://uri", vec![vu("http://uri", None)]),
-            ("uri1 uri2", vec![vu("uri1", None), vu("uri2", None)]),
+        for (s, expected, expected_flatten) in [
+            ("uri", vec![vu("uri", None)], vec!["uri"]),
+            ("http://uri", vec![vu("http://uri", None)], vec!["http://uri"]),
+            ("uri1 uri2", vec![vu("uri1", None), vu("uri2", None)], vec!["uri1", "uri2"]),
             (
                 "( http://uri1 http://uri2 )",
                 vec![allof([vu("http://uri1", None), vu("http://uri2", None)])],
+                vec!["http://uri1", "http://uri2"],
             ),
-            ("u? ( http://uri1 )", vec![use_enabled("u", [vu("http://uri1", None)])]),
+            (
+                "u? ( http://uri1 )",
+                vec![use_enabled("u", [vu("http://uri1", None)])],
+                vec!["http://uri1"],
+            ),
         ] {
             for eapi in EAPIS.values() {
                 let depset = parse::src_uri(&s, eapi)?.unwrap();
+                let flatten: Vec<_> = depset.flatten().map(ToString::to_string).collect();
+                assert_eq!(flatten, expected_flatten);
                 assert_eq!(depset.deps, expected, "{s} failed");
                 assert_eq!(depset.to_string(), s);
             }
         }
 
         // SRC_URI renames
-        for (s, expected) in [("http://uri -> file", vec![vu("http://uri", Some("file"))])] {
+        for (s, expected, expected_flatten) in [(
+            "http://uri -> file",
+            vec![vu("http://uri", Some("file"))],
+            vec!["http://uri -> file"],
+        )] {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::SrcUriRenames) {
                     let depset = parse::src_uri(&s, eapi)?.unwrap();
+                    let flatten: Vec<_> = depset.flatten().map(ToString::to_string).collect();
+                    assert_eq!(flatten, expected_flatten);
                     assert_eq!(depset.deps, expected, "{s} failed");
                     assert_eq!(depset.to_string(), s);
                 }
@@ -513,29 +532,39 @@ mod tests {
         assert!(parse::required_use("", &EAPI_LATEST).unwrap().is_none());
 
         // valid
-        for (s, expected) in [
-            ("u", vec![vs("u")]),
-            ("!u", vec![vd("u")]),
-            ("u1 !u2", vec![vs("u1"), vd("u2")]),
-            ("( u )", vec![allof([vs("u")])]),
-            ("( u1 u2 )", vec![allof([vs("u1"), vs("u2")])]),
-            ("|| ( u )", vec![anyof([vs("u")])]),
-            ("|| ( !u1 u2 )", vec![anyof([vd("u1"), vs("u2")])]),
-            ("^^ ( u1 !u2 )", vec![exactly_one_of([vs("u1"), vd("u2")])]),
-            ("u1? ( u2 )", vec![use_enabled("u1", [vs("u2")])]),
-            ("u1? ( u2 !u3 )", vec![use_enabled("u1", [vs("u2"), vd("u3")])]),
-            ("!u1? ( || ( u2 u3 ) )", vec![use_disabled("u1", [anyof([vs("u2"), vs("u3")])])]),
+        for (s, expected, expected_flatten) in [
+            ("u", vec![vs("u")], vec!["u"]),
+            ("!u", vec![vd("u")], vec!["u"]),
+            ("u1 !u2", vec![vs("u1"), vd("u2")], vec!["u1", "u2"]),
+            ("( u )", vec![allof([vs("u")])], vec!["u"]),
+            ("( u1 u2 )", vec![allof([vs("u1"), vs("u2")])], vec!["u1", "u2"]),
+            ("|| ( u )", vec![anyof([vs("u")])], vec!["u"]),
+            ("|| ( !u1 u2 )", vec![anyof([vd("u1"), vs("u2")])], vec!["u1", "u2"]),
+            ("^^ ( u1 !u2 )", vec![exactly_one_of([vs("u1"), vd("u2")])], vec!["u1", "u2"]),
+            ("u1? ( u2 )", vec![use_enabled("u1", [vs("u2")])], vec!["u2"]),
+            ("u1? ( u2 !u3 )", vec![use_enabled("u1", [vs("u2"), vd("u3")])], vec!["u2", "u3"]),
+            (
+                "!u1? ( || ( u2 u3 ) )",
+                vec![use_disabled("u1", [anyof([vs("u2"), vs("u3")])])],
+                vec!["u2", "u3"],
+            ),
         ] {
             let depset = parse::required_use(&s, &EAPI_LATEST)?.unwrap();
+            let flatten: Vec<_> = depset.flatten().collect();
+            assert_eq!(flatten, expected_flatten);
             assert_eq!(depset.deps, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
         }
 
         // ?? operator
-        for (s, expected) in [("?? ( u1 u2 )", vec![at_most_one_of([vs("u1"), vs("u2")])])] {
+        for (s, expected, expected_flatten) in
+            [("?? ( u1 u2 )", vec![at_most_one_of([vs("u1"), vs("u2")])], vec!["u1", "u2"])]
+        {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::RequiredUseOneOf) {
                     let depset = parse::required_use(&s, eapi)?.unwrap();
+                    let flatten: Vec<_> = depset.flatten().collect();
+                    assert_eq!(flatten, expected_flatten);
                     assert_eq!(depset.deps, expected, "{s} failed");
                     assert_eq!(depset.to_string(), s);
                 }
@@ -556,18 +585,25 @@ mod tests {
         assert!(parse::pkgdep("", &EAPI_LATEST).unwrap().is_none());
 
         // valid
-        for (s, expected) in [
-            ("a/b", vec![va("a/b")]),
-            ("a/b c/d", vec![va("a/b"), va("c/d")]),
-            ("( a/b c/d )", vec![allof([va("a/b"), va("c/d")])]),
-            ("u? ( a/b c/d )", vec![use_enabled("u", [va("a/b"), va("c/d")])]),
-            ("!u? ( a/b c/d )", vec![use_disabled("u", [va("a/b"), va("c/d")])]),
+        for (s, expected, expected_flatten) in [
+            ("a/b", vec![va("a/b")], vec!["a/b"]),
+            ("a/b c/d", vec![va("a/b"), va("c/d")], vec!["a/b", "c/d"]),
+            ("( a/b c/d )", vec![allof([va("a/b"), va("c/d")])], vec!["a/b", "c/d"]),
+            ("u? ( a/b c/d )", vec![use_enabled("u", [va("a/b"), va("c/d")])], vec!["a/b", "c/d"]),
+            (
+                "!u? ( a/b c/d )",
+                vec![use_disabled("u", [va("a/b"), va("c/d")])],
+                vec!["a/b", "c/d"],
+            ),
             (
                 "u1? ( a/b !u2? ( c/d ) )",
                 vec![use_enabled("u1", [va("a/b"), use_disabled("u2", [va("c/d")])])],
+                vec!["a/b", "c/d"],
             ),
         ] {
             let depset = parse::pkgdep(&s, &EAPI_LATEST)?.unwrap();
+            let flatten: Vec<_> = depset.flatten().map(ToString::to_string).collect();
+            assert_eq!(flatten, expected_flatten);
             assert_eq!(depset.deps, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
         }
