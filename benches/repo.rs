@@ -3,7 +3,6 @@ use criterion::Criterion;
 use pkgcraft::config::Config;
 use pkgcraft::{atom, restrict::Restrict};
 
-#[allow(unused_must_use)]
 pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "", false).unwrap();
     let (t, repo) = config.temp_repo("test", 0).unwrap();
