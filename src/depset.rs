@@ -100,6 +100,14 @@ pub enum DepRestrict<T> {
     UseDisabled(String, Vec<Box<DepRestrict<T>>>),
 }
 
+impl<T> DepRestrict<T> {
+    pub fn flatten(&self) -> DepSetFlatten<T> {
+        DepSetFlatten {
+            deps: VecDeque::from([self]),
+        }
+    }
+}
+
 impl<T: fmt::Display> fmt::Display for DepRestrict<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let p = |args: &[Box<DepRestrict<T>>]| -> String {
