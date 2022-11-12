@@ -48,8 +48,7 @@ pub struct DepSet<T> {
 
 impl<T: fmt::Display> fmt::Display for DepSet<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut dep_strings = self.deps.iter().map(|x| x.to_string());
-        write!(f, "{}", dep_strings.join(" "))
+        write!(f, "{}", self.deps.iter().map(|x| x.to_string()).join(" "))
     }
 }
 
@@ -494,7 +493,7 @@ mod tests {
         ] {
             for eapi in EAPIS.values() {
                 let depset = parse::src_uri(&s, eapi)?.unwrap();
-                let flatten: Vec<_> = depset.flatten().map(ToString::to_string).collect();
+                let flatten: Vec<_> = depset.flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
                 assert_eq!(depset.deps, expected, "{s} failed");
                 assert_eq!(depset.to_string(), s);
@@ -510,7 +509,7 @@ mod tests {
             for eapi in EAPIS.values() {
                 if eapi.has(Feature::SrcUriRenames) {
                     let depset = parse::src_uri(&s, eapi)?.unwrap();
-                    let flatten: Vec<_> = depset.flatten().map(ToString::to_string).collect();
+                    let flatten: Vec<_> = depset.flatten().map(|x| x.to_string()).collect();
                     assert_eq!(flatten, expected_flatten);
                     assert_eq!(depset.deps, expected, "{s} failed");
                     assert_eq!(depset.to_string(), s);
@@ -602,7 +601,7 @@ mod tests {
             ),
         ] {
             let depset = parse::pkgdep(&s, &EAPI_LATEST)?.unwrap();
-            let flatten: Vec<_> = depset.flatten().map(ToString::to_string).collect();
+            let flatten: Vec<_> = depset.flatten().map(|x| x.to_string()).collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset.deps, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
