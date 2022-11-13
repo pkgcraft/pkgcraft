@@ -257,8 +257,7 @@ pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
 pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
     let (dep, mut atom) =
         pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s}"), s, e))?;
-    let attrs =
-        pkg::cpv_or_cp(dep).map_err(|e| peg_error(format!("invalid atom: {s}"), dep, e))?;
+    let attrs = pkg::cpv_or_cp(dep).map_err(|e| peg_error(format!("invalid atom: {s}"), dep, e))?;
 
     match attrs {
         (true, op, cpv, glob) => {
