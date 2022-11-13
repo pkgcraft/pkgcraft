@@ -628,9 +628,9 @@ mod tests {
         assert_eq!(format!("{atom}"), "cat/pkg:0");
 
         let r = EAPI0.atom("cat/pkg:0");
-        assert_err_re!(r, format!("invalid atom: \"cat/pkg:0\""));
+        assert_err_re!(r, format!("invalid atom: cat/pkg:0"));
         let r = EAPI_LATEST.atom("cat/pkg::repo");
-        assert_err_re!(r, format!("invalid atom: \"cat/pkg::repo\""));
+        assert_err_re!(r, format!("invalid atom: cat/pkg::repo"));
     }
 
     #[test]

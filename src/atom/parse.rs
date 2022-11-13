@@ -219,15 +219,15 @@ peg::parser! {
 }
 
 pub fn category(s: &str) -> crate::Result<&str> {
-    pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s:?}"), s, e))
+    pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s}"), s, e))
 }
 
 pub fn package(s: &str) -> crate::Result<&str> {
-    pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s:?}"), s, e))
+    pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s}"), s, e))
 }
 
 pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
-    pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))
+    pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s}"), s, e))
 }
 
 #[cached(
@@ -242,34 +242,34 @@ pub(crate) fn version(s: &str) -> crate::Result<Version> {
 
 pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
     let ver =
-        pkg::version_with_op(s).map_err(|e| peg_error(format!("invalid version: {s:?}"), s, e))?;
+        pkg::version_with_op(s).map_err(|e| peg_error(format!("invalid version: {s}"), s, e))?;
     ver.to_owned(s)
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {
-    pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s:?}"), s, e))
+    pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s}"), s, e))
 }
 
 pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
-    pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s:?}"), s, e))
+    pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s}"), s, e))
 }
 
 pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
     let (dep, mut atom) =
-        pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s:?}"), s, e))?;
+        pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s}"), s, e))?;
     let attrs =
-        pkg::cpv_or_cp(dep).map_err(|e| peg_error(format!("invalid atom: {s:?}"), dep, e))?;
+        pkg::cpv_or_cp(dep).map_err(|e| peg_error(format!("invalid atom: {s}"), dep, e))?;
 
     match attrs {
         (true, op, cpv, glob) => {
             let cpv_atom =
-                pkg::cpv(cpv).map_err(|e| peg_error(format!("invalid atom: {s:?}"), cpv, e))?;
+                pkg::cpv(cpv).map_err(|e| peg_error(format!("invalid atom: {s}"), cpv, e))?;
             let ver = cpv_atom.version.unwrap();
             atom.category = cpv_atom.category;
             atom.package = cpv_atom.package;
             atom.version = Some(
                 ver.with_op(op, glob)
-                    .map_err(|e| Error::InvalidValue(format!("invalid atom: {s:?}: {e}")))?,
+                    .map_err(|e| Error::InvalidValue(format!("invalid atom: {s}: {e}")))?,
             );
             atom.version_str = Some(cpv);
         }
