@@ -55,13 +55,6 @@ impl Repo {
     pub(super) fn repo_config(&self) -> &RepoConfig {
         &self.repo_config
     }
-
-    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
-        RestrictPkgIter {
-            iter: self.into_iter(),
-            restrict: val.into(),
-        }
-    }
 }
 
 impl fmt::Display for Repo {
@@ -73,6 +66,7 @@ impl fmt::Display for Repo {
 impl Repository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type Iterator<'a> = PkgIter<'a> where Self: 'a;
+    type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
 
     fn categories(&self) -> Vec<String> {
         self.pkgs.categories()
@@ -112,6 +106,13 @@ impl Repository for Repo {
 
     fn iter(&self) -> Self::Iterator<'_> {
         self.into_iter()
+    }
+
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+        RestrictPkgIter {
+            iter: self.into_iter(),
+            restrict: val.into(),
+        }
     }
 }
 

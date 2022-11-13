@@ -205,14 +205,6 @@ impl Repo {
             Self::Unsynced(repo) => repo.repo_config(),
         }
     }
-
-    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
-        match self {
-            Self::Ebuild(repo) => RestrictPkgIter::Ebuild(repo.iter_restrict(val), self),
-            Self::Fake(repo) => RestrictPkgIter::Fake(repo.iter_restrict(val), self),
-            _ => RestrictPkgIter::Empty,
-        }
-    }
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -281,6 +273,10 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     where
         Self: 'a;
 
+    type RestrictIterator<'a>: Iterator<Item = Self::Pkg<'a>>
+    where
+        Self: 'a;
+
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
@@ -291,6 +287,7 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
     fn iter(&self) -> Self::Iterator<'_>;
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
 }
 
 impl<'a, T> Repository for &'a T
@@ -299,6 +296,7 @@ where
 {
     type Pkg<'b> = T::Pkg<'b> where Self: 'b;
     type Iterator<'b> = T::Iterator<'b> where Self: 'b;
+    type RestrictIterator<'b> = T::RestrictIterator<'b> where Self: 'b;
 
     fn categories(&self) -> Vec<String> {
         (*self).categories()
@@ -330,6 +328,9 @@ where
     fn iter(&self) -> Self::Iterator<'_> {
         (*self).iter()
     }
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+        (*self).iter_restrict(val)
+    }
 }
 
 impl fmt::Display for Repo {
@@ -345,6 +346,7 @@ impl fmt::Display for Repo {
 impl Repository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type Iterator<'a> = PkgIter<'a> where Self: 'a;
+    type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
 
     fn categories(&self) -> Vec<String> {
         match self {
@@ -420,6 +422,14 @@ impl Repository for Repo {
 
     fn iter(&self) -> Self::Iterator<'_> {
         self.into_iter()
+    }
+
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+        match self {
+            Self::Ebuild(repo) => RestrictPkgIter::Ebuild(repo.iter_restrict(val), self),
+            Self::Fake(repo) => RestrictPkgIter::Fake(repo.iter_restrict(val), self),
+            _ => RestrictPkgIter::Empty,
+        }
     }
 }
 

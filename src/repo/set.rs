@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 
 use crate::atom;
 use crate::pkg::Pkg;
-use crate::repo::Repo;
+use crate::repo::{Repo, Repository};
 use crate::restrict::Restrict;
 
 use super::make_contains_atom;

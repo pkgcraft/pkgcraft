@@ -491,14 +491,6 @@ impl Repo {
     pub fn arches(&self) -> &IndexSet<String> {
         self.metadata.arches()
     }
-
-    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
-        let restrict = val.into();
-        RestrictPkgIter {
-            iter: PkgIter::new(self, Some(&restrict)),
-            restrict,
-        }
-    }
 }
 
 impl fmt::Display for Repo {
@@ -522,6 +514,7 @@ fn is_fake_category(entry: &DirEntry) -> bool {
 impl Repository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type Iterator<'a> = PkgIter<'a> where Self: 'a;
+    type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
 
     fn categories(&self) -> Vec<String> {
         // use profiles/categories from repos, falling back to raw fs dirs
@@ -622,6 +615,14 @@ impl Repository for Repo {
 
     fn iter(&self) -> Self::Iterator<'_> {
         self.into_iter()
+    }
+
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+        let restrict = val.into();
+        RestrictPkgIter {
+            iter: PkgIter::new(self, Some(&restrict)),
+            restrict,
+        }
     }
 }
 
