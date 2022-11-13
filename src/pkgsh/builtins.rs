@@ -358,7 +358,7 @@ pub(crate) mod parse {
 
     pub(crate) fn range(s: &str, max: usize) -> Result<(usize, usize)> {
         let (start, end) =
-            cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {s:?}"), s, e))?;
+            cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {s}"), s, e))?;
         if end < start {
             return Err(Error::InvalidValue(format!(
                 "start of range ({start}) is greater than end ({end})",
