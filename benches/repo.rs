@@ -1,6 +1,7 @@
 use criterion::Criterion;
 
 use pkgcraft::config::Config;
+use pkgcraft::repo::Repository;
 use pkgcraft::{atom, restrict::Restrict};
 
 pub fn bench_repo_ebuild(c: &mut Criterion) {
