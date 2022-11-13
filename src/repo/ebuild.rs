@@ -492,10 +492,6 @@ impl Repo {
         self.metadata.arches()
     }
 
-    pub fn iter(&self) -> PkgIter {
-        self.into_iter()
-    }
-
     pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
         let restrict = val.into();
         RestrictPkgIter {
@@ -524,6 +520,9 @@ fn is_fake_category(entry: &DirEntry) -> bool {
 }
 
 impl Repository for Repo {
+    type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type Iterator<'a> = PkgIter<'a> where Self: 'a;
+
     fn categories(&self) -> Vec<String> {
         // use profiles/categories from repos, falling back to raw fs dirs
         let mut categories = HashSet::<String>::new();
@@ -619,6 +618,10 @@ impl Repository for Repo {
 
     fn is_empty(&self) -> bool {
         self.iter().count() == 0
+    }
+
+    fn iter(&self) -> Self::Iterator<'_> {
+        self.into_iter()
     }
 }
 

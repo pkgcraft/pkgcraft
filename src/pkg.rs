@@ -187,7 +187,9 @@ impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::repo::{fake, Repo};
+    use crate::repo::fake;
+
+    use super::*;
 
     #[test]
     fn test_ordering() {

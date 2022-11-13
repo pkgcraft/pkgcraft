@@ -9,7 +9,7 @@ use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 use tracing::warn;
 
 use crate::config::RepoConfig;
-use crate::pkg::Pkg;
+use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict;
 use crate::{atom, Error};
 
@@ -206,10 +206,6 @@ impl Repo {
         }
     }
 
-    pub fn iter(&self) -> PkgIter {
-        self.into_iter()
-    }
-
     pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
         match self {
             Self::Ebuild(repo) => RestrictPkgIter::Ebuild(repo.iter_restrict(val), self),
@@ -277,8 +273,14 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
 });
 
 pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord {
-    // TODO: add Iterator type and iter() when GATs are stabilized
-    // https://github.com/rust-lang/rust/issues/44265
+    type Pkg<'a>: Package
+    where
+        Self: 'a;
+
+    type Iterator<'a>: Iterator<Item = Self::Pkg<'a>>
+    where
+        Self: 'a;
+
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
@@ -288,12 +290,16 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn sync(&self) -> crate::Result<()>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
+    fn iter(&self) -> Self::Iterator<'_>;
 }
 
 impl<'a, T> Repository for &'a T
 where
     T: Repository,
 {
+    type Pkg<'b> = T::Pkg<'b> where Self: 'b;
+    type Iterator<'b> = T::Iterator<'b> where Self: 'b;
+
     fn categories(&self) -> Vec<String> {
         (*self).categories()
     }
@@ -321,6 +327,9 @@ where
     fn is_empty(&self) -> bool {
         (*self).is_empty()
     }
+    fn iter(&self) -> Self::Iterator<'_> {
+        (*self).iter()
+    }
 }
 
 impl fmt::Display for Repo {
@@ -334,6 +343,9 @@ impl fmt::Display for Repo {
 }
 
 impl Repository for Repo {
+    type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type Iterator<'a> = PkgIter<'a> where Self: 'a;
+
     fn categories(&self) -> Vec<String> {
         match self {
             Self::Ebuild(repo) => repo.categories(),
@@ -404,6 +416,10 @@ impl Repository for Repo {
             Self::Fake(repo) => repo.is_empty(),
             Self::Unsynced(repo) => repo.is_empty(),
         }
+    }
+
+    fn iter(&self) -> Self::Iterator<'_> {
+        self.into_iter()
     }
 }
 

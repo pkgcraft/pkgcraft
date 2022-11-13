@@ -56,10 +56,6 @@ impl Repo {
         &self.repo_config
     }
 
-    pub fn iter(&self) -> PkgIter {
-        self.into_iter()
-    }
-
     pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
         RestrictPkgIter {
             iter: self.into_iter(),
@@ -75,6 +71,9 @@ impl fmt::Display for Repo {
 }
 
 impl Repository for Repo {
+    type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type Iterator<'a> = PkgIter<'a> where Self: 'a;
+
     fn categories(&self) -> Vec<String> {
         self.pkgs.categories()
     }
@@ -109,6 +108,10 @@ impl Repository for Repo {
 
     fn is_empty(&self) -> bool {
         self.pkgs.is_empty()
+    }
+
+    fn iter(&self) -> Self::Iterator<'_> {
+        self.into_iter()
     }
 }
 
