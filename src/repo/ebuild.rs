@@ -102,10 +102,10 @@ impl Config {
     }
 
     fn iter(&self, key: &str) -> std::str::SplitWhitespace {
-        match self.ini.get_from(DEFAULT_SECTION, key) {
-            None => "".split_whitespace(),
-            Some(s) => s.split_whitespace(),
-        }
+        self.ini
+            .get_from(DEFAULT_SECTION, key)
+            .unwrap_or_default()
+            .split_whitespace()
     }
 
     pub fn properties_allowed(&self) -> HashSet<&str> {
