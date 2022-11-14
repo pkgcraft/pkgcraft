@@ -166,22 +166,18 @@ impl<'a, T: fmt::Debug> Iterator for DepSetFlatten<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         use DepRestrict::*;
-        loop {
-            match self.deps.pop_front() {
-                Some(Matches(val, _)) => return Some(val),
-                Some(AllOf(vals)) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                Some(AnyOf(vals)) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                Some(ExactlyOneOf(vals)) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                Some(AtMostOneOf(vals)) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                Some(UseEnabled(_, vals)) => {
-                    extend_left!(self.deps, vals.iter().map(AsRef::as_ref))
-                }
-                Some(UseDisabled(_, vals)) => {
-                    extend_left!(self.deps, vals.iter().map(AsRef::as_ref))
-                }
-                None => return None,
+        while let Some(dep) = self.deps.pop_front() {
+            match dep {
+                Matches(val, _) => return Some(val),
+                AllOf(vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                AnyOf(vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                ExactlyOneOf(vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                AtMostOneOf(vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                UseEnabled(_, vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                UseDisabled(_, vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
             }
         }
+        None
     }
 }
 
