@@ -52,10 +52,6 @@ impl PkgCache {
     fn len(&self) -> usize {
         self.cpvs.len()
     }
-
-    fn is_empty(&self) -> bool {
-        self.cpvs.is_empty()
-    }
 }
 
 impl<'a> IntoIterator for &'a PkgCache {
@@ -285,7 +281,9 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn path(&self) -> &Utf8Path;
     fn sync(&self) -> crate::Result<()>;
     fn len(&self) -> usize;
-    fn is_empty(&self) -> bool;
+    fn is_empty(&self) -> bool {
+        self.iter().next().is_none()
+    }
     fn iter(&self) -> Self::Iterator<'_>;
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
 }
@@ -321,9 +319,6 @@ where
     }
     fn len(&self) -> usize {
         (*self).len()
-    }
-    fn is_empty(&self) -> bool {
-        (*self).is_empty()
     }
     fn iter(&self) -> Self::Iterator<'_> {
         (*self).iter()
@@ -409,14 +404,6 @@ impl Repository for Repo {
             Self::Ebuild(repo) => repo.len(),
             Self::Fake(repo) => repo.len(),
             Self::Unsynced(repo) => repo.len(),
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        match self {
-            Self::Ebuild(repo) => repo.is_empty(),
-            Self::Fake(repo) => repo.is_empty(),
-            Self::Unsynced(repo) => repo.is_empty(),
         }
     }
 

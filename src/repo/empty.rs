@@ -89,10 +89,6 @@ impl Repository for Repo {
         0
     }
 
-    fn is_empty(&self) -> bool {
-        true
-    }
-
     fn iter(&self) -> Self::Iterator<'_> {
         iter::empty::<Self::Pkg<'_>>()
     }

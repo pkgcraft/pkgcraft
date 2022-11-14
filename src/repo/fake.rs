@@ -100,10 +100,6 @@ impl Repository for Repo {
         self.pkgs.len()
     }
 
-    fn is_empty(&self) -> bool {
-        self.pkgs.is_empty()
-    }
-
     fn iter(&self) -> Self::Iterator<'_> {
         self.into_iter()
     }

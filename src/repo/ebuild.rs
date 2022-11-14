@@ -609,10 +609,6 @@ impl Repository for Repo {
         self.iter().count()
     }
 
-    fn is_empty(&self) -> bool {
-        self.iter().next().is_none()
-    }
-
     fn iter(&self) -> Self::Iterator<'_> {
         self.into_iter()
     }
