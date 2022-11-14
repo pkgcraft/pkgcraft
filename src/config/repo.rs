@@ -12,7 +12,7 @@ use tracing::warn;
 
 use crate::repo::ebuild::TempRepo;
 use crate::repo::set::RepoSet;
-use crate::repo::{Repo, Repository};
+use crate::repo::{Repo, Repository, RepositoryInternal};
 use crate::sync::Syncer;
 use crate::Error;
 
@@ -317,7 +317,7 @@ impl Config {
 
     /// Sort repos by priority then by name.
     fn sort(&mut self) {
-        self.repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
+        self.repos.sort_by(|_k1, v1, _k2, v2| v1.sort_cmp(v2));
     }
 }
 

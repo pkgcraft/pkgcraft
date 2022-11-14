@@ -102,8 +102,9 @@ macro_rules! make_pkg_traits {
 
         impl Ord for $x {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                use crate::repo::RepositoryInternal;
                 crate::macros::cmp_not_equal!(self.atom(), other.atom());
-                self.repo().cmp(&other.repo())
+                self.repo().sort_cmp(&other.repo())
             }
         }
 
@@ -206,8 +207,8 @@ mod tests {
         assert_eq!(atoms, ["cat/pkg-0::a", "cat/pkg-1::b"]);
 
         // matching pkgs sorted by repo priority
-        let r1: Repo = fake::Repo::new("a", 0, ["cat/pkg-0"]).unwrap().into();
-        let (t, repo) = config.temp_repo("b", -1).unwrap();
+        let r1: Repo = fake::Repo::new("a", -1, ["cat/pkg-0"]).unwrap().into();
+        let (t, repo) = config.temp_repo("b", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
         let r2 = Repo::Ebuild(repo);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();

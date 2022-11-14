@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 use std::sync::Arc;
 
@@ -281,11 +282,23 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn path(&self) -> &Utf8Path;
     fn sync(&self) -> crate::Result<()>;
     fn len(&self) -> usize;
+    fn iter(&self) -> Self::Iterator<'_>;
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
+
     fn is_empty(&self) -> bool {
         self.iter().next().is_none()
     }
-    fn iter(&self) -> Self::Iterator<'_>;
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
+}
+
+pub(crate) trait RepositoryInternal: Repository {
+    /// Sort repo objects starting with the highest priority.
+    fn sort_cmp(&self, other: &Self) -> Ordering {
+        match self.priority().cmp(&other.priority()) {
+            Ordering::Less => Ordering::Greater,
+            Ordering::Greater => Ordering::Less,
+            Ordering::Equal => self.id().cmp(other.id()),
+        }
+    }
 }
 
 impl<'a, T> Repository for &'a T
@@ -422,6 +435,8 @@ impl Repository for Repo {
 
 macro_rules! make_repo_traits {
     ($($x:ty),+) => {$(
+        impl crate::repo::RepositoryInternal for $x {}
+
         impl PartialEq for $x {
             fn eq(&self, other: &Self) -> bool {
                 self.id() == other.id()

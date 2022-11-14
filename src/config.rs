@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
 use crate::repo::ebuild::{Repo as EbuildRepo, TempRepo};
-use crate::repo::{Repo, Repository};
+use crate::repo::{Repo, Repository, RepositoryInternal};
 use crate::Error;
 pub(crate) use repo::RepoConfig;
 
@@ -230,7 +230,7 @@ impl Config {
             }
         }
 
-        repos.sort_by(|(_, r1), (_, r2)| r1.cmp(r2));
+        repos.sort_by(|(_, r1), (_, r2)| r1.sort_cmp(r2));
         Ok(repos.into_iter().map(|(_, r)| r).collect())
     }
 
