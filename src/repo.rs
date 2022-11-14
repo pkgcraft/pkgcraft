@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::fmt;
 use std::sync::Arc;
 
@@ -290,17 +289,6 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     }
 }
 
-pub(crate) trait RepositoryInternal: Repository {
-    /// Sort repo objects starting with the highest priority.
-    fn sort_cmp(&self, other: &Self) -> Ordering {
-        match self.priority().cmp(&other.priority()) {
-            Ordering::Less => Ordering::Greater,
-            Ordering::Greater => Ordering::Less,
-            Ordering::Equal => self.id().cmp(other.id()),
-        }
-    }
-}
-
 impl<'a, T> Repository for &'a T
 where
     T: Repository,
@@ -435,8 +423,6 @@ impl Repository for Repo {
 
 macro_rules! make_repo_traits {
     ($($x:ty),+) => {$(
-        impl crate::repo::RepositoryInternal for $x {}
-
         impl PartialEq for $x {
             fn eq(&self, other: &Self) -> bool {
                 self.id() == other.id()
@@ -458,9 +444,17 @@ macro_rules! make_repo_traits {
         }
 
         impl Ord for $x {
+            /// Order repos by priority then lexically by id.
+            ///
+            /// Note that priority comparisons are inverted so sorting returns higher priority
+            /// repos before ones with lower priority.
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                $crate::macros::cmp_not_equal!(&self.priority(), &other.priority());
-                self.id().cmp(other.id())
+                use std::cmp::Ordering::*;
+                match self.priority().cmp(&other.priority()) {
+                    Less => Greater,
+                    Greater => Less,
+                    Equal => self.id().cmp(other.id()),
+                }
             }
         }
 

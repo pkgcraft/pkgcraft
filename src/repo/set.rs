@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 
 use crate::atom;
 use crate::pkg::Pkg;
-use crate::repo::{Repo, Repository, RepositoryInternal};
+use crate::repo::{Repo, Repository};
 use crate::restrict::Restrict;
 
 use super::make_contains_atom;
@@ -50,7 +50,7 @@ impl RepoSet {
         I: IntoIterator<Item = &'a Repo>,
     {
         let mut repos: IndexSet<_> = repos.into_iter().cloned().collect();
-        repos.sort_by(|a, b| a.sort_cmp(b));
+        repos.sort();
         Self(repos)
     }
 
@@ -119,7 +119,7 @@ impl BitAnd<&Self> for RepoSet {
 impl BitAndAssign<&Self> for RepoSet {
     fn bitand_assign(&mut self, other: &Self) {
         self.0 = &self.0 & &other.0;
-        self.0.sort_by(|a, b| a.sort_cmp(b));
+        self.0.sort();
     }
 }
 
@@ -135,7 +135,7 @@ impl BitOr<&Self> for RepoSet {
 impl BitOrAssign<&Self> for RepoSet {
     fn bitor_assign(&mut self, other: &Self) {
         self.0 = &self.0 | &other.0;
-        self.0.sort_by(|a, b| a.sort_cmp(b));
+        self.0.sort();
     }
 }
 
@@ -151,7 +151,7 @@ impl BitXor<&Self> for RepoSet {
 impl BitXorAssign<&Self> for RepoSet {
     fn bitxor_assign(&mut self, other: &Self) {
         self.0 = &self.0 ^ &other.0;
-        self.0.sort_by(|a, b| a.sort_cmp(b));
+        self.0.sort();
     }
 }
 
@@ -197,7 +197,7 @@ impl BitOr<&Repo> for RepoSet {
 impl BitOrAssign<&Repo> for RepoSet {
     fn bitor_assign(&mut self, other: &Repo) {
         if self.0.insert(other.clone()) {
-            self.0.sort_by(|a, b| a.sort_cmp(b));
+            self.0.sort();
         }
     }
 }
@@ -214,7 +214,7 @@ impl BitXor<&Repo> for RepoSet {
 impl BitXorAssign<&Repo> for RepoSet {
     fn bitxor_assign(&mut self, other: &Repo) {
         self.0 = &self.0 ^ &IndexSet::from([other.clone()]);
-        self.0.sort_by(|a, b| a.sort_cmp(b));
+        self.0.sort();
     }
 }
 
@@ -230,7 +230,7 @@ impl Sub<&Repo> for RepoSet {
 impl SubAssign<&Repo> for RepoSet {
     fn sub_assign(&mut self, other: &Repo) {
         if self.0.remove(other) {
-            self.0.sort_by(|a, b| a.sort_cmp(b));
+            self.0.sort();
         }
     }
 }

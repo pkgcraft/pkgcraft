@@ -102,9 +102,8 @@ macro_rules! make_pkg_traits {
 
         impl Ord for $x {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                use crate::repo::RepositoryInternal;
                 crate::macros::cmp_not_equal!(self.atom(), other.atom());
-                self.repo().sort_cmp(&other.repo())
+                self.repo().cmp(&other.repo())
             }
         }
 
