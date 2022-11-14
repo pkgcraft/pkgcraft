@@ -132,13 +132,11 @@ impl Install {
         let target = self.prefix(target);
 
         // overwrite link if it exists
-        loop {
-            match link(source, &target) {
-                Ok(_) => break,
-                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-                    fs::remove_file(&target).map_err(failed)?
-                }
-                Err(e) => return Err(failed(e)),
+        while let Err(e) = link(source, &target) {
+            if e.kind() == io::ErrorKind::AlreadyExists {
+                fs::remove_file(&target).map_err(failed)?;
+            } else {
+                return Err(failed(e));
             }
         }
 
