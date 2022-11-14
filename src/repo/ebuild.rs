@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+use std::str::SplitWhitespace;
 use std::sync::{Arc, Weak};
 use std::{env, fmt, fs, io, iter, thread};
 
@@ -101,7 +102,7 @@ impl Config {
         Ok(())
     }
 
-    fn iter(&self, key: &str) -> std::str::SplitWhitespace {
+    fn iter(&self, key: &str) -> SplitWhitespace {
         self.ini
             .get_from(DEFAULT_SECTION, key)
             .unwrap_or_default()
