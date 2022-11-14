@@ -610,7 +610,7 @@ impl Repository for Repo {
     }
 
     fn is_empty(&self) -> bool {
-        self.iter().count() == 0
+        self.iter().next().is_none()
     }
 
     fn iter(&self) -> Self::Iterator<'_> {
