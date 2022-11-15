@@ -5,7 +5,7 @@ use scallop::variables::bind;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
 use crate::repo::{Repo, Repository};
-use crate::restrict::{self, Restriction};
+use crate::restrict::{self, Restriction, Str};
 use crate::{atom, eapi};
 
 pub mod ebuild;
@@ -117,9 +117,8 @@ macro_rules! make_pkg_traits {
         impl From<&$x> for crate::restrict::Restrict {
             fn from(pkg: &$x) -> Self {
                 use crate::atom::Restrict;
-                use crate::repo::Repository;
-                let r1 = pkg.atom().into();
-                let r2 = Restrict::repo(Some(pkg.repo().id()));
+                let r1: Restrict = pkg.atom().into();
+                let r2: Restrict = pkg.repo().into();
                 crate::restrict::Restrict::and([r1, r2])
             }
         }
@@ -154,9 +153,19 @@ impl<'a> Package for Pkg<'a> {
 
 #[derive(Debug, Clone)]
 pub enum Restrict {
-    Eapi(restrict::Str),
+    Eapi(Str),
     Ebuild(ebuild::Restrict),
-    Repo(restrict::Str),
+    Repo(Str),
+}
+
+impl Restrict {
+    pub fn eapi(s: &str) -> Self {
+        Self::Eapi(Str::equal(s))
+    }
+
+    pub fn repo(s: &str) -> Self {
+        Self::Repo(Str::equal(s))
+    }
 }
 
 impl From<Restrict> for restrict::Restrict {

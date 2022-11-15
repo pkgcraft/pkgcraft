@@ -458,6 +458,18 @@ macro_rules! make_repo_traits {
             }
         }
 
+        impl From<&$x> for crate::atom::Restrict {
+            fn from(r: &$x) -> Self {
+                crate::atom::Restrict::repo(Some(r.id()))
+            }
+        }
+
+        impl From<&$x> for crate::pkg::Restrict {
+            fn from(r: &$x) -> Self {
+                crate::pkg::Restrict::repo(r.id())
+            }
+        }
+
         $crate::repo::make_contains_atom!($x, [atom::Atom, &atom::Atom]);
     )+};
 }
