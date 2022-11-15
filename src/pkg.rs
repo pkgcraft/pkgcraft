@@ -115,7 +115,7 @@ macro_rules! make_pkg_traits {
         }
 
         impl From<&$x> for crate::restrict::Restrict {
-            fn from(pkg: &Pkg) -> Self {
+            fn from(pkg: &$x) -> Self {
                 use crate::atom::Restrict;
                 use crate::repo::Repository;
                 let r1 = pkg.atom().into();
