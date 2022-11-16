@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
-use std::iter::Flatten;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
 use indexmap::IndexSet;
@@ -62,44 +61,34 @@ impl RepoSet {
         self.into_iter()
     }
 
-    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> RestrictPkgIter {
+    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> PkgIter {
         let restrict = val.into();
-        #[allow(clippy::needless_collect)]
-        let pkgs: Vec<_> = self
-            .0
-            .iter()
-            .map(|r| r.iter_restrict(restrict.clone()))
-            .collect();
-        RestrictPkgIter(pkgs.into_iter().flatten())
+        PkgIter(Box::new(
+            self.0
+                .iter()
+                .flat_map(move |r| r.iter_restrict(restrict.clone())),
+        ))
     }
 }
 
 make_contains_atom!(RepoSet, [atom::Atom, &atom::Atom]);
 
-pub struct PkgIter<'a>(Flatten<std::vec::IntoIter<super::PkgIter<'a>>>);
+// TODO: Use type alias impl trait support for IntoIterator implementation when stable in order to
+// replace boxed type with a generic type.
+//
+// See https://github.com/rust-lang/rust/issues/63063
+pub struct PkgIter<'a>(Box<dyn Iterator<Item = Pkg<'a>> + 'a>);
 
 impl<'a> IntoIterator for &'a RepoSet {
     type Item = Pkg<'a>;
     type IntoIter = PkgIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        #[allow(clippy::needless_collect)]
-        let pkgs: Vec<_> = self.0.iter().map(|r| r.into_iter()).collect();
-        PkgIter(pkgs.into_iter().flatten())
+        PkgIter(Box::new(self.0.iter().flat_map(|r| r.into_iter())))
     }
 }
 
 impl<'a> Iterator for PkgIter<'a> {
-    type Item = Pkg<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
-}
-
-pub struct RestrictPkgIter<'a>(Flatten<std::vec::IntoIter<super::RestrictPkgIter<'a>>>);
-
-impl<'a> Iterator for RestrictPkgIter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
