@@ -240,11 +240,58 @@ mod tests {
     use crate::config::Config;
     use crate::pkg::Package;
     use crate::repo::{fake, Contains};
+    use crate::test::eq_ordered;
+    use crate::utils::hash;
 
     use super::*;
 
     #[test]
-    fn test_repo_set_iter_and_contains() {
+    fn test_cmp_traits() {
+        let s1 = RepoSet::new([]);
+        let s2 = RepoSet::new([]);
+        assert_eq!(s1, s2);
+        assert_eq!(hash(s1), hash(s2));
+
+        // different parameter order are still sorted lexically by repo id
+        let r1: Repo = fake::Repo::new("r1", 0, []).unwrap().into();
+        let r2: Repo = fake::Repo::new("r2", 0, []).unwrap().into();
+        let s1 = RepoSet::new([&r1, &r2]);
+        let s2 = RepoSet::new([&r2, &r1]);
+        assert_eq!(s1, s2);
+        assert_eq!(hash(s1), hash(s2));
+
+        // higher priority repos come before lower priority ones
+        let r1: Repo = fake::Repo::new("r1", -1, []).unwrap().into();
+        let r2: Repo = fake::Repo::new("r2", 0, []).unwrap().into();
+        let s1 = RepoSet::new([&r1]);
+        let s2 = RepoSet::new([&r2]);
+        assert!(s2 < s1);
+        assert_ne!(s1, s2);
+        assert_ne!(hash(s1), hash(s2));
+    }
+
+    #[test]
+    fn test_repos() {
+        let s = RepoSet::new([]);
+        assert!(s.repos().is_empty());
+
+        let r1: Repo = fake::Repo::new("r1", 0, []).unwrap().into();
+        let r2: Repo = fake::Repo::new("r2", 0, []).unwrap().into();
+        let s = RepoSet::new([&r1, &r2]);
+        assert!(eq_ordered(s.repos(), [&r1, &r2]));
+        // different parameter order are still sorted lexically by repo id
+        let s = RepoSet::new([&r2, &r1]);
+        assert!(eq_ordered(s.repos(), [&r1, &r2]));
+
+        // higher priority repos come before lower priority ones
+        let r1: Repo = fake::Repo::new("r1", -1, []).unwrap().into();
+        let r2: Repo = fake::Repo::new("r2", 0, []).unwrap().into();
+        let s = RepoSet::new([&r1, &r2]);
+        assert!(eq_ordered(s.repos(), [&r2, &r1]));
+    }
+
+    #[test]
+    fn test_iter_and_contains() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, ebuild_repo) = config.temp_repo("test", 0).unwrap();
         let fake_repo = fake::Repo::new("fake", 0, []).unwrap();
@@ -289,43 +336,43 @@ mod tests {
     }
 
     #[test]
-    fn test_repo_set_ops() {
-        let repo1: Repo = fake::Repo::new("1", 0, ["cat/pkg-1"]).unwrap().into();
-        let repo2: Repo = fake::Repo::new("2", 0, ["cat/pkg-2"]).unwrap().into();
-        let repo3: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).unwrap().into();
-        let repo4: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).unwrap().into();
+    fn test_bit_ops() {
+        let r1: Repo = fake::Repo::new("1", 0, ["cat/pkg-1"]).unwrap().into();
+        let r2: Repo = fake::Repo::new("2", 0, ["cat/pkg-2"]).unwrap().into();
+        let r3: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).unwrap().into();
+        let r4: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).unwrap().into();
         let cpv1 = atom::cpv("cat/pkg-1").unwrap();
         let cpv2 = atom::cpv("cat/pkg-2").unwrap();
         let cpv3 = atom::cpv("cat/pkg-3").unwrap();
         let cpv4 = atom::cpv("cat/pkg-3").unwrap();
 
-        let mut repo = RepoSet::new([]);
-        assert!(!repo.contains(&cpv1));
+        let mut s = RepoSet::new([]);
+        assert!(!s.contains(&cpv1));
 
         // combine repo set and repo
-        repo |= &repo1;
-        assert!(repo.contains(&cpv1));
+        s |= &r1;
+        assert!(s.contains(&cpv1));
         // combine repo set and repo set
-        repo |= &RepoSet::new([&repo2]);
-        assert!(repo.contains(&cpv2));
+        s |= &RepoSet::new([&r2]);
+        assert!(s.contains(&cpv2));
         // combine repo set and repo
-        let repo = repo | &repo3;
-        assert!(repo.contains(&cpv3));
+        let s = s | &r3;
+        assert!(s.contains(&cpv3));
         // combine repo set and repo set
-        let repo = repo | &RepoSet::new([&repo4]);
-        assert!(repo.contains(&cpv4));
+        let s = s | &RepoSet::new([&r4]);
+        assert!(s.contains(&cpv4));
 
         // subtract repo set and repo set
-        let repo = repo - &RepoSet::new([&repo4]);
-        assert!(!repo.contains(&cpv4));
+        let s = s - &RepoSet::new([&r4]);
+        assert!(!s.contains(&cpv4));
         // subtract repo set and repo
-        let mut repo = repo - &repo3;
-        assert!(!repo.contains(&cpv3));
+        let mut s = s - &r3;
+        assert!(!s.contains(&cpv3));
         // subtract repo set and repo set
-        repo -= &RepoSet::new([&repo2]);
-        assert!(!repo.contains(&cpv2));
+        s -= &RepoSet::new([&r2]);
+        assert!(!s.contains(&cpv2));
         // subtract repo set and repo
-        repo -= &repo1;
-        assert!(!repo.contains(&cpv1));
+        s -= &r1;
+        assert!(!s.contains(&cpv1));
     }
 }
