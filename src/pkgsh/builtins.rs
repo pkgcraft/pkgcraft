@@ -372,7 +372,7 @@ pub(crate) mod parse {
 #[macro_export]
 macro_rules! make_builtin {
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr) => {
-        use std::os::raw::c_int;
+        use std::ffi::c_int;
 
         use once_cell::sync::Lazy;
         use scallop::builtins::Builtin;
