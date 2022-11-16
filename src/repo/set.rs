@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
@@ -6,7 +7,7 @@ use indexmap::IndexSet;
 
 use crate::atom;
 use crate::pkg::Pkg;
-use crate::repo::{Repo, Repository};
+use crate::repo::{PkgRepository, Repo};
 use crate::restrict::Restrict;
 
 use super::make_contains_atom;
@@ -56,12 +57,43 @@ impl RepoSet {
     pub fn repos(&self) -> &IndexSet<Repo> {
         &self.0
     }
+}
 
-    pub fn iter(&self) -> PkgIter {
+impl PkgRepository for RepoSet {
+    type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type Iterator<'a> = PkgIter<'a> where Self: 'a;
+    type RestrictIterator<'a> = PkgIter<'a> where Self: 'a;
+
+    fn categories(&self) -> Vec<String> {
+        let cats: HashSet<_> = self.0.iter().flat_map(|r| r.categories()).collect();
+        let mut cats: Vec<_> = cats.into_iter().collect();
+        cats.sort();
+        cats
+    }
+
+    fn packages(&self, cat: &str) -> Vec<String> {
+        let pkgs: HashSet<_> = self.0.iter().flat_map(|r| r.packages(cat)).collect();
+        let mut pkgs: Vec<_> = pkgs.into_iter().collect();
+        pkgs.sort();
+        pkgs
+    }
+
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+        let versions: HashSet<_> = self.0.iter().flat_map(|r| r.versions(cat, pkg)).collect();
+        let mut versions: Vec<_> = versions.into_iter().collect();
+        versions.sort();
+        versions
+    }
+
+    fn len(&self) -> usize {
+        self.iter().count()
+    }
+
+    fn iter(&self) -> Self::Iterator<'_> {
         self.into_iter()
     }
 
-    pub fn iter_restrict<T: Into<Restrict>>(&self, val: T) -> PkgIter {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
         let restrict = val.into();
         PkgIter(Box::new(
             self.0
@@ -228,7 +260,7 @@ impl SubAssign<&Repo> for RepoSet {
 mod tests {
     use crate::config::Config;
     use crate::pkg::Package;
-    use crate::repo::{fake, Contains};
+    use crate::repo::{fake, Contains, Repository};
     use crate::test::eq_ordered;
     use crate::utils::hash;
 
@@ -280,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iter_and_contains() {
+    fn test_repo_traits() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
         let (t, ebuild_repo) = config.temp_repo("test", 0).unwrap();
         let fake_repo = fake::Repo::new("fake", 0, []).unwrap();
@@ -291,6 +323,9 @@ mod tests {
 
         // empty repo set
         let s = RepoSet::new([]);
+        assert!(s.categories().is_empty());
+        assert_eq!(s.len(), 0);
+        assert!(s.is_empty());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
         assert!(!s.contains(&cpv));
@@ -298,6 +333,9 @@ mod tests {
 
         // repo set with no pkgs
         let s = RepoSet::new([&e_repo, &f_repo]);
+        assert!(s.categories().is_empty());
+        assert_eq!(s.len(), 0);
+        assert!(s.is_empty());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
         assert!(!s.contains(&cpv));
@@ -305,6 +343,11 @@ mod tests {
 
         // single ebuild
         t.create_ebuild("cat/pkg-1", []).unwrap();
+        assert_eq!(s.categories(), ["cat"]);
+        assert_eq!(s.packages("cat"), ["pkg"]);
+        assert_eq!(s.versions("cat", "pkg"), ["1"]);
+        assert_eq!(s.len(), 1);
+        assert!(!s.is_empty());
         assert!(s.iter().next().is_some());
         assert!(s.iter_restrict(&cpv).next().is_some());
         assert!(s.contains(&cpv));
@@ -314,6 +357,10 @@ mod tests {
         let fake_repo = fake::Repo::new("fake", 0, ["cat/pkg-1"]).unwrap();
         let f_repo: Repo = fake_repo.into();
         let s = RepoSet::new([&e_repo, &f_repo]);
+        assert_eq!(s.categories(), ["cat"]);
+        assert_eq!(s.packages("cat"), ["pkg"]);
+        assert_eq!(s.versions("cat", "pkg"), ["1"]);
+        assert_eq!(s.len(), 2);
         assert!(s.contains(&cpv));
         assert!(s.contains(cpv.clone()));
         assert_eq!(s.iter().count(), 2);

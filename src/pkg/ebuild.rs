@@ -258,7 +258,7 @@ mod tests {
     use crate::atom;
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::repo::Repository;
+    use crate::repo::PkgRepository;
     use crate::test::{eq_ordered, eq_sorted};
 
     use super::*;

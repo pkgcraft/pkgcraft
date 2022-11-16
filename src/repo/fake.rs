@@ -3,7 +3,7 @@ use std::fs;
 
 use camino::{Utf8Path, Utf8PathBuf};
 
-use super::{make_repo_traits, Repository};
+use super::{make_repo_traits, PkgRepository, Repository};
 use crate::config::RepoConfig;
 use crate::pkg::fake::Pkg;
 use crate::repo::{Contains, PkgCache, PkgCacheIter};
@@ -63,7 +63,7 @@ impl fmt::Display for Repo {
     }
 }
 
-impl Repository for Repo {
+impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type Iterator<'a> = PkgIter<'a> where Self: 'a;
     type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
@@ -80,6 +80,23 @@ impl Repository for Repo {
         self.pkgs.versions(cat, pkg)
     }
 
+    fn len(&self) -> usize {
+        self.pkgs.len()
+    }
+
+    fn iter(&self) -> Self::Iterator<'_> {
+        self.into_iter()
+    }
+
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+        RestrictPkgIter {
+            iter: self.into_iter(),
+            restrict: val.into(),
+        }
+    }
+}
+
+impl Repository for Repo {
     fn id(&self) -> &str {
         &self.id
     }
@@ -94,21 +111,6 @@ impl Repository for Repo {
 
     fn sync(&self) -> crate::Result<()> {
         self.repo_config.sync()
-    }
-
-    fn len(&self) -> usize {
-        self.pkgs.len()
-    }
-
-    fn iter(&self) -> Self::Iterator<'_> {
-        self.into_iter()
-    }
-
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
-        RestrictPkgIter {
-            iter: self.into_iter(),
-            restrict: val.into(),
-        }
     }
 }
 

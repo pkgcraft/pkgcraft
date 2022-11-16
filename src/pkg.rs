@@ -200,7 +200,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::repo::fake;
+    use crate::repo::{fake, PkgRepository};
 
     use super::*;
 

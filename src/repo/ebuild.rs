@@ -16,7 +16,7 @@ use tempfile::TempDir;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
-use super::{make_repo_traits, Contains, Repository};
+use super::{make_repo_traits, Contains, PkgRepository, Repository};
 use crate::config::{self, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
@@ -512,7 +512,7 @@ fn is_fake_category(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-impl Repository for Repo {
+impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type Iterator<'a> = PkgIter<'a> where Self: 'a;
     type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
@@ -590,22 +590,6 @@ impl Repository for Repo {
         versions.iter().map(|v| v.to_string()).collect()
     }
 
-    fn id(&self) -> &str {
-        &self.id
-    }
-
-    fn priority(&self) -> i32 {
-        self.repo_config.priority
-    }
-
-    fn path(&self) -> &Utf8Path {
-        &self.repo_config.location
-    }
-
-    fn sync(&self) -> crate::Result<()> {
-        self.repo_config.sync()
-    }
-
     fn len(&self) -> usize {
         self.iter().count()
     }
@@ -620,6 +604,24 @@ impl Repository for Repo {
             iter: PkgIter::new(self, Some(&restrict)),
             restrict,
         }
+    }
+}
+
+impl Repository for Repo {
+    fn id(&self) -> &str {
+        &self.id
+    }
+
+    fn priority(&self) -> i32 {
+        self.repo_config.priority
+    }
+
+    fn path(&self) -> &Utf8Path {
+        &self.repo_config.location
+    }
+
+    fn sync(&self) -> crate::Result<()> {
+        self.repo_config.sync()
     }
 }
 

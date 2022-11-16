@@ -2,7 +2,7 @@ use std::{fmt, iter};
 
 use camino::Utf8Path;
 
-use super::{make_repo_traits, Repository};
+use super::{make_repo_traits, PkgRepository, Repository};
 use crate::config::RepoConfig;
 use crate::pkg::Pkg;
 use crate::restrict::Restrict;
@@ -52,7 +52,7 @@ impl fmt::Display for Repo {
     }
 }
 
-impl Repository for Repo {
+impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type Iterator<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
     type RestrictIterator<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
@@ -69,6 +69,20 @@ impl Repository for Repo {
         vec![]
     }
 
+    fn len(&self) -> usize {
+        0
+    }
+
+    fn iter(&self) -> Self::Iterator<'_> {
+        iter::empty::<Self::Pkg<'_>>()
+    }
+
+    fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::RestrictIterator<'_> {
+        iter::empty::<Self::Pkg<'_>>()
+    }
+}
+
+impl Repository for Repo {
     fn id(&self) -> &str {
         &self.id
     }
@@ -83,18 +97,6 @@ impl Repository for Repo {
 
     fn sync(&self) -> crate::Result<()> {
         self.repo_config.sync()
-    }
-
-    fn len(&self) -> usize {
-        0
-    }
-
-    fn iter(&self) -> Self::Iterator<'_> {
-        iter::empty::<Self::Pkg<'_>>()
-    }
-
-    fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::RestrictIterator<'_> {
-        iter::empty::<Self::Pkg<'_>>()
     }
 }
 

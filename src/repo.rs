@@ -260,7 +260,7 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     <Repo as IntoEnumIterator>::iter().map(|r| r.into()).collect()
 });
 
-pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord {
+pub trait PkgRepository: fmt::Debug + PartialEq + Eq + PartialOrd + Ord {
     type Pkg<'a>: Package
     where
         Self: 'a;
@@ -276,10 +276,6 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
-    fn id(&self) -> &str;
-    fn priority(&self) -> i32;
-    fn path(&self) -> &Utf8Path;
-    fn sync(&self) -> crate::Result<()>;
     fn len(&self) -> usize;
     fn iter(&self) -> Self::Iterator<'_>;
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
@@ -289,9 +285,16 @@ pub trait Repository: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + 
     }
 }
 
-impl<'a, T> Repository for &'a T
+pub trait Repository: PkgRepository + fmt::Display {
+    fn id(&self) -> &str;
+    fn priority(&self) -> i32;
+    fn path(&self) -> &Utf8Path;
+    fn sync(&self) -> crate::Result<()>;
+}
+
+impl<'a, T> PkgRepository for &'a T
 where
-    T: Repository,
+    T: PkgRepository,
 {
     type Pkg<'b> = T::Pkg<'b> where Self: 'b;
     type Iterator<'b> = T::Iterator<'b> where Self: 'b;
@@ -300,9 +303,24 @@ where
     fn categories(&self) -> Vec<String> {
         (*self).categories()
     }
+    fn packages(&self, cat: &str) -> Vec<String> {
+        (*self).packages(cat)
+    }
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
         (*self).versions(cat, pkg)
     }
+    fn len(&self) -> usize {
+        (*self).len()
+    }
+    fn iter(&self) -> Self::Iterator<'_> {
+        (*self).iter()
+    }
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+        (*self).iter_restrict(val)
+    }
+}
+
+impl<'a, T: Repository + PkgRepository> Repository for &'a T {
     fn id(&self) -> &str {
         (*self).id()
     }
@@ -314,18 +332,6 @@ where
     }
     fn sync(&self) -> crate::Result<()> {
         (*self).sync()
-    }
-    fn packages(&self, cat: &str) -> Vec<String> {
-        (*self).packages(cat)
-    }
-    fn len(&self) -> usize {
-        (*self).len()
-    }
-    fn iter(&self) -> Self::Iterator<'_> {
-        (*self).iter()
-    }
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
-        (*self).iter_restrict(val)
     }
 }
 
@@ -339,7 +345,7 @@ impl fmt::Display for Repo {
     }
 }
 
-impl Repository for Repo {
+impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type Iterator<'a> = PkgIter<'a> where Self: 'a;
     type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
@@ -368,6 +374,28 @@ impl Repository for Repo {
         }
     }
 
+    fn len(&self) -> usize {
+        match self {
+            Self::Ebuild(repo) => repo.len(),
+            Self::Fake(repo) => repo.len(),
+            Self::Unsynced(repo) => repo.len(),
+        }
+    }
+
+    fn iter(&self) -> Self::Iterator<'_> {
+        self.into_iter()
+    }
+
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+        match self {
+            Self::Ebuild(repo) => RestrictPkgIter::Ebuild(repo.iter_restrict(val), self),
+            Self::Fake(repo) => RestrictPkgIter::Fake(repo.iter_restrict(val), self),
+            _ => RestrictPkgIter::Empty,
+        }
+    }
+}
+
+impl Repository for Repo {
     fn id(&self) -> &str {
         match self {
             Self::Ebuild(repo) => repo.id(),
@@ -397,26 +425,6 @@ impl Repository for Repo {
             Self::Ebuild(repo) => repo.sync(),
             Self::Fake(repo) => repo.sync(),
             Self::Unsynced(repo) => repo.sync(),
-        }
-    }
-
-    fn len(&self) -> usize {
-        match self {
-            Self::Ebuild(repo) => repo.len(),
-            Self::Fake(repo) => repo.len(),
-            Self::Unsynced(repo) => repo.len(),
-        }
-    }
-
-    fn iter(&self) -> Self::Iterator<'_> {
-        self.into_iter()
-    }
-
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
-        match self {
-            Self::Ebuild(repo) => RestrictPkgIter::Ebuild(repo.iter_restrict(val), self),
-            Self::Fake(repo) => RestrictPkgIter::Fake(repo.iter_restrict(val), self),
-            _ => RestrictPkgIter::Empty,
         }
     }
 }

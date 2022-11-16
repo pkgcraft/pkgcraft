@@ -176,6 +176,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::metadata::Key;
+    use crate::repo::PkgRepository;
 
     use super::*;
 

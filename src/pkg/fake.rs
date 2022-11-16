@@ -47,6 +47,8 @@ impl Restriction<&Pkg<'_>> for restrict::Restrict {
 
 #[cfg(test)]
 mod tests {
+    use crate::repo::PkgRepository;
+
     use super::*;
 
     #[test]
