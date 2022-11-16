@@ -301,38 +301,38 @@ mod tests {
         let cpv = atom::cpv("cat/pkg-1").unwrap();
 
         // empty repo set
-        let empty_set = RepoSet::new([]);
-        assert!(empty_set.iter().next().is_none());
-        assert!(empty_set.iter_restrict(&cpv).next().is_none());
-        assert!(!empty_set.contains(&cpv));
-        assert!(!empty_set.contains(cpv.clone()));
+        let s = RepoSet::new([]);
+        assert!(s.iter().next().is_none());
+        assert!(s.iter_restrict(&cpv).next().is_none());
+        assert!(!s.contains(&cpv));
+        assert!(!s.contains(cpv.clone()));
 
         // repo set with no pkgs
-        let repo = RepoSet::new([&e_repo, &f_repo]);
-        assert!(repo.iter().next().is_none());
-        assert!(repo.iter_restrict(&cpv).next().is_none());
-        assert!(!repo.contains(&cpv));
-        assert!(!repo.contains(cpv.clone()));
+        let s = RepoSet::new([&e_repo, &f_repo]);
+        assert!(s.iter().next().is_none());
+        assert!(s.iter_restrict(&cpv).next().is_none());
+        assert!(!s.contains(&cpv));
+        assert!(!s.contains(cpv.clone()));
 
         // single ebuild
         t.create_ebuild("cat/pkg-1", []).unwrap();
-        assert!(repo.iter().next().is_some());
-        assert!(repo.iter_restrict(&cpv).next().is_some());
-        assert!(repo.contains(&cpv));
-        assert!(repo.contains(cpv.clone()));
+        assert!(s.iter().next().is_some());
+        assert!(s.iter_restrict(&cpv).next().is_some());
+        assert!(s.contains(&cpv));
+        assert!(s.contains(cpv.clone()));
 
         // multiple pkgs of different types
         let fake_repo = fake::Repo::new("fake", 0, ["cat/pkg-1"]).unwrap();
         let f_repo: Repo = fake_repo.into();
-        let repo = RepoSet::new([&e_repo, &f_repo]);
-        assert!(repo.contains(&cpv));
-        assert!(repo.contains(cpv.clone()));
-        assert_eq!(repo.iter().count(), 2);
-        assert_eq!(repo.iter_restrict(&cpv).count(), 2);
-        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        let s = RepoSet::new([&e_repo, &f_repo]);
+        assert!(s.contains(&cpv));
+        assert!(s.contains(cpv.clone()));
+        assert_eq!(s.iter().count(), 2);
+        assert_eq!(s.iter_restrict(&cpv).count(), 2);
+        let pkg = s.iter_restrict(&cpv).next().unwrap();
         // pkg restriction only matches the repo's pkg it came from
-        assert_eq!(repo.iter_restrict(&pkg).count(), 1);
-        assert_eq!(repo.iter_restrict(&pkg).next().unwrap().repo().id(), "fake");
+        assert_eq!(s.iter_restrict(&pkg).count(), 1);
+        assert_eq!(s.iter_restrict(&pkg).next().unwrap().repo().id(), "fake");
     }
 
     #[test]
