@@ -20,7 +20,7 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub fn new<'a, I>(id: &str, priority: i32, atoms: I) -> crate::Result<Repo>
+    pub fn new<'a, I>(id: &str, priority: i32, cpvs: I) -> crate::Result<Repo>
     where
         I: IntoIterator<Item = &'a str>,
     {
@@ -33,7 +33,7 @@ impl Repo {
         Ok(Repo {
             id: id.to_string(),
             repo_config,
-            pkgs: PkgCache::from_iter(atoms),
+            pkgs: PkgCache::from_iter(cpvs),
         })
     }
 
