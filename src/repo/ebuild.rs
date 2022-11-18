@@ -159,8 +159,8 @@ where
     T: CacheData + Send + Sync,
 {
     thread: Option<thread::JoinHandle<()>>,
-    sender: Sender<Msg>,
-    receiver: Receiver<Arc<T>>,
+    tx: Sender<Msg>,
+    rx: Receiver<Arc<T>>,
 }
 
 enum Msg {
@@ -173,15 +173,15 @@ where
     T: CacheData + Send + Sync + 'static,
 {
     fn new(repo: &Repo) -> Cache<T> {
-        let (path_sender, path_receiver) = bounded::<Msg>(10);
-        let (meta_sender, meta_receiver) = bounded::<Arc<T>>(10);
+        let (path_tx, path_rx) = bounded::<Msg>(10);
+        let (meta_tx, meta_rx) = bounded::<Arc<T>>(10);
         let path = Utf8PathBuf::from(repo.path());
 
         let thread = thread::spawn(move || {
             let repo_path = path;
             let mut pkg_data = HashMap::<String, Arc<T>>::new();
             loop {
-                match path_receiver.recv() {
+                match path_rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
                     Ok(Msg::Key(s)) => {
                         // TODO: evict cache entries based on file modification time
@@ -194,9 +194,7 @@ where
                                 data
                             }
                         };
-                        meta_sender
-                            .send(data)
-                            .expect("failed sending shared pkg data");
+                        meta_tx.send(data).expect("failed sending shared pkg data");
                     }
                 }
             }
@@ -204,8 +202,8 @@ where
 
         Self {
             thread: Some(thread),
-            sender: path_sender,
-            receiver: meta_receiver,
+            tx: path_tx,
+            rx: meta_rx,
         }
     }
 }
@@ -217,7 +215,7 @@ where
     T: CacheData + Send + Sync,
 {
     fn drop(&mut self) {
-        self.sender.send(Msg::Stop).unwrap();
+        self.tx.send(Msg::Stop).unwrap();
         if let Some(thread) = self.thread.take() {
             thread.join().unwrap();
         }
@@ -464,11 +462,11 @@ impl Repo {
     pub(crate) fn pkg_xml(&self, cpv: &atom::Atom) -> Arc<XmlMetadata> {
         let key = format!("{}/{}", cpv.category(), cpv.package());
         self.xml_cache()
-            .sender
+            .tx
             .send(Msg::Key(key))
             .expect("failed requesting pkg xml data");
         self.xml_cache()
-            .receiver
+            .rx
             .recv()
             .expect("failed receiving pkg xml data")
     }
@@ -476,11 +474,11 @@ impl Repo {
     pub(crate) fn pkg_manifest(&self, cpv: &atom::Atom) -> Arc<Manifest> {
         let key = format!("{}/{}", cpv.category(), cpv.package());
         self.manifest_cache()
-            .sender
+            .tx
             .send(Msg::Key(key))
             .expect("failed requesting pkg manifest data");
         self.manifest_cache()
-            .receiver
+            .rx
             .recv()
             .expect("failed receiving pkg manifest data")
     }
