@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
 use scallop::builtins::ExecStatus;
-use scallop::variables::string_value;
-use scallop::{Error, Result};
+use scallop::{variables, Error, Result};
 
 use crate::atom::Version;
 
@@ -12,7 +11,7 @@ const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    let pvr = string_value("PVR").unwrap_or_default();
+    let pvr = variables::optional("PVR").unwrap_or_default();
     let pvr = pvr.as_str();
     let (v1, op, v2) = match args.len() {
         2 if pvr.is_empty() => Err(Error::Base("$PVR is undefined".into())),

@@ -5,8 +5,7 @@ use std::{fs, io};
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use scallop::functions;
-use scallop::variables::string_value;
+use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
@@ -69,7 +68,7 @@ impl Key {
                     false => Some(inherit.iter().join(" ")),
                 }
             }),
-            key => string_value(key).map(|s| s.split_whitespace().join(" ")),
+            key => variables::optional(key).map(|s| s.split_whitespace().join(" ")),
         }
     }
 }
@@ -222,7 +221,7 @@ impl Metadata {
         let mut meta = Metadata::default();
 
         // verify sourced EAPI matches parsed EAPI
-        let sourced_eapi = string_value("EAPI");
+        let sourced_eapi = variables::optional("EAPI");
         let sourced_eapi = sourced_eapi.as_deref().unwrap_or("0");
         if <&Eapi>::from_str(sourced_eapi)? != eapi {
             return Err(Error::InvalidValue(format!(

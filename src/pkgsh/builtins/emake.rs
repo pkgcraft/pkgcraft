@@ -2,7 +2,7 @@ use std::io::Write;
 use std::process::Command;
 
 use scallop::builtins::ExecStatus;
-use scallop::variables::{string_value, string_vec};
+use scallop::variables::{self, string_vec};
 use scallop::{Error, Result};
 
 use crate::command::RunCommand;
@@ -19,7 +19,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Base("nonexistent makefile".into()));
     }
 
-    let make_prog = string_value("MAKE");
+    let make_prog = variables::optional("MAKE");
     let make_prog = make_prog.as_deref().unwrap_or("make");
     let mut emake = Command::new(make_prog);
     if let Ok(opts) = string_vec("MAKEOPTS") {

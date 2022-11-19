@@ -6,8 +6,7 @@ use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;
 use regex::Regex;
 use scallop::builtins::ExecStatus;
-use scallop::variables::{expand, string_value};
-use scallop::{Error, Result};
+use scallop::{variables, Error, Result};
 
 use crate::command::RunCommand;
 use crate::pkgsh::utils::{configure, get_libdir};
@@ -53,8 +52,8 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     let mut defaults = IndexMap::<&str, Option<String>>::new();
-    let eprefix = string_value("EPREFIX").expect("$EPREFIX undefined");
-    let chost = string_value("CHOST").expect("$CHOST undefined");
+    let eprefix = variables::required("EPREFIX")?;
+    let chost = variables::required("CHOST")?;
 
     defaults.extend([
         ("--prefix", Some(format!("{eprefix}/usr"))),
@@ -80,7 +79,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     for (opt, var) in [("--build", "CBUILD"), ("--target", "CTARGET")] {
-        if let Some(val) = string_value(var) {
+        if let Some(val) = variables::optional(var) {
             defaults.insert(opt, Some(val));
         }
     }
@@ -89,7 +88,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         // add EAPI specific options if found
         for (opt, (markers, val)) in d.borrow().eapi.econf_options() {
             if !known_opts.is_disjoint(markers) {
-                defaults.insert(opt, val.as_ref().and_then(expand));
+                defaults.insert(opt, val.as_ref().and_then(variables::expand));
             }
         }
     });

@@ -45,7 +45,7 @@ make_builtin!("die", die_builtin, run, LONG_DOC, USAGE, &[("0-", &[ALL])]);
 
 #[cfg(test)]
 mod tests {
-    use scallop::variables::*;
+    use scallop::variables::{self, *};
     use scallop::{builtins, source};
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
@@ -83,7 +83,7 @@ mod tests {
         assert_err_re!(r, r"^die: error: \(no error message\)");
 
         // verify bash state
-        assert_eq!(string_value("VAR").unwrap(), "1");
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
 
         // verify message output
         let r = source::string("die \"output message\"");
@@ -100,7 +100,7 @@ mod tests {
         assert_err_re!(r, r"^die: error: \(no error message\)");
 
         // verify bash state
-        assert_eq!(string_value("VAR").unwrap(), "1");
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
 
         // verify message output
         let r = source::string("VAR=$(die \"output message\")");
@@ -125,12 +125,12 @@ mod tests {
             bind("VAR", "1", None, None).unwrap();
             source::string("nonfatal die -n message\nVAR=2").unwrap();
             assert_stderr!("message\n");
-            assert_eq!(string_value("VAR").unwrap(), "2");
+            assert_eq!(variables::optional("VAR").unwrap(), "2");
 
             // nonfatal die in subshell
             bind("VAR", "1", None, None).unwrap();
             source::string("FOO=$(nonfatal die -n); VAR=2").unwrap();
-            assert_eq!(string_value("VAR").unwrap(), "2");
+            assert_eq!(variables::optional("VAR").unwrap(), "2");
         })
     }
 }

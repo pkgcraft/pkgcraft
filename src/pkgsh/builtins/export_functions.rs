@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::variables::string_value;
+use scallop::variables;
 use scallop::{source, Error, Result};
 
 use super::{make_builtin, ECLASS};
@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    let eclass = string_value("ECLASS").ok_or_else(|| Error::Base("no ECLASS defined".into()))?;
+    let eclass = variables::required("ECLASS")?;
 
     // TODO: verify phase function existence?
     let funcs: Vec<_> = args

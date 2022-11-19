@@ -8,7 +8,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use nix::unistd::isatty;
 use scallop::builtins::{ExecStatus, ScopedOptions};
-use scallop::variables::*;
+use scallop::variables::{self, *};
 use scallop::{functions, source, Error};
 
 use crate::eapi::{Eapi, Feature};
@@ -338,8 +338,8 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
         // TODO: export default for $S
 
         // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
-        if eapi.has(Feature::RdependDefault) && string_value("RDEPEND").is_none() {
-            if let Some(depend) = string_value("DEPEND") {
+        if eapi.has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
+            if let Some(depend) = variables::optional("DEPEND") {
                 bind("RDEPEND", &depend, None, None)?;
             }
         }
