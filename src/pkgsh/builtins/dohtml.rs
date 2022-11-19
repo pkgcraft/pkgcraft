@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::{variables, Error, Result};
 use walkdir::DirEntry;
 
 use crate::macros::build_from_paths;
@@ -126,12 +126,12 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
             "" => "html",
             val => val,
         };
-        let pf = d.env.get("PF").expect("$PF undefined");
         let doc_prefix = match opts.doc_prefix.as_ref() {
             None => "",
             Some(s) => s.trim_start_matches('/'),
         };
-        let dest = build_from_paths!("/usr/share/doc", pf, subdir, doc_prefix);
+        let dest =
+            build_from_paths!("/usr/share/doc", variables::required("PF")?, subdir, doc_prefix);
         let install = d.install().dest(&dest)?;
 
         let (dirs, files): (Vec<_>, Vec<_>) =
@@ -162,9 +162,11 @@ make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, &[("0-6", &["src_i
 mod tests {
     use std::fs;
 
+    use scallop::variables::bind;
+
     use crate::macros::assert_err_re;
+    use crate::pkgsh::assert_stderr;
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::{assert_stderr, BUILD_DATA};
 
     use super::super::docinto::run as docinto;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -177,7 +179,7 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(dohtml, &[0]);
 
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let _file_tree = FileTree::new();
 
         // non-recursive directory
@@ -188,12 +190,12 @@ mod tests {
 
     #[test]
     fn verbose_output() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let _file_tree = FileTree::new();
-        fs::File::create("pkgcraft.html").unwrap();
+        fs::File::create("index.html").unwrap();
 
         // defaults
-        dohtml(&["-V", "pkgcraft.html"]).unwrap();
+        dohtml(&["-V", "index.html"]).unwrap();
         let s = indoc::formatdoc! {r#"
             dohtml:
               recursive: false
@@ -207,7 +209,7 @@ mod tests {
         assert_stderr!(s);
 
         // extra options
-        dohtml(&["-V", "-A", "svg,tiff", "-p", "docs", "pkgcraft.html"]).unwrap();
+        dohtml(&["-V", "-A", "svg,tiff", "-p", "docs", "index.html"]).unwrap();
         let s = indoc::formatdoc! {r#"
             dohtml:
               recursive: false
@@ -223,27 +225,27 @@ mod tests {
 
     #[test]
     fn creation() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
 
         // simple file
-        fs::File::create("pkgcraft.html").unwrap();
-        dohtml(&["pkgcraft.html"]).unwrap();
+        fs::File::create("index.html").unwrap();
+        dohtml(&["index.html"]).unwrap();
         file_tree.assert(format!(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/pkgcraft.html"
+            path = "/usr/share/doc/pkg-1/html/index.html"
         "#
         ));
 
         // recursive
         fs::create_dir_all("doc/subdir").unwrap();
-        fs::File::create("doc/subdir/pkgcraft.html").unwrap();
+        fs::File::create("doc/subdir/index.html").unwrap();
         dohtml(&["-r", "doc"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/doc/subdir/pkgcraft.html"
+            path = "/usr/share/doc/pkg-1/html/doc/subdir/index.html"
         "#,
         );
 
@@ -253,14 +255,14 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/pkgcraft.html"
+            path = "/usr/share/doc/pkg-1/newdir/doc/subdir/index.html"
         "#,
         );
     }
 
     #[test]
     fn options() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
 
         fs::create_dir("doc").unwrap();
@@ -272,7 +274,7 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/readme.html"
+            path = "/usr/share/doc/pkg-1/html/readme.html"
         "#,
         );
 
@@ -281,9 +283,9 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/readme.html"
+            path = "/usr/share/doc/pkg-1/html/readme.html"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+            path = "/usr/share/doc/pkg-1/html/readme.txt"
         "#,
         );
 
@@ -292,7 +294,7 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+            path = "/usr/share/doc/pkg-1/html/readme.txt"
         "#,
         );
 
@@ -301,7 +303,7 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/readme.txt"
+            path = "/usr/share/doc/pkg-1/html/readme.txt"
         "#,
         );
 
@@ -310,7 +312,7 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/prefix/readme.html"
+            path = "/usr/share/doc/pkg-1/html/prefix/readme.html"
         "#,
         );
 
@@ -322,7 +324,7 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/readme.html"
+            path = "/usr/share/doc/pkg-1/html/readme.html"
         "#,
         );
     }

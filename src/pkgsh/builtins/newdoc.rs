@@ -20,8 +20,10 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
+    use scallop::variables::bind;
+
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::{write_stdin, BUILD_DATA};
+    use crate::pkgsh::write_stdin;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as newdoc;
@@ -36,26 +38,26 @@ mod tests {
 
     #[test]
     fn creation() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
 
         fs::File::create("file").unwrap();
-        newdoc(&["file", "pkgcraft"]).unwrap();
+        newdoc(&["file", "newfile"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/pkgcraft"
+            path = "/usr/share/doc/pkg-1/newfile"
         "#,
         );
 
         // re-run using data from stdin
-        write_stdin!("pkgcraft");
-        newdoc(&["-", "pkgcraft"]).unwrap();
+        write_stdin!("stdin");
+        newdoc(&["-", "newfile"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/pkgcraft"
-            data = "pkgcraft"
+            path = "/usr/share/doc/pkg-1/newfile"
+            data = "stdin"
         "#,
         );
     }

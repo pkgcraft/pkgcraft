@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::{variables, Error, Result};
 
 use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
@@ -19,7 +19,7 @@ where
     BUILD_DATA.with(|d| -> Result<ExecStatus> {
         let dest: PathBuf = [
             "/usr/share/doc",
-            d.borrow().env.get("PF").expect("$PF undefined"),
+            &variables::required("PF")?,
             d.borrow().docdesttree.trim_start_matches('/'),
         ]
         .iter()
@@ -61,9 +61,10 @@ make_builtin!("dodoc", dodoc_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_inst
 mod tests {
     use std::fs;
 
+    use scallop::variables::bind;
+
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::BUILD_DATA;
 
     use super::super::docinto::run as docinto;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -76,7 +77,7 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(dodoc, &[0]);
 
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let _file_tree = FileTree::new();
 
         // non-recursive directory
@@ -87,7 +88,7 @@ mod tests {
 
     #[test]
     fn creation() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         let default_mode = 0o100644;
 
@@ -97,7 +98,7 @@ mod tests {
         file_tree.assert(format!(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/file"
+            path = "/usr/share/doc/pkg-1/file"
             mode = {default_mode}
         "#
         ));
@@ -110,7 +111,7 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/newdir/doc/subdir/file"
+            path = "/usr/share/doc/pkg-1/newdir/doc/subdir/file"
         "#,
         );
 
@@ -120,7 +121,7 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/newdir/subdir/file"
+            path = "/usr/share/doc/pkg-1/newdir/subdir/file"
         "#,
         );
     }

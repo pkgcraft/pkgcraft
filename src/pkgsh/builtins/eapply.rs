@@ -2,7 +2,6 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::str;
 
 use scallop::builtins::ExecStatus;
 use scallop::{Error, Result};
@@ -108,7 +107,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
                 .output()
                 .map_err(|e| Error::Base(format!("failed running patch: {e}")))?;
             if !output.status.success() {
-                let error = str::from_utf8(&output.stdout).expect("failed decoding patch output");
+                let error = String::from_utf8_lossy(&output.stdout);
                 return Err(Error::Base(format!("failed applying: {name}\n{error}")));
             }
         }

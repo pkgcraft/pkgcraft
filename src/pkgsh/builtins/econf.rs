@@ -1,6 +1,5 @@
 use std::io::Write;
 use std::process::Command;
-use std::str;
 
 use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;

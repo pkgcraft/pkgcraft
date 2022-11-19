@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::{variables, Error, Result};
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         let install = d.install().dest(&dest)?.file_options(opts);
 
         let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
-        let filename = format!("{}.mo", d.env.get("PN").expect("$PN undefined"));
+        let filename = format!("{}.mo", variables::required("PN")?);
 
         for path in args.iter().map(Path::new) {
             let dir = match path.file_stem() {
@@ -51,8 +51,9 @@ make_builtin!("domo", domo_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_instal
 mod tests {
     use std::fs;
 
+    use scallop::variables::bind;
+
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::BUILD_DATA;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as domo;
@@ -67,7 +68,7 @@ mod tests {
 
     #[test]
     fn creation() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PN".into(), "pkgcraft".into()));
+        bind("PN", "pkgcraft", None, None).unwrap();
         let file_tree = FileTree::new();
         let default_mode = 0o100644;
 

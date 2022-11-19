@@ -106,6 +106,7 @@ make_builtin!(
 #[cfg(test)]
 mod tests {
     use scallop::source;
+    use scallop::variables::bind;
 
     use crate::pkgsh::test::FileTree;
 
@@ -122,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_no_files() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         einstalldocs(&[]).unwrap();
         assert!(file_tree.is_empty());
@@ -130,7 +131,7 @@ mod tests {
 
     #[test]
     fn test_default_files_empty() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         for f in DOCS_DEFAULTS {
             fs::File::create(f.trim_end_matches('*')).unwrap();
@@ -141,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_default_files() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         for f in ["README", "NEWS"] {
             fs::write(f, "data").unwrap();
@@ -150,16 +151,16 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/NEWS"
+            path = "/usr/share/doc/pkg-1/NEWS"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/README"
+            path = "/usr/share/doc/pkg-1/README"
         "#,
         );
     }
 
     #[test]
     fn test_default_files_globs() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         for f in ["README-1", "READMEa"] {
             fs::write(f, "data").unwrap();
@@ -168,16 +169,16 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/README-1"
+            path = "/usr/share/doc/pkg-1/README-1"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/READMEa"
+            path = "/usr/share/doc/pkg-1/READMEa"
         "#,
         );
     }
 
     #[test]
     fn test_docs_array() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         source::string("DOCS=( NEWS subdir dir/. )").unwrap();
         fs::File::create("NEWS").unwrap();
@@ -189,18 +190,18 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/AUTHORS"
+            path = "/usr/share/doc/pkg-1/AUTHORS"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/NEWS"
+            path = "/usr/share/doc/pkg-1/NEWS"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/subdir/README"
+            path = "/usr/share/doc/pkg-1/subdir/README"
         "#,
         );
     }
 
     #[test]
     fn test_docs_string() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         source::string("DOCS=\"NEWS subdir dir/.\"").unwrap();
         fs::File::create("NEWS").unwrap();
@@ -212,18 +213,18 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/AUTHORS"
+            path = "/usr/share/doc/pkg-1/AUTHORS"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/NEWS"
+            path = "/usr/share/doc/pkg-1/NEWS"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/subdir/README"
+            path = "/usr/share/doc/pkg-1/subdir/README"
         "#,
         );
     }
 
     #[test]
     fn test_html_docs_array() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         source::string("HTML_DOCS=( a.html subdir dir/. )").unwrap();
         fs::File::create("a.html").unwrap();
@@ -235,18 +236,18 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/a.html"
+            path = "/usr/share/doc/pkg-1/html/a.html"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/c.html"
+            path = "/usr/share/doc/pkg-1/html/c.html"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/subdir/b.html"
+            path = "/usr/share/doc/pkg-1/html/subdir/b.html"
         "#,
         );
     }
 
     #[test]
     fn test_html_docs_string() {
-        BUILD_DATA.with(|d| d.borrow_mut().env.insert("PF".into(), "pkgcraft-0".into()));
+        bind("PF", "pkg-1", None, None).unwrap();
         let file_tree = FileTree::new();
         source::string("HTML_DOCS=\"a.html subdir dir/.\"").unwrap();
         fs::File::create("a.html").unwrap();
@@ -258,11 +259,11 @@ mod tests {
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/a.html"
+            path = "/usr/share/doc/pkg-1/html/a.html"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/c.html"
+            path = "/usr/share/doc/pkg-1/html/c.html"
             [[files]]
-            path = "/usr/share/doc/pkgcraft-0/html/subdir/b.html"
+            path = "/usr/share/doc/pkg-1/html/subdir/b.html"
         "#,
         );
     }
