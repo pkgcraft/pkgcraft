@@ -53,40 +53,39 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
     }
 
     let mut defaults = IndexMap::<&str, Option<String>>::new();
-    BUILD_DATA.with(|d| {
-        let env = &d.borrow().env;
-        let eprefix = env.get("EPREFIX").expect("$EPREFIX undefined");
-        let chost = env.get("CHOST").expect("$CHOST undefined");
+    let eprefix = string_value("EPREFIX").expect("$EPREFIX undefined");
+    let chost = string_value("CHOST").expect("$CHOST undefined");
 
-        defaults.extend([
-            ("--prefix", Some(format!("{eprefix}/usr"))),
-            ("--mandir", Some(format!("{eprefix}/usr/share/man"))),
-            ("--infodir", Some(format!("{eprefix}/usr/share/info"))),
-            ("--datadir", Some(format!("{eprefix}/usr/share"))),
-            ("--sysconfdir", Some(format!("{eprefix}/etc"))),
-            ("--localstatedir", Some(format!("{eprefix}/var/lib"))),
-            ("--host", Some(chost.clone())),
-        ]);
+    defaults.extend([
+        ("--prefix", Some(format!("{eprefix}/usr"))),
+        ("--mandir", Some(format!("{eprefix}/usr/share/man"))),
+        ("--infodir", Some(format!("{eprefix}/usr/share/info"))),
+        ("--datadir", Some(format!("{eprefix}/usr/share"))),
+        ("--sysconfdir", Some(format!("{eprefix}/etc"))),
+        ("--localstatedir", Some(format!("{eprefix}/var/lib"))),
+        ("--host", Some(chost)),
+    ]);
 
-        if !args.contains_key("--libdir") {
-            if let Some(libdir) = get_libdir(None) {
-                let prefix = match args.get("--exec-prefix") {
+    if !args.contains_key("--libdir") {
+        if let Some(libdir) = get_libdir(None) {
+            let prefix = match args.get("--exec-prefix") {
+                Some(Some(v)) => v.clone(),
+                _ => match args.get("--prefix") {
                     Some(Some(v)) => v.clone(),
-                    _ => match args.get("--prefix") {
-                        Some(Some(v)) => v.clone(),
-                        _ => format!("{eprefix}/usr"),
-                    },
-                };
-                defaults.insert("--libdir", Some(format!("{prefix}/{libdir}")));
-            }
+                    _ => format!("{eprefix}/usr"),
+                },
+            };
+            defaults.insert("--libdir", Some(format!("{prefix}/{libdir}")));
         }
+    }
 
-        for (opt, var) in [("--build", "CBUILD"), ("--target", "CTARGET")] {
-            if let Some(val) = string_value(var) {
-                defaults.insert(opt, Some(val));
-            }
+    for (opt, var) in [("--build", "CBUILD"), ("--target", "CTARGET")] {
+        if let Some(val) = string_value(var) {
+            defaults.insert(opt, Some(val));
         }
+    }
 
+    BUILD_DATA.with(|d| {
         // add EAPI specific options if found
         for (opt, (markers, val)) in d.borrow().eapi.econf_options() {
             if !known_opts.is_disjoint(markers) {
@@ -125,7 +124,7 @@ mod tests {
     use std::env;
     use std::fs::File;
 
-    use scallop::variables::{ScopedVariable, Variables};
+    use scallop::variables::{bind, ScopedVariable, Variables};
     use tempfile::tempdir;
 
     use crate::command::last_command;
@@ -172,10 +171,9 @@ mod tests {
 
         BUILD_DATA.with(|d| {
             // TODO: add support for generating build state data for tests
-            d.borrow_mut().env.extend([
-                ("EPREFIX".into(), "/eprefix".into()),
-                ("CHOST".into(), "x86_64-pc-linux-gnu".into()),
-            ]);
+            bind("EPREFIX", "/eprefix", None, None).unwrap();
+            bind("CHOST", "x86_64-pc-linux-gnu", None, None).unwrap();
+            bind("PF", "pkg-1", None, None).unwrap();
 
             // verify EAPI specific options are added
             for eapi in econf.scope.keys() {
