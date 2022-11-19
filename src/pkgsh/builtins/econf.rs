@@ -45,7 +45,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         .output()
         .map_err(|e| Error::Base(format!("failed running: {e}")))?;
     let mut known_opts = IndexSet::<String>::new();
-    let conf_help = str::from_utf8(&conf_help.stdout).expect("failed decoding configure output");
+    let conf_help = String::from_utf8_lossy(&conf_help.stdout);
     for line in conf_help.split('\n') {
         for caps in CONFIG_OPT_RE.captures_iter(line.trim()) {
             known_opts.insert(caps["opt"].to_string());
