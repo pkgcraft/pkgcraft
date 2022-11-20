@@ -25,8 +25,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         &format!("sysconfdir={destdir}/etc"),
     ];
 
-    let args = &[paths, &["-j1"], args, &["install"]].concat();
-    emake(args)
+    emake(&[paths, &["-j1"], args, &["install"]].concat())
 }
 
 const USAGE: &str = "einstall";
