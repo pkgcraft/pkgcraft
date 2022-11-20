@@ -243,6 +243,12 @@ impl BuildData {
         self.stdin.get()
     }
 
+    fn destdir(&self) -> &str {
+        self.env
+            .get("ED")
+            .unwrap_or_else(|| self.env.get("D").expect("undefined destdirs $ED and $D"))
+    }
+
     fn install(&self) -> install::Install {
         install::Install::new(self)
     }

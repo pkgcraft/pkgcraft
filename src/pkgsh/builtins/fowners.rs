@@ -2,9 +2,10 @@ use std::path::Path;
 use std::process::Command;
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{Error, Result};
 
 use crate::command::RunCommand;
+use crate::pkgsh::BUILD_DATA;
 
 use super::make_builtin;
 
@@ -16,21 +17,20 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Base(format!("requires at least 2 args, got {}", args.len())));
     }
 
-    let destdir = match variables::optional("ED") {
-        Some(path) => path,
-        None => variables::required("D")?,
-    };
-    let destdir = Path::new(&destdir);
+    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+        let d = d.borrow();
+        let destdir = Path::new(d.destdir());
 
-    let mut chown = Command::new("chown");
-    for arg in args {
-        let path = arg.trim_start_matches('/');
-        chown.arg(destdir.join(path));
-    }
+        let mut chown = Command::new("chown");
+        for arg in args {
+            let path = arg.trim_start_matches('/');
+            chown.arg(destdir.join(path));
+        }
 
-    chown.run()?;
+        chown.run()?;
 
-    Ok(ExecStatus::Success)
+        Ok(ExecStatus::Success)
+    })
 }
 
 const USAGE: &str = "fowners user:group /path/to/file";

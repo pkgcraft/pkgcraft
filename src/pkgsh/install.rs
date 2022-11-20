@@ -48,15 +48,8 @@ pub(super) struct Install {
 
 impl Install {
     pub(super) fn new(build: &BuildData) -> Self {
-        let destdir = PathBuf::from(
-            build
-                .env
-                .get("ED")
-                .unwrap_or_else(|| build.env.get("D").expect("$D undefined")),
-        );
-
         Install {
-            destdir,
+            destdir: PathBuf::from(build.destdir()),
             ..Default::default()
         }
     }
