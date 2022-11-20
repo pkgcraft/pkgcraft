@@ -1,5 +1,4 @@
 use scallop::builtins::ExecStatus;
-use scallop::Result;
 
 use super::_new::new;
 use super::doins::run as doins;
@@ -8,7 +7,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install renamed files into INSDESTREE.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doins)
 }
 

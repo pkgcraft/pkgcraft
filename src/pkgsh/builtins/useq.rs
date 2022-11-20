@@ -1,5 +1,4 @@
 use scallop::builtins::ExecStatus;
-use scallop::Result;
 
 use super::use_::run as use_;
 use super::{make_builtin, PHASE};
@@ -7,7 +6,7 @@ use super::{make_builtin, PHASE};
 const LONG_DOC: &str = "Deprecated synonym for use.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_(args)
 }
 

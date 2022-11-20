@@ -1,6 +1,6 @@
 use scallop::builtins::{builtin_level, ExecStatus};
 use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
-use scallop::{source, Error, Result};
+use scallop::{source, Error};
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -9,14 +9,14 @@ use super::{make_builtin, Scope, ECLASS, GLOBAL};
 const LONG_DOC: &str = "Sources the given list of eclasses.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     let eclasses: Vec<_> = args.iter().map(|s| s.to_string()).collect();
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let mut eclass_var = ScopedVariable::new("ECLASS");
         let mut inherited_var = Variable::new("INHERITED");
 

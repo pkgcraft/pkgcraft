@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -8,8 +8,8 @@ use super::make_builtin;
 const LONG_DOC: &str = "Include or exclude paths for symbol stripping.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let mut d = d.borrow_mut();
         let (set, args) = match args.first() {
             Some(&"-x") => Ok((&mut d.strip_exclude, &args[1..])),

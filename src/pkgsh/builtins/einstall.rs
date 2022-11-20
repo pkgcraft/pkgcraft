@@ -1,5 +1,4 @@
 use scallop::builtins::ExecStatus;
-use scallop::Result;
 
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::BUILD_DATA;
@@ -9,8 +8,8 @@ use super::{emake::run as emake, make_builtin};
 const LONG_DOC: &str = "Run `emake install` for a package.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let destdir = d.destdir();
         let paths: &[&str] = &[

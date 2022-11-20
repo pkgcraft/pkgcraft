@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::debug_print::run as debug_print;
 use super::{make_builtin, ALL};
@@ -8,7 +8,7 @@ const LONG_DOC: &str = "\
 Calls debug-print with `now in section $*`.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }

@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::dolib::install_lib;
 use super::make_builtin;
@@ -7,7 +7,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install shared libraries.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }

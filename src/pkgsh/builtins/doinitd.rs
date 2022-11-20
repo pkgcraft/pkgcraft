@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
@@ -9,12 +9,12 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install init scripts into /etc/init.d/.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let dest = "/etc/init.d";
         let opts = match d.eapi.has(Feature::ConsistentFileOpts) {

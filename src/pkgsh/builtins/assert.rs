@@ -1,6 +1,5 @@
 use scallop::builtins::ExecStatus;
 use scallop::variables::array_to_vec;
-use scallop::Result;
 
 use super::{die::run as die, make_builtin, ALL};
 
@@ -9,7 +8,7 @@ Calls `die` with passed arguments if any process in the most recently-executed f
 exited with an error status.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pipestatus = array_to_vec("PIPESTATUS").unwrap_or_default();
     match pipestatus.iter().any(|s| s != "0") {
         true => die(args),

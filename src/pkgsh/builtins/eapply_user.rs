@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -8,12 +8,12 @@ use super::{eapply::run as eapply, make_builtin};
 const LONG_DOC: &str = "Apply user patches.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         if !d.borrow().user_patches_applied {
             let patches = &d.borrow().user_patches;
             let args: Vec<_> = patches.iter().map(|s| s.as_str()).collect();

@@ -2,7 +2,7 @@ use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
@@ -13,8 +13,8 @@ use super::make_builtin;
 const LONG_DOC: &str = "Create symbolic links.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (source, target, target_str) = match args.len() {
             3 if args[0] == "-r" && eapi.has(Feature::DosymRelative) => {

@@ -1,6 +1,6 @@
 use scallop::builtins::ExecStatus;
 use scallop::variables;
-use scallop::{source, Error, Result};
+use scallop::{source, Error};
 
 use super::{make_builtin, ECLASS};
 
@@ -12,7 +12,7 @@ function is defined:
 src_unpack() { base_src_unpack; }";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }

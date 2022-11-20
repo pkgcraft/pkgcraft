@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{variables, Error};
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -11,12 +11,12 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install gettext *.mo files.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let dest: PathBuf =
             [d.env.get("DESTTREE").map(|s| s.as_str()).unwrap_or("/usr"), "share/locale"]

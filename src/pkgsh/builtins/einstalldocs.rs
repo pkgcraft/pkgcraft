@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use glob::glob;
 use scallop::builtins::ExecStatus;
 use scallop::variables::var_to_vec;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -37,7 +37,7 @@ fn has_data(path: &Path) -> bool {
 // Perform file expansion on doc strings.
 // TODO: replace glob usage with native bash pathname expansion?
 // TODO: need to perform word expansion on each string as well
-fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> Result<Vec<PathBuf>> {
+fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<PathBuf>> {
     let mut files = vec![];
     // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
@@ -48,14 +48,14 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> Result<Vec<PathBuf>> 
 }
 
 /// Install document files defined in a given variable.
-pub(crate) fn install_docs_from(var: &str) -> Result<ExecStatus> {
+pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
     let (defaults, docdesttree) = match var {
         "DOCS" => Ok((Some(DOCS_DEFAULTS), "")),
         "HTML_DOCS" => Ok((None, "html")),
         _ => Err(Error::Base(format!("unknown variable: {var}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let (recursive, paths) = match var_to_vec(var) {
             Ok(v) => (true, expand_docs(&v, true)?),
             _ => match defaults {
@@ -81,7 +81,7 @@ pub(crate) fn install_docs_from(var: &str) -> Result<ExecStatus> {
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }

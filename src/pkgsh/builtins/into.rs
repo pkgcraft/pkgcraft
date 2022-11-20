@@ -1,6 +1,6 @@
 use scallop::builtins::ExecStatus;
 use scallop::variables::bind;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
@@ -11,7 +11,7 @@ const LONG_DOC: &str = "\
 Takes exactly one argument and sets the value of DESTTREE.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let path = match args.len() {
         1 => match args[0] {
             "/" => Ok(""),
@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let mut d = d.borrow_mut();
         d.desttree = path.to_string();
 

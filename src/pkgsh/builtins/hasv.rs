@@ -1,7 +1,6 @@
 use std::io::Write;
 
 use scallop::builtins::ExecStatus;
-use scallop::Result;
 
 use super::{has::run as has, make_builtin, ALL};
 use crate::pkgsh::write_stdout;
@@ -9,7 +8,7 @@ use crate::pkgsh::write_stdout;
 const LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let ret = has(args)?;
     if bool::from(&ret) {
         write_stdout!("{}", args[0]);

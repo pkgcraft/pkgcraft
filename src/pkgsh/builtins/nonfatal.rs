@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 
 use scallop::builtins::ExecStatus;
 use scallop::command::Command;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::{make_builtin, NONFATAL, PHASE};
 
@@ -12,7 +12,7 @@ results in a command being called that would normally abort the build process du
 instead a non-zero exit status shall be returned.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }

@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{variables, Error};
 
 use crate::pkgsh::write_stdout;
 
@@ -10,7 +10,7 @@ use super::{make_builtin, parse, version_split, ALL};
 const LONG_DOC: &str = "Perform string substitution on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pv = variables::optional("PV").unwrap_or_default();
     let (ver, args) = match args.len() {
         n if n < 2 => Err(Error::Base(format!("requires 2 or more args, got {n}"))),

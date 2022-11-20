@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -9,7 +9,7 @@ const LONG_DOC: &str = "\
 Takes exactly one argument and sets the install path for doexe and newexe.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let path = match args.len() {
         1 => match args[0] {
             "/" => Ok(""),

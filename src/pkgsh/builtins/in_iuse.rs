@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -9,13 +9,13 @@ const LONG_DOC: &str = "\
 Returns success if the USE flag argument is found in IUSE_EFFECTIVE, failure otherwise.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let flag = match args.len() {
         1 => Ok(args[0]),
         n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let iuse_effective = &d.borrow().iuse_effective;
         Ok(ExecStatus::from(iuse_effective.contains(flag)))
     })

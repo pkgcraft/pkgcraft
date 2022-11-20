@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{variables, Error};
 use walkdir::DirEntry;
 
 use crate::macros::build_from_paths;
@@ -69,7 +69,7 @@ impl fmt::Display for Options {
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let opts = Options::try_parse_from(&[&["dohtml"], args].concat())
         .map_err(|e| Error::Base(format!("invalid args: {e}")))?;
 
@@ -120,7 +120,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         }
     };
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let subdir = match d.docdesttree.as_str() {
             "" => "html",

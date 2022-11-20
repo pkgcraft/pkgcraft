@@ -3,7 +3,7 @@ use std::process::Command;
 
 use scallop::builtins::ExecStatus;
 use scallop::variables::{self, string_vec};
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::command::RunCommand;
 use crate::pkgsh::utils::makefile_exists;
@@ -14,7 +14,7 @@ use super::{make_builtin, PHASE};
 const LONG_DOC: &str = "Run the make command for a package.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !makefile_exists() {
         return Err(Error::Base("nonexistent makefile".into()));
     }

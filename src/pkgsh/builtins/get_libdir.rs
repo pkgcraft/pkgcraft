@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::pkgsh::utils::get_libdir;
 use crate::pkgsh::write_stdout;
@@ -11,7 +11,7 @@ use super::{make_builtin, ALL};
 const LONG_DOC: &str = "Output the libdir name.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }

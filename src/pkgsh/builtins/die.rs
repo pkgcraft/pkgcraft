@@ -2,7 +2,7 @@ use std::io::Write;
 use std::sync::atomic::Ordering;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::pkgsh::{write_stderr, BUILD_DATA};
@@ -13,8 +13,8 @@ const LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let args = match args.len() {
             1 | 2 if eapi.has(Feature::NonfatalDie) && args[0] == "-n" => {

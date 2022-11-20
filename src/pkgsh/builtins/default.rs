@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::{make_builtin, PHASE};
 use crate::pkgsh::BUILD_DATA;
@@ -7,12 +7,12 @@ use crate::pkgsh::BUILD_DATA;
 const LONG_DOC: &str = "Calls the default_* function for the current phase.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let phase = &d.borrow().phase.unwrap();
         let builtins = d.borrow().eapi.builtins(phase);
         let default_phase = format!("default_{phase}");

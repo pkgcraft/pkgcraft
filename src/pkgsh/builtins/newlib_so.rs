@@ -1,5 +1,4 @@
 use scallop::builtins::ExecStatus;
-use scallop::Result;
 
 use super::_new::new;
 use super::dolib_so::run as dolib_so;
@@ -8,7 +7,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install renamed shared libraries.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dolib_so)
 }
 

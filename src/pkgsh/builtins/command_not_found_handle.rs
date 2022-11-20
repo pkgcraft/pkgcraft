@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::{make_builtin, ALL, NONFATAL};
 
@@ -13,7 +13,7 @@ instead.
 ";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let msg = format!("unknown command: {}", args[0]);
     match NONFATAL.load(Ordering::Relaxed) {
         true => Err(Error::Base(msg)),

@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::{make_builtin, use_::run as use_, PHASE};
 use crate::eapi::Feature;
@@ -11,8 +11,8 @@ const LONG_DOC: &str = "\
 The same as use, but also prints the flag name if the condition is met.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (flag, output) = match args.len() {
             1 => {

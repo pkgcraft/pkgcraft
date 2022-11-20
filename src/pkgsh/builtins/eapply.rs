@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::pkgsh::write_stdout;
@@ -28,7 +28,7 @@ fn is_patch(entry: &DirEntry) -> bool {
 }
 
 // Find the patches contained in a given set of paths.
-fn find_patches(paths: &[&str]) -> Result<Patches> {
+fn find_patches(paths: &[&str]) -> scallop::Result<Patches> {
     let mut patches = Patches::new();
     for p in paths {
         let path = Path::new(p);
@@ -55,7 +55,7 @@ fn find_patches(paths: &[&str]) -> Result<Patches> {
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }

@@ -1,13 +1,12 @@
 use scallop::builtins::ExecStatus;
 use scallop::variables::var_to_vec;
-use scallop::Result;
 
 use super::emake_install;
 use crate::pkgsh::builtins::{
     eapply::run as eapply, eapply_user::run as eapply_user, einstalldocs::run as einstalldocs,
 };
 
-pub(crate) fn src_prepare() -> Result<ExecStatus> {
+pub(crate) fn src_prepare() -> scallop::Result<ExecStatus> {
     if let Ok(patches) = var_to_vec("PATCHES") {
         if !patches.is_empty() {
             // Note that not allowing options in PATCHES is technically from EAPI 8, but it's
@@ -21,7 +20,7 @@ pub(crate) fn src_prepare() -> Result<ExecStatus> {
     eapply_user(&[])
 }
 
-pub(crate) fn src_install() -> Result<ExecStatus> {
+pub(crate) fn src_install() -> scallop::Result<ExecStatus> {
     emake_install()?;
     einstalldocs(&[])
 }

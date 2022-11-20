@@ -1,6 +1,6 @@
 use nix::unistd::geteuid;
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
@@ -9,8 +9,8 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Install executables into DESTTREE/bin.";
 
-pub(super) fn install_bin(args: &[&str], dest: &str) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(super) fn install_bin(args: &[&str], dest: &str) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let dest = build_from_paths!(&d.borrow().desttree, dest);
         let opts: &[&str] = match geteuid().is_root() {
             true => &["-m0755", "-o", "root", "-g", "root"],
@@ -28,7 +28,7 @@ pub(super) fn install_bin(args: &[&str], dest: &str) -> Result<ExecStatus> {
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }

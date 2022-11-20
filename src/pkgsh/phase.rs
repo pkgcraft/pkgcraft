@@ -1,7 +1,6 @@
 use std::hash::{Hash, Hasher};
 
 use scallop::builtins::ExecStatus;
-use scallop::Result;
 use strum::{AsRefStr, Display};
 
 use super::builtins::emake::run as emake;
@@ -14,16 +13,16 @@ pub(crate) mod eapi2;
 pub(crate) mod eapi4;
 pub(crate) mod eapi6;
 
-pub(crate) type PhaseFn = fn() -> Result<ExecStatus>;
+pub(crate) type PhaseFn = fn() -> scallop::Result<ExecStatus>;
 pub(crate) static PHASE_STUB: PhaseFn = phase_stub;
 
-fn phase_stub() -> Result<ExecStatus> {
+fn phase_stub() -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-fn emake_install() -> Result<ExecStatus> {
+fn emake_install() -> scallop::Result<ExecStatus> {
     if makefile_exists() {
-        BUILD_DATA.with(|d| -> Result<ExecStatus> {
+        BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
             let env = &d.borrow().env;
             #[allow(non_snake_case)]
             let D = env.get("D").expect("D undefined");

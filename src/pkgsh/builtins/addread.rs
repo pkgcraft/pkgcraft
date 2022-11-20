@@ -1,12 +1,11 @@
 use scallop::builtins::ExecStatus;
-use scallop::Result;
 
 use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "Add a directory to the sandbox permitted read list.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(_args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
     // TODO: fill out this stub
     Ok(ExecStatus::Success)
 }

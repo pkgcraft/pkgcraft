@@ -1,15 +1,19 @@
 use std::io::Write;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::use_::run as use_;
 use crate::eapi::Feature;
 use crate::pkgsh::{write_stdout, BUILD_DATA};
 
 // Underlying implementation for use_with and use_enable.
-pub(super) fn use_conf(args: &[&str], enabled: &str, disabled: &str) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(super) fn use_conf(
+    args: &[&str],
+    enabled: &str,
+    disabled: &str,
+) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (flag, opt, suffix) = match args.len() {
             1 => match args[0].starts_with('!') {

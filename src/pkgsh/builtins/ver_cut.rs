@@ -2,7 +2,7 @@ use std::cmp;
 use std::io::Write;
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{variables, Error};
 
 use super::{make_builtin, parse, version_split, ALL};
 use crate::pkgsh::write_stdout;
@@ -10,7 +10,7 @@ use crate::pkgsh::write_stdout;
 const LONG_DOC: &str = "Output substring from package version string and range arguments.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pv = variables::optional("PV").unwrap_or_default();
     let (range, ver) = match args.len() {
         1 => Ok((args[0], pv.as_str())),

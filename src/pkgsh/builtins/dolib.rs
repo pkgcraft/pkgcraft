@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::macros::build_from_paths;
 use crate::pkgsh::utils::get_libdir;
@@ -9,8 +9,8 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Install libraries.";
 
-pub(super) fn install_lib(args: &[&str], opts: Option<Vec<&str>>) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(super) fn install_lib(args: &[&str], opts: Option<Vec<&str>>) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let libdir = get_libdir(Some("lib")).unwrap();
         let dest = build_from_paths!(&d.desttree, &libdir);
@@ -25,7 +25,7 @@ pub(super) fn install_lib(args: &[&str], opts: Option<Vec<&str>>) -> Result<Exec
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }

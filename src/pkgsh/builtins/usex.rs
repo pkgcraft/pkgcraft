@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::{make_builtin, use_::run as use_, PHASE};
 use crate::pkgsh::write_stdout;
@@ -10,7 +10,7 @@ const LONG_DOC: &str = "\
 Tests if a given USE flag is enabled and outputs a string related to its status.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let defaults = ["", "yes", "no", "", ""];
     let (flag, vals) = match args.len() {
         1 => Ok((&args[..1], defaults)),

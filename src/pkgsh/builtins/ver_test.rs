@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{variables, Error};
 
 use crate::atom::Version;
 
@@ -10,7 +10,7 @@ use super::{make_builtin, ALL};
 const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pvr = variables::optional("PVR").unwrap_or_default();
     let pvr = pvr.as_str();
     let (v1, op, v2) = match args.len() {

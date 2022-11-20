@@ -7,7 +7,7 @@ use clap::Parser;
 use filetime::{set_file_times, FileTime};
 use itertools::{Either, Itertools};
 use nix::{sys::stat, unistd};
-use scallop::{Error, Result};
+use scallop::Error;
 use walkdir::{DirEntry, WalkDir};
 
 use super::BuildData;
@@ -55,7 +55,7 @@ impl Install {
     }
 
     /// Set the target directory to install files into.
-    pub(super) fn dest<P: AsRef<Path>>(mut self, dest: P) -> Result<Self> {
+    pub(super) fn dest<P: AsRef<Path>>(mut self, dest: P) -> scallop::Result<Self> {
         let dest = dest.as_ref();
         self.dirs([dest])?;
         self.destdir.push(dest.strip_prefix("/").unwrap_or(dest));
@@ -104,7 +104,7 @@ impl Install {
     }
 
     /// Create a soft or hardlink between a given source and target.
-    pub(super) fn link<F, P, Q>(&self, link: F, source: P, target: Q) -> Result<()>
+    pub(super) fn link<F, P, Q>(&self, link: F, source: P, target: Q) -> scallop::Result<()>
     where
         F: Fn(&Path, &Path) -> io::Result<()>,
         P: AsRef<Path>,
@@ -136,7 +136,11 @@ impl Install {
         Ok(())
     }
 
-    fn set_attributes<P: AsRef<Path>>(&self, opts: &InstallOptions, path: P) -> Result<()> {
+    fn set_attributes<P: AsRef<Path>>(
+        &self,
+        opts: &InstallOptions,
+        path: P,
+    ) -> scallop::Result<()> {
         let path = path.as_ref();
         let uid = opts.owner.as_ref().map(|o| o.uid);
         let gid = opts.group.as_ref().map(|g| g.gid);
@@ -156,7 +160,7 @@ impl Install {
     }
 
     /// Create given directories under the target directory.
-    pub(super) fn dirs<I, P>(&self, paths: I) -> Result<()>
+    pub(super) fn dirs<I, P>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -168,7 +172,7 @@ impl Install {
     }
 
     // Create directories using internal functionality.
-    fn dirs_internal<I, P>(&self, paths: I) -> Result<()>
+    fn dirs_internal<I, P>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -185,7 +189,7 @@ impl Install {
     }
 
     // Create directories using the `install` command.
-    fn dirs_cmd<I, P>(&self, paths: I) -> Result<()>
+    fn dirs_cmd<I, P>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -202,7 +206,7 @@ impl Install {
     }
 
     /// Copy file trees under given directories to the target directory.
-    pub(super) fn recursive<I, P, F>(&self, dirs: I, predicate: Option<F>) -> Result<()>
+    pub(super) fn recursive<I, P, F>(&self, dirs: I, predicate: Option<F>) -> scallop::Result<()>
     where
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
@@ -249,7 +253,7 @@ impl Install {
     }
 
     /// Install files from their given paths to the target directory.
-    pub(super) fn files<'a, I, P>(&self, paths: I) -> Result<()>
+    pub(super) fn files<'a, I, P>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = &'a P>,
         P: AsRef<Path> + 'a + ?Sized,
@@ -266,7 +270,7 @@ impl Install {
     }
 
     /// Install files using a custom source -> dest mapping to the target directory.
-    pub(super) fn files_map<I, P, Q>(&self, paths: I) -> Result<()>
+    pub(super) fn files_map<I, P, Q>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = (P, Q)>,
         P: AsRef<Path>,
@@ -279,7 +283,7 @@ impl Install {
     }
 
     // Install files using internal functionality.
-    fn files_internal<I, P, Q>(&self, paths: I) -> Result<()>
+    fn files_internal<I, P, Q>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = (P, Q)>,
         P: AsRef<Path>,
@@ -316,7 +320,7 @@ impl Install {
     }
 
     // Install files using the `install` command.
-    fn files_cmd<I, P, Q>(&self, paths: I) -> Result<()>
+    fn files_cmd<I, P, Q>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = (P, Q)>,
         P: AsRef<Path>,

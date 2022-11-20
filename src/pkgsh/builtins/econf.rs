@@ -5,7 +5,7 @@ use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;
 use regex::Regex;
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{variables, Error};
 
 use crate::command::RunCommand;
 use crate::pkgsh::utils::{configure, get_libdir};
@@ -18,7 +18,7 @@ static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\
 const LONG_DOC: &str = "Run a package's configure script.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let configure = configure();
     if !configure.is_executable() {
         let msg = match configure.exists() {

@@ -3,15 +3,15 @@ use std::path::Path;
 use std::{fs, io};
 
 use scallop::builtins::{BuiltinFn, ExecStatus};
-use scallop::{Error, Result};
+use scallop::Error;
 use tempfile::tempdir;
 
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
 
 // Underlying implementation for new* builtins.
-pub(super) fn new(args: &[&str], func: BuiltinFn) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (source, dest) = match args.len() {
             2 => Ok((args[0], Path::new(args[1]))),

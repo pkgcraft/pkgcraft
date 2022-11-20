@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::files::NO_WALKDIR_FILTER;
 use crate::pkgsh::BUILD_DATA;
@@ -11,14 +11,14 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install files into INSDESTREE.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (recursive, args) = match args.first() {
         Some(&"-r") => Ok((true, &args[1..])),
         Some(_) => Ok((false, args)),
         None => Err(Error::Base("requires 1 or more targets, got 0".into())),
     }?;
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let dest = &d.borrow().insdesttree;
         let opts = &d.borrow().insopts;
         let install = d.borrow().install().dest(dest)?.file_options(opts);

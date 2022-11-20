@@ -1,5 +1,4 @@
 use scallop::builtins::ExecStatus;
-use scallop::Result;
 
 use super::_default_phase_func::default_phase_func;
 use super::make_builtin;
@@ -8,7 +7,7 @@ const LONG_DOC: &str = "\
 Runs the default src_compile implementation for a package's EAPI.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     default_phase_func(args)
 }
 

@@ -1,7 +1,7 @@
 use std::fs::hard_link;
 
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -10,13 +10,13 @@ use super::make_builtin;
 const LONG_DOC: &str = "Create hard links.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (source, target) = match args.len() {
         2 => Ok((args[0], args[1])),
         n => Err(Error::Base(format!("requires 2 args, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let install = d.borrow().install();
         install.link(|p, q| hard_link(p, q), source, target)?;
         Ok(ExecStatus::Success)

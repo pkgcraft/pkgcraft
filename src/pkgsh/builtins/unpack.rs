@@ -3,7 +3,7 @@ use std::ops::BitOr;
 use camino::{Utf8Path, Utf8PathBuf};
 use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{variables, Error};
 use walkdir::WalkDir;
 
 use crate::archive::ArchiveFormat;
@@ -25,14 +25,14 @@ static DIR_MODE: Lazy<Mode> =
     Lazy::new(|| *FILE_MODE | Mode::S_IXUSR | Mode::S_IXGRP | Mode::S_IXOTH);
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
     let current_dir = current_dir()?;
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let eapi = d.eapi;
         let distdir = variables::required("DISTDIR")?;
@@ -40,7 +40,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         // Determine the source for a given archive target. Basic filenames are prefixed with
         // DISTDIR while all other types are unprefixed including conditionally supported absolute
         // and relative paths.
-        let determine_source = |path: &Utf8Path| -> Result<Utf8PathBuf> {
+        let determine_source = |path: &Utf8Path| -> scallop::Result<Utf8PathBuf> {
             if path.parent() == Some(Utf8Path::new("")) {
                 Ok(Utf8PathBuf::from(&distdir).join(path))
             } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {

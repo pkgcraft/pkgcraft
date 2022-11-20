@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error, Result};
+use scallop::{variables, Error};
 
 use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
@@ -12,11 +12,11 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install documentation files.";
 
 /// Install document files from a given iterable of paths.
-pub(crate) fn install_docs<'a, I>(recursive: bool, paths: I) -> Result<ExecStatus>
+pub(crate) fn install_docs<'a, I>(recursive: bool, paths: I) -> scallop::Result<ExecStatus>
 where
     I: IntoIterator<Item = &'a Path>,
 {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let dest: PathBuf = [
             "/usr/share/doc",
             &variables::required("PF")?,
@@ -41,8 +41,8 @@ where
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         let (recursive, args) = match args.first() {
             Some(&"-r") if eapi.has(Feature::DodocRecursive) => Ok((true, &args[1..])),

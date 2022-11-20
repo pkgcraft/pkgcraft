@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use super::{make_builtin, ALL};
 
@@ -7,7 +7,7 @@ const LONG_DOC: &str = "\
 Returns success if the first argument is found in subsequent arguments, failure otherwise.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let needle = match args.first() {
         Some(s) => Ok(s),
         None => Err(Error::Base("requires 1 or more args, got 0".into())),

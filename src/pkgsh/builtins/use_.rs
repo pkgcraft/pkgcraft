@@ -1,5 +1,5 @@
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -10,7 +10,7 @@ Returns success if the USE flag argument is enabled, failure otherwise.
 The return values are inverted if the flag name is prefixed with !.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (negated, flag) = match args.len() {
         1 => match args[0].starts_with('!') {
             false => Ok((false, args[0])),
@@ -19,7 +19,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
 
         if !d.iuse_effective.contains(flag) {

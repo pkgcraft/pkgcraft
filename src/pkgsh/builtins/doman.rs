@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use regex::Regex;
 use scallop::builtins::ExecStatus;
-use scallop::{Error, Result};
+use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::pkgsh::BUILD_DATA;
@@ -16,7 +16,7 @@ static DETECT_LANG_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<name>\w+)\.(?P<lang>[a-z]{2}(_[A-Z]{2})?)$").unwrap());
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (args, mut lang) = match args.is_empty() {
         true => Err(Error::Base("requires 1 or more args, got 0".into())),
         false => match args[0].strip_prefix("-i18n=") {
@@ -30,7 +30,7 @@ pub(crate) fn run(args: &[&str]) -> Result<ExecStatus> {
         return Err(Error::Base("missing filename target".into()));
     }
 
-    BUILD_DATA.with(|d| -> Result<ExecStatus> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let eapi = d.eapi;
         let install = d.install().dest("/usr/share/man")?.file_options(["-m0644"]);
