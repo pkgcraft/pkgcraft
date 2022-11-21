@@ -10,12 +10,15 @@ use nix::unistd::isatty;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::{self, *};
 use scallop::{functions, source, Error};
+use strum::{AsRefStr, Display};
 
+use crate::atom::Atom;
+use crate::config::Config;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::extend_left;
 use crate::metadata::Key;
 use crate::pkgsh::builtins::Scope;
-use crate::repo::ebuild;
+use crate::repo::{ebuild, Repo};
 
 pub mod builtins;
 mod install;
@@ -169,6 +172,7 @@ use assert_stderr;
 pub(crate) struct BuildData {
     pub(crate) eapi: &'static Eapi,
     pub(crate) repo: Arc<ebuild::Repo>,
+    pub(crate) atom: Option<Atom>,
 
     stdin: Stdin,
     stdout: Stdout,
@@ -222,21 +226,48 @@ pub(crate) struct BuildData {
 }
 
 impl BuildData {
-    fn new() -> Self {
+    pub(crate) fn update(atom: &Atom, repo: &str) {
         let mut data = BuildData::default();
+
+        // TODO: rework to drop this hack required by builtins like `inherit`
+        let config = Config::current();
+        match config.repos.get(repo) {
+            Some(Repo::Ebuild(r)) => data.repo = r.clone(),
+            _ => panic!("unknown repo: {}", repo),
+        }
+
+        data.atom = Some(atom.clone());
         // set build state defaults
         data.insopts.push("-m0644".into());
         data.libopts.push("-m0644".into());
         data.diropts.push("-m0755".into());
         data.exeopts.push("-m0755".into());
         data.desttree = "/usr".into();
-        data
+        BUILD_DATA.with(|d| d.replace(data));
     }
 
-    pub(crate) fn reset() {
-        #[cfg(feature = "init")]
-        scallop::shell::Shell::reset();
-        BUILD_DATA.with(|d| d.replace(BuildData::new()));
+    fn set_vars(&mut self) -> scallop::Result<()> {
+        for (var, scopes) in self.eapi.env() {
+            if scopes.matches(self.scope) {
+                if self.env.get(var.as_ref()).is_none() {
+                    let val = var.get(self);
+                    self.env.insert(var.to_string(), val);
+                }
+                bind(var, self.env.get(var.as_ref()).unwrap(), None, None)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn override_var(&self, var: BuildVariable, val: &str) -> scallop::Result<()> {
+        if let Some(scopes) = self.eapi.env().get(&var) {
+            if scopes.matches(self.scope) {
+                bind(var, val, None, None)?;
+            } else {
+                panic!("invalid scope {:?} for variable: {var}", self.scope);
+            }
+        }
+        Ok(())
     }
 
     fn stdin(&mut self) -> scallop::Result<&mut StdinType> {
@@ -270,7 +301,7 @@ impl BuildData {
 }
 
 thread_local! {
-    pub(crate) static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::new());
+    pub(crate) static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::default());
 }
 
 /// Initialize bash for library usage.
@@ -291,14 +322,7 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         d.borrow_mut().phase = Some(phase);
         d.borrow_mut().scope = Scope::Phase(phase);
-
-        let mut phase_name = ScopedVariable::new("EBUILD_PHASE");
-        let mut phase_func_name = ScopedVariable::new("EBUILD_PHASE_FUNC");
-
-        phase_name.bind(phase.short_name(), None, None)?;
-        if eapi.has(Feature::EbuildPhaseFunc) {
-            phase_func_name.bind(phase, None, None)?;
-        }
+        d.borrow_mut().set_vars()?;
 
         // run user space pre-phase hooks
         if let Some(mut func) = functions::find(format!("pre_{phase}")) {
@@ -333,6 +357,7 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
     BUILD_DATA.with(|d| -> scallop::Result<()> {
         let eapi = d.borrow().eapi;
         d.borrow_mut().scope = Scope::Global;
+        d.borrow_mut().set_vars()?;
 
         let mut opts = ScopedOptions::default();
         if eapi.has(Feature::GlobalFailglob) {
@@ -340,8 +365,6 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
         }
 
         source::file(path)?;
-
-        // TODO: export default for $S
 
         // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
         if eapi.has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
@@ -365,4 +388,71 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
 
         Ok(())
     })
+}
+
+#[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[allow(non_camel_case_types)]
+pub enum BuildVariable {
+    P,
+    PF,
+    PN,
+    CATEGORY,
+    PV,
+    PR,
+    PVR,
+    A,
+    AA,
+    FILESDIR,
+    DISTDIR,
+    WORKDIR,
+    S,
+    PORTDIR,
+    ECLASSDIR,
+    ROOT,
+    EROOT,
+    SYSROOT,
+    ESYSROOT,
+    BROOT,
+    T,
+    TMPDIR,
+    HOME,
+    EPREFIX,
+    D,
+    ED,
+    DESTTREE,
+    INSDESTTREE,
+    USE,
+    EBUILD_PHASE,
+    EBUILD_PHASE_FUNC,
+    KV,
+    MERGE_TYPE,
+    REPLACING_VERSIONS,
+    REPLACED_BY_VERSION,
+}
+
+impl BuildVariable {
+    fn get(&self, build: &BuildData) -> String {
+        use BuildVariable::*;
+        let a = build.atom.as_ref().expect("missing required atom field");
+        let v = a.version().expect("missing required versioned atom");
+        match self {
+            P => format!("{}-{}", a.package(), v.base()),
+            PF => format!("{}-{}", a.package(), PVR.get(build)),
+            PN => a.package().into(),
+            CATEGORY => a.category().into(),
+            PV => v.base().into(),
+            PR => format!("r{}", v.revision()),
+            PVR => match v.revision() == "0" {
+                true => v.base().into(),
+                false => v.into(),
+            },
+            EBUILD_PHASE => build.phase.expect("missing phase").short_name().to_string(),
+            EBUILD_PHASE_FUNC => build.phase.expect("missing phase").to_string(),
+
+            // TODO: Implement the remaining variable values which will probably require reworking
+            // BuildData into operation specific types since not all variables are exported in all
+            // situations, e.g. source builds vs binary pkg merging.
+            _ => "TODO".to_string(),
+        }
+    }
 }

@@ -19,8 +19,9 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
+    use crate::config::Config;
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::write_stdin;
+    use crate::pkgsh::{write_stdin, BuildData};
 
     use super::super::into::run as into;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -36,6 +37,11 @@ mod tests {
 
     #[test]
     fn creation() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, _) = config.temp_repo("test", 0).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, "test");
+
         let file_tree = FileTree::new();
 
         fs::File::create("bin").unwrap();

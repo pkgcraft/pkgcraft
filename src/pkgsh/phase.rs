@@ -24,10 +24,8 @@ fn emake_install() -> scallop::Result<ExecStatus> {
     if makefile_exists() {
         BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
             let env = &d.borrow().env;
-            #[allow(non_snake_case)]
-            let D = env.get("D").expect("D undefined");
-            let destdir = format!("DESTDIR={D}");
-            let args = &[destdir.as_str(), "install"];
+            let destdir = env.get("D").expect("D undefined");
+            let args = &[&format!("DESTDIR={destdir}"), "install"];
             emake(args)
         })?;
     }

@@ -29,7 +29,9 @@ make_builtin!("doexe", doexe_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_inst
 mod tests {
     use std::fs;
 
+    use crate::config::Config;
     use crate::pkgsh::test::FileTree;
+    use crate::pkgsh::BuildData;
 
     use super::super::exeinto::run as exeinto;
     use super::super::exeopts::run as exeopts;
@@ -46,6 +48,11 @@ mod tests {
 
     #[test]
     fn creation() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, _) = config.temp_repo("test", 0).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, "test");
+
         let file_tree = FileTree::new();
         let default_mode = 0o100755;
         let custom_mode = 0o100777;

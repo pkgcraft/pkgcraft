@@ -15,7 +15,7 @@ use crate::eapi::{self, Eapi};
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::metadata::{Key, Metadata};
 use crate::repo::ebuild::Repo;
-use crate::{pkg, Error};
+use crate::Error;
 
 use super::{make_pkg_traits, Package};
 
@@ -48,11 +48,10 @@ impl<'a> Pkg<'a> {
         };
 
         let eapi = Pkg::parse_eapi(&path).map_err(err)?;
-        pkg::export_env(&atom)?;
         // TODO: compare ebuild mtime vs cache mtime
         let meta = match Metadata::load(&atom, eapi, repo) {
             Some(data) => data,
-            None => Metadata::source(&path, eapi, repo).map_err(err)?,
+            None => Metadata::source(&atom, &path, eapi, repo).map_err(err)?,
         };
         Ok(Pkg {
             path,

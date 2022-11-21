@@ -22,7 +22,9 @@ make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_in
 mod tests {
     use std::fs;
 
+    use crate::config::Config;
     use crate::pkgsh::test::FileTree;
+    use crate::pkgsh::BuildData;
 
     use super::super::exeopts::run as exeopts;
     use super::super::into::run as into;
@@ -39,6 +41,11 @@ mod tests {
 
     #[test]
     fn creation() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let (t, _) = config.temp_repo("test", 0).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, "test");
+
         let file_tree = FileTree::new();
         let default_mode = 0o100755;
 

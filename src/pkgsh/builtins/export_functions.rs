@@ -46,7 +46,7 @@ mod tests {
     use scallop::variables::bind;
 
     use crate::config::Config;
-    use crate::pkgsh::{source_ebuild, BUILD_DATA};
+    use crate::pkgsh::{source_ebuild, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as export_functions;
@@ -62,7 +62,8 @@ mod tests {
     #[test]
     fn test_single() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, _) = config.temp_repo("test", 0).unwrap();
+
         let temp_file = tempfile::NamedTempFile::new().unwrap();
         bind("TEMP_FILE", temp_file.path().to_string_lossy(), None, None).unwrap();
 
@@ -82,17 +83,15 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let (path, _) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            source_ebuild(&path).unwrap();
-            // execute eclass-defined function
-            let mut func = functions::find("src_compile").unwrap();
-            func.execute(&[]).unwrap();
-            // verify the function was run
-            let output = fs::read_to_string(temp_file.path()).unwrap();
-            let output: Vec<_> = output.split_whitespace().collect();
-            assert_eq!(output, ["compiling"]);
-        });
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        BuildData::update(&cpv, "test");
+        source_ebuild(&path).unwrap();
+        // execute eclass-defined function
+        let mut func = functions::find("src_compile").unwrap();
+        func.execute(&[]).unwrap();
+        // verify the function was run
+        let output = fs::read_to_string(temp_file.path()).unwrap();
+        let output: Vec<_> = output.split_whitespace().collect();
+        assert_eq!(output, ["compiling"]);
     }
 }

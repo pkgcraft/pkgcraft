@@ -13,9 +13,12 @@ use strum::EnumString;
 use crate::archive::Archive;
 use crate::atom::Atom;
 use crate::metadata::Key::{self, *};
-use crate::pkgsh::builtins::{parse, BuiltinsMap, Scope, BUILTINS_MAP};
+use crate::pkgsh::builtins::{
+    parse, BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
+};
 use crate::pkgsh::phase::Phase::*;
 use crate::pkgsh::phase::*;
+use crate::pkgsh::BuildVariable::{self, *};
 use crate::Error;
 
 static VALID_EAPI_RE: Lazy<Regex> =
@@ -27,10 +30,6 @@ pub enum Feature {
     // EAPI 0
     /// RDEPEND=DEPEND if RDEPEND is unset
     RdependDefault,
-    /// DESTTREE is exported to the ebuild env
-    ExportDesttree,
-    /// INSDESTTREE is exported to the ebuild env
-    ExportInsdesttree,
 
     // EAPI 1
     /// IUSE defaults
@@ -61,8 +60,6 @@ pub enum Feature {
     UseConfArg,
 
     // EAPI 5
-    /// export the running phase name as $EBUILD_PHASE_FUNC
-    EbuildPhaseFunc,
     /// new* helpers can use stdin for content instead of a file
     NewSupportsStdin,
     /// running tests in parallel is supported
@@ -115,6 +112,7 @@ pub struct Eapi {
     econf_options: EapiEconfOptions,
     archives: HashSet<String>,
     archives_regex: OnceCell<Regex>,
+    env: HashMap<BuildVariable, Scopes>,
 }
 
 impl Eq for Eapi {}
@@ -292,6 +290,11 @@ impl Eapi {
         &self.econf_options
     }
 
+    /// Environment variables that are required to be exported.
+    pub(crate) fn env(&self) -> &HashMap<BuildVariable, Scopes> {
+        &self.env
+    }
+
     fn enable_features(mut self, features: &[Feature]) -> Self {
         for x in features {
             if !self.features.insert(*x) {
@@ -363,6 +366,22 @@ impl Eapi {
         }
         self
     }
+
+    fn update_env(mut self, variables: &[(BuildVariable, &[&str])]) -> Self {
+        for (var, scopes) in variables {
+            self.env.insert(*var, Scopes::new(scopes));
+        }
+        self
+    }
+
+    fn disable_env(mut self, variables: &[BuildVariable]) -> Self {
+        for x in variables {
+            if self.env.remove(x).is_none() {
+                panic!("EAPI {self}: disabling unregistered variable: {x:?}");
+            }
+        }
+        self
+    }
 }
 
 impl fmt::Display for Eapi {
@@ -393,11 +412,7 @@ impl FromStr for &'static Eapi {
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("0", None)
-        .enable_features(&[
-            Feature::RdependDefault,
-            Feature::ExportDesttree,
-            Feature::ExportInsdesttree,
-        ])
+        .enable_features(&[Feature::RdependDefault])
         .update_phases(&[
             PkgSetup(PHASE_STUB),
             PkgConfig(PHASE_STUB),
@@ -434,6 +449,33 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh", "a",
             "deb", "lzma", "tar.lzma",
         ])
+        .update_env(&[
+            (P, &[ALL]),
+            (PF, &[ALL]),
+            (PN, &[ALL]),
+            (CATEGORY, &[ALL]),
+            (PV, &[ALL]),
+            (PR, &[ALL]),
+            (PVR, &[ALL]),
+            (A, &[SRC, "pkg_nofetch"]),
+            (AA, &[SRC, "pkg_nofetch"]),
+            (FILESDIR, &[SRC, GLOBAL]),
+            (DISTDIR, &[SRC, GLOBAL]),
+            (WORKDIR, &[SRC, GLOBAL]),
+            (S, &[SRC]),
+            (PORTDIR, &[SRC]),
+            (ECLASSDIR, &[SRC]),
+            (ROOT, &[PKG]),
+            (T, &[ALL]),
+            (TMPDIR, &[ALL]),
+            (HOME, &[ALL]),
+            (D, &["src_install", "pkg_preinst", "pkg_postinst"]),
+            (DESTTREE, &["src_install"]),
+            (INSDESTTREE, &["src_install"]),
+            (USE, &[ALL]),
+            (EBUILD_PHASE, &[PHASE]),
+            (KV, &[ALL]),
+        ])
 });
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
@@ -457,8 +499,15 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
         ])
 });
 
-pub static EAPI3: Lazy<Eapi> =
-    Lazy::new(|| Eapi::new("3", Some(&EAPI2)).enable_archives(&["tar.xz", "xz"]));
+pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
+    Eapi::new("3", Some(&EAPI2))
+        .enable_archives(&["tar.xz", "xz"])
+        .update_env(&[
+            (EPREFIX, &[GLOBAL]),
+            (ED, &["src_install", "pkg_preinst", "pkg_postinst"]),
+            (EROOT, &[PKG]),
+        ])
+});
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("4", Some(&EAPI3))
@@ -474,12 +523,17 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
         .update_incremental_keys(&[RequiredUse])
         .update_metadata_keys(&[RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
+        .update_env(&[
+            (MERGE_TYPE, &[PKG]),
+            (REPLACING_VERSIONS, &[PKG]),
+            (REPLACED_BY_VERSION, &["pkg_prerm", "pkg_postrm"]),
+        ])
+        .disable_env(&[AA, KV])
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("5", Some(&EAPI4))
         .enable_features(&[
-            Feature::EbuildPhaseFunc,
             Feature::NewSupportsStdin,
             Feature::ParallelTests,
             Feature::RequiredUseOneOf,
@@ -487,6 +541,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             Feature::Subslots,
         ])
         .update_econf(&[("--disable-silent-rules", None, None)])
+        .update_env(&[(EBUILD_PHASE_FUNC, &[PHASE])])
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
@@ -507,10 +562,15 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
-        .disable_features(&[Feature::ExportDesttree, Feature::ExportInsdesttree])
         .update_dep_keys(&[Bdepend])
         .update_incremental_keys(&[Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
+        .update_env(&[
+            (SYSROOT, &[SRC, "pkg_setup"]),
+            (ESYSROOT, &[SRC, "pkg_setup"]),
+            (BROOT, &[SRC, "pkg_setup"]),
+        ])
+        .disable_env(&[PORTDIR, ECLASSDIR, DESTTREE, INSDESTTREE])
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {

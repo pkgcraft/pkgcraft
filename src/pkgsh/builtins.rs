@@ -129,6 +129,19 @@ pub(crate) enum Scope {
     Phase(Phase),
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct Scopes(Regex);
+
+impl Scopes {
+    pub(crate) fn new(scopes: &[&str]) -> Self {
+        Self(Regex::new(&format!(r"^{}$", scopes.join("|"))).unwrap())
+    }
+
+    pub(crate) fn matches(&self, scope: Scope) -> bool {
+        self.0.is_match(scope.as_ref())
+    }
+}
+
 impl<T: Borrow<Phase>> From<T> for Scope {
     fn from(phase: T) -> Self {
         Scope::Phase(*phase.borrow())
@@ -152,10 +165,12 @@ impl fmt::Display for Scope {
 }
 
 // scope patterns
-const ALL: &str = ".+";
-const ECLASS: &str = "eclass";
-const GLOBAL: &str = "global";
-const PHASE: &str = ".+_.+";
+pub(crate) const ALL: &str = ".+";
+pub(crate) const ECLASS: &str = "eclass";
+pub(crate) const GLOBAL: &str = "global";
+pub(crate) const PHASE: &str = ".+_.+";
+pub(crate) const SRC: &str = "src_.+";
+pub(crate) const PKG: &str = "pkg_.+";
 
 impl PkgBuiltin {
     fn new(builtin: Builtin, scopes: &[(&str, &[&str])]) -> Self {
@@ -461,6 +476,7 @@ macro_rules! builtin_scope_tests {
                     BUILD_DATA.with(|d| {
                         d.borrow_mut().eapi = eapi;
                         d.borrow_mut().repo = repo.clone();
+                        d.borrow_mut().atom = Some(crate::atom::cpv("cat/pkg-1").unwrap());
                     });
 
                     match scope {

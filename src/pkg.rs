@@ -1,8 +1,6 @@
 use std::fmt;
 
 use enum_as_inner::EnumAsInner;
-use scallop::variables::bind;
-use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
 use crate::repo::{Repo, Repository};
 use crate::restrict::{self, Restriction, Str};
@@ -10,37 +8,6 @@ use crate::{atom, eapi};
 
 pub mod ebuild;
 pub mod fake;
-
-#[derive(AsRefStr, EnumIter, Debug, Copy, Clone)]
-pub enum Env {
-    P,
-    PN,
-    PV,
-    PR,
-    PVR,
-    PF,
-    CATEGORY,
-}
-
-impl Env {
-    /// Return an atom's value for a specified environment variable.
-    fn get(&self, a: &atom::Atom) -> String {
-        let v = a.version().expect("required versioned atom");
-        use Env::*;
-        match self {
-            P => format!("{}-{}", a.package(), v.base()),
-            PN => a.package().into(),
-            PV => v.base().into(),
-            PR => format!("r{}", v.revision()),
-            PVR => match v.revision() == "0" {
-                true => v.base().into(),
-                false => v.into(),
-            },
-            PF => format!("{}-{}", a.package(), PVR.get(a)),
-            CATEGORY => a.category().into(),
-        }
-    }
-}
 
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Debug)]
@@ -67,14 +34,6 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     fn version(&self) -> &atom::Version {
         self.atom().version().unwrap()
     }
-}
-
-/// Export atom-related variables to the bash environment.
-fn export_env(a: &atom::Atom) -> crate::Result<()> {
-    for var in Env::iter() {
-        bind(var, var.get(a), None, None)?;
-    }
-    Ok(())
 }
 
 macro_rules! make_pkg_traits {

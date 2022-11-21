@@ -10,12 +10,11 @@ use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
 use crate::atom::Atom;
-use crate::config::Config;
 use crate::depset::{DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
-use crate::repo::{ebuild::Repo as EbuildRepo, Repo, Repository};
+use crate::repo::{ebuild::Repo as EbuildRepo, Repository};
 use crate::Error;
 
 pub mod ebuild;
@@ -205,19 +204,14 @@ impl Metadata {
 
     /// Source ebuild to determine metadata.
     pub(crate) fn source(
+        atom: &Atom,
         path: &Utf8Path,
         eapi: &'static Eapi,
         repo: &EbuildRepo,
     ) -> crate::Result<Self> {
-        // TODO: rework BuildData handling to drop this hack required by builtins like `inherit`
-        let config = Config::current();
-        match config.repos.get(repo.id()) {
-            Some(Repo::Ebuild(r)) => BUILD_DATA.with(|d| d.borrow_mut().repo = r.clone()),
-            _ => panic!("unknown repo: {}", repo.id()),
-        }
+        BuildData::update(atom, repo.id());
         // TODO: run sourcing via an external process pool returning the requested variables
         source_ebuild(path)?;
-        //let mut data = HashMap::new();
         let mut meta = Metadata::default();
 
         // verify sourced EAPI matches parsed EAPI
@@ -252,7 +246,9 @@ impl Metadata {
         }
 
         // TODO: handle resets in external process pool
-        BuildData::reset();
+        #[cfg(feature = "init")]
+        scallop::shell::Shell::reset();
+
         Ok(meta)
     }
 
