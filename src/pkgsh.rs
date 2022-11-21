@@ -15,10 +15,10 @@ use strum::{AsRefStr, Display};
 use crate::atom::Atom;
 use crate::config::Config;
 use crate::eapi::{Eapi, Feature};
-use crate::macros::extend_left;
+use crate::macros::{build_from_paths, extend_left};
 use crate::metadata::Key;
 use crate::pkgsh::builtins::Scope;
-use crate::repo::{ebuild, Repo};
+use crate::repo::{ebuild, Repo, Repository};
 
 pub mod builtins;
 mod install;
@@ -448,6 +448,12 @@ impl BuildVariable {
             },
             EBUILD_PHASE => build.phase.expect("missing phase").short_name().to_string(),
             EBUILD_PHASE_FUNC => build.phase.expect("missing phase").to_string(),
+            FILESDIR => {
+                let path = build_from_paths!(build.repo.path(), a.category(), a.package(), "files");
+                path.into_string()
+            }
+            PORTDIR => build.repo.path().to_string(),
+            ECLASSDIR => build.repo.path().join("eclass").into_string(),
 
             // TODO: Implement the remaining variable values which will probably require reworking
             // BuildData into operation specific types since not all variables are exported in all
