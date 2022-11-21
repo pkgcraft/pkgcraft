@@ -11,6 +11,7 @@ use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::{self, *};
 use scallop::{functions, source, Error};
 use strum::{AsRefStr, Display};
+use sys_info::os_release;
 
 use crate::atom::Atom;
 use crate::config::Config;
@@ -454,6 +455,7 @@ impl BuildVariable {
             }
             PORTDIR => build.repo.path().to_string(),
             ECLASSDIR => build.repo.path().join("eclass").into_string(),
+            KV => os_release().expect("failed to get OS version"),
 
             // TODO: Implement the remaining variable values which will probably require reworking
             // BuildData into operation specific types since not all variables are exported in all
