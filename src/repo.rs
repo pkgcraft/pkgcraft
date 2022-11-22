@@ -3,10 +3,9 @@ use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use enum_as_inner::EnumAsInner;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
-use tracing::warn;
 
 use crate::config::RepoConfig;
 use crate::pkg::{Package, Pkg};
@@ -17,94 +16,6 @@ pub mod ebuild;
 pub(crate) mod empty;
 pub mod fake;
 pub mod set;
-
-type VersionMap = IndexMap<String, IndexSet<String>>;
-type PkgMap = IndexMap<String, VersionMap>;
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-struct PkgCache {
-    pkgmap: PkgMap,
-    cpvs: IndexSet<atom::Atom>,
-}
-
-impl PkgCache {
-    fn categories(&self) -> Vec<String> {
-        self.pkgmap.clone().into_keys().collect()
-    }
-
-    fn packages<S: AsRef<str>>(&self, cat: S) -> Vec<String> {
-        match self.pkgmap.get(cat.as_ref()) {
-            Some(pkgs) => pkgs.clone().into_keys().collect(),
-            None => vec![],
-        }
-    }
-
-    fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Vec<String> {
-        match self.pkgmap.get(cat.as_ref()) {
-            Some(pkgs) => match pkgs.get(pkg.as_ref()) {
-                Some(vers) => vers.clone().into_iter().collect(),
-                None => vec![],
-            },
-            None => vec![],
-        }
-    }
-
-    fn len(&self) -> usize {
-        self.cpvs.len()
-    }
-}
-
-impl<'a> IntoIterator for &'a PkgCache {
-    type Item = &'a atom::Atom;
-    type IntoIter = PkgCacheIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        PkgCacheIter {
-            iter: self.cpvs.iter(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct PkgCacheIter<'a> {
-    iter: indexmap::set::Iter<'a, atom::Atom>,
-}
-
-impl<'a> Iterator for PkgCacheIter<'a> {
-    type Item = &'a atom::Atom;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
-
-impl<'a> FromIterator<&'a str> for PkgCache {
-    fn from_iter<I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
-        let mut pkgmap = PkgMap::new();
-        let mut cpvs = IndexSet::<atom::Atom>::new();
-        for s in iter {
-            match atom::cpv(s) {
-                Ok(cpv) => {
-                    cpvs.insert(cpv);
-                }
-                Err(e) => warn!("{e}"),
-            }
-        }
-
-        cpvs.sort();
-
-        for cpv in &cpvs {
-            pkgmap
-                .entry(cpv.category().into())
-                .or_insert_with(VersionMap::new)
-                .entry(cpv.package().into())
-                .or_insert_with(IndexSet::new)
-                .insert(cpv.version().unwrap().into());
-        }
-
-        PkgCache { pkgmap, cpvs }
-    }
-}
 
 #[allow(clippy::large_enum_variant)]
 #[derive(IntoStaticStr, EnumIter, EnumAsInner, Debug, Clone)]
