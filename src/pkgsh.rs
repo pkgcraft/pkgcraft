@@ -447,14 +447,14 @@ impl BuildVariable {
                 true => v.base().into(),
                 false => v.into(),
             },
-            EBUILD_PHASE => build.phase.expect("missing phase").short_name().to_string(),
-            EBUILD_PHASE_FUNC => build.phase.expect("missing phase").to_string(),
             FILESDIR => {
                 let path = build_from_paths!(build.repo.path(), a.category(), a.package(), "files");
                 path.into_string()
             }
             PORTDIR => build.repo.path().to_string(),
             ECLASSDIR => build.repo.path().join("eclass").into_string(),
+            EBUILD_PHASE => build.phase.expect("missing phase").short_name().to_string(),
+            EBUILD_PHASE_FUNC => build.phase.expect("missing phase").to_string(),
             KV => os_release().expect("failed to get OS version"),
 
             // TODO: Implement the remaining variable values which will probably require reworking
