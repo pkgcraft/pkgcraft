@@ -5,10 +5,11 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
+use crate::atom::{self, Atom};
 use crate::config::RepoConfig;
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
-use crate::{atom, Error};
+use crate::Error;
 
 use super::{make_repo_traits, Contains, PkgRepository, Repository};
 
@@ -18,10 +19,16 @@ type PkgMap = IndexMap<String, VersionMap>;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct PkgCache {
     pkgmap: PkgMap,
-    cpvs: IndexSet<atom::Atom>,
+    cpvs: IndexSet<Atom>,
 }
 
 impl PkgCache {
+    fn new<'a, I: IntoIterator<Item = &'a str>>(cpvs: I) -> Self {
+        let mut pkgs = Self::default();
+        pkgs.extend(cpvs);
+        pkgs
+    }
+
     fn categories(&self) -> Vec<String> {
         self.pkgmap.clone().into_keys().collect()
     }
@@ -49,7 +56,7 @@ impl PkgCache {
 }
 
 impl<'a> IntoIterator for &'a PkgCache {
-    type Item = &'a atom::Atom;
+    type Item = &'a Atom;
     type IntoIter = PkgCacheIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -61,33 +68,35 @@ impl<'a> IntoIterator for &'a PkgCache {
 
 #[derive(Debug)]
 pub struct PkgCacheIter<'a> {
-    iter: indexmap::set::Iter<'a, atom::Atom>,
+    iter: indexmap::set::Iter<'a, Atom>,
 }
 
 impl<'a> Iterator for PkgCacheIter<'a> {
-    type Item = &'a atom::Atom;
+    type Item = &'a Atom;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
     }
 }
 
-impl<'a> FromIterator<&'a str> for PkgCache {
-    fn from_iter<I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
+impl<'a> Extend<&'a str> for PkgCache {
+    fn extend<T: IntoIterator<Item = &'a str>>(&mut self, iter: T) {
+        // TODO: Currently the entire PkgMap structure is recreated in order to avoid having to
+        // re-sort its nested nature.
         let mut pkgmap = PkgMap::new();
-        let mut cpvs = IndexSet::<atom::Atom>::new();
+
         for s in iter {
             match atom::cpv(s) {
                 Ok(cpv) => {
-                    cpvs.insert(cpv);
+                    self.cpvs.insert(cpv);
                 }
                 Err(e) => warn!("{e}"),
             }
         }
 
-        cpvs.sort();
+        self.cpvs.sort();
 
-        for cpv in &cpvs {
+        for cpv in &self.cpvs {
             pkgmap
                 .entry(cpv.category().into())
                 .or_insert_with(VersionMap::new)
@@ -96,7 +105,7 @@ impl<'a> FromIterator<&'a str> for PkgCache {
                 .insert(cpv.version().unwrap().into());
         }
 
-        PkgCache { pkgmap, cpvs }
+        self.pkgmap = pkgmap;
     }
 }
 
@@ -119,11 +128,10 @@ impl Repo {
             ..Default::default()
         };
 
-        // TODO: replace from_iter() usage with try_from_iter()
         Ok(Repo {
             id: id.to_string(),
             repo_config,
-            pkgs: PkgCache::from_iter(cpvs),
+            pkgs: PkgCache::new(cpvs),
         })
     }
 
@@ -138,12 +146,18 @@ impl Repo {
         Ok(Repo {
             id: id.to_string(),
             repo_config,
-            pkgs: PkgCache::from_iter(data.lines()),
+            pkgs: PkgCache::new(data.lines()),
         })
     }
 
     pub(super) fn repo_config(&self) -> &RepoConfig {
         &self.repo_config
+    }
+}
+
+impl<'a> Extend<&'a str> for Repo {
+    fn extend<T: IntoIterator<Item = &'a str>>(&mut self, iter: T) {
+        self.pkgs.extend(iter)
     }
 }
 
@@ -260,6 +274,8 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
 mod tests {
     use std::str::FromStr;
 
+    use crate::pkg::Package;
+
     use super::*;
 
     #[test]
@@ -316,6 +332,32 @@ mod tests {
     }
 
     #[test]
+    fn test_extend() {
+        let mut repo = Repo::new("fake", 0, ["cat/pkg-2"]).unwrap();
+        let atoms: Vec<_> = repo
+            .iter()
+            .map(|pkg| format!("{}", pkg.atom().cpv()))
+            .collect();
+        assert_eq!(atoms, ["cat/pkg-2"]);
+
+        // add single cpv
+        repo.extend(["cat/pkg-0"]);
+        let atoms: Vec<_> = repo
+            .iter()
+            .map(|pkg| format!("{}", pkg.atom().cpv()))
+            .collect();
+        assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-2"]);
+
+        // add multiple cpvs
+        repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]);
+        let atoms: Vec<_> = repo
+            .iter()
+            .map(|pkg| format!("{}", pkg.atom().cpv()))
+            .collect();
+        assert_eq!(atoms, ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]);
+    }
+
+    #[test]
     fn test_contains() {
         let repo = Repo::new("fake", 0, ["cat/pkg-0"]).unwrap();
 
@@ -331,10 +373,10 @@ mod tests {
         assert!(!repo.contains(cpv));
 
         // atom containment
-        let a = atom::Atom::from_str("cat/pkg").unwrap();
+        let a = Atom::from_str("cat/pkg").unwrap();
         assert!(repo.contains(&a));
         assert!(repo.contains(a));
-        let a = atom::Atom::from_str("cat/pkg-a").unwrap();
+        let a = Atom::from_str("cat/pkg-a").unwrap();
         assert!(!repo.contains(&a));
         assert!(!repo.contains(a));
     }
@@ -343,7 +385,10 @@ mod tests {
     fn test_iter() {
         let expected = ["cat/pkg-0", "acat/bpkg-1"];
         let repo = Repo::new("fake", 0, expected).unwrap();
-        let atoms: Vec<_> = repo.iter().map(|a| format!("{a}")).collect();
-        assert_eq!(atoms, ["acat/bpkg-1::fake", "cat/pkg-0::fake"]);
+        let atoms: Vec<_> = repo
+            .iter()
+            .map(|pkg| format!("{}", pkg.atom().cpv()))
+            .collect();
+        assert_eq!(atoms, ["acat/bpkg-1", "cat/pkg-0"]);
     }
 }
