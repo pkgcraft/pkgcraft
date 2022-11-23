@@ -9,11 +9,7 @@ pub(super) fn default_phase_func(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
-        let phase = &d.borrow().phase.unwrap();
-        match eapi.phases().get(phase) {
-            Some(phase) => phase.run(),
-            None => Err(Error::Base(format!("nonexistent phase: {phase}"))),
-        }
+        let phase = &d.borrow().phase.expect("no running phase");
+        phase.run()
     })
 }
