@@ -416,8 +416,8 @@ macro_rules! make_builtin {
                             Err(e) => scallop::builtins::handle_error(cmd, e),
                         }
                     } else {
-                        let pkg_builtin = ALL_BUILTINS.get(cmd).expect("unknown builtin");
-                        let msg = match pkg_builtin.scope.get(eapi) {
+                        let builtin = ALL_BUILTINS.get(cmd).expect("unknown builtin: {cmd}");
+                        let msg = match builtin.scope.get(eapi) {
                             Some(_) => format!("{scope} scope doesn't enable command: {cmd}"),
                             None => format!("EAPI={eapi} doesn't enable command: {cmd}"),
                         };
