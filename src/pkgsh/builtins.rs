@@ -19,6 +19,7 @@ pub(super) mod addpredict;
 pub(super) mod addread;
 pub(super) mod addwrite;
 pub(super) mod assert;
+pub(super) mod best_version;
 pub(super) mod command_not_found_handle;
 pub(super) mod debug_print;
 pub(super) mod debug_print_function;
@@ -76,6 +77,7 @@ pub(super) mod fowners;
 pub(super) mod fperms;
 pub(super) mod get_libdir;
 pub(super) mod has;
+pub(super) mod has_version;
 pub(super) mod hasq;
 pub(super) mod hasv;
 pub(super) mod in_iuse;
@@ -208,6 +210,7 @@ pub(crate) static ALL_BUILTINS: Lazy<HashMap<&'static str, &PkgBuiltin>> = Lazy:
         &*addread::PKG_BUILTIN,
         &*addwrite::PKG_BUILTIN,
         &*assert::PKG_BUILTIN,
+        &*best_version::PKG_BUILTIN,
         &*command_not_found_handle::PKG_BUILTIN,
         &*debug_print::PKG_BUILTIN,
         &*debug_print_function::PKG_BUILTIN,
@@ -265,6 +268,7 @@ pub(crate) static ALL_BUILTINS: Lazy<HashMap<&'static str, &PkgBuiltin>> = Lazy:
         &*fperms::PKG_BUILTIN,
         &*get_libdir::PKG_BUILTIN,
         &*has::PKG_BUILTIN,
+        &*has_version::PKG_BUILTIN,
         &*hasq::PKG_BUILTIN,
         &*hasv::PKG_BUILTIN,
         &*in_iuse::PKG_BUILTIN,
