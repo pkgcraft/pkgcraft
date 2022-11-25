@@ -31,12 +31,14 @@ pub struct ConfigPath {
     pub data: Utf8PathBuf,
     pub db: Utf8PathBuf,
     pub run: Utf8PathBuf,
+    pub tmp: Utf8PathBuf,
 }
 
 impl ConfigPath {
     fn new(name: &str, prefix: &str, create: bool) -> crate::Result<ConfigPath> {
         let home = env::var("HOME").ok().unwrap_or_else(|| "/root".to_string());
-        let (config, cache, data, db, run): (
+        let (config, cache, data, db, run, tmp): (
+            Utf8PathBuf,
             Utf8PathBuf,
             Utf8PathBuf,
             Utf8PathBuf,
@@ -67,6 +69,7 @@ impl ConfigPath {
                 data = prefixed(Utf8PathBuf::from(format!("/usr/share/{name}")));
                 db = prefixed(Utf8PathBuf::from(format!("/var/db/{name}")));
                 run = prefixed(Utf8PathBuf::from(format!("/run/{name}")));
+                tmp = prefixed(Utf8PathBuf::from(format!("/var/tmp/{name}")));
                 system_config
             }
             _ => {
@@ -89,7 +92,7 @@ impl ConfigPath {
                 };
 
                 db = data.clone();
-                run = cache.clone();
+                tmp = cache.clone();
                 user_config
             }
         };
@@ -107,6 +110,7 @@ impl ConfigPath {
             data,
             db,
             run,
+            tmp,
         })
     }
 }
