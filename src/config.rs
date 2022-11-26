@@ -191,20 +191,15 @@ impl Config {
             Ini::load_from_file(&f)
                 .map_err(|e| Error::Config(format!("invalid repos.conf file: {f:?}: {e}")))
                 .and_then(|ini| {
-                    for (name, settings) in ini.iter().filter_map(|(section, p)| {
-                        match section {
-                            Some(s) if s != "DEFAULT" => Some((s, p)),
-                            _ => None,
-                        }
+                    for (name, settings) in ini.iter().filter_map(|(section, p)| match section {
+                        Some(s) if s != "DEFAULT" => Some((s, p)),
+                        _ => None,
                     }) {
                         // pull supported fields from config
-                        let priority = settings.get("priority")
-                            .unwrap_or("0")
-                            .parse()
-                            .unwrap_or(0);
+                        let priority = settings.get("priority").unwrap_or("0").parse().unwrap_or(0);
                         let path = settings.get("location").ok_or_else(|| {
                             Error::Config(format!(
-                                "invalid repos.conf file: {f:?}: missing location field for {name:?} repo"
+                                "invalid repos.conf file: {f:?}: missing location field: {name}"
                             ))
                         })?;
 
@@ -253,6 +248,11 @@ impl Config {
 mod tests {
     use std::env;
 
+    use tempfile::tempdir;
+
+    use crate::macros::assert_err_re;
+    use crate::test::eq_ordered;
+
     use super::*;
 
     #[test]
@@ -296,5 +296,99 @@ mod tests {
         assert_eq!(config.path.cache, Utf8PathBuf::from("/var/cache/pkgcraft"));
         assert_eq!(config.path.config, Utf8PathBuf::from("/etc/pkgcraft"));
         assert_eq!(config.path.run, Utf8PathBuf::from("/run/pkgcraft"));
+    }
+
+    #[test]
+    fn test_load_repos_conf() {
+        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let tmpdir = tempdir().unwrap();
+        let conf_path = tmpdir.path().join("repos.conf");
+        let path = conf_path.to_str().unwrap();
+
+        // nonexistent
+        let r = config.load_repos_conf("nonexistent");
+        assert_err_re!(r, "failed reading repos.conf");
+
+        // invalid ini format
+        let data = indoc::indoc! {r#"
+            [DEFAULT]
+            main-repo = gentoo
+
+            [overlay
+            location = /path/to/overlay
+        "#};
+        fs::write(&path, data).unwrap();
+        let r = config.load_repos_conf(&path);
+        assert_err_re!(r, "invalid repos.conf file");
+
+        // invalid ini format
+        let data = indoc::indoc! {r#"
+            [DEFAULT]
+            main-repo = gentoo
+
+            [overlay]
+        "#};
+        fs::write(&path, data).unwrap();
+        let r = config.load_repos_conf(&path);
+        assert_err_re!(r, "missing location field: overlay");
+
+        // single repo
+        let t1 = TempRepo::new("test", None, None).unwrap();
+        let r1_path = t1.path.as_str();
+        let data = indoc::formatdoc! {r#"
+            [a]
+            location = {r1_path}
+        "#};
+        fs::write(&path, data).unwrap();
+        let repos = config.load_repos_conf(&path).unwrap();
+        assert!(eq_ordered(repos.iter().map(|r| r.id()), ["a"]));
+
+        // multiple, prioritized repos
+        let t2 = TempRepo::new("r2", None, None).unwrap();
+        let r2_path = t2.path.as_str();
+        let data = indoc::formatdoc! {r#"
+            [b]
+            location = {r1_path}
+            [c]
+            location = {r2_path}
+            priority = 1
+        "#};
+        fs::write(&path, data).unwrap();
+        let repos = config.load_repos_conf(&path).unwrap();
+        assert!(eq_ordered(repos.iter().map(|r| r.id()), ["c", "b"]));
+
+        // multiple config files in a specified directory
+        let r3 = TempRepo::new("r3", None, None).unwrap();
+        let r3_path = r3.path.as_str();
+        let tmpdir = tempdir().unwrap();
+        let conf_dir = tmpdir.path();
+        let data = indoc::formatdoc! {r#"
+            [r1]
+            location = {r1_path}
+        "#};
+        fs::write(conf_dir.join("r1.conf"), data).unwrap();
+        let data = indoc::formatdoc! {r#"
+            [r2]
+            location = {r2_path}
+            priority = -1
+        "#};
+        fs::write(conf_dir.join("r2.conf"), data).unwrap();
+        let data = indoc::formatdoc! {r#"
+            [r3]
+            location = {r3_path}
+            priority = 1
+        "#};
+        fs::write(conf_dir.join("r3.conf"), data).unwrap();
+        let repos = config.load_repos_conf(conf_dir.to_str().unwrap()).unwrap();
+        assert!(eq_ordered(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]));
+
+        // reloading existing repo fails
+        let data = indoc::formatdoc! {r#"
+            [r1]
+            location = {r1_path}
+        "#};
+        fs::write(&path, data).unwrap();
+        let r = config.load_repos_conf(&path);
+        assert_err_re!(r, "existing repo: r1");
     }
 }
