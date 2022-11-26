@@ -127,9 +127,11 @@ impl Config {
             path: ConfigPath::new(name, prefix, create)?,
             ..Default::default()
         };
-        let repos = repo::Config::new(&config.path.config, &config.path.db, create)?;
-        repos.finalize(&config)?;
+        let repos = repo::Config::new(&config, create)?;
         config.repos = repos;
+        for (_, repo) in &config.repos {
+            repo.finalize(&config)?;
+        }
         Ok(config)
     }
 

@@ -136,13 +136,6 @@ impl Config {
         Ok(config)
     }
 
-    pub(super) fn finalize(&self, config: &super::Config) -> crate::Result<()> {
-        for repo in self.repos.values() {
-            repo.finalize(config)?;
-        }
-        Ok(())
-    }
-
     /// Add local repo from a filesystem path.
     pub(super) fn add_path(
         &mut self,
