@@ -97,11 +97,11 @@ mod tests {
 
         // no targets
         let r = doman(&["-i18n=en"]);
-        assert_err_re!(r, format!("^missing filename target$"));
+        assert_err_re!(r, "^missing filename target$");
 
         // `newman` target
         let r = doman(&["manpage"]);
-        assert_err_re!(r, format!("^invalid file target, use `newman`: .*$"));
+        assert_err_re!(r, "^invalid file target, use `newman`: .*$");
     }
 
     #[test]

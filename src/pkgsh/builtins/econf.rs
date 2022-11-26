@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn nonexistent() {
-        assert_err_re!(econf.run(&[]), format!("^nonexistent configure .*$"));
+        assert_err_re!(econf.run(&[]), "^nonexistent configure .*$");
     }
 
     #[test]
@@ -158,7 +158,7 @@ mod tests {
         let configure = dir.path().join("configure");
         File::create(configure).unwrap();
         env::set_current_dir(&dir).unwrap();
-        assert_err_re!(econf.run(&[]), format!("^nonexecutable configure .*$"));
+        assert_err_re!(econf.run(&[]), "^nonexecutable configure .*$");
     }
 
     #[test]

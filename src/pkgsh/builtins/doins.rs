@@ -64,7 +64,7 @@ mod tests {
         // non-recursive directory
         fs::create_dir("dir").unwrap();
         let r = doins(&["dir"]);
-        assert_err_re!(r, format!("^non-recursive dir install: .*$"));
+        assert_err_re!(r, "^non-recursive dir install: .*$");
     }
 
     #[test]

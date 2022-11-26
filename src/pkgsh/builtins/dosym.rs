@@ -90,15 +90,15 @@ mod tests {
 
         // dir targets aren't supported
         let r = dosym(&["source", "target/"]);
-        assert_err_re!(r, format!("^missing filename target: .*$"));
+        assert_err_re!(r, "^missing filename target: .*$");
 
         fs::create_dir("target").unwrap();
         let r = dosym(&["source", "target"]);
-        assert_err_re!(r, format!("^missing filename target: .*$"));
+        assert_err_re!(r, "^missing filename target: .*$");
 
         // relative source with `dosym -r`
         let r = dosym(&["-r", "source", "target"]);
-        assert_err_re!(r, format!("^absolute source required .*$"));
+        assert_err_re!(r, "^absolute source required .*$");
     }
 
     #[test]

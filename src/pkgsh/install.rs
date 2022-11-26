@@ -376,7 +376,7 @@ mod tests {
 
             // nonexistent
             let r = install.files_internal([("source", "dest")]);
-            assert_err_re!(r, format!("^invalid file \"source\": .*$"));
+            assert_err_re!(r, "^invalid file \"source\": .*$");
         })
     }
 

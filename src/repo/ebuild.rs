@@ -953,7 +953,7 @@ mod tests {
         repo.config.set("masters", "a b c");
         repo.config.write(None).unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str());
-        assert_err_re!(r, format!("^.* unconfigured repos: a, b, c$"));
+        assert_err_re!(r, "^.* unconfigured repos: a, b, c$");
 
         // none
         let t = TempRepo::new("a", None, None).unwrap();
@@ -1002,7 +1002,7 @@ mod tests {
 
         repo.config.write(Some("data")).unwrap();
         let r = Repo::from_path(repo.id(), 0, repo.path());
-        assert_err_re!(r, format!("^.* invalid repo config: .*$"));
+        assert_err_re!(r, "^.* invalid repo config: .*$");
     }
 
     #[test]

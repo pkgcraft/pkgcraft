@@ -185,7 +185,7 @@ mod tests {
         // non-recursive directory
         fs::create_dir("dir").unwrap();
         let r = dohtml(&["dir"]);
-        assert_err_re!(r, format!("^trying to install directory as file: .*$"));
+        assert_err_re!(r, "^trying to install directory as file: .*$");
     }
 
     #[test]
