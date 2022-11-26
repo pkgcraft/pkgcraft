@@ -390,5 +390,18 @@ mod tests {
         fs::write(&path, data).unwrap();
         let r = config.load_repos_conf(&path);
         assert_err_re!(r, "existing repo: r1");
+
+        // nonexistent masters causes finalization failure
+        let t = TempRepo::new("bad", None, None).unwrap();
+        let repo_path = t.path.as_str();
+        let repo = EbuildRepo::from_path("bad", 0, &t.path).unwrap();
+        repo.config().write(Some("masters = x y z")).unwrap();
+        let data = indoc::formatdoc! {r#"
+            [bad]
+            location = {repo_path}
+        "#};
+        fs::write(&path, data).unwrap();
+        let r = config.load_repos_conf(&path);
+        assert_err_re!(r, "^.* unconfigured repos: x, y, z$");
     }
 }

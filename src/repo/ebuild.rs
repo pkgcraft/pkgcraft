@@ -84,7 +84,7 @@ impl Config {
     }
 
     #[cfg(test)]
-    fn write(&self, data: Option<&str>) -> crate::Result<()> {
+    pub(crate) fn write(&self, data: Option<&str>) -> crate::Result<()> {
         if let Some(path) = &self.path {
             self.ini
                 .write_to_file(path)
@@ -250,7 +250,7 @@ impl fmt::Debug for Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub(super) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
+    pub(crate) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
         S: AsRef<str>,
         P: AsRef<Utf8Path>,
