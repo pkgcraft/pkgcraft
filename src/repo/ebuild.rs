@@ -454,10 +454,9 @@ impl Repo {
     }
 
     pub(crate) fn pkg_xml(&self, cpv: &atom::Atom) -> Arc<XmlMetadata> {
-        let key = format!("{}/{}", cpv.category(), cpv.package());
         self.xml_cache()
             .tx
-            .send(Msg::Key(key))
+            .send(Msg::Key(cpv.key()))
             .expect("failed requesting pkg xml data");
         self.xml_cache()
             .rx
@@ -466,10 +465,9 @@ impl Repo {
     }
 
     pub(crate) fn pkg_manifest(&self, cpv: &atom::Atom) -> Arc<Manifest> {
-        let key = format!("{}/{}", cpv.category(), cpv.package());
         self.manifest_cache()
             .tx
-            .send(Msg::Key(key))
+            .send(Msg::Key(cpv.key()))
             .expect("failed requesting pkg manifest data");
         self.manifest_cache()
             .rx
