@@ -23,7 +23,7 @@ use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::Pkg;
 use crate::restrict::{Restrict, Restriction, Str};
-use crate::{atom, eapi, repo, Error};
+use crate::{atom, eapi, Error};
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
@@ -309,9 +309,9 @@ impl Repo {
         let mut masters = vec![];
 
         for id in self.config.iter("masters") {
-            match config.repos.get(id) {
-                Some(repo::Repo::Ebuild(r)) => masters.push(Arc::downgrade(r)),
-                _ => nonexistent.push(id),
+            match config.repos.get(id).and_then(|r| r.as_ebuild()) {
+                Some(r) => masters.push(Arc::downgrade(r)),
+                None => nonexistent.push(id),
             }
         }
 
