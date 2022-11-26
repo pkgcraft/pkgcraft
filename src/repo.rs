@@ -100,7 +100,7 @@ impl Repo {
 
     pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
         match self {
-            Self::Ebuild(repo) => repo.finalize(config, self),
+            Self::Ebuild(repo) => repo.finalize(config, Arc::downgrade(repo)),
             _ => Ok(()),
         }
     }

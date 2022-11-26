@@ -304,7 +304,7 @@ impl Repo {
         })
     }
 
-    pub(super) fn finalize(&self, config: &config::Config, repo: &repo::Repo) -> crate::Result<()> {
+    pub(super) fn finalize(&self, config: &config::Config, repo: Weak<Repo>) -> crate::Result<()> {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
@@ -317,7 +317,7 @@ impl Repo {
 
         if nonexistent.is_empty() {
             let mut trees = masters.clone();
-            trees.push(Arc::downgrade(repo.as_ebuild().expect("invalid repo format")));
+            trees.push(repo);
             self.masters
                 .set(masters)
                 .unwrap_or_else(|_| panic!("masters already set: {}", self.id()));
