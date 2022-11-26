@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn test_single() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
-        let (t, _) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         let temp_file = tempfile::NamedTempFile::new().unwrap();
         bind("TEMP_FILE", temp_file.path().to_string_lossy(), None, None).unwrap();
@@ -84,7 +84,7 @@ mod tests {
             SLOT=0
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BuildData::update(&cpv, "test");
+        BuildData::update(&cpv, &repo);
         source_ebuild(&path).unwrap();
         // execute eclass-defined function
         let mut func = functions::find("src_compile").unwrap();

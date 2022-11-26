@@ -1,11 +1,10 @@
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use ini::Ini;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
@@ -122,24 +121,16 @@ pub struct Config {
     pub repos: repo::Config,
 }
 
-static CURRENT_CONFIG: Lazy<RwLock<Arc<Config>>> = Lazy::new(|| RwLock::new(Default::default()));
-
 impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Config> {
-        let path = ConfigPath::new(name, prefix, create)?;
-        let repos = repo::Config::new(&path.config, &path.db, create)?;
-        repos.finalize()?;
-        let config = Config { path, repos };
-        Config::make_current(config.clone());
+        let mut config = Config {
+            path: ConfigPath::new(name, prefix, create)?,
+            ..Default::default()
+        };
+        let repos = repo::Config::new(&config.path.config, &config.path.db, create)?;
+        repos.finalize(&config)?;
+        config.repos = repos;
         Ok(config)
-    }
-
-    pub fn current() -> Arc<Config> {
-        CURRENT_CONFIG.read().unwrap().clone()
-    }
-
-    fn make_current(config: Config) {
-        *CURRENT_CONFIG.write().unwrap() = Arc::new(config);
     }
 
     // Note that repo references can't be returned since the underlying map structure alters them
@@ -161,9 +152,8 @@ impl Config {
 
     /// Add a repo to the config.
     pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<()> {
-        repo.finalize()?;
+        repo.finalize(self)?;
         self.repos.insert(repo.id(), repo.clone(), external);
-        Config::make_current(self.clone());
         Ok(())
     }
 
@@ -176,9 +166,8 @@ impl Config {
 
     /// Remove configured repos.
     pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
+        // TODO: verify repos to be removed aren't required by remaining repos
         self.repos.del(repos, clean)?;
-        self.repos.finalize()?;
-        Config::make_current(self.clone());
         Ok(())
     }
 
@@ -193,8 +182,8 @@ impl Config {
             Err(e) => Err(Error::Config(format!("failed reading repos.conf: {path:?}: {e}"))),
         }?;
 
-        // copy original config that is reverted to if an error occurs
-        let orig_config = Config::current().as_ref().clone();
+        // copy original repos config that is reverted to if an error occurs
+        let orig_repos = self.repos.clone();
         let mut repos = vec![];
 
         for f in files {
@@ -228,13 +217,12 @@ impl Config {
         if !repos.is_empty() {
             // add repos to config
             self.repos.extend(&repos, true);
-            Config::make_current(self.clone());
 
             // verify new repos
             for (_name, repo) in &repos {
-                if let Err(e) = repo.finalize() {
-                    // revert to previous config without any repos from repos.conf files
-                    Config::make_current(orig_config);
+                if let Err(e) = repo.finalize(self) {
+                    // revert to previous repos
+                    self.repos = orig_repos;
                     return Err(e);
                 }
             }
@@ -251,9 +239,8 @@ impl Config {
         priority: i32,
     ) -> crate::Result<(TempRepo, Arc<EbuildRepo>)> {
         let (temp_repo, r) = self.repos.create_temp(name, priority)?;
-        r.finalize()?;
+        r.finalize(self)?;
         self.repos.insert(name, r, false);
-        Config::make_current(self.clone());
         match self.repos.get(name) {
             Some(Repo::Ebuild(r)) => Ok((temp_repo, r.clone())),
             _ => panic!("unknown temp repo: {}", name),

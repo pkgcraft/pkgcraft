@@ -461,12 +461,16 @@ macro_rules! builtin_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
-            use crate::pkgsh::{builtins::Scope::*, run_phase, source_ebuild, BUILD_DATA};
+            use crate::pkgsh::{
+                builtins::Scope::*, run_phase, source_ebuild, BuildData, BUILD_DATA,
+            };
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
             let mut config = Config::new("pkgcraft", "", false).unwrap();
             let (t, repo) = config.temp_repo("test", 0).unwrap();
+            let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+            BuildData::update(&cpv, &repo);
 
             let static_scopes: Vec<_> = vec![Global, Eclass];
             for eapi in EAPIS_OFFICIAL.values() {
@@ -477,11 +481,7 @@ macro_rules! builtin_scope_tests {
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
                     // initialize build state
-                    BUILD_DATA.with(|d| {
-                        d.borrow_mut().eapi = eapi;
-                        d.borrow_mut().repo = repo.clone();
-                        d.borrow_mut().atom = Some(crate::atom::cpv("cat/pkg-1").unwrap());
-                    });
+                    BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
 
                     match scope {
                         Eclass => {

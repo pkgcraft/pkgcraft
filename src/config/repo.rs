@@ -140,9 +140,9 @@ impl Config {
         Ok(config)
     }
 
-    pub(super) fn finalize(&self) -> crate::Result<()> {
+    pub(super) fn finalize(&self, config: &super::Config) -> crate::Result<()> {
         for repo in self.repos.values() {
-            repo.finalize()?;
+            repo.finalize(config)?;
         }
         Ok(())
     }

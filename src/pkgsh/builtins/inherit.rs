@@ -45,6 +45,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             let path = d
                 .borrow()
                 .repo
+                .unwrap()
                 .eclasses()
                 .get(&eclass)
                 .map(|p| p.to_string())
@@ -88,6 +89,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::Pkg;
+    use crate::pkgsh::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as inherit;
@@ -103,13 +105,11 @@ mod tests {
     #[test]
     fn test_nonexistent() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
-        let (_t, repo) = config.temp_repo("test", 0).unwrap();
-
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            let r = inherit(&["nonexistent"]);
-            assert_err_re!(r, r"^unknown eclass: nonexistent");
-        });
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, &repo);
+        let r = inherit(&["nonexistent"]);
+        assert_err_re!(r, r"^unknown eclass: nonexistent");
     }
 
     #[test]
@@ -124,11 +124,10 @@ mod tests {
         "#};
         t.create_eclass("e1", eclass).unwrap();
 
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            let r = inherit(&["e1"]);
-            assert_err_re!(r, r"^failed loading eclass: e1: unknown command: unknown_cmd$");
-        });
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, &repo);
+        let r = inherit(&["e1"]);
+        assert_err_re!(r, r"^failed loading eclass: e1: unknown command: unknown_cmd$");
     }
 
     #[test]
@@ -143,11 +142,10 @@ mod tests {
         "#};
         t.create_eclass("e1", eclass).unwrap();
 
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            inherit(&["e1"]).unwrap();
-            assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
-        });
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, &repo);
+        inherit(&["e1"]).unwrap();
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
     }
 
     #[test]
@@ -167,11 +165,10 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            inherit(&["e1", "e2"]).unwrap();
-            assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
-        });
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, &repo);
+        inherit(&["e1", "e2"]).unwrap();
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
 
     #[test]
@@ -192,11 +189,10 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            inherit(&["e2"]).unwrap();
-            assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
-        });
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, &repo);
+        inherit(&["e2"]).unwrap();
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
 
     #[test]
@@ -223,11 +219,10 @@ mod tests {
         "#};
         t.create_eclass("e3", eclass).unwrap();
 
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            inherit(&["e3"]).unwrap();
-            assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
-        });
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, &repo);
+        inherit(&["e3"]).unwrap();
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
     }
 
     #[test]
@@ -273,12 +268,11 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().repo = repo.clone();
-            inherit(&["e1", "e2"]).unwrap();
-            let inherits = fs::read_to_string(temp_file.path()).unwrap();
-            let inherits: Vec<_> = inherits.split_whitespace().collect();
-            assert_eq!(inherits, ["e1", "e2"]);
-        });
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        BuildData::update(&cpv, &repo);
+        inherit(&["e1", "e2"]).unwrap();
+        let inherits = fs::read_to_string(temp_file.path()).unwrap();
+        let inherits: Vec<_> = inherits.split_whitespace().collect();
+        assert_eq!(inherits, ["e1", "e2"]);
     }
 }

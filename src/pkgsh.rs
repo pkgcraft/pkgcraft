@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::io;
-use std::sync::Arc;
+use std::{io, mem};
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -14,12 +13,11 @@ use strum::{AsRefStr, Display};
 use sys_info::os_release;
 
 use crate::atom::Atom;
-use crate::config::Config;
 use crate::eapi::{Eapi, Feature};
-use crate::macros::{build_from_paths, extend_left};
+use crate::macros::{build_from_paths, extend_left, vec_str};
 use crate::metadata::Key;
 use crate::pkgsh::builtins::Scope;
-use crate::repo::{ebuild, Repo, Repository};
+use crate::repo::{ebuild, Repository};
 
 pub mod builtins;
 mod install;
@@ -170,10 +168,10 @@ macro_rules! assert_stderr {
 use assert_stderr;
 
 #[derive(Default)]
-pub(crate) struct BuildData {
+pub(crate) struct BuildData<'a> {
     pub(crate) eapi: &'static Eapi,
-    pub(crate) repo: Arc<ebuild::Repo>,
     pub(crate) atom: Option<Atom>,
+    pub(crate) repo: Option<&'a ebuild::Repo>,
 
     stdin: Stdin,
     stdout: Stdout,
@@ -226,24 +224,26 @@ pub(crate) struct BuildData {
     pub(crate) restrict: VecDeque<String>,
 }
 
-impl BuildData {
-    pub(crate) fn update(atom: &Atom, repo: &str) {
-        let mut data = BuildData::default();
+impl BuildData<'_> {
+    pub(crate) fn update(atom: &Atom, repo: &ebuild::Repo) {
+        // TODO: remove this hack once BuildData is reworked
+        // Drop the lifetime bound on the repo reference in order for it to be stored in BuildData
+        // which currently requires `'static` due to its usage in a global, thread local, static
+        // variable.
+        let r = unsafe { mem::transmute(repo) };
 
-        // TODO: rework to drop this hack required by builtins like `inherit`
-        let config = Config::current();
-        match config.repos.get(repo) {
-            Some(Repo::Ebuild(r)) => data.repo = r.clone(),
-            _ => panic!("unknown repo: {}", repo),
-        }
+        let data = BuildData {
+            atom: Some(atom.clone()),
+            repo: Some(r),
+            insopts: vec_str!(["-m0644"]),
+            libopts: vec_str!(["-m0644"]),
+            diropts: vec_str!(["-m0755"]),
+            exeopts: vec_str!(["-m0755"]),
+            desttree: "/usr".into(),
+            ..Default::default()
+        };
 
-        data.atom = Some(atom.clone());
         // set build state defaults
-        data.insopts.push("-m0644".into());
-        data.libopts.push("-m0644".into());
-        data.diropts.push("-m0755".into());
-        data.exeopts.push("-m0755".into());
-        data.desttree = "/usr".into();
         BUILD_DATA.with(|d| d.replace(data));
     }
 
@@ -302,7 +302,7 @@ impl BuildData {
 }
 
 thread_local! {
-    pub(crate) static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::default());
+    pub(crate) static BUILD_DATA: RefCell<BuildData<'static>> = RefCell::new(BuildData::default());
 }
 
 /// Initialize bash for library usage.
@@ -448,11 +448,16 @@ impl BuildVariable {
                 false => v.into(),
             },
             FILESDIR => {
-                let path = build_from_paths!(build.repo.path(), a.category(), a.package(), "files");
+                let path = build_from_paths!(
+                    build.repo.unwrap().path(),
+                    a.category(),
+                    a.package(),
+                    "files"
+                );
                 path.into_string()
             }
-            PORTDIR => build.repo.path().to_string(),
-            ECLASSDIR => build.repo.path().join("eclass").into_string(),
+            PORTDIR => build.repo.unwrap().path().to_string(),
+            ECLASSDIR => build.repo.unwrap().path().join("eclass").into_string(),
             EBUILD_PHASE => build.phase.expect("missing phase").short_name().to_string(),
             EBUILD_PHASE_FUNC => build.phase.expect("missing phase").to_string(),
             KV => os_release().expect("failed to get OS version"),

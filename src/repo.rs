@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 
-use crate::config::RepoConfig;
+use crate::config::{Config, RepoConfig};
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict;
 use crate::{atom, Error};
@@ -98,9 +98,9 @@ impl Repo {
         }
     }
 
-    pub(super) fn finalize(&self) -> crate::Result<()> {
+    pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
         match self {
-            Self::Ebuild(repo) => repo.finalize(),
+            Self::Ebuild(repo) => repo.finalize(config, self),
             _ => Ok(()),
         }
     }

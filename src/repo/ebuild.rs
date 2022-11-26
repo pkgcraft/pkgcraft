@@ -304,8 +304,7 @@ impl Repo {
         })
     }
 
-    pub(super) fn finalize(&self) -> crate::Result<()> {
-        let config = config::Config::current();
+    pub(super) fn finalize(&self, config: &config::Config, repo: &repo::Repo) -> crate::Result<()> {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
@@ -316,20 +315,22 @@ impl Repo {
             }
         }
 
-        match nonexistent.is_empty() {
-            true => {
-                if self.masters.set(masters).is_err() {
-                    panic!("masters already set: {}", self.id());
-                }
-                Ok(())
-            }
-            false => {
-                let repos = nonexistent.join(", ");
-                Err(Error::InvalidRepo {
-                    path: self.path().into(),
-                    err: format!("unconfigured repos: {repos}"),
-                })
-            }
+        if nonexistent.is_empty() {
+            let mut trees = masters.clone();
+            trees.push(Arc::downgrade(repo.as_ebuild().expect("invalid repo format")));
+            self.masters
+                .set(masters)
+                .unwrap_or_else(|_| panic!("masters already set: {}", self.id()));
+            self.trees
+                .set(trees)
+                .unwrap_or_else(|_| panic!("trees already set: {}", self.id()));
+            Ok(())
+        } else {
+            let repos = nonexistent.join(", ");
+            Err(Error::InvalidRepo {
+                path: self.path().into(),
+                err: format!("unconfigured repos: {repos}"),
+            })
         }
     }
 
@@ -354,15 +355,8 @@ impl Repo {
     /// Return a repo's inheritance list including itself.
     pub fn trees(&self) -> Vec<Arc<Repo>> {
         self.trees
-            .get_or_init(|| {
-                let config = config::Config::current();
-                let mut trees = self.masters();
-                match config.repos.get(self.id()) {
-                    Some(repo::Repo::Ebuild(r)) => trees.push(r.clone()),
-                    _ => panic!("unconfigured repo: {}", self.id()),
-                }
-                trees.iter().map(Arc::downgrade).collect()
-            })
+            .get()
+            .expect("finalize() uncalled")
             .iter()
             .map(|p| p.upgrade().expect("unconfigured repo"))
             .collect()

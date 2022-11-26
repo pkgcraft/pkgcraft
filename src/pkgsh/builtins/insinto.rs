@@ -52,11 +52,11 @@ mod tests {
     #[test]
     fn set_path() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
-        let (t, _) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
 
         for eapi in EAPIS_OFFICIAL.values() {
-            BuildData::update(&cpv, "test");
+            BuildData::update(&cpv, &repo);
             BUILD_DATA.with(|d| {
                 let phase = Phase::SrcInstall(PHASE_STUB);
                 d.borrow_mut().phase = Some(phase);

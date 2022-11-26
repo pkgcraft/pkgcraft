@@ -209,7 +209,7 @@ impl Metadata {
         eapi: &'static Eapi,
         repo: &EbuildRepo,
     ) -> crate::Result<Self> {
-        BuildData::update(atom, repo.id());
+        BuildData::update(atom, repo);
         // TODO: run sourcing via an external process pool returning the requested variables
         source_ebuild(path)?;
         let mut meta = Metadata::default();

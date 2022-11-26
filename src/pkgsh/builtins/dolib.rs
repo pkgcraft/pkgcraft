@@ -60,9 +60,9 @@ mod tests {
     #[test]
     fn creation() {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
-        let (t, _) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        BuildData::update(&cpv, "test");
+        BuildData::update(&cpv, &repo);
 
         let file_tree = FileTree::new();
         let default_mode = 0o100644;
