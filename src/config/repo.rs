@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
@@ -76,13 +76,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub(super) fn new(
-        config_dir: &Utf8Path,
-        db_dir: &Utf8Path,
-        create: bool,
-    ) -> crate::Result<Config> {
-        let config_dir = config_dir.join("repos");
-        let repo_dir = db_dir.join("repos");
+    pub(super) fn new(config: &super::Config, create: bool) -> crate::Result<Config> {
+        let config_dir = config.path.config.join("repos");
+        let repo_dir = config.path.db.join("repos");
 
         // create paths on request
         if create {
