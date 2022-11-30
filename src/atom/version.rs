@@ -345,12 +345,12 @@ fn ver_cmp<V: AsRef<Version>>(v1: V, v2: V, cmp_revs: bool, cmp_ops: bool) -> Or
         // If one version has more suffixes, use the last suffix to determine ordering.
         match v1.suffixes.cmp(&v2.suffixes) {
             Ordering::Equal => (),
-            Ordering::Greater => match v1.suffixes.last().unwrap().0 {
-                Suffix::P => return Ordering::Greater,
+            Ordering::Greater => match v1.suffixes.last() {
+                Some((Suffix::P, _)) => return Ordering::Greater,
                 _ => return Ordering::Less,
             },
-            Ordering::Less => match v2.suffixes.last().unwrap().0 {
-                Suffix::P => return Ordering::Less,
+            Ordering::Less => match v2.suffixes.last() {
+                Some((Suffix::P, _)) => return Ordering::Less,
                 _ => return Ordering::Greater,
             },
         }
