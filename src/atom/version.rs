@@ -245,8 +245,7 @@ impl Version {
 
     /// Return a version's base -- all components except the revision.
     pub(crate) fn base(&self) -> &str {
-        let base = &self.full.as_bytes()[self.start_base..self.end_base];
-        str::from_utf8(base).unwrap()
+        &self.full[self.start_base..self.end_base]
     }
 
     /// Compare two versions for restrictions.
