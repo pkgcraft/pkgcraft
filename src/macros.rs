@@ -52,14 +52,6 @@ macro_rules! assert_logs_re {
 #[cfg(test)]
 pub(crate) use assert_logs_re;
 
-// convert Vec<&str> to Vec<String>
-macro_rules! vec_str {
-    ($x:expr) => {
-        $x.iter().map(|&s| s.to_string()).collect()
-    };
-}
-pub(crate) use vec_str;
-
 // Return Ordering if it's not equal.
 macro_rules! cmp_not_equal {
     ($cmp:expr) => {

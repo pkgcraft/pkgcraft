@@ -14,7 +14,7 @@ use sys_info::os_release;
 
 use crate::atom::Atom;
 use crate::eapi::{Eapi, Feature};
-use crate::macros::{build_from_paths, extend_left, vec_str};
+use crate::macros::{build_from_paths, extend_left};
 use crate::metadata::Key;
 use crate::pkgsh::builtins::Scope;
 use crate::repo::{ebuild, Repository};
@@ -235,10 +235,10 @@ impl BuildData<'_> {
         let data = BuildData {
             atom: Some(atom.clone()),
             repo: Some(r),
-            insopts: vec_str!(["-m0644"]),
-            libopts: vec_str!(["-m0644"]),
-            diropts: vec_str!(["-m0755"]),
-            exeopts: vec_str!(["-m0755"]),
+            insopts: vec!["-m0644".to_string()],
+            libopts: vec!["-m0644".to_string()],
+            diropts: vec!["-m0755".to_string()],
+            exeopts: vec!["-m0755".to_string()],
             desttree: "/usr".into(),
             ..Default::default()
         };

@@ -10,7 +10,7 @@ use itertools::Itertools;
 pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
-use crate::macros::{cmp_not_equal, vec_str};
+use crate::macros::cmp_not_equal;
 use crate::Error;
 
 // re-export Restrict
@@ -94,7 +94,10 @@ impl ParsedAtom<'_> {
             slot: self.slot.map(|s| s.to_string()),
             subslot: self.subslot.map(|s| s.to_string()),
             slot_op: self.slot_op,
-            use_deps: self.use_deps.as_ref().map(|u| vec_str!(u)),
+            use_deps: self
+                .use_deps
+                .as_ref()
+                .map(|u| u.iter().map(|s| s.to_string()).collect()),
             repo: self.repo.map(|s| s.to_string()),
         })
     }
