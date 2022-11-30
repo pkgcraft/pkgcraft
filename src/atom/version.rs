@@ -9,27 +9,12 @@ use crate::macros::cmp_not_equal;
 use crate::Error;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Suffix {
-    Alpha, // _alpha
-    Beta,  // _beta
-    Pre,   // _pre
-    Rc,    // _rc
-    P,     // _p
-}
-
-impl FromStr for Suffix {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Suffix> {
-        match s {
-            "alpha" => Ok(Suffix::Alpha),
-            "beta" => Ok(Suffix::Beta),
-            "pre" => Ok(Suffix::Pre),
-            "rc" => Ok(Suffix::Rc),
-            "p" => Ok(Suffix::P),
-            _ => Err(Error::InvalidValue(format!("invalid suffix: {s}"))),
-        }
-    }
+pub(crate) enum Suffix {
+    Alpha(Option<u64>),
+    Beta(Option<u64>),
+    Pre(Option<u64>),
+    Rc(Option<u64>),
+    P(Option<u64>),
 }
 
 #[derive(Debug, Default, Clone)]
@@ -121,7 +106,7 @@ pub(crate) struct ParsedVersion<'a> {
     pub(crate) op: Option<Operator>,
     pub(crate) numbers: Vec<&'a str>,
     pub(crate) letter: Option<char>,
-    pub(crate) suffixes: Option<Vec<(&'a str, Option<&'a str>)>>,
+    pub(crate) suffixes: Vec<Suffix>,
     pub(crate) revision: Option<&'a str>,
 }
 
@@ -151,28 +136,13 @@ impl<'a> ParsedVersion<'a> {
         Ok(self)
     }
 
-    pub(crate) fn to_owned(&self, input: &str) -> crate::Result<Version> {
+    pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
         let mut numbers = Vec::<(String, u64)>::new();
         for s in self.numbers.iter() {
             let num = s
                 .parse()
                 .map_err(|e| Error::InvalidValue(format!("invalid version: {e}: {s}")))?;
             numbers.push((s.to_string(), num));
-        }
-
-        let mut suffixes = Vec::<(Suffix, Option<u64>)>::new();
-        if let Some(vals) = self.suffixes.as_ref() {
-            for (s, v) in vals.iter() {
-                let suffix = Suffix::from_str(s)?;
-                let num =
-                    match v {
-                        None => None,
-                        Some(x) => Some(x.parse().map_err(|e| {
-                            Error::InvalidValue(format!("invalid version: {e}: {x}"))
-                        })?),
-                    };
-                suffixes.push((suffix, num));
-            }
         }
 
         Ok(Version {
@@ -182,7 +152,7 @@ impl<'a> ParsedVersion<'a> {
             op: self.op,
             numbers,
             letter: self.letter,
-            suffixes,
+            suffixes: self.suffixes,
             revision: Revision::new(self.revision)?,
         })
     }
@@ -207,7 +177,7 @@ pub struct Version {
     op: Option<Operator>,
     numbers: Vec<(String, u64)>,
     letter: Option<char>,
-    suffixes: Vec<(Suffix, Option<u64>)>,
+    suffixes: Vec<Suffix>,
     revision: Revision,
 }
 
@@ -334,22 +304,20 @@ fn ver_cmp<V: AsRef<Version>>(v1: V, v2: V, cmp_revs: bool, cmp_ops: bool) -> Or
         // dotted components were equal so compare letter suffixes
         cmp_not_equal!(&v1.letter, &v2.letter);
 
-        for ((s1, n1), (s2, n2)) in zip(&v1.suffixes, &v2.suffixes) {
+        for (s1, s2) in zip(&v1.suffixes, &v2.suffixes) {
             // if suffixes differ, use them for comparison
             cmp_not_equal!(s1, s2);
-            // otherwise use the suffix versions for comparison
-            cmp_not_equal!(n1, n2);
         }
 
         // If one version has more suffixes, use the last suffix to determine ordering.
         match v1.suffixes.cmp(&v2.suffixes) {
             Ordering::Equal => (),
             Ordering::Greater => match v1.suffixes.last() {
-                Some((Suffix::P, _)) => return Ordering::Greater,
+                Some(Suffix::P(_)) => return Ordering::Greater,
                 _ => return Ordering::Less,
             },
             Ordering::Less => match v2.suffixes.last() {
-                Some((Suffix::P, _)) => return Ordering::Less,
+                Some(Suffix::P(_)) => return Ordering::Less,
                 _ => return Ordering::Greater,
             },
         }
@@ -449,10 +417,9 @@ impl PartialOrd for NonOpVersion<'_> {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
-    use super::*;
-    use crate::macros::*;
     use crate::test::Versions;
-    use crate::Error;
+
+    use super::*;
 
     #[test]
     fn test_overflow_version() {
@@ -473,8 +440,7 @@ mod tests {
             assert!(v1.is_ok());
             // above bounds limit
             let v2 = Version::from_str(&s2);
-            assert_err!(&v2, Err(Error::InvalidValue(_)));
-            assert_err_re!(v2, format!("^.*: {}$", u64_max + 1));
+            assert!(v2.is_err());
         }
     }
 

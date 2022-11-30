@@ -4,7 +4,7 @@ use crate::eapi::{Eapi, Feature};
 use crate::peg::peg_error;
 use crate::Error;
 
-use super::version::ParsedVersion;
+use super::version::{ParsedVersion, Suffix};
 use super::{Atom, Blocker, ParsedAtom, SlotOperator, Version};
 
 peg::parser! {
@@ -27,15 +27,30 @@ peg::parser! {
             } / expected!("package name")
             ) { s }
 
-        rule version_suffix() -> (&'input str, Option<&'input str>)
-            = suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)?
-            { (suffix, ver) }
+        rule version_suffix() -> Suffix
+            = "_" suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
+                let num = match ver {
+                    None => None,
+                    Some(s) => match s.parse() {
+                        Err(_) => return Err("version suffix integer overflow"),
+                        Ok(n) => Some(n),
+                    }
+                };
+                match suffix {
+                    "alpha" => Ok(Suffix::Alpha(num)),
+                    "beta" => Ok(Suffix::Beta(num)),
+                    "pre" => Ok(Suffix::Pre(num)),
+                    "rc" => Ok(Suffix::Rc(num)),
+                    "p" => Ok(Suffix::P(num)),
+                    _ => panic!("invalid suffix"),
+                }
+            }
 
         // TODO: figure out how to return string slice instead of positions
         // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
         pub(super) rule version() -> ParsedVersion<'input>
             = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
-                    suffixes:("_" s:version_suffix() ++ "_" {s})?
+                    suffixes:version_suffix()*
                     end_base:position!() revision:revision()? end:position!() {
                 ParsedVersion {
                     start,
@@ -53,7 +68,7 @@ peg::parser! {
         pub(super) rule version_with_op() -> ParsedVersion<'input>
             = start:position!() op:$(("<" "="?) / "=" / "~" / (">" "="?))
                     start_base:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
-                    suffixes:("_" s:version_suffix() ++ "_" {s})?
+                    suffixes:version_suffix()*
                     end_base:position!() revision:revision()? end:position!() glob:$("*")? {?
                 let ver = ParsedVersion {
                     start,
@@ -237,13 +252,13 @@ pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
 )]
 pub(crate) fn version(s: &str) -> crate::Result<Version> {
     let ver = version_str(s)?;
-    ver.to_owned(s)
+    ver.into_owned(s)
 }
 
 pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
     let ver =
         pkg::version_with_op(s).map_err(|e| peg_error(format!("invalid version: {s}"), s, e))?;
-    ver.to_owned(s)
+    ver.into_owned(s)
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {
@@ -288,7 +303,7 @@ pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
 )]
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
     let atom = dep_str(s, eapi)?;
-    atom.to_owned()
+    atom.into_owned()
 }
 
 #[cfg(test)]

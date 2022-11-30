@@ -934,7 +934,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::config::Config;
-    use crate::macros::{assert_err_re, assert_logs_re};
+    use crate::macros::*;
     use crate::metadata::Key;
     use crate::pkg::Package;
     use crate::test::eq_sorted;

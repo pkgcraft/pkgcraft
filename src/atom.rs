@@ -80,9 +80,9 @@ pub(crate) struct ParsedAtom<'a> {
 }
 
 impl ParsedAtom<'_> {
-    pub(crate) fn to_owned(&self) -> crate::Result<Atom> {
-        let version = match (self.version.as_ref(), self.version_str) {
-            (Some(v), Some(s)) => Some(v.to_owned(s)?),
+    pub(crate) fn into_owned(self) -> crate::Result<Atom> {
+        let version = match (self.version, self.version_str) {
+            (Some(v), Some(s)) => Some(v.into_owned(s)?),
             _ => None,
         };
 
@@ -149,7 +149,7 @@ impl Hash for Atom {
 pub fn cpv(s: &str) -> crate::Result<Atom> {
     let mut atom = parse::cpv(s)?;
     atom.version_str = Some(s);
-    atom.to_owned()
+    atom.into_owned()
 }
 
 impl Atom {

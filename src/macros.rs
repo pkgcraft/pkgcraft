@@ -18,18 +18,6 @@ macro_rules! opt_str {
 pub(crate) use opt_str;
 
 #[cfg(test)]
-macro_rules! assert_err {
-    ($expression:expr, $($pattern:tt)+) => {
-        match $expression {
-            $($pattern)+ => (),
-            ref e => panic!("expected `{}` but got `{e:?}`", stringify!($($pattern)+)),
-        }
-    }
-}
-#[cfg(test)]
-pub(crate) use assert_err;
-
-#[cfg(test)]
 macro_rules! assert_err_re {
     ($res:expr, $x:expr) => {
         crate::macros::assert_err_re!($res, $x, "");

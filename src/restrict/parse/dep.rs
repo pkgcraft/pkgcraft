@@ -1,6 +1,7 @@
 use regex::{escape, Regex};
 
-use crate::atom::{version::ParsedVersion, Blocker, Restrict};
+use crate::atom::version::{ParsedVersion, Suffix};
+use crate::atom::{Blocker, Restrict};
 use crate::peg::peg_error;
 use crate::restrict::{Restrict as BaseRestrict, Str};
 
@@ -24,13 +25,28 @@ peg::parser!(grammar restrict() for str {
             (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '*'] / ("-" !version()))*})
         { s }
 
-    rule version_suffix() -> (&'input str, Option<&'input str>)
-        = suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)?
-        { (suffix, ver) }
+    rule version_suffix() -> Suffix
+        = "_" suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
+            let num = match ver {
+                None => None,
+                Some(s) => match s.parse() {
+                    Err(_) => return Err("version suffix integer overflow"),
+                    Ok(n) => Some(n),
+                }
+            };
+            match suffix {
+                "alpha" => Ok(Suffix::Alpha(num)),
+                "beta" => Ok(Suffix::Beta(num)),
+                "pre" => Ok(Suffix::Pre(num)),
+                "rc" => Ok(Suffix::Rc(num)),
+                "p" => Ok(Suffix::P(num)),
+                _ => panic!("invalid suffix"),
+            }
+        }
 
     rule version() -> ParsedVersion<'input>
         = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
-                suffixes:("_" s:version_suffix() ++ "_" {s})?
+                suffixes:version_suffix()*
                 end_base:position!() revision:revision()? end:position!() {
             ParsedVersion {
                 start,
@@ -178,7 +194,7 @@ pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
         restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
     if let Some(v) = ver {
-        let v = v.to_owned(s)?;
+        let v = v.into_owned(s)?;
         restricts.push(Restrict::Version(Some(v)));
     }
 
