@@ -4,9 +4,10 @@ use std::iter::zip;
 use std::str::FromStr;
 use std::{fmt, str};
 
-use super::parse;
 use crate::macros::cmp_not_equal;
 use crate::Error;
+
+use super::parse;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Suffix {

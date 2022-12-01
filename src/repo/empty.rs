@@ -2,11 +2,12 @@ use std::{fmt, iter};
 
 use camino::Utf8Path;
 
-use super::{make_repo_traits, PkgRepository, Repository};
 use crate::config::RepoConfig;
 use crate::pkg::Pkg;
 use crate::restrict::Restrict;
 use crate::{atom, repo, Error};
+
+use super::{make_repo_traits, PkgRepository, Repository};
 
 #[derive(Debug, Default)]
 pub struct Repo {

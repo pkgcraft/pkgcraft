@@ -3,9 +3,10 @@ use std::io::Write;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use super::use_::run as use_;
 use crate::eapi::Feature;
 use crate::pkgsh::{write_stdout, BUILD_DATA};
+
+use super::use_::run as use_;
 
 // Underlying implementation for use_with and use_enable.
 pub(super) fn use_conf(

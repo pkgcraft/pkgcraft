@@ -1,7 +1,8 @@
 use scallop::builtins::ExecStatus;
 
-use super::emake_install;
 use crate::pkgsh::builtins::einstalldocs::install_docs_from;
+
+use super::emake_install;
 
 pub(crate) fn src_install() -> scallop::Result<ExecStatus> {
     emake_install()?;

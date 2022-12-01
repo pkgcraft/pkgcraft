@@ -3,8 +3,9 @@ use std::io::Write;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use super::{make_builtin, use_::run as use_, PHASE};
 use crate::pkgsh::write_stdout;
+
+use super::{make_builtin, use_::run as use_, PHASE};
 
 const LONG_DOC: &str = "\
 Tests if a given USE flag is enabled and outputs a string related to its status.";

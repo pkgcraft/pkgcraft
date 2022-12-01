@@ -46,9 +46,10 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus>
 
 #[cfg(test)]
 mod tests {
-    use super::super::newbin::run as newbin;
-    use super::new;
     use crate::macros::assert_err_re;
+
+    use super::super::newbin::run as newbin;
+    use super::*;
 
     #[test]
     fn invalid_args() {

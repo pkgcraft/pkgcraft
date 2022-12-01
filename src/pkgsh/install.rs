@@ -10,9 +10,10 @@ use nix::{sys::stat, unistd};
 use scallop::Error;
 use walkdir::{DirEntry, WalkDir};
 
-use super::BuildData;
 use crate::command::RunCommand;
 use crate::files::{Group, Mode, User};
+
+use super::BuildData;
 
 #[derive(Parser, Debug, Default)]
 #[clap(name = "install")]

@@ -1,8 +1,9 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use super::{make_builtin, PHASE};
 use crate::pkgsh::BUILD_DATA;
+
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "Calls the default_* function for the current phase.";
 

@@ -2,8 +2,9 @@ use std::io::Write;
 
 use scallop::builtins::ExecStatus;
 
-use super::{has::run as has, make_builtin, ALL};
 use crate::pkgsh::write_stdout;
+
+use super::{has::run as has, make_builtin, ALL};
 
 const LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 

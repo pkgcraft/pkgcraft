@@ -1,10 +1,11 @@
 use scallop::builtins::ExecStatus;
 use scallop::variables::var_to_vec;
 
-use super::emake_install;
 use crate::pkgsh::builtins::{
     eapply::run as eapply, eapply_user::run as eapply_user, einstalldocs::run as einstalldocs,
 };
+
+use super::emake_install;
 
 pub(crate) fn src_prepare() -> scallop::Result<ExecStatus> {
     if let Ok(patches) = var_to_vec("PATCHES") {

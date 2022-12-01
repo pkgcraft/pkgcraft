@@ -424,8 +424,9 @@ impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
 mod tests {
     use std::collections::HashSet;
 
-    use super::*;
     use crate::repo::{ebuild, fake};
+
+    use super::*;
 
     #[test]
     fn test_traits() {

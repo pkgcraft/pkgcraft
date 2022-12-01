@@ -1,7 +1,8 @@
-use super::{make_pkg_traits, Package};
 use crate::repo::{fake::Repo, Repository};
 use crate::restrict::{self, Restriction};
 use crate::{atom, eapi, pkg};
+
+use super::{make_pkg_traits, Package};
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {

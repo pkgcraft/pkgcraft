@@ -16,7 +16,6 @@ use tempfile::TempDir;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
-use super::{make_repo_traits, Contains, PkgRepository, Repository};
 use crate::config::{self, RepoConfig};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
@@ -24,6 +23,8 @@ use crate::metadata::ebuild::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::Pkg;
 use crate::restrict::{Restrict, Restriction, Str};
 use crate::{atom, eapi, Error};
+
+use super::{make_repo_traits, Contains, PkgRepository, Repository};
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());

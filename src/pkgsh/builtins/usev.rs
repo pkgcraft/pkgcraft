@@ -3,9 +3,10 @@ use std::io::Write;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use super::{make_builtin, use_::run as use_, PHASE};
 use crate::eapi::Feature;
 use crate::pkgsh::{write_stdout, BUILD_DATA};
+
+use super::{make_builtin, use_::run as use_, PHASE};
 
 const LONG_DOC: &str = "\
 The same as use, but also prints the flag name if the condition is met.";

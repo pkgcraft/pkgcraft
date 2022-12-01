@@ -4,8 +4,9 @@ use std::io::Write;
 use scallop::builtins::ExecStatus;
 use scallop::{variables, Error};
 
-use super::{make_builtin, parse, version_split, ALL};
 use crate::pkgsh::write_stdout;
+
+use super::{make_builtin, parse, version_split, ALL};
 
 const LONG_DOC: &str = "Output substring from package version string and range arguments.";
 

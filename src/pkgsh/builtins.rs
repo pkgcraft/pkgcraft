@@ -8,8 +8,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::{Builtin, ExecStatus};
 
-use super::phase::Phase;
 use crate::{eapi, eapi::Eapi};
+
+use super::phase::Phase;
 
 mod _default_phase_func;
 mod _new;
@@ -372,10 +373,11 @@ peg::parser! {
 pub(crate) mod parse {
     use crate::peg::peg_error;
 
-    use super::cmd;
-    use crate::{Error, Result};
+    use crate::Error;
 
-    pub(crate) fn range(s: &str, max: usize) -> Result<(usize, usize)> {
+    use super::cmd;
+
+    pub(crate) fn range(s: &str, max: usize) -> crate::Result<(usize, usize)> {
         let (start, end) =
             cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {s}"), s, e))?;
         if end < start {
