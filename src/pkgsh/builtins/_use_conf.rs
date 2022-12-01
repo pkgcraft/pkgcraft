@@ -32,7 +32,6 @@ pub(super) fn use_conf(
         match ret {
             ExecStatus::Success => write_stdout!("--{enabled}-{opt}{suffix}"),
             ExecStatus::Failure(_) => write_stdout!("--{disabled}-{opt}{suffix}"),
-            _ => (),
         }
         Ok(ret)
     })

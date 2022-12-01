@@ -27,7 +27,6 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     match use_(flag)? {
         ExecStatus::Success => write_stdout!("{}{}", vals[1], vals[3]),
         ExecStatus::Failure(_) => write_stdout!("{}{}", vals[2], vals[4]),
-        n => return Ok(n),
     }
 
     Ok(ExecStatus::Success)
