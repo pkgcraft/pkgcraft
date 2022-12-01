@@ -36,6 +36,18 @@ impl fmt::Display for Blocker {
     }
 }
 
+impl FromStr for Blocker {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        match s {
+            "!!" => Ok(Self::Strong),
+            "!" => Ok(Self::Weak),
+            _ => Err(Error::InvalidValue(format!("invalid blocker: {s}"))),
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum SlotOperator {
