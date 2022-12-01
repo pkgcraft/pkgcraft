@@ -349,6 +349,7 @@ mod tests {
                 assert_eq!(atom.slot(), a.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.subslot(), a.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.slot_op(), a.slot_op, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.use_deps(), a.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(format!("{atom}"), s, "{s:?} failed for EAPI={eapi}");
             }
             // verify parse failures

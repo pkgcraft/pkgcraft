@@ -3,6 +3,7 @@ use std::fs;
 use std::str::FromStr;
 
 use camino::Utf8PathBuf;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::{de, Deserialize, Deserializer};
@@ -23,6 +24,8 @@ pub(crate) struct Atom {
     pub(crate) slot: Option<String>,
     pub(crate) subslot: Option<String>,
     pub(crate) slot_op: Option<atom::SlotOperator>,
+    #[serde(rename = "use")]
+    pub(crate) use_deps: Option<IndexSet<String>>,
 }
 
 impl<'de> Deserialize<'de> for atom::Version {
