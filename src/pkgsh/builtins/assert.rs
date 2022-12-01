@@ -9,6 +9,7 @@ exited with an error status.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    // TODO: move PIPESTATUS manipulations into scallop
     let pipestatus = array_to_vec("PIPESTATUS").unwrap_or_default();
     match pipestatus.iter().any(|s| s != "0") {
         true => die(args),
