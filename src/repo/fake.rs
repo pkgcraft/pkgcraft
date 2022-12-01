@@ -119,7 +119,7 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub fn new<'a, I>(id: &str, priority: i32, cpvs: I) -> crate::Result<Repo>
+    pub fn new<'a, I>(id: &str, priority: i32, cpvs: I) -> crate::Result<Self>
     where
         I: IntoIterator<Item = &'a str>,
     {
@@ -128,7 +128,7 @@ impl Repo {
             ..Default::default()
         };
 
-        Ok(Repo {
+        Ok(Self {
             id: id.to_string(),
             repo_config,
             pkgs: PkgCache::new(cpvs),
@@ -143,7 +143,7 @@ impl Repo {
             priority,
             ..Default::default()
         };
-        Ok(Repo {
+        Ok(Self {
             id: id.to_string(),
             repo_config,
             pkgs: PkgCache::new(data.lines()),

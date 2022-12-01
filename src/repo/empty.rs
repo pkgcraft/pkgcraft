@@ -18,13 +18,13 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub(crate) fn new(id: &str, priority: i32) -> Repo {
+    pub(crate) fn new(id: &str, priority: i32) -> Self {
         let repo_config = RepoConfig {
             priority,
             ..Default::default()
         };
 
-        Repo {
+        Self {
             id: id.to_string(),
             repo_config,
         }
@@ -38,7 +38,7 @@ impl Repo {
         let path = path.as_ref();
         match path.exists() {
             false => Err(Error::RepoInit("not an empty repo".to_string())),
-            true => Ok(Repo::new(id, priority)),
+            true => Ok(Self::new(id, priority)),
         }
     }
 

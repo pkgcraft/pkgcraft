@@ -231,8 +231,8 @@ pub struct Repo {
     metadata: Metadata,
     profiles_base: Utf8PathBuf,
     name: String,
-    masters: OnceCell<Vec<Weak<Repo>>>,
-    trees: OnceCell<Vec<Weak<Repo>>>,
+    masters: OnceCell<Vec<Weak<Self>>>,
+    trees: OnceCell<Vec<Weak<Self>>>,
     eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
     manifest_cache: OnceCell<Cache<Manifest>>,
@@ -305,7 +305,7 @@ impl Repo {
         })
     }
 
-    pub(super) fn finalize(&self, config: &config::Config, repo: Weak<Repo>) -> crate::Result<()> {
+    pub(super) fn finalize(&self, config: &config::Config, repo: Weak<Self>) -> crate::Result<()> {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
@@ -344,7 +344,7 @@ impl Repo {
     }
 
     /// Return the list of inherited repos.
-    pub fn masters(&self) -> Vec<Arc<Repo>> {
+    pub fn masters(&self) -> Vec<Arc<Self>> {
         self.masters
             .get()
             .expect("finalize() uncalled")
@@ -354,7 +354,7 @@ impl Repo {
     }
 
     /// Return a repo's inheritance list including itself.
-    pub fn trees(&self) -> Vec<Arc<Repo>> {
+    pub fn trees(&self) -> Vec<Arc<Self>> {
         self.trees
             .get()
             .expect("finalize() uncalled")
