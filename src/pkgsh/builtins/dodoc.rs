@@ -1,10 +1,11 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use scallop::builtins::ExecStatus;
 use scallop::{variables, Error};
 
 use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
+use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
 
 use super::make_builtin;
@@ -17,13 +18,11 @@ where
     I: IntoIterator<Item = &'a Path>,
 {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let dest: PathBuf = [
+        let dest = build_from_paths!(
             "/usr/share/doc",
             &variables::required("PF")?,
-            d.borrow().docdesttree.trim_start_matches('/'),
-        ]
-        .iter()
-        .collect();
+            d.borrow().docdesttree.trim_start_matches('/')
+        );
         let install = d.borrow().install().dest(&dest)?;
 
         let (dirs, files): (Vec<_>, Vec<_>) = paths.into_iter().partition(|p| p.is_dir());

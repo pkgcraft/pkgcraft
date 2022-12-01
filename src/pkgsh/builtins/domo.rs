@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use scallop::builtins::ExecStatus;
 use scallop::{variables, Error};
 
+use crate::macros::build_from_paths;
 use crate::pkgsh::BUILD_DATA;
 
 use super::make_builtin;
@@ -18,10 +19,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
-        let dest: PathBuf =
-            [d.env.get("DESTTREE").map(|s| s.as_str()).unwrap_or("/usr"), "share/locale"]
-                .iter()
-                .collect();
+        let dest = build_from_paths!(
+            d.env.get("DESTTREE").map(|s| s.as_str()).unwrap_or("/usr"),
+            "share/locale"
+        );
         let opts = ["-m0644"];
         let install = d.install().dest(&dest)?.file_options(opts);
 
