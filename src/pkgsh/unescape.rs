@@ -4,14 +4,6 @@ pub(crate) fn unescape(s: &str) -> Result<Cow<str>, Error> {
     UnescapeString::unescape(s)
 }
 
-pub(crate) fn unescape_vec<'a>(vals: &[&'a str]) -> Result<Vec<Cow<'a, str>>, Error> {
-    let mut unescaped_vec = vec![];
-    for s in vals {
-        unescaped_vec.push(unescape(s)?);
-    }
-    Ok(unescaped_vec)
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct UnescapeString<'a> {
     s: std::str::Chars<'a>,

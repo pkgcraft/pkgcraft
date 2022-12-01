@@ -5,30 +5,28 @@ use scallop::Error;
 
 use crate::pkgsh::write_stderr;
 
-use super::super::unescape::unescape_vec;
+use super::super::unescape::unescape;
 use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "Display information message when starting a process.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    let ret = args[0];
-    let ret = ret
-        .parse::<i32>()
-        .map_err(|_| Error::Base(format!("invalid return value: {ret}")))?;
-    let ret = ExecStatus::from(ret);
+    let (ret, args) = match args {
+        [] => Err(Error::Base("requires 1 or more args, got 0".into())),
+        [n, args @ ..] => match n.parse::<i32>() {
+            Err(_) => Err(Error::Base(format!("invalid return value: {n}"))),
+            Ok(ret) => Ok((ExecStatus::from(ret), args)),
+        },
+    }?;
 
     // TODO: support column-based formatting for success/failure indicators
     if bool::from(&ret) {
         write_stderr!("[ ok ]\n");
     } else {
-        let args = unescape_vec(&args[1..])?;
         if !args.is_empty() {
-            let msg = args.join(" ");
+            let unescaped: Result<Vec<_>, _> = args.iter().map(|s| unescape(s)).collect();
+            let msg = unescaped?.join(" ");
             write_stderr!("{msg} ");
         }
         write_stderr!("[ !! ]\n");

@@ -5,7 +5,7 @@ use scallop::Error;
 
 use crate::pkgsh::write_stderr;
 
-use super::super::unescape::unescape_vec;
+use super::super::unescape::unescape;
 use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "Display informational message without trailing newline.";
@@ -16,8 +16,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    let args = unescape_vec(args)?;
-    let msg = args.join(" ");
+    let unescaped: Result<Vec<_>, _> = args.iter().map(|s| unescape(s)).collect();
+    let msg = unescaped?.join(" ");
     write_stderr!("* {msg}");
 
     Ok(ExecStatus::Success)
