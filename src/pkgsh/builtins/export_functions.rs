@@ -19,13 +19,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let eclass = variables::required("ECLASS")?;
 
-    // TODO: verify phase function existence?
-    let funcs: Vec<_> = args
-        .iter()
-        .map(|func| format!("{func}() {{ {eclass}_{func} \"$@\"; }}", func = func, eclass = eclass))
-        .collect();
+    for func in args {
+        source::string(format!("{func}() {{ {eclass}_{func} \"$@\"; }}"))?;
+    }
 
-    source::string(funcs.join("\n"))
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "EXPORT_FUNCTIONS src_configure src_compile";
