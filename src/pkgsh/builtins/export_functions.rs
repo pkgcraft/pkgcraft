@@ -19,6 +19,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let eclass = variables::required("ECLASS")?;
 
+    // TODO: Verifying phase function existence would require "buffering" this call until the end
+    // of the most recent `inherit` call scope since `EXPORT_FUNCTIONS` is allowed to be used
+    // anywhere in an eclass including before the related functions are defined.
+
     for func in args {
         source::string(format!("{func}() {{ {eclass}_{func} \"$@\"; }}"))?;
     }
