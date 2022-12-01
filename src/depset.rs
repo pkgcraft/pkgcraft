@@ -526,7 +526,7 @@ mod tests {
                 vec!["http://uri1", "http://uri2"],
             ),
         ] {
-            for eapi in EAPIS.values() {
+            for eapi in EAPIS.iter() {
                 let depset = parse::src_uri(&s, eapi)?.unwrap();
                 let flatten: Vec<_> = depset.flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
@@ -548,7 +548,7 @@ mod tests {
                 vec!["http://uri -> file"],
             ),
         ] {
-            for eapi in EAPIS.values() {
+            for eapi in EAPIS.iter() {
                 if eapi.has(Feature::SrcUriRenames) {
                     let depset = parse::src_uri(&s, eapi)?.unwrap();
                     let flatten: Vec<_> = depset.flatten().map(|x| x.to_string()).collect();
@@ -601,7 +601,7 @@ mod tests {
         for (s, expected, expected_flatten) in
             [("?? ( u1 u2 )", vec![at_most_one_of([vs("u1"), vs("u2")])], vec!["u1", "u2"])]
         {
-            for eapi in EAPIS.values() {
+            for eapi in EAPIS.iter() {
                 if eapi.has(Feature::RequiredUseOneOf) {
                     let depset = parse::required_use(&s, eapi)?.unwrap();
                     let flatten: Vec<_> = depset.flatten().collect();

@@ -45,7 +45,7 @@ mod tests {
 
         BUILD_DATA.with(|d| {
             for eapi in EAPIS_OFFICIAL
-                .values()
+                .iter()
                 .filter(|e| !e.has(Feature::NonfatalDie))
             {
                 d.borrow_mut().eapi = eapi;

@@ -67,7 +67,7 @@ mod tests {
         ));
 
         // verify exeopts are respected depending on EAPI
-        for eapi in EAPIS_OFFICIAL.values() {
+        for eapi in EAPIS_OFFICIAL.iter() {
             BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
             exeopts(&["-m0777"]).unwrap();
             doinitd(&["pkgcraft"]).unwrap();

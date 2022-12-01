@@ -67,7 +67,7 @@ mod tests {
         ));
 
         // verify insopts are respected depending on EAPI
-        for eapi in EAPIS_OFFICIAL.values() {
+        for eapi in EAPIS_OFFICIAL.iter() {
             BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
             insopts(&["-m0755"]).unwrap();
             doconfd(&["pkgcraft"]).unwrap();

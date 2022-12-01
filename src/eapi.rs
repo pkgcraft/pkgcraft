@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -5,7 +6,7 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use camino::Utf8Path;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::{escape, Regex, RegexBuilder};
 use strum::EnumString;
@@ -396,6 +397,12 @@ impl fmt::Debug for Eapi {
     }
 }
 
+impl Borrow<str> for &'static Eapi {
+    fn borrow(&self) -> &str {
+        &self.id
+    }
+}
+
 impl FromStr for &'static Eapi {
     type Err = Error;
 
@@ -598,29 +605,25 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> =
     Lazy::new(|| Eapi::new("pkgcraft", Some(&EAPI_LATEST)).enable_features(&[Feature::RepoIds]));
 
 /// Ordered mapping of official EAPI identifiers to instances.
-pub static EAPIS_OFFICIAL: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
-    let mut eapis: IndexMap<String, &'static Eapi> = IndexMap::new();
+pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
+    let mut eapis = IndexSet::new();
     let mut eapi: &Eapi = &EAPI_LATEST;
     while let Some(x) = eapi.parent {
-        eapis.insert(eapi.id.clone(), eapi);
+        eapis.insert(eapi);
         eapi = x;
     }
-    eapis.insert(eapi.id.clone(), eapi);
+    eapis.insert(eapi);
     // reverse so it's in chronological order
     eapis.reverse();
     eapis
 });
 
 /// Ordered mapping of unofficial EAPI identifiers to instances.
-pub static EAPIS_UNOFFICIAL: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
-    [&*EAPI_PKGCRAFT]
-        .into_iter()
-        .map(|e| (e.id.clone(), e))
-        .collect()
-});
+pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> =
+    Lazy::new(|| IndexSet::from([&*EAPI_PKGCRAFT]));
 
 /// Ordered mapping of EAPI identifiers to instances.
-pub static EAPIS: Lazy<IndexMap<String, &'static Eapi>> = Lazy::new(|| {
+pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     let mut eapis = EAPIS_OFFICIAL.clone();
     eapis.extend(EAPIS_UNOFFICIAL.clone());
     eapis
@@ -668,13 +671,6 @@ mod tests {
     }
 
     #[test]
-    fn test_fmt() {
-        for (id, eapi) in EAPIS.iter() {
-            assert_eq!(format!("{eapi}"), format!("{id}"));
-        }
-    }
-
-    #[test]
     fn test_atom_parsing() {
         let atom = EAPI0.atom("cat/pkg").unwrap();
         assert_eq!(atom.category(), "cat");
@@ -717,7 +713,7 @@ mod tests {
     #[test]
     fn test_builtins() {
         let static_scopes: Vec<Scope> = vec![Scope::Global, Scope::Eclass];
-        for eapi in EAPIS.values() {
+        for eapi in EAPIS.iter() {
             let phase_scopes: Vec<Scope> = eapi.phases().iter().map(|p| p.into()).collect();
             let scopes = static_scopes.iter().chain(phase_scopes.iter());
             for scope in scopes {

@@ -475,7 +475,7 @@ macro_rules! builtin_scope_tests {
             BuildData::update(&cpv, &repo);
 
             let static_scopes: Vec<_> = vec![Global, Eclass];
-            for eapi in EAPIS_OFFICIAL.values() {
+            for eapi in EAPIS_OFFICIAL.iter() {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
                 let scopes = static_scopes.iter().chain(phase_scopes.iter());
                 for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {

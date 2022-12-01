@@ -309,8 +309,6 @@ pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
-
     use crate::eapi;
     use crate::macros::opt_str;
     use crate::test::*;
@@ -319,7 +317,6 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let all_eapis: IndexSet<&eapi::Eapi> = eapi::EAPIS.values().cloned().collect();
         let atoms = Atoms::load().unwrap();
 
         // invalid deps
@@ -331,7 +328,7 @@ mod tests {
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
             // verify parse successes
-            for eapi in all_eapis.difference(&failing_eapis) {
+            for eapi in eapi::EAPIS.difference(&failing_eapis) {
                 let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
             }
@@ -355,7 +352,7 @@ mod tests {
                 assert_eq!(format!("{atom}"), s, "{s:?} failed for EAPI={eapi}");
             }
             // verify parse failures
-            for eapi in all_eapis.difference(&passing_eapis) {
+            for eapi in eapi::EAPIS.difference(&passing_eapis) {
                 let result = dep(&s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
@@ -366,7 +363,7 @@ mod tests {
     fn test_parse_slots() {
         // good deps
         for slot in ["0", "a", "_", "_a", "99", "aBc", "a+b_c.d-e"] {
-            for eapi in eapi::EAPIS.values() {
+            for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg:{slot}");
                 let result = dep(&s, eapi);
                 match eapi.has(Feature::SlotDeps) {
@@ -395,7 +392,7 @@ mod tests {
             ("!!cat/pkg", Some(Blocker::Strong)),
             ("!!<cat/pkg-1", Some(Blocker::Strong)),
         ] {
-            for eapi in eapi::EAPIS.values() {
+            for eapi in eapi::EAPIS.iter() {
                 let result = dep(s, eapi);
                 match eapi.has(Feature::Blockers) {
                     false => assert!(result.is_err(), "{s:?} didn't fail"),
@@ -418,7 +415,7 @@ mod tests {
     fn test_parse_use_deps() {
         // good deps
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
-            for eapi in eapi::EAPIS.values() {
+            for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = dep(&s, eapi);
                 match eapi.has(Feature::UseDeps) {
@@ -439,7 +436,7 @@ mod tests {
     fn test_parse_use_dep_defaults() {
         // good deps
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
-            for eapi in eapi::EAPIS.values() {
+            for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = dep(&s, eapi);
                 match eapi.has(Feature::UseDepDefaults) {
@@ -466,7 +463,7 @@ mod tests {
             ("_/_", opt_str!("_"), opt_str!("_"), None),
             ("0/a.b+c-d_e", opt_str!("0"), opt_str!("a.b+c-d_e"), None),
         ] {
-            for eapi in eapi::EAPIS.values() {
+            for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = dep(&s, eapi);
                 match eapi.has(Feature::SlotOps) {
@@ -495,7 +492,7 @@ mod tests {
             ("0/1=", opt_str!("0"), opt_str!("1"), Some(SlotOperator::Equal)),
             ("a/b=", opt_str!("a"), opt_str!("b"), Some(SlotOperator::Equal)),
         ] {
-            for eapi in eapi::EAPIS.values() {
+            for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = dep(&s, eapi);
                 match eapi.has(Feature::SlotOps) {
@@ -520,7 +517,7 @@ mod tests {
             let s = format!("cat/pkg::{repo}");
 
             // repo ids aren't supported in official EAPIs
-            for eapi in eapi::EAPIS_OFFICIAL.values() {
+            for eapi in eapi::EAPIS_OFFICIAL.iter() {
                 assert!(dep(&s, eapi).is_err(), "{s:?} didn't fail");
             }
 

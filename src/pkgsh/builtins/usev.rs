@@ -59,7 +59,7 @@ mod tests {
 
         BUILD_DATA.with(|d| {
             for eapi in EAPIS_OFFICIAL
-                .values()
+                .iter()
                 .filter(|e| !e.has(Feature::UsevTwoArgs))
             {
                 d.borrow_mut().eapi = eapi;
@@ -87,7 +87,7 @@ mod tests {
 
             // check EAPIs that support two arg variant
             for eapi in EAPIS_OFFICIAL
-                .values()
+                .iter()
                 .filter(|e| e.has(Feature::UsevTwoArgs))
             {
                 d.borrow_mut().eapi = eapi;
@@ -117,7 +117,7 @@ mod tests {
 
             // check EAPIs that support two arg variant
             for eapi in EAPIS_OFFICIAL
-                .values()
+                .iter()
                 .filter(|e| e.has(Feature::UsevTwoArgs))
             {
                 d.borrow_mut().eapi = eapi;

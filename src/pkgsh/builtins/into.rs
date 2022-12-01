@@ -55,7 +55,7 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
 
-        for eapi in EAPIS_OFFICIAL.values() {
+        for eapi in EAPIS_OFFICIAL.iter() {
             BuildData::update(&cpv, &repo);
             BUILD_DATA.with(|d| {
                 let phase = Phase::SrcInstall(PHASE_STUB);

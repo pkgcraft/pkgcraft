@@ -149,7 +149,7 @@ mod tests {
             let abs_path = prefix.join("distdir/a.tar.gz");
             fs::File::create(&abs_path).unwrap();
 
-            for eapi in EAPIS_OFFICIAL.values() {
+            for eapi in EAPIS_OFFICIAL.iter() {
                 d.borrow_mut().eapi = eapi;
 
                 // case insensitive support

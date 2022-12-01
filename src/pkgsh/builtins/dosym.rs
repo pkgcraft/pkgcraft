@@ -75,7 +75,7 @@ mod tests {
 
         BUILD_DATA.with(|d| {
             for eapi in EAPIS_OFFICIAL
-                .values()
+                .iter()
                 .filter(|e| !e.has(Feature::DosymRelative))
             {
                 d.borrow_mut().eapi = eapi;

@@ -34,7 +34,7 @@ mod tests {
 
         BUILD_DATA.with(|d| {
             for eapi in EAPIS_OFFICIAL
-                .values()
+                .iter()
                 .filter(|e| !e.has(Feature::UseConfArg))
             {
                 d.borrow_mut().eapi = eapi;
@@ -64,10 +64,7 @@ mod tests {
             }
 
             // check EAPIs that support three arg variant
-            for eapi in EAPIS_OFFICIAL
-                .values()
-                .filter(|e| e.has(Feature::UseConfArg))
-            {
+            for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(Feature::UseConfArg)) {
                 d.borrow_mut().eapi = eapi;
                 for (args, status, expected) in [
                     (&["use", "opt", "val"], ExecStatus::Failure(1), "--disable-opt=val"),
@@ -97,10 +94,7 @@ mod tests {
             }
 
             // check EAPIs that support three arg variant
-            for eapi in EAPIS_OFFICIAL
-                .values()
-                .filter(|e| e.has(Feature::UseConfArg))
-            {
+            for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(Feature::UseConfArg)) {
                 d.borrow_mut().eapi = eapi;
                 for (args, status, expected) in [
                     (&["use", "opt", "val"], ExecStatus::Success, "--enable-opt=val"),
