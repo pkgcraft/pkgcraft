@@ -433,14 +433,14 @@ mod tests {
         let t = ebuild::TempRepo::new("test", None, None).unwrap();
         let repo = ebuild::Repo::from_path("test", 0, t.path).unwrap();
         let e_repo: Repo = repo.into();
-        let f_repo: Repo = fake::Repo::new("fake", 0, []).unwrap().into();
+        let f_repo: Repo = fake::Repo::new("fake", 0, []).into();
         assert!(&e_repo != &f_repo);
         assert!(&e_repo > &f_repo);
 
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
 
-        let f_repo: Repo = fake::Repo::new("test", 0, []).unwrap().into();
+        let f_repo: Repo = fake::Repo::new("test", 0, []).into();
         assert!(&e_repo == &f_repo);
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 1);

@@ -119,7 +119,7 @@ pub struct Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub fn new<'a, I>(id: &str, priority: i32, cpvs: I) -> crate::Result<Self>
+    pub fn new<'a, I>(id: &str, priority: i32, cpvs: I) -> Self
     where
         I: IntoIterator<Item = &'a str>,
     {
@@ -128,11 +128,11 @@ impl Repo {
             ..Default::default()
         };
 
-        Ok(Self {
+        Self {
             id: id.to_string(),
             repo_config,
             pkgs: PkgCache::new(cpvs),
-        })
+        }
     }
 
     pub fn from_path<P: AsRef<Utf8Path>>(id: &str, priority: i32, path: P) -> crate::Result<Self> {
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_id() {
-        let repo = Repo::new("fake", 0, []).unwrap();
+        let repo = Repo::new("fake", 0, []);
         assert_eq!(repo.id(), "fake");
     }
 
@@ -288,10 +288,10 @@ mod tests {
     fn test_categories() {
         let mut repo: Repo;
         // empty repo
-        repo = Repo::new("fake", 0, []).unwrap();
+        repo = Repo::new("fake", 0, []);
         assert!(repo.categories().is_empty());
         // existing pkgs
-        repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
+        repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]);
         assert_eq!(repo.categories(), ["cat1", "cat2"])
     }
 
@@ -299,10 +299,10 @@ mod tests {
     fn test_packages() {
         let mut repo: Repo;
         // empty repo
-        repo = Repo::new("fake", 0, []).unwrap();
+        repo = Repo::new("fake", 0, []);
         assert!(repo.packages("cat").is_empty());
         // existing pkgs
-        repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]).unwrap();
+        repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat1/pkg-b-2", "cat2/pkg-c-3"]);
         assert!(repo.packages("cat").is_empty());
         assert_eq!(repo.packages("cat1"), ["pkg-a", "pkg-b"]);
         assert_eq!(repo.packages("cat2"), ["pkg-c"]);
@@ -312,10 +312,10 @@ mod tests {
     fn test_versions() {
         let mut repo: Repo;
         // empty repo
-        repo = Repo::new("fake", 0, []).unwrap();
+        repo = Repo::new("fake", 0, []);
         assert!(repo.versions("cat", "pkg").is_empty());
         // existing pkgs
-        repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat2/pkg-b-1", "cat2/pkg-b-2"]).unwrap();
+        repo = Repo::new("fake", 0, ["cat1/pkg-a-1", "cat2/pkg-b-1", "cat2/pkg-b-2"]);
         assert!(repo.versions("cat", "pkg").is_empty());
         assert_eq!(repo.versions("cat1", "pkg-a"), ["1"]);
         assert_eq!(repo.versions("cat2", "pkg-b"), ["1", "2"]);
@@ -323,17 +323,17 @@ mod tests {
 
     #[test]
     fn test_len() {
-        let repo = Repo::new("fake", 0, []).unwrap();
+        let repo = Repo::new("fake", 0, []);
         assert_eq!(repo.len(), 0);
-        let repo = Repo::new("fake", 0, ["cat/pkg-0", "cat/pkg-0"]).unwrap();
+        let repo = Repo::new("fake", 0, ["cat/pkg-0", "cat/pkg-0"]);
         assert_eq!(repo.len(), 1);
-        let repo = Repo::new("fake", 0, ["cat/pkg-0", "cat1/pkg1-1", "cat2/pkg2-2"]).unwrap();
+        let repo = Repo::new("fake", 0, ["cat/pkg-0", "cat1/pkg1-1", "cat2/pkg2-2"]);
         assert_eq!(repo.len(), 3);
     }
 
     #[test]
     fn test_extend() {
-        let mut repo = Repo::new("fake", 0, ["cat/pkg-2"]).unwrap();
+        let mut repo = Repo::new("fake", 0, ["cat/pkg-2"]);
         let atoms: Vec<_> = repo
             .iter()
             .map(|pkg| format!("{}", pkg.atom().cpv()))
@@ -359,7 +359,7 @@ mod tests {
 
     #[test]
     fn test_contains() {
-        let repo = Repo::new("fake", 0, ["cat/pkg-0"]).unwrap();
+        let repo = Repo::new("fake", 0, ["cat/pkg-0"]);
 
         // path containment is always false due to fake repo
         assert!(!repo.contains("cat/pkg"));
@@ -384,7 +384,7 @@ mod tests {
     #[test]
     fn test_iter() {
         let expected = ["cat/pkg-0", "acat/bpkg-1"];
-        let repo = Repo::new("fake", 0, expected).unwrap();
+        let repo = Repo::new("fake", 0, expected);
         let atoms: Vec<_> = repo
             .iter()
             .map(|pkg| format!("{}", pkg.atom().cpv()))

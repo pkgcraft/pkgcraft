@@ -168,7 +168,7 @@ mod tests {
         let mut config = Config::new("pkgcraft", "", false).unwrap();
 
         // unmatching pkgs sorted by atom
-        let r1: Repo = fake::Repo::new("b", 0, ["cat/pkg-1"]).unwrap().into();
+        let r1: Repo = fake::Repo::new("b", 0, ["cat/pkg-1"]).into();
         let (t, repo) = config.temp_repo("a", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
         let r2 = Repo::Ebuild(repo);
@@ -178,7 +178,7 @@ mod tests {
         assert_eq!(atoms, ["cat/pkg-0::a", "cat/pkg-1::b"]);
 
         // matching pkgs sorted by repo priority
-        let r1: Repo = fake::Repo::new("a", -1, ["cat/pkg-0"]).unwrap().into();
+        let r1: Repo = fake::Repo::new("a", -1, ["cat/pkg-0"]).into();
         let (t, repo) = config.temp_repo("b", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
         let r2 = Repo::Ebuild(repo);
@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(atoms, ["cat/pkg-0::b", "cat/pkg-0::a"]);
 
         // matching pkgs sorted by repo id since repos have matching priorities
-        let r1: Repo = fake::Repo::new("2", 0, ["cat/pkg-0"]).unwrap().into();
+        let r1: Repo = fake::Repo::new("2", 0, ["cat/pkg-0"]).into();
         let (t, repo) = config.temp_repo("1", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
         let r2 = Repo::Ebuild(repo);
