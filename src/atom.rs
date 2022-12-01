@@ -57,8 +57,8 @@ impl FromStr for SlotOperator {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         match s {
-            "*" => Ok(SlotOperator::Star),
-            "=" => Ok(SlotOperator::Equal),
+            "=" => Ok(Self::Equal),
+            "*" => Ok(Self::Star),
             _ => Err(Error::InvalidValue("invalid slot operator".to_string())),
         }
     }
@@ -291,6 +291,7 @@ impl Ord for Atom {
         cmp_not_equal!(&self.blocker, &other.blocker);
         cmp_not_equal!(&self.slot, &other.slot);
         cmp_not_equal!(&self.subslot, &other.subslot);
+        cmp_not_equal!(&self.slot_op, &other.slot_op);
         match (&self.use_deps, &other.use_deps) {
             (Some(u1), Some(u2)) => cmp_not_equal!(u1.iter(), u2.iter()),
             (Some(_), None) => return Ordering::Greater,
