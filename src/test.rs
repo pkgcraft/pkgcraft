@@ -1,12 +1,12 @@
 #![cfg(test)]
 use std::fs;
-use std::str::FromStr;
 
 use camino::Utf8PathBuf;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::{de, Deserialize, Deserializer};
+use serde_with::{serde_as, DisplayFromStr};
 
 use crate::macros::build_from_paths;
 use crate::{atom, Error};
@@ -14,15 +14,19 @@ use crate::{atom, Error};
 static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
     Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "toml"));
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 pub(crate) struct Atom {
     pub(crate) atom: String,
     pub(crate) eapis: String,
     pub(crate) category: String,
     pub(crate) package: String,
+    #[serde_as(as = "Option<DisplayFromStr>")]
+    pub(crate) blocker: Option<atom::Blocker>,
     pub(crate) version: Option<atom::Version>,
     pub(crate) slot: Option<String>,
     pub(crate) subslot: Option<String>,
+    #[serde_as(as = "Option<DisplayFromStr>")]
     pub(crate) slot_op: Option<atom::SlotOperator>,
     #[serde(rename = "use")]
     pub(crate) use_deps: Option<IndexSet<String>>,
@@ -35,16 +39,6 @@ impl<'de> Deserialize<'de> for atom::Version {
     {
         let s: &str = Deserialize::deserialize(deserializer)?;
         atom::parse::version_with_op(s).map_err(de::Error::custom)
-    }
-}
-
-impl<'de> Deserialize<'de> for atom::SlotOperator {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: &str = Deserialize::deserialize(deserializer)?;
-        atom::SlotOperator::from_str(s).map_err(de::Error::custom)
     }
 }
 

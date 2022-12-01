@@ -345,6 +345,7 @@ mod tests {
                 let atom = result.unwrap();
                 assert_eq!(atom.category(), a.category, "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.package(), a.package, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.blocker(), a.blocker, "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.version(), a.version.as_ref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.slot(), a.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.subslot(), a.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
