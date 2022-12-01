@@ -34,14 +34,15 @@ peg::parser!(grammar restrict() for str {
                     Ok(n) => Some(n),
                 }
             };
-            match suffix {
-                "alpha" => Ok(Suffix::Alpha(num)),
-                "beta" => Ok(Suffix::Beta(num)),
-                "pre" => Ok(Suffix::Pre(num)),
-                "rc" => Ok(Suffix::Rc(num)),
-                "p" => Ok(Suffix::P(num)),
+            let suffix = match suffix {
+                "alpha" => Suffix::Alpha,
+                "beta" => Suffix::Beta,
+                "pre" => Suffix::Pre,
+                "rc" => Suffix::Rc,
+                "p" => Suffix::P,
                 _ => panic!("invalid suffix"),
-            }
+            };
+            Ok(suffix(num))
         }
 
     rule version() -> ParsedVersion<'input>
