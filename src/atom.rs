@@ -59,7 +59,7 @@ impl FromStr for SlotOperator {
         match s {
             "=" => Ok(Self::Equal),
             "*" => Ok(Self::Star),
-            _ => Err(Error::InvalidValue("invalid slot operator".to_string())),
+            _ => Err(Error::InvalidValue(format!("invalid slot operator: {s}"))),
         }
     }
 }
