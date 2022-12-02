@@ -347,6 +347,7 @@ mod tests {
                 assert_eq!(atom.package(), a.package, "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.blocker(), a.blocker, "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.version(), a.version.as_ref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.revision(), a.revision.as_ref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.slot(), a.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.subslot(), a.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.slot_op(), a.slot_op, "{s:?} failed for EAPI={eapi}");

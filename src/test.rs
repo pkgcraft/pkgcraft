@@ -24,6 +24,8 @@ pub(crate) struct Atom {
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub(crate) blocker: Option<atom::Blocker>,
     pub(crate) version: Option<atom::Version>,
+    #[serde_as(as = "Option<DisplayFromStr>")]
+    pub(crate) revision: Option<atom::version::Revision>,
     pub(crate) slot: Option<String>,
     pub(crate) subslot: Option<String>,
     #[serde_as(as = "Option<DisplayFromStr>")]
