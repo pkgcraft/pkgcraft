@@ -418,7 +418,7 @@ impl PartialOrd for NonOpVersion<'_> {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
-    use crate::test::Versions;
+    use crate::test::VersionData;
 
     use super::*;
 
@@ -452,7 +452,7 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        let data = Versions::load().unwrap();
+        let data = VersionData::load().unwrap();
         for (expr, (v1, op, v2)) in data.compares() {
             let v1 = Version::from_str(v1).unwrap();
             let v2 = Version::from_str(v2).unwrap();
@@ -483,7 +483,7 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let data = Versions::load().unwrap();
+        let data = VersionData::load().unwrap();
         for (unsorted, expected) in data.sorting.iter() {
             let mut versions: Vec<_> = unsorted
                 .iter()
@@ -497,7 +497,7 @@ mod tests {
 
     #[test]
     fn test_hashing() {
-        let data = Versions::load().unwrap();
+        let data = VersionData::load().unwrap();
         for (versions, size) in data.hashing.iter() {
             let versions: HashSet<_> = versions
                 .iter()

@@ -330,7 +330,7 @@ impl FromStr for Atom {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::{Atoms, Versions};
+    use crate::test::{AtomData, VersionData};
 
     use super::*;
 
@@ -430,21 +430,24 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let atoms = Atoms::load().unwrap();
-        for (unsorted, expected) in atoms.sorting.iter() {
+        let data = AtomData::load().unwrap();
+        for (unsorted, expected) in data.sorting.iter() {
             let mut atoms: Vec<_> = unsorted
                 .iter()
                 .map(|s| Atom::from_str(s).unwrap())
                 .collect();
             atoms.sort();
-            let sorted: Vec<_> = atoms.iter().map(|x| format!("{x}")).collect();
-            assert_eq!(&sorted, expected);
+            let expected: Vec<_> = expected
+                .iter()
+                .map(|s| Atom::from_str(s).unwrap())
+                .collect();
+            assert_eq!(atoms, expected);
         }
     }
 
     #[test]
     fn test_hashing() {
-        let data = Versions::load().unwrap();
+        let data = VersionData::load().unwrap();
         for (versions, size) in data.hashing.iter() {
             let atoms: IndexSet<_> = versions
                 .iter()

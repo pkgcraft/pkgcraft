@@ -311,13 +311,13 @@ pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
 mod tests {
     use crate::eapi;
     use crate::macros::opt_str;
-    use crate::test::*;
+    use crate::test::AtomData;
 
     use super::*;
 
     #[test]
     fn test_parse() {
-        let atoms = Atoms::load().unwrap();
+        let atoms = AtomData::load().unwrap();
 
         // invalid deps
         for (s, eapis) in atoms.invalid {

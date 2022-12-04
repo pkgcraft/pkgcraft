@@ -47,7 +47,7 @@ mod tests {
     use scallop::variables::*;
 
     use crate::macros::assert_err_re;
-    use crate::test::Versions;
+    use crate::test::VersionData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as ver_test;
@@ -108,7 +108,7 @@ mod tests {
 
         let mut pvr = Variable::new("PVR");
 
-        let data = Versions::load().unwrap();
+        let data = VersionData::load().unwrap();
         for (expr, (v1, op, v2)) in data.compares() {
             let inverted_op = op_map[inverted_op_map[op]];
             let op = op_map[op];

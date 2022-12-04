@@ -16,7 +16,7 @@ static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-pub(crate) struct Atom {
+pub(crate) struct AtomValid {
     pub(crate) atom: String,
     pub(crate) eapis: String,
     pub(crate) category: String,
@@ -45,13 +45,13 @@ impl<'de> Deserialize<'de> for atom::Version {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Atoms {
-    pub(crate) valid: Vec<Atom>,
+pub(crate) struct AtomData {
+    pub(crate) valid: Vec<AtomValid>,
     pub(crate) invalid: Vec<(String, String)>,
     pub(crate) sorting: Vec<(Vec<String>, Vec<String>)>,
 }
 
-impl Atoms {
+impl AtomData {
     pub(crate) fn load() -> crate::Result<Self> {
         let path = TOML_DATA_DIR.join("atoms.toml");
         let data = fs::read_to_string(&path)
@@ -61,13 +61,13 @@ impl Atoms {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Versions {
+pub(crate) struct VersionData {
     compares: Vec<String>,
     pub(crate) sorting: Vec<(Vec<String>, Vec<String>)>,
     pub(crate) hashing: Vec<(Vec<String>, usize)>,
 }
 
-impl Versions {
+impl VersionData {
     pub(crate) fn load() -> crate::Result<Self> {
         let path = TOML_DATA_DIR.join("versions.toml");
         let data = fs::read_to_string(&path)
