@@ -126,12 +126,10 @@ mod tests {
         // cpv containment
         let cpv = atom::cpv("cat/pkg-0").unwrap();
         assert!(!repo.contains(&cpv));
-        assert!(!repo.contains(cpv));
 
         // atom containment
         let a = atom::Atom::from_str("cat/pkg").unwrap();
         assert!(!repo.contains(&a));
-        assert!(!repo.contains(a));
     }
 
     #[test]

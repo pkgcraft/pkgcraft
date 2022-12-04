@@ -5,7 +5,6 @@ use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, S
 
 use indexmap::IndexSet;
 
-use crate::atom;
 use crate::pkg::Pkg;
 use crate::repo::{PkgRepository, Repo};
 use crate::restrict::Restrict;
@@ -103,7 +102,7 @@ impl PkgRepository for RepoSet {
     }
 }
 
-make_contains_atom!(RepoSet, [atom::Atom, &atom::Atom]);
+make_contains_atom!(RepoSet);
 
 // TODO: Use type alias impl trait support for IntoIterator implementation when stable in order to
 // replace boxed type with a generic type.
@@ -258,6 +257,7 @@ impl SubAssign<&Repo> for RepoSet {
 
 #[cfg(test)]
 mod tests {
+    use crate::atom;
     use crate::config::Config;
     use crate::pkg::Package;
     use crate::repo::{fake, Contains, Repository};
@@ -329,7 +329,6 @@ mod tests {
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
         assert!(!s.contains(&cpv));
-        assert!(!s.contains(cpv.clone()));
 
         // repo set with no pkgs
         let s = RepoSet::new([&e_repo, &f_repo]);
@@ -339,7 +338,6 @@ mod tests {
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
         assert!(!s.contains(&cpv));
-        assert!(!s.contains(cpv.clone()));
 
         // single ebuild
         t.create_ebuild("cat/pkg-1", []).unwrap();
@@ -351,7 +349,6 @@ mod tests {
         assert!(s.iter().next().is_some());
         assert!(s.iter_restrict(&cpv).next().is_some());
         assert!(s.contains(&cpv));
-        assert!(s.contains(cpv.clone()));
 
         // multiple pkgs of different types
         let fake_repo = fake::Repo::new("fake", 0, ["cat/pkg-1"]);
@@ -362,7 +359,6 @@ mod tests {
         assert_eq!(s.versions("cat", "pkg"), ["1"]);
         assert_eq!(s.len(), 2);
         assert!(s.contains(&cpv));
-        assert!(s.contains(cpv.clone()));
         assert_eq!(s.iter().count(), 2);
         assert_eq!(s.iter_restrict(&cpv).count(), 2);
         let pkg = s.iter_restrict(&cpv).next().unwrap();

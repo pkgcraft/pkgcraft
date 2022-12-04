@@ -402,19 +402,19 @@ macro_rules! make_repo_traits {
             }
         }
 
-        $crate::repo::make_contains_atom!($x, [crate::atom::Atom, &crate::atom::Atom]);
+        $crate::repo::make_contains_atom!($x);
     )+};
 }
 pub(self) use make_repo_traits;
 
 macro_rules! make_contains_atom {
-    ($x:ty, [$($y:ty),+]) => {$(
-        impl $crate::repo::Contains<$y> for $x {
-            fn contains(&self, atom: $y) -> bool {
+    ($x:ty) => {
+        impl $crate::repo::Contains<&crate::atom::Atom> for $x {
+            fn contains(&self, atom: &crate::atom::Atom) -> bool {
                 self.iter_restrict(atom).next().is_some()
             }
         }
-    )+};
+    };
 }
 pub(self) use make_contains_atom;
 
