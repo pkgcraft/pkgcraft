@@ -1,4 +1,5 @@
 use std::fmt;
+use std::hash::Hash;
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -171,7 +172,7 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     <Repo as IntoEnumIterator>::iter().map(|r| r.into()).collect()
 });
 
-pub trait PkgRepository: fmt::Debug + PartialEq + Eq + PartialOrd + Ord {
+pub trait PkgRepository: fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash {
     type Pkg<'a>: Package
     where
         Self: 'a;
