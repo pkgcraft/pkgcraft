@@ -8,6 +8,7 @@ use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 
+use crate::atom::Atom;
 use crate::config::{Config, RepoConfig};
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict;
@@ -172,7 +173,9 @@ static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
     <Repo as IntoEnumIterator>::iter().map(|r| r.into()).collect()
 });
 
-pub trait PkgRepository: fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash {
+pub trait PkgRepository:
+    fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a Atom>
+{
     type Pkg<'a>: Package
     where
         Self: 'a;
@@ -229,6 +232,15 @@ where
     }
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
         (*self).iter_restrict(val)
+    }
+}
+
+impl<T> Contains<&Atom> for &T
+where
+    T: PkgRepository,
+{
+    fn contains(&self, atom: &Atom) -> bool {
+        self.iter_restrict(atom).next().is_some()
     }
 }
 
