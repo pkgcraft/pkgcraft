@@ -16,7 +16,7 @@ static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-pub(crate) struct AtomValid {
+pub(crate) struct ValidAtom {
     pub(crate) atom: String,
     pub(crate) eapis: String,
     pub(crate) category: String,
@@ -46,7 +46,7 @@ impl<'de> Deserialize<'de> for atom::Version {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct AtomData {
-    pub(crate) valid: Vec<AtomValid>,
+    pub(crate) valid: Vec<ValidAtom>,
     pub(crate) invalid: Vec<(String, String)>,
     pub(crate) sorting: Vec<(Vec<String>, Vec<String>)>,
 }
