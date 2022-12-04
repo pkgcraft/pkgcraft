@@ -13,7 +13,9 @@ use super::make_contains_atom;
 
 /// Ordered set of repos
 #[derive(Debug, Clone)]
-pub struct RepoSet(IndexSet<Repo>);
+pub struct RepoSet {
+    repos: IndexSet<Repo>,
+}
 
 impl PartialEq for RepoSet {
     fn eq(&self, other: &Self) -> bool {
@@ -50,11 +52,11 @@ impl RepoSet {
     {
         let mut repos: IndexSet<_> = repos.into_iter().cloned().collect();
         repos.sort();
-        Self(repos)
+        Self { repos }
     }
 
     pub fn repos(&self) -> &IndexSet<Repo> {
-        &self.0
+        &self.repos
     }
 }
 
@@ -64,21 +66,25 @@ impl PkgRepository for RepoSet {
     type RestrictIterator<'a> = PkgIter<'a> where Self: 'a;
 
     fn categories(&self) -> Vec<String> {
-        let cats: HashSet<_> = self.0.iter().flat_map(|r| r.categories()).collect();
+        let cats: HashSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
         let mut cats: Vec<_> = cats.into_iter().collect();
         cats.sort();
         cats
     }
 
     fn packages(&self, cat: &str) -> Vec<String> {
-        let pkgs: HashSet<_> = self.0.iter().flat_map(|r| r.packages(cat)).collect();
+        let pkgs: HashSet<_> = self.repos.iter().flat_map(|r| r.packages(cat)).collect();
         let mut pkgs: Vec<_> = pkgs.into_iter().collect();
         pkgs.sort();
         pkgs
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
-        let versions: HashSet<_> = self.0.iter().flat_map(|r| r.versions(cat, pkg)).collect();
+        let versions: HashSet<_> = self
+            .repos
+            .iter()
+            .flat_map(|r| r.versions(cat, pkg))
+            .collect();
         let mut versions: Vec<_> = versions.into_iter().collect();
         versions.sort();
         versions
@@ -95,7 +101,7 @@ impl PkgRepository for RepoSet {
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
         let restrict = val.into();
         PkgIter(Box::new(
-            self.0
+            self.repos
                 .iter()
                 .flat_map(move |r| r.iter_restrict(restrict.clone())),
         ))
@@ -115,7 +121,7 @@ impl<'a> IntoIterator for &'a RepoSet {
     type IntoIter = PkgIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        PkgIter(Box::new(self.0.iter().flat_map(|r| r.into_iter())))
+        PkgIter(Box::new(self.repos.iter().flat_map(|r| r.into_iter())))
     }
 }
 
@@ -138,8 +144,8 @@ impl BitAnd<&Self> for RepoSet {
 
 impl BitAndAssign<&Self> for RepoSet {
     fn bitand_assign(&mut self, other: &Self) {
-        self.0 = &self.0 & &other.0;
-        self.0.sort();
+        self.repos = &self.repos & &other.repos;
+        self.repos.sort();
     }
 }
 
@@ -154,8 +160,8 @@ impl BitOr<&Self> for RepoSet {
 
 impl BitOrAssign<&Self> for RepoSet {
     fn bitor_assign(&mut self, other: &Self) {
-        self.0 = &self.0 | &other.0;
-        self.0.sort();
+        self.repos = &self.repos | &other.repos;
+        self.repos.sort();
     }
 }
 
@@ -170,8 +176,8 @@ impl BitXor<&Self> for RepoSet {
 
 impl BitXorAssign<&Self> for RepoSet {
     fn bitxor_assign(&mut self, other: &Self) {
-        self.0 = &self.0 ^ &other.0;
-        self.0.sort();
+        self.repos = &self.repos ^ &other.repos;
+        self.repos.sort();
     }
 }
 
@@ -186,7 +192,7 @@ impl Sub<&Self> for RepoSet {
 
 impl SubAssign<&Self> for RepoSet {
     fn sub_assign(&mut self, other: &Self) {
-        self.0 = &self.0 - &other.0;
+        self.repos = &self.repos - &other.repos;
     }
 }
 
@@ -201,7 +207,7 @@ impl BitAnd<&Repo> for RepoSet {
 
 impl BitAndAssign<&Repo> for RepoSet {
     fn bitand_assign(&mut self, other: &Repo) {
-        self.0 = &self.0 & &IndexSet::from([other.clone()]);
+        self.repos = &self.repos & &IndexSet::from([other.clone()]);
     }
 }
 
@@ -216,8 +222,8 @@ impl BitOr<&Repo> for RepoSet {
 
 impl BitOrAssign<&Repo> for RepoSet {
     fn bitor_assign(&mut self, other: &Repo) {
-        if self.0.insert(other.clone()) {
-            self.0.sort();
+        if self.repos.insert(other.clone()) {
+            self.repos.sort();
         }
     }
 }
@@ -233,8 +239,8 @@ impl BitXor<&Repo> for RepoSet {
 
 impl BitXorAssign<&Repo> for RepoSet {
     fn bitxor_assign(&mut self, other: &Repo) {
-        self.0 = &self.0 ^ &IndexSet::from([other.clone()]);
-        self.0.sort();
+        self.repos = &self.repos ^ &IndexSet::from([other.clone()]);
+        self.repos.sort();
     }
 }
 
@@ -249,8 +255,8 @@ impl Sub<&Repo> for RepoSet {
 
 impl SubAssign<&Repo> for RepoSet {
     fn sub_assign(&mut self, other: &Repo) {
-        if self.0.remove(other) {
-            self.0.sort();
+        if self.repos.remove(other) {
+            self.repos.sort();
         }
     }
 }
