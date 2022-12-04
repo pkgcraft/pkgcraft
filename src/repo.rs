@@ -10,7 +10,7 @@ use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 use crate::config::{Config, RepoConfig};
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict;
-use crate::{atom, Error};
+use crate::Error;
 
 pub mod ebuild;
 pub(crate) mod empty;
@@ -389,7 +389,7 @@ macro_rules! make_repo_traits {
             }
         }
 
-        $crate::repo::make_contains_atom!($x, [atom::Atom, &atom::Atom]);
+        $crate::repo::make_contains_atom!($x, [crate::atom::Atom, &crate::atom::Atom]);
     )+};
 }
 pub(self) use make_repo_traits;
