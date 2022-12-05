@@ -101,9 +101,8 @@ impl From<&Revision> for String {
 #[derive(Debug)]
 pub(crate) struct ParsedVersion<'a> {
     pub(crate) start: usize,
-    pub(crate) start_base: usize,
-    pub(crate) end_base: usize,
     pub(crate) end: usize,
+    pub(crate) base_end: usize,
     pub(crate) op: Option<Operator>,
     pub(crate) numbers: Vec<&'a str>,
     pub(crate) letter: Option<char>,
@@ -147,9 +146,8 @@ impl<'a> ParsedVersion<'a> {
         }
 
         Ok(Version {
-            start_base: self.start_base - self.start,
-            end_base: self.end_base - self.start,
             full: input[self.start..self.end].to_string(),
+            base_end: self.base_end,
             op: self.op,
             numbers,
             letter: self.letter,
@@ -172,9 +170,8 @@ pub(crate) enum Operator {
 
 #[derive(Debug, Clone)]
 pub struct Version {
-    start_base: usize,
-    end_base: usize,
     full: String,
+    base_end: usize,
     op: Option<Operator>,
     numbers: Vec<(String, u64)>,
     letter: Option<char>,
@@ -216,7 +213,7 @@ impl Version {
 
     /// Return a version's base -- all components except the revision.
     pub(crate) fn base(&self) -> &str {
-        &self.full[self.start_base..self.end_base]
+        &self.full[0..self.base_end]
     }
 
     /// Compare two versions for restrictions.

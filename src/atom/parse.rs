@@ -55,9 +55,8 @@ peg::parser! {
                     end_base:position!() revision:revision()? end:position!() {
                 ParsedVersion {
                     start,
-                    start_base: start,
-                    end_base,
                     end,
+                    base_end: end_base-start,
                     op: None,
                     numbers,
                     letter,
@@ -73,9 +72,8 @@ peg::parser! {
                     end_base:position!() revision:revision()? end:position!() glob:$("*")? {?
                 let ver = ParsedVersion {
                     start,
-                    start_base,
-                    end_base,
                     end,
+                    base_end: end_base-start,
                     op: None,
                     numbers,
                     letter,

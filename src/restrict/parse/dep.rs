@@ -51,9 +51,8 @@ peg::parser!(grammar restrict() for str {
                 end_base:position!() revision:revision()? end:position!() {
             ParsedVersion {
                 start,
-                start_base: start,
-                end_base,
                 end,
+                base_end: end_base-start,
                 op: None,
                 numbers,
                 letter,
