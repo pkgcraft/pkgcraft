@@ -5,7 +5,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use indexmap::IndexSet;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 
@@ -15,6 +14,7 @@ use crate::eapi::{self, Eapi};
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::metadata::{Key, Metadata};
 use crate::repo::ebuild::Repo;
+use crate::types::OrderedSet;
 use crate::Error;
 
 use super::{make_pkg_traits, Package};
@@ -160,7 +160,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's homepage.
-    pub fn homepage(&self) -> &IndexSet<String> {
+    pub fn homepage(&self) -> &OrderedSet<String> {
         self.meta.homepage()
     }
 
@@ -170,22 +170,22 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's keywords.
-    pub fn keywords(&self) -> &IndexSet<String> {
+    pub fn keywords(&self) -> &OrderedSet<String> {
         self.meta.keywords()
     }
 
     /// Return a package's IUSE.
-    pub fn iuse(&self) -> &IndexSet<String> {
+    pub fn iuse(&self) -> &OrderedSet<String> {
         self.meta.iuse()
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
-    pub fn inherit(&self) -> &IndexSet<String> {
+    pub fn inherit(&self) -> &OrderedSet<String> {
         self.meta.inherit()
     }
 
     /// Return the ordered set of inherited eclasses for a package.
-    pub fn inherited(&self) -> &IndexSet<String> {
+    pub fn inherited(&self) -> &OrderedSet<String> {
         self.meta.inherited()
     }
 

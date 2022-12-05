@@ -2,13 +2,13 @@
 use std::fs;
 
 use camino::Utf8PathBuf;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::{de, Deserialize, Deserializer};
 use serde_with::{serde_as, DisplayFromStr};
 
 use crate::macros::build_from_paths;
+use crate::types::OrderedSet;
 use crate::{atom, Error};
 
 static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
@@ -31,7 +31,7 @@ pub(crate) struct ValidAtom {
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub(crate) slot_op: Option<atom::SlotOperator>,
     #[serde(rename = "use")]
-    pub(crate) use_deps: Option<IndexSet<String>>,
+    pub(crate) use_deps: Option<OrderedSet<String>>,
 }
 
 impl<'de> Deserialize<'de> for atom::Version {
@@ -41,6 +41,16 @@ impl<'de> Deserialize<'de> for atom::Version {
     {
         let s: &str = Deserialize::deserialize(deserializer)?;
         atom::parse::version_with_op(s).map_err(de::Error::custom)
+    }
+}
+
+impl<'de> Deserialize<'de> for OrderedSet<String> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let vals: Vec<&str> = Deserialize::deserialize(deserializer)?;
+        Ok(vals.into_iter().map(|s| s.to_string()).collect())
     }
 }
 

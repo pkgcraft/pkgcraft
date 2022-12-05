@@ -283,7 +283,7 @@ peg::parser!(grammar restrict() for str {
             )) op:set_ops() vals:quoted_string_set()
         {?
             use crate::pkg::ebuild::Restrict::*;
-            let r = IndexSetRestrict::Set(set_restrict(op, &vals)?);
+            let r = OrderedSetRestrict::Set(set_restrict(op, &vals)?);
             let ebuild_r = match attr {
                 "homepage" => Homepage(Some(r)),
                 "keywords" => Keywords(Some(r)),

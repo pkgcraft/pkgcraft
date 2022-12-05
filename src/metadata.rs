@@ -3,7 +3,6 @@ use std::str::FromStr;
 use std::{fs, io};
 
 use camino::Utf8Path;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
@@ -15,6 +14,7 @@ use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
 use crate::repo::{ebuild::Repo as EbuildRepo, Repository};
+use crate::types::OrderedSet;
 use crate::Error;
 
 pub mod ebuild;
@@ -82,12 +82,12 @@ pub(crate) struct Metadata {
     required_use: Option<DepSet<String>>,
     restrict: Option<DepSet<String>>,
     src_uri: Option<DepSet<Uri>>,
-    homepage: IndexSet<String>,
+    homepage: OrderedSet<String>,
     defined_phases: HashSet<String>,
-    keywords: IndexSet<String>,
-    iuse: IndexSet<String>,
-    inherit: IndexSet<String>,
-    inherited: IndexSet<String>,
+    keywords: OrderedSet<String>,
+    iuse: OrderedSet<String>,
+    inherit: OrderedSet<String>,
+    inherited: OrderedSet<String>,
 }
 
 macro_rules! split {
@@ -290,7 +290,7 @@ impl Metadata {
         self.src_uri.as_ref()
     }
 
-    pub(crate) fn homepage(&self) -> &IndexSet<String> {
+    pub(crate) fn homepage(&self) -> &OrderedSet<String> {
         &self.homepage
     }
 
@@ -298,19 +298,19 @@ impl Metadata {
         &self.defined_phases
     }
 
-    pub(crate) fn keywords(&self) -> &IndexSet<String> {
+    pub(crate) fn keywords(&self) -> &OrderedSet<String> {
         &self.keywords
     }
 
-    pub(crate) fn iuse(&self) -> &IndexSet<String> {
+    pub(crate) fn iuse(&self) -> &OrderedSet<String> {
         &self.iuse
     }
 
-    pub(crate) fn inherit(&self) -> &IndexSet<String> {
+    pub(crate) fn inherit(&self) -> &OrderedSet<String> {
         &self.inherit
     }
 
-    pub(crate) fn inherited(&self) -> &IndexSet<String> {
+    pub(crate) fn inherited(&self) -> &OrderedSet<String> {
         &self.inherited
     }
 }

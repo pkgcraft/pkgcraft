@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::restrict::{self, IndexSetRestrict, Restriction, SetRestrict, Str};
+use crate::restrict::{self, OrderedSetRestrict, Restriction, SetRestrict, Str};
 
 use super::{Atom, Blocker, Version};
 
@@ -15,7 +15,7 @@ pub enum Restrict {
     VersionStr(Str),
     Slot(Option<Str>),
     Subslot(Option<Str>),
-    UseDeps(Option<IndexSetRestrict<String, Str>>),
+    UseDeps(Option<OrderedSetRestrict<String, Str>>),
     Repo(Option<Str>),
 
     // boolean
@@ -53,7 +53,7 @@ impl Restrict {
             None => Self::UseDeps(None),
             Some(i) => {
                 let r = SetRestrict::Superset(i.into_iter().map(|s| s.into()).collect());
-                Self::UseDeps(Some(IndexSetRestrict::Set(r)))
+                Self::UseDeps(Some(OrderedSetRestrict::Set(r)))
             }
         }
     }

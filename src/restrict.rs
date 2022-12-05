@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use std::fmt;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
-use indexmap::IndexSet;
 use regex::Regex;
 
+use crate::types::{Ordered, OrderedSet};
 use crate::{atom, pkg, Error};
 
 pub mod parse;
@@ -252,18 +252,18 @@ macro_rules! make_set_restriction {
     )+};
 }
 pub(crate) use make_set_restriction;
-make_set_restriction!((HashSet<String>, String), (IndexSet<String>, String));
+make_set_restriction!((HashSet<String>, String), (OrderedSet<String>, String));
 
 pub(crate) type HashSetRestrict<T> = SetRestrict<HashSet<T>, T>;
 
 #[derive(Debug, Clone)]
-pub enum IndexSetRestrict<T, R> {
+pub enum OrderedSetRestrict<T: Ordered, R> {
     Ordered(OrderedRestrict<R>),
-    Set(SetRestrict<IndexSet<T>, T>),
+    Set(SetRestrict<OrderedSet<T>, T>),
 }
 
-impl Restriction<&IndexSet<String>> for IndexSetRestrict<String, Str> {
-    fn matches(&self, val: &IndexSet<String>) -> bool {
+impl Restriction<&OrderedSet<String>> for OrderedSetRestrict<String, Str> {
+    fn matches(&self, val: &OrderedSet<String>) -> bool {
         match self {
             Self::Ordered(r) => r.matches(val),
             Self::Set(r) => r.matches(val),
@@ -296,7 +296,7 @@ macro_rules! make_ordered_restrictions {
     )+};
 }
 pub(crate) use make_ordered_restrictions;
-make_ordered_restrictions!((&[String], Str), (&IndexSet<String>, Str));
+make_ordered_restrictions!((&[String], Str), (&OrderedSet<String>, Str));
 
 #[cfg(test)]
 mod tests {

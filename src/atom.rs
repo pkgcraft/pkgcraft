@@ -1,16 +1,16 @@
 use std::cmp::Ordering;
 use std::fmt::{self, Write};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
-use indexmap::IndexSet;
 use itertools::Itertools;
 
 pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::cmp_not_equal;
+use crate::types::OrderedSet;
 use crate::Error;
 
 // re-export Restrict
@@ -116,7 +116,7 @@ impl ParsedAtom<'_> {
 }
 
 /// Package atom
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Atom {
     category: String,
     package: String,
@@ -125,34 +125,8 @@ pub struct Atom {
     slot: Option<String>,
     subslot: Option<String>,
     slot_op: Option<SlotOperator>,
-    use_deps: Option<IndexSet<String>>,
+    use_deps: Option<OrderedSet<String>>,
     repo: Option<String>,
-}
-
-impl PartialEq for Atom {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-impl Eq for Atom {}
-
-impl Hash for Atom {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.category.hash(state);
-        self.package.hash(state);
-        self.blocker.hash(state);
-        self.version.hash(state);
-        self.slot.hash(state);
-        self.subslot.hash(state);
-        self.slot_op.hash(state);
-        if let Some(vals) = &self.use_deps {
-            for e in vals {
-                e.hash(state);
-            }
-        }
-        self.repo.hash(state);
-    }
 }
 
 #[cached(
@@ -201,7 +175,7 @@ impl Atom {
     }
 
     /// Return an atom's USE flag dependencies.
-    pub fn use_deps(&self) -> Option<&IndexSet<String>> {
+    pub fn use_deps(&self) -> Option<&OrderedSet<String>> {
         self.use_deps.as_ref()
     }
 
