@@ -401,7 +401,7 @@ impl Repo {
             let path = entry.path();
             match entry.file_name().to_str() {
                 Some(s) => match atom::parse::category(s) {
-                    Ok(cat) => v.push(cat.into()),
+                    Ok(_) => v.push(s.into()),
                     Err(e) => warn!("{e}: {path:?}"),
                 },
                 None => warn!("non-unicode path: {path:?}"),
@@ -538,7 +538,7 @@ impl PkgRepository for Repo {
             let path = entry.path();
             match entry.file_name().to_str() {
                 Some(s) => match atom::parse::package(s) {
-                    Ok(pn) => v.push(pn.into()),
+                    Ok(_) => v.push(s.into()),
                     Err(e) => warn!("{e}: {path:?}"),
                 },
                 None => warn!("non-unicode path: {path:?}"),

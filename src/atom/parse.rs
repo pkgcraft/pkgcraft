@@ -232,12 +232,14 @@ peg::parser! {
     }
 }
 
-pub fn category(s: &str) -> crate::Result<&str> {
-    pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s}"), s, e))
+pub fn category(s: &str) -> crate::Result<()> {
+    pkg::category(s).map_err(|e| peg_error(format!("invalid category name: {s}"), s, e))?;
+    Ok(())
 }
 
-pub fn package(s: &str) -> crate::Result<&str> {
-    pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s}"), s, e))
+pub fn package(s: &str) -> crate::Result<()> {
+    pkg::package(s).map_err(|e| peg_error(format!("invalid package name: {s}"), s, e))?;
+    Ok(())
 }
 
 pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
@@ -260,8 +262,9 @@ pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
     ver.into_owned(s)
 }
 
-pub fn repo(s: &str) -> crate::Result<&str> {
-    pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s}"), s, e))
+pub fn repo(s: &str) -> crate::Result<()> {
+    pkg::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s}"), s, e))?;
+    Ok(())
 }
 
 pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
