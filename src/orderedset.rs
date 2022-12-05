@@ -8,7 +8,7 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use indexmap::IndexSet;
 
@@ -75,5 +75,11 @@ impl<T: Ordered> Deref for OrderedSet<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<T: Ordered> DerefMut for OrderedSet<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
