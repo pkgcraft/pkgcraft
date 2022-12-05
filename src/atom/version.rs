@@ -419,6 +419,7 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use crate::test::VersionData;
+    use crate::utils::hash;
 
     use super::*;
 
@@ -460,21 +461,16 @@ mod tests {
                 "!=" => {
                     assert_ne!(v1, v2, "failed comparing {expr}");
                     assert_ne!(v2, v1, "failed comparing {expr}");
-
-                    // verify version hashes aren't equal
-                    let set = HashSet::from([v1, v2]);
-                    assert_eq!(set.len(), 2, "failed hash {expr}");
                 }
                 _ => {
                     let op = op_map[op];
                     assert_eq!(v1.cmp(&v2), op, "failed comparing {expr}");
                     assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {expr}");
 
-                    // verify version hashes
-                    let set = HashSet::from([v1, v2]);
-                    match op {
-                        Ordering::Equal => assert_eq!(set.len(), 1, "failed hash {expr}"),
-                        _ => assert_eq!(set.len(), 2, "failed hash {expr}"),
+                    // verify the following property holds since both Hash and Eq are implemented:
+                    // k1 == k2 -> hash(k1) == hash(k2)
+                    if op == Ordering::Equal {
+                        assert_eq!(hash(v1), hash(v2), "failed hash {expr}");
                     }
                 }
             }
