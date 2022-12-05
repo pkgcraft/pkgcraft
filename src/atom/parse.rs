@@ -10,22 +10,22 @@ use super::{Atom, Blocker, ParsedAtom, SlotOperator, Version};
 peg::parser! {
     grammar pkg() for str {
         // Categories must not begin with a hyphen, dot, or plus sign.
-        pub(super) rule category() -> &'input str
-            = s:$(quiet!{
+        pub(super) rule category() -> (usize, usize)
+            = start:position!() s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-            } / expected!("category name")
-            ) { s }
+            } / expected!("category name")) end:position!()
+            { (start, end) }
 
         // Packages must not begin with a hyphen or plus sign and must not end in a
         // hyphen followed by anything matching a version.
-        pub(super) rule package() -> &'input str
-            = s:$(quiet!{
+        pub(super) rule package() -> (usize, usize)
+            = start:position!() s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
                 (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] /
                  ("-" !(version() ("-" version())? ![_])))*
-            } / expected!("package name")
-            ) { s }
+            } / expected!("package name")) end:position!()
+            { (start, end) }
 
         rule version_suffix() -> Suffix
             = "_" suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
@@ -208,18 +208,18 @@ peg::parser! {
                 }
             }
 
-        pub(super) rule cpv_or_cp() -> (bool, &'input str, &'input str, Option<&'input str>)
-            = op:$(("<" "="?) / "=" / "~" / (">" "="?)) cpv:$([^'*']+) glob:$("*")? {
-                (true, op, cpv, glob)
-            } / cat:category() "/" pkg:package() {
-                (false, cat, pkg, None)
-            }
+        pub(super) rule cpv_with_op() -> (&'input str, usize, &'input str, Option<&'input str>)
+            = op:$(("<" "="?) / "=" / "~" / (">" "="?)) start:position!() cpv:$([^'*']+) glob:$("*")?
+            { (op, start, cpv, glob) }
 
-        pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedAtom<'input>)
-            = blocker:blocker(eapi)? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
+        pub(super) rule cp() -> ((usize, usize), (usize, usize))
+            = cat:category() "/" pkg:package() { (cat, pkg) }
+
+        pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, usize, ParsedAtom<'input>)
+            = blocker:blocker(eapi)? start:position!() dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
                     use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
-                (dep, ParsedAtom {
+                (dep, start, ParsedAtom {
                     blocker,
                     slot,
                     subslot,
@@ -272,26 +272,27 @@ pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
 }
 
 pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
-    let (dep, mut atom) =
+    let (dep, mut start, mut atom) =
         pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s}"), s, e))?;
-    let attrs = pkg::cpv_or_cp(dep).map_err(|e| peg_error(format!("invalid atom: {s}"), dep, e))?;
-
-    match attrs {
-        (true, op, cpv, glob) => {
+    match pkg::cpv_with_op(dep) {
+        Ok((op, cpv_start, cpv, glob)) => {
             let cpv_atom =
                 pkg::cpv(cpv).map_err(|e| peg_error(format!("invalid atom: {s}"), cpv, e))?;
+            start += cpv_start;
+            atom.category = (start + cpv_atom.category.0, start + cpv_atom.category.1);
+            atom.package = (start + cpv_atom.package.0, start + cpv_atom.package.1);
             let ver = cpv_atom.version.unwrap();
-            atom.category = cpv_atom.category;
-            atom.package = cpv_atom.package;
             atom.version = Some(
                 ver.with_op(op, glob)
                     .map_err(|e| Error::InvalidValue(format!("invalid atom: {s}: {e}")))?,
             );
             atom.version_str = Some(cpv);
         }
-        (false, cat, pkg, _) => {
-            atom.category = cat;
-            atom.package = pkg;
+        _ => {
+            let (cat, pkg) =
+                pkg::cp(dep).map_err(|e| peg_error(format!("invalid atom: {s}"), dep, e))?;
+            atom.category = (start + cat.0, start + cat.1);
+            atom.package = (start + pkg.0, start + pkg.1);
         }
     }
 
