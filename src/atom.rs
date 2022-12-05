@@ -8,7 +8,6 @@ use cached::{proc_macro::cached, SizedCache};
 use self::version::ParsedVersion;
 pub use self::version::Version;
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
-use crate::macros::cmp_not_equal;
 use crate::orderedset::OrderedSet;
 use crate::Error;
 
@@ -140,15 +139,7 @@ impl Eq for Atom {}
 
 impl Hash for Atom {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.category.hash(state);
-        self.package.hash(state);
-        self.blocker.hash(state);
-        self.version.hash(state);
-        self.slot.hash(state);
-        self.subslot.hash(state);
-        self.slot_op.hash(state);
-        self.use_deps.hash(state);
-        self.repo.hash(state);
+        self.key().hash(state);
     }
 }
 
@@ -163,6 +154,19 @@ pub fn cpv(s: &str) -> crate::Result<Atom> {
     atom.version_str = Some(s);
     atom.into_owned(s)
 }
+
+/// Key type used for implementing various traits, e.g. Eq, Hash, etc.
+type AtomKey<'a> = (
+    &'a str,
+    &'a str,
+    Option<&'a Version>,
+    Option<Blocker>,
+    Option<&'a str>,
+    Option<&'a str>,
+    Option<SlotOperator>,
+    Option<&'a OrderedSet<String>>,
+    Option<&'a str>,
+);
 
 impl Atom {
     /// Verify a string represents a valid atom.
@@ -249,6 +253,21 @@ impl Atom {
     pub fn repo(&self) -> Option<&str> {
         self.repo.as_deref()
     }
+
+    /// Return a key value used to implement various traits, e.g. Eq, Hash, etc.
+    fn key(&self) -> AtomKey {
+        (
+            self.category(),
+            self.package(),
+            self.version(),
+            self.blocker(),
+            self.slot(),
+            self.subslot(),
+            self.slot_op(),
+            self.use_deps(),
+            self.repo(),
+        )
+    }
 }
 
 impl fmt::Display for Atom {
@@ -259,15 +278,7 @@ impl fmt::Display for Atom {
 
 impl Ord for Atom {
     fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(&self.category, &other.category);
-        cmp_not_equal!(&self.package, &other.package);
-        cmp_not_equal!(&self.version, &other.version);
-        cmp_not_equal!(&self.blocker, &other.blocker);
-        cmp_not_equal!(&self.slot, &other.slot);
-        cmp_not_equal!(&self.subslot, &other.subslot);
-        cmp_not_equal!(&self.slot_op, &other.slot_op);
-        cmp_not_equal!(&self.use_deps, &other.use_deps);
-        self.repo.cmp(&other.repo)
+        self.key().cmp(&other.key())
     }
 }
 
