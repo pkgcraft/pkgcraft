@@ -10,7 +10,7 @@ pub use self::version::Version;
 use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::cmp_not_equal;
-use crate::types::OrderedSet;
+use crate::orderedset::OrderedSet;
 use crate::Error;
 
 // re-export Restrict

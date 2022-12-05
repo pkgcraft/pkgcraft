@@ -5,7 +5,7 @@ use std::ops::{BitAnd, BitOr, BitXor, Not};
 
 use regex::Regex;
 
-use crate::types::{Ordered, OrderedSet};
+use crate::orderedset::{Ordered, OrderedSet};
 use crate::{atom, pkg, Error};
 
 pub mod parse;

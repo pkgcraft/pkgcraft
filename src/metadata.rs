@@ -12,9 +12,9 @@ use crate::atom::Atom;
 use crate::depset::{DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
+use crate::orderedset::OrderedSet;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
 use crate::repo::{ebuild::Repo as EbuildRepo, Repository};
-use crate::types::OrderedSet;
 use crate::Error;
 
 pub mod ebuild;

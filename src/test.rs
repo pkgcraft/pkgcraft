@@ -8,7 +8,7 @@ use serde::{de, Deserialize, Deserializer};
 use serde_with::{serde_as, DisplayFromStr};
 
 use crate::macros::build_from_paths;
-use crate::types::OrderedSet;
+use crate::orderedset::OrderedSet;
 use crate::{atom, Error};
 
 static TOML_DATA_DIR: Lazy<Utf8PathBuf> =

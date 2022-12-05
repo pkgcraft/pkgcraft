@@ -10,6 +10,7 @@ mod error;
 pub(crate) mod files;
 mod macros;
 pub mod metadata;
+mod orderedset;
 pub mod peg;
 pub mod pkg;
 pub mod pkgsh;
@@ -17,7 +18,6 @@ pub mod repo;
 pub mod restrict;
 mod sync;
 pub(crate) mod test;
-mod types;
 pub mod utils;
 
 pub use self::error::{Error, Result};
