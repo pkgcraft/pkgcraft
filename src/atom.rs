@@ -1,13 +1,12 @@
 use std::cmp::Ordering;
-use std::fmt::{self, Write};
-use std::hash::Hash;
+use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
-use itertools::Itertools;
 
+use self::version::ParsedVersion;
 pub use self::version::Version;
-use self::version::{Operator, ParsedVersion};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::cmp_not_equal;
 use crate::orderedset::OrderedSet;
@@ -92,13 +91,14 @@ pub(crate) struct ParsedAtom<'a> {
 }
 
 impl ParsedAtom<'_> {
-    pub(crate) fn into_owned(self) -> crate::Result<Atom> {
+    pub(crate) fn into_owned(self, s: &str) -> crate::Result<Atom> {
         let version = match (self.version, self.version_str) {
-            (Some(v), Some(s)) => Some(v.into_owned(s)?),
+            (Some(v), Some(vs)) => Some(v.into_owned(vs)?),
             _ => None,
         };
 
         Ok(Atom {
+            full: s.to_string(),
             category: self.category.to_string(),
             package: self.package.to_string(),
             blocker: self.blocker,
@@ -115,8 +115,10 @@ impl ParsedAtom<'_> {
 }
 
 /// Package atom
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct Atom {
+    // TODO: replace string-based fields with ranges to avoid copying data
+    full: String,
     category: String,
     package: String,
     blocker: Option<Blocker>,
@@ -128,6 +130,28 @@ pub struct Atom {
     repo: Option<String>,
 }
 
+impl PartialEq for Atom {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for Atom {}
+
+impl Hash for Atom {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.category.hash(state);
+        self.package.hash(state);
+        self.blocker.hash(state);
+        self.version.hash(state);
+        self.slot.hash(state);
+        self.subslot.hash(state);
+        self.slot_op.hash(state);
+        self.use_deps.hash(state);
+        self.repo.hash(state);
+    }
+}
+
 #[cached(
     type = "SizedCache<String, crate::Result<Atom>>",
     create = "{ SizedCache::with_size(1000) }",
@@ -137,7 +161,7 @@ pub struct Atom {
 pub fn cpv(s: &str) -> crate::Result<Atom> {
     let mut atom = parse::cpv(s)?;
     atom.version_str = Some(s);
-    atom.into_owned()
+    atom.into_owned(s)
 }
 
 impl Atom {
@@ -156,6 +180,11 @@ impl Atom {
     /// Create a new Atom from a given string.
     pub fn new<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<Self> {
         parse::dep(s, eapi.into_eapi()?)
+    }
+
+    /// Return an atom's string value.
+    pub fn as_str(&self) -> &str {
+        &self.full
     }
 
     /// Return an atom's category.
@@ -224,47 +253,7 @@ impl Atom {
 
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut s = String::new();
-
-        // append blocker
-        if let Some(blocker) = self.blocker {
-            write!(s, "{}", blocker)?;
-        }
-
-        // append version operator with cpv
-        let cpv = self.cpv();
-        match self.version.as_ref().and_then(|v| v.op()) {
-            Some(Operator::Less) => write!(s, "<{cpv}")?,
-            Some(Operator::LessOrEqual) => write!(s, "<={cpv}")?,
-            Some(Operator::Equal) => write!(s, "={cpv}")?,
-            Some(Operator::EqualGlob) => write!(s, "={cpv}*")?,
-            Some(Operator::Approximate) => write!(s, "~{cpv}")?,
-            Some(Operator::GreaterOrEqual) => write!(s, ">={cpv}")?,
-            Some(Operator::Greater) => write!(s, ">{cpv}")?,
-            None => s.push_str(&cpv),
-        }
-
-        // append slot data
-        match (self.slot(), self.subslot(), self.slot_op()) {
-            (Some(slot), Some(subslot), Some(op)) => write!(s, ":{slot}/{subslot}{op}")?,
-            (Some(slot), Some(subslot), None) => write!(s, ":{slot}/{subslot}")?,
-            (Some(slot), None, Some(op)) => write!(s, ":{slot}{op}")?,
-            (Some(x), None, None) => write!(s, ":{x}")?,
-            (None, None, Some(x)) => write!(s, ":{x}")?,
-            _ => (),
-        }
-
-        // append use deps
-        if let Some(x) = &self.use_deps {
-            write!(s, "[{}]", x.iter().join(","))?;
-        }
-
-        // append repo
-        if let Some(repo) = &self.repo {
-            write!(s, "::{repo}")?;
-        }
-
-        write!(f, "{s}")
+        write!(f, "{}", self.full)
     }
 }
 

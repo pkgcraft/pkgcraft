@@ -304,7 +304,7 @@ pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
 )]
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
     let atom = dep_str(s, eapi)?;
-    atom.into_owned()
+    atom.into_owned(s)
 }
 
 #[cfg(test)]
