@@ -58,6 +58,7 @@ impl<'de> Deserialize<'de> for OrderedSet<String> {
 pub(crate) struct AtomData {
     pub(crate) valid: Vec<ValidAtom>,
     pub(crate) invalid: Vec<(String, String)>,
+    compares: Vec<String>,
     pub(crate) sorting: Vec<(Vec<String>, Vec<String>)>,
 }
 
@@ -67,6 +68,12 @@ impl AtomData {
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
+    }
+
+    pub(crate) fn compares(&self) -> ComparesIter {
+        ComparesIter {
+            iter: self.compares.iter(),
+        }
     }
 }
 

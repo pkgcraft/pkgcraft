@@ -105,9 +105,13 @@ impl ParsedAtom<'_> {
             slot: self.slot.map(|s| s.to_string()),
             subslot: self.subslot.map(|s| s.to_string()),
             slot_op: self.slot_op,
-            use_deps: self
-                .use_deps
-                .map(|u| u.iter().map(|s| s.to_string()).collect()),
+            use_deps: self.use_deps.map(|u| {
+                // sort use deps by the first letter or number
+                let mut set = OrderedSet::from_iter(u.iter().map(|s| s.to_string()));
+                let f = |c: &char| c >= &'0';
+                set.sort_by(|u1, u2| u1.chars().find(f).cmp(&u2.chars().find(f)));
+                set
+            }),
             repo: self.repo.map(|s| s.to_string()),
         })
     }
@@ -298,9 +302,10 @@ impl FromStr for Atom {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     use crate::test::{AtomData, VersionData};
+    use crate::utils::hash;
 
     use super::*;
 
@@ -395,6 +400,37 @@ mod tests {
         ] {
             atom = Atom::from_str(&s).unwrap();
             assert_eq!(atom.cpv(), cpv);
+        }
+    }
+
+    #[test]
+    fn test_cmp() {
+        let op_map: HashMap<&str, Ordering> =
+            [("<", Ordering::Less), ("==", Ordering::Equal), (">", Ordering::Greater)]
+                .into_iter()
+                .collect();
+
+        let data = AtomData::load().unwrap();
+        for (expr, (v1, op, v2)) in data.compares() {
+            let v1 = Atom::from_str(v1).unwrap();
+            let v2 = Atom::from_str(v2).unwrap();
+            match op {
+                "!=" => {
+                    assert_ne!(v1, v2, "failed comparing {expr}");
+                    assert_ne!(v2, v1, "failed comparing {expr}");
+                }
+                _ => {
+                    let op = op_map[op];
+                    assert_eq!(v1.cmp(&v2), op, "failed comparing {expr}");
+                    assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {expr}");
+
+                    // verify the following property holds since both Hash and Eq are implemented:
+                    // k1 == k2 -> hash(k1) == hash(k2)
+                    if op == Ordering::Equal {
+                        assert_eq!(hash(v1), hash(v2), "failed hash {expr}");
+                    }
+                }
+            }
         }
     }
 
