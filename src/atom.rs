@@ -108,7 +108,6 @@ impl ParsedAtom<'_> {
             slot_op: self.slot_op,
             use_deps: self
                 .use_deps
-                .as_ref()
                 .map(|u| u.iter().map(|s| s.to_string()).collect()),
             repo: self.repo.map(|s| s.to_string()),
         })
