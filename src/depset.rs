@@ -1,15 +1,16 @@
 use std::collections::VecDeque;
-use std::{fmt, slice};
+use std::fmt;
 
 use itertools::Itertools;
 
 use crate::atom::{Atom, Restrict as AtomRestrict};
 use crate::eapi::{Eapi, Feature};
 use crate::macros::extend_left;
+use crate::orderedset::{Ordered, OrderedSet};
 use crate::restrict::{self, Restriction, Str};
 
 /// Uri object.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Uri {
     uri: String,
     rename: Option<String>,
@@ -42,17 +43,17 @@ impl AsRef<str> for Uri {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DepSet<T> {
-    deps: Vec<DepRestrict<T>>,
+pub struct DepSet<T: Ordered> {
+    deps: OrderedSet<DepRestrict<T>>,
 }
 
-impl<T: fmt::Display> fmt::Display for DepSet<T> {
+impl<T: fmt::Display + Ordered> fmt::Display for DepSet<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.deps.iter().map(|x| x.to_string()).join(" "))
     }
 }
 
-impl<T> DepSet<T> {
+impl<T: Ordered> DepSet<T> {
     pub fn flatten(&self) -> DepSetFlatten<T> {
         DepSetFlatten {
             deps: self.deps.iter().collect(),
@@ -64,7 +65,7 @@ impl<T> DepSet<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a DepSet<T> {
+impl<'a, T: Ordered> IntoIterator for &'a DepSet<T> {
     type Item = &'a DepRestrict<T>;
     type IntoIter = DepSetIter<'a, T>;
 
@@ -76,11 +77,11 @@ impl<'a, T> IntoIterator for &'a DepSet<T> {
 }
 
 #[derive(Debug)]
-pub struct DepSetIter<'a, T> {
-    iter: slice::Iter<'a, DepRestrict<T>>,
+pub struct DepSetIter<'a, T: Ordered> {
+    iter: indexmap::set::Iter<'a, DepRestrict<T>>,
 }
 
-impl<'a, T> Iterator for DepSetIter<'a, T> {
+impl<'a, T: Ordered> Iterator for DepSetIter<'a, T> {
     type Item = &'a DepRestrict<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -88,19 +89,19 @@ impl<'a, T> Iterator for DepSetIter<'a, T> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DepRestrict<T> {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DepRestrict<T: Ordered> {
     Matches(T, bool),
     // logic conditionals
-    AllOf(Vec<Box<DepRestrict<T>>>),
-    AnyOf(Vec<Box<DepRestrict<T>>>),
-    ExactlyOneOf(Vec<Box<DepRestrict<T>>>), // REQUIRED_USE only
-    AtMostOneOf(Vec<Box<DepRestrict<T>>>),  // REQUIRED_USE only
-    UseEnabled(String, Vec<Box<DepRestrict<T>>>),
-    UseDisabled(String, Vec<Box<DepRestrict<T>>>),
+    AllOf(OrderedSet<Box<DepRestrict<T>>>),
+    AnyOf(OrderedSet<Box<DepRestrict<T>>>),
+    ExactlyOneOf(OrderedSet<Box<DepRestrict<T>>>), // REQUIRED_USE only
+    AtMostOneOf(OrderedSet<Box<DepRestrict<T>>>),  // REQUIRED_USE only
+    UseEnabled(String, OrderedSet<Box<DepRestrict<T>>>),
+    UseDisabled(String, OrderedSet<Box<DepRestrict<T>>>),
 }
 
-impl<T> DepRestrict<T> {
+impl<T: Ordered> DepRestrict<T> {
     pub fn flatten(&self) -> DepSetFlatten<T> {
         DepSetFlatten {
             deps: VecDeque::from([self]),
@@ -108,9 +109,9 @@ impl<T> DepRestrict<T> {
     }
 }
 
-impl<T: fmt::Display> fmt::Display for DepRestrict<T> {
+impl<T: fmt::Display + Ordered> fmt::Display for DepRestrict<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let p = |args: &[Box<DepRestrict<T>>]| -> String {
+        let p = |args: &OrderedSet<Box<DepRestrict<T>>>| -> String {
             args.iter().map(|x| x.to_string()).join(" ")
         };
 
@@ -157,11 +158,11 @@ impl Restriction<&DepSet<Uri>> for Restrict<Str> {
 }
 
 #[derive(Debug)]
-pub struct DepSetFlatten<'a, T> {
+pub struct DepSetFlatten<'a, T: Ordered> {
     deps: VecDeque<&'a DepRestrict<T>>,
 }
 
-impl<'a, T: fmt::Debug> Iterator for DepSetFlatten<'a, T> {
+impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetFlatten<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -243,17 +244,17 @@ peg::parser!(grammar depset() for str {
             Ok(DepRestrict::Matches(uri, true))
         }
 
-    rule parens<T>(expr: rule<T>) -> Vec<Box<T>>
+    rule parens<T: Ordered>(expr: rule<T>) -> OrderedSet<Box<T>>
         = "(" _ v:expr() ++ " " _ ")"
         { v.into_iter().map(Box::new).collect() }
 
-    rule all_of<T>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
+    rule all_of<T: Ordered>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
         = vals:parens(<expr()>) { DepRestrict::AllOf(vals) }
 
-    rule any_of<T>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
+    rule any_of<T: Ordered>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
         = "||" _ vals:parens(<expr()>) { DepRestrict::AnyOf(vals) }
 
-    rule use_cond<T>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
+    rule use_cond<T: Ordered>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
         = negate:"!"? u:useflag() "?" _ vals:parens(<expr()>) {
             let f = match negate {
                 None => DepRestrict::UseEnabled,
@@ -262,10 +263,10 @@ peg::parser!(grammar depset() for str {
             f(u.to_string(), vals)
         }
 
-    rule exactly_one_of<T>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
+    rule exactly_one_of<T: Ordered>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
         = "^^" _ vals:parens(<expr()>) { DepRestrict::ExactlyOneOf(vals) }
 
-    rule at_most_one_of<T>(eapi: &'static Eapi, expr: rule<DepRestrict<T>>) -> DepRestrict<T>
+    rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<DepRestrict<T>>) -> DepRestrict<T>
         = "??" _ vals:parens(<expr()>) {?
             if !eapi.has(Feature::RequiredUseOneOf) {
                 return Err("?? groups are supported in >= EAPI 5");
@@ -309,22 +310,22 @@ peg::parser!(grammar depset() for str {
             / pkg_val(eapi)
 
     pub(super) rule license() -> DepSet<String>
-        = deps:license_dep_restrict() ++ " " { DepSet { deps } }
+        = v:license_dep_restrict() ++ " " { DepSet { deps: v.into_iter().collect() } }
 
     pub(super) rule src_uri(eapi: &'static Eapi) -> DepSet<Uri>
-        = deps:src_uri_dep_restrict(eapi) ++ " " { DepSet { deps } }
+        = v:src_uri_dep_restrict(eapi) ++ " " { DepSet { deps: v.into_iter().collect() } }
 
     pub(super) rule properties() -> DepSet<String>
-        = deps:properties_dep_restrict() ++ " " { DepSet { deps } }
+        = v:properties_dep_restrict() ++ " " { DepSet { deps: v.into_iter().collect() } }
 
     pub(super) rule required_use(eapi: &'static Eapi) -> DepSet<String>
-        = deps:required_use_dep_restrict(eapi) ++ " " { DepSet { deps } }
+        = v:required_use_dep_restrict(eapi) ++ " " { DepSet { deps: v.into_iter().collect() } }
 
     pub(super) rule restrict() -> DepSet<String>
-        = deps:restrict_dep_restrict() ++ " " { DepSet { deps } }
+        = v:restrict_dep_restrict() ++ " " { DepSet { deps: v.into_iter().collect() } }
 
     pub(super) rule pkgdep(eapi: &'static Eapi) -> DepSet<Atom>
-        = deps:pkg_dep_restrict(eapi) ++ " " { DepSet { deps } }
+        = v:pkg_dep_restrict(eapi) ++ " " { DepSet { deps: v.into_iter().collect() } }
 });
 
 // provide public parsing functionality while converting error types
@@ -420,6 +421,7 @@ mod tests {
     fn allof<I, T>(val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
+        T: Ordered,
     {
         AllOf(val.into_iter().map(Box::new).collect())
     }
@@ -427,6 +429,7 @@ mod tests {
     fn anyof<I, T>(val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
+        T: Ordered,
     {
         AnyOf(val.into_iter().map(Box::new).collect())
     }
@@ -434,6 +437,7 @@ mod tests {
     fn exactly_one_of<I, T>(val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
+        T: Ordered,
     {
         ExactlyOneOf(val.into_iter().map(Box::new).collect())
     }
@@ -441,6 +445,7 @@ mod tests {
     fn at_most_one_of<I, T>(val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
+        T: Ordered,
     {
         AtMostOneOf(val.into_iter().map(Box::new).collect())
     }
@@ -448,6 +453,7 @@ mod tests {
     fn use_enabled<I, T>(s: &str, val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
+        T: Ordered,
     {
         UseEnabled(s.to_string(), val.into_iter().map(Box::new).collect())
     }
@@ -455,8 +461,17 @@ mod tests {
     fn use_disabled<I, T>(s: &str, val: I) -> DepRestrict<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
+        T: Ordered,
     {
         UseDisabled(s.to_string(), val.into_iter().map(Box::new).collect())
+    }
+
+    fn os<I, T>(val: I) -> OrderedSet<DepRestrict<T>>
+    where
+        I: IntoIterator<Item = DepRestrict<T>>,
+        T: Ordered,
+    {
+        OrderedSet::from_iter(val.into_iter())
     }
 
     #[test]
@@ -472,23 +487,23 @@ mod tests {
         // valid
         for (s, expected, expected_flatten) in [
             // simple values
-            ("v", vec![vs("v")], vec!["v"]),
-            ("v1 v2", vec![vs("v1"), vs("v2")], vec!["v1", "v2"]),
+            ("v", os([vs("v")]), vec!["v"]),
+            ("v1 v2", os([vs("v1"), vs("v2")]), vec!["v1", "v2"]),
             // groupings
-            ("( v )", vec![allof(vec![vs("v")])], vec!["v"]),
-            ("( v1 v2 )", vec![allof(vec![vs("v1"), vs("v2")])], vec!["v1", "v2"]),
-            ("( v1 ( v2 ) )", vec![allof(vec![vs("v1"), allof(vec![vs("v2")])])], vec!["v1", "v2"]),
-            ("( ( v ) )", vec![allof(vec![allof(vec![vs("v")])])], vec!["v"]),
-            ("|| ( v )", vec![anyof(vec![vs("v")])], vec!["v"]),
-            ("|| ( v1 v2 )", vec![anyof(vec![vs("v1"), vs("v2")])], vec!["v1", "v2"]),
+            ("( v )", os([allof(vec![vs("v")])]), vec!["v"]),
+            ("( v1 v2 )", os([allof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+            ("( v1 ( v2 ) )", os([allof(vec![vs("v1"), allof(vec![vs("v2")])])]), vec!["v1", "v2"]),
+            ("( ( v ) )", os([allof(vec![allof(vec![vs("v")])])]), vec!["v"]),
+            ("|| ( v )", os([anyof(vec![vs("v")])]), vec!["v"]),
+            ("|| ( v1 v2 )", os([anyof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
             // conditionals
-            ("u? ( v )", vec![use_enabled("u", vec![vs("v")])], vec!["v"]),
-            ("u? ( v1 v2 )", vec![use_enabled("u", [vs("v1"), vs("v2")])], vec!["v1", "v2"]),
+            ("u? ( v )", os([use_enabled("u", vec![vs("v")])]), vec!["v"]),
+            ("u? ( v1 v2 )", os([use_enabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
             // combinations
-            ("v1 u? ( v2 )", vec![vs("v1"), use_enabled("u", [vs("v2")])], vec!["v1", "v2"]),
+            ("v1 u? ( v2 )", os([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
             (
                 "!u? ( || ( v1 v2 ) )",
-                vec![use_disabled("u", [anyof([vs("v1"), vs("v2")])])],
+                os([use_disabled("u", [anyof([vs("v1"), vs("v2")])])]),
                 vec!["v1", "v2"],
             ),
         ] {
@@ -509,20 +524,20 @@ mod tests {
 
         // valid
         for (s, expected, expected_flatten) in [
-            ("uri", vec![vu("uri", None)], vec!["uri"]),
-            ("http://uri", vec![vu("http://uri", None)], vec!["http://uri"]),
-            ("uri1 uri2", vec![vu("uri1", None), vu("uri2", None)], vec!["uri1", "uri2"]),
+            ("uri", os([vu("uri", None)]), vec!["uri"]),
+            ("http://uri", os([vu("http://uri", None)]), vec!["http://uri"]),
+            ("uri1 uri2", os([vu("uri1", None), vu("uri2", None)]), vec!["uri1", "uri2"]),
             (
                 "( http://uri1 http://uri2 )",
-                vec![allof([vu("http://uri1", None), vu("http://uri2", None)])],
+                os([allof([vu("http://uri1", None), vu("http://uri2", None)])]),
                 vec!["http://uri1", "http://uri2"],
             ),
             (
                 "u1? ( http://uri1 !u2? ( http://uri2 ) )",
-                vec![use_enabled(
+                os([use_enabled(
                     "u1",
                     [vu("http://uri1", None), use_disabled("u2", [vu("http://uri2", None)])],
-                )],
+                )]),
                 vec!["http://uri1", "http://uri2"],
             ),
         ] {
@@ -539,12 +554,12 @@ mod tests {
         for (s, expected, expected_flatten) in [
             (
                 "http://uri -> file",
-                vec![vu("http://uri", Some("file"))],
+                os([vu("http://uri", Some("file"))]),
                 vec!["http://uri -> file"],
             ),
             (
                 "u? ( http://uri -> file )",
-                vec![use_enabled("u", [vu("http://uri", Some("file"))])],
+                os([use_enabled("u", [vu("http://uri", Some("file"))])]),
                 vec!["http://uri -> file"],
             ),
         ] {
@@ -574,19 +589,19 @@ mod tests {
 
         // valid
         for (s, expected, expected_flatten) in [
-            ("u", vec![vs("u")], vec!["u"]),
-            ("!u", vec![vd("u")], vec!["u"]),
-            ("u1 !u2", vec![vs("u1"), vd("u2")], vec!["u1", "u2"]),
-            ("( u )", vec![allof([vs("u")])], vec!["u"]),
-            ("( u1 u2 )", vec![allof([vs("u1"), vs("u2")])], vec!["u1", "u2"]),
-            ("|| ( u )", vec![anyof([vs("u")])], vec!["u"]),
-            ("|| ( !u1 u2 )", vec![anyof([vd("u1"), vs("u2")])], vec!["u1", "u2"]),
-            ("^^ ( u1 !u2 )", vec![exactly_one_of([vs("u1"), vd("u2")])], vec!["u1", "u2"]),
-            ("u1? ( u2 )", vec![use_enabled("u1", [vs("u2")])], vec!["u2"]),
-            ("u1? ( u2 !u3 )", vec![use_enabled("u1", [vs("u2"), vd("u3")])], vec!["u2", "u3"]),
+            ("u", os([vs("u")]), vec!["u"]),
+            ("!u", os([vd("u")]), vec!["u"]),
+            ("u1 !u2", os([vs("u1"), vd("u2")]), vec!["u1", "u2"]),
+            ("( u )", os([allof([vs("u")])]), vec!["u"]),
+            ("( u1 u2 )", os([allof([vs("u1"), vs("u2")])]), vec!["u1", "u2"]),
+            ("|| ( u )", os([anyof([vs("u")])]), vec!["u"]),
+            ("|| ( !u1 u2 )", os([anyof([vd("u1"), vs("u2")])]), vec!["u1", "u2"]),
+            ("^^ ( u1 !u2 )", os([exactly_one_of([vs("u1"), vd("u2")])]), vec!["u1", "u2"]),
+            ("u1? ( u2 )", os([use_enabled("u1", [vs("u2")])]), vec!["u2"]),
+            ("u1? ( u2 !u3 )", os([use_enabled("u1", [vs("u2"), vd("u3")])]), vec!["u2", "u3"]),
             (
                 "!u1? ( || ( u2 u3 ) )",
-                vec![use_disabled("u1", [anyof([vs("u2"), vs("u3")])])],
+                os([use_disabled("u1", [anyof([vs("u2"), vs("u3")])])]),
                 vec!["u2", "u3"],
             ),
         ] {
@@ -599,7 +614,7 @@ mod tests {
 
         // ?? operator
         for (s, expected, expected_flatten) in
-            [("?? ( u1 u2 )", vec![at_most_one_of([vs("u1"), vs("u2")])], vec!["u1", "u2"])]
+            [("?? ( u1 u2 )", os([at_most_one_of([vs("u1"), vs("u2")])]), vec!["u1", "u2"])]
         {
             for eapi in EAPIS.iter() {
                 if eapi.has(Feature::RequiredUseOneOf) {
@@ -627,18 +642,18 @@ mod tests {
 
         // valid
         for (s, expected, expected_flatten) in [
-            ("a/b", vec![va("a/b")], vec!["a/b"]),
-            ("a/b c/d", vec![va("a/b"), va("c/d")], vec!["a/b", "c/d"]),
-            ("( a/b c/d )", vec![allof([va("a/b"), va("c/d")])], vec!["a/b", "c/d"]),
-            ("u? ( a/b c/d )", vec![use_enabled("u", [va("a/b"), va("c/d")])], vec!["a/b", "c/d"]),
+            ("a/b", os([va("a/b")]), vec!["a/b"]),
+            ("a/b c/d", os([va("a/b"), va("c/d")]), vec!["a/b", "c/d"]),
+            ("( a/b c/d )", os([allof([va("a/b"), va("c/d")])]), vec!["a/b", "c/d"]),
+            ("u? ( a/b c/d )", os([use_enabled("u", [va("a/b"), va("c/d")])]), vec!["a/b", "c/d"]),
             (
                 "!u? ( a/b c/d )",
-                vec![use_disabled("u", [va("a/b"), va("c/d")])],
+                os([use_disabled("u", [va("a/b"), va("c/d")])]),
                 vec!["a/b", "c/d"],
             ),
             (
                 "u1? ( a/b !u2? ( c/d ) )",
-                vec![use_enabled("u1", [va("a/b"), use_disabled("u2", [va("c/d")])])],
+                os([use_enabled("u1", [va("a/b"), use_disabled("u2", [va("c/d")])])]),
                 vec!["a/b", "c/d"],
             ),
         ] {
@@ -667,23 +682,23 @@ mod tests {
             // valid
             for (s, expected, expected_flatten) in [
                 // simple values
-                ("v", vec![vs("v")], vec!["v"]),
-                ("v1 v2", vec![vs("v1"), vs("v2")], vec!["v1", "v2"]),
+                ("v", os([vs("v")]), vec!["v"]),
+                ("v1 v2", os([vs("v1"), vs("v2")]), vec!["v1", "v2"]),
                 // groupings
-                ("( v )", vec![allof(vec![vs("v")])], vec!["v"]),
-                ("( v1 v2 )", vec![allof(vec![vs("v1"), vs("v2")])], vec!["v1", "v2"]),
+                ("( v )", os([allof(vec![vs("v")])]), vec!["v"]),
+                ("( v1 v2 )", os([allof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
                 (
                     "( v1 ( v2 ) )",
-                    vec![allof(vec![vs("v1"), allof(vec![vs("v2")])])],
+                    os([allof(vec![vs("v1"), allof(vec![vs("v2")])])]),
                     vec!["v1", "v2"],
                 ),
-                ("( ( v ) )", vec![allof(vec![allof(vec![vs("v")])])], vec!["v"]),
+                ("( ( v ) )", os([allof(vec![allof(vec![vs("v")])])]), vec!["v"]),
                 // conditionals
-                ("u? ( v )", vec![use_enabled("u", vec![vs("v")])], vec!["v"]),
-                ("u? ( v1 v2 )", vec![use_enabled("u", [vs("v1"), vs("v2")])], vec!["v1", "v2"]),
-                ("!u? ( v1 v2 )", vec![use_disabled("u", [vs("v1"), vs("v2")])], vec!["v1", "v2"]),
+                ("u? ( v )", os([use_enabled("u", vec![vs("v")])]), vec!["v"]),
+                ("u? ( v1 v2 )", os([use_enabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+                ("!u? ( v1 v2 )", os([use_disabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
                 // combinations
-                ("v1 u? ( v2 )", vec![vs("v1"), use_enabled("u", [vs("v2")])], vec!["v1", "v2"]),
+                ("v1 u? ( v2 )", os([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
             ] {
                 let depset = parse_func(&s)?.unwrap();
                 let flatten: Vec<_> = depset.flatten().collect();
