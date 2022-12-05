@@ -457,7 +457,7 @@ impl Repo {
     pub(crate) fn pkg_xml(&self, cpv: &atom::Atom) -> Arc<XmlMetadata> {
         self.xml_cache()
             .tx
-            .send(Msg::Key(cpv.key()))
+            .send(Msg::Key(cpv.cpn()))
             .expect("failed requesting pkg xml data");
         self.xml_cache()
             .rx
@@ -468,7 +468,7 @@ impl Repo {
     pub(crate) fn pkg_manifest(&self, cpv: &atom::Atom) -> Arc<Manifest> {
         self.manifest_cache()
             .tx
-            .send(Msg::Key(cpv.key()))
+            .send(Msg::Key(cpv.cpn()))
             .expect("failed requesting pkg manifest data");
         self.manifest_cache()
             .rx
@@ -845,7 +845,7 @@ impl TempRepo {
         let cpv = atom::cpv(cpv)?;
         let path = self.path.join(format!(
             "{}/{}-{}.ebuild",
-            cpv.key(),
+            cpv.cpn(),
             cpv.package(),
             cpv.version().unwrap()
         ));
@@ -887,7 +887,7 @@ impl TempRepo {
         let cpv = atom::cpv(cpv)?;
         let path = self.path.join(format!(
             "{}/{}-{}.ebuild",
-            cpv.key(),
+            cpv.cpn(),
             cpv.package(),
             cpv.version().unwrap()
         ));

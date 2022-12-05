@@ -218,7 +218,7 @@ impl Atom {
     }
 
     /// Return an atom's CAT/PN value, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg`.
-    pub fn key(&self) -> String {
+    pub fn cpn(&self) -> String {
         format!("{}/{}", self.category, self.package)
     }
 
@@ -317,7 +317,7 @@ mod tests {
     }
 
     #[test]
-    fn test_atom_key() {
+    fn test_atom_cpn() {
         let mut atom: Atom;
         for (s, key) in [
             ("cat/pkg", "cat/pkg"),
@@ -330,7 +330,7 @@ mod tests {
             (">cat/pkg-4-r1:0=", "cat/pkg"),
         ] {
             atom = Atom::from_str(&s).unwrap();
-            assert_eq!(atom.key(), key);
+            assert_eq!(atom.cpn(), key);
         }
     }
 
