@@ -413,11 +413,8 @@ mod tests {
                 .map(|s| Atom::from_str(s).unwrap())
                 .collect();
             atoms.sort();
-            let expected: Vec<_> = expected
-                .iter()
-                .map(|s| Atom::from_str(s).unwrap())
-                .collect();
-            assert_eq!(atoms, expected);
+            let sorted: Vec<_> = atoms.iter().map(|x| format!("{x}")).collect();
+            assert_eq!(&sorted, expected);
         }
     }
 
