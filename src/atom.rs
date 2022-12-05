@@ -330,6 +330,8 @@ impl FromStr for Atom {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::test::{AtomData, VersionData};
 
     use super::*;
@@ -449,11 +451,11 @@ mod tests {
     fn test_hashing() {
         let data = VersionData::load().unwrap();
         for (versions, size) in data.hashing.iter() {
-            let atoms: IndexSet<_> = versions
+            let set: HashSet<_> = versions
                 .iter()
                 .map(|s| Atom::from_str(&format!("=cat/pkg-{s}")).unwrap())
                 .collect();
-            assert_eq!(atoms.len(), *size);
+            assert_eq!(set.len(), *size);
         }
     }
 }
