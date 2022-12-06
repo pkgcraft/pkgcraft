@@ -30,13 +30,13 @@ impl PkgCache {
     }
 
     fn categories(&self) -> Vec<String> {
-        self.pkgmap.clone().into_keys().collect()
+        self.pkgmap.keys().map(|k| k.to_string()).collect()
     }
 
     fn packages<S: AsRef<str>>(&self, cat: S) -> Vec<String> {
         self.pkgmap
             .get(cat.as_ref())
-            .map(|pkgs| pkgs.clone().into_keys().collect())
+            .map(|pkgs| pkgs.keys().map(|k| k.to_string()).collect())
             .unwrap_or_default()
     }
 
@@ -44,7 +44,7 @@ impl PkgCache {
         self.pkgmap
             .get(cat.as_ref())
             .and_then(|pkgs| pkgs.get(pkg.as_ref()))
-            .map(|vers| vers.clone().into_iter().collect())
+            .map(|vers| vers.iter().map(|s| s.to_string()).collect())
             .unwrap_or_default()
     }
 
