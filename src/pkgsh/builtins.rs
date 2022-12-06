@@ -178,11 +178,12 @@ pub(crate) const PKG: &str = "pkg_.+";
 impl PkgBuiltin {
     fn new(builtin: Builtin, scopes: &[(&str, &[&str])]) -> Self {
         let mut scope = IndexMap::new();
-        for (eapis, s) in scopes.iter() {
+        for (range, s) in scopes.iter() {
             let scope_re = Regex::new(&format!(r"^{}$", s.join("|"))).unwrap();
-            for e in eapi::range(eapis).unwrap_or_else(|_| {
-                panic!("failed to parse EAPI range for {builtin} builtin: {eapis}")
-            }) {
+            let eapis = eapi::range(range).unwrap_or_else(|e| {
+                panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
+            });
+            for e in eapis {
                 if scope.insert(e, scope_re.clone()).is_some() {
                     panic!("clashing EAPI scopes: {e}");
                 }
