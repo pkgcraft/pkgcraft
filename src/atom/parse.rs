@@ -29,13 +29,7 @@ peg::parser! {
 
         rule version_suffix() -> Suffix
             = "_" suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
-                let num = match ver {
-                    None => None,
-                    Some(s) => match s.parse() {
-                        Err(_) => return Err("version suffix integer overflow"),
-                        Ok(n) => Some(n),
-                    }
-                };
+                let num = ver.map(|s| s.parse().map_err(|_| "version suffix integer overflow"));
                 let suffix = match suffix {
                     "alpha" => Suffix::Alpha,
                     "beta" => Suffix::Beta,
@@ -44,7 +38,7 @@ peg::parser! {
                     "p" => Suffix::P,
                     _ => panic!("invalid suffix"),
                 };
-                Ok(suffix(num))
+                Ok(suffix(num.transpose()?))
             }
 
         // TODO: figure out how to return string slice instead of positions
