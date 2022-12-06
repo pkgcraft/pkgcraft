@@ -629,7 +629,7 @@ pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     eapis
 });
 
-/// Convert EAPI range into a Vector of EAPI objects.
+/// Convert EAPI range into an ordered set of EAPI objects.
 pub fn range(s: &str) -> crate::Result<IndexSet<&'static Eapi>> {
     // convert EAPI identifier to index, "L" being an alias for the latest official EAPI
     let eapi_idx = |s: &str| match s {
