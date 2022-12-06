@@ -581,10 +581,6 @@ impl PkgRepository for Repo {
         versions.iter().map(|v| v.to_string()).collect()
     }
 
-    fn len(&self) -> usize {
-        self.iter().count()
-    }
-
     fn iter(&self) -> Self::Iterator<'_> {
         self.into_iter()
     }

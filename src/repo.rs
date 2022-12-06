@@ -191,7 +191,15 @@ pub trait PkgRepository:
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
-    fn len(&self) -> usize;
+    fn len(&self) -> usize {
+        let mut count = 0;
+        for c in self.categories() {
+            for p in self.packages(&c) {
+                count += self.versions(&c, &p).len();
+            }
+        }
+        count
+    }
     fn iter(&self) -> Self::Iterator<'_>;
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
 
