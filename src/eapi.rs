@@ -631,9 +631,9 @@ pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
 
 /// Convert EAPI range into an ordered set of EAPI objects.
 pub fn range(s: &str) -> crate::Result<IndexSet<&'static Eapi>> {
-    // convert EAPI identifier to index, "L" being an alias for the latest official EAPI
+    // convert EAPI identifier to index, "U" being an alias for the first unofficial EAPI
     let eapi_idx = |s: &str| match s {
-        "L" => Ok(EAPIS.get_index_of(EAPI_LATEST.as_str()).unwrap()),
+        "U" => Ok(EAPIS.get_index_of(EAPIS_UNOFFICIAL[0].as_str()).unwrap()),
         _ => EAPIS
             .get_index_of(s)
             .ok_or_else(|| Error::InvalidValue(format!("invalid or unknown EAPI: {s}"))),
