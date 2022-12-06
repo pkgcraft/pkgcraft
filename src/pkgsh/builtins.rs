@@ -137,7 +137,8 @@ pub(crate) struct Scopes(Regex);
 
 impl Scopes {
     pub(crate) fn new(scopes: &[&str]) -> Self {
-        Self(Regex::new(&format!(r"^{}$", scopes.join("|"))).unwrap())
+        let s = scopes.join("|");
+        Self(Regex::new(&format!(r"^{s}$")).unwrap_or_else(|e| panic!("{e}")))
     }
 
     pub(crate) fn matches(&self, scope: Scope) -> bool {
