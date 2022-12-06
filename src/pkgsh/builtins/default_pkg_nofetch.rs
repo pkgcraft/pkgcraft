@@ -18,7 +18,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("2-", &["pkg_nofetch"])]
+    &[("2..", &["pkg_nofetch"])]
 );
 
 #[cfg(test)]

@@ -64,7 +64,7 @@ pub(crate) struct AtomData {
 
 impl AtomData {
     pub(crate) fn load() -> crate::Result<Self> {
-        let path = TOML_DATA_DIR.join("atoms.toml");
+        let path = TOML_DATA_DIR.join("atom.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
@@ -86,7 +86,7 @@ pub(crate) struct VersionData {
 
 impl VersionData {
     pub(crate) fn load() -> crate::Result<Self> {
-        let path = TOML_DATA_DIR.join("versions.toml");
+        let path = TOML_DATA_DIR.join("version.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))

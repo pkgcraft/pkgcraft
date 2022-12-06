@@ -24,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ebegin \"message\"";
-make_builtin!("ebegin", ebegin_builtin, run, LONG_DOC, USAGE, &[("0-", &[ALL])]);
+make_builtin!("ebegin", ebegin_builtin, run, LONG_DOC, USAGE, &[("..", &[ALL])]);
 
 #[cfg(test)]
 mod tests {

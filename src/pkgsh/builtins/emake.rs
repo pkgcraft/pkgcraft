@@ -33,7 +33,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "emake -C builddir";
-make_builtin!("emake", emake_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
+make_builtin!("emake", emake_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {

@@ -23,7 +23,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "docompress /path/to/compress";
-make_builtin!("docompress", docompress_builtin, run, LONG_DOC, USAGE, &[("4-", &["src_install"])]);
+make_builtin!("docompress", docompress_builtin, run, LONG_DOC, USAGE, &[("4..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

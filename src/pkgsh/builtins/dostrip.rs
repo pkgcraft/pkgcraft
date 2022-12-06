@@ -23,7 +23,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dostrip /path/to/strip";
-make_builtin!("dostrip", dostrip_builtin, run, LONG_DOC, USAGE, &[("7-", &["src_install"])]);
+make_builtin!("dostrip", dostrip_builtin, run, LONG_DOC, USAGE, &[("7..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

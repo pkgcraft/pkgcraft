@@ -11,7 +11,7 @@ pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "addpredict /proc";
-make_builtin!("addpredict", addpredict_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
+make_builtin!("addpredict", addpredict_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {

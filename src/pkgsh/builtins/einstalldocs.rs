@@ -100,7 +100,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("6-", &["src_install"])]
+    &[("6..", &["src_install"])]
 );
 
 #[cfg(test)]

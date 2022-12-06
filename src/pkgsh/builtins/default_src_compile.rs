@@ -18,7 +18,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("2-", &["src_compile"])]
+    &[("2..", &["src_compile"])]
 );
 
 #[cfg(test)]

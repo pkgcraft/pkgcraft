@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "insopts -m0644";
-make_builtin!("insopts", insopts_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
+make_builtin!("insopts", insopts_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

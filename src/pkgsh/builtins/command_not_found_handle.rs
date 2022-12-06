@@ -27,5 +27,5 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    &[("0-", &[ALL])]
+    &[("..", &[ALL])]
 );

@@ -306,8 +306,8 @@ mod tests {
         let atoms = AtomData::load().unwrap();
 
         // invalid deps
-        for (s, eapis) in atoms.invalid {
-            let failing_eapis = eapi::range(eapis).expect("failed to parse EAPI range");
+        for (s, range) in atoms.invalid {
+            let failing_eapis = eapi::range(&range).expect("failed to parse EAPI range");
             // verify parse failures
             for eapi in &failing_eapis {
                 let result = dep(&s, eapi);

@@ -12,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newinitd path/to/init/file new_filename";
-make_builtin!("newinitd", newinitd_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
+make_builtin!("newinitd", newinitd_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

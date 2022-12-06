@@ -12,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newlib.so path/to/lib.so new_filename";
-make_builtin!("newlib.so", newlib_so_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
+make_builtin!("newlib.so", newlib_so_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

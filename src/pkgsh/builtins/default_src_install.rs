@@ -18,7 +18,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("4-", &["src_install"])]
+    &[("4..", &["src_install"])]
 );
 
 #[cfg(test)]

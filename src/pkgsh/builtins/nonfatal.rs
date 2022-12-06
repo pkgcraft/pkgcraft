@@ -30,7 +30,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "nonfatal cmd arg1 arg2";
-make_builtin!("nonfatal", nonfatal_builtin, run, LONG_DOC, USAGE, &[("4-", &[PHASE])]);
+make_builtin!("nonfatal", nonfatal_builtin, run, LONG_DOC, USAGE, &[("4..", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {

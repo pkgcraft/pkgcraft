@@ -37,7 +37,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dobin path/to/executable";
-make_builtin!("dobin", dobin_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
+make_builtin!("dobin", dobin_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

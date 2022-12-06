@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dodir path/to/dir";
-make_builtin!("dodir", dodir_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
+make_builtin!("dodir", dodir_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

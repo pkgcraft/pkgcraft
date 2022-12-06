@@ -23,7 +23,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "get_libdir";
-make_builtin!("get_libdir", get_libdir_builtin, run, LONG_DOC, USAGE, &[("6-", &[ALL])]);
+make_builtin!("get_libdir", get_libdir_builtin, run, LONG_DOC, USAGE, &[("6..", &[ALL])]);
 
 #[cfg(test)]
 mod tests {

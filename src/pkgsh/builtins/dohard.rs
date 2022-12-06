@@ -24,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dohard path/to/source /path/to/target";
-make_builtin!("dohard", dohard_builtin, run, LONG_DOC, USAGE, &[("0-3", &["src_install"])]);
+make_builtin!("dohard", dohard_builtin, run, LONG_DOC, USAGE, &[("0..4", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

@@ -18,7 +18,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("2-", &["src_test"])]
+    &[("2..", &["src_test"])]
 );
 
 #[cfg(test)]

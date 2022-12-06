@@ -15,7 +15,7 @@ use crate::archive::Archive;
 use crate::atom::Atom;
 use crate::metadata::Key::{self, *};
 use crate::pkgsh::builtins::{
-    parse, BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
+    BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
 };
 use crate::pkgsh::phase::Phase::*;
 use crate::pkgsh::phase::*;
@@ -629,15 +629,40 @@ pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     eapis
 });
 
-/// Convert EAPI range into a Vector of EAPI objects, for example "0-" covers all EAPIs and "0~"
-/// covers all official EAPIs.
-pub fn range<S: AsRef<str>>(s: S) -> crate::Result<IndexSet<&'static Eapi>> {
-    let (s, max) = match s.as_ref() {
-        s if s.ends_with('~') => (s.replace('~', "-"), EAPIS_OFFICIAL.len() - 1),
-        s => (s.to_string(), EAPIS.len() - 1),
+/// Convert EAPI range into a Vector of EAPI objects.
+pub fn range(s: &str) -> crate::Result<IndexSet<&'static Eapi>> {
+    // convert EAPI identifier to index, "L" being an alias for the latest official EAPI
+    let eapi_idx = |s: &str| match s {
+        "L" => Ok(EAPIS.get_index_of(EAPI_LATEST.as_str()).unwrap()),
+        _ => EAPIS
+            .get_index_of(s)
+            .ok_or_else(|| Error::InvalidValue(format!("invalid or unknown EAPI: {s}"))),
     };
-    let (start, end) = parse::range(&s, max)?;
-    Ok((start..=end).map(|n| EAPIS[n]).collect())
+
+    // determine range operator
+    let mut inclusive = true;
+    let (start, end) = s
+        .split_once("..=")
+        .or_else(|| {
+            inclusive = false;
+            s.split_once("..")
+        })
+        .ok_or_else(|| Error::InvalidValue(format!("invalid EAPI range: {s}")))?;
+
+    // determine the range start and end points
+    let (start, end) = match (start, end) {
+        ("", "") => (0, EAPIS.len()),
+        ("", e) => (0, eapi_idx(e)?),
+        (s, "") => (eapi_idx(s)?, EAPIS.len()),
+        (s, e) => (eapi_idx(s)?, eapi_idx(e)?),
+    };
+
+    let eapis = match inclusive {
+        false => (start..end).map(|n| EAPIS[n]).collect(),
+        true => (start..=end).map(|n| EAPIS[n]).collect(),
+    };
+
+    Ok(eapis)
 }
 
 #[cfg(test)]

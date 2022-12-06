@@ -102,7 +102,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "unpack file.tar.gz";
-make_builtin!("unpack", unpack_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
+make_builtin!("unpack", unpack_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {

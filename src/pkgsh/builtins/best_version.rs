@@ -11,7 +11,7 @@ pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "best_version cat/pkg";
-make_builtin!("best_version", best_version_builtin, run, LONG_DOC, USAGE, &[("0-", &[PHASE])]);
+make_builtin!("best_version", best_version_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {

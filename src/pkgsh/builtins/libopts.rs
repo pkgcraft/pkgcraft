@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "libopts -m0644";
-make_builtin!("libopts", libopts_builtin, run, LONG_DOC, USAGE, &[("0-6", &["src_install"])]);
+make_builtin!("libopts", libopts_builtin, run, LONG_DOC, USAGE, &[("0..7", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

@@ -24,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eqawarn \"message\"";
-make_builtin!("eqawarn", eqawarn_builtin, run, LONG_DOC, USAGE, &[("7-", &[ALL])]);
+make_builtin!("eqawarn", eqawarn_builtin, run, LONG_DOC, USAGE, &[("7..", &[ALL])]);
 
 #[cfg(test)]
 mod tests {

@@ -40,7 +40,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("0-", &["src_install", "pkg_preinst", "pkg_postinst"])]
+    &[("..", &["src_install", "pkg_preinst", "pkg_postinst"])]
 );
 
 #[cfg(test)]

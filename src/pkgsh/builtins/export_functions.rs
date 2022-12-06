@@ -37,7 +37,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("0-", &[ECLASS])]
+    &[("..", &[ECLASS])]
 );
 
 #[cfg(test)]

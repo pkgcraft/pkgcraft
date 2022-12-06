@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "exeinto /install/path";
-make_builtin!("exeinto", exeinto_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
+make_builtin!("exeinto", exeinto_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

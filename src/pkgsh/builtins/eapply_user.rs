@@ -33,7 +33,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("6-", &["src_prepare"])]
+    &[("6..", &["src_prepare"])]
 );
 
 #[cfg(test)]

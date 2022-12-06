@@ -78,7 +78,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "inherit eclass1 eclass2";
-make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, &[("0-", &[GLOBAL, ECLASS])]);
+make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, &[("..", &[GLOBAL, ECLASS])]);
 
 #[cfg(test)]
 mod tests {

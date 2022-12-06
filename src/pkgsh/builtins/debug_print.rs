@@ -13,7 +13,7 @@ pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "debug-print msg";
-make_builtin!("debug-print", debug_print_builtin, run, LONG_DOC, USAGE, &[("0-", &[ALL])]);
+make_builtin!("debug-print", debug_print_builtin, run, LONG_DOC, USAGE, &[("..", &[ALL])]);
 
 #[cfg(test)]
 mod tests {

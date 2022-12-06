@@ -54,7 +54,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dodoc doc_file";
-make_builtin!("dodoc", dodoc_builtin, run, LONG_DOC, USAGE, &[("0-", &["src_install"])]);
+make_builtin!("dodoc", dodoc_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
 
 #[cfg(test)]
 mod tests {

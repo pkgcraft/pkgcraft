@@ -35,7 +35,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ver_cut 1-2 - 1.2.3";
-make_builtin!("ver_cut", ver_cut_builtin, run, LONG_DOC, USAGE, &[("7-", &[ALL])]);
+make_builtin!("ver_cut", ver_cut_builtin, run, LONG_DOC, USAGE, &[("7..", &[ALL])]);
 
 #[cfg(test)]
 mod tests {
