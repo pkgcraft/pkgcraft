@@ -77,8 +77,8 @@ impl FromStr for SlotOperator {
 /// Parsed package atom from borrowed input string
 #[derive(Debug, Default)]
 pub(crate) struct ParsedAtom<'a> {
-    pub(crate) category: (usize, usize),
-    pub(crate) package: (usize, usize),
+    pub(crate) category: &'a str,
+    pub(crate) package: &'a str,
     pub(crate) blocker: Option<Blocker>,
     pub(crate) version: Option<ParsedVersion<'a>>,
     pub(crate) version_str: Option<&'a str>,
@@ -98,8 +98,8 @@ impl ParsedAtom<'_> {
 
         Ok(Atom {
             full: s.to_string(),
-            category: self.category,
-            package: self.package,
+            category: self.category.to_string(),
+            package: self.package.to_string(),
             blocker: self.blocker,
             version,
             slot: self.slot.map(|s| s.to_string()),
@@ -121,8 +121,8 @@ impl ParsedAtom<'_> {
 #[derive(Debug, Clone)]
 pub struct Atom {
     full: String,
-    category: (usize, usize),
-    package: (usize, usize),
+    category: String,
+    package: String,
     blocker: Option<Blocker>,
     version: Option<Version>,
     slot: Option<String>,
@@ -196,14 +196,12 @@ impl Atom {
 
     /// Return an atom's category.
     pub fn category(&self) -> &str {
-        let (start, end) = self.category;
-        &self.full[start..end]
+        &self.category
     }
 
     /// Return an atom's package.
     pub fn package(&self) -> &str {
-        let (start, end) = self.package;
-        &self.full[start..end]
+        &self.package
     }
 
     /// Return an atom's blocker.
@@ -228,13 +226,13 @@ impl Atom {
 
     /// Return an atom's CAT/PN value, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg`.
     pub fn cpn(&self) -> String {
-        format!("{}/{}", self.category(), self.package())
+        format!("{}/{}", self.category, self.package)
     }
 
     /// Return an atom's CPV, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg-1-r2`.
     pub fn cpv(&self) -> String {
         match &self.version {
-            Some(ver) => format!("{}/{}-{ver}", self.category(), self.package()),
+            Some(ver) => format!("{}/{}-{ver}", self.category, self.package),
             None => self.cpn(),
         }
     }

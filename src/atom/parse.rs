@@ -10,22 +10,22 @@ use super::{Atom, Blocker, ParsedAtom, SlotOperator, Version};
 peg::parser! {
     grammar pkg() for str {
         // Categories must not begin with a hyphen, dot, or plus sign.
-        pub(super) rule category() -> (usize, usize)
-            = start:position!() s:$(quiet!{
+        pub(super) rule category() -> &'input str
+            = s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-            } / expected!("category name")) end:position!()
-            { (start, end) }
+            } / expected!("category name"))
+            { s }
 
         // Packages must not begin with a hyphen or plus sign and must not end in a
         // hyphen followed by anything matching a version.
-        pub(super) rule package() -> (usize, usize)
-            = start:position!() s:$(quiet!{
+        pub(super) rule package() -> &'input str
+            = s:$(quiet!{
                 ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
                 (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] /
                  ("-" !(version() ("-" version())? ![_])))*
-            } / expected!("package name")) end:position!()
-            { (start, end) }
+            } / expected!("package name"))
+            { s }
 
         rule version_suffix() -> Suffix
             = "_" suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
@@ -189,18 +189,18 @@ peg::parser! {
                 }
             }
 
-        pub(super) rule cpv_with_op() -> (&'input str, usize, &'input str, Option<&'input str>)
-            = op:$(("<" "="?) / "=" / "~" / (">" "="?)) start:position!() cpv:$([^'*']+) glob:$("*")?
-            { (op, start, cpv, glob) }
+        pub(super) rule cpv_with_op() -> (&'input str, &'input str, Option<&'input str>)
+            = op:$(("<" "="?) / "=" / "~" / (">" "="?)) cpv:$([^'*']+) glob:$("*")?
+            { (op, cpv, glob) }
 
-        pub(super) rule cp() -> ((usize, usize), (usize, usize))
+        pub(super) rule cp() -> (&'input str, &'input str)
             = cat:category() "/" pkg:package() { (cat, pkg) }
 
-        pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, usize, ParsedAtom<'input>)
-            = blocker:blocker(eapi)? start:position!() dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
+        pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedAtom<'input>)
+            = blocker:blocker(eapi)? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
                     use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
                 let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
-                (dep, start, ParsedAtom {
+                (dep, ParsedAtom {
                     blocker,
                     slot,
                     subslot,
@@ -252,14 +252,14 @@ pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
 }
 
 pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
-    let (dep, start, mut atom) =
+    let (dep, mut atom) =
         pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s}"), s, e))?;
     match pkg::cpv_with_op(dep) {
-        Ok((op, start, cpv_s, glob)) => {
+        Ok((op, cpv_s, glob)) => {
             let cpv =
                 pkg::cpv(cpv_s).map_err(|e| peg_error(format!("invalid atom: {s}"), cpv_s, e))?;
-            atom.category = (start + cpv.category.0, start + cpv.category.1);
-            atom.package = (start + cpv.package.0, start + cpv.package.1);
+            atom.category = cpv.category;
+            atom.package = cpv.package;
             atom.version = Some(
                 cpv.version
                     .unwrap()
@@ -271,8 +271,8 @@ pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
         _ => {
             let (cat, pkg) =
                 pkg::cp(dep).map_err(|e| peg_error(format!("invalid atom: {s}"), dep, e))?;
-            atom.category = (start + cat.0, start + cat.1);
-            atom.package = (start + pkg.0, start + pkg.1);
+            atom.category = cat;
+            atom.package = pkg;
         }
     }
 
