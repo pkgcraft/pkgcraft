@@ -327,7 +327,7 @@ mod tests {
             "!!<cat/pkg-4",
         ] {
             atom = Atom::from_str(&s).unwrap();
-            assert_eq!(format!("{atom}"), s);
+            assert_eq!(atom.to_string(), s);
         }
     }
 
@@ -442,7 +442,7 @@ mod tests {
                 .map(|s| Atom::from_str(s).unwrap())
                 .collect();
             atoms.sort();
-            let sorted: Vec<_> = atoms.iter().map(|x| format!("{x}")).collect();
+            let sorted: Vec<_> = atoms.iter().map(|x| x.to_string()).collect();
             assert_eq!(&sorted, expected);
         }
     }

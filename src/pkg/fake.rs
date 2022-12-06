@@ -59,7 +59,7 @@ mod tests {
         let r2 = Repo::new("a", 0, ["cat/pkg-0"]);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
-        let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
+        let atoms: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-0::a", "cat/pkg-1::b"]);
 
         // matching pkgs sorted by repo priority
@@ -67,7 +67,7 @@ mod tests {
         let r2 = Repo::new("b", 0, ["cat/pkg-0"]);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
-        let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
+        let atoms: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-0::b", "cat/pkg-0::a"]);
 
         // matching pkgs sorted by repo id since repos have matching priorities
@@ -75,7 +75,7 @@ mod tests {
         let r2 = Repo::new("a", 0, ["cat/pkg-0"]);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
-        let atoms: Vec<_> = pkgs.iter().map(|p| format!("{p}")).collect();
+        let atoms: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-0::a", "cat/pkg-0::b"]);
     }
 }

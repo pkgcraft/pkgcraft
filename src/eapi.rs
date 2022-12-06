@@ -675,13 +675,13 @@ mod tests {
         let atom = EAPI0.atom("cat/pkg").unwrap();
         assert_eq!(atom.category(), "cat");
         assert_eq!(atom.package(), "pkg");
-        assert_eq!(format!("{atom}"), "cat/pkg");
+        assert_eq!(atom.to_string(), "cat/pkg");
 
         let atom = EAPI1.atom("cat/pkg:0").unwrap();
         assert_eq!(atom.category(), "cat");
         assert_eq!(atom.package(), "pkg");
         assert_eq!(atom.slot().unwrap(), "0");
-        assert_eq!(format!("{atom}"), "cat/pkg:0");
+        assert_eq!(atom.to_string(), "cat/pkg:0");
 
         let r = EAPI0.atom("cat/pkg:0");
         assert_err_re!(r, "invalid atom: cat/pkg:0");
