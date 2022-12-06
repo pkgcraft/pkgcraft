@@ -352,7 +352,7 @@ fn version_split(ver: &str) -> Vec<&str> {
 peg::parser! {
     grammar cmd() for str {
         // Parse ranges used with the ver_rs and ver_cut commands.
-        pub rule range(max: usize) -> (usize, usize)
+        pub(super) rule range(max: usize) -> (usize, usize)
             = start_s:$(['0'..='9']+) "-" end_s:$(['0'..='9']+) {
                 let start = start_s.parse::<usize>().unwrap();
                 let end = end_s.parse::<usize>().unwrap();
@@ -370,7 +370,7 @@ peg::parser! {
 }
 
 // provide public parsing functionality while converting error types
-pub(crate) mod parse {
+mod parse {
     use crate::peg::peg_error;
 
     use crate::Error;
