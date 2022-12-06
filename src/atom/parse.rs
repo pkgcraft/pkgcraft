@@ -239,8 +239,7 @@ pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
     convert = r#"{ s.to_string() }"#
 )]
 pub(crate) fn version(s: &str) -> crate::Result<Version> {
-    let ver = version_str(s)?;
-    ver.into_owned(s)
+    version_str(s)?.into_owned(s)
 }
 
 pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
