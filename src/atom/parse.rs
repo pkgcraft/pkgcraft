@@ -338,7 +338,7 @@ mod tests {
                 assert_eq!(atom.subslot(), a.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.slot_op(), a.slot_op, "{s:?} failed for EAPI={eapi}");
                 assert_eq!(atom.use_deps(), a.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(format!("{atom}"), s, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(atom.to_string(), s, "{s:?} failed for EAPI={eapi}");
             }
             // verify parse failures
             for eapi in eapi::EAPIS.difference(&passing_eapis) {
@@ -361,7 +361,7 @@ mod tests {
                         assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
                         let atom = result.unwrap();
                         assert_eq!(atom.slot, Some(slot.into()));
-                        assert_eq!(format!("{atom}"), s);
+                        assert_eq!(atom.to_string(), s);
                     }
                 };
             }
@@ -393,7 +393,7 @@ mod tests {
                         );
                         let atom = result.unwrap();
                         assert_eq!(atom.blocker, blocker);
-                        assert_eq!(format!("{atom}"), s);
+                        assert_eq!(atom.to_string(), s);
                     }
                 };
             }
@@ -414,7 +414,7 @@ mod tests {
                         let atom = result.unwrap();
                         let expected = use_deps.split(',').map(|s| s.to_string()).collect();
                         assert_eq!(atom.use_deps, Some(expected));
-                        assert_eq!(format!("{atom}"), s);
+                        assert_eq!(atom.to_string(), s);
                     }
                 };
             }
@@ -435,7 +435,7 @@ mod tests {
                         let atom = result.unwrap();
                         let expected = use_deps.split(',').map(|s| s.to_string()).collect();
                         assert_eq!(atom.use_deps, Some(expected));
-                        assert_eq!(format!("{atom}"), s);
+                        assert_eq!(atom.to_string(), s);
                     }
                 };
             }
@@ -463,7 +463,7 @@ mod tests {
                         assert_eq!(atom.slot, slot);
                         assert_eq!(atom.subslot, subslot);
                         assert_eq!(atom.slot_op, slot_op);
-                        assert_eq!(format!("{atom}"), s);
+                        assert_eq!(atom.to_string(), s);
                     }
                 };
             }
@@ -492,7 +492,7 @@ mod tests {
                         assert_eq!(atom.slot, slot);
                         assert_eq!(atom.subslot, subslot);
                         assert_eq!(atom.slot_op, slot_op);
-                        assert_eq!(format!("{atom}"), s);
+                        assert_eq!(atom.to_string(), s);
                     }
                 };
             }
@@ -514,7 +514,7 @@ mod tests {
             assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
             let atom = result.unwrap();
             assert_eq!(atom.repo, opt_str!(repo));
-            assert_eq!(format!("{atom}"), s);
+            assert_eq!(atom.to_string(), s);
         }
     }
 }
