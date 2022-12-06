@@ -34,20 +34,18 @@ impl PkgCache {
     }
 
     fn packages<S: AsRef<str>>(&self, cat: S) -> Vec<String> {
-        match self.pkgmap.get(cat.as_ref()) {
-            Some(pkgs) => pkgs.clone().into_keys().collect(),
-            None => vec![],
-        }
+        self.pkgmap
+            .get(cat.as_ref())
+            .map(|pkgs| pkgs.clone().into_keys().collect())
+            .unwrap_or_default()
     }
 
     fn versions<S: AsRef<str>>(&self, cat: S, pkg: S) -> Vec<String> {
-        match self.pkgmap.get(cat.as_ref()) {
-            Some(pkgs) => match pkgs.get(pkg.as_ref()) {
-                Some(vers) => vers.clone().into_iter().collect(),
-                None => vec![],
-            },
-            None => vec![],
-        }
+        self.pkgmap
+            .get(cat.as_ref())
+            .and_then(|pkgs| pkgs.get(pkg.as_ref()))
+            .map(|vers| vers.clone().into_iter().collect())
+            .unwrap_or_default()
     }
 
     fn len(&self) -> usize {
