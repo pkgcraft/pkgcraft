@@ -649,12 +649,17 @@ pub fn range(s: &str) -> crate::Result<IndexSet<&'static Eapi>> {
         })
         .ok_or_else(|| Error::InvalidValue(format!("invalid EAPI range: {s}")))?;
 
+    // convert strings into Option<s> if non-empty, otherwise None
+    let start = (!start.is_empty()).then_some(start);
+    let end = (!end.is_empty()).then_some(end);
+
     // determine the range start and end points
     let (start, end) = match (start, end) {
-        ("", "") => (0, EAPIS.len()),
-        ("", e) => (0, eapi_idx(e)?),
-        (s, "") => (eapi_idx(s)?, EAPIS.len()),
-        (s, e) => (eapi_idx(s)?, eapi_idx(e)?),
+        (None, None) if !inclusive => (0, EAPIS.len()),
+        (None, Some(e)) => (0, eapi_idx(e)?),
+        (Some(s), None) if !inclusive => (eapi_idx(s)?, EAPIS.len()),
+        (Some(s), Some(e)) => (eapi_idx(s)?, eapi_idx(e)?),
+        _ => return Err(Error::InvalidValue(format!("invalid EAPI range: {s}"))),
     };
 
     let eapis = match inclusive {
