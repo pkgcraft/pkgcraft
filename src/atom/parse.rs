@@ -258,21 +258,21 @@ pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
 }
 
 pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
-    let (dep, mut start, mut atom) =
+    let (dep, start, mut atom) =
         pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s}"), s, e))?;
     match pkg::cpv_with_op(dep) {
-        Ok((op, cpv_start, cpv, glob)) => {
-            let cpv_atom =
-                pkg::cpv(cpv).map_err(|e| peg_error(format!("invalid atom: {s}"), cpv, e))?;
-            start += cpv_start;
-            atom.category = (start + cpv_atom.category.0, start + cpv_atom.category.1);
-            atom.package = (start + cpv_atom.package.0, start + cpv_atom.package.1);
-            let ver = cpv_atom.version.unwrap();
+        Ok((op, start, cpv_s, glob)) => {
+            let cpv =
+                pkg::cpv(cpv_s).map_err(|e| peg_error(format!("invalid atom: {s}"), cpv_s, e))?;
+            atom.category = (start + cpv.category.0, start + cpv.category.1);
+            atom.package = (start + cpv.package.0, start + cpv.package.1);
             atom.version = Some(
-                ver.with_op(op, glob)
+                cpv.version
+                    .unwrap()
+                    .with_op(op, glob)
                     .map_err(|e| Error::InvalidValue(format!("invalid atom: {s}: {e}")))?,
             );
-            atom.version_str = Some(cpv);
+            atom.version_str = Some(cpv_s);
         }
         _ => {
             let (cat, pkg) =
