@@ -625,9 +625,11 @@ pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> =
 
 /// Ordered mapping of EAPI identifiers to instances.
 pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
-    let mut eapis = IndexSet::from_iter(EAPIS_OFFICIAL.iter().copied());
-    eapis.extend(EAPIS_UNOFFICIAL.iter().copied());
-    eapis
+    EAPIS_OFFICIAL
+        .iter()
+        .copied()
+        .chain(EAPIS_UNOFFICIAL.iter().copied())
+        .collect()
 });
 
 /// Convert EAPI range into an ordered set of EAPI objects.
