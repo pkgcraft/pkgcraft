@@ -295,6 +295,8 @@ pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexSet;
+
     use crate::eapi;
     use crate::macros::opt_str;
     use crate::test::AtomData;
@@ -307,7 +309,7 @@ mod tests {
 
         // invalid deps
         for (s, range) in atoms.invalid {
-            let failing_eapis = eapi::range(&range).expect("failed to parse EAPI range");
+            let failing_eapis: IndexSet<_> = eapi::range(&range).unwrap().collect();
             // verify parse failures
             for eapi in &failing_eapis {
                 let result = dep(&s, eapi);
@@ -323,7 +325,7 @@ mod tests {
         // valid deps
         for a in atoms.valid {
             let s = a.atom.as_str();
-            let passing_eapis = eapi::range(&a.eapis).expect("failed to parse EAPI range");
+            let passing_eapis: IndexSet<_> = eapi::range(&a.eapis).unwrap().collect();
             // verify parse successes
             for eapi in &passing_eapis {
                 let result = dep(&s, eapi);

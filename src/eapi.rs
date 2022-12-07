@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
+use itertools::Either;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::{escape, Regex, RegexBuilder};
 use strum::EnumString;
@@ -630,13 +631,13 @@ pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
 });
 
 /// Convert EAPI range into an ordered set of EAPI objects.
-pub fn range(s: &str) -> crate::Result<IndexSet<&'static Eapi>> {
+pub fn range(s: &str) -> crate::Result<impl Iterator<Item = &'static Eapi>> {
+    let err = || Error::InvalidValue(format!("invalid EAPI range: {s}"));
+
     // convert EAPI identifier to index, "U" being an alias for the first unofficial EAPI
     let eapi_idx = |s: &str| match s {
         "U" => Ok(EAPIS.get_index_of(EAPIS_UNOFFICIAL[0].as_str()).unwrap()),
-        _ => EAPIS
-            .get_index_of(s)
-            .ok_or_else(|| Error::InvalidValue(format!("invalid or unknown EAPI: {s}"))),
+        _ => EAPIS.get_index_of(s).ok_or_else(err),
     };
 
     // determine range operator
@@ -647,7 +648,7 @@ pub fn range(s: &str) -> crate::Result<IndexSet<&'static Eapi>> {
             inclusive = false;
             s.split_once("..")
         })
-        .ok_or_else(|| Error::InvalidValue(format!("invalid EAPI range: {s}")))?;
+        .ok_or_else(err)?;
 
     // convert strings into Option<s> if non-empty, otherwise None
     let start = (!start.is_empty()).then_some(start);
@@ -659,12 +660,12 @@ pub fn range(s: &str) -> crate::Result<IndexSet<&'static Eapi>> {
         (None, Some(e)) => (0, eapi_idx(e)?),
         (Some(s), None) if !inclusive => (eapi_idx(s)?, EAPIS.len()),
         (Some(s), Some(e)) => (eapi_idx(s)?, eapi_idx(e)?),
-        _ => return Err(Error::InvalidValue(format!("invalid EAPI range: {s}"))),
+        _ => return Err(err()),
     };
 
     let eapis = match inclusive {
-        false => (start..end).map(|n| EAPIS[n]).collect(),
-        true => (start..=end).map(|n| EAPIS[n]).collect(),
+        false => Either::Left((start..end).map(|n| EAPIS[n])),
+        true => Either::Right((start..=end).map(|n| EAPIS[n])),
     };
 
     Ok(eapis)
@@ -759,15 +760,15 @@ mod tests {
     #[test]
     fn test_range() {
         // invalid
-        for s in ["", "1", "1..=", "..=", "...", "0-", "L.."] {
+        for s in ["", "1", "1..=", "..=", "...", "0-", "-1..", "1..9999", "..=unknown"] {
             let r = range(s);
             assert!(r.is_err(), "range didn't fail: {s}");
         }
 
-        assert_ordered_eq(&range("..").unwrap(), &*EAPIS);
-        assert_ordered_eq(&range("..U").unwrap(), &*EAPIS_OFFICIAL);
-        assert_ordered_eq(&range("U..").unwrap(), &*EAPIS_UNOFFICIAL);
-        range("1..1").unwrap().is_empty();
+        assert_ordered_eq(range("..").unwrap(), EAPIS.iter().copied());
+        assert_ordered_eq(range("..U").unwrap(), EAPIS_OFFICIAL.iter().copied());
+        assert_ordered_eq(range("U..").unwrap(), EAPIS_UNOFFICIAL.iter().copied());
+        assert!(range("1..1").unwrap().next().is_none());
         assert_ordered_eq(range("1..2").unwrap(), [&*EAPI1]);
         assert_ordered_eq(range("1..=2").unwrap(), [&*EAPI1, &*EAPI2]);
         assert_ordered_eq(range("..=2").unwrap(), [&*EAPI0, &*EAPI1, &*EAPI2]);
