@@ -2,7 +2,7 @@ use std::fmt;
 use std::fs;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
 use crate::atom::{self, Atom};
@@ -13,10 +13,14 @@ use crate::Error;
 
 use super::{make_repo_traits, Contains, PkgRepository, Repository};
 
+type VersionMap = IndexMap<String, IndexSet<String>>;
+type PkgMap = IndexMap<String, VersionMap>;
+
 #[derive(Debug, Default, Clone)]
 pub struct Repo {
     id: String,
     repo_config: RepoConfig,
+    pkgmap: PkgMap,
     cpvs: IndexSet<Atom>,
 }
 
@@ -65,6 +69,7 @@ impl Repo {
 
 impl<'a> Extend<&'a str> for Repo {
     fn extend<T: IntoIterator<Item = &'a str>>(&mut self, iter: T) {
+        let orig_len = self.cpvs.len();
         for s in iter {
             match atom::cpv(s) {
                 Ok(cpv) => {
@@ -74,7 +79,21 @@ impl<'a> Extend<&'a str> for Repo {
             }
         }
 
-        self.cpvs.sort();
+        if orig_len != self.cpvs.len() {
+            self.cpvs.sort();
+
+            // recreate entire PkgMap structure to preserve correct ordering
+            let mut pkgmap = PkgMap::new();
+            for cpv in &self.cpvs {
+                pkgmap
+                    .entry(cpv.category().into())
+                    .or_insert_with(VersionMap::new)
+                    .entry(cpv.package().into())
+                    .or_insert_with(IndexSet::new)
+                    .insert(cpv.version().unwrap().into());
+            }
+            self.pkgmap = pkgmap;
+        }
     }
 }
 
@@ -91,26 +110,22 @@ impl PkgRepository for Repo {
 
     // TODO: cache categories/packages/versions values in OnceCell fields?
     fn categories(&self) -> Vec<String> {
-        let cats: IndexSet<_> = self.cpvs.iter().map(|c| c.category().to_string()).collect();
-        cats.into_iter().collect()
+        self.pkgmap.keys().map(|k| k.to_string()).collect()
     }
 
     fn packages(&self, cat: &str) -> Vec<String> {
-        let pkgs: IndexSet<_> = self
-            .cpvs
-            .iter()
-            .filter(|c| c.category() == cat)
-            .map(|c| c.package().to_string())
-            .collect();
-        pkgs.into_iter().collect()
+        self.pkgmap
+            .get(cat)
+            .map(|pkgs| pkgs.keys().map(|k| k.to_string()).collect())
+            .unwrap_or_default()
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
-        self.cpvs
-            .iter()
-            .filter(|c| c.category() == cat && c.package() == pkg)
-            .map(|c| c.version().unwrap().to_string())
-            .collect()
+        self.pkgmap
+            .get(cat)
+            .and_then(|pkgs| pkgs.get(pkg))
+            .map(|vers| vers.iter().map(|v| v.to_string()).collect())
+            .unwrap_or_default()
     }
 
     fn len(&self) -> usize {
