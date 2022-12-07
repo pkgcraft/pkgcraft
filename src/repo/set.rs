@@ -1,10 +1,10 @@
-use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
 use indexmap::IndexSet;
 
+use crate::orderedset::OrderedSet;
 use crate::pkg::Pkg;
 use crate::repo::{PkgRepository, Repo};
 use crate::restrict::Restrict;
@@ -12,50 +12,19 @@ use crate::restrict::Restrict;
 use super::make_contains_atom;
 
 /// Ordered set of repos
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RepoSet {
-    repos: IndexSet<Repo>,
-}
-
-impl PartialEq for RepoSet {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-impl Eq for RepoSet {}
-
-impl Hash for RepoSet {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for r in self.repos() {
-            r.hash(state);
-        }
-    }
-}
-
-impl Ord for RepoSet {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.repos().iter().cmp(other.repos().iter())
-    }
-}
-
-impl PartialOrd for RepoSet {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
+    repos: OrderedSet<Repo>,
 }
 
 impl RepoSet {
-    pub fn new<'a, I>(repos: I) -> Self
-    where
-        I: IntoIterator<Item = &'a Repo>,
-    {
-        let mut repos: IndexSet<_> = repos.into_iter().cloned().collect();
+    pub fn new<'a, I: IntoIterator<Item = &'a Repo>>(repos: I) -> Self {
+        let mut repos: OrderedSet<_> = repos.into_iter().cloned().collect();
         repos.sort();
         Self { repos }
     }
 
-    pub fn repos(&self) -> &IndexSet<Repo> {
+    pub fn repos(&self) -> &OrderedSet<Repo> {
         &self.repos
     }
 }
@@ -144,7 +113,7 @@ impl BitAnd<&Self> for RepoSet {
 
 impl BitAndAssign<&Self> for RepoSet {
     fn bitand_assign(&mut self, other: &Self) {
-        self.repos = &self.repos & &other.repos;
+        self.repos = OrderedSet(self.repos.bitand(&other.repos));
         self.repos.sort();
     }
 }
@@ -160,7 +129,7 @@ impl BitOr<&Self> for RepoSet {
 
 impl BitOrAssign<&Self> for RepoSet {
     fn bitor_assign(&mut self, other: &Self) {
-        self.repos = &self.repos | &other.repos;
+        self.repos = OrderedSet(self.repos.bitor(&other.repos));
         self.repos.sort();
     }
 }
@@ -176,7 +145,7 @@ impl BitXor<&Self> for RepoSet {
 
 impl BitXorAssign<&Self> for RepoSet {
     fn bitxor_assign(&mut self, other: &Self) {
-        self.repos = &self.repos ^ &other.repos;
+        self.repos = OrderedSet(self.repos.bitxor(&other.repos));
         self.repos.sort();
     }
 }
@@ -192,7 +161,7 @@ impl Sub<&Self> for RepoSet {
 
 impl SubAssign<&Self> for RepoSet {
     fn sub_assign(&mut self, other: &Self) {
-        self.repos = &self.repos - &other.repos;
+        self.repos = OrderedSet(self.repos.sub(&other.repos));
     }
 }
 
@@ -207,7 +176,7 @@ impl BitAnd<&Repo> for RepoSet {
 
 impl BitAndAssign<&Repo> for RepoSet {
     fn bitand_assign(&mut self, other: &Repo) {
-        self.repos = &self.repos & &IndexSet::from([other.clone()]);
+        self.repos = OrderedSet(self.repos.bitand(&IndexSet::from([other.clone()])));
     }
 }
 
@@ -239,7 +208,7 @@ impl BitXor<&Repo> for RepoSet {
 
 impl BitXorAssign<&Repo> for RepoSet {
     fn bitxor_assign(&mut self, other: &Repo) {
-        self.repos = &self.repos ^ &IndexSet::from([other.clone()]);
+        self.repos = OrderedSet(self.repos.bitxor(&IndexSet::from([other.clone()])));
         self.repos.sort();
     }
 }
