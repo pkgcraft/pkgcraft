@@ -675,7 +675,7 @@ mod tests {
     use std::ptr;
 
     use crate::macros::assert_err_re;
-    use crate::test::eq_ordered;
+    use crate::test::assert_ordered_eq;
 
     use super::*;
 
@@ -764,12 +764,12 @@ mod tests {
             assert!(r.is_err(), "range didn't fail: {s}");
         }
 
-        assert!(eq_ordered(&range("..").unwrap(), &*EAPIS));
-        assert!(eq_ordered(&range("..U").unwrap(), &*EAPIS_OFFICIAL));
-        assert!(eq_ordered(&range("U..").unwrap(), &*EAPIS_UNOFFICIAL));
-        assert!(range("1..1").unwrap().is_empty());
-        assert!(eq_ordered(range("1..2").unwrap(), [&*EAPI1]));
-        assert!(eq_ordered(range("1..=2").unwrap(), [&*EAPI1, &*EAPI2]));
-        assert!(eq_ordered(range("..=2").unwrap(), [&*EAPI0, &*EAPI1, &*EAPI2]));
+        assert_ordered_eq(&range("..").unwrap(), &*EAPIS);
+        assert_ordered_eq(&range("..U").unwrap(), &*EAPIS_OFFICIAL);
+        assert_ordered_eq(&range("U..").unwrap(), &*EAPIS_UNOFFICIAL);
+        range("1..1").unwrap().is_empty();
+        assert_ordered_eq(range("1..2").unwrap(), [&*EAPI1]);
+        assert_ordered_eq(range("1..=2").unwrap(), [&*EAPI1, &*EAPI2]);
+        assert_ordered_eq(range("..=2").unwrap(), [&*EAPI0, &*EAPI1, &*EAPI2]);
     }
 }

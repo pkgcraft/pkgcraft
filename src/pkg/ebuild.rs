@@ -258,7 +258,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::repo::PkgRepository;
-    use crate::test::{eq_ordered, eq_sorted};
+    use crate::test::{assert_ordered_eq, assert_unordered_eq};
 
     use super::*;
 
@@ -380,7 +380,7 @@ mod tests {
             .create_ebuild("cat/pkg-1", [(Key::Homepage, "home")])
             .unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.homepage(), ["home"]));
+        assert_ordered_eq(pkg.homepage(), ["home"]);
 
         // multiple lines
         let val = indoc::indoc! {"
@@ -392,7 +392,7 @@ mod tests {
             .create_ebuild("cat/pkg-1", [(Key::Homepage, val)])
             .unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.homepage(), ["a", "b", "c"]));
+        assert_ordered_eq(pkg.homepage(), ["a", "b", "c"]);
     }
 
     #[test]
@@ -413,7 +413,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_sorted(pkg.defined_phases(), ["compile"]));
+        assert_unordered_eq(pkg.defined_phases(), ["compile"]);
 
         // multiple
         let data = indoc::indoc! {r#"
@@ -426,7 +426,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_sorted(pkg.defined_phases(), ["prepare", "compile", "install"]));
+        assert_unordered_eq(pkg.defined_phases(), ["prepare", "compile", "install"]);
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -450,7 +450,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_sorted(pkg.defined_phases(), ["prepare"]));
+        assert_unordered_eq(pkg.defined_phases(), ["prepare"]);
 
         // single overlapping from eclass and ebuild
         let data = indoc::indoc! {r#"
@@ -462,7 +462,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_sorted(pkg.defined_phases(), ["prepare"]));
+        assert_unordered_eq(pkg.defined_phases(), ["prepare"]);
 
         // multiple from eclasses
         let data = indoc::indoc! {r#"
@@ -473,7 +473,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_sorted(pkg.defined_phases(), ["prepare", "compile", "install"]));
+        assert_unordered_eq(pkg.defined_phases(), ["prepare", "compile", "install"]);
 
         // multiple from eclass and ebuild
         let data = indoc::indoc! {r#"
@@ -485,7 +485,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_sorted(pkg.defined_phases(), ["prepare", "test"]));
+        assert_unordered_eq(pkg.defined_phases(), ["prepare", "test"]);
     }
 
     #[test]
@@ -503,7 +503,7 @@ mod tests {
             .create_ebuild("cat/pkg-1", [(Key::Keywords, "a b")])
             .unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.keywords(), ["a", "b"]));
+        assert_ordered_eq(pkg.keywords(), ["a", "b"]);
 
         // multiple lines
         let val = indoc::indoc! {"
@@ -515,7 +515,7 @@ mod tests {
             .create_ebuild("cat/pkg-1", [(Key::Keywords, val)])
             .unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.keywords(), ["a", "b", "c"]));
+        assert_ordered_eq(pkg.keywords(), ["a", "b", "c"]);
     }
 
     #[test]
@@ -531,7 +531,7 @@ mod tests {
         // single line
         let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Iuse, "a b")]).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.iuse(), ["a", "b"]));
+        assert_ordered_eq(pkg.iuse(), ["a", "b"]);
 
         // multiple lines
         let val = indoc::indoc! {"
@@ -541,7 +541,7 @@ mod tests {
         "};
         let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Iuse, val)]).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.iuse(), ["a", "b", "c"]));
+        assert_ordered_eq(pkg.iuse(), ["a", "b", "c"]);
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -561,7 +561,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.iuse(), ["use1"]));
+        assert_ordered_eq(pkg.iuse(), ["use1"]);
 
         // inherited from multiple eclasses
         let data = indoc::indoc! {r#"
@@ -571,7 +571,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.iuse(), ["use1", "use2"]));
+        assert_ordered_eq(pkg.iuse(), ["use1", "use2"]);
 
         // accumulated from single eclass
         let data = indoc::indoc! {r#"
@@ -582,7 +582,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.iuse(), ["a", "use1"]));
+        assert_ordered_eq(pkg.iuse(), ["a", "use1"]);
 
         // accumulated from multiple eclasses
         let data = indoc::indoc! {r#"
@@ -593,7 +593,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.iuse(), ["a", "use1", "use2"]));
+        assert_ordered_eq(pkg.iuse(), ["a", "use1", "use2"]);
     }
 
     #[test]
@@ -626,8 +626,8 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.inherit(), ["eclass1"]));
-        assert!(eq_ordered(pkg.inherited(), ["eclass1"]));
+        assert_ordered_eq(pkg.inherit(), ["eclass1"]);
+        assert_ordered_eq(pkg.inherited(), ["eclass1"]);
 
         // eclass with indirect inherit
         let data = indoc::indoc! {r#"
@@ -637,8 +637,8 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.inherit(), ["eclass2"]));
-        assert!(eq_ordered(pkg.inherited(), ["eclass1", "eclass2"]));
+        assert_ordered_eq(pkg.inherit(), ["eclass2"]);
+        assert_ordered_eq(pkg.inherited(), ["eclass1", "eclass2"]);
 
         // multiple inherits
         let data = indoc::indoc! {r#"
@@ -648,8 +648,8 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(eq_ordered(pkg.inherit(), ["eclass1", "eclass2"]));
-        assert!(eq_ordered(pkg.inherited(), ["eclass1", "eclass2"]));
+        assert_ordered_eq(pkg.inherit(), ["eclass1", "eclass2"]);
+        assert_ordered_eq(pkg.inherited(), ["eclass1", "eclass2"]);
     }
 
     #[test]

@@ -1,5 +1,5 @@
 #![cfg(test)]
-use std::fs;
+use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 use itertools::Itertools;
@@ -115,31 +115,30 @@ impl<'a> Iterator for ComparesIter<'a> {
     }
 }
 
-/// Compare two iterables via sorted lists.
-pub(crate) fn eq_sorted<I, J, T, S>(a: I, b: J) -> bool
+/// Verify two, unordered iterables contain the same elements.
+pub(crate) fn assert_unordered_eq<I, J, T, S>(a: I, b: J)
 where
     I: IntoIterator<Item = T>,
     J: IntoIterator<Item = S>,
-    T: PartialEq<S> + Ord,
-    S: PartialEq<T> + Ord,
+    T: PartialEq<S> + Ord + fmt::Debug,
+    S: PartialEq<T> + Ord + fmt::Debug,
 {
     let mut a: Vec<_> = a.into_iter().collect();
     let mut b: Vec<_> = b.into_iter().collect();
     a.sort();
     b.sort();
-
-    a == b
+    assert_eq!(a, b, "{a:?} != {b:?}");
 }
 
-/// Compare two ordered iterables.
-pub(crate) fn eq_ordered<I, J, T, S>(a: I, b: J) -> bool
+/// Verify two, ordered iterables are equal.
+pub(crate) fn assert_ordered_eq<I, J, T, S>(a: I, b: J)
 where
     I: IntoIterator<Item = T>,
     J: IntoIterator<Item = S>,
-    T: PartialEq<S> + Ord,
-    S: PartialEq<T> + Ord,
+    T: PartialEq<S> + Ord + fmt::Debug,
+    S: PartialEq<T> + Ord + fmt::Debug,
 {
     let a: Vec<_> = a.into_iter().collect();
     let b: Vec<_> = b.into_iter().collect();
-    a == b
+    assert_eq!(a, b, "{a:?} != {b:?}");
 }

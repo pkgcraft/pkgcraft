@@ -251,7 +251,7 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::macros::assert_err_re;
-    use crate::test::eq_ordered;
+    use crate::test::assert_ordered_eq;
 
     use super::*;
 
@@ -341,7 +341,7 @@ mod tests {
         "#};
         fs::write(&path, data).unwrap();
         let repos = config.load_repos_conf(&path).unwrap();
-        assert!(eq_ordered(repos.iter().map(|r| r.id()), ["a"]));
+        assert_ordered_eq(repos.iter().map(|r| r.id()), ["a"]);
 
         // multiple, prioritized repos
         let t2 = TempRepo::new("r2", None, None).unwrap();
@@ -355,7 +355,7 @@ mod tests {
         "#};
         fs::write(&path, data).unwrap();
         let repos = config.load_repos_conf(&path).unwrap();
-        assert!(eq_ordered(repos.iter().map(|r| r.id()), ["c", "b"]));
+        assert_ordered_eq(repos.iter().map(|r| r.id()), ["c", "b"]);
 
         // multiple config files in a specified directory
         let r3 = TempRepo::new("r3", None, None).unwrap();
@@ -380,7 +380,7 @@ mod tests {
         "#};
         fs::write(conf_dir.join("r3.conf"), data).unwrap();
         let repos = config.load_repos_conf(conf_dir.to_str().unwrap()).unwrap();
-        assert!(eq_ordered(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]));
+        assert_ordered_eq(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]);
 
         // reloading existing repo fails
         let data = indoc::formatdoc! {r#"

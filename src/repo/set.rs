@@ -267,7 +267,7 @@ mod tests {
     use crate::config::Config;
     use crate::pkg::Package;
     use crate::repo::{fake, Contains, Repository};
-    use crate::test::eq_ordered;
+    use crate::test::assert_ordered_eq;
     use crate::utils::hash;
 
     use super::*;
@@ -305,16 +305,16 @@ mod tests {
         let r1: Repo = fake::Repo::new("r1", 0, []).into();
         let r2: Repo = fake::Repo::new("r2", 0, []).into();
         let s = RepoSet::new([&r1, &r2]);
-        assert!(eq_ordered(s.repos(), [&r1, &r2]));
+        assert_ordered_eq(s.repos(), [&r1, &r2]);
         // different parameter order are still sorted lexically by repo id
         let s = RepoSet::new([&r2, &r1]);
-        assert!(eq_ordered(s.repos(), [&r1, &r2]));
+        assert_ordered_eq(s.repos(), [&r1, &r2]);
 
         // higher priority repos come before lower priority ones
         let r1: Repo = fake::Repo::new("r1", -1, []).into();
         let r2: Repo = fake::Repo::new("r2", 0, []).into();
         let s = RepoSet::new([&r1, &r2]);
-        assert!(eq_ordered(s.repos(), [&r2, &r1]));
+        assert_ordered_eq(s.repos(), [&r2, &r1]);
     }
 
     #[test]

@@ -934,7 +934,7 @@ mod tests {
     use crate::macros::*;
     use crate::metadata::Key;
     use crate::pkg::Package;
-    use crate::test::eq_sorted;
+    use crate::test::assert_unordered_eq;
 
     use super::*;
 
@@ -1117,7 +1117,7 @@ mod tests {
             amd64-linux
         "#};
         fs::write(repo.profiles_base.join("arch.list"), data).unwrap();
-        assert!(eq_sorted(repo.arches(), ["amd64", "arm64", "amd64-linux"]));
+        assert_unordered_eq(repo.arches(), ["amd64", "arm64", "amd64-linux"]);
     }
 
     #[test]
@@ -1134,8 +1134,8 @@ mod tests {
         repo.config.set("properties-allowed", "interactive live");
         repo.config.set("restrict-allowed", "fetch mirror");
         repo.config.write(None).unwrap();
-        assert!(eq_sorted(repo.config().properties_allowed(), ["live", "interactive"]));
-        assert!(eq_sorted(repo.config().restrict_allowed(), ["fetch", "mirror"]));
+        assert_unordered_eq(repo.config().properties_allowed(), ["live", "interactive"]);
+        assert_unordered_eq(repo.config().restrict_allowed(), ["fetch", "mirror"]);
     }
 
     #[test]
