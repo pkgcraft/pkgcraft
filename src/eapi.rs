@@ -764,9 +764,9 @@ mod tests {
             assert!(r.is_err(), "range didn't fail: {s}");
         }
 
-        assert!(eq_ordered(range("..").unwrap(), EAPIS.iter().copied()));
-        assert!(eq_ordered(range("..U").unwrap(), EAPIS_OFFICIAL.iter().copied()));
-        assert!(eq_ordered(range("U..").unwrap(), EAPIS_UNOFFICIAL.iter().copied()));
+        assert!(eq_ordered(&range("..").unwrap(), &*EAPIS));
+        assert!(eq_ordered(&range("..U").unwrap(), &*EAPIS_OFFICIAL));
+        assert!(eq_ordered(&range("U..").unwrap(), &*EAPIS_UNOFFICIAL));
         assert!(range("1..1").unwrap().is_empty());
         assert!(eq_ordered(range("1..2").unwrap(), [&*EAPI1]));
         assert!(eq_ordered(range("1..=2").unwrap(), [&*EAPI1, &*EAPI2]));
