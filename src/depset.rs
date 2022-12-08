@@ -459,7 +459,7 @@ mod tests {
         I: IntoIterator<Item = DepRestrict<T>>,
         T: Ordered,
     {
-        DepSet(OrderedSet::from_iter(val.into_iter()))
+        DepSet(val.into_iter().collect())
     }
 
     #[test]
