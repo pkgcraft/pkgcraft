@@ -8,7 +8,7 @@ use std::{env, fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use ini::Ini;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
@@ -16,7 +16,7 @@ use tempfile::TempDir;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
-use crate::config::{self, RepoConfig};
+use crate::config::RepoConfig;
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
@@ -24,7 +24,7 @@ use crate::pkg::ebuild::Pkg;
 use crate::restrict::{Restrict, Restriction, Str};
 use crate::{atom, eapi, Error};
 
-use super::{make_repo_traits, PkgRepository, Repository};
+use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, Repository};
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
@@ -35,21 +35,21 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         .collect()
 });
 
-pub struct Config {
+pub struct IniConfig {
     path: Option<Utf8PathBuf>,
     ini: Ini,
 }
 
-impl Default for Config {
+impl Default for IniConfig {
     fn default() -> Self {
-        Config {
+        Self {
             path: None,
             ini: Ini::new(),
         }
     }
 }
 
-impl fmt::Debug for Config {
+impl fmt::Debug for IniConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let section = self.ini.section(DEFAULT_SECTION);
         f.debug_struct("Metadata")
@@ -59,7 +59,7 @@ impl fmt::Debug for Config {
     }
 }
 
-impl Config {
+impl IniConfig {
     fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
         let path = repo_path.join("metadata/layout.conf");
         match Ini::load_from_file(&path) {
@@ -227,7 +227,7 @@ where
 pub struct Repo {
     id: String,
     repo_config: RepoConfig,
-    config: Config,
+    config: IniConfig,
     metadata: Metadata,
     profiles_base: Utf8PathBuf,
     name: String,
@@ -292,7 +292,7 @@ impl Repo {
             ..Default::default()
         };
 
-        let config = Config::new(path).map_err(|e| invalid_repo(e.to_string()))?;
+        let config = IniConfig::new(path).map_err(|e| invalid_repo(e.to_string()))?;
 
         Ok(Self {
             id: id.as_ref().to_string(),
@@ -305,12 +305,16 @@ impl Repo {
         })
     }
 
-    pub(super) fn finalize(&self, config: &config::Config, repo: Weak<Self>) -> crate::Result<()> {
+    pub(super) fn finalize(
+        &self,
+        existing_repos: &IndexMap<String, BaseRepo>,
+        repo: Weak<Self>,
+    ) -> crate::Result<()> {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
         for id in self.config.iter("masters") {
-            match config.repos.get(id).and_then(|r| r.as_ebuild()) {
+            match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
                 Some(r) => masters.push(Arc::downgrade(r)),
                 None => nonexistent.push(id),
             }
@@ -339,7 +343,7 @@ impl Repo {
         &self.repo_config
     }
 
-    pub fn config(&self) -> &Config {
+    pub fn config(&self) -> &IniConfig {
         &self.config
     }
 

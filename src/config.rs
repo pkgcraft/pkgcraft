@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
 use crate::repo::ebuild::{Repo as EbuildRepo, TempRepo};
-use crate::repo::{Repo, Repository};
+use crate::repo::Repo;
 use crate::Error;
 pub(crate) use repo::RepoConfig;
 
@@ -128,9 +128,6 @@ impl Config {
             ..Default::default()
         };
         config.repos = repo::Config::new(&config.path.config, &config.path.db, create)?;
-        for (_, repo) in &config.repos {
-            repo.finalize(&config)?;
-        }
         Ok(config)
     }
 
@@ -153,9 +150,7 @@ impl Config {
 
     /// Add a repo to the config.
     pub fn add_repo(&mut self, repo: &Repo) -> crate::Result<()> {
-        repo.finalize(self)?;
-        self.repos.insert(repo.id(), repo.clone());
-        Ok(())
+        self.repos.extend([repo])
     }
 
     /// Create a new repo.
@@ -183,8 +178,6 @@ impl Config {
             Err(e) => Err(Error::Config(format!("failed reading repos.conf: {path:?}: {e}"))),
         }?;
 
-        // copy original repos config that is reverted to if an error occurs
-        let orig_repos = self.repos.clone();
         let mut repos = vec![];
 
         for f in files {
@@ -204,7 +197,7 @@ impl Config {
                         })?;
 
                         let r = self.repos.add_path(name, priority, path)?;
-                        repos.push((name.to_string(), r));
+                        repos.push(r);
                     }
                     Ok(())
                 })?;
@@ -212,20 +205,11 @@ impl Config {
 
         if !repos.is_empty() {
             // add repos to config
-            self.repos.extend(&repos);
-
-            // verify new repos
-            for (_name, repo) in &repos {
-                if let Err(e) = repo.finalize(self) {
-                    // revert to previous repos
-                    self.repos = orig_repos;
-                    return Err(e);
-                }
-            }
+            self.repos.extend(&repos)?;
         }
 
-        repos.sort_by(|(_, r1), (_, r2)| r1.cmp(r2));
-        Ok(repos.into_iter().map(|(_, r)| r).collect())
+        repos.sort();
+        Ok(repos)
     }
 
     /// Create a new temporary ebuild repo.
@@ -248,6 +232,7 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::macros::assert_err_re;
+    use crate::repo::Repository;
     use crate::test::assert_ordered_eq;
 
     use super::*;

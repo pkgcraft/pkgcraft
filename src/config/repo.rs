@@ -6,6 +6,7 @@ use std::str::FromStr;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
@@ -130,8 +131,11 @@ impl Config {
             repos,
         };
 
-        // sort repos
+        // sort and finalize repos
         config.sort();
+        for repo in config.repos.values() {
+            repo.finalize(&config.repos)?;
+        }
 
         Ok(config)
     }
@@ -278,18 +282,41 @@ impl Config {
         self.repos.get(key)
     }
 
-    /// Insert a single repo into the config.
-    pub(super) fn insert(&mut self, id: &str, repo: Repo) {
-        self.extend(&[(id, repo)])
-    }
-
     /// Extend the config with multiple repos.
-    pub(super) fn extend<S: ToString>(&mut self, repos: &[(S, Repo)]) {
-        for (id, repo) in repos {
-            self.repos.insert(id.to_string(), repo.clone());
+    pub(super) fn extend<'a, I: IntoIterator<Item = &'a Repo>>(
+        &mut self,
+        repos: I,
+    ) -> crate::Result<()> {
+        let repos: Vec<_> = repos.into_iter().collect();
+        let existing: Vec<_> = repos
+            .iter()
+            .filter_map(|r| self.repos.get(r.id()))
+            .map(|r| r.id())
+            .collect();
+
+        if !existing.is_empty() {
+            let existing = existing.iter().join(", ");
+            return Err(Error::Config(format!("can't override existing repos: {existing}")));
         }
 
-        self.sort()
+        // copy original repos so it can be reverted to if an error occurs
+        let orig_repos = self.repos.clone();
+        // add repos to config
+        for repo in &repos {
+            self.repos.insert(repo.id().to_string(), (*repo).clone());
+        }
+
+        // verify new repos
+        for repo in &repos {
+            if let Err(e) = repo.finalize(&self.repos) {
+                // revert to previous repos
+                self.repos = orig_repos;
+                return Err(e);
+            }
+        }
+
+        self.sort();
+        Ok(())
     }
 
     /// Sort repos by priority then by name.

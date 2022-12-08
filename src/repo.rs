@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use enum_as_inner::EnumAsInner;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
 
 use crate::atom::Atom;
-use crate::config::{Config, RepoConfig};
+use crate::config::RepoConfig;
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict;
 use crate::Error;
@@ -104,9 +104,9 @@ impl Repo {
         }
     }
 
-    pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
+    pub(super) fn finalize(&self, existing_repos: &IndexMap<String, Repo>) -> crate::Result<()> {
         match self {
-            Self::Ebuild(repo) => repo.finalize(config, Arc::downgrade(repo)),
+            Self::Ebuild(repo) => repo.finalize(existing_repos, Arc::downgrade(repo)),
             _ => Ok(()),
         }
     }
