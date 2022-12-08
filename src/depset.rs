@@ -43,19 +43,17 @@ impl AsRef<str> for Uri {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DepSet<T: Ordered> {
-    deps: OrderedSet<DepRestrict<T>>,
-}
+pub struct DepSet<T: Ordered>(OrderedSet<DepRestrict<T>>);
 
 impl<T: fmt::Display + Ordered> fmt::Display for DepSet<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.deps.iter().map(|x| x.to_string()).join(" "))
+        write!(f, "{}", self.0.iter().map(|x| x.to_string()).join(" "))
     }
 }
 
 impl<T: Ordered> DepSet<T> {
     pub fn iter_flatten(&self) -> DepSetFlattenIter<T> {
-        DepSetFlattenIter(self.deps.iter().collect())
+        DepSetFlattenIter(self.0.iter().collect())
     }
 
     pub fn iter(&self) -> DepSetIter<T> {
@@ -68,7 +66,7 @@ impl<'a, T: Ordered> IntoIterator for &'a DepSet<T> {
     type IntoIter = DepSetIter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        DepSetIter(self.deps.iter())
+        DepSetIter(self.0.iter())
     }
 }
 
@@ -300,22 +298,22 @@ peg::parser!(grammar depset() for str {
             / pkg_val(eapi)
 
     pub(super) rule license() -> DepSet<String>
-        = v:license_dep_restrict() ++ " " { DepSet { deps: v.into_iter().collect() } }
+        = v:license_dep_restrict() ++ " " { DepSet(v.into_iter().collect()) }
 
     pub(super) rule src_uri(eapi: &'static Eapi) -> DepSet<Uri>
-        = v:src_uri_dep_restrict(eapi) ++ " " { DepSet { deps: v.into_iter().collect() } }
+        = v:src_uri_dep_restrict(eapi) ++ " " { DepSet(v.into_iter().collect()) }
 
     pub(super) rule properties() -> DepSet<String>
-        = v:properties_dep_restrict() ++ " " { DepSet { deps: v.into_iter().collect() } }
+        = v:properties_dep_restrict() ++ " " { DepSet(v.into_iter().collect()) }
 
     pub(super) rule required_use(eapi: &'static Eapi) -> DepSet<String>
-        = v:required_use_dep_restrict(eapi) ++ " " { DepSet { deps: v.into_iter().collect() } }
+        = v:required_use_dep_restrict(eapi) ++ " " { DepSet(v.into_iter().collect()) }
 
     pub(super) rule restrict() -> DepSet<String>
-        = v:restrict_dep_restrict() ++ " " { DepSet { deps: v.into_iter().collect() } }
+        = v:restrict_dep_restrict() ++ " " { DepSet(v.into_iter().collect()) }
 
     pub(super) rule pkgdep(eapi: &'static Eapi) -> DepSet<Atom>
-        = v:pkg_dep_restrict(eapi) ++ " " { DepSet { deps: v.into_iter().collect() } }
+        = v:pkg_dep_restrict(eapi) ++ " " { DepSet(v.into_iter().collect()) }
 });
 
 // provide public parsing functionality while converting error types
@@ -456,12 +454,12 @@ mod tests {
         UseDisabled(s.to_string(), val.into_iter().map(Box::new).collect())
     }
 
-    fn os<I, T>(val: I) -> OrderedSet<DepRestrict<T>>
+    fn ds<I, T>(val: I) -> DepSet<T>
     where
         I: IntoIterator<Item = DepRestrict<T>>,
         T: Ordered,
     {
-        OrderedSet::from_iter(val.into_iter())
+        DepSet(OrderedSet::from_iter(val.into_iter()))
     }
 
     #[test]
@@ -477,30 +475,30 @@ mod tests {
         // valid
         for (s, expected, expected_flatten) in [
             // simple values
-            ("v", os([vs("v")]), vec!["v"]),
-            ("v1 v2", os([vs("v1"), vs("v2")]), vec!["v1", "v2"]),
+            ("v", ds([vs("v")]), vec!["v"]),
+            ("v1 v2", ds([vs("v1"), vs("v2")]), vec!["v1", "v2"]),
             // groupings
-            ("( v )", os([allof(vec![vs("v")])]), vec!["v"]),
-            ("( v1 v2 )", os([allof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
-            ("( v1 ( v2 ) )", os([allof(vec![vs("v1"), allof(vec![vs("v2")])])]), vec!["v1", "v2"]),
-            ("( ( v ) )", os([allof(vec![allof(vec![vs("v")])])]), vec!["v"]),
-            ("|| ( v )", os([anyof(vec![vs("v")])]), vec!["v"]),
-            ("|| ( v1 v2 )", os([anyof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+            ("( v )", ds([allof(vec![vs("v")])]), vec!["v"]),
+            ("( v1 v2 )", ds([allof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+            ("( v1 ( v2 ) )", ds([allof(vec![vs("v1"), allof(vec![vs("v2")])])]), vec!["v1", "v2"]),
+            ("( ( v ) )", ds([allof(vec![allof(vec![vs("v")])])]), vec!["v"]),
+            ("|| ( v )", ds([anyof(vec![vs("v")])]), vec!["v"]),
+            ("|| ( v1 v2 )", ds([anyof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
             // conditionals
-            ("u? ( v )", os([use_enabled("u", vec![vs("v")])]), vec!["v"]),
-            ("u? ( v1 v2 )", os([use_enabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+            ("u? ( v )", ds([use_enabled("u", vec![vs("v")])]), vec!["v"]),
+            ("u? ( v1 v2 )", ds([use_enabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
             // combinations
-            ("v1 u? ( v2 )", os([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
+            ("v1 u? ( v2 )", ds([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
             (
                 "!u? ( || ( v1 v2 ) )",
-                os([use_disabled("u", [anyof([vs("v1"), vs("v2")])])]),
+                ds([use_disabled("u", [anyof([vs("v1"), vs("v2")])])]),
                 vec!["v1", "v2"],
             ),
         ] {
             let depset = parse::license(&s)?.unwrap();
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
-            assert_eq!(depset.deps, expected, "{s} failed");
+            assert_eq!(depset, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
         }
 
@@ -514,17 +512,17 @@ mod tests {
 
         // valid
         for (s, expected, expected_flatten) in [
-            ("uri", os([vu("uri", None)]), vec!["uri"]),
-            ("http://uri", os([vu("http://uri", None)]), vec!["http://uri"]),
-            ("uri1 uri2", os([vu("uri1", None), vu("uri2", None)]), vec!["uri1", "uri2"]),
+            ("uri", ds([vu("uri", None)]), vec!["uri"]),
+            ("http://uri", ds([vu("http://uri", None)]), vec!["http://uri"]),
+            ("uri1 uri2", ds([vu("uri1", None), vu("uri2", None)]), vec!["uri1", "uri2"]),
             (
                 "( http://uri1 http://uri2 )",
-                os([allof([vu("http://uri1", None), vu("http://uri2", None)])]),
+                ds([allof([vu("http://uri1", None), vu("http://uri2", None)])]),
                 vec!["http://uri1", "http://uri2"],
             ),
             (
                 "u1? ( http://uri1 !u2? ( http://uri2 ) )",
-                os([use_enabled(
+                ds([use_enabled(
                     "u1",
                     [vu("http://uri1", None), use_disabled("u2", [vu("http://uri2", None)])],
                 )]),
@@ -535,7 +533,7 @@ mod tests {
                 let depset = parse::src_uri(&s, eapi)?.unwrap();
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
-                assert_eq!(depset.deps, expected, "{s} failed");
+                assert_eq!(depset, expected, "{s} failed");
                 assert_eq!(depset.to_string(), s);
             }
         }
@@ -544,12 +542,12 @@ mod tests {
         for (s, expected, expected_flatten) in [
             (
                 "http://uri -> file",
-                os([vu("http://uri", Some("file"))]),
+                ds([vu("http://uri", Some("file"))]),
                 vec!["http://uri -> file"],
             ),
             (
                 "u? ( http://uri -> file )",
-                os([use_enabled("u", [vu("http://uri", Some("file"))])]),
+                ds([use_enabled("u", [vu("http://uri", Some("file"))])]),
                 vec!["http://uri -> file"],
             ),
         ] {
@@ -558,7 +556,7 @@ mod tests {
                     let depset = parse::src_uri(&s, eapi)?.unwrap();
                     let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                     assert_eq!(flatten, expected_flatten);
-                    assert_eq!(depset.deps, expected, "{s} failed");
+                    assert_eq!(depset, expected, "{s} failed");
                     assert_eq!(depset.to_string(), s);
                 }
             }
@@ -579,39 +577,39 @@ mod tests {
 
         // valid
         for (s, expected, expected_flatten) in [
-            ("u", os([vs("u")]), vec!["u"]),
-            ("!u", os([vd("u")]), vec!["u"]),
-            ("u1 !u2", os([vs("u1"), vd("u2")]), vec!["u1", "u2"]),
-            ("( u )", os([allof([vs("u")])]), vec!["u"]),
-            ("( u1 u2 )", os([allof([vs("u1"), vs("u2")])]), vec!["u1", "u2"]),
-            ("|| ( u )", os([anyof([vs("u")])]), vec!["u"]),
-            ("|| ( !u1 u2 )", os([anyof([vd("u1"), vs("u2")])]), vec!["u1", "u2"]),
-            ("^^ ( u1 !u2 )", os([exactly_one_of([vs("u1"), vd("u2")])]), vec!["u1", "u2"]),
-            ("u1? ( u2 )", os([use_enabled("u1", [vs("u2")])]), vec!["u2"]),
-            ("u1? ( u2 !u3 )", os([use_enabled("u1", [vs("u2"), vd("u3")])]), vec!["u2", "u3"]),
+            ("u", ds([vs("u")]), vec!["u"]),
+            ("!u", ds([vd("u")]), vec!["u"]),
+            ("u1 !u2", ds([vs("u1"), vd("u2")]), vec!["u1", "u2"]),
+            ("( u )", ds([allof([vs("u")])]), vec!["u"]),
+            ("( u1 u2 )", ds([allof([vs("u1"), vs("u2")])]), vec!["u1", "u2"]),
+            ("|| ( u )", ds([anyof([vs("u")])]), vec!["u"]),
+            ("|| ( !u1 u2 )", ds([anyof([vd("u1"), vs("u2")])]), vec!["u1", "u2"]),
+            ("^^ ( u1 !u2 )", ds([exactly_one_of([vs("u1"), vd("u2")])]), vec!["u1", "u2"]),
+            ("u1? ( u2 )", ds([use_enabled("u1", [vs("u2")])]), vec!["u2"]),
+            ("u1? ( u2 !u3 )", ds([use_enabled("u1", [vs("u2"), vd("u3")])]), vec!["u2", "u3"]),
             (
                 "!u1? ( || ( u2 u3 ) )",
-                os([use_disabled("u1", [anyof([vs("u2"), vs("u3")])])]),
+                ds([use_disabled("u1", [anyof([vs("u2"), vs("u3")])])]),
                 vec!["u2", "u3"],
             ),
         ] {
             let depset = parse::required_use(&s, &EAPI_LATEST)?.unwrap();
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
-            assert_eq!(depset.deps, expected, "{s} failed");
+            assert_eq!(depset, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
         }
 
         // ?? operator
         for (s, expected, expected_flatten) in
-            [("?? ( u1 u2 )", os([at_most_one_of([vs("u1"), vs("u2")])]), vec!["u1", "u2"])]
+            [("?? ( u1 u2 )", ds([at_most_one_of([vs("u1"), vs("u2")])]), vec!["u1", "u2"])]
         {
             for eapi in EAPIS.iter() {
                 if eapi.has(Feature::RequiredUseOneOf) {
                     let depset = parse::required_use(&s, eapi)?.unwrap();
                     let flatten: Vec<_> = depset.iter_flatten().collect();
                     assert_eq!(flatten, expected_flatten);
-                    assert_eq!(depset.deps, expected, "{s} failed");
+                    assert_eq!(depset, expected, "{s} failed");
                     assert_eq!(depset.to_string(), s);
                 }
             }
@@ -632,25 +630,25 @@ mod tests {
 
         // valid
         for (s, expected, expected_flatten) in [
-            ("a/b", os([va("a/b")]), vec!["a/b"]),
-            ("a/b c/d", os([va("a/b"), va("c/d")]), vec!["a/b", "c/d"]),
-            ("( a/b c/d )", os([allof([va("a/b"), va("c/d")])]), vec!["a/b", "c/d"]),
-            ("u? ( a/b c/d )", os([use_enabled("u", [va("a/b"), va("c/d")])]), vec!["a/b", "c/d"]),
+            ("a/b", ds([va("a/b")]), vec!["a/b"]),
+            ("a/b c/d", ds([va("a/b"), va("c/d")]), vec!["a/b", "c/d"]),
+            ("( a/b c/d )", ds([allof([va("a/b"), va("c/d")])]), vec!["a/b", "c/d"]),
+            ("u? ( a/b c/d )", ds([use_enabled("u", [va("a/b"), va("c/d")])]), vec!["a/b", "c/d"]),
             (
                 "!u? ( a/b c/d )",
-                os([use_disabled("u", [va("a/b"), va("c/d")])]),
+                ds([use_disabled("u", [va("a/b"), va("c/d")])]),
                 vec!["a/b", "c/d"],
             ),
             (
                 "u1? ( a/b !u2? ( c/d ) )",
-                os([use_enabled("u1", [va("a/b"), use_disabled("u2", [va("c/d")])])]),
+                ds([use_enabled("u1", [va("a/b"), use_disabled("u2", [va("c/d")])])]),
                 vec!["a/b", "c/d"],
             ),
         ] {
             let depset = parse::pkgdep(&s, &EAPI_LATEST)?.unwrap();
             let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
             assert_eq!(flatten, expected_flatten);
-            assert_eq!(depset.deps, expected, "{s} failed");
+            assert_eq!(depset, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
         }
 
@@ -672,28 +670,28 @@ mod tests {
             // valid
             for (s, expected, expected_flatten) in [
                 // simple values
-                ("v", os([vs("v")]), vec!["v"]),
-                ("v1 v2", os([vs("v1"), vs("v2")]), vec!["v1", "v2"]),
+                ("v", ds([vs("v")]), vec!["v"]),
+                ("v1 v2", ds([vs("v1"), vs("v2")]), vec!["v1", "v2"]),
                 // groupings
-                ("( v )", os([allof(vec![vs("v")])]), vec!["v"]),
-                ("( v1 v2 )", os([allof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+                ("( v )", ds([allof(vec![vs("v")])]), vec!["v"]),
+                ("( v1 v2 )", ds([allof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
                 (
                     "( v1 ( v2 ) )",
-                    os([allof(vec![vs("v1"), allof(vec![vs("v2")])])]),
+                    ds([allof(vec![vs("v1"), allof(vec![vs("v2")])])]),
                     vec!["v1", "v2"],
                 ),
-                ("( ( v ) )", os([allof(vec![allof(vec![vs("v")])])]), vec!["v"]),
+                ("( ( v ) )", ds([allof(vec![allof(vec![vs("v")])])]), vec!["v"]),
                 // conditionals
-                ("u? ( v )", os([use_enabled("u", vec![vs("v")])]), vec!["v"]),
-                ("u? ( v1 v2 )", os([use_enabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
-                ("!u? ( v1 v2 )", os([use_disabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+                ("u? ( v )", ds([use_enabled("u", vec![vs("v")])]), vec!["v"]),
+                ("u? ( v1 v2 )", ds([use_enabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+                ("!u? ( v1 v2 )", ds([use_disabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
                 // combinations
-                ("v1 u? ( v2 )", os([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
+                ("v1 u? ( v2 )", ds([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
             ] {
                 let depset = parse_func(&s)?.unwrap();
                 let flatten: Vec<_> = depset.iter_flatten().collect();
                 assert_eq!(flatten, expected_flatten);
-                assert_eq!(depset.deps, expected, "{s} failed");
+                assert_eq!(depset, expected, "{s} failed");
                 assert_eq!(depset.to_string(), s);
             }
         }
