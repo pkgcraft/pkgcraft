@@ -95,7 +95,7 @@ pub enum DepRestrict<T: Ordered> {
 
 impl<T: Ordered> DepRestrict<T> {
     pub fn iter_flatten(&self) -> DepSetFlattenIter<T> {
-        DepSetFlattenIter(VecDeque::from([self]))
+        DepSetFlattenIter([self].into_iter().collect())
     }
 }
 
