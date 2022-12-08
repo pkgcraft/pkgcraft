@@ -794,7 +794,7 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
 #[derive(Debug)]
 pub struct TempRepo {
     tempdir: TempDir,
-    pub(crate) path: Utf8PathBuf,
+    path: Utf8PathBuf,
 }
 
 impl TempRepo {
@@ -903,8 +903,12 @@ impl TempRepo {
         Ok(path)
     }
 
-    /// Attempts to persist the temporary repo to disk, returning the [`PathBuf`] where it is
-    /// located.
+    /// Return the temporary repo's file path.
+    pub fn path(&self) -> &Utf8Path {
+        &self.path
+    }
+
+    /// Persist the temporary repo to disk, returning the [`PathBuf`] where it is located.
     pub(crate) fn persist<P: AsRef<Path>>(self, path: Option<P>) -> crate::Result<PathBuf> {
         let mut repo_path = self.tempdir.into_path();
         if let Some(path) = path {

@@ -331,50 +331,47 @@ mod tests {
 
         // single repo
         let t1 = TempRepo::new("test", None, None).unwrap();
-        let r1_path = t1.path.as_str();
         let data = indoc::formatdoc! {r#"
             [a]
-            location = {r1_path}
-        "#};
+            location = {}
+        "#, t1.path()};
         fs::write(&path, data).unwrap();
         let repos = config.load_repos_conf(&path).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["a"]);
 
         // multiple, prioritized repos
         let t2 = TempRepo::new("r2", None, None).unwrap();
-        let r2_path = t2.path.as_str();
         let data = indoc::formatdoc! {r#"
             [b]
-            location = {r1_path}
+            location = {}
             [c]
-            location = {r2_path}
+            location = {}
             priority = 1
-        "#};
+        "#, t1.path(), t2.path()};
         fs::write(&path, data).unwrap();
         let repos = config.load_repos_conf(&path).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["c", "b"]);
 
         // multiple config files in a specified directory
-        let r3 = TempRepo::new("r3", None, None).unwrap();
-        let r3_path = r3.path.as_str();
+        let t3 = TempRepo::new("r3", None, None).unwrap();
         let tmpdir = tempdir().unwrap();
         let conf_dir = tmpdir.path();
         let data = indoc::formatdoc! {r#"
             [r1]
-            location = {r1_path}
-        "#};
+            location = {}
+        "#, t1.path()};
         fs::write(conf_dir.join("r1.conf"), data).unwrap();
         let data = indoc::formatdoc! {r#"
             [r2]
-            location = {r2_path}
+            location = {}
             priority = -1
-        "#};
+        "#, t2.path()};
         fs::write(conf_dir.join("r2.conf"), data).unwrap();
         let data = indoc::formatdoc! {r#"
             [r3]
-            location = {r3_path}
+            location = {}
             priority = 1
-        "#};
+        "#, t3.path()};
         fs::write(conf_dir.join("r3.conf"), data).unwrap();
         let repos = config.load_repos_conf(conf_dir.to_str().unwrap()).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]);
@@ -382,21 +379,20 @@ mod tests {
         // reloading existing repo fails
         let data = indoc::formatdoc! {r#"
             [r1]
-            location = {r1_path}
-        "#};
+            location = {}
+        "#, t1.path()};
         fs::write(&path, data).unwrap();
         let r = config.load_repos_conf(&path);
         assert_err_re!(r, "existing repo: r1");
 
         // nonexistent masters causes finalization failure
         let t = TempRepo::new("bad", None, None).unwrap();
-        let repo_path = t.path.as_str();
-        let repo = EbuildRepo::from_path("bad", 0, &t.path).unwrap();
+        let repo = EbuildRepo::from_path("bad", 0, t.path()).unwrap();
         repo.config().write(Some("masters = x y z")).unwrap();
         let data = indoc::formatdoc! {r#"
             [bad]
-            location = {repo_path}
-        "#};
+            location = {}
+        "#, t.path()};
         fs::write(&path, data).unwrap();
         let r = config.load_repos_conf(&path);
         assert_err_re!(r, "^.* unconfigured repos: x, y, z$");

@@ -141,21 +141,15 @@ impl Config {
     }
 
     /// Add local repo from a filesystem path.
-    pub(super) fn add_path(
+    pub(super) fn add_path<P: AsRef<Utf8Path>>(
         &mut self,
         name: &str,
         priority: i32,
-        path: &str,
+        path: P,
     ) -> crate::Result<Repo> {
         if self.repos.get(name).is_some() {
             return Err(Error::Config(format!("existing repo: {name}")));
         }
-
-        let path = Utf8PathBuf::from(path);
-        if !path.exists() {
-            return Err(Error::Config(format!("nonexistent repo path: {path:?}")));
-        }
-
         Repo::from_path(name, priority, path)
     }
 
@@ -212,7 +206,7 @@ impl Config {
             Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
             None => {
                 let temp_repo = TempRepo::new(name, None, None)?;
-                let r = self.add_path(name, priority, temp_repo.path.as_str())?;
+                let r = self.add_path(name, priority, temp_repo.path())?;
                 Ok((temp_repo, r))
             }
         }

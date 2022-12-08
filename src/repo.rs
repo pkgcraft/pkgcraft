@@ -73,6 +73,10 @@ impl Repo {
         let path = path.as_ref();
         let id = id.as_ref();
 
+        if !path.exists() {
+            return Err(Error::InvalidValue(format!("nonexistent repo path: {path:?}")));
+        }
+
         for format in SUPPORTED_FORMATS.iter() {
             if let Ok(repo) = Self::from_format(id, priority, path, format) {
                 return Ok(repo);
@@ -452,7 +456,7 @@ mod tests {
     #[test]
     fn test_traits() {
         let t = ebuild::TempRepo::new("test", None, None).unwrap();
-        let repo = ebuild::Repo::from_path("test", 0, t.path).unwrap();
+        let repo = ebuild::Repo::from_path("test", 0, t.path()).unwrap();
         let e_repo: Repo = repo.into();
         let f_repo: Repo = fake::Repo::new("fake", 0, []).into();
         assert!(&e_repo != &f_repo);
