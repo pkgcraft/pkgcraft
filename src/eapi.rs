@@ -621,7 +621,7 @@ pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
 
 /// Ordered mapping of unofficial EAPI identifiers to instances.
 pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> =
-    Lazy::new(|| IndexSet::from([&*EAPI_PKGCRAFT]));
+    Lazy::new(|| [&*EAPI_PKGCRAFT].into_iter().collect());
 
 /// Ordered mapping of EAPI identifiers to instances.
 pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
