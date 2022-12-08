@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_nonexistent() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
         BuildData::update(&cpv, &repo);
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_source_failure() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // create eclass
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_single() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // create eclass
@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_multiple() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // create eclasses
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_nested_single() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // create eclasses
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_nested_multiple() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // create eclasses
@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn test_pkg_env() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // create eclass
@@ -250,7 +250,7 @@ mod tests {
 
     #[test]
     fn test_skip_reinherits() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         let temp_file = tempfile::NamedTempFile::new().unwrap();
         bind("TEMP_FILE", temp_file.path().to_string_lossy(), None, None).unwrap();

@@ -288,7 +288,7 @@ mod tests {
 
     #[test]
     fn test_repo_traits() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, ebuild_repo) = config.temp_repo("test", 0).unwrap();
         let fake_repo = fake::Repo::new("fake", 0, []);
 

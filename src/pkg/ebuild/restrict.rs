@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_ebuild() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // single
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_description() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         t.create_ebuild("cat/pkg-1", [(Key::Description, "desc1")])
@@ -247,7 +247,7 @@ mod tests {
 
     #[test]
     fn test_slot() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_subslot() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // no explicit subslot
@@ -305,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_long_description() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         let (path, cpv) = t.create_ebuild("cat/pkg-a-1", []).unwrap();
@@ -358,7 +358,7 @@ mod tests {
 
     #[test]
     fn test_maintainers() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
@@ -410,7 +410,7 @@ mod tests {
 
     #[test]
     fn test_upstreams() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none

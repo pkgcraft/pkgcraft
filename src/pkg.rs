@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_ordering() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
 
         // unmatching pkgs sorted by atom
         let r1: Repo = fake::Repo::new("b", 0, ["cat/pkg-1"]).into();

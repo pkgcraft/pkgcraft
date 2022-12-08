@@ -264,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_invalid_eapi() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         let (path, cpv) = t
             .create_ebuild("cat/pkg-1", [(Key::Eapi, "$EAPI")])
@@ -284,7 +284,7 @@ mod tests {
             assert_eq!(pkg.as_ref(), path.as_ref());
         }
 
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         let (path, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
         let pkg = Pkg::new(path.clone(), cpv, &repo).unwrap();
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_pkg_methods() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
@@ -305,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_package_trait() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         t.create_ebuild("cat/pkg-1", []).unwrap();
         t.create_ebuild("cat/pkg-2", [(Key::Eapi, "0")]).unwrap();
@@ -329,7 +329,7 @@ mod tests {
 
     #[test]
     fn test_slot() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // default (injected by create_ebuild())
@@ -353,7 +353,7 @@ mod tests {
 
     #[test]
     fn test_description() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         let (path, cpv) = t
@@ -365,7 +365,7 @@ mod tests {
 
     #[test]
     fn test_homepage() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
@@ -397,7 +397,7 @@ mod tests {
 
     #[test]
     fn test_defined_phases() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
@@ -490,7 +490,7 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
@@ -520,7 +520,7 @@ mod tests {
 
     #[test]
     fn test_iuse() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
@@ -598,7 +598,7 @@ mod tests {
 
     #[test]
     fn test_inherits() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // none
@@ -654,7 +654,7 @@ mod tests {
 
     #[test]
     fn test_maintainers() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
@@ -717,7 +717,7 @@ mod tests {
 
     #[test]
     fn test_upstreams() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
@@ -775,7 +775,7 @@ mod tests {
 
     #[test]
     fn test_local_use() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
@@ -832,7 +832,7 @@ mod tests {
 
     #[test]
     fn test_long_description() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
@@ -931,7 +931,7 @@ mod tests {
 
     #[test]
     fn test_distfiles() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("manifest", 0).unwrap();
 
         // none

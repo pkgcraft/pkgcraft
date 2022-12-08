@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_single() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         let temp_file = tempfile::NamedTempFile::new().unwrap();

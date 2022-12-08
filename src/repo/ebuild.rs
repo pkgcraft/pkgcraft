@@ -934,7 +934,7 @@ mod tests {
 
     #[test]
     fn test_masters() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
 
         // nonexistent
         let t = TempRepo::new("test", None, None).unwrap();
@@ -986,7 +986,7 @@ mod tests {
 
     #[test]
     fn test_invalid_config() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
         repo.config.write(Some("data")).unwrap();
@@ -996,14 +996,14 @@ mod tests {
 
     #[test]
     fn test_id() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
         assert_eq!(repo.id(), "test");
     }
 
     #[test]
     fn test_len() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         assert_eq!(repo.len(), 0);
@@ -1018,7 +1018,7 @@ mod tests {
 
     #[test]
     fn test_categories() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
         assert!(repo.categories().is_empty());
@@ -1031,7 +1031,7 @@ mod tests {
 
     #[test]
     fn test_packages() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
         assert!(repo.packages("cat").is_empty());
@@ -1044,7 +1044,7 @@ mod tests {
 
     #[test]
     fn test_versions() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
 
         assert!(repo.versions("cat", "pkg").is_empty());
@@ -1072,7 +1072,7 @@ mod tests {
 
     #[test]
     fn test_contains() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
         // path containment
@@ -1098,12 +1098,12 @@ mod tests {
     #[test]
     fn test_arches() {
         // empty
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
         assert!(repo.arches().is_empty());
 
         // multiple
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
         let data = indoc::indoc! {r#"
             amd64
@@ -1134,7 +1134,7 @@ mod tests {
 
     #[test]
     fn test_iter() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         t.create_ebuild("cat2/pkg-1", []).unwrap();
         t.create_ebuild("cat1/pkg-1", []).unwrap();
@@ -1148,7 +1148,7 @@ mod tests {
 
     #[test]
     fn test_iter_restrict() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
         t.create_ebuild("cat/pkg-1", []).unwrap();
         t.create_ebuild("cat/pkg-2", []).unwrap();
@@ -1180,7 +1180,7 @@ mod tests {
             ([(Key::Eapi, "a")], "unknown EAPI: a"),
             ([(Key::Slot, "-")], "missing required values: SLOT"),
         ] {
-            let mut config = Config::new("pkgcraft", "", false).unwrap();
+            let mut config = Config::default();
             let (t, repo) = config.temp_repo("test", 0).unwrap();
             t.create_ebuild("cat/pkg-0", data).unwrap();
             let mut iter = repo.iter();
