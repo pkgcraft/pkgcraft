@@ -126,7 +126,7 @@ impl Config {
         let mut config = Config {
             config_dir,
             repo_dir,
-            ..Default::default()
+            repos: Default::default(),
         };
 
         // finalize, sort, and add repos to the config

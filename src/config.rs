@@ -115,7 +115,7 @@ impl ConfigPath {
 }
 
 /// System config
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct Config {
     pub path: ConfigPath,
     pub repos: repo::Config,
@@ -123,12 +123,9 @@ pub struct Config {
 
 impl Config {
     pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Config> {
-        let mut config = Config {
-            path: ConfigPath::new(name, prefix, create)?,
-            ..Default::default()
-        };
-        config.repos = repo::Config::new(&config.path.config, &config.path.db, create)?;
-        Ok(config)
+        let path = ConfigPath::new(name, prefix, create)?;
+        let repos = repo::Config::new(&path.config, &path.db, create)?;
+        Ok(Config { path, repos })
     }
 
     // Note that repo references can't be returned since the underlying map structure alters them
