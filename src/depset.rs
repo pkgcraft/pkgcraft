@@ -54,10 +54,8 @@ impl<T: fmt::Display + Ordered> fmt::Display for DepSet<T> {
 }
 
 impl<T: Ordered> DepSet<T> {
-    pub fn flatten(&self) -> DepSetFlatten<T> {
-        DepSetFlatten {
-            deps: self.deps.iter().collect(),
-        }
+    pub fn iter_flatten(&self) -> DepSetFlattenIter<T> {
+        DepSetFlattenIter(self.deps.iter().collect())
     }
 
     pub fn iter(&self) -> DepSetIter<T> {
@@ -102,10 +100,8 @@ pub enum DepRestrict<T: Ordered> {
 }
 
 impl<T: Ordered> DepRestrict<T> {
-    pub fn flatten(&self) -> DepSetFlatten<T> {
-        DepSetFlatten {
-            deps: VecDeque::from([self]),
-        }
+    pub fn iter_flatten(&self) -> DepSetFlattenIter<T> {
+        DepSetFlattenIter(VecDeque::from([self]))
     }
 }
 
@@ -136,7 +132,7 @@ pub enum Restrict<T> {
 impl Restriction<&DepSet<Atom>> for Restrict<AtomRestrict> {
     fn matches(&self, val: &DepSet<Atom>) -> bool {
         match self {
-            Self::Any(r) => val.flatten().any(|v| r.matches(v)),
+            Self::Any(r) => val.iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
@@ -144,7 +140,7 @@ impl Restriction<&DepSet<Atom>> for Restrict<AtomRestrict> {
 impl Restriction<&DepSet<String>> for Restrict<Str> {
     fn matches(&self, val: &DepSet<String>) -> bool {
         match self {
-            Self::Any(r) => val.flatten().any(|v| r.matches(v)),
+            Self::Any(r) => val.iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
@@ -152,30 +148,28 @@ impl Restriction<&DepSet<String>> for Restrict<Str> {
 impl Restriction<&DepSet<Uri>> for Restrict<Str> {
     fn matches(&self, val: &DepSet<Uri>) -> bool {
         match self {
-            Self::Any(r) => val.flatten().any(|v| r.matches(v.as_ref())),
+            Self::Any(r) => val.iter_flatten().any(|v| r.matches(v.as_ref())),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct DepSetFlatten<'a, T: Ordered> {
-    deps: VecDeque<&'a DepRestrict<T>>,
-}
+pub struct DepSetFlattenIter<'a, T: Ordered>(VecDeque<&'a DepRestrict<T>>);
 
-impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetFlatten<'a, T> {
+impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetFlattenIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
         use DepRestrict::*;
-        while let Some(dep) = self.deps.pop_front() {
+        while let Some(dep) = self.0.pop_front() {
             match dep {
                 Matches(val, _) => return Some(val),
-                AllOf(vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                AnyOf(vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                ExactlyOneOf(vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                AtMostOneOf(vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                UseEnabled(_, vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
-                UseDisabled(_, vals) => extend_left!(self.deps, vals.iter().map(AsRef::as_ref)),
+                AllOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                AnyOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                ExactlyOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                AtMostOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                UseEnabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                UseDisabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
             }
         }
         None
@@ -186,7 +180,7 @@ impl Restriction<&DepSet<Atom>> for restrict::Restrict {
     fn matches(&self, val: &DepSet<Atom>) -> bool {
         restrict::restrict_match! {
             self, val,
-            Self::Atom(r) => val.flatten().any(|v| r.matches(v))
+            Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v))
         }
     }
 }
@@ -508,7 +502,7 @@ mod tests {
             ),
         ] {
             let depset = parse::license(&s)?.unwrap();
-            let flatten: Vec<_> = depset.flatten().collect();
+            let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset.deps, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
@@ -543,7 +537,7 @@ mod tests {
         ] {
             for eapi in EAPIS.iter() {
                 let depset = parse::src_uri(&s, eapi)?.unwrap();
-                let flatten: Vec<_> = depset.flatten().map(|x| x.to_string()).collect();
+                let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
                 assert_eq!(depset.deps, expected, "{s} failed");
                 assert_eq!(depset.to_string(), s);
@@ -566,7 +560,7 @@ mod tests {
             for eapi in EAPIS.iter() {
                 if eapi.has(Feature::SrcUriRenames) {
                     let depset = parse::src_uri(&s, eapi)?.unwrap();
-                    let flatten: Vec<_> = depset.flatten().map(|x| x.to_string()).collect();
+                    let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                     assert_eq!(flatten, expected_flatten);
                     assert_eq!(depset.deps, expected, "{s} failed");
                     assert_eq!(depset.to_string(), s);
@@ -606,7 +600,7 @@ mod tests {
             ),
         ] {
             let depset = parse::required_use(&s, &EAPI_LATEST)?.unwrap();
-            let flatten: Vec<_> = depset.flatten().collect();
+            let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset.deps, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
@@ -619,7 +613,7 @@ mod tests {
             for eapi in EAPIS.iter() {
                 if eapi.has(Feature::RequiredUseOneOf) {
                     let depset = parse::required_use(&s, eapi)?.unwrap();
-                    let flatten: Vec<_> = depset.flatten().collect();
+                    let flatten: Vec<_> = depset.iter_flatten().collect();
                     assert_eq!(flatten, expected_flatten);
                     assert_eq!(depset.deps, expected, "{s} failed");
                     assert_eq!(depset.to_string(), s);
@@ -658,7 +652,7 @@ mod tests {
             ),
         ] {
             let depset = parse::pkgdep(&s, &EAPI_LATEST)?.unwrap();
-            let flatten: Vec<_> = depset.flatten().map(|x| x.to_string()).collect();
+            let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset.deps, expected, "{s} failed");
             assert_eq!(depset.to_string(), s);
@@ -701,7 +695,7 @@ mod tests {
                 ("v1 u? ( v2 )", os([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
             ] {
                 let depset = parse_func(&s)?.unwrap();
-                let flatten: Vec<_> = depset.flatten().collect();
+                let flatten: Vec<_> = depset.iter_flatten().collect();
                 assert_eq!(flatten, expected_flatten);
                 assert_eq!(depset.deps, expected, "{s} failed");
                 assert_eq!(depset.to_string(), s);
