@@ -308,17 +308,10 @@ mod tests {
         let atoms = AtomData::load().unwrap();
 
         // invalid deps
-        for (s, range) in atoms.invalid {
-            let failing_eapis: IndexSet<_> = eapi::range(&range).unwrap().collect();
-            // verify parse failures
-            for eapi in &failing_eapis {
+        for s in atoms.invalid {
+            for eapi in eapi::EAPIS.iter() {
                 let result = dep(&s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
-            }
-            // verify parse successes
-            for eapi in eapi::EAPIS.difference(&failing_eapis) {
-                let result = dep(&s, eapi);
-                assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
             }
         }
 
