@@ -113,14 +113,12 @@ impl Config {
             }
         }
 
-        // create hash tables of repos ordered by priority
-        let mut repos = IndexMap::<String, Repo>::new();
+        // load configured repos
+        let mut repos = vec![];
         for (name, c) in configs.into_iter() {
             // ignore unsynced or nonexistent repos
             match Repo::from_format(&name, c.priority, &c.location, &c.format) {
-                Ok(repo) => {
-                    repos.insert(name, repo);
-                }
+                Ok(repo) => repos.push(repo),
                 Err(err) => warn!("{err}"),
             }
         }
@@ -128,15 +126,11 @@ impl Config {
         let mut config = Config {
             config_dir,
             repo_dir,
-            repos,
+            ..Default::default()
         };
 
-        // sort and finalize repos
-        config.sort();
-        for repo in config.repos.values() {
-            repo.finalize(&config.repos)?;
-        }
-
+        // finalize, sort, and add repos to the config
+        config.extend(&repos)?;
         Ok(config)
     }
 
