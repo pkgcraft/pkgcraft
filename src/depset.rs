@@ -68,22 +68,18 @@ impl<'a, T: Ordered> IntoIterator for &'a DepSet<T> {
     type IntoIter = DepSetIter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        DepSetIter {
-            iter: self.deps.iter(),
-        }
+        DepSetIter(self.deps.iter())
     }
 }
 
 #[derive(Debug)]
-pub struct DepSetIter<'a, T: Ordered> {
-    iter: indexmap::set::Iter<'a, DepRestrict<T>>,
-}
+pub struct DepSetIter<'a, T: Ordered>(indexmap::set::Iter<'a, DepRestrict<T>>);
 
 impl<'a, T: Ordered> Iterator for DepSetIter<'a, T> {
     type Item = &'a DepRestrict<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.0.next()
     }
 }
 
