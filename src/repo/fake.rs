@@ -11,7 +11,7 @@ use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::Error;
 
-use super::{make_repo_traits, Contains, PkgRepository, Repository};
+use super::{make_repo_traits, PkgRepository, Repository};
 
 type VersionMap = IndexMap<String, IndexSet<String>>;
 type PkgMap = IndexMap<String, VersionMap>;
@@ -162,12 +162,6 @@ impl Repository for Repo {
     }
 }
 
-impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
-    fn contains(&self, _path: T) -> bool {
-        false
-    }
-}
-
 impl<'a> IntoIterator for &'a Repo {
     type Item = Pkg<'a>;
     type IntoIter = PkgIter<'a>;
@@ -219,6 +213,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::pkg::Package;
+    use crate::repo::Contains;
 
     use super::*;
 

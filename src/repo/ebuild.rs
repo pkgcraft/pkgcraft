@@ -24,7 +24,7 @@ use crate::pkg::ebuild::Pkg;
 use crate::restrict::{Restrict, Restriction, Str};
 use crate::{atom, eapi, Error};
 
-use super::{make_repo_traits, Contains, PkgRepository, Repository};
+use super::{make_repo_traits, PkgRepository, Repository};
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
@@ -612,21 +612,6 @@ impl Repository for Repo {
     }
 }
 
-impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
-    fn contains(&self, path: T) -> bool {
-        let path = path.as_ref();
-        if path.is_absolute() {
-            if let (Ok(path), Ok(repo_path)) = (path.canonicalize(), self.path().canonicalize()) {
-                path.starts_with(&repo_path) && path.exists()
-            } else {
-                false
-            }
-        } else {
-            self.path().join(path).exists()
-        }
-    }
-}
-
 fn is_ebuild(e: &DirEntry) -> bool {
     is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
 }
@@ -938,6 +923,7 @@ mod tests {
     use crate::macros::*;
     use crate::metadata::Key;
     use crate::pkg::Package;
+    use crate::repo::Contains;
     use crate::test::assert_unordered_eq;
 
     use super::*;

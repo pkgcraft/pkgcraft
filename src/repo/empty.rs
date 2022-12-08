@@ -5,7 +5,7 @@ use camino::Utf8Path;
 use crate::config::RepoConfig;
 use crate::pkg::Pkg;
 use crate::restrict::Restrict;
-use crate::{repo, Error};
+use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, Repository};
 
@@ -98,12 +98,6 @@ impl Repository for Repo {
 
     fn sync(&self) -> crate::Result<()> {
         self.repo_config.sync()
-    }
-}
-
-impl<T: AsRef<Utf8Path>> repo::Contains<T> for Repo {
-    fn contains(&self, _path: T) -> bool {
-        false
     }
 }
 

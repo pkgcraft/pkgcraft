@@ -415,9 +415,15 @@ macro_rules! make_repo_traits {
         }
 
         $crate::repo::make_contains_atom!($x);
+        $crate::repo::make_contains_path!($x);
     )+};
 }
 pub(self) use make_repo_traits;
+
+/// A repo contains a given object.
+pub trait Contains<T> {
+    fn contains(&self, obj: T) -> bool;
+}
 
 macro_rules! make_contains_atom {
     ($x:ty) => {
@@ -430,20 +436,32 @@ macro_rules! make_contains_atom {
 }
 pub(self) use make_contains_atom;
 
-/// A repo contains a given object.
-pub trait Contains<T> {
-    fn contains(&self, obj: T) -> bool;
-}
-
-impl<T: AsRef<Utf8Path>> Contains<T> for Repo {
-    fn contains(&self, path: T) -> bool {
-        match self {
-            Self::Ebuild(repo) => repo.contains(path),
-            Self::Fake(repo) => repo.contains(path),
-            Self::Unsynced(repo) => repo.contains(path),
+macro_rules! make_contains_path {
+    ($x:ty) => {
+        impl<T: AsRef<Utf8Path>> $crate::repo::Contains<T> for $x {
+            fn contains(&self, path: T) -> bool {
+                match self.path() {
+                    p if p.as_str().is_empty() => false,
+                    repo_path => {
+                        let path = path.as_ref();
+                        if path.is_absolute() {
+                            if let (Ok(path), Ok(repo_path)) =
+                                (path.canonicalize(), repo_path.canonicalize())
+                            {
+                                path.starts_with(&repo_path) && path.exists()
+                            } else {
+                                false
+                            }
+                        } else {
+                            repo_path.join(path).exists()
+                        }
+                    }
+                }
+            }
         }
-    }
+    };
 }
+pub(self) use make_contains_path;
 
 #[cfg(test)]
 mod tests {
