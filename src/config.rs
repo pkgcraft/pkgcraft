@@ -140,28 +140,28 @@ impl Config {
     /// Add local repo from a filesystem path.
     pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> crate::Result<Repo> {
         let r = self.repos.add_path(name, priority, path)?;
-        self.add_repo(&r, true)?;
+        self.add_repo(&r)?;
         Ok(r)
     }
 
     /// Add external repo from a URI.
     pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;
-        self.add_repo(&r, false)?;
+        self.add_repo(&r)?;
         Ok(r)
     }
 
     /// Add a repo to the config.
-    pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<()> {
+    pub fn add_repo(&mut self, repo: &Repo) -> crate::Result<()> {
         repo.finalize(self)?;
-        self.repos.insert(repo.id(), repo.clone(), external);
+        self.repos.insert(repo.id(), repo.clone());
         Ok(())
     }
 
     /// Create a new repo.
     pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
         let r = self.repos.create(name, priority)?;
-        self.add_repo(&r, false)?;
+        self.add_repo(&r)?;
         Ok(r)
     }
 
@@ -212,7 +212,7 @@ impl Config {
 
         if !repos.is_empty() {
             // add repos to config
-            self.repos.extend(&repos, true);
+            self.repos.extend(&repos);
 
             // verify new repos
             for (_name, repo) in &repos {
@@ -235,7 +235,7 @@ impl Config {
         priority: i32,
     ) -> crate::Result<(TempRepo, Arc<EbuildRepo>)> {
         let (temp_repo, r) = self.repos.create_temp(name, priority)?;
-        self.add_repo(&r, true)?;
+        self.add_repo(&r)?;
         let repo = r.as_ebuild().expect("invalid ebuild repo: {name}");
         Ok((temp_repo, repo.clone()))
     }

@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -71,8 +70,6 @@ pub struct Config {
     repo_dir: Utf8PathBuf,
     #[serde(skip)]
     repos: IndexMap<String, Repo>,
-    #[serde(skip)]
-    externals: HashMap<String, Repo>,
 }
 
 impl Config {
@@ -131,7 +128,6 @@ impl Config {
             config_dir,
             repo_dir,
             repos,
-            ..Default::default()
         };
 
         // sort repos
@@ -277,25 +273,19 @@ impl Config {
         self.into_iter()
     }
 
-    /// Get a configured repo, falling back to external repos on nonexistence.
+    /// Get a configured repo.
     pub fn get(&self, key: &str) -> Option<&Repo> {
-        self.repos.get(key).or_else(|| self.externals.get(key))
+        self.repos.get(key)
     }
 
     /// Insert a single repo into the config.
-    pub(super) fn insert(&mut self, id: &str, repo: Repo, external: bool) {
-        self.extend(&[(id, repo)], external)
+    pub(super) fn insert(&mut self, id: &str, repo: Repo) {
+        self.extend(&[(id, repo)])
     }
 
     /// Extend the config with multiple repos.
-    pub(super) fn extend<S: ToString>(&mut self, repos: &[(S, Repo)], external: bool) {
+    pub(super) fn extend<S: ToString>(&mut self, repos: &[(S, Repo)]) {
         for (id, repo) in repos {
-            // populate external repo mapping for masters finalization
-            if external {
-                if let Repo::Ebuild(r) = repo {
-                    self.externals.insert(r.path().to_string(), repo.clone());
-                }
-            }
             self.repos.insert(id.to_string(), repo.clone());
         }
 
