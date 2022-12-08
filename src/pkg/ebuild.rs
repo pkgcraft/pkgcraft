@@ -315,7 +315,7 @@ mod tests {
         let pkg2 = iter.next().unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
-        assert_eq!(pkg1.eapi(), &*eapi::EAPI_LATEST);
+        assert_eq!(pkg1.eapi(), *eapi::EAPI_LATEST);
         assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
         assert_eq!(pkg1.atom(), &atom::cpv("cat/pkg-1").unwrap());
         assert_eq!(pkg2.atom(), &atom::cpv("cat/pkg-2").unwrap());

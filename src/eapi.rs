@@ -599,7 +599,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
 });
 
 /// Reference to the latest registered EAPI.
-pub static EAPI_LATEST: Lazy<Eapi> = Lazy::new(|| EAPI8.clone());
+pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
 
 /// The latest EAPI with extensions on top.
 pub static EAPI_PKGCRAFT: Lazy<Eapi> =
@@ -691,11 +691,11 @@ mod tests {
 
     #[test]
     fn test_ordering() {
-        assert!(*EAPI0 < *EAPI_LATEST);
+        assert!(*EAPI0 < **EAPI_LATEST);
         assert!(*EAPI0 <= *EAPI0);
         assert!(*EAPI0 == *EAPI0);
         assert!(*EAPI0 >= *EAPI0);
-        assert!(*EAPI_LATEST > *EAPI0);
+        assert!(**EAPI_LATEST > *EAPI0);
     }
 
     #[test]
