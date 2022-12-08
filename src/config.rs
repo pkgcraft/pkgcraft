@@ -235,12 +235,9 @@ impl Config {
         priority: i32,
     ) -> crate::Result<(TempRepo, Arc<EbuildRepo>)> {
         let (temp_repo, r) = self.repos.create_temp(name, priority)?;
-        r.finalize(self)?;
-        self.repos.insert(name, r, false);
-        match self.repos.get(name) {
-            Some(Repo::Ebuild(r)) => Ok((temp_repo, r.clone())),
-            _ => panic!("unknown temp repo: {}", name),
-        }
+        self.add_repo(&r, true)?;
+        let repo = r.as_ebuild().expect("invalid ebuild repo: {name}");
+        Ok((temp_repo, repo.clone()))
     }
 }
 
