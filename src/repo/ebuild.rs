@@ -24,7 +24,7 @@ use crate::pkg::ebuild::Pkg;
 use crate::restrict::{Restrict, Restriction, Str};
 use crate::{atom, eapi, Error};
 
-use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, Repository};
+use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
@@ -599,6 +599,10 @@ impl PkgRepository for Repo {
 }
 
 impl Repository for Repo {
+    fn format(&self) -> RepoFormat {
+        self.repo_config.format
+    }
+
     fn id(&self) -> &str {
         &self.id
     }

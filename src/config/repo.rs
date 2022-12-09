@@ -8,20 +8,23 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use tracing::warn;
 
 use crate::repo::ebuild::TempRepo;
 use crate::repo::set::RepoSet;
-use crate::repo::{Repo, Repository};
+use crate::repo::{Repo, RepoFormat, Repository};
 use crate::sync::Syncer;
 use crate::Error;
 
 use super::RepoSetType;
 
+#[serde_as]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct RepoConfig {
     pub(crate) location: Utf8PathBuf,
-    pub(crate) format: String,
+    #[serde_as(as = "DisplayFromStr")]
+    pub(crate) format: RepoFormat,
     pub(crate) priority: i32,
     pub(crate) sync: Option<Syncer>,
 }
@@ -34,9 +37,6 @@ impl RepoConfig {
 
         let config: RepoConfig = toml::from_str(&data)
             .map_err(|e| Error::Config(format!("failed loading repo config toml {path:?}: {e}")))?;
-
-        // verify format is supported
-        Repo::is_supported(&config.format)?;
 
         Ok(config)
     }
@@ -117,7 +117,7 @@ impl Config {
         let mut repos = vec![];
         for (name, c) in configs.into_iter() {
             // ignore unsynced or nonexistent repos
-            match Repo::from_format(&name, c.priority, &c.location, &c.format) {
+            match Repo::from_format(&name, c.priority, &c.location, c.format) {
                 Ok(repo) => repos.push(repo),
                 Err(err) => warn!("{err}"),
             }

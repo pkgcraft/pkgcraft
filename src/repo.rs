@@ -4,9 +4,8 @@ use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use enum_as_inner::EnumAsInner;
-use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::Lazy;
-use strum::{EnumIter, IntoEnumIterator, IntoStaticStr};
+use indexmap::IndexMap;
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::atom::Atom;
 use crate::config::RepoConfig;
@@ -19,9 +18,19 @@ pub(crate) mod empty;
 pub mod fake;
 pub mod set;
 
-#[allow(clippy::large_enum_variant)]
-#[derive(IntoStaticStr, EnumIter, EnumAsInner, Debug, Clone)]
+/// Supported repo formats
+#[repr(C)]
+#[derive(EnumIter, EnumString, Display, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
+pub enum RepoFormat {
+    #[default]
+    Ebuild,
+    Fake,
+    Empty,
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(EnumAsInner, Debug, Clone)]
 pub enum Repo {
     Ebuild(Arc<ebuild::Repo>),
     Fake(Arc<fake::Repo>),
@@ -55,15 +64,6 @@ impl From<empty::Repo> for Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    /// Determine if a given repo format is supported.
-    pub(crate) fn is_supported<S: AsRef<str>>(format: S) -> crate::Result<()> {
-        let format = format.as_ref();
-        match SUPPORTED_FORMATS.get(format) {
-            Some(_) => Ok(()),
-            None => Err(Error::RepoInit(format!("unknown repo format: {format}"))),
-        }
-    }
-
     /// Try to load a repo from a given path.
     pub fn from_path<P, S>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
@@ -77,7 +77,7 @@ impl Repo {
             return Err(Error::InvalidValue(format!("nonexistent repo path: {path:?}")));
         }
 
-        for format in SUPPORTED_FORMATS.iter() {
+        for format in RepoFormat::iter() {
             if let Ok(repo) = Self::from_format(id, priority, path, format) {
                 return Ok(repo);
             }
@@ -94,13 +94,13 @@ impl Repo {
         id: &str,
         priority: i32,
         path: &Utf8Path,
-        format: &str,
+        format: RepoFormat,
     ) -> crate::Result<Self> {
+        use RepoFormat::*;
         match format {
-            "ebuild" => Ok(ebuild::Repo::from_path(id, priority, path)?.into()),
-            "fake" => Ok(fake::Repo::from_path(id, priority, path)?.into()),
-            "config" => Ok(empty::Repo::from_path(id, priority, path)?.into()),
-            _ => Err(Error::RepoInit(format!("{id} repo: unknown format: {format}"))),
+            Ebuild => Ok(ebuild::Repo::from_path(id, priority, path)?.into()),
+            Fake => Ok(fake::Repo::from_path(id, priority, path)?.into()),
+            Empty => Ok(empty::Repo::from_path(id, priority, path)?.into()),
         }
     }
 
@@ -171,12 +171,6 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
     }
 }
 
-// externally supported repo formats
-#[rustfmt::skip]
-static SUPPORTED_FORMATS: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
-    <Repo as IntoEnumIterator>::iter().map(|r| r.into()).collect()
-});
-
 pub trait PkgRepository:
     fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a Atom>
 {
@@ -213,6 +207,7 @@ pub trait PkgRepository:
 }
 
 pub trait Repository: PkgRepository + fmt::Display {
+    fn format(&self) -> RepoFormat;
     fn id(&self) -> &str;
     fn priority(&self) -> i32;
     fn path(&self) -> &Utf8Path;
@@ -257,6 +252,9 @@ where
 }
 
 impl<'a, T: Repository + PkgRepository> Repository for &'a T {
+    fn format(&self) -> RepoFormat {
+        (*self).format()
+    }
     fn id(&self) -> &str {
         (*self).id()
     }
@@ -332,6 +330,14 @@ impl PkgRepository for Repo {
 }
 
 impl Repository for Repo {
+    fn format(&self) -> RepoFormat {
+        match self {
+            Self::Ebuild(repo) => repo.format(),
+            Self::Fake(repo) => repo.format(),
+            Self::Unsynced(repo) => repo.format(),
+        }
+    }
+
     fn id(&self) -> &str {
         match self {
             Self::Ebuild(repo) => repo.id(),

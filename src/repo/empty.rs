@@ -7,7 +7,7 @@ use crate::pkg::Pkg;
 use crate::restrict::Restrict;
 use crate::Error;
 
-use super::{make_repo_traits, PkgRepository, Repository};
+use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
 #[derive(Debug, Default)]
 pub struct Repo {
@@ -84,6 +84,10 @@ impl PkgRepository for Repo {
 }
 
 impl Repository for Repo {
+    fn format(&self) -> RepoFormat {
+        self.repo_config.format
+    }
+
     fn id(&self) -> &str {
         &self.id
     }

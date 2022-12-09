@@ -11,7 +11,7 @@ use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::Error;
 
-use super::{make_repo_traits, PkgRepository, Repository};
+use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
 type VersionMap = IndexMap<String, IndexSet<String>>;
 type PkgMap = IndexMap<String, VersionMap>;
@@ -145,6 +145,10 @@ impl PkgRepository for Repo {
 }
 
 impl Repository for Repo {
+    fn format(&self) -> RepoFormat {
+        self.repo_config.format
+    }
+
     fn id(&self) -> &str {
         &self.id
     }
