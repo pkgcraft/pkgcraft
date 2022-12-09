@@ -19,8 +19,8 @@ mod repo;
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum RepoSetType {
-    AllRepos,
-    EbuildRepos,
+    All,
+    Ebuild,
 }
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]

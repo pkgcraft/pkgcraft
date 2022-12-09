@@ -262,8 +262,8 @@ impl Config {
         use RepoSetType::*;
         let repos = self.repos.values();
         match set_type {
-            AllRepos => RepoSet::new(repos),
-            EbuildRepos => RepoSet::new(repos.filter(|r| matches!(r, Repo::Ebuild(_)))),
+            All => RepoSet::new(repos),
+            Ebuild => RepoSet::new(repos.filter(|r| matches!(r, Repo::Ebuild(_)))),
         }
     }
 
