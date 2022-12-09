@@ -6,7 +6,7 @@ use super::{make_pkg_traits, Package};
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
-    atom: &'a atom::Atom,
+    atom: atom::Atom,
     repo: &'a Repo,
 }
 
@@ -14,7 +14,10 @@ make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(atom: &'a atom::Atom, repo: &'a Repo) -> Self {
-        Pkg { atom, repo }
+        Pkg {
+            atom: atom.clone(),
+            repo,
+        }
     }
 }
 
@@ -22,7 +25,7 @@ impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
     fn atom(&self) -> &atom::Atom {
-        self.atom
+        &self.atom
     }
 
     fn eapi(&self) -> &'static eapi::Eapi {
