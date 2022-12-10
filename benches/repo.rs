@@ -1,8 +1,8 @@
 use criterion::Criterion;
 
+use pkgcraft::atom;
 use pkgcraft::config::Config;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::{atom, restrict::Restrict};
 
 pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "", false).unwrap();
@@ -25,10 +25,10 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
 
     c.bench_function("repo-ebuild-iter-restrict", |b| {
         let mut pkgs = 0;
-        let r: Restrict = atom::cpv("cat/pkg-50").unwrap().into();
+        let cpv = atom::cpv("cat/pkg-50").unwrap();
         b.iter(|| {
             pkgs = 0;
-            for _ in repo.iter_restrict(r.clone()) {
+            for _ in repo.iter_restrict(&cpv) {
                 pkgs += 1;
             }
         });

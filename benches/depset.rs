@@ -22,7 +22,7 @@ pub fn bench_depsets(c: &mut Criterion) {
     });
 
     c.bench_function("depset-restrict-pkgdep", |b| {
-        let r: Restrict = Atom::from_str("c/p5").unwrap().into();
+        let r = Restrict::from(&Atom::from_str("c/p5").unwrap());
         let depset = parse::pkgdep(deps, &EAPI_LATEST).unwrap().unwrap();
         b.iter(|| assert!(r.matches(&depset)));
     });
