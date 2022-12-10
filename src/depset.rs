@@ -179,6 +179,15 @@ impl Restriction<&DepSet<Atom>> for restrict::Restrict {
     }
 }
 
+impl Restriction<&DepRestrict<Atom>> for restrict::Restrict {
+    fn matches(&self, val: &DepRestrict<Atom>) -> bool {
+        restrict::restrict_match! {
+            self, val,
+            Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v))
+        }
+    }
+}
+
 peg::parser!(grammar depset() for str {
     rule _ = [' ']
 
