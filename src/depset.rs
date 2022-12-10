@@ -172,18 +172,16 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetFlattenIter<'a, T> {
 
 impl Restriction<&DepSet<Atom>> for restrict::Restrict {
     fn matches(&self, val: &DepSet<Atom>) -> bool {
-        restrict::restrict_match! {
-            self, val,
-            Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v))
+        restrict::restrict_match! {self, val,
+            Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
 
 impl Restriction<&DepRestrict<Atom>> for restrict::Restrict {
     fn matches(&self, val: &DepRestrict<Atom>) -> bool {
-        restrict::restrict_match! {
-            self, val,
-            Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v))
+        restrict::restrict_match! {self, val,
+            Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v)),
         }
     }
 }

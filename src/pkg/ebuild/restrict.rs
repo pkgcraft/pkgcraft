@@ -48,15 +48,14 @@ impl From<Restrict> for restrict::Restrict {
 impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
         use crate::pkg::Restrict as PkgRestrict;
-        restrict::restrict_match! {
-            self, pkg,
+        restrict::restrict_match! {self, pkg,
             Self::Atom(AtomRestrict::Slot(Some(r))) => r.matches(pkg.slot()),
             Self::Atom(AtomRestrict::Subslot(Some(r))) => r.matches(pkg.subslot()),
             Self::Atom(AtomRestrict::Repo(Some(r))) => r.matches(pkg.repo().id()),
             Self::Atom(r) => r.matches(pkg.atom()),
             Self::Pkg(PkgRestrict::Ebuild(r)) => r.matches(pkg),
             Self::Pkg(PkgRestrict::Eapi(r)) => r.matches(pkg.eapi().as_str()),
-            Self::Pkg(PkgRestrict::Repo(r)) => r.matches(pkg.repo().id())
+            Self::Pkg(PkgRestrict::Repo(r)) => r.matches(pkg.repo().id()),
         }
     }
 }

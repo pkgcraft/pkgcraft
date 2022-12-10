@@ -148,10 +148,9 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
 
 impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
-        restrict::restrict_match! {
-            self, pkg,
+        restrict::restrict_match! {self, pkg,
             Self::Atom(r) => r.matches(pkg.atom()),
-            Self::Pkg(r) => r.matches(pkg)
+            Self::Pkg(r) => r.matches(pkg),
         }
     }
 }

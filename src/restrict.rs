@@ -31,7 +31,7 @@ pub enum Restrict {
 }
 
 macro_rules! restrict_match {
-   ($r:expr, $obj:expr, $($matcher:pat $(if $pred:expr)* => $result:expr),+) => {
+   ($r:expr, $obj:expr, $($matcher:pat $(if $pred:expr)* => $result:expr,)+) => {
        use crate::restrict::Restrict;
        match $r {
            $($matcher $(if $pred)* => $result,)+
@@ -151,9 +151,8 @@ pub trait Restriction<T>: fmt::Debug {
 
 impl Restriction<&str> for Restrict {
     fn matches(&self, s: &str) -> bool {
-        restrict_match! {
-            self, s,
-            Self::Str(r) => r.matches(s)
+        restrict_match! {self, s,
+            Self::Str(r) => r.matches(s),
         }
     }
 }

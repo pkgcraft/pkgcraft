@@ -113,9 +113,8 @@ impl From<Restrict> for BaseRestrict {
 
 impl Restriction<&Atom> for BaseRestrict {
     fn matches(&self, atom: &Atom) -> bool {
-        crate::restrict::restrict_match! {
-            self, atom,
-            Self::Atom(r) => r.matches(atom)
+        crate::restrict::restrict_match! {self, atom,
+            Self::Atom(r) => r.matches(atom),
         }
     }
 }
