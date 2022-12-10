@@ -152,21 +152,9 @@ impl From<&Atom> for Restrict {
     }
 }
 
-impl From<Atom> for Restrict {
-    fn from(atom: Atom) -> Self {
-        (&atom).into()
-    }
-}
-
 impl From<&Atom> for BaseRestrict {
     fn from(atom: &Atom) -> Self {
         BaseRestrict::Atom(atom.into())
-    }
-}
-
-impl From<Atom> for BaseRestrict {
-    fn from(atom: Atom) -> Self {
-        BaseRestrict::Atom((&atom).into())
     }
 }
 
