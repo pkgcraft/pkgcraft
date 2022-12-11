@@ -90,10 +90,8 @@ pub(crate) struct Metadata {
     inherited: OrderedSet<String>,
 }
 
-macro_rules! split {
-    ($s:expr) => {
-        $s.split_whitespace().map(String::from).collect()
-    };
+fn split(s: &str) -> impl Iterator<Item = String> + '_ {
+    s.split_whitespace().map(String::from)
 }
 
 impl Metadata {
@@ -116,16 +114,12 @@ impl Metadata {
             RequiredUse => self.required_use = parse::required_use(val, eapi)?,
             Restrict => self.restrict = parse::restrict(val)?,
             SrcUri => self.src_uri = parse::src_uri(val, eapi)?,
-            Homepage => self.homepage = split!(val),
-            DefinedPhases => {
-                let mut s: OrderedSet<_> = split!(val);
-                s.sort();
-                self.defined_phases = s;
-            }
-            Keywords => self.keywords = split!(val),
-            Iuse => self.iuse = split!(val),
-            Inherit => self.inherit = split!(val),
-            Inherited => self.inherited = split!(val),
+            Homepage => self.homepage = split(val).collect(),
+            DefinedPhases => self.defined_phases = split(val).sorted().collect(),
+            Keywords => self.keywords = split(val).collect(),
+            Iuse => self.iuse = split(val).collect(),
+            Inherit => self.inherit = split(val).collect(),
+            Inherited => self.inherited = split(val).collect(),
             _ => (),
         }
         Ok(())
@@ -164,11 +158,11 @@ impl Metadata {
                 RequiredUse => meta.required_use = parse::required_use(val, eapi)?,
                 Restrict => meta.restrict = parse::restrict(val)?,
                 SrcUri => meta.src_uri = parse::src_uri(val, eapi)?,
-                Homepage => meta.homepage = split!(val),
-                DefinedPhases => meta.defined_phases = split!(val),
-                Keywords => meta.keywords = split!(val),
-                Iuse => meta.iuse = split!(val),
-                Inherit => meta.inherit = split!(val),
+                Homepage => meta.homepage = split(val).collect(),
+                DefinedPhases => meta.defined_phases = split(val).collect(),
+                Keywords => meta.keywords = split(val).collect(),
+                Iuse => meta.iuse = split(val).collect(),
+                Inherit => meta.inherit = split(val).collect(),
                 Inherited => {
                     meta.inherited = val
                         .split_whitespace()
