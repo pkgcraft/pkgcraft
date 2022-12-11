@@ -120,7 +120,7 @@ impl Metadata {
             Iuse => self.iuse = split(val).collect(),
             Inherit => self.inherit = split(val).collect(),
             Inherited => self.inherited = split(val).collect(),
-            _ => (),
+            Eapi => (),
         }
         Ok(())
     }
@@ -170,7 +170,7 @@ impl Metadata {
                         .map(|(name, _chksum)| name.to_string())
                         .collect();
                 }
-                _ => (),
+                Eapi => (),
             }
         }
 
