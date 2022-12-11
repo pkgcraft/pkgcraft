@@ -245,20 +245,21 @@ impl Restriction<&str> for Str {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum SetRestrict<S, T> {
+pub enum OrderedSetRestrict<T: Ordered, R> {
     Empty,
     Contains(T),
-    Disjoint(S),
-    Equal(S),
-    Subset(S),
-    ProperSubset(S),
-    Superset(S),
-    ProperSuperset(S),
+    Disjoint(OrderedSet<T>),
+    Equal(OrderedSet<T>),
+    Subset(OrderedSet<T>),
+    ProperSubset(OrderedSet<T>),
+    Superset(OrderedSet<T>),
+    ProperSuperset(OrderedSet<T>),
+    Ordered(OrderedRestrict<R>),
 }
 
 macro_rules! make_set_restriction {
-    ($(($container:ty, $element:ty)),+) => {$(
-        impl Restriction<&$container> for SetRestrict<$container, $element> {
+    ($(($container:ty, $element:ty, $restrict:ty)),+) => {$(
+        impl Restriction<&$container> for OrderedSetRestrict<$element, $restrict> {
             fn matches(&self, val: &$container) -> bool {
                 match self {
                     Self::Empty => val.is_empty(),
@@ -269,28 +270,14 @@ macro_rules! make_set_restriction {
                     Self::ProperSubset(s) => val.is_subset(s) && val != s,
                     Self::Superset(s) => val.is_superset(s),
                     Self::ProperSuperset(s) => val.is_superset(s) && val != s,
+                    Self::Ordered(r) => r.matches(val),
                 }
             }
         }
     )+};
 }
 pub(crate) use make_set_restriction;
-make_set_restriction!((OrderedSet<String>, String));
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum OrderedSetRestrict<T: Ordered, R> {
-    Ordered(OrderedRestrict<R>),
-    Set(SetRestrict<OrderedSet<T>, T>),
-}
-
-impl Restriction<&OrderedSet<String>> for OrderedSetRestrict<String, Str> {
-    fn matches(&self, val: &OrderedSet<String>) -> bool {
-        match self {
-            Self::Ordered(r) => r.matches(val),
-            Self::Set(r) => r.matches(val),
-        }
-    }
-}
+make_set_restriction!((OrderedSet<String>, String, Str));
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OrderedRestrict<R> {

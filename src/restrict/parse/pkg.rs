@@ -6,18 +6,18 @@ use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::restrict::*;
 
-fn set_restrict<S: FromIterator<String>>(
+fn orderedset_restrict(
     op: &str,
     vals: &[&str],
-) -> Result<SetRestrict<S, String>, &'static str> {
+) -> Result<OrderedSetRestrict<String, Str>, &'static str> {
     let vals = vals.iter().map(|x| x.to_string()).collect();
     match op {
-        "<" => Ok(SetRestrict::ProperSubset(vals)),
-        "<=" => Ok(SetRestrict::Subset(vals)),
-        "==" => Ok(SetRestrict::Equal(vals)),
-        ">=" => Ok(SetRestrict::Superset(vals)),
-        ">" => Ok(SetRestrict::ProperSuperset(vals)),
-        "%" => Ok(SetRestrict::Disjoint(vals)),
+        "<" => Ok(OrderedSetRestrict::ProperSubset(vals)),
+        "<=" => Ok(OrderedSetRestrict::Subset(vals)),
+        "==" => Ok(OrderedSetRestrict::Equal(vals)),
+        ">=" => Ok(OrderedSetRestrict::Superset(vals)),
+        ">" => Ok(OrderedSetRestrict::ProperSuperset(vals)),
+        "%" => Ok(OrderedSetRestrict::Disjoint(vals)),
         _ => Err("invalid set operator"),
     }
 }
@@ -276,7 +276,7 @@ peg::parser!(grammar restrict() for str {
             )) op:set_ops() vals:quoted_string_set()
         {?
             use crate::pkg::ebuild::Restrict::*;
-            let r = OrderedSetRestrict::Set(set_restrict(op, &vals)?);
+            let r = orderedset_restrict(op, &vals)?;
             let ebuild_r = match attr {
                 "homepage" => Homepage(Some(r)),
                 "keywords" => Keywords(Some(r)),

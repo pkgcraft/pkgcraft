@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::restrict::{self, OrderedSetRestrict, Restriction, SetRestrict, Str};
+use crate::restrict::{self, OrderedSetRestrict, Restriction, Str};
 
 use super::{Atom, Blocker, Version};
 
@@ -52,8 +52,8 @@ impl Restrict {
         match iter {
             None => Self::UseDeps(None),
             Some(i) => {
-                let r = SetRestrict::Superset(i.into_iter().map(|s| s.into()).collect());
-                Self::UseDeps(Some(OrderedSetRestrict::Set(r)))
+                let r = OrderedSetRestrict::Superset(i.into_iter().map(|s| s.into()).collect());
+                Self::UseDeps(Some(r))
             }
         }
     }
