@@ -296,8 +296,8 @@ mod tests {
             [overlay
             location = /path/to/overlay
         "#};
-        fs::write(&path, data).unwrap();
-        let r = config.load_repos_conf(&path);
+        fs::write(path, data).unwrap();
+        let r = config.load_repos_conf(path);
         assert_err_re!(r, "invalid repos.conf file");
 
         // invalid ini format
@@ -307,8 +307,8 @@ mod tests {
 
             [overlay]
         "#};
-        fs::write(&path, data).unwrap();
-        let r = config.load_repos_conf(&path);
+        fs::write(path, data).unwrap();
+        let r = config.load_repos_conf(path);
         assert_err_re!(r, "missing location field: overlay");
 
         // single repo
@@ -317,8 +317,8 @@ mod tests {
             [a]
             location = {}
         "#, t1.path()};
-        fs::write(&path, data).unwrap();
-        let repos = config.load_repos_conf(&path).unwrap();
+        fs::write(path, data).unwrap();
+        let repos = config.load_repos_conf(path).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["a"]);
 
         // multiple, prioritized repos
@@ -330,8 +330,8 @@ mod tests {
             location = {}
             priority = 1
         "#, t1.path(), t2.path()};
-        fs::write(&path, data).unwrap();
-        let repos = config.load_repos_conf(&path).unwrap();
+        fs::write(path, data).unwrap();
+        let repos = config.load_repos_conf(path).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["c", "b"]);
 
         // multiple config files in a specified directory
@@ -363,8 +363,8 @@ mod tests {
             [r1]
             location = {}
         "#, t1.path()};
-        fs::write(&path, data).unwrap();
-        let r = config.load_repos_conf(&path);
+        fs::write(path, data).unwrap();
+        let r = config.load_repos_conf(path);
         assert_err_re!(r, "existing repo: r1");
 
         // nonexistent masters causes finalization failure
@@ -375,8 +375,8 @@ mod tests {
             [bad]
             location = {}
         "#, t.path()};
-        fs::write(&path, data).unwrap();
-        let r = config.load_repos_conf(&path);
+        fs::write(path, data).unwrap();
+        let r = config.load_repos_conf(path);
         assert_err_re!(r, "^.* unconfigured repos: x, y, z$");
     }
 }

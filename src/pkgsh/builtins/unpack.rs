@@ -143,7 +143,7 @@ mod tests {
             let prefix = tmp_dir.path();
             let distdir = prefix.join("distdir");
             fs::create_dir(&distdir).unwrap();
-            env::set_current_dir(&prefix).unwrap();
+            env::set_current_dir(prefix).unwrap();
             bind("DISTDIR", distdir.to_str().unwrap(), None, None).unwrap();
             fs::File::create("distdir/a.TAR.GZ").unwrap();
             let abs_path = prefix.join("distdir/a.tar.gz");
@@ -190,7 +190,7 @@ mod tests {
         let datadir = prefix.join("data");
         let distdir = prefix.join("distdir");
         fs::create_dir(&distdir).unwrap();
-        env::set_current_dir(&prefix).unwrap();
+        env::set_current_dir(prefix).unwrap();
         bind("DISTDIR", distdir.to_str().unwrap(), None, None).unwrap();
 
         // create archive source
@@ -211,7 +211,7 @@ mod tests {
                 let path = distdir.join(&file);
                 env::set_current_dir(&datadir).unwrap();
                 Archive::pack("dir", path.to_str().unwrap()).unwrap();
-                env::set_current_dir(&prefix).unwrap();
+                env::set_current_dir(prefix).unwrap();
                 unpack(&[&file]).unwrap();
             });
 
@@ -238,7 +238,7 @@ mod tests {
                 let path = distdir.join(&file);
                 env::set_current_dir(&dir).unwrap();
                 Archive::pack("file", path.to_str().unwrap()).unwrap();
-                env::set_current_dir(&prefix).unwrap();
+                env::set_current_dir(prefix).unwrap();
                 unpack(&[&file]).unwrap();
             });
 

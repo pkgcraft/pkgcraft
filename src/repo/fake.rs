@@ -277,26 +277,17 @@ mod tests {
     #[test]
     fn test_extend() {
         let mut repo = Repo::new("fake", 0, ["cat/pkg-2"]);
-        let atoms: Vec<_> = repo
-            .iter()
-            .map(|pkg| format!("{}", pkg.atom().cpv()))
-            .collect();
+        let atoms: Vec<_> = repo.iter().map(|pkg| pkg.atom().cpv()).collect();
         assert_eq!(atoms, ["cat/pkg-2"]);
 
         // add single cpv
         repo.extend(["cat/pkg-0"]);
-        let atoms: Vec<_> = repo
-            .iter()
-            .map(|pkg| format!("{}", pkg.atom().cpv()))
-            .collect();
+        let atoms: Vec<_> = repo.iter().map(|pkg| pkg.atom().cpv()).collect();
         assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-2"]);
 
         // add multiple cpvs
         repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]);
-        let atoms: Vec<_> = repo
-            .iter()
-            .map(|pkg| format!("{}", pkg.atom().cpv()))
-            .collect();
+        let atoms: Vec<_> = repo.iter().map(|pkg| pkg.atom().cpv()).collect();
         assert_eq!(atoms, ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]);
     }
 
@@ -324,10 +315,7 @@ mod tests {
     fn test_iter() {
         let expected = ["cat/pkg-0", "acat/bpkg-1"];
         let repo = Repo::new("fake", 0, expected);
-        let atoms: Vec<_> = repo
-            .iter()
-            .map(|pkg| format!("{}", pkg.atom().cpv()))
-            .collect();
+        let atoms: Vec<_> = repo.iter().map(|pkg| pkg.atom().cpv()).collect();
         assert_eq!(atoms, ["acat/bpkg-1", "cat/pkg-0"]);
     }
 }

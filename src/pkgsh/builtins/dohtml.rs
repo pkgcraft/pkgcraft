@@ -231,12 +231,12 @@ mod tests {
         // simple file
         fs::File::create("index.html").unwrap();
         dohtml(&["index.html"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/doc/pkg-1/html/index.html"
-        "#
-        ));
+        "#,
+        );
 
         // recursive
         fs::create_dir_all("doc/subdir").unwrap();

@@ -344,7 +344,7 @@ mod tests {
         assert_eq!(filter(r, atoms.clone()), atom_strs);
 
         let r = Restrict::False;
-        assert!(filter(r, atoms.clone()).is_empty());
+        assert!(filter(r, atoms).is_empty());
     }
 
     #[test]
@@ -420,7 +420,7 @@ mod tests {
         assert!(r.matches(&a));
 
         // two matched and one unmatched
-        let r = Restrict::xor([cat.clone(), pkg.clone(), nover]);
+        let r = Restrict::xor([cat, pkg, nover]);
         assert!(r.matches(&a));
 
         let a1 = Atom::from_str("cat/pkg1").unwrap();

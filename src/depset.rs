@@ -473,7 +473,7 @@ mod tests {
     fn test_license() -> crate::Result<()> {
         // invalid
         for s in ["(", ")", "( )", "( l1)", "| ( l1 )", "!use ( l1 )"] {
-            assert!(parse::license(&s).is_err(), "{s:?} didn't fail");
+            assert!(parse::license(s).is_err(), "{s:?} didn't fail");
         }
 
         // empty string
@@ -502,7 +502,7 @@ mod tests {
                 vec!["v1", "v2"],
             ),
         ] {
-            let depset = parse::license(&s)?.unwrap();
+            let depset = parse::license(s)?.unwrap();
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset, expected, "{s} failed");
@@ -537,7 +537,7 @@ mod tests {
             ),
         ] {
             for eapi in EAPIS.iter() {
-                let depset = parse::src_uri(&s, eapi)?.unwrap();
+                let depset = parse::src_uri(s, eapi)?.unwrap();
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
                 assert_eq!(depset, expected, "{s} failed");
@@ -560,7 +560,7 @@ mod tests {
         ] {
             for eapi in EAPIS.iter() {
                 if eapi.has(Feature::SrcUriRenames) {
-                    let depset = parse::src_uri(&s, eapi)?.unwrap();
+                    let depset = parse::src_uri(s, eapi)?.unwrap();
                     let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                     assert_eq!(flatten, expected_flatten);
                     assert_eq!(depset, expected, "{s} failed");
@@ -576,7 +576,7 @@ mod tests {
     fn test_required_use() -> crate::Result<()> {
         // invalid
         for s in ["(", ")", "( )", "( u)", "| ( u )"] {
-            assert!(parse::required_use(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(parse::required_use(s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         // empty string
@@ -600,7 +600,7 @@ mod tests {
                 vec!["u2", "u3"],
             ),
         ] {
-            let depset = parse::required_use(&s, &EAPI_LATEST)?.unwrap();
+            let depset = parse::required_use(s, &EAPI_LATEST)?.unwrap();
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset, expected, "{s} failed");
@@ -613,7 +613,7 @@ mod tests {
         {
             for eapi in EAPIS.iter() {
                 if eapi.has(Feature::RequiredUseOneOf) {
-                    let depset = parse::required_use(&s, eapi)?.unwrap();
+                    let depset = parse::required_use(s, eapi)?.unwrap();
                     let flatten: Vec<_> = depset.iter_flatten().collect();
                     assert_eq!(flatten, expected_flatten);
                     assert_eq!(depset, expected, "{s} failed");
@@ -629,7 +629,7 @@ mod tests {
     fn test_pkgdep() -> crate::Result<()> {
         // invalid
         for s in ["(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
-            assert!(parse::pkgdep(&s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(parse::pkgdep(s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
         }
 
         // empty string
@@ -652,7 +652,7 @@ mod tests {
                 vec!["a/b", "c/d"],
             ),
         ] {
-            let depset = parse::pkgdep(&s, &EAPI_LATEST)?.unwrap();
+            let depset = parse::pkgdep(s, &EAPI_LATEST)?.unwrap();
             let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset, expected, "{s} failed");
@@ -668,7 +668,7 @@ mod tests {
             // invalid
             for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"]
             {
-                assert!(parse_func(&s).is_err(), "{s:?} didn't fail");
+                assert!(parse_func(s).is_err(), "{s:?} didn't fail");
             }
 
             // empty string
@@ -695,7 +695,7 @@ mod tests {
                 // combinations
                 ("v1 u? ( v2 )", ds([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
             ] {
-                let depset = parse_func(&s)?.unwrap();
+                let depset = parse_func(s)?.unwrap();
                 let flatten: Vec<_> = depset.iter_flatten().collect();
                 assert_eq!(flatten, expected_flatten);
                 assert_eq!(depset, expected, "{s} failed");

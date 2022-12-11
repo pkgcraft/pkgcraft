@@ -238,7 +238,7 @@ mod tests {
 
         let filter = |r: BaseRestrict, atoms: &[Atom]| -> Vec<String> {
             atoms
-                .into_iter()
+                .iter()
                 .filter(|&a| r.matches(a))
                 .map(|a| a.to_string())
                 .collect()

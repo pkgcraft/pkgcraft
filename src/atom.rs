@@ -326,7 +326,7 @@ mod tests {
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
-            atom = Atom::from_str(&s).unwrap();
+            atom = Atom::from_str(s).unwrap();
             assert_eq!(atom.to_string(), s);
         }
     }
@@ -344,7 +344,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
             (">cat/pkg-4-r1:0=", "cat/pkg"),
         ] {
-            atom = Atom::from_str(&s).unwrap();
+            atom = Atom::from_str(s).unwrap();
             assert_eq!(atom.cpn(), key);
         }
     }
@@ -362,7 +362,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(">=2-r3")),
             (">cat/pkg-4-r1:0=", Some(">4-r1")),
         ] {
-            atom = Atom::from_str(&s).unwrap();
+            atom = Atom::from_str(s).unwrap();
             let version = version.map(|s| parse::version_with_op(s).unwrap());
             assert_eq!(atom.version(), version.as_ref());
         }
@@ -378,7 +378,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some("3")),
             (">cat/pkg-4-r1:0=", Some("1")),
         ] {
-            atom = Atom::from_str(&s).unwrap();
+            atom = Atom::from_str(s).unwrap();
             let revision = revision.map(|s| version::Revision::from_str(s).unwrap());
             assert_eq!(atom.revision(), revision.as_ref(), "{s} failed");
         }
@@ -397,7 +397,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
             (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
         ] {
-            atom = Atom::from_str(&s).unwrap();
+            atom = Atom::from_str(s).unwrap();
             assert_eq!(atom.cpv(), cpv);
         }
     }

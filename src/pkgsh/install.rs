@@ -426,14 +426,14 @@ mod tests {
 
             // multiple dirs
             install.dirs_internal(["a", "b"]).unwrap();
-            file_tree.assert(format!(
+            file_tree.assert(
                 r#"
                 [[files]]
                 path = "/a"
                 [[files]]
                 path = "/b"
-            "#
-            ));
+            "#,
+            );
         })
     }
 
@@ -457,14 +457,14 @@ mod tests {
 
                 // multiple dirs
                 install.dirs_cmd(["a", "b"]).unwrap();
-                file_tree.assert(format!(
+                file_tree.assert(
                     r#"
                     [[files]]
                     path = "/a"
                     [[files]]
                     path = "/b"
-                "#
-                ));
+                "#,
+                );
             });
         })
     }
@@ -540,14 +540,14 @@ mod tests {
             install
                 .files_internal([("src1", "dest1"), ("src2", "dest2")])
                 .unwrap();
-            file_tree.assert(format!(
+            file_tree.assert(
                 r#"
                 [[files]]
                 path = "/dest1"
                 [[files]]
                 path = "/dest2"
-            "#
-            ));
+            "#,
+            );
         })
     }
 
@@ -576,14 +576,14 @@ mod tests {
                 install
                     .files_cmd([("src1", "dest1"), ("src2", "dest2")])
                     .unwrap();
-                file_tree.assert(format!(
+                file_tree.assert(
                     r#"
                     [[files]]
                     path = "/dest1"
                     [[files]]
                     path = "/dest2"
-                "#
-                ));
+                "#,
+                );
             });
         })
     }

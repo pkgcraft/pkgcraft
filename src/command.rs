@@ -37,7 +37,7 @@ impl RunCommand for Command {
 
     #[cfg(test)]
     fn run(&mut self) -> crate::Result<()> {
-        let cmd = self.to_vec().into_iter().map(|s| String::from(s)).collect();
+        let cmd = self.to_vec().into_iter().map(String::from).collect();
         COMMANDS.with(|cmds| cmds.borrow_mut().push(cmd));
 
         RUN_COMMAND.with(|d| -> crate::Result<()> {

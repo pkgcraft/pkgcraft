@@ -321,7 +321,7 @@ mod tests {
             let passing_eapis: IndexSet<_> = eapi::range(&a.eapis).unwrap().collect();
             // verify parse successes
             for eapi in &passing_eapis {
-                let result = dep(&s, eapi);
+                let result = dep(s, eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
                 let atom = result.unwrap();
                 assert_eq!(atom.category(), a.category, "{s:?} failed for EAPI={eapi}");
@@ -337,7 +337,7 @@ mod tests {
             }
             // verify parse failures
             for eapi in eapi::EAPIS.difference(&passing_eapis) {
-                let result = dep(&s, eapi);
+                let result = dep(s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }

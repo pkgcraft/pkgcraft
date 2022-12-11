@@ -106,21 +106,21 @@ mod tests {
         let file_tree = FileTree::new();
 
         dosym(&["/usr/bin/source", "target"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/target"
             link = "/usr/bin/source"
-        "#
-        ));
+        "#,
+        );
 
         dosym(&["-r", "/usr/bin/source", "/usr/bin/target"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/usr/bin/target"
             link = "source"
-        "#
-        ));
+        "#,
+        );
     }
 }
