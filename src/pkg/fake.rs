@@ -39,11 +39,31 @@ impl<'a> Package for Pkg<'a> {
 
 impl Restriction<&Pkg<'_>> for restrict::Restrict {
     fn matches(&self, pkg: &Pkg) -> bool {
+        use restrict::Restrict::*;
         restrict::restrict_match! {self, pkg,
-            Self::Atom(atom::Restrict::Repo(Some(r))) => r.matches(pkg.repo().id()),
-            Self::Atom(r) => r.matches(pkg.atom()),
-            Self::Pkg(pkg::Restrict::Eapi(r)) => r.matches(pkg.eapi().as_str()),
-            Self::Pkg(pkg::Restrict::Repo(r)) => r.matches(pkg.repo().id()),
+            Atom(r) => r.matches(pkg),
+            Pkg(r) => r.matches(pkg),
+        }
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for atom::Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use atom::Restrict::*;
+        match self {
+            Repo(Some(r)) => r.matches(pkg.repo().id()),
+            r => r.matches(pkg.atom()),
+        }
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use pkg::Restrict::*;
+        match self {
+            Eapi(r) => r.matches(pkg.eapi().as_str()),
+            Repo(r) => r.matches(pkg.repo().id()),
+            _ => false,
         }
     }
 }

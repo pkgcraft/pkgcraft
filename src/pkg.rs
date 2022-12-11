@@ -135,10 +135,11 @@ impl From<Restrict> for restrict::Restrict {
 
 impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use Restrict::*;
         match self {
-            Self::Eapi(r) => r.matches(pkg.eapi().as_str()),
-            Self::Repo(r) => r.matches(pkg.repo().id()),
-            Self::Ebuild(r) => match pkg {
+            Eapi(r) => r.matches(pkg.eapi().as_str()),
+            Repo(r) => r.matches(pkg.repo().id()),
+            Ebuild(r) => match pkg {
                 Pkg::Ebuild(p, _) => r.matches(p),
                 _ => false,
             },
@@ -148,9 +149,20 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
 
 impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use restrict::Restrict::*;
         restrict::restrict_match! {self, pkg,
-            Self::Atom(r) => r.matches(pkg.atom()),
-            Self::Pkg(r) => r.matches(pkg),
+            Atom(r) => r.matches(pkg),
+            Pkg(r) => r.matches(pkg),
+        }
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for atom::Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use atom::Restrict::*;
+        match self {
+            Repo(Some(r)) => r.matches(pkg.repo().id()),
+            r => r.matches(pkg.atom()),
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::atom::Restrict as AtomRestrict;
+use crate::atom;
 use crate::depset::Restrict as DepSetRestrict;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::pkg::{self, Package};
@@ -14,11 +14,11 @@ pub enum Restrict {
     Slot(Str),
     Subslot(Str),
     RawSubslot(Option<Str>),
-    Depend(Option<DepSetRestrict<AtomRestrict>>),
-    Bdepend(Option<DepSetRestrict<AtomRestrict>>),
-    Idepend(Option<DepSetRestrict<AtomRestrict>>),
-    Pdepend(Option<DepSetRestrict<AtomRestrict>>),
-    Rdepend(Option<DepSetRestrict<AtomRestrict>>),
+    Depend(Option<DepSetRestrict<atom::Restrict>>),
+    Bdepend(Option<DepSetRestrict<atom::Restrict>>),
+    Idepend(Option<DepSetRestrict<atom::Restrict>>),
+    Pdepend(Option<DepSetRestrict<atom::Restrict>>),
+    Rdepend(Option<DepSetRestrict<atom::Restrict>>),
     License(Option<DepSetRestrict<Str>>),
     Properties(Option<DepSetRestrict<Str>>),
     RequiredUse(Option<DepSetRestrict<Str>>),
@@ -47,15 +47,32 @@ impl From<Restrict> for restrict::Restrict {
 
 impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
-        use crate::pkg::Restrict as PkgRestrict;
         restrict::restrict_match! {self, pkg,
-            Self::Atom(AtomRestrict::Slot(Some(r))) => r.matches(pkg.slot()),
-            Self::Atom(AtomRestrict::Subslot(Some(r))) => r.matches(pkg.subslot()),
-            Self::Atom(AtomRestrict::Repo(Some(r))) => r.matches(pkg.repo().id()),
-            Self::Atom(r) => r.matches(pkg.atom()),
-            Self::Pkg(PkgRestrict::Ebuild(r)) => r.matches(pkg),
-            Self::Pkg(PkgRestrict::Eapi(r)) => r.matches(pkg.eapi().as_str()),
-            Self::Pkg(PkgRestrict::Repo(r)) => r.matches(pkg.repo().id()),
+            Self::Atom(r) => r.matches(pkg),
+            Self::Pkg(r) => r.matches(pkg),
+        }
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for atom::Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use atom::Restrict::*;
+        match self {
+            Slot(Some(r)) => r.matches(pkg.slot()),
+            Subslot(Some(r)) => r.matches(pkg.subslot()),
+            Repo(Some(r)) => r.matches(pkg.repo().id()),
+            r => r.matches(pkg.atom()),
+        }
+    }
+}
+
+impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
+    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+        use pkg::Restrict::*;
+        match self {
+            Ebuild(r) => r.matches(pkg),
+            Eapi(r) => r.matches(pkg.eapi().as_str()),
+            Repo(r) => r.matches(pkg.repo().id()),
         }
     }
 }
