@@ -1,4 +1,4 @@
-use regex::{escape, Regex};
+use regex::escape;
 
 use crate::atom::version::{ParsedVersion, Suffix};
 use crate::atom::{Blocker, Restrict};
@@ -8,8 +8,7 @@ use crate::restrict::{Restrict as BaseRestrict, Str};
 // Convert globbed string to regex, escaping all meta characters except '*'.
 fn str_to_regex_restrict(s: &str) -> Str {
     let re_s = escape(s).replace("\\*", ".*");
-    let re = Regex::new(&format!(r"^{re_s}$")).unwrap();
-    Str::Regex(re)
+    Str::regex(format!(r"^{re_s}$")).unwrap()
 }
 
 peg::parser!(grammar restrict() for str {

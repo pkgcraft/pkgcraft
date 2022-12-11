@@ -7,7 +7,7 @@ use crate::restrict::{self, *};
 
 use super::Pkg;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
     Ebuild(Str),
     Description(Str),

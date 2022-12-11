@@ -1,15 +1,14 @@
 use std::cmp::Ordering;
 use std::fmt;
-use std::ops::{BitAnd, BitOr, BitXor, Not};
-
-use regex::Regex;
+use std::hash::{Hash, Hasher};
+use std::ops::{BitAnd, BitOr, BitXor, Deref, Not};
 
 use crate::orderedset::{Ordered, OrderedSet};
 use crate::{atom, pkg, Error};
 
 pub mod parse;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
     // boolean
     True,
@@ -156,7 +155,32 @@ impl Restriction<&str> for Restrict {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
+pub struct Regex(regex::Regex);
+
+impl Deref for Regex {
+    type Target = regex::Regex;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Eq for Regex {}
+
+impl PartialEq for Regex {
+    fn eq(&self, other: &Regex) -> bool {
+        self.0.as_str() == other.0.as_str()
+    }
+}
+
+impl Hash for Regex {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.as_str().hash(state);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Str {
     Equal(String),
     Prefix(String),
@@ -191,9 +215,10 @@ impl Str {
         Self::Prefix(s.into())
     }
 
-    pub fn regex(s: &str) -> crate::Result<Self> {
-        let re = Regex::new(s).map_err(|e| Error::InvalidValue(e.to_string()))?;
-        Ok(Self::Regex(re))
+    pub fn regex<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        let re = regex::Regex::new(s.as_ref())
+            .map_err(|e| Error::InvalidValue(format!("invalid regex: {e}")))?;
+        Ok(Self::Regex(Regex(re)))
     }
 
     pub fn substr<S: Into<String>>(s: S) -> Self {
@@ -219,7 +244,7 @@ impl Restriction<&str> for Str {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SetRestrict<S, T> {
     Empty,
     Contains(T),
@@ -267,7 +292,7 @@ impl Restriction<&OrderedSet<String>> for OrderedSetRestrict<String, Str> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OrderedRestrict<R> {
     Any(R),
     All(R),

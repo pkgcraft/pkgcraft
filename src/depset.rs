@@ -118,7 +118,7 @@ impl<T: fmt::Display + Ordered> fmt::Display for DepRestrict<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict<T> {
     Any(T),
 }

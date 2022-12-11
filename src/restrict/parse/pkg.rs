@@ -1,7 +1,5 @@
 use std::cmp::Ordering;
 
-use regex::Regex;
-
 use crate::atom;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
@@ -28,14 +26,8 @@ fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     match op {
         "==" => Ok(Str::equal(s)),
         "!=" => Ok(Str::not(Str::equal(s))),
-        "=~" => {
-            let re = Regex::new(s).map_err(|_| "invalid regex")?;
-            Ok(Str::Regex(re))
-        }
-        "!~" => {
-            let re = Regex::new(s).map_err(|_| "invalid regex")?;
-            Ok(Str::not(Str::Regex(re)))
-        }
+        "=~" => Str::regex(s).map_err(|_| "invalid regex"),
+        "!~" => Str::regex(s).map_err(|_| "invalid regex"),
         _ => Err("invalid string operator"),
     }
 }

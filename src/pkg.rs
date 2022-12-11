@@ -110,7 +110,7 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
     Eapi(Str),
     Ebuild(ebuild::Restrict),

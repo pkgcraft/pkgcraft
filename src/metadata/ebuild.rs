@@ -92,7 +92,7 @@ impl Hash for Maintainer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum MaintainerRestrict {
     Email(Str),
     Name(Option<Str>),
@@ -162,7 +162,7 @@ impl Upstream {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum UpstreamRestrict {
     Site(Str),
     Name(Str),

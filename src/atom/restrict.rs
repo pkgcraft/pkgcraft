@@ -6,7 +6,7 @@ use super::{Atom, Blocker, Version};
 
 type BaseRestrict = restrict::Restrict;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
     Category(Str),
     Package(Str),
