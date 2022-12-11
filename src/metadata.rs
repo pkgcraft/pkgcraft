@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::{fs, io};
 
@@ -83,7 +83,7 @@ pub(crate) struct Metadata {
     restrict: Option<DepSet<String>>,
     src_uri: Option<DepSet<Uri>>,
     homepage: OrderedSet<String>,
-    defined_phases: HashSet<String>,
+    defined_phases: OrderedSet<String>,
     keywords: OrderedSet<String>,
     iuse: OrderedSet<String>,
     inherit: OrderedSet<String>,
@@ -117,7 +117,11 @@ impl Metadata {
             Restrict => self.restrict = parse::restrict(val)?,
             SrcUri => self.src_uri = parse::src_uri(val, eapi)?,
             Homepage => self.homepage = split!(val),
-            DefinedPhases => self.defined_phases = split!(val),
+            DefinedPhases => {
+                let mut s: OrderedSet<_> = split!(val);
+                s.sort();
+                self.defined_phases = s;
+            }
             Keywords => self.keywords = split!(val),
             Iuse => self.iuse = split!(val),
             Inherit => self.inherit = split!(val),
@@ -294,7 +298,7 @@ impl Metadata {
         &self.homepage
     }
 
-    pub(crate) fn defined_phases(&self) -> &HashSet<String> {
+    pub(crate) fn defined_phases(&self) -> &OrderedSet<String> {
         &self.defined_phases
     }
 

@@ -25,7 +25,7 @@ pub enum Restrict {
     Restrict(Option<DepSetRestrict<Str>>),
     SrcUri(Option<DepSetRestrict<Str>>),
     Homepage(Option<OrderedSetRestrict<String, Str>>),
-    DefinedPhases(Option<HashSetRestrict<String>>),
+    DefinedPhases(Option<OrderedSetRestrict<String, Str>>),
     Keywords(Option<OrderedSetRestrict<String, Str>>),
     Iuse(Option<OrderedSetRestrict<String, Str>>),
     Inherit(Option<OrderedSetRestrict<String, Str>>),

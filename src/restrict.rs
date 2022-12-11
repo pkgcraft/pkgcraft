@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::fmt;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
@@ -251,11 +250,9 @@ macro_rules! make_set_restriction {
     )+};
 }
 pub(crate) use make_set_restriction;
-make_set_restriction!((HashSet<String>, String), (OrderedSet<String>, String));
+make_set_restriction!((OrderedSet<String>, String));
 
-pub(crate) type HashSetRestrict<T> = SetRestrict<HashSet<T>, T>;
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OrderedSetRestrict<T: Ordered, R> {
     Ordered(OrderedRestrict<R>),
     Set(SetRestrict<OrderedSet<T>, T>),
