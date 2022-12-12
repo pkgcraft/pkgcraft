@@ -7,7 +7,7 @@ use crate::atom::{Atom, Restrict as AtomRestrict};
 use crate::eapi::{Eapi, Feature};
 use crate::macros::extend_left;
 use crate::restrict::{self, Restriction, Str};
-use crate::set::{Ordered, OrderedSet};
+use crate::set::{Ordered, OrderedSet, SortedSet};
 
 /// Uri object.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -43,7 +43,7 @@ impl AsRef<str> for Uri {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DepSet<T: Ordered>(OrderedSet<DepRestrict<T>>);
+pub struct DepSet<T: Ordered>(SortedSet<DepRestrict<T>>);
 
 impl<T: fmt::Display + Ordered> fmt::Display for DepSet<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -85,12 +85,12 @@ impl<'a, T: Ordered> Iterator for DepSetIter<'a, T> {
 pub enum DepRestrict<T: Ordered> {
     Matches(T, bool),
     // logic conditionals
-    AllOf(OrderedSet<Box<DepRestrict<T>>>),
+    AllOf(SortedSet<Box<DepRestrict<T>>>),
     AnyOf(OrderedSet<Box<DepRestrict<T>>>),
     ExactlyOneOf(OrderedSet<Box<DepRestrict<T>>>), // REQUIRED_USE only
     AtMostOneOf(OrderedSet<Box<DepRestrict<T>>>),  // REQUIRED_USE only
-    UseEnabled(String, OrderedSet<Box<DepRestrict<T>>>),
-    UseDisabled(String, OrderedSet<Box<DepRestrict<T>>>),
+    UseEnabled(String, SortedSet<Box<DepRestrict<T>>>),
+    UseDisabled(String, SortedSet<Box<DepRestrict<T>>>),
 }
 
 impl<T: Ordered> DepRestrict<T> {
@@ -99,21 +99,23 @@ impl<T: Ordered> DepRestrict<T> {
     }
 }
 
+macro_rules! p {
+    ($x:expr) => {
+        $x.into_iter().map(|x| x.to_string()).join(" ")
+    };
+}
+
 impl<T: fmt::Display + Ordered> fmt::Display for DepRestrict<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let p = |args: &OrderedSet<Box<DepRestrict<T>>>| -> String {
-            args.iter().map(|x| x.to_string()).join(" ")
-        };
-
         match self {
             Self::Matches(val, true) => write!(f, "{val}"),
             Self::Matches(val, false) => write!(f, "!{val}"),
-            Self::AllOf(vals) => write!(f, "( {} )", p(vals)),
-            Self::AnyOf(vals) => write!(f, "|| ( {} )", p(vals)),
-            Self::ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p(vals)),
-            Self::AtMostOneOf(vals) => write!(f, "?? ( {} )", p(vals)),
-            Self::UseEnabled(s, vals) => write!(f, "{s}? ( {} )", p(vals)),
-            Self::UseDisabled(s, vals) => write!(f, "!{s}? ( {} )", p(vals)),
+            Self::AllOf(vals) => write!(f, "( {} )", p!(vals)),
+            Self::AnyOf(vals) => write!(f, "|| ( {} )", p!(vals)),
+            Self::ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p!(vals)),
+            Self::AtMostOneOf(vals) => write!(f, "?? ( {} )", p!(vals)),
+            Self::UseEnabled(s, vals) => write!(f, "{s}? ( {} )", p!(vals)),
+            Self::UseDisabled(s, vals) => write!(f, "!{s}? ( {} )", p!(vals)),
         }
     }
 }
@@ -239,15 +241,16 @@ peg::parser!(grammar depset() for str {
             Ok(DepRestrict::Matches(uri, true))
         }
 
-    rule parens<T: Ordered>(expr: rule<T>) -> OrderedSet<Box<T>>
-        = "(" _ v:expr() ++ " " _ ")"
-        { v.into_iter().map(Box::new).collect() }
+    rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
+        = "(" _ v:expr() ++ " " _ ")" { v }
 
     rule all_of<T: Ordered>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
-        = vals:parens(<expr()>) { DepRestrict::AllOf(vals) }
+        = vals:parens(<expr()>)
+        { DepRestrict::AllOf(vals.into_iter().map(Box::new).collect()) }
 
     rule any_of<T: Ordered>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
-        = "||" _ vals:parens(<expr()>) { DepRestrict::AnyOf(vals) }
+        = "||" _ vals:parens(<expr()>)
+        { DepRestrict::AnyOf(vals.into_iter().map(Box::new).collect()) }
 
     rule use_cond<T: Ordered>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
         = negate:"!"? u:useflag() "?" _ vals:parens(<expr()>) {
@@ -255,18 +258,19 @@ peg::parser!(grammar depset() for str {
                 None => DepRestrict::UseEnabled,
                 Some(_) => DepRestrict::UseDisabled,
             };
-            f(u.to_string(), vals)
+            f(u.to_string(), vals.into_iter().map(Box::new).collect())
         }
 
     rule exactly_one_of<T: Ordered>(expr: rule<DepRestrict<T>>) -> DepRestrict<T>
-        = "^^" _ vals:parens(<expr()>) { DepRestrict::ExactlyOneOf(vals) }
+        = "^^" _ vals:parens(<expr()>)
+        { DepRestrict::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
 
     rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<DepRestrict<T>>) -> DepRestrict<T>
         = "??" _ vals:parens(<expr()>) {?
             if !eapi.has(Feature::RequiredUseOneOf) {
                 return Err("?? groups are supported in >= EAPI 5");
             }
-            Ok(DepRestrict::AtMostOneOf(vals))
+            Ok(DepRestrict::AtMostOneOf(vals.into_iter().map(Box::new).collect()))
         }
 
     rule license_dep_restrict() -> DepRestrict<String>
