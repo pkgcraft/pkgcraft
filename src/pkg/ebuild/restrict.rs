@@ -14,11 +14,11 @@ pub enum Restrict {
     Slot(Str),
     Subslot(Str),
     RawSubslot(Option<Str>),
-    Depend(Option<DepSetRestrict<Box<restrict::Restrict>>>),
-    Bdepend(Option<DepSetRestrict<Box<restrict::Restrict>>>),
-    Idepend(Option<DepSetRestrict<Box<restrict::Restrict>>>),
-    Pdepend(Option<DepSetRestrict<Box<restrict::Restrict>>>),
-    Rdepend(Option<DepSetRestrict<Box<restrict::Restrict>>>),
+    Depend(Option<DepSetRestrict<atom::Restrict>>),
+    Bdepend(Option<DepSetRestrict<atom::Restrict>>),
+    Idepend(Option<DepSetRestrict<atom::Restrict>>),
+    Pdepend(Option<DepSetRestrict<atom::Restrict>>),
+    Rdepend(Option<DepSetRestrict<atom::Restrict>>),
     License(Option<DepSetRestrict<Str>>),
     Properties(Option<DepSetRestrict<Str>>),
     RequiredUse(Option<DepSetRestrict<Str>>),
@@ -33,10 +33,6 @@ pub enum Restrict {
     LongDescription(Option<Str>),
     Maintainers(Option<OrderedRestrict<MaintainerRestrict>>),
     Upstreams(Option<OrderedRestrict<UpstreamRestrict>>),
-
-    // boolean
-    And(Vec<Box<Self>>),
-    Or(Vec<Box<Self>>),
 }
 
 impl From<Restrict> for restrict::Restrict {
@@ -180,8 +176,6 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
                 Some(r) => r.matches(pkg.upstreams()),
                 None => pkg.upstreams().is_empty(),
             },
-            And(vals) => vals.iter().all(|r| r.matches(pkg)),
-            Or(vals) => vals.iter().any(|r| r.matches(pkg)),
         }
     }
 }

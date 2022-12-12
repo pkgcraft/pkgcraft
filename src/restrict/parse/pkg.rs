@@ -72,11 +72,10 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
     }
 }
 
-fn dep_restrict(attr: &str, r: Restrict) -> EbuildRestrict {
+fn dep_restrict(attr: &str, r: atom::Restrict) -> EbuildRestrict {
     use crate::depset::Restrict::*;
     use crate::pkg::ebuild::Restrict::*;
 
-    let r = Box::new(r);
     match attr {
         "depend" => Depend(Some(Any(r))),
         "bdepend" => Bdepend(Some(Any(r))),
@@ -218,21 +217,25 @@ peg::parser!(grammar restrict() for str {
     rule attr_dep_restrict() -> Restrict
         = attr:dep_attr() _ "any" _ s:quoted_string()
         {?
-            super::parse::dep(s)
-                .map(|r| dep_restrict(attr, r).into())
-                .map_err(|_| "invalid dep restriction")
+            let restricts = super::parse::dep::restricts(s)
+                .map_err(|_| "invalid dep restriction")?
+                .into_iter()
+                .map(|r| dep_restrict(attr, r));
+            Ok(Restrict::and(restricts))
         } / vals:(op:['&' | '|'] attr:dep_attr() { (op, attr) }) **<2,> ""
             _ "any" _ s:quoted_string()
         {?
             let mut and_restricts = vec![];
             let mut or_restricts = vec![];
 
-            let dep_r = super::parse::dep(s).map_err(|_| "invalid dep restriction")?;
+            let restricts = super::parse::dep::restricts(s)
+                .map_err(|_| "invalid dep restriction")?;
 
             for (op, attr) in vals {
+                let restricts = restricts.iter().cloned().map(|r| dep_restrict(attr, r));
                 match op {
-                    '&' => and_restricts.push(dep_restrict(attr, dep_r.clone())),
-                    '|' => or_restricts.push(dep_restrict(attr, dep_r.clone())),
+                    '&' => and_restricts.extend(restricts),
+                    '|' => or_restricts.extend(restricts),
                     _ => panic!("unknown operator: {op}"),
                 }
             }

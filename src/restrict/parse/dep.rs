@@ -181,8 +181,8 @@ peg::parser!(grammar restrict() for str {
         }
 });
 
-/// Convert a globbed dep string into a Restriction.
-pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
+/// Convert a globbed dep string into a Vector of atom restrictions.
+pub(crate) fn restricts(s: &str) -> crate::Result<Vec<Restrict>> {
     let (mut restricts, ver) =
         restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
@@ -191,6 +191,12 @@ pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
         restricts.push(Restrict::Version(Some(v)));
     }
 
+    Ok(restricts)
+}
+
+/// Convert a globbed dep string into a restriction.
+pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
+    let restricts = restricts(s)?;
     match restricts.is_empty() {
         true => Ok(BaseRestrict::True),
         false => Ok(BaseRestrict::and(restricts)),
