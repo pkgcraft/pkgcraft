@@ -1,12 +1,14 @@
 use std::collections::HashSet;
 use std::hash::Hash;
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, Sub, SubAssign,
+};
 
 use indexmap::IndexSet;
 
 use crate::pkg::Pkg;
-use crate::repo::{PkgRepository, Repo};
-use crate::restrict::Restrict;
+use crate::repo::{PkgRepository, Repo, Repository};
+use crate::restrict::{Restrict, Restriction};
 use crate::set::OrderedSet;
 
 use super::make_contains_atom;
@@ -69,10 +71,34 @@ impl PkgRepository for RepoSet {
 
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
         let restrict = val.into();
-        // TODO: filter repos to be scanned via any matching atom::Restrict::Repo
+
+        // extract repo restrictions for filtering
+        use crate::atom::Restrict::Repo as AtomRepo;
+        use crate::pkg::Restrict::Repo as PkgRepo;
+        let mut repo_restricts = vec![];
+
+        if let Restrict::And(vals) = &restrict {
+            for r in vals.iter().map(Deref::deref) {
+                match r {
+                    Restrict::Atom(AtomRepo(Some(x))) => repo_restricts.push(x.clone()),
+                    Restrict::Pkg(PkgRepo(x)) => repo_restricts.push(x.clone()),
+                    _ => (),
+                }
+            }
+        } else if let Restrict::Pkg(PkgRepo(x)) = &restrict {
+            repo_restricts.push(x.clone());
+        }
+
+        let repo_restrict = match &repo_restricts[..] {
+            [] => Restrict::True,
+            [_] => repo_restricts.remove(0).into(),
+            _ => Restrict::and(repo_restricts),
+        };
+
         PkgIter(Box::new(
             self.repos
                 .iter()
+                .filter(move |r| repo_restrict.matches(r.id()))
                 .flat_map(move |r| r.iter_restrict(restrict.clone())),
         ))
     }
