@@ -75,8 +75,9 @@ macro_rules! make_pkg_traits {
 
         impl From<&$x> for crate::restrict::Restrict {
             fn from(pkg: &$x) -> Self {
-                let r1 = pkg.atom().into();
-                let r2 = crate::restrict::Restrict::Atom(pkg.repo().into());
+                use crate::atom::Restrict;
+                let r1: Restrict = pkg.atom().into();
+                let r2: Restrict = pkg.repo().into();
                 crate::restrict::Restrict::and([r1, r2])
             }
         }

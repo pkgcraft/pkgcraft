@@ -193,7 +193,10 @@ pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
 
     match restricts.is_empty() {
         true => Ok(BaseRestrict::True),
-        false => Ok(BaseRestrict::and(restricts)),
+        false => {
+            let restricts = restricts.into_iter().map(Box::new).collect();
+            Ok(BaseRestrict::Atom(Restrict::And(restricts)))
+        }
     }
 }
 

@@ -640,28 +640,28 @@ pub struct PkgIter<'a> {
 
 impl<'a> PkgIter<'a> {
     fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
-        use crate::atom::Restrict::{Category, Package, Version};
+        use crate::atom::Restrict::{And, Category, Package, Version};
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
         let (mut cat, mut pkg, mut ver) = (None, None, None);
 
         // extract atom restrictions for package filtering
-        if let Some(Restrict::And(vals)) = restrict {
+        if let Some(Restrict::Atom(And(vals))) = restrict {
             for r in vals.iter().map(Deref::deref) {
                 match r {
-                    Restrict::Atom(Category(r)) => {
+                    Category(r) => {
                         cat_restricts.push(r.clone());
                         if let Str::Equal(s) = r {
                             cat = Some(s.to_string());
                         }
                     }
-                    Restrict::Atom(r @ Package(x)) => {
+                    r @ Package(x) => {
                         pkg_restricts.push(r.clone());
                         if let Str::Equal(s) = x {
                             pkg = Some(s.to_string());
                         }
                     }
-                    Restrict::Atom(r @ Version(x)) => {
+                    r @ Version(x) => {
                         pkg_restricts.push(r.clone());
                         if let Some(v) = x {
                             ver = Some(v.to_string());
