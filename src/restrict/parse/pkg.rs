@@ -296,14 +296,15 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule maintainers() -> Restrict
-        = "maintainers" r:(ordered_ops(<maintainer_exprs()>) / count())
-        { r.into() }
+        = "maintainers" r:(ordered_ops(<maintainer_exprs()>) / count()) { r.into() }
+        / "maintainers" r:(ordered_ops(<parens(<maintainer_and()>)>)) { r.into() }
+
+    rule maintainer_and() -> Vec<MaintainerRestrict>
+        = vals:(maintainer_attr_optional() / maintainer_restrict()) ++ (_* "&&" _*)
+        { vals }
 
     rule maintainer_exprs() -> MaintainerRestrict
-        = r:(maintainer_attr_optional()
-             / maintainer_restrict()
-             / parens(<maintainer_and()>)
-        ) { r }
+        = r:(maintainer_attr_optional() / maintainer_restrict()) { r }
 
     rule maintainer_attr_optional() -> MaintainerRestrict
         = attr:$(("name" / "description" / "type" / "proxied"))
@@ -336,19 +337,9 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule maintainer_and() -> MaintainerRestrict
-        = exprs:(maintainer_attr_optional() / maintainer_restrict()) ++ (_* "&&" _*)
-        {
-            use crate::metadata::ebuild::MaintainerRestrict::And;
-            And(exprs.into_iter().map(Box::new).collect())
-        }
-
     rule upstreams() -> Restrict
-        = "upstreams" r:(ordered_ops(<upstream_exprs()>) / count())
-        { r.into() }
-
-    rule upstream_exprs() -> UpstreamRestrict
-        = r:(upstream_restrict() / parens(<upstream_and()>)) { r }
+        = "upstreams" r:(ordered_ops(<upstream_restrict()>) / count()) { r.into() }
+        / "upstreams" r:(ordered_ops(<parens(<upstream_and()>)>)) { r.into() }
 
     rule upstream_restrict() -> UpstreamRestrict
         = attr:$(("site" / "name"))
@@ -363,12 +354,8 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule upstream_and() -> UpstreamRestrict
-        = exprs:upstream_restrict() ++ (_* "&&" _*)
-        {
-            use crate::metadata::ebuild::UpstreamRestrict::And;
-            And(exprs.into_iter().map(Box::new).collect())
-        }
+    rule upstream_and() -> Vec<UpstreamRestrict>
+        = vals:upstream_restrict() ++ (_* "&&" _*) { vals }
 
     rule _ = quiet!{[' ' | '\n' | '\t']+}
 

@@ -99,9 +99,6 @@ pub enum MaintainerRestrict {
     Description(Option<Str>),
     Type(Option<Str>),
     Proxied(Option<Str>),
-
-    // boolean
-    And(Vec<Box<Self>>),
 }
 
 impl Restriction<&Maintainer> for MaintainerRestrict {
@@ -128,7 +125,6 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
                 (None, None) => true,
                 _ => false,
             },
-            Self::And(vals) => vals.iter().all(|r| r.matches(m)),
         }
     }
 }
@@ -136,6 +132,33 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
 impl From<OrderedRestrict<MaintainerRestrict>> for restrict::Restrict {
     fn from(r: OrderedRestrict<MaintainerRestrict>) -> Self {
         EbuildRestrict::Maintainers(Some(r)).into()
+    }
+}
+
+impl From<OrderedRestrict<Vec<MaintainerRestrict>>> for restrict::Restrict {
+    fn from(r: OrderedRestrict<Vec<MaintainerRestrict>>) -> Self {
+        use EbuildRestrict::Maintainers;
+        use OrderedRestrict::*;
+        let restricts: Vec<_> = match r {
+            Any(vals) => vals
+                .into_iter()
+                .map(|x| Maintainers(Some(Any(x))))
+                .collect(),
+            All(vals) => vals
+                .into_iter()
+                .map(|x| Maintainers(Some(All(x))))
+                .collect(),
+            First(vals) => vals
+                .into_iter()
+                .map(|x| Maintainers(Some(First(x))))
+                .collect(),
+            Last(vals) => vals
+                .into_iter()
+                .map(|x| Maintainers(Some(Last(x))))
+                .collect(),
+            _ => panic!("count type doesn't support multiple values"),
+        };
+        restrict::Restrict::and(restricts)
     }
 }
 
@@ -166,9 +189,6 @@ impl Upstream {
 pub enum UpstreamRestrict {
     Site(Str),
     Name(Str),
-
-    // boolean
-    And(Vec<Box<Self>>),
 }
 
 impl Restriction<&Upstream> for UpstreamRestrict {
@@ -176,7 +196,6 @@ impl Restriction<&Upstream> for UpstreamRestrict {
         match self {
             Self::Site(r) => r.matches(u.site()),
             Self::Name(r) => r.matches(u.name()),
-            Self::And(vals) => vals.iter().all(|r| r.matches(u)),
         }
     }
 }
@@ -184,6 +203,24 @@ impl Restriction<&Upstream> for UpstreamRestrict {
 impl From<OrderedRestrict<UpstreamRestrict>> for restrict::Restrict {
     fn from(r: OrderedRestrict<UpstreamRestrict>) -> Self {
         EbuildRestrict::Upstreams(Some(r)).into()
+    }
+}
+
+impl From<OrderedRestrict<Vec<UpstreamRestrict>>> for restrict::Restrict {
+    fn from(r: OrderedRestrict<Vec<UpstreamRestrict>>) -> Self {
+        use EbuildRestrict::Upstreams;
+        use OrderedRestrict::*;
+        let restricts: Vec<_> = match r {
+            Any(vals) => vals.into_iter().map(|x| Upstreams(Some(Any(x)))).collect(),
+            All(vals) => vals.into_iter().map(|x| Upstreams(Some(All(x)))).collect(),
+            First(vals) => vals
+                .into_iter()
+                .map(|x| Upstreams(Some(First(x))))
+                .collect(),
+            Last(vals) => vals.into_iter().map(|x| Upstreams(Some(Last(x)))).collect(),
+            _ => panic!("count type doesn't support multiple values"),
+        };
+        restrict::Restrict::and(restricts)
     }
 }
 
