@@ -87,12 +87,6 @@ fn dep_restrict(attr: &str, r: Restrict) -> EbuildRestrict {
     }
 }
 
-type LogicRestrict = fn(Vec<Box<EbuildRestrict>>) -> EbuildRestrict;
-
-fn logic_r(func: LogicRestrict, restricts: Vec<EbuildRestrict>) -> EbuildRestrict {
-    func(restricts.into_iter().map(Box::new).collect())
-}
-
 peg::parser!(grammar restrict() for str {
     rule optional_attr() -> &'input str
         = attr:$((
@@ -125,7 +119,6 @@ peg::parser!(grammar restrict() for str {
         } / vals:(op:['&' | '|'] attr:optional_attr() { (op, attr) }) **<2,> ""
             is_op() ("None" / "none")
         {
-            use crate::pkg::ebuild::Restrict::{And, Or};
             let mut and_restricts = vec![];
             let mut or_restricts = vec![];
 
@@ -138,10 +131,10 @@ peg::parser!(grammar restrict() for str {
             }
 
             match (&and_restricts[..], &or_restricts[..]) {
-                ([..], []) => logic_r(And, and_restricts).into(),
-                ([], [..]) => logic_r(Or, or_restricts).into(),
+                ([..], []) => Restrict::and(and_restricts),
+                ([], [..]) => Restrict::or(or_restricts),
                 ([..], [..]) => Restrict::and(
-                    [logic_r(And, and_restricts), logic_r(Or, or_restricts)]),
+                    [Restrict::and(and_restricts), Restrict::or(or_restricts)]),
                 _ => panic!("missing optional attr restrictions"),
             }
         }
@@ -231,7 +224,6 @@ peg::parser!(grammar restrict() for str {
         } / vals:(op:['&' | '|'] attr:dep_attr() { (op, attr) }) **<2,> ""
             _ "any" _ s:quoted_string()
         {?
-            use crate::pkg::ebuild::Restrict::{And, Or};
             let mut and_restricts = vec![];
             let mut or_restricts = vec![];
 
@@ -245,13 +237,15 @@ peg::parser!(grammar restrict() for str {
                 }
             }
 
-            match (&and_restricts[..], &or_restricts[..]) {
-                ([..], []) => Ok(logic_r(And, and_restricts).into()),
-                ([], [..]) => Ok(logic_r(Or, or_restricts).into()),
-                ([..], [..]) => Ok(Restrict::and(
-                    [logic_r(And, and_restricts), logic_r(Or, or_restricts)])),
+            let r = match (&and_restricts[..], &or_restricts[..]) {
+                ([..], []) => Restrict::and(and_restricts),
+                ([], [..]) => Restrict::or(or_restricts),
+                ([..], [..]) => Restrict::and(
+                    [Restrict::and(and_restricts), Restrict::or(or_restricts)]),
                 _ => panic!("missing optional attr restrictions"),
-            }
+            };
+
+            Ok(r)
         }
 
     rule attr_orderedset_str() -> Restrict
