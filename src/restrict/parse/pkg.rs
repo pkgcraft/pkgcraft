@@ -303,7 +303,7 @@ peg::parser!(grammar restrict() for str {
                 "all" => All(r),
                 "first" => First(r),
                 "last" => Last(r),
-                _ => return Err("unknown upstreams operation"),
+                _ => return Err("unknown ordered operation"),
             };
             Ok(r)
         }
