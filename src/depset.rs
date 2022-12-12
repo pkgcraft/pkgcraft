@@ -6,8 +6,8 @@ use itertools::Itertools;
 use crate::atom::{Atom, Restrict as AtomRestrict};
 use crate::eapi::{Eapi, Feature};
 use crate::macros::extend_left;
-use crate::orderedset::{Ordered, OrderedSet};
 use crate::restrict::{self, Restriction, Str};
+use crate::set::{Ordered, OrderedSet};
 
 /// Uri object.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -4,10 +4,10 @@ use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, S
 
 use indexmap::IndexSet;
 
-use crate::orderedset::OrderedSet;
 use crate::pkg::Pkg;
 use crate::repo::{PkgRepository, Repo};
 use crate::restrict::Restrict;
+use crate::set::OrderedSet;
 
 use super::make_contains_atom;
 

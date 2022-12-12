@@ -8,7 +8,7 @@ use cached::{proc_macro::cached, SizedCache};
 use self::version::ParsedVersion;
 pub use self::version::Version;
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
-use crate::orderedset::OrderedSet;
+use crate::set::OrderedSet;
 use crate::Error;
 
 // re-export Restrict

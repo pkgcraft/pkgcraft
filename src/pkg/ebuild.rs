@@ -13,8 +13,8 @@ use crate::depset::{DepSet, Uri};
 use crate::eapi::{self, Eapi};
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::metadata::{Key, Metadata};
-use crate::orderedset::OrderedSet;
 use crate::repo::ebuild::Repo;
+use crate::set::OrderedSet;
 use crate::Error;
 
 use super::{make_pkg_traits, Package};

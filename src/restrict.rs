@@ -3,7 +3,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{BitAnd, BitOr, BitXor, Deref, Not};
 
-use crate::orderedset::{Ordered, OrderedSet};
+use crate::set::{Ordered, OrderedSet};
 use crate::{atom, pkg, Error};
 
 pub mod parse;
