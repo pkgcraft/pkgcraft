@@ -69,6 +69,7 @@ impl PkgRepository for RepoSet {
 
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
         let restrict = val.into();
+        // TODO: filter repos to be scanned via any matching atom::Restrict::Repo
         PkgIter(Box::new(
             self.repos
                 .iter()
