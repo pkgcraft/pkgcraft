@@ -151,8 +151,8 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule quoted_string() -> &'input str
-        = "\"" s:$([^ '\"']+) "\"" { s }
-        / "\'" s:$([^ '\'']+) "\'" { s }
+        = "\"" s:$([^'\"']+) "\"" { s }
+        / "\'" s:$([^'\'']+) "\'" { s }
 
     rule string_ops() -> &'input str
         = _* op:$("==" / "!=" / "=~" / "!~") _* { op }
