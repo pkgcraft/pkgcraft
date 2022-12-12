@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 
-use crate::atom;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
@@ -42,11 +41,7 @@ fn len_restrict(op: &str, s: &str) -> Result<(Vec<Ordering>, usize), &'static st
         _ => return Err("unknown count operator"),
     };
 
-    let size: usize = match s.parse() {
-        Ok(v) => v,
-        Err(_) => return Err("invalid count size"),
-    };
-
+    let size = s.parse().map_err(|_| "invalid count size")?;
     Ok((cmps, size))
 }
 
@@ -77,10 +72,11 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
     }
 }
 
-fn dep_restrict(attr: &str, r: atom::Restrict) -> EbuildRestrict {
+fn dep_restrict(attr: &str, r: Restrict) -> EbuildRestrict {
     use crate::depset::Restrict::*;
     use crate::pkg::ebuild::Restrict::*;
 
+    let r = Box::new(r);
     match attr {
         "depend" => Depend(Some(Any(r))),
         "bdepend" => Bdepend(Some(Any(r))),
@@ -229,12 +225,9 @@ peg::parser!(grammar restrict() for str {
     rule attr_dep_restrict() -> Restrict
         = attr:dep_attr() _ "any" _ s:quoted_string()
         {?
-            let atom_r = match super::parse::dep(s) {
-                Ok(Restrict::Atom(r)) => r,
-                _ => return Err("invalid dep restriction"),
-            };
-
-            Ok(dep_restrict(attr, atom_r).into())
+            super::parse::dep(s)
+                .map(|r| dep_restrict(attr, r).into())
+                .map_err(|_| "invalid dep restriction")
         } / vals:(op:['&' | '|'] attr:dep_attr() { (op, attr) }) **<2,> ""
             _ "any" _ s:quoted_string()
         {?
@@ -242,15 +235,12 @@ peg::parser!(grammar restrict() for str {
             let mut and_restricts = vec![];
             let mut or_restricts = vec![];
 
-            let atom_r = match super::parse::dep(s) {
-                Ok(Restrict::Atom(r)) => r,
-                _ => return Err("invalid dep restriction"),
-            };
+            let dep_r = super::parse::dep(s).map_err(|_| "invalid dep restriction")?;
 
             for (op, attr) in vals {
                 match op {
-                    '&' => and_restricts.push(dep_restrict(attr, atom_r.clone())),
-                    '|' => or_restricts.push(dep_restrict(attr, atom_r.clone())),
+                    '&' => and_restricts.push(dep_restrict(attr, dep_r.clone())),
+                    '|' => or_restricts.push(dep_restrict(attr, dep_r.clone())),
                     _ => panic!("unknown operator: {op}"),
                 }
             }

@@ -125,6 +125,15 @@ pub enum Restrict<T> {
     Any(T),
 }
 
+// TODO: combine these Restriction implementations using generics
+impl Restriction<&DepSet<Atom>> for Restrict<Box<restrict::Restrict>> {
+    fn matches(&self, val: &DepSet<Atom>) -> bool {
+        match self {
+            Self::Any(r) => val.iter_flatten().any(|v| r.matches(v)),
+        }
+    }
+}
+
 impl Restriction<&DepSet<Atom>> for Restrict<AtomRestrict> {
     fn matches(&self, val: &DepSet<Atom>) -> bool {
         match self {

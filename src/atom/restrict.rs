@@ -17,9 +17,6 @@ pub enum Restrict {
     Subslot(Option<Str>),
     UseDeps(Option<OrderedSetRestrict<String, Str>>),
     Repo(Option<Str>),
-
-    // boolean
-    And(Vec<Box<Self>>),
 }
 
 impl Restrict {
@@ -100,7 +97,6 @@ impl Restriction<&Atom> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            And(vals) => vals.iter().all(|r| r.matches(atom)),
         }
     }
 }
@@ -119,41 +115,35 @@ impl Restriction<&Atom> for BaseRestrict {
     }
 }
 
-impl From<&Atom> for Restrict {
+impl From<&Atom> for BaseRestrict {
     fn from(atom: &Atom) -> Self {
         let mut restricts = vec![
-            Box::new(Restrict::category(atom.category())),
-            Box::new(Restrict::package(atom.package())),
-            Box::new(Restrict::Blocker(atom.blocker())),
+            Restrict::category(atom.category()),
+            Restrict::package(atom.package()),
+            Restrict::Blocker(atom.blocker()),
         ];
 
         if let Some(v) = atom.version() {
-            restricts.push(Box::new(Restrict::Version(Some(v.clone()))));
+            restricts.push(Restrict::Version(Some(v.clone())));
         }
 
         if let Some(s) = atom.slot() {
-            restricts.push(Box::new(Restrict::slot(Some(s))));
+            restricts.push(Restrict::slot(Some(s)));
         }
 
         if let Some(s) = atom.subslot() {
-            restricts.push(Box::new(Restrict::subslot(Some(s))));
+            restricts.push(Restrict::subslot(Some(s)));
         }
 
         if let Some(u) = atom.use_deps() {
-            restricts.push(Box::new(Restrict::use_deps(Some(u))));
+            restricts.push(Restrict::use_deps(Some(u)));
         }
 
         if let Some(s) = atom.repo() {
-            restricts.push(Box::new(Restrict::repo(Some(s))));
+            restricts.push(Restrict::repo(Some(s)));
         }
 
-        Restrict::And(restricts)
-    }
-}
-
-impl From<&Atom> for BaseRestrict {
-    fn from(atom: &Atom) -> Self {
-        BaseRestrict::Atom(atom.into())
+        BaseRestrict::and(restricts)
     }
 }
 
