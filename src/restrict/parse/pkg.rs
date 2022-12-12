@@ -161,8 +161,7 @@ peg::parser!(grammar restrict() for str {
         = _* op:$((['<' | '>'] "="?) / "==" / "%") _* { op }
 
     rule quoted_string_set() -> Vec<&'input str>
-        = _* "{" e:(quoted_string() ** (_* "," _*)) "}" _
-        { e }
+        = _* "{" vals:(quoted_string() ** (_* "," _*)) "}" _* { vals }
 
     rule number_ops() -> &'input str
         = _* op:$((['<' | '>'] "="?) / "==") _* { op }
