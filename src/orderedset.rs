@@ -52,6 +52,15 @@ impl<T: Ordered> FromIterator<T> for OrderedSet<T> {
     }
 }
 
+impl<T: Ordered, const N: usize> From<[T; N]> for OrderedSet<T>
+where
+    T: Eq + Hash,
+{
+    fn from(arr: [T; N]) -> Self {
+        Self::from_iter(arr)
+    }
+}
+
 impl<'a, T: Ordered> IntoIterator for &'a OrderedSet<T> {
     type Item = &'a T;
     type IntoIter = indexmap::set::Iter<'a, T>;
