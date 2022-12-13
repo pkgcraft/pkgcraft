@@ -5,6 +5,11 @@ use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::restrict::*;
 
+// Convert string to regex restriction, with no metacharacter escaping.
+fn str_to_regex_restrict(s: &str) -> Result<Str, &'static str> {
+    Str::regex(s).map_err(|_| "invalid regex")
+}
+
 fn orderedset_restrict(
     op: &str,
     vals: &[&str],
@@ -25,8 +30,8 @@ fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     match op {
         "==" => Ok(Str::equal(s)),
         "!=" => Ok(Str::not(Str::equal(s))),
-        "=~" => Str::regex(s).map_err(|_| "invalid regex"),
-        "!~" => Str::regex(s).map_err(|_| "invalid regex"),
+        "=~" => str_to_regex_restrict(s),
+        "!~" => Ok(Str::not(str_to_regex_restrict(s)?)),
         _ => Err("invalid string operator"),
     }
 }
