@@ -51,6 +51,12 @@ impl<T: fmt::Display + Ordered> fmt::Display for DepSet<T> {
     }
 }
 
+impl<T: Ordered> FromIterator<DepRestrict<T>> for DepSet<T> {
+    fn from_iter<I: IntoIterator<Item = DepRestrict<T>>>(iterable: I) -> Self {
+        Self(iterable.into_iter().collect())
+    }
+}
+
 impl<T: Ordered> DepSet<T> {
     pub fn iter_flatten(&self) -> DepSetFlattenIter<T> {
         DepSetFlattenIter(self.0.iter().collect())
@@ -310,22 +316,22 @@ peg::parser!(grammar depset() for str {
             / pkg_val(eapi)
 
     pub(super) rule license() -> DepSet<String>
-        = v:license_dep_restrict() ++ " " { DepSet(v.into_iter().collect()) }
+        = v:license_dep_restrict() ++ " " { DepSet::from_iter(v) }
 
     pub(super) rule src_uri(eapi: &'static Eapi) -> DepSet<Uri>
-        = v:src_uri_dep_restrict(eapi) ++ " " { DepSet(v.into_iter().collect()) }
+        = v:src_uri_dep_restrict(eapi) ++ " " { DepSet::from_iter(v) }
 
     pub(super) rule properties() -> DepSet<String>
-        = v:properties_dep_restrict() ++ " " { DepSet(v.into_iter().collect()) }
+        = v:properties_dep_restrict() ++ " " { DepSet::from_iter(v) }
 
     pub(super) rule required_use(eapi: &'static Eapi) -> DepSet<String>
-        = v:required_use_dep_restrict(eapi) ++ " " { DepSet(v.into_iter().collect()) }
+        = v:required_use_dep_restrict(eapi) ++ " " { DepSet::from_iter(v) }
 
     pub(super) rule restrict() -> DepSet<String>
-        = v:restrict_dep_restrict() ++ " " { DepSet(v.into_iter().collect()) }
+        = v:restrict_dep_restrict() ++ " " { DepSet::from_iter(v) }
 
     pub(super) rule pkgdep(eapi: &'static Eapi) -> DepSet<Atom>
-        = v:pkg_dep_restrict(eapi) ++ " " { DepSet(v.into_iter().collect()) }
+        = v:pkg_dep_restrict(eapi) ++ " " { DepSet::from_iter(v) }
 });
 
 // provide public parsing functionality while converting error types
@@ -471,7 +477,7 @@ mod tests {
         I: IntoIterator<Item = DepRestrict<T>>,
         T: Ordered,
     {
-        DepSet(val.into_iter().collect())
+        DepSet::from_iter(val)
     }
 
     #[test]
