@@ -63,8 +63,8 @@ macro_rules! restrict_match {
 }
 pub(crate) use restrict_match;
 
-/// Create a restriction type injected with boolean variants.
-macro_rules! create_restrict_with_boolean {
+/// Create a restriction enum injected with boolean variants.
+macro_rules! restrict_with_boolean {
    ($name:ident, $($variants:tt)*) => {
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub enum $name {
@@ -76,7 +76,7 @@ macro_rules! create_restrict_with_boolean {
         }
    }
 }
-pub(crate) use create_restrict_with_boolean;
+pub(crate) use restrict_with_boolean;
 
 /// Implement restriction matching for a type with injected boolean variants.
 macro_rules! restrict_match_boolean {
@@ -234,7 +234,7 @@ impl Hash for Regex {
     }
 }
 
-create_restrict_with_boolean! {Str,
+restrict_with_boolean! {Str,
     Equal(String),
     Prefix(String),
     Regex(Regex),

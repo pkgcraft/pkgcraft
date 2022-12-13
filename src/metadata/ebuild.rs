@@ -92,7 +92,7 @@ impl Hash for Maintainer {
     }
 }
 
-create_restrict_with_boolean! {MaintainerRestrict,
+restrict_with_boolean! {MaintainerRestrict,
     Email(Str),
     Name(Option<Str>),
     Description(Option<Str>),
@@ -161,7 +161,7 @@ impl Upstream {
     }
 }
 
-create_restrict_with_boolean! {UpstreamRestrict,
+restrict_with_boolean! {UpstreamRestrict,
     Site(Str),
     Name(Str),
 }
