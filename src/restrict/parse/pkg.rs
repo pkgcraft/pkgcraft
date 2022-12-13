@@ -31,20 +31,6 @@ fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
     }
 }
 
-fn len_restrict(op: &str, s: &str) -> Result<(Vec<Ordering>, usize), &'static str> {
-    let cmps = match op {
-        "<" => vec![Ordering::Less],
-        "<=" => vec![Ordering::Less, Ordering::Equal],
-        "==" => vec![Ordering::Equal],
-        ">=" => vec![Ordering::Greater, Ordering::Equal],
-        ">" => vec![Ordering::Greater],
-        _ => return Err("unknown count operator"),
-    };
-
-    let size = s.parse().map_err(|_| "invalid count size")?;
-    Ok((cmps, size))
-}
-
 fn missing_restrict(attr: &str) -> EbuildRestrict {
     use crate::pkg::ebuild::Restrict::*;
     match attr {
@@ -151,8 +137,20 @@ peg::parser!(grammar restrict() for str {
     rule quoted_string_set() -> Vec<&'input str>
         = _* "{" vals:(quoted_string() ** (_* "," _*)) "}" _* { vals }
 
-    rule number_ops() -> &'input str
-        = _* op:$((['<' | '>'] "="?) / "==") _* { op }
+    rule number_ops() -> Vec<Ordering>
+        = _* op:$((['<' | '>'] "="?) / "==") _*
+        {?
+            let cmps = match op {
+                "<" => vec![Ordering::Less],
+                "<=" => vec![Ordering::Less, Ordering::Equal],
+                "==" => vec![Ordering::Equal],
+                ">=" => vec![Ordering::Greater, Ordering::Equal],
+                ">" => vec![Ordering::Greater],
+                _ => return Err("unknown count operator"),
+            };
+
+            Ok(cmps)
+        }
 
     rule atom_str_restrict() -> Restrict
         = attr:$((
@@ -275,9 +273,9 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule count<T>() -> OrderedRestrict<T>
-        = op:number_ops() count:$(['0'..='9']+)
+        = cmps:number_ops() s:$(['0'..='9']+)
         {?
-            let (cmps, size) = len_restrict(op, count)?;
+            let size = s.parse().map_err(|_| "invalid count size")?;
             Ok(OrderedRestrict::Count(cmps, size))
         }
 
