@@ -1,14 +1,12 @@
-use regex::escape;
-
 use crate::atom::version::{ParsedVersion, Suffix};
 use crate::atom::{Blocker, Restrict};
 use crate::peg::peg_error;
 use crate::restrict::{Restrict as BaseRestrict, Str};
 
-// Convert globbed string to regex, escaping all meta characters except '*'.
-fn str_to_regex_restrict(s: &str) -> Str {
-    let re_s = escape(s).replace("\\*", ".*");
-    Str::regex(format!(r"^{re_s}$")).unwrap()
+// Convert globbed string to regex restriction, escaping all meta characters except '*'.
+fn str_to_regex_restrict(s: &str) -> Result<Str, &'static str> {
+    let re_s = regex::escape(s).replace("\\*", ".*");
+    Str::regex(format!(r"^{re_s}$")).map_err(|_| "invalid regex")
 }
 
 peg::parser!(grammar restrict() for str {
@@ -59,12 +57,12 @@ peg::parser!(grammar restrict() for str {
         { s }
 
     rule cp_restricts() -> Vec<Restrict>
-        = cat:category() pkg:(quiet!{"/"} s:package() { s }) {
+        = cat:category() pkg:(quiet!{"/"} s:package() { s }) {?
             let mut restricts = vec![];
             match cat.matches('*').count() {
                 0 => restricts.push(Restrict::category(cat)),
                 _ => {
-                    let r = str_to_regex_restrict(cat);
+                    let r = str_to_regex_restrict(cat)?;
                     restricts.push(Restrict::Category(r))
                 }
             }
@@ -73,19 +71,19 @@ peg::parser!(grammar restrict() for str {
                 0 => restricts.push(Restrict::package(pkg)),
                 1 if pkg == "*" && restricts.is_empty() => (),
                 _ => {
-                    let r = str_to_regex_restrict(pkg);
+                    let r = str_to_regex_restrict(pkg)?;
                     restricts.push(Restrict::Package(r))
                 }
             }
 
-            restricts
-        } / s:package() {
+            Ok(restricts)
+        } / s:package() {?
             match s.matches('*').count() {
-                0 => vec![Restrict::package(s)],
-                1 if s == "*" => vec![],
+                0 => Ok(vec![Restrict::package(s)]),
+                1 if s == "*" => Ok(vec![]),
                 _ => {
-                    let r = str_to_regex_restrict(s);
-                    vec![Restrict::Package(r)]
+                    let r = str_to_regex_restrict(s)?;
+                    Ok(vec![Restrict::Package(r)])
                 }
             }
         }
@@ -103,23 +101,23 @@ peg::parser!(grammar restrict() for str {
         { s }
 
     rule slot_restrict() -> Restrict
-        = s:slot_glob() {
+        = s:slot_glob() {?
             match s.matches('*').count() {
-                0 => Restrict::slot(Some(s)),
+                0 => Ok(Restrict::slot(Some(s))),
                 _ => {
-                    let r = str_to_regex_restrict(s);
-                    Restrict::Slot(Some(r))
+                    let r = str_to_regex_restrict(s)?;
+                    Ok(Restrict::Slot(Some(r)))
                 }
             }
         }
 
     rule subslot_restrict() -> Restrict
-        = "/" s:slot_glob() {
+        = "/" s:slot_glob() {?
             match s.matches('*').count() {
-                0 => Restrict::subslot(Some(s)),
+                0 => Ok(Restrict::subslot(Some(s))),
                 _ => {
-                    let r = str_to_regex_restrict(s);
-                    Restrict::Subslot(Some(r))
+                    let r = str_to_regex_restrict(s)?;
+                    Ok(Restrict::Subslot(Some(r)))
                 }
             }
         }
@@ -140,12 +138,12 @@ peg::parser!(grammar restrict() for str {
         { s }
 
     rule repo_restrict() -> Restrict
-        = "::" s:repo_glob() {
+        = "::" s:repo_glob() {?
             match s.matches('*').count() {
-                0 => Restrict::repo(Some(s)),
+                0 => Ok(Restrict::repo(Some(s))),
                 _ => {
-                    let r = str_to_regex_restrict(s);
-                    Restrict::Repo(Some(r))
+                    let r = str_to_regex_restrict(s)?;
+                    Ok(Restrict::Repo(Some(r)))
                 }
             }
         }
