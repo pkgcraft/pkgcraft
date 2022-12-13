@@ -138,12 +138,12 @@ peg::parser!(grammar restrict() for str {
         = _* "{" vals:(quoted_string() ** (_* "," _*)) "}" _* { vals }
 
     rule number_ops() -> Vec<Ordering>
-        = _* op:$((['<' | '>'] "="?) / "==") _*
-        {?
+        = _* op:$((['<' | '>'] "="?) / (['!' | '='] "=")) _* {?
             let cmps = match op {
                 "<" => vec![Ordering::Less],
                 "<=" => vec![Ordering::Less, Ordering::Equal],
                 "==" => vec![Ordering::Equal],
+                "!=" => vec![Ordering::Less, Ordering::Greater],
                 ">=" => vec![Ordering::Greater, Ordering::Equal],
                 ">" => vec![Ordering::Greater],
                 _ => return Err("unknown count operator"),
