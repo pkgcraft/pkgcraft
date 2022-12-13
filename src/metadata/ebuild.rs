@@ -11,7 +11,7 @@ use tracing::warn;
 use crate::macros::cmp_not_equal;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
-use crate::restrict::{self, make_ordered_restrictions, OrderedRestrict, Restriction, Str};
+use crate::restrict::*;
 use crate::Error;
 
 #[derive(Debug)]
@@ -92,8 +92,7 @@ impl Hash for Maintainer {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum MaintainerRestrict {
+create_restrict_with_boolean! {MaintainerRestrict,
     Email(Str),
     Name(Option<Str>),
     Description(Option<Str>),
@@ -101,9 +100,13 @@ pub enum MaintainerRestrict {
     Proxied(Option<Str>),
 }
 
+impl MaintainerRestrict {
+    restrict_impl_boolean! {Self}
+}
+
 impl Restriction<&Maintainer> for MaintainerRestrict {
     fn matches(&self, m: &Maintainer) -> bool {
-        match self {
+        restrict_match_boolean! {self, m,
             Self::Email(r) => r.matches(m.email()),
             Self::Name(r) => match (r, m.name()) {
                 (Some(r), Some(s)) => r.matches(s),
@@ -129,36 +132,9 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
     }
 }
 
-impl From<OrderedRestrict<MaintainerRestrict>> for restrict::Restrict {
+impl From<OrderedRestrict<MaintainerRestrict>> for Restrict {
     fn from(r: OrderedRestrict<MaintainerRestrict>) -> Self {
         EbuildRestrict::Maintainers(Some(r)).into()
-    }
-}
-
-impl From<OrderedRestrict<Vec<MaintainerRestrict>>> for restrict::Restrict {
-    fn from(r: OrderedRestrict<Vec<MaintainerRestrict>>) -> Self {
-        use EbuildRestrict::Maintainers;
-        use OrderedRestrict::*;
-        let restricts: Vec<_> = match r {
-            Any(vals) => vals
-                .into_iter()
-                .map(|x| Maintainers(Some(Any(x))))
-                .collect(),
-            All(vals) => vals
-                .into_iter()
-                .map(|x| Maintainers(Some(All(x))))
-                .collect(),
-            First(vals) => vals
-                .into_iter()
-                .map(|x| Maintainers(Some(First(x))))
-                .collect(),
-            Last(vals) => vals
-                .into_iter()
-                .map(|x| Maintainers(Some(Last(x))))
-                .collect(),
-            _ => panic!("count type doesn't support multiple values"),
-        };
-        restrict::Restrict::and(restricts)
     }
 }
 
@@ -185,42 +161,27 @@ impl Upstream {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum UpstreamRestrict {
+create_restrict_with_boolean! {UpstreamRestrict,
     Site(Str),
     Name(Str),
 }
 
+impl UpstreamRestrict {
+    restrict_impl_boolean! {Self}
+}
+
 impl Restriction<&Upstream> for UpstreamRestrict {
     fn matches(&self, u: &Upstream) -> bool {
-        match self {
+        restrict_match_boolean! {self, u,
             Self::Site(r) => r.matches(u.site()),
             Self::Name(r) => r.matches(u.name()),
         }
     }
 }
 
-impl From<OrderedRestrict<UpstreamRestrict>> for restrict::Restrict {
+impl From<OrderedRestrict<UpstreamRestrict>> for Restrict {
     fn from(r: OrderedRestrict<UpstreamRestrict>) -> Self {
         EbuildRestrict::Upstreams(Some(r)).into()
-    }
-}
-
-impl From<OrderedRestrict<Vec<UpstreamRestrict>>> for restrict::Restrict {
-    fn from(r: OrderedRestrict<Vec<UpstreamRestrict>>) -> Self {
-        use EbuildRestrict::Upstreams;
-        use OrderedRestrict::*;
-        let restricts: Vec<_> = match r {
-            Any(vals) => vals.into_iter().map(|x| Upstreams(Some(Any(x)))).collect(),
-            All(vals) => vals.into_iter().map(|x| Upstreams(Some(All(x)))).collect(),
-            First(vals) => vals
-                .into_iter()
-                .map(|x| Upstreams(Some(First(x))))
-                .collect(),
-            Last(vals) => vals.into_iter().map(|x| Upstreams(Some(Last(x)))).collect(),
-            _ => panic!("count type doesn't support multiple values"),
-        };
-        restrict::Restrict::and(restricts)
     }
 }
 

@@ -63,51 +63,106 @@ macro_rules! restrict_match {
 }
 pub(crate) use restrict_match;
 
+/// Create a restriction type injected with boolean variants.
+macro_rules! create_restrict_with_boolean {
+   ($name:ident, $($variants:tt)*) => {
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        pub enum $name {
+            $($variants)*
+            And(Vec<Box<Self>>),
+            Or(Vec<Box<Self>>),
+            Xor(Vec<Box<Self>>),
+            Not(Box<Self>),
+        }
+   }
+}
+pub(crate) use create_restrict_with_boolean;
+
+/// Implement restriction matching for a type with injected boolean variants.
+macro_rules! restrict_match_boolean {
+   ($r:expr, $obj:expr, $($matcher:pat $(if $pred:expr)* => $result:expr,)+) => {
+       match $r {
+           $($matcher $(if $pred)* => $result,)+
+            Self::And(vals) => vals.iter().all(|r| r.matches($obj)),
+            Self::Or(vals) => vals.iter().any(|r| r.matches($obj)),
+            Self::Xor(vals) => {
+                let mut curr: Option<bool>;
+                let mut prev: Option<bool> = None;
+                for r in vals.iter() {
+                    curr = Some(r.matches($obj));
+                    if prev.is_some() && curr != prev {
+                        return true;
+                    }
+                    prev = curr
+                }
+                false
+            },
+            Self::Not(r) => !r.matches($obj),
+       }
+   }
+}
+pub(crate) use restrict_match_boolean;
+
+/// Implement boolean restriction conversions for injected boolean variants.
+macro_rules! restrict_impl_boolean {
+    ($type:ty) => {
+        pub fn and<I, T>(iter: I) -> Self
+        where
+            I: IntoIterator<Item = T>,
+            T: Into<$type>,
+        {
+            let mut restricts = vec![];
+            for r in iter.into_iter().map(Into::into) {
+                match r {
+                    Self::And(vals) => restricts.extend(vals),
+                    _ => restricts.push(Box::new(r)),
+                }
+            }
+            Self::And(restricts)
+        }
+
+        pub fn or<I, T>(iter: I) -> Self
+        where
+            I: IntoIterator<Item = T>,
+            T: Into<$type>,
+        {
+            let mut restricts = vec![];
+            for r in iter.into_iter().map(Into::into) {
+                match r {
+                    Self::Or(vals) => restricts.extend(vals),
+                    _ => restricts.push(Box::new(r)),
+                }
+            }
+            Self::Or(restricts)
+        }
+
+        pub fn xor<I, T>(iter: I) -> Self
+        where
+            I: IntoIterator<Item = T>,
+            T: Into<$type>,
+        {
+            let mut restricts = vec![];
+            for r in iter.into_iter().map(Into::into) {
+                match r {
+                    Self::Xor(vals) => restricts.extend(vals),
+                    _ => restricts.push(Box::new(r)),
+                }
+            }
+            Self::Xor(restricts)
+        }
+
+        pub fn not<T>(obj: T) -> Self
+        where
+            T: Into<$type>,
+        {
+            Self::Not(Box::new(obj.into()))
+        }
+    };
+}
+pub(crate) use restrict_impl_boolean;
+
 impl Restrict {
-    pub fn and<I, T>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = T>,
-        T: Into<Restrict>,
-    {
-        let mut restricts = vec![];
-        for r in iter.into_iter().map(Into::into) {
-            match r {
-                Self::And(vals) => restricts.extend(vals),
-                _ => restricts.push(Box::new(r)),
-            }
-        }
-        Self::And(restricts)
-    }
-
-    pub fn or<I, T>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = T>,
-        T: Into<Restrict>,
-    {
-        let mut restricts = vec![];
-        for r in iter.into_iter().map(Into::into) {
-            match r {
-                Self::Or(vals) => restricts.extend(vals),
-                _ => restricts.push(Box::new(r)),
-            }
-        }
-        Self::Or(restricts)
-    }
-
-    pub fn xor<I, T>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = T>,
-        T: Into<Restrict>,
-    {
-        let mut restricts = vec![];
-        for r in iter.into_iter().map(Into::into) {
-            match r {
-                Self::Xor(vals) => restricts.extend(vals),
-                _ => restricts.push(Box::new(r)),
-            }
-        }
-        Self::Xor(restricts)
-    }
+    restrict_impl_boolean! {Self}
 }
 
 impl BitAnd for Restrict {
@@ -179,17 +234,13 @@ impl Hash for Regex {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Str {
+create_restrict_with_boolean! {Str,
     Equal(String),
     Prefix(String),
     Regex(Regex),
     Substr(String),
     Suffix(String),
     Length(Vec<Ordering>, usize),
-
-    // boolean
-    Not(Box<Self>),
 }
 
 impl From<Str> for Restrict {
@@ -199,12 +250,7 @@ impl From<Str> for Restrict {
 }
 
 impl Str {
-    pub fn not<T>(obj: T) -> Self
-    where
-        T: Into<Str>,
-    {
-        Self::Not(Box::new(obj.into()))
-    }
+    restrict_impl_boolean! {Self}
 
     pub fn equal<S: Into<String>>(s: S) -> Self {
         Self::Equal(s.into())
@@ -231,14 +277,13 @@ impl Str {
 
 impl Restriction<&str> for Str {
     fn matches(&self, val: &str) -> bool {
-        match self {
+        restrict_match_boolean! {self, val,
             Self::Equal(s) => val == s,
             Self::Prefix(s) => val.starts_with(s),
             Self::Regex(re) => re.is_match(val),
             Self::Substr(s) => val.contains(s),
             Self::Suffix(s) => val.ends_with(s),
             Self::Length(ordering, size) => ordering.contains(&val.len().cmp(size)),
-            Self::Not(r) => !r.matches(val),
         }
     }
 }
