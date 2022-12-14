@@ -699,8 +699,8 @@ impl<'a> PkgIter<'a> {
         };
 
         // return valid ebuild (path, atom) tuples in a category
-        let category_ebuilds = move |cat: &str| -> Vec<(Utf8PathBuf, atom::Atom)> {
-            let mut paths: Vec<_> = WalkDir::new(repo.path().join(cat))
+        let category_ebuilds = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, atom::Atom)> {
+            let mut paths: Vec<_> = WalkDir::new(path)
                 .min_depth(2)
                 .max_depth(2)
                 .into_iter()
@@ -740,7 +740,9 @@ impl<'a> PkgIter<'a> {
                         repo.categories()
                             .into_iter()
                             .filter(move |s| cat_restrict.matches(s.as_str()))
-                            .flat_map(move |s| category_ebuilds(s.as_str()))
+                            .map(|s| repo.path().join(s))
+                            .filter(|p| p.exists())
+                            .flat_map(category_ebuilds)
                             .filter(move |(_, atom)| pkg_restrict.matches(atom)),
                     )
                 }
