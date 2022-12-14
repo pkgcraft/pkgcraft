@@ -13,8 +13,9 @@ use crate::depset::{DepSet, Uri};
 use crate::eapi::{self, Eapi};
 use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 use crate::metadata::{Key, Metadata};
-use crate::repo::ebuild::Repo;
+use crate::repo::{ebuild::Repo, Repository};
 use crate::set::OrderedSet;
+use crate::utils::relpath;
 use crate::Error;
 
 use super::{make_pkg_traits, Package};
@@ -42,7 +43,7 @@ impl<'a> Pkg<'a> {
     pub(crate) fn new(path: Utf8PathBuf, atom: Atom, repo: &'a Repo) -> crate::Result<Self> {
         let err = |e: Error| -> Error {
             Error::InvalidPkg {
-                path: path.clone(),
+                path: relpath(&path, repo.path()).expect("invalid relative pkg path"),
                 err: e.to_string(),
             }
         };
