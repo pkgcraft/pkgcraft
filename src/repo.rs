@@ -73,19 +73,20 @@ impl Repo {
         let path = path.as_ref();
         let id = id.as_ref();
 
-        if !path.exists() {
-            return Err(Error::InvalidValue(format!("nonexistent repo path: {path:?}")));
-        }
-
         for format in RepoFormat::iter() {
             if let Ok(repo) = Self::from_format(id, priority, path, format) {
                 return Ok(repo);
             }
         }
 
+        let err = match path.exists() {
+            true => "unknown or invalid format",
+            false => "nonexistent repo path",
+        };
+
         Err(Error::InvalidRepo {
             path: Utf8PathBuf::from(path),
-            err: "unknown or invalid format".to_string(),
+            err: err.to_string(),
         })
     }
 
