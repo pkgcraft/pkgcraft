@@ -8,8 +8,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
-    Eapi(String),
-    #[error("{0}")]
     PegParse(peg::Error),
     #[error("config error: {0}")]
     Config(String),

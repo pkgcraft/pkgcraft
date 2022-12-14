@@ -411,8 +411,8 @@ impl FromStr for &'static Eapi {
         match EAPIS.get(s) {
             Some(eapi) => Ok(eapi),
             None => match VALID_EAPI_RE.is_match(s) {
-                true => Err(Error::Eapi(format!("unknown EAPI: {s}"))),
-                false => Err(Error::Eapi(format!("invalid EAPI: {s}"))),
+                true => Err(Error::InvalidValue(format!("unknown EAPI: {s}"))),
+                false => Err(Error::InvalidValue(format!("invalid EAPI: {s}"))),
             },
         }
     }
