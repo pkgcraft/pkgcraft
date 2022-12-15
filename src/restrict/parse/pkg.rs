@@ -10,20 +10,17 @@ fn str_to_regex_restrict(s: &str) -> Result<Str, &'static str> {
     Str::regex(s).map_err(|_| "invalid regex")
 }
 
-fn orderedset_restrict(
-    op: &str,
-    vals: &[&str],
-) -> Result<OrderedSetRestrict<String, Str>, &'static str> {
-    let vals = vals.iter().map(|x| x.to_string()).collect();
-    match op {
-        "<" => Ok(OrderedSetRestrict::ProperSubset(vals)),
-        "<=" => Ok(OrderedSetRestrict::Subset(vals)),
-        "==" => Ok(OrderedSetRestrict::Equal(vals)),
-        ">=" => Ok(OrderedSetRestrict::Superset(vals)),
-        ">" => Ok(OrderedSetRestrict::ProperSuperset(vals)),
-        "%" => Ok(OrderedSetRestrict::Disjoint(vals)),
-        _ => Err("invalid set operator"),
-    }
+fn orderedset_restrict(op: &str, vals: &[&str]) -> OrderedSetRestrict<String, Str> {
+    let func = match op {
+        "<" => OrderedSetRestrict::ProperSubset,
+        "<=" => OrderedSetRestrict::Subset,
+        "==" => OrderedSetRestrict::Equal,
+        ">=" => OrderedSetRestrict::Superset,
+        ">" => OrderedSetRestrict::ProperSuperset,
+        "%" => OrderedSetRestrict::Disjoint,
+        _ => panic!("invalid set operator: {op}"),
+    };
+    func(vals.iter().map(|x| x.to_string()).collect())
 }
 
 fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
@@ -32,7 +29,7 @@ fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
         "!=" => Ok(Str::not(Str::equal(s))),
         "=~" => str_to_regex_restrict(s),
         "!~" => Ok(Str::not(str_to_regex_restrict(s)?)),
-        _ => Err("invalid string operator"),
+        _ => panic!("invalid string operator: {op}"),
     }
 }
 
@@ -151,7 +148,7 @@ peg::parser!(grammar restrict() for str {
                 "!=" => vec![Ordering::Less, Ordering::Greater],
                 ">=" => vec![Ordering::Greater, Ordering::Equal],
                 ">" => vec![Ordering::Greater],
-                _ => return Err("unknown count operator"),
+                _ => panic!("unknown count operator: {op}"),
             };
 
             Ok(cmps)
@@ -170,7 +167,7 @@ peg::parser!(grammar restrict() for str {
                 "category" => Ok(Category(r).into()),
                 "package" => Ok(Package(r).into()),
                 "version" => Ok(VersionStr(r).into()),
-                _ => Err("unknown atom attribute"),
+                _ => panic!("unknown atom attribute: {attr}"),
             }
         }
 
@@ -182,7 +179,7 @@ peg::parser!(grammar restrict() for str {
             match attr {
                 "eapi" => Ok(Eapi(r).into()),
                 "repo" => Ok(Repo(r).into()),
-                _ => Err("unknown package attribute"),
+                _ => panic!("unknown package attribute: {attr}"),
             }
         }
 
@@ -203,7 +200,7 @@ peg::parser!(grammar restrict() for str {
                 "slot" => Slot(r),
                 "subslot" => Subslot(r),
                 "long_description" => LongDescription(Some(r)),
-                _ => return Err("unknown package attribute"),
+                _ => panic!("unknown package attribute: {attr}"),
             };
             Ok(ebuild_r.into())
         }
@@ -263,18 +260,18 @@ peg::parser!(grammar restrict() for str {
                 / "inherited"
                 / "inherit"
             )) op:set_ops() vals:quoted_string_set()
-        {?
+        {
             use crate::pkg::ebuild::Restrict::*;
-            let r = orderedset_restrict(op, &vals)?;
-            let ebuild_r = match attr {
-                "homepage" => Homepage(Some(r)),
-                "keywords" => Keywords(Some(r)),
-                "iuse" => Iuse(Some(r)),
-                "inherited" => Inherited(Some(r)),
-                "inherit" => Inherit(Some(r)),
-                _ => return Err("unknown package attribute"),
+            let func = match attr {
+                "homepage" => Homepage,
+                "keywords" => Keywords,
+                "iuse" => Iuse,
+                "inherited" => Inherited,
+                "inherit" => Inherit,
+                _ => panic!("unknown package attribute: {attr}"),
             };
-            Ok(ebuild_r.into())
+            let r = orderedset_restrict(op, &vals);
+            func(Some(r)).into()
         }
 
     rule count<T>() -> OrderedRestrict<T>
@@ -286,16 +283,15 @@ peg::parser!(grammar restrict() for str {
 
     rule ordered_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
         = _ op:$(("any" / "all" / "first" / "last")) _ r:(exprs())
-        {?
+        {
             use crate::restrict::OrderedRestrict::*;
-            let r = match op {
+            match op {
                 "any" => Any(r),
                 "all" => All(r),
                 "first" => First(r),
                 "last" => Last(r),
-                _ => return Err("unknown ordered operation"),
-            };
-            Ok(r)
+                _ => panic!("unknown ordered operation: {op}"),
+            }
         }
 
     rule maintainers() -> Restrict
@@ -311,16 +307,15 @@ peg::parser!(grammar restrict() for str {
     rule maintainer_attr_optional() -> MaintainerRestrict
         = attr:$(("name" / "description" / "type" / "proxied"))
                 is_op() ("None" / "none")
-        {?
+        {
             use crate::metadata::ebuild::MaintainerRestrict::*;
-            let r = match attr {
+            match attr {
                 "name" => Name(None),
                 "description" => Description(None),
                 "type" => Type(None),
                 "proxied" => Proxied(None),
-                _ => return Err("unknown optional maintainer attribute"),
-            };
-            Ok(r)
+                _ => panic!("unknown optional maintainer attribute: {attr}"),
+            }
         }
 
     rule maintainer_restrict() -> MaintainerRestrict
@@ -335,7 +330,7 @@ peg::parser!(grammar restrict() for str {
                 "description" => Ok(Description(Some(r))),
                 "type" => Ok(Type(Some(r))),
                 "proxied" => Ok(Proxied(Some(r))),
-                _ => Err("unknown maintainer attribute"),
+                _ => panic!("unknown maintainer attribute: {attr}"),
             }
         }
 
@@ -359,7 +354,7 @@ peg::parser!(grammar restrict() for str {
             match attr {
                 "site" => Ok(Site(r)),
                 "name" => Ok(Name(r)),
-                _ => Err("unknown upstream attribute"),
+                _ => panic!("unknown upstream attribute: {attr}"),
             }
         }
 
