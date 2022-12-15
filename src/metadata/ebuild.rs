@@ -259,7 +259,7 @@ impl XmlMetadata {
     fn parse_xml<F: Fn(Error)>(xml: &str, warn: F) -> Self {
         let mut data = Self::default();
         if let Ok(doc) = Document::parse(xml) {
-            for node in doc.descendants() {
+            for node in doc.root_element().children() {
                 let lang = node.attribute("lang").unwrap_or("en");
                 let en = lang == "en";
                 match node.tag_name().name() {
