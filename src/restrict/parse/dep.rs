@@ -133,9 +133,31 @@ peg::parser!(grammar restrict() for str {
 
     rule repo_glob() -> &'input str
         = s:$(quiet!{
-                ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']
-                (['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*'] / ("-" !version()))*})
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']
+            (['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*'] / ("-" !version()))*})
         { s }
+
+    rule useflag() -> &'input str
+        = s:$(quiet!{
+            ['a'..='z' | 'A'..='Z' | '0'..='9']
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '@' | '-']*
+        } / expected!("useflag name")
+        ) { s }
+
+    rule use_dep() -> &'input str
+        = s:$(quiet!{
+            (useflag() use_dep_default()? ['=' | '?']?) /
+            ("-" useflag() use_dep_default()?) /
+            ("!" useflag() use_dep_default()? ['=' | '?'])
+        } / expected!("use dep")
+        ) { s }
+
+    rule use_dep_default() -> &'input str
+        = s:$("(+)" / "(-)") { s }
+
+    rule use_restricts() -> Restrict
+        = "[" use_deps:use_dep() ++ "," "]"
+        { Restrict::use_deps(Some(use_deps)) }
 
     rule repo_restrict() -> Restrict
         = "::" s:repo_glob() {?
@@ -159,7 +181,7 @@ peg::parser!(grammar restrict() for str {
 
     pub(super) rule dep() -> (Vec<Restrict>, Option<ParsedVersion<'input>>)
         = blocker_r:blocker_restrict()? pkg_r:pkg_restricts()
-            slot_r:slot_restricts()? repo_r:repo_restrict()?
+            slot_r:slot_restricts()? use_r:use_restricts()? repo_r:repo_restrict()?
         {
             let (mut restricts, ver) = pkg_r;
 
@@ -169,6 +191,10 @@ peg::parser!(grammar restrict() for str {
 
             if let Some(r) = slot_r {
                 restricts.extend(r);
+            }
+
+            if let Some(r) = use_r {
+                restricts.push(r);
             }
 
             if let Some(r) = repo_r {
