@@ -370,7 +370,7 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
         // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
         if eapi.has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
             if let Some(depend) = variables::optional("DEPEND") {
-                bind("RDEPEND", &depend, None, None)?;
+                bind("RDEPEND", depend, None, None)?;
             }
         }
 

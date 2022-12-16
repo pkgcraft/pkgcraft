@@ -19,7 +19,7 @@ pub(super) fn install_bin(args: &[&str], dest: &str) -> scallop::Result<ExecStat
         let install = d
             .borrow()
             .install()
-            .dest(&dest)?
+            .dest(dest)?
             .file_options(opts.iter().copied());
 
         install.files(args)?;

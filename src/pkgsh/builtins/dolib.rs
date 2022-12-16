@@ -18,7 +18,7 @@ pub(super) fn install_lib(args: &[&str], opts: Option<Vec<&str>>) -> scallop::Re
             Some(v) => v,
             None => d.libopts.iter().map(|s| s.as_str()).collect(),
         };
-        let install = d.install().dest(&dest)?.file_options(opts);
+        let install = d.install().dest(dest)?.file_options(opts);
         install.files(args)?;
         Ok(ExecStatus::Success)
     })

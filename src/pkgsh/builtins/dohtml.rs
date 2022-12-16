@@ -70,7 +70,7 @@ impl fmt::Display for Options {
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let opts = Options::try_parse_from(&[&["dohtml"], args].concat())
+    let opts = Options::try_parse_from([&["dohtml"], args].concat())
         .map_err(|e| Error::Base(format!("invalid args: {e}")))?;
 
     if opts.targets.is_empty() {
@@ -132,7 +132,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         };
         let dest =
             build_from_paths!("/usr/share/doc", variables::required("PF")?, subdir, doc_prefix);
-        let install = d.install().dest(&dest)?;
+        let install = d.install().dest(dest)?;
 
         let (dirs, files): (Vec<_>, Vec<_>) =
             opts.targets.iter().map(Path::new).partition(|p| p.is_dir());

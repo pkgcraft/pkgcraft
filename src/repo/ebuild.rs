@@ -136,7 +136,7 @@ impl Metadata {
     fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
             let path = self.profiles_base.join("arch.list");
-            match fs::read_to_string(&path) {
+            match fs::read_to_string(path) {
                 Ok(s) => s
                     .lines()
                     .map(|s| s.trim())

@@ -50,7 +50,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 .get(&eclass)
                 .map(|p| p.to_string())
                 .ok_or_else(|| Error::Base(format!("unknown eclass: {eclass}")))?;
-            if let Err(e) = source::file(&path) {
+            if let Err(e) = source::file(path) {
                 let msg = format!("failed loading eclass: {eclass}: {e}");
                 return Err(Error::Base(msg));
             }

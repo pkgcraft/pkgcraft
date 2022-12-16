@@ -23,7 +23,7 @@ where
             &variables::required("PF")?,
             d.borrow().docdesttree.trim_start_matches('/')
         );
-        let install = d.borrow().install().dest(&dest)?;
+        let install = d.borrow().install().dest(dest)?;
 
         let (dirs, files): (Vec<_>, Vec<_>) = paths.into_iter().partition(|p| p.is_dir());
 
