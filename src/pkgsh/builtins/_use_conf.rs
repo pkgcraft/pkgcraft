@@ -31,8 +31,8 @@ pub(super) fn use_conf(
 
         let ret = use_(flag)?;
         match ret {
-            ExecStatus::Success => write_stdout!("--{enabled}-{opt}{suffix}"),
-            ExecStatus::Failure(_) => write_stdout!("--{disabled}-{opt}{suffix}"),
+            ExecStatus::Success => write_stdout!("--{enabled}-{opt}{suffix}")?,
+            ExecStatus::Failure(_) => write_stdout!("--{disabled}-{opt}{suffix}")?,
         }
         Ok(ret)
     })

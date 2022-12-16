@@ -18,7 +18,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let unescaped: Result<Vec<_>, _> = args.iter().map(|s| unescape(s)).collect();
     let msg = unescaped?.join(" ");
-    write_stderr!("* {msg}");
+    write_stderr!("* {msg}")?;
 
     Ok(ExecStatus::Success)
 }

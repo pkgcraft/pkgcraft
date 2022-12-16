@@ -27,7 +27,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     emake.args(args);
-    write_stdout!("{}", emake.to_vec().join(" "));
+    write_stdout!("{}", emake.to_vec().join(" "))?;
     emake.run()?;
     Ok(ExecStatus::Success)
 }

@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let libdir = get_libdir(Some("lib")).unwrap();
-    write_stdout!("{libdir}");
+    write_stdout!("{libdir}")?;
 
     Ok(ExecStatus::Success)
 }

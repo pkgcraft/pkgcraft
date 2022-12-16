@@ -22,14 +22,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // TODO: support column-based formatting for success/failure indicators
     if bool::from(&ret) {
-        write_stderr!("[ ok ]\n");
+        write_stderr!("[ ok ]\n")?;
     } else {
         if !args.is_empty() {
             let unescaped: Result<Vec<_>, _> = args.iter().map(|s| unescape(s)).collect();
             let msg = unescaped?.join(" ");
-            write_stderr!("{msg} ");
+            write_stderr!("{msg} ")?;
         }
-        write_stderr!("[ !! ]\n");
+        write_stderr!("[ !! ]\n")?;
     }
 
     Ok(ret)

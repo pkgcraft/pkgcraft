@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             1 | 2 if eapi.has(Feature::NonfatalDie) && args[0] == "-n" => {
                 if NONFATAL.load(Ordering::Relaxed) {
                     if args.len() == 2 {
-                        write_stderr!("{}\n", args[1]);
+                        write_stderr!("{}\n", args[1])?;
                     }
                     return Ok(ExecStatus::Failure(1));
                 }

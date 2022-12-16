@@ -78,7 +78,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     if opts.verbose {
-        write_stderr!("{opts}");
+        write_stderr!("{opts}")?;
     }
 
     // TODO: replace csv expansion with clap arg parsing?

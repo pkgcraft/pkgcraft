@@ -87,7 +87,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         let msg_prefix = match path {
             None => "",
             Some(p) => {
-                write_stdout!("Applying patches from {p:?}\n");
+                write_stdout!("Applying patches from {p:?}\n")?;
                 "  "
             }
         };
@@ -95,8 +95,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         for f in files {
             let name = f.file_name().unwrap().to_string_lossy();
             match path {
-                None => write_stdout!("{msg_prefix}Applying {name}...\n"),
-                _ => write_stdout!("{msg_prefix}{name}...\n"),
+                None => write_stdout!("{msg_prefix}Applying {name}...\n")?,
+                _ => write_stdout!("{msg_prefix}{name}...\n")?,
             }
             let data = File::open(f)
                 .map_err(|e| Error::Base(format!("failed reading patch {f:?}: {e}")))?;

@@ -87,7 +87,10 @@ impl Default for Stdout {
 
 macro_rules! write_stdout {
     ($($arg:tt)*) => {
-        crate::pkgsh::BUILD_DATA.with(|d| write!(d.borrow_mut().stdout.inner, $($arg)*).unwrap())
+        crate::pkgsh::BUILD_DATA.with(|d| {
+            write!(d.borrow_mut().stdout.inner, $($arg)*)
+                .map_err(|e| scallop::Error::Base(format!("failed writing to stdout: {e}")))
+        })
     }
 }
 use write_stdout;
@@ -137,7 +140,10 @@ impl Default for Stderr {
 
 macro_rules! write_stderr {
     ($($arg:tt)*) => {
-        crate::pkgsh::BUILD_DATA.with(|d| write!(d.borrow_mut().stderr.inner, $($arg)*).unwrap())
+        crate::pkgsh::BUILD_DATA.with(|d| {
+            write!(d.borrow_mut().stderr.inner, $($arg)*)
+                .map_err(|e| scallop::Error::Base(format!("failed writing to stderr: {e}")))
+        })
     }
 }
 use write_stderr;

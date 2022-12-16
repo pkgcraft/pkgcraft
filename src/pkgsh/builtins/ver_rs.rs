@@ -44,7 +44,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             });
     }
 
-    write_stdout!("{}", version_parts.join(""));
+    write_stdout!("{}", version_parts.join(""))?;
 
     Ok(ExecStatus::Success)
 }

@@ -29,7 +29,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
         let ret = use_(flag)?;
         if bool::from(&ret) {
-            write_stdout!("{output}");
+            write_stdout!("{output}")?;
         }
 
         Ok(ret)

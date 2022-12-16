@@ -12,7 +12,7 @@ const LONG_DOC: &str = "The same as has, but also prints the first argument if f
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let ret = has(args)?;
     if bool::from(&ret) {
-        write_stdout!("{}", args[0]);
+        write_stdout!("{}", args[0])?;
     }
 
     Ok(ret)

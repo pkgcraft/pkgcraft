@@ -29,7 +29,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
     end = cmp::min(end * 2, len);
 
-    write_stdout!("{}", &version_parts[start..end].join(""));
+    write_stdout!("{}", &version_parts[start..end].join(""))?;
 
     Ok(ExecStatus::Success)
 }

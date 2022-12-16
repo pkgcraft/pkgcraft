@@ -102,7 +102,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         };
     }
 
-    write_stdout!("{}", econf.to_vec().join(" "));
+    write_stdout!("{}", econf.to_vec().join(" "))?;
     econf.run()?;
     Ok(ExecStatus::Success)
 }
