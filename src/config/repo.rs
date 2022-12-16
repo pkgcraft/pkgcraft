@@ -74,20 +74,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub(super) fn new(
-        config_dir: &Utf8Path,
-        db_dir: &Utf8Path,
-        create: bool,
-    ) -> crate::Result<Config> {
+    pub(super) fn new(config_dir: &Utf8Path, db_dir: &Utf8Path) -> crate::Result<Self> {
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
-
-        // create paths on request
-        if create {
-            for path in [&config_dir, &repo_dir] {
-                fs::create_dir_all(path).map_err(|e| Error::Config(e.to_string()))?;
-            }
-        }
 
         let mut configs = Vec::<(String, RepoConfig)>::new();
         if config_dir.exists() {
@@ -123,7 +112,7 @@ impl Config {
             }
         }
 
-        let mut config = Config {
+        let mut config = Self {
             config_dir,
             repo_dir,
             repos: Default::default(),
@@ -132,6 +121,14 @@ impl Config {
         // finalize, sort, and add repos to the config
         config.extend(&repos)?;
         Ok(config)
+    }
+
+    /// Create related repo config paths.
+    pub(super) fn create_paths(&self) -> crate::Result<()> {
+        for path in [&self.config_dir, &self.repo_dir] {
+            fs::create_dir_all(path).map_err(|e| Error::Config(e.to_string()))?;
+        }
+        Ok(())
     }
 
     /// Add local repo from a filesystem path.

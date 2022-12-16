@@ -34,7 +34,7 @@ pub struct ConfigPath {
 }
 
 impl ConfigPath {
-    fn new(name: &str, prefix: &str, create: bool) -> crate::Result<ConfigPath> {
+    fn new(name: &str, prefix: &str) -> Self {
         let home = env::var("HOME").ok().unwrap_or_else(|| "/root".to_string());
         let (config, cache, data, db, run, tmp): (
             Utf8PathBuf,
@@ -96,21 +96,22 @@ impl ConfigPath {
             }
         };
 
-        // create paths on request
-        if create {
-            for path in [&cache, &config, &data, &db, &run] {
-                fs::create_dir_all(path).map_err(|e| Error::Config(e.to_string()))?;
-            }
-        }
-
-        Ok(ConfigPath {
+        Self {
             cache,
             config,
             data,
             db,
             run,
             tmp,
-        })
+        }
+    }
+
+    /// Create all config paths.
+    fn create_paths(&self) -> crate::Result<()> {
+        for path in [&self.cache, &self.config, &self.data, &self.db, &self.run] {
+            fs::create_dir_all(path).map_err(|e| Error::Config(e.to_string()))?;
+        }
+        Ok(())
     }
 }
 
@@ -122,46 +123,18 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(name: &str, prefix: &str, create: bool) -> crate::Result<Config> {
-        let path = ConfigPath::new(name, prefix, create)?;
-        let repos = repo::Config::new(&path.config, &path.db, create)?;
-        Ok(Config { path, repos })
+    pub fn new(name: &str, prefix: &str) -> Self {
+        let path = ConfigPath::new(name, prefix);
+        Config {
+            path,
+            ..Default::default()
+        }
     }
 
-    // Note that repo references can't be returned since the underlying map structure alters them
-    // during mutations causing references to change.
-
-    /// Add local repo from a filesystem path.
-    pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> crate::Result<Repo> {
-        let r = self.repos.add_path(name, priority, path)?;
-        self.add_repo(&r)?;
-        Ok(r)
-    }
-
-    /// Add external repo from a URI.
-    pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
-        let r = self.repos.add_uri(name, priority, uri)?;
-        self.add_repo(&r)?;
-        Ok(r)
-    }
-
-    /// Add a repo to the config.
-    pub fn add_repo(&mut self, repo: &Repo) -> crate::Result<()> {
-        self.repos.extend([repo])
-    }
-
-    /// Create a new repo.
-    pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
-        let r = self.repos.create(name, priority)?;
-        self.add_repo(&r)?;
-        Ok(r)
-    }
-
-    /// Remove configured repos.
-    pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
-        // TODO: verify repos to be removed aren't required by remaining repos
-        self.repos.del(repos, clean)?;
-        Ok(())
+    /// Load repos from toml files in the related repos config dir.
+    pub fn load_repos(mut self) -> crate::Result<Self> {
+        self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
+        Ok(self)
     }
 
     /// Load repos from a portage-compatible repos.conf directory or file.
@@ -209,6 +182,49 @@ impl Config {
         Ok(repos)
     }
 
+    /// Create all config-related paths.
+    pub fn create_paths(&self) -> crate::Result<()> {
+        self.path.create_paths()?;
+        self.repos.create_paths()?;
+        Ok(())
+    }
+
+    // Note that repo references can't be returned since the underlying map structure alters them
+    // during mutations causing references to change.
+
+    /// Add local repo from a filesystem path.
+    pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> crate::Result<Repo> {
+        let r = self.repos.add_path(name, priority, path)?;
+        self.add_repo(&r)?;
+        Ok(r)
+    }
+
+    /// Add external repo from a URI.
+    pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
+        let r = self.repos.add_uri(name, priority, uri)?;
+        self.add_repo(&r)?;
+        Ok(r)
+    }
+
+    /// Add a repo to the config.
+    pub fn add_repo(&mut self, repo: &Repo) -> crate::Result<()> {
+        self.repos.extend([repo])
+    }
+
+    /// Create a new repo.
+    pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
+        let r = self.repos.create(name, priority)?;
+        self.add_repo(&r)?;
+        Ok(r)
+    }
+
+    /// Remove configured repos.
+    pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
+        // TODO: verify repos to be removed aren't required by remaining repos
+        self.repos.del(repos, clean)?;
+        Ok(())
+    }
+
     /// Create a new temporary ebuild repo.
     pub fn temp_repo(
         &mut self,
@@ -242,13 +258,13 @@ mod tests {
         env::set_var("HOME", "/home/user");
 
         // XDG vars and HOME are set
-        let config = Config::new("pkgcraft", "", false).unwrap();
+        let config = Config::new("pkgcraft", "");
         assert_eq!(config.path.cache, Utf8PathBuf::from("/cache/pkgcraft"));
         assert_eq!(config.path.config, Utf8PathBuf::from("/config/pkgcraft"));
         assert_eq!(config.path.run, Utf8PathBuf::from("/run/user/4321/pkgcraft"));
 
         // prefix
-        let config = Config::new("pkgcraft", "/prefix", false).unwrap();
+        let config = Config::new("pkgcraft", "/prefix");
         assert_eq!(config.path.cache, Utf8PathBuf::from("/prefix/cache/pkgcraft"));
         assert_eq!(config.path.config, Utf8PathBuf::from("/prefix/config/pkgcraft"));
         assert_eq!(config.path.run, Utf8PathBuf::from("/prefix/run/user/4321/pkgcraft"));
@@ -258,20 +274,20 @@ mod tests {
         env::remove_var("XDG_RUNTIME_DIR");
 
         // XDG vars are unset and HOME is set
-        let config = Config::new("pkgcraft", "", false).unwrap();
+        let config = Config::new("pkgcraft", "");
         assert_eq!(config.path.cache, Utf8PathBuf::from("/home/user/.cache/pkgcraft"));
         assert_eq!(config.path.config, Utf8PathBuf::from("/home/user/.config/pkgcraft"));
         assert_eq!(config.path.run, Utf8PathBuf::from("/home/user/.cache/pkgcraft"));
 
         // prefix
-        let config = Config::new("pkgcraft", "/prefix", false).unwrap();
+        let config = Config::new("pkgcraft", "/prefix");
         assert_eq!(config.path.cache, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
         assert_eq!(config.path.config, Utf8PathBuf::from("/prefix/home/user/.config/pkgcraft"));
         assert_eq!(config.path.run, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
         env::remove_var("HOME");
 
         // XDG vars and HOME are unset
-        let config = Config::new("pkgcraft", "", false).unwrap();
+        let config = Config::new("pkgcraft", "");
         assert_eq!(config.path.cache, Utf8PathBuf::from("/var/cache/pkgcraft"));
         assert_eq!(config.path.config, Utf8PathBuf::from("/etc/pkgcraft"));
         assert_eq!(config.path.run, Utf8PathBuf::from("/run/pkgcraft"));
@@ -279,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_load_repos_conf() {
-        let mut config = Config::new("pkgcraft", "", false).unwrap();
+        let mut config = Config::new("pkgcraft", "");
         let tmpdir = tempdir().unwrap();
         let conf_path = tmpdir.path().join("repos.conf");
         let path = conf_path.to_str().unwrap();
