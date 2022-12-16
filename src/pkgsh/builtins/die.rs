@@ -123,7 +123,7 @@ mod tests {
 
             // nonfatal die in main process
             bind("VAR", "1", None, None).unwrap();
-            source::string("nonfatal die -n message\nVAR=2").unwrap();
+            source::string("nonfatal die -n message; VAR=2").unwrap();
             assert_stderr!("message\n");
             assert_eq!(variables::optional("VAR").unwrap(), "2");
 
