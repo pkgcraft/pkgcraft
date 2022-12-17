@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use scallop::builtins::ExecStatus;
 
 use crate::pkgsh::write_stdout;

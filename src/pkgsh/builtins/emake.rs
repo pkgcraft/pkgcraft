@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::process::Command;
 
 use scallop::builtins::ExecStatus;

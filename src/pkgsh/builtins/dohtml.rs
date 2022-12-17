@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::fmt;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::Parser;

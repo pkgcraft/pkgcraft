@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::sync::atomic::Ordering;
 
 use scallop::builtins::ExecStatus;

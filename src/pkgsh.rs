@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::{io, mem};
+use std::io::{self, Read, Write};
+use std::mem;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -26,32 +27,17 @@ pub(crate) mod test;
 pub(crate) mod unescape;
 mod utils;
 
-#[cfg(not(test))]
-type StdinType = io::Stdin;
-#[cfg(test)]
-type StdinType = io::Cursor<Vec<u8>>;
-
 struct Stdin {
-    inner: StdinType,
+    inner: io::Stdin,
+    fake: io::Cursor<Vec<u8>>,
 }
 
 impl Default for Stdin {
     fn default() -> Self {
-        #[cfg(not(test))]
-        let inner = io::stdin();
-        #[cfg(test)]
-        let inner = io::Cursor::new(vec![]);
-
-        Stdin { inner }
-    }
-}
-
-impl Stdin {
-    fn get(&mut self) -> scallop::Result<&mut StdinType> {
-        if !cfg!(test) && isatty(0).unwrap_or(false) {
-            return Err(Error::Base("no input available, stdin is a tty".into()));
+        Self {
+            inner: io::stdin(),
+            fake: io::Cursor::new(vec![]),
         }
-        Ok(&mut self.inner)
     }
 }
 
@@ -59,8 +45,8 @@ impl Stdin {
 macro_rules! write_stdin {
     ($($arg:tt)*) => {
         crate::pkgsh::BUILD_DATA.with(|d| {
-            write!(d.borrow_mut().stdin.inner, $($arg)*).unwrap();
-            d.borrow_mut().stdin.inner.set_position(0);
+            write!(d.borrow_mut().stdin.fake, $($arg)*).unwrap();
+            d.borrow_mut().stdin.fake.set_position(0);
         })
     }
 }
@@ -68,28 +54,24 @@ macro_rules! write_stdin {
 use write_stdin;
 
 struct Stdout {
-    #[cfg(not(test))]
     inner: io::Stdout,
-    #[cfg(test)]
-    inner: io::Cursor<Vec<u8>>,
+    fake: io::Cursor<Vec<u8>>,
 }
 
 impl Default for Stdout {
     fn default() -> Self {
-        #[cfg(not(test))]
-        let inner = io::stdout();
-        #[cfg(test)]
-        let inner = io::Cursor::new(vec![]);
-
-        Stdout { inner }
+        Self {
+            inner: io::stdout(),
+            fake: io::Cursor::new(vec![]),
+        }
     }
 }
 
 macro_rules! write_stdout {
     ($($arg:tt)*) => {
         crate::pkgsh::BUILD_DATA.with(|d| {
-            write!(d.borrow_mut().stdout.inner, $($arg)*)
-                .map_err(|e| scallop::Error::Base(format!("failed writing to stdout: {e}")))
+            write!(d.borrow_mut().stdout(), $($arg)*)?;
+            d.borrow_mut().stdout().flush()
         })
     }
 }
@@ -100,9 +82,9 @@ macro_rules! get_stdout {
     () => {
         crate::pkgsh::BUILD_DATA.with(|d| {
             let mut d = d.borrow_mut();
-            let output = std::str::from_utf8(d.stdout.inner.get_ref()).unwrap();
+            let output = std::str::from_utf8(d.stdout.fake.get_ref()).unwrap();
             let output = String::from(output);
-            d.stdout.inner = std::io::Cursor::new(vec![]);
+            d.stdout.fake = std::io::Cursor::new(vec![]);
             output
         })
     };
@@ -121,28 +103,24 @@ macro_rules! assert_stdout {
 use assert_stdout;
 
 struct Stderr {
-    #[cfg(not(test))]
     inner: io::Stderr,
-    #[cfg(test)]
-    inner: io::Cursor<Vec<u8>>,
+    fake: io::Cursor<Vec<u8>>,
 }
 
 impl Default for Stderr {
     fn default() -> Self {
-        #[cfg(not(test))]
-        let inner = io::stderr();
-        #[cfg(test)]
-        let inner = io::Cursor::new(vec![]);
-
-        Stderr { inner }
+        Self {
+            inner: io::stderr(),
+            fake: io::Cursor::new(vec![]),
+        }
     }
 }
 
 macro_rules! write_stderr {
     ($($arg:tt)*) => {
         crate::pkgsh::BUILD_DATA.with(|d| {
-            write!(d.borrow_mut().stderr.inner, $($arg)*)
-                .map_err(|e| scallop::Error::Base(format!("failed writing to stderr: {e}")))
+            write!(d.borrow_mut().stderr(), $($arg)*)?;
+            d.borrow_mut().stderr().flush()
         })
     }
 }
@@ -153,9 +131,9 @@ macro_rules! get_stderr {
     () => {
         crate::pkgsh::BUILD_DATA.with(|d| {
             let mut d = d.borrow_mut();
-            let output = std::str::from_utf8(d.stderr.inner.get_ref()).unwrap();
+            let output = std::str::from_utf8(d.stderr.fake.get_ref()).unwrap();
             let output = String::from(output);
-            d.stderr.inner = std::io::Cursor::new(vec![]);
+            d.stderr.fake = std::io::Cursor::new(vec![]);
             output
         })
     };
@@ -179,6 +157,7 @@ pub(crate) struct BuildData<'a> {
     pub(crate) atom: Option<Atom>,
     pub(crate) repo: Option<&'a ebuild::Repo>,
 
+    captured_io: bool,
     stdin: Stdin,
     stdout: Stdout,
     stderr: Stderr,
@@ -241,6 +220,7 @@ impl BuildData<'_> {
         let data = BuildData {
             atom: Some(atom.clone()),
             repo: Some(r),
+            captured_io: cfg!(test),
             insopts: vec!["-m0644".to_string()],
             libopts: vec!["-m0644".to_string()],
             diropts: vec!["-m0755".to_string()],
@@ -277,8 +257,32 @@ impl BuildData<'_> {
         Ok(())
     }
 
-    fn stdin(&mut self) -> scallop::Result<&mut StdinType> {
-        self.stdin.get()
+    fn stdin(&mut self) -> scallop::Result<&mut dyn Read> {
+        if !cfg!(test) && isatty(0).unwrap_or(false) {
+            return Err(Error::Base("no input available, stdin is a tty".into()));
+        }
+
+        if !self.captured_io {
+            Ok(&mut self.stdin.inner)
+        } else {
+            Ok(&mut self.stdin.fake)
+        }
+    }
+
+    fn stdout(&mut self) -> &mut dyn Write {
+        if !self.captured_io {
+            &mut self.stdout.inner
+        } else {
+            &mut self.stdout.fake
+        }
+    }
+
+    fn stderr(&mut self) -> &mut dyn Write {
+        if !self.captured_io {
+            &mut self.stderr.inner
+        } else {
+            &mut self.stderr.fake
+        }
     }
 
     fn destdir(&self) -> &str {
@@ -308,7 +312,9 @@ impl BuildData<'_> {
 }
 
 thread_local! {
-    pub(crate) static BUILD_DATA: RefCell<BuildData<'static>> = RefCell::new(BuildData::default());
+    pub(crate) static BUILD_DATA: RefCell<BuildData<'static>> = {
+        RefCell::new(BuildData { captured_io: cfg!(test), ..Default::default()})
+    }
 }
 
 /// Initialize bash for library usage.
