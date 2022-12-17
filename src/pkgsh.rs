@@ -210,24 +210,27 @@ pub(crate) struct BuildData<'a> {
 }
 
 impl BuildData<'_> {
+    pub(crate) fn new() -> Self {
+        Self {
+            captured_io: cfg!(test),
+            ..Default::default()
+        }
+    }
+
     pub(crate) fn update(atom: &Atom, repo: &ebuild::Repo) {
         // TODO: remove this hack once BuildData is reworked
         // Drop the lifetime bound on the repo reference in order for it to be stored in BuildData
         // which currently requires `'static` due to its usage in a global, thread local, static
         // variable.
         let r = unsafe { mem::transmute(repo) };
-
-        let data = BuildData {
-            atom: Some(atom.clone()),
-            repo: Some(r),
-            captured_io: cfg!(test),
-            insopts: vec!["-m0644".to_string()],
-            libopts: vec!["-m0644".to_string()],
-            diropts: vec!["-m0755".to_string()],
-            exeopts: vec!["-m0755".to_string()],
-            desttree: "/usr".into(),
-            ..Default::default()
-        };
+        let mut data = BuildData::new();
+        data.atom = Some(atom.clone());
+        data.repo = Some(r);
+        data.insopts = vec!["-m0644".to_string()];
+        data.libopts = vec!["-m0644".to_string()];
+        data.diropts = vec!["-m0755".to_string()];
+        data.exeopts = vec!["-m0755".to_string()];
+        data.desttree = "/usr".into();
 
         // set build state defaults
         BUILD_DATA.with(|d| d.replace(data));
@@ -312,9 +315,7 @@ impl BuildData<'_> {
 }
 
 thread_local! {
-    pub(crate) static BUILD_DATA: RefCell<BuildData<'static>> = {
-        RefCell::new(BuildData { captured_io: cfg!(test), ..Default::default()})
-    }
+    pub(crate) static BUILD_DATA: RefCell<BuildData<'static>> = RefCell::new(BuildData::new())
 }
 
 /// Initialize bash for library usage.
