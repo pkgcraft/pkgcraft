@@ -126,10 +126,19 @@ mod tests {
             assert_stderr!("message\n");
             assert_eq!(variables::optional("VAR").unwrap(), "2");
 
-            // nonfatal die in subshell
+            d.borrow_mut().captured_io = false;
+
+            // nonfatal die in subshell without message
             bind("VAR", "1", None, None).unwrap();
-            source::string("FOO=$(nonfatal die -n); VAR=2").unwrap();
+            source::string("MSG=$(nonfatal die -n); VAR=2").unwrap();
             assert_eq!(variables::optional("VAR").unwrap(), "2");
+            assert_eq!(variables::optional("MSG").unwrap(), "");
+
+            // nonfatal die in subshell with message
+            bind("VAR", "1", None, None).unwrap();
+            source::string("MSG=$(nonfatal die -n message 2>&1); VAR=2").unwrap();
+            assert_eq!(variables::optional("VAR").unwrap(), "2");
+            assert_eq!(variables::optional("MSG").unwrap(), "message");
         })
     }
 }
