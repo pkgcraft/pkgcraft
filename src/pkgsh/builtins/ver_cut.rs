@@ -38,11 +38,11 @@ make_builtin!("ver_cut", ver_cut_builtin, run, LONG_DOC, USAGE, &[("7..", &[ALL]
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins::ExecStatus;
+    use scallop::source;
     use scallop::variables::*;
 
     use crate::macros::assert_err_re;
-    use crate::pkgsh::assert_stdout;
+    use crate::pkgsh::{assert_stdout, BUILD_DATA};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as ver_cut;
@@ -98,5 +98,20 @@ mod tests {
             assert_stdout!(expected);
             assert_eq!(r, ExecStatus::Success);
         }
+    }
+
+    #[test]
+    fn subshell() {
+        BUILD_DATA.with(|d| {
+            d.borrow_mut().captured_io = false;
+            let ver = Variable::new("VER");
+
+            source::string(format!("VER=$(ver_cut 2-5 1.2.3)")).unwrap();
+            assert_eq!(ver.optional().unwrap(), "2.3");
+
+            // test pulling version from $PV
+            source::string(format!("PV=1.2.3; VER=$(ver_cut 1-2)")).unwrap();
+            assert_eq!(ver.optional().unwrap(), "1.2");
+        })
     }
 }
