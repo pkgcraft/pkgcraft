@@ -41,19 +41,20 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 unbind(var)?;
             }
 
-            eclass_var.bind(&eclass, None, None)?;
+            // determine eclass file path
             let path = d
                 .borrow()
                 .repo
                 .unwrap()
                 .eclasses()
                 .get(&eclass)
-                .map(|p| p.to_string())
                 .ok_or_else(|| Error::Base(format!("unknown eclass: {eclass}")))?;
-            if let Err(e) = source::file(path) {
-                let msg = format!("failed loading eclass: {eclass}: {e}");
-                return Err(Error::Base(msg));
-            }
+
+            // update $ECLASS bash variable
+            eclass_var.bind(&eclass, None, None)?;
+
+            source::file(path)
+                .map_err(|e| Error::Base(format!("failed loading eclass: {eclass}: {e}")))?;
 
             let mut d = d.borrow_mut();
             // append metadata keys that incrementally accumulate
