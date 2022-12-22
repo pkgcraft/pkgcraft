@@ -106,11 +106,11 @@ mod tests {
             d.borrow_mut().captured_io = false;
             let ver = Variable::new("VER");
 
-            source::string(format!("VER=$(ver_cut 2-5 1.2.3)")).unwrap();
+            source::string("VER=$(ver_cut 2-5 1.2.3)").unwrap();
             assert_eq!(ver.optional().unwrap(), "2.3");
 
             // test pulling version from $PV
-            source::string(format!("PV=1.2.3; VER=$(ver_cut 1-2)")).unwrap();
+            source::string("PV=1.2.3; VER=$(ver_cut 1-2)").unwrap();
             assert_eq!(ver.optional().unwrap(), "1.2");
         })
     }
