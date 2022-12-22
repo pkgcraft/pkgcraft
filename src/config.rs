@@ -132,9 +132,9 @@ impl Config {
     }
 
     /// Load repos from toml files in the related repos config dir.
-    pub fn load_repos(mut self) -> crate::Result<Self> {
+    pub fn load_repos(&mut self) -> crate::Result<()> {
         self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
-        Ok(self)
+        Ok(())
     }
 
     /// Load repos from a portage-compatible repos.conf directory or file.
