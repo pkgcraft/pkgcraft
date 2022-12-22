@@ -327,6 +327,11 @@ mod tests {
         let r = config.load_repos_conf(path);
         assert_err_re!(r, "missing location field: overlay");
 
+        // empty
+        fs::write(path, "").unwrap();
+        let repos = config.load_repos_conf(path).unwrap();
+        assert!(repos.is_empty());
+
         // single repo
         let t1 = TempRepo::new("test", None, None).unwrap();
         let data = indoc::formatdoc! {r#"
