@@ -416,6 +416,11 @@ macro_rules! make_builtin {
                     let scope = d.borrow().scope;
                     let eapi = d.borrow().eapi;
 
+                    // TODO: drop this when using C-unwind ABI support and `set -e` for sourcing
+                    if let Some(err) = scallop::error::last_error() {
+                        tracing::error!("{err}");
+                    }
+
                     if eapi.builtins(scope).contains_key(cmd) {
                         match $func(&args) {
                             Ok(ret) => ret,
