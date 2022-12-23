@@ -322,7 +322,7 @@ thread_local! {
 #[ctor::ctor]
 fn initialize() {
     use crate::pkgsh::builtins::ALL_BUILTINS;
-    scallop::shell::init();
+    scallop::shell::init(true);
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
@@ -479,5 +479,38 @@ impl BuildVariable {
             // situations, e.g. source builds vs binary pkg merging.
             _ => "TODO".to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::Config;
+
+    use super::*;
+
+    #[test]
+    fn source_ebuild_disables_external_cmds() {
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0).unwrap();
+
+        // external commands are denied
+        let data = indoc::indoc! {r#"
+            DESCRIPTION="unknown command failure"
+            SLOT=0
+            ls /
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        BuildData::update(&cpv, &repo);
+        assert!(source_ebuild(&path).is_err());
+
+        // absolute paths are denied
+        let data = indoc::indoc! {r#"
+            DESCRIPTION="unknown command failure"
+            SLOT=0
+            /bin/ls /
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
+        BuildData::update(&cpv, &repo);
+        assert!(source_ebuild(&path).is_err());
     }
 }

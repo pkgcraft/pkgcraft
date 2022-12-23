@@ -83,9 +83,7 @@ make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, &[("..", &[GLOBA
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
-    use scallop::variables::bind;
+    use scallop::variables::optional;
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
@@ -253,27 +251,23 @@ mod tests {
     fn test_skip_reinherits() {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
-        let temp_file = tempfile::NamedTempFile::new().unwrap();
-        bind("TEMP_FILE", temp_file.path().to_string_lossy(), None, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
             # stub eclass
-            echo e1 >> ${TEMP_FILE}
+            VAR+="e1 "
         "#};
         t.create_eclass("e1", eclass).unwrap();
         let eclass = indoc::indoc! {r#"
             # stub eclass
             inherit e1
-            echo e2 >> ${TEMP_FILE}
+            VAR+="e2"
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
         BuildData::update(&cpv, &repo);
         inherit(&["e1", "e2"]).unwrap();
-        let inherits = fs::read_to_string(temp_file.path()).unwrap();
-        let inherits: Vec<_> = inherits.split_whitespace().collect();
-        assert_eq!(inherits, ["e1", "e2"]);
+        assert_eq!(optional("VAR").unwrap(), "e1 e2");
     }
 }

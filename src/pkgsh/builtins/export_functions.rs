@@ -42,10 +42,8 @@ make_builtin!(
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
     use scallop::functions;
-    use scallop::variables::bind;
+    use scallop::variables::optional;
 
     use crate::config::Config;
     use crate::pkgsh::{source_ebuild, BuildData};
@@ -66,16 +64,13 @@ mod tests {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
-        let temp_file = tempfile::NamedTempFile::new().unwrap();
-        bind("TEMP_FILE", temp_file.path().to_string_lossy(), None, None).unwrap();
-
         // create eclass
         let eclass = indoc::indoc! {r#"
             # stub eclass
             EXPORT_FUNCTIONS src_compile
 
             e1_src_compile() {
-                echo compiling >> ${TEMP_FILE}
+                VAR=2
             }
         "#};
         t.create_eclass("e1", eclass).unwrap();
@@ -90,10 +85,9 @@ mod tests {
         source_ebuild(&path).unwrap();
         // execute eclass-defined function
         let mut func = functions::find("src_compile").unwrap();
+        // verify the function runs
+        assert!(optional("VAR").is_none());
         func.execute(&[]).unwrap();
-        // verify the function was run
-        let output = fs::read_to_string(temp_file.path()).unwrap();
-        let output: Vec<_> = output.split_whitespace().collect();
-        assert_eq!(output, ["compiling"]);
+        assert_eq!(optional("VAR").unwrap(), "2");
     }
 }
