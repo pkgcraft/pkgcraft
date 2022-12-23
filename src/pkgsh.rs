@@ -223,17 +223,19 @@ impl BuildData<'_> {
         // which currently requires `'static` due to its usage in a global, thread local, static
         // variable.
         let r = unsafe { mem::transmute(repo) };
-        let mut data = BuildData::new();
-        data.atom = Some(atom.clone());
-        data.repo = Some(r);
-        data.insopts = vec!["-m0644".to_string()];
-        data.libopts = vec!["-m0644".to_string()];
-        data.diropts = vec!["-m0755".to_string()];
-        data.exeopts = vec!["-m0755".to_string()];
-        data.desttree = "/usr".into();
 
-        // set build state defaults
-        BUILD_DATA.with(|d| d.replace(data));
+        BUILD_DATA.with(|d| {
+            d.replace(BuildData {
+                atom: Some(atom.clone()),
+                repo: Some(r),
+                insopts: vec!["-m0644".to_string()],
+                libopts: vec!["-m0644".to_string()],
+                diropts: vec!["-m0755".to_string()],
+                exeopts: vec!["-m0755".to_string()],
+                desttree: "/usr".into(),
+                ..BuildData::new()
+            })
+        });
     }
 
     fn set_vars(&mut self) -> scallop::Result<()> {
