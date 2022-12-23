@@ -70,14 +70,14 @@ mod tests {
         builtins::enable(&["assert"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("true | false | true; assert && VAR=2");
+        let r = source::string_jmp("true | false | true; assert && VAR=2");
         assert_err_re!(r, r"^assert: error: \(no error message\)");
 
         // verify bash state
         assert_eq!(variables::optional("VAR").unwrap(), "1");
 
         // verify message output
-        let r = source::string("true | false | true; assert \"output message\"");
+        let r = source::string_jmp("true | false | true; assert \"output message\"");
         assert_err_re!(r, r"^assert: error: output message");
     }
 
@@ -87,14 +87,14 @@ mod tests {
         builtins::enable(&["assert"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("FOO=$(true | false; assert); VAR=2");
+        let r = source::string_jmp("FOO=$(true | false; assert); VAR=2");
         assert_err_re!(r, r"^assert: error: \(no error message\)");
 
         // verify bash state
         assert_eq!(variables::optional("VAR").unwrap(), "1");
 
         // verify message output
-        let r = source::string("VAR=$(true | false; assert \"output message\")");
+        let r = source::string_jmp("VAR=$(true | false; assert \"output message\")");
         assert_err_re!(r, r"^assert: error: output message");
     }
 
@@ -108,7 +108,7 @@ mod tests {
             d.borrow_mut().scope = Scope::Phase(phase);
 
             // nonfatal requires `die -n` call
-            let r = source::string("true | false; nonfatal assert");
+            let r = source::string_jmp("true | false; nonfatal assert");
             assert_err_re!(r, r"^assert: error: \(no error message\)");
 
             // nonfatal die in main process

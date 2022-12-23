@@ -78,14 +78,14 @@ mod tests {
         builtins::enable(&["die"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("die && VAR=2");
+        let r = source::string_jmp("die && VAR=2");
         assert_err_re!(r, r"^die: error: \(no error message\)");
 
         // verify bash state
         assert_eq!(variables::optional("VAR").unwrap(), "1");
 
         // verify message output
-        let r = source::string("die \"output message\"");
+        let r = source::string_jmp("die \"output message\"");
         assert_err_re!(r, r"^die: error: output message");
     }
 
@@ -95,14 +95,14 @@ mod tests {
         builtins::enable(&["die"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("FOO=$(die); VAR=2");
+        let r = source::string_jmp("FOO=$(die); VAR=2");
         assert_err_re!(r, r"^die: error: \(no error message\)");
 
         // verify bash state
         assert_eq!(variables::optional("VAR").unwrap(), "1");
 
         // verify message output
-        let r = source::string("VAR=$(die \"output message\")");
+        let r = source::string_jmp("VAR=$(die \"output message\")");
         assert_err_re!(r, r"^die: error: output message");
     }
 
@@ -117,7 +117,7 @@ mod tests {
             d.borrow_mut().scope = Scope::Phase(phase);
 
             // nonfatal requires `die -n` call
-            let r = source::string("nonfatal die && VAR=2");
+            let r = source::string_jmp("nonfatal die && VAR=2");
             assert_err_re!(r, r"^die: error: \(no error message\)");
 
             // nonfatal die in main process
