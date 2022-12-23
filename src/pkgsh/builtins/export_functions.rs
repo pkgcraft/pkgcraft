@@ -24,8 +24,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // anywhere in an eclass including before the related functions are defined.
 
     for func in args {
-        source::string(format!("{func}() {{ {eclass}_{func} \"$@\"; }}"))
-            .expect("invalid phase stub function");
+        source::string(format!("{func}() {{ {eclass}_{func} \"$@\"; }}"))?;
     }
 
     Ok(ExecStatus::Success)
