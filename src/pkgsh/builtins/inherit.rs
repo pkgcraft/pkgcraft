@@ -11,7 +11,7 @@ const LONG_DOC: &str = "Sources the given list of eclasses.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
+        return Err(Error::Bail("requires 1 or more args, got 0".into()));
     }
 
     let eclasses: Vec<_> = args.iter().map(|s| s.to_string()).collect();
@@ -48,13 +48,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 .unwrap()
                 .eclasses()
                 .get(&eclass)
-                .ok_or_else(|| Error::Base(format!("unknown eclass: {eclass}")))?;
+                .ok_or_else(|| Error::Bail(format!("unknown eclass: {eclass}")))?;
 
             // update $ECLASS bash variable
             eclass_var.bind(&eclass, None, None)?;
 
             source::file(path)
-                .map_err(|e| Error::Base(format!("failed loading eclass: {eclass}: {e}")))?;
+                .map_err(|e| Error::Bail(format!("failed loading eclass: {eclass}: {e}")))?;
 
             let mut d = d.borrow_mut();
             // append metadata keys that incrementally accumulate
