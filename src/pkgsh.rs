@@ -377,7 +377,7 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
             opts.enable(["failglob"])?;
         }
 
-        source::file_jmp(path)?;
+        source::file(path)?;
 
         // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
         if eapi.has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
