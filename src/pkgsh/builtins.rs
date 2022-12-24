@@ -476,13 +476,13 @@ macro_rules! builtin_scope_tests {
             let mut config = Config::default();
             let (t, repo) = config.temp_repo("test", 0).unwrap();
             let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-            BuildData::update(&cpv, &repo);
 
             let static_scopes: Vec<_> = vec![Global, Eclass];
             for eapi in EAPIS_OFFICIAL.iter() {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
                 let scopes = static_scopes.iter().chain(phase_scopes.iter());
                 for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {
+                    BuildData::update(&cpv, &repo);
                     let err = format!(" doesn't enable command: {name}");
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
