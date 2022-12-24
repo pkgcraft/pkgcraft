@@ -495,6 +495,7 @@ macro_rules! builtin_scope_tests {
                             let eclass = indoc::formatdoc! {r#"
                                 # stub eclass
                                 {cmd}
+                                VAR=2
                             "#};
                             t.create_eclass("e1", &eclass).unwrap();
                             let data = indoc::formatdoc! {r#"
@@ -513,6 +514,7 @@ macro_rules! builtin_scope_tests {
                                 DESCRIPTION="testing builtin global scope failures"
                                 SLOT=0
                                 {cmd}
+                                LICENSE="MIT"
                             "#};
                             let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             let r = source_ebuild(&path);
@@ -525,6 +527,7 @@ macro_rules! builtin_scope_tests {
                                 SLOT=0
                                 {phase}() {{
                                     {cmd}
+                                    local var=2
                                 }}
                             "#};
                             let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
