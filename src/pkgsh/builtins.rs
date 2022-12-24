@@ -427,7 +427,7 @@ macro_rules! make_builtin {
                             Some(_) => format!("{scope} scope doesn't enable command: {cmd}"),
                             None => format!("EAPI={eapi} doesn't enable command: {cmd}"),
                         };
-                        scallop::builtins::handle_error(cmd, scallop::Error::Base(msg))
+                        scallop::builtins::handle_error(cmd, scallop::Error::Bail(msg))
                     }
                 })
             };
