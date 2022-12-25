@@ -190,10 +190,8 @@ impl IntoEapi for Option<&'static Eapi> {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 impl IntoEapi for *const Eapi {
     fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        match unsafe { self.as_ref() } {
-            Some(p) => Ok(p),
-            None => Ok(Default::default()),
-        }
+        let eapi = unsafe { self.as_ref() };
+        Ok(eapi.unwrap_or_default())
     }
 }
 
