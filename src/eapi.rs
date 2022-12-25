@@ -104,7 +104,7 @@ type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 #[derive(Default, Clone)]
 pub struct Eapi {
     id: String,
-    parent: Option<&'static Eapi>,
+    parent: Option<&'static Self>,
     features: HashSet<Feature>,
     phases: HashSet<Phase>,
     dep_keys: HashSet<Key>,
@@ -198,10 +198,10 @@ impl IntoEapi for *const Eapi {
 type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 
 impl Eapi {
-    fn new(id: &str, parent: Option<&'static Eapi>) -> Eapi {
+    fn new(id: &str, parent: Option<&'static Eapi>) -> Self {
         let mut eapi = match parent {
             Some(e) => e.clone(),
-            None => Eapi::default(),
+            None => Self::default(),
         };
         eapi.id = id.to_string();
         eapi.parent = parent;
