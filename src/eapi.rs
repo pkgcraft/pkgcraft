@@ -199,10 +199,7 @@ type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 
 impl Eapi {
     fn new(id: &str, parent: Option<&'static Eapi>) -> Self {
-        let mut eapi = match parent {
-            Some(e) => e.clone(),
-            None => Self::default(),
-        };
+        let mut eapi = parent.cloned().unwrap_or_default();
         eapi.id = id.to_string();
         eapi.parent = parent;
         eapi
