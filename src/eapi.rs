@@ -170,10 +170,7 @@ impl IntoEapi for &str {
 
 impl IntoEapi for Option<&str> {
     fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        match self {
-            None => Ok(Default::default()),
-            Some(s) => <&Eapi>::from_str(s),
-        }
+        self.map_or(Ok(Default::default()), <&Eapi>::from_str)
     }
 }
 
