@@ -587,7 +587,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
         .disable_archives(&["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
 
-/// Reference to the latest registered EAPI.
+/// Reference to the latest, official EAPI.
 pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
 
 /// The latest EAPI with extensions on top.
