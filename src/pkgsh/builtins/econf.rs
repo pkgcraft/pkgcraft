@@ -41,13 +41,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .arg("--help")
         .output()
         .map_err(|e| Error::Base(format!("failed running: {e}")))?;
-    let mut known_opts = IndexSet::<String>::new();
-    let conf_help = String::from_utf8_lossy(&conf_help.stdout);
-    for line in conf_help.split('\n') {
-        for caps in CONFIG_OPT_RE.captures_iter(line.trim()) {
-            known_opts.insert(caps["opt"].to_string());
-        }
-    }
+    let known_opts: IndexSet<_> = String::from_utf8_lossy(&conf_help.stdout)
+        .lines()
+        .flat_map(|line| CONFIG_OPT_RE.captures_iter(line.trim()))
+        .map(|cap| cap["opt"].to_string())
+        .collect();
 
     let mut defaults = IndexMap::<&str, Option<String>>::new();
     let eprefix = variables::required("EPREFIX")?;
