@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
-use crate::restrict::set::OrderedSetRestrict;
-use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::atom::{Atom, Blocker, Version};
 
-use super::{Atom, Blocker, Version};
+use super::set::OrderedSetRestrict;
+use super::str::Restrict as StrRestrict;
+use super::{Restrict as BaseRestrict, Restriction};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {

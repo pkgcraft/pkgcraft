@@ -10,7 +10,7 @@ use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use crate::atom::Atom;
 use crate::config::RepoConfig;
 use crate::pkg::{Package, Pkg};
-use crate::restrict::Restrict;
+use crate::restrict::Restrict as BaseRestrict;
 use crate::Error;
 
 pub mod ebuild;
@@ -200,7 +200,7 @@ pub trait PkgRepository:
         count
     }
     fn iter(&self) -> Self::Iterator<'_>;
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
+    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
 
     fn is_empty(&self) -> bool {
         self.iter().next().is_none()
@@ -238,7 +238,7 @@ where
     fn iter(&self) -> Self::Iterator<'_> {
         (*self).iter()
     }
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
         (*self).iter_restrict(val)
     }
 }
@@ -321,7 +321,7 @@ impl PkgRepository for Repo {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
         match self {
             Self::Ebuild(repo) => RestrictPkgIter::Ebuild(repo.iter_restrict(val), self),
             Self::Fake(repo) => RestrictPkgIter::Fake(repo.iter_restrict(val), self),
@@ -409,9 +409,9 @@ macro_rules! make_repo_traits {
             }
         }
 
-        impl From<&$x> for crate::atom::Restrict {
+        impl From<&$x> for crate::restrict::atom::Restrict {
             fn from(r: &$x) -> Self {
-                crate::atom::Restrict::repo(Some(r.id()))
+                crate::restrict::atom::Restrict::repo(Some(r.id()))
             }
         }
 

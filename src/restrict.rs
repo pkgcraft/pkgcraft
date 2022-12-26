@@ -1,8 +1,8 @@
 use std::fmt;
 
-use crate::atom::Restrict as AtomRestrict;
 use crate::pkg::Restrict as PkgRestrict;
 
+pub mod atom;
 pub(crate) mod boolean;
 pub mod ordered;
 pub mod parse;
@@ -15,7 +15,7 @@ boolean::restrict_with_boolean! {Restrict,
     False,
 
     // object attributes
-    Atom(AtomRestrict),
+    Atom(atom::Restrict),
     Pkg(PkgRestrict),
 
     // strings
@@ -99,10 +99,10 @@ mod tests {
                 .collect()
         };
 
-        let r = Restrict::Atom(AtomRestrict::category("cat"));
+        let r = Restrict::Atom(atom::Restrict::category("cat"));
         assert_eq!(filter(r, atoms.clone()), atom_strs);
 
-        let r = Restrict::Atom(AtomRestrict::Version(None));
+        let r = Restrict::Atom(atom::Restrict::Version(None));
         assert_eq!(filter(r, atoms.clone()), ["cat/pkg"]);
 
         let cpv = Atom::from_str("=cat/pkg-1").unwrap();

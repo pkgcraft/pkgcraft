@@ -8,6 +8,7 @@ use indexmap::IndexSet;
 
 use crate::pkg::Pkg;
 use crate::repo::{PkgRepository, Repo, Repository};
+use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::set::OrderedSet;
 
@@ -73,8 +74,8 @@ impl PkgRepository for RepoSet {
         let restrict = val.into();
 
         // extract repo restrictions for filtering
-        use crate::atom::Restrict::Repo as AtomRepo;
         use crate::pkg::Restrict::Repo as PkgRepo;
+        use AtomRestrict::Repo as AtomRepo;
         let mut repo_restricts = vec![];
 
         if let Restrict::And(vals) = &restrict {

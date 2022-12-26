@@ -1,19 +1,21 @@
+use crate::atom::Atom;
 use crate::repo::{fake::Repo, Repository};
-use crate::restrict::{self, Restriction};
-use crate::{atom, eapi, pkg};
+use crate::restrict::atom::Restrict as AtomRestrict;
+use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::{eapi, pkg};
 
 use super::{make_pkg_traits, Package};
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
-    atom: atom::Atom,
+    atom: Atom,
     repo: &'a Repo,
 }
 
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(atom: &'a atom::Atom, repo: &'a Repo) -> Self {
+    pub(crate) fn new(atom: &'a Atom, repo: &'a Repo) -> Self {
         Pkg {
             atom: atom.clone(),
             repo,
@@ -24,7 +26,7 @@ impl<'a> Pkg<'a> {
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn atom(&self) -> &atom::Atom {
+    fn atom(&self) -> &Atom {
         &self.atom
     }
 
@@ -37,19 +39,19 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
-impl Restriction<&Pkg<'_>> for restrict::Restrict {
+impl Restriction<&Pkg<'_>> for BaseRestrict {
     fn matches(&self, pkg: &Pkg) -> bool {
-        use restrict::Restrict::*;
-        restrict::restrict_match! {self, pkg,
+        use BaseRestrict::*;
+        crate::restrict::restrict_match! {self, pkg,
             Atom(r) => r.matches(pkg),
             Pkg(r) => r.matches(pkg),
         }
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for atom::Restrict {
+impl<'a> Restriction<&'a Pkg<'a>> for AtomRestrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
-        use atom::Restrict::*;
+        use AtomRestrict::*;
         match self {
             Repo(Some(r)) => r.matches(pkg.repo().id()),
             r => r.matches(pkg.atom()),

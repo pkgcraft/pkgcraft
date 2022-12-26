@@ -21,6 +21,7 @@ use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::Pkg;
+use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::{atom, eapi, Error};
@@ -641,7 +642,7 @@ pub struct PkgIter<'a> {
 
 impl<'a> PkgIter<'a> {
     fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
-        use crate::atom::Restrict::{Category, Package, Version};
+        use AtomRestrict::{Category, Package, Version};
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
         let (mut cat, mut pkg, mut ver) = (None, None, None);
@@ -1173,7 +1174,7 @@ mod tests {
         assert_eq!(atoms, [pkg.atom().to_string()]);
 
         // multiple matches
-        let restrict = atom::Restrict::package("pkg");
+        let restrict = AtomRestrict::package("pkg");
         let iter = repo.iter_restrict(restrict);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);

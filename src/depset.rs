@@ -3,9 +3,10 @@ use std::fmt;
 
 use itertools::Itertools;
 
-use crate::atom::{Atom, Restrict as AtomRestrict};
+use crate::atom::Atom;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::extend_left;
+use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::set::{Ordered, OrderedSet, SortedSet};

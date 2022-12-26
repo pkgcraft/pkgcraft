@@ -3,6 +3,7 @@ use std::fmt;
 use enum_as_inner::EnumAsInner;
 
 use crate::repo::{Repo, Repository};
+use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::{atom, eapi};
@@ -157,9 +158,9 @@ impl<'a> Restriction<&'a Pkg<'a>> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for atom::Restrict {
+impl<'a> Restriction<&'a Pkg<'a>> for AtomRestrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
-        use atom::Restrict::*;
+        use AtomRestrict::*;
         match self {
             Repo(Some(r)) => r.matches(pkg.repo().id()),
             r => r.matches(pkg.atom()),

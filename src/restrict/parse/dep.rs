@@ -1,6 +1,7 @@
 use crate::atom::version::{ParsedVersion, Suffix};
-use crate::atom::{Blocker, Restrict};
+use crate::atom::Blocker;
 use crate::peg::peg_error;
+use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restrict as BaseRestrict;
 
@@ -57,39 +58,39 @@ peg::parser!(grammar restrict() for str {
         = "-r" s:$(quiet!{['0'..='9']+} / expected!("revision"))
         { s }
 
-    rule cp_restricts() -> Vec<Restrict>
+    rule cp_restricts() -> Vec<AtomRestrict>
         = cat:category() pkg:(quiet!{"/"} s:package() { s }) {?
             let mut restricts = vec![];
             match cat.matches('*').count() {
-                0 => restricts.push(Restrict::category(cat)),
+                0 => restricts.push(AtomRestrict::category(cat)),
                 _ => {
                     let r = str_to_regex_restrict(cat)?;
-                    restricts.push(Restrict::Category(r))
+                    restricts.push(AtomRestrict::Category(r))
                 }
             }
 
             match pkg.matches('*').count() {
-                0 => restricts.push(Restrict::package(pkg)),
+                0 => restricts.push(AtomRestrict::package(pkg)),
                 1 if pkg == "*" && restricts.is_empty() => (),
                 _ => {
                     let r = str_to_regex_restrict(pkg)?;
-                    restricts.push(Restrict::Package(r))
+                    restricts.push(AtomRestrict::Package(r))
                 }
             }
 
             Ok(restricts)
         } / s:package() {?
             match s.matches('*').count() {
-                0 => Ok(vec![Restrict::package(s)]),
+                0 => Ok(vec![AtomRestrict::package(s)]),
                 1 if s == "*" => Ok(vec![]),
                 _ => {
                     let r = str_to_regex_restrict(s)?;
-                    Ok(vec![Restrict::Package(r)])
+                    Ok(vec![AtomRestrict::Package(r)])
                 }
             }
         }
 
-    rule pkg_restricts() -> (Vec<Restrict>, Option<ParsedVersion<'input>>)
+    rule pkg_restricts() -> (Vec<AtomRestrict>, Option<ParsedVersion<'input>>)
         = restricts:cp_restricts() { (restricts, None) }
             / op:$(("<" "="?) / "=" / "~" / (">" "="?))
             restricts:cp_restricts() "-" ver:version() glob:$("*")?
@@ -101,29 +102,29 @@ peg::parser!(grammar restrict() for str {
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-' | '*']*})
         { s }
 
-    rule slot_restrict() -> Restrict
+    rule slot_restrict() -> AtomRestrict
         = s:slot_glob() {?
             match s.matches('*').count() {
-                0 => Ok(Restrict::slot(Some(s))),
+                0 => Ok(AtomRestrict::slot(Some(s))),
                 _ => {
                     let r = str_to_regex_restrict(s)?;
-                    Ok(Restrict::Slot(Some(r)))
+                    Ok(AtomRestrict::Slot(Some(r)))
                 }
             }
         }
 
-    rule subslot_restrict() -> Restrict
+    rule subslot_restrict() -> AtomRestrict
         = "/" s:slot_glob() {?
             match s.matches('*').count() {
-                0 => Ok(Restrict::subslot(Some(s))),
+                0 => Ok(AtomRestrict::subslot(Some(s))),
                 _ => {
                     let r = str_to_regex_restrict(s)?;
-                    Ok(Restrict::Subslot(Some(r)))
+                    Ok(AtomRestrict::Subslot(Some(r)))
                 }
             }
         }
 
-    rule slot_restricts() -> Vec<Restrict>
+    rule slot_restricts() -> Vec<AtomRestrict>
         = ":" slot_r:slot_restrict() subslot_r:subslot_restrict()? {
             let mut restricts = vec![slot_r];
             if let Some(r) = subslot_r {
@@ -156,31 +157,31 @@ peg::parser!(grammar restrict() for str {
     rule use_dep_default() -> &'input str
         = s:$("(+)" / "(-)") { s }
 
-    rule use_restricts() -> Restrict
+    rule use_restricts() -> AtomRestrict
         = "[" use_deps:use_dep() ++ "," "]"
-        { Restrict::use_deps(Some(use_deps)) }
+        { AtomRestrict::use_deps(Some(use_deps)) }
 
-    rule repo_restrict() -> Restrict
+    rule repo_restrict() -> AtomRestrict
         = "::" s:repo_glob() {?
             match s.matches('*').count() {
-                0 => Ok(Restrict::repo(Some(s))),
+                0 => Ok(AtomRestrict::repo(Some(s))),
                 _ => {
                     let r = str_to_regex_restrict(s)?;
-                    Ok(Restrict::Repo(Some(r)))
+                    Ok(AtomRestrict::Repo(Some(r)))
                 }
             }
         }
 
-    rule blocker_restrict() -> Restrict
+    rule blocker_restrict() -> AtomRestrict
         = blocker:("!"*<1,2>) {?
             match blocker.len() {
-                1 => Ok(Restrict::Blocker(Some(Blocker::Weak))),
-                2 => Ok(Restrict::Blocker(Some(Blocker::Strong))),
+                1 => Ok(AtomRestrict::Blocker(Some(Blocker::Weak))),
+                2 => Ok(AtomRestrict::Blocker(Some(Blocker::Strong))),
                 _ => Err("invalid blocker"),
             }
         }
 
-    pub(super) rule dep() -> (Vec<Restrict>, Option<ParsedVersion<'input>>)
+    pub(super) rule dep() -> (Vec<AtomRestrict>, Option<ParsedVersion<'input>>)
         = blocker_r:blocker_restrict()? pkg_r:pkg_restricts()
             slot_r:slot_restricts()? use_r:use_restricts()? repo_r:repo_restrict()?
         {
@@ -207,13 +208,13 @@ peg::parser!(grammar restrict() for str {
 });
 
 /// Convert a globbed dep string into a Vector of atom restrictions.
-pub(crate) fn restricts(s: &str) -> crate::Result<Vec<Restrict>> {
+pub(crate) fn restricts(s: &str) -> crate::Result<Vec<AtomRestrict>> {
     let (mut restricts, ver) =
         restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
     if let Some(v) = ver {
         let v = v.into_owned(s)?;
-        restricts.push(Restrict::Version(Some(v)));
+        restricts.push(AtomRestrict::Version(Some(v)));
     }
 
     Ok(restricts)

@@ -1,9 +1,10 @@
 use std::cmp::Ordering;
 
-use crate::atom::Restrict as AtomRestrict;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
+
+use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::ordered::Restrict as OrderedRestrict;
 use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;

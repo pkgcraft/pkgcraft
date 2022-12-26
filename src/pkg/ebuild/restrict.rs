@@ -1,12 +1,12 @@
-use crate::atom::Restrict as AtomRestrict;
 use crate::depset::Restrict as DepSetRestrict;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::pkg::{self, Package};
 use crate::repo::Repository;
-use crate::restrict::{
-    ordered::Restrict as OrderedRestrict, set::OrderedSetRestrict, str::Restrict as StrRestrict,
-    Restrict as BaseRestrict, Restriction,
-};
+use crate::restrict::atom::Restrict as AtomRestrict;
+use crate::restrict::ordered::Restrict as OrderedRestrict;
+use crate::restrict::set::OrderedSetRestrict;
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
 use super::Pkg;
 

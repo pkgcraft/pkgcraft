@@ -11,11 +11,7 @@ use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::set::OrderedSet;
 use crate::Error;
 
-// re-export Restrict
-pub use restrict::Restrict;
-
 pub mod parse;
-pub mod restrict;
 pub(crate) mod version;
 
 #[repr(C)]
