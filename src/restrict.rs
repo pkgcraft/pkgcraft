@@ -1,12 +1,12 @@
 use std::cmp::Ordering;
 use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::ops::{BitAnd, BitOr, BitXor, Deref, Not};
+use std::ops::{BitAnd, BitOr, BitXor, Not};
 
 use crate::set::{Ordered, OrderedSet};
 use crate::{atom, pkg, Error};
 
 pub mod parse;
+pub mod str;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
@@ -25,7 +25,7 @@ pub enum Restrict {
     Pkg(pkg::Restrict),
 
     // strings
-    Str(Str),
+    Str(str::Restrict),
 }
 
 macro_rules! restrict_match {
@@ -209,85 +209,6 @@ impl Restriction<&str> for Restrict {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Regex(regex::Regex);
-
-impl Deref for Regex {
-    type Target = regex::Regex;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Eq for Regex {}
-
-impl PartialEq for Regex {
-    fn eq(&self, other: &Regex) -> bool {
-        self.0.as_str() == other.0.as_str()
-    }
-}
-
-impl Hash for Regex {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.as_str().hash(state);
-    }
-}
-
-restrict_with_boolean! {Str,
-    Equal(String),
-    Prefix(String),
-    Regex(Regex),
-    Substr(String),
-    Suffix(String),
-    Length(Vec<Ordering>, usize),
-}
-
-impl From<Str> for Restrict {
-    fn from(r: Str) -> Self {
-        Self::Str(r)
-    }
-}
-
-impl Str {
-    restrict_impl_boolean! {Self}
-
-    pub fn equal<S: Into<String>>(s: S) -> Self {
-        Self::Equal(s.into())
-    }
-
-    pub fn prefix<S: Into<String>>(s: S) -> Self {
-        Self::Prefix(s.into())
-    }
-
-    pub fn regex<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        let re = regex::Regex::new(s.as_ref())
-            .map_err(|e| Error::InvalidValue(format!("invalid regex: {e}")))?;
-        Ok(Self::Regex(Regex(re)))
-    }
-
-    pub fn substr<S: Into<String>>(s: S) -> Self {
-        Self::Substr(s.into())
-    }
-
-    pub fn suffix<S: Into<String>>(s: S) -> Self {
-        Self::Suffix(s.into())
-    }
-}
-
-impl Restriction<&str> for Str {
-    fn matches(&self, val: &str) -> bool {
-        restrict_match_boolean! {self, val,
-            Self::Equal(s) => val == s,
-            Self::Prefix(s) => val.starts_with(s),
-            Self::Regex(re) => re.is_match(val),
-            Self::Substr(s) => val.contains(s),
-            Self::Suffix(s) => val.ends_with(s),
-            Self::Length(ordering, size) => ordering.contains(&val.len().cmp(size)),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OrderedSetRestrict<T: Ordered, R> {
     Empty,
@@ -321,7 +242,7 @@ macro_rules! make_set_restriction {
     )+};
 }
 pub(crate) use make_set_restriction;
-make_set_restriction!((OrderedSet<String>, String, Str));
+make_set_restriction!((OrderedSet<String>, String, str::Restrict));
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OrderedRestrict<R> {
@@ -348,7 +269,7 @@ macro_rules! make_ordered_restrictions {
     )+};
 }
 pub(crate) use make_ordered_restrictions;
-make_ordered_restrictions!((&[String], Str), (&OrderedSet<String>, Str));
+make_ordered_restrictions!((&[String], str::Restrict), (&OrderedSet<String>, str::Restrict));
 
 #[cfg(test)]
 mod tests {
@@ -490,40 +411,5 @@ mod tests {
 
         // inverse matches
         assert!(!r.matches(&a));
-    }
-
-    #[test]
-    fn test_str_restrict() {
-        // equal
-        let r = Str::equal("a");
-        assert!(r.matches("a"));
-        assert!(!r.matches("b"));
-
-        // prefix
-        let r = Str::prefix("ab");
-        assert!(r.matches("ab"));
-        assert!(r.matches("abc"));
-        assert!(!r.matches("a"));
-        assert!(!r.matches("cab"));
-
-        // regex
-        let r = Str::regex("^(a|b)$").unwrap();
-        assert!(r.matches("a"));
-        assert!(r.matches("b"));
-        assert!(!r.matches("ab"));
-
-        // substr
-        let r = Str::substr("ab");
-        assert!(r.matches("ab"));
-        assert!(r.matches("cab"));
-        assert!(r.matches("cabo"));
-        assert!(!r.matches("acb"));
-
-        // suffix
-        let r = Str::suffix("ab");
-        assert!(r.matches("ab"));
-        assert!(r.matches("cab"));
-        assert!(!r.matches("a"));
-        assert!(!r.matches("abc"));
     }
 }

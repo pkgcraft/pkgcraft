@@ -6,7 +6,8 @@ use itertools::Itertools;
 use crate::atom::{Atom, Restrict as AtomRestrict};
 use crate::eapi::{Eapi, Feature};
 use crate::macros::extend_left;
-use crate::restrict::{self, Restriction, Str};
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::set::{Ordered, OrderedSet, SortedSet};
 
 /// Uri object.
@@ -140,7 +141,7 @@ impl Restriction<&DepSet<Atom>> for Restrict<AtomRestrict> {
     }
 }
 
-impl Restriction<&DepSet<String>> for Restrict<Str> {
+impl Restriction<&DepSet<String>> for Restrict<StrRestrict> {
     fn matches(&self, val: &DepSet<String>) -> bool {
         match self {
             Self::Any(r) => val.iter_flatten().any(|v| r.matches(v)),
@@ -148,7 +149,7 @@ impl Restriction<&DepSet<String>> for Restrict<Str> {
     }
 }
 
-impl Restriction<&DepSet<Uri>> for Restrict<Str> {
+impl Restriction<&DepSet<Uri>> for Restrict<StrRestrict> {
     fn matches(&self, val: &DepSet<Uri>) -> bool {
         match self {
             Self::Any(r) => val.iter_flatten().any(|v| r.matches(v.as_ref())),
@@ -179,17 +180,17 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetFlattenIter<'a, T> {
     }
 }
 
-impl Restriction<&DepSet<Atom>> for restrict::Restrict {
+impl Restriction<&DepSet<Atom>> for BaseRestrict {
     fn matches(&self, val: &DepSet<Atom>) -> bool {
-        restrict::restrict_match! {self, val,
+        crate::restrict::restrict_match! {self, val,
             Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
 
-impl Restriction<&DepRestrict<Atom>> for restrict::Restrict {
+impl Restriction<&DepRestrict<Atom>> for BaseRestrict {
     fn matches(&self, val: &DepRestrict<Atom>) -> bool {
-        restrict::restrict_match! {self, val,
+        crate::restrict::restrict_match! {self, val,
             Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v)),
         }
     }

@@ -21,7 +21,8 @@ use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::metadata::ebuild::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::Pkg;
-use crate::restrict::{Restrict, Restriction, Str};
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::{Restrict, Restriction};
 use crate::{atom, eapi, Error};
 
 use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
@@ -651,13 +652,13 @@ impl<'a> PkgIter<'a> {
                 match r {
                     Restrict::Atom(Category(r)) => {
                         cat_restricts.push(r.clone());
-                        if let Str::Equal(s) = r {
+                        if let StrRestrict::Equal(s) = r {
                             cat = Some(s.to_string());
                         }
                     }
                     Restrict::Atom(r @ Package(x)) => {
                         pkg_restricts.push(r.clone());
-                        if let Str::Equal(s) = x {
+                        if let StrRestrict::Equal(s) = x {
                             pkg = Some(s.to_string());
                         }
                     }

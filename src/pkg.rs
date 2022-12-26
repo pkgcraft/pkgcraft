@@ -3,7 +3,8 @@ use std::fmt;
 use enum_as_inner::EnumAsInner;
 
 use crate::repo::{Repo, Repository};
-use crate::restrict::{self, Restriction, Str};
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::{atom, eapi};
 
 pub mod ebuild;
@@ -111,22 +112,22 @@ impl<'a> Package for Pkg<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
-    Eapi(Str),
+    Eapi(StrRestrict),
     Ebuild(ebuild::Restrict),
-    Repo(Str),
+    Repo(StrRestrict),
 }
 
 impl Restrict {
     pub fn eapi(s: &str) -> Self {
-        Self::Eapi(Str::equal(s))
+        Self::Eapi(StrRestrict::equal(s))
     }
 
     pub fn repo(s: &str) -> Self {
-        Self::Repo(Str::equal(s))
+        Self::Repo(StrRestrict::equal(s))
     }
 }
 
-impl From<Restrict> for restrict::Restrict {
+impl From<Restrict> for BaseRestrict {
     fn from(r: Restrict) -> Self {
         Self::Pkg(r)
     }
@@ -146,10 +147,10 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
+impl<'a> Restriction<&'a Pkg<'a>> for BaseRestrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
-        use restrict::Restrict::*;
-        restrict::restrict_match! {self, pkg,
+        use BaseRestrict::*;
+        crate::restrict::restrict_match! {self, pkg,
             Atom(r) => r.matches(pkg),
             Pkg(r) => r.matches(pkg),
         }

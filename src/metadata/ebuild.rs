@@ -11,6 +11,7 @@ use tracing::warn;
 use crate::macros::cmp_not_equal;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
+use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::*;
 use crate::Error;
 
@@ -93,11 +94,11 @@ impl Hash for Maintainer {
 }
 
 restrict_with_boolean! {MaintainerRestrict,
-    Email(Str),
-    Name(Option<Str>),
-    Description(Option<Str>),
-    Type(Option<Str>),
-    Proxied(Option<Str>),
+    Email(StrRestrict),
+    Name(Option<StrRestrict>),
+    Description(Option<StrRestrict>),
+    Type(Option<StrRestrict>),
+    Proxied(Option<StrRestrict>),
 }
 
 impl MaintainerRestrict {
@@ -162,8 +163,8 @@ impl Upstream {
 }
 
 restrict_with_boolean! {UpstreamRestrict,
-    Site(Str),
-    Name(Str),
+    Site(StrRestrict),
+    Name(StrRestrict),
 }
 
 impl UpstreamRestrict {

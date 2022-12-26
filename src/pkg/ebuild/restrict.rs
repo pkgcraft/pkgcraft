@@ -3,47 +3,48 @@ use crate::depset::Restrict as DepSetRestrict;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::pkg::{self, Package};
 use crate::repo::Repository;
-use crate::restrict::{self, *};
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::{OrderedRestrict, OrderedSetRestrict, Restrict as BaseRestrict, Restriction};
 
 use super::Pkg;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
-    Ebuild(Str),
-    Description(Str),
-    Slot(Str),
-    Subslot(Str),
-    RawSubslot(Option<Str>),
+    Ebuild(StrRestrict),
+    Description(StrRestrict),
+    Slot(StrRestrict),
+    Subslot(StrRestrict),
+    RawSubslot(Option<StrRestrict>),
     Depend(Option<DepSetRestrict<atom::Restrict>>),
     Bdepend(Option<DepSetRestrict<atom::Restrict>>),
     Idepend(Option<DepSetRestrict<atom::Restrict>>),
     Pdepend(Option<DepSetRestrict<atom::Restrict>>),
     Rdepend(Option<DepSetRestrict<atom::Restrict>>),
-    License(Option<DepSetRestrict<Str>>),
-    Properties(Option<DepSetRestrict<Str>>),
-    RequiredUse(Option<DepSetRestrict<Str>>),
-    Restrict(Option<DepSetRestrict<Str>>),
-    SrcUri(Option<DepSetRestrict<Str>>),
-    Homepage(Option<OrderedSetRestrict<String, Str>>),
-    DefinedPhases(Option<OrderedSetRestrict<String, Str>>),
-    Keywords(Option<OrderedSetRestrict<String, Str>>),
-    Iuse(Option<OrderedSetRestrict<String, Str>>),
-    Inherit(Option<OrderedSetRestrict<String, Str>>),
-    Inherited(Option<OrderedSetRestrict<String, Str>>),
-    LongDescription(Option<Str>),
+    License(Option<DepSetRestrict<StrRestrict>>),
+    Properties(Option<DepSetRestrict<StrRestrict>>),
+    RequiredUse(Option<DepSetRestrict<StrRestrict>>),
+    Restrict(Option<DepSetRestrict<StrRestrict>>),
+    SrcUri(Option<DepSetRestrict<StrRestrict>>),
+    Homepage(Option<OrderedSetRestrict<String, StrRestrict>>),
+    DefinedPhases(Option<OrderedSetRestrict<String, StrRestrict>>),
+    Keywords(Option<OrderedSetRestrict<String, StrRestrict>>),
+    Iuse(Option<OrderedSetRestrict<String, StrRestrict>>),
+    Inherit(Option<OrderedSetRestrict<String, StrRestrict>>),
+    Inherited(Option<OrderedSetRestrict<String, StrRestrict>>),
+    LongDescription(Option<StrRestrict>),
     Maintainers(Option<OrderedRestrict<MaintainerRestrict>>),
     Upstreams(Option<OrderedRestrict<UpstreamRestrict>>),
 }
 
-impl From<Restrict> for restrict::Restrict {
+impl From<Restrict> for BaseRestrict {
     fn from(r: Restrict) -> Self {
         Self::Pkg(pkg::Restrict::Ebuild(r))
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for restrict::Restrict {
+impl<'a> Restriction<&'a Pkg<'a>> for BaseRestrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
-        restrict::restrict_match! {self, pkg,
+        crate::restrict::restrict_match! {self, pkg,
             Self::Atom(r) => r.matches(pkg),
             Self::Pkg(r) => r.matches(pkg),
         }
@@ -210,9 +211,9 @@ mod tests {
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
-        let r = Restrict::Ebuild(Str::equal("no match"));
+        let r = Restrict::Ebuild(StrRestrict::equal("no match"));
         assert!(!r.matches(&pkg));
-        let r = Restrict::Ebuild(Str::regex("VAR=").unwrap());
+        let r = Restrict::Ebuild(StrRestrict::regex("VAR=").unwrap());
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
@@ -220,7 +221,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-2"]);
 
-        let r = Restrict::Ebuild(Str::regex("SLOT=").unwrap());
+        let r = Restrict::Ebuild(StrRestrict::regex("SLOT=").unwrap());
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
@@ -239,9 +240,9 @@ mod tests {
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
-        let r = Restrict::Description(Str::equal("no match"));
+        let r = Restrict::Description(StrRestrict::equal("no match"));
         assert!(!r.matches(&pkg));
-        let r = Restrict::Description(Str::equal("desc2"));
+        let r = Restrict::Description(StrRestrict::equal("desc2"));
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
@@ -249,7 +250,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-2"]);
 
-        let r = Restrict::Description(Str::regex("desc").unwrap());
+        let r = Restrict::Description(StrRestrict::regex("desc").unwrap());
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
@@ -265,9 +266,9 @@ mod tests {
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
-        let r = Restrict::Slot(Str::equal("2"));
+        let r = Restrict::Slot(StrRestrict::equal("2"));
         assert!(!r.matches(&pkg));
-        let r = Restrict::Slot(Str::equal("1"));
+        let r = Restrict::Slot(StrRestrict::equal("1"));
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
@@ -275,7 +276,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1"]);
 
-        let r = Restrict::Slot(Str::regex("0|1").unwrap());
+        let r = Restrict::Slot(StrRestrict::regex("0|1").unwrap());
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-1"]);
@@ -297,9 +298,9 @@ mod tests {
         assert!(!r.matches(&pkg));
 
         // verify pkg restrictions
-        let r = Restrict::Subslot(Str::equal("1"));
+        let r = Restrict::Subslot(StrRestrict::equal("1"));
         assert!(!r.matches(&pkg));
-        let r = Restrict::Subslot(Str::equal("2"));
+        let r = Restrict::Subslot(StrRestrict::equal("2"));
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
@@ -307,7 +308,7 @@ mod tests {
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-1"]);
 
-        let r = Restrict::Subslot(Str::regex("0|2").unwrap());
+        let r = Restrict::Subslot(StrRestrict::regex("0|2").unwrap());
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-1"]);
@@ -339,7 +340,7 @@ mod tests {
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // pkg with long description
-        let r = Restrict::LongDescription(Some(Str::regex(".").unwrap()));
+        let r = Restrict::LongDescription(Some(StrRestrict::regex(".").unwrap()));
         assert!(r.matches(&pkg));
 
         // single repo match
@@ -360,7 +361,7 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // multiple repo matches
-        let r = Restrict::LongDescription(Some(Str::regex("desc").unwrap()));
+        let r = Restrict::LongDescription(Some(StrRestrict::regex("desc").unwrap()));
         let iter = repo.iter_restrict(r);
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["cat/pkg-b-1", "cat/pkg-c-1"]);
@@ -407,7 +408,7 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // pkgs with no maintainers
-        let r: restrict::Restrict = Restrict::Maintainers(None).into();
+        let r: BaseRestrict = Restrict::Maintainers(None).into();
         let iter = repo.iter_restrict(r.clone());
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["noxml/pkg-1"]);
@@ -454,7 +455,7 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // pkgs with no upstreams
-        let r: restrict::Restrict = Restrict::Upstreams(None).into();
+        let r: BaseRestrict = Restrict::Upstreams(None).into();
         let iter = repo.iter_restrict(r.clone());
         let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
         assert_eq!(atoms, ["noxml/pkg-1"]);

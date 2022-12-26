@@ -1,29 +1,30 @@
 use std::str::FromStr;
 
-use crate::restrict::{self, *};
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::{OrderedSetRestrict, Restrict as BaseRestrict, Restriction};
 
 use super::{Atom, Blocker, Version};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
-    Category(Str),
-    Package(Str),
+    Category(StrRestrict),
+    Package(StrRestrict),
     Blocker(Option<Blocker>),
     Version(Option<Version>),
-    VersionStr(Str),
-    Slot(Option<Str>),
-    Subslot(Option<Str>),
-    UseDeps(Option<OrderedSetRestrict<String, Str>>),
-    Repo(Option<Str>),
+    VersionStr(StrRestrict),
+    Slot(Option<StrRestrict>),
+    Subslot(Option<StrRestrict>),
+    UseDeps(Option<OrderedSetRestrict<String, StrRestrict>>),
+    Repo(Option<StrRestrict>),
 }
 
 impl Restrict {
     pub fn category(s: &str) -> Self {
-        Self::Category(Str::equal(s))
+        Self::Category(StrRestrict::equal(s))
     }
 
     pub fn package(s: &str) -> Self {
-        Self::Package(Str::equal(s))
+        Self::Package(StrRestrict::equal(s))
     }
 
     pub fn version(s: &str) -> crate::Result<Self> {
@@ -32,11 +33,11 @@ impl Restrict {
     }
 
     pub fn slot(o: Option<&str>) -> Self {
-        Self::Slot(o.map(Str::equal))
+        Self::Slot(o.map(StrRestrict::equal))
     }
 
     pub fn subslot(o: Option<&str>) -> Self {
-        Self::Subslot(o.map(Str::equal))
+        Self::Subslot(o.map(StrRestrict::equal))
     }
 
     pub fn use_deps<I, S>(iter: Option<I>) -> Self
@@ -54,7 +55,7 @@ impl Restrict {
     }
 
     pub fn repo(o: Option<&str>) -> Self {
-        Self::Repo(o.map(Str::equal))
+        Self::Repo(o.map(StrRestrict::equal))
     }
 }
 
@@ -99,13 +100,13 @@ impl Restriction<&Atom> for Restrict {
     }
 }
 
-impl From<Restrict> for restrict::Restrict {
+impl From<Restrict> for BaseRestrict {
     fn from(r: Restrict) -> Self {
         Self::Atom(r)
     }
 }
 
-impl Restriction<&Atom> for restrict::Restrict {
+impl Restriction<&Atom> for BaseRestrict {
     fn matches(&self, atom: &Atom) -> bool {
         crate::restrict::restrict_match! {self, atom,
             Self::Atom(r) => r.matches(atom),
@@ -113,7 +114,7 @@ impl Restriction<&Atom> for restrict::Restrict {
     }
 }
 
-impl From<&Atom> for restrict::Restrict {
+impl From<&Atom> for BaseRestrict {
     fn from(atom: &Atom) -> Self {
         let mut restricts = vec![
             Restrict::category(atom.category()),
@@ -141,7 +142,7 @@ impl From<&Atom> for restrict::Restrict {
             restricts.push(Restrict::repo(Some(s)));
         }
 
-        restrict::Restrict::and(restricts)
+        BaseRestrict::and(restricts)
     }
 }
 
@@ -264,19 +265,19 @@ mod tests {
         let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // unversioned restriction
-        let r = restrict::Restrict::from(&unversioned);
+        let r = BaseRestrict::from(&unversioned);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // cpv restriction
-        let r = restrict::Restrict::from(&cpv);
+        let r = BaseRestrict::from(&cpv);
         assert!(!r.matches(&unversioned));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // full atom restriction
-        let r = restrict::Restrict::from(&full);
+        let r = BaseRestrict::from(&full);
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
@@ -295,22 +296,22 @@ mod tests {
         let lt_cpv = cpv("cat/pkg-0").unwrap();
         let gt_cpv = cpv("cat/pkg-2").unwrap();
 
-        let r = restrict::Restrict::from(&lt);
+        let r = BaseRestrict::from(&lt);
         assert!(r.matches(&lt_cpv));
         assert!(!r.matches(&lt));
         assert!(!r.matches(&gt_cpv));
 
-        let r = restrict::Restrict::from(&le);
+        let r = BaseRestrict::from(&le);
         assert!(r.matches(&lt_cpv));
         assert!(r.matches(&le));
         assert!(!r.matches(&gt_cpv));
 
-        let r = restrict::Restrict::from(&eq);
+        let r = BaseRestrict::from(&eq);
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&eq));
         assert!(!r.matches(&gt_cpv));
 
-        let r = restrict::Restrict::from(&eq_glob);
+        let r = BaseRestrict::from(&eq_glob);
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&eq_glob));
         for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
@@ -318,7 +319,7 @@ mod tests {
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));
-        let r = restrict::Restrict::from(&approx);
+        let r = BaseRestrict::from(&approx);
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&approx));
         for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
@@ -327,12 +328,12 @@ mod tests {
         }
         assert!(!r.matches(&gt_cpv));
 
-        let r = restrict::Restrict::from(&ge);
+        let r = BaseRestrict::from(&ge);
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&ge));
         assert!(r.matches(&gt_cpv));
 
-        let r = restrict::Restrict::from(&gt);
+        let r = BaseRestrict::from(&gt);
         assert!(!r.matches(&lt_cpv));
         assert!(!r.matches(&gt));
         assert!(r.matches(&gt_cpv));

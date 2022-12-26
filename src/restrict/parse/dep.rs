@@ -1,12 +1,13 @@
 use crate::atom::version::{ParsedVersion, Suffix};
 use crate::atom::{Blocker, Restrict};
 use crate::peg::peg_error;
-use crate::restrict::{Restrict as BaseRestrict, Str};
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::Restrict as BaseRestrict;
 
 // Convert globbed string to regex restriction, escaping all meta characters except '*'.
-fn str_to_regex_restrict(s: &str) -> Result<Str, &'static str> {
+fn str_to_regex_restrict(s: &str) -> Result<StrRestrict, &'static str> {
     let re_s = regex::escape(s).replace("\\*", ".*");
-    Str::regex(format!(r"^{re_s}$")).map_err(|_| "invalid regex")
+    StrRestrict::regex(format!(r"^{re_s}$")).map_err(|_| "invalid regex")
 }
 
 peg::parser!(grammar restrict() for str {

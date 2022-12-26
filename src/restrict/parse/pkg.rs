@@ -1,16 +1,20 @@
 use std::cmp::Ordering;
 
+use crate::atom::Restrict as AtomRestrict;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
-use crate::restrict::*;
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::{OrderedRestrict, OrderedSetRestrict, Restrict as BaseRestrict};
+
+use super::dep;
 
 // Convert string to regex restriction, with no metacharacter escaping.
-fn str_to_regex_restrict(s: &str) -> Result<Str, &'static str> {
-    Str::regex(s).map_err(|_| "invalid regex")
+fn str_to_regex_restrict(s: &str) -> Result<StrRestrict, &'static str> {
+    StrRestrict::regex(s).map_err(|_| "invalid regex")
 }
 
-fn orderedset_restrict(op: &str, vals: &[&str]) -> OrderedSetRestrict<String, Str> {
+fn orderedset_restrict(op: &str, vals: &[&str]) -> OrderedSetRestrict<String, StrRestrict> {
     let func = match op {
         "<" => OrderedSetRestrict::ProperSubset,
         "<=" => OrderedSetRestrict::Subset,
@@ -23,12 +27,12 @@ fn orderedset_restrict(op: &str, vals: &[&str]) -> OrderedSetRestrict<String, St
     func(vals.iter().map(|x| x.to_string()).collect())
 }
 
-fn str_restrict(op: &str, s: &str) -> Result<Str, &'static str> {
+fn str_restrict(op: &str, s: &str) -> Result<StrRestrict, &'static str> {
     match op {
-        "==" => Ok(Str::equal(s)),
-        "!=" => Ok(Str::not(Str::equal(s))),
+        "==" => Ok(StrRestrict::equal(s)),
+        "!=" => Ok(StrRestrict::not(StrRestrict::equal(s))),
         "=~" => str_to_regex_restrict(s),
-        "!~" => Ok(Str::not(str_to_regex_restrict(s)?)),
+        "!~" => Ok(StrRestrict::not(str_to_regex_restrict(s)?)),
         _ => panic!("invalid string operator: {op}"),
     }
 }
@@ -60,7 +64,7 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
     }
 }
 
-fn dep_restrict(attr: &str, r: atom::Restrict) -> EbuildRestrict {
+fn dep_restrict(attr: &str, r: AtomRestrict) -> EbuildRestrict {
     use crate::depset::Restrict::*;
     use crate::pkg::ebuild::Restrict::*;
 
@@ -99,7 +103,7 @@ peg::parser!(grammar restrict() for str {
             / "upstreams"
         )) { attr }
 
-    rule attr_optional() -> Restrict
+    rule attr_optional() -> BaseRestrict
         = attr:optional_attr() is_op() ("None" / "none")
         {
             missing_restrict(attr).into()
@@ -118,10 +122,10 @@ peg::parser!(grammar restrict() for str {
             }
 
             match (&and_restricts[..], &or_restricts[..]) {
-                ([..], []) => Restrict::and(and_restricts),
-                ([], [..]) => Restrict::or(or_restricts),
-                ([..], [..]) => Restrict::and(
-                    [Restrict::and(and_restricts), Restrict::or(or_restricts)]),
+                ([..], []) => BaseRestrict::and(and_restricts),
+                ([], [..]) => BaseRestrict::or(or_restricts),
+                ([..], [..]) => BaseRestrict::and(
+                    [BaseRestrict::and(and_restricts), BaseRestrict::or(or_restricts)]),
                 _ => panic!("missing optional attr restrictions"),
             }
         }
@@ -154,14 +158,14 @@ peg::parser!(grammar restrict() for str {
             Ok(cmps)
         }
 
-    rule atom_str_restrict() -> Restrict
+    rule atom_str_restrict() -> BaseRestrict
         = attr:$((
                 "category"
                 / "package"
                 / "version"
             )) op:string_ops() s:quoted_string()
         {?
-            use crate::atom::Restrict::*;
+            use AtomRestrict::*;
             let r = str_restrict(op, s)?;
             match attr {
                 "category" => Ok(Category(r).into()),
@@ -171,7 +175,7 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule pkg_restrict() -> Restrict
+    rule pkg_restrict() -> BaseRestrict
         = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string()
         {?
             use crate::pkg::Restrict::*;
@@ -183,7 +187,7 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule attr_str_restrict() -> Restrict
+    rule attr_str_restrict() -> BaseRestrict
         = attr:$((
                 "ebuild"
                 / "description"
@@ -214,21 +218,21 @@ peg::parser!(grammar restrict() for str {
             / "rdepend"
         )) { attr }
 
-    rule attr_dep_restrict() -> Restrict
+    rule attr_dep_restrict() -> BaseRestrict
         = attr:dep_attr() _ "any" _ s:quoted_string()
         {?
-            let restricts = super::parse::dep::restricts(s)
+            let restricts = dep::restricts(s)
                 .map_err(|_| "invalid dep restriction")?
                 .into_iter()
                 .map(|r| dep_restrict(attr, r));
-            Ok(Restrict::and(restricts))
+            Ok(BaseRestrict::and(restricts))
         } / vals:(op:['&' | '|'] attr:dep_attr() { (op, attr) }) **<2,> ""
             _ "any" _ s:quoted_string()
         {?
             let mut and_restricts = vec![];
             let mut or_restricts = vec![];
 
-            let restricts = super::parse::dep::restricts(s)
+            let restricts = dep::restricts(s)
                 .map_err(|_| "invalid dep restriction")?;
 
             for (op, attr) in vals {
@@ -241,17 +245,17 @@ peg::parser!(grammar restrict() for str {
             }
 
             let r = match (&and_restricts[..], &or_restricts[..]) {
-                ([..], []) => Restrict::and(and_restricts),
-                ([], [..]) => Restrict::or(or_restricts),
-                ([..], [..]) => Restrict::and(
-                    [Restrict::and(and_restricts), Restrict::or(or_restricts)]),
+                ([..], []) => BaseRestrict::and(and_restricts),
+                ([], [..]) => BaseRestrict::or(or_restricts),
+                ([..], [..]) => BaseRestrict::and(
+                    [BaseRestrict::and(and_restricts), BaseRestrict::or(or_restricts)]),
                 _ => panic!("missing optional attr restrictions"),
             };
 
             Ok(r)
         }
 
-    rule attr_orderedset_str() -> Restrict
+    rule attr_orderedset_str() -> BaseRestrict
         = attr:$((
                 "homepage"
                 / "defined_phases"
@@ -294,7 +298,7 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule maintainers() -> Restrict
+    rule maintainers() -> BaseRestrict
         = "maintainers" r:(ordered_ops(<maintainer_exprs()>) / count())
         { r.into() }
 
@@ -338,7 +342,7 @@ peg::parser!(grammar restrict() for str {
         = exprs:(maintainer_attr_optional() / maintainer_restrict()) ++ (_* "&&" _*)
         { MaintainerRestrict::and(exprs) }
 
-    rule upstreams() -> Restrict
+    rule upstreams() -> BaseRestrict
         = "upstreams" r:(ordered_ops(<upstream_exprs()>) / count())
         { r.into() }
 
@@ -367,7 +371,7 @@ peg::parser!(grammar restrict() for str {
     rule parens<T>(expr: rule<T>) -> T = _* "(" _* v:expr() _* ")" _* { v }
     rule is_op() = _ "is" _
 
-    rule expression() -> Restrict
+    rule expression() -> BaseRestrict
         = r:(attr_optional()
            / atom_str_restrict()
            / attr_str_restrict()
@@ -378,7 +382,7 @@ peg::parser!(grammar restrict() for str {
            / pkg_restrict()
         ) { r }
 
-    pub(super) rule query() -> Restrict = precedence!{
+    pub(super) rule query() -> BaseRestrict = precedence!{
         x:(@) _* "||" _* y:@ { x | y }
         --
         x:(@) _* "^^" _* y:@ { x ^ y }
@@ -393,6 +397,6 @@ peg::parser!(grammar restrict() for str {
 });
 
 /// Convert a package query string into a Restriction.
-pub fn pkg(s: &str) -> crate::Result<Restrict> {
+pub fn pkg(s: &str) -> crate::Result<BaseRestrict> {
     restrict::query(s).map_err(|e| peg_error(format!("invalid package query: {s:?}"), s, e))
 }
