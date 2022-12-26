@@ -23,11 +23,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
     }?;
 
-    // Split version string into separators and components, note that the invalid versions
-    // like ".1.2.3" are allowed.
+    // split version string into separators and components, note that invalid versions
+    // like ".1.2.3" are allowed
     let mut version_parts = version_split(ver);
 
-    // iterate over (range, separator) pairs
+    // iterate over (range, separator) pairs, altering the denoted separators as requested
     let mut args_iter = args.chunks_exact(2);
     while let Some(&[range, sep]) = args_iter.next() {
         let len = version_parts.len();
