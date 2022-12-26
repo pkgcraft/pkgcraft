@@ -11,8 +11,10 @@ use tracing::warn;
 use crate::macros::cmp_not_equal;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
+use crate::restrict::boolean::*;
+use crate::restrict::ordered::{make_ordered_restrictions, Restrict as OrderedRestrict};
 use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::*;
+use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::Error;
 
 #[derive(Debug)]
@@ -133,7 +135,7 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
     }
 }
 
-impl From<OrderedRestrict<MaintainerRestrict>> for Restrict {
+impl From<OrderedRestrict<MaintainerRestrict>> for BaseRestrict {
     fn from(r: OrderedRestrict<MaintainerRestrict>) -> Self {
         EbuildRestrict::Maintainers(Some(r)).into()
     }
@@ -180,7 +182,7 @@ impl Restriction<&Upstream> for UpstreamRestrict {
     }
 }
 
-impl From<OrderedRestrict<UpstreamRestrict>> for Restrict {
+impl From<OrderedRestrict<UpstreamRestrict>> for BaseRestrict {
     fn from(r: OrderedRestrict<UpstreamRestrict>) -> Self {
         EbuildRestrict::Upstreams(Some(r)).into()
     }

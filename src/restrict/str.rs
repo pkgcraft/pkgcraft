@@ -2,7 +2,10 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 
-use super::*;
+use crate::Error;
+
+use super::boolean::*;
+use super::{Restrict as BaseRestrict, Restriction};
 
 #[derive(Clone, Debug)]
 pub struct Regex(regex::Regex);
@@ -38,7 +41,7 @@ restrict_with_boolean! {Restrict,
     Length(Vec<Ordering>, usize),
 }
 
-impl From<Restrict> for super::Restrict {
+impl From<Restrict> for BaseRestrict {
     fn from(r: Restrict) -> Self {
         Self::Str(r)
     }

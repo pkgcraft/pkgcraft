@@ -4,8 +4,10 @@ use crate::atom::Restrict as AtomRestrict;
 use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
+use crate::restrict::ordered::Restrict as OrderedRestrict;
+use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::{OrderedRestrict, OrderedSetRestrict, Restrict as BaseRestrict};
+use crate::restrict::Restrict as BaseRestrict;
 
 use super::dep;
 
@@ -288,7 +290,7 @@ peg::parser!(grammar restrict() for str {
     rule ordered_ops<T>(exprs: rule<T>) -> OrderedRestrict<T>
         = _ op:$(("any" / "all" / "first" / "last")) _ r:(exprs())
         {
-            use crate::restrict::OrderedRestrict::*;
+            use OrderedRestrict::*;
             match op {
                 "any" => Any(r),
                 "all" => All(r),
@@ -312,7 +314,7 @@ peg::parser!(grammar restrict() for str {
         = attr:$(("name" / "description" / "type" / "proxied"))
                 is_op() ("None" / "none")
         {
-            use crate::metadata::ebuild::MaintainerRestrict::*;
+            use MaintainerRestrict::*;
             match attr {
                 "name" => Name(None),
                 "description" => Description(None),
@@ -353,7 +355,7 @@ peg::parser!(grammar restrict() for str {
         = attr:$(("site" / "name"))
             op:string_ops() s:quoted_string()
         {?
-            use crate::metadata::ebuild::UpstreamRestrict::*;
+            use UpstreamRestrict::*;
             let r = str_restrict(op, s)?;
             match attr {
                 "site" => Ok(Site(r)),

@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
+use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::{OrderedSetRestrict, Restrict as BaseRestrict, Restriction};
+use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
 use super::{Atom, Blocker, Version};
 
