@@ -138,7 +138,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::atom::Atom;
-    use crate::restrict::atom::{Restrict as AtomRestrict};
+    use crate::restrict::atom::Restrict as AtomRestrict;
     use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
     #[test]
