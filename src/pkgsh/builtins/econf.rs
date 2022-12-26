@@ -27,12 +27,12 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(msg.to_string()));
     }
 
-    // convert args into an indexed set so they can be easily merged with the default options
-    let args: IndexMap<&str, Option<String>> = args
+    // convert args to merge with the default options
+    let args: IndexMap<_, _> = args
         .iter()
         .map(|&s| {
             s.split_once('=')
-                .map_or_else(|| (s, None), |(o, v)| (o, Some(v.into())))
+                .map_or_else(|| (s, None), |(o, v)| (o, Some(v.to_string())))
         })
         .collect();
 
@@ -47,11 +47,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .map(|cap| cap["opt"].to_string())
         .collect();
 
-    let mut defaults = IndexMap::<&str, Option<String>>::new();
     let eprefix = variables::required("EPREFIX")?;
     let chost = variables::required("CHOST")?;
 
-    defaults.extend([
+    let mut defaults: IndexMap<_, _> = [
         ("--prefix", Some(format!("{eprefix}/usr"))),
         ("--mandir", Some(format!("{eprefix}/usr/share/man"))),
         ("--infodir", Some(format!("{eprefix}/usr/share/info"))),
@@ -59,7 +58,9 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         ("--sysconfdir", Some(format!("{eprefix}/etc"))),
         ("--localstatedir", Some(format!("{eprefix}/var/lib"))),
         ("--host", Some(chost)),
-    ]);
+    ]
+    .into_iter()
+    .collect();
 
     if !args.contains_key("--libdir") {
         if let Some(libdir) = get_libdir(None) {
