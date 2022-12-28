@@ -24,10 +24,9 @@ jobs:
     - name: Pull submodule updates
       run: git submodule update --recursive --remote
 
-    - name: Get bash submodule commit hash
-      working-directory: scallop
-      id: bash
-      run: echo "commit=$(git rev-parse --short HEAD:bash)" >> $GITHUB_OUTPUT
+    - name: Get bash submodule status
+      working-directory: scallop/bash
+      run: echo "SCALLOP_BASH=$(git describe --always --dirty)" >> $GITHUB_ENV
 
     - name: Remove current repo from workspace
       run: rm -rfv ${{ github.event.repository.name }}
@@ -54,8 +53,8 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: ${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.cachekey }}
-        restore-keys: ${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-
+        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}
+        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
 
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
@@ -75,10 +74,9 @@ jobs:
     - name: Pull submodule updates
       run: git submodule update --recursive --remote
 
-    - name: Get bash submodule commit hash
-      working-directory: scallop
-      id: bash
-      run: echo "commit=$(git rev-parse --short HEAD:bash)" >> $GITHUB_OUTPUT
+    - name: Get bash submodule status
+      working-directory: scallop/bash
+      run: echo "SCALLOP_BASH=$(git describe --always --dirty)" >> $GITHUB_ENV
 
     - name: Remove current repo from workspace
       run: rm -rfv ${{ github.event.repository.name }}
@@ -104,8 +102,8 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: ${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.cachekey }}
-        restore-keys: ${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-
+        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}
+        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
 
     - name: Run rustfmt
       run: cargo fmt --check -p ${{ github.event.repository.name }}
@@ -128,10 +126,9 @@ jobs:
     - name: Pull submodule updates
       run: git submodule update --recursive --remote
 
-    - name: Get bash submodule commit hash
-      working-directory: scallop
-      id: bash
-      run: echo "::set-output name=commit::$(git rev-parse --short HEAD:bash)"
+    - name: Get bash submodule status
+      working-directory: scallop/bash
+      run: echo "SCALLOP_BASH=$(git describe --always --dirty)" >> $GITHUB_ENV
 
     - name: Remove current repo from workspace
       run: rm -rfv ${{ github.event.repository.name }}
@@ -155,8 +152,8 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: ${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-${{ steps.rust.outputs.cachekey }}
-        restore-keys: ${{ github.job }}-${{ runner.os }}-bash-${{ steps.bash.outputs.commit }}-rust-
+        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}
+        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
 
     - name: Install cargo-criterion
       run: |
