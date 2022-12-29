@@ -594,7 +594,7 @@ pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
 pub static EAPI_PKGCRAFT: Lazy<Eapi> =
     Lazy::new(|| Eapi::new("pkgcraft", Some(&EAPI_LATEST)).enable_features(&[Feature::RepoIds]));
 
-/// Ordered mapping of official EAPI identifiers to instances.
+/// Ordered set of official EAPIs.
 pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     let mut eapis = IndexSet::new();
     let mut eapi: &Eapi = &EAPI_LATEST;
@@ -608,11 +608,11 @@ pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     eapis
 });
 
-/// Ordered mapping of unofficial EAPI identifiers to instances.
+/// Ordered set of unofficial EAPIs.
 pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> =
     Lazy::new(|| [&*EAPI_PKGCRAFT].into_iter().collect());
 
-/// Ordered mapping of EAPI identifiers to instances.
+/// Ordered set of EAPIs.
 pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     EAPIS_OFFICIAL
         .iter()
@@ -621,7 +621,7 @@ pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
         .collect()
 });
 
-/// Convert EAPI range into an ordered set of EAPI objects.
+/// Convert EAPI range into an iterator of EAPIs.
 pub fn range(s: &str) -> crate::Result<impl Iterator<Item = &'static Eapi>> {
     let err = || Error::InvalidValue(format!("invalid EAPI range: {s}"));
 
