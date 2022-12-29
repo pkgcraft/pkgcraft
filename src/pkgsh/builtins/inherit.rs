@@ -60,8 +60,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             // append metadata keys that incrementally accumulate
             for var in eapi.incremental_keys() {
                 if let Ok(data) = string_vec(var) {
-                    let deque = d.get_deque(var);
-                    deque.extend(data);
+                    d.get_deque(var).extend(data);
                 }
             }
 
