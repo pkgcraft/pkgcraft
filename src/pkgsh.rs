@@ -24,7 +24,7 @@ mod install;
 pub(crate) mod metadata;
 pub(crate) mod phase;
 pub(crate) mod test;
-pub(crate) mod unescape;
+mod unescape;
 mod utils;
 
 use metadata::Key;
@@ -154,10 +154,10 @@ macro_rules! assert_stderr {
 use assert_stderr;
 
 #[derive(Default)]
-pub(crate) struct BuildData<'a> {
-    pub(crate) eapi: &'static Eapi,
-    pub(crate) atom: Option<Atom>,
-    pub(crate) repo: Option<&'a ebuild::Repo>,
+struct BuildData<'a> {
+    eapi: &'static Eapi,
+    atom: Option<Atom>,
+    repo: Option<&'a ebuild::Repo>,
 
     captured_io: bool,
     stdin: Stdin,
@@ -165,61 +165,61 @@ pub(crate) struct BuildData<'a> {
     stderr: Stderr,
 
     // mapping of variables conditionally exported to the build environment
-    pub(crate) env: HashMap<String, String>,
+    env: HashMap<String, String>,
 
     // TODO: proxy these fields via borrowed package reference
-    pub(crate) distfiles: Vec<String>,
-    pub(crate) user_patches: Vec<String>,
+    distfiles: Vec<String>,
+    user_patches: Vec<String>,
 
-    pub(crate) phase: Option<phase::Phase>,
-    pub(crate) scope: Scope,
-    pub(crate) user_patches_applied: bool,
+    phase: Option<phase::Phase>,
+    scope: Scope,
+    user_patches_applied: bool,
 
-    pub(crate) desttree: String,
-    pub(crate) docdesttree: String,
-    pub(crate) exedesttree: String,
-    pub(crate) insdesttree: String,
+    desttree: String,
+    docdesttree: String,
+    exedesttree: String,
+    insdesttree: String,
 
-    pub(crate) insopts: Vec<String>,
-    pub(crate) diropts: Vec<String>,
-    pub(crate) exeopts: Vec<String>,
-    pub(crate) libopts: Vec<String>,
+    insopts: Vec<String>,
+    diropts: Vec<String>,
+    exeopts: Vec<String>,
+    libopts: Vec<String>,
 
     // TODO: add default values listed in the spec
-    pub(crate) compress_include: HashSet<String>,
-    pub(crate) compress_exclude: HashSet<String>,
-    pub(crate) strip_include: HashSet<String>,
-    pub(crate) strip_exclude: HashSet<String>,
+    compress_include: HashSet<String>,
+    compress_exclude: HashSet<String>,
+    strip_include: HashSet<String>,
+    strip_exclude: HashSet<String>,
 
-    pub(crate) iuse_effective: HashSet<String>,
-    pub(crate) use_: HashSet<String>,
+    iuse_effective: HashSet<String>,
+    use_: HashSet<String>,
 
     /// Eclasses directly inherited by an ebuild.
-    pub(crate) inherit: IndexSet<String>,
+    inherit: IndexSet<String>,
     /// Full set of eclasses inherited by an ebuild.
-    pub(crate) inherited: IndexSet<String>,
+    inherited: IndexSet<String>,
 
     // ebuild metadata fields
-    pub(crate) iuse: VecDeque<String>,
-    pub(crate) required_use: VecDeque<String>,
-    pub(crate) depend: VecDeque<String>,
-    pub(crate) rdepend: VecDeque<String>,
-    pub(crate) pdepend: VecDeque<String>,
-    pub(crate) bdepend: VecDeque<String>,
-    pub(crate) idepend: VecDeque<String>,
-    pub(crate) properties: VecDeque<String>,
-    pub(crate) restrict: VecDeque<String>,
+    iuse: VecDeque<String>,
+    required_use: VecDeque<String>,
+    depend: VecDeque<String>,
+    rdepend: VecDeque<String>,
+    pdepend: VecDeque<String>,
+    bdepend: VecDeque<String>,
+    idepend: VecDeque<String>,
+    properties: VecDeque<String>,
+    restrict: VecDeque<String>,
 }
 
 impl BuildData<'_> {
-    pub(crate) fn new() -> Self {
+    fn new() -> Self {
         Self {
             captured_io: cfg!(test),
             ..Default::default()
         }
     }
 
-    pub(crate) fn update(atom: &Atom, repo: &ebuild::Repo) {
+    fn update(atom: &Atom, repo: &ebuild::Repo) {
         // TODO: remove this hack once BuildData is reworked
         // Drop the lifetime bound on the repo reference in order for it to be stored in BuildData
         // which currently requires `'static` due to its usage in a global, thread local, static
@@ -316,7 +316,7 @@ impl BuildData<'_> {
 }
 
 thread_local! {
-    pub(crate) static BUILD_DATA: RefCell<BuildData<'static>> = RefCell::new(BuildData::new())
+    static BUILD_DATA: RefCell<BuildData<'static>> = RefCell::new(BuildData::new())
 }
 
 /// Initialize bash for library usage.
@@ -332,7 +332,7 @@ fn initialize() {
 
 // TODO: remove allow when public package building support is added
 #[allow(dead_code)]
-pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
+fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         d.borrow_mut().phase = Some(phase);
@@ -364,7 +364,7 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     })
 }
 
-pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
+fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
     if !path.exists() {
         return Err(Error::Base(format!("nonexistent ebuild: {path:?}")));
     }
