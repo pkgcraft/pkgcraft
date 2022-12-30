@@ -15,22 +15,10 @@ jobs:
         rust-version: ['1.65.0', 'stable']
 
     steps:
-    - name: Checkout scallop
-      uses: actions/checkout@v3
-      with:
-        repository: pkgcraft/scallop
-        path: scallop
-        submodules: true
-
     - name: Checkout pkgcraft
       uses: actions/checkout@v3
       with:
-        path: pkgcraft
         submodules: true
-
-    - name: Get bash submodule status
-      working-directory: scallop/bash
-      run: echo "SCALLOP_BASH=$(git describe --always --dirty)" >> $GITHUB_ENV
 
     - name: Set up rust toolchain
       uses: dtolnay/rust-toolchain@master
@@ -54,28 +42,16 @@ jobs:
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
 
-    - name: Build and test
-      run: cargo nextest run --color always --all-features --manifest-path=pkgcraft/Cargo.toml --target-dir target
+    - name: Build and run tests
+      run: cargo nextest run --color always --all-features 
 
   lint:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout scallop
-      uses: actions/checkout@v3
-      with:
-        repository: pkgcraft/scallop
-        path: scallop
-        submodules: true
-
     - name: Checkout pkgcraft
       uses: actions/checkout@v3
       with:
-        path: pkgcraft
         submodules: true
-
-    - name: Get bash submodule status
-      working-directory: scallop/bash
-      run: echo "SCALLOP_BASH=$(git describe --always --dirty)" >> $GITHUB_ENV
 
     - name: Set up rust toolchain
       uses: dtolnay/rust-toolchain@stable
@@ -97,33 +73,20 @@ jobs:
         restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
 
     - name: Run rustfmt
-      run: cargo fmt --check --manifest-path=pkgcraft/Cargo.toml
+      run: cargo fmt --check
 
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        args: --manifest-path=pkgcraft/Cargo.toml --target-dir target
 
   bench:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout scallop
-      uses: actions/checkout@v3
-      with:
-        repository: pkgcraft/scallop
-        path: scallop
-        submodules: true
-
     - name: Checkout pkgcraft
       uses: actions/checkout@v3
       with:
-        path: pkgcraft
         submodules: true
-
-    - name: Get bash submodule status
-      working-directory: scallop/bash
-      run: echo "SCALLOP_BASH=$(git describe --always --dirty)" >> $GITHUB_ENV
 
     - name: Set up rust toolchain
       uses: dtolnay/rust-toolchain@stable
@@ -148,8 +111,8 @@ jobs:
         cargo install cargo-criterion || true
 
     - name: Build
-      run: cargo criterion --no-run --manifest-path=pkgcraft/Cargo.toml --target-dir target
+      run: cargo criterion --no-run
 
     - name: Benchmark
       if: github.ref_name == 'bench'
-      run: cargo criterion --color always --output-format quiet --manifest-path=pkgcraft/Cargo.toml
+      run: cargo criterion --color always --output-format quiet
