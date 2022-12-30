@@ -11,8 +11,7 @@ use regex::Regex;
 use crate::atom::Atom;
 use crate::depset::{DepSet, Uri};
 use crate::eapi::{self, Eapi};
-use crate::metadata::ebuild::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
-use crate::metadata::{Key, Metadata};
+use crate::pkgsh::metadata::{Key, Metadata};
 use crate::repo::{ebuild::Repo, Repository};
 use crate::set::OrderedSet;
 use crate::utils::relpath;
@@ -20,6 +19,8 @@ use crate::Error;
 
 use super::{make_pkg_traits, Package};
 
+pub mod metadata;
+use metadata::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 mod restrict;
 pub use restrict::Restrict;
 

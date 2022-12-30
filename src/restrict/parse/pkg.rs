@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
-use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::peg::peg_error;
+use crate::pkg::ebuild::metadata::{MaintainerRestrict, UpstreamRestrict};
 use crate::pkg::ebuild::Restrict as EbuildRestrict;
 
 use crate::restrict::atom::Restrict as AtomRestrict;
@@ -41,7 +41,7 @@ fn str_restrict(op: &str, s: &str) -> Result<StrRestrict, &'static str> {
 }
 
 fn missing_restrict(attr: &str) -> EbuildRestrict {
-    use crate::pkg::ebuild::Restrict::*;
+    use EbuildRestrict::*;
     match attr {
         "subslot" => RawSubslot(None),
         "depend" => Depend(None),
@@ -69,7 +69,7 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
 
 fn dep_restrict(attr: &str, r: AtomRestrict) -> EbuildRestrict {
     use crate::depset::Restrict::*;
-    use crate::pkg::ebuild::Restrict::*;
+    use EbuildRestrict::*;
 
     match attr {
         "depend" => Depend(Some(Any(r))),
@@ -199,7 +199,7 @@ peg::parser!(grammar restrict() for str {
                 / "long_description"
             )) op:string_ops() s:quoted_string()
         {?
-            use crate::pkg::ebuild::Restrict::*;
+            use EbuildRestrict::*;
             let r = str_restrict(op, s)?;
             let ebuild_r = match attr {
                 "ebuild" => Ebuild(r),
@@ -268,7 +268,7 @@ peg::parser!(grammar restrict() for str {
                 / "inherit"
             )) op:set_ops() vals:quoted_string_set()
         {
-            use crate::pkg::ebuild::Restrict::*;
+            use EbuildRestrict::*;
             let func = match attr {
                 "homepage" => Homepage,
                 "keywords" => Keywords,
@@ -329,7 +329,7 @@ peg::parser!(grammar restrict() for str {
         = attr:$(("email" / "name" / "description" / "type" / "proxied"))
             op:string_ops() s:quoted_string()
         {?
-            use crate::metadata::ebuild::MaintainerRestrict::*;
+            use MaintainerRestrict::*;
             let r = str_restrict(op, s)?;
             match attr {
                 "email" => Ok(Email(r)),

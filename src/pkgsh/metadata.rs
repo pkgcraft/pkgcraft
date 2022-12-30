@@ -17,8 +17,6 @@ use crate::repo::{ebuild::Repo as EbuildRepo, Repository};
 use crate::set::OrderedSet;
 use crate::Error;
 
-pub mod ebuild;
-
 #[derive(AsRefStr, EnumString, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum Key {

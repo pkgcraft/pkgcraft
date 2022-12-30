@@ -1,5 +1,4 @@
 use crate::depset::Restrict as DepSetRestrict;
-use crate::metadata::ebuild::{MaintainerRestrict, UpstreamRestrict};
 use crate::pkg::{self, Package};
 use crate::repo::Repository;
 use crate::restrict::atom::Restrict as AtomRestrict;
@@ -8,6 +7,7 @@ use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
+use super::metadata::{MaintainerRestrict, UpstreamRestrict};
 use super::Pkg;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -188,7 +188,7 @@ mod tests {
     use std::fs;
 
     use crate::config::Config;
-    use crate::metadata::Key;
+    use crate::pkgsh::metadata::Key;
     use crate::repo::PkgRepository;
 
     use super::*;

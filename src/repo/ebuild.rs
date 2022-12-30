@@ -19,7 +19,7 @@ use walkdir::{DirEntry, WalkDir};
 use crate::config::RepoConfig;
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
-use crate::metadata::ebuild::{Manifest, XmlMetadata};
+use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::Pkg;
 use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -832,9 +832,9 @@ impl TempRepo {
         data: I,
     ) -> crate::Result<(Utf8PathBuf, atom::Atom)>
     where
-        I: IntoIterator<Item = (crate::metadata::Key, &'a str)>,
+        I: IntoIterator<Item = (crate::pkgsh::metadata::Key, &'a str)>,
     {
-        use crate::metadata::Key::*;
+        use crate::pkgsh::metadata::Key::*;
         let cpv = atom::cpv(cpv)?;
         let path = self.path.join(format!(
             "{}/{}-{}.ebuild",
@@ -933,8 +933,8 @@ mod tests {
 
     use crate::config::Config;
     use crate::macros::*;
-    use crate::metadata::Key;
     use crate::pkg::Package;
+    use crate::pkgsh::metadata::Key;
     use crate::repo::Contains;
     use crate::test::assert_unordered_eq;
 

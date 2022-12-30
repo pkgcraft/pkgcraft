@@ -14,10 +14,10 @@ use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::atom::Atom;
-use crate::metadata::Key::{self, *};
 use crate::pkgsh::builtins::{
     BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
 };
+use crate::pkgsh::metadata::Key::{self, *};
 use crate::pkgsh::phase::Phase::*;
 use crate::pkgsh::phase::*;
 use crate::pkgsh::BuildVariable::{self, *};

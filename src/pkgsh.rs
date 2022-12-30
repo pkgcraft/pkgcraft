@@ -16,16 +16,18 @@ use sys_info::os_release;
 use crate::atom::Atom;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::{build_from_paths, extend_left};
-use crate::metadata::Key;
 use crate::pkgsh::builtins::Scope;
 use crate::repo::{ebuild, Repository};
 
 pub mod builtins;
 mod install;
+pub(crate) mod metadata;
 pub(crate) mod phase;
 pub(crate) mod test;
 pub(crate) mod unescape;
 mod utils;
+
+use metadata::Key;
 
 struct Stdin {
     inner: io::Stdin,
