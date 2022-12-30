@@ -1,8 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::peg::peg_error;
-use crate::pkg::ebuild::metadata::{MaintainerRestrict, UpstreamRestrict};
-use crate::pkg::ebuild::Restrict as EbuildRestrict;
+use crate::pkg::ebuild::{MaintainerRestrict, Restrict as EbuildRestrict, UpstreamRestrict};
 
 use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::ordered::Restrict as OrderedRestrict;

@@ -9,12 +9,7 @@ use roxmltree::{Document, Node};
 use tracing::warn;
 
 use crate::macros::cmp_not_equal;
-use crate::pkg::ebuild::Restrict as EbuildRestrict;
 use crate::repo::ebuild::CacheData;
-use crate::restrict::boolean::*;
-use crate::restrict::ordered::{make_ordered_restrictions, Restrict as OrderedRestrict};
-use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::Error;
 
 #[derive(Debug)]
@@ -95,52 +90,6 @@ impl Hash for Maintainer {
     }
 }
 
-restrict_with_boolean! {MaintainerRestrict,
-    Email(StrRestrict),
-    Name(Option<StrRestrict>),
-    Description(Option<StrRestrict>),
-    Type(Option<StrRestrict>),
-    Proxied(Option<StrRestrict>),
-}
-
-impl MaintainerRestrict {
-    restrict_impl_boolean! {Self}
-}
-
-impl Restriction<&Maintainer> for MaintainerRestrict {
-    fn matches(&self, m: &Maintainer) -> bool {
-        restrict_match_boolean! {self, m,
-            Self::Email(r) => r.matches(m.email()),
-            Self::Name(r) => match (r, m.name()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Description(r) => match (r, m.description()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Type(r) => match (r, m.maint_type()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Proxied(r) => match (r, m.proxied()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
-        }
-    }
-}
-
-impl From<OrderedRestrict<MaintainerRestrict>> for BaseRestrict {
-    fn from(r: OrderedRestrict<MaintainerRestrict>) -> Self {
-        EbuildRestrict::Maintainers(Some(r)).into()
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Upstream {
     site: String,
@@ -163,32 +112,6 @@ impl Upstream {
         &self.name
     }
 }
-
-restrict_with_boolean! {UpstreamRestrict,
-    Site(StrRestrict),
-    Name(StrRestrict),
-}
-
-impl UpstreamRestrict {
-    restrict_impl_boolean! {Self}
-}
-
-impl Restriction<&Upstream> for UpstreamRestrict {
-    fn matches(&self, u: &Upstream) -> bool {
-        restrict_match_boolean! {self, u,
-            Self::Site(r) => r.matches(u.site()),
-            Self::Name(r) => r.matches(u.name()),
-        }
-    }
-}
-
-impl From<OrderedRestrict<UpstreamRestrict>> for BaseRestrict {
-    fn from(r: OrderedRestrict<UpstreamRestrict>) -> Self {
-        EbuildRestrict::Upstreams(Some(r)).into()
-    }
-}
-
-make_ordered_restrictions!((&[Maintainer], MaintainerRestrict), (&[Upstream], UpstreamRestrict));
 
 #[derive(Debug, Default)]
 pub struct XmlMetadata {

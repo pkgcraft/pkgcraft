@@ -22,7 +22,7 @@ use super::{make_pkg_traits, Package};
 pub mod metadata;
 use metadata::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 mod restrict;
-pub use restrict::Restrict;
+pub use restrict::{MaintainerRestrict, Restrict, UpstreamRestrict};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[^'\"]*)['\"]?[\t ]*(?:#.*)?").unwrap());

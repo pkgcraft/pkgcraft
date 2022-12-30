@@ -2,12 +2,13 @@ use crate::depset::Restrict as DepSetRestrict;
 use crate::pkg::{self, Package};
 use crate::repo::Repository;
 use crate::restrict::atom::Restrict as AtomRestrict;
-use crate::restrict::ordered::Restrict as OrderedRestrict;
+use crate::restrict::boolean::*;
+use crate::restrict::ordered::{make_ordered_restrictions, Restrict as OrderedRestrict};
 use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
-use super::metadata::{MaintainerRestrict, UpstreamRestrict};
+use super::metadata::{Maintainer, Upstream};
 use super::Pkg;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -182,6 +183,78 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
         }
     }
 }
+
+restrict_with_boolean! {MaintainerRestrict,
+    Email(StrRestrict),
+    Name(Option<StrRestrict>),
+    Description(Option<StrRestrict>),
+    Type(Option<StrRestrict>),
+    Proxied(Option<StrRestrict>),
+}
+
+impl MaintainerRestrict {
+    restrict_impl_boolean! {Self}
+}
+
+impl Restriction<&Maintainer> for MaintainerRestrict {
+    fn matches(&self, m: &Maintainer) -> bool {
+        restrict_match_boolean! {self, m,
+            Self::Email(r) => r.matches(m.email()),
+            Self::Name(r) => match (r, m.name()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Description(r) => match (r, m.description()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Type(r) => match (r, m.maint_type()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+            Self::Proxied(r) => match (r, m.proxied()) {
+                (Some(r), Some(s)) => r.matches(s),
+                (None, None) => true,
+                _ => false,
+            },
+        }
+    }
+}
+
+impl From<OrderedRestrict<MaintainerRestrict>> for BaseRestrict {
+    fn from(r: OrderedRestrict<MaintainerRestrict>) -> Self {
+        Restrict::Maintainers(Some(r)).into()
+    }
+}
+
+restrict_with_boolean! {UpstreamRestrict,
+    Site(StrRestrict),
+    Name(StrRestrict),
+}
+
+impl UpstreamRestrict {
+    restrict_impl_boolean! {Self}
+}
+
+impl Restriction<&Upstream> for UpstreamRestrict {
+    fn matches(&self, u: &Upstream) -> bool {
+        restrict_match_boolean! {self, u,
+            Self::Site(r) => r.matches(u.site()),
+            Self::Name(r) => r.matches(u.name()),
+        }
+    }
+}
+
+impl From<OrderedRestrict<UpstreamRestrict>> for BaseRestrict {
+    fn from(r: OrderedRestrict<UpstreamRestrict>) -> Self {
+        Restrict::Upstreams(Some(r)).into()
+    }
+}
+
+make_ordered_restrictions!((&[Maintainer], MaintainerRestrict), (&[Upstream], UpstreamRestrict));
 
 #[cfg(test)]
 mod tests {
