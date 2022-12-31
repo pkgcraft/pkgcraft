@@ -1,3 +1,6 @@
 [submodule "testdata"]
-	path = testdata
+	path = crates/pkgcraft/testdata
 	url = https://github.com/pkgcraft/pkgcraft-testdata.git
+[submodule "crates/scallop/bash"]
+	path = crates/scallop/bash
+	url = https://github.com/pkgcraft/bash.git

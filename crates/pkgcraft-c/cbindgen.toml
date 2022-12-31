@@ -1,0 +1,15 @@
+header = "// SPDX-License-Identifier: MIT"
+include_guard = "PKGCRAFT_H"
+include_version = true
+language = "C"
+cpp_compat = true
+
+[enum]
+rename_variants = "QualifiedScreamingSnakeCase"
+
+[fn]
+sort_by = "Name"
+
+[parse]
+parse_deps = true
+include = ["pkgcraft"]

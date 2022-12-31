@@ -1,0 +1,46 @@
+name: bench
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  push:
+    branches: [bench]
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout pkgcraft workspace
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Set up rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      id: rust
+
+    - name: Set up rust cache
+      uses: actions/cache@v3
+      id: cache
+      with:
+        path: |
+          ~/.cargo/bin
+          target/criterion
+        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}
+        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
+
+    - name: Install cargo-criterion
+      run: |
+        # ignore return value since `cargo install` errors out when already installed
+        cargo install cargo-criterion || true
+
+    - name: Install protoc for arcanist
+      uses: arduino/setup-protoc@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build
+      run: cargo criterion --no-run
+
+    - name: Benchmark
+      run: cargo criterion --color always --output-format quiet

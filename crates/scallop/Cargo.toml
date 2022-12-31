@@ -1,0 +1,46 @@
+[package]
+name = "scallop"
+version = "0.0.3"
+description = "Wrapper library for bash"
+authors = ["Tim Harder <radhermit@gmail.com>"]
+homepage = "https://github.com/pkgcraft/scallop"
+repository = "https://github.com/pkgcraft/scallop"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+keywords = ["bash", "shell"]
+edition = "2021"
+rust-version = "1.64"
+autotests = false
+exclude = [
+	"bash/doc/*",
+	"bash/examples/*",
+	"bash/po/*",
+	"bash/tests/*",
+]
+
+[features]
+plugin = []
+
+[lib]
+name = "scallop"
+path = "src/lib.rs"
+
+[[example]]
+name = "scallop"
+
+[dependencies]
+bitflags = "1.3"
+nix = "0.26"
+once_cell = "1.8.0"
+thiserror = "1.0.30"
+tracing = "0.1"
+
+[build-dependencies]
+autotools = "0.2.4"
+bindgen = "0.63"
+camino = "1"
+num_cpus = "1.0"
+
+[dev-dependencies]
+ctor = "0.1.22"
+tempfile = "3"

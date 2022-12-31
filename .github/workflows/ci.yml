@@ -2,9 +2,14 @@ name: CI
 
 on:
   push:
-    branches-ignore: [deploy]
+    paths:
+      - "Cargo.*"
+      - "crates/**"
   pull_request:
     branches: [main]
+    paths:
+      - "Cargo.*"
+      - "crates/**"
 
 jobs:
   test:
@@ -15,7 +20,7 @@ jobs:
         rust-version: ['1.65.0', 'stable']
 
     steps:
-    - name: Checkout pkgcraft
+    - name: Checkout pkgcraft workspace
       uses: actions/checkout@v3
       with:
         submodules: true
@@ -36,19 +41,24 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}
+        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
         restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
+
+    - name: Install protoc for arcanist
+      uses: arduino/setup-protoc@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
 
     - name: Build and run tests
-      run: cargo nextest run --color always --all-features 
+      run: cargo nextest run --color always --all-features
 
   lint:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout pkgcraft
+    - name: Checkout pkgcraft workspace
       uses: actions/checkout@v3
       with:
         submodules: true
@@ -69,50 +79,18 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}
+        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
         restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
 
     - name: Run rustfmt
       run: cargo fmt --check
 
+    - name: Install protoc for arcanist
+      uses: arduino/setup-protoc@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Run clippy
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-
-  bench:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout pkgcraft
-      uses: actions/checkout@v3
-      with:
-        submodules: true
-
-    - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      id: rust
-
-    - name: Set up rust cache
-      uses: actions/cache@v3
-      id: cache
-      with:
-        path: |
-          ~/.cargo/bin
-          ~/.cargo/registry/index
-          ~/.cargo/registry/cache
-          ~/.cargo/git/db
-          target
-        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}
-        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
-
-    - name: Install cargo-criterion
-      run: |
-        # ignore return value since `cargo install` errors out when already installed
-        cargo install cargo-criterion || true
-
-    - name: Build
-      run: cargo criterion --no-run
-
-    - name: Benchmark
-      if: github.ref_name == 'bench'
-      run: cargo criterion --color always --output-format quiet
