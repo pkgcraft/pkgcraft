@@ -18,9 +18,6 @@ exclude = [
 	"bash/tests/*",
 ]
 
-[features]
-plugin = []
-
 [lib]
 name = "scallop"
 path = "src/lib.rs"

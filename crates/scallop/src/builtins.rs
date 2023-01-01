@@ -2,21 +2,18 @@ use std::collections::HashSet;
 use std::ffi::{c_char, c_int, CStr, CString};
 use std::hash::{Hash, Hasher};
 use std::process::ExitStatus;
-use std::{fmt, mem, ptr};
+use std::{fmt, mem, process, ptr};
 
 use bitflags::bitflags;
+use nix::sys::signal::Signal;
 
-use crate::{bash, Error};
+use crate::{bash, shell, Error};
 
 mod _bash;
 pub mod profile;
 
 // export native bash builtins
 pub use _bash::*;
-
-// conditionally export forked bash functionality
-#[cfg(not(feature = "plugin"))]
-pub use crate::scallop::builtins::*;
 
 pub type BuiltinFn = fn(&[&str]) -> crate::Result<ExecStatus>;
 pub type BuiltinFnPtr = unsafe extern "C" fn(list: *mut bash::WordList) -> c_int;
@@ -244,6 +241,25 @@ pub fn shell_builtins() -> (HashSet<String>, HashSet<String>) {
     (enabled, disabled)
 }
 
+/// Register builtins into the internal list for use.
+pub fn register(builtins: &[Builtin]) {
+    unsafe {
+        // convert builtins into pointers
+        let mut builtin_ptrs: Vec<_> = builtins
+            .iter()
+            .map(|b| Box::into_raw(Box::new((*b).into())))
+            .collect();
+
+        // add builtins to bash's internal list
+        bash::register_builtins(builtin_ptrs.as_mut_ptr(), builtin_ptrs.len());
+
+        // reclaim pointers for proper deallocation
+        for b in builtin_ptrs {
+            mem::drop(Box::from_raw(b));
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ScopedBuiltins {
     enabled: Vec<String>,
@@ -429,30 +445,16 @@ pub fn handle_error(cmd: &str, err: Error) -> ExecStatus {
         s => format!("{s}: error: {err}"),
     };
 
-    // vanilla bash outputs error messages to stderr
-    #[cfg(feature = "plugin")]
-    eprintln!("{msg}");
+    // push error message into shared memory so subshell errors can be captured
+    shell::set_shm_error(&msg);
 
-    // bundled bash performs custom error handling
-    #[cfg(not(feature = "plugin"))]
-    {
-        use std::process;
-
-        use nix::sys::signal::Signal;
-
-        use crate::shell;
-
-        // push error message into shared memory so subshell errors can be captured
-        shell::set_shm_error(&msg);
-
-        if matches!(err, Error::Bail(_)) {
-            // TODO: send SIGTERM to background jobs (use jobs builtin)?
-            if shell::in_subshell() {
-                // interrupt the main shell process
-                shell::kill(Signal::SIGUSR1).ok();
-                // terminate the subshell process
-                process::exit(2);
-            }
+    if matches!(err, Error::Bail(_)) {
+        // TODO: send SIGTERM to background jobs (use jobs builtin)?
+        if shell::in_subshell() {
+            // interrupt the main shell process
+            shell::kill(Signal::SIGUSR1).ok();
+            // terminate the subshell process
+            process::exit(2);
         }
     }
 

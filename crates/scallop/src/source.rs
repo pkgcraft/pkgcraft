@@ -23,26 +23,6 @@ bitflags! {
     }
 }
 
-#[cfg(feature = "plugin")]
-pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
-    let s = s.as_ref();
-    let file_str = CString::new("scallop::source::string").unwrap();
-    let c_str = CString::new(s).unwrap();
-    let str_ptr = c_str.as_ptr() as *mut _;
-    // flush any previous error
-    last_error();
-    let ret = unsafe { bash::evalstring(str_ptr, file_str.as_ptr(), Eval::NO_FREE.bits() as i32) };
-    let err = last_error();
-    match ret {
-        0 => Ok(ExecStatus::Success),
-        _ => match err {
-            Some(e) => Err(e),
-            None => Err(Error::Base(format!("failed sourcing: {s}"))),
-        },
-    }
-}
-
-#[cfg(not(feature = "plugin"))]
 pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
     let s = s.as_ref();
     let c_str = CString::new(s).unwrap();
@@ -60,24 +40,6 @@ pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
     }
 }
 
-#[cfg(feature = "plugin")]
-pub fn file<S: AsRef<str>>(path: S) -> crate::Result<ExecStatus> {
-    let path = path.as_ref();
-    let c_str = CString::new(path).unwrap();
-    // flush any previous error
-    last_error();
-    let ret = unsafe { bash::source_file(c_str.as_ptr(), 0) };
-    let err = last_error();
-    match ret {
-        0 => Ok(ExecStatus::Success),
-        _ => match err {
-            Some(e) => Err(e),
-            None => Err(Error::Base(format!("failed sourcing: {:?}", path))),
-        },
-    }
-}
-
-#[cfg(not(feature = "plugin"))]
 pub fn file<S: AsRef<str>>(path: S) -> crate::Result<ExecStatus> {
     let path = path.as_ref();
     let c_str = CString::new(path).unwrap();
@@ -175,7 +137,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(feature = "plugin"))]
     fn test_source_file_error_longjmp() {
         // enable immediate exit on error
         crate::builtins::set(&["-e"]).unwrap();

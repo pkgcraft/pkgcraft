@@ -6,16 +6,11 @@ pub mod builtins;
 pub mod command;
 pub mod error;
 pub mod functions;
-pub(crate) mod scallop;
 pub mod shell;
+pub(crate) mod shm;
 pub mod source;
+mod test;
 pub mod traits;
 pub mod variables;
 
 pub use self::error::{Error, Result};
-
-#[cfg(test)]
-mod tests {
-    #[cfg(feature = "plugin")]
-    compile_error!("The feature \"plugin\" must be disabled for testing.");
-}
