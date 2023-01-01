@@ -1,3 +1,5 @@
+[![crates.io](https://img.shields.io/crates/v/scallop.svg)](https://crates.io/crates/scallop)
+
 # scallop
 
 Scallop is a rust-based library that wraps bash. It supports writing bash

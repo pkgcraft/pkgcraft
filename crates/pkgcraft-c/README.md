@@ -1,3 +1,5 @@
+[![crates.io](https://img.shields.io/crates/v/pkgcraft-c.svg)](https://crates.io/crates/pkgcraft-c)
+
 # pkgcraft-c
 
 C library for pkgcraft.
