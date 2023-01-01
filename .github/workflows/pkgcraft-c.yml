@@ -43,9 +43,7 @@ jobs:
 
     - name: Install cargo-c via binary package on Linux
       if: runner.os == 'Linux'
-      run: |
-        curl -L https://github.com/lu-zero/cargo-c/releases/latest/download/cargo-c-x86_64-unknown-linux-musl.tar.gz | tar xvzf - -C ~/.cargo/bin
-        cargo cinstall --version
+      run: curl -L https://github.com/lu-zero/cargo-c/releases/latest/download/cargo-c-x86_64-unknown-linux-musl.tar.gz | tar xvzf - -C ~/.cargo/bin
 
     - name: Install cargo-c via binary package on MacOS
       if: runner.os == 'macOS'
@@ -53,10 +51,10 @@ jobs:
         curl -L https://github.com/lu-zero/cargo-c/releases/latest/download/cargo-c-macos.zip > cargo-c.zip
         unzip -o cargo-c.zip -d ~/.cargo/bin
         rm cargo-c.zip
-        cargo cinstall --version
 
     - name: Build C library
       run: |
+        cargo cinstall --version
         cargo cinstall --profile dev --prefix="${pkgcraft_dir}" --pkgconfigdir="${pkgcraft_dir}" -p pkgcraft-c
         echo "PKG_CONFIG_PATH=${pkgcraft_dir}" >> $GITHUB_ENV
         echo "LD_LIBRARY_PATH=${pkgcraft_dir}/lib" >> $GITHUB_ENV
