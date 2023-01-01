@@ -26,8 +26,8 @@ jobs:
         path: |
           ~/.cargo/bin
           target/criterion
-        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}
-        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
+        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-${{ github.run_id }}
+        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-
 
     - name: Install cargo-criterion
       run: |
