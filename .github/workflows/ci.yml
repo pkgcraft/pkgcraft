@@ -5,6 +5,7 @@ on:
     paths:
       - "Cargo.*"
       - "crates/**"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
     paths:
