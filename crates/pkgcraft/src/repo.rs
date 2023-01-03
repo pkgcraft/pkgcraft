@@ -111,7 +111,8 @@ impl Repo {
         // try to finalize as a stand-alone repo
         if finalize {
             let existing = IndexMap::<_, _>::new();
-            repo.finalize(&existing)?;
+            repo.finalize(&existing)
+                .map_err(|e| Error::RepoInit(format!("overlay must be added via config: {e}")))?;
         }
 
         Ok(repo)
