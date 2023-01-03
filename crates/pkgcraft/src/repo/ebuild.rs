@@ -312,6 +312,11 @@ impl Repo {
         existing_repos: &IndexMap<String, BaseRepo>,
         repo: Weak<Self>,
     ) -> crate::Result<()> {
+        // skip finalized, stand-alone repos
+        if self.masters.get().is_some() && self.trees.get().is_some() {
+            return Ok(());
+        }
+
         let mut nonexistent = vec![];
         let mut masters = vec![];
 

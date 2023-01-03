@@ -65,16 +65,14 @@ make_repo_traits!(Repo);
 
 impl Repo {
     /// Try to load a repo from a given path.
-    pub fn from_path<P, S>(id: S, priority: i32, path: P) -> crate::Result<Self>
+    pub fn from_path<P>(id: &str, priority: i32, path: P, finalize: bool) -> crate::Result<Self>
     where
         P: AsRef<Utf8Path>,
-        S: AsRef<str>,
     {
         let path = path.as_ref();
-        let id = id.as_ref();
 
         for format in RepoFormat::iter() {
-            if let Ok(repo) = Self::from_format(id, priority, path, format) {
+            if let Ok(repo) = Self::from_format(id, priority, path, format, finalize) {
                 return Ok(repo);
             }
         }
@@ -91,18 +89,32 @@ impl Repo {
     }
 
     /// Try to load a certain repo type from a given path.
-    pub(crate) fn from_format(
+    pub fn from_format<P>(
         id: &str,
         priority: i32,
-        path: &Utf8Path,
+        path: P,
         format: RepoFormat,
-    ) -> crate::Result<Self> {
+        finalize: bool,
+    ) -> crate::Result<Self>
+    where
+        P: AsRef<Utf8Path>,
+    {
+        let path = path.as_ref();
+
         use RepoFormat::*;
-        match format {
-            Ebuild => Ok(ebuild::Repo::from_path(id, priority, path)?.into()),
-            Fake => Ok(fake::Repo::from_path(id, priority, path)?.into()),
-            Empty => Ok(empty::Repo::from_path(id, priority, path)?.into()),
+        let repo: Self = match format {
+            Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
+            Fake => fake::Repo::from_path(id, priority, path)?.into(),
+            Empty => empty::Repo::from_path(id, priority, path)?.into(),
+        };
+
+        // try to finalize as a stand-alone repo
+        if finalize {
+            let existing = IndexMap::<_, _>::new();
+            repo.finalize(&existing)?;
         }
+
+        Ok(repo)
     }
 
     pub(super) fn finalize(&self, existing_repos: &IndexMap<String, Repo>) -> crate::Result<()> {

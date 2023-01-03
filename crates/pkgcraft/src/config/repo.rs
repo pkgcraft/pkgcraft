@@ -106,7 +106,7 @@ impl Config {
         let mut repos = vec![];
         for (name, c) in configs.into_iter() {
             // ignore unsynced or nonexistent repos
-            match Repo::from_format(&name, c.priority, &c.location, c.format) {
+            match Repo::from_format(&name, c.priority, &c.location, c.format, false) {
                 Ok(repo) => repos.push(repo),
                 Err(err) => warn!("{err}"),
             }
@@ -141,7 +141,7 @@ impl Config {
         if self.repos.get(name).is_some() {
             return Err(Error::Config(format!("existing repo: {name}")));
         }
-        Repo::from_path(name, priority, path)
+        Repo::from_path(name, priority, path, false)
     }
 
     /// Add external repo from a URI.
@@ -158,7 +158,7 @@ impl Config {
         };
         config.sync()?;
 
-        let repo = Repo::from_path(name, priority, config.location)?;
+        let repo = Repo::from_path(name, priority, config.location, false)?;
 
         // write repo config file to disk
         let data = toml::to_string(repo.repo_config())

@@ -26,6 +26,7 @@ pub unsafe extern "C" fn pkgcraft_repo_from_path(
     id: *const c_char,
     priority: c_int,
     path: *const c_char,
+    finalize: bool,
 ) -> *mut Repo {
     let path = null_ptr_check!(path.as_ref());
     let path = unsafe { unwrap_or_return!(CStr::from_ptr(path).to_str(), ptr::null_mut()) };
@@ -34,7 +35,33 @@ pub unsafe extern "C" fn pkgcraft_repo_from_path(
         false => unsafe { unwrap_or_return!(CStr::from_ptr(id).to_str(), ptr::null_mut()) },
     };
 
-    let repo = unwrap_or_return!(Repo::from_path(id, priority, path), ptr::null_mut());
+    let repo = unwrap_or_return!(Repo::from_path(id, priority, path, finalize), ptr::null_mut());
+    Box::into_raw(Box::new(repo))
+}
+
+/// Try to load a certain repo type from a given path.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The path argument should be a valid path on the system.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_from_format(
+    id: *const c_char,
+    priority: c_int,
+    path: *const c_char,
+    format: RepoFormat,
+    finalize: bool,
+) -> *mut Repo {
+    let path = null_ptr_check!(path.as_ref());
+    let path = unsafe { unwrap_or_return!(CStr::from_ptr(path).to_str(), ptr::null_mut()) };
+    let id = match id.is_null() {
+        true => path,
+        false => unsafe { unwrap_or_return!(CStr::from_ptr(id).to_str(), ptr::null_mut()) },
+    };
+
+    let repo =
+        unwrap_or_return!(Repo::from_format(id, priority, path, format, finalize), ptr::null_mut());
     Box::into_raw(Box::new(repo))
 }
 

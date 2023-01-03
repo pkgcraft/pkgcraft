@@ -45,29 +45,6 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_new(
     Box::into_raw(Box::new(repo.into()))
 }
 
-/// Create a fake repo from a given path.
-///
-/// Returns NULL on error.
-///
-/// # Safety
-/// The path argument should be a valid path on the system.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_fake_from_path(
-    id: *const c_char,
-    priority: c_int,
-    path: *const c_char,
-) -> *mut Repo {
-    let path = null_ptr_check!(path.as_ref());
-    let path = unsafe { unwrap_or_return!(CStr::from_ptr(path).to_str(), ptr::null_mut()) };
-    let id = match id.is_null() {
-        true => path,
-        false => unsafe { unwrap_or_return!(CStr::from_ptr(id).to_str(), ptr::null_mut()) },
-    };
-
-    let repo = unwrap_or_return!(FakeRepo::from_path(id, priority, path), ptr::null_mut());
-    Box::into_raw(Box::new(repo.into()))
-}
-
 /// Add pkgs to an existing fake repo from an array of CPV strings.
 ///
 /// Returns NULL on error.
