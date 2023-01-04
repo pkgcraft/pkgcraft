@@ -55,7 +55,7 @@ jobs:
     - name: Build C library
       run: |
         cargo cinstall --version
-        cargo cinstall --profile dev --prefix="${pkgcraft_dir}" --pkgconfigdir="${pkgcraft_dir}" -p pkgcraft-c
+        cargo cinstall --prefix="${pkgcraft_dir}" --pkgconfigdir="${pkgcraft_dir}" -p pkgcraft-c
         echo "PKG_CONFIG_PATH=${pkgcraft_dir}" >> $GITHUB_ENV
         echo "LD_LIBRARY_PATH=${pkgcraft_dir}/lib" >> $GITHUB_ENV
         echo "DYLD_LIBRARY_PATH=${pkgcraft_dir}/lib" >> $GITHUB_ENV
