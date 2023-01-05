@@ -57,7 +57,7 @@ jobs:
       run: cargo nextest run --color always --all-features
 
     - name: Save cache
-      if: github.ref_name == 'main'
+      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != true }}
       uses: actions/cache/save@v3
       with:
         path: |
@@ -109,7 +109,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Save cache
-      if: github.ref_name == 'main'
+      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != true }}
       uses: actions/cache/save@v3
       with:
         path: |
