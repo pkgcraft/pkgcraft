@@ -32,9 +32,9 @@ jobs:
       with:
         toolchain: ${{ matrix.rust-version }}
 
-    - name: Set up rust cache
-      uses: actions/cache@v3
-      id: cache
+    - name: Restore cache
+      uses: actions/cache/restore@v3
+      id: restore-cache
       with:
         path: |
           ~/.cargo/bin
@@ -56,6 +56,18 @@ jobs:
     - name: Build and run tests
       run: cargo nextest run --color always --all-features
 
+    - name: Save cache
+      if: github.ref_name == 'main'
+      uses: actions/cache/save@v3
+      with:
+        path: |
+          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+          target
+        key: ${{ steps.restore-cache.outputs.key }}
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -70,9 +82,9 @@ jobs:
       with:
         components: clippy, rustfmt
 
-    - name: Set up rust cache
-      uses: actions/cache@v3
-      id: cache
+    - name: Restore cache
+      uses: actions/cache/restore@v3
+      id: restore-cache
       with:
         path: |
           ~/.cargo/bin
@@ -95,3 +107,15 @@ jobs:
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Save cache
+      if: github.ref_name == 'main'
+      uses: actions/cache/save@v3
+      with:
+        path: |
+          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+          target
+        key: ${{ steps.restore-cache.outputs.key }}
