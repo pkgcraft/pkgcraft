@@ -90,3 +90,5 @@ jobs:
     needs: build
     uses: pkgcraft/pkgcraft-go/.github/workflows/ci.yml@main
     secrets: inherit
+    with:
+      go-version: 'stable'
