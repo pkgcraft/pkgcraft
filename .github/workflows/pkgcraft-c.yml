@@ -68,3 +68,8 @@ jobs:
         name: pkgcraft-c-${{ runner.os }}
         path: ${{ env.pkgcraft_dir }}
         if-no-files-found: error
+
+  pkgcraft-python:
+    needs: build
+    uses: pkgcraft/pkgcraft-python/.github/workflows/ci.yml@main
+    secrets: inherit
