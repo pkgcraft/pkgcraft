@@ -1,25 +1,17 @@
-name: CI
+name: lint
 
 on:
   push:
     paths:
-      - "Cargo.*"
-      - "crates/**"
-      - ".github/workflows/ci.yml"
+      - "**/*.rs"
+      - ".github/workflows/lint.yml"
   pull_request:
     branches: [main]
-    paths:
-      - "Cargo.*"
-      - "crates/**"
+    paths: "**/*.rs"
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        rust-version: ['1.65.0', 'stable']
-
+  lint:
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout pkgcraft workspace
       uses: actions/checkout@v3
@@ -27,10 +19,10 @@ jobs:
         submodules: true
 
     - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@master
+      uses: dtolnay/rust-toolchain@stable
       id: rust
       with:
-        toolchain: ${{ matrix.rust-version }}
+        components: clippy, rustfmt
 
     - name: Restore cache
       uses: actions/cache/restore@v3
@@ -45,16 +37,18 @@ jobs:
         key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
         restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
 
+    - name: Run rustfmt
+      run: cargo fmt --check
+
     - name: Install protoc for arcanist
       uses: arduino/setup-protoc@v1
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install cargo-nextest
-      uses: taiki-e/install-action@nextest
-
-    - name: Build and run tests
-      run: cargo nextest run --color always --all-features
+    - name: Run clippy
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != true }}
