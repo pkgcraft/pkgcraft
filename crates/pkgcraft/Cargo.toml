@@ -57,7 +57,7 @@ sys-info = "0.9"
 tar = { version = "0.4.38", optional = true }
 tempfile = "3"
 thiserror = "1.0.26"
-tokio = { version = "1.14", features = ["full"], optional = true }
+tokio = { version = "1.24", features = ["full"], optional = true }
 toml = "0.5.8"
 tracing = "0.1"
 walkdir = "2"
