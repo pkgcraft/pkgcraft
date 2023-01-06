@@ -2,9 +2,12 @@ name: bench
 
 on:
   schedule:
-    - cron: '0 7 * * 0'
+    - cron: '37 6 13 * *'
   push:
-    branches: [bench]
+    paths:
+      - "crates/*/benches/**"
+      - ".github/workflows/bench.yml"
+  workflow_dispatch:
 
 jobs:
   bench:
