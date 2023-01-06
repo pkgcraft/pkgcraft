@@ -85,6 +85,8 @@ jobs:
     needs: build
     uses: pkgcraft/pkgcraft-python/.github/workflows/ci.yml@main
     secrets: inherit
+    with:
+      python-version: '3.x'
 
   pkgcraft-go:
     needs: build
