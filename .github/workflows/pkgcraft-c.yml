@@ -9,6 +9,7 @@ on:
       - "crates/pkgcraft/**"
       - "crates/pkgcraft-c/**"
       - ".github/workflows/pkgcraft-c.yml"
+  workflow_dispatch:
 
 jobs:
   build:
