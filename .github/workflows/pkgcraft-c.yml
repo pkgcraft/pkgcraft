@@ -95,3 +95,10 @@ jobs:
     secrets: inherit
     with:
       go-version: 'stable'
+
+  pkgcraft-perl:
+    needs: build
+    uses: pkgcraft/pkgcraft-perl/.github/workflows/ci.yml@main
+    secrets: inherit
+    with:
+      perl-version: '5'
