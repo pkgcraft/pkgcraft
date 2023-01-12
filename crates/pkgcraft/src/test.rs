@@ -59,7 +59,7 @@ pub(crate) struct AtomData {
     pub(crate) valid: Vec<ValidAtom>,
     pub(crate) invalid: Vec<String>,
     compares: Vec<String>,
-    pub(crate) sorting: Vec<(Vec<String>, Vec<String>)>,
+    pub(crate) sorting: Vec<(Vec<String>, bool)>,
 }
 
 impl AtomData {
