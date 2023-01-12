@@ -55,11 +55,17 @@ impl<'de> Deserialize<'de> for OrderedSet<String> {
 }
 
 #[derive(Debug, Deserialize)]
+pub(crate) struct Sorted {
+    pub(crate) sorted: Vec<String>,
+    pub(crate) equal: bool,
+}
+
+#[derive(Debug, Deserialize)]
 pub(crate) struct AtomData {
     pub(crate) valid: Vec<ValidAtom>,
     pub(crate) invalid: Vec<String>,
     compares: Vec<String>,
-    pub(crate) sorting: Vec<(Vec<String>, bool)>,
+    pub(crate) sorting: Vec<Sorted>,
 }
 
 impl AtomData {
@@ -80,7 +86,7 @@ impl AtomData {
 #[derive(Debug, Deserialize)]
 pub(crate) struct VersionData {
     compares: Vec<String>,
-    pub(crate) sorting: Vec<(Vec<String>, bool)>,
+    pub(crate) sorting: Vec<Sorted>,
     pub(crate) hashing: Vec<(Vec<String>, usize)>,
 }
 

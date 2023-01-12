@@ -432,19 +432,20 @@ mod tests {
     #[test]
     fn test_sorting() {
         let data = AtomData::load().unwrap();
-        for (expected, equal) in data.sorting {
-            let atoms: Vec<_> = expected
+        for d in data.sorting {
+            let mut reversed: Vec<_> = d
+                .sorted
                 .iter()
                 .map(|s| Atom::from_str(s).unwrap())
+                .rev()
                 .collect();
-            let mut reversed: Vec<_> = atoms.into_iter().rev().collect();
             reversed.sort();
             let mut sorted: Vec<_> = reversed.iter().map(|x| x.to_string()).collect();
-            if equal {
+            if d.equal {
                 // equal atoms aren't sorted so reversing should restore the original order
                 sorted = sorted.into_iter().rev().collect();
             }
-            assert_eq!(&sorted, &expected);
+            assert_eq!(&sorted, &d.sorted);
         }
     }
 
