@@ -451,12 +451,12 @@ mod tests {
     #[test]
     fn test_hashing() {
         let data = VersionData::load().unwrap();
-        for (versions, size) in data.hashing.iter() {
+        for (versions, size) in data.hashing {
             let set: HashSet<_> = versions
                 .iter()
                 .map(|s| Atom::from_str(&format!("=cat/pkg-{s}")).unwrap())
                 .collect();
-            assert_eq!(set.len(), *size);
+            assert_eq!(set.len(), size);
         }
     }
 }
