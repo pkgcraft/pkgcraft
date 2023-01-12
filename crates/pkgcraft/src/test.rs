@@ -80,7 +80,7 @@ impl AtomData {
 #[derive(Debug, Deserialize)]
 pub(crate) struct VersionData {
     compares: Vec<String>,
-    pub(crate) sorting: Vec<(Vec<String>, Vec<String>)>,
+    pub(crate) sorting: Vec<(Vec<String>, bool)>,
     pub(crate) hashing: Vec<(Vec<String>, usize)>,
 }
 

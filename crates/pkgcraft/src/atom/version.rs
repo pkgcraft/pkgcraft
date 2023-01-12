@@ -477,14 +477,19 @@ mod tests {
     #[test]
     fn test_sorting() {
         let data = VersionData::load().unwrap();
-        for (unsorted, expected) in data.sorting.iter() {
-            let mut versions: Vec<_> = unsorted
+        for (expected, equal) in data.sorting {
+            let versions: Vec<_> = expected
                 .iter()
                 .map(|s| Version::from_str(s).unwrap())
                 .collect();
-            versions.sort();
-            let sorted: Vec<_> = versions.iter().map(|x| format!("{x}")).collect();
-            assert_eq!(&sorted, expected);
+            let mut reversed: Vec<_> = versions.into_iter().rev().collect();
+            reversed.sort();
+            let mut sorted: Vec<_> = reversed.iter().map(|x| x.to_string()).collect();
+            if equal {
+                // equal versions aren't sorted so reversing should restore the original order
+                sorted = sorted.into_iter().rev().collect();
+            }
+            assert_eq!(&sorted, &expected);
         }
     }
 
