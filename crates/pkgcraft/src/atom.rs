@@ -452,12 +452,17 @@ mod tests {
     #[test]
     fn test_hashing() {
         let data = VersionData::load().unwrap();
-        for (versions, size) in data.hashing {
-            let set: HashSet<_> = versions
+        for d in data.hashing {
+            let set: HashSet<_> = d
+                .versions
                 .iter()
                 .map(|s| Atom::from_str(&format!("=cat/pkg-{s}")).unwrap())
                 .collect();
-            assert_eq!(set.len(), size);
+            if d.equal {
+                assert_eq!(set.len(), 1);
+            } else {
+                assert_eq!(set.len(), d.versions.len());
+            }
         }
     }
 }

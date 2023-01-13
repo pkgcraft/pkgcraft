@@ -84,10 +84,16 @@ impl AtomData {
 }
 
 #[derive(Debug, Deserialize)]
+pub(crate) struct Hashing {
+    pub(crate) versions: Vec<String>,
+    pub(crate) equal: bool,
+}
+
+#[derive(Debug, Deserialize)]
 pub(crate) struct VersionData {
     compares: Vec<String>,
     pub(crate) sorting: Vec<Sorted>,
-    pub(crate) hashing: Vec<(Vec<String>, usize)>,
+    pub(crate) hashing: Vec<Hashing>,
 }
 
 impl VersionData {
