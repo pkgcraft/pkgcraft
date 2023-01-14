@@ -82,9 +82,12 @@ peg::parser! {
             } / expected!("slot name")
             ) { s }
 
-        rule slot(eapi: &'static Eapi) -> (&'input str, Option<&'input str>)
-            = slot:slot_name() subslot:subslot(eapi)? {
-                (slot, subslot)
+        rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
+            = ":" slot_parts:slot_str(eapi) {?
+                match eapi.has(Feature::SlotDeps) {
+                    true => Ok(slot_parts),
+                    false => Err("slot deps are supported in >= EAPI 1"),
+                }
             }
 
         rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
@@ -103,11 +106,16 @@ peg::parser! {
                 }
             }
 
-        rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
-            = ":" slot_parts:slot_str(eapi) {?
-                match eapi.has(Feature::SlotDeps) {
-                    true => Ok(slot_parts),
-                    false => Err("slot deps are supported in >= EAPI 1"),
+        rule slot(eapi: &'static Eapi) -> (&'input str, Option<&'input str>)
+            = slot:slot_name() subslot:subslot(eapi)? {
+                (slot, subslot)
+            }
+
+        rule subslot(eapi: &'static Eapi) -> &'input str
+            = "/" s:slot_name() {?
+                match eapi.has(Feature::Subslots) {
+                    true => Ok(s),
+                    false => Err("subslots are supported in >= EAPI 5"),
                 }
             }
 
@@ -136,28 +144,17 @@ peg::parser! {
 
         rule use_deps(eapi: &'static Eapi) -> Vec<&'input str>
             = "[" use_deps:use_dep(eapi) ++ "," "]" {?
-                if eapi.has(Feature::UseDeps) {
-                    Ok(use_deps)
-                } else {
-                    Err("use deps are supported in >= EAPI 2")
+                match eapi.has(Feature::UseDeps) {
+                    true => Ok(use_deps),
+                    false => Err("use deps are supported in >= EAPI 2"),
                 }
             }
 
         rule use_dep_default(eapi: &'static Eapi) -> &'input str
             = s:$("(+)" / "(-)") {?
-                if eapi.has(Feature::UseDepDefaults) {
-                    Ok(s)
-                } else {
-                    Err("use dep defaults are supported in >= EAPI 4")
-                }
-            }
-
-        rule subslot(eapi: &'static Eapi) -> &'input str
-            = "/" s:slot_name() {?
-                if eapi.has(Feature::Subslots) {
-                    Ok(s)
-                } else {
-                    Err("subslots are supported in >= EAPI 5")
+                match eapi.has(Feature::UseDepDefaults) {
+                    true => Ok(s),
+                    false => Err("use dep defaults are supported in >= EAPI 4"),
                 }
             }
 
@@ -171,10 +168,10 @@ peg::parser! {
 
         rule repo_dep(eapi: &'static Eapi) -> &'input str
             = "::" repo:repo() {?
-                if !eapi.has(Feature::RepoIds) {
-                    return Err("repo deps aren't supported in EAPIs");
+                match eapi.has(Feature::RepoIds) {
+                    true => Ok(repo),
+                    false => Err("repo deps aren't supported in EAPIs"),
                 }
-                Ok(repo)
             }
 
         pub(super) rule cpv() -> ParsedAtom<'input>
