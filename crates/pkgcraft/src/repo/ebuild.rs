@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
-use std::io::Write;
 use std::ops::Deref;
-use std::path::{Path, PathBuf};
 use std::str::SplitWhitespace;
 use std::sync::{Arc, Weak};
-use std::{env, fmt, fs, io, iter, thread};
+use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
@@ -12,7 +10,6 @@ use indexmap::{IndexMap, IndexSet};
 use ini::Ini;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
-use tempfile::TempDir;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
@@ -24,7 +21,7 @@ use crate::pkg::ebuild::Pkg;
 use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
-use crate::{atom, eapi, Error};
+use crate::{atom, Error};
 
 use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
@@ -88,6 +85,7 @@ impl IniConfig {
 
     #[cfg(test)]
     pub(crate) fn write(&self, data: Option<&str>) -> crate::Result<()> {
+        use std::io::Write;
         if let Some(path) = &self.path {
             self.ini
                 .write_to_file(path)
@@ -792,144 +790,6 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
     }
 }
 
-/// A temporary repo that is automatically deleted when it goes out of scope.
-#[derive(Debug)]
-pub struct TempRepo {
-    tempdir: TempDir,
-    path: Utf8PathBuf,
-}
-
-impl TempRepo {
-    /// Attempts to create a temporary repo inside an optional path or inside `env::temp_dir()` if
-    /// no path is specified.
-    pub(crate) fn new(
-        id: &str,
-        path: Option<&Utf8Path>,
-        eapi: Option<&eapi::Eapi>,
-    ) -> crate::Result<Self> {
-        let path = match path {
-            Some(p) => p.to_path_buf().into_std_path_buf(),
-            None => env::temp_dir(),
-        };
-        let eapi = format!("{}", eapi.unwrap_or(&eapi::EAPI_LATEST));
-        let tempdir = TempDir::new_in(path)
-            .map_err(|e| Error::RepoInit(format!("failed creating temp repo {id:?}: {e}")))?;
-        let temp_path = tempdir.path();
-
-        for dir in ["metadata", "profiles"] {
-            fs::create_dir(temp_path.join(dir))
-                .map_err(|e| Error::RepoInit(format!("failed creating temp repo {id:?}: {e}")))?;
-        }
-        fs::write(temp_path.join("profiles/repo_name"), format!("{id}\n"))
-            .map_err(|e| Error::RepoInit(format!("failed writing temp repo id: {e}")))?;
-        fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
-            .map_err(|e| Error::RepoInit(format!("failed writing temp repo EAPI: {e}")))?;
-
-        let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
-            .map_err(|_| Error::RepoInit(format!("non-unicode repo path: {temp_path:?}")))?;
-        Ok(TempRepo { tempdir, path })
-    }
-
-    /// Create an ebuild file in the repo.
-    pub fn create_ebuild<'a, I>(
-        &self,
-        cpv: &str,
-        data: I,
-    ) -> crate::Result<(Utf8PathBuf, atom::Atom)>
-    where
-        I: IntoIterator<Item = (crate::pkgsh::metadata::Key, &'a str)>,
-    {
-        use crate::pkgsh::metadata::Key::*;
-        let cpv = atom::cpv(cpv)?;
-        let path = self.path.join(format!(
-            "{}/{}-{}.ebuild",
-            cpv.cpn(),
-            cpv.package(),
-            cpv.version().unwrap()
-        ));
-        fs::create_dir_all(path.parent().unwrap())
-            .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
-        let mut f = fs::File::create(&path)
-            .map_err(|e| Error::IO(format!("failed creating {cpv} ebuild: {e}")))?;
-
-        // ebuild defaults
-        let mut values = indexmap::IndexMap::from([
-            (Eapi, eapi::EAPI_LATEST.as_str()),
-            (Slot, "0"),
-            (Description, "stub package description"),
-            (Homepage, "https://github.com/pkgcraft"),
-        ]);
-
-        // overrides defaults with specified values, removing the defaults for "-"
-        for (key, val) in data.into_iter() {
-            match val {
-                "-" => values.remove(&key),
-                _ => values.insert(key, val),
-            };
-        }
-
-        for (key, val) in values {
-            f.write(format!("{key}=\"{val}\"\n").as_bytes())
-                .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        }
-
-        Ok((path, cpv))
-    }
-
-    /// Create an ebuild file in the repo from raw data.
-    pub fn create_ebuild_raw(
-        &self,
-        cpv: &str,
-        data: &str,
-    ) -> crate::Result<(Utf8PathBuf, atom::Atom)> {
-        let cpv = atom::cpv(cpv)?;
-        let path = self.path.join(format!(
-            "{}/{}-{}.ebuild",
-            cpv.cpn(),
-            cpv.package(),
-            cpv.version().unwrap()
-        ));
-        fs::create_dir_all(path.parent().unwrap())
-            .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
-        fs::write(&path, data)
-            .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        Ok((path, cpv))
-    }
-
-    /// Create an eclass in the repo.
-    pub fn create_eclass(&self, name: &str, data: &str) -> crate::Result<Utf8PathBuf> {
-        let path = self.path.join(format!("eclass/{name}.eclass"));
-        fs::create_dir_all(path.parent().unwrap())
-            .map_err(|e| Error::IO(format!("failed creating eclass dir: {e}")))?;
-        fs::write(&path, data).map_err(|e| Error::IO(format!("failed writing to eclass: {e}")))?;
-        Ok(path)
-    }
-
-    /// Return the temporary repo's file path.
-    pub fn path(&self) -> &Utf8Path {
-        &self.path
-    }
-
-    /// Persist the temporary repo to disk, returning the [`PathBuf`] where it is located.
-    pub(crate) fn persist<P: AsRef<Path>>(self, path: Option<P>) -> crate::Result<PathBuf> {
-        let mut repo_path = self.tempdir.into_path();
-        if let Some(path) = path {
-            let path = path.as_ref();
-            fs::rename(&repo_path, path).map_err(|e| {
-                Error::RepoInit(format!("failed renaming repo: {repo_path:?} -> {path:?}: {e}"))
-            })?;
-            repo_path = path.into();
-        }
-        Ok(repo_path)
-    }
-}
-
-impl fmt::Display for TempRepo {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "temp repo: {:?}", self.path)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
@@ -940,6 +800,7 @@ mod tests {
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::pkgsh::metadata::Key;
+    use crate::repo::temp::Repo as TempRepo;
     use crate::repo::Contains;
     use crate::test::assert_unordered_eq;
 
@@ -951,7 +812,7 @@ mod tests {
 
         // nonexistent
         let t = TempRepo::new("test", None, None).unwrap();
-        let mut repo = Repo::from_path("test", 0, t.path).unwrap();
+        let mut repo = Repo::from_path("test", 0, t.path()).unwrap();
         repo.config.set("masters", "a b c");
         repo.config.write(None).unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str());
@@ -959,7 +820,7 @@ mod tests {
 
         // none
         let t = TempRepo::new("a", None, None).unwrap();
-        let repo = Repo::from_path("a", 0, t.path).unwrap();
+        let repo = Repo::from_path("a", 0, t.path()).unwrap();
         config
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
@@ -970,7 +831,7 @@ mod tests {
 
         // single
         let t = TempRepo::new("b", None, None).unwrap();
-        let mut repo = Repo::from_path("b", 0, t.path).unwrap();
+        let mut repo = Repo::from_path("b", 0, t.path()).unwrap();
         repo.config.set("masters", "a");
         repo.config.write(None).unwrap();
         config
@@ -984,7 +845,7 @@ mod tests {
 
         // multiple
         let t = TempRepo::new("c", None, None).unwrap();
-        let mut repo = Repo::from_path("c", 0, t.path).unwrap();
+        let mut repo = Repo::from_path("c", 0, t.path()).unwrap();
         repo.config.set("masters", "a b");
         repo.config.write(None).unwrap();
         config
@@ -1131,13 +992,13 @@ mod tests {
     fn test_config() {
         // empty
         let t = TempRepo::new("test", None, None).unwrap();
-        let repo = Repo::from_path("c", 0, t.path).unwrap();
+        let repo = Repo::from_path("c", 0, t.path()).unwrap();
         assert!(repo.config().properties_allowed().is_empty());
         assert!(repo.config().restrict_allowed().is_empty());
 
         // existing
         let t = TempRepo::new("test", None, None).unwrap();
-        let mut repo = Repo::from_path("c", 0, t.path).unwrap();
+        let mut repo = Repo::from_path("c", 0, t.path()).unwrap();
         repo.config.set("properties-allowed", "interactive live");
         repo.config.set("restrict-allowed", "fetch mirror");
         repo.config.write(None).unwrap();

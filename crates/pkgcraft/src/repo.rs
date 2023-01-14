@@ -17,6 +17,7 @@ pub mod ebuild;
 pub(crate) mod empty;
 pub mod fake;
 pub mod set;
+pub mod temp;
 
 /// Supported repo formats
 #[repr(C)]
@@ -487,13 +488,13 @@ pub(self) use make_contains_path;
 mod tests {
     use std::collections::HashSet;
 
-    use crate::repo::{ebuild, fake};
+    use crate::repo::{ebuild, fake, temp};
 
     use super::*;
 
     #[test]
     fn test_traits() {
-        let t = ebuild::TempRepo::new("test", None, None).unwrap();
+        let t = temp::Repo::new("test", None, None).unwrap();
         let repo = ebuild::Repo::from_path("test", 0, t.path()).unwrap();
         let e_repo: Repo = repo.into();
         let f_repo: Repo = fake::Repo::new("fake", 0, []).into();

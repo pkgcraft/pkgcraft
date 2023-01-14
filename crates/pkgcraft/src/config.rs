@@ -8,7 +8,8 @@ use ini::Ini;
 use serde::{Deserialize, Serialize};
 
 use crate::macros::build_from_paths;
-use crate::repo::ebuild::{Repo as EbuildRepo, TempRepo};
+use crate::repo::ebuild::Repo as EbuildRepo;
+use crate::repo::temp::Repo as TempRepo;
 use crate::repo::Repo;
 use crate::Error;
 pub(crate) use repo::RepoConfig;

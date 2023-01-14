@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use tracing::warn;
 
-use crate::repo::ebuild::TempRepo;
 use crate::repo::set::RepoSet;
+use crate::repo::temp::Repo as TempRepo;
 use crate::repo::{Repo, RepoFormat, Repository};
 use crate::sync::Syncer;
 use crate::Error;
