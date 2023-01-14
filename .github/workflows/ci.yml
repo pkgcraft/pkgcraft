@@ -43,7 +43,6 @@ jobs:
           ~/.cargo/git/db
           target
         key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
 
     - name: Install protoc for arcanist
       uses: arduino/setup-protoc@v1
