@@ -88,22 +88,19 @@ peg::parser! {
             }
 
         rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
-            = op:$("*" / "=") {?
-                if !eapi.has(Feature::SlotOps) {
-                    return Err("slot operators are supported in >= EAPI 5");
+            = s:$("*" / "=") {?
+                match eapi.has(Feature::SlotOps) {
+                    true => {
+                        let op = SlotOperator::from_str(s).map_err(|_| "invalid slot operator")?;
+                        Ok((None, None, Some(op)))
+                    },
+                    false => Err("slot operators are supported in >= EAPI 5"),
                 }
-                let op = match op {
-                    "*" => SlotOperator::Star,
-                    "=" => SlotOperator::Equal,
-                    _ => return Err("invalid slot operator"),
-                };
-                Ok((None, None, Some(op)))
             } / slot:slot(eapi) op:$("=")? {?
-                if op.is_some() && !eapi.has(Feature::SlotOps) {
-                    return Err("slot operators are supported in >= EAPI 5");
+                match (op.is_some(), eapi.has(Feature::SlotOps)) {
+                    (true, false) => Err("slot operators are supported in >= EAPI 5"),
+                    _ => Ok((Some(slot.0), slot.1, op.map(|_| SlotOperator::Equal))),
                 }
-                let op = op.map(|_| SlotOperator::Equal);
-                Ok((Some(slot.0), slot.1, op))
             }
 
         rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
