@@ -57,6 +57,7 @@ jobs:
 
     - name: Remove old caches
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
+      continue-on-error: true
       run: |
         gh extension install actions/gh-actions-cache
 
@@ -66,8 +67,6 @@ jobs:
 
         # determine old caches
         cache_keys=$(gh actions-cache list -R $REPO -B $BRANCH --key $KEY | cut -f 1)
-
-        set +e
 
         # remove old caches
         for key in $cache_keys
