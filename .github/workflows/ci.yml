@@ -56,7 +56,7 @@ jobs:
       run: cargo nextest run --color always --all-features
 
     - name: Remove old caches
-      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != true }}
+      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
       run: |
         gh extension install actions/gh-actions-cache
 
@@ -79,7 +79,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Save cache
-      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != true }}
+      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@v3
       with:
         path: |
