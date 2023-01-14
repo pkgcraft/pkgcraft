@@ -108,10 +108,10 @@ peg::parser! {
 
         rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
             = ":" slot_parts:slot_str(eapi) {?
-                if !eapi.has(Feature::SlotDeps) {
-                    return Err("slot deps are supported in >= EAPI 1");
+                match eapi.has(Feature::SlotDeps) {
+                    true => Ok(slot_parts),
+                    false => Err("slot deps are supported in >= EAPI 1"),
                 }
-                Ok(slot_parts)
             }
 
         rule blocker(eapi: &'static Eapi) -> Blocker
