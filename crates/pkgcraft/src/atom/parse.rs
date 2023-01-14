@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use cached::{proc_macro::cached, SizedCache};
 
 use crate::eapi::{Eapi, Feature};
@@ -113,15 +115,10 @@ peg::parser! {
             }
 
         rule blocker(eapi: &'static Eapi) -> Blocker
-            = blocker:("!"*<1,2>) {?
-                if eapi.has(Feature::Blockers) {
-                    match blocker.len() {
-                        1 => Ok(Blocker::Weak),
-                        2 => Ok(Blocker::Strong),
-                        _ => Err("invalid blocker"),
-                    }
-                } else {
-                    Err("blockers are supported in >= EAPI 2")
+            = s:$("!" "!"?) {?
+                match eapi.has(Feature::Blockers) {
+                    true => Blocker::from_str(s).map_err(|_| "invalid blocker"),
+                    false => Err("blockers are supported in >= EAPI 2"),
                 }
             }
 
