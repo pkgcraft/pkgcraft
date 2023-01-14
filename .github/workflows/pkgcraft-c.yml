@@ -40,8 +40,7 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
-        restore-keys: ${{ github.job }}-${{ runner.os }}-rust-
+        key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
 
     - name: Install cargo-c via binary package on Linux
       if: runner.os == 'Linux'
@@ -69,6 +68,31 @@ jobs:
         name: pkgcraft-c-${{ runner.os }}
         path: ${{ env.pkgcraft_dir }}
         if-no-files-found: error
+
+    - name: Remove old caches
+      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: |
+        gh extension install actions/gh-actions-cache
+
+        REPO=${{ github.repository }}
+        BRANCH=${{ github.ref }}
+        KEY=${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-
+
+        # find matching caches
+        cache_keys=$(gh actions-cache list -R $REPO -B $BRANCH --key $KEY | cut -f 1)
+
+        # remove all matching caches
+        for key in ${cache_keys[@]}
+        do
+          # filter keys manually until upstream fixes
+          # https://github.com/actions/gh-actions-cache/issues/46
+          [[ $key =~ ${KEY}* ]] && gh actions-cache delete $key -R $REPO -B $BRANCH --confirm
+        done
+
+        exit 0
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != true }}

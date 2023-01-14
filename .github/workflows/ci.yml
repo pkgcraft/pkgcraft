@@ -42,7 +42,7 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: ${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
+        key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
 
     - name: Install protoc for arcanist
       uses: arduino/setup-protoc@v1
@@ -63,7 +63,7 @@ jobs:
 
         REPO=${{ github.repository }}
         BRANCH=${{ github.ref }}
-        KEY=${{ github.job }}-${{ runner.os }}-rust-
+        KEY=${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-
 
         # find matching caches
         cache_keys=$(gh actions-cache list -R $REPO -B $BRANCH --key $KEY --sort created-at --order desc | cut -f 1)
