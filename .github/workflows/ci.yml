@@ -67,13 +67,12 @@ jobs:
         # determine old caches
         cache_keys=$(gh actions-cache list -R $REPO -B $BRANCH --key $KEY | cut -f 1)
 
-        # don't fail workflow on cache removal failure
-        set +e
-
         # remove old caches
         for key in $cache_keys
         do
-          gh actions-cache delete $key -R $REPO -B $BRANCH --confirm
+          # filter keys manually until upstream fixes
+          # https://github.com/actions/gh-actions-cache/issues/46
+          [[ $key =~ ${KEY}* ]] && gh actions-cache delete $key -R $REPO -B $BRANCH --confirm
         done
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
