@@ -65,11 +65,11 @@ jobs:
         BRANCH=${{ github.ref }}
         KEY=${{ github.job }}-${{ runner.os }}-rust-
 
-        # determine old caches
-        cache_keys=$(gh actions-cache list -R $REPO -B $BRANCH --key $KEY | cut -f 1)
+        # find matching caches
+        cache_keys=$(gh actions-cache list -R $REPO -B $BRANCH --key $KEY --sort created-at --order desc | cut -f 1)
 
-        # remove old caches
-        for key in $cache_keys
+        # remove all matching caches except the most recently created
+        for key in ${cache_keys[@]:1}
         do
           # filter keys manually until upstream fixes
           # https://github.com/actions/gh-actions-cache/issues/46
