@@ -83,11 +83,15 @@ impl<'a> Iterator for DepSetFlattenIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Atom(iter) => iter.next().map(|x| x as *const _ as *mut c_void),
+            Self::Atom(iter) => iter
+                .next()
+                .map(|x| Box::into_raw(Box::new(x.clone())) as *mut c_void),
             Self::String(iter) => iter
                 .next()
                 .map(|x| CString::new(x.as_str()).unwrap().into_raw() as *mut c_void),
-            Self::Uri(iter) => iter.next().map(|x| x as *const _ as *mut c_void),
+            Self::Uri(iter) => iter
+                .next()
+                .map(|x| Box::into_raw(Box::new(x.clone())) as *mut c_void),
         }
     }
 }
@@ -282,7 +286,7 @@ pub unsafe extern "C" fn pkgcraft_depset_free(d: *mut DepSet) {
 /// # Safety
 /// The argument must be a Uri pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_uri_uri(u: *const Uri) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_uri_uri(u: *mut Uri) -> *mut c_char {
     let uri = null_ptr_check!(u.as_ref());
     CString::new(uri.uri()).unwrap().into_raw()
 }
@@ -294,7 +298,7 @@ pub unsafe extern "C" fn pkgcraft_uri_uri(u: *const Uri) -> *mut c_char {
 /// # Safety
 /// The argument must be a Uri pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_uri_rename(u: *const Uri) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_uri_rename(u: *mut Uri) -> *mut c_char {
     let uri = null_ptr_check!(u.as_ref());
     match uri.rename() {
         None => ptr::null_mut(),
@@ -307,7 +311,18 @@ pub unsafe extern "C" fn pkgcraft_uri_rename(u: *const Uri) -> *mut c_char {
 /// # Safety
 /// The argument must be a Uri pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_uri_str(u: *const Uri) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_uri_str(u: *mut Uri) -> *mut c_char {
     let uri = null_ptr_check!(u.as_ref());
     CString::new(uri.to_string()).unwrap().into_raw()
+}
+
+/// Free a Uri object.
+///
+/// # Safety
+/// The argument must be a non-null Uri pointer or NULL.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_uri_free(u: *mut Uri) {
+    if !u.is_null() {
+        unsafe { drop(Box::from_raw(u)) };
+    }
 }
