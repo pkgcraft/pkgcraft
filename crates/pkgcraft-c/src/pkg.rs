@@ -42,9 +42,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_format(p: *mut Pkg) -> PkgFormat {
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_atom(p: *mut Pkg) -> *const Atom {
+pub unsafe extern "C" fn pkgcraft_pkg_atom(p: *mut Pkg) -> *mut Atom {
     let pkg = null_ptr_check!(p.as_ref());
-    pkg.atom()
+    Box::into_raw(Box::new(pkg.atom().clone()))
 }
 
 /// Return a package's repo.
@@ -72,9 +72,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_eapi(p: *mut Pkg) -> *const eapi::Eapi {
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_version(p: *mut Pkg) -> *const AtomVersion {
+pub unsafe extern "C" fn pkgcraft_pkg_version(p: *mut Pkg) -> *mut AtomVersion {
     let pkg = null_ptr_check!(p.as_ref());
-    pkg.version()
+    Box::into_raw(Box::new(pkg.version().clone()))
 }
 
 /// Compare two packages returning -1, 0, or 1 if the first package is less than, equal to, or
