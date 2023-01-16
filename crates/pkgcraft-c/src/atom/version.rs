@@ -38,7 +38,7 @@ pub unsafe extern "C" fn pkgcraft_version_with_op(version: *const c_char) -> *mu
 /// than the second version, respectively.
 ///
 /// # Safety
-/// The version arguments should be non-null Version pointers received from pkgcraft_version().
+/// The version arguments should be non-null Version pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_cmp(v1: *mut AtomVersion, v2: *mut AtomVersion) -> c_int {
     let v1 = null_ptr_check!(v1.as_ref());
@@ -49,6 +49,20 @@ pub unsafe extern "C" fn pkgcraft_version_cmp(v1: *mut AtomVersion, v2: *mut Ato
         Ordering::Equal => 0,
         Ordering::Greater => 1,
     }
+}
+
+/// Determine if two versions intersect.
+///
+/// # Safety
+/// The version arguments should be non-null Version pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_version_intersects(
+    v1: *mut AtomVersion,
+    v2: *mut AtomVersion,
+) -> bool {
+    let v1 = null_ptr_check!(v1.as_ref());
+    let v2 = null_ptr_check!(v2.as_ref());
+    v1.intersects(v2)
 }
 
 /// Return a version's revision, e.g. the version "1-r2" has a revision of "2".

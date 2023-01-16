@@ -87,6 +87,17 @@ pub unsafe extern "C" fn pkgcraft_atom_cmp(a1: *mut Atom, a2: *mut Atom) -> c_in
     }
 }
 
+/// Determine if two atoms intersect.
+///
+/// # Safety
+/// The arguments must be non-null Atom pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_atom_intersects(a1: *mut Atom, a2: *mut Atom) -> bool {
+    let a1 = null_ptr_check!(a1.as_ref());
+    let a2 = null_ptr_check!(a2.as_ref());
+    a1.intersects(a2)
+}
+
 /// Return an atom's category, e.g. the atom "=cat/pkg-1-r2" has a category of "cat".
 ///
 /// # Safety
