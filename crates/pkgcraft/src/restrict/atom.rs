@@ -72,7 +72,7 @@ impl Restriction<&Atom> for Restrict {
                 _ => false,
             },
             Version(v) => match (v, atom.version()) {
-                (Some(v), Some(ver)) => v.op_cmp(ver),
+                (Some(v), Some(ver)) => v.intersects(ver),
                 (None, None) => true,
                 _ => false,
             },

@@ -216,8 +216,8 @@ impl Version {
         &self.full[0..self.base_end]
     }
 
-    /// Compare two versions for restrictions.
-    pub(crate) fn op_cmp(&self, other: &Self) -> bool {
+    /// Determine if two versions intersect.
+    pub fn intersects(&self, other: &Self) -> bool {
         let (left, right) = match (self.op(), other.op()) {
             (None, Some(_)) => (other, self),
             _ => (self, other),
