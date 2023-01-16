@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
@@ -8,6 +9,7 @@ use cached::{proc_macro::cached, SizedCache};
 use self::version::ParsedVersion;
 pub use self::version::Version;
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
+use crate::macros::bool_not_equal;
 use crate::set::OrderedSet;
 use crate::Error;
 
@@ -183,6 +185,38 @@ impl Atom {
     /// Create a new Atom from a given string.
     pub fn new<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<Self> {
         parse::dep(s, eapi.into_eapi()?)
+    }
+
+    /// Determine if two atoms intersect ignoring blockers.
+    pub fn intersects(&self, other: &Self) -> bool {
+        bool_not_equal!(&self.category(), &other.category());
+        bool_not_equal!(&self.package(), &other.package());
+
+        if let (Some(v1), Some(v2)) = (self.slot(), other.slot()) {
+            bool_not_equal!(v1, v2);
+        }
+
+        if let (Some(v1), Some(v2)) = (self.subslot(), other.subslot()) {
+            bool_not_equal!(v1, v2);
+        }
+
+        if let (Some(u1), Some(u2)) = (self.use_deps(), other.use_deps()) {
+            let flags: HashSet<_> = u1.symmetric_difference(u2).map(|s| s.as_str()).collect();
+            for f in &flags {
+                if f.starts_with('-') && flags.contains(&f[1..]) {
+                    return false;
+                }
+            }
+        }
+
+        if let (Some(v1), Some(v2)) = (self.repo(), other.repo()) {
+            bool_not_equal!(v1, v2);
+        }
+
+        match (self.version(), other.version()) {
+            (Some(v1), Some(v2)) => v1.intersects(v2),
+            (None, _) | (_, None) => true,
+        }
     }
 
     /// Return an atom's string value.

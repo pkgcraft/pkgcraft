@@ -52,7 +52,7 @@ macro_rules! assert_logs_re {
 #[cfg(test)]
 pub(crate) use assert_logs_re;
 
-// Return Ordering if it's not equal.
+// Return Ordering if the arguments or expression are not equal.
 macro_rules! cmp_not_equal {
     ($cmp:expr) => {
         if $cmp != ::std::cmp::Ordering::Equal {
@@ -64,6 +64,19 @@ macro_rules! cmp_not_equal {
     };
 }
 pub(crate) use cmp_not_equal;
+
+// Return False if the arguments or expression are not equal.
+macro_rules! bool_not_equal {
+    ($bool:expr) => {
+        if !$bool {
+            return $bool;
+        }
+    };
+    ($x:expr, $y:expr) => {
+        $crate::macros::bool_not_equal!($x.eq($y))
+    };
+}
+pub(crate) use bool_not_equal;
 
 // Hack to implement extend_left() support for VecDeque objects.
 // TODO: extend_left() should be implemented upstream for VecDeque
