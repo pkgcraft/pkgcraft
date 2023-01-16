@@ -19,9 +19,9 @@ pub unsafe extern "C" fn pkgcraft_parse_atom(
     eapi: *const Eapi,
 ) -> *const c_char {
     let s = null_ptr_check!(atom.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
-    unwrap_or_return!(Atom::valid(s, eapi), ptr::null_mut());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null()) };
+    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null());
+    unwrap_or_return!(Atom::valid(s, eapi), ptr::null());
     atom
 }
 
@@ -33,8 +33,8 @@ pub unsafe extern "C" fn pkgcraft_parse_atom(
 /// The argument should point to a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_parse_category(s: *const c_char) -> *const c_char {
-    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    unwrap_or_return!(parse::category(val), ptr::null_mut());
+    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null()) };
+    unwrap_or_return!(parse::category(val), ptr::null());
     s
 }
 
@@ -46,8 +46,8 @@ pub unsafe extern "C" fn pkgcraft_parse_category(s: *const c_char) -> *const c_c
 /// The argument should point to a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_parse_package(s: *const c_char) -> *const c_char {
-    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    unwrap_or_return!(parse::package(val), ptr::null_mut());
+    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null()) };
+    unwrap_or_return!(parse::package(val), ptr::null());
     s
 }
 
@@ -59,8 +59,8 @@ pub unsafe extern "C" fn pkgcraft_parse_package(s: *const c_char) -> *const c_ch
 /// The argument should point to a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_parse_version(s: *const c_char) -> *const c_char {
-    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    unwrap_or_return!(Version::valid(val), ptr::null_mut());
+    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null()) };
+    unwrap_or_return!(Version::valid(val), ptr::null());
     s
 }
 
@@ -72,8 +72,8 @@ pub unsafe extern "C" fn pkgcraft_parse_version(s: *const c_char) -> *const c_ch
 /// The argument should point to a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_parse_repo(s: *const c_char) -> *const c_char {
-    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    unwrap_or_return!(parse::repo(val), ptr::null_mut());
+    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null()) };
+    unwrap_or_return!(parse::repo(val), ptr::null());
     s
 }
 
@@ -85,7 +85,7 @@ pub unsafe extern "C" fn pkgcraft_parse_repo(s: *const c_char) -> *const c_char 
 /// The argument should point to a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_parse_cpv(s: *const c_char) -> *const c_char {
-    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    unwrap_or_return!(Atom::valid_cpv(val), ptr::null_mut());
+    let val = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null()) };
+    unwrap_or_return!(Atom::valid_cpv(val), ptr::null());
     s
 }
