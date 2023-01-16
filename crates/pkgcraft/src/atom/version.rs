@@ -218,15 +218,20 @@ impl Version {
 
     /// Compare two versions for restrictions.
     pub(crate) fn op_cmp(&self, other: &Self) -> bool {
+        let (left, right) = match (self.op(), other.op()) {
+            (None, Some(_)) => (other, self),
+            _ => (self, other),
+        };
+
         use Operator::*;
         match self.op() {
-            Some(Less) => NonOpVersion(other) < NonOpVersion(self),
-            Some(LessOrEqual) => NonOpVersion(other) <= NonOpVersion(self),
-            Some(Equal) | None => NonOpVersion(other) == NonOpVersion(self),
-            Some(EqualGlob) => other.as_str().starts_with(self.as_str()),
-            Some(Approximate) => NonRevisionVersion(other) == NonRevisionVersion(self),
-            Some(GreaterOrEqual) => NonOpVersion(other) >= NonOpVersion(self),
-            Some(Greater) => NonOpVersion(other) > NonOpVersion(self),
+            Some(Less) => NonOpVersion(right) < NonOpVersion(left),
+            Some(LessOrEqual) => NonOpVersion(right) <= NonOpVersion(left),
+            Some(Equal) | None => NonOpVersion(right) == NonOpVersion(left),
+            Some(EqualGlob) => right.as_str().starts_with(left.as_str()),
+            Some(Approximate) => NonRevisionVersion(right) == NonRevisionVersion(left),
+            Some(GreaterOrEqual) => NonOpVersion(right) >= NonOpVersion(left),
+            Some(Greater) => NonOpVersion(right) > NonOpVersion(left),
         }
     }
 }
