@@ -297,7 +297,7 @@ mod tests {
             (">=pkg-1", vec!["=cat/pkg-1", ">=cat/pkg-2", "<cat/pkg-3"]),
             ("=pkg-2", vec![">=cat/pkg-2"]),
             ("=*-2", vec![">=cat/pkg-2"]),
-            ("<pkg-3", vec!["=cat/pkg-0-r0:0/0.+", "=cat/pkg-1", ">=cat/pkg-2"]),
+            ("<pkg-3", vec!["=cat/pkg-0-r0:0/0.+", "=cat/pkg-1", ">=cat/pkg-2", "<cat/pkg-3"]),
         ] {
             let r = dep(s).unwrap();
             assert_eq!(filter(r, &atoms), expected, "{s:?} failed");

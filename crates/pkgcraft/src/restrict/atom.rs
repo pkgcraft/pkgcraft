@@ -299,7 +299,7 @@ mod tests {
 
         let r = BaseRestrict::from(&lt);
         assert!(r.matches(&lt_cpv));
-        assert!(!r.matches(&lt));
+        assert!(r.matches(&lt));
         assert!(!r.matches(&gt_cpv));
 
         let r = BaseRestrict::from(&le);
@@ -336,7 +336,7 @@ mod tests {
 
         let r = BaseRestrict::from(&gt);
         assert!(!r.matches(&lt_cpv));
-        assert!(!r.matches(&gt));
+        assert!(r.matches(&gt));
         assert!(r.matches(&gt_cpv));
     }
 }

@@ -218,12 +218,21 @@ impl Version {
 
     /// Determine if two versions intersect.
     pub fn intersects(&self, other: &Self) -> bool {
+        use Operator::*;
+
         let (left, right) = match (self.op(), other.op()) {
+            (Some(Less), Some(Less)) => return true,
+            (Some(Less), Some(LessOrEqual)) => return true,
+            (Some(LessOrEqual), Some(Less)) => return true,
+            (Some(LessOrEqual), Some(LessOrEqual)) => return true,
+            (Some(Greater), Some(Greater)) => return true,
+            (Some(Greater), Some(GreaterOrEqual)) => return true,
+            (Some(GreaterOrEqual), Some(Greater)) => return true,
+            (Some(GreaterOrEqual), Some(GreaterOrEqual)) => return true,
             (None, Some(_)) => (other, self),
             _ => (self, other),
         };
 
-        use Operator::*;
         match self.op() {
             Some(Less) => NonOpVersion(right) < NonOpVersion(left),
             Some(LessOrEqual) => NonOpVersion(right) <= NonOpVersion(left),
