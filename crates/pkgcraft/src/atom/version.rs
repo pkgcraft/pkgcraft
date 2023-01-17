@@ -319,7 +319,7 @@ impl AsRef<Version> for Version {
 
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        write!(f, "{}", self.as_str_with_op())
     }
 }
 

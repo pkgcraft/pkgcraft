@@ -229,7 +229,7 @@ impl Atom {
     /// Return an atom's CPV, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg-1-r2`.
     pub fn cpv(&self) -> String {
         match &self.version {
-            Some(ver) => format!("{}/{}-{ver}", self.category, self.package),
+            Some(ver) => format!("{}/{}-{}", self.category, self.package, ver.as_str()),
             None => self.cpn(),
         }
     }
