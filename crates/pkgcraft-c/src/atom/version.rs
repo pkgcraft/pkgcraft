@@ -68,7 +68,7 @@ pub unsafe extern "C" fn pkgcraft_version_intersects(
 /// Return a version's revision, e.g. the version "1-r2" has a revision of "2".
 ///
 /// # Safety
-/// The version argument should be a non-null Version pointer received from pkgcraft_version().
+/// The version argument should be a non-null Version pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_revision(version: *mut AtomVersion) -> *mut c_char {
     let version = null_ptr_check!(version.as_ref());
@@ -76,20 +76,30 @@ pub unsafe extern "C" fn pkgcraft_version_revision(version: *mut AtomVersion) ->
     CString::new(s).unwrap().into_raw()
 }
 
-/// Return the string for a version.
+/// Return a version's string value.
 ///
 /// # Safety
-/// The version argument should be a non-null Version pointer received from pkgcraft_version().
+/// The version argument should be a non-null Version pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_str(version: *mut AtomVersion) -> *mut c_char {
     let version = null_ptr_check!(version.as_ref());
     CString::new(version.as_str()).unwrap().into_raw()
 }
 
+/// Return a version's string value including operator.
+///
+/// # Safety
+/// The version argument should be a non-null Version pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_version_str_with_op(version: *mut AtomVersion) -> *mut c_char {
+    let version = null_ptr_check!(version.as_ref());
+    CString::new(version.as_str_with_op()).unwrap().into_raw()
+}
+
 /// Free a version.
 ///
 /// # Safety
-/// The version argument should be a non-null Version pointer received from pkgcraft_version().
+/// The version argument should be a non-null Version pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_free(version: *mut AtomVersion) {
     if !version.is_null() {
@@ -100,7 +110,7 @@ pub unsafe extern "C" fn pkgcraft_version_free(version: *mut AtomVersion) {
 /// Return the hash value for a version.
 ///
 /// # Safety
-/// The version argument should be a non-null Version pointer received from pkgcraft_version().
+/// The version argument should be a non-null Version pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_hash(version: *mut AtomVersion) -> u64 {
     let version = null_ptr_check!(version.as_ref());

@@ -216,7 +216,7 @@ impl Version {
         &self.full
     }
 
-    /// Return a version's string value including operators.
+    /// Return a version's string value including operator.
     pub fn as_str_with_op(&self) -> String {
         use Operator::*;
         let s = self.as_str();
