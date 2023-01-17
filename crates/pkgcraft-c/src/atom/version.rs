@@ -91,9 +91,9 @@ pub unsafe extern "C" fn pkgcraft_version_str(version: *mut AtomVersion) -> *mut
 /// # Safety
 /// The version argument should be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_str_with_op(version: *mut AtomVersion) -> *mut c_char {
-    let version = null_ptr_check!(version.as_ref());
-    CString::new(version.as_str_with_op()).unwrap().into_raw()
+pub unsafe extern "C" fn pkgcraft_version_str_with_op(v: *mut AtomVersion) -> *mut c_char {
+    let ver = null_ptr_check!(v.as_ref());
+    CString::new(ver.to_string()).unwrap().into_raw()
 }
 
 /// Free a version.

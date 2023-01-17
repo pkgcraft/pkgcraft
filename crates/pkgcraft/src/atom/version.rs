@@ -211,25 +211,9 @@ impl Version {
         parse::version_with_op(s)
     }
 
-    /// Return a version's string value.
+    /// Return a version's string value without operator.
     pub fn as_str(&self) -> &str {
         &self.full
-    }
-
-    /// Return a version's string value including operator.
-    pub fn as_str_with_op(&self) -> String {
-        use Operator::*;
-        let s = self.as_str();
-        match self.op() {
-            None => s.to_string(),
-            Some(Less) => format!("<{s}"),
-            Some(LessOrEqual) => format!("<={s}"),
-            Some(Equal) => format!("={s}"),
-            Some(EqualGlob) => format!("={s}*"),
-            Some(Approximate) => format!("~{s}"),
-            Some(GreaterOrEqual) => format!(">={s}"),
-            Some(Greater) => format!(">{s}"),
-        }
     }
 
     /// Return a version's revision.
@@ -319,7 +303,18 @@ impl AsRef<Version> for Version {
 
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str_with_op())
+        use Operator::*;
+        let s = self.as_str();
+        match self.op() {
+            None => write!(f, "{s}"),
+            Some(Less) => write!(f, "<{s}"),
+            Some(LessOrEqual) => write!(f, "<={s}"),
+            Some(Equal) => write!(f, "={s}"),
+            Some(EqualGlob) => write!(f, "={s}*"),
+            Some(Approximate) => write!(f, "~{s}"),
+            Some(GreaterOrEqual) => write!(f, ">={s}"),
+            Some(Greater) => write!(f, ">{s}"),
+        }
     }
 }
 
@@ -569,7 +564,7 @@ mod tests {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| ver_parse(s.as_str())).permutations(2) {
                 let (v1, v2) = (&vals[0], &vals[1]);
-                let (s1, s2) = (v1.as_str_with_op(), v2.as_str_with_op());
+                let (s1, s2) = (v1.to_string(), v2.to_string());
 
                 // versions intersect themselves
                 assert!(v1.intersects(v1), "{s1} doesn't intersect {s1}");
