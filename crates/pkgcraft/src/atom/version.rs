@@ -553,6 +553,7 @@ mod tests {
 
     #[test]
     fn test_intersects() {
+        // convert string to non-op version falling back to op-ed version
         let ver_parse = |s: &str| -> Version {
             Version::new(s)
                 .or_else(|_| Version::new_with_op(s))
@@ -562,18 +563,18 @@ mod tests {
         let data = VersionData::load().unwrap();
         for d in data.intersects {
             // test intersections between all pairs of distinct values
-            for vals in d.vals.iter().map(|s| ver_parse(s.as_str())).permutations(2) {
-                let (v1, v2) = (&vals[0], &vals[1]);
-                let (s1, s2) = (v1.to_string(), v2.to_string());
+            for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
+                let (s1, s2) = (vals[0], vals[1]);
+                let (v1, v2) = (ver_parse(s1), ver_parse(s2));
 
                 // versions intersect themselves
-                assert!(v1.intersects(v1), "{s1} doesn't intersect {s1}");
-                assert!(v2.intersects(v2), "{s2} doesn't intersect {s2}");
+                assert!(v1.intersects(&v1), "{s1} doesn't intersect {s1}");
+                assert!(v2.intersects(&v2), "{s2} doesn't intersect {s2}");
 
                 // versions all intersect or not depending on status
                 match d.status {
-                    true => assert!(v1.intersects(v2), "{s1} doesn't intersect {s2}"),
-                    false => assert!(!v1.intersects(v2), "{s1} intersects {s2}"),
+                    true => assert!(v1.intersects(&v2), "{s1} doesn't intersect {s2}"),
+                    false => assert!(!v1.intersects(&v2), "{s1} intersects {s2}"),
                 }
             }
         }
