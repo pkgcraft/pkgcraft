@@ -261,23 +261,16 @@ impl Version {
             (Some(GreaterOrEqual), Some(Greater)) => true,
             (Some(GreaterOrEqual), Some(GreaterOrEqual)) => true,
 
-            // both non-op versions -- intersects if equal
-            (None, None) => self == other,
+            // both non-op or '~' -- intersects if equal
+            (None, None) | (Some(Approximate), Some(Approximate)) => self == other,
 
-            // non-op version and op version  -- intersects if op version matches non-op
-            (Some(op), None) => op.intersects(self, other),
-            (None, Some(op)) => op.intersects(other, self),
-
-            // either '=' -- intersects if the other matches it
-            (Some(Equal), Some(op)) => op.intersects(other, self),
-            (Some(op), Some(Equal)) => op.intersects(self, other),
-
-            // both '~' -- intersects if equal
-            (Some(Approximate), Some(Approximate)) => self == other,
+            // either non-op or '=' -- intersects if the other matches it
+            (Some(op), None) | (Some(op), Some(Equal)) => op.intersects(self, other),
+            (None, Some(op)) | (Some(Equal), Some(op)) => op.intersects(other, self),
 
             // both '=*' -- intersects if either glob matches
-            (Some(EqualGlob), Some(EqualGlob)) => {
-                EqualGlob.intersects(self, other) || EqualGlob.intersects(other, self)
+            (Some(op @ EqualGlob), Some(EqualGlob)) => {
+                op.intersects(self, other) || op.intersects(other, self)
             }
 
             // '=*' and '~' -- intersects if glob matches unrevisioned version
