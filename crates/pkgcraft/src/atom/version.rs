@@ -4,6 +4,8 @@ use std::iter::zip;
 use std::str::FromStr;
 use std::{fmt, str};
 
+use strum::{AsRefStr, Display};
+
 use crate::macros::cmp_not_equal;
 use crate::Error;
 
@@ -157,15 +159,22 @@ impl<'a> ParsedVersion<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(AsRefStr, Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub(crate) enum Operator {
-    Less,           // <1
-    LessOrEqual,    // <=1
-    Equal,          // =1
-    EqualGlob,      // =1*
-    Approximate,    // ~1
-    GreaterOrEqual, // >=1
-    Greater,        // >1
+    #[strum(serialize = "<")]
+    Less,
+    #[strum(serialize = "<=")]
+    LessOrEqual,
+    #[strum(serialize = "=")]
+    Equal,
+    #[strum(serialize = "=*")]
+    EqualGlob,
+    #[strum(serialize = "~")]
+    Approximate,
+    #[strum(serialize = ">=")]
+    GreaterOrEqual,
+    #[strum(serialize = ">")]
+    Greater,
 }
 
 #[derive(Debug, Clone)]
