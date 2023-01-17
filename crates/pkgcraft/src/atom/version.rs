@@ -177,6 +177,21 @@ pub(crate) enum Operator {
     Greater,
 }
 
+impl Operator {
+    fn intersects(&self, left: &Version, right: &Version) -> bool {
+        use Operator::*;
+        match self {
+            Less => NonOpVersion(right) < NonOpVersion(left),
+            LessOrEqual => NonOpVersion(right) <= NonOpVersion(left),
+            Equal => NonOpVersion(right) == NonOpVersion(left),
+            EqualGlob => right.as_str().starts_with(left.as_str()),
+            Approximate => NonRevisionVersion(right) == NonRevisionVersion(left),
+            GreaterOrEqual => NonOpVersion(right) >= NonOpVersion(left),
+            Greater => NonOpVersion(right) > NonOpVersion(left),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Version {
     full: String,
@@ -228,19 +243,6 @@ impl Version {
     /// Determine if two versions intersect.
     pub fn intersects(&self, other: &Self) -> bool {
         use Operator::*;
-
-        let op_cmp = |op: Operator, left: &Self, right: &Self| -> bool {
-            match op {
-                Less => NonOpVersion(right) < NonOpVersion(left),
-                LessOrEqual => NonOpVersion(right) <= NonOpVersion(left),
-                Equal => NonOpVersion(right) == NonOpVersion(left),
-                EqualGlob => right.as_str().starts_with(left.as_str()),
-                Approximate => NonRevisionVersion(right) == NonRevisionVersion(left),
-                GreaterOrEqual => NonOpVersion(right) >= NonOpVersion(left),
-                Greater => NonOpVersion(right) > NonOpVersion(left),
-            }
-        };
-
         match (self.op(), other.op()) {
             // intersects if both are unbounded in the same direction
             (Some(Less), Some(Less)) => true,
@@ -256,19 +258,19 @@ impl Version {
             (None, None) => self == other,
 
             // non-op version and op version  -- intersects if op version matches non-op
-            (Some(op), None) => op_cmp(op, self, other),
-            (None, Some(op)) => op_cmp(op, other, self),
+            (Some(op), None) => op.intersects(self, other),
+            (None, Some(op)) => op.intersects(other, self),
 
             // either '=' -- intersects if the other matches it
-            (Some(Equal), Some(op)) => op_cmp(op, other, self),
-            (Some(op), Some(Equal)) => op_cmp(op, self, other),
+            (Some(Equal), Some(op)) => op.intersects(other, self),
+            (Some(op), Some(Equal)) => op.intersects(self, other),
 
             // both '~' -- intersects if equal
             (Some(Approximate), Some(Approximate)) => self == other,
 
             // both '=*' -- intersects if either glob matches
             (Some(EqualGlob), Some(EqualGlob)) => {
-                op_cmp(EqualGlob, self, other) || op_cmp(EqualGlob, other, self)
+                EqualGlob.intersects(self, other) || EqualGlob.intersects(other, self)
             }
 
             // '=*' and '~' -- intersects if glob matches unrevisioned version
@@ -285,15 +287,15 @@ impl Version {
 
                 match other_op {
                     Less | LessOrEqual | Greater | GreaterOrEqual => {
-                        op_cmp(other_op, other, ranged) && op_cmp(ranged_op, ranged, other)
+                        other_op.intersects(other, ranged) && ranged_op.intersects(ranged, other)
                     }
-                    Approximate if op_cmp(ranged_op, ranged, other) => true,
+                    Approximate if ranged_op.intersects(ranged, other) => true,
                     Approximate => {
                         let greater = matches!(ranged_op, Greater | GreaterOrEqual);
-                        greater && op_cmp(other_op, other, ranged)
+                        greater && other_op.intersects(other, ranged)
                     }
 
-                    EqualGlob if op_cmp(ranged_op, ranged, other) => true,
+                    EqualGlob if ranged_op.intersects(ranged, other) => true,
                     EqualGlob if matches!(ranged_op, Less | LessOrEqual) => {
                         if other.revision() != &Revision::default() {
                             false
