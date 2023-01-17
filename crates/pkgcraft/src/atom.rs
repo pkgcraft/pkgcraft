@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
+use strum::{AsRefStr, Display, EnumString};
 
 use self::version::ParsedVersion;
 pub use self::version::Version;
@@ -17,59 +18,25 @@ pub mod parse;
 pub(crate) mod version;
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(
+    AsRefStr, Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
 pub enum Blocker {
-    Strong, // !!cat/pkg
-    Weak,   // !cat/pkg
-}
-
-impl fmt::Display for Blocker {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Blocker::Weak => write!(f, "!"),
-            Blocker::Strong => write!(f, "!!"),
-        }
-    }
-}
-
-impl FromStr for Blocker {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        match s {
-            "!!" => Ok(Self::Strong),
-            "!" => Ok(Self::Weak),
-            _ => Err(Error::InvalidValue(format!("invalid blocker: {s}"))),
-        }
-    }
+    #[strum(serialize = "!!")]
+    Strong,
+    #[strum(serialize = "!")]
+    Weak,
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(
+    AsRefStr, Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
 pub enum SlotOperator {
+    #[strum(serialize = "=")]
     Equal,
+    #[strum(serialize = "*")]
     Star,
-}
-
-impl fmt::Display for SlotOperator {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Equal => write!(f, "="),
-            Self::Star => write!(f, "*"),
-        }
-    }
-}
-
-impl FromStr for SlotOperator {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        match s {
-            "=" => Ok(Self::Equal),
-            "*" => Ok(Self::Star),
-            _ => Err(Error::InvalidValue(format!("invalid slot operator: {s}"))),
-        }
-    }
 }
 
 /// Parsed package atom from borrowed input string
