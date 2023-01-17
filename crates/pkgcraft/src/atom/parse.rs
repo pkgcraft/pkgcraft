@@ -62,12 +62,8 @@ peg::parser! {
             }
 
         pub(super) rule version_with_op() -> ParsedVersion<'input>
-            = start:position!() op:$(("<" "="?) / "=" / "~" / (">" "="?)) v:version() glob:$("*")? {?
-                let ver = ParsedVersion {
-                    start,
-                    ..v
-                };
-                ver.with_op(op, glob)
+            = op:$(("<" "="?) / "=" / "~" / (">" "="?)) v:version() glob:$("*")? {?
+                v.with_op(op, glob)
             }
 
         rule revision() -> &'input str
