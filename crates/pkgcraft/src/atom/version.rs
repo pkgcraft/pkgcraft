@@ -502,6 +502,8 @@ impl PartialOrd for NonOpVersion<'_> {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
+    use itertools::Itertools;
+
     use crate::test::VersionData;
     use crate::utils::hash;
 
@@ -556,6 +558,34 @@ mod tests {
                     if op == Ordering::Equal {
                         assert_eq!(hash(v1), hash(v2), "failed hash {expr}");
                     }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_intersects() {
+        let ver_parse = |s: &str| -> Version {
+            Version::new(s)
+                .or_else(|_| Version::new_with_op(s))
+                .unwrap()
+        };
+
+        let data = VersionData::load().unwrap();
+        for d in data.intersects {
+            // test intersections between all pairs of distinct values
+            for vals in d.vals.iter().map(|s| ver_parse(s.as_str())).permutations(2) {
+                let (v1, v2) = (&vals[0], &vals[1]);
+                let (s1, s2) = (v1.as_str_with_op(), v2.as_str_with_op());
+
+                // versions intersect themselves
+                assert!(v1.intersects(v1), "{s1} doesn't intersect {s1}");
+                assert!(v2.intersects(v2), "{s2} doesn't intersect {s2}");
+
+                // versions all intersect or not depending on status
+                match d.status {
+                    true => assert!(v1.intersects(v2), "{s1} doesn't intersect {s2}"),
+                    false => assert!(!v1.intersects(v2), "{s1} intersects {s2}"),
                 }
             }
         }

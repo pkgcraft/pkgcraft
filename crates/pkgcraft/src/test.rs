@@ -55,6 +55,12 @@ impl<'de> Deserialize<'de> for OrderedSet<String> {
 }
 
 #[derive(Debug, Deserialize)]
+pub(crate) struct Intersects {
+    pub(crate) vals: Vec<String>,
+    pub(crate) status: bool,
+}
+
+#[derive(Debug, Deserialize)]
 pub(crate) struct Sorted {
     pub(crate) sorted: Vec<String>,
     pub(crate) equal: bool,
@@ -92,6 +98,7 @@ pub(crate) struct Hashing {
 #[derive(Debug, Deserialize)]
 pub(crate) struct VersionData {
     compares: Vec<String>,
+    pub(crate) intersects: Vec<Intersects>,
     pub(crate) sorting: Vec<Sorted>,
     pub(crate) hashing: Vec<Hashing>,
 }
