@@ -252,31 +252,26 @@ impl Version {
             (Some(GreaterOrEqual), Some(Greater)) => true,
             (Some(GreaterOrEqual), Some(GreaterOrEqual)) => true,
 
-            // both non-operator versions -- intersects if equal
+            // both non-op versions -- intersects if equal
             (None, None) => self == other,
 
-            // CPV intersecting with a versioned atom
-            (Some(op), None) | (None, Some(op)) => {
-                let (left, right) = match self.op() {
-                    None => (other, self),
-                    Some(_) => (self, other),
-                };
-                op_cmp(op, left, right)
-            }
+            // non-op version and op version  -- intersects if op version matches non-op
+            (Some(op), None) => op_cmp(op, self, other),
+            (None, Some(op)) => op_cmp(op, other, self),
 
             // either '=' -- intersects if the other matches it
             (Some(Equal), Some(op)) => op_cmp(op, other, self),
             (Some(op), Some(Equal)) => op_cmp(op, self, other),
 
-            // both '~' -- intersects if identical
+            // both '~' -- intersects if equal
             (Some(Approximate), Some(Approximate)) => self == other,
 
-            // both '=*' -- intersects if one matches the other
+            // both '=*' -- intersects if either glob matches
             (Some(EqualGlob), Some(EqualGlob)) => {
                 op_cmp(EqualGlob, self, other) || op_cmp(EqualGlob, other, self)
             }
 
-            // '=*' and '~' -- intersects if the glob matches the nonrevisioned glob version
+            // '=*' and '~' -- intersects if glob matches unrevisioned version
             (Some(EqualGlob), Some(Approximate)) => other.as_str().starts_with(self.base()),
             (Some(Approximate), Some(EqualGlob)) => self.as_str().starts_with(other.base()),
 
