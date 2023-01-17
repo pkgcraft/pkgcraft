@@ -229,27 +229,87 @@ impl Version {
     pub fn intersects(&self, other: &Self) -> bool {
         use Operator::*;
 
-        let (left, right) = match (self.op(), other.op()) {
-            (Some(Less), Some(Less)) => return true,
-            (Some(Less), Some(LessOrEqual)) => return true,
-            (Some(LessOrEqual), Some(Less)) => return true,
-            (Some(LessOrEqual), Some(LessOrEqual)) => return true,
-            (Some(Greater), Some(Greater)) => return true,
-            (Some(Greater), Some(GreaterOrEqual)) => return true,
-            (Some(GreaterOrEqual), Some(Greater)) => return true,
-            (Some(GreaterOrEqual), Some(GreaterOrEqual)) => return true,
-            (None, Some(_)) => (other, self),
-            _ => (self, other),
+        let op_cmp = |op: Operator, left: &Self, right: &Self| -> bool {
+            match op {
+                Less => NonOpVersion(right) < NonOpVersion(left),
+                LessOrEqual => NonOpVersion(right) <= NonOpVersion(left),
+                Equal => NonOpVersion(right) == NonOpVersion(left),
+                EqualGlob => right.as_str().starts_with(left.as_str()),
+                Approximate => NonRevisionVersion(right) == NonRevisionVersion(left),
+                GreaterOrEqual => NonOpVersion(right) >= NonOpVersion(left),
+                Greater => NonOpVersion(right) > NonOpVersion(left),
+            }
         };
 
-        match self.op() {
-            Some(Less) => NonOpVersion(right) < NonOpVersion(left),
-            Some(LessOrEqual) => NonOpVersion(right) <= NonOpVersion(left),
-            Some(Equal) | None => NonOpVersion(right) == NonOpVersion(left),
-            Some(EqualGlob) => right.as_str().starts_with(left.as_str()),
-            Some(Approximate) => NonRevisionVersion(right) == NonRevisionVersion(left),
-            Some(GreaterOrEqual) => NonOpVersion(right) >= NonOpVersion(left),
-            Some(Greater) => NonOpVersion(right) > NonOpVersion(left),
+        match (self.op(), other.op()) {
+            // intersects if both are unbounded in the same direction
+            (Some(Less), Some(Less)) => true,
+            (Some(Less), Some(LessOrEqual)) => true,
+            (Some(LessOrEqual), Some(Less)) => true,
+            (Some(LessOrEqual), Some(LessOrEqual)) => true,
+            (Some(Greater), Some(Greater)) => true,
+            (Some(Greater), Some(GreaterOrEqual)) => true,
+            (Some(GreaterOrEqual), Some(Greater)) => true,
+            (Some(GreaterOrEqual), Some(GreaterOrEqual)) => true,
+
+            // both non-operator versions -- intersects if equal
+            (None, None) => self == other,
+
+            // CPV intersecting with a versioned atom
+            (Some(op), None) | (None, Some(op)) => {
+                let (left, right) = match self.op() {
+                    None => (other, self),
+                    Some(_) => (self, other),
+                };
+                op_cmp(op, left, right)
+            }
+
+            // either '=' -- intersects if the other matches it
+            (Some(Equal), Some(op)) => op_cmp(op, other, self),
+            (Some(op), Some(Equal)) => op_cmp(op, self, other),
+
+            // both '~' -- intersects if identical
+            (Some(Approximate), Some(Approximate)) => self == other,
+
+            // both '=*' -- intersects if one matches the other
+            (Some(EqualGlob), Some(EqualGlob)) => {
+                op_cmp(EqualGlob, self, other) || op_cmp(EqualGlob, other, self)
+            }
+
+            // '=*' and '~' -- intersects if the glob matches the nonrevisioned glob version
+            (Some(EqualGlob), Some(Approximate)) => other.as_str().starts_with(self.base()),
+            (Some(Approximate), Some(EqualGlob)) => self.as_str().starts_with(other.base()),
+
+            (Some(left_op), Some(right_op)) => {
+                let (ranged, ranged_op, other, other_op) = match left_op {
+                    Less | LessOrEqual | Greater | GreaterOrEqual => {
+                        (self, left_op, other, right_op)
+                    }
+                    _ => (other, right_op, self, left_op),
+                };
+
+                match other_op {
+                    Less | LessOrEqual | Greater | GreaterOrEqual => {
+                        op_cmp(other_op, other, ranged) && op_cmp(ranged_op, ranged, other)
+                    }
+                    Approximate if op_cmp(ranged_op, ranged, other) => true,
+                    Approximate => {
+                        let greater = matches!(ranged_op, Greater | GreaterOrEqual);
+                        greater && op_cmp(other_op, other, ranged)
+                    }
+
+                    EqualGlob if op_cmp(ranged_op, ranged, other) => true,
+                    EqualGlob if matches!(ranged_op, Less | LessOrEqual) => {
+                        if other.revision() != &Revision::default() {
+                            false
+                        } else {
+                            ranged.as_str().starts_with(other.as_str())
+                        }
+                    }
+                    EqualGlob => ranged.as_str().starts_with(other.as_str()),
+                    _ => panic!("{other_op} should have previously been handled"),
+                }
+            }
         }
     }
 }
