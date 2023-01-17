@@ -295,7 +295,7 @@ impl Version {
                         }
                     }
                     EqualGlob => ranged.as_str().starts_with(other.as_str()),
-                    _ => panic!("{other_op} should have previously been handled"),
+                    Equal => ranged_op.intersects(ranged, other),
                 }
             }
         }
