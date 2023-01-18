@@ -262,6 +262,7 @@ impl Version {
             (Some(Approximate), Some(EqualGlob)) => self.as_str().starts_with(other.base()),
 
             (Some(left_op), Some(right_op)) => {
+                // remaining cases must have one op that is unbounded
                 let (ranged, ranged_op, other, other_op) = match left_op {
                     Less | LessOrEqual | Greater | GreaterOrEqual => {
                         (self, left_op, other, right_op)
@@ -270,16 +271,23 @@ impl Version {
                 };
 
                 match other_op {
+                    // unbounded in opposite directions -- intersects if both match
                     Less | LessOrEqual | Greater | GreaterOrEqual => {
                         other_op.intersects(other, ranged) && ranged_op.intersects(ranged, other)
                     }
-                    Approximate if ranged_op.intersects(ranged, other) => true,
+
+                    // '~' or '=*' -- intersects if range matches
+                    Approximate | EqualGlob if ranged_op.intersects(ranged, other) => true,
+
+                    // remaining '~' -- intersects if ranged is '>' or '>=' on other's version with
+                    // a nonzero revision, e.g. >1-r1 intersects with ~1
                     Approximate => {
                         let greater = matches!(ranged_op, Greater | GreaterOrEqual);
                         greater && other_op.intersects(other, ranged)
                     }
 
-                    EqualGlob if ranged_op.intersects(ranged, other) => true,
+                    // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
+                    // exist and glob matches ranged version
                     EqualGlob if matches!(ranged_op, Less | LessOrEqual) => {
                         if other.revision() != &Revision::default() {
                             false
@@ -287,7 +295,10 @@ impl Version {
                             ranged.as_str().starts_with(other.as_str())
                         }
                     }
+
+                    // remaining '=*' -- intersects if glob matches ranged version
                     EqualGlob => ranged.as_str().starts_with(other.as_str()),
+                    // handled above, but completes variant coverage
                     Equal => ranged_op.intersects(ranged, other),
                 }
             }
