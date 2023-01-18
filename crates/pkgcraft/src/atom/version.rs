@@ -236,14 +236,10 @@ impl Version {
         use Operator::*;
         match (self.op(), other.op()) {
             // intersects if both are unbounded in the same direction
-            (Some(Less), Some(Less)) => true,
-            (Some(Less), Some(LessOrEqual)) => true,
-            (Some(LessOrEqual), Some(Less)) => true,
-            (Some(LessOrEqual), Some(LessOrEqual)) => true,
-            (Some(Greater), Some(Greater)) => true,
-            (Some(Greater), Some(GreaterOrEqual)) => true,
-            (Some(GreaterOrEqual), Some(Greater)) => true,
-            (Some(GreaterOrEqual), Some(GreaterOrEqual)) => true,
+            (Some(Less), Some(Less)) | (Some(LessOrEqual), Some(LessOrEqual)) => true,
+            (Some(Less), Some(LessOrEqual)) | (Some(LessOrEqual), Some(Less)) => true,
+            (Some(Greater), Some(Greater)) | (Some(GreaterOrEqual), Some(GreaterOrEqual)) => true,
+            (Some(Greater), Some(GreaterOrEqual)) | (Some(GreaterOrEqual), Some(Greater)) => true,
 
             // both non-op or '~' -- intersects if equal
             (None, None) | (Some(Approximate), Some(Approximate)) => self == other,
