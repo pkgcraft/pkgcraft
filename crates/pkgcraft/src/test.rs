@@ -71,6 +71,7 @@ pub(crate) struct AtomData {
     pub(crate) valid: Vec<ValidAtom>,
     pub(crate) invalid: Vec<String>,
     compares: Vec<String>,
+    pub(crate) intersects: Vec<Intersects>,
     pub(crate) sorting: Vec<Sorted>,
 }
 

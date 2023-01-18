@@ -300,6 +300,8 @@ impl FromStr for Atom {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
+    use itertools::Itertools;
+
     use crate::test::{AtomData, VersionData};
     use crate::utils::hash;
 
@@ -425,6 +427,31 @@ mod tests {
                     if op == Ordering::Equal {
                         assert_eq!(hash(v1), hash(v2), "failed hash {expr}");
                     }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_intersects() {
+        // convert string to CPV falling back to regular atom
+        let parse = |s: &str| -> Atom { cpv(s).or_else(|_| Atom::from_str(s)).unwrap() };
+
+        let data = AtomData::load().unwrap();
+        for d in data.intersects {
+            // test intersections between all pairs of distinct values
+            for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
+                let (s1, s2) = (vals[0], vals[1]);
+                let (v1, v2) = (parse(s1), parse(s2));
+
+                // elements intersect themselves
+                assert!(v1.intersects(&v1), "{s1} doesn't intersect {s1}");
+                assert!(v2.intersects(&v2), "{s2} doesn't intersect {s2}");
+
+                // intersects depending on status
+                match d.status {
+                    true => assert!(v1.intersects(&v2), "{s1} doesn't intersect {s2}"),
+                    false => assert!(!v1.intersects(&v2), "{s1} intersects {s2}"),
                 }
             }
         }
