@@ -9,13 +9,13 @@ use pkgcraft::utils::hash;
 use crate::macros::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DepSet<'a> {
-    Atom(&'a depset::DepSet<Atom>),
-    String(&'a depset::DepSet<String>),
-    Uri(&'a depset::DepSet<Uri>),
+pub enum DepSet {
+    Atom(depset::DepSet<Atom>),
+    String(depset::DepSet<String>),
+    Uri(depset::DepSet<Uri>),
 }
 
-impl<'a> fmt::Display for DepSet<'a> {
+impl fmt::Display for DepSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Atom(d) => write!(f, "{}", d),
@@ -33,7 +33,7 @@ pub enum DepSetIter<'a> {
 }
 
 impl<'a> DepSetIter<'a> {
-    pub(crate) fn new(deps: &DepSet<'a>) -> DepSetIter<'a> {
+    pub(crate) fn new(deps: &'a DepSet) -> DepSetIter<'a> {
         match deps {
             DepSet::Atom(d) => Self::Atom(d.iter()),
             DepSet::String(d) => Self::String(d.iter()),
@@ -43,25 +43,25 @@ impl<'a> DepSetIter<'a> {
 }
 
 impl<'a> Iterator for DepSetIter<'a> {
-    type Item = DepRestrict<'a>;
+    type Item = DepRestrict;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Atom(iter) => iter.next().map(DepRestrict::Atom),
-            Self::String(iter) => iter.next().map(DepRestrict::String),
-            Self::Uri(iter) => iter.next().map(DepRestrict::Uri),
+            Self::Atom(iter) => iter.next().map(|x| DepRestrict::Atom(x.clone())),
+            Self::String(iter) => iter.next().map(|x| DepRestrict::String(x.clone())),
+            Self::Uri(iter) => iter.next().map(|x| DepRestrict::Uri(x.clone())),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DepRestrict<'a> {
-    Atom(&'a depset::DepRestrict<Atom>),
-    String(&'a depset::DepRestrict<String>),
-    Uri(&'a depset::DepRestrict<Uri>),
+pub enum DepRestrict {
+    Atom(depset::DepRestrict<Atom>),
+    String(depset::DepRestrict<String>),
+    Uri(depset::DepRestrict<Uri>),
 }
 
-impl<'a> fmt::Display for DepRestrict<'a> {
+impl fmt::Display for DepRestrict {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Atom(d) => write!(f, "{}", d),
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn pkgcraft_depset_hash(d: *mut DepSet) -> u64 {
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_iter(d: *mut DepSet) -> *mut DepSetIter {
+pub unsafe extern "C" fn pkgcraft_depset_iter(d: *mut DepSet) -> *mut DepSetIter<'static> {
     let deps = null_ptr_check!(d.as_ref());
     Box::into_raw(Box::new(DepSetIter::new(deps)))
 }
@@ -220,7 +220,7 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_str(d: *mut DepRestrict) -> *mut c
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_deprestrict_flatten_iter(
     d: *mut DepRestrict,
-) -> *mut DepSetFlattenIter {
+) -> *mut DepSetFlattenIter<'static> {
     let deps = null_ptr_check!(d.as_ref());
     let i = match deps {
         DepRestrict::Atom(d) => DepSetFlattenIter::Atom(d.iter_flatten()),
@@ -235,7 +235,9 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_flatten_iter(
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_flatten_iter(d: *mut DepSet) -> *mut DepSetFlattenIter {
+pub unsafe extern "C" fn pkgcraft_depset_flatten_iter(
+    d: *mut DepSet,
+) -> *mut DepSetFlattenIter<'static> {
     let deps = null_ptr_check!(d.as_ref());
     let i = match deps {
         DepSet::Atom(d) => DepSetFlattenIter::Atom(d.iter_flatten()),
