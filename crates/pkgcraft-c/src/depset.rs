@@ -32,16 +32,6 @@ pub enum DepSetIter<'a> {
     Uri(depset::DepSetIter<'a, Uri>),
 }
 
-impl<'a> DepSetIter<'a> {
-    pub(crate) fn new(deps: &'a DepSet) -> DepSetIter<'a> {
-        match deps {
-            DepSet::Atom(d) => Self::Atom(d.iter()),
-            DepSet::String(d) => Self::String(d.iter()),
-            DepSet::Uri(d) => Self::Uri(d.iter()),
-        }
-    }
-}
-
 impl<'a> Iterator for DepSetIter<'a> {
     type Item = DepRestrict;
 
@@ -134,7 +124,12 @@ pub unsafe extern "C" fn pkgcraft_depset_hash(d: *mut DepSet) -> u64 {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_depset_iter(d: *mut DepSet) -> *mut DepSetIter<'static> {
     let deps = null_ptr_check!(d.as_ref());
-    Box::into_raw(Box::new(DepSetIter::new(deps)))
+    let iter = match deps {
+        DepSet::Atom(d) => DepSetIter::Atom(d.iter()),
+        DepSet::String(d) => DepSetIter::String(d.iter()),
+        DepSet::Uri(d) => DepSetIter::Uri(d.iter()),
+    };
+    Box::into_raw(Box::new(iter))
 }
 
 /// Return the next object from a depset iterator.
