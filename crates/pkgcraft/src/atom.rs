@@ -1,10 +1,11 @@
 use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
+use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
 use self::version::ParsedVersion;
@@ -55,14 +56,13 @@ pub(crate) struct ParsedAtom<'a> {
 }
 
 impl ParsedAtom<'_> {
-    pub(crate) fn into_owned(self, s: &str) -> crate::Result<Atom> {
+    pub(crate) fn into_owned(self) -> crate::Result<Atom> {
         let version = match (self.version, self.version_str) {
             (Some(v), Some(vs)) => Some(v.into_owned(vs)?),
             _ => None,
         };
 
         Ok(Atom {
-            full: s.to_string(),
             category: self.category.to_string(),
             package: self.package.to_string(),
             blocker: self.blocker,
@@ -85,7 +85,6 @@ impl ParsedAtom<'_> {
 /// Package atom
 #[derive(Debug, Clone)]
 pub struct Atom {
-    full: String,
     category: String,
     package: String,
     blocker: Option<Blocker>,
@@ -120,7 +119,7 @@ impl Hash for Atom {
 pub fn cpv(s: &str) -> crate::Result<Atom> {
     let mut atom = parse::cpv(s)?;
     atom.version_str = Some(s);
-    atom.into_owned(s)
+    atom.into_owned()
 }
 
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
@@ -184,11 +183,6 @@ impl Atom {
             (Some(v1), Some(v2)) => v1.intersects(v2),
             (None, _) | (_, None) => true,
         }
-    }
-
-    /// Return an atom's string value.
-    pub fn as_str(&self) -> &str {
-        &self.full
     }
 
     /// Return an atom's category.
@@ -272,7 +266,48 @@ impl Atom {
 
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.full)
+        let mut s = String::new();
+
+        // append blocker
+        if let Some(blocker) = self.blocker {
+            write!(s, "{}", blocker)?;
+        }
+
+        // append version operator with cpv
+        let cpv = self.cpv();
+        use version::Operator::*;
+        match self.version.as_ref().and_then(|v| v.op()) {
+            Some(Less) => write!(s, "<{cpv}")?,
+            Some(LessOrEqual) => write!(s, "<={cpv}")?,
+            Some(Equal) => write!(s, "={cpv}")?,
+            Some(EqualGlob) => write!(s, "={cpv}*")?,
+            Some(Approximate) => write!(s, "~{cpv}")?,
+            Some(GreaterOrEqual) => write!(s, ">={cpv}")?,
+            Some(Greater) => write!(s, ">{cpv}")?,
+            None => s.push_str(&cpv),
+        }
+
+        // append slot data
+        match (self.slot(), self.subslot(), self.slot_op()) {
+            (Some(slot), Some(subslot), Some(op)) => write!(s, ":{slot}/{subslot}{op}")?,
+            (Some(slot), Some(subslot), None) => write!(s, ":{slot}/{subslot}")?,
+            (Some(slot), None, Some(op)) => write!(s, ":{slot}{op}")?,
+            (Some(x), None, None) => write!(s, ":{x}")?,
+            (None, None, Some(x)) => write!(s, ":{x}")?,
+            _ => (),
+        }
+
+        // append use deps
+        if let Some(x) = &self.use_deps {
+            write!(s, "[{}]", x.iter().join(","))?;
+        }
+
+        // append repo
+        if let Some(repo) = &self.repo {
+            write!(s, "::{repo}")?;
+        }
+
+        write!(f, "{s}")
     }
 }
 
