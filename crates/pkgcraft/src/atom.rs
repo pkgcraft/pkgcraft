@@ -158,16 +158,16 @@ impl Atom {
         bool_not_equal!(&self.category(), &other.category());
         bool_not_equal!(&self.package(), &other.package());
 
-        if let (Some(v1), Some(v2)) = (self.slot(), other.slot()) {
-            bool_not_equal!(v1, v2);
+        if let (Some(x), Some(y)) = (self.slot(), other.slot()) {
+            bool_not_equal!(x, y);
         }
 
-        if let (Some(v1), Some(v2)) = (self.subslot(), other.subslot()) {
-            bool_not_equal!(v1, v2);
+        if let (Some(x), Some(y)) = (self.subslot(), other.subslot()) {
+            bool_not_equal!(x, y);
         }
 
-        if let (Some(u1), Some(u2)) = (self.use_deps(), other.use_deps()) {
-            let flags: HashSet<_> = u1.symmetric_difference(u2).map(|s| s.as_str()).collect();
+        if let (Some(x), Some(y)) = (self.use_deps(), other.use_deps()) {
+            let flags: HashSet<_> = x.symmetric_difference(y).map(|s| s.as_str()).collect();
             for f in &flags {
                 if f.starts_with('-') && flags.contains(&f[1..]) {
                     return false;
@@ -175,12 +175,12 @@ impl Atom {
             }
         }
 
-        if let (Some(v1), Some(v2)) = (self.repo(), other.repo()) {
-            bool_not_equal!(v1, v2);
+        if let (Some(x), Some(y)) = (self.repo(), other.repo()) {
+            bool_not_equal!(x, y);
         }
 
         match (self.version(), other.version()) {
-            (Some(v1), Some(v2)) => v1.intersects(v2),
+            (Some(x), Some(y)) => x.intersects(y),
             (None, _) | (_, None) => true,
         }
     }
@@ -444,23 +444,23 @@ mod tests {
                 .collect();
 
         let data = AtomData::load().unwrap();
-        for (expr, (v1, op, v2)) in data.compares() {
-            let v1 = Atom::from_str(v1).unwrap();
-            let v2 = Atom::from_str(v2).unwrap();
+        for (expr, (s1, op, s2)) in data.compares() {
+            let a1 = Atom::from_str(s1).unwrap();
+            let a2 = Atom::from_str(s2).unwrap();
             match op {
                 "!=" => {
-                    assert_ne!(v1, v2, "failed comparing {expr}");
-                    assert_ne!(v2, v1, "failed comparing {expr}");
+                    assert_ne!(a1, a2, "failed comparing {expr}");
+                    assert_ne!(a2, a1, "failed comparing {expr}");
                 }
                 _ => {
                     let op = op_map[op];
-                    assert_eq!(v1.cmp(&v2), op, "failed comparing {expr}");
-                    assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {expr}");
+                    assert_eq!(a1.cmp(&a2), op, "failed comparing {expr}");
+                    assert_eq!(a2.cmp(&a1), op.reverse(), "failed comparing {expr}");
 
                     // verify the following property holds since both Hash and Eq are implemented:
                     // k1 == k2 -> hash(k1) == hash(k2)
                     if op == Ordering::Equal {
-                        assert_eq!(hash(v1), hash(v2), "failed hash {expr}");
+                        assert_eq!(hash(a1), hash(a2), "failed hash {expr}");
                     }
                 }
             }
@@ -506,16 +506,16 @@ mod tests {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
                 let (s1, s2) = (vals[0], vals[1]);
-                let (v1, v2) = (parse(s1), parse(s2));
+                let (a1, a2) = (parse(s1), parse(s2));
 
                 // elements intersect themselves
-                assert!(v1.intersects(&v1), "{s1} doesn't intersect {s1}");
-                assert!(v2.intersects(&v2), "{s2} doesn't intersect {s2}");
+                assert!(a1.intersects(&a1), "{s1} doesn't intersect {s1}");
+                assert!(a2.intersects(&a2), "{s2} doesn't intersect {s2}");
 
                 // intersects depending on status
                 match d.status {
-                    true => assert!(v1.intersects(&v2), "{s1} doesn't intersect {s2}"),
-                    false => assert!(!v1.intersects(&v2), "{s1} intersects {s2}"),
+                    true => assert!(a1.intersects(&a2), "{s1} doesn't intersect {s2}"),
+                    false => assert!(!a1.intersects(&a2), "{s1} intersects {s2}"),
                 }
             }
         }
