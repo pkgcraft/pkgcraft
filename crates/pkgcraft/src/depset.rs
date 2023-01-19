@@ -60,12 +60,12 @@ impl<T: Ordered> FromIterator<DepRestrict<T>> for DepSet<T> {
 }
 
 impl<T: Ordered> DepSet<T> {
-    pub fn iter_flatten(&self) -> DepSetFlattenIter<T> {
-        DepSetFlattenIter(self.0.iter().collect())
+    pub fn iter_flatten(&self) -> DepSetIterFlatten<T> {
+        DepSetIterFlatten(self.0.iter().collect())
     }
 
-    pub fn into_iter_flatten(self) -> DepSetFlattenIntoIter<T> {
-        DepSetFlattenIntoIter(self.0.into_iter().collect())
+    pub fn into_iter_flatten(self) -> DepSetIntoIterFlatten<T> {
+        DepSetIntoIterFlatten(self.0.into_iter().collect())
     }
 
     pub fn iter(&self) -> DepSetIter<T> {
@@ -126,12 +126,12 @@ pub enum DepRestrict<T: Ordered> {
 }
 
 impl<T: Ordered> DepRestrict<T> {
-    pub fn iter_flatten(&self) -> DepSetFlattenIter<T> {
-        DepSetFlattenIter([self].into_iter().collect())
+    pub fn iter_flatten(&self) -> DepSetIterFlatten<T> {
+        DepSetIterFlatten([self].into_iter().collect())
     }
 
-    pub fn into_iter_flatten(self) -> DepSetFlattenIntoIter<T> {
-        DepSetFlattenIntoIter([self].into_iter().collect())
+    pub fn into_iter_flatten(self) -> DepSetIntoIterFlatten<T> {
+        DepSetIntoIterFlatten([self].into_iter().collect())
     }
 }
 
@@ -187,9 +187,9 @@ impl Restriction<&DepSet<Uri>> for Restrict<StrRestrict> {
 }
 
 #[derive(Debug)]
-pub struct DepSetFlattenIter<'a, T: Ordered>(VecDeque<&'a DepRestrict<T>>);
+pub struct DepSetIterFlatten<'a, T: Ordered>(VecDeque<&'a DepRestrict<T>>);
 
-impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetFlattenIter<'a, T> {
+impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetIterFlatten<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -210,9 +210,9 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetFlattenIter<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct DepSetFlattenIntoIter<T: Ordered>(VecDeque<DepRestrict<T>>);
+pub struct DepSetIntoIterFlatten<T: Ordered>(VecDeque<DepRestrict<T>>);
 
-impl<T: fmt::Debug + Ordered> Iterator for DepSetFlattenIntoIter<T> {
+impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterFlatten<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {

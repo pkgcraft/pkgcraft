@@ -62,13 +62,13 @@ impl fmt::Display for DepRestrict {
 }
 
 #[derive(Debug)]
-pub enum DepSetFlattenIntoIter {
-    Atom(depset::DepSetFlattenIntoIter<Atom>),
-    String(depset::DepSetFlattenIntoIter<String>),
-    Uri(depset::DepSetFlattenIntoIter<Uri>),
+pub enum DepSetIntoIterFlatten {
+    Atom(depset::DepSetIntoIterFlatten<Atom>),
+    String(depset::DepSetIntoIterFlatten<String>),
+    Uri(depset::DepSetIntoIterFlatten<Uri>),
 }
 
-impl Iterator for DepSetFlattenIntoIter {
+impl Iterator for DepSetIntoIterFlatten {
     type Item = *mut c_void;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -122,7 +122,7 @@ pub unsafe extern "C" fn pkgcraft_depset_hash(d: *mut DepSet) -> u64 {
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_iter(d: *mut DepSet) -> *mut DepSetIntoIter {
+pub unsafe extern "C" fn pkgcraft_depset_into_iter(d: *mut DepSet) -> *mut DepSetIntoIter {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.clone() {
         DepSet::Atom(d) => DepSetIntoIter::Atom(d.into_iter()),
@@ -139,7 +139,9 @@ pub unsafe extern "C" fn pkgcraft_depset_iter(d: *mut DepSet) -> *mut DepSetInto
 /// # Safety
 /// The argument must be a non-null DepSetIntoIter pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_iter_next(i: *mut DepSetIntoIter) -> *mut DepRestrict {
+pub unsafe extern "C" fn pkgcraft_depset_into_iter_next(
+    i: *mut DepSetIntoIter,
+) -> *mut DepRestrict {
     let iter = null_ptr_check!(i.as_mut());
     iter.next()
         .map(|x| Box::into_raw(Box::new(x)))
@@ -151,7 +153,7 @@ pub unsafe extern "C" fn pkgcraft_depset_iter_next(i: *mut DepSetIntoIter) -> *m
 /// # Safety
 /// The argument must be a non-null DepSetIntoIter pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_iter_free(i: *mut DepSetIntoIter) {
+pub unsafe extern "C" fn pkgcraft_depset_into_iter_free(i: *mut DepSetIntoIter) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
@@ -213,14 +215,14 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_str(d: *mut DepRestrict) -> *mut c
 /// # Safety
 /// The argument must be a non-null DepRestrict pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_deprestrict_flatten_iter(
+pub unsafe extern "C" fn pkgcraft_deprestrict_into_iter_flatten(
     d: *mut DepRestrict,
-) -> *mut DepSetFlattenIntoIter {
+) -> *mut DepSetIntoIterFlatten {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.clone() {
-        DepRestrict::Atom(d) => DepSetFlattenIntoIter::Atom(d.into_iter_flatten()),
-        DepRestrict::String(d) => DepSetFlattenIntoIter::String(d.into_iter_flatten()),
-        DepRestrict::Uri(d) => DepSetFlattenIntoIter::Uri(d.into_iter_flatten()),
+        DepRestrict::Atom(d) => DepSetIntoIterFlatten::Atom(d.into_iter_flatten()),
+        DepRestrict::String(d) => DepSetIntoIterFlatten::String(d.into_iter_flatten()),
+        DepRestrict::Uri(d) => DepSetIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -230,14 +232,14 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_flatten_iter(
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_flatten_iter(
+pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten(
     d: *mut DepSet,
-) -> *mut DepSetFlattenIntoIter {
+) -> *mut DepSetIntoIterFlatten {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.clone() {
-        DepSet::Atom(d) => DepSetFlattenIntoIter::Atom(d.into_iter_flatten()),
-        DepSet::String(d) => DepSetFlattenIntoIter::String(d.into_iter_flatten()),
-        DepSet::Uri(d) => DepSetFlattenIntoIter::Uri(d.into_iter_flatten()),
+        DepSet::Atom(d) => DepSetIntoIterFlatten::Atom(d.into_iter_flatten()),
+        DepSet::String(d) => DepSetIntoIterFlatten::String(d.into_iter_flatten()),
+        DepSet::Uri(d) => DepSetIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -247,10 +249,10 @@ pub unsafe extern "C" fn pkgcraft_depset_flatten_iter(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetFlattenIntoIter pointer.
+/// The argument must be a non-null DepSetIntoIterFlatten pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_flatten_iter_next(
-    i: *mut DepSetFlattenIntoIter,
+pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_next(
+    i: *mut DepSetIntoIterFlatten,
 ) -> *mut c_void {
     let iter = null_ptr_check!(i.as_mut());
     iter.next().unwrap_or(ptr::null_mut())
@@ -259,9 +261,9 @@ pub unsafe extern "C" fn pkgcraft_depset_flatten_iter_next(
 /// Free a flattened depset iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetFlatten pointer or NULL.
+/// The argument must be a non-null DepSetIntoIterFlatten pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_flatten_iter_free(i: *mut DepSetFlattenIntoIter) {
+pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_free(i: *mut DepSetIntoIterFlatten) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
