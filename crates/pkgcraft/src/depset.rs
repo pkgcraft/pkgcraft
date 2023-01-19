@@ -59,17 +59,20 @@ impl<T: Ordered> FromIterator<DepRestrict<T>> for DepSet<T> {
     }
 }
 
+pub trait IntoIteratorFlatten {
+    type Item;
+    type IntoIter: Iterator<Item = Self::Item>;
+
+    fn into_iter_flatten(self) -> Self::IntoIter;
+}
+
 impl<T: Ordered> DepSet<T> {
-    pub fn iter_flatten(&self) -> DepSetIterFlatten<T> {
-        DepSetIterFlatten(self.0.iter().collect())
-    }
-
-    pub fn into_iter_flatten(self) -> DepSetIntoIterFlatten<T> {
-        DepSetIntoIterFlatten(self.0.into_iter().collect())
-    }
-
     pub fn iter(&self) -> DepSetIter<T> {
         self.into_iter()
+    }
+
+    pub fn iter_flatten(&self) -> DepSetIterFlatten<T> {
+        self.into_iter_flatten()
     }
 }
 
@@ -93,6 +96,15 @@ impl<'a, T: Ordered> Iterator for DepSetIter<'a, T> {
     }
 }
 
+impl<'a, T: Ordered> IntoIteratorFlatten for &'a DepSet<T> {
+    type Item = &'a T;
+    type IntoIter = DepSetIterFlatten<'a, T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIter {
+        DepSetIterFlatten(self.0.iter().collect())
+    }
+}
+
 #[derive(Debug)]
 pub struct DepSetIntoIter<T: Ordered>(indexmap::set::IntoIter<DepRestrict<T>>);
 
@@ -113,6 +125,15 @@ impl<T: Ordered> Iterator for DepSetIntoIter<T> {
     }
 }
 
+impl<T: Ordered> IntoIteratorFlatten for DepSet<T> {
+    type Item = T;
+    type IntoIter = DepSetIntoIterFlatten<T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIter {
+        DepSetIntoIterFlatten(self.0.into_iter().collect())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DepRestrict<T: Ordered> {
     Matches(T, bool),
@@ -127,10 +148,24 @@ pub enum DepRestrict<T: Ordered> {
 
 impl<T: Ordered> DepRestrict<T> {
     pub fn iter_flatten(&self) -> DepSetIterFlatten<T> {
+        self.into_iter_flatten()
+    }
+}
+
+impl<'a, T: Ordered> IntoIteratorFlatten for &'a DepRestrict<T> {
+    type Item = &'a T;
+    type IntoIter = DepSetIterFlatten<'a, T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIter {
         DepSetIterFlatten([self].into_iter().collect())
     }
+}
 
-    pub fn into_iter_flatten(self) -> DepSetIntoIterFlatten<T> {
+impl<T: Ordered> IntoIteratorFlatten for DepRestrict<T> {
+    type Item = T;
+    type IntoIter = DepSetIntoIterFlatten<T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIter {
         DepSetIntoIterFlatten([self].into_iter().collect())
     }
 }
@@ -165,7 +200,7 @@ pub enum Restrict<T> {
 impl Restriction<&DepSet<Atom>> for Restrict<AtomRestrict> {
     fn matches(&self, val: &DepSet<Atom>) -> bool {
         match self {
-            Self::Any(r) => val.iter_flatten().any(|v| r.matches(v)),
+            Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
@@ -173,7 +208,7 @@ impl Restriction<&DepSet<Atom>> for Restrict<AtomRestrict> {
 impl Restriction<&DepSet<String>> for Restrict<StrRestrict> {
     fn matches(&self, val: &DepSet<String>) -> bool {
         match self {
-            Self::Any(r) => val.iter_flatten().any(|v| r.matches(v)),
+            Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
@@ -181,7 +216,7 @@ impl Restriction<&DepSet<String>> for Restrict<StrRestrict> {
 impl Restriction<&DepSet<Uri>> for Restrict<StrRestrict> {
     fn matches(&self, val: &DepSet<Uri>) -> bool {
         match self {
-            Self::Any(r) => val.iter_flatten().any(|v| r.matches(v.as_ref())),
+            Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v.as_ref())),
         }
     }
 }
@@ -235,7 +270,7 @@ impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterFlatten<T> {
 impl Restriction<&DepSet<Atom>> for BaseRestrict {
     fn matches(&self, val: &DepSet<Atom>) -> bool {
         crate::restrict::restrict_match! {self, val,
-            Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v)),
+            Self::Atom(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
@@ -243,7 +278,7 @@ impl Restriction<&DepSet<Atom>> for BaseRestrict {
 impl Restriction<&DepRestrict<Atom>> for BaseRestrict {
     fn matches(&self, val: &DepRestrict<Atom>) -> bool {
         crate::restrict::restrict_match! {self, val,
-            Self::Atom(r) => val.iter_flatten().any(|v| r.matches(v)),
+            Self::Atom(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }

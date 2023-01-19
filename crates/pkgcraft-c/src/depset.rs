@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int, c_void, CString};
 use std::{fmt, ptr};
 
 use pkgcraft::atom::Atom;
-use pkgcraft::depset::{self, Uri};
+use pkgcraft::depset::{self, IntoIteratorFlatten, Uri};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
