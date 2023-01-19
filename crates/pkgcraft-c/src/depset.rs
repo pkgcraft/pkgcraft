@@ -26,20 +26,20 @@ impl fmt::Display for DepSet {
 }
 
 #[derive(Debug)]
-pub enum DepSetIter<'a> {
-    Atom(depset::DepSetIter<'a, Atom>),
-    String(depset::DepSetIter<'a, String>),
-    Uri(depset::DepSetIter<'a, Uri>),
+pub enum DepSetIntoIter {
+    Atom(depset::DepSetIntoIter<Atom>),
+    String(depset::DepSetIntoIter<String>),
+    Uri(depset::DepSetIntoIter<Uri>),
 }
 
-impl<'a> Iterator for DepSetIter<'a> {
+impl Iterator for DepSetIntoIter {
     type Item = DepRestrict;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Atom(iter) => iter.next().map(|x| DepRestrict::Atom(x.clone())),
-            Self::String(iter) => iter.next().map(|x| DepRestrict::String(x.clone())),
-            Self::Uri(iter) => iter.next().map(|x| DepRestrict::Uri(x.clone())),
+            Self::Atom(iter) => iter.next().map(DepRestrict::Atom),
+            Self::String(iter) => iter.next().map(DepRestrict::String),
+            Self::Uri(iter) => iter.next().map(DepRestrict::Uri),
         }
     }
 }
@@ -122,12 +122,12 @@ pub unsafe extern "C" fn pkgcraft_depset_hash(d: *mut DepSet) -> u64 {
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_iter(d: *mut DepSet) -> *mut DepSetIter<'static> {
+pub unsafe extern "C" fn pkgcraft_depset_iter(d: *mut DepSet) -> *mut DepSetIntoIter {
     let deps = null_ptr_check!(d.as_ref());
-    let iter = match deps {
-        DepSet::Atom(d) => DepSetIter::Atom(d.iter()),
-        DepSet::String(d) => DepSetIter::String(d.iter()),
-        DepSet::Uri(d) => DepSetIter::Uri(d.iter()),
+    let iter = match deps.clone() {
+        DepSet::Atom(d) => DepSetIntoIter::Atom(d.into_iter()),
+        DepSet::String(d) => DepSetIntoIter::String(d.into_iter()),
+        DepSet::Uri(d) => DepSetIntoIter::Uri(d.into_iter()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -137,9 +137,9 @@ pub unsafe extern "C" fn pkgcraft_depset_iter(d: *mut DepSet) -> *mut DepSetIter
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetIter pointer.
+/// The argument must be a non-null DepSetIntoIter pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_iter_next(i: *mut DepSetIter) -> *mut DepRestrict {
+pub unsafe extern "C" fn pkgcraft_depset_iter_next(i: *mut DepSetIntoIter) -> *mut DepRestrict {
     let iter = null_ptr_check!(i.as_mut());
     iter.next()
         .map(|x| Box::into_raw(Box::new(x)))
@@ -149,9 +149,9 @@ pub unsafe extern "C" fn pkgcraft_depset_iter_next(i: *mut DepSetIter) -> *mut D
 /// Free a depset iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetIter pointer or NULL.
+/// The argument must be a non-null DepSetIntoIter pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_iter_free(i: *mut DepSetIter) {
+pub unsafe extern "C" fn pkgcraft_depset_iter_free(i: *mut DepSetIntoIter) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
