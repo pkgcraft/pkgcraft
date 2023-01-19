@@ -217,12 +217,12 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_flatten_iter(
     d: *mut DepRestrict,
 ) -> *mut DepSetFlattenIter<'static> {
     let deps = null_ptr_check!(d.as_ref());
-    let i = match deps {
+    let iter = match deps {
         DepRestrict::Atom(d) => DepSetFlattenIter::Atom(d.iter_flatten()),
         DepRestrict::String(d) => DepSetFlattenIter::String(d.iter_flatten()),
         DepRestrict::Uri(d) => DepSetFlattenIter::Uri(d.iter_flatten()),
     };
-    Box::into_raw(Box::new(i))
+    Box::into_raw(Box::new(iter))
 }
 
 /// Return an iterator for a flattened DepSet.
@@ -234,12 +234,12 @@ pub unsafe extern "C" fn pkgcraft_depset_flatten_iter(
     d: *mut DepSet,
 ) -> *mut DepSetFlattenIter<'static> {
     let deps = null_ptr_check!(d.as_ref());
-    let i = match deps {
+    let iter = match deps {
         DepSet::Atom(d) => DepSetFlattenIter::Atom(d.iter_flatten()),
         DepSet::String(d) => DepSetFlattenIter::String(d.iter_flatten()),
         DepSet::Uri(d) => DepSetFlattenIter::Uri(d.iter_flatten()),
     };
-    Box::into_raw(Box::new(i))
+    Box::into_raw(Box::new(iter))
 }
 
 /// Return the next object from a flattened depset iterator.
