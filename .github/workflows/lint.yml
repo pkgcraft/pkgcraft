@@ -65,9 +65,7 @@ jobs:
         # remove all matching caches
         for key in ${cache_keys[@]}
         do
-          # filter keys manually until upstream fixes
-          # https://github.com/actions/gh-actions-cache/issues/46
-          [[ $key =~ ${KEY}* ]] && gh actions-cache delete $key -R $REPO -B $BRANCH --confirm
+          gh actions-cache delete $key -R $REPO -B $BRANCH --confirm
         done
 
         exit 0
