@@ -64,6 +64,10 @@ impl<T: Ordered> DepSet<T> {
         DepSetFlattenIter(self.0.iter().collect())
     }
 
+    pub fn into_iter_flatten(self) -> DepSetFlattenIntoIter<T> {
+        DepSetFlattenIntoIter(self.0.into_iter().collect())
+    }
+
     pub fn iter(&self) -> DepSetIter<T> {
         self.into_iter()
     }
@@ -124,6 +128,10 @@ pub enum DepRestrict<T: Ordered> {
 impl<T: Ordered> DepRestrict<T> {
     pub fn iter_flatten(&self) -> DepSetFlattenIter<T> {
         DepSetFlattenIter([self].into_iter().collect())
+    }
+
+    pub fn into_iter_flatten(self) -> DepSetFlattenIntoIter<T> {
+        DepSetFlattenIntoIter([self].into_iter().collect())
     }
 }
 
@@ -195,6 +203,29 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetFlattenIter<'a, T> {
                 AtMostOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
                 UseEnabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
                 UseDisabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+            }
+        }
+        None
+    }
+}
+
+#[derive(Debug)]
+pub struct DepSetFlattenIntoIter<T: Ordered>(VecDeque<DepRestrict<T>>);
+
+impl<T: fmt::Debug + Ordered> Iterator for DepSetFlattenIntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use DepRestrict::*;
+        while let Some(dep) = self.0.pop_front() {
+            match dep {
+                Matches(val, _) => return Some(val),
+                AllOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
+                AnyOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
+                ExactlyOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
+                AtMostOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
+                UseEnabled(_, vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
+                UseDisabled(_, vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
             }
         }
         None
