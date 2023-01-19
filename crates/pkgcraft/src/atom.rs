@@ -472,6 +472,35 @@ mod tests {
         // convert string to CPV falling back to regular atom
         let parse = |s: &str| -> Atom { cpv(s).or_else(|_| Atom::from_str(s)).unwrap() };
 
+        // convert string to non-op version falling back to op-ed version
+        let ver_parse = |s: &str| -> Version {
+            Version::new(s)
+                .or_else(|_| Version::new_with_op(s))
+                .unwrap()
+        };
+
+        // inject version intersects data from version.toml into Atom objects
+        let data = VersionData::load().unwrap();
+        let a = Atom::from_str("a/b").unwrap();
+        for d in data.intersects {
+            // test intersections between all pairs of distinct values
+            for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
+                let (mut a1, mut a2) = (a.clone(), a.clone());
+                a1.version = Some(ver_parse(vals[0]));
+                a2.version = Some(ver_parse(vals[1]));
+
+                // elements intersect themselves
+                assert!(a1.intersects(&a1), "{a1} doesn't intersect {a1}");
+                assert!(a2.intersects(&a2), "{a2} doesn't intersect {a2}");
+
+                // intersects depending on status
+                match d.status {
+                    true => assert!(a1.intersects(&a2), "{a1} doesn't intersect {a2}"),
+                    false => assert!(!a1.intersects(&a2), "{a1} intersects {a2}"),
+                }
+            }
+        }
+
         let data = AtomData::load().unwrap();
         for d in data.intersects {
             // test intersections between all pairs of distinct values
