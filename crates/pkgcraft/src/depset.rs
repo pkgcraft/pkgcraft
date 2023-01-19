@@ -69,6 +69,9 @@ impl<T: Ordered> DepSet<T> {
     }
 }
 
+#[derive(Debug)]
+pub struct DepSetIter<'a, T: Ordered>(indexmap::set::Iter<'a, DepRestrict<T>>);
+
 impl<'a, T: Ordered> IntoIterator for &'a DepSet<T> {
     type Item = &'a DepRestrict<T>;
     type IntoIter = DepSetIter<'a, T>;
@@ -78,11 +81,28 @@ impl<'a, T: Ordered> IntoIterator for &'a DepSet<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct DepSetIter<'a, T: Ordered>(indexmap::set::Iter<'a, DepRestrict<T>>);
-
 impl<'a, T: Ordered> Iterator for DepSetIter<'a, T> {
     type Item = &'a DepRestrict<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+#[derive(Debug)]
+pub struct DepSetIntoIter<T: Ordered>(indexmap::set::IntoIter<DepRestrict<T>>);
+
+impl<T: Ordered> IntoIterator for DepSet<T> {
+    type Item = DepRestrict<T>;
+    type IntoIter = DepSetIntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        DepSetIntoIter(self.0.into_iter())
+    }
+}
+
+impl<T: Ordered> Iterator for DepSetIntoIter<T> {
+    type Item = DepRestrict<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
