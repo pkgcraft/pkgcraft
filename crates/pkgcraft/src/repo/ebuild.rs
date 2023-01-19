@@ -669,7 +669,7 @@ impl<'a> PkgIter<'a> {
                     Restrict::Atom(r @ Version(x)) => {
                         pkg_restricts.push(r.clone());
                         if let Some(v) = x {
-                            ver = Some(v.as_str().to_string());
+                            ver = Some(v.to_string());
                         }
                     }
                     _ => (),

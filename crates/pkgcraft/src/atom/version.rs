@@ -216,6 +216,22 @@ impl Version {
         &self.full
     }
 
+    /// Return a version's string value including operator if it exists.
+    pub fn to_string_with_op(&self) -> String {
+        use Operator::*;
+        let s = self.as_str();
+        match self.op() {
+            None => s.to_string(),
+            Some(Less) => format!("<{s}"),
+            Some(LessOrEqual) => format!("<={s}"),
+            Some(Equal) => format!("={s}"),
+            Some(EqualGlob) => format!("={s}*"),
+            Some(Approximate) => format!("~{s}"),
+            Some(GreaterOrEqual) => format!(">={s}"),
+            Some(Greater) => format!(">{s}"),
+        }
+    }
+
     /// Return a version's revision.
     pub fn revision(&self) -> &Revision {
         &self.revision
@@ -310,18 +326,7 @@ impl AsRef<Version> for Version {
 
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Operator::*;
-        let s = self.as_str();
-        match self.op() {
-            None => write!(f, "{s}"),
-            Some(Less) => write!(f, "<{s}"),
-            Some(LessOrEqual) => write!(f, "<={s}"),
-            Some(Equal) => write!(f, "={s}"),
-            Some(EqualGlob) => write!(f, "={s}*"),
-            Some(Approximate) => write!(f, "~{s}"),
-            Some(GreaterOrEqual) => write!(f, ">={s}"),
-            Some(Greater) => write!(f, ">{s}"),
-        }
+        write!(f, "{}", self.as_str())
     }
 }
 
