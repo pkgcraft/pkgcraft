@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 6 * * 0'
   push:
-    tags-ignore: ['**']
+    branches: [main, audit]
     paths:
       - "Cargo.lock"
       - ".github/workflows/audit.yml"
