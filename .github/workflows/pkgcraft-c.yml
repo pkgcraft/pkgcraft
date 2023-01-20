@@ -2,6 +2,7 @@ name: pkgcraft-c
 
 on:
   push:
+    tags-ignore: ['**']
     branches: [main, pkgcraft-c]
     paths:
       - "Cargo.*"
