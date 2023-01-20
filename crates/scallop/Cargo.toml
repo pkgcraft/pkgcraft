@@ -2,14 +2,11 @@
 name = "scallop"
 version = "0.0.3"
 description = "Wrapper library for bash"
-authors = ["Tim Harder <radhermit@gmail.com>"]
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 keywords = ["bash", "shell"]
-edition = "2021"
-rust-version = "1.64"
 autotests = false
 exclude = [
 	"bash/doc/*",
@@ -17,6 +14,9 @@ exclude = [
 	"bash/po/*",
 	"bash/tests/*",
 ]
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lib]
 name = "scallop"

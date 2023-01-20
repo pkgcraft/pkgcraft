@@ -2,14 +2,14 @@
 name = "arcanist"
 version = "0.0.5"
 description = "package-building daemon leveraging pkgcraft"
-authors = ["Tim Harder <radhermit@gmail.com>"]
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/arcanist"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/arcanist"
 readme = "README.md"
 license = "MIT"
-edition = "2021"
-rust-version = "1.65"
 autotests = false
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 anyhow = "1.0.42"
