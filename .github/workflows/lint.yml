@@ -60,7 +60,7 @@ jobs:
         KEY=${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-
 
         # find matching caches
-        cache_keys=$(gh actions-cache list -R $REPO -B $BRANCH --key $KEY | cut -f 1)
+        mapfile -t cache_keys < <( gh actions-cache list -R $REPO -B $BRANCH --key $KEY | cut -f 1 )
 
         # remove all matching caches
         for key in ${cache_keys[@]}
