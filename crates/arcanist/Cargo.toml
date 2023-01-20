@@ -17,7 +17,7 @@ async-stream = "0.3.2"
 clap = { version = "4", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.13", default-features = false, features = ["toml"] }
 futures = "0.3.16"
-pkgcraft = { path = "../pkgcraft", version = "0.0.4" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.5" }
 prost = "0.11"
 regex = "1"
 serde = { version = "1.0", features = ["derive"] }

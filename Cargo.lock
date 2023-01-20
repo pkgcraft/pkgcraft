@@ -1487,7 +1487,7 @@ checksum = "6ac9a59f73473f1b8d852421e59e64809f025994837ef743615c6d0c5b305160"
 
 [[package]]
 name = "pkgcraft"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "async-trait",
  "cached",
@@ -1532,7 +1532,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcraft-c"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "pkgcraft",
  "tracing",
@@ -1942,7 +1942,7 @@ dependencies = [
 
 [[package]]
 name = "scallop"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "autotools",
  "bindgen",
