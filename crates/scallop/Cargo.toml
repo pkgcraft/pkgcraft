@@ -28,16 +28,16 @@ name = "scallop"
 [dependencies]
 bitflags = "1.3"
 nix = "0.26"
-once_cell = "1.8.0"
-thiserror = "1.0.30"
+once_cell = "1.17.0"
+thiserror = "1.0.38"
 tracing = "0.1"
 
 [build-dependencies]
-autotools = "0.2.4"
+autotools = "0.2.5"
 bindgen = "0.63"
 camino = "1"
-num_cpus = "1.0"
+num_cpus = "1.15"
 
 [dev-dependencies]
-ctor = "0.1.22"
+ctor = "0.1.26"
 tempfile = "3"
