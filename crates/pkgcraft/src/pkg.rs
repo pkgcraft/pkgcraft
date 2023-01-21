@@ -29,12 +29,12 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     /// Return a package's repo.
     fn repo(&self) -> Self::Repo;
 
-    /// Return a package's atom.
-    fn atom(&self) -> &atom::Atom;
+    /// Return a package's CPV.
+    fn cpv(&self) -> &atom::Atom;
 
     /// Return a package's version.
     fn version(&self) -> &atom::Version {
-        self.atom().version().unwrap()
+        self.cpv().version().unwrap()
     }
 }
 
@@ -42,7 +42,7 @@ macro_rules! make_pkg_traits {
     ($($x:ty),+) => {$(
         impl PartialEq for $x {
             fn eq(&self, other: &Self) -> bool {
-                self.repo() == other.repo() && self.atom() == other.atom()
+                self.repo() == other.repo() && self.cpv() == other.cpv()
             }
         }
 
@@ -51,7 +51,7 @@ macro_rules! make_pkg_traits {
         impl std::hash::Hash for $x {
             fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
                 self.repo().hash(state);
-                self.atom().hash(state);
+                self.cpv().hash(state);
             }
         }
 
@@ -63,7 +63,7 @@ macro_rules! make_pkg_traits {
 
         impl Ord for $x {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                crate::macros::cmp_not_equal!(self.atom(), other.atom());
+                crate::macros::cmp_not_equal!(self.cpv(), other.cpv());
                 self.repo().cmp(&other.repo())
             }
         }
@@ -71,13 +71,13 @@ macro_rules! make_pkg_traits {
         impl std::fmt::Display for $x {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 use crate::repo::Repository;
-                write!(f, "{}::{}", self.atom(), self.repo().id())
+                write!(f, "{}::{}", self.cpv(), self.repo().id())
             }
         }
 
         impl From<&$x> for crate::restrict::Restrict {
             fn from(pkg: &$x) -> Self {
-                let r1 = pkg.atom().into();
+                let r1 = pkg.cpv().into();
                 let r2 = crate::restrict::Restrict::Atom(pkg.repo().into());
                 crate::restrict::Restrict::and([r1, r2])
             }
@@ -89,10 +89,10 @@ pub(self) use make_pkg_traits;
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn atom(&self) -> &atom::Atom {
+    fn cpv(&self) -> &atom::Atom {
         match self {
-            Self::Ebuild(pkg, _) => pkg.atom(),
-            Self::Fake(pkg, _) => pkg.atom(),
+            Self::Ebuild(pkg, _) => pkg.cpv(),
+            Self::Fake(pkg, _) => pkg.cpv(),
         }
     }
 
@@ -163,7 +163,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for AtomRestrict {
         use AtomRestrict::*;
         match self {
             Repo(Some(r)) => r.matches(pkg.repo().id()),
-            r => r.matches(pkg.atom()),
+            r => r.matches(pkg.cpv()),
         }
     }
 }

@@ -428,8 +428,8 @@ impl Repo {
         cats
     }
 
-    /// Convert an ebuild path inside the repo into an Atom.
-    pub(crate) fn atom_from_path(&self, path: &Utf8Path) -> crate::Result<atom::Atom> {
+    /// Convert an ebuild path inside the repo into a CPV.
+    pub(crate) fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<atom::Atom> {
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
         };
@@ -683,7 +683,7 @@ impl<'a> PkgIter<'a> {
                 Ok(e) => {
                     let path = e.path();
                     match <&Utf8Path>::try_from(path) {
-                        Ok(p) => match repo.atom_from_path(p) {
+                        Ok(p) => match repo.cpv_from_path(p) {
                             Ok(a) => Some((p.to_path_buf(), a)),
                             Err(e) => {
                                 warn!("{}: {e}", repo.id);
@@ -703,7 +703,7 @@ impl<'a> PkgIter<'a> {
             }
         };
 
-        // return valid ebuild (path, atom) tuples in a category
+        // return valid ebuild (path, cpv) tuples in a category
         let category_ebuilds = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, atom::Atom)> {
             let mut paths: Vec<_> = WalkDir::new(path)
                 .min_depth(2)
@@ -718,7 +718,7 @@ impl<'a> PkgIter<'a> {
 
         Self {
             iter: match (cat, pkg, ver) {
-                // single atom restriction
+                // specific package restriction
                 (Some(cat), Some(pkg), Some(ver)) => {
                     let s = format!("{cat}/{pkg}-{ver}");
                     let cpv = atom::cpv(&s).expect("atom restrict failed");
@@ -748,7 +748,7 @@ impl<'a> PkgIter<'a> {
                             .map(|s| repo.path().join(s))
                             .filter(|p| p.exists())
                             .flat_map(category_ebuilds)
-                            .filter(move |(_, atom)| pkg_restrict.matches(atom)),
+                            .filter(move |(_, cpv)| pkg_restrict.matches(cpv)),
                     )
                 }
             },
@@ -761,8 +761,8 @@ impl<'a> Iterator for PkgIter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for (path, atom) in &mut self.iter {
-            match Pkg::new(path, atom, self.repo) {
+        for (path, cpv) in &mut self.iter {
+            match Pkg::new(path, cpv, self.repo) {
                 Ok(pkg) => return Some(pkg),
                 Err(e) => warn!("{} repo: {e}", self.repo.id),
             }
@@ -1015,7 +1015,7 @@ mod tests {
         let mut iter = repo.iter();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             let pkg = iter.next();
-            assert_eq!(pkg.map(|p| format!("{}", p.atom())), Some(cpv.to_string()));
+            assert_eq!(pkg.map(|p| format!("{}", p.cpv())), Some(cpv.to_string()));
         }
         assert!(iter.next().is_none());
     }
@@ -1030,20 +1030,20 @@ mod tests {
         // single match via CPV
         let cpv = atom::cpv("cat/pkg-1").unwrap();
         let iter = repo.iter_restrict(&cpv);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, [cpv.to_string()]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, [cpv.to_string()]);
 
         // single match via package
         let pkg = repo.iter().next().unwrap();
         let iter = repo.iter_restrict(&pkg);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, [pkg.atom().to_string()]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, [pkg.cpv().to_string()]);
 
         // multiple matches
         let restrict = AtomRestrict::package("pkg");
         let iter = repo.iter_restrict(restrict);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-1", "cat/pkg-2"]);
     }
 
     #[traced_test]

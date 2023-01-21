@@ -30,7 +30,7 @@ static EAPI_LINE_RE: Lazy<Regex> =
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     path: Utf8PathBuf,
-    atom: Atom,
+    cpv: Atom,
     eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata,
@@ -41,7 +41,7 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(path: Utf8PathBuf, atom: Atom, repo: &'a Repo) -> crate::Result<Self> {
+    pub(crate) fn new(path: Utf8PathBuf, cpv: Atom, repo: &'a Repo) -> crate::Result<Self> {
         let err = |e: Error| -> Error {
             Error::InvalidPkg {
                 path: relpath(&path, repo.path()).expect("invalid relative pkg path"),
@@ -51,13 +51,13 @@ impl<'a> Pkg<'a> {
 
         let eapi = Pkg::parse_eapi(&path).map_err(err)?;
         // TODO: compare ebuild mtime vs cache mtime
-        let meta = match Metadata::load(&atom, eapi, repo) {
+        let meta = match Metadata::load(&cpv, eapi, repo) {
             Some(data) => data,
-            None => Metadata::source(&atom, &path, eapi, repo).map_err(err)?,
+            None => Metadata::source(&cpv, &path, eapi, repo).map_err(err)?,
         };
         Ok(Pkg {
             path,
-            atom,
+            cpv,
             eapi,
             repo,
             meta,
@@ -194,7 +194,7 @@ impl<'a> Pkg<'a> {
     /// Return a package's XML metadata.
     fn xml(&self) -> &XmlMetadata {
         self.xml
-            .get_or_init(|| self.repo.pkg_xml(&self.atom))
+            .get_or_init(|| self.repo.pkg_xml(&self.cpv))
             .as_ref()
     }
 
@@ -221,7 +221,7 @@ impl<'a> Pkg<'a> {
     /// Return a package's manifest.
     fn manifest(&self) -> &Manifest {
         self.manifest
-            .get_or_init(|| self.repo.pkg_manifest(&self.atom))
+            .get_or_init(|| self.repo.pkg_manifest(&self.cpv))
             .as_ref()
     }
 
@@ -241,8 +241,8 @@ impl AsRef<Utf8Path> for Pkg<'_> {
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn atom(&self) -> &Atom {
-        &self.atom
+    fn cpv(&self) -> &Atom {
+        &self.cpv
     }
 
     fn eapi(&self) -> &'static Eapi {
@@ -319,8 +319,8 @@ mod tests {
         // temp repo ebuild creation defaults to the latest EAPI
         assert_eq!(pkg1.eapi(), *eapi::EAPI_LATEST);
         assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
-        assert_eq!(pkg1.atom(), &atom::cpv("cat/pkg-1").unwrap());
-        assert_eq!(pkg2.atom(), &atom::cpv("cat/pkg-2").unwrap());
+        assert_eq!(pkg1.cpv(), &atom::cpv("cat/pkg-1").unwrap());
+        assert_eq!(pkg2.cpv(), &atom::cpv("cat/pkg-2").unwrap());
 
         // repo attribute allows recursion
         assert_eq!(pkg1.repo(), pkg2.repo());

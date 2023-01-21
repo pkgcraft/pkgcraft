@@ -188,7 +188,7 @@ impl<'a> Iterator for PkgIter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|a| Pkg::new(a, self.repo))
+        self.iter.next().map(|cpv| Pkg::new(cpv, self.repo))
     }
 }
 
@@ -277,18 +277,18 @@ mod tests {
     #[test]
     fn test_extend() {
         let mut repo = Repo::new("fake", 0, ["cat/pkg-2"]);
-        let atoms: Vec<_> = repo.iter().map(|pkg| pkg.atom().cpv()).collect();
-        assert_eq!(atoms, ["cat/pkg-2"]);
+        let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-2"]);
 
         // add single cpv
         repo.extend(["cat/pkg-0"]);
-        let atoms: Vec<_> = repo.iter().map(|pkg| pkg.atom().cpv()).collect();
-        assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-2"]);
+        let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-0", "cat/pkg-2"]);
 
         // add multiple cpvs
         repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]);
-        let atoms: Vec<_> = repo.iter().map(|pkg| pkg.atom().cpv()).collect();
-        assert_eq!(atoms, ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]);
+        let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]);
     }
 
     #[test]
@@ -315,7 +315,7 @@ mod tests {
     fn test_iter() {
         let expected = ["cat/pkg-0", "acat/bpkg-1"];
         let repo = Repo::new("fake", 0, expected);
-        let atoms: Vec<_> = repo.iter().map(|pkg| pkg.atom().cpv()).collect();
-        assert_eq!(atoms, ["acat/bpkg-1", "cat/pkg-0"]);
+        let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["acat/bpkg-1", "cat/pkg-0"]);
     }
 }

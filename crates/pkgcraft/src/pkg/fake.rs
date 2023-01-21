@@ -8,16 +8,16 @@ use super::{make_pkg_traits, Package};
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
-    atom: Atom,
+    cpv: Atom,
     repo: &'a Repo,
 }
 
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(atom: &'a Atom, repo: &'a Repo) -> Self {
+    pub(crate) fn new(cpv: &'a Atom, repo: &'a Repo) -> Self {
         Pkg {
-            atom: atom.clone(),
+            cpv: cpv.clone(),
             repo,
         }
     }
@@ -26,8 +26,8 @@ impl<'a> Pkg<'a> {
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn atom(&self) -> &Atom {
-        &self.atom
+    fn cpv(&self) -> &Atom {
+        &self.cpv
     }
 
     fn eapi(&self) -> &'static eapi::Eapi {
@@ -54,7 +54,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for AtomRestrict {
         use AtomRestrict::*;
         match self {
             Repo(Some(r)) => r.matches(pkg.repo().id()),
-            r => r.matches(pkg.atom()),
+            r => r.matches(pkg.cpv()),
         }
     }
 }

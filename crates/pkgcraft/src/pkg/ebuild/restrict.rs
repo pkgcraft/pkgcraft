@@ -61,7 +61,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for AtomRestrict {
             Slot(Some(r)) => r.matches(pkg.slot()),
             Subslot(Some(r)) => r.matches(pkg.subslot()),
             Repo(Some(r)) => r.matches(pkg.repo().id()),
-            r => r.matches(pkg.atom()),
+            r => r.matches(pkg.cpv()),
         }
     }
 }
@@ -293,13 +293,13 @@ mod tests {
 
         // verify repo restrictions
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-2"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-2"]);
 
         let r = Restrict::Ebuild(StrRestrict::regex("SLOT=").unwrap());
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-1", "cat/pkg-2"]);
     }
 
     #[test]
@@ -322,13 +322,13 @@ mod tests {
 
         // verify repo restrictions
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-2"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-2"]);
 
         let r = Restrict::Description(StrRestrict::regex("desc").unwrap());
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-1", "cat/pkg-2"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-1", "cat/pkg-2"]);
     }
 
     #[test]
@@ -348,13 +348,13 @@ mod tests {
 
         // verify repo restrictions
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-1"]);
 
         let r = Restrict::Slot(StrRestrict::regex("0|1").unwrap());
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-0", "cat/pkg-1"]);
     }
 
     #[test]
@@ -380,13 +380,13 @@ mod tests {
 
         // verify repo restrictions
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-1"]);
 
         let r = Restrict::Subslot(StrRestrict::regex("0|2").unwrap());
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-0", "cat/pkg-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-0", "cat/pkg-1"]);
     }
 
     #[test]
@@ -420,8 +420,8 @@ mod tests {
 
         // single repo match
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-b-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-b-1"]);
 
         let (path, _) = t.create_ebuild("cat/pkg-c-1", []).unwrap();
         let data = indoc::indoc! {r#"
@@ -438,8 +438,8 @@ mod tests {
         // multiple repo matches
         let r = Restrict::LongDescription(Some(StrRestrict::regex("desc").unwrap()));
         let iter = repo.iter_restrict(r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-b-1", "cat/pkg-c-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-b-1", "cat/pkg-c-1"]);
     }
 
     #[test]
@@ -485,13 +485,13 @@ mod tests {
         // pkgs with no maintainers
         let r: BaseRestrict = Restrict::Maintainers(None).into();
         let iter = repo.iter_restrict(r.clone());
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["noxml/pkg-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["noxml/pkg-1"]);
 
         // pkgs with maintainers
         let iter = repo.iter_restrict(!r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-a-1", "cat/pkg-b-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-a-1", "cat/pkg-b-1"]);
     }
 
     #[test]
@@ -532,12 +532,12 @@ mod tests {
         // pkgs with no upstreams
         let r: BaseRestrict = Restrict::Upstreams(None).into();
         let iter = repo.iter_restrict(r.clone());
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["noxml/pkg-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["noxml/pkg-1"]);
 
         // pkgs with upstreams
         let iter = repo.iter_restrict(!r);
-        let atoms: Vec<_> = iter.map(|p| p.atom().to_string()).collect();
-        assert_eq!(atoms, ["cat/pkg-a-1", "cat/pkg-b-1"]);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-a-1", "cat/pkg-b-1"]);
     }
 }

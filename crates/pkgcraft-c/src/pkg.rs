@@ -37,14 +37,14 @@ pub unsafe extern "C" fn pkgcraft_pkg_format(p: *mut Pkg) -> PkgFormat {
     pkg.into()
 }
 
-/// Return a package's atom.
+/// Return a package's CPV.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_atom(p: *mut Pkg) -> *mut Atom {
+pub unsafe extern "C" fn pkgcraft_pkg_cpv(p: *mut Pkg) -> *mut Atom {
     let pkg = null_ptr_check!(p.as_ref());
-    Box::into_raw(Box::new(pkg.atom().clone()))
+    Box::into_raw(Box::new(pkg.cpv().clone()))
 }
 
 /// Return a package's repo.
