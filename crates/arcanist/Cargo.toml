@@ -19,10 +19,10 @@ config = { version = "0.13", default-features = false, features = ["toml"] }
 futures = "0.3.16"
 pkgcraft = { path = "../pkgcraft", version = "0.0.5" }
 prost = "0.11"
-regex = "1"
+regex = "1.7.0"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0.26"
-tokio = { version = "1.14", features = ["full"] }
+tokio = { version = "1.24", features = ["full"] }
 tokio-stream = { version = "0.1.7", features = ["net"] }
 tonic = { version = "0.8.0", features = ["tls", "gzip"] }
 url = "2"
