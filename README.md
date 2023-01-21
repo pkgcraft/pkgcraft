@@ -1,4 +1,4 @@
-[![CI](https://github.com/pkgcraft/pkgcraft/workflows/CI/badge.svg)](https://github.com/pkgcraft/pkgcraft/actions/workflows/ci.yml)
+[![ci](https://github.com/pkgcraft/pkgcraft/workflows/ci/badge.svg)](https://github.com/pkgcraft/pkgcraft/actions/workflows/ci.yml)
 
 # Pkgcraft
 
