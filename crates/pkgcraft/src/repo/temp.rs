@@ -4,7 +4,8 @@ use std::{env, fs};
 use camino::{Utf8Path, Utf8PathBuf};
 use tempfile::TempDir;
 
-use crate::{atom, eapi, Error};
+use crate::atom::Atom;
+use crate::{eapi, Error};
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
@@ -44,16 +45,12 @@ impl Repo {
     }
 
     /// Create an ebuild file in the repo.
-    pub fn create_ebuild<'a, I>(
-        &self,
-        cpv: &str,
-        data: I,
-    ) -> crate::Result<(Utf8PathBuf, atom::Atom)>
+    pub fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<(Utf8PathBuf, Atom)>
     where
         I: IntoIterator<Item = (crate::pkgsh::metadata::Key, &'a str)>,
     {
         use crate::pkgsh::metadata::Key::*;
-        let cpv = atom::cpv(cpv)?;
+        let cpv = Atom::new_cpv(cpv)?;
         let path = self.path.join(format!(
             "{}/{}-{}.ebuild",
             cpv.cpn(),
@@ -90,12 +87,8 @@ impl Repo {
     }
 
     /// Create an ebuild file in the repo from raw data.
-    pub fn create_ebuild_raw(
-        &self,
-        cpv: &str,
-        data: &str,
-    ) -> crate::Result<(Utf8PathBuf, atom::Atom)> {
-        let cpv = atom::cpv(cpv)?;
+    pub fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<(Utf8PathBuf, Atom)> {
+        let cpv = Atom::new_cpv(cpv)?;
         let path = self.path.join(format!(
             "{}/{}-{}.ebuild",
             cpv.cpn(),

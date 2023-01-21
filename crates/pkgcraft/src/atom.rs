@@ -4,7 +4,6 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
-use cached::{proc_macro::cached, SizedCache};
 use strum::{AsRefStr, Display, EnumString};
 
 use self::version::ParsedVersion;
@@ -111,18 +110,6 @@ impl Hash for Atom {
     }
 }
 
-#[cached(
-    type = "SizedCache<String, crate::Result<Atom>>",
-    create = "{ SizedCache::with_size(1000) }",
-    convert = r#"{ s.to_string() }"#
-)]
-/// Create a new Atom from a given CPV string (e.g. cat/pkg-1).
-pub fn cpv(s: &str) -> crate::Result<Atom> {
-    let mut atom = parse::cpv(s)?;
-    atom.version_str = Some(s);
-    atom.into_owned(s)
-}
-
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
 type AtomKey<'a> = (
     &'a str,
@@ -145,13 +132,18 @@ impl Atom {
 
     /// Verify a string represents a valid atom.
     pub fn valid_cpv(s: &str) -> crate::Result<()> {
-        parse::cpv(s)?;
+        parse::cpv_str(s)?;
         Ok(())
     }
 
     /// Create a new Atom from a given string.
     pub fn new<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<Self> {
         parse::dep(s, eapi.into_eapi()?)
+    }
+
+    /// Create a new Atom from a given CPV string (e.g. cat/pkg-1).
+    pub fn new_cpv(s: &str) -> crate::Result<Self> {
+        parse::cpv(s)
     }
 
     /// Determine if two atoms intersect ignoring blockers.
@@ -485,7 +477,7 @@ mod tests {
     #[test]
     fn test_intersects() {
         // convert string to CPV falling back to regular atom
-        let parse = |s: &str| -> Atom { cpv(s).or_else(|_| Atom::from_str(s)).unwrap() };
+        let parse = |s: &str| -> Atom { Atom::new_cpv(s).or_else(|_| Atom::from_str(s)).unwrap() };
 
         // convert string to non-op version falling back to op-ed version
         let ver_parse = |s: &str| -> Version {

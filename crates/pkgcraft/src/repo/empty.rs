@@ -109,7 +109,7 @@ impl Repository for Repo {
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom;
+    use crate::atom::Atom;
     use crate::repo::Contains;
 
     use super::*;
@@ -122,11 +122,11 @@ mod tests {
         assert!(!repo.contains("cat/pkg"));
 
         // cpv containment
-        let cpv = atom::cpv("cat/pkg-0").unwrap();
+        let cpv = Atom::new_cpv("cat/pkg-0").unwrap();
         assert!(!repo.contains(&cpv));
 
         // atom containment
-        let a = atom::Atom::from_str("cat/pkg").unwrap();
+        let a = Atom::from_str("cat/pkg").unwrap();
         assert!(!repo.contains(&a));
     }
 

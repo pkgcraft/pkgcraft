@@ -260,7 +260,7 @@ impl SubAssign<&Repo> for RepoSet {
 
 #[cfg(test)]
 mod tests {
-    use crate::atom;
+    use crate::atom::Atom;
     use crate::config::Config;
     use crate::pkg::Package;
     use crate::repo::{fake, Contains, Repository};
@@ -322,7 +322,7 @@ mod tests {
 
         let e_repo: Repo = ebuild_repo.into();
         let f_repo: Repo = fake_repo.into();
-        let cpv = atom::cpv("cat/pkg-1").unwrap();
+        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
 
         // empty repo set
         let s = RepoSet::new([]);
@@ -376,10 +376,10 @@ mod tests {
         let r2: Repo = fake::Repo::new("2", 0, ["cat/pkg-2"]).into();
         let r3: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).into();
         let r4: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).into();
-        let cpv1 = atom::cpv("cat/pkg-1").unwrap();
-        let cpv2 = atom::cpv("cat/pkg-2").unwrap();
-        let cpv3 = atom::cpv("cat/pkg-3").unwrap();
-        let cpv4 = atom::cpv("cat/pkg-3").unwrap();
+        let cpv1 = Atom::new_cpv("cat/pkg-1").unwrap();
+        let cpv2 = Atom::new_cpv("cat/pkg-2").unwrap();
+        let cpv3 = Atom::new_cpv("cat/pkg-3").unwrap();
+        let cpv4 = Atom::new_cpv("cat/pkg-3").unwrap();
 
         let mut s = RepoSet::new([]);
         assert!(!s.contains(&cpv1));

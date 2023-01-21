@@ -256,7 +256,6 @@ impl<'a> Package for Pkg<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::atom;
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::repo::PkgRepository;
@@ -319,8 +318,8 @@ mod tests {
         // temp repo ebuild creation defaults to the latest EAPI
         assert_eq!(pkg1.eapi(), *eapi::EAPI_LATEST);
         assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
-        assert_eq!(pkg1.cpv(), &atom::cpv("cat/pkg-1").unwrap());
-        assert_eq!(pkg2.cpv(), &atom::cpv("cat/pkg-2").unwrap());
+        assert_eq!(pkg1.cpv(), &Atom::new_cpv("cat/pkg-1").unwrap());
+        assert_eq!(pkg2.cpv(), &Atom::new_cpv("cat/pkg-2").unwrap());
 
         // repo attribute allows recursion
         assert_eq!(pkg1.repo(), pkg2.repo());

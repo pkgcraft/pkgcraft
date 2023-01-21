@@ -238,8 +238,19 @@ pub fn repo(s: &str) -> crate::Result<()> {
     Ok(())
 }
 
-pub(crate) fn cpv(s: &str) -> crate::Result<ParsedAtom> {
+pub(crate) fn cpv_str(s: &str) -> crate::Result<ParsedAtom> {
     pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s}"), s, e))
+}
+
+#[cached(
+    type = "SizedCache<String, crate::Result<Atom>>",
+    create = "{ SizedCache::with_size(1000) }",
+    convert = r#"{ s.to_string() }"#
+)]
+pub(crate) fn cpv(s: &str) -> crate::Result<Atom> {
+    let mut cpv = cpv_str(s)?;
+    cpv.version_str = Some(s);
+    cpv.into_owned(s)
 }
 
 pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {

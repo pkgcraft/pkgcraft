@@ -149,15 +149,13 @@ impl From<&Atom> for BaseRestrict {
 
 #[cfg(test)]
 mod tests {
-    use crate::atom::cpv;
-
     use super::*;
 
     #[test]
     fn test_restrict_methods() {
         let unversioned = Atom::from_str("cat/pkg").unwrap();
         let blocker = Atom::from_str("!cat/pkg").unwrap();
-        let cpv = cpv("cat/pkg-1").unwrap();
+        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
         let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
@@ -262,7 +260,7 @@ mod tests {
     #[test]
     fn test_restrict_conversion() {
         let unversioned = Atom::from_str("cat/pkg").unwrap();
-        let cpv = cpv("cat/pkg-1").unwrap();
+        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
         let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // unversioned restriction
@@ -294,8 +292,8 @@ mod tests {
         let ge = Atom::from_str(">=cat/pkg-1-r1").unwrap();
         let gt = Atom::from_str(">cat/pkg-1-r1").unwrap();
 
-        let lt_cpv = cpv("cat/pkg-0").unwrap();
-        let gt_cpv = cpv("cat/pkg-2").unwrap();
+        let lt_cpv = Atom::new_cpv("cat/pkg-0").unwrap();
+        let gt_cpv = Atom::new_cpv("cat/pkg-2").unwrap();
 
         let r = BaseRestrict::from(&lt);
         assert!(r.matches(&lt_cpv));
@@ -316,7 +314,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&eq_glob));
         for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
-            let cpv = cpv(s).unwrap();
+            let cpv = Atom::new_cpv(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));
@@ -324,7 +322,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&approx));
         for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
-            let cpv = cpv(s).unwrap();
+            let cpv = Atom::new_cpv(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));

@@ -77,7 +77,7 @@ pub unsafe extern "C" fn pkgcraft_parse_repo(s: *const c_char) -> *const c_char 
     s
 }
 
-/// Parse an atom cpv string.
+/// Parse a CPV string.
 ///
 /// Returns NULL on error.
 ///

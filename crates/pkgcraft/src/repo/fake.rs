@@ -5,7 +5,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
-use crate::atom::{self, Atom};
+use crate::atom::Atom;
 use crate::config::RepoConfig;
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
@@ -71,7 +71,7 @@ impl<'a> Extend<&'a str> for Repo {
     fn extend<T: IntoIterator<Item = &'a str>>(&mut self, iter: T) {
         let orig_len = self.cpvs.len();
         for s in iter {
-            match atom::cpv(s) {
+            match Atom::new_cpv(s) {
                 Ok(cpv) => {
                     self.cpvs.insert(cpv);
                 }
@@ -299,9 +299,9 @@ mod tests {
         assert!(!repo.contains("cat/pkg"));
 
         // cpv containment
-        let cpv = atom::cpv("cat/pkg-0").unwrap();
+        let cpv = Atom::new_cpv("cat/pkg-0").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = atom::cpv("cat/pkg-1").unwrap();
+        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
         assert!(!repo.contains(&cpv));
 
         // atom containment

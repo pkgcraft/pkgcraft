@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int, CStr, CString};
 use std::ptr;
 use std::str::FromStr;
 
-use pkgcraft::atom::{self, Atom, Blocker, SlotOperator};
+use pkgcraft::atom::{Atom, Blocker, SlotOperator};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
@@ -22,11 +22,11 @@ pub mod version;
 /// # Safety
 /// The atom argument should be a UTF-8 string while eapi may be NULL to use the default EAPI.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_atom_new(atom: *const c_char, eapi: *const Eapi) -> *mut Atom {
-    let atom = null_ptr_check!(atom.as_ref());
-    let atom = unsafe { unwrap_or_return!(CStr::from_ptr(atom).to_str(), ptr::null_mut()) };
+pub unsafe extern "C" fn pkgcraft_atom_new(s: *const c_char, eapi: *const Eapi) -> *mut Atom {
+    let s = null_ptr_check!(s.as_ref());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
     let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
-    let atom = unwrap_or_return!(Atom::new(atom, eapi), ptr::null_mut());
+    let atom = unwrap_or_return!(Atom::new(s, eapi), ptr::null_mut());
     Box::into_raw(Box::new(atom))
 }
 
@@ -39,9 +39,9 @@ pub unsafe extern "C" fn pkgcraft_atom_new(atom: *const c_char, eapi: *const Eap
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Atom {
     let s = null_ptr_check!(s.as_ref());
-    let atom = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let atom = unwrap_or_return!(atom::cpv(atom), ptr::null_mut());
-    Box::into_raw(Box::new(atom))
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
+    let cpv = unwrap_or_return!(Atom::new_cpv(s), ptr::null_mut());
+    Box::into_raw(Box::new(cpv))
 }
 
 /// Parse a string into a Blocker.
