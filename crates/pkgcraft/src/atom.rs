@@ -7,7 +7,7 @@ use std::str::FromStr;
 use strum::{AsRefStr, Display, EnumString};
 
 use self::version::ParsedVersion;
-pub use self::version::Version;
+pub use self::version::{Revision, Version};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::bool_not_equal;
 use crate::set::OrderedSet;
@@ -209,7 +209,7 @@ impl Atom {
     }
 
     /// Return an atom's revision.
-    pub fn revision(&self) -> Option<&version::Revision> {
+    pub fn revision(&self) -> Option<&Revision> {
         self.version.as_ref().map(|v| v.revision())
     }
 

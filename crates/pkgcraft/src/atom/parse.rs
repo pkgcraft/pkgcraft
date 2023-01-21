@@ -214,7 +214,7 @@ pub fn package(s: &str) -> crate::Result<()> {
     Ok(())
 }
 
-pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
+pub(super) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
     pkg::version(s).map_err(|e| peg_error(format!("invalid version: {s}"), s, e))
 }
 
@@ -223,11 +223,11 @@ pub(crate) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ s.to_string() }"#
 )]
-pub(crate) fn version(s: &str) -> crate::Result<Version> {
+pub(super) fn version(s: &str) -> crate::Result<Version> {
     version_str(s)?.into_owned(s)
 }
 
-pub(crate) fn version_with_op(s: &str) -> crate::Result<Version> {
+pub(super) fn version_with_op(s: &str) -> crate::Result<Version> {
     let ver =
         pkg::version_with_op(s).map_err(|e| peg_error(format!("invalid version: {s}"), s, e))?;
     ver.into_owned(s)
@@ -238,7 +238,7 @@ pub fn repo(s: &str) -> crate::Result<()> {
     Ok(())
 }
 
-pub(crate) fn cpv_str(s: &str) -> crate::Result<ParsedAtom> {
+pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedAtom> {
     pkg::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s}"), s, e))
 }
 
@@ -247,13 +247,13 @@ pub(crate) fn cpv_str(s: &str) -> crate::Result<ParsedAtom> {
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ s.to_string() }"#
 )]
-pub(crate) fn cpv(s: &str) -> crate::Result<Atom> {
+pub(super) fn cpv(s: &str) -> crate::Result<Atom> {
     let mut cpv = cpv_str(s)?;
     cpv.version_str = Some(s);
     cpv.into_owned(s)
 }
 
-pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
+pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
     let (dep, mut atom) =
         pkg::dep(s, eapi).map_err(|e| peg_error(format!("invalid atom: {s}"), s, e))?;
     match pkg::cpv_with_op(dep) {
@@ -286,7 +286,7 @@ pub(crate) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
-pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
+pub(super) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
     let atom = dep_str(s, eapi)?;
     atom.into_owned(s)
 }

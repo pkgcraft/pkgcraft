@@ -7,9 +7,10 @@ use once_cell::sync::Lazy;
 use serde::{de, Deserialize, Deserializer};
 use serde_with::{serde_as, DisplayFromStr};
 
+use crate::atom::{Blocker, Revision, SlotOperator, Version};
 use crate::macros::build_from_paths;
 use crate::set::OrderedSet;
-use crate::{atom, Error};
+use crate::Error;
 
 static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
     Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "toml"));
@@ -22,25 +23,25 @@ pub(crate) struct ValidAtom {
     pub(crate) category: String,
     pub(crate) package: String,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub(crate) blocker: Option<atom::Blocker>,
-    pub(crate) version: Option<atom::Version>,
+    pub(crate) blocker: Option<Blocker>,
+    pub(crate) version: Option<Version>,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub(crate) revision: Option<atom::version::Revision>,
+    pub(crate) revision: Option<Revision>,
     pub(crate) slot: Option<String>,
     pub(crate) subslot: Option<String>,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub(crate) slot_op: Option<atom::SlotOperator>,
+    pub(crate) slot_op: Option<SlotOperator>,
     #[serde(rename = "use")]
     pub(crate) use_deps: Option<OrderedSet<String>>,
 }
 
-impl<'de> Deserialize<'de> for atom::Version {
+impl<'de> Deserialize<'de> for Version {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s: &str = Deserialize::deserialize(deserializer)?;
-        atom::parse::version_with_op(s).map_err(de::Error::custom)
+        Version::new_with_op(s).map_err(de::Error::custom)
     }
 }
 
