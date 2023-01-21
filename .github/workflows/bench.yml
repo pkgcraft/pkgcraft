@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '37 6 13 * *'
   push:
-    branches: [main, bench]
+    branches: [bench]
     paths:
       - "crates/*/benches/**"
       - ".github/workflows/bench.yml"
