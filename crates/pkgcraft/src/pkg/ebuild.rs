@@ -112,14 +112,13 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, keys: &[Key]) -> DepSet<Atom> {
+    pub fn dependencies(&self, mut keys: &[Key]) -> DepSet<Atom> {
         use Key::*;
 
         // default to all dependency types in lexical order if no keys are passed
-        let keys = match keys.len() {
-            0 => &[Bdepend, Depend, Idepend, Pdepend, Rdepend],
-            _ => keys,
-        };
+        if keys.is_empty() {
+            keys = &[Bdepend, Depend, Idepend, Pdepend, Rdepend];
+        }
 
         keys.iter()
             .filter_map(|k| match k {
