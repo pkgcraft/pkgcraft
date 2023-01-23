@@ -115,19 +115,19 @@ impl<'a> Pkg<'a> {
     pub fn dependencies(&self, keys: &[Key]) -> DepSet<Atom> {
         use Key::*;
 
-        // default to all dependencies if no keys are passed
+        // default to all dependency types in lexical order if no keys are passed
         let keys = match keys.len() {
-            0 => &[Depend, Bdepend, Rdepend, Pdepend, Idepend],
+            0 => &[Bdepend, Depend, Idepend, Pdepend, Rdepend],
             _ => keys,
         };
 
         keys.iter()
             .filter_map(|k| match k {
-                Depend => self.depend(),
                 Bdepend => self.bdepend(),
-                Rdepend => self.rdepend(),
-                Pdepend => self.pdepend(),
+                Depend => self.depend(),
                 Idepend => self.idepend(),
+                Pdepend => self.pdepend(),
+                Rdepend => self.rdepend(),
                 // non-dependency metadata keys are ignored
                 _ => None,
             })
@@ -136,14 +136,14 @@ impl<'a> Pkg<'a> {
             .collect()
     }
 
-    /// Return a package's DEPEND.
-    pub fn depend(&self) -> Option<&DepSet<Atom>> {
-        self.meta.deps(Key::Depend)
-    }
-
     /// Return a package's BDEPEND.
     pub fn bdepend(&self) -> Option<&DepSet<Atom>> {
         self.meta.deps(Key::Bdepend)
+    }
+
+    /// Return a package's DEPEND.
+    pub fn depend(&self) -> Option<&DepSet<Atom>> {
+        self.meta.deps(Key::Depend)
     }
 
     /// Return a package's IDEPEND.
