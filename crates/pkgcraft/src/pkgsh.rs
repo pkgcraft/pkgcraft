@@ -27,7 +27,7 @@ pub(crate) mod test;
 mod unescape;
 mod utils;
 
-use metadata::Key;
+pub use metadata::Key;
 
 struct Stdin {
     inner: io::Stdin,

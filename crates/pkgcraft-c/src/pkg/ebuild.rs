@@ -1,7 +1,9 @@
-use std::ffi::{c_char, CString};
-use std::{mem, ptr};
+use std::ffi::{c_char, CStr, CString};
+use std::str::FromStr;
+use std::{mem, ptr, slice};
 
 use pkgcraft::pkg::Pkg;
+use pkgcraft::pkgsh::Key;
 
 use crate::depset::DepSet;
 use crate::error::Error;
@@ -106,6 +108,35 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_subslot(p: *mut Pkg) -> *mut c_char
     let pkg = null_ptr_check!(p.as_ref());
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     CString::new(pkg.subslot()).unwrap().into_raw()
+}
+
+/// Return a package's dependencies for a given set of descriptors.
+///
+/// # Safety
+/// The argument must be a non-null Pkg pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
+    p: *mut Pkg,
+    keys: *mut *mut c_char,
+    len: usize,
+) -> *mut DepSet {
+    let pkg = null_ptr_check!(p.as_ref());
+    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+
+    let keys = unsafe { slice::from_raw_parts(keys, len) };
+    let mut dep_keys = Vec::<Key>::new();
+    for s in keys {
+        let s = null_ptr_check!(s.as_ref());
+        let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
+        let key = unwrap_or_return!(
+            Key::from_str(s).map_err(|_| Error::new(format!("invalid dep key: {s}"))),
+            ptr::null_mut()
+        );
+        dep_keys.push(key);
+    }
+
+    let deps = pkg.dependencies(&dep_keys);
+    Box::into_raw(Box::new(DepSet::Atom(deps)))
 }
 
 /// Return a package's DEPEND.

@@ -111,6 +111,31 @@ impl<'a> Pkg<'a> {
         self.meta.subslot().unwrap_or_else(|| self.slot())
     }
 
+    /// Return a package's dependencies for a given iterable of descriptors.
+    pub fn dependencies(&self, keys: &[Key]) -> DepSet<Atom> {
+        use Key::*;
+
+        // default to all dependencies if no keys are passed
+        let keys = match keys.len() {
+            0 => &[Depend, Bdepend, Rdepend, Pdepend, Idepend],
+            _ => keys,
+        };
+
+        keys.iter()
+            .filter_map(|k| match k {
+                Depend => self.depend(),
+                Bdepend => self.bdepend(),
+                Rdepend => self.rdepend(),
+                Pdepend => self.pdepend(),
+                Idepend => self.idepend(),
+                // non-dependency metadata keys are ignored
+                _ => None,
+            })
+            .flatten()
+            .cloned()
+            .collect()
+    }
+
     /// Return a package's DEPEND.
     pub fn depend(&self) -> Option<&DepSet<Atom>> {
         self.meta.deps(Key::Depend)
