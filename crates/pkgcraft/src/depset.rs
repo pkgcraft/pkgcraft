@@ -178,15 +178,16 @@ impl<T: Ordered> IntoIteratorFlatten for DepRestrict<T> {
 
 impl<T: fmt::Display + Ordered> fmt::Display for DepRestrict<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use DepRestrict::*;
         match self {
-            Self::Matches(val, true) => write!(f, "{val}"),
-            Self::Matches(val, false) => write!(f, "!{val}"),
-            Self::AllOf(vals) => write!(f, "( {} )", p!(vals)),
-            Self::AnyOf(vals) => write!(f, "|| ( {} )", p!(vals)),
-            Self::ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p!(vals)),
-            Self::AtMostOneOf(vals) => write!(f, "?? ( {} )", p!(vals)),
-            Self::UseEnabled(s, vals) => write!(f, "{s}? ( {} )", p!(vals)),
-            Self::UseDisabled(s, vals) => write!(f, "!{s}? ( {} )", p!(vals)),
+            Matches(val, true) => write!(f, "{val}"),
+            Matches(val, false) => write!(f, "!{val}"),
+            AllOf(vals) => write!(f, "( {} )", p!(vals)),
+            AnyOf(vals) => write!(f, "|| ( {} )", p!(vals)),
+            ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p!(vals)),
+            AtMostOneOf(vals) => write!(f, "?? ( {} )", p!(vals)),
+            UseEnabled(s, vals) => write!(f, "{s}? ( {} )", p!(vals)),
+            UseDisabled(s, vals) => write!(f, "!{s}? ( {} )", p!(vals)),
         }
     }
 }
