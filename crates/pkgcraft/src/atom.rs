@@ -22,7 +22,7 @@ pub(crate) mod version;
 )]
 pub enum Blocker {
     #[strum(serialize = "!!")]
-    Strong,
+    Strong = 1,
     #[strum(serialize = "!")]
     Weak,
 }
@@ -33,7 +33,7 @@ pub enum Blocker {
 )]
 pub enum SlotOperator {
     #[strum(serialize = "=")]
-    Equal,
+    Equal = 1,
     #[strum(serialize = "*")]
     Star,
 }
