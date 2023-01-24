@@ -47,9 +47,15 @@ impl AsRef<str> for Uri {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DepSet<T: Ordered>(SortedSet<DepRestrict<T>>);
 
+macro_rules! p {
+    ($x:expr) => {
+        $x.into_iter().map(|x| x.to_string()).join(" ")
+    };
+}
+
 impl<T: fmt::Display + Ordered> fmt::Display for DepSet<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0.iter().map(|x| x.to_string()).join(" "))
+        write!(f, "{}", p!(&self.0))
     }
 }
 
@@ -168,12 +174,6 @@ impl<T: Ordered> IntoIteratorFlatten for DepRestrict<T> {
     fn into_iter_flatten(self) -> Self::IntoIter {
         DepSetIntoIterFlatten([self].into_iter().collect())
     }
-}
-
-macro_rules! p {
-    ($x:expr) => {
-        $x.into_iter().map(|x| x.to_string()).join(" ")
-    };
 }
 
 impl<T: fmt::Display + Ordered> fmt::Display for DepRestrict<T> {
