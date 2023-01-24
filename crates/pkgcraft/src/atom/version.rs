@@ -238,7 +238,7 @@ impl Version {
     }
 
     /// Return a version's operator, if one exists.
-    pub(crate) fn op(&self) -> Option<Operator> {
+    pub fn op(&self) -> Option<Operator> {
         self.op
     }
 
