@@ -109,6 +109,7 @@ jobs:
     secrets: inherit
     with:
       python-version: '3.x'
+      event-type: 'call'
 
   pkgcraft-go:
     needs: build
@@ -116,6 +117,7 @@ jobs:
     secrets: inherit
     with:
       go-version: 'stable'
+      event-type: 'call'
 
   pkgcraft-perl:
     needs: build
@@ -123,3 +125,4 @@ jobs:
     secrets: inherit
     with:
       perl-version: '5'
+      event-type: 'call'
