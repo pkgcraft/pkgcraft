@@ -83,7 +83,7 @@ pub unsafe extern "C" fn pkgcraft_config_repos(
 ) -> *mut *const Repo {
     // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
     let config = null_ptr_check!(config.as_ref());
-    iter_to_array!(config.repos.iter(), len, |(_, r)| { r as *const _ })
+    iter_to_array!(config.repos.into_iter(), len, |(_, r)| { r as *const _ })
 }
 
 /// Return the RepoSet for a given set type.

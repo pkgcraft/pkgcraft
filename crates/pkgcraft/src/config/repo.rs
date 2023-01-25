@@ -264,10 +264,6 @@ impl Config {
         }
     }
 
-    pub fn iter(&self) -> ReposIter {
-        self.into_iter()
-    }
-
     /// Get a configured repo.
     pub fn get(&self, key: &str) -> Option<&Repo> {
         self.repos.get(key)
