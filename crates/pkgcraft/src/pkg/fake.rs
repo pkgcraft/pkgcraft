@@ -1,8 +1,9 @@
 use crate::atom::Atom;
+use crate::eapi::{Eapi, EAPI_LATEST};
+use crate::pkg;
 use crate::repo::{fake::Repo, Repository};
 use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
-use crate::{eapi, pkg};
 
 use super::{make_pkg_traits, Package};
 
@@ -16,7 +17,7 @@ make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(cpv: &'a Atom, repo: &'a Repo) -> Self {
-        Pkg {
+        Self {
             cpv: cpv.clone(),
             repo,
         }
@@ -30,8 +31,8 @@ impl<'a> Package for Pkg<'a> {
         &self.cpv
     }
 
-    fn eapi(&self) -> &'static eapi::Eapi {
-        &eapi::EAPI_LATEST
+    fn eapi(&self) -> &'static Eapi {
+        &EAPI_LATEST
     }
 
     fn repo(&self) -> Self::Repo {
