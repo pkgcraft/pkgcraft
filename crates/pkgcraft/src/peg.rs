@@ -27,7 +27,7 @@ impl fmt::Display for Error {
             // don't prefix error messages
             s.strip_prefix("error: ").unwrap_or(&s).to_string()
         };
-        write!(f, "{}", err)
+        write!(f, "{err}")
     }
 }
 

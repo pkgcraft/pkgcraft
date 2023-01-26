@@ -51,7 +51,7 @@ pub fn file<S: AsRef<str>>(path: S) -> crate::Result<ExecStatus> {
         0 => Ok(ExecStatus::Success),
         _ => match err {
             Some(e) => Err(e),
-            None => Err(Error::Base(format!("failed sourcing: {:?}", path))),
+            None => Err(Error::Base(format!("failed sourcing: {path:?}"))),
         },
     }
 }

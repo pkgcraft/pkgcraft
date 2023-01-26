@@ -287,9 +287,9 @@ impl<'a, T: Repository + PkgRepository> Repository for &'a T {
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Ebuild(repo) => write!(f, "{}", repo),
-            Self::Fake(repo) => write!(f, "{}", repo),
-            Self::Unsynced(repo) => write!(f, "{}", repo),
+            Self::Ebuild(repo) => write!(f, "{repo}"),
+            Self::Fake(repo) => write!(f, "{repo}"),
+            Self::Unsynced(repo) => write!(f, "{repo}"),
         }
     }
 }

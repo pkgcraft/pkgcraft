@@ -88,7 +88,7 @@ struct MessageVisitor<'a> {
 impl<'a> Visit for MessageVisitor<'a> {
     fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
         if field.name() == "message" {
-            write!(self.message, "{:?}", value).unwrap();
+            write!(self.message, "{value:?}").unwrap();
         }
     }
 }

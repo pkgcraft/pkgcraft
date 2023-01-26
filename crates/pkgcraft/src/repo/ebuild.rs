@@ -97,7 +97,7 @@ impl IniConfig {
                     .append(true)
                     .open(path)
                     .map_err(|e| Error::IO(e.to_string()))?;
-                write!(f, "{}", data).map_err(|e| Error::IO(e.to_string()))?;
+                write!(f, "{data}").map_err(|e| Error::IO(e.to_string()))?;
             }
         }
 

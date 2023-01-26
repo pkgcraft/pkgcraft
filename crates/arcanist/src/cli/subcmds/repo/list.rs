@@ -18,7 +18,7 @@ pub async fn run(client: &mut Client) -> Result<()> {
     });
     let response = client.list_repos(request).await?;
     for repo in response.into_inner().data.iter() {
-        println!("{}", repo);
+        println!("{repo}");
     }
     Ok(())
 }

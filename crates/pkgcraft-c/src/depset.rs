@@ -18,9 +18,9 @@ pub enum DepSet {
 impl fmt::Display for DepSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Atom(d) => write!(f, "{}", d),
-            Self::String(d) => write!(f, "{}", d),
-            Self::Uri(d) => write!(f, "{}", d),
+            Self::Atom(d) => write!(f, "{d}"),
+            Self::String(d) => write!(f, "{d}"),
+            Self::Uri(d) => write!(f, "{d}"),
         }
     }
 }
@@ -54,9 +54,9 @@ pub enum DepRestrict {
 impl fmt::Display for DepRestrict {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Atom(d) => write!(f, "{}", d),
-            Self::String(d) => write!(f, "{}", d),
-            Self::Uri(d) => write!(f, "{}", d),
+            Self::Atom(d) => write!(f, "{d}"),
+            Self::String(d) => write!(f, "{d}"),
+            Self::Uri(d) => write!(f, "{d}"),
         }
     }
 }
