@@ -685,27 +685,27 @@ impl<'a> PkgIter<'a> {
                     let path = e.path();
                     match <&Utf8Path>::try_from(path) {
                         Ok(p) => match repo.cpv_from_path(p) {
-                            Ok(a) => Some((p.to_path_buf(), a)),
+                            Ok(cpv) => Some((p.to_path_buf(), cpv)),
                             Err(e) => {
-                                warn!("{}: {e}", repo.id);
+                                warn!("{}: {e}", repo.id());
                                 None
                             }
                         },
                         Err(e) => {
-                            warn!("{}: invalid unicode path: {path:?}: {e}", repo.id);
+                            warn!("{}: invalid unicode path: {path:?}: {e}", repo.id());
                             None
                         }
                     }
                 }
                 Err(e) => {
-                    warn!("{}: failed walking repo: {e}", repo.id);
+                    warn!("{}: failed walking repo: {e}", repo.id());
                     None
                 }
             }
         };
 
-        // return valid ebuild (path, cpv) tuples in a category
-        let category_ebuilds = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, Atom)> {
+        // return (path, cpv) tuples for pkgs in a category
+        let category_pkgs = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, Atom)> {
             let mut paths: Vec<_> = WalkDir::new(path)
                 .min_depth(2)
                 .max_depth(2)
@@ -713,7 +713,7 @@ impl<'a> PkgIter<'a> {
                 .filter_entry(is_ebuild)
                 .filter_map(filter_path)
                 .collect();
-            paths.sort_by(|(_p1, a1), (_p2, a2)| a1.cmp(a2));
+            paths.sort_by(|(_p1, cpv1), (_p2, cpv2)| cpv1.cmp(cpv2));
             paths
         };
 
@@ -748,7 +748,7 @@ impl<'a> PkgIter<'a> {
                             .filter(move |s| cat_restrict.matches(s.as_str()))
                             .map(|s| repo.path().join(s))
                             .filter(|p| p.exists())
-                            .flat_map(category_ebuilds)
+                            .flat_map(category_pkgs)
                             .filter(move |(_, cpv)| pkg_restrict.matches(cpv)),
                     )
                 }
@@ -765,7 +765,7 @@ impl<'a> Iterator for PkgIter<'a> {
         for (path, cpv) in &mut self.iter {
             match Pkg::new(path, cpv, self.repo) {
                 Ok(pkg) => return Some(pkg),
-                Err(e) => warn!("{} repo: {e}", self.repo.id),
+                Err(e) => warn!("{} repo: {e}", self.repo.id()),
             }
         }
         None
