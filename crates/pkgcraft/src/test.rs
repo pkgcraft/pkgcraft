@@ -40,8 +40,8 @@ impl<'de> Deserialize<'de> for Version {
     where
         D: Deserializer<'de>,
     {
-        let s: &str = Deserialize::deserialize(deserializer)?;
-        Version::new_with_op(s).map_err(de::Error::custom)
+        let s: String = Deserialize::deserialize(deserializer)?;
+        Version::new_with_op(&s).map_err(de::Error::custom)
     }
 }
 
@@ -50,8 +50,8 @@ impl<'de> Deserialize<'de> for OrderedSet<String> {
     where
         D: Deserializer<'de>,
     {
-        let vals: Vec<&str> = Deserialize::deserialize(deserializer)?;
-        Ok(vals.into_iter().map(|s| s.to_string()).collect())
+        let vals: Vec<String> = Deserialize::deserialize(deserializer)?;
+        Ok(vals.into_iter().collect())
     }
 }
 

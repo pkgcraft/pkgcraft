@@ -58,7 +58,7 @@ tar = { version = "0.4.38", optional = true }
 tempfile = "3.3.0"
 thiserror = "1.0.38"
 tokio = { version = "1.24.2", features = ["full"], optional = true }
-toml = "0.5.11"
+toml = "0.6.0"
 tracing = "0.1.37"
 walkdir = "2.3.2"
 
