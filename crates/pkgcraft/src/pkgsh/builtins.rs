@@ -494,6 +494,7 @@ macro_rules! builtin_scope_tests {
                             // create eclass
                             let eclass = indoc::formatdoc! {r#"
                                 # stub eclass
+                                VAR=1
                                 {cmd}
                                 VAR=2
                             "#};
@@ -506,6 +507,9 @@ macro_rules! builtin_scope_tests {
                             "#};
                             let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             let r = source_ebuild(&path);
+                            // verify sourcing stops at unknown command
+                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                            // verify error output
                             assert_err_re!(r, err, &info);
                         }
                         Global => {
@@ -513,11 +517,16 @@ macro_rules! builtin_scope_tests {
                                 EAPI={eapi}
                                 DESCRIPTION="testing builtin global scope failures"
                                 SLOT=0
-                                {cmd}
                                 LICENSE="MIT"
+                                VAR=1
+                                {cmd}
+                                VAR=2
                             "#};
                             let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             let r = source_ebuild(&path);
+                            // verify sourcing stops at unknown command
+                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                            // verify error output
                             assert_err_re!(r, err, &info);
                         }
                         Phase(phase) => {
@@ -526,13 +535,17 @@ macro_rules! builtin_scope_tests {
                                 DESCRIPTION="testing builtin phase scope failures"
                                 SLOT=0
                                 {phase}() {{
+                                    local VAR=1
                                     {cmd}
-                                    local var=2
+                                    VAR=2
                                 }}
                             "#};
                             let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             source_ebuild(&path).unwrap();
                             let r = run_phase(*phase);
+                            // verify function stops at unknown command
+                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                            // verify error output
                             assert_err_re!(r, err, &info);
                         }
                     }
