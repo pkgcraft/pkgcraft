@@ -450,10 +450,10 @@ pub fn handle_error(cmd: &str, err: Error) -> ExecStatus {
 
     if matches!(err, Error::Bail(_)) {
         // TODO: send SIGTERM to background jobs (use jobs builtin)?
-        if shell::in_subshell() {
+        if !shell::in_main() {
             // interrupt the main shell process
             shell::kill(Signal::SIGUSR1).ok();
-            // terminate the subshell process
+            // terminate the child process
             process::exit(2);
         }
     }

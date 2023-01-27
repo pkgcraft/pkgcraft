@@ -111,6 +111,11 @@ pub fn subshell_level() -> i32 {
     unsafe { bash::SUBSHELL_LEVEL }
 }
 
+/// Returns true if currently operating in the main process.
+pub fn in_main() -> bool {
+    *PID == getpid()
+}
+
 /// Returns true if currently operating in restricted mode.
 pub fn is_restricted() -> bool {
     unsafe { bash::RESTRICTED != 0 }
