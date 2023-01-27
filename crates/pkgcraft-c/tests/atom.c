@@ -23,8 +23,8 @@ char *join(char **strs, char delim, size_t length) {
 int main (int argc, char **argv) {
 	char *atom, *expected, *concat_str;
 	char *value;
-	int enum_val;
-	char **array_value;
+	int slot_op;
+	char **use_deps;
 	size_t length;
 	Atom *a = NULL;
 	const AtomVersion *v;
@@ -85,23 +85,23 @@ int main (int argc, char **argv) {
 		assert(value == NULL);
 	}
 
-	enum_val = pkgcraft_atom_slot_op(a);
+	slot_op = pkgcraft_atom_slot_op(a);
 	expected = getenv("slot_op");
 	if (expected) {
-		assert(enum_val == atoi(expected));
+		assert(slot_op == pkgcraft_atom_slot_op_from_str(expected));
 	} else {
-		assert(enum_val == -1);
+		assert(slot_op == 0);
 	}
 
-	array_value = pkgcraft_atom_use_deps(a, &length);
+	use_deps = pkgcraft_atom_use_deps(a, &length);
 	expected = getenv("use_deps");
 	if (expected) {
-		concat_str = join(array_value, ',', length);
+		concat_str = join(use_deps, ',', length);
 		assert(strcmp(concat_str, expected) == 0);
-		pkgcraft_str_array_free(array_value, length);
+		pkgcraft_str_array_free(use_deps, length);
 		free(concat_str);
 	} else {
-		assert(array_value == NULL);
+		assert(use_deps == NULL);
 	}
 
 	value = pkgcraft_atom_repo(a);

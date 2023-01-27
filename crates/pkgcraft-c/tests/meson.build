@@ -10,7 +10,7 @@ test('slotted', atom, args : ['cat/pkg:1'], suite: 'atom',
 test('subslot', atom, args : ['cat/pkg:1/2'], suite: 'atom',
   env : ['category=cat', 'package=pkg', 'slot=1', 'subslot=2'])
 test('slot_op', atom, args : ['cat/pkg:*'], suite: 'atom',
-  env : ['category=cat', 'package=pkg', 'slot_op=1'])
+  env : ['category=cat', 'package=pkg', 'slot_op=*'])
 test('use_deps', atom, args : ['cat/pkg[a,b,c]'], suite: 'atom',
   env : ['category=cat', 'package=pkg', 'use_deps=a,b,c'])
 test('repo', atom, args : ['cat/pkg::repo'], suite: 'atom',
