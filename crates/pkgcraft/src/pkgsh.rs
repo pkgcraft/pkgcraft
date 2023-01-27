@@ -327,6 +327,7 @@ fn initialize() {
     scallop::shell::init(true);
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
+    // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
 }
 
