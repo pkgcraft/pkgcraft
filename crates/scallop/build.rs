@@ -140,6 +140,7 @@ fn main() {
         .allowlist_var("executing_builtin")
         .allowlist_function("execute_command")
         .allowlist_function("execute_shell_function")
+        .allowlist_function("scallop_execute_shell_function")
 
         .header("bash/variables.h")
         .allowlist_function("get_string_value")

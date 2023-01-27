@@ -22,7 +22,7 @@ impl Function<'_> {
         let args = arg_ptrs.as_mut_ptr();
         unsafe {
             let words = bash::strvec_to_word_list(args, 0, 0);
-            bash::execute_shell_function(self.func, words);
+            bash::scallop_execute_shell_function(self.func, words);
         }
         ok_or_error()
     }
