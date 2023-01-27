@@ -191,11 +191,6 @@ fn main() {
         .write_to_file(out_dir.join("bash-bindings.rs"))
         .expect("failed writing bindings");
 
-    // In a CI env, rerun if the git submodule for bash changed; otherwise when not in a CI env,
-    // rerun if any bash file changed.
-    if env::var("SCALLOP_BASH").is_ok() {
-        println!("cargo:rerun-if-env-changed=SCALLOP_BASH");
-    } else {
-        println!("cargo:rerun-if-changed=bash");
-    }
+    // rerun if any bash file changes
+    println!("cargo:rerun-if-changed=bash");
 }
