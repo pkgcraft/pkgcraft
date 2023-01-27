@@ -14,7 +14,7 @@ rust-version.workspace = true
 [dependencies]
 anyhow = "1.0.68"
 async-stream = "0.3.3"
-clap = { version = "4.1.1", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.1.4", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.13.3", default-features = false, features = ["toml"] }
 futures = "0.3.25"
 pkgcraft = { path = "../pkgcraft", version = "0.0.5" }

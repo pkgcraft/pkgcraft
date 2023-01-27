@@ -25,11 +25,11 @@ https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
 init = ["dep:ctor"]
 
 [dependencies]
-async-trait = "0.1.62"
+async-trait = "0.1.63"
 cached = "0.42.0"
 camino = { version = "1.1.2", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.1.1", features = ["derive"] }
+clap = { version = "4.1.4", features = ["derive"] }
 crossbeam-channel = "0.5.6"
 ctor = { version = "0.1.26", optional = true }
 enum-as-inner = "0.5.1"
