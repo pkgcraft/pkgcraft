@@ -117,9 +117,7 @@ fn main() {
         .allowlist_var("EX_LONGJMP")
 
         .header("bash/builtins/common.h")
-        .allowlist_function("evalstring")
         .allowlist_function("scallop_evalstring")
-        .allowlist_function("source_file")
         .allowlist_function("scallop_source_file")
         .allowlist_function("register_builtins")
         .allowlist_function("builtin_address_internal")
@@ -139,7 +137,6 @@ fn main() {
         .allowlist_var("subshell_level")
         .allowlist_var("executing_builtin")
         .allowlist_function("execute_command")
-        .allowlist_function("execute_shell_function")
         .allowlist_function("scallop_execute_shell_function")
 
         .header("bash/variables.h")
