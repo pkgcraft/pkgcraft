@@ -14,7 +14,7 @@ instead.
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let msg = format!("unknown command: {}", args[0]);
+    let msg = format!("{}: command not found", args[0]);
     match NONFATAL.load(Ordering::Relaxed) {
         true => Err(Error::Base(msg)),
         false => Err(Error::Bail(msg)),
