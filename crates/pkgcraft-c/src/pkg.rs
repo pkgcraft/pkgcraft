@@ -2,10 +2,11 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int, CString};
 
 use pkgcraft::atom::Atom;
+use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::{Package, Pkg};
 use pkgcraft::repo::Repo;
 use pkgcraft::restrict::{Restrict, Restriction};
-use pkgcraft::{eapi, utils::hash};
+use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::types::AtomVersion;
@@ -62,7 +63,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_repo(p: *mut Pkg) -> *const Repo {
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_eapi(p: *mut Pkg) -> *const eapi::Eapi {
+pub unsafe extern "C" fn pkgcraft_pkg_eapi(p: *mut Pkg) -> *const Eapi {
     let pkg = null_ptr_check!(p.as_ref());
     pkg.eapi()
 }

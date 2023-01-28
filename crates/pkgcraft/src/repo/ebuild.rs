@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
-use std::str::SplitWhitespace;
+use std::str::{FromStr, SplitWhitespace};
 use std::sync::{Arc, Weak};
 use std::{fmt, fs, io, iter, thread};
 
@@ -15,6 +15,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::atom::{self, Atom};
 use crate::config::RepoConfig;
+use crate::eapi::{Eapi, EAPI0};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
@@ -227,6 +228,7 @@ where
 #[derive(Default)]
 pub struct Repo {
     id: String,
+    eapi: &'static Eapi,
     repo_config: RepoConfig,
     config: IniConfig,
     metadata: Metadata,
@@ -271,6 +273,7 @@ impl Repo {
             return Err(invalid_repo("missing profiles dir".to_string()));
         }
 
+        // verify repo name
         let repo_name_path = profiles_base.join("repo_name");
         let name = match fs::read_to_string(&repo_name_path) {
             Ok(data) => match data.lines().next() {
@@ -282,7 +285,21 @@ impl Repo {
                 }
             },
             Err(e) => {
-                let err = format!("missing repo name: {:?}: {e}", &repo_name_path);
+                let err = format!("failed reading repo name: {:?}: {e}", &repo_name_path);
+                return Err(invalid_repo(err));
+            }
+        };
+
+        // verify repo EAPI
+        let eapi = match fs::read_to_string(profiles_base.join("eapi")) {
+            Ok(data) => {
+                let s = data.lines().next().unwrap_or_default();
+                <&Eapi>::from_str(s.trim_end())
+                    .map_err(|e| invalid_repo(format!("invalid repo eapi: {e}")))?
+            }
+            Err(e) if e.kind() == io::ErrorKind::NotFound => &*EAPI0,
+            Err(e) => {
+                let err = format!("failed reading repo eapi: {:?}: {e}", &repo_name_path);
                 return Err(invalid_repo(err));
             }
         };
@@ -297,6 +314,7 @@ impl Repo {
 
         Ok(Self {
             id: id.as_ref().to_string(),
+            eapi,
             repo_config,
             config,
             metadata: Metadata::new(path),
@@ -351,6 +369,10 @@ impl Repo {
 
     pub fn config(&self) -> &IniConfig {
         &self.config
+    }
+
+    pub fn eapi(&self) -> &'static Eapi {
+        self.eapi
     }
 
     /// Return the list of inherited repos.
