@@ -487,7 +487,10 @@ impl BuildVariable {
 
 #[cfg(test)]
 mod tests {
+    use scallop::variables;
+
     use crate::config::Config;
+    use crate::macros::assert_err_re;
 
     use super::*;
 
@@ -496,24 +499,34 @@ mod tests {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
-        // external commands are denied
+        // external commands are denied via restricted shell setting PATH=/dev/null
         let data = indoc::indoc! {r#"
             DESCRIPTION="unknown command failure"
             SLOT=0
+            VAR=1
             ls /
+            VAR=2
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         BuildData::update(&cpv, &repo);
-        assert!(source_ebuild(&path).is_err());
+        let r = source_ebuild(&path);
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
+        assert_err_re!(r, "ls: command not found");
 
-        // absolute paths are denied
+        // absolute command errors in restricted shells currently don't bail, so force them to
+        scallop::builtins::set(&["-e"]).unwrap();
+        // absolute path for commands are denied via restricted shell
         let data = indoc::indoc! {r#"
             DESCRIPTION="unknown command failure"
             SLOT=0
+            VAR=1
             /bin/ls /
+            VAR=2
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
         BuildData::update(&cpv, &repo);
-        assert!(source_ebuild(&path).is_err());
+        let r = source_ebuild(&path);
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
+        assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
     }
 }
