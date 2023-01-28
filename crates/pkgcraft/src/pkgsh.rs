@@ -511,7 +511,7 @@ mod tests {
         BuildData::update(&cpv, &repo);
         let r = source_ebuild(&path);
         assert_eq!(variables::optional("VAR").unwrap(), "1");
-        assert_err_re!(r, "ls: command not found");
+        assert_err_re!(r, "unknown command: ls");
 
         // absolute command errors in restricted shells currently don't bail, so force them to
         scallop::builtins::set(&["-e"]).unwrap();
