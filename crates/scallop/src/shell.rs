@@ -27,6 +27,7 @@ pub fn init(restricted: bool) {
     // force main pid initialization
     Lazy::force(&PID);
 
+    // shell name is saved since bash requires a valid pointer to it
     SHELL.set(name).expect("failed setting shell name");
 }
 
