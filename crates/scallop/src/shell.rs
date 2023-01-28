@@ -20,9 +20,8 @@ pub fn init(restricted: bool) {
     unsafe {
         SHM.set(shm as *mut c_char)
             .expect("shm already initialized");
-        bash::set_shell_name(name.as_ptr() as *mut _);
         bash::lib_error_handlers(Some(error::bash_error), Some(error::bash_warning_log));
-        bash::lib_init(shm, restricted as i32);
+        bash::lib_init(name.as_ptr() as *mut _, shm, restricted as i32);
     }
 
     // force main pid initialization
