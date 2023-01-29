@@ -112,15 +112,15 @@ impl Hash for Atom {
 
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
 type AtomKey<'a> = (
-    &'a str,
-    &'a str,
-    Option<&'a Version>,
-    Option<Blocker>,
-    Option<&'a str>,
-    Option<&'a str>,
-    Option<SlotOperator>,
-    Option<&'a OrderedSet<String>>,
-    Option<&'a str>,
+    &'a str,                        // category
+    &'a str,                        // package
+    Option<&'a Version>,            // version
+    Option<Blocker>,                // blocker
+    Option<&'a str>,                // slot
+    Option<&'a str>,                // subslot
+    Option<SlotOperator>,           // slot operator
+    Option<&'a OrderedSet<String>>, // use deps
+    Option<&'a str>,                // repo
 );
 
 impl Atom {
