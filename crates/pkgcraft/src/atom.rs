@@ -300,8 +300,8 @@ mod tests {
     use super::*;
 
     // Convert an Atom to a string based on its components. This isn't used for fmt::Display
-    // because it doesn't always preserve the original string since the use flag component sorts,
-    // and collapse similar elements on creation.
+    // because it doesn't always preserve the original string since the use flag component sorts
+    // and collapses similar elements on creation.
     fn atom_to_string(atom: &Atom) -> String {
         let mut s = String::new();
 
