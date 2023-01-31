@@ -25,19 +25,21 @@ impl Repo {
             Some(p) => p.to_path_buf().into_std_path_buf(),
             None => env::temp_dir(),
         };
-        let eapi = format!("{}", eapi.unwrap_or(&eapi::EAPI_LATEST));
         let tempdir = TempDir::new_in(path)
-            .map_err(|e| Error::RepoInit(format!("failed creating temp repo {id:?}: {e}")))?;
+            .map_err(|e| Error::RepoInit(format!("failed creating repo {id:?}: {e}")))?;
         let temp_path = tempdir.path();
 
         for dir in ["metadata", "profiles"] {
             fs::create_dir(temp_path.join(dir))
-                .map_err(|e| Error::RepoInit(format!("failed creating temp repo {id:?}: {e}")))?;
+                .map_err(|e| Error::RepoInit(format!("failed creating repo {id:?}: {e}")))?;
         }
         fs::write(temp_path.join("profiles/repo_name"), format!("{id}\n"))
-            .map_err(|e| Error::RepoInit(format!("failed writing temp repo id: {e}")))?;
-        fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
-            .map_err(|e| Error::RepoInit(format!("failed writing temp repo EAPI: {e}")))?;
+            .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
+
+        if let Some(eapi) = eapi {
+            fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
+                .map_err(|e| Error::RepoInit(format!("failed writing repo EAPI: {e}")))?;
+        }
 
         let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
             .map_err(|p| Error::RepoInit(format!("non-unicode repo path: {p:?}")))?;
