@@ -25,7 +25,7 @@ https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
 init = ["dep:ctor"]
 
 [dependencies]
-async-trait = "0.1.63"
+async-trait = "0.1.64"
 cached = "0.42.0"
 camino = { version = "1.1.2", features = ["serde1"] }
 chic = "1.2.2"
@@ -35,11 +35,11 @@ ctor = { version = "0.1.26", optional = true }
 enum-as-inner = "0.5.1"
 filetime = "0.2.19"
 flate2 = { version = "1.0.25", optional = true }
-futures = "0.3.25"
+futures = "0.3.26"
 git2 = { version = "0.16.1", optional = true }
 glob = "0.3.1"
 indexmap = { version = "1.9.2", features = ["serde"] }
-indoc = "1.0.8"
+indoc = "2.0.0"
 is_executable = "1.0.1"
 itertools = "0.10.5"
 nix = "0.26.2"
@@ -57,8 +57,8 @@ sys-info = "0.9.1"
 tar = { version = "0.4.38", optional = true }
 tempfile = "3.3.0"
 thiserror = "1.0.38"
-tokio = { version = "1.24.2", features = ["full"], optional = true }
-toml = "0.7.0"
+tokio = { version = "1.25.0", features = ["full"], optional = true }
+toml = "0.7.1"
 tracing = "0.1.37"
 walkdir = "2.3.2"
 
