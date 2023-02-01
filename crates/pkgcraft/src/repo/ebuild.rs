@@ -149,6 +149,15 @@ impl Metadata {
             }
         })
     }
+
+    /// Return a repo's configured categories from the `profiles/categories` file.
+    fn categories(&self) -> Vec<String> {
+        let mut cats = vec![];
+        if let Ok(data) = fs::read_to_string(self.profiles_base.join("categories")) {
+            cats.extend(data.lines().map(|s| s.to_string()));
+        }
+        cats
+    }
 }
 
 /// Shared data cache trait.
@@ -440,15 +449,6 @@ impl Repo {
         v
     }
 
-    /// Return a repo's configured categories from the `profiles/categories` file.
-    fn pms_categories(&self) -> Vec<String> {
-        let mut cats = vec![];
-        if let Ok(data) = fs::read_to_string(self.profiles_base.join("categories")) {
-            cats.extend(data.lines().map(|s| s.to_string()));
-        }
-        cats
-    }
-
     /// Convert an ebuild path inside the repo into a CPV.
     pub(crate) fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Atom> {
         let err = |s: &str| -> Error {
@@ -546,7 +546,7 @@ impl PkgRepository for Repo {
         // use profiles/categories from repos, falling back to raw fs dirs
         let mut categories = HashSet::<String>::new();
         for r in self.trees() {
-            categories.extend(r.pms_categories())
+            categories.extend(r.metadata.categories())
         }
         let mut categories: Vec<_> = categories.into_iter().collect();
         categories.sort();
