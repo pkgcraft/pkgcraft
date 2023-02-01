@@ -128,9 +128,9 @@ pub(crate) struct Metadata {
 }
 
 impl Metadata {
-    fn new(repo_path: &Utf8Path) -> Self {
+    fn new(profiles_base: Utf8PathBuf) -> Self {
         Self {
-            profiles_base: repo_path.join("profiles"),
+            profiles_base,
             ..Default::default()
         }
     }
@@ -232,7 +232,6 @@ pub struct Repo {
     repo_config: RepoConfig,
     config: IniConfig,
     metadata: Metadata,
-    profiles_base: Utf8PathBuf,
     name: String,
     masters: OnceCell<Vec<Weak<Self>>>,
     trees: OnceCell<Vec<Weak<Self>>>,
@@ -317,8 +316,7 @@ impl Repo {
             eapi,
             repo_config,
             config,
-            metadata: Metadata::new(path),
-            profiles_base,
+            metadata: Metadata::new(profiles_base),
             name,
             ..Default::default()
         })
@@ -510,6 +508,10 @@ impl Repo {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn profiles_base(&self) -> &Utf8Path {
+        &self.metadata.profiles_base
     }
 
     pub fn arches(&self) -> &IndexSet<String> {
@@ -1021,7 +1023,7 @@ mod tests {
             arm64
             amd64-linux
         "#};
-        fs::write(repo.profiles_base.join("arch.list"), data).unwrap();
+        fs::write(repo.profiles_base().join("arch.list"), data).unwrap();
         assert_unordered_eq(repo.arches(), ["amd64", "arm64", "amd64-linux"]);
     }
 
