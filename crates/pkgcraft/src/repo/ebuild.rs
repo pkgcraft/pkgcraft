@@ -820,6 +820,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::config::Config;
+    use crate::eapi::EAPI_LATEST;
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::pkgsh::metadata::Key;
@@ -896,6 +897,19 @@ mod tests {
         let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
         assert_eq!(repo.id(), "test");
+    }
+
+    #[test]
+    fn test_eapi() {
+        // repos lacking profiles/eapi file use EAPI0
+        let t = TempRepo::new("test", None, None).unwrap();
+        let repo = Repo::from_path("test", 0, t.path()).unwrap();
+        assert_eq!(repo.eapi(), &*EAPI0);
+
+        // explicit repo EAPI
+        let t = TempRepo::new("test", None, Some(*EAPI_LATEST)).unwrap();
+        let repo = Repo::from_path("test", 0, t.path()).unwrap();
+        assert_eq!(repo.eapi(), *EAPI_LATEST);
     }
 
     #[test]
