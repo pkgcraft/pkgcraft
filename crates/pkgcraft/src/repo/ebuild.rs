@@ -122,7 +122,7 @@ impl IniConfig {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct Metadata {
+pub struct Metadata {
     profiles_base: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
 }
@@ -135,7 +135,13 @@ impl Metadata {
         }
     }
 
-    fn arches(&self) -> &IndexSet<String> {
+    /// Return the full path to a repo's `profiles` directory.
+    pub fn profiles_base(&self) -> &Utf8Path {
+        &self.profiles_base
+    }
+
+    /// Return a repo's known architectures from `profiles/arch.list`.
+    pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
             let path = self.profiles_base.join("arch.list");
             match fs::read_to_string(path) {
@@ -378,6 +384,10 @@ impl Repo {
         &self.config
     }
 
+    pub fn metadata(&self) -> &Metadata {
+        &self.metadata
+    }
+
     pub fn eapi(&self) -> &'static Eapi {
         self.eapi
     }
@@ -508,14 +518,6 @@ impl Repo {
 
     pub fn name(&self) -> &str {
         &self.name
-    }
-
-    pub fn profiles_base(&self) -> &Utf8Path {
-        &self.metadata.profiles_base
-    }
-
-    pub fn arches(&self) -> &IndexSet<String> {
-        self.metadata.arches()
     }
 }
 
@@ -1013,7 +1015,7 @@ mod tests {
         // empty
         let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
-        assert!(repo.arches().is_empty());
+        assert!(repo.metadata().arches().is_empty());
 
         // multiple
         let mut config = Config::default();
@@ -1023,8 +1025,8 @@ mod tests {
             arm64
             amd64-linux
         "#};
-        fs::write(repo.profiles_base().join("arch.list"), data).unwrap();
-        assert_unordered_eq(repo.arches(), ["amd64", "arm64", "amd64-linux"]);
+        fs::write(repo.metadata().profiles_base().join("arch.list"), data).unwrap();
+        assert_unordered_eq(repo.metadata().arches(), ["amd64", "arm64", "amd64-linux"]);
     }
 
     #[test]
