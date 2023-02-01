@@ -125,6 +125,7 @@ impl IniConfig {
 pub struct Metadata {
     profiles_base: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
+    categories: OnceCell<IndexSet<String>>,
 }
 
 impl Metadata {
@@ -156,13 +157,20 @@ impl Metadata {
         })
     }
 
-    /// Return a repo's configured categories from the `profiles/categories` file.
-    fn categories(&self) -> Vec<String> {
-        let mut cats = vec![];
-        if let Ok(data) = fs::read_to_string(self.profiles_base.join("categories")) {
-            cats.extend(data.lines().map(|s| s.to_string()));
-        }
-        cats
+    /// Return a repo's configured categories from `profiles/categories`.
+    pub fn categories(&self) -> &IndexSet<String> {
+        self.categories.get_or_init(|| {
+            let path = self.profiles_base.join("categories");
+            match fs::read_to_string(path) {
+                Ok(s) => s
+                    .lines()
+                    .map(|s| s.trim())
+                    .filter(|s| !s.starts_with('#'))
+                    .map(String::from)
+                    .collect(),
+                Err(_) => IndexSet::new(),
+            }
+        })
     }
 }
 
@@ -548,7 +556,7 @@ impl PkgRepository for Repo {
         // use profiles/categories from repos, falling back to raw fs dirs
         let mut categories = HashSet::<String>::new();
         for r in self.trees() {
-            categories.extend(r.metadata.categories())
+            categories.extend(r.metadata.categories().iter().cloned())
         }
         let mut categories: Vec<_> = categories.into_iter().collect();
         categories.sort();
