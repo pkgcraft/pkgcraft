@@ -242,7 +242,6 @@ impl Metadata {
         }
 
         // TODO: handle resets in external process pool
-        #[cfg(feature = "init")]
         scallop::shell::reset();
 
         Ok(meta)

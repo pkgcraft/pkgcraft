@@ -7,6 +7,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use nix::unistd::isatty;
+use once_cell::sync::Lazy;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::{self, *};
 use scallop::{functions, source, Error};
@@ -320,20 +321,20 @@ thread_local! {
 }
 
 /// Initialize bash for library usage.
-#[cfg(feature = "init")]
-#[ctor::ctor]
-fn initialize() {
+pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     use crate::pkgsh::builtins::ALL_BUILTINS;
     scallop::shell::init(true);
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
     // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
-}
+});
 
 // TODO: remove allow when public package building support is added
 #[allow(dead_code)]
 fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
+    Lazy::force(&BASH);
+
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi;
         d.borrow_mut().phase = Some(phase);
@@ -366,6 +367,8 @@ fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
 }
 
 fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
+    Lazy::force(&BASH);
+
     if !path.exists() {
         return Err(Error::Base(format!("nonexistent ebuild: {path:?}")));
     }

@@ -15,6 +15,12 @@ use crate::Error;
 static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
     Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "toml"));
 
+/// Explicitly initialize bash for all test executables.
+#[ctor::ctor]
+fn initialize() {
+    Lazy::force(&crate::pkgsh::BASH);
+}
+
 #[serde_as]
 #[derive(Debug, Deserialize)]
 pub(crate) struct ValidAtom {
