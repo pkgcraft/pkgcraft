@@ -31,10 +31,7 @@ impl Repo {
     where
         I: IntoIterator<Item = &'a str>,
     {
-        let repo_config = RepoConfig {
-            priority,
-            ..Default::default()
-        };
+        let repo_config = RepoConfig { priority, ..Default::default() };
 
         let mut repo = Self {
             id: id.to_string(),

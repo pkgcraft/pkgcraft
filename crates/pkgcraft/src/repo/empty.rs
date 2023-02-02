@@ -19,10 +19,7 @@ make_repo_traits!(Repo);
 
 impl Repo {
     pub(crate) fn new(id: &str, priority: i32) -> Self {
-        let repo_config = RepoConfig {
-            priority,
-            ..Default::default()
-        };
+        let repo_config = RepoConfig { priority, ..Default::default() };
 
         Self {
             id: id.to_string(),

@@ -1,3 +1,4 @@
 array_width = 90
 fn_call_width = 90
 max_width = 100
+struct_lit_width = 30

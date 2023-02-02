@@ -38,9 +38,7 @@ pub struct PkgcraftLog {
 impl<'a> From<&'a Event<'_>> for PkgcraftLog {
     fn from(event: &'a Event<'_>) -> Self {
         let mut message = String::new();
-        let mut visitor = MessageVisitor {
-            message: &mut message,
-        };
+        let mut visitor = MessageVisitor { message: &mut message };
         event.record(&mut visitor);
 
         Self {

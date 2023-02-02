@@ -17,10 +17,7 @@ make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(cpv: &'a Atom, repo: &'a Repo) -> Self {
-        Self {
-            cpv: cpv.clone(),
-            repo,
-        }
+        Self { cpv: cpv.clone(), repo }
     }
 }
 

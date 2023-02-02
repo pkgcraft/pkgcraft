@@ -126,10 +126,7 @@ pub struct Config {
 impl Config {
     pub fn new(name: &str, prefix: &str) -> Self {
         let path = ConfigPath::new(name, prefix);
-        Config {
-            path,
-            ..Default::default()
-        }
+        Config { path, ..Default::default() }
     }
 
     /// Load repos from toml files in the related repos config dir.

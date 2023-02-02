@@ -108,11 +108,9 @@ impl Arcanist for ArcanistService {
         let (tx, rx) = mpsc::channel(4);
         tokio::spawn(async move {
             for pkg in request.into_inner().data.iter() {
-                tx.send(Ok(StringResponse {
-                    data: pkg.to_string(),
-                }))
-                .await
-                .unwrap();
+                tx.send(Ok(StringResponse { data: pkg.to_string() }))
+                    .await
+                    .unwrap();
             }
         });
         Ok(Response::new(ReceiverStream::new(rx)))

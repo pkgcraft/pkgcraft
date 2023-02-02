@@ -45,10 +45,7 @@ impl FileTree {
         fs::create_dir(&install_dir).unwrap();
         fs::create_dir(&src_dir).unwrap();
         env::set_current_dir(&src_dir).unwrap();
-        FileTree {
-            _tmp_dir: tmp_dir,
-            install_dir,
-        }
+        FileTree { _tmp_dir: tmp_dir, install_dir }
     }
 
     pub(crate) fn wipe(&self) {

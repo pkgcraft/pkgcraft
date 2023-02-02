@@ -321,9 +321,7 @@ impl<'a> IntoIterator for &'a Config {
     type IntoIter = ReposIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        ReposIter {
-            iter: self.repos.iter(),
-        }
+        ReposIter { iter: self.repos.iter() }
     }
 }
 

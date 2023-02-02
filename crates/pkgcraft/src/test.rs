@@ -91,9 +91,7 @@ impl AtomData {
     }
 
     pub(crate) fn compares(&self) -> ComparesIter {
-        ComparesIter {
-            iter: self.compares.iter(),
-        }
+        ComparesIter { iter: self.compares.iter() }
     }
 }
 
@@ -120,9 +118,7 @@ impl VersionData {
     }
 
     pub(crate) fn compares(&self) -> ComparesIter {
-        ComparesIter {
-            iter: self.compares.iter(),
-        }
+        ComparesIter { iter: self.compares.iter() }
     }
 }
 

@@ -43,10 +43,7 @@ pub struct IniConfig {
 
 impl Default for IniConfig {
     fn default() -> Self {
-        Self {
-            path: None,
-            ini: Ini::new(),
-        }
+        Self { path: None, ini: Ini::new() }
     }
 }
 
@@ -64,10 +61,7 @@ impl IniConfig {
     fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
         let path = repo_path.join("metadata/layout.conf");
         match Ini::load_from_file(&path) {
-            Ok(ini) => Ok(Self {
-                path: Some(path),
-                ini,
-            }),
+            Ok(ini) => Ok(Self { path: Some(path), ini }),
             Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Self {
                 path: Some(path),
                 ini: Ini::new(),

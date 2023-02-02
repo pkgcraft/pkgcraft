@@ -44,10 +44,7 @@ impl From<pkgcraft::Error> for Error {
             _ => ErrorKind::Pkgcraft,
         };
 
-        Error {
-            message: e.to_string(),
-            kind,
-        }
+        Error { message: e.to_string(), kind }
     }
 }
 

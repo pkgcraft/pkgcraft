@@ -19,10 +19,7 @@ pub fn cmd() -> Command {
 pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
     let name = args.get_one::<String>("name").unwrap().to_string();
     let uri = args.get_one::<String>("uri").unwrap().to_string();
-    let request = tonic::Request::new(AddRepoRequest {
-        name: name.clone(),
-        uri,
-    });
+    let request = tonic::Request::new(AddRepoRequest { name: name.clone(), uri });
     let response = client
         .add_repo(request)
         .await
