@@ -1,11 +1,7 @@
 #![cfg(test)]
 
-use ctor::ctor;
-
-use crate::shell;
-
-/// Initialize bash for all test executables.
-#[ctor]
+/// Explicitly initialize bash for all test executables.
+#[ctor::ctor]
 fn initialize() {
-    shell::init(false);
+    crate::shell::init(false);
 }
