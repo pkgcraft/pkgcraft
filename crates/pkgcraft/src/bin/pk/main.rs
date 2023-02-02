@@ -12,10 +12,9 @@ struct Cli {
     command: Command,
 }
 
-/// Doc comment
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Perform actions on atoms including parsing, intersection, sorting
+    /// Perform actions on atoms including parsing, intersection, and sorting
     Atom(atom::AtomSubCmd),
 }
 
