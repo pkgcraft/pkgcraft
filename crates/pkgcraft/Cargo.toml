@@ -15,14 +15,23 @@ rust-version.workspace = true
 name = "pkgcraft"
 path = "src/lib.rs"
 
+[[bin]]
+name = "pk"
+bench = false
+required-features = ["tools"]
+
 [features]
 default = []
 # enable git repo syncing support
 git = ["dep:git2"]
 # enable repo syncing over https, e.g. tar+https
 https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
+# build command-line tools
+tools = ["dep:aho-corasick", "dep:anyhow"]
 
 [dependencies]
+aho-corasick = { version = "0.7.20", optional = true }
+anyhow = { version = "1.0.68", optional = true }
 async-trait = "0.1.64"
 cached = "0.42.0"
 camino = { version = "1.1.2", features = ["serde1"] }
