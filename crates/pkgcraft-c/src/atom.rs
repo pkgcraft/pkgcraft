@@ -57,6 +57,12 @@ pub unsafe extern "C" fn pkgcraft_atom_blocker_from_str(s: *const c_char) -> c_i
     Blocker::from_str(s).map(|b| b as c_int).unwrap_or(0)
 }
 
+/// Return the string for a Blocker.
+#[no_mangle]
+pub extern "C" fn pkgcraft_atom_blocker_str(b: Blocker) -> *mut c_char {
+    CString::new(b.as_ref()).unwrap().into_raw()
+}
+
 /// Parse a string into a SlotOperator.
 ///
 /// Returns 0 on error.
@@ -68,6 +74,12 @@ pub unsafe extern "C" fn pkgcraft_atom_slot_op_from_str(s: *const c_char) -> c_i
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), 0) };
     SlotOperator::from_str(s).map(|b| b as c_int).unwrap_or(0)
+}
+
+/// Return the string for a SlotOperator.
+#[no_mangle]
+pub extern "C" fn pkgcraft_atom_slot_op_str(op: SlotOperator) -> *mut c_char {
+    CString::new(op.as_ref()).unwrap().into_raw()
 }
 
 /// Compare two atoms returning -1, 0, or 1 if the first atom is less than, equal to, or greater
