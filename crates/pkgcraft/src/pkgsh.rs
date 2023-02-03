@@ -17,7 +17,7 @@ use sys_info::os_release;
 use crate::atom::Atom;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::{build_from_paths, extend_left};
-use crate::pkgsh::builtins::Scope;
+use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
 use crate::repo::{ebuild, Repository};
 
 pub mod builtins;
@@ -322,7 +322,6 @@ thread_local! {
 
 /// Initialize bash for library usage.
 pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
-    use crate::pkgsh::builtins::ALL_BUILTINS;
     scallop::shell::init(true);
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
