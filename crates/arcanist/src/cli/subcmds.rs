@@ -11,14 +11,14 @@ mod search;
 mod version;
 
 #[rustfmt::skip]
-pub fn register() -> Vec<Command> {
-    vec![
+pub fn register() -> impl Iterator<Item = Command> {
+    [
         add::cmd(),
         del::cmd(),
         repo::cmd(),
         search::cmd(),
         version::cmd(),
-    ]
+    ].into_iter()
 }
 
 pub async fn run(args: &ArgMatches, client: &mut Client, settings: &Settings) -> Result<()> {
@@ -29,6 +29,6 @@ pub async fn run(args: &ArgMatches, client: &mut Client, settings: &Settings) ->
         "repo" => repo::run(m, client, settings).await,
         "search" => search::run(m, client).await,
         "version" => version::run(client).await,
-        _ => panic!("unknown subcommand"),
+        _ => unreachable!("unknown subcommand"),
     }
 }

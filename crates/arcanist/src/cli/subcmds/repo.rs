@@ -32,6 +32,6 @@ pub async fn run(args: &ArgMatches, client: &mut Client, _settings: &Settings) -
         "list" => list::run(client).await,
         "new" => new::run(m, client).await,
         "sync" => sync::run(m, client).await,
-        _ => panic!("unknown subcommand"),
+        _ => unreachable!("unknown subcommand"),
     }
 }
