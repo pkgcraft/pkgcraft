@@ -110,6 +110,6 @@ fn sort(vals: &[String]) -> anyhow::Result<ExitCode> {
     }
 
     atoms.sort();
-    println!("{}", atoms.iter().map(|a| a.as_str()).join("\n"));
+    println!("{}", atoms.iter().map(|a| a.to_string()).join("\n"));
     Ok(ExitCode::SUCCESS)
 }

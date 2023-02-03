@@ -250,7 +250,7 @@ pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedAtom> {
 pub(super) fn cpv(s: &str) -> crate::Result<Atom> {
     let mut cpv = cpv_str(s)?;
     cpv.version_str = Some(s);
-    cpv.into_owned(s)
+    cpv.into_owned()
 }
 
 pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedAtom<'a>> {
@@ -288,7 +288,7 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
 )]
 pub(super) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Atom> {
     let atom = dep_str(s, eapi)?;
-    atom.into_owned(s)
+    atom.into_owned()
 }
 
 #[cfg(test)]

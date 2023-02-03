@@ -4,6 +4,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
 use self::version::ParsedVersion;
@@ -54,14 +55,13 @@ pub(crate) struct ParsedAtom<'a> {
 }
 
 impl ParsedAtom<'_> {
-    pub(crate) fn into_owned(self, s: &str) -> crate::Result<Atom> {
+    pub(crate) fn into_owned(self) -> crate::Result<Atom> {
         let version = match (self.version, self.version_str) {
             (Some(v), Some(vs)) => Some(v.into_owned(vs)?),
             _ => None,
         };
 
         Ok(Atom {
-            full: s.to_string(),
             category: self.category.to_string(),
             package: self.package.to_string(),
             blocker: self.blocker,
@@ -84,7 +84,6 @@ impl ParsedAtom<'_> {
 /// Package atom
 #[derive(Debug, Clone)]
 pub struct Atom {
-    full: String,
     category: String,
     package: String,
     blocker: Option<Blocker>,
@@ -178,11 +177,6 @@ impl Atom {
         }
     }
 
-    /// Return an atom's string value.
-    pub fn as_str(&self) -> &str {
-        &self.full
-    }
-
     /// Return an atom's category.
     pub fn category(&self) -> &str {
         &self.category
@@ -264,7 +258,46 @@ impl Atom {
 
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.full)
+        // append blocker
+        if let Some(blocker) = self.blocker {
+            write!(f, "{blocker}")?;
+        }
+
+        // append version operator with cpv
+        let cpv = self.cpv();
+        use version::Operator::*;
+        match self.version.as_ref().and_then(|v| v.op()) {
+            Some(Less) => write!(f, "<{cpv}")?,
+            Some(LessOrEqual) => write!(f, "<={cpv}")?,
+            Some(Equal) => write!(f, "={cpv}")?,
+            Some(EqualGlob) => write!(f, "={cpv}*")?,
+            Some(Approximate) => write!(f, "~{cpv}")?,
+            Some(GreaterOrEqual) => write!(f, ">={cpv}")?,
+            Some(Greater) => write!(f, ">{cpv}")?,
+            None => write!(f, "{cpv}")?,
+        }
+
+        // append slot data
+        match (self.slot(), self.subslot(), self.slot_op()) {
+            (Some(slot), Some(subslot), Some(op)) => write!(f, ":{slot}/{subslot}{op}")?,
+            (Some(slot), Some(subslot), None) => write!(f, ":{slot}/{subslot}")?,
+            (Some(slot), None, Some(op)) => write!(f, ":{slot}{op}")?,
+            (Some(x), None, None) => write!(f, ":{x}")?,
+            (None, None, Some(x)) => write!(f, ":{x}")?,
+            _ => (),
+        }
+
+        // append use deps
+        if let Some(x) = &self.use_deps {
+            write!(f, "[{}]", x.iter().join(","))?;
+        }
+
+        // append repo
+        if let Some(repo) = &self.repo {
+            write!(f, "::{repo}")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -292,60 +325,10 @@ impl FromStr for Atom {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
-    use itertools::Itertools;
-
     use crate::test::{AtomData, VersionData};
     use crate::utils::hash;
 
     use super::*;
-
-    // Convert an Atom to a string based on its components. This isn't used for fmt::Display
-    // because it doesn't always preserve the original string since the use flag component sorts
-    // and collapses similar elements on creation.
-    fn atom_to_string(atom: &Atom) -> String {
-        let mut s = String::new();
-
-        // append blocker
-        if let Some(blocker) = atom.blocker {
-            s.push_str(&format!("{blocker}"));
-        }
-
-        // append version operator with cpv
-        let cpv = atom.cpv();
-        use version::Operator::*;
-        match atom.version.as_ref().and_then(|v| v.op()) {
-            Some(Less) => s.push_str(&format!("<{cpv}")),
-            Some(LessOrEqual) => s.push_str(&format!("<={cpv}")),
-            Some(Equal) => s.push_str(&format!("={cpv}")),
-            Some(EqualGlob) => s.push_str(&format!("={cpv}*")),
-            Some(Approximate) => s.push_str(&format!("~{cpv}")),
-            Some(GreaterOrEqual) => s.push_str(&format!(">={cpv}")),
-            Some(Greater) => s.push_str(&format!(">{cpv}")),
-            None => s.push_str(&cpv),
-        }
-
-        // append slot data
-        match (atom.slot(), atom.subslot(), atom.slot_op()) {
-            (Some(slot), Some(subslot), Some(op)) => s.push_str(&format!(":{slot}/{subslot}{op}")),
-            (Some(slot), Some(subslot), None) => s.push_str(&format!(":{slot}/{subslot}")),
-            (Some(slot), None, Some(op)) => s.push_str(&format!(":{slot}{op}")),
-            (Some(x), None, None) => s.push_str(&format!(":{x}")),
-            (None, None, Some(x)) => s.push_str(&format!(":{x}")),
-            _ => (),
-        }
-
-        // append use deps
-        if let Some(x) = &atom.use_deps {
-            s.push_str(&format!("[{}]", x.iter().join(",")));
-        }
-
-        // append repo
-        if let Some(repo) = &atom.repo {
-            s.push_str(&format!("::{repo}"));
-        }
-
-        s
-    }
 
     #[test]
     fn test_to_string() {
@@ -364,11 +347,16 @@ mod tests {
             ">cat/pkg-4-r1:0/2=[use]::repo",
             "!cat/pkg",
             "!!<cat/pkg-4",
-            "cat/pkg[u,u]",
-            "cat/pkg[b,a]",
         ] {
             atom = Atom::from_str(s).unwrap();
             assert_eq!(atom.to_string(), s);
+        }
+
+        // Atoms with certain use flag patterns aren't returned 1 to 1 since use flags are sorted
+        // into an ordered set for equivalency purposes.
+        for (s, expected) in [("cat/pkg[u,u]", "cat/pkg[u]"), ("cat/pkg[b,a]", "cat/pkg[a,b]")] {
+            atom = Atom::from_str(s).unwrap();
+            assert_eq!(atom.to_string(), expected);
         }
     }
 
@@ -495,7 +483,7 @@ mod tests {
                 let (mut a1, mut a2) = (a.clone(), a.clone());
                 a1.version = Some(ver_parse(vals[0]));
                 a2.version = Some(ver_parse(vals[1]));
-                let (s1, s2) = (atom_to_string(&a1), atom_to_string(&a2));
+                let (s1, s2) = (&a1.to_string(), &a2.to_string());
 
                 // elements intersect themselves
                 assert!(a1.intersects(&a1), "{s1} doesn't intersect {s1}");

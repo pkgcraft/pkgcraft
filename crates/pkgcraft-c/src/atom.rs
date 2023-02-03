@@ -265,7 +265,7 @@ pub unsafe extern "C" fn pkgcraft_atom_cpv(atom: *mut Atom) -> *mut c_char {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_atom_str(atom: *mut Atom) -> *mut c_char {
     let atom = null_ptr_check!(atom.as_ref());
-    CString::new(atom.as_str()).unwrap().into_raw()
+    CString::new(atom.to_string()).unwrap().into_raw()
 }
 
 /// Return the hash value for an atom.
