@@ -1,11 +1,11 @@
 use std::process::ExitCode;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 mod atom;
 mod version;
 
-#[derive(Parser, Debug)]
+#[derive(Debug, Parser)]
 #[command(version, long_about = None, disable_help_subcommand = true)]
 /// pkgcraft command-line tool
 struct Cli {
@@ -13,18 +13,49 @@ struct Cli {
     command: Command,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Debug, Subcommand)]
 enum Command {
-    /// Perform actions on atoms including parsing, intersection, and sorting
-    Atom(atom::AtomSubCmd),
-    /// Perform actions on versions including parsing, intersection, and sorting
-    Version(version::VersionSubCmd),
+    /// Perform atom-related actions including parsing, intersection, and sorting
+    Atom(Atom),
+    /// Perform version-related actions including parsing, intersection, and sorting
+    Version(Version),
+}
+
+#[derive(Debug, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct Atom {
+    #[command(subcommand)]
+    command: atom::Command,
+}
+
+impl Run for Atom {
+    fn run(&self) -> anyhow::Result<ExitCode> {
+        self.command.run()
+    }
+}
+
+#[derive(Debug, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct Version {
+    #[command(subcommand)]
+    command: version::Command,
+}
+
+impl Run for Version {
+    fn run(&self) -> anyhow::Result<ExitCode> {
+        self.command.run()
+    }
+}
+
+trait Run {
+    fn run(&self) -> anyhow::Result<ExitCode>;
 }
 
 fn main() -> anyhow::Result<ExitCode> {
     let args = Cli::parse();
-    match args.command {
-        Command::Atom(s) => atom::main(s),
-        Command::Version(s) => version::main(s),
+    use Command::*;
+    match &args.command {
+        Atom(cmd) => cmd.run(),
+        Version(cmd) => cmd.run(),
     }
 }
