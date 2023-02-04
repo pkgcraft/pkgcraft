@@ -158,21 +158,6 @@ pub unsafe extern "C" fn pkgcraft_atom_version(atom: *mut Atom) -> *mut Version 
     }
 }
 
-/// Return an atom's revision, e.g. the atom "=cat/pkg-1-r2" has a revision of "2".
-///
-/// Returns NULL on nonexistence.
-///
-/// # Safety
-/// The argument must be a non-null Atom pointer.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_atom_revision(atom: *mut Atom) -> *mut c_char {
-    let atom = null_ptr_check!(atom.as_ref());
-    match atom.revision() {
-        None => ptr::null_mut(),
-        Some(r) => CString::new(r.as_str()).unwrap().into_raw(),
-    }
-}
-
 /// Return an atom's slot, e.g. the atom "=cat/pkg-1-r2:3" has a slot of "3".
 ///
 /// Returns NULL on nonexistence.
