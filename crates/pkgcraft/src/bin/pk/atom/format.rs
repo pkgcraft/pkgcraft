@@ -2,26 +2,20 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use aho_corasick::AhoCorasick;
-use anyhow::anyhow;
 use clap::Args;
-use itertools::Itertools;
 use pkgcraft::atom::Atom;
 
 use crate::Run;
 
 #[derive(Debug, Args)]
 pub(crate) struct Format {
-    vals: Vec<String>,
+    format: String,
+    atom: String,
 }
 
 impl Run for Format {
     fn run(&self) -> anyhow::Result<ExitCode> {
-        let (haystack, s) = self
-            .vals
-            .iter()
-            .collect_tuple()
-            .ok_or_else(|| anyhow!("invalid format args: {:?}", self.vals))?;
-        let a = Atom::from_str(s)?;
+        let a = Atom::from_str(&self.atom)?;
         let (mut patterns, mut values) = (vec![], vec![]);
         let ver_default = a.version().map(|v| v.as_str()).unwrap_or_default();
         for (pat, val) in [
@@ -35,7 +29,7 @@ impl Run for Format {
         }
 
         let ac = AhoCorasick::new(&patterns);
-        let result = ac.replace_all(haystack, &values);
+        let result = ac.replace_all(&self.format, &values);
         println!("{result}");
         Ok(ExitCode::SUCCESS)
     }
