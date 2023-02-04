@@ -159,12 +159,13 @@ impl<'a> ParsedVersion<'a> {
     }
 }
 
+#[repr(C)]
 #[derive(
     AsRefStr, Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 pub enum Operator {
     #[strum(serialize = "<")]
-    Less,
+    Less = 1,
     #[strum(serialize = "<=")]
     LessOrEqual,
     #[strum(serialize = "=")]

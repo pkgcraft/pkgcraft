@@ -1,12 +1,12 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int, CStr, CString};
 use std::ptr;
+use std::str::FromStr;
 
-use pkgcraft::atom::Version;
+use pkgcraft::atom::{Operator, Version};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
-use crate::types::AtomVersion;
 
 /// Parse a string into a version.
 ///
@@ -15,7 +15,7 @@ use crate::types::AtomVersion;
 /// # Safety
 /// The version argument should point to a valid string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut AtomVersion {
+pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut Version {
     let ver_str = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
     let ver = unwrap_or_return!(Version::new(ver_str), ptr::null_mut());
     Box::into_raw(Box::new(ver))
@@ -28,10 +28,43 @@ pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut AtomVers
 /// # Safety
 /// The version argument should point to a valid string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_with_op(s: *const c_char) -> *mut AtomVersion {
+pub unsafe extern "C" fn pkgcraft_version_with_op(s: *const c_char) -> *mut Version {
     let ver_str = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
     let ver = unwrap_or_return!(Version::new_with_op(ver_str), ptr::null_mut());
     Box::into_raw(Box::new(ver))
+}
+
+/// Return a version's operator.
+///
+/// Returns 0 on nonexistence.
+///
+/// # Safety
+/// The argument must be a non-null Version pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> c_int {
+    let ver = null_ptr_check!(v.as_ref());
+    ver.op().map(|op| op as c_int).unwrap_or_default()
+}
+
+/// Parse a string into an Operator.
+///
+/// Returns 0 on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_version_op_from_str(s: *const c_char) -> c_int {
+    let s = null_ptr_check!(s.as_ref());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), 0) };
+    Operator::from_str(s)
+        .map(|op| op as c_int)
+        .unwrap_or_default()
+}
+
+/// Return the string for an Operator.
+#[no_mangle]
+pub extern "C" fn pkgcraft_version_op_str(op: Operator) -> *mut c_char {
+    CString::new(op.as_ref()).unwrap().into_raw()
 }
 
 /// Compare two versions returning -1, 0, or 1 if the first version is less than, equal to, or greater
@@ -40,7 +73,7 @@ pub unsafe extern "C" fn pkgcraft_version_with_op(s: *const c_char) -> *mut Atom
 /// # Safety
 /// The version arguments should be non-null Version pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_cmp(v1: *mut AtomVersion, v2: *mut AtomVersion) -> c_int {
+pub unsafe extern "C" fn pkgcraft_version_cmp(v1: *mut Version, v2: *mut Version) -> c_int {
     let v1 = null_ptr_check!(v1.as_ref());
     let v2 = null_ptr_check!(v2.as_ref());
 
@@ -56,10 +89,7 @@ pub unsafe extern "C" fn pkgcraft_version_cmp(v1: *mut AtomVersion, v2: *mut Ato
 /// # Safety
 /// The version arguments should be non-null Version pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_intersects(
-    v1: *mut AtomVersion,
-    v2: *mut AtomVersion,
-) -> bool {
+pub unsafe extern "C" fn pkgcraft_version_intersects(v1: *mut Version, v2: *mut Version) -> bool {
     let v1 = null_ptr_check!(v1.as_ref());
     let v2 = null_ptr_check!(v2.as_ref());
     v1.intersects(v2)
@@ -70,7 +100,7 @@ pub unsafe extern "C" fn pkgcraft_version_intersects(
 /// # Safety
 /// The version argument should be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut AtomVersion) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut Version) -> *mut c_char {
     let ver = null_ptr_check!(v.as_ref());
     let s = ver.revision().as_str();
     CString::new(s).unwrap().into_raw()
@@ -81,7 +111,7 @@ pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut AtomVersion) -> *mut 
 /// # Safety
 /// The version argument should be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_str(v: *mut AtomVersion) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_version_str(v: *mut Version) -> *mut c_char {
     let ver = null_ptr_check!(v.as_ref());
     CString::new(ver.as_str()).unwrap().into_raw()
 }
@@ -91,7 +121,7 @@ pub unsafe extern "C" fn pkgcraft_version_str(v: *mut AtomVersion) -> *mut c_cha
 /// # Safety
 /// The version argument should be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_str_with_op(v: *mut AtomVersion) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_version_str_with_op(v: *mut Version) -> *mut c_char {
     let ver = null_ptr_check!(v.as_ref());
     CString::new(ver.to_string_with_op()).unwrap().into_raw()
 }
@@ -101,7 +131,7 @@ pub unsafe extern "C" fn pkgcraft_version_str_with_op(v: *mut AtomVersion) -> *m
 /// # Safety
 /// The version argument should be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_free(v: *mut AtomVersion) {
+pub unsafe extern "C" fn pkgcraft_version_free(v: *mut Version) {
     if !v.is_null() {
         let _ = unsafe { Box::from_raw(v) };
     }
@@ -112,7 +142,7 @@ pub unsafe extern "C" fn pkgcraft_version_free(v: *mut AtomVersion) {
 /// # Safety
 /// The version argument should be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_hash(v: *mut AtomVersion) -> u64 {
+pub unsafe extern "C" fn pkgcraft_version_hash(v: *mut Version) -> u64 {
     let ver = null_ptr_check!(v.as_ref());
     hash(ver)
 }

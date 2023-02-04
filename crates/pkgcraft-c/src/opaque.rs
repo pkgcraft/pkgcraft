@@ -1,9 +1,6 @@
 // explicitly force symbols to be exported
 // TODO: https://github.com/rust-lang/rfcs/issues/2771
 
-/// Opaque wrapper for AtomVersion objects.
-pub struct AtomVersion;
-
 /// Opaque wrapper for Pkg objects.
 pub struct Pkg;
 /// Opaque wrapper for Repo objects.

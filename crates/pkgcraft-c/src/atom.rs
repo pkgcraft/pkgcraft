@@ -3,13 +3,12 @@ use std::ffi::{c_char, c_int, CStr, CString};
 use std::ptr;
 use std::str::FromStr;
 
-use pkgcraft::atom::{Atom, Blocker, SlotOperator};
+use pkgcraft::atom::{Atom, Blocker, SlotOperator, Version};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
-use crate::types::AtomVersion;
 use crate::utils::str_to_raw;
 
 pub mod version;
@@ -151,7 +150,7 @@ pub unsafe extern "C" fn pkgcraft_atom_blocker(atom: *mut Atom) -> c_int {
 /// # Safety
 /// The argument must be a non-null Atom pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_atom_version(atom: *mut Atom) -> *mut AtomVersion {
+pub unsafe extern "C" fn pkgcraft_atom_version(atom: *mut Atom) -> *mut Version {
     let atom = null_ptr_check!(atom.as_ref());
     match atom.version() {
         None => ptr::null_mut(),

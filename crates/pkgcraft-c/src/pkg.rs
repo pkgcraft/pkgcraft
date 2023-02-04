@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int, CString};
 
-use pkgcraft::atom::Atom;
+use pkgcraft::atom::{Atom, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::{Package, Pkg};
 use pkgcraft::repo::Repo;
@@ -9,7 +9,6 @@ use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
-use crate::types::AtomVersion;
 
 pub mod ebuild;
 
@@ -73,7 +72,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_eapi(p: *mut Pkg) -> *const Eapi {
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_version(p: *mut Pkg) -> *mut AtomVersion {
+pub unsafe extern "C" fn pkgcraft_pkg_version(p: *mut Pkg) -> *mut Version {
     let pkg = null_ptr_check!(p.as_ref());
     Box::into_raw(Box::new(pkg.version().clone()))
 }
