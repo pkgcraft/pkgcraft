@@ -54,7 +54,7 @@ pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Atom {
 pub unsafe extern "C" fn pkgcraft_atom_blocker_from_str(s: *const c_char) -> c_int {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), 0) };
-    Blocker::from_str(s).map(|b| b as c_int).unwrap_or(0)
+    Blocker::from_str(s).map(|b| b as c_int).unwrap_or_default()
 }
 
 /// Return the string for a Blocker.
@@ -73,7 +73,9 @@ pub extern "C" fn pkgcraft_atom_blocker_str(b: Blocker) -> *mut c_char {
 pub unsafe extern "C" fn pkgcraft_atom_slot_op_from_str(s: *const c_char) -> c_int {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), 0) };
-    SlotOperator::from_str(s).map(|b| b as c_int).unwrap_or(0)
+    SlotOperator::from_str(s)
+        .map(|b| b as c_int)
+        .unwrap_or_default()
 }
 
 /// Return the string for a SlotOperator.
