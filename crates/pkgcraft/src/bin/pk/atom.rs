@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use clap::Subcommand;
+use clap::{Args, Subcommand};
 
 use crate::Run;
 
@@ -10,18 +10,31 @@ mod intersect;
 mod parse;
 mod sort;
 
+#[derive(Debug, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+pub(super) struct Atom {
+    #[command(subcommand)]
+    command: Command,
+}
+
+impl Run for Atom {
+    fn run(&self) -> anyhow::Result<ExitCode> {
+        self.command.run()
+    }
+}
+
 #[derive(Debug, Subcommand)]
 pub(super) enum Command {
     /// Compare two atoms
-    Compare(compare::Args),
+    Compare(compare::Compare),
     /// Parse an atom and print formatted output
-    Format(format::Args),
+    Format(format::Format),
     /// Determine if two atoms intersect
-    Intersect(intersect::Args),
+    Intersect(intersect::Intersect),
     /// Parse an atom
-    Parse(parse::Args),
+    Parse(parse::Parse),
     /// Sort atoms
-    Sort(sort::Args),
+    Sort(sort::Sort),
 }
 
 impl Run for Command {

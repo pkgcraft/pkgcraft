@@ -2,17 +2,18 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail};
+use clap::Args;
 use itertools::Itertools;
 use pkgcraft::atom::Atom;
 
 use crate::Run;
 
-#[derive(Debug, clap::Args)]
-pub(crate) struct Args {
+#[derive(Debug, Args)]
+pub(crate) struct Compare {
     compare: String,
 }
 
-impl Run for Args {
+impl Run for Compare {
     fn run(&self) -> anyhow::Result<ExitCode> {
         let (s1, op, s2) = self
             .compare

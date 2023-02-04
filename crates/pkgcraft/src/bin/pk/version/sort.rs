@@ -2,17 +2,18 @@ use std::io;
 use std::process::ExitCode;
 use std::str::FromStr;
 
+use clap::Args;
 use itertools::Itertools;
 use pkgcraft::atom::Version;
 
 use crate::Run;
 
-#[derive(Debug, clap::Args)]
-pub(crate) struct Args {
+#[derive(Debug, Args)]
+pub(crate) struct Sort {
     vals: Vec<String>,
 }
 
-impl Run for Args {
+impl Run for Sort {
     fn run(&self) -> anyhow::Result<ExitCode> {
         let mut versions = Vec::<Version>::new();
 

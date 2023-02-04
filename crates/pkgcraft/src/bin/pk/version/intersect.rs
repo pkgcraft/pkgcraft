@@ -2,17 +2,18 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use anyhow::anyhow;
+use clap::Args;
 use itertools::Itertools;
 use pkgcraft::atom::Version;
 
 use crate::Run;
 
-#[derive(Debug, clap::Args)]
-pub(crate) struct Args {
+#[derive(Debug, Args)]
+pub(crate) struct Intersect {
     vals: Vec<String>,
 }
 
-impl Run for Args {
+impl Run for Intersect {
     fn run(&self) -> anyhow::Result<ExitCode> {
         let (s1, s2) = self
             .vals

@@ -3,17 +3,18 @@ use std::str::FromStr;
 
 use aho_corasick::AhoCorasick;
 use anyhow::anyhow;
+use clap::Args;
 use itertools::Itertools;
 use pkgcraft::atom::Atom;
 
 use crate::Run;
 
-#[derive(Debug, clap::Args)]
-pub(crate) struct Args {
+#[derive(Debug, Args)]
+pub(crate) struct Format {
     vals: Vec<String>,
 }
 
-impl Run for Args {
+impl Run for Format {
     fn run(&self) -> anyhow::Result<ExitCode> {
         let (haystack, s) = self
             .vals
