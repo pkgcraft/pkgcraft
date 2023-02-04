@@ -41,11 +41,11 @@ impl Run for Command {
     fn run(&self) -> anyhow::Result<ExitCode> {
         use Command::*;
         match self {
-            Compare(args) => args.run(),
-            Format(args) => args.run(),
-            Intersect(args) => args.run(),
-            Parse(args) => args.run(),
-            Sort(args) => args.run(),
+            Compare(cmd) => cmd.run(),
+            Format(cmd) => cmd.run(),
+            Intersect(cmd) => cmd.run(),
+            Parse(cmd) => cmd.run(),
+            Sort(cmd) => cmd.run(),
         }
     }
 }
