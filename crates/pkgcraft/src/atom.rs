@@ -8,7 +8,7 @@ use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
 use self::version::ParsedVersion;
-pub use self::version::{Revision, Version};
+pub use self::version::{Operator, Revision, Version};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::bool_not_equal;
 use crate::set::OrderedSet;
@@ -207,6 +207,11 @@ impl Atom {
         self.version.as_ref().map(|v| v.revision())
     }
 
+    /// Return an atom's version operator.
+    pub fn op(&self) -> Option<Operator> {
+        self.version.as_ref().and_then(|v| v.op())
+    }
+
     /// Return an atom's CAT/PN value, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg`.
     pub fn cpn(&self) -> String {
         format!("{}/{}", self.category, self.package)
@@ -265,7 +270,7 @@ impl fmt::Display for Atom {
 
         // append version operator with cpv
         let cpv = self.cpv();
-        use version::Operator::*;
+        use Operator::*;
         match self.version.as_ref().and_then(|v| v.op()) {
             Some(Less) => write!(f, "<{cpv}")?,
             Some(LessOrEqual) => write!(f, "<={cpv}")?,
@@ -408,8 +413,25 @@ mod tests {
             (">cat/pkg-4-r1:0=", Some("1")),
         ] {
             atom = Atom::from_str(s).unwrap();
-            let revision = revision.map(|s| version::Revision::from_str(s).unwrap());
+            let revision = revision.map(|s| Revision::from_str(s).unwrap());
             assert_eq!(atom.revision(), revision.as_ref(), "{s} failed");
+        }
+    }
+
+    #[test]
+    fn test_atom_op() {
+        for (s, op) in [
+            ("cat/pkg", None),
+            ("<cat/pkg-4", Some(Operator::Less)),
+            ("<=cat/pkg-4-r1", Some(Operator::LessOrEqual)),
+            ("=cat/pkg-4", Some(Operator::Equal)),
+            ("=cat/pkg-4*", Some(Operator::EqualGlob)),
+            ("~cat/pkg-4", Some(Operator::Approximate)),
+            (">=cat/pkg-r1-2-r3", Some(Operator::GreaterOrEqual)),
+            (">cat/pkg-4-r1:0=", Some(Operator::Greater)),
+        ] {
+            let atom = Atom::from_str(s).unwrap();
+            assert_eq!(atom.op(), op);
         }
     }
 
