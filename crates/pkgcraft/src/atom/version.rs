@@ -326,8 +326,9 @@ impl Version {
 
                     // remaining '=*' -- intersects if glob matches ranged version
                     EqualGlob => ranged.as_str().starts_with(other.as_str()),
-                    // handled above, but completes variant coverage
-                    Equal => ranged_op.intersects(ranged, other),
+
+                    // remaining variants that should never occur
+                    Equal => unreachable!("Operator::Equal should be previously handled"),
                     NONE => panic!("Operator::NONE is only valid as a C bindings fallback"),
                 }
             }
