@@ -19,22 +19,26 @@ pub(crate) mod version;
 
 #[repr(C)]
 #[derive(
-    AsRefStr, Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 pub enum Blocker {
+    #[default]
+    NONE,
     #[strum(serialize = "!!")]
-    Strong = 1,
+    Strong,
     #[strum(serialize = "!")]
     Weak,
 }
 
 #[repr(C)]
 #[derive(
-    AsRefStr, Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 pub enum SlotOperator {
+    #[default]
+    NONE,
     #[strum(serialize = "=")]
-    Equal = 1,
+    Equal,
     #[strum(serialize = "*")]
     Star,
 }
@@ -272,6 +276,7 @@ impl fmt::Display for Atom {
         let cpv = self.cpv();
         use Operator::*;
         match self.version.as_ref().and_then(|v| v.op()) {
+            None => write!(f, "{cpv}")?,
             Some(Less) => write!(f, "<{cpv}")?,
             Some(LessOrEqual) => write!(f, "<={cpv}")?,
             Some(Equal) => write!(f, "={cpv}")?,
@@ -279,7 +284,7 @@ impl fmt::Display for Atom {
             Some(Approximate) => write!(f, "~{cpv}")?,
             Some(GreaterOrEqual) => write!(f, ">={cpv}")?,
             Some(Greater) => write!(f, ">{cpv}")?,
-            None => write!(f, "{cpv}")?,
+            Some(NONE) => panic!("Operator::NONE is only valid as a C bindings fallback"),
         }
 
         // append slot data

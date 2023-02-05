@@ -161,11 +161,13 @@ impl<'a> ParsedVersion<'a> {
 
 #[repr(C)]
 #[derive(
-    AsRefStr, Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 pub enum Operator {
+    #[default]
+    NONE,
     #[strum(serialize = "<")]
-    Less = 1,
+    Less,
     #[strum(serialize = "<=")]
     LessOrEqual,
     #[strum(serialize = "=")]
@@ -191,6 +193,7 @@ impl Operator {
             Approximate => NonRevisionVersion(right) == NonRevisionVersion(left),
             GreaterOrEqual => NonOpVersion(right) >= NonOpVersion(left),
             Greater => NonOpVersion(right) > NonOpVersion(left),
+            NONE => panic!("Operator::NONE is only valid as a C bindings fallback"),
         }
     }
 }
@@ -241,6 +244,7 @@ impl Version {
             Some(Approximate) => format!("~{s}"),
             Some(GreaterOrEqual) => format!(">={s}"),
             Some(Greater) => format!(">{s}"),
+            Some(NONE) => panic!("Operator::NONE is only valid as a C bindings fallback"),
         }
     }
 
@@ -324,6 +328,7 @@ impl Version {
                     EqualGlob => ranged.as_str().starts_with(other.as_str()),
                     // handled above, but completes variant coverage
                     Equal => ranged_op.intersects(ranged, other),
+                    NONE => panic!("Operator::NONE is only valid as a C bindings fallback"),
                 }
             }
         }

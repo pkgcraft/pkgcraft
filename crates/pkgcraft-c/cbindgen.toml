@@ -4,9 +4,6 @@ include_version = true
 language = "C"
 cpp_compat = true
 
-[export]
-include = ["Blocker", "SlotOperator"]
-
 [enum]
 rename_variants = "QualifiedScreamingSnakeCase"
 

@@ -1501,7 +1501,7 @@ checksum = "6ac9a59f73473f1b8d852421e59e64809f025994837ef743615c6d0c5b305160"
 
 [[package]]
 name = "pkgcraft"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "aho-corasick",
  "anyhow",
@@ -1549,7 +1549,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcraft-c"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "pkgcraft",
  "tracing",

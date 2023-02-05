@@ -36,29 +36,23 @@ pub unsafe extern "C" fn pkgcraft_version_with_op(s: *const c_char) -> *mut Vers
 
 /// Return a version's operator.
 ///
-/// Returns 0 on nonexistence.
-///
 /// # Safety
 /// The argument must be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> c_int {
+pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> Operator {
     let ver = null_ptr_check!(v.as_ref());
-    ver.op().map(|op| op as c_int).unwrap_or_default()
+    ver.op().unwrap_or_default()
 }
 
 /// Parse a string into an Operator.
 ///
-/// Returns 0 on error.
-///
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_op_from_str(s: *const c_char) -> c_int {
+pub unsafe extern "C" fn pkgcraft_version_op_from_str(s: *const c_char) -> Operator {
     let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), 0) };
-    Operator::from_str(s)
-        .map(|op| op as c_int)
-        .unwrap_or_default()
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), Operator::NONE) };
+    Operator::from_str(s).unwrap_or_default()
 }
 
 /// Return the string for an Operator.

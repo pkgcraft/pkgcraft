@@ -45,15 +45,13 @@ pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Atom {
 
 /// Parse a string into a Blocker.
 ///
-/// Returns 0 on error.
-///
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_atom_blocker_from_str(s: *const c_char) -> c_int {
+pub unsafe extern "C" fn pkgcraft_atom_blocker_from_str(s: *const c_char) -> Blocker {
     let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), 0) };
-    Blocker::from_str(s).map(|b| b as c_int).unwrap_or_default()
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), Blocker::NONE) };
+    Blocker::from_str(s).unwrap_or_default()
 }
 
 /// Return the string for a Blocker.
@@ -64,17 +62,13 @@ pub extern "C" fn pkgcraft_atom_blocker_str(b: Blocker) -> *mut c_char {
 
 /// Parse a string into a SlotOperator.
 ///
-/// Returns 0 on error.
-///
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_atom_slot_op_from_str(s: *const c_char) -> c_int {
+pub unsafe extern "C" fn pkgcraft_atom_slot_op_from_str(s: *const c_char) -> SlotOperator {
     let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), 0) };
-    SlotOperator::from_str(s)
-        .map(|b| b as c_int)
-        .unwrap_or_default()
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), SlotOperator::NONE) };
+    SlotOperator::from_str(s).unwrap_or_default()
 }
 
 /// Return the string for a SlotOperator.
@@ -131,16 +125,14 @@ pub unsafe extern "C" fn pkgcraft_atom_package(atom: *mut Atom) -> *mut c_char {
     CString::new(atom.package()).unwrap().into_raw()
 }
 
-/// Return an atom's blocker status, e.g. the atom "!cat/pkg" has a weak blocker.
-///
-/// Returns 0 on nonexistence.
+/// Return an atom's blocker, e.g. the atom "!cat/pkg" has a weak blocker.
 ///
 /// # Safety
 /// The argument must be a non-null Atom pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_atom_blocker(atom: *mut Atom) -> c_int {
+pub unsafe extern "C" fn pkgcraft_atom_blocker(atom: *mut Atom) -> Blocker {
     let atom = null_ptr_check!(atom.as_ref());
-    atom.blocker().map(|b| b as c_int).unwrap_or_default()
+    atom.blocker().unwrap_or_default()
 }
 
 /// Return an atom's version, e.g. the atom "=cat/pkg-1-r2" has a version of "1-r2".
@@ -191,14 +183,12 @@ pub unsafe extern "C" fn pkgcraft_atom_subslot(atom: *mut Atom) -> *mut c_char {
 /// Return an atom's slot operator, e.g. the atom "=cat/pkg-1-r2:0=" has an equal slot
 /// operator.
 ///
-/// Returns 0 on nonexistence.
-///
 /// # Safety
 /// The argument must be a non-null Atom pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_atom_slot_op(atom: *mut Atom) -> c_int {
+pub unsafe extern "C" fn pkgcraft_atom_slot_op(atom: *mut Atom) -> SlotOperator {
     let atom = null_ptr_check!(atom.as_ref());
-    atom.slot_op().map(|op| op as c_int).unwrap_or_default()
+    atom.slot_op().unwrap_or_default()
 }
 
 /// Return an atom's USE dependencies, e.g. the atom "=cat/pkg-1-r2[a,b,c]" has USE
