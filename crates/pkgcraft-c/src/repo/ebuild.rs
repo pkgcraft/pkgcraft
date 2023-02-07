@@ -13,7 +13,7 @@ use crate::utils::str_to_raw;
 /// # Safety
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_arches(
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_arches(
     r: *mut Repo,
     len: *mut usize,
 ) -> *mut *mut c_char {
@@ -27,7 +27,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_arches(
 /// # Safety
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_categories(
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_categories(
     r: *mut Repo,
     len: *mut usize,
 ) -> *mut *mut c_char {
