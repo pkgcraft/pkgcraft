@@ -6,7 +6,7 @@ use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use ini::Ini;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
@@ -26,6 +26,9 @@ use crate::restrict::{Restrict, Restriction};
 use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
+
+mod metadata;
+pub use metadata::Metadata;
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
@@ -112,59 +115,6 @@ impl IniConfig {
 
     pub fn restrict_allowed(&self) -> HashSet<&str> {
         self.iter("restrict-allowed").collect()
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct Metadata {
-    profiles_base: Utf8PathBuf,
-    arches: OnceCell<IndexSet<String>>,
-    categories: OnceCell<IndexSet<String>>,
-}
-
-impl Metadata {
-    fn new(profiles_base: Utf8PathBuf) -> Self {
-        Self {
-            profiles_base,
-            ..Default::default()
-        }
-    }
-
-    /// Return the full path to a repo's `profiles` directory.
-    pub fn profiles_base(&self) -> &Utf8Path {
-        &self.profiles_base
-    }
-
-    /// Return a repo's known architectures from `profiles/arch.list`.
-    pub fn arches(&self) -> &IndexSet<String> {
-        self.arches.get_or_init(|| {
-            let path = self.profiles_base.join("arch.list");
-            match fs::read_to_string(path) {
-                Ok(s) => s
-                    .lines()
-                    .map(|s| s.trim())
-                    .filter(|s| !s.starts_with('#'))
-                    .map(String::from)
-                    .collect(),
-                Err(_) => IndexSet::new(),
-            }
-        })
-    }
-
-    /// Return a repo's configured categories from `profiles/categories`.
-    pub fn categories(&self) -> &IndexSet<String> {
-        self.categories.get_or_init(|| {
-            let path = self.profiles_base.join("categories");
-            match fs::read_to_string(path) {
-                Ok(s) => s
-                    .lines()
-                    .map(|s| s.trim())
-                    .filter(|s| !s.starts_with('#'))
-                    .map(String::from)
-                    .collect(),
-                Err(_) => IndexSet::new(),
-            }
-        })
     }
 }
 
@@ -1010,25 +960,6 @@ mod tests {
         assert!(repo.contains(&a));
         let a = Atom::from_str("cat/pkg-a").unwrap();
         assert!(!repo.contains(&a));
-    }
-
-    #[test]
-    fn test_arches() {
-        // empty
-        let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0).unwrap();
-        assert!(repo.metadata().arches().is_empty());
-
-        // multiple
-        let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0).unwrap();
-        let data = indoc::indoc! {r#"
-            amd64
-            arm64
-            amd64-linux
-        "#};
-        fs::write(repo.metadata().profiles_base().join("arch.list"), data).unwrap();
-        assert_unordered_eq(repo.metadata().arches(), ["amd64", "arm64", "amd64-linux"]);
     }
 
     #[test]
