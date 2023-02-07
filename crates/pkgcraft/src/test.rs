@@ -1,5 +1,5 @@
 #![cfg(test)]
-use std::{fmt, fs};
+use std::{env, fmt, fs};
 
 use camino::Utf8PathBuf;
 use itertools::Itertools;
@@ -15,9 +15,12 @@ use crate::Error;
 static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
     Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "toml"));
 
-/// Explicitly initialize bash for all test executables.
+/// Initialization for all test executables.
 #[ctor::ctor]
 fn initialize() {
+    // verify running under `cargon nextest`
+    env::var("NEXTEST").expect("tests must be run via cargo-nextest");
+    // initialize bash for all test executables
     Lazy::force(&crate::pkgsh::BASH);
 }
 
