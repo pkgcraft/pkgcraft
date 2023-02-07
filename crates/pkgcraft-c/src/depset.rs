@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int, c_void, CString};
 use std::{fmt, ptr};
 
 use pkgcraft::atom::Atom;
-use pkgcraft::depset::{self, IntoIteratorFlatten, Uri};
+use pkgcraft::depset::{self, IntoIteratorDepSet, Uri};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
@@ -82,6 +82,25 @@ impl Iterator for DepSetIntoIterFlatten {
             Self::Uri(iter) => iter
                 .next()
                 .map(|x| Box::into_raw(Box::new(x)) as *mut c_void),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum DepSetIntoIterRecursive {
+    Atom(depset::DepSetIntoIterRecursive<Atom>),
+    String(depset::DepSetIntoIterRecursive<String>),
+    Uri(depset::DepSetIntoIterRecursive<Uri>),
+}
+
+impl Iterator for DepSetIntoIterRecursive {
+    type Item = DepRestrict;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Atom(iter) => iter.next().map(DepRestrict::Atom),
+            Self::String(iter) => iter.next().map(DepRestrict::String),
+            Self::Uri(iter) => iter.next().map(DepRestrict::Uri),
         }
     }
 }
@@ -210,7 +229,7 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_str(d: *mut DepRestrict) -> *mut c
     CString::new(deps.to_string()).unwrap().into_raw()
 }
 
-/// Return an iterator for a flattened DepRestrict.
+/// Return a flattened iterator for a DepRestrict.
 ///
 /// # Safety
 /// The argument must be a non-null DepRestrict pointer.
@@ -227,7 +246,7 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_into_iter_flatten(
     Box::into_raw(Box::new(iter))
 }
 
-/// Return an iterator for a flattened DepSet.
+/// Return a flattened iterator for a DepSet.
 ///
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
@@ -264,6 +283,67 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_next(
 /// The argument must be a non-null DepSetIntoIterFlatten pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_free(i: *mut DepSetIntoIterFlatten) {
+    if !i.is_null() {
+        unsafe { drop(Box::from_raw(i)) };
+    }
+}
+
+/// Return a recursive iterator for a DepRestrict.
+///
+/// # Safety
+/// The argument must be a non-null DepRestrict pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_deprestrict_into_iter_recursive(
+    d: *mut DepRestrict,
+) -> *mut DepSetIntoIterRecursive {
+    let deps = null_ptr_check!(d.as_ref());
+    let iter = match deps.clone() {
+        DepRestrict::Atom(d) => DepSetIntoIterRecursive::Atom(d.into_iter_recursive()),
+        DepRestrict::String(d) => DepSetIntoIterRecursive::String(d.into_iter_recursive()),
+        DepRestrict::Uri(d) => DepSetIntoIterRecursive::Uri(d.into_iter_recursive()),
+    };
+    Box::into_raw(Box::new(iter))
+}
+
+/// Return a recursive iterator for a DepSet.
+///
+/// # Safety
+/// The argument must be a non-null DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive(
+    d: *mut DepSet,
+) -> *mut DepSetIntoIterRecursive {
+    let deps = null_ptr_check!(d.as_ref());
+    let iter = match deps.clone() {
+        DepSet::Atom(d) => DepSetIntoIterRecursive::Atom(d.into_iter_recursive()),
+        DepSet::String(d) => DepSetIntoIterRecursive::String(d.into_iter_recursive()),
+        DepSet::Uri(d) => DepSetIntoIterRecursive::Uri(d.into_iter_recursive()),
+    };
+    Box::into_raw(Box::new(iter))
+}
+
+/// Return the next object from a recursive depset iterator.
+///
+/// Returns NULL when the iterator is empty.
+///
+/// # Safety
+/// The argument must be a non-null DepSetIntoIterRecursive pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive_next(
+    i: *mut DepSetIntoIterRecursive,
+) -> *mut DepRestrict {
+    let iter = null_ptr_check!(i.as_mut());
+    iter.next()
+        .map(|x| Box::into_raw(Box::new(x)))
+        .unwrap_or(ptr::null_mut())
+}
+
+/// Free a recursive depset iterator.
+///
+/// # Safety
+/// The argument must be a non-null DepSetIntoIterFlatten pointer or NULL.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive_free(i: *mut DepSetIntoIterRecursive) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }

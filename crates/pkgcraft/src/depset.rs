@@ -65,11 +65,15 @@ impl<T: Ordered> FromIterator<DepRestrict<T>> for DepSet<T> {
     }
 }
 
-pub trait IntoIteratorFlatten {
-    type Item;
-    type IntoIter: Iterator<Item = Self::Item>;
+pub trait IntoIteratorDepSet {
+    type FlattenedItem;
+    type IntoIterFlatten: Iterator<Item = Self::FlattenedItem>;
 
-    fn into_iter_flatten(self) -> Self::IntoIter;
+    type RecursiveItem;
+    type IntoIterRecursive: Iterator<Item = Self::RecursiveItem>;
+
+    fn into_iter_flatten(self) -> Self::IntoIterFlatten;
+    fn into_iter_recursive(self) -> Self::IntoIterRecursive;
 }
 
 impl<T: Ordered> DepSet<T> {
@@ -102,12 +106,19 @@ impl<'a, T: Ordered> Iterator for DepSetIter<'a, T> {
     }
 }
 
-impl<'a, T: Ordered> IntoIteratorFlatten for &'a DepSet<T> {
-    type Item = &'a T;
-    type IntoIter = DepSetIterFlatten<'a, T>;
+impl<'a, T: Ordered> IntoIteratorDepSet for &'a DepSet<T> {
+    type FlattenedItem = &'a T;
+    type IntoIterFlatten = DepSetIterFlatten<'a, T>;
 
-    fn into_iter_flatten(self) -> Self::IntoIter {
+    type RecursiveItem = &'a DepRestrict<T>;
+    type IntoIterRecursive = DepSetIterRecursive<'a, T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         DepSetIterFlatten(self.0.iter().collect())
+    }
+
+    fn into_iter_recursive(self) -> Self::IntoIterRecursive {
+        DepSetIterRecursive(self.0.iter().collect())
     }
 }
 
@@ -131,12 +142,19 @@ impl<T: Ordered> Iterator for DepSetIntoIter<T> {
     }
 }
 
-impl<T: Ordered> IntoIteratorFlatten for DepSet<T> {
-    type Item = T;
-    type IntoIter = DepSetIntoIterFlatten<T>;
+impl<T: Ordered> IntoIteratorDepSet for DepSet<T> {
+    type FlattenedItem = T;
+    type IntoIterFlatten = DepSetIntoIterFlatten<T>;
 
-    fn into_iter_flatten(self) -> Self::IntoIter {
+    type RecursiveItem = DepRestrict<T>;
+    type IntoIterRecursive = DepSetIntoIterRecursive<T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         DepSetIntoIterFlatten(self.0.into_iter().collect())
+    }
+
+    fn into_iter_recursive(self) -> Self::IntoIterRecursive {
+        DepSetIntoIterRecursive(self.0.into_iter().collect())
     }
 }
 
@@ -158,21 +176,35 @@ impl<T: Ordered> DepRestrict<T> {
     }
 }
 
-impl<'a, T: Ordered> IntoIteratorFlatten for &'a DepRestrict<T> {
-    type Item = &'a T;
-    type IntoIter = DepSetIterFlatten<'a, T>;
+impl<'a, T: Ordered> IntoIteratorDepSet for &'a DepRestrict<T> {
+    type FlattenedItem = &'a T;
+    type IntoIterFlatten = DepSetIterFlatten<'a, T>;
 
-    fn into_iter_flatten(self) -> Self::IntoIter {
+    type RecursiveItem = &'a DepRestrict<T>;
+    type IntoIterRecursive = DepSetIterRecursive<'a, T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         DepSetIterFlatten([self].into_iter().collect())
+    }
+
+    fn into_iter_recursive(self) -> Self::IntoIterRecursive {
+        DepSetIterRecursive([self].into_iter().collect())
     }
 }
 
-impl<T: Ordered> IntoIteratorFlatten for DepRestrict<T> {
-    type Item = T;
-    type IntoIter = DepSetIntoIterFlatten<T>;
+impl<T: Ordered> IntoIteratorDepSet for DepRestrict<T> {
+    type FlattenedItem = T;
+    type IntoIterFlatten = DepSetIntoIterFlatten<T>;
 
-    fn into_iter_flatten(self) -> Self::IntoIter {
+    type RecursiveItem = DepRestrict<T>;
+    type IntoIterRecursive = DepSetIntoIterRecursive<T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         DepSetIntoIterFlatten([self].into_iter().collect())
+    }
+
+    fn into_iter_recursive(self) -> Self::IntoIterRecursive {
+        DepSetIntoIterRecursive([self].into_iter().collect())
     }
 }
 
@@ -265,6 +297,56 @@ impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterFlatten<T> {
             }
         }
         None
+    }
+}
+
+#[derive(Debug)]
+pub struct DepSetIterRecursive<'a, T: Ordered>(VecDeque<&'a DepRestrict<T>>);
+
+impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetIterRecursive<'a, T> {
+    type Item = &'a DepRestrict<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use DepRestrict::*;
+        if let Some(dep) = self.0.pop_front() {
+            match dep {
+                Matches(_, _) => (),
+                AllOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                AnyOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                ExactlyOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                AtMostOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                UseEnabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                UseDisabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+            }
+            Some(dep)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct DepSetIntoIterRecursive<T: Ordered>(VecDeque<DepRestrict<T>>);
+
+impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterRecursive<T> {
+    type Item = DepRestrict<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use DepRestrict::*;
+        if let Some(dep) = self.0.pop_front() {
+            match &dep {
+                Matches(_, _) => (),
+                AllOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
+                AnyOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
+                ExactlyOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
+                AtMostOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
+                UseEnabled(_, vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
+                UseDisabled(_, vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
+            }
+            Some(dep)
+        } else {
+            None
+        }
     }
 }
 
