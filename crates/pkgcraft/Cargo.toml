@@ -68,7 +68,7 @@ walkdir = "2.3.2"
 
 # pk dependencies
 aho-corasick = { version = "0.7.20", optional = true }
-anyhow = { version = "1.0.68", optional = true }
+anyhow = { version = "1.0.69", optional = true }
 is-terminal = { version = "0.4.3", optional = true }
 
 [dev-dependencies]
