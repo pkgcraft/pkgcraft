@@ -1,27 +1,105 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int, c_void, CString};
+use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::{fmt, ptr};
 
 use pkgcraft::atom::Atom;
 use pkgcraft::depset::{self, IntoIteratorDepSet, Uri};
+use pkgcraft::set::Ordered;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(C)]
+pub enum DepSetKind {
+    Atom,
+    String,
+    Uri,
+}
+
+/// Opaque wrapper for DepSet objects.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DepSet {
+pub enum DepSetW {
     Atom(depset::DepSet<Atom>),
     String(depset::DepSet<String>),
     Uri(depset::DepSet<Uri>),
 }
 
-impl fmt::Display for DepSet {
+impl fmt::Display for DepSetW {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Atom(d) => write!(f, "{d}"),
             Self::String(d) => write!(f, "{d}"),
             Self::Uri(d) => write!(f, "{d}"),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct DepSet {
+    kind: DepSetKind,
+    dep: *mut DepSetW,
+}
+
+impl Drop for DepSet {
+    fn drop(&mut self) {
+        unsafe {
+            drop(Box::from_raw(self.dep));
+        }
+    }
+}
+
+impl DepSet {
+    pub(crate) fn new_atom(d: depset::DepSet<Atom>) -> Self {
+        Self {
+            kind: DepSetKind::Atom,
+            dep: Box::into_raw(Box::new(DepSetW::Atom(d))),
+        }
+    }
+
+    pub(crate) fn new_string(d: depset::DepSet<String>) -> Self {
+        Self {
+            kind: DepSetKind::String,
+            dep: Box::into_raw(Box::new(DepSetW::String(d))),
+        }
+    }
+
+    pub(crate) fn new_uri(d: depset::DepSet<Uri>) -> Self {
+        Self {
+            kind: DepSetKind::Uri,
+            dep: Box::into_raw(Box::new(DepSetW::Uri(d))),
+        }
+    }
+}
+
+impl Hash for DepSet {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.deref().hash(state)
+    }
+}
+
+impl PartialEq for DepSet {
+    fn eq(&self, other: &Self) -> bool {
+        self.deref().eq(other.deref())
+    }
+}
+
+impl Eq for DepSet {}
+
+impl Deref for DepSet {
+    type Target = DepSetW;
+
+    fn deref(&self) -> &Self::Target {
+        null_ptr_check!(self.dep.as_ref())
+    }
+}
+
+impl fmt::Display for DepSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.deref())
     }
 }
 
@@ -37,27 +115,139 @@ impl Iterator for DepSetIntoIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Atom(iter) => iter.next().map(DepRestrict::Atom),
-            Self::String(iter) => iter.next().map(DepRestrict::String),
-            Self::Uri(iter) => iter.next().map(DepRestrict::Uri),
+            Self::Atom(iter) => iter.next().map(DepRestrict::new_atom),
+            Self::String(iter) => iter.next().map(DepRestrict::new_string),
+            Self::Uri(iter) => iter.next().map(DepRestrict::new_uri),
         }
     }
 }
 
+/// Opaque wrapper for DepRestrict objects.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DepRestrict {
+pub enum DepRestrictW {
     Atom(depset::DepRestrict<Atom>),
     String(depset::DepRestrict<String>),
     Uri(depset::DepRestrict<Uri>),
 }
 
-impl fmt::Display for DepRestrict {
+impl fmt::Display for DepRestrictW {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Atom(d) => write!(f, "{d}"),
             Self::String(d) => write!(f, "{d}"),
             Self::Uri(d) => write!(f, "{d}"),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(C)]
+pub enum DepKind {
+    Enabled,
+    Disabled,
+    AllOf,
+    AnyOf,
+    ExactlyOneOf,
+    AtMostOneOf,
+    UseEnabled,
+    UseDisabled,
+}
+
+impl<T: Ordered> From<&depset::DepRestrict<T>> for DepKind {
+    fn from(d: &depset::DepRestrict<T>) -> Self {
+        use depset::DepRestrict::*;
+        match d {
+            Enabled(_) => Self::Enabled,
+            Disabled(_) => Self::Disabled,
+            AllOf(_) => Self::AllOf,
+            AnyOf(_) => Self::AnyOf,
+            ExactlyOneOf(_) => Self::ExactlyOneOf,
+            AtMostOneOf(_) => Self::AtMostOneOf,
+            UseEnabled(_, _) => Self::UseEnabled,
+            UseDisabled(_, _) => Self::UseDisabled,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct DepRestrict {
+    kind: DepSetKind,
+    kind_dep: DepKind,
+    dep: *mut DepRestrictW,
+}
+
+impl Drop for DepRestrict {
+    fn drop(&mut self) {
+        unsafe {
+            drop(Box::from_raw(self.dep));
+        }
+    }
+}
+
+impl DepRestrict {
+    pub(crate) fn new_atom(d: depset::DepRestrict<Atom>) -> Self {
+        Self {
+            kind: DepSetKind::Atom,
+            kind_dep: DepKind::from(&d),
+            dep: Box::into_raw(Box::new(DepRestrictW::Atom(d))),
+        }
+    }
+
+    pub(crate) fn new_string(d: depset::DepRestrict<String>) -> Self {
+        Self {
+            kind: DepSetKind::String,
+            kind_dep: DepKind::from(&d),
+            dep: Box::into_raw(Box::new(DepRestrictW::String(d))),
+        }
+    }
+
+    pub(crate) fn new_uri(d: depset::DepRestrict<Uri>) -> Self {
+        Self {
+            kind: DepSetKind::Uri,
+            kind_dep: DepKind::from(&d),
+            dep: Box::into_raw(Box::new(DepRestrictW::Uri(d))),
+        }
+    }
+}
+
+impl Hash for DepRestrict {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.deref().hash(state)
+    }
+}
+
+impl Ord for DepRestrict {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.deref().cmp(other.deref())
+    }
+}
+
+impl PartialOrd for DepRestrict {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for DepRestrict {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for DepRestrict {}
+
+impl Deref for DepRestrict {
+    type Target = DepRestrictW;
+
+    fn deref(&self) -> &Self::Target {
+        null_ptr_check!(self.dep.as_ref())
+    }
+}
+
+impl fmt::Display for DepRestrict {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.deref())
     }
 }
 
@@ -98,9 +288,9 @@ impl Iterator for DepSetIntoIterRecursive {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Atom(iter) => iter.next().map(DepRestrict::Atom),
-            Self::String(iter) => iter.next().map(DepRestrict::String),
-            Self::Uri(iter) => iter.next().map(DepRestrict::Uri),
+            Self::Atom(iter) => iter.next().map(DepRestrict::new_atom),
+            Self::String(iter) => iter.next().map(DepRestrict::new_string),
+            Self::Uri(iter) => iter.next().map(DepRestrict::new_uri),
         }
     }
 }
@@ -143,10 +333,10 @@ pub unsafe extern "C" fn pkgcraft_depset_hash(d: *mut DepSet) -> u64 {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_depset_into_iter(d: *mut DepSet) -> *mut DepSetIntoIter {
     let deps = null_ptr_check!(d.as_ref());
-    let iter = match deps.clone() {
-        DepSet::Atom(d) => DepSetIntoIter::Atom(d.into_iter()),
-        DepSet::String(d) => DepSetIntoIter::String(d.into_iter()),
-        DepSet::Uri(d) => DepSetIntoIter::Uri(d.into_iter()),
+    let iter = match deps.deref().clone() {
+        DepSetW::Atom(d) => DepSetIntoIter::Atom(d.into_iter()),
+        DepSetW::String(d) => DepSetIntoIter::String(d.into_iter()),
+        DepSetW::Uri(d) => DepSetIntoIter::Uri(d.into_iter()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -237,11 +427,11 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_str(d: *mut DepRestrict) -> *mut c
 pub unsafe extern "C" fn pkgcraft_deprestrict_into_iter_flatten(
     d: *mut DepRestrict,
 ) -> *mut DepSetIntoIterFlatten {
-    let deps = null_ptr_check!(d.as_ref());
-    let iter = match deps.clone() {
-        DepRestrict::Atom(d) => DepSetIntoIterFlatten::Atom(d.into_iter_flatten()),
-        DepRestrict::String(d) => DepSetIntoIterFlatten::String(d.into_iter_flatten()),
-        DepRestrict::Uri(d) => DepSetIntoIterFlatten::Uri(d.into_iter_flatten()),
+    let dep = null_ptr_check!(d.as_ref());
+    let iter = match dep.deref().clone() {
+        DepRestrictW::Atom(d) => DepSetIntoIterFlatten::Atom(d.into_iter_flatten()),
+        DepRestrictW::String(d) => DepSetIntoIterFlatten::String(d.into_iter_flatten()),
+        DepRestrictW::Uri(d) => DepSetIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -255,10 +445,10 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten(
     d: *mut DepSet,
 ) -> *mut DepSetIntoIterFlatten {
     let deps = null_ptr_check!(d.as_ref());
-    let iter = match deps.clone() {
-        DepSet::Atom(d) => DepSetIntoIterFlatten::Atom(d.into_iter_flatten()),
-        DepSet::String(d) => DepSetIntoIterFlatten::String(d.into_iter_flatten()),
-        DepSet::Uri(d) => DepSetIntoIterFlatten::Uri(d.into_iter_flatten()),
+    let iter = match deps.deref().clone() {
+        DepSetW::Atom(d) => DepSetIntoIterFlatten::Atom(d.into_iter_flatten()),
+        DepSetW::String(d) => DepSetIntoIterFlatten::String(d.into_iter_flatten()),
+        DepSetW::Uri(d) => DepSetIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -296,11 +486,11 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_free(i: *mut DepSetIn
 pub unsafe extern "C" fn pkgcraft_deprestrict_into_iter_recursive(
     d: *mut DepRestrict,
 ) -> *mut DepSetIntoIterRecursive {
-    let deps = null_ptr_check!(d.as_ref());
-    let iter = match deps.clone() {
-        DepRestrict::Atom(d) => DepSetIntoIterRecursive::Atom(d.into_iter_recursive()),
-        DepRestrict::String(d) => DepSetIntoIterRecursive::String(d.into_iter_recursive()),
-        DepRestrict::Uri(d) => DepSetIntoIterRecursive::Uri(d.into_iter_recursive()),
+    let dep = null_ptr_check!(d.as_ref());
+    let iter = match dep.deref().clone() {
+        DepRestrictW::Atom(d) => DepSetIntoIterRecursive::Atom(d.into_iter_recursive()),
+        DepRestrictW::String(d) => DepSetIntoIterRecursive::String(d.into_iter_recursive()),
+        DepRestrictW::Uri(d) => DepSetIntoIterRecursive::Uri(d.into_iter_recursive()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -314,10 +504,10 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive(
     d: *mut DepSet,
 ) -> *mut DepSetIntoIterRecursive {
     let deps = null_ptr_check!(d.as_ref());
-    let iter = match deps.clone() {
-        DepSet::Atom(d) => DepSetIntoIterRecursive::Atom(d.into_iter_recursive()),
-        DepSet::String(d) => DepSetIntoIterRecursive::String(d.into_iter_recursive()),
-        DepSet::Uri(d) => DepSetIntoIterRecursive::Uri(d.into_iter_recursive()),
+    let iter = match deps.deref().clone() {
+        DepSetW::Atom(d) => DepSetIntoIterRecursive::Atom(d.into_iter_recursive()),
+        DepSetW::String(d) => DepSetIntoIterRecursive::String(d.into_iter_recursive()),
+        DepSetW::Uri(d) => DepSetIntoIterRecursive::Uri(d.into_iter_recursive()),
     };
     Box::into_raw(Box::new(iter))
 }

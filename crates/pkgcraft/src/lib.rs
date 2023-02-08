@@ -14,7 +14,7 @@ pub mod pkg;
 pub mod pkgsh;
 pub mod repo;
 pub mod restrict;
-mod set;
+pub mod set;
 mod sync;
 pub(crate) mod test;
 pub mod utils;

@@ -136,7 +136,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
     }
 
     let deps = pkg.dependencies(&dep_keys);
-    Box::into_raw(Box::new(DepSet::Atom(deps)))
+    Box::into_raw(Box::new(DepSet::new_atom(deps)))
 }
 
 /// Return a package's DEPEND.
@@ -151,7 +151,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet 
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.depend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::Atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
     }
 }
 
@@ -167,7 +167,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.bdepend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::Atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
     }
 }
 
@@ -183,7 +183,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.idepend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::Atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
     }
 }
 
@@ -199,7 +199,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.pdepend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::Atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
     }
 }
 
@@ -215,7 +215,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.rdepend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::Atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
     }
 }
 
@@ -231,7 +231,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.license() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::String(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone()))),
     }
 }
 
@@ -247,7 +247,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut Dep
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.properties() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::String(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone()))),
     }
 }
 
@@ -263,7 +263,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut D
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.required_use() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::String(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone()))),
     }
 }
 
@@ -279,7 +279,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSe
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.restrict() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::String(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone()))),
     }
 }
 
@@ -295,7 +295,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_src_uri(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.src_uri() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::Uri(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_uri(d.clone()))),
     }
 }
 
