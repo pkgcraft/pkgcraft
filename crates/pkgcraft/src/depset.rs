@@ -160,8 +160,8 @@ impl<T: Ordered> IntoIteratorDepSet for DepSet<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DepRestrict<T: Ordered> {
-    Matches(T, bool),
-    // logic conditionals
+    Enabled(T),
+    Disabled(T), // REQUIRED_USE only
     AllOf(SortedSet<Box<DepRestrict<T>>>),
     AnyOf(OrderedSet<Box<DepRestrict<T>>>),
     ExactlyOneOf(OrderedSet<Box<DepRestrict<T>>>), // REQUIRED_USE only
@@ -212,8 +212,8 @@ impl<T: fmt::Display + Ordered> fmt::Display for DepRestrict<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use DepRestrict::*;
         match self {
-            Matches(val, true) => write!(f, "{val}"),
-            Matches(val, false) => write!(f, "!{val}"),
+            Enabled(val) => write!(f, "{val}"),
+            Disabled(val) => write!(f, "!{val}"),
             AllOf(vals) => write!(f, "( {} )", p!(vals)),
             AnyOf(vals) => write!(f, "|| ( {} )", p!(vals)),
             ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p!(vals)),
@@ -264,7 +264,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetIterFlatten<'a, T> {
         use DepRestrict::*;
         while let Some(dep) = self.0.pop_front() {
             match dep {
-                Matches(val, _) => return Some(val),
+                Enabled(val) | Disabled(val) => return Some(val),
                 AllOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
                 AnyOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
@@ -287,7 +287,7 @@ impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterFlatten<T> {
         use DepRestrict::*;
         while let Some(dep) = self.0.pop_front() {
             match dep {
-                Matches(val, _) => return Some(val),
+                Enabled(val) | Disabled(val) => return Some(val),
                 AllOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
                 AnyOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
                 ExactlyOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
@@ -310,7 +310,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetIterRecursive<'a, T> {
         use DepRestrict::*;
         if let Some(dep) = self.0.pop_front() {
             match dep {
-                Matches(_, _) => (),
+                Enabled(_) | Disabled(_) => (),
                 AllOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
                 AnyOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
@@ -335,7 +335,7 @@ impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterRecursive<T> {
         use DepRestrict::*;
         if let Some(dep) = self.0.pop_front() {
             match &dep {
-                Matches(_, _) => (),
+                Enabled(_) | Disabled(_) => (),
                 AllOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
                 AnyOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
                 ExactlyOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
@@ -376,7 +376,7 @@ peg::parser!(grammar depset() for str {
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
         } / expected!("string value")
-        ) { DepRestrict::Matches(s.to_string(), true) }
+        ) { DepRestrict::Enabled(s.to_string()) }
 
     // licenses must not begin with a hyphen, dot, or plus sign.
     rule license_val() -> DepRestrict<String>
@@ -384,7 +384,7 @@ peg::parser!(grammar depset() for str {
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
         } / expected!("license name")
-        ) { DepRestrict::Matches(s.to_string(), true) }
+        ) { DepRestrict::Enabled(s.to_string()) }
 
     rule useflag() -> &'input str
         = s:$(quiet!{
@@ -395,7 +395,12 @@ peg::parser!(grammar depset() for str {
 
     rule useflag_val() -> DepRestrict<String>
         = disabled:"!"? s:useflag() {
-            DepRestrict::Matches(s.to_string(), disabled.is_none())
+            let val = s.to_string();
+            if disabled.is_none() {
+                DepRestrict::Enabled(val)
+            } else {
+                DepRestrict::Disabled(val)
+            }
         }
 
     rule pkg_val(eapi: &'static Eapi) -> DepRestrict<Atom>
@@ -404,7 +409,7 @@ peg::parser!(grammar depset() for str {
                 Ok(x) => x,
                 Err(e) => return Err("failed parsing atom"),
             };
-            Ok(DepRestrict::Matches(atom, true))
+            Ok(DepRestrict::Enabled(atom))
         }
 
     rule uri_val(eapi: &'static Eapi) -> DepRestrict<Uri>
@@ -416,7 +421,7 @@ peg::parser!(grammar depset() for str {
                 }
                 uri.rename = Some(r.to_string());
             }
-            Ok(DepRestrict::Matches(uri, true))
+            Ok(DepRestrict::Enabled(uri))
         }
 
     rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
@@ -576,15 +581,15 @@ mod tests {
     use super::*;
 
     fn vs(val: &str) -> DepRestrict<String> {
-        Matches(val.to_string(), true)
+        Enabled(val.to_string())
     }
 
     fn vd(val: &str) -> DepRestrict<String> {
-        Matches(val.to_string(), false)
+        Disabled(val.to_string())
     }
 
     fn va(val: &str) -> DepRestrict<Atom> {
-        Matches(Atom::from_str(val).unwrap(), true)
+        Enabled(Atom::from_str(val).unwrap())
     }
 
     fn vu(u1: &str, u2: Option<&str>) -> DepRestrict<Uri> {
@@ -592,7 +597,7 @@ mod tests {
             uri: u1.to_string(),
             rename: u2.map(String::from),
         };
-        Matches(uri, true)
+        Enabled(uri)
     }
 
     fn allof<I, T>(val: I) -> DepRestrict<T>
