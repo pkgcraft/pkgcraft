@@ -11,6 +11,7 @@ use pkgcraft::utils::hash;
 
 use crate::macros::*;
 
+/// DepSet variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum DepSetKind {
@@ -37,6 +38,7 @@ impl fmt::Display for DepSetW {
     }
 }
 
+/// C-compatible wrapper for DepSet objects.
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct DepSet {
@@ -103,6 +105,7 @@ impl fmt::Display for DepSet {
     }
 }
 
+/// Opaque wrapper for DepSet iterators.
 #[derive(Debug)]
 pub enum DepSetIntoIter {
     Atom(depset::DepSetIntoIter<Atom>),
@@ -140,6 +143,7 @@ impl fmt::Display for DepRestrictW {
     }
 }
 
+/// DepRestrict variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum DepKind {
@@ -169,6 +173,7 @@ impl<T: Ordered> From<&depset::DepRestrict<T>> for DepKind {
     }
 }
 
+/// C-compatible wrapper for DepRestrict objects.
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct DepRestrict {
@@ -251,6 +256,7 @@ impl fmt::Display for DepRestrict {
     }
 }
 
+/// Opaque wrapper for flattened DepSet iterators.
 #[derive(Debug)]
 pub enum DepSetIntoIterFlatten {
     Atom(depset::DepSetIntoIterFlatten<Atom>),
@@ -276,6 +282,7 @@ impl Iterator for DepSetIntoIterFlatten {
     }
 }
 
+/// Opaque wrapper for recursive DepSet iterators.
 #[derive(Debug)]
 pub enum DepSetIntoIterRecursive {
     Atom(depset::DepSetIntoIterRecursive<Atom>),
