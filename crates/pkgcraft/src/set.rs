@@ -19,6 +19,12 @@ impl<T> Ordered for T where T: Debug + PartialEq + Eq + PartialOrd + Ord + Clone
 #[derive(Debug, Default, Clone)]
 pub struct OrderedSet<T: Ordered>(pub(crate) IndexSet<T>);
 
+impl<T: Ordered> OrderedSet<T> {
+    pub fn new() -> Self {
+        Self(IndexSet::new())
+    }
+}
+
 impl<T: Ordered> Hash for OrderedSet<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for e in &self.0 {
@@ -96,6 +102,12 @@ impl<T: Ordered> DerefMut for OrderedSet<T> {
 
 #[derive(Debug, Default, Clone)]
 pub struct SortedSet<T: Ordered>(pub(crate) IndexSet<T>);
+
+impl<T: Ordered> SortedSet<T> {
+    pub fn new() -> Self {
+        Self(IndexSet::new())
+    }
+}
 
 impl<T: Ordered> Hash for SortedSet<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
