@@ -91,13 +91,17 @@ pub unsafe extern "C" fn pkgcraft_version_intersects(v1: *mut Version, v2: *mut 
 
 /// Return a version's revision, e.g. the version "1-r2" has a revision of "2".
 ///
+/// Returns NULL on nonexistence.
+///
 /// # Safety
 /// The version argument should be a non-null Version pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut Version) -> *mut c_char {
     let ver = null_ptr_check!(v.as_ref());
-    let s = ver.revision().as_str();
-    CString::new(s).unwrap().into_raw()
+    match ver.revision() {
+        Some(r) => CString::new(r.as_str()).unwrap().into_raw(),
+        None => ptr::null_mut(),
+    }
 }
 
 /// Return a version's string value without operator.

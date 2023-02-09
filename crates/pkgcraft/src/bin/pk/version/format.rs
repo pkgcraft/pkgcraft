@@ -17,7 +17,9 @@ impl Run for Format {
     fn run(&self) -> anyhow::Result<ExitCode> {
         let v = Version::from_str(&self.version)?;
         let (mut patterns, mut values) = (vec![], vec![]);
-        for (pat, val) in [("{PV}", v.as_str()), ("{REV}", v.revision().as_str())] {
+        for (pat, val) in
+            [("{PV}", v.as_str()), ("{REV}", v.revision().map(|r| r.as_str()).unwrap_or_default())]
+        {
             patterns.push(pat);
             values.push(val);
         }

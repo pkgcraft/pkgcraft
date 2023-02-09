@@ -208,7 +208,7 @@ impl Atom {
 
     /// Return an atom's revision.
     pub fn revision(&self) -> Option<&Revision> {
-        self.version.as_ref().map(|v| v.revision())
+        self.version.as_ref().and_then(|v| v.revision())
     }
 
     /// Return an atom's version operator.
@@ -412,7 +412,8 @@ mod tests {
         let mut atom: Atom;
         for (s, revision) in [
             ("cat/pkg", None),
-            ("<cat/pkg-4", Some("0")),
+            ("<cat/pkg-4", None),
+            ("=cat/pkg-4-r0", Some("0")),
             ("<=cat/pkg-4-r1", Some("1")),
             (">=cat/pkg-r1-2-r3", Some("3")),
             (">cat/pkg-4-r1:0=", Some("1")),
@@ -574,9 +575,9 @@ mod tests {
                 .map(|s| Atom::from_str(&format!("=cat/pkg-{s}")).unwrap())
                 .collect();
             if d.equal {
-                assert_eq!(set.len(), 1);
+                assert_eq!(set.len(), 1, "failed hashing atoms: {set:?}");
             } else {
-                assert_eq!(set.len(), d.versions.len());
+                assert_eq!(set.len(), d.versions.len(), "failed hashing atoms: {set:?}");
             }
         }
     }

@@ -30,26 +30,23 @@ impl FromStr for Revision {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        let int = s
-            .parse()
-            .map_err(|e| Error::InvalidValue(format!("invalid revision: {e}: {s}")))?;
-        Ok(Revision {
-            value: Some(s.to_string()),
-            int,
-        })
+        if s.is_empty() {
+            Ok(Revision::default())
+        } else {
+            let int = s
+                .parse()
+                .map_err(|e| Error::InvalidValue(format!("invalid revision: {e}: {s}")))?;
+            Ok(Revision {
+                value: Some(s.to_string()),
+                int,
+            })
+        }
     }
 }
 
 impl Revision {
-    fn new(rev: Option<&str>) -> crate::Result<Self> {
-        match &rev {
-            Some(s) => Revision::from_str(s),
-            None => Ok(Revision::default()),
-        }
-    }
-
     pub fn as_str(&self) -> &str {
-        self.value.as_deref().unwrap_or("0")
+        self.value.as_deref().unwrap_or_default()
     }
 }
 
@@ -154,7 +151,7 @@ impl<'a> ParsedVersion<'a> {
             numbers,
             letter: self.letter,
             suffixes: self.suffixes,
-            revision: Revision::new(self.revision)?,
+            revision: Revision::from_str(self.revision.unwrap_or_default())?,
         })
     }
 }
@@ -249,8 +246,8 @@ impl Version {
     }
 
     /// Return a version's revision.
-    pub fn revision(&self) -> &Revision {
-        &self.revision
+    pub fn revision(&self) -> Option<&Revision> {
+        self.revision.value.as_ref().map(|_| &self.revision)
     }
 
     /// Return a version's operator, if one exists.
@@ -317,10 +314,9 @@ impl Version {
                     // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
                     // exist and glob matches ranged version
                     EqualGlob if matches!(ranged_op, Less | LessOrEqual) => {
-                        if other.revision() != &Revision::default() {
-                            false
-                        } else {
-                            ranged.as_str().starts_with(other.as_str())
+                        match other.revision().map(|r| r.as_str()) {
+                            None | Some("0") => ranged.as_str().starts_with(other.as_str()),
+                            _ => false,
                         }
                     }
 
@@ -640,9 +636,9 @@ mod tests {
                 .map(|s| Version::from_str(s).unwrap())
                 .collect();
             if d.equal {
-                assert_eq!(set.len(), 1);
+                assert_eq!(set.len(), 1, "failed hashing versions: {set:?}");
             } else {
-                assert_eq!(set.len(), d.versions.len());
+                assert_eq!(set.len(), d.versions.len(), "failed hashing versions: {set:?}");
             }
         }
     }
