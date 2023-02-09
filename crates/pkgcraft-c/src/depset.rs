@@ -11,13 +11,25 @@ use pkgcraft::utils::hash;
 
 use crate::macros::*;
 
+/// DepSet flattened unit variants.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(C)]
+pub enum DepSetUnit {
+    Atom,
+    String,
+    Uri,
+}
+
 /// DepSet variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum DepSetKind {
-    Atom,
-    String,
-    Uri,
+    PkgDep,
+    Restrict,
+    RequiredUse,
+    Properties,
+    SrcUri,
+    License,
 }
 
 /// Opaque wrapper for DepSet objects.
@@ -42,6 +54,7 @@ impl fmt::Display for DepSetW {
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct DepSet {
+    unit: DepSetUnit,
     kind: DepSetKind,
     dep: *mut DepSetW,
 }
@@ -57,21 +70,24 @@ impl Drop for DepSet {
 impl DepSet {
     pub(crate) fn new_atom(d: depset::DepSet<Atom>) -> Self {
         Self {
-            kind: DepSetKind::Atom,
+            unit: DepSetUnit::Atom,
+            kind: DepSetKind::PkgDep,
             dep: Box::into_raw(Box::new(DepSetW::Atom(d))),
         }
     }
 
-    pub(crate) fn new_string(d: depset::DepSet<String>) -> Self {
+    pub(crate) fn new_string(d: depset::DepSet<String>, kind: DepSetKind) -> Self {
         Self {
-            kind: DepSetKind::String,
+            unit: DepSetUnit::String,
+            kind,
             dep: Box::into_raw(Box::new(DepSetW::String(d))),
         }
     }
 
     pub(crate) fn new_uri(d: depset::DepSet<Uri>) -> Self {
         Self {
-            kind: DepSetKind::Uri,
+            unit: DepSetUnit::Uri,
+            kind: DepSetKind::SrcUri,
             dep: Box::into_raw(Box::new(DepSetW::Uri(d))),
         }
     }
@@ -177,8 +193,8 @@ impl<T: Ordered> From<&depset::DepRestrict<T>> for DepKind {
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct DepRestrict {
-    kind: DepSetKind,
-    kind_dep: DepKind,
+    unit: DepSetUnit,
+    kind: DepKind,
     dep: *mut DepRestrictW,
 }
 
@@ -193,24 +209,24 @@ impl Drop for DepRestrict {
 impl DepRestrict {
     pub(crate) fn new_atom(d: depset::DepRestrict<Atom>) -> Self {
         Self {
-            kind: DepSetKind::Atom,
-            kind_dep: DepKind::from(&d),
+            unit: DepSetUnit::Atom,
+            kind: DepKind::from(&d),
             dep: Box::into_raw(Box::new(DepRestrictW::Atom(d))),
         }
     }
 
     pub(crate) fn new_string(d: depset::DepRestrict<String>) -> Self {
         Self {
-            kind: DepSetKind::String,
-            kind_dep: DepKind::from(&d),
+            unit: DepSetUnit::String,
+            kind: DepKind::from(&d),
             dep: Box::into_raw(Box::new(DepRestrictW::String(d))),
         }
     }
 
     pub(crate) fn new_uri(d: depset::DepRestrict<Uri>) -> Self {
         Self {
-            kind: DepSetKind::Uri,
-            kind_dep: DepKind::from(&d),
+            unit: DepSetUnit::Uri,
+            kind: DepKind::from(&d),
             dep: Box::into_raw(Box::new(DepRestrictW::Uri(d))),
         }
     }

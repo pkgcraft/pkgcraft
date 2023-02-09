@@ -5,7 +5,7 @@ use std::{mem, ptr, slice};
 use pkgcraft::pkg::Pkg;
 use pkgcraft::pkgsh::Key;
 
-use crate::depset::DepSet;
+use crate::depset::{DepSet, DepSetKind};
 use crate::error::Error;
 use crate::macros::*;
 use crate::utils::str_to_raw;
@@ -111,6 +111,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_subslot(p: *mut Pkg) -> *mut c_char
 }
 
 /// Return a package's dependencies for a given set of descriptors.
+///
+/// Returns NULL on error.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
@@ -231,7 +233,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.license() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::License))),
     }
 }
 
@@ -247,7 +249,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut Dep
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.properties() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::Properties))),
     }
 }
 
@@ -263,7 +265,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut D
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.required_use() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::RequiredUse))),
     }
 }
 
@@ -279,7 +281,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSe
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.restrict() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::Restrict))),
     }
 }
 
