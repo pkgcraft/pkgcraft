@@ -5,7 +5,6 @@ use clap::{Args, Subcommand};
 use crate::Run;
 
 mod compare;
-mod format;
 mod intersect;
 mod parse;
 mod sort;
@@ -27,11 +26,9 @@ impl Run for Atom {
 pub(super) enum Command {
     /// Compare two atoms
     Compare(compare::Compare),
-    /// Parse an atom and print formatted output
-    Format(format::Format),
     /// Determine if two atoms intersect
     Intersect(intersect::Intersect),
-    /// Parse an atom
+    /// Parse an atom and optionally print formatted output
     Parse(parse::Parse),
     /// Sort atoms
     Sort(sort::Sort),
@@ -42,7 +39,6 @@ impl Run for Command {
         use Command::*;
         match self {
             Compare(cmd) => cmd.run(),
-            Format(cmd) => cmd.run(),
             Intersect(cmd) => cmd.run(),
             Parse(cmd) => cmd.run(),
             Sort(cmd) => cmd.run(),
