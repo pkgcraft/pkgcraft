@@ -411,13 +411,16 @@ fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
 #[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[allow(non_camel_case_types)]
 pub enum BuildVariable {
+    // atom specific -- keep synced with related AtomVariable variants
+    CATEGORY,
     P,
     PF,
     PN,
-    CATEGORY,
-    PV,
     PR,
+    PV,
     PVR,
+
+    // environment specific
     A,
     AA,
     FILESDIR,
@@ -452,18 +455,14 @@ impl BuildVariable {
     fn get(&self, build: &BuildData) -> String {
         use BuildVariable::*;
         let a = build.atom.as_ref().expect("missing required atom field");
-        let v = a.version().expect("missing required versioned atom");
         match self {
-            P => format!("{}-{}", a.package(), v.base()),
-            PF => format!("{}-{}", a.package(), PVR.get(build)),
-            PN => a.package().into(),
-            CATEGORY => a.category().into(),
-            PV => v.base().into(),
-            PR => format!("r{}", v.revision()),
-            PVR => match v.revision() == "0" {
-                true => v.base().into(),
-                false => v.into(),
-            },
+            P => a.p(),
+            PF => a.pf(),
+            PN => a.package().to_string(),
+            CATEGORY => a.category().to_string(),
+            PV => a.pv(),
+            PR => a.pr(),
+            PVR => a.pvr(),
             FILESDIR => {
                 let path = build_from_paths!(
                     build.repo.unwrap().path(),

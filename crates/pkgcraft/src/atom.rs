@@ -216,12 +216,52 @@ impl Atom {
         self.version.as_ref().and_then(|v| v.op())
     }
 
-    /// Return an atom's CAT/PN value, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg`.
+    /// Return an atom's P, e.g. the atom "=cat/pkg-1-r2" has a P of "pkg-1".
+    pub fn p(&self) -> String {
+        match &self.version {
+            Some(ver) => format!("{}-{}", self.package(), ver.base()),
+            None => self.package().to_string(),
+        }
+    }
+
+    /// Return an atom's PF, e.g. the atom "=cat/pkg-1-r2" has a PF of "pkg-1-r2".
+    pub fn pf(&self) -> String {
+        match &self.version {
+            Some(_) => format!("{}-{}", self.package(), self.pvr()),
+            None => self.package().to_string(),
+        }
+    }
+
+    /// Return an atom's PR, e.g. the atom "=cat/pkg-1-r2" has a PR of "r2".
+    pub fn pr(&self) -> String {
+        match self.revision().map(|r| r.as_str()) {
+            Some("") | None => "r0".to_string(),
+            Some(s) => format!("r{s}"),
+        }
+    }
+
+    /// Return an atom's PV, e.g. the atom "=cat/pkg-1-r2" has a PV of "1".
+    pub fn pv(&self) -> String {
+        match &self.version {
+            Some(ver) => ver.base().to_string(),
+            None => String::default(),
+        }
+    }
+
+    /// Return an atom's PVR, e.g. the atom "=cat/pkg-1-r2" has a PVR of "1-r2".
+    pub fn pvr(&self) -> String {
+        match &self.version {
+            Some(ver) => ver.to_string(),
+            None => String::default(),
+        }
+    }
+
+    /// Return an atom's CPN, e.g. the atom "=cat/pkg-1-r2" has a CPN of "cat/pkg".
     pub fn cpn(&self) -> String {
         format!("{}/{}", self.category, self.package)
     }
 
-    /// Return an atom's CPV, e.g. `>=cat/pkg-1-r2:3` -> `cat/pkg-1-r2`.
+    /// Return an atom's CPV, e.g. the atom "=cat/pkg-1-r2" has a CPV of "cat/pkg-1-r2".
     pub fn cpv(&self) -> String {
         match &self.version {
             Some(ver) => format!("{}/{}-{ver}", self.category, self.package),

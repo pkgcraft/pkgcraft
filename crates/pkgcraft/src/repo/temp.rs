@@ -53,12 +53,7 @@ impl Repo {
     {
         use crate::pkgsh::metadata::Key::*;
         let cpv = Atom::new_cpv(cpv)?;
-        let path = self.path.join(format!(
-            "{}/{}-{}.ebuild",
-            cpv.cpn(),
-            cpv.package(),
-            cpv.version().unwrap()
-        ));
+        let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         let mut f = fs::File::create(&path)
@@ -91,12 +86,7 @@ impl Repo {
     /// Create an ebuild file in the repo from raw data.
     pub fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<(Utf8PathBuf, Atom)> {
         let cpv = Atom::new_cpv(cpv)?;
-        let path = self.path.join(format!(
-            "{}/{}-{}.ebuild",
-            cpv.cpn(),
-            cpv.package(),
-            cpv.version().unwrap()
-        ));
+        let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
