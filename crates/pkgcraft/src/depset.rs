@@ -47,6 +47,12 @@ impl AsRef<str> for Uri {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DepSet<T: Ordered>(SortedSet<DepRestrict<T>>);
 
+impl<T: Ordered> Default for DepSet<T> {
+    fn default() -> Self {
+        Self(SortedSet::new())
+    }
+}
+
 macro_rules! p {
     ($x:expr) => {
         $x.into_iter().map(|x| x.to_string()).join(" ")
