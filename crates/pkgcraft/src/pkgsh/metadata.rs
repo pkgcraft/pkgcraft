@@ -9,7 +9,7 @@ use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
 use crate::atom::Atom;
-use crate::depset::{DepSet, Uri};
+use crate::depset::{self, DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
@@ -95,23 +95,22 @@ fn split(s: &str) -> impl Iterator<Item = String> + '_ {
 impl Metadata {
     /// Convert raw metadata key value to stored value.
     fn convert(&mut self, eapi: &'static Eapi, key: Key, val: &str) -> crate::Result<()> {
-        use crate::depset::parse;
         use Key::*;
         match key {
             Description => self.description = val.to_string(),
             Slot => self.slot = val.to_string(),
             Depend | Bdepend | Idepend | Rdepend | Pdepend => {
-                if let Some(val) = parse::pkgdep(val, eapi)
+                if let Some(val) = depset::pkg_dep(val, eapi)
                     .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
                 {
                     self.deps.insert(key, val);
                 }
             }
-            License => self.license = parse::license(val)?,
-            Properties => self.properties = parse::properties(val)?,
-            RequiredUse => self.required_use = parse::required_use(val, eapi)?,
-            Restrict => self.restrict = parse::restrict(val)?,
-            SrcUri => self.src_uri = parse::src_uri(val, eapi)?,
+            License => self.license = depset::license(val)?,
+            Properties => self.properties = depset::properties(val)?,
+            RequiredUse => self.required_use = depset::required_use(val, eapi)?,
+            Restrict => self.restrict = depset::restrict(val)?,
+            SrcUri => self.src_uri = depset::src_uri(val, eapi)?,
             Homepage => self.homepage = split(val).collect(),
             DefinedPhases => self.defined_phases = split(val).sorted().collect(),
             Keywords => self.keywords = split(val).collect(),
@@ -126,7 +125,6 @@ impl Metadata {
     // TODO: use serde to support (de)serializing md5-cache metadata
     fn deserialize(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
         let mut meta = Metadata::default();
-        use crate::depset::parse;
         use Key::*;
 
         let iter = s
@@ -145,17 +143,17 @@ impl Metadata {
                 Description => meta.description = val.to_string(),
                 Slot => meta.slot = val.to_string(),
                 Depend | Bdepend | Idepend | Rdepend | Pdepend => {
-                    if let Some(val) = parse::pkgdep(val, eapi)
+                    if let Some(val) = depset::pkg_dep(val, eapi)
                         .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
                     {
                         meta.deps.insert(key, val);
                     }
                 }
-                License => meta.license = parse::license(val)?,
-                Properties => meta.properties = parse::properties(val)?,
-                RequiredUse => meta.required_use = parse::required_use(val, eapi)?,
-                Restrict => meta.restrict = parse::restrict(val)?,
-                SrcUri => meta.src_uri = parse::src_uri(val, eapi)?,
+                License => meta.license = depset::license(val)?,
+                Properties => meta.properties = depset::properties(val)?,
+                RequiredUse => meta.required_use = depset::required_use(val, eapi)?,
+                Restrict => meta.restrict = depset::restrict(val)?,
+                SrcUri => meta.src_uri = depset::src_uri(val, eapi)?,
                 Homepage => meta.homepage = split(val).collect(),
                 DefinedPhases => meta.defined_phases = split(val).collect(),
                 Keywords => meta.keywords = split(val).collect(),
