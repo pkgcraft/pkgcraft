@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
-use std::ffi::{c_char, c_int, c_void, CString};
+use std::ffi::{c_char, c_int, c_void, CStr, CString};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{fmt, ptr};
 
 use pkgcraft::atom::Atom;
 use pkgcraft::depset::{self, IntoIteratorDepSet, Uri};
+use pkgcraft::eapi::{Eapi, IntoEapi};
 use pkgcraft::set::Ordered;
 use pkgcraft::utils::hash;
 
@@ -316,6 +317,108 @@ impl Iterator for DepSetIntoIterRecursive {
             Self::Uri(iter) => iter.next().map(DepRestrict::new_uri),
         }
     }
+}
+
+/// Parse a string into a PkgDep DepSet.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_pkg_dep(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *mut DepSet {
+    let s = null_ptr_check!(s.as_ref());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
+    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
+    let opt_dep = unwrap_or_return!(depset::pkg_dep(s, eapi), ptr::null_mut());
+    let dep = DepSet::new_atom(opt_dep.unwrap_or_default());
+    Box::into_raw(Box::new(dep))
+}
+
+/// Parse a string into a Restrict DepSet.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_restrict(s: *const c_char) -> *mut DepSet {
+    let s = null_ptr_check!(s.as_ref());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
+    let opt_dep = unwrap_or_return!(depset::restrict(s), ptr::null_mut());
+    let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::Restrict);
+    Box::into_raw(Box::new(dep))
+}
+
+/// Parse a string into a RequiredUse DepSet.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_required_use(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *mut DepSet {
+    let s = null_ptr_check!(s.as_ref());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
+    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
+    let opt_dep = unwrap_or_return!(depset::required_use(s, eapi), ptr::null_mut());
+    let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::RequiredUse);
+    Box::into_raw(Box::new(dep))
+}
+
+/// Parse a string into a Properties DepSet.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_properties(s: *const c_char) -> *mut DepSet {
+    let s = null_ptr_check!(s.as_ref());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
+    let opt_dep = unwrap_or_return!(depset::properties(s), ptr::null_mut());
+    let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::Properties);
+    Box::into_raw(Box::new(dep))
+}
+
+/// Parse a string into a SrcUri DepSet.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_src_uri(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *mut DepSet {
+    let s = null_ptr_check!(s.as_ref());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
+    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
+    let opt_dep = unwrap_or_return!(depset::src_uri(s, eapi), ptr::null_mut());
+    let dep = DepSet::new_uri(opt_dep.unwrap_or_default());
+    Box::into_raw(Box::new(dep))
+}
+
+/// Parse a string into a License DepSet.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_depset_license(s: *const c_char) -> *mut DepSet {
+    let s = null_ptr_check!(s.as_ref());
+    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
+    let opt_dep = unwrap_or_return!(depset::license(s), ptr::null_mut());
+    let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::License);
+    Box::into_raw(Box::new(dep))
 }
 
 /// Return the formatted string for a DepSet object.
