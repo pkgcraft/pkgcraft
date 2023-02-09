@@ -226,6 +226,56 @@ pub unsafe extern "C" fn pkgcraft_atom_repo(atom: *mut Atom) -> *mut c_char {
     }
 }
 
+/// Return an atom's P, e.g. the atom "=cat/pkg-1-r2" has a P of "pkg-1".
+///
+/// # Safety
+/// The argument must be a non-null Atom pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_atom_p(atom: *mut Atom) -> *mut c_char {
+    let atom = null_ptr_check!(atom.as_ref());
+    CString::new(atom.p()).unwrap().into_raw()
+}
+
+/// Return an atom's PF, e.g. the atom "=cat/pkg-1-r2" has a PF of "pkg-1-r2".
+///
+/// # Safety
+/// The argument must be a non-null Atom pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_atom_pf(atom: *mut Atom) -> *mut c_char {
+    let atom = null_ptr_check!(atom.as_ref());
+    CString::new(atom.pf()).unwrap().into_raw()
+}
+
+/// Return an atom's PR, e.g. the atom "=cat/pkg-1-r2" has a PR of "r2".
+///
+/// # Safety
+/// The argument must be a non-null Atom pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_atom_pr(atom: *mut Atom) -> *mut c_char {
+    let atom = null_ptr_check!(atom.as_ref());
+    CString::new(atom.pr()).unwrap().into_raw()
+}
+
+/// Return an atom's PV, e.g. the atom "=cat/pkg-1-r2" has a PV of "1".
+///
+/// # Safety
+/// The argument must be a non-null Atom pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_atom_pv(atom: *mut Atom) -> *mut c_char {
+    let atom = null_ptr_check!(atom.as_ref());
+    CString::new(atom.pv()).unwrap().into_raw()
+}
+
+/// Return an atom's PVR, e.g. the atom "=cat/pkg-1-r2" has a PVR of "1-r2".
+///
+/// # Safety
+/// The argument must be a non-null Atom pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_atom_pvr(atom: *mut Atom) -> *mut c_char {
+    let atom = null_ptr_check!(atom.as_ref());
+    CString::new(atom.pvr()).unwrap().into_raw()
+}
+
 /// Return an atom's CPN, e.g. the atom "=cat/pkg-1-r2" has a CPN of "cat/pkg".
 ///
 /// # Safety
