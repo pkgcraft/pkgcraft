@@ -245,19 +245,19 @@ impl Version {
         }
     }
 
-    /// Return a version's revision.
-    pub fn revision(&self) -> Option<&Revision> {
-        self.revision.value.as_ref().map(|_| &self.revision)
-    }
-
     /// Return a version's operator, if one exists.
     pub fn op(&self) -> Option<Operator> {
         self.op
     }
 
     /// Return a version's base -- all components except the revision.
-    pub(crate) fn base(&self) -> &str {
+    pub fn base(&self) -> &str {
         &self.full[0..self.base_end]
+    }
+
+    /// Return a version's revision.
+    pub fn revision(&self) -> Option<&Revision> {
+        self.revision.value.as_ref().map(|_| &self.revision)
     }
 
     /// Determine if two versions intersect.

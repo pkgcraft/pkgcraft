@@ -44,6 +44,16 @@ pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> Operator {
     ver.op().unwrap_or_default()
 }
 
+/// Return a version's base, e.g. the version "1-r2" has a base of "1".
+///
+/// # Safety
+/// The version argument should be a non-null Version pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_version_base(v: *mut Version) -> *mut c_char {
+    let ver = null_ptr_check!(v.as_ref());
+    CString::new(ver.base()).unwrap().into_raw()
+}
+
 /// Parse a string into an Operator.
 ///
 /// # Safety
