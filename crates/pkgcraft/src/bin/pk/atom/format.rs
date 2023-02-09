@@ -16,7 +16,8 @@ pub(crate) struct Format {
 }
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
-pub enum Key {
+#[allow(clippy::upper_case_acronyms)]
+enum Key {
     CATEGORY,
     P,
     PF,
@@ -57,7 +58,7 @@ impl Run for Format {
         let patterns: Vec<_> = Key::iter().map(|k| format!("{{{k}}}")).collect();
         let mut key_cache = HashMap::<Key, String>::new();
 
-        let ac = AhoCorasick::new(&patterns);
+        let ac = AhoCorasick::new(patterns);
         let mut result = String::new();
         ac.replace_all_with(&self.format, &mut result, |_mat, s, dst| {
             // strip match wrappers and convert to Key variant
@@ -65,13 +66,9 @@ impl Run for Format {
             let key =
                 Key::from_str(key_str).unwrap_or_else(|_| panic!("invalid pattern: {key_str}"));
 
-            // use cached key values to avoid redundant requests
-            if !key_cache.contains_key(&key) {
-                key_cache.insert(key, key.value(&atom));
-            }
-
+            // use cached values to avoid redundant requests
+            let val = key_cache.entry(key).or_insert_with(|| key.value(&atom));
             // replace match with the related Atom value
-            let val = key_cache.get(&key).expect("failed getting key value");
             dst.push_str(val);
 
             true
