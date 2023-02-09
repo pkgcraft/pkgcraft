@@ -234,9 +234,10 @@ impl Atom {
 
     /// Return an atom's PR, e.g. the atom "=cat/pkg-1-r2" has a PR of "r2".
     pub fn pr(&self) -> String {
-        match self.revision().map(|r| r.as_str()) {
-            Some("") | None => "r0".to_string(),
-            Some(s) => format!("r{s}"),
+        if let Some(ver) = &self.version {
+            format!("r{}", ver.revision().map(|r| r.as_str()).unwrap_or("0"))
+        } else {
+            String::default()
         }
     }
 
