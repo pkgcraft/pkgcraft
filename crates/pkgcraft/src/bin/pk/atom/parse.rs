@@ -1,9 +1,11 @@
-use std::collections::HashMap;
+use std::io;
 use std::process::ExitCode;
 use std::str::FromStr;
 
 use aho_corasick::AhoCorasick;
+use anyhow::bail;
 use clap::Args;
+use is_terminal::IsTerminal;
 use pkgcraft::atom::Atom;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
@@ -14,7 +16,8 @@ pub(crate) struct Parse {
     /// Output using a custom format
     #[arg(short, long)]
     format: Option<String>,
-    #[arg(value_name = "ATOM")]
+    /// Atoms to parse, uses stdin if empty or "-"
+    #[arg(value_name = "ATOM", required = false)]
     atoms: Vec<String>,
 }
 
@@ -57,14 +60,16 @@ impl Key {
     }
 }
 
-impl Run for Parse {
-    fn run(&self) -> anyhow::Result<ExitCode> {
-        for s in &self.atoms {
-            let atom = Atom::from_str(s)?;
+impl Parse {
+    fn parse_atoms<I, S>(&self, iter: I) -> anyhow::Result<()>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        for s in iter {
+            let atom = Atom::from_str(s.as_ref())?;
             if let Some(format) = &self.format {
                 let patterns: Vec<_> = Key::iter().map(|k| format!("{{{k}}}")).collect();
-                let mut key_cache = HashMap::<Key, String>::new();
-
                 let ac = AhoCorasick::new(patterns);
                 let mut result = String::new();
                 ac.replace_all_with(format, &mut result, |_mat, mat_str, dst| {
@@ -72,17 +77,27 @@ impl Run for Parse {
                     let key_str = &mat_str[1..mat_str.len() - 1];
                     let key = Key::from_str(key_str)
                         .unwrap_or_else(|_| panic!("invalid pattern: {key_str}"));
-
-                    // use cached values to avoid redundant requests
-                    let val = key_cache.entry(key).or_insert_with(|| key.value(&atom));
                     // replace match with the related Atom value
-                    dst.push_str(val);
-
+                    dst.push_str(&key.value(&atom));
                     true
                 });
                 println!("{result}");
             }
         }
+        Ok(())
+    }
+}
+
+impl Run for Parse {
+    fn run(&self) -> anyhow::Result<ExitCode> {
+        if self.atoms.is_empty() || self.atoms[0] == "-" {
+            if io::stdin().is_terminal() {
+                bail!("missing input on stdin");
+            }
+            self.parse_atoms(io::stdin().lines().filter_map(|l| l.ok()))?;
+        } else {
+            self.parse_atoms(&self.atoms)?;
+        };
 
         Ok(ExitCode::SUCCESS)
     }
