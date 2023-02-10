@@ -69,7 +69,7 @@ impl Key {
 
 impl Parse {
     fn parse_atom(&self, s: &str, status: &mut ExitCode) {
-        let atom = match Atom::from_str(s) {
+        let atom = match Atom::from_str(s).or_else(|_| Atom::new_cpv(s)) {
             Ok(a) => a,
             Err(_) => {
                 eprintln!("INVALID ATOM: {s}");
