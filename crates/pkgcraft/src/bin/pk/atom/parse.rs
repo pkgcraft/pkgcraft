@@ -68,52 +68,61 @@ impl Key {
 }
 
 impl Parse {
-    fn parse_atoms<I, S>(&self, iter: I) -> anyhow::Result<()>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<str>,
-    {
-        for s in iter {
-            let atom = Atom::from_str(s.as_ref())?;
-            if let Some(format) = &self.format {
-                let patterns: Vec<_> = Key::iter()
-                    .flat_map(|k| [format!("{{{k}}}"), format!("[{k}]")])
-                    .collect();
-                let ac = AhoCorasick::new(patterns);
-                let mut result = String::new();
-                ac.replace_all_with(format, &mut result, |_mat, mat_str, dst| {
-                    // strip match wrappers and convert to Key variant
-                    let mat_type = &mat_str[0..1];
-                    let key_str = &mat_str[1..mat_str.len() - 1];
-                    let key = Key::from_str(key_str)
-                        .unwrap_or_else(|_| panic!("invalid pattern: {key_str}"));
-
-                    // replace match with the related value
-                    match key.value(&atom).as_str() {
-                        "" if mat_type == "{" => dst.push_str("<unset>"),
-                        s => dst.push_str(s),
-                    }
-
-                    true
-                });
-                println!("{result}");
+    fn parse_atom(&self, s: &str, status: &mut ExitCode) {
+        let atom = match Atom::from_str(s) {
+            Ok(a) => a,
+            Err(_) => {
+                eprintln!("INVALID ATOM: {s}");
+                *status = ExitCode::FAILURE;
+                return;
             }
+        };
+
+        if let Some(format) = &self.format {
+            let patterns: Vec<_> = Key::iter()
+                .flat_map(|k| [format!("{{{k}}}"), format!("[{k}]")])
+                .collect();
+            let ac = AhoCorasick::new(patterns);
+            let mut result = String::new();
+            ac.replace_all_with(format, &mut result, |_mat, mat_str, dst| {
+                // strip match wrappers and convert to Key variant
+                let mat_type = &mat_str[0..1];
+                let key_str = &mat_str[1..mat_str.len() - 1];
+                let key =
+                    Key::from_str(key_str).unwrap_or_else(|_| panic!("invalid pattern: {key_str}"));
+
+                // replace match with the related value
+                match key.value(&atom).as_str() {
+                    "" if mat_type == "{" => dst.push_str("<unset>"),
+                    s => dst.push_str(s),
+                }
+
+                true
+            });
+            println!("{result}");
         }
-        Ok(())
     }
 }
 
 impl Run for Parse {
     fn run(&self) -> anyhow::Result<ExitCode> {
+        let mut status = ExitCode::SUCCESS;
+
         if self.atoms.is_empty() || self.atoms[0] == "-" {
             if stdin().is_terminal() {
                 bail!("missing input on stdin");
             }
-            self.parse_atoms(stdin().lines().filter_map(|l| l.ok()))?;
+            for l in stdin().lines().filter_map(|l| l.ok()) {
+                for s in l.split_whitespace() {
+                    self.parse_atom(s, &mut status);
+                }
+            }
         } else {
-            self.parse_atoms(&self.atoms)?;
-        };
+            for s in &self.atoms {
+                self.parse_atom(s, &mut status);
+            }
+        }
 
-        Ok(ExitCode::SUCCESS)
+        Ok(status)
     }
 }
