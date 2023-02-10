@@ -105,7 +105,7 @@ impl Parse {
 }
 
 impl Run for Parse {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
         if self.atoms.is_empty() || self.atoms[0] == "-" {

@@ -22,13 +22,13 @@ enum Command {
 }
 
 trait Run {
-    fn run(&self) -> anyhow::Result<ExitCode>;
+    fn run(self) -> anyhow::Result<ExitCode>;
 }
 
 fn main() -> anyhow::Result<ExitCode> {
     let args = Cli::parse();
     use Command::*;
-    match &args.command {
+    match args.command {
         Atom(cmd) => cmd.run(),
         Version(cmd) => cmd.run(),
     }

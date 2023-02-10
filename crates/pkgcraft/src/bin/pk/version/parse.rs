@@ -12,7 +12,7 @@ pub(crate) struct Parse {
 }
 
 impl Run for Parse {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         Version::from_str(&self.version)?;
         Ok(ExitCode::SUCCESS)
     }

@@ -14,7 +14,7 @@ pub(crate) struct Format {
 }
 
 impl Run for Format {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         let v = Version::from_str(&self.version)?;
         let (mut patterns, mut values) = (vec![], vec![]);
         for (pat, val) in

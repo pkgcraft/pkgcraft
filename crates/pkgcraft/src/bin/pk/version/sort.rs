@@ -16,7 +16,7 @@ pub(crate) struct Sort {
 }
 
 impl Run for Sort {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         let mut versions = Vec::<Version>::new();
 
         if self.vals.is_empty() || self.vals[0] == "-" {

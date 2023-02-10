@@ -13,7 +13,7 @@ pub(crate) struct Intersect {
 }
 
 impl Run for Intersect {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         let v1 = Version::from_str(&self.version1)?;
         let v2 = Version::from_str(&self.version2)?;
         Ok(ExitCode::from(!v1.intersects(&v2) as u8))

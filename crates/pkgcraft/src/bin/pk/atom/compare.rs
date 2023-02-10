@@ -14,7 +14,7 @@ pub(crate) struct Compare {
 }
 
 impl Run for Compare {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         let (s1, op, s2) = self
             .compare
             .split_whitespace()

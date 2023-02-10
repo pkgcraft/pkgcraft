@@ -18,7 +18,7 @@ pub(super) struct Version {
 }
 
 impl Run for Version {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
 }
@@ -38,7 +38,7 @@ pub(super) enum Command {
 }
 
 impl Run for Command {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         use Command::*;
         match self {
             Compare(cmd) => cmd.run(),

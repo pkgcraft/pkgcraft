@@ -13,7 +13,7 @@ pub(crate) struct Intersect {
 }
 
 impl Run for Intersect {
-    fn run(&self) -> anyhow::Result<ExitCode> {
+    fn run(self) -> anyhow::Result<ExitCode> {
         let a1 = Atom::from_str(&self.atom1)?;
         let a2 = Atom::from_str(&self.atom2)?;
         Ok(ExitCode::from(!a1.intersects(&a2) as u8))
