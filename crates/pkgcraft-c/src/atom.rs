@@ -248,32 +248,47 @@ pub unsafe extern "C" fn pkgcraft_atom_pf(atom: *mut Atom) -> *mut c_char {
 
 /// Return an atom's PR, e.g. the atom "=cat/pkg-1-r2" has a PR of "r2".
 ///
+/// Returns NULL on nonexistence.
+///
 /// # Safety
 /// The argument must be a non-null Atom pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_atom_pr(atom: *mut Atom) -> *mut c_char {
     let atom = null_ptr_check!(atom.as_ref());
-    CString::new(atom.pr()).unwrap().into_raw()
+    match atom.pr().as_str() {
+        "" => ptr::null_mut(),
+        s => CString::new(s).unwrap().into_raw(),
+    }
 }
 
 /// Return an atom's PV, e.g. the atom "=cat/pkg-1-r2" has a PV of "1".
+///
+/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Atom pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_atom_pv(atom: *mut Atom) -> *mut c_char {
     let atom = null_ptr_check!(atom.as_ref());
-    CString::new(atom.pv()).unwrap().into_raw()
+    match atom.pv().as_str() {
+        "" => ptr::null_mut(),
+        s => CString::new(s).unwrap().into_raw(),
+    }
 }
 
 /// Return an atom's PVR, e.g. the atom "=cat/pkg-1-r2" has a PVR of "1-r2".
+///
+/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Atom pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_atom_pvr(atom: *mut Atom) -> *mut c_char {
     let atom = null_ptr_check!(atom.as_ref());
-    CString::new(atom.pvr()).unwrap().into_raw()
+    match atom.pvr().as_str() {
+        "" => ptr::null_mut(),
+        s => CString::new(s).unwrap().into_raw(),
+    }
 }
 
 /// Return an atom's CPN, e.g. the atom "=cat/pkg-1-r2" has a CPN of "cat/pkg".
