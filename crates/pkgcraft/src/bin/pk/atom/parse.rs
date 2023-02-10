@@ -68,16 +68,8 @@ impl Key {
 }
 
 impl Parse {
-    fn parse_atom(&self, s: &str, status: &mut ExitCode) {
-        let atom = match Atom::from_str(s).or_else(|_| Atom::new_cpv(s)) {
-            Ok(a) => a,
-            Err(_) => {
-                eprintln!("INVALID ATOM: {s}");
-                *status = ExitCode::FAILURE;
-                return;
-            }
-        };
-
+    fn parse_atom(&self, s: &str) -> anyhow::Result<()> {
+        let atom = Atom::from_str(s).or_else(|_| Atom::new_cpv(s))?;
         if let Some(format) = &self.format {
             let patterns: Vec<_> = Key::iter()
                 .flat_map(|k| [format!("{{{k}}}"), format!("[{k}]")])
@@ -101,12 +93,21 @@ impl Parse {
             });
             println!("{result}");
         }
+
+        Ok(())
     }
 }
 
 impl Run for Parse {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
+        // parse an atom or CPV, tracking overall process status
+        let mut parse = |s: &str| {
+            if self.parse_atom(s).is_err() {
+                eprintln!("INVALID ATOM: {s}");
+                status = ExitCode::FAILURE;
+            }
+        };
 
         if self.atoms.is_empty() || self.atoms[0] == "-" {
             if stdin().is_terminal() {
@@ -114,12 +115,12 @@ impl Run for Parse {
             }
             for l in stdin().lines().filter_map(|l| l.ok()) {
                 for s in l.split_whitespace() {
-                    self.parse_atom(s, &mut status);
+                    parse(s);
                 }
             }
         } else {
             for s in &self.atoms {
-                self.parse_atom(s, &mut status);
+                parse(s);
             }
         }
 
