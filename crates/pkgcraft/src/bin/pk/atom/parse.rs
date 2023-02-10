@@ -1,4 +1,4 @@
-use std::io;
+use std::io::stdin;
 use std::process::ExitCode;
 use std::str::FromStr;
 
@@ -33,6 +33,7 @@ enum Key {
     PVR,
     CPN,
     CPV,
+    OP,
     SLOT,
     SUBSLOT,
     REPO,
@@ -52,6 +53,7 @@ impl Key {
             PVR => atom.pvr(),
             CPN => atom.cpn(),
             CPV => atom.cpv(),
+            OP => atom.op().map(|x| x.to_string()).unwrap_or_default(),
             SLOT => atom.slot().unwrap_or_default().to_string(),
             SUBSLOT => atom.subslot().unwrap_or_default().to_string(),
             REPO => atom.repo().unwrap_or_default().to_string(),
@@ -69,16 +71,24 @@ impl Parse {
         for s in iter {
             let atom = Atom::from_str(s.as_ref())?;
             if let Some(format) = &self.format {
-                let patterns: Vec<_> = Key::iter().map(|k| format!("{{{k}}}")).collect();
+                let patterns: Vec<_> = Key::iter()
+                    .flat_map(|k| [format!("{{{k}}}"), format!("[{k}]")])
+                    .collect();
                 let ac = AhoCorasick::new(patterns);
                 let mut result = String::new();
                 ac.replace_all_with(format, &mut result, |_mat, mat_str, dst| {
                     // strip match wrappers and convert to Key variant
+                    let mat_type = &mat_str[0..1];
                     let key_str = &mat_str[1..mat_str.len() - 1];
                     let key = Key::from_str(key_str)
                         .unwrap_or_else(|_| panic!("invalid pattern: {key_str}"));
-                    // replace match with the related Atom value
-                    dst.push_str(&key.value(&atom));
+
+                    // replace match with the related value
+                    match key.value(&atom).as_str() {
+                        "" if mat_type == "{" => dst.push_str("<unset>"),
+                        s => dst.push_str(s),
+                    }
+
                     true
                 });
                 println!("{result}");
@@ -91,10 +101,10 @@ impl Parse {
 impl Run for Parse {
     fn run(&self) -> anyhow::Result<ExitCode> {
         if self.atoms.is_empty() || self.atoms[0] == "-" {
-            if io::stdin().is_terminal() {
+            if stdin().is_terminal() {
                 bail!("missing input on stdin");
             }
-            self.parse_atoms(io::stdin().lines().filter_map(|l| l.ok()))?;
+            self.parse_atoms(stdin().lines().filter_map(|l| l.ok()))?;
         } else {
             self.parse_atoms(&self.atoms)?;
         };
