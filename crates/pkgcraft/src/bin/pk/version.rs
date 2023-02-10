@@ -5,7 +5,6 @@ use clap::{Args, Subcommand};
 use crate::Run;
 
 mod compare;
-mod format;
 mod intersect;
 mod parse;
 mod sort;
@@ -27,11 +26,9 @@ impl Run for Version {
 pub(super) enum Command {
     /// Compare two versions
     Compare(compare::Compare),
-    /// Parse a version and print formatted output
-    Format(format::Format),
     /// Determine if two versions intersect
     Intersect(intersect::Intersect),
-    /// Parse a version
+    /// Parse a version and optionally print formatted output
     Parse(parse::Parse),
     /// Sort versions
     Sort(sort::Sort),
@@ -42,7 +39,6 @@ impl Run for Command {
         use Command::*;
         match self {
             Compare(cmd) => cmd.run(),
-            Format(cmd) => cmd.run(),
             Intersect(cmd) => cmd.run(),
             Parse(cmd) => cmd.run(),
             Sort(cmd) => cmd.run(),

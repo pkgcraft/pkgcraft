@@ -101,7 +101,7 @@ impl Parse {
 impl Run for Parse {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
-        // parse an atom or CPV, tracking overall process status
+        // parse an atom, tracking overall process status
         let mut parse = |s: &str| {
             if self.parse_atom(s).is_err() {
                 eprintln!("INVALID ATOM: {s}");
