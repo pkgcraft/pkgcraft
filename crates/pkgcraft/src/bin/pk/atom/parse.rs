@@ -33,6 +33,7 @@ enum Key {
     SLOT,
     SUBSLOT,
     REPO,
+    ATOM,
 }
 
 impl Key {
@@ -51,6 +52,7 @@ impl Key {
             SLOT => atom.slot().unwrap_or_default().to_string(),
             SUBSLOT => atom.subslot().unwrap_or_default().to_string(),
             REPO => atom.repo().unwrap_or_default().to_string(),
+            ATOM => atom.to_string(),
         }
     }
 }
