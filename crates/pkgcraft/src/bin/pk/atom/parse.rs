@@ -23,7 +23,9 @@ pub(crate) struct Parse {
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[allow(clippy::upper_case_acronyms)]
+#[allow(non_camel_case_types)]
 enum Key {
+    BLOCKER,
     CATEGORY,
     P,
     PF,
@@ -36,6 +38,7 @@ enum Key {
     OP,
     SLOT,
     SUBSLOT,
+    SLOT_OP,
     REPO,
     ATOM,
 }
@@ -44,6 +47,7 @@ impl Key {
     fn value(&self, atom: &Atom) -> String {
         use Key::*;
         match self {
+            BLOCKER => atom.blocker().map(|x| x.to_string()).unwrap_or_default(),
             CATEGORY => atom.category().to_string(),
             P => atom.p(),
             PF => atom.pf(),
@@ -56,6 +60,7 @@ impl Key {
             OP => atom.op().map(|x| x.to_string()).unwrap_or_default(),
             SLOT => atom.slot().unwrap_or_default().to_string(),
             SUBSLOT => atom.subslot().unwrap_or_default().to_string(),
+            SLOT_OP => atom.slot_op().map(|x| x.to_string()).unwrap_or_default(),
             REPO => atom.repo().unwrap_or_default().to_string(),
             ATOM => atom.to_string(),
         }
