@@ -5,7 +5,6 @@ use std::str::FromStr;
 use anyhow::bail;
 use clap::Args;
 use is_terminal::IsTerminal;
-use itertools::Itertools;
 use pkgcraft::atom::Version;
 
 use crate::Run;
@@ -36,7 +35,9 @@ impl Run for Sort {
         }
 
         versions.sort();
-        println!("{}", versions.iter().map(|a| a.to_string()).join("\n"));
+        for v in versions {
+            println!("{v}");
+        }
         Ok(ExitCode::SUCCESS)
     }
 }
