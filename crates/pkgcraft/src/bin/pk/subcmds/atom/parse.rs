@@ -12,7 +12,7 @@ use crate::format::{EnumVariable, FormatString};
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub(crate) struct Parse {
+pub struct Parse {
     /// Output using a custom format
     #[arg(short, long)]
     format: Option<String>,

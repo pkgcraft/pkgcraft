@@ -7,7 +7,7 @@ use pkgcraft::atom::Version;
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub(crate) struct Intersect {
+pub struct Intersect {
     version1: String,
     version2: String,
 }

@@ -4,19 +4,20 @@ use std::str::FromStr;
 
 use anyhow::bail;
 use clap::Args;
+use indexmap::IndexSet;
 use is_terminal::IsTerminal;
-use pkgcraft::atom::Atom;
+use pkgcraft::atom::Version;
 
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub(crate) struct Sort {
+pub struct Set {
     vals: Vec<String>,
 }
 
-impl Run for Sort {
+impl Run for Set {
     fn run(self) -> anyhow::Result<ExitCode> {
-        let mut atoms = Vec::<Atom>::new();
+        let mut versions = IndexSet::<Version>::new();
 
         if self.vals.is_empty() || self.vals[0] == "-" {
             if io::stdin().is_terminal() {
@@ -25,18 +26,17 @@ impl Run for Sort {
 
             for line in io::stdin().lines() {
                 for s in line?.split_whitespace() {
-                    atoms.push(Atom::from_str(s)?);
+                    versions.insert(Version::from_str(s)?);
                 }
             }
         } else {
             for s in &self.vals {
-                atoms.push(Atom::from_str(s)?);
+                versions.insert(Version::from_str(s)?);
             }
         }
 
-        atoms.sort();
-        for a in atoms {
-            println!("{a}");
+        for v in versions {
+            println!("{v}");
         }
         Ok(ExitCode::SUCCESS)
     }

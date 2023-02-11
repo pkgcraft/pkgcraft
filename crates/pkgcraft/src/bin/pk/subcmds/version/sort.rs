@@ -10,7 +10,7 @@ use pkgcraft::atom::Version;
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub(crate) struct Sort {
+pub struct Sort {
     vals: Vec<String>,
 }
 

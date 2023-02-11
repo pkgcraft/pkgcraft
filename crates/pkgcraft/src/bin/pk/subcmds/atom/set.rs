@@ -11,7 +11,7 @@ use pkgcraft::atom::Atom;
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub(crate) struct Set {
+pub struct Set {
     vals: Vec<String>,
 }
 

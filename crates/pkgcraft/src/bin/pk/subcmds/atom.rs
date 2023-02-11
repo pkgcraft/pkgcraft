@@ -12,28 +12,28 @@ mod sort;
 
 #[derive(Debug, Args)]
 #[command(args_conflicts_with_subcommands = true)]
-pub(super) struct Version {
+pub struct Atom {
     #[command(subcommand)]
     command: Command,
 }
 
-impl Run for Version {
+impl Run for Atom {
     fn run(self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
 }
 
 #[derive(Debug, Subcommand)]
-pub(super) enum Command {
-    /// Compare two versions
+pub enum Command {
+    /// Compare two atoms
     Compare(compare::Compare),
-    /// Determine if two versions intersect
+    /// Determine if two atoms intersect
     Intersect(intersect::Intersect),
-    /// Parse a version and optionally print formatted output
+    /// Parse an atom and optionally print formatted output
     Parse(parse::Parse),
-    /// Collapse input into a set of versions
+    /// Collapse input into a set of atoms
     Set(set::Set),
-    /// Sort versions
+    /// Sort atoms
     Sort(sort::Sort),
 }
 

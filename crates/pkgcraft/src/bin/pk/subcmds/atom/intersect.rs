@@ -7,7 +7,7 @@ use pkgcraft::atom::Atom;
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub(crate) struct Intersect {
+pub struct Intersect {
     atom1: String,
     atom2: String,
 }

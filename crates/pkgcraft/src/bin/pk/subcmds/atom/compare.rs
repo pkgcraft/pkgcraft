@@ -9,7 +9,7 @@ use pkgcraft::atom::Atom;
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub(crate) struct Compare {
+pub struct Compare {
     compare: String,
 }
 

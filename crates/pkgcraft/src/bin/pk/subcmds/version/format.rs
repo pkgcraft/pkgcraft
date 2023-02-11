@@ -8,7 +8,7 @@ use pkgcraft::atom::Version;
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub(crate) struct Format {
+pub struct Format {
     format: String,
     version: String,
 }
