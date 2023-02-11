@@ -13,9 +13,15 @@ use crate::Run;
 
 #[derive(Debug, Args)]
 pub struct Parse {
+    // options
+    /// Use a specific EAPI
+    #[arg(long)]
+    eapi: Option<String>,
     /// Output using a custom format
     #[arg(short, long)]
     format: Option<String>,
+
+    // positionals
     /// Atoms to parse, uses stdin if empty or "-"
     #[arg(value_name = "ATOM", required = false)]
     atoms: Vec<String>,
@@ -76,10 +82,17 @@ impl FormatString for Parse {
 
 impl Parse {
     fn parse_atom(&self, s: &str) -> anyhow::Result<()> {
-        let atom = Atom::from_str(s).or_else(|_| Atom::new_cpv(s))?;
+        // parse atom, falling back to cpv if no EAPI was specified
+        let atom = match &self.eapi {
+            Some(eapi) => Atom::new(s, eapi.as_str()),
+            None => Atom::from_str(s).or_else(|_| Atom::new_cpv(s)),
+        }?;
+
+        // output formatted string if specified
         if let Some(fmt) = &self.format {
             println!("{}", self.format(fmt, &atom));
         }
+
         Ok(())
     }
 }
