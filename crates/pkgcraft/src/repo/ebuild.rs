@@ -476,9 +476,10 @@ impl Repo {
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (id, path) = (self.id.as_str(), self.path().as_str());
-        match id == path {
-            true => write!(f, "{id}"),
-            false => write!(f, "{id}: {path}"),
+        if id == path {
+            write!(f, "{id}")
+        } else {
+            write!(f, "{id}: {path}")
         }
     }
 }
@@ -504,9 +505,10 @@ impl PkgRepository for Repo {
         }
         let mut categories: Vec<_> = categories.into_iter().collect();
         categories.sort();
-        match categories.is_empty() {
-            false => categories,
-            true => self.category_dirs(),
+        if categories.is_empty() {
+            self.category_dirs()
+        } else {
+            categories
         }
     }
 

@@ -22,9 +22,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let dest = "/usr/include";
-        let opts: Vec<_> = match d.eapi.has(Feature::ConsistentFileOpts) {
-            true => vec!["-m0644"],
-            false => d.insopts.iter().map(|s| s.as_str()).collect(),
+        let opts: Vec<_> = if d.eapi.has(Feature::ConsistentFileOpts) {
+            vec!["-m0644"]
+        } else {
+            d.insopts.iter().map(|s| s.as_str()).collect()
         };
         let install = d.install().dest(dest)?.file_options(opts);
 
@@ -101,9 +102,10 @@ mod tests {
             BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
             insopts(&["-m0755"]).unwrap();
             doheader(&["-r", "pkgcraft"]).unwrap();
-            let mode = match eapi.has(Feature::ConsistentFileOpts) {
-                true => default_mode,
-                false => custom_mode,
+            let mode = if eapi.has(Feature::ConsistentFileOpts) {
+                default_mode
+            } else {
+                custom_mode
             };
             file_tree.assert(format!(
                 r#"

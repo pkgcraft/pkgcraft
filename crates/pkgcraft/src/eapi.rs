@@ -397,12 +397,12 @@ impl FromStr for &'static Eapi {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        match EAPIS.get(s) {
-            Some(eapi) => Ok(eapi),
-            None => match VALID_EAPI_RE.is_match(s) {
-                true => Err(Error::InvalidValue(format!("unknown EAPI: {s}"))),
-                false => Err(Error::InvalidValue(format!("invalid EAPI: {s}"))),
-            },
+        if let Some(eapi) = EAPIS.get(s) {
+            Ok(eapi)
+        } else if VALID_EAPI_RE.is_match(s) {
+            Err(Error::InvalidValue(format!("unknown EAPI: {s}")))
+        } else {
+            Err(Error::InvalidValue(format!("invalid EAPI: {s}")))
         }
     }
 }
@@ -654,9 +654,10 @@ pub fn range(s: &str) -> crate::Result<impl Iterator<Item = &'static Eapi>> {
         _ => return Err(err()),
     };
 
-    let eapis = match inclusive {
-        false => Either::Left((start..end).map(|n| EAPIS[n])),
-        true => Either::Right((start..=end).map(|n| EAPIS[n])),
+    let eapis = if inclusive {
+        Either::Left((start..=end).map(|n| EAPIS[n]))
+    } else {
+        Either::Right((start..end).map(|n| EAPIS[n]))
     };
 
     Ok(eapis)

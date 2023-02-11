@@ -50,19 +50,19 @@ impl Key {
                     .iter()
                     .filter_map(|p| functions::find(p).map(|_| p.short_name()))
                     .collect();
-                match phase_names.is_empty() {
-                    true => None,
-                    false => {
-                        phase_names.sort_unstable();
-                        Some(phase_names.join(" "))
-                    }
+                if phase_names.is_empty() {
+                    None
+                } else {
+                    phase_names.sort_unstable();
+                    Some(phase_names.join(" "))
                 }
             }
             Key::Inherit => BUILD_DATA.with(|d| {
                 let inherit = &d.borrow().inherit;
-                match inherit.is_empty() {
-                    true => None,
-                    false => Some(inherit.iter().join(" ")),
+                if inherit.is_empty() {
+                    None
+                } else {
+                    Some(inherit.iter().join(" "))
                 }
             }),
             key => variables::optional(key).map(|s| s.split_whitespace().join(" ")),

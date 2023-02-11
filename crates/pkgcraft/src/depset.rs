@@ -518,56 +518,62 @@ peg::parser!(grammar depset() for str {
 });
 
 pub fn license(s: &str) -> crate::Result<Option<DepSet<String>>> {
-    match s.is_empty() {
-        true => Ok(None),
-        false => depset::license(s)
+    if s.is_empty() {
+        Ok(None)
+    } else {
+        depset::license(s)
             .map(Some)
-            .map_err(|e| peg_error(format!("invalid LICENSE: {s:?}"), s, e)),
+            .map_err(|e| peg_error(format!("invalid LICENSE: {s:?}"), s, e))
     }
 }
 
 pub fn src_uri(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<Uri>>> {
-    match s.is_empty() {
-        true => Ok(None),
-        false => depset::src_uri(s, eapi)
+    if s.is_empty() {
+        Ok(None)
+    } else {
+        depset::src_uri(s, eapi)
             .map(Some)
-            .map_err(|e| peg_error(format!("invalid SRC_URI: {s:?}"), s, e)),
+            .map_err(|e| peg_error(format!("invalid SRC_URI: {s:?}"), s, e))
     }
 }
 
 pub fn properties(s: &str) -> crate::Result<Option<DepSet<String>>> {
-    match s.is_empty() {
-        true => Ok(None),
-        false => depset::properties(s)
+    if s.is_empty() {
+        Ok(None)
+    } else {
+        depset::properties(s)
             .map(Some)
-            .map_err(|e| peg_error(format!("invalid PROPERTIES: {s:?}"), s, e)),
+            .map_err(|e| peg_error(format!("invalid PROPERTIES: {s:?}"), s, e))
     }
 }
 
 pub fn required_use(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<String>>> {
-    match s.is_empty() {
-        true => Ok(None),
-        false => depset::required_use(s, eapi)
+    if s.is_empty() {
+        Ok(None)
+    } else {
+        depset::required_use(s, eapi)
             .map(Some)
-            .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e)),
+            .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e))
     }
 }
 
 pub fn restrict(s: &str) -> crate::Result<Option<DepSet<String>>> {
-    match s.is_empty() {
-        true => Ok(None),
-        false => depset::restrict(s)
+    if s.is_empty() {
+        Ok(None)
+    } else {
+        depset::restrict(s)
             .map(Some)
-            .map_err(|e| peg_error(format!("invalid RESTRICT: {s:?}"), s, e)),
+            .map_err(|e| peg_error(format!("invalid RESTRICT: {s:?}"), s, e))
     }
 }
 
 pub fn pkg_dep(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<Atom>>> {
-    match s.is_empty() {
-        true => Ok(None),
-        false => depset::pkg_dep(s, eapi)
+    if s.is_empty() {
+        Ok(None)
+    } else {
+        depset::pkg_dep(s, eapi)
             .map(Some)
-            .map_err(|e| peg_error(format!("invalid dependency: {s:?}"), s, e)),
+            .map_err(|e| peg_error(format!("invalid dependency: {s:?}"), s, e))
     }
 }
 

@@ -12,9 +12,10 @@ const LONG_DOC: &str = "Install executables into DESTTREE/bin.";
 pub(super) fn install_bin(args: &[&str], dest: &str) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let dest = build_from_paths!(&d.borrow().desttree, dest);
-        let opts: &[&str] = match geteuid().is_root() {
-            true => &["-m0755", "-o", "root", "-g", "root"],
-            false => &["-m0755"],
+        let opts: &[&str] = if geteuid().is_root() {
+            &["-m0755", "-o", "root", "-g", "root"]
+        } else {
+            &["-m0755"]
         };
         let install = d
             .borrow()

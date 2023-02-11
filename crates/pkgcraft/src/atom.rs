@@ -510,21 +510,18 @@ mod tests {
         for (expr, (s1, op, s2)) in data.compares() {
             let a1 = Atom::from_str(s1).unwrap();
             let a2 = Atom::from_str(s2).unwrap();
-            match op {
-                "!=" => {
-                    assert_ne!(a1, a2, "failed comparing {expr}");
-                    assert_ne!(a2, a1, "failed comparing {expr}");
-                }
-                _ => {
-                    let op = op_map[op];
-                    assert_eq!(a1.cmp(&a2), op, "failed comparing {expr}");
-                    assert_eq!(a2.cmp(&a1), op.reverse(), "failed comparing {expr}");
+            if op == "!=" {
+                assert_ne!(a1, a2, "failed comparing {expr}");
+                assert_ne!(a2, a1, "failed comparing {expr}");
+            } else {
+                let op = op_map[op];
+                assert_eq!(a1.cmp(&a2), op, "failed comparing {expr}");
+                assert_eq!(a2.cmp(&a1), op.reverse(), "failed comparing {expr}");
 
-                    // verify the following property holds since both Hash and Eq are implemented:
-                    // k1 == k2 -> hash(k1) == hash(k2)
-                    if op == Ordering::Equal {
-                        assert_eq!(hash(a1), hash(a2), "failed hash {expr}");
-                    }
+                // verify the following property holds since both Hash and Eq are implemented:
+                // k1 == k2 -> hash(k1) == hash(k2)
+                if op == Ordering::Equal {
+                    assert_eq!(hash(a1), hash(a2), "failed hash {expr}");
                 }
             }
         }
@@ -558,9 +555,10 @@ mod tests {
                 assert!(a2.intersects(&a2), "{s2} doesn't intersect {s2}");
 
                 // intersects depending on status
-                match d.status {
-                    true => assert!(a1.intersects(&a2), "{s1} doesn't intersect {s2}"),
-                    false => assert!(!a1.intersects(&a2), "{s1} intersects {s2}"),
+                if d.status {
+                    assert!(a1.intersects(&a2), "{s1} doesn't intersect {s2}");
+                } else {
+                    assert!(!a1.intersects(&a2), "{s1} intersects {s2}");
                 }
             }
         }
@@ -577,9 +575,10 @@ mod tests {
                 assert!(a2.intersects(&a2), "{s2} doesn't intersect {s2}");
 
                 // intersects depending on status
-                match d.status {
-                    true => assert!(a1.intersects(&a2), "{s1} doesn't intersect {s2}"),
-                    false => assert!(!a1.intersects(&a2), "{s1} intersects {s2}"),
+                if d.status {
+                    assert!(a1.intersects(&a2), "{s1} doesn't intersect {s2}");
+                } else {
+                    assert!(!a1.intersects(&a2), "{s1} intersects {s2}");
                 }
             }
         }

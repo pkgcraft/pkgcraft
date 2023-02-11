@@ -78,9 +78,10 @@ impl Repo {
             }
         }
 
-        let err = match path.exists() {
-            true => "unknown or invalid format",
-            false => "nonexistent repo path",
+        let err = if path.exists() {
+            "unknown or invalid format"
+        } else {
+            "nonexistent repo path"
         };
 
         Err(Error::InvalidRepo {

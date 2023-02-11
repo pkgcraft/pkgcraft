@@ -48,9 +48,10 @@ impl ConfigPath {
 
         // prefix a given path
         let prefixed = |p: Utf8PathBuf| -> Utf8PathBuf {
-            match prefix.is_empty() {
-                true => p,
-                false => Utf8PathBuf::from(prefix).join(p.strip_prefix("/").unwrap_or(&p)),
+            if prefix.is_empty() {
+                p
+            } else {
+                Utf8PathBuf::from(prefix).join(p.strip_prefix("/").unwrap_or(&p))
             }
         };
 

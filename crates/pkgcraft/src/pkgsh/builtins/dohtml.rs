@@ -38,9 +38,10 @@ struct Options {
 impl fmt::Display for Options {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let csv_or_none = |val: &[String]| -> String {
-            match val.is_empty() {
-                true => "none".to_string(),
-                false => val.join(","),
+            if val.is_empty() {
+                "none".to_string()
+            } else {
+                val.join(",")
             }
         };
 

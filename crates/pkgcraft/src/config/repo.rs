@@ -241,16 +241,15 @@ impl Config {
             }
         }
 
-        match failed.is_empty() {
-            true => Ok(()),
-            false => {
-                let errors = failed
-                    .iter()
-                    .map(|(name, e)| format!("{name}: {e}"))
-                    .collect::<Vec<String>>()
-                    .join("\n\t");
-                Err(Error::Config(format!("failed syncing:\n\t{errors}")))
-            }
+        if failed.is_empty() {
+            Ok(())
+        } else {
+            let errors = failed
+                .iter()
+                .map(|(name, e)| format!("{name}: {e}"))
+                .collect::<Vec<String>>()
+                .join("\n\t");
+            Err(Error::Config(format!("failed syncing:\n\t{errors}")))
         }
     }
 

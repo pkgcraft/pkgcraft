@@ -17,12 +17,12 @@ type Patches = Vec<(Option<PathBuf>, Vec<PathBuf>)>;
 // Predicate used to filter compatible patch files from an iterator.
 fn is_patch(entry: &DirEntry) -> bool {
     let path = entry.path();
-    match path.is_dir() {
-        true => false,
-        false => path
-            .extension()
+    if path.is_dir() {
+        false
+    } else {
+        path.extension()
             .map(|s| s == "diff" || s == "patch")
-            .unwrap_or(false),
+            .unwrap_or(false)
     }
 }
 

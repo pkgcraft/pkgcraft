@@ -5,9 +5,10 @@ use crate::pkgsh::builtins::{econf::run as econf, emake::run as emake};
 use crate::pkgsh::utils::{configure, makefile_exists};
 
 pub(crate) fn src_configure() -> scallop::Result<ExecStatus> {
-    match configure().is_executable() {
-        true => econf(&[]),
-        false => Ok(ExecStatus::Success),
+    if configure().is_executable() {
+        econf(&[])
+    } else {
+        Ok(ExecStatus::Success)
     }
 }
 

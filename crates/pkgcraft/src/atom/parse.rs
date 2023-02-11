@@ -80,20 +80,20 @@ peg::parser! {
 
         rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
             = ":" slot_parts:slot_str(eapi) {?
-                match eapi.has(Feature::SlotDeps) {
-                    true => Ok(slot_parts),
-                    false => Err("slot deps are supported in >= EAPI 1"),
+                if eapi.has(Feature::SlotDeps) {
+                    Ok(slot_parts)
+                } else {
+                    Err("slot deps are supported in >= EAPI 1")
                 }
             }
 
         rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
             = s:$("*" / "=") {?
-                match eapi.has(Feature::SlotOps) {
-                    true => {
-                        let op = SlotOperator::from_str(s).map_err(|_| "invalid slot operator")?;
-                        Ok((None, None, Some(op)))
-                    },
-                    false => Err("slot operators are supported in >= EAPI 5"),
+                if eapi.has(Feature::SlotOps) {
+                    let op = SlotOperator::from_str(s).map_err(|_| "invalid slot operator")?;
+                    Ok((None, None, Some(op)))
+                } else {
+                    Err("slot operators are supported in >= EAPI 5")
                 }
             } / slot:slot(eapi) op:$("=")? {?
                 match (op.is_some(), eapi.has(Feature::SlotOps)) {
@@ -109,17 +109,19 @@ peg::parser! {
 
         rule subslot(eapi: &'static Eapi) -> &'input str
             = "/" s:slot_name() {?
-                match eapi.has(Feature::Subslots) {
-                    true => Ok(s),
-                    false => Err("subslots are supported in >= EAPI 5"),
+                if eapi.has(Feature::Subslots) {
+                    Ok(s)
+                } else {
+                    Err("subslots are supported in >= EAPI 5")
                 }
             }
 
         rule blocker(eapi: &'static Eapi) -> Blocker
             = s:$("!" "!"?) {?
-                match eapi.has(Feature::Blockers) {
-                    true => Blocker::from_str(s).map_err(|_| "invalid blocker"),
-                    false => Err("blockers are supported in >= EAPI 2"),
+                if eapi.has(Feature::Blockers) {
+                    Blocker::from_str(s).map_err(|_| "invalid blocker")
+                } else {
+                    Err("blockers are supported in >= EAPI 2")
                 }
             }
 
@@ -140,17 +142,19 @@ peg::parser! {
 
         rule use_deps(eapi: &'static Eapi) -> Vec<&'input str>
             = "[" use_deps:use_dep(eapi) ++ "," "]" {?
-                match eapi.has(Feature::UseDeps) {
-                    true => Ok(use_deps),
-                    false => Err("use deps are supported in >= EAPI 2"),
+                if eapi.has(Feature::UseDeps) {
+                    Ok(use_deps)
+                } else {
+                    Err("use deps are supported in >= EAPI 2")
                 }
             }
 
         rule use_dep_default(eapi: &'static Eapi) -> &'input str
             = s:$("(+)" / "(-)") {?
-                match eapi.has(Feature::UseDepDefaults) {
-                    true => Ok(s),
-                    false => Err("use dep defaults are supported in >= EAPI 4"),
+                if eapi.has(Feature::UseDepDefaults) {
+                    Ok(s)
+                } else {
+                    Err("use dep defaults are supported in >= EAPI 4")
                 }
             }
 
@@ -164,9 +168,10 @@ peg::parser! {
 
         rule repo_dep(eapi: &'static Eapi) -> &'input str
             = "::" repo:repo() {?
-                match eapi.has(Feature::RepoIds) {
-                    true => Ok(repo),
-                    false => Err("repo deps aren't supported in EAPIs"),
+                if eapi.has(Feature::RepoIds) {
+                    Ok(repo)
+                } else {
+                    Err("repo deps aren't supported in EAPIs")
                 }
             }
 
@@ -348,15 +353,14 @@ mod tests {
             for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg:{slot}");
                 let result = dep(&s, eapi);
-                match eapi.has(Feature::SlotDeps) {
-                    false => assert!(result.is_err(), "{s:?} didn't fail"),
-                    true => {
-                        assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                        let atom = result.unwrap();
-                        assert_eq!(atom.slot, Some(slot.into()));
-                        assert_eq!(atom.to_string(), s);
-                    }
-                };
+                if eapi.has(Feature::SlotDeps) {
+                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                    let atom = result.unwrap();
+                    assert_eq!(atom.slot, Some(slot.into()));
+                    assert_eq!(atom.to_string(), s);
+                } else {
+                    assert!(result.is_err(), "{s:?} didn't fail");
+                }
             }
         }
     }
@@ -376,19 +380,18 @@ mod tests {
         ] {
             for eapi in eapi::EAPIS.iter() {
                 let result = dep(s, eapi);
-                match eapi.has(Feature::Blockers) {
-                    false => assert!(result.is_err(), "{s:?} didn't fail"),
-                    true => {
-                        assert!(
-                            result.is_ok(),
-                            "{s:?} failed for EAPI {eapi}: {}",
-                            result.err().unwrap()
-                        );
-                        let atom = result.unwrap();
-                        assert_eq!(atom.blocker, blocker);
-                        assert_eq!(atom.to_string(), s);
-                    }
-                };
+                if eapi.has(Feature::Blockers) {
+                    assert!(
+                        result.is_ok(),
+                        "{s:?} failed for EAPI {eapi}: {}",
+                        result.err().unwrap()
+                    );
+                    let atom = result.unwrap();
+                    assert_eq!(atom.blocker, blocker);
+                    assert_eq!(atom.to_string(), s);
+                } else {
+                    assert!(result.is_err(), "{s:?} didn't fail");
+                }
             }
         }
     }
@@ -400,16 +403,15 @@ mod tests {
             for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = dep(&s, eapi);
-                match eapi.has(Feature::UseDeps) {
-                    false => assert!(result.is_err(), "{s:?} didn't fail"),
-                    true => {
-                        assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                        let atom = result.unwrap();
-                        let expected = use_deps.split(',').map(|s| s.to_string()).collect();
-                        assert_eq!(atom.use_deps, Some(expected));
-                        assert_eq!(atom.to_string(), s);
-                    }
-                };
+                if eapi.has(Feature::UseDeps) {
+                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                    let atom = result.unwrap();
+                    let expected = use_deps.split(',').map(|s| s.to_string()).collect();
+                    assert_eq!(atom.use_deps, Some(expected));
+                    assert_eq!(atom.to_string(), s);
+                } else {
+                    assert!(result.is_err(), "{s:?} didn't fail");
+                }
             }
         }
     }
@@ -421,16 +423,15 @@ mod tests {
             for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = dep(&s, eapi);
-                match eapi.has(Feature::UseDepDefaults) {
-                    false => assert!(result.is_err(), "{s:?} didn't fail"),
-                    true => {
-                        assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                        let atom = result.unwrap();
-                        let expected = use_deps.split(',').map(|s| s.to_string()).collect();
-                        assert_eq!(atom.use_deps, Some(expected));
-                        assert_eq!(atom.to_string(), s);
-                    }
-                };
+                if eapi.has(Feature::UseDepDefaults) {
+                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                    let atom = result.unwrap();
+                    let expected = use_deps.split(',').map(|s| s.to_string()).collect();
+                    assert_eq!(atom.use_deps, Some(expected));
+                    assert_eq!(atom.to_string(), s);
+                } else {
+                    assert!(result.is_err(), "{s:?} didn't fail");
+                }
             }
         }
     }
@@ -448,17 +449,16 @@ mod tests {
             for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = dep(&s, eapi);
-                match eapi.has(Feature::SlotOps) {
-                    false => assert!(result.is_err(), "{s:?} didn't fail"),
-                    true => {
-                        assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                        let atom = result.unwrap();
-                        assert_eq!(atom.slot, slot);
-                        assert_eq!(atom.subslot, subslot);
-                        assert_eq!(atom.slot_op, slot_op);
-                        assert_eq!(atom.to_string(), s);
-                    }
-                };
+                if eapi.has(Feature::SlotOps) {
+                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                    let atom = result.unwrap();
+                    assert_eq!(atom.slot, slot);
+                    assert_eq!(atom.subslot, subslot);
+                    assert_eq!(atom.slot_op, slot_op);
+                    assert_eq!(atom.to_string(), s);
+                } else {
+                    assert!(result.is_err(), "{s:?} didn't fail");
+                }
             }
         }
     }
@@ -477,17 +477,16 @@ mod tests {
             for eapi in eapi::EAPIS.iter() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = dep(&s, eapi);
-                match eapi.has(Feature::SlotOps) {
-                    false => assert!(result.is_err(), "{s:?} didn't fail"),
-                    true => {
-                        assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                        let atom = result.unwrap();
-                        assert_eq!(atom.slot, slot);
-                        assert_eq!(atom.subslot, subslot);
-                        assert_eq!(atom.slot_op, slot_op);
-                        assert_eq!(atom.to_string(), s);
-                    }
-                };
+                if eapi.has(Feature::SlotOps) {
+                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                    let atom = result.unwrap();
+                    assert_eq!(atom.slot, slot);
+                    assert_eq!(atom.subslot, subslot);
+                    assert_eq!(atom.slot_op, slot_op);
+                    assert_eq!(atom.to_string(), s);
+                } else {
+                    assert!(result.is_err(), "{s:?} didn't fail");
+                }
             }
         }
     }

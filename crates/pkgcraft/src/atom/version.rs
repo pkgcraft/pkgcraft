@@ -557,21 +557,18 @@ mod tests {
         for (expr, (v1, op, v2)) in data.compares() {
             let v1 = Version::from_str(v1).unwrap();
             let v2 = Version::from_str(v2).unwrap();
-            match op {
-                "!=" => {
-                    assert_ne!(v1, v2, "failed comparing {expr}");
-                    assert_ne!(v2, v1, "failed comparing {expr}");
-                }
-                _ => {
-                    let op = op_map[op];
-                    assert_eq!(v1.cmp(&v2), op, "failed comparing {expr}");
-                    assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {expr}");
+            if op == "!=" {
+                assert_ne!(v1, v2, "failed comparing {expr}");
+                assert_ne!(v2, v1, "failed comparing {expr}");
+            } else {
+                let op = op_map[op];
+                assert_eq!(v1.cmp(&v2), op, "failed comparing {expr}");
+                assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing {expr}");
 
-                    // verify the following property holds since both Hash and Eq are implemented:
-                    // k1 == k2 -> hash(k1) == hash(k2)
-                    if op == Ordering::Equal {
-                        assert_eq!(hash(v1), hash(v2), "failed hash {expr}");
-                    }
+                // verify the following property holds since both Hash and Eq are implemented:
+                // k1 == k2 -> hash(k1) == hash(k2)
+                if op == Ordering::Equal {
+                    assert_eq!(hash(v1), hash(v2), "failed hash {expr}");
                 }
             }
         }
@@ -598,9 +595,10 @@ mod tests {
                 assert!(v2.intersects(&v2), "{s2} doesn't intersect {s2}");
 
                 // intersects depending on status
-                match d.status {
-                    true => assert!(v1.intersects(&v2), "{s1} doesn't intersect {s2}"),
-                    false => assert!(!v1.intersects(&v2), "{s1} intersects {s2}"),
+                if d.status {
+                    assert!(v1.intersects(&v2), "{s1} doesn't intersect {s2}");
+                } else {
+                    assert!(!v1.intersects(&v2), "{s1} intersects {s2}");
                 }
             }
         }

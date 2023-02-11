@@ -223,9 +223,10 @@ pub(crate) fn restricts(s: &str) -> crate::Result<Vec<AtomRestrict>> {
 /// Convert a globbed dep string into a restriction.
 pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
     let restricts = restricts(s)?;
-    match restricts.is_empty() {
-        true => Ok(BaseRestrict::True),
-        false => Ok(BaseRestrict::and(restricts)),
+    if restricts.is_empty() {
+        Ok(BaseRestrict::True)
+    } else {
+        Ok(BaseRestrict::and(restricts))
     }
 }
 

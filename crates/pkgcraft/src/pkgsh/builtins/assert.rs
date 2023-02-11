@@ -11,9 +11,10 @@ exited with an error status.";
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // TODO: move PIPESTATUS manipulations into scallop
     let pipestatus = array_to_vec("PIPESTATUS").unwrap_or_default();
-    match pipestatus.iter().any(|s| s != "0") {
-        true => die(args),
-        false => Ok(ExecStatus::Success),
+    if pipestatus.iter().any(|s| s != "0") {
+        die(args)
+    } else {
+        Ok(ExecStatus::Success)
     }
 }
 

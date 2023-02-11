@@ -12,9 +12,10 @@ pub(crate) fn src_unpack() -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let distfiles = &d.borrow().distfiles;
         let args: Vec<&str> = distfiles.iter().map(|s| s.as_str()).collect();
-        match !args.is_empty() {
-            true => unpack(&args),
-            false => Ok(ExecStatus::Success),
+        if args.is_empty() {
+            Ok(ExecStatus::Success)
+        } else {
+            unpack(&args)
         }
     })
 }
