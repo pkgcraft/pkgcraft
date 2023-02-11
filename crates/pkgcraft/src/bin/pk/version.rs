@@ -7,6 +7,7 @@ use crate::Run;
 mod compare;
 mod intersect;
 mod parse;
+mod set;
 mod sort;
 
 #[derive(Debug, Args)]
@@ -30,6 +31,8 @@ pub(super) enum Command {
     Intersect(intersect::Intersect),
     /// Parse a version and optionally print formatted output
     Parse(parse::Parse),
+    /// Collapse input into a set of versions
+    Set(set::Set),
     /// Sort versions
     Sort(sort::Sort),
 }
@@ -41,6 +44,7 @@ impl Run for Command {
             Compare(cmd) => cmd.run(),
             Intersect(cmd) => cmd.run(),
             Parse(cmd) => cmd.run(),
+            Set(cmd) => cmd.run(),
             Sort(cmd) => cmd.run(),
         }
     }
