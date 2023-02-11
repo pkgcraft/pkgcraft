@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 
 mod atom;
+mod format;
 mod version;
 
 #[derive(Debug, Parser)]

@@ -2,13 +2,13 @@ use std::io::stdin;
 use std::process::ExitCode;
 use std::str::FromStr;
 
-use aho_corasick::AhoCorasick;
 use anyhow::bail;
 use clap::Args;
 use is_terminal::IsTerminal;
 use pkgcraft::atom::Atom;
-use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
+use strum::{Display, EnumIter, EnumString};
 
+use crate::format::{EnumVariable, FormatString};
 use crate::Run;
 
 #[derive(Debug, Args)]
@@ -24,7 +24,7 @@ pub(crate) struct Parse {
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
-enum Key {
+pub enum Key {
     BLOCKER,
     CATEGORY,
     P,
@@ -43,7 +43,9 @@ enum Key {
     ATOM,
 }
 
-impl Key {
+impl EnumVariable for Key {
+    type Object = Atom;
+
     fn value(&self, atom: &Atom) -> String {
         use Key::*;
         match self {
@@ -67,33 +69,17 @@ impl Key {
     }
 }
 
+impl FormatString for Parse {
+    type Object = Atom;
+    type FormatKey = Key;
+}
+
 impl Parse {
     fn parse_atom(&self, s: &str) -> anyhow::Result<()> {
         let atom = Atom::from_str(s).or_else(|_| Atom::new_cpv(s))?;
-        if let Some(format) = &self.format {
-            let patterns: Vec<_> = Key::iter()
-                .flat_map(|k| [format!("{{{k}}}"), format!("[{k}]")])
-                .collect();
-            let ac = AhoCorasick::new(patterns);
-            let mut result = String::new();
-            ac.replace_all_with(format, &mut result, |_mat, mat_str, dst| {
-                // strip match wrappers and convert to Key variant
-                let mat_type = &mat_str[0..1];
-                let key_str = &mat_str[1..mat_str.len() - 1];
-                let key =
-                    Key::from_str(key_str).unwrap_or_else(|_| panic!("invalid pattern: {key_str}"));
-
-                // replace match with the related value
-                match key.value(&atom).as_str() {
-                    "" if mat_type == "{" => dst.push_str("<unset>"),
-                    s => dst.push_str(s),
-                }
-
-                true
-            });
-            println!("{result}");
+        if let Some(fmt) = &self.format {
+            println!("{}", self.format(fmt, &atom));
         }
-
         Ok(())
     }
 }
