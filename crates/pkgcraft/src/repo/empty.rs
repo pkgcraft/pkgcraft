@@ -34,9 +34,9 @@ impl Repo {
     ) -> crate::Result<Self> {
         let path = path.as_ref();
         if path.exists() {
-            Err(Error::RepoInit("not an empty repo".to_string()))
-        } else {
             Ok(Self::new(id, priority))
+        } else {
+            Err(Error::RepoInit("not an empty repo".to_string()))
         }
     }
 
