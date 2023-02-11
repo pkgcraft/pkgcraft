@@ -74,8 +74,8 @@ impl Run for Parse {
             if stdin().is_terminal() {
                 bail!("missing input on stdin");
             }
-            for l in stdin().lines().filter_map(|l| l.ok()) {
-                for s in l.split_whitespace() {
+            for line in stdin().lines() {
+                for s in line?.split_whitespace() {
                     parse(s);
                 }
             }

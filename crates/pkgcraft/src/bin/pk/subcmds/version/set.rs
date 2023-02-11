@@ -1,4 +1,4 @@
-use std::io;
+use std::io::stdin;
 use std::process::ExitCode;
 use std::str::FromStr;
 
@@ -20,11 +20,11 @@ impl Run for Set {
         let mut versions = IndexSet::<Version>::new();
 
         if self.vals.is_empty() || self.vals[0] == "-" {
-            if io::stdin().is_terminal() {
+            if stdin().is_terminal() {
                 bail!("missing input on stdin");
             }
 
-            for line in io::stdin().lines() {
+            for line in stdin().lines() {
                 for s in line?.split_whitespace() {
                     versions.insert(Version::from_str(s)?);
                 }
