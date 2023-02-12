@@ -139,25 +139,6 @@ impl Metadata {
 
         for (key, val) in iter {
             match key {
-                Description => meta.description = val.to_string(),
-                Slot => meta.slot = val.to_string(),
-                Depend | Bdepend | Idepend | Rdepend | Pdepend => {
-                    if let Some(val) = dep::parse::dependencies(val, eapi)
-                        .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
-                    {
-                        meta.deps.insert(key, val);
-                    }
-                }
-                License => meta.license = dep::parse::license(val)?,
-                Properties => meta.properties = dep::parse::properties(val)?,
-                RequiredUse => meta.required_use = dep::parse::required_use(val, eapi)?,
-                Restrict => meta.restrict = dep::parse::restrict(val)?,
-                SrcUri => meta.src_uri = dep::parse::src_uri(val, eapi)?,
-                Homepage => meta.homepage = split(val).collect(),
-                DefinedPhases => meta.defined_phases = split(val).collect(),
-                Keywords => meta.keywords = split(val).collect(),
-                Iuse => meta.iuse = split(val).collect(),
-                Inherit => meta.inherit = split(val).collect(),
                 Inherited => {
                     meta.inherited = val
                         .split_whitespace()
@@ -165,7 +146,7 @@ impl Metadata {
                         .map(|(name, _chksum)| name.to_string())
                         .collect();
                 }
-                Eapi => (),
+                key => meta.convert(eapi, key, val)?,
             }
         }
 
