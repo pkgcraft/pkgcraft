@@ -6,7 +6,7 @@ use anyhow::bail;
 use clap::Args;
 use indexmap::IndexSet;
 use is_terminal::IsTerminal;
-use pkgcraft::atom::Version;
+use pkgcraft::dep::Version;
 
 use crate::Run;
 

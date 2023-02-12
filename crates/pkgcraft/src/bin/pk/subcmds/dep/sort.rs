@@ -5,7 +5,7 @@ use std::str::FromStr;
 use anyhow::bail;
 use clap::Args;
 use is_terminal::IsTerminal;
-use pkgcraft::atom::Atom;
+use pkgcraft::dep::PkgDep;
 
 use crate::Run;
 
@@ -16,7 +16,7 @@ pub struct Sort {
 
 impl Run for Sort {
     fn run(self) -> anyhow::Result<ExitCode> {
-        let mut atoms = Vec::<Atom>::new();
+        let mut deps = Vec::<PkgDep>::new();
 
         if self.vals.is_empty() || self.vals[0] == "-" {
             if stdin().is_terminal() {
@@ -25,18 +25,18 @@ impl Run for Sort {
 
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
-                    atoms.push(Atom::from_str(s)?);
+                    deps.push(PkgDep::from_str(s)?);
                 }
             }
         } else {
             for s in &self.vals {
-                atoms.push(Atom::from_str(s)?);
+                deps.push(PkgDep::from_str(s)?);
             }
         }
 
-        atoms.sort();
-        for a in atoms {
-            println!("{a}");
+        deps.sort();
+        for d in deps {
+            println!("{d}");
         }
         Ok(ExitCode::SUCCESS)
     }

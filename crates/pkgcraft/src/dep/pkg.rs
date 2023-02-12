@@ -7,15 +7,13 @@ use std::str::FromStr;
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
-use self::version::ParsedVersion;
-pub use self::version::{Operator, Revision, Version};
 use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
 use crate::macros::bool_not_equal;
 use crate::set::OrderedSet;
 use crate::Error;
 
-pub mod parse;
-pub(crate) mod version;
+use super::parse;
+use super::version::{Operator, ParsedVersion, Revision, Version};
 
 #[repr(C)]
 #[derive(
@@ -43,9 +41,9 @@ pub enum SlotOperator {
     Star,
 }
 
-/// Parsed package atom from borrowed input string
+/// Parsed package dep from borrowed input string
 #[derive(Debug, Default)]
-pub(crate) struct ParsedAtom<'a> {
+pub(crate) struct ParsedPkgDep<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
     pub(crate) blocker: Option<Blocker>,
@@ -58,14 +56,14 @@ pub(crate) struct ParsedAtom<'a> {
     pub(crate) repo: Option<&'a str>,
 }
 
-impl ParsedAtom<'_> {
-    pub(crate) fn into_owned(self) -> crate::Result<Atom> {
+impl ParsedPkgDep<'_> {
+    pub(crate) fn into_owned(self) -> crate::Result<PkgDep> {
         let version = match (self.version, self.version_str) {
             (Some(v), Some(vs)) => Some(v.into_owned(vs)?),
             _ => None,
         };
 
-        Ok(Atom {
+        Ok(PkgDep {
             category: self.category.to_string(),
             package: self.package.to_string(),
             blocker: self.blocker,
@@ -85,9 +83,9 @@ impl ParsedAtom<'_> {
     }
 }
 
-/// Package atom
+/// Package dependency
 #[derive(Debug, Clone)]
-pub struct Atom {
+pub struct PkgDep {
     category: String,
     package: String,
     blocker: Option<Blocker>,
@@ -99,22 +97,22 @@ pub struct Atom {
     repo: Option<String>,
 }
 
-impl PartialEq for Atom {
+impl PartialEq for PkgDep {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl Eq for Atom {}
+impl Eq for PkgDep {}
 
-impl Hash for Atom {
+impl Hash for PkgDep {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.key().hash(state);
     }
 }
 
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
-type AtomKey<'a> = (
+type PkgDepKey<'a> = (
     &'a str,                        // category
     &'a str,                        // package
     Option<&'a Version>,            // version
@@ -126,30 +124,30 @@ type AtomKey<'a> = (
     Option<&'a str>,                // repo
 );
 
-impl Atom {
-    /// Verify a string represents a valid atom.
+impl PkgDep {
+    /// Verify a string represents a valid package dependency.
     pub fn valid<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<()> {
         parse::dep_str(s, eapi.into_eapi()?)?;
         Ok(())
     }
 
-    /// Verify a string represents a valid atom.
+    /// Verify a string represents a valid CPV.
     pub fn valid_cpv(s: &str) -> crate::Result<()> {
         parse::cpv_str(s)?;
         Ok(())
     }
 
-    /// Create a new Atom from a given string.
+    /// Create a new PkgDep from a given string.
     pub fn new<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<Self> {
-        parse::dep(s, eapi.into_eapi()?)
+        parse::pkgdep(s, eapi.into_eapi()?)
     }
 
-    /// Create a new Atom from a given CPV string (e.g. cat/pkg-1).
+    /// Create a new PkgDep from a given CPV string (e.g. cat/pkg-1).
     pub fn new_cpv(s: &str) -> crate::Result<Self> {
         parse::cpv(s)
     }
 
-    /// Determine if two atoms intersect ignoring blockers.
+    /// Determine if two package dependencies intersect ignoring blockers.
     pub fn intersects(&self, other: &Self) -> bool {
         bool_not_equal!(&self.category(), &other.category());
         bool_not_equal!(&self.package(), &other.package());
@@ -181,42 +179,43 @@ impl Atom {
         }
     }
 
-    /// Return an atom's category.
+    /// Return a package dependency's category.
     pub fn category(&self) -> &str {
         &self.category
     }
 
-    /// Return an atom's package.
+    /// Return a package dependency's package.
     pub fn package(&self) -> &str {
         &self.package
     }
 
-    /// Return an atom's blocker.
+    /// Return a package dependency's blocker.
     pub fn blocker(&self) -> Option<Blocker> {
         self.blocker
     }
 
-    /// Return an atom's USE flag dependencies.
+    /// Return a package dependency's USE flag dependencies.
     pub fn use_deps(&self) -> Option<&OrderedSet<String>> {
         self.use_deps.as_ref()
     }
 
-    /// Return an atom's version.
+    /// Return a package dependency's version.
     pub fn version(&self) -> Option<&Version> {
         self.version.as_ref()
     }
 
-    /// Return an atom's revision.
+    /// Return a package dependency's revision.
     pub fn revision(&self) -> Option<&Revision> {
         self.version.as_ref().and_then(|v| v.revision())
     }
 
-    /// Return an atom's version operator.
+    /// Return a package dependency's version operator.
     pub fn op(&self) -> Option<Operator> {
         self.version.as_ref().and_then(|v| v.op())
     }
 
-    /// Return an atom's P, e.g. the atom "=cat/pkg-1-r2" has a P of "pkg-1".
+    /// Return the package name and version.
+    /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg-1".
     pub fn p(&self) -> String {
         match &self.version {
             Some(ver) => format!("{}-{}", self.package(), ver.base()),
@@ -224,7 +223,8 @@ impl Atom {
         }
     }
 
-    /// Return an atom's PF, e.g. the atom "=cat/pkg-1-r2" has a PF of "pkg-1-r2".
+    /// Return the package name, version, and revision.
+    /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg-1-r2".
     pub fn pf(&self) -> String {
         match &self.version {
             Some(_) => format!("{}-{}", self.package(), self.pvr()),
@@ -232,7 +232,8 @@ impl Atom {
         }
     }
 
-    /// Return an atom's PR, e.g. the atom "=cat/pkg-1-r2" has a PR of "r2".
+    /// Return the package dependency's revision.
+    /// For example, the package dependency "=cat/pkg-1-r2" returns "r2".
     pub fn pr(&self) -> String {
         match &self.version {
             Some(ver) => format!("r{}", ver.revision().map(|r| r.as_str()).unwrap_or("0")),
@@ -240,7 +241,8 @@ impl Atom {
         }
     }
 
-    /// Return an atom's PV, e.g. the atom "=cat/pkg-1-r2" has a PV of "1".
+    /// Return the package dependency's version.
+    /// For example, the package dependency "=cat/pkg-1-r2" returns "1".
     pub fn pv(&self) -> String {
         match &self.version {
             Some(ver) => ver.base().to_string(),
@@ -248,7 +250,8 @@ impl Atom {
         }
     }
 
-    /// Return an atom's PVR, e.g. the atom "=cat/pkg-1-r2" has a PVR of "1-r2".
+    /// Return the package dependency's version and revision.
+    /// For example, the package dependency "=cat/pkg-1-r2" returns "1-r2".
     pub fn pvr(&self) -> String {
         match &self.version {
             Some(ver) => ver.to_string(),
@@ -256,12 +259,14 @@ impl Atom {
         }
     }
 
-    /// Return an atom's CPN, e.g. the atom "=cat/pkg-1-r2" has a CPN of "cat/pkg".
+    /// Return the package dependency's category and package.
+    /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg".
     pub fn cpn(&self) -> String {
         format!("{}/{}", self.category, self.package)
     }
 
-    /// Return an atom's CPV, e.g. the atom "=cat/pkg-1-r2" has a CPV of "cat/pkg-1-r2".
+    /// Return the package dependency's category, package, version, and revision.
+    /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
     pub fn cpv(&self) -> String {
         match &self.version {
             Some(ver) => format!("{}/{}-{ver}", self.category, self.package),
@@ -269,28 +274,28 @@ impl Atom {
         }
     }
 
-    /// Return an atom's slot.
+    /// Return a package dependency's slot.
     pub fn slot(&self) -> Option<&str> {
         self.slot.as_deref()
     }
 
-    /// Return an atom's subslot.
+    /// Return a package dependency's subslot.
     pub fn subslot(&self) -> Option<&str> {
         self.subslot.as_deref()
     }
 
-    /// Return an atom's slot operator.
+    /// Return a package dependency's slot operator.
     pub fn slot_op(&self) -> Option<SlotOperator> {
         self.slot_op
     }
 
-    /// Return an atom's repository.
+    /// Return a package dependency's repository.
     pub fn repo(&self) -> Option<&str> {
         self.repo.as_deref()
     }
 
     /// Return a key value used to implement various traits, e.g. Eq, Hash, etc.
-    fn key(&self) -> AtomKey {
+    fn key(&self) -> PkgDepKey {
         (
             self.category(),
             self.package(),
@@ -305,7 +310,7 @@ impl Atom {
     }
 }
 
-impl fmt::Display for Atom {
+impl fmt::Display for PkgDep {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // append blocker
         if let Some(blocker) = self.blocker {
@@ -351,23 +356,23 @@ impl fmt::Display for Atom {
     }
 }
 
-impl Ord for Atom {
+impl Ord for PkgDep {
     fn cmp(&self, other: &Self) -> Ordering {
         self.key().cmp(&other.key())
     }
 }
 
-impl PartialOrd for Atom {
+impl PartialOrd for PkgDep {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl FromStr for Atom {
+impl FromStr for PkgDep {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Atom::new(s, &*EAPI_PKGCRAFT)
+        PkgDep::new(s, &*EAPI_PKGCRAFT)
     }
 }
 
@@ -375,14 +380,14 @@ impl FromStr for Atom {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
-    use crate::test::{AtomData, VersionData};
+    use crate::test::{PkgDepToml, VersionToml};
     use crate::utils::hash;
 
     use super::*;
 
     #[test]
     fn test_to_string() {
-        let mut atom: Atom;
+        let mut dep: PkgDep;
         for s in [
             "cat/pkg",
             "<cat/pkg-4",
@@ -398,21 +403,21 @@ mod tests {
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
-            atom = Atom::from_str(s).unwrap();
-            assert_eq!(atom.to_string(), s);
+            dep = PkgDep::from_str(s).unwrap();
+            assert_eq!(dep.to_string(), s);
         }
 
-        // Atoms with certain use flag patterns aren't returned 1 to 1 since use flags are sorted
-        // into an ordered set for equivalency purposes.
+        // Package dependencies with certain use flag patterns aren't returned 1 to 1 since use
+        // flags are sorted into an ordered set for equivalency purposes.
         for (s, expected) in [("cat/pkg[u,u]", "cat/pkg[u]"), ("cat/pkg[b,a]", "cat/pkg[a,b]")] {
-            atom = Atom::from_str(s).unwrap();
-            assert_eq!(atom.to_string(), expected);
+            dep = PkgDep::from_str(s).unwrap();
+            assert_eq!(dep.to_string(), expected);
         }
     }
 
     #[test]
-    fn test_atom_cpn() {
-        let mut atom: Atom;
+    fn test_cpn() {
+        let mut dep: PkgDep;
         for (s, key) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg"),
@@ -423,14 +428,14 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
             (">cat/pkg-4-r1:0=", "cat/pkg"),
         ] {
-            atom = Atom::from_str(s).unwrap();
-            assert_eq!(atom.cpn(), key);
+            dep = PkgDep::from_str(s).unwrap();
+            assert_eq!(dep.cpn(), key);
         }
     }
 
     #[test]
-    fn test_atom_version() {
-        let mut atom: Atom;
+    fn test_version() {
+        let mut dep: PkgDep;
         for (s, version) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", Some("<4")),
@@ -441,15 +446,15 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(">=2-r3")),
             (">cat/pkg-4-r1:0=", Some(">4-r1")),
         ] {
-            atom = Atom::from_str(s).unwrap();
+            dep = PkgDep::from_str(s).unwrap();
             let version = version.map(|s| parse::version_with_op(s).unwrap());
-            assert_eq!(atom.version(), version.as_ref());
+            assert_eq!(dep.version(), version.as_ref());
         }
     }
 
     #[test]
-    fn test_atom_revision() {
-        let mut atom: Atom;
+    fn test_revision() {
+        let mut dep: PkgDep;
         for (s, revision) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", None),
@@ -458,14 +463,14 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some("3")),
             (">cat/pkg-4-r1:0=", Some("1")),
         ] {
-            atom = Atom::from_str(s).unwrap();
+            dep = PkgDep::from_str(s).unwrap();
             let revision = revision.map(|s| Revision::from_str(s).unwrap());
-            assert_eq!(atom.revision(), revision.as_ref(), "{s} failed");
+            assert_eq!(dep.revision(), revision.as_ref(), "{s} failed");
         }
     }
 
     #[test]
-    fn test_atom_op() {
+    fn test_op() {
         for (s, op) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", Some(Operator::Less)),
@@ -476,14 +481,14 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(Operator::GreaterOrEqual)),
             (">cat/pkg-4-r1:0=", Some(Operator::Greater)),
         ] {
-            let atom = Atom::from_str(s).unwrap();
-            assert_eq!(atom.op(), op);
+            let dep = PkgDep::from_str(s).unwrap();
+            assert_eq!(dep.op(), op);
         }
     }
 
     #[test]
-    fn test_atom_cpv() {
-        let mut atom: Atom;
+    fn test_cpv() {
+        let mut dep: PkgDep;
         for (s, cpv) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg-4"),
@@ -494,8 +499,8 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
             (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
         ] {
-            atom = Atom::from_str(s).unwrap();
-            assert_eq!(atom.cpv(), cpv);
+            dep = PkgDep::from_str(s).unwrap();
+            assert_eq!(dep.cpv(), cpv);
         }
     }
 
@@ -506,10 +511,10 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        let data = AtomData::load().unwrap();
+        let data = PkgDepToml::load().unwrap();
         for (expr, (s1, op, s2)) in data.compares() {
-            let a1 = Atom::from_str(s1).unwrap();
-            let a2 = Atom::from_str(s2).unwrap();
+            let a1 = PkgDep::from_str(s1).unwrap();
+            let a2 = PkgDep::from_str(s2).unwrap();
             if op == "!=" {
                 assert_ne!(a1, a2, "failed comparing {expr}");
                 assert_ne!(a2, a1, "failed comparing {expr}");
@@ -529,8 +534,9 @@ mod tests {
 
     #[test]
     fn test_intersects() {
-        // convert string to CPV falling back to regular atom
-        let parse = |s: &str| -> Atom { Atom::new_cpv(s).or_else(|_| Atom::from_str(s)).unwrap() };
+        // convert string to CPV falling back to regular PkgDep
+        let parse =
+            |s: &str| -> PkgDep { PkgDep::new_cpv(s).or_else(|_| PkgDep::from_str(s)).unwrap() };
 
         // convert string to non-op version falling back to op-ed version
         let ver_parse = |s: &str| -> Version {
@@ -539,9 +545,9 @@ mod tests {
                 .unwrap()
         };
 
-        // inject version intersects data from version.toml into Atom objects
-        let data = VersionData::load().unwrap();
-        let a = Atom::from_str("a/b").unwrap();
+        // inject version intersects data from version.toml into PkgDep objects
+        let data = VersionToml::load().unwrap();
+        let a = PkgDep::from_str("a/b").unwrap();
         for d in data.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
@@ -563,7 +569,7 @@ mod tests {
             }
         }
 
-        let data = AtomData::load().unwrap();
+        let data = PkgDepToml::load().unwrap();
         for d in data.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
@@ -586,18 +592,18 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let data = AtomData::load().unwrap();
+        let data = PkgDepToml::load().unwrap();
         for d in data.sorting {
             let mut reversed: Vec<_> = d
                 .sorted
                 .iter()
-                .map(|s| Atom::from_str(s).unwrap())
+                .map(|s| PkgDep::from_str(s).unwrap())
                 .rev()
                 .collect();
             reversed.sort();
             let mut sorted: Vec<_> = reversed.iter().map(|x| x.to_string()).collect();
             if d.equal {
-                // equal atoms aren't sorted so reversing should restore the original order
+                // equal deps aren't sorted so reversing should restore the original order
                 sorted = sorted.into_iter().rev().collect();
             }
             assert_eq!(&sorted, &d.sorted);
@@ -606,17 +612,17 @@ mod tests {
 
     #[test]
     fn test_hashing() {
-        let data = VersionData::load().unwrap();
+        let data = VersionToml::load().unwrap();
         for d in data.hashing {
             let set: HashSet<_> = d
                 .versions
                 .iter()
-                .map(|s| Atom::from_str(&format!("=cat/pkg-{s}")).unwrap())
+                .map(|s| PkgDep::from_str(&format!("=cat/pkg-{s}")).unwrap())
                 .collect();
             if d.equal {
-                assert_eq!(set.len(), 1, "failed hashing atoms: {set:?}");
+                assert_eq!(set.len(), 1, "failed hashing deps: {set:?}");
             } else {
-                assert_eq!(set.len(), d.versions.len(), "failed hashing atoms: {set:?}");
+                assert_eq!(set.len(), d.versions.len(), "failed hashing deps: {set:?}");
             }
         }
     }

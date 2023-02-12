@@ -5,7 +5,7 @@ use std::{mem, ptr, slice};
 use pkgcraft::pkg::Pkg;
 use pkgcraft::pkgsh::Key;
 
-use crate::depset::{DepSet, DepSetKind};
+use crate::dep::set::{DepSet, DepSetKind};
 use crate::error::Error;
 use crate::macros::*;
 use crate::utils::str_to_raw;
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
     }
 
     let deps = pkg.dependencies(&dep_keys);
-    Box::into_raw(Box::new(DepSet::new_atom(deps)))
+    Box::into_raw(Box::new(DepSet::new_dep(deps)))
 }
 
 /// Return a package's DEPEND.
@@ -153,7 +153,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet 
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.depend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
     }
 }
 
@@ -169,7 +169,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.bdepend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
     }
 }
 
@@ -185,7 +185,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.idepend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
     }
 }
 
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.pdepend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
     }
 }
 
@@ -217,7 +217,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet
     let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
     match pkg.rdepend() {
         None => ptr::null_mut(),
-        Some(d) => Box::into_raw(Box::new(DepSet::new_atom(d.clone()))),
+        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
     }
 }
 

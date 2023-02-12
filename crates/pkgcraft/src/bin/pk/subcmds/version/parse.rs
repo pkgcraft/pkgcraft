@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use anyhow::bail;
 use clap::Args;
 use is_terminal::IsTerminal;
-use pkgcraft::atom::Version;
+use pkgcraft::dep::Version;
 use strum::{Display, EnumIter, EnumString};
 
 use crate::format::{EnumVariable, FormatString};

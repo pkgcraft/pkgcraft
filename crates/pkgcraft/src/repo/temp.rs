@@ -4,7 +4,7 @@ use std::{env, fs};
 use camino::{Utf8Path, Utf8PathBuf};
 use tempfile::TempDir;
 
-use crate::atom::Atom;
+use crate::dep::PkgDep;
 use crate::{eapi, Error};
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
@@ -47,12 +47,12 @@ impl Repo {
     }
 
     /// Create an ebuild file in the repo.
-    pub fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<(Utf8PathBuf, Atom)>
+    pub fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<(Utf8PathBuf, PkgDep)>
     where
         I: IntoIterator<Item = (crate::pkgsh::metadata::Key, &'a str)>,
     {
         use crate::pkgsh::metadata::Key::*;
-        let cpv = Atom::new_cpv(cpv)?;
+        let cpv = PkgDep::new_cpv(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
@@ -84,8 +84,8 @@ impl Repo {
     }
 
     /// Create an ebuild file in the repo from raw data.
-    pub fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<(Utf8PathBuf, Atom)> {
-        let cpv = Atom::new_cpv(cpv)?;
+    pub fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<(Utf8PathBuf, PkgDep)> {
+        let cpv = PkgDep::new_cpv(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;

@@ -107,7 +107,7 @@ impl Repository for Repo {
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom::Atom;
+    use crate::dep::PkgDep;
     use crate::repo::Contains;
 
     use super::*;
@@ -116,15 +116,15 @@ mod tests {
     fn test_contains() {
         let repo = Repo::new("empty", 0);
 
-        // path containment
+        // path
         assert!(!repo.contains("cat/pkg"));
 
-        // cpv containment
-        let cpv = Atom::new_cpv("cat/pkg-0").unwrap();
+        // versioned dep
+        let cpv = PkgDep::new_cpv("cat/pkg-0").unwrap();
         assert!(!repo.contains(&cpv));
 
-        // atom containment
-        let a = Atom::from_str("cat/pkg").unwrap();
+        // unversioned dep
+        let a = PkgDep::from_str("cat/pkg").unwrap();
         assert!(!repo.contains(&a));
     }
 

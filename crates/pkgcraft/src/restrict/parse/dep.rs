@@ -1,7 +1,7 @@
-use crate::atom::version::{ParsedVersion, Suffix};
-use crate::atom::Blocker;
+use crate::dep::version::{ParsedVersion, Suffix};
+use crate::dep::Blocker;
 use crate::peg::peg_error;
-use crate::restrict::atom::Restrict as AtomRestrict;
+use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restrict as BaseRestrict;
 
@@ -58,39 +58,39 @@ peg::parser!(grammar restrict() for str {
         = "-r" s:$(quiet!{['0'..='9']+} / expected!("revision"))
         { s }
 
-    rule cp_restricts() -> Vec<AtomRestrict>
+    rule cp_restricts() -> Vec<DepRestrict>
         = cat:category() pkg:(quiet!{"/"} s:package() { s }) {?
             let mut restricts = vec![];
             match cat.matches('*').count() {
-                0 => restricts.push(AtomRestrict::category(cat)),
+                0 => restricts.push(DepRestrict::category(cat)),
                 _ => {
                     let r = str_to_regex_restrict(cat)?;
-                    restricts.push(AtomRestrict::Category(r))
+                    restricts.push(DepRestrict::Category(r))
                 }
             }
 
             match pkg.matches('*').count() {
-                0 => restricts.push(AtomRestrict::package(pkg)),
+                0 => restricts.push(DepRestrict::package(pkg)),
                 1 if pkg == "*" && restricts.is_empty() => (),
                 _ => {
                     let r = str_to_regex_restrict(pkg)?;
-                    restricts.push(AtomRestrict::Package(r))
+                    restricts.push(DepRestrict::Package(r))
                 }
             }
 
             Ok(restricts)
         } / s:package() {?
             match s.matches('*').count() {
-                0 => Ok(vec![AtomRestrict::package(s)]),
+                0 => Ok(vec![DepRestrict::package(s)]),
                 1 if s == "*" => Ok(vec![]),
                 _ => {
                     let r = str_to_regex_restrict(s)?;
-                    Ok(vec![AtomRestrict::Package(r)])
+                    Ok(vec![DepRestrict::Package(r)])
                 }
             }
         }
 
-    rule pkg_restricts() -> (Vec<AtomRestrict>, Option<ParsedVersion<'input>>)
+    rule pkg_restricts() -> (Vec<DepRestrict>, Option<ParsedVersion<'input>>)
         = restricts:cp_restricts() { (restricts, None) }
             / op:$(("<" "="?) / "=" / "~" / (">" "="?))
             restricts:cp_restricts() "-" ver:version() glob:$("*")?
@@ -102,29 +102,29 @@ peg::parser!(grammar restrict() for str {
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-' | '*']*})
         { s }
 
-    rule slot_restrict() -> AtomRestrict
+    rule slot_restrict() -> DepRestrict
         = s:slot_glob() {?
             match s.matches('*').count() {
-                0 => Ok(AtomRestrict::slot(Some(s))),
+                0 => Ok(DepRestrict::slot(Some(s))),
                 _ => {
                     let r = str_to_regex_restrict(s)?;
-                    Ok(AtomRestrict::Slot(Some(r)))
+                    Ok(DepRestrict::Slot(Some(r)))
                 }
             }
         }
 
-    rule subslot_restrict() -> AtomRestrict
+    rule subslot_restrict() -> DepRestrict
         = "/" s:slot_glob() {?
             match s.matches('*').count() {
-                0 => Ok(AtomRestrict::subslot(Some(s))),
+                0 => Ok(DepRestrict::subslot(Some(s))),
                 _ => {
                     let r = str_to_regex_restrict(s)?;
-                    Ok(AtomRestrict::Subslot(Some(r)))
+                    Ok(DepRestrict::Subslot(Some(r)))
                 }
             }
         }
 
-    rule slot_restricts() -> Vec<AtomRestrict>
+    rule slot_restricts() -> Vec<DepRestrict>
         = ":" slot_r:slot_restrict() subslot_r:subslot_restrict()? {
             let mut restricts = vec![slot_r];
             if let Some(r) = subslot_r {
@@ -157,31 +157,31 @@ peg::parser!(grammar restrict() for str {
     rule use_dep_default() -> &'input str
         = s:$("(+)" / "(-)") { s }
 
-    rule use_restricts() -> AtomRestrict
+    rule use_restricts() -> DepRestrict
         = "[" use_deps:use_dep() ++ "," "]"
-        { AtomRestrict::use_deps(Some(use_deps)) }
+        { DepRestrict::use_deps(Some(use_deps)) }
 
-    rule repo_restrict() -> AtomRestrict
+    rule repo_restrict() -> DepRestrict
         = "::" s:repo_glob() {?
             match s.matches('*').count() {
-                0 => Ok(AtomRestrict::repo(Some(s))),
+                0 => Ok(DepRestrict::repo(Some(s))),
                 _ => {
                     let r = str_to_regex_restrict(s)?;
-                    Ok(AtomRestrict::Repo(Some(r)))
+                    Ok(DepRestrict::Repo(Some(r)))
                 }
             }
         }
 
-    rule blocker_restrict() -> AtomRestrict
+    rule blocker_restrict() -> DepRestrict
         = blocker:("!"*<1,2>) {?
             match blocker.len() {
-                1 => Ok(AtomRestrict::Blocker(Some(Blocker::Weak))),
-                2 => Ok(AtomRestrict::Blocker(Some(Blocker::Strong))),
+                1 => Ok(DepRestrict::Blocker(Some(Blocker::Weak))),
+                2 => Ok(DepRestrict::Blocker(Some(Blocker::Strong))),
                 _ => Err("invalid blocker"),
             }
         }
 
-    pub(super) rule dep() -> (Vec<AtomRestrict>, Option<ParsedVersion<'input>>)
+    pub(super) rule dep() -> (Vec<DepRestrict>, Option<ParsedVersion<'input>>)
         = blocker_r:blocker_restrict()? pkg_r:pkg_restricts()
             slot_r:slot_restricts()? use_r:use_restricts()? repo_r:repo_restrict()?
         {
@@ -207,14 +207,14 @@ peg::parser!(grammar restrict() for str {
         }
 });
 
-/// Convert a globbed dep string into a Vector of atom restrictions.
-pub(crate) fn restricts(s: &str) -> crate::Result<Vec<AtomRestrict>> {
+/// Convert a globbed dep string into a Vector of dep restrictions.
+pub(crate) fn restricts(s: &str) -> crate::Result<Vec<DepRestrict>> {
     let (mut restricts, ver) =
         restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
     if let Some(v) = ver {
         let v = v.into_owned(s)?;
-        restricts.push(AtomRestrict::Version(Some(v)));
+        restricts.push(DepRestrict::Version(Some(v)));
     }
 
     Ok(restricts)
@@ -234,14 +234,14 @@ pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom::Atom;
+    use crate::dep::PkgDep;
     use crate::restrict::Restriction;
 
     use super::*;
 
     #[test]
     fn test_filtering() {
-        let atom_strs = vec![
+        let dep_strs = vec![
             "cat/pkg",
             "cat-abc/pkg2",
             // blocked
@@ -261,14 +261,13 @@ mod tests {
             "cat/pkg::repo",
             "cat/pkg::repo-ed",
         ];
-        let atoms: Vec<_> = atom_strs
+        let deps: Vec<_> = dep_strs
             .iter()
-            .map(|s| Atom::from_str(s).unwrap())
+            .map(|s| PkgDep::from_str(s).unwrap())
             .collect();
 
-        let filter = |r: BaseRestrict, atoms: &[Atom]| -> Vec<String> {
-            atoms
-                .iter()
+        let filter = |r: BaseRestrict, deps: &[PkgDep]| -> Vec<String> {
+            deps.iter()
                 .filter(|&a| r.matches(a))
                 .map(|a| a.to_string())
                 .collect()
@@ -276,10 +275,10 @@ mod tests {
 
         // category and package
         for (s, expected) in [
-            ("*", &atom_strs[..]),
-            ("*/*", &atom_strs[..]),
-            ("*cat*/*", &atom_strs[..]),
-            ("c*t*/*", &atom_strs[..]),
+            ("*", &dep_strs[..]),
+            ("*/*", &dep_strs[..]),
+            ("*cat*/*", &dep_strs[..]),
+            ("c*t*/*", &dep_strs[..]),
             ("c*ot/*", &[]),
             ("cat", &[]),
             ("cat-*/*", &["cat-abc/pkg2"]),
@@ -287,10 +286,10 @@ mod tests {
             ("*-abc/pkg*", &["cat-abc/pkg2"]),
             ("pkg2", &["cat-abc/pkg2"]),
             ("*2", &["cat-abc/pkg2"]),
-            ("pkg*", &atom_strs[..]),
+            ("pkg*", &dep_strs[..]),
         ] {
             let r = dep(s).unwrap();
-            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
+            assert_eq!(filter(r, &deps), expected, "{s:?} failed");
         }
 
         // package and version
@@ -301,13 +300,13 @@ mod tests {
             ("<pkg-3", vec!["=cat/pkg-0-r0:0/0.+", "=cat/pkg-1", ">=cat/pkg-2", "<cat/pkg-3"]),
         ] {
             let r = dep(s).unwrap();
-            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
+            assert_eq!(filter(r, &deps), expected, "{s:?} failed");
         }
 
         // blocker
         for (s, expected) in [("!*", vec!["!cat/pkg"]), ("!!*", vec!["!!cat/pkg"])] {
             let r = dep(s).unwrap();
-            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
+            assert_eq!(filter(r, &deps), expected, "{s:?} failed");
         }
 
         // slot
@@ -320,7 +319,7 @@ mod tests {
             ("<pkg-1:*", vec!["=cat/pkg-0-r0:0/0.+"]),
         ] {
             let r = dep(s).unwrap();
-            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
+            assert_eq!(filter(r, &deps), expected, "{s:?} failed");
         }
 
         // subslot
@@ -332,7 +331,7 @@ mod tests {
             ("*:*/*.+", vec!["=cat/pkg-0-r0:0/0.+"]),
         ] {
             let r = dep(s).unwrap();
-            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
+            assert_eq!(filter(r, &deps), expected, "{s:?} failed");
         }
 
         // repo
@@ -344,7 +343,7 @@ mod tests {
             ("*::repo", vec!["cat/pkg::repo"]),
         ] {
             let r = dep(s).unwrap();
-            assert_eq!(filter(r, &atoms), expected, "{s:?} failed");
+            assert_eq!(filter(r, &deps), expected, "{s:?} failed");
         }
     }
 }

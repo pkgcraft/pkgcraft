@@ -137,108 +137,108 @@ pub(crate) use restrict_ops_boolean;
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom::Atom;
-    use crate::restrict::atom::Restrict as AtomRestrict;
+    use crate::dep::PkgDep;
+    use crate::restrict::dep::Restrict as DepRestrict;
     use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
     #[test]
     fn test_and_restrict() {
-        let a = Atom::from_str("cat/pkg").unwrap();
-        let cat = AtomRestrict::category("cat");
-        let pkg = AtomRestrict::package("pkg");
+        let d = PkgDep::from_str("cat/pkg").unwrap();
+        let cat = DepRestrict::category("cat");
+        let pkg = DepRestrict::package("pkg");
         let r = BaseRestrict::and([cat, pkg]);
-        assert!(r.matches(&a));
+        assert!(r.matches(&d));
 
         // one matched and one unmatched restriction
-        let cat = AtomRestrict::category("cat");
-        let pkg = AtomRestrict::package("pkga");
+        let cat = DepRestrict::category("cat");
+        let pkg = DepRestrict::package("pkga");
         let r = BaseRestrict::and([cat, pkg]);
-        assert!(!(r.matches(&a)));
+        assert!(!(r.matches(&d)));
 
-        // matching against two atoms
-        let a1 = Atom::from_str("cat/pkg1").unwrap();
-        let a2 = Atom::from_str("cat/pkg2").unwrap();
-        let r = BaseRestrict::and([&a1, &a2]);
-        assert!(!(r.matches(&a1)));
-        assert!(!(r.matches(&a2)));
+        // matching against two deps
+        let d1 = PkgDep::from_str("cat/pkg1").unwrap();
+        let d2 = PkgDep::from_str("cat/pkg2").unwrap();
+        let r = BaseRestrict::and([&d1, &d2]);
+        assert!(!(r.matches(&d1)));
+        assert!(!(r.matches(&d2)));
     }
 
     #[test]
     fn test_or_restrict() {
-        let a = Atom::from_str("cat/pkg").unwrap();
-        let cat = AtomRestrict::category("cat");
-        let pkg = AtomRestrict::package("pkg");
+        let d = PkgDep::from_str("cat/pkg").unwrap();
+        let cat = DepRestrict::category("cat");
+        let pkg = DepRestrict::package("pkg");
         let r = BaseRestrict::or([cat, pkg]);
-        assert!(r.matches(&a));
+        assert!(r.matches(&d));
 
         // one matched and one unmatched restriction
-        let cat = AtomRestrict::category("cat");
-        let pkg = AtomRestrict::package("pkga");
+        let cat = DepRestrict::category("cat");
+        let pkg = DepRestrict::package("pkga");
         let r = BaseRestrict::or([cat, pkg]);
-        assert!(r.matches(&a));
+        assert!(r.matches(&d));
 
-        // matching against two atoms
-        let a1 = Atom::from_str("cat/pkg1").unwrap();
-        let a2 = Atom::from_str("cat/pkg2").unwrap();
-        let r = BaseRestrict::or([&a1, &a2]);
-        assert!(r.matches(&a1));
-        assert!(r.matches(&a2));
+        // matching against two deps
+        let d1 = PkgDep::from_str("cat/pkg1").unwrap();
+        let d2 = PkgDep::from_str("cat/pkg2").unwrap();
+        let r = BaseRestrict::or([&d1, &d2]);
+        assert!(r.matches(&d1));
+        assert!(r.matches(&d2));
     }
 
     #[test]
     fn test_xor_restrict() {
-        let a = Atom::from_str("cat/pkg").unwrap();
+        let d = PkgDep::from_str("cat/pkg").unwrap();
 
-        let cat = AtomRestrict::category("cat");
-        let pkg = AtomRestrict::package("pkg");
-        let nover = AtomRestrict::Version(None);
+        let cat = DepRestrict::category("cat");
+        let pkg = DepRestrict::package("pkg");
+        let nover = DepRestrict::Version(None);
 
         // two matches
         let r = BaseRestrict::xor([cat.clone(), pkg.clone()]);
-        assert!(!(r.matches(&a)));
+        assert!(!(r.matches(&d)));
 
         // three matches
         let r = BaseRestrict::xor([cat, pkg, nover.clone()]);
-        assert!(!(r.matches(&a)));
+        assert!(!(r.matches(&d)));
 
-        let cat = AtomRestrict::category("cat");
-        let pkg = AtomRestrict::package("pkga");
-        let ver = AtomRestrict::version("1").unwrap();
+        let cat = DepRestrict::category("cat");
+        let pkg = DepRestrict::package("pkga");
+        let ver = DepRestrict::version("1").unwrap();
 
         // one matched and one unmatched
         let r = BaseRestrict::xor([cat.clone(), pkg.clone()]);
-        assert!(r.matches(&a));
+        assert!(r.matches(&d));
 
         // one matched and two unmatched
         let r = BaseRestrict::xor([cat.clone(), pkg.clone(), ver]);
-        assert!(r.matches(&a));
+        assert!(r.matches(&d));
 
         // two matched and one unmatched
         let r = BaseRestrict::xor([cat, pkg, nover]);
-        assert!(r.matches(&a));
+        assert!(r.matches(&d));
 
-        let a1 = Atom::from_str("cat/pkg1").unwrap();
-        let a2 = Atom::from_str("cat/pkg2").unwrap();
-        let a3 = Atom::from_str("cat/pkg3").unwrap();
+        let d1 = PkgDep::from_str("cat/pkg1").unwrap();
+        let d2 = PkgDep::from_str("cat/pkg2").unwrap();
+        let d3 = PkgDep::from_str("cat/pkg3").unwrap();
 
         // two non-matches
-        let r = BaseRestrict::xor([&a1, &a2]);
-        assert!(!(r.matches(&a)));
+        let r = BaseRestrict::xor([&d1, &d2]);
+        assert!(!(r.matches(&d)));
 
         // three non-matches
-        let r = BaseRestrict::xor([&a1, &a2, &a3]);
-        assert!(!(r.matches(&a)));
+        let r = BaseRestrict::xor([&d1, &d2, &d3]);
+        assert!(!(r.matches(&d)));
     }
 
     #[test]
     fn test_not_restrict() {
-        let a = Atom::from_str("cat/pkg").unwrap();
-        let r: BaseRestrict = AtomRestrict::category("cat1").into();
+        let d = PkgDep::from_str("cat/pkg").unwrap();
+        let r: BaseRestrict = DepRestrict::category("cat1").into();
 
         // restrict doesn't match
-        assert!(!(r.matches(&a)));
+        assert!(!(r.matches(&d)));
 
         // inverse matches
-        assert!(!r.matches(&a));
+        assert!(!r.matches(&d));
     }
 }

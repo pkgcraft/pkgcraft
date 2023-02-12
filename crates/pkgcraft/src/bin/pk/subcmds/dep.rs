@@ -12,12 +12,12 @@ mod sort;
 
 #[derive(Debug, Args)]
 #[command(args_conflicts_with_subcommands = true)]
-pub struct Atom {
+pub struct Dep {
     #[command(subcommand)]
     command: Command,
 }
 
-impl Run for Atom {
+impl Run for Dep {
     fn run(self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
@@ -25,15 +25,15 @@ impl Run for Atom {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Compare two atoms
+    /// Compare two deps
     Compare(compare::Compare),
-    /// Determine if two atoms intersect
+    /// Determine if two deps intersect
     Intersect(intersect::Intersect),
-    /// Parse an atom and optionally print formatted output
+    /// Parse a dep and optionally print formatted output
     Parse(parse::Parse),
-    /// Collapse input into a set of atoms
+    /// Collapse input into a set of deps
     Set(set::Set),
-    /// Sort atoms
+    /// Sort deps
     Sort(sort::Sort),
 }
 

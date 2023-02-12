@@ -6,7 +6,7 @@ use anyhow::bail;
 use clap::Args;
 use indexmap::IndexSet;
 use is_terminal::IsTerminal;
-use pkgcraft::atom::Atom;
+use pkgcraft::dep::PkgDep;
 
 use crate::Run;
 
@@ -17,7 +17,7 @@ pub struct Set {
 
 impl Run for Set {
     fn run(self) -> anyhow::Result<ExitCode> {
-        let mut atoms = IndexSet::<Atom>::new();
+        let mut deps = IndexSet::<PkgDep>::new();
 
         if self.vals.is_empty() || self.vals[0] == "-" {
             if stdin().is_terminal() {
@@ -26,17 +26,17 @@ impl Run for Set {
 
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
-                    atoms.insert(Atom::from_str(s)?);
+                    deps.insert(PkgDep::from_str(s)?);
                 }
             }
         } else {
             for s in &self.vals {
-                atoms.insert(Atom::from_str(s)?);
+                deps.insert(PkgDep::from_str(s)?);
             }
         }
 
-        for a in atoms {
-            println!("{a}");
+        for d in deps {
+            println!("{d}");
         }
         Ok(ExitCode::SUCCESS)
     }

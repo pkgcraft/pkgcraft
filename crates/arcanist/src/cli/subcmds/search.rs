@@ -13,7 +13,7 @@ pub fn cmd() -> Command {
             .required(true)
             .action(ArgAction::Append)
             .value_name("TARGET")
-            .help("extended atom matching"))
+            .help("extended package matching"))
 }
 
 pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {

@@ -2,20 +2,20 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use clap::Args;
-use pkgcraft::atom::Atom;
+use pkgcraft::dep::PkgDep;
 
 use crate::Run;
 
 #[derive(Debug, Args)]
 pub struct Intersect {
-    atom1: String,
-    atom2: String,
+    dep1: String,
+    dep2: String,
 }
 
 impl Run for Intersect {
     fn run(self) -> anyhow::Result<ExitCode> {
-        let a1 = Atom::from_str(&self.atom1)?;
-        let a2 = Atom::from_str(&self.atom2)?;
-        Ok(ExitCode::from(!a1.intersects(&a2) as u8))
+        let d1 = PkgDep::from_str(&self.dep1)?;
+        let d2 = PkgDep::from_str(&self.dep2)?;
+        Ok(ExitCode::from(!d1.intersects(&d2) as u8))
     }
 }

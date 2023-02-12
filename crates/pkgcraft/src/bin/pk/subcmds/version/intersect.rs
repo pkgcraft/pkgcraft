@@ -2,7 +2,7 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use clap::Args;
-use pkgcraft::atom::Version;
+use pkgcraft::dep::Version;
 
 use crate::Run;
 

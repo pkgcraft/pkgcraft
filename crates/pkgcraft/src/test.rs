@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use serde::{de, Deserialize, Deserializer};
 use serde_with::{serde_as, DisplayFromStr};
 
-use crate::atom::{Blocker, Revision, SlotOperator, Version};
+use crate::dep::{Blocker, Revision, SlotOperator, Version};
 use crate::macros::build_from_paths;
 use crate::set::OrderedSet;
 use crate::Error;
@@ -26,8 +26,8 @@ fn initialize() {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-pub(crate) struct ValidAtom {
-    pub(crate) atom: String,
+pub(crate) struct ValidPkgDep {
+    pub(crate) dep: String,
     pub(crate) eapis: String,
     pub(crate) category: String,
     pub(crate) package: String,
@@ -77,17 +77,17 @@ pub(crate) struct Sorted {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct AtomData {
-    pub(crate) valid: Vec<ValidAtom>,
+pub(crate) struct PkgDepToml {
+    pub(crate) valid: Vec<ValidPkgDep>,
     pub(crate) invalid: Vec<String>,
     compares: Vec<String>,
     pub(crate) intersects: Vec<Intersects>,
     pub(crate) sorting: Vec<Sorted>,
 }
 
-impl AtomData {
+impl PkgDepToml {
     pub(crate) fn load() -> crate::Result<Self> {
-        let path = TOML_DATA_DIR.join("atom.toml");
+        let path = TOML_DATA_DIR.join("pkgdep.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
@@ -105,14 +105,14 @@ pub(crate) struct Hashing {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct VersionData {
+pub(crate) struct VersionToml {
     compares: Vec<String>,
     pub(crate) intersects: Vec<Intersects>,
     pub(crate) sorting: Vec<Sorted>,
     pub(crate) hashing: Vec<Hashing>,
 }
 
-impl VersionData {
+impl VersionToml {
     pub(crate) fn load() -> crate::Result<Self> {
         let path = TOML_DATA_DIR.join("version.toml");
         let data = fs::read_to_string(&path)

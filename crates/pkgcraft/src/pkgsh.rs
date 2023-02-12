@@ -14,7 +14,7 @@ use scallop::{functions, source, Error};
 use strum::{AsRefStr, Display};
 use sys_info::os_release;
 
-use crate::atom::Atom;
+use crate::dep::PkgDep;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::{build_from_paths, extend_left};
 use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
@@ -157,7 +157,7 @@ use assert_stderr;
 #[derive(Default)]
 struct BuildData<'a> {
     eapi: &'static Eapi,
-    atom: Option<Atom>,
+    cpv: Option<PkgDep>,
     repo: Option<&'a ebuild::Repo>,
 
     captured_io: bool,
@@ -220,7 +220,7 @@ impl BuildData<'_> {
         }
     }
 
-    fn update(atom: &Atom, repo: &ebuild::Repo) {
+    fn update(cpv: &PkgDep, repo: &ebuild::Repo) {
         // TODO: remove this hack once BuildData is reworked
         // Drop the lifetime bound on the repo reference in order for it to be stored in BuildData
         // which currently requires `'static` due to its usage in a global, thread local, static
@@ -229,7 +229,7 @@ impl BuildData<'_> {
 
         BUILD_DATA.with(|d| {
             d.replace(BuildData {
-                atom: Some(atom.clone()),
+                cpv: Some(cpv.clone()),
                 repo: Some(r),
                 insopts: vec!["-m0644".to_string()],
                 libopts: vec!["-m0644".to_string()],
@@ -411,7 +411,7 @@ fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
 #[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[allow(non_camel_case_types)]
 pub enum BuildVariable {
-    // atom specific -- keep synced with related AtomVariable variants
+    // package specific
     CATEGORY,
     P,
     PF,
@@ -454,20 +454,20 @@ pub enum BuildVariable {
 impl BuildVariable {
     fn get(&self, build: &BuildData) -> String {
         use BuildVariable::*;
-        let a = build.atom.as_ref().expect("missing required atom field");
+        let cpv = build.cpv.as_ref().expect("missing required cpv field");
         match self {
-            P => a.p(),
-            PF => a.pf(),
-            PN => a.package().to_string(),
-            CATEGORY => a.category().to_string(),
-            PV => a.pv(),
-            PR => a.pr(),
-            PVR => a.pvr(),
+            P => cpv.p(),
+            PF => cpv.pf(),
+            PN => cpv.package().to_string(),
+            CATEGORY => cpv.category().to_string(),
+            PV => cpv.pv(),
+            PR => cpv.pr(),
+            PVR => cpv.pvr(),
             FILESDIR => {
                 let path = build_from_paths!(
                     build.repo.unwrap().path(),
-                    a.category(),
-                    a.package(),
+                    cpv.category(),
+                    cpv.package(),
                     "files"
                 );
                 path.into_string()

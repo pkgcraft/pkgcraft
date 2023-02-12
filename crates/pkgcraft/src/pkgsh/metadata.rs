@@ -8,8 +8,7 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
-use crate::atom::Atom;
-use crate::depset::{self, DepSet, Uri};
+use crate::dep::{self, DepSet, PkgDep, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
@@ -74,7 +73,7 @@ impl Key {
 pub(crate) struct Metadata {
     description: String,
     slot: String,
-    deps: HashMap<Key, DepSet<Atom>>,
+    deps: HashMap<Key, DepSet<PkgDep>>,
     license: Option<DepSet<String>>,
     properties: Option<DepSet<String>>,
     required_use: Option<DepSet<String>>,
@@ -100,17 +99,17 @@ impl Metadata {
             Description => self.description = val.to_string(),
             Slot => self.slot = val.to_string(),
             Depend | Bdepend | Idepend | Rdepend | Pdepend => {
-                if let Some(val) = depset::pkg_dep(val, eapi)
+                if let Some(val) = dep::parse::dependencies(val, eapi)
                     .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
                 {
                     self.deps.insert(key, val);
                 }
             }
-            License => self.license = depset::license(val)?,
-            Properties => self.properties = depset::properties(val)?,
-            RequiredUse => self.required_use = depset::required_use(val, eapi)?,
-            Restrict => self.restrict = depset::restrict(val)?,
-            SrcUri => self.src_uri = depset::src_uri(val, eapi)?,
+            License => self.license = dep::parse::license(val)?,
+            Properties => self.properties = dep::parse::properties(val)?,
+            RequiredUse => self.required_use = dep::parse::required_use(val, eapi)?,
+            Restrict => self.restrict = dep::parse::restrict(val)?,
+            SrcUri => self.src_uri = dep::parse::src_uri(val, eapi)?,
             Homepage => self.homepage = split(val).collect(),
             DefinedPhases => self.defined_phases = split(val).sorted().collect(),
             Keywords => self.keywords = split(val).collect(),
@@ -143,17 +142,17 @@ impl Metadata {
                 Description => meta.description = val.to_string(),
                 Slot => meta.slot = val.to_string(),
                 Depend | Bdepend | Idepend | Rdepend | Pdepend => {
-                    if let Some(val) = depset::pkg_dep(val, eapi)
+                    if let Some(val) = dep::parse::dependencies(val, eapi)
                         .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
                     {
                         meta.deps.insert(key, val);
                     }
                 }
-                License => meta.license = depset::license(val)?,
-                Properties => meta.properties = depset::properties(val)?,
-                RequiredUse => meta.required_use = depset::required_use(val, eapi)?,
-                Restrict => meta.restrict = depset::restrict(val)?,
-                SrcUri => meta.src_uri = depset::src_uri(val, eapi)?,
+                License => meta.license = dep::parse::license(val)?,
+                Properties => meta.properties = dep::parse::properties(val)?,
+                RequiredUse => meta.required_use = dep::parse::required_use(val, eapi)?,
+                Restrict => meta.restrict = dep::parse::restrict(val)?,
+                SrcUri => meta.src_uri = dep::parse::src_uri(val, eapi)?,
                 Homepage => meta.homepage = split(val).collect(),
                 DefinedPhases => meta.defined_phases = split(val).collect(),
                 Keywords => meta.keywords = split(val).collect(),
@@ -174,9 +173,9 @@ impl Metadata {
     }
 
     /// Load metadata from cache.
-    pub(crate) fn load(atom: &Atom, eapi: &'static Eapi, repo: &EbuildRepo) -> Option<Self> {
+    pub(crate) fn load(dep: &PkgDep, eapi: &'static Eapi, repo: &EbuildRepo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
-        let path = build_from_paths!(repo.path(), "metadata", "md5-cache", atom.to_string());
+        let path = build_from_paths!(repo.path(), "metadata", "md5-cache", dep.to_string());
         let s = match fs::read_to_string(&path) {
             Ok(s) => s,
             Err(e) => {
@@ -198,12 +197,12 @@ impl Metadata {
 
     /// Source ebuild to determine metadata.
     pub(crate) fn source(
-        atom: &Atom,
+        dep: &PkgDep,
         path: &Utf8Path,
         eapi: &'static Eapi,
         repo: &EbuildRepo,
     ) -> crate::Result<Self> {
-        BuildData::update(atom, repo);
+        BuildData::update(dep, repo);
         // TODO: run sourcing via an external process pool returning the requested variables
         source_ebuild(path)?;
         let mut meta = Metadata::default();
@@ -259,7 +258,7 @@ impl Metadata {
         s.split_once('/').map(|x| x.1)
     }
 
-    pub(crate) fn deps(&self, key: Key) -> Option<&DepSet<Atom>> {
+    pub(crate) fn deps(&self, key: Key) -> Option<&DepSet<PkgDep>> {
         self.deps.get(&key)
     }
 

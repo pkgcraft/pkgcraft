@@ -1,8 +1,8 @@
-use crate::depset::Restrict as DepSetRestrict;
 use crate::pkg::{self, Package};
 use crate::repo::Repository;
-use crate::restrict::atom::Restrict as AtomRestrict;
 use crate::restrict::boolean::*;
+use crate::restrict::dep::Restrict as DepRestrict;
+use crate::restrict::depset::Restrict as DepSetRestrict;
 use crate::restrict::ordered::{make_ordered_restrictions, Restrict as OrderedRestrict};
 use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -18,11 +18,11 @@ pub enum Restrict {
     Slot(StrRestrict),
     Subslot(StrRestrict),
     RawSubslot(Option<StrRestrict>),
-    Depend(Option<DepSetRestrict<AtomRestrict>>),
-    Bdepend(Option<DepSetRestrict<AtomRestrict>>),
-    Idepend(Option<DepSetRestrict<AtomRestrict>>),
-    Pdepend(Option<DepSetRestrict<AtomRestrict>>),
-    Rdepend(Option<DepSetRestrict<AtomRestrict>>),
+    Depend(Option<DepSetRestrict<DepRestrict>>),
+    Bdepend(Option<DepSetRestrict<DepRestrict>>),
+    Idepend(Option<DepSetRestrict<DepRestrict>>),
+    Pdepend(Option<DepSetRestrict<DepRestrict>>),
+    Rdepend(Option<DepSetRestrict<DepRestrict>>),
     License(Option<DepSetRestrict<StrRestrict>>),
     Properties(Option<DepSetRestrict<StrRestrict>>),
     RequiredUse(Option<DepSetRestrict<StrRestrict>>),
@@ -48,15 +48,15 @@ impl From<Restrict> for BaseRestrict {
 impl<'a> Restriction<&'a Pkg<'a>> for BaseRestrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
         crate::restrict::restrict_match! {self, pkg,
-            Self::Atom(r) => r.matches(pkg),
+            Self::Dep(r) => r.matches(pkg),
             Self::Pkg(r) => r.matches(pkg),
         }
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for AtomRestrict {
+impl<'a> Restriction<&'a Pkg<'a>> for DepRestrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
-        use AtomRestrict::*;
+        use DepRestrict::*;
         match self {
             Slot(Some(r)) => r.matches(pkg.slot()),
             Subslot(Some(r)) => r.matches(pkg.subslot()),

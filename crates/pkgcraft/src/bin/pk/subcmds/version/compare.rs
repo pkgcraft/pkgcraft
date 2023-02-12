@@ -4,7 +4,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, bail};
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::atom::Version;
+use pkgcraft::dep::Version;
 
 use crate::Run;
 

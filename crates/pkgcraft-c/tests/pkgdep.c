@@ -21,44 +21,44 @@ char *join(char **strs, char delim, size_t length) {
 }
 
 int main (int argc, char **argv) {
-	char *atom, *expected, *concat_str;
+	char *dep, *expected, *concat_str;
 	char *value;
 	int slot_op;
 	char **use_deps;
 	size_t length;
-	Atom *a = NULL;
-	const AtomVersion *v;
+	PkgDep *a = NULL;
+	const Version *v;
 
 	if (argc == 2) {
-		atom = argv[1];
+		dep = argv[1];
 	} else if (argc < 2) {
-		fprintf(stderr, "missing required atom arg\n");
+		fprintf(stderr, "missing required dep arg\n");
 		exit(1);
 	}
 
-	a = pkgcraft_atom_new(atom, NULL);
+	a = pkgcraft_dep_new(dep, NULL);
 
-	value = pkgcraft_atom_cpn(a);
+	value = pkgcraft_dep_cpn(a);
 	assert(strcmp(value, "cat/pkg") == 0);
 	pkgcraft_str_free(value);
-	value = pkgcraft_atom_category(a);
+	value = pkgcraft_dep_category(a);
 	assert(strcmp(value, getenv("category")) == 0);
 	pkgcraft_str_free(value);
-	value = pkgcraft_atom_package(a);
+	value = pkgcraft_dep_package(a);
 	assert(strcmp(value, getenv("package")) == 0);
 	pkgcraft_str_free(value);
 
 	expected = getenv("version");
-	v = pkgcraft_atom_version(a);
+	v = pkgcraft_dep_version(a);
 	if (expected) {
-		value = pkgcraft_version_str((AtomVersion *)v);
+		value = pkgcraft_version_str((Version *)v);
 		assert(strcmp(value, expected) == 0);
 		pkgcraft_str_free(value);
 	} else {
 		assert(v == NULL);
 	}
 
-	value = pkgcraft_atom_revision(a);
+	value = pkgcraft_dep_revision(a);
 	expected = getenv("revision");
 	if (expected) {
 		assert(strcmp(value, expected) == 0);
@@ -67,7 +67,7 @@ int main (int argc, char **argv) {
 		assert(value == NULL);
 	}
 
-	value = pkgcraft_atom_slot(a);
+	value = pkgcraft_dep_slot(a);
 	expected = getenv("slot");
 	if (expected) {
 		assert(strcmp(value, expected) == 0);
@@ -76,7 +76,7 @@ int main (int argc, char **argv) {
 		assert(value == NULL);
 	}
 
-	value = pkgcraft_atom_subslot(a);
+	value = pkgcraft_dep_subslot(a);
 	expected = getenv("subslot");
 	if (expected) {
 		assert(strcmp(value, expected) == 0);
@@ -85,15 +85,15 @@ int main (int argc, char **argv) {
 		assert(value == NULL);
 	}
 
-	slot_op = pkgcraft_atom_slot_op(a);
+	slot_op = pkgcraft_dep_slot_op(a);
 	expected = getenv("slot_op");
 	if (expected) {
-		assert(slot_op == pkgcraft_atom_slot_op_from_str(expected));
+		assert(slot_op == pkgcraft_dep_slot_op_from_str(expected));
 	} else {
 		assert(slot_op == 0);
 	}
 
-	use_deps = pkgcraft_atom_use_deps(a, &length);
+	use_deps = pkgcraft_dep_use_deps(a, &length);
 	expected = getenv("use_deps");
 	if (expected) {
 		concat_str = join(use_deps, ',', length);
@@ -104,7 +104,7 @@ int main (int argc, char **argv) {
 		assert(use_deps == NULL);
 	}
 
-	value = pkgcraft_atom_repo(a);
+	value = pkgcraft_dep_repo(a);
 	expected = getenv("repo");
 	if (expected) {
 		assert(strcmp(value, expected) == 0);
@@ -113,7 +113,7 @@ int main (int argc, char **argv) {
 		assert(value == NULL);
 	}
 
-	pkgcraft_atom_free(a);
+	pkgcraft_dep_free(a);
 
 	return 0;
 }

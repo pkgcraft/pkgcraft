@@ -13,7 +13,7 @@ use regex::{escape, Regex, RegexBuilder};
 use strum::EnumString;
 
 use crate::archive::Archive;
-use crate::atom::Atom;
+use crate::dep::PkgDep;
 use crate::pkgsh::builtins::{
     BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
 };
@@ -36,17 +36,17 @@ pub enum Feature {
     // EAPI 1
     /// IUSE defaults
     IuseDefaults,
-    /// atom slot deps -- cat/pkg:0
+    /// slot deps -- cat/pkg:0
     SlotDeps,
 
     // EAPI 2
-    /// atom blockers -- !cat/pkg and !!cat/pkg
+    /// blockers -- !cat/pkg and !!cat/pkg
     Blockers,
     /// support language detection via filename for `doman`
     DomanLangDetect,
     /// SRC_URI -> operator for url filename renaming
     SrcUriRenames,
-    /// atom use deps -- cat/pkg\[use\]
+    /// use deps -- cat/pkg\[use\]
     UseDeps,
 
     // EAPI 4
@@ -54,7 +54,7 @@ pub enum Feature {
     DodocRecursive,
     /// support `doman` language override via -i18n option
     DomanLangOverride,
-    /// atom use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
+    /// use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
     UseDepDefaults,
     /// REQUIRED_USE support
     RequiredUse,
@@ -68,9 +68,9 @@ pub enum Feature {
     ParallelTests,
     /// REQUIRED_USE ?? operator
     RequiredUseOneOf,
-    /// atom slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
+    /// slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
     SlotOps,
-    /// atom subslots -- cat/pkg:0/4
+    /// subslots -- cat/pkg:0/4
     Subslots,
 
     // EAPI 6
@@ -94,7 +94,7 @@ pub enum Feature {
     UsevTwoArgs,
 
     // EAPI EXTENDED
-    /// atom repo deps -- cat/pkg::repo
+    /// repo deps -- cat/pkg::repo
     RepoIds,
 }
 
@@ -209,10 +209,10 @@ impl Eapi {
         self.features.get(&feature).is_some()
     }
 
-    /// Parse a package atom using EAPI specific support.
+    /// Parse a package depedency using EAPI specific support.
     #[inline]
-    pub fn atom<S: AsRef<str>>(&'static self, s: S) -> crate::Result<Atom> {
-        Atom::new(s.as_ref(), self)
+    pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<PkgDep> {
+        PkgDep::new(s.as_ref(), self)
     }
 
     pub(crate) fn phases(&self) -> &HashSet<Phase> {
@@ -695,22 +695,22 @@ mod tests {
     }
 
     #[test]
-    fn test_atom_parsing() {
-        let atom = EAPI0.atom("cat/pkg").unwrap();
-        assert_eq!(atom.category(), "cat");
-        assert_eq!(atom.package(), "pkg");
-        assert_eq!(atom.to_string(), "cat/pkg");
+    fn test_dep_parsing() {
+        let dep = EAPI0.dep("cat/pkg").unwrap();
+        assert_eq!(dep.category(), "cat");
+        assert_eq!(dep.package(), "pkg");
+        assert_eq!(dep.to_string(), "cat/pkg");
 
-        let atom = EAPI1.atom("cat/pkg:0").unwrap();
-        assert_eq!(atom.category(), "cat");
-        assert_eq!(atom.package(), "pkg");
-        assert_eq!(atom.slot().unwrap(), "0");
-        assert_eq!(atom.to_string(), "cat/pkg:0");
+        let dep = EAPI1.dep("cat/pkg:0").unwrap();
+        assert_eq!(dep.category(), "cat");
+        assert_eq!(dep.package(), "pkg");
+        assert_eq!(dep.slot().unwrap(), "0");
+        assert_eq!(dep.to_string(), "cat/pkg:0");
 
-        let r = EAPI0.atom("cat/pkg:0");
-        assert_err_re!(r, "invalid atom: cat/pkg:0");
-        let r = EAPI_LATEST.atom("cat/pkg::repo");
-        assert_err_re!(r, "invalid atom: cat/pkg::repo");
+        let r = EAPI0.dep("cat/pkg:0");
+        assert_err_re!(r, "invalid dep: cat/pkg:0");
+        let r = EAPI_LATEST.dep("cat/pkg::repo");
+        assert_err_re!(r, "invalid dep: cat/pkg::repo");
     }
 
     #[test]

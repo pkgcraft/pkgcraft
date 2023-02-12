@@ -3,7 +3,8 @@ use std::cmp::Ordering;
 use crate::peg::peg_error;
 use crate::pkg::ebuild::{MaintainerRestrict, Restrict as EbuildRestrict, UpstreamRestrict};
 
-use crate::restrict::atom::Restrict as AtomRestrict;
+use crate::restrict::dep::Restrict as DepRestrict;
+use crate::restrict::depset::Restrict as DepSetRestrict;
 use crate::restrict::ordered::Restrict as OrderedRestrict;
 use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -66,8 +67,8 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
     }
 }
 
-fn dep_restrict(attr: &str, r: AtomRestrict) -> EbuildRestrict {
-    use crate::depset::Restrict::*;
+fn dep_restrict(attr: &str, r: DepRestrict) -> EbuildRestrict {
+    use DepSetRestrict::*;
     use EbuildRestrict::*;
 
     match attr {
@@ -160,20 +161,20 @@ peg::parser!(grammar restrict() for str {
             Ok(cmps)
         }
 
-    rule atom_str_restrict() -> BaseRestrict
+    rule dep_str_restrict() -> BaseRestrict
         = attr:$((
                 "category"
                 / "package"
                 / "version"
             )) op:string_ops() s:quoted_string()
         {?
-            use AtomRestrict::*;
+            use DepRestrict::*;
             let r = str_restrict(op, s)?;
             match attr {
                 "category" => Ok(Category(r).into()),
                 "package" => Ok(Package(r).into()),
                 "version" => Ok(VersionStr(r).into()),
-                _ => panic!("unknown atom attribute: {attr}"),
+                _ => panic!("unknown dep attribute: {attr}"),
             }
         }
 
@@ -375,7 +376,7 @@ peg::parser!(grammar restrict() for str {
 
     rule expression() -> BaseRestrict
         = r:(attr_optional()
-           / atom_str_restrict()
+           / dep_str_restrict()
            / attr_str_restrict()
            / attr_dep_restrict()
            / attr_orderedset_str()

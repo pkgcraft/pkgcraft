@@ -8,8 +8,8 @@ use camino::{Utf8Path, Utf8PathBuf};
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 
-use crate::atom::Atom;
-use crate::depset::{DepSet, Uri};
+use crate::dep::PkgDep;
+use crate::dep::{DepSet, Uri};
 use crate::eapi::{self, Eapi};
 use crate::pkgsh::metadata::{Key, Metadata};
 use crate::repo::{ebuild::Repo, Repository};
@@ -30,7 +30,7 @@ static EAPI_LINE_RE: Lazy<Regex> =
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     path: Utf8PathBuf,
-    cpv: Atom,
+    cpv: PkgDep,
     eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata,
@@ -41,7 +41,7 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(path: Utf8PathBuf, cpv: Atom, repo: &'a Repo) -> crate::Result<Self> {
+    pub(crate) fn new(path: Utf8PathBuf, cpv: PkgDep, repo: &'a Repo) -> crate::Result<Self> {
         let err = |e: Error| -> Error {
             Error::InvalidPkg {
                 path: relpath(&path, repo.path()).expect("invalid relative pkg path"),
@@ -112,7 +112,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, mut keys: &[Key]) -> DepSet<Atom> {
+    pub fn dependencies(&self, mut keys: &[Key]) -> DepSet<PkgDep> {
         use Key::*;
 
         // default to all dependency types in lexical order if no keys are passed
@@ -136,27 +136,27 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's BDEPEND.
-    pub fn bdepend(&self) -> Option<&DepSet<Atom>> {
+    pub fn bdepend(&self) -> Option<&DepSet<PkgDep>> {
         self.meta.deps(Key::Bdepend)
     }
 
     /// Return a package's DEPEND.
-    pub fn depend(&self) -> Option<&DepSet<Atom>> {
+    pub fn depend(&self) -> Option<&DepSet<PkgDep>> {
         self.meta.deps(Key::Depend)
     }
 
     /// Return a package's IDEPEND.
-    pub fn idepend(&self) -> Option<&DepSet<Atom>> {
+    pub fn idepend(&self) -> Option<&DepSet<PkgDep>> {
         self.meta.deps(Key::Idepend)
     }
 
     /// Return a package's PDEPEND.
-    pub fn pdepend(&self) -> Option<&DepSet<Atom>> {
+    pub fn pdepend(&self) -> Option<&DepSet<PkgDep>> {
         self.meta.deps(Key::Pdepend)
     }
 
     /// Return a package's RDEPEND.
-    pub fn rdepend(&self) -> Option<&DepSet<Atom>> {
+    pub fn rdepend(&self) -> Option<&DepSet<PkgDep>> {
         self.meta.deps(Key::Rdepend)
     }
 
@@ -265,7 +265,7 @@ impl AsRef<Utf8Path> for Pkg<'_> {
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn cpv(&self) -> &Atom {
+    fn cpv(&self) -> &PkgDep {
         &self.cpv
     }
 
@@ -342,8 +342,8 @@ mod tests {
         // temp repo ebuild creation defaults to the latest EAPI
         assert_eq!(pkg1.eapi(), *eapi::EAPI_LATEST);
         assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
-        assert_eq!(pkg1.cpv(), &Atom::new_cpv("cat/pkg-1").unwrap());
-        assert_eq!(pkg2.cpv(), &Atom::new_cpv("cat/pkg-2").unwrap());
+        assert_eq!(pkg1.cpv(), &PkgDep::new_cpv("cat/pkg-1").unwrap());
+        assert_eq!(pkg2.cpv(), &PkgDep::new_cpv("cat/pkg-2").unwrap());
 
         // repo attribute allows recursion
         assert_eq!(pkg1.repo(), pkg2.repo());

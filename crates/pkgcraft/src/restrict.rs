@@ -2,8 +2,9 @@ use std::fmt;
 
 use crate::pkg::Restrict as PkgRestrict;
 
-pub mod atom;
 pub(crate) mod boolean;
+pub mod dep;
+pub mod depset;
 pub mod ordered;
 pub mod parse;
 pub mod set;
@@ -15,7 +16,7 @@ boolean::restrict_with_boolean! {Restrict,
     False,
 
     // object attributes
-    Atom(atom::Restrict),
+    Dep(dep::Restrict),
     Pkg(PkgRestrict),
 
     // strings
@@ -79,40 +80,39 @@ impl Restriction<&str> for Restrict {
 mod tests {
     use std::str::FromStr;
 
-    use crate::atom::Atom;
+    use crate::dep::PkgDep;
 
     use super::*;
 
     #[test]
     fn test_filtering() {
-        let atom_strs = vec!["cat/pkg", ">=cat/pkg-1", "=cat/pkg-1:2/3::repo"];
-        let atoms: Vec<Atom> = atom_strs
+        let dep_strs = vec!["cat/pkg", ">=cat/pkg-1", "=cat/pkg-1:2/3::repo"];
+        let deps: Vec<PkgDep> = dep_strs
             .iter()
-            .map(|s| Atom::from_str(s).unwrap())
+            .map(|s| PkgDep::from_str(s).unwrap())
             .collect();
 
-        let filter = |r: Restrict, atoms: Vec<Atom>| -> Vec<String> {
-            atoms
-                .into_iter()
+        let filter = |r: Restrict, deps: Vec<PkgDep>| -> Vec<String> {
+            deps.into_iter()
                 .filter(|a| r.matches(a))
                 .map(|a| a.to_string())
                 .collect()
         };
 
-        let r = Restrict::Atom(atom::Restrict::category("cat"));
-        assert_eq!(filter(r, atoms.clone()), atom_strs);
+        let r = Restrict::Dep(dep::Restrict::category("cat"));
+        assert_eq!(filter(r, deps.clone()), dep_strs);
 
-        let r = Restrict::Atom(atom::Restrict::Version(None));
-        assert_eq!(filter(r, atoms.clone()), ["cat/pkg"]);
+        let r = Restrict::Dep(dep::Restrict::Version(None));
+        assert_eq!(filter(r, deps.clone()), ["cat/pkg"]);
 
-        let cpv = Atom::from_str("=cat/pkg-1").unwrap();
+        let cpv = PkgDep::from_str("=cat/pkg-1").unwrap();
         let r = Restrict::from(&cpv);
-        assert_eq!(filter(r, atoms.clone()), [">=cat/pkg-1", "=cat/pkg-1:2/3::repo"]);
+        assert_eq!(filter(r, deps.clone()), [">=cat/pkg-1", "=cat/pkg-1:2/3::repo"]);
 
         let r = Restrict::True;
-        assert_eq!(filter(r, atoms.clone()), atom_strs);
+        assert_eq!(filter(r, deps.clone()), dep_strs);
 
         let r = Restrict::False;
-        assert!(filter(r, atoms).is_empty());
+        assert!(filter(r, deps).is_empty());
     }
 }

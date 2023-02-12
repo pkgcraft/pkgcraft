@@ -5,8 +5,8 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
-use crate::atom::Atom;
 use crate::config::RepoConfig;
+use crate::dep::PkgDep;
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::Error;
@@ -21,7 +21,7 @@ pub struct Repo {
     id: String,
     repo_config: RepoConfig,
     pkgmap: PkgMap,
-    cpvs: IndexSet<Atom>,
+    cpvs: IndexSet<PkgDep>,
 }
 
 make_repo_traits!(Repo);
@@ -68,7 +68,7 @@ impl<'a> Extend<&'a str> for Repo {
     fn extend<T: IntoIterator<Item = &'a str>>(&mut self, iter: T) {
         let orig_len = self.cpvs.len();
         for s in iter {
-            match Atom::new_cpv(s) {
+            match PkgDep::new_cpv(s) {
                 Ok(cpv) => {
                     self.cpvs.insert(cpv);
                 }
@@ -177,7 +177,7 @@ impl<'a> IntoIterator for &'a Repo {
 
 #[derive(Debug)]
 pub struct PkgIter<'a> {
-    iter: indexmap::set::Iter<'a, Atom>,
+    iter: indexmap::set::Iter<'a, PkgDep>,
     repo: &'a Repo,
 }
 
@@ -292,19 +292,19 @@ mod tests {
     fn test_contains() {
         let repo = Repo::new("fake", 0, ["cat/pkg-0"]);
 
-        // path containment is always false due to fake repo
+        // path is always false due to fake repo
         assert!(!repo.contains("cat/pkg"));
 
-        // cpv containment
-        let cpv = Atom::new_cpv("cat/pkg-0").unwrap();
+        // versioned dep
+        let cpv = PkgDep::new_cpv("cat/pkg-0").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
+        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
         assert!(!repo.contains(&cpv));
 
-        // atom containment
-        let a = Atom::from_str("cat/pkg").unwrap();
+        // unversioned dep
+        let a = PkgDep::from_str("cat/pkg").unwrap();
         assert!(repo.contains(&a));
-        let a = Atom::from_str("cat/pkg-a").unwrap();
+        let a = PkgDep::from_str("cat/pkg-a").unwrap();
         assert!(!repo.contains(&a));
     }
 

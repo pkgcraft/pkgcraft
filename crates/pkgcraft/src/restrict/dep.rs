@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::atom::{Atom, Blocker, Version};
+use crate::dep::{Blocker, PkgDep, Version};
 
 use super::set::OrderedSetRestrict;
 use super::str::Restrict as StrRestrict;
@@ -60,39 +60,39 @@ impl Restrict {
     }
 }
 
-impl Restriction<&Atom> for Restrict {
-    fn matches(&self, atom: &Atom) -> bool {
+impl Restriction<&PkgDep> for Restrict {
+    fn matches(&self, dep: &PkgDep) -> bool {
         use self::Restrict::*;
         match self {
-            Category(r) => r.matches(atom.category()),
-            Package(r) => r.matches(atom.package()),
-            Blocker(b) => match (b, atom.blocker()) {
+            Category(r) => r.matches(dep.category()),
+            Package(r) => r.matches(dep.package()),
+            Blocker(b) => match (b, dep.blocker()) {
                 (Some(b), Some(blocker)) => *b == blocker,
                 (None, None) => true,
                 _ => false,
             },
-            Version(v) => match (v, atom.version()) {
+            Version(v) => match (v, dep.version()) {
                 (Some(v), Some(ver)) => v.intersects(ver),
                 (None, None) => true,
                 _ => false,
             },
-            VersionStr(r) => r.matches(atom.version().map_or_else(|| "", |v| v.as_str())),
-            Slot(r) => match (r, atom.slot()) {
+            VersionStr(r) => r.matches(dep.version().map_or_else(|| "", |v| v.as_str())),
+            Slot(r) => match (r, dep.slot()) {
                 (Some(r), Some(slot)) => r.matches(slot),
                 (None, None) => true,
                 _ => false,
             },
-            Subslot(r) => match (r, atom.subslot()) {
+            Subslot(r) => match (r, dep.subslot()) {
                 (Some(r), Some(subslot)) => r.matches(subslot),
                 (None, None) => true,
                 _ => false,
             },
-            UseDeps(r) => match (r, atom.use_deps()) {
+            UseDeps(r) => match (r, dep.use_deps()) {
                 (Some(r), Some(vals)) => r.matches(vals),
                 (None, None) => true,
                 _ => false,
             },
-            Repo(r) => match (r, atom.repo()) {
+            Repo(r) => match (r, dep.repo()) {
                 (Some(r), Some(repo)) => r.matches(repo),
                 (None, None) => true,
                 _ => false,
@@ -103,43 +103,43 @@ impl Restriction<&Atom> for Restrict {
 
 impl From<Restrict> for BaseRestrict {
     fn from(r: Restrict) -> Self {
-        Self::Atom(r)
+        Self::Dep(r)
     }
 }
 
-impl Restriction<&Atom> for BaseRestrict {
-    fn matches(&self, atom: &Atom) -> bool {
-        crate::restrict::restrict_match! {self, atom,
-            Self::Atom(r) => r.matches(atom),
+impl Restriction<&PkgDep> for BaseRestrict {
+    fn matches(&self, dep: &PkgDep) -> bool {
+        crate::restrict::restrict_match! {self, dep,
+            Self::Dep(r) => r.matches(dep),
         }
     }
 }
 
-impl From<&Atom> for BaseRestrict {
-    fn from(atom: &Atom) -> Self {
+impl From<&PkgDep> for BaseRestrict {
+    fn from(dep: &PkgDep) -> Self {
         let mut restricts = vec![
-            Restrict::category(atom.category()),
-            Restrict::package(atom.package()),
-            Restrict::Blocker(atom.blocker()),
+            Restrict::category(dep.category()),
+            Restrict::package(dep.package()),
+            Restrict::Blocker(dep.blocker()),
         ];
 
-        if let Some(v) = atom.version() {
+        if let Some(v) = dep.version() {
             restricts.push(Restrict::Version(Some(v.clone())));
         }
 
-        if let Some(s) = atom.slot() {
+        if let Some(s) = dep.slot() {
             restricts.push(Restrict::slot(Some(s)));
         }
 
-        if let Some(s) = atom.subslot() {
+        if let Some(s) = dep.subslot() {
             restricts.push(Restrict::subslot(Some(s)));
         }
 
-        if let Some(u) = atom.use_deps() {
+        if let Some(u) = dep.use_deps() {
             restricts.push(Restrict::use_deps(Some(u)));
         }
 
-        if let Some(s) = atom.repo() {
+        if let Some(s) = dep.repo() {
             restricts.push(Restrict::repo(Some(s)));
         }
 
@@ -153,10 +153,10 @@ mod tests {
 
     #[test]
     fn test_restrict_methods() {
-        let unversioned = Atom::from_str("cat/pkg").unwrap();
-        let blocker = Atom::from_str("!cat/pkg").unwrap();
-        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
-        let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+        let unversioned = PkgDep::from_str("cat/pkg").unwrap();
+        let blocker = PkgDep::from_str("!cat/pkg").unwrap();
+        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
+        let full = PkgDep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
         let r = Restrict::category("cat");
@@ -259,9 +259,9 @@ mod tests {
 
     #[test]
     fn test_restrict_conversion() {
-        let unversioned = Atom::from_str("cat/pkg").unwrap();
-        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
-        let full = Atom::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+        let unversioned = PkgDep::from_str("cat/pkg").unwrap();
+        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
+        let full = PkgDep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // unversioned restriction
         let r = BaseRestrict::from(&unversioned);
@@ -275,7 +275,7 @@ mod tests {
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
-        // full atom restriction
+        // full restriction
         let r = BaseRestrict::from(&full);
         assert!(!r.matches(&unversioned));
         assert!(!r.matches(&cpv));
@@ -284,16 +284,16 @@ mod tests {
 
     #[test]
     fn test_restrict_versions() {
-        let lt = Atom::from_str("<cat/pkg-1-r1").unwrap();
-        let le = Atom::from_str("<=cat/pkg-1-r1").unwrap();
-        let eq = Atom::from_str("=cat/pkg-1-r1").unwrap();
-        let eq_glob = Atom::from_str("=cat/pkg-1*").unwrap();
-        let approx = Atom::from_str("~cat/pkg-1").unwrap();
-        let ge = Atom::from_str(">=cat/pkg-1-r1").unwrap();
-        let gt = Atom::from_str(">cat/pkg-1-r1").unwrap();
+        let lt = PkgDep::from_str("<cat/pkg-1-r1").unwrap();
+        let le = PkgDep::from_str("<=cat/pkg-1-r1").unwrap();
+        let eq = PkgDep::from_str("=cat/pkg-1-r1").unwrap();
+        let eq_glob = PkgDep::from_str("=cat/pkg-1*").unwrap();
+        let approx = PkgDep::from_str("~cat/pkg-1").unwrap();
+        let ge = PkgDep::from_str(">=cat/pkg-1-r1").unwrap();
+        let gt = PkgDep::from_str(">cat/pkg-1-r1").unwrap();
 
-        let lt_cpv = Atom::new_cpv("cat/pkg-0").unwrap();
-        let gt_cpv = Atom::new_cpv("cat/pkg-2").unwrap();
+        let lt_cpv = PkgDep::new_cpv("cat/pkg-0").unwrap();
+        let gt_cpv = PkgDep::new_cpv("cat/pkg-2").unwrap();
 
         let r = BaseRestrict::from(&lt);
         assert!(r.matches(&lt_cpv));
@@ -314,7 +314,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&eq_glob));
         for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
-            let cpv = Atom::new_cpv(s).unwrap();
+            let cpv = PkgDep::new_cpv(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));
@@ -322,7 +322,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&approx));
         for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
-            let cpv = Atom::new_cpv(s).unwrap();
+            let cpv = PkgDep::new_cpv(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));

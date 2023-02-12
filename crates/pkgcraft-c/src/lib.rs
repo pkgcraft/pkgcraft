@@ -3,9 +3,8 @@
 
 use std::ffi::{c_char, CString};
 
-pub mod atom;
 pub mod config;
-pub mod depset;
+pub mod dep;
 pub mod eapi;
 pub mod error;
 pub mod free;

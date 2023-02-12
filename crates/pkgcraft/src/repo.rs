@@ -7,8 +7,8 @@ use enum_as_inner::EnumAsInner;
 use indexmap::IndexMap;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::atom::Atom;
 use crate::config::RepoConfig;
+use crate::dep::PkgDep;
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict as BaseRestrict;
 use crate::Error;
@@ -187,7 +187,7 @@ impl<'a> Iterator for RestrictPkgIter<'a> {
 }
 
 pub trait PkgRepository:
-    fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a Atom>
+    fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a PkgDep>
 {
     type Pkg<'a>: Package
     where
@@ -257,12 +257,12 @@ where
     }
 }
 
-impl<T> Contains<&Atom> for &T
+impl<T> Contains<&PkgDep> for &T
 where
     T: PkgRepository,
 {
-    fn contains(&self, atom: &Atom) -> bool {
-        self.iter_restrict(atom).next().is_some()
+    fn contains(&self, dep: &PkgDep) -> bool {
+        self.iter_restrict(dep).next().is_some()
     }
 }
 
@@ -423,9 +423,9 @@ macro_rules! make_repo_traits {
             }
         }
 
-        impl From<&$x> for crate::restrict::atom::Restrict {
+        impl From<&$x> for crate::restrict::dep::Restrict {
             fn from(r: &$x) -> Self {
-                crate::restrict::atom::Restrict::repo(Some(r.id()))
+                crate::restrict::dep::Restrict::repo(Some(r.id()))
             }
         }
 
@@ -435,7 +435,7 @@ macro_rules! make_repo_traits {
             }
         }
 
-        $crate::repo::make_contains_atom!($x);
+        $crate::repo::make_contains_dep!($x);
         $crate::repo::make_contains_path!($x);
     )+};
 }
@@ -446,16 +446,16 @@ pub trait Contains<T> {
     fn contains(&self, obj: T) -> bool;
 }
 
-macro_rules! make_contains_atom {
+macro_rules! make_contains_dep {
     ($x:ty) => {
-        impl $crate::repo::Contains<&crate::atom::Atom> for $x {
-            fn contains(&self, atom: &crate::atom::Atom) -> bool {
-                self.iter_restrict(atom).next().is_some()
+        impl $crate::repo::Contains<&crate::dep::PkgDep> for $x {
+            fn contains(&self, dep: &crate::dep::PkgDep) -> bool {
+                self.iter_restrict(dep).next().is_some()
             }
         }
     };
 }
-pub(self) use make_contains_atom;
+pub(self) use make_contains_dep;
 
 macro_rules! make_contains_path {
     ($x:ty) => {

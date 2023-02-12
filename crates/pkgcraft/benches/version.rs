@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use criterion::Criterion;
 
-use pkgcraft::atom::Version;
+use pkgcraft::dep::Version;
 
 pub fn bench_pkg_versions(c: &mut Criterion) {
     c.bench_function("version-parse", |b| b.iter(|| Version::from_str("1.2.3_alpha4-r5")));

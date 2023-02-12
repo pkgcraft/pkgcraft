@@ -6,10 +6,9 @@ use std::{fmt, str};
 
 use strum::{AsRefStr, Display, EnumString};
 
+use crate::dep::parse;
 use crate::macros::cmp_not_equal;
 use crate::Error;
-
-use super::parse;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Suffix {
@@ -518,7 +517,7 @@ mod tests {
 
     use itertools::Itertools;
 
-    use crate::test::VersionData;
+    use crate::test::VersionToml;
     use crate::utils::hash;
 
     use super::*;
@@ -553,7 +552,7 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        let data = VersionData::load().unwrap();
+        let data = VersionToml::load().unwrap();
         for (expr, (v1, op, v2)) in data.compares() {
             let v1 = Version::from_str(v1).unwrap();
             let v2 = Version::from_str(v2).unwrap();
@@ -583,7 +582,7 @@ mod tests {
                 .unwrap()
         };
 
-        let data = VersionData::load().unwrap();
+        let data = VersionToml::load().unwrap();
         for d in data.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
@@ -606,7 +605,7 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let data = VersionData::load().unwrap();
+        let data = VersionToml::load().unwrap();
         for d in data.sorting {
             let mut reversed: Vec<_> = d
                 .sorted
@@ -626,7 +625,7 @@ mod tests {
 
     #[test]
     fn test_hashing() {
-        let data = VersionData::load().unwrap();
+        let data = VersionToml::load().unwrap();
         for d in data.hashing {
             let set: HashSet<_> = d
                 .versions

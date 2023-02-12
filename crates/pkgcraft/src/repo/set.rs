@@ -8,11 +8,11 @@ use indexmap::IndexSet;
 
 use crate::pkg::Pkg;
 use crate::repo::{PkgRepository, Repo, Repository};
-use crate::restrict::atom::Restrict as AtomRestrict;
+use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::set::OrderedSet;
 
-use super::make_contains_atom;
+use super::make_contains_dep;
 
 /// Ordered set of repos
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -75,13 +75,13 @@ impl PkgRepository for RepoSet {
 
         // extract repo restrictions for filtering
         use crate::pkg::Restrict::Repo as PkgRepo;
-        use AtomRestrict::Repo as AtomRepo;
+        use DepRestrict::Repo as DepRepo;
         let mut repo_restricts = vec![];
 
         if let Restrict::And(vals) = &restrict {
             for r in vals.iter().map(Deref::deref) {
                 match r {
-                    Restrict::Atom(AtomRepo(Some(x))) => repo_restricts.push(x.clone()),
+                    Restrict::Dep(DepRepo(Some(x))) => repo_restricts.push(x.clone()),
                     Restrict::Pkg(PkgRepo(x)) => repo_restricts.push(x.clone()),
                     _ => (),
                 }
@@ -105,7 +105,7 @@ impl PkgRepository for RepoSet {
     }
 }
 
-make_contains_atom!(RepoSet);
+make_contains_dep!(RepoSet);
 
 // TODO: Use type alias impl trait support for IntoIterator implementation when stable in order to
 // replace boxed type with a generic type.
@@ -260,8 +260,8 @@ impl SubAssign<&Repo> for RepoSet {
 
 #[cfg(test)]
 mod tests {
-    use crate::atom::Atom;
     use crate::config::Config;
+    use crate::dep::PkgDep;
     use crate::pkg::Package;
     use crate::repo::{fake, Contains, Repository};
     use crate::test::assert_ordered_eq;
@@ -322,7 +322,7 @@ mod tests {
 
         let e_repo: Repo = ebuild_repo.into();
         let f_repo: Repo = fake_repo.into();
-        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
+        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
 
         // empty repo set
         let s = RepoSet::new([]);
@@ -376,10 +376,10 @@ mod tests {
         let r2: Repo = fake::Repo::new("2", 0, ["cat/pkg-2"]).into();
         let r3: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).into();
         let r4: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).into();
-        let cpv1 = Atom::new_cpv("cat/pkg-1").unwrap();
-        let cpv2 = Atom::new_cpv("cat/pkg-2").unwrap();
-        let cpv3 = Atom::new_cpv("cat/pkg-3").unwrap();
-        let cpv4 = Atom::new_cpv("cat/pkg-3").unwrap();
+        let cpv1 = PkgDep::new_cpv("cat/pkg-1").unwrap();
+        let cpv2 = PkgDep::new_cpv("cat/pkg-2").unwrap();
+        let cpv3 = PkgDep::new_cpv("cat/pkg-3").unwrap();
+        let cpv4 = PkgDep::new_cpv("cat/pkg-3").unwrap();
 
         let mut s = RepoSet::new([]);
         assert!(!s.contains(&cpv1));

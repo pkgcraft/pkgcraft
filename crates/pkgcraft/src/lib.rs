@@ -1,10 +1,9 @@
 #![warn(unreachable_pub)]
 
 pub(crate) mod archive;
-pub mod atom;
 pub(crate) mod command;
 pub mod config;
-pub mod depset;
+pub mod dep;
 pub mod eapi;
 mod error;
 pub(crate) mod files;

@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use aho_corasick::AhoCorasick;
 use clap::Args;
-use pkgcraft::atom::Version;
+use pkgcraft::dep::Version;
 
 use crate::Run;
 

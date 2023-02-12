@@ -3,7 +3,7 @@ use std::str::FromStr;
 use scallop::builtins::ExecStatus;
 use scallop::{variables, Error};
 
-use crate::atom::Version;
+use crate::dep::Version;
 
 use super::{make_builtin, ALL};
 
@@ -47,7 +47,7 @@ mod tests {
     use scallop::variables::*;
 
     use crate::macros::assert_err_re;
-    use crate::test::VersionData;
+    use crate::test::VersionToml;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as ver_test;
@@ -108,7 +108,7 @@ mod tests {
 
         let mut pvr = Variable::new("PVR");
 
-        let data = VersionData::load().unwrap();
+        let data = VersionToml::load().unwrap();
         for (expr, (v1, op, v2)) in data.compares() {
             let inverted_op = op_map[inverted_op_map[op]];
             let op = op_map[op];

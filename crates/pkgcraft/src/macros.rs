@@ -7,16 +7,6 @@ macro_rules! build_from_paths {
 }
 pub(crate) use build_from_paths;
 
-// convert &str to Option<String>
-#[cfg(test)]
-macro_rules! opt_str {
-    ($x:expr) => {
-        Some($x.to_string())
-    };
-}
-#[cfg(test)]
-pub(crate) use opt_str;
-
 #[cfg(test)]
 macro_rules! assert_err_re {
     ($res:expr, $x:expr) => {

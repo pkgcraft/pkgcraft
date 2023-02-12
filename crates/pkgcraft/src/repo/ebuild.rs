@@ -13,14 +13,14 @@ use regex::Regex;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
-use crate::atom::{self, Atom};
 use crate::config::RepoConfig;
+use crate::dep::{self, PkgDep, Version};
 use crate::eapi::{Eapi, EAPI0};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::Pkg;
-use crate::restrict::atom::Restrict as AtomRestrict;
+use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::Error;
@@ -401,7 +401,7 @@ impl Repo {
             };
             let path = entry.path();
             match entry.file_name().to_str() {
-                Some(s) => match atom::parse::category(s) {
+                Some(s) => match dep::parse::category(s) {
                     Ok(_) => v.push(s.into()),
                     Err(e) => warn!("{e}: {path:?}"),
                 },
@@ -412,7 +412,7 @@ impl Repo {
     }
 
     /// Convert an ebuild path inside the repo into a CPV.
-    pub(crate) fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Atom> {
+    pub(crate) fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<PkgDep> {
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
         };
@@ -427,7 +427,7 @@ impl Repo {
                 let cat = m.name("cat").unwrap().as_str();
                 let pkg = m.name("pkg").unwrap().as_str();
                 let p = m.name("p").unwrap().as_str();
-                Atom::new_cpv(&format!("{cat}/{p}"))
+                PkgDep::new_cpv(&format!("{cat}/{p}"))
                     .map_err(|_| err("invalid CPV"))
                     .and_then(|a| match a.package() == pkg {
                         true => Ok(a),
@@ -446,7 +446,7 @@ impl Repo {
             .get_or_init(|| Cache::<Manifest>::new(self))
     }
 
-    pub(crate) fn pkg_xml(&self, cpv: &Atom) -> Arc<XmlMetadata> {
+    pub(crate) fn pkg_xml(&self, cpv: &PkgDep) -> Arc<XmlMetadata> {
         self.xml_cache()
             .tx
             .send(Msg::Key(cpv.cpn()))
@@ -457,7 +457,7 @@ impl Repo {
             .expect("failed receiving pkg xml data")
     }
 
-    pub(crate) fn pkg_manifest(&self, cpv: &Atom) -> Arc<Manifest> {
+    pub(crate) fn pkg_manifest(&self, cpv: &PkgDep) -> Arc<Manifest> {
         self.manifest_cache()
             .tx
             .send(Msg::Key(cpv.cpn()))
@@ -527,7 +527,7 @@ impl PkgRepository for Repo {
             };
             let path = entry.path();
             match entry.file_name().to_str() {
-                Some(s) => match atom::parse::package(s) {
+                Some(s) => match dep::parse::package(s) {
                     Ok(_) => v.push(s.into()),
                     Err(e) => warn!("{e}: {path:?}"),
                 },
@@ -558,7 +558,7 @@ impl PkgRepository for Repo {
             let pf = path.file_stem().unwrap().to_str();
             match (pn, pf) {
                 (Some(pn), Some(pf)) => match pn == &pf[..pn.len()] {
-                    true => match atom::Version::new(&pf[pn.len() + 1..]) {
+                    true => match Version::new(&pf[pn.len() + 1..]) {
                         Ok(v) => versions.push(v),
                         Err(e) => warn!("{e}: {path:?}"),
                     },
@@ -620,34 +620,34 @@ impl<'a> IntoIterator for &'a Repo {
 }
 
 pub struct PkgIter<'a> {
-    iter: Box<dyn Iterator<Item = (Utf8PathBuf, Atom)> + 'a>,
+    iter: Box<dyn Iterator<Item = (Utf8PathBuf, PkgDep)> + 'a>,
     repo: &'a Repo,
 }
 
 impl<'a> PkgIter<'a> {
     fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
-        use AtomRestrict::{Category, Package, Version};
+        use DepRestrict::{Category, Package, Version};
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
         let (mut cat, mut pkg, mut ver) = (None, None, None);
 
-        // extract atom restrictions for package filtering
+        // extract restrictions for package filtering
         if let Some(Restrict::And(vals)) = restrict {
             for r in vals.iter().map(Deref::deref) {
                 match r {
-                    Restrict::Atom(Category(r)) => {
+                    Restrict::Dep(Category(r)) => {
                         cat_restricts.push(r.clone());
                         if let StrRestrict::Equal(s) = r {
                             cat = Some(s.to_string());
                         }
                     }
-                    Restrict::Atom(r @ Package(x)) => {
+                    Restrict::Dep(r @ Package(x)) => {
                         pkg_restricts.push(r.clone());
                         if let StrRestrict::Equal(s) = x {
                             pkg = Some(s.to_string());
                         }
                     }
-                    Restrict::Atom(r @ Version(x)) => {
+                    Restrict::Dep(r @ Version(x)) => {
                         pkg_restricts.push(r.clone());
                         if let Some(v) = x {
                             ver = Some(v.to_string());
@@ -659,7 +659,7 @@ impl<'a> PkgIter<'a> {
         }
 
         // filter invalid ebuild paths
-        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<(Utf8PathBuf, Atom)> {
+        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<(Utf8PathBuf, PkgDep)> {
             match r {
                 Ok(e) => {
                     let path = e.path();
@@ -685,7 +685,7 @@ impl<'a> PkgIter<'a> {
         };
 
         // return (path, cpv) tuples for pkgs in a category
-        let category_pkgs = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, Atom)> {
+        let category_pkgs = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, PkgDep)> {
             let mut paths: Vec<_> = WalkDir::new(path)
                 .min_depth(2)
                 .max_depth(2)
@@ -702,7 +702,7 @@ impl<'a> PkgIter<'a> {
                 // specific package restriction
                 (Some(cat), Some(pkg), Some(ver)) => {
                     let s = format!("{cat}/{pkg}-{ver}");
-                    let cpv = Atom::new_cpv(&s).expect("atom restrict failed");
+                    let cpv = PkgDep::new_cpv(&s).expect("dep restrict failed");
                     let path =
                         build_from_paths!(repo.path(), &cat, &pkg, format!("{pkg}-{ver}.ebuild"));
                     Box::new(iter::once((path, cpv)))
@@ -944,24 +944,24 @@ mod tests {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0).unwrap();
 
-        // path containment
+        // path
         assert!(!repo.contains("cat/pkg"));
         t.create_ebuild("cat/pkg-1", []).unwrap();
         assert!(repo.contains("cat/pkg"));
         assert!(repo.contains("cat/pkg/pkg-1.ebuild"));
         assert!(!repo.contains("pkg-1.ebuild"));
 
-        // cpv containment
-        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
+        // versioned dep
+        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = Atom::new_cpv("cat/pkg-2").unwrap();
+        let cpv = PkgDep::new_cpv("cat/pkg-2").unwrap();
         assert!(!repo.contains(&cpv));
 
-        // atom containment
-        let a = Atom::from_str("cat/pkg").unwrap();
-        assert!(repo.contains(&a));
-        let a = Atom::from_str("cat/pkg-a").unwrap();
-        assert!(!repo.contains(&a));
+        // unversioned dep
+        let d = PkgDep::from_str("cat/pkg").unwrap();
+        assert!(repo.contains(&d));
+        let d = PkgDep::from_str("cat/pkg-a").unwrap();
+        assert!(!repo.contains(&d));
     }
 
     #[test]
@@ -1004,7 +1004,7 @@ mod tests {
         t.create_ebuild("cat/pkg-2", []).unwrap();
 
         // single match via CPV
-        let cpv = Atom::new_cpv("cat/pkg-1").unwrap();
+        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
         let iter = repo.iter_restrict(&cpv);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, [cpv.to_string()]);
@@ -1016,7 +1016,7 @@ mod tests {
         assert_eq!(cpvs, [pkg.cpv().to_string()]);
 
         // multiple matches
-        let restrict = AtomRestrict::package("pkg");
+        let restrict = DepRestrict::package("pkg");
         let iter = repo.iter_restrict(restrict);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, ["cat/pkg-1", "cat/pkg-2"]);
