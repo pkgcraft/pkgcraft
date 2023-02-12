@@ -399,9 +399,9 @@ pub(super) fn cpv(s: &str) -> crate::Result<PkgDep> {
 }
 
 pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedPkgDep<'a>> {
-    let (s, mut pkgdep) =
+    let (dep_s, mut pkgdep) =
         depspec::dep(s, eapi).map_err(|e| peg_error(format!("invalid dep: {s}"), s, e))?;
-    match depspec::cpv_with_op(s) {
+    match depspec::cpv_with_op(dep_s) {
         Ok((op, cpv_s, glob)) => {
             let cpv = depspec::cpv(cpv_s)
                 .map_err(|e| peg_error(format!("invalid dep: {s}"), cpv_s, e))?;
@@ -417,7 +417,7 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
         }
         _ => {
             let (cat, pkg) =
-                depspec::cp(s).map_err(|e| peg_error(format!("invalid dep: {s}"), s, e))?;
+                depspec::cp(dep_s).map_err(|e| peg_error(format!("invalid dep: {s}"), dep_s, e))?;
             pkgdep.category = cat;
             pkgdep.package = pkg;
         }
