@@ -13,13 +13,13 @@ int main (int argc, char **argv) {
 		exit(1);
 	}
 
-	a1 = pkgcraft_dep_new(argv[1], NULL);
-	a2 = pkgcraft_dep_new(argv[2], NULL);
-	value = pkgcraft_dep_cmp(a1, a2);
+	a1 = pkgcraft_pkgdep_new(argv[1], NULL);
+	a2 = pkgcraft_pkgdep_new(argv[2], NULL);
+	value = pkgcraft_pkgdep_cmp(a1, a2);
 	assert(value == atoi(argv[3]));
 
-	pkgcraft_dep_free(a1);
-	pkgcraft_dep_free(a2);
+	pkgcraft_pkgdep_free(a1);
+	pkgcraft_pkgdep_free(a2);
 
 	return 0;
 }

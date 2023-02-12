@@ -24,7 +24,7 @@ pub enum DepUnit {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum DepSetKind {
-    PkgDep,
+    Dependencies,
     Restrict,
     RequiredUse,
     Properties,
@@ -71,7 +71,7 @@ impl DepSet {
     pub(crate) fn new_dep(d: dep::DepSet<PkgDep>) -> Self {
         Self {
             unit: DepUnit::PkgDep,
-            kind: DepSetKind::PkgDep,
+            kind: DepSetKind::Dependencies,
             dep: Box::into_raw(Box::new(DepSetW::PkgDep(d))),
         }
     }
@@ -497,7 +497,7 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_free(i: *mut DepSetIntoIter) 
 /// # Safety
 /// The arguments must be non-null Dep pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_deprestrict_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
+pub unsafe extern "C" fn pkgcraft_dep_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
     let d1 = null_ptr_check!(d1.as_ref());
     let d2 = null_ptr_check!(d2.as_ref());
 
@@ -513,7 +513,7 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_cmp(d1: *mut Dep, d2: *mut Dep) ->
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_deprestrict_hash(d: *mut Dep) -> u64 {
+pub unsafe extern "C" fn pkgcraft_dep_hash(d: *mut Dep) -> u64 {
     let deps = null_ptr_check!(d.as_ref());
     hash(deps)
 }
@@ -523,7 +523,7 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_hash(d: *mut Dep) -> u64 {
 /// # Safety
 /// The argument must be a Dep pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_deprestrict_free(r: *mut Dep) {
+pub unsafe extern "C" fn pkgcraft_dep_free(r: *mut Dep) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };
     }
@@ -534,7 +534,7 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_free(r: *mut Dep) {
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_deprestrict_str(d: *mut Dep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_str(d: *mut Dep) -> *mut c_char {
     let deps = null_ptr_check!(d.as_ref());
     CString::new(deps.to_string()).unwrap().into_raw()
 }
@@ -544,9 +544,7 @@ pub unsafe extern "C" fn pkgcraft_deprestrict_str(d: *mut Dep) -> *mut c_char {
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_deprestrict_into_iter_flatten(
-    d: *mut Dep,
-) -> *mut DepSetIntoIterFlatten {
+pub unsafe extern "C" fn pkgcraft_dep_into_iter_flatten(d: *mut Dep) -> *mut DepSetIntoIterFlatten {
     let dep = null_ptr_check!(d.as_ref());
     let iter = match dep.deref().clone() {
         DepW::PkgDep(d) => DepSetIntoIterFlatten::PkgDep(d.into_iter_flatten()),
@@ -603,7 +601,7 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_free(i: *mut DepSetIn
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_deprestrict_into_iter_recursive(
+pub unsafe extern "C" fn pkgcraft_dep_into_iter_recursive(
     d: *mut Dep,
 ) -> *mut DepSetIntoIterRecursive {
     let dep = null_ptr_check!(d.as_ref());

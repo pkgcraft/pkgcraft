@@ -13,7 +13,10 @@ use crate::macros::*;
 /// # Safety
 /// The eapi argument may be NULL to use the default EAPI.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_parse_dep(s: *const c_char, eapi: *const Eapi) -> *const c_char {
+pub unsafe extern "C" fn pkgcraft_parse_pkgdep(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *const c_char {
     let val = null_ptr_check!(s.as_ref());
     let val = unsafe { unwrap_or_return!(CStr::from_ptr(val).to_str(), ptr::null()) };
     let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null());
