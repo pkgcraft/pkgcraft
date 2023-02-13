@@ -41,6 +41,7 @@ impl AsRef<str> for Uri {
     }
 }
 
+/// Set of dependency objects.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DepSet<T: Ordered>(SortedSet<Dep<T>>);
 
@@ -68,40 +69,43 @@ impl<T: Ordered> FromIterator<Dep<T>> for DepSet<T> {
     }
 }
 
-pub trait IntoIteratorDepSet {
-    type FlattenedItem;
-    type IntoIterFlatten: Iterator<Item = Self::FlattenedItem>;
-
-    type RecursiveItem;
-    type IntoIterRecursive: Iterator<Item = Self::RecursiveItem>;
-
+/// Flattened iterator support for dependency objects.
+pub trait Flatten {
+    type Item;
+    type IntoIterFlatten: Iterator<Item = Self::Item>;
     fn into_iter_flatten(self) -> Self::IntoIterFlatten;
+}
+
+/// Recursive iterator support for dependency objects.
+pub trait Recursive {
+    type Item;
+    type IntoIterRecursive: Iterator<Item = Self::Item>;
     fn into_iter_recursive(self) -> Self::IntoIterRecursive;
 }
 
 impl<T: Ordered> DepSet<T> {
-    pub fn iter(&self) -> DepSetIter<T> {
+    pub fn iter(&self) -> Iter<T> {
         self.into_iter()
     }
 
-    pub fn iter_flatten(&self) -> DepSetIterFlatten<T> {
+    pub fn iter_flatten(&self) -> IterFlatten<T> {
         self.into_iter_flatten()
     }
 }
 
 #[derive(Debug)]
-pub struct DepSetIter<'a, T: Ordered>(indexmap::set::Iter<'a, Dep<T>>);
+pub struct Iter<'a, T: Ordered>(indexmap::set::Iter<'a, Dep<T>>);
 
 impl<'a, T: Ordered> IntoIterator for &'a DepSet<T> {
     type Item = &'a Dep<T>;
-    type IntoIter = DepSetIter<'a, T>;
+    type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        DepSetIter(self.0.iter())
+        Iter(self.0.iter())
     }
 }
 
-impl<'a, T: Ordered> Iterator for DepSetIter<'a, T> {
+impl<'a, T: Ordered> Iterator for Iter<'a, T> {
     type Item = &'a Dep<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -109,35 +113,37 @@ impl<'a, T: Ordered> Iterator for DepSetIter<'a, T> {
     }
 }
 
-impl<'a, T: Ordered> IntoIteratorDepSet for &'a DepSet<T> {
-    type FlattenedItem = &'a T;
-    type IntoIterFlatten = DepSetIterFlatten<'a, T>;
-
-    type RecursiveItem = &'a Dep<T>;
-    type IntoIterRecursive = DepSetIterRecursive<'a, T>;
+impl<'a, T: Ordered> Flatten for &'a DepSet<T> {
+    type Item = &'a T;
+    type IntoIterFlatten = IterFlatten<'a, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
-        DepSetIterFlatten(self.0.iter().collect())
+        IterFlatten(self.0.iter().collect())
     }
+}
+
+impl<'a, T: Ordered> Recursive for &'a DepSet<T> {
+    type Item = &'a Dep<T>;
+    type IntoIterRecursive = IterRecursive<'a, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
-        DepSetIterRecursive(self.0.iter().collect())
+        IterRecursive(self.0.iter().collect())
     }
 }
 
 #[derive(Debug)]
-pub struct DepSetIntoIter<T: Ordered>(indexmap::set::IntoIter<Dep<T>>);
+pub struct IntoIter<T: Ordered>(indexmap::set::IntoIter<Dep<T>>);
 
 impl<T: Ordered> IntoIterator for DepSet<T> {
     type Item = Dep<T>;
-    type IntoIter = DepSetIntoIter<T>;
+    type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        DepSetIntoIter(self.0.into_iter())
+        IntoIter(self.0.into_iter())
     }
 }
 
-impl<T: Ordered> Iterator for DepSetIntoIter<T> {
+impl<T: Ordered> Iterator for IntoIter<T> {
     type Item = Dep<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -145,22 +151,25 @@ impl<T: Ordered> Iterator for DepSetIntoIter<T> {
     }
 }
 
-impl<T: Ordered> IntoIteratorDepSet for DepSet<T> {
-    type FlattenedItem = T;
-    type IntoIterFlatten = DepSetIntoIterFlatten<T>;
-
-    type RecursiveItem = Dep<T>;
-    type IntoIterRecursive = DepSetIntoIterRecursive<T>;
+impl<T: Ordered> Flatten for DepSet<T> {
+    type Item = T;
+    type IntoIterFlatten = IntoIterFlatten<T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
-        DepSetIntoIterFlatten(self.0.into_iter().collect())
-    }
-
-    fn into_iter_recursive(self) -> Self::IntoIterRecursive {
-        DepSetIntoIterRecursive(self.0.into_iter().collect())
+        IntoIterFlatten(self.0.into_iter().collect())
     }
 }
 
+impl<T: Ordered> Recursive for DepSet<T> {
+    type Item = Dep<T>;
+    type IntoIterRecursive = IntoIterRecursive<T>;
+
+    fn into_iter_recursive(self) -> Self::IntoIterRecursive {
+        IntoIterRecursive(self.0.into_iter().collect())
+    }
+}
+
+/// Dependency specification logic variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Dep<T: Ordered> {
     Enabled(T),
@@ -174,40 +183,44 @@ pub enum Dep<T: Ordered> {
 }
 
 impl<T: Ordered> Dep<T> {
-    pub fn iter_flatten(&self) -> DepSetIterFlatten<T> {
+    pub fn iter_flatten(&self) -> IterFlatten<T> {
         self.into_iter_flatten()
     }
 }
 
-impl<'a, T: Ordered> IntoIteratorDepSet for &'a Dep<T> {
-    type FlattenedItem = &'a T;
-    type IntoIterFlatten = DepSetIterFlatten<'a, T>;
-
-    type RecursiveItem = &'a Dep<T>;
-    type IntoIterRecursive = DepSetIterRecursive<'a, T>;
+impl<'a, T: Ordered> Flatten for &'a Dep<T> {
+    type Item = &'a T;
+    type IntoIterFlatten = IterFlatten<'a, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
-        DepSetIterFlatten([self].into_iter().collect())
-    }
-
-    fn into_iter_recursive(self) -> Self::IntoIterRecursive {
-        DepSetIterRecursive([self].into_iter().collect())
+        IterFlatten([self].into_iter().collect())
     }
 }
 
-impl<T: Ordered> IntoIteratorDepSet for Dep<T> {
-    type FlattenedItem = T;
-    type IntoIterFlatten = DepSetIntoIterFlatten<T>;
-
-    type RecursiveItem = Dep<T>;
-    type IntoIterRecursive = DepSetIntoIterRecursive<T>;
-
-    fn into_iter_flatten(self) -> Self::IntoIterFlatten {
-        DepSetIntoIterFlatten([self].into_iter().collect())
-    }
+impl<'a, T: Ordered> Recursive for &'a Dep<T> {
+    type Item = &'a Dep<T>;
+    type IntoIterRecursive = IterRecursive<'a, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
-        DepSetIntoIterRecursive([self].into_iter().collect())
+        IterRecursive([self].into_iter().collect())
+    }
+}
+
+impl<T: Ordered> Flatten for Dep<T> {
+    type Item = T;
+    type IntoIterFlatten = IntoIterFlatten<T>;
+
+    fn into_iter_flatten(self) -> Self::IntoIterFlatten {
+        IntoIterFlatten([self].into_iter().collect())
+    }
+}
+
+impl<T: Ordered> Recursive for Dep<T> {
+    type Item = Dep<T>;
+    type IntoIterRecursive = IntoIterRecursive<T>;
+
+    fn into_iter_recursive(self) -> Self::IntoIterRecursive {
+        IntoIterRecursive([self].into_iter().collect())
     }
 }
 
@@ -228,9 +241,9 @@ impl<T: fmt::Display + Ordered> fmt::Display for Dep<T> {
 }
 
 #[derive(Debug)]
-pub struct DepSetIterFlatten<'a, T: Ordered>(VecDeque<&'a Dep<T>>);
+pub struct IterFlatten<'a, T: Ordered>(VecDeque<&'a Dep<T>>);
 
-impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetIterFlatten<'a, T> {
+impl<'a, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -251,9 +264,9 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetIterFlatten<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct DepSetIntoIterFlatten<T: Ordered>(VecDeque<Dep<T>>);
+pub struct IntoIterFlatten<T: Ordered>(VecDeque<Dep<T>>);
 
-impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterFlatten<T> {
+impl<T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -274,9 +287,9 @@ impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterFlatten<T> {
 }
 
 #[derive(Debug)]
-pub struct DepSetIterRecursive<'a, T: Ordered>(VecDeque<&'a Dep<T>>);
+pub struct IterRecursive<'a, T: Ordered>(VecDeque<&'a Dep<T>>);
 
-impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetIterRecursive<'a, T> {
+impl<'a, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, T> {
     type Item = &'a Dep<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -299,9 +312,9 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for DepSetIterRecursive<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct DepSetIntoIterRecursive<T: Ordered>(VecDeque<Dep<T>>);
+pub struct IntoIterRecursive<T: Ordered>(VecDeque<Dep<T>>);
 
-impl<T: fmt::Debug + Ordered> Iterator for DepSetIntoIterRecursive<T> {
+impl<T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<T> {
     type Item = Dep<T>;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -1,4 +1,4 @@
-use crate::dep::{DepSet, IntoIteratorDepSet, PkgDep, Uri};
+use crate::dep::{DepSet, Flatten, PkgDep, Uri};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;

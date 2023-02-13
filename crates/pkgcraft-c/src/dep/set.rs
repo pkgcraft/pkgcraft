@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{fmt, ptr};
 
-use pkgcraft::dep::{self, IntoIteratorDepSet, PkgDep, Uri};
+use pkgcraft::dep::{self, Flatten, PkgDep, Recursive, Uri};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 use pkgcraft::set::Ordered;
 use pkgcraft::utils::hash;
@@ -124,9 +124,9 @@ impl fmt::Display for DepSet {
 /// Opaque wrapper for DepSet iterators.
 #[derive(Debug)]
 pub enum DepSetIntoIter {
-    PkgDep(dep::DepSetIntoIter<PkgDep>),
-    String(dep::DepSetIntoIter<String>),
-    Uri(dep::DepSetIntoIter<Uri>),
+    PkgDep(dep::set::IntoIter<PkgDep>),
+    String(dep::set::IntoIter<String>),
+    Uri(dep::set::IntoIter<Uri>),
 }
 
 impl Iterator for DepSetIntoIter {
@@ -275,9 +275,9 @@ impl fmt::Display for Dep {
 /// Opaque wrapper for flattened DepSet iterators.
 #[derive(Debug)]
 pub enum DepSetIntoIterFlatten {
-    PkgDep(dep::DepSetIntoIterFlatten<PkgDep>),
-    String(dep::DepSetIntoIterFlatten<String>),
-    Uri(dep::DepSetIntoIterFlatten<Uri>),
+    PkgDep(dep::set::IntoIterFlatten<PkgDep>),
+    String(dep::set::IntoIterFlatten<String>),
+    Uri(dep::set::IntoIterFlatten<Uri>),
 }
 
 impl Iterator for DepSetIntoIterFlatten {
@@ -301,9 +301,9 @@ impl Iterator for DepSetIntoIterFlatten {
 /// Opaque wrapper for recursive DepSet iterators.
 #[derive(Debug)]
 pub enum DepSetIntoIterRecursive {
-    PkgDep(dep::DepSetIntoIterRecursive<PkgDep>),
-    String(dep::DepSetIntoIterRecursive<String>),
-    Uri(dep::DepSetIntoIterRecursive<Uri>),
+    PkgDep(dep::set::IntoIterRecursive<PkgDep>),
+    String(dep::set::IntoIterRecursive<String>),
+    Uri(dep::set::IntoIterRecursive<Uri>),
 }
 
 impl Iterator for DepSetIntoIterRecursive {
