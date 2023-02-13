@@ -53,8 +53,8 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type Iterator<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
-    type RestrictIterator<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
+    type Iter<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
+    type IterRestrict<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
 
     fn categories(&self) -> Vec<String> {
         vec![]
@@ -72,11 +72,11 @@ impl PkgRepository for Repo {
         0
     }
 
-    fn iter(&self) -> Self::Iterator<'_> {
+    fn iter(&self) -> Self::Iter<'_> {
         iter::empty::<Self::Pkg<'_>>()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::RestrictIterator<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::IterRestrict<'_> {
         iter::empty::<Self::Pkg<'_>>()
     }
 }

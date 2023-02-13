@@ -1,17 +1,19 @@
 // explicitly force symbols to be exported
 // TODO: https://github.com/rust-lang/rfcs/issues/2771
 
-/// Opaque wrapper for Pkg objects.
+/// Opaque wrapper for pkgcraft::pkg::Pkg objects.
 pub struct Pkg;
-/// Opaque wrapper for Repo objects.
+/// Opaque wrapper for pkgcraft::repo::Repo objects.
 pub struct Repo;
 
-/// Opaque wrapper for PkgIter objects.
-pub struct RepoPkgIter;
-/// Opaque wrapper for RestrictPkgIter objects.
-pub struct RepoRestrictPkgIter;
-/// Opaque wrapper for RepoSetPkgIter objects.
-pub struct RepoSetPkgIter;
+/// Opaque wrapper for pkgcraft::repo::Iter objects.
+pub struct RepoIter;
 
-/// Opaque wrapper for Restrict objects.
+/// Opaque wrapper for pkgcraft::repo::IterRestrict objects.
+pub struct RepoIterRestrict;
+
+/// Opaque wrapper for pkgcraft::repo::set::Iter objects.
+pub struct RepoSetIter;
+
+/// Opaque wrapper for pkgcraft::restrict::Restrict objects.
 pub struct Restrict;

@@ -136,26 +136,26 @@ impl Repo {
 }
 
 #[allow(clippy::large_enum_variant)]
-pub enum PkgIter<'a> {
-    Ebuild(ebuild::PkgIter<'a>, &'a Repo),
-    Fake(fake::PkgIter<'a>, &'a Repo),
+pub enum Iter<'a> {
+    Ebuild(ebuild::Iter<'a>, &'a Repo),
+    Fake(fake::Iter<'a>, &'a Repo),
     Empty,
 }
 
 impl<'a> IntoIterator for &'a Repo {
     type Item = Pkg<'a>;
-    type IntoIter = PkgIter<'a>;
+    type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Repo::Ebuild(repo) => PkgIter::Ebuild(repo.into_iter(), self),
-            Repo::Fake(repo) => PkgIter::Fake(repo.into_iter(), self),
-            _ => PkgIter::Empty,
+            Repo::Ebuild(repo) => Iter::Ebuild(repo.into_iter(), self),
+            Repo::Fake(repo) => Iter::Fake(repo.into_iter(), self),
+            _ => Iter::Empty,
         }
     }
 }
 
-impl<'a> Iterator for PkgIter<'a> {
+impl<'a> Iterator for Iter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -168,13 +168,13 @@ impl<'a> Iterator for PkgIter<'a> {
 }
 
 #[allow(clippy::large_enum_variant)]
-pub enum RestrictPkgIter<'a> {
-    Ebuild(ebuild::RestrictPkgIter<'a>, &'a Repo),
-    Fake(fake::RestrictPkgIter<'a>, &'a Repo),
+pub enum IterRestrict<'a> {
+    Ebuild(ebuild::IterRestrict<'a>, &'a Repo),
+    Fake(fake::IterRestrict<'a>, &'a Repo),
     Empty,
 }
 
-impl<'a> Iterator for RestrictPkgIter<'a> {
+impl<'a> Iterator for IterRestrict<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -193,11 +193,11 @@ pub trait PkgRepository:
     where
         Self: 'a;
 
-    type Iterator<'a>: Iterator<Item = Self::Pkg<'a>>
+    type Iter<'a>: Iterator<Item = Self::Pkg<'a>>
     where
         Self: 'a;
 
-    type RestrictIterator<'a>: Iterator<Item = Self::Pkg<'a>>
+    type IterRestrict<'a>: Iterator<Item = Self::Pkg<'a>>
     where
         Self: 'a;
 
@@ -213,8 +213,8 @@ pub trait PkgRepository:
         }
         count
     }
-    fn iter(&self) -> Self::Iterator<'_>;
-    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::RestrictIterator<'_>;
+    fn iter(&self) -> Self::Iter<'_>;
+    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::IterRestrict<'_>;
 
     fn is_empty(&self) -> bool {
         self.iter().next().is_none()
@@ -234,8 +234,8 @@ where
     T: PkgRepository,
 {
     type Pkg<'b> = T::Pkg<'b> where Self: 'b;
-    type Iterator<'b> = T::Iterator<'b> where Self: 'b;
-    type RestrictIterator<'b> = T::RestrictIterator<'b> where Self: 'b;
+    type Iter<'b> = T::Iter<'b> where Self: 'b;
+    type IterRestrict<'b> = T::IterRestrict<'b> where Self: 'b;
 
     fn categories(&self) -> Vec<String> {
         (*self).categories()
@@ -249,10 +249,10 @@ where
     fn len(&self) -> usize {
         (*self).len()
     }
-    fn iter(&self) -> Self::Iterator<'_> {
+    fn iter(&self) -> Self::Iter<'_> {
         (*self).iter()
     }
-    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::IterRestrict<'_> {
         (*self).iter_restrict(val)
     }
 }
@@ -296,8 +296,8 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type Iterator<'a> = PkgIter<'a> where Self: 'a;
-    type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
+    type Iter<'a> = Iter<'a> where Self: 'a;
+    type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
     fn categories(&self) -> Vec<String> {
         match self {
@@ -331,15 +331,15 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn iter(&self) -> Self::Iterator<'_> {
+    fn iter(&self) -> Self::Iter<'_> {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::IterRestrict<'_> {
         match self {
-            Self::Ebuild(repo) => RestrictPkgIter::Ebuild(repo.iter_restrict(val), self),
-            Self::Fake(repo) => RestrictPkgIter::Fake(repo.iter_restrict(val), self),
-            _ => RestrictPkgIter::Empty,
+            Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val), self),
+            Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val), self),
+            _ => IterRestrict::Empty,
         }
     }
 }

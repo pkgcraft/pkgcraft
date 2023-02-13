@@ -34,8 +34,8 @@ impl RepoSet {
 
 impl PkgRepository for RepoSet {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type Iterator<'a> = PkgIter<'a> where Self: 'a;
-    type RestrictIterator<'a> = PkgIter<'a> where Self: 'a;
+    type Iter<'a> = Iter<'a> where Self: 'a;
+    type IterRestrict<'a> = Iter<'a> where Self: 'a;
 
     fn categories(&self) -> Vec<String> {
         let cats: HashSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
@@ -66,11 +66,11 @@ impl PkgRepository for RepoSet {
         self.iter().count()
     }
 
-    fn iter(&self) -> Self::Iterator<'_> {
+    fn iter(&self) -> Self::Iter<'_> {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
         let restrict = val.into();
 
         // extract repo restrictions for filtering
@@ -96,7 +96,7 @@ impl PkgRepository for RepoSet {
             _ => Restrict::and(repo_restricts),
         };
 
-        PkgIter(Box::new(
+        Iter(Box::new(
             self.repos
                 .iter()
                 .filter(move |r| repo_restrict.matches(r.id()))
@@ -111,18 +111,18 @@ make_contains_dep!(RepoSet);
 // replace boxed type with a generic type.
 //
 // See https://github.com/rust-lang/rust/issues/63063
-pub struct PkgIter<'a>(Box<dyn Iterator<Item = Pkg<'a>> + 'a>);
+pub struct Iter<'a>(Box<dyn Iterator<Item = Pkg<'a>> + 'a>);
 
 impl<'a> IntoIterator for &'a RepoSet {
     type Item = Pkg<'a>;
-    type IntoIter = PkgIter<'a>;
+    type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        PkgIter(Box::new(self.repos.iter().flat_map(|r| r.into_iter())))
+        Iter(Box::new(self.repos.iter().flat_map(|r| r.into_iter())))
     }
 }
 
-impl<'a> Iterator for PkgIter<'a> {
+impl<'a> Iterator for Iter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -494,8 +494,8 @@ fn is_fake_category(entry: &DirEntry) -> bool {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type Iterator<'a> = PkgIter<'a> where Self: 'a;
-    type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
+    type Iter<'a> = Iter<'a> where Self: 'a;
+    type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
     fn categories(&self) -> Vec<String> {
         // use profiles/categories from repos, falling back to raw fs dirs
@@ -571,14 +571,14 @@ impl PkgRepository for Repo {
         versions.iter().map(|v| v.to_string()).collect()
     }
 
-    fn iter(&self) -> Self::Iterator<'_> {
+    fn iter(&self) -> Self::Iter<'_> {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
         let restrict = val.into();
-        RestrictPkgIter {
-            iter: PkgIter::new(self, Some(&restrict)),
+        IterRestrict {
+            iter: Iter::new(self, Some(&restrict)),
             restrict,
         }
     }
@@ -612,19 +612,19 @@ fn is_ebuild(e: &DirEntry) -> bool {
 
 impl<'a> IntoIterator for &'a Repo {
     type Item = Pkg<'a>;
-    type IntoIter = PkgIter<'a>;
+    type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        PkgIter::new(self, None)
+        Iter::new(self, None)
     }
 }
 
-pub struct PkgIter<'a> {
+pub struct Iter<'a> {
     iter: Box<dyn Iterator<Item = (Utf8PathBuf, PkgDep)> + 'a>,
     repo: &'a Repo,
 }
 
-impl<'a> PkgIter<'a> {
+impl<'a> Iter<'a> {
     fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package, Version};
         let mut cat_restricts = vec![];
@@ -738,7 +738,7 @@ impl<'a> PkgIter<'a> {
     }
 }
 
-impl<'a> Iterator for PkgIter<'a> {
+impl<'a> Iterator for Iter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -752,12 +752,12 @@ impl<'a> Iterator for PkgIter<'a> {
     }
 }
 
-pub struct RestrictPkgIter<'a> {
-    iter: PkgIter<'a>,
+pub struct IterRestrict<'a> {
+    iter: Iter<'a>,
     restrict: Restrict,
 }
 
-impl<'a> Iterator for RestrictPkgIter<'a> {
+impl<'a> Iterator for IterRestrict<'a> {
     type Item = Pkg<'a>;
 
     #[allow(clippy::manual_find)]

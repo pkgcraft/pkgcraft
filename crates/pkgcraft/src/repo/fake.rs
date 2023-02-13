@@ -102,8 +102,8 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type Iterator<'a> = PkgIter<'a> where Self: 'a;
-    type RestrictIterator<'a> = RestrictPkgIter<'a> where Self: 'a;
+    type Iter<'a> = Iter<'a> where Self: 'a;
+    type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
     // TODO: cache categories/packages/versions values in OnceCell fields?
     fn categories(&self) -> Vec<String> {
@@ -129,12 +129,12 @@ impl PkgRepository for Repo {
         self.cpvs.len()
     }
 
-    fn iter(&self) -> Self::Iterator<'_> {
+    fn iter(&self) -> Self::Iter<'_> {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::RestrictIterator<'_> {
-        RestrictPkgIter {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+        IterRestrict {
             iter: self.into_iter(),
             restrict: val.into(),
         }
@@ -165,10 +165,10 @@ impl Repository for Repo {
 
 impl<'a> IntoIterator for &'a Repo {
     type Item = Pkg<'a>;
-    type IntoIter = PkgIter<'a>;
+    type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        PkgIter {
+        Iter {
             iter: self.cpvs.iter(),
             repo: self,
         }
@@ -176,12 +176,12 @@ impl<'a> IntoIterator for &'a Repo {
 }
 
 #[derive(Debug)]
-pub struct PkgIter<'a> {
+pub struct Iter<'a> {
     iter: indexmap::set::Iter<'a, PkgDep>,
     repo: &'a Repo,
 }
 
-impl<'a> Iterator for PkgIter<'a> {
+impl<'a> Iterator for Iter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -190,12 +190,12 @@ impl<'a> Iterator for PkgIter<'a> {
 }
 
 #[derive(Debug)]
-pub struct RestrictPkgIter<'a> {
-    iter: PkgIter<'a>,
+pub struct IterRestrict<'a> {
+    iter: Iter<'a>,
     restrict: Restrict,
 }
 
-impl<'a> Iterator for RestrictPkgIter<'a> {
+impl<'a> Iterator for IterRestrict<'a> {
     type Item = Pkg<'a>;
 
     #[allow(clippy::manual_find)]

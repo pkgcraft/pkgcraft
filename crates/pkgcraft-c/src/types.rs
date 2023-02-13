@@ -1,5 +1,3 @@
-use pkgcraft::repo;
-
-pub type RepoPkgIter<'a> = repo::PkgIter<'a>;
-pub type RepoRestrictPkgIter<'a> = repo::RestrictPkgIter<'a>;
-pub type RepoSetPkgIter<'a> = repo::set::PkgIter<'a>;
+pub type RepoIter<'a> = pkgcraft::repo::Iter<'a>;
+pub type RepoIterRestrict<'a> = pkgcraft::repo::IterRestrict<'a>;
+pub type RepoSetIter<'a> = pkgcraft::repo::set::Iter<'a>;

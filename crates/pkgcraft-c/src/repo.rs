@@ -8,7 +8,7 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
-use crate::types::{RepoPkgIter, RepoRestrictPkgIter};
+use crate::types::{RepoIter, RepoIterRestrict};
 use crate::utils::str_to_raw;
 
 pub mod ebuild;
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn pkgcraft_repo_free(r: *mut Repo) {
 /// # Safety
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_iter<'a>(r: *mut Repo) -> *mut RepoPkgIter<'a> {
+pub unsafe extern "C" fn pkgcraft_repo_iter<'a>(r: *mut Repo) -> *mut RepoIter<'a> {
     let repo = null_ptr_check!(r.as_ref());
     Box::into_raw(Box::new(repo.iter()))
 }
@@ -232,9 +232,9 @@ pub unsafe extern "C" fn pkgcraft_repo_iter<'a>(r: *mut Repo) -> *mut RepoPkgIte
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null RepoPkgIter pointer.
+/// The argument must be a non-null RepoIter pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_iter_next(i: *mut RepoPkgIter) -> *mut Pkg {
+pub unsafe extern "C" fn pkgcraft_repo_iter_next(i: *mut RepoIter) -> *mut Pkg {
     let iter = null_ptr_check!(i.as_mut());
     match iter.next() {
         None => ptr::null_mut(),
@@ -245,9 +245,9 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_next(i: *mut RepoPkgIter) -> *mut Pk
 /// Free a repo iterator.
 ///
 /// # Safety
-/// The argument must be a non-null RepoPkgIter pointer or NULL.
+/// The argument must be a non-null RepoIter pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_iter_free(i: *mut RepoPkgIter) {
+pub unsafe extern "C" fn pkgcraft_repo_iter_free(i: *mut RepoIter) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
@@ -262,7 +262,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_free(i: *mut RepoPkgIter) {
 pub unsafe extern "C" fn pkgcraft_repo_restrict_iter<'a>(
     repo: *mut Repo,
     restrict: *mut Restrict,
-) -> *mut RepoRestrictPkgIter<'a> {
+) -> *mut RepoIterRestrict<'a> {
     let repo = null_ptr_check!(repo.as_ref());
     let restrict = null_ptr_check!(restrict.as_ref());
     Box::into_raw(Box::new(repo.iter_restrict(restrict.clone())))
@@ -273,9 +273,9 @@ pub unsafe extern "C" fn pkgcraft_repo_restrict_iter<'a>(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null RepoRestrictPkgIter pointer.
+/// The argument must be a non-null RepoIterRestrict pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_restrict_iter_next(i: *mut RepoRestrictPkgIter) -> *mut Pkg {
+pub unsafe extern "C" fn pkgcraft_repo_restrict_iter_next(i: *mut RepoIterRestrict) -> *mut Pkg {
     let iter = null_ptr_check!(i.as_mut());
     match iter.next() {
         None => ptr::null_mut(),
@@ -286,9 +286,9 @@ pub unsafe extern "C" fn pkgcraft_repo_restrict_iter_next(i: *mut RepoRestrictPk
 /// Free a repo restriction iterator.
 ///
 /// # Safety
-/// The argument must be a non-null RepoRestrictPkgIter pointer or NULL.
+/// The argument must be a non-null RepoIterRestrict pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_restrict_iter_free(i: *mut RepoRestrictPkgIter) {
+pub unsafe extern "C" fn pkgcraft_repo_restrict_iter_free(i: *mut RepoIterRestrict) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
