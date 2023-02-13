@@ -124,7 +124,6 @@ impl Metadata {
     // TODO: use serde to support (de)serializing md5-cache metadata
     fn deserialize(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
         let mut meta = Metadata::default();
-        use Key::*;
 
         let iter = s
             .lines()
@@ -138,15 +137,14 @@ impl Metadata {
             .filter(|(k, _)| eapi.metadata_keys().contains(k));
 
         for (key, val) in iter {
-            match key {
-                Inherited => {
-                    meta.inherited = val
-                        .split_whitespace()
-                        .tuples()
-                        .map(|(name, _chksum)| name.to_string())
-                        .collect();
-                }
-                key => meta.convert(eapi, key, val)?,
+            if key == Key::Inherited {
+                meta.inherited = val
+                    .split_whitespace()
+                    .tuples()
+                    .map(|(name, _chksum)| name.to_string())
+                    .collect();
+            } else {
+                meta.convert(eapi, key, val)?;
             }
         }
 
