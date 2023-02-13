@@ -18,9 +18,11 @@ static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
 /// Initialization for all test executables.
 #[ctor::ctor]
 fn initialize() {
-    // verify running under `cargo nextest`
-    env::var("NEXTEST").expect("tests must be run via cargo-nextest");
-    // initialize bash for all test executables
+    // verify running under `cargo nextest` ignoring benchmark runs
+    if !env::args().any(|x| x == "--bench") {
+        env::var("NEXTEST").expect("tests must be run via cargo-nextest");
+    }
+    // initialize bash
     Lazy::force(&crate::pkgsh::BASH);
 }
 
