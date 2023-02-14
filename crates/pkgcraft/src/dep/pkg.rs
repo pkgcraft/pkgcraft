@@ -41,9 +41,9 @@ pub enum SlotOperator {
     Star,
 }
 
-/// Parsed package dep from borrowed input string
+/// Parsed package dep from borrowed input string.
 #[derive(Debug, Default)]
-pub(crate) struct ParsedPkgDep<'a> {
+pub(crate) struct ParsedDep<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
     pub(crate) blocker: Option<Blocker>,
@@ -56,14 +56,14 @@ pub(crate) struct ParsedPkgDep<'a> {
     pub(crate) repo: Option<&'a str>,
 }
 
-impl ParsedPkgDep<'_> {
-    pub(crate) fn into_owned(self) -> crate::Result<PkgDep> {
+impl ParsedDep<'_> {
+    pub(crate) fn into_owned(self) -> crate::Result<Dep> {
         let version = match (self.version, self.version_str) {
             (Some(v), Some(vs)) => Some(v.into_owned(vs)?),
             _ => None,
         };
 
-        Ok(PkgDep {
+        Ok(Dep {
             category: self.category.to_string(),
             package: self.package.to_string(),
             blocker: self.blocker,
@@ -83,9 +83,9 @@ impl ParsedPkgDep<'_> {
     }
 }
 
-/// Package dependency
+/// Package dependency.
 #[derive(Debug, Clone)]
-pub struct PkgDep {
+pub struct Dep {
     category: String,
     package: String,
     blocker: Option<Blocker>,
@@ -97,22 +97,22 @@ pub struct PkgDep {
     repo: Option<String>,
 }
 
-impl PartialEq for PkgDep {
+impl PartialEq for Dep {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl Eq for PkgDep {}
+impl Eq for Dep {}
 
-impl Hash for PkgDep {
+impl Hash for Dep {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.key().hash(state);
     }
 }
 
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
-type PkgDepKey<'a> = (
+type DepKey<'a> = (
     &'a str,                        // category
     &'a str,                        // package
     Option<&'a Version>,            // version
@@ -124,7 +124,7 @@ type PkgDepKey<'a> = (
     Option<&'a str>,                // repo
 );
 
-impl PkgDep {
+impl Dep {
     /// Verify a string represents a valid package dependency.
     pub fn valid<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<()> {
         parse::dep_str(s, eapi.into_eapi()?)?;
@@ -137,12 +137,12 @@ impl PkgDep {
         Ok(())
     }
 
-    /// Create a new PkgDep from a given string.
+    /// Create a new Dep from a given string.
     pub fn new<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<Self> {
-        parse::pkgdep(s, eapi.into_eapi()?)
+        parse::dep(s, eapi.into_eapi()?)
     }
 
-    /// Create a new PkgDep from a given CPV string (e.g. cat/pkg-1).
+    /// Create a new Dep from a given CPV string (e.g. cat/pkg-1).
     pub fn new_cpv(s: &str) -> crate::Result<Self> {
         parse::cpv(s)
     }
@@ -295,7 +295,7 @@ impl PkgDep {
     }
 
     /// Return a key value used to implement various traits, e.g. Eq, Hash, etc.
-    fn key(&self) -> PkgDepKey {
+    fn key(&self) -> DepKey {
         (
             self.category(),
             self.package(),
@@ -310,7 +310,7 @@ impl PkgDep {
     }
 }
 
-impl fmt::Display for PkgDep {
+impl fmt::Display for Dep {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // append blocker
         if let Some(blocker) = self.blocker {
@@ -356,23 +356,23 @@ impl fmt::Display for PkgDep {
     }
 }
 
-impl Ord for PkgDep {
+impl Ord for Dep {
     fn cmp(&self, other: &Self) -> Ordering {
         self.key().cmp(&other.key())
     }
 }
 
-impl PartialOrd for PkgDep {
+impl PartialOrd for Dep {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl FromStr for PkgDep {
+impl FromStr for Dep {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        PkgDep::new(s, &*EAPI_PKGCRAFT)
+        Dep::new(s, &*EAPI_PKGCRAFT)
     }
 }
 
@@ -380,14 +380,14 @@ impl FromStr for PkgDep {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
-    use crate::test::{PkgDepToml, VersionToml};
+    use crate::test::{DepToml, VersionToml};
     use crate::utils::hash;
 
     use super::*;
 
     #[test]
     fn test_to_string() {
-        let mut dep: PkgDep;
+        let mut dep: Dep;
         for s in [
             "cat/pkg",
             "<cat/pkg-4",
@@ -403,21 +403,21 @@ mod tests {
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
-            dep = PkgDep::from_str(s).unwrap();
+            dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.to_string(), s);
         }
 
         // Package dependencies with certain use flag patterns aren't returned 1 to 1 since use
         // flags are sorted into an ordered set for equivalency purposes.
         for (s, expected) in [("cat/pkg[u,u]", "cat/pkg[u]"), ("cat/pkg[b,a]", "cat/pkg[a,b]")] {
-            dep = PkgDep::from_str(s).unwrap();
+            dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.to_string(), expected);
         }
     }
 
     #[test]
     fn test_cpn() {
-        let mut dep: PkgDep;
+        let mut dep: Dep;
         for (s, key) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg"),
@@ -428,14 +428,14 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
             (">cat/pkg-4-r1:0=", "cat/pkg"),
         ] {
-            dep = PkgDep::from_str(s).unwrap();
+            dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.cpn(), key);
         }
     }
 
     #[test]
     fn test_version() {
-        let mut dep: PkgDep;
+        let mut dep: Dep;
         for (s, version) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", Some("<4")),
@@ -446,7 +446,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(">=2-r3")),
             (">cat/pkg-4-r1:0=", Some(">4-r1")),
         ] {
-            dep = PkgDep::from_str(s).unwrap();
+            dep = Dep::from_str(s).unwrap();
             let version = version.map(|s| parse::version_with_op(s).unwrap());
             assert_eq!(dep.version(), version.as_ref());
         }
@@ -454,7 +454,7 @@ mod tests {
 
     #[test]
     fn test_revision() {
-        let mut dep: PkgDep;
+        let mut dep: Dep;
         for (s, revision) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", None),
@@ -463,7 +463,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some("3")),
             (">cat/pkg-4-r1:0=", Some("1")),
         ] {
-            dep = PkgDep::from_str(s).unwrap();
+            dep = Dep::from_str(s).unwrap();
             let revision = revision.map(|s| Revision::from_str(s).unwrap());
             assert_eq!(dep.revision(), revision.as_ref(), "{s} failed");
         }
@@ -481,14 +481,14 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(Operator::GreaterOrEqual)),
             (">cat/pkg-4-r1:0=", Some(Operator::Greater)),
         ] {
-            let dep = PkgDep::from_str(s).unwrap();
+            let dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.op(), op);
         }
     }
 
     #[test]
     fn test_cpv() {
-        let mut dep: PkgDep;
+        let mut dep: Dep;
         for (s, cpv) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg-4"),
@@ -499,7 +499,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
             (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
         ] {
-            dep = PkgDep::from_str(s).unwrap();
+            dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.cpv(), cpv);
         }
     }
@@ -511,10 +511,10 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        let data = PkgDepToml::load().unwrap();
+        let data = DepToml::load().unwrap();
         for (expr, (s1, op, s2)) in data.compares() {
-            let a1 = PkgDep::from_str(s1).unwrap();
-            let a2 = PkgDep::from_str(s2).unwrap();
+            let a1 = Dep::from_str(s1).unwrap();
+            let a2 = Dep::from_str(s2).unwrap();
             if op == "!=" {
                 assert_ne!(a1, a2, "failed comparing {expr}");
                 assert_ne!(a2, a1, "failed comparing {expr}");
@@ -534,9 +534,8 @@ mod tests {
 
     #[test]
     fn test_intersects() {
-        // convert string to CPV falling back to regular PkgDep
-        let parse =
-            |s: &str| -> PkgDep { PkgDep::new_cpv(s).or_else(|_| PkgDep::from_str(s)).unwrap() };
+        // convert string to CPV falling back to regular Dep
+        let parse = |s: &str| -> Dep { Dep::new_cpv(s).or_else(|_| Dep::from_str(s)).unwrap() };
 
         // convert string to non-op version falling back to op-ed version
         let ver_parse = |s: &str| -> Version {
@@ -545,9 +544,9 @@ mod tests {
                 .unwrap()
         };
 
-        // inject version intersects data from version.toml into PkgDep objects
+        // inject version intersects data from version.toml into Dep objects
         let data = VersionToml::load().unwrap();
-        let a = PkgDep::from_str("a/b").unwrap();
+        let a = Dep::from_str("a/b").unwrap();
         for d in data.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
@@ -569,7 +568,7 @@ mod tests {
             }
         }
 
-        let data = PkgDepToml::load().unwrap();
+        let data = DepToml::load().unwrap();
         for d in data.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
@@ -592,12 +591,12 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let data = PkgDepToml::load().unwrap();
+        let data = DepToml::load().unwrap();
         for d in data.sorting {
             let mut reversed: Vec<_> = d
                 .sorted
                 .iter()
-                .map(|s| PkgDep::from_str(s).unwrap())
+                .map(|s| Dep::from_str(s).unwrap())
                 .rev()
                 .collect();
             reversed.sort();
@@ -617,7 +616,7 @@ mod tests {
             let set: HashSet<_> = d
                 .versions
                 .iter()
-                .map(|s| PkgDep::from_str(&format!("=cat/pkg-{s}")).unwrap())
+                .map(|s| Dep::from_str(&format!("=cat/pkg-{s}")).unwrap())
                 .collect();
             if d.equal {
                 assert_eq!(set.len(), 1, "failed hashing deps: {set:?}");

@@ -1,4 +1,4 @@
-use crate::dep::{DepSet, Flatten, PkgDep, Uri};
+use crate::dep::{Dep, DepSet, Flatten, Uri};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
@@ -9,8 +9,8 @@ pub enum Restrict<T> {
 }
 
 // TODO: combine these Restriction implementations using generics
-impl Restriction<&DepSet<PkgDep>> for Restrict<DepRestrict> {
-    fn matches(&self, val: &DepSet<PkgDep>) -> bool {
+impl Restriction<&DepSet<Dep>> for Restrict<DepRestrict> {
+    fn matches(&self, val: &DepSet<Dep>) -> bool {
         match self {
             Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }

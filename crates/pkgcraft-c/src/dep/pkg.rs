@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int, CStr, CString};
 use std::ptr;
 use std::str::FromStr;
 
-use pkgcraft::dep::{Blocker, PkgDep, SlotOperator, Version};
+use pkgcraft::dep::{Blocker, Dep, SlotOperator, Version};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
@@ -19,11 +19,11 @@ use crate::utils::str_to_raw;
 /// # Safety
 /// The eapi argument may be NULL to use the default EAPI.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_new(s: *const c_char, eapi: *const Eapi) -> *mut PkgDep {
+pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -> *mut Dep {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
     let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
-    let dep = unwrap_or_return!(PkgDep::new(s, eapi), ptr::null_mut());
+    let dep = unwrap_or_return!(Dep::new(s, eapi), ptr::null_mut());
     Box::into_raw(Box::new(dep))
 }
 
@@ -34,10 +34,10 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_new(s: *const c_char, eapi: *const Eapi
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut PkgDep {
+pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Dep {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let cpv = unwrap_or_return!(PkgDep::new_cpv(s), ptr::null_mut());
+    let cpv = unwrap_or_return!(Dep::new_cpv(s), ptr::null_mut());
     Box::into_raw(Box::new(cpv))
 }
 
@@ -46,7 +46,7 @@ pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut PkgDep {
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_blocker_from_str(s: *const c_char) -> Blocker {
+pub unsafe extern "C" fn pkgcraft_dep_blocker_from_str(s: *const c_char) -> Blocker {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), Blocker::NONE) };
     Blocker::from_str(s).unwrap_or_default()
@@ -54,7 +54,7 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_blocker_from_str(s: *const c_char) -> B
 
 /// Return the string for a Blocker.
 #[no_mangle]
-pub extern "C" fn pkgcraft_pkgdep_blocker_str(b: Blocker) -> *mut c_char {
+pub extern "C" fn pkgcraft_dep_blocker_str(b: Blocker) -> *mut c_char {
     CString::new(b.as_ref()).unwrap().into_raw()
 }
 
@@ -63,7 +63,7 @@ pub extern "C" fn pkgcraft_pkgdep_blocker_str(b: Blocker) -> *mut c_char {
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_slot_op_from_str(s: *const c_char) -> SlotOperator {
+pub unsafe extern "C" fn pkgcraft_dep_slot_op_from_str(s: *const c_char) -> SlotOperator {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), SlotOperator::NONE) };
     SlotOperator::from_str(s).unwrap_or_default()
@@ -71,7 +71,7 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_slot_op_from_str(s: *const c_char) -> S
 
 /// Return the string for a SlotOperator.
 #[no_mangle]
-pub extern "C" fn pkgcraft_pkgdep_slot_op_str(op: SlotOperator) -> *mut c_char {
+pub extern "C" fn pkgcraft_dep_slot_op_str(op: SlotOperator) -> *mut c_char {
     CString::new(op.as_ref()).unwrap().into_raw()
 }
 
@@ -79,9 +79,9 @@ pub extern "C" fn pkgcraft_pkgdep_slot_op_str(op: SlotOperator) -> *mut c_char {
 /// greater than the second, respectively.
 ///
 /// # Safety
-/// The arguments must be non-null PkgDep pointers.
+/// The arguments must be non-null Dep pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_cmp(d1: *mut PkgDep, d2: *mut PkgDep) -> c_int {
+pub unsafe extern "C" fn pkgcraft_dep_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
     let d1 = null_ptr_check!(d1.as_ref());
     let d2 = null_ptr_check!(d2.as_ref());
 
@@ -95,9 +95,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_cmp(d1: *mut PkgDep, d2: *mut PkgDep) -
 /// Determine if two package dependencies intersect.
 ///
 /// # Safety
-/// The arguments must be non-null PkgDep pointers.
+/// The arguments must be non-null Dep pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_intersects(d1: *mut PkgDep, d2: *mut PkgDep) -> bool {
+pub unsafe extern "C" fn pkgcraft_dep_intersects(d1: *mut Dep, d2: *mut Dep) -> bool {
     let d1 = null_ptr_check!(d1.as_ref());
     let d2 = null_ptr_check!(d2.as_ref());
     d1.intersects(d2)
@@ -107,9 +107,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_intersects(d1: *mut PkgDep, d2: *mut Pk
 /// For example, the package dependency "=cat/pkg-1-r2" returns "cat".
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_category(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_category(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     CString::new(dep.category()).unwrap().into_raw()
 }
@@ -118,9 +118,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_category(d: *mut PkgDep) -> *mut c_char
 /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg".
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_package(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_package(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     CString::new(dep.package()).unwrap().into_raw()
 }
@@ -129,9 +129,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_package(d: *mut PkgDep) -> *mut c_char 
 /// For example, the package dependency "!cat/pkg" has a weak blocker.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_blocker(d: *mut PkgDep) -> Blocker {
+pub unsafe extern "C" fn pkgcraft_dep_blocker(d: *mut Dep) -> Blocker {
     let dep = null_ptr_check!(d.as_ref());
     dep.blocker().unwrap_or_default()
 }
@@ -142,9 +142,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_blocker(d: *mut PkgDep) -> Blocker {
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_version(d: *mut PkgDep) -> *mut Version {
+pub unsafe extern "C" fn pkgcraft_dep_version(d: *mut Dep) -> *mut Version {
     let dep = null_ptr_check!(d.as_ref());
     match dep.version() {
         None => ptr::null_mut(),
@@ -158,9 +158,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_version(d: *mut PkgDep) -> *mut Version
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_revision(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_revision(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     match dep.revision() {
         None => ptr::null_mut(),
@@ -174,9 +174,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_revision(d: *mut PkgDep) -> *mut c_char
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_slot(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_slot(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     match dep.slot() {
         None => ptr::null_mut(),
@@ -190,9 +190,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_slot(d: *mut PkgDep) -> *mut c_char {
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_subslot(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_subslot(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     match dep.subslot() {
         None => ptr::null_mut(),
@@ -204,9 +204,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_subslot(d: *mut PkgDep) -> *mut c_char 
 /// For example, the package dependency "=cat/pkg-1-r2:0=" has an equal slot operator.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_slot_op(d: *mut PkgDep) -> SlotOperator {
+pub unsafe extern "C" fn pkgcraft_dep_slot_op(d: *mut Dep) -> SlotOperator {
     let dep = null_ptr_check!(d.as_ref());
     dep.slot_op().unwrap_or_default()
 }
@@ -217,12 +217,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_slot_op(d: *mut PkgDep) -> SlotOperator
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_use_deps(
-    d: *mut PkgDep,
-    len: *mut usize,
-) -> *mut *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_use_deps(d: *mut Dep, len: *mut usize) -> *mut *mut c_char {
     // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
     let dep = null_ptr_check!(d.as_ref());
     match dep.use_deps() {
@@ -237,9 +234,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_use_deps(
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_repo(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_repo(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     match dep.repo() {
         None => ptr::null_mut(),
@@ -251,9 +248,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_repo(d: *mut PkgDep) -> *mut c_char {
 /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg-1".
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_p(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_p(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     CString::new(dep.p()).unwrap().into_raw()
 }
@@ -262,9 +259,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_p(d: *mut PkgDep) -> *mut c_char {
 /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg-1-r2".
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_pf(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_pf(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     CString::new(dep.pf()).unwrap().into_raw()
 }
@@ -275,9 +272,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_pf(d: *mut PkgDep) -> *mut c_char {
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_pr(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_pr(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     match dep.pr().as_str() {
         "" => ptr::null_mut(),
@@ -291,9 +288,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_pr(d: *mut PkgDep) -> *mut c_char {
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_pv(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_pv(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     match dep.pv().as_str() {
         "" => ptr::null_mut(),
@@ -307,9 +304,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_pv(d: *mut PkgDep) -> *mut c_char {
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_pvr(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_pvr(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     match dep.pvr().as_str() {
         "" => ptr::null_mut(),
@@ -321,9 +318,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_pvr(d: *mut PkgDep) -> *mut c_char {
 /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg".
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_cpn(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_cpn(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     CString::new(dep.cpn()).unwrap().into_raw()
 }
@@ -332,9 +329,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_cpn(d: *mut PkgDep) -> *mut c_char {
 /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_cpv(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_cpv(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     CString::new(dep.cpv()).unwrap().into_raw()
 }
@@ -342,9 +339,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_cpv(d: *mut PkgDep) -> *mut c_char {
 /// Return the string for a package dependency.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_str(d: *mut PkgDep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_str(d: *mut Dep) -> *mut c_char {
     let dep = null_ptr_check!(d.as_ref());
     CString::new(dep.to_string()).unwrap().into_raw()
 }
@@ -352,9 +349,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_str(d: *mut PkgDep) -> *mut c_char {
 /// Return the hash value for a package dependency.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_hash(d: *mut PkgDep) -> u64 {
+pub unsafe extern "C" fn pkgcraft_dep_hash(d: *mut Dep) -> u64 {
     let dep = null_ptr_check!(d.as_ref());
     hash(dep)
 }
@@ -362,9 +359,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_hash(d: *mut PkgDep) -> u64 {
 /// Return the restriction for a package dependency.
 ///
 /// # Safety
-/// The argument must be a non-null PkgDep pointer.
+/// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_restrict(d: *mut PkgDep) -> *mut Restrict {
+pub unsafe extern "C" fn pkgcraft_dep_restrict(d: *mut Dep) -> *mut Restrict {
     let dep = null_ptr_check!(d.as_ref());
     Box::into_raw(Box::new(dep.into()))
 }
@@ -372,12 +369,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_restrict(d: *mut PkgDep) -> *mut Restri
 /// Determine if a restriction matches a package dependency.
 ///
 /// # Safety
-/// The arguments must be valid Restrict and PkgDep pointers.
+/// The arguments must be valid Restrict and Dep pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_restrict_matches(
-    d: *mut PkgDep,
-    r: *mut Restrict,
-) -> bool {
+pub unsafe extern "C" fn pkgcraft_dep_restrict_matches(d: *mut Dep, r: *mut Restrict) -> bool {
     let dep = null_ptr_check!(d.as_ref());
     let restrict = null_ptr_check!(r.as_ref());
     restrict.matches(dep)
@@ -386,9 +380,9 @@ pub unsafe extern "C" fn pkgcraft_pkgdep_restrict_matches(
 /// Free a package dependency.
 ///
 /// # Safety
-/// The argument must be a PkgDep pointer or NULL.
+/// The argument must be a Dep pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkgdep_free(d: *mut PkgDep) {
+pub unsafe extern "C" fn pkgcraft_dep_free(d: *mut Dep) {
     if !d.is_null() {
         unsafe { drop(Box::from_raw(d)) };
     }

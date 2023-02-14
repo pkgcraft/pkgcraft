@@ -2,7 +2,7 @@ use std::fmt;
 
 use enum_as_inner::EnumAsInner;
 
-use crate::dep::{PkgDep, Version};
+use crate::dep::{Dep, Version};
 use crate::eapi;
 use crate::repo::{Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -31,7 +31,7 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     fn repo(&self) -> Self::Repo;
 
     /// Return a package's CPV.
-    fn cpv(&self) -> &PkgDep;
+    fn cpv(&self) -> &Dep;
 
     /// Return a package's version.
     fn version(&self) -> &Version {
@@ -90,7 +90,7 @@ pub(self) use make_pkg_traits;
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn cpv(&self) -> &PkgDep {
+    fn cpv(&self) -> &Dep {
         match self {
             Self::Ebuild(pkg, _) => pkg.cpv(),
             Self::Fake(pkg, _) => pkg.cpv(),

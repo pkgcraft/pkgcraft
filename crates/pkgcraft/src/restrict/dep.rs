@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::dep::{Blocker, PkgDep, Version};
+use crate::dep::{Blocker, Dep, Version};
 
 use super::set::OrderedSetRestrict;
 use super::str::Restrict as StrRestrict;
@@ -60,8 +60,8 @@ impl Restrict {
     }
 }
 
-impl Restriction<&PkgDep> for Restrict {
-    fn matches(&self, dep: &PkgDep) -> bool {
+impl Restriction<&Dep> for Restrict {
+    fn matches(&self, dep: &Dep) -> bool {
         use self::Restrict::*;
         match self {
             Category(r) => r.matches(dep.category()),
@@ -107,16 +107,16 @@ impl From<Restrict> for BaseRestrict {
     }
 }
 
-impl Restriction<&PkgDep> for BaseRestrict {
-    fn matches(&self, dep: &PkgDep) -> bool {
+impl Restriction<&Dep> for BaseRestrict {
+    fn matches(&self, dep: &Dep) -> bool {
         crate::restrict::restrict_match! {self, dep,
             Self::Dep(r) => r.matches(dep),
         }
     }
 }
 
-impl From<&PkgDep> for BaseRestrict {
-    fn from(dep: &PkgDep) -> Self {
+impl From<&Dep> for BaseRestrict {
+    fn from(dep: &Dep) -> Self {
         let mut restricts = vec![
             Restrict::category(dep.category()),
             Restrict::package(dep.package()),
@@ -153,10 +153,10 @@ mod tests {
 
     #[test]
     fn test_restrict_methods() {
-        let unversioned = PkgDep::from_str("cat/pkg").unwrap();
-        let blocker = PkgDep::from_str("!cat/pkg").unwrap();
-        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
-        let full = PkgDep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+        let unversioned = Dep::from_str("cat/pkg").unwrap();
+        let blocker = Dep::from_str("!cat/pkg").unwrap();
+        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
+        let full = Dep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
         let r = Restrict::category("cat");
@@ -259,9 +259,9 @@ mod tests {
 
     #[test]
     fn test_restrict_conversion() {
-        let unversioned = PkgDep::from_str("cat/pkg").unwrap();
-        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
-        let full = PkgDep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+        let unversioned = Dep::from_str("cat/pkg").unwrap();
+        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
+        let full = Dep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // unversioned restriction
         let r = BaseRestrict::from(&unversioned);
@@ -284,16 +284,16 @@ mod tests {
 
     #[test]
     fn test_restrict_versions() {
-        let lt = PkgDep::from_str("<cat/pkg-1-r1").unwrap();
-        let le = PkgDep::from_str("<=cat/pkg-1-r1").unwrap();
-        let eq = PkgDep::from_str("=cat/pkg-1-r1").unwrap();
-        let eq_glob = PkgDep::from_str("=cat/pkg-1*").unwrap();
-        let approx = PkgDep::from_str("~cat/pkg-1").unwrap();
-        let ge = PkgDep::from_str(">=cat/pkg-1-r1").unwrap();
-        let gt = PkgDep::from_str(">cat/pkg-1-r1").unwrap();
+        let lt = Dep::from_str("<cat/pkg-1-r1").unwrap();
+        let le = Dep::from_str("<=cat/pkg-1-r1").unwrap();
+        let eq = Dep::from_str("=cat/pkg-1-r1").unwrap();
+        let eq_glob = Dep::from_str("=cat/pkg-1*").unwrap();
+        let approx = Dep::from_str("~cat/pkg-1").unwrap();
+        let ge = Dep::from_str(">=cat/pkg-1-r1").unwrap();
+        let gt = Dep::from_str(">cat/pkg-1-r1").unwrap();
 
-        let lt_cpv = PkgDep::new_cpv("cat/pkg-0").unwrap();
-        let gt_cpv = PkgDep::new_cpv("cat/pkg-2").unwrap();
+        let lt_cpv = Dep::new_cpv("cat/pkg-0").unwrap();
+        let gt_cpv = Dep::new_cpv("cat/pkg-2").unwrap();
 
         let r = BaseRestrict::from(&lt);
         assert!(r.matches(&lt_cpv));
@@ -314,7 +314,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&eq_glob));
         for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
-            let cpv = PkgDep::new_cpv(s).unwrap();
+            let cpv = Dep::new_cpv(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));
@@ -322,7 +322,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&approx));
         for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
-            let cpv = PkgDep::new_cpv(s).unwrap();
+            let cpv = Dep::new_cpv(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));

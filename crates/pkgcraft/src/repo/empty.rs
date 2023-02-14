@@ -107,7 +107,7 @@ impl Repository for Repo {
 mod tests {
     use std::str::FromStr;
 
-    use crate::dep::PkgDep;
+    use crate::dep::Dep;
     use crate::repo::Contains;
 
     use super::*;
@@ -120,11 +120,11 @@ mod tests {
         assert!(!repo.contains("cat/pkg"));
 
         // versioned dep
-        let cpv = PkgDep::new_cpv("cat/pkg-0").unwrap();
+        let cpv = Dep::new_cpv("cat/pkg-0").unwrap();
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let a = PkgDep::from_str("cat/pkg").unwrap();
+        let a = Dep::from_str("cat/pkg").unwrap();
         assert!(!repo.contains(&a));
     }
 

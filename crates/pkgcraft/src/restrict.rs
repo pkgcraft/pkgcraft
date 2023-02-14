@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::pkg::Restrict as PkgRestrict;
+use crate::restrict::dep::Restrict as DepRestrict;
 
 pub(crate) mod boolean;
 pub mod dep;
@@ -16,7 +17,7 @@ boolean::restrict_with_boolean! {Restrict,
     False,
 
     // object attributes
-    Dep(dep::Restrict),
+    Dep(DepRestrict),
     Pkg(PkgRestrict),
 
     // strings
@@ -80,19 +81,16 @@ impl Restriction<&str> for Restrict {
 mod tests {
     use std::str::FromStr;
 
-    use crate::dep::PkgDep;
+    use crate::dep::Dep;
 
     use super::*;
 
     #[test]
     fn test_filtering() {
         let dep_strs = vec!["cat/pkg", ">=cat/pkg-1", "=cat/pkg-1:2/3::repo"];
-        let deps: Vec<PkgDep> = dep_strs
-            .iter()
-            .map(|s| PkgDep::from_str(s).unwrap())
-            .collect();
+        let deps: Vec<Dep> = dep_strs.iter().map(|s| Dep::from_str(s).unwrap()).collect();
 
-        let filter = |r: Restrict, deps: Vec<PkgDep>| -> Vec<String> {
+        let filter = |r: Restrict, deps: Vec<Dep>| -> Vec<String> {
             deps.into_iter()
                 .filter(|a| r.matches(a))
                 .map(|a| a.to_string())
@@ -105,7 +103,7 @@ mod tests {
         let r = Restrict::Dep(dep::Restrict::Version(None));
         assert_eq!(filter(r, deps.clone()), ["cat/pkg"]);
 
-        let cpv = PkgDep::from_str("=cat/pkg-1").unwrap();
+        let cpv = Dep::from_str("=cat/pkg-1").unwrap();
         let r = Restrict::from(&cpv);
         assert_eq!(filter(r, deps.clone()), [">=cat/pkg-1", "=cat/pkg-1:2/3::repo"]);
 

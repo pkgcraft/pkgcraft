@@ -13,7 +13,7 @@ use regex::{escape, Regex, RegexBuilder};
 use strum::EnumString;
 
 use crate::archive::Archive;
-use crate::dep::PkgDep;
+use crate::dep::Dep;
 use crate::pkgsh::builtins::{
     BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
 };
@@ -211,8 +211,8 @@ impl Eapi {
 
     /// Parse a package depedency using EAPI specific support.
     #[inline]
-    pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<PkgDep> {
-        PkgDep::new(s.as_ref(), self)
+    pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<Dep> {
+        Dep::new(s.as_ref(), self)
     }
 
     pub(crate) fn phases(&self) -> &HashSet<Phase> {

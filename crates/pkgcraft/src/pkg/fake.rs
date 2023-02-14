@@ -1,4 +1,4 @@
-use crate::dep::PkgDep;
+use crate::dep::Dep;
 use crate::eapi::{Eapi, EAPI_LATEST};
 use crate::pkg;
 use crate::repo::{fake::Repo, Repository};
@@ -9,14 +9,14 @@ use super::{make_pkg_traits, Package};
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
-    cpv: PkgDep,
+    cpv: Dep,
     repo: &'a Repo,
 }
 
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(cpv: &'a PkgDep, repo: &'a Repo) -> Self {
+    pub(crate) fn new(cpv: &'a Dep, repo: &'a Repo) -> Self {
         Self { cpv: cpv.clone(), repo }
     }
 }
@@ -24,7 +24,7 @@ impl<'a> Pkg<'a> {
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn cpv(&self) -> &PkgDep {
+    fn cpv(&self) -> &Dep {
         &self.cpv
     }
 

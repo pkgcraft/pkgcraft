@@ -6,7 +6,7 @@ use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
 use crate::config::RepoConfig;
-use crate::dep::PkgDep;
+use crate::dep::Dep;
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::Error;
@@ -21,7 +21,7 @@ pub struct Repo {
     id: String,
     repo_config: RepoConfig,
     pkgmap: PkgMap,
-    cpvs: IndexSet<PkgDep>,
+    cpvs: IndexSet<Dep>,
 }
 
 make_repo_traits!(Repo);
@@ -68,7 +68,7 @@ impl<'a> Extend<&'a str> for Repo {
     fn extend<T: IntoIterator<Item = &'a str>>(&mut self, iter: T) {
         let orig_len = self.cpvs.len();
         for s in iter {
-            match PkgDep::new_cpv(s) {
+            match Dep::new_cpv(s) {
                 Ok(cpv) => {
                     self.cpvs.insert(cpv);
                 }
@@ -177,7 +177,7 @@ impl<'a> IntoIterator for &'a Repo {
 
 #[derive(Debug)]
 pub struct Iter<'a> {
-    iter: indexmap::set::Iter<'a, PkgDep>,
+    iter: indexmap::set::Iter<'a, Dep>,
     repo: &'a Repo,
 }
 
@@ -296,15 +296,15 @@ mod tests {
         assert!(!repo.contains("cat/pkg"));
 
         // versioned dep
-        let cpv = PkgDep::new_cpv("cat/pkg-0").unwrap();
+        let cpv = Dep::new_cpv("cat/pkg-0").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
+        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let a = PkgDep::from_str("cat/pkg").unwrap();
+        let a = Dep::from_str("cat/pkg").unwrap();
         assert!(repo.contains(&a));
-        let a = PkgDep::from_str("cat/pkg-a").unwrap();
+        let a = Dep::from_str("cat/pkg-a").unwrap();
         assert!(!repo.contains(&a));
     }
 

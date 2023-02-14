@@ -1,8 +1,8 @@
 pub mod parse;
-pub mod pkg;
-pub mod set;
+pub(crate) mod pkg;
+pub mod spec;
 pub mod version;
 
-pub use pkg::{Blocker, PkgDep, SlotOperator};
-pub use set::{Dep, DepSet, Flatten, Recursive, Uri};
+pub use pkg::{Blocker, Dep, SlotOperator};
+pub use spec::{DepSet, DepSpec, Flatten, Recursive, Uri};
 pub use version::{Operator, Revision, Version};

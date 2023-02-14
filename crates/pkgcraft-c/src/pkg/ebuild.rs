@@ -5,7 +5,7 @@ use std::{mem, ptr, slice};
 use pkgcraft::pkg::Pkg;
 use pkgcraft::pkgsh::Key;
 
-use crate::dep::set::{DepSet, DepSetKind};
+use crate::dep::spec::{DepSet, DepSetKind};
 use crate::error::Error;
 use crate::macros::*;
 use crate::utils::str_to_raw;

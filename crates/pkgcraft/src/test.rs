@@ -28,7 +28,7 @@ fn initialize() {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-pub(crate) struct ValidPkgDep {
+pub(crate) struct ValidDep {
     pub(crate) dep: String,
     pub(crate) eapis: String,
     pub(crate) category: String,
@@ -79,17 +79,17 @@ pub(crate) struct Sorted {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PkgDepToml {
-    pub(crate) valid: Vec<ValidPkgDep>,
+pub(crate) struct DepToml {
+    pub(crate) valid: Vec<ValidDep>,
     pub(crate) invalid: Vec<String>,
     compares: Vec<String>,
     pub(crate) intersects: Vec<Intersects>,
     pub(crate) sorting: Vec<Sorted>,
 }
 
-impl PkgDepToml {
+impl DepToml {
     pub(crate) fn load() -> crate::Result<Self> {
-        let path = TOML_DATA_DIR.join("pkgdep.toml");
+        let path = TOML_DATA_DIR.join("dep.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))

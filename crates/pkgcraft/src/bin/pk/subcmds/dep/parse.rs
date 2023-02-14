@@ -5,7 +5,7 @@ use std::str::FromStr;
 use anyhow::bail;
 use clap::Args;
 use is_terminal::IsTerminal;
-use pkgcraft::dep::PkgDep;
+use pkgcraft::dep::Dep;
 use strum::{Display, EnumIter, EnumString};
 
 use crate::format::{EnumVariable, FormatString};
@@ -50,9 +50,9 @@ pub enum Key {
 }
 
 impl EnumVariable for Key {
-    type Object = PkgDep;
+    type Object = Dep;
 
-    fn value(&self, dep: &PkgDep) -> String {
+    fn value(&self, dep: &Dep) -> String {
         use Key::*;
         match self {
             BLOCKER => dep.blocker().map(|x| x.to_string()).unwrap_or_default(),
@@ -76,7 +76,7 @@ impl EnumVariable for Key {
 }
 
 impl FormatString for Parse {
-    type Object = PkgDep;
+    type Object = Dep;
     type FormatKey = Key;
 }
 
@@ -84,8 +84,8 @@ impl Parse {
     fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
         // parse dep, falling back to cpv if no EAPI was specified
         let dep = match &self.eapi {
-            Some(eapi) => PkgDep::new(s, eapi.as_str()),
-            None => PkgDep::from_str(s).or_else(|_| PkgDep::new_cpv(s)),
+            Some(eapi) => Dep::new(s, eapi.as_str()),
+            None => Dep::from_str(s).or_else(|_| Dep::new_cpv(s)),
         }?;
 
         // output formatted string if specified

@@ -1,7 +1,7 @@
 use std::ffi::{c_char, CStr};
 use std::ptr;
 
-use pkgcraft::dep::{parse, PkgDep, Version};
+use pkgcraft::dep::{parse, Dep, Version};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 
 use crate::macros::*;
@@ -13,14 +13,11 @@ use crate::macros::*;
 /// # Safety
 /// The eapi argument may be NULL to use the default EAPI.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_parse_pkgdep(
-    s: *const c_char,
-    eapi: *const Eapi,
-) -> *const c_char {
+pub unsafe extern "C" fn pkgcraft_parse_dep(s: *const c_char, eapi: *const Eapi) -> *const c_char {
     let val = null_ptr_check!(s.as_ref());
     let val = unsafe { unwrap_or_return!(CStr::from_ptr(val).to_str(), ptr::null()) };
     let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null());
-    unwrap_or_return!(PkgDep::valid(val, eapi), ptr::null());
+    unwrap_or_return!(Dep::valid(val, eapi), ptr::null());
     s
 }
 
@@ -90,6 +87,6 @@ pub unsafe extern "C" fn pkgcraft_parse_repo(s: *const c_char) -> *const c_char 
 pub unsafe extern "C" fn pkgcraft_parse_cpv(s: *const c_char) -> *const c_char {
     let val = null_ptr_check!(s.as_ref());
     let val = unsafe { unwrap_or_return!(CStr::from_ptr(val).to_str(), ptr::null()) };
-    unwrap_or_return!(PkgDep::valid_cpv(val), ptr::null());
+    unwrap_or_return!(Dep::valid_cpv(val), ptr::null());
     s
 }

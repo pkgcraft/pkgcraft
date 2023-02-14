@@ -1,3 +1,3 @@
 pub mod pkg;
-pub mod set;
+pub mod spec;
 pub mod version;

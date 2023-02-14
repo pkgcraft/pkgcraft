@@ -4,18 +4,18 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{fmt, ptr};
 
-use pkgcraft::dep::{self, Flatten, PkgDep, Recursive, Uri};
+use pkgcraft::dep::{self, Dep, Flatten, Recursive, Uri};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 use pkgcraft::set::Ordered;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
 
-/// DepSet flattened unit variants.
+/// DepSpec unit variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
-pub enum DepUnit {
-    PkgDep,
+pub enum DepSpecUnit {
+    Dep,
     String,
     Uri,
 }
@@ -32,10 +32,10 @@ pub enum DepSetKind {
     License,
 }
 
-/// Opaque wrapper for DepSet objects.
+/// Opaque wrapper for pkgcraft::dep::DepSet.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DepSetW {
-    PkgDep(dep::DepSet<PkgDep>),
+    Dep(dep::DepSet<Dep>),
     String(dep::DepSet<String>),
     Uri(dep::DepSet<Uri>),
 }
@@ -43,18 +43,18 @@ pub enum DepSetW {
 impl fmt::Display for DepSetW {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::PkgDep(d) => write!(f, "{d}"),
+            Self::Dep(d) => write!(f, "{d}"),
             Self::String(d) => write!(f, "{d}"),
             Self::Uri(d) => write!(f, "{d}"),
         }
     }
 }
 
-/// C-compatible wrapper for DepSet objects.
+/// C-compatible wrapper for pkgcraft::dep::DepSet.
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct DepSet {
-    unit: DepUnit,
+    unit: DepSpecUnit,
     kind: DepSetKind,
     dep: *mut DepSetW,
 }
@@ -68,17 +68,17 @@ impl Drop for DepSet {
 }
 
 impl DepSet {
-    pub(crate) fn new_dep(d: dep::DepSet<PkgDep>) -> Self {
+    pub(crate) fn new_dep(d: dep::DepSet<Dep>) -> Self {
         Self {
-            unit: DepUnit::PkgDep,
+            unit: DepSpecUnit::Dep,
             kind: DepSetKind::Dependencies,
-            dep: Box::into_raw(Box::new(DepSetW::PkgDep(d))),
+            dep: Box::into_raw(Box::new(DepSetW::Dep(d))),
         }
     }
 
     pub(crate) fn new_string(d: dep::DepSet<String>, kind: DepSetKind) -> Self {
         Self {
-            unit: DepUnit::String,
+            unit: DepSpecUnit::String,
             kind,
             dep: Box::into_raw(Box::new(DepSetW::String(d))),
         }
@@ -86,7 +86,7 @@ impl DepSet {
 
     pub(crate) fn new_uri(d: dep::DepSet<Uri>) -> Self {
         Self {
-            unit: DepUnit::Uri,
+            unit: DepSpecUnit::Uri,
             kind: DepSetKind::SrcUri,
             dep: Box::into_raw(Box::new(DepSetW::Uri(d))),
         }
@@ -121,48 +121,48 @@ impl fmt::Display for DepSet {
     }
 }
 
-/// Opaque wrapper for DepSet iterators.
+/// Opaque wrapper for pkgcraft::dep::spec::IntoIter<T>.
 #[derive(Debug)]
-pub enum DepSetIntoIter {
-    PkgDep(dep::set::IntoIter<PkgDep>),
-    String(dep::set::IntoIter<String>),
-    Uri(dep::set::IntoIter<Uri>),
+pub enum DepSpecIntoIter {
+    Dep(dep::spec::IntoIter<Dep>),
+    String(dep::spec::IntoIter<String>),
+    Uri(dep::spec::IntoIter<Uri>),
 }
 
-impl Iterator for DepSetIntoIter {
-    type Item = Dep;
+impl Iterator for DepSpecIntoIter {
+    type Item = DepSpec;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::PkgDep(iter) => iter.next().map(Dep::new_dep),
-            Self::String(iter) => iter.next().map(Dep::new_string),
-            Self::Uri(iter) => iter.next().map(Dep::new_uri),
+            Self::Dep(iter) => iter.next().map(DepSpec::new_dep),
+            Self::String(iter) => iter.next().map(DepSpec::new_string),
+            Self::Uri(iter) => iter.next().map(DepSpec::new_uri),
         }
     }
 }
 
-/// Opaque wrapper for Dep objects.
+/// Opaque wrapper for pkgcraft::dep::DepSpec.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DepW {
-    PkgDep(dep::Dep<PkgDep>),
-    String(dep::Dep<String>),
-    Uri(dep::Dep<Uri>),
+pub enum DepSpecW {
+    Dep(dep::DepSpec<Dep>),
+    String(dep::DepSpec<String>),
+    Uri(dep::DepSpec<Uri>),
 }
 
-impl fmt::Display for DepW {
+impl fmt::Display for DepSpecW {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::PkgDep(d) => write!(f, "{d}"),
+            Self::Dep(d) => write!(f, "{d}"),
             Self::String(d) => write!(f, "{d}"),
             Self::Uri(d) => write!(f, "{d}"),
         }
     }
 }
 
-/// Dep variants.
+/// DepSpec variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
-pub enum DepKind {
+pub enum DepSpecKind {
     Enabled,
     Disabled,
     AllOf,
@@ -173,9 +173,9 @@ pub enum DepKind {
     UseDisabled,
 }
 
-impl<T: Ordered> From<&dep::Dep<T>> for DepKind {
-    fn from(d: &dep::Dep<T>) -> Self {
-        use dep::Dep::*;
+impl<T: Ordered> From<&dep::DepSpec<T>> for DepSpecKind {
+    fn from(d: &dep::DepSpec<T>) -> Self {
+        use dep::DepSpec::*;
         match d {
             Enabled(_) => Self::Enabled,
             Disabled(_) => Self::Disabled,
@@ -189,16 +189,16 @@ impl<T: Ordered> From<&dep::Dep<T>> for DepKind {
     }
 }
 
-/// C-compatible wrapper for Dep objects.
+/// C-compatible wrapper for pkgcraft::dep::DepSpec.
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct Dep {
-    unit: DepUnit,
-    kind: DepKind,
-    dep: *mut DepW,
+pub struct DepSpec {
+    unit: DepSpecUnit,
+    kind: DepSpecKind,
+    dep: *mut DepSpecW,
 }
 
-impl Drop for Dep {
+impl Drop for DepSpec {
     fn drop(&mut self) {
         unsafe {
             drop(Box::from_raw(self.dep));
@@ -206,86 +206,86 @@ impl Drop for Dep {
     }
 }
 
-impl Dep {
-    pub(crate) fn new_dep(d: dep::Dep<PkgDep>) -> Self {
+impl DepSpec {
+    pub(crate) fn new_dep(d: dep::DepSpec<Dep>) -> Self {
         Self {
-            unit: DepUnit::PkgDep,
-            kind: DepKind::from(&d),
-            dep: Box::into_raw(Box::new(DepW::PkgDep(d))),
+            unit: DepSpecUnit::Dep,
+            kind: DepSpecKind::from(&d),
+            dep: Box::into_raw(Box::new(DepSpecW::Dep(d))),
         }
     }
 
-    pub(crate) fn new_string(d: dep::Dep<String>) -> Self {
+    pub(crate) fn new_string(d: dep::DepSpec<String>) -> Self {
         Self {
-            unit: DepUnit::String,
-            kind: DepKind::from(&d),
-            dep: Box::into_raw(Box::new(DepW::String(d))),
+            unit: DepSpecUnit::String,
+            kind: DepSpecKind::from(&d),
+            dep: Box::into_raw(Box::new(DepSpecW::String(d))),
         }
     }
 
-    pub(crate) fn new_uri(d: dep::Dep<Uri>) -> Self {
+    pub(crate) fn new_uri(d: dep::DepSpec<Uri>) -> Self {
         Self {
-            unit: DepUnit::Uri,
-            kind: DepKind::from(&d),
-            dep: Box::into_raw(Box::new(DepW::Uri(d))),
+            unit: DepSpecUnit::Uri,
+            kind: DepSpecKind::from(&d),
+            dep: Box::into_raw(Box::new(DepSpecW::Uri(d))),
         }
     }
 }
 
-impl Hash for Dep {
+impl Hash for DepSpec {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.deref().hash(state)
     }
 }
 
-impl Ord for Dep {
+impl Ord for DepSpec {
     fn cmp(&self, other: &Self) -> Ordering {
         self.deref().cmp(other.deref())
     }
 }
 
-impl PartialOrd for Dep {
+impl PartialOrd for DepSpec {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for Dep {
+impl PartialEq for DepSpec {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl Eq for Dep {}
+impl Eq for DepSpec {}
 
-impl Deref for Dep {
-    type Target = DepW;
+impl Deref for DepSpec {
+    type Target = DepSpecW;
 
     fn deref(&self) -> &Self::Target {
         null_ptr_check!(self.dep.as_ref())
     }
 }
 
-impl fmt::Display for Dep {
+impl fmt::Display for DepSpec {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.deref())
     }
 }
 
-/// Opaque wrapper for flattened DepSet iterators.
+/// Opaque wrapper for pkgcraft::dep::spec::IntoIterFlatten<T>.
 #[derive(Debug)]
-pub enum DepSetIntoIterFlatten {
-    PkgDep(dep::set::IntoIterFlatten<PkgDep>),
-    String(dep::set::IntoIterFlatten<String>),
-    Uri(dep::set::IntoIterFlatten<Uri>),
+pub enum DepSpecIntoIterFlatten {
+    Dep(dep::spec::IntoIterFlatten<Dep>),
+    String(dep::spec::IntoIterFlatten<String>),
+    Uri(dep::spec::IntoIterFlatten<Uri>),
 }
 
-impl Iterator for DepSetIntoIterFlatten {
+impl Iterator for DepSpecIntoIterFlatten {
     type Item = *mut c_void;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::PkgDep(iter) => iter
+            Self::Dep(iter) => iter
                 .next()
                 .map(|x| Box::into_raw(Box::new(x)) as *mut c_void),
             Self::String(iter) => iter
@@ -298,22 +298,22 @@ impl Iterator for DepSetIntoIterFlatten {
     }
 }
 
-/// Opaque wrapper for recursive DepSet iterators.
+/// Opaque wrapper for pkgcraft::dep::spec::IntoIterRecursive<T>.
 #[derive(Debug)]
-pub enum DepSetIntoIterRecursive {
-    PkgDep(dep::set::IntoIterRecursive<PkgDep>),
-    String(dep::set::IntoIterRecursive<String>),
-    Uri(dep::set::IntoIterRecursive<Uri>),
+pub enum DepSpecIntoIterRecursive {
+    Dep(dep::spec::IntoIterRecursive<Dep>),
+    String(dep::spec::IntoIterRecursive<String>),
+    Uri(dep::spec::IntoIterRecursive<Uri>),
 }
 
-impl Iterator for DepSetIntoIterRecursive {
-    type Item = Dep;
+impl Iterator for DepSpecIntoIterRecursive {
+    type Item = DepSpec;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::PkgDep(iter) => iter.next().map(Dep::new_dep),
-            Self::String(iter) => iter.next().map(Dep::new_string),
-            Self::Uri(iter) => iter.next().map(Dep::new_uri),
+            Self::Dep(iter) => iter.next().map(DepSpec::new_dep),
+            Self::String(iter) => iter.next().map(DepSpec::new_string),
+            Self::Uri(iter) => iter.next().map(DepSpec::new_uri),
         }
     }
 }
@@ -325,7 +325,7 @@ impl Iterator for DepSetIntoIterRecursive {
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_dependencies(
+pub unsafe extern "C" fn pkgcraft_dep_set_dependencies(
     s: *const c_char,
     eapi: *const Eapi,
 ) -> *mut DepSet {
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn pkgcraft_depset_dependencies(
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_restrict(s: *const c_char) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_dep_set_restrict(s: *const c_char) -> *mut DepSet {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
     let opt_dep = unwrap_or_return!(dep::parse::restrict(s), ptr::null_mut());
@@ -359,7 +359,7 @@ pub unsafe extern "C" fn pkgcraft_depset_restrict(s: *const c_char) -> *mut DepS
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_required_use(
+pub unsafe extern "C" fn pkgcraft_dep_set_required_use(
     s: *const c_char,
     eapi: *const Eapi,
 ) -> *mut DepSet {
@@ -378,7 +378,7 @@ pub unsafe extern "C" fn pkgcraft_depset_required_use(
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_properties(s: *const c_char) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_dep_set_properties(s: *const c_char) -> *mut DepSet {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
     let opt_dep = unwrap_or_return!(dep::parse::properties(s), ptr::null_mut());
@@ -393,7 +393,7 @@ pub unsafe extern "C" fn pkgcraft_depset_properties(s: *const c_char) -> *mut De
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_src_uri(
+pub unsafe extern "C" fn pkgcraft_dep_set_src_uri(
     s: *const c_char,
     eapi: *const Eapi,
 ) -> *mut DepSet {
@@ -412,7 +412,7 @@ pub unsafe extern "C" fn pkgcraft_depset_src_uri(
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_license(s: *const c_char) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_dep_set_license(s: *const c_char) -> *mut DepSet {
     let s = null_ptr_check!(s.as_ref());
     let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
     let opt_dep = unwrap_or_return!(dep::parse::license(s), ptr::null_mut());
@@ -425,7 +425,7 @@ pub unsafe extern "C" fn pkgcraft_depset_license(s: *const c_char) -> *mut DepSe
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_str(d: *mut DepSet) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_set_str(d: *mut DepSet) -> *mut c_char {
     let deps = null_ptr_check!(d.as_ref());
     CString::new(deps.to_string()).unwrap().into_raw()
 }
@@ -435,7 +435,7 @@ pub unsafe extern "C" fn pkgcraft_depset_str(d: *mut DepSet) -> *mut c_char {
 /// # Safety
 /// The arguments must be non-null DepSet pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_eq(d1: *mut DepSet, d2: *mut DepSet) -> bool {
+pub unsafe extern "C" fn pkgcraft_dep_set_eq(d1: *mut DepSet, d2: *mut DepSet) -> bool {
     let d1 = null_ptr_check!(d1.as_ref());
     let d2 = null_ptr_check!(d2.as_ref());
     d1.eq(d2)
@@ -446,7 +446,7 @@ pub unsafe extern "C" fn pkgcraft_depset_eq(d1: *mut DepSet, d2: *mut DepSet) ->
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_hash(d: *mut DepSet) -> u64 {
+pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
     let deps = null_ptr_check!(d.as_ref());
     hash(deps)
 }
@@ -456,12 +456,12 @@ pub unsafe extern "C" fn pkgcraft_depset_hash(d: *mut DepSet) -> u64 {
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter(d: *mut DepSet) -> *mut DepSetIntoIter {
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepSpecIntoIter {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.deref().clone() {
-        DepSetW::PkgDep(d) => DepSetIntoIter::PkgDep(d.into_iter()),
-        DepSetW::String(d) => DepSetIntoIter::String(d.into_iter()),
-        DepSetW::Uri(d) => DepSetIntoIter::Uri(d.into_iter()),
+        DepSetW::Dep(d) => DepSpecIntoIter::Dep(d.into_iter()),
+        DepSetW::String(d) => DepSpecIntoIter::String(d.into_iter()),
+        DepSetW::Uri(d) => DepSpecIntoIter::Uri(d.into_iter()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -471,9 +471,9 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter(d: *mut DepSet) -> *mut DepSe
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetIntoIter pointer.
+/// The argument must be a non-null DepSpecIntoIter pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter_next(i: *mut DepSetIntoIter) -> *mut Dep {
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next(i: *mut DepSpecIntoIter) -> *mut DepSpec {
     let iter = null_ptr_check!(i.as_mut());
     iter.next()
         .map(|x| Box::into_raw(Box::new(x)))
@@ -483,21 +483,21 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_next(i: *mut DepSetIntoIter) 
 /// Free a depset iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetIntoIter pointer or NULL.
+/// The argument must be a non-null DepSpecIntoIter pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter_free(i: *mut DepSetIntoIter) {
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_free(i: *mut DepSpecIntoIter) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
 }
 
-/// Compare two Deps returning -1, 0, or 1 if the first is less than, equal to, or greater
+/// Compare two DepSpecs returning -1, 0, or 1 if the first is less than, equal to, or greater
 /// than the second, respectively.
 ///
 /// # Safety
-/// The arguments must be non-null Dep pointers.
+/// The arguments must be non-null DepSpec pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
+pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpec) -> c_int {
     let d1 = null_ptr_check!(d1.as_ref());
     let d2 = null_ptr_check!(d2.as_ref());
 
@@ -508,48 +508,50 @@ pub unsafe extern "C" fn pkgcraft_dep_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
     }
 }
 
-/// Return the hash value for a Dep.
+/// Return the hash value for a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null Dep pointer.
+/// The argument must be a non-null DepSpec pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_hash(d: *mut Dep) -> u64 {
+pub unsafe extern "C" fn pkgcraft_dep_spec_hash(d: *mut DepSpec) -> u64 {
     let deps = null_ptr_check!(d.as_ref());
     hash(deps)
 }
 
-/// Free a Dep object.
+/// Free a DepSpec object.
 ///
 /// # Safety
-/// The argument must be a Dep pointer or NULL.
+/// The argument must be a DepSpec pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_free(r: *mut Dep) {
+pub unsafe extern "C" fn pkgcraft_dep_spec_free(r: *mut DepSpec) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };
     }
 }
 
-/// Return the formatted string for a Dep object.
+/// Return the formatted string for a DepSpec object.
 ///
 /// # Safety
-/// The argument must be a non-null Dep pointer.
+/// The argument must be a non-null DepSpec pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_str(d: *mut Dep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_spec_str(d: *mut DepSpec) -> *mut c_char {
     let deps = null_ptr_check!(d.as_ref());
     CString::new(deps.to_string()).unwrap().into_raw()
 }
 
-/// Return a flattened iterator for a Dep.
+/// Return a flattened iterator for a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null Dep pointer.
+/// The argument must be a non-null DepSpec pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_into_iter_flatten(d: *mut Dep) -> *mut DepSetIntoIterFlatten {
+pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_flatten(
+    d: *mut DepSpec,
+) -> *mut DepSpecIntoIterFlatten {
     let dep = null_ptr_check!(d.as_ref());
     let iter = match dep.deref().clone() {
-        DepW::PkgDep(d) => DepSetIntoIterFlatten::PkgDep(d.into_iter_flatten()),
-        DepW::String(d) => DepSetIntoIterFlatten::String(d.into_iter_flatten()),
-        DepW::Uri(d) => DepSetIntoIterFlatten::Uri(d.into_iter_flatten()),
+        DepSpecW::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
+        DepSpecW::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
+        DepSpecW::Uri(d) => DepSpecIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -559,14 +561,14 @@ pub unsafe extern "C" fn pkgcraft_dep_into_iter_flatten(d: *mut Dep) -> *mut Dep
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten(
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
     d: *mut DepSet,
-) -> *mut DepSetIntoIterFlatten {
+) -> *mut DepSpecIntoIterFlatten {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.deref().clone() {
-        DepSetW::PkgDep(d) => DepSetIntoIterFlatten::PkgDep(d.into_iter_flatten()),
-        DepSetW::String(d) => DepSetIntoIterFlatten::String(d.into_iter_flatten()),
-        DepSetW::Uri(d) => DepSetIntoIterFlatten::Uri(d.into_iter_flatten()),
+        DepSetW::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
+        DepSetW::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
+        DepSetW::Uri(d) => DepSpecIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -576,10 +578,10 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetIntoIterFlatten pointer.
+/// The argument must be a non-null DepSpecIntoIterFlatten pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_next(
-    i: *mut DepSetIntoIterFlatten,
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_next(
+    i: *mut DepSpecIntoIterFlatten,
 ) -> *mut c_void {
     let iter = null_ptr_check!(i.as_mut());
     iter.next().unwrap_or(ptr::null_mut())
@@ -588,27 +590,27 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_next(
 /// Free a flattened depset iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetIntoIterFlatten pointer or NULL.
+/// The argument must be a non-null DepSpecIntoIterFlatten pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter_flatten_free(i: *mut DepSetIntoIterFlatten) {
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_free(i: *mut DepSpecIntoIterFlatten) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
 }
 
-/// Return a recursive iterator for a Dep.
+/// Return a recursive iterator for a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null Dep pointer.
+/// The argument must be a non-null DepSpec pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_into_iter_recursive(
-    d: *mut Dep,
-) -> *mut DepSetIntoIterRecursive {
+pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_recursive(
+    d: *mut DepSpec,
+) -> *mut DepSpecIntoIterRecursive {
     let dep = null_ptr_check!(d.as_ref());
     let iter = match dep.deref().clone() {
-        DepW::PkgDep(d) => DepSetIntoIterRecursive::PkgDep(d.into_iter_recursive()),
-        DepW::String(d) => DepSetIntoIterRecursive::String(d.into_iter_recursive()),
-        DepW::Uri(d) => DepSetIntoIterRecursive::Uri(d.into_iter_recursive()),
+        DepSpecW::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
+        DepSpecW::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
+        DepSpecW::Uri(d) => DepSpecIntoIterRecursive::Uri(d.into_iter_recursive()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -618,14 +620,14 @@ pub unsafe extern "C" fn pkgcraft_dep_into_iter_recursive(
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive(
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
     d: *mut DepSet,
-) -> *mut DepSetIntoIterRecursive {
+) -> *mut DepSpecIntoIterRecursive {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.deref().clone() {
-        DepSetW::PkgDep(d) => DepSetIntoIterRecursive::PkgDep(d.into_iter_recursive()),
-        DepSetW::String(d) => DepSetIntoIterRecursive::String(d.into_iter_recursive()),
-        DepSetW::Uri(d) => DepSetIntoIterRecursive::Uri(d.into_iter_recursive()),
+        DepSetW::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
+        DepSetW::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
+        DepSetW::Uri(d) => DepSpecIntoIterRecursive::Uri(d.into_iter_recursive()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -635,11 +637,11 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetIntoIterRecursive pointer.
+/// The argument must be a non-null DepSpecIntoIterRecursive pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive_next(
-    i: *mut DepSetIntoIterRecursive,
-) -> *mut Dep {
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_next(
+    i: *mut DepSpecIntoIterRecursive,
+) -> *mut DepSpec {
     let iter = null_ptr_check!(i.as_mut());
     iter.next()
         .map(|x| Box::into_raw(Box::new(x)))
@@ -649,9 +651,11 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive_next(
 /// Free a recursive depset iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSetIntoIterFlatten pointer or NULL.
+/// The argument must be a non-null DepSpecIntoIterFlatten pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive_free(i: *mut DepSetIntoIterRecursive) {
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_free(
+    i: *mut DepSpecIntoIterRecursive,
+) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
@@ -662,7 +666,7 @@ pub unsafe extern "C" fn pkgcraft_depset_into_iter_recursive_free(i: *mut DepSet
 /// # Safety
 /// The argument must be a DepSet pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_depset_free(d: *mut DepSet) {
+pub unsafe extern "C" fn pkgcraft_dep_set_free(d: *mut DepSet) {
     if !d.is_null() {
         unsafe { drop(Box::from_raw(d)) };
     }

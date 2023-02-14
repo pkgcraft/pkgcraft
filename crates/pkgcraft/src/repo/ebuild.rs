@@ -14,7 +14,7 @@ use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::config::RepoConfig;
-use crate::dep::{self, PkgDep, Version};
+use crate::dep::{self, Dep, Version};
 use crate::eapi::{Eapi, EAPI0};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
@@ -412,7 +412,7 @@ impl Repo {
     }
 
     /// Convert an ebuild path inside the repo into a CPV.
-    pub(crate) fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<PkgDep> {
+    pub(crate) fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Dep> {
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
         };
@@ -427,7 +427,7 @@ impl Repo {
                 let cat = m.name("cat").unwrap().as_str();
                 let pkg = m.name("pkg").unwrap().as_str();
                 let p = m.name("p").unwrap().as_str();
-                PkgDep::new_cpv(&format!("{cat}/{p}"))
+                Dep::new_cpv(&format!("{cat}/{p}"))
                     .map_err(|_| err("invalid CPV"))
                     .and_then(|a| match a.package() == pkg {
                         true => Ok(a),
@@ -446,7 +446,7 @@ impl Repo {
             .get_or_init(|| Cache::<Manifest>::new(self))
     }
 
-    pub(crate) fn pkg_xml(&self, cpv: &PkgDep) -> Arc<XmlMetadata> {
+    pub(crate) fn pkg_xml(&self, cpv: &Dep) -> Arc<XmlMetadata> {
         self.xml_cache()
             .tx
             .send(Msg::Key(cpv.cpn()))
@@ -457,7 +457,7 @@ impl Repo {
             .expect("failed receiving pkg xml data")
     }
 
-    pub(crate) fn pkg_manifest(&self, cpv: &PkgDep) -> Arc<Manifest> {
+    pub(crate) fn pkg_manifest(&self, cpv: &Dep) -> Arc<Manifest> {
         self.manifest_cache()
             .tx
             .send(Msg::Key(cpv.cpn()))
@@ -620,7 +620,7 @@ impl<'a> IntoIterator for &'a Repo {
 }
 
 pub struct Iter<'a> {
-    iter: Box<dyn Iterator<Item = (Utf8PathBuf, PkgDep)> + 'a>,
+    iter: Box<dyn Iterator<Item = (Utf8PathBuf, Dep)> + 'a>,
     repo: &'a Repo,
 }
 
@@ -659,7 +659,7 @@ impl<'a> Iter<'a> {
         }
 
         // filter invalid ebuild paths
-        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<(Utf8PathBuf, PkgDep)> {
+        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<(Utf8PathBuf, Dep)> {
             match r {
                 Ok(e) => {
                     let path = e.path();
@@ -685,7 +685,7 @@ impl<'a> Iter<'a> {
         };
 
         // return (path, cpv) tuples for pkgs in a category
-        let category_pkgs = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, PkgDep)> {
+        let category_pkgs = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, Dep)> {
             let mut paths: Vec<_> = WalkDir::new(path)
                 .min_depth(2)
                 .max_depth(2)
@@ -702,7 +702,7 @@ impl<'a> Iter<'a> {
                 // specific package restriction
                 (Some(cat), Some(pkg), Some(ver)) => {
                     let s = format!("{cat}/{pkg}-{ver}");
-                    let cpv = PkgDep::new_cpv(&s).expect("dep restrict failed");
+                    let cpv = Dep::new_cpv(&s).expect("dep restrict failed");
                     let path =
                         build_from_paths!(repo.path(), &cat, &pkg, format!("{pkg}-{ver}.ebuild"));
                     Box::new(iter::once((path, cpv)))
@@ -952,15 +952,15 @@ mod tests {
         assert!(!repo.contains("pkg-1.ebuild"));
 
         // versioned dep
-        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
+        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = PkgDep::new_cpv("cat/pkg-2").unwrap();
+        let cpv = Dep::new_cpv("cat/pkg-2").unwrap();
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let d = PkgDep::from_str("cat/pkg").unwrap();
+        let d = Dep::from_str("cat/pkg").unwrap();
         assert!(repo.contains(&d));
-        let d = PkgDep::from_str("cat/pkg-a").unwrap();
+        let d = Dep::from_str("cat/pkg-a").unwrap();
         assert!(!repo.contains(&d));
     }
 
@@ -1004,7 +1004,7 @@ mod tests {
         t.create_ebuild("cat/pkg-2", []).unwrap();
 
         // single match via CPV
-        let cpv = PkgDep::new_cpv("cat/pkg-1").unwrap();
+        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
         let iter = repo.iter_restrict(&cpv);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, [cpv.to_string()]);

@@ -2,7 +2,7 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use clap::Args;
-use pkgcraft::dep::PkgDep;
+use pkgcraft::dep::Dep;
 
 use crate::Run;
 
@@ -14,8 +14,8 @@ pub struct Intersect {
 
 impl Run for Intersect {
     fn run(self) -> anyhow::Result<ExitCode> {
-        let d1 = PkgDep::from_str(&self.dep1)?;
-        let d2 = PkgDep::from_str(&self.dep2)?;
+        let d1 = Dep::from_str(&self.dep1)?;
+        let d2 = Dep::from_str(&self.dep2)?;
         Ok(ExitCode::from(!d1.intersects(&d2) as u8))
     }
 }

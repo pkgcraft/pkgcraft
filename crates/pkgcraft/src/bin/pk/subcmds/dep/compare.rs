@@ -4,7 +4,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, bail};
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::dep::PkgDep;
+use pkgcraft::dep::Dep;
 
 use crate::Run;
 
@@ -20,8 +20,8 @@ impl Run for Compare {
             .split_whitespace()
             .collect_tuple()
             .ok_or_else(|| anyhow!("invalid comparison format: {}", self.compare))?;
-        let d1 = PkgDep::from_str(s1)?;
-        let d2 = PkgDep::from_str(s2)?;
+        let d1 = Dep::from_str(s1)?;
+        let d2 = Dep::from_str(s2)?;
         let result = match op {
             "<" => d1 < d2,
             "<=" => d1 <= d2,

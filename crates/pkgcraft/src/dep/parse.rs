@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
 
-use crate::dep::pkg::ParsedPkgDep;
+use crate::dep::pkg::ParsedDep;
 use crate::dep::version::{ParsedVersion, Suffix};
-use crate::dep::{Blocker, Dep, DepSet, PkgDep, SlotOperator, Uri, Version};
+use crate::dep::{Blocker, Dep, DepSet, DepSpec, SlotOperator, Uri, Version};
 use crate::eapi::{Eapi, Feature};
 use crate::peg::peg_error;
 use crate::set::Ordered;
@@ -175,9 +175,9 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    pub(super) rule cpv() -> ParsedPkgDep<'input>
+    pub(super) rule cpv() -> ParsedDep<'input>
         = cat:category() "/" pkg:package() "-" ver:version() {
-            ParsedPkgDep {
+            ParsedDep {
                 category: cat,
                 package: pkg,
                 version: Some(ver),
@@ -192,11 +192,11 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule cp() -> (&'input str, &'input str)
         = cat:category() "/" pkg:package() { (cat, pkg) }
 
-    pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedPkgDep<'input>)
+    pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
         = blocker:blocker(eapi)? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
                 use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
             let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
-            (dep, ParsedPkgDep {
+            (dep, ParsedDep {
                 blocker,
                 slot,
                 subslot,
@@ -211,41 +211,41 @@ peg::parser!(grammar depspec() for str {
 
     // Technically PROPERTIES and RESTRICT tokens have no restrictions, but use license
     // restrictions in order to properly parse use restrictions.
-    rule properties_restrict_val() -> Dep<String>
+    rule properties_restrict_val() -> DepSpec<String>
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
         } / expected!("string value")
-        ) { Dep::Enabled(s.to_string()) }
+        ) { DepSpec::Enabled(s.to_string()) }
 
     // licenses must not begin with a hyphen, dot, or plus sign.
-    rule license_val() -> Dep<String>
+    rule license_val() -> DepSpec<String>
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
         } / expected!("license name")
-        ) { Dep::Enabled(s.to_string()) }
+        ) { DepSpec::Enabled(s.to_string()) }
 
-    rule useflag_val() -> Dep<String>
+    rule useflag_val() -> DepSpec<String>
         = disabled:"!"? s:useflag() {
             let val = s.to_string();
             if disabled.is_none() {
-                Dep::Enabled(val)
+                DepSpec::Enabled(val)
             } else {
-                Dep::Disabled(val)
+                DepSpec::Disabled(val)
             }
         }
 
-    rule pkg_val(eapi: &'static Eapi) -> Dep<PkgDep>
+    rule pkg_val(eapi: &'static Eapi) -> DepSpec<Dep>
         = s:$(quiet!{!")" [^' ']+}) {?
-            let dep = match PkgDep::new(s, eapi) {
+            let dep = match Dep::new(s, eapi) {
                 Ok(x) => x,
                 Err(e) => return Err("failed parsing dep"),
             };
-            Ok(Dep::Enabled(dep))
+            Ok(DepSpec::Enabled(dep))
         }
 
-    rule uri_val(eapi: &'static Eapi) -> Dep<Uri>
+    rule uri_val(eapi: &'static Eapi) -> DepSpec<Uri>
         = s:$(quiet!{!")" [^' ']+}) rename:(_ "->" _ s:$([^' ']+) {s})? {?
             let mut uri = Uri {
                 uri: s.to_string(),
@@ -259,59 +259,59 @@ peg::parser!(grammar depspec() for str {
                     None => None
                 }
             };
-            Ok(Dep::Enabled(uri))
+            Ok(DepSpec::Enabled(uri))
 
         }
 
     rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
         = "(" _ v:expr() ++ " " _ ")" { v }
 
-    rule all_of<T: Ordered>(expr: rule<Dep<T>>) -> Dep<T>
+    rule all_of<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
         = vals:parens(<expr()>)
-        { Dep::AllOf(vals.into_iter().map(Box::new).collect()) }
+        { DepSpec::AllOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule any_of<T: Ordered>(expr: rule<Dep<T>>) -> Dep<T>
+    rule any_of<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
         = "||" _ vals:parens(<expr()>)
-        { Dep::AnyOf(vals.into_iter().map(Box::new).collect()) }
+        { DepSpec::AnyOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule use_cond<T: Ordered>(expr: rule<Dep<T>>) -> Dep<T>
+    rule use_cond<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
         = negate:"!"? u:useflag() "?" _ vals:parens(<expr()>) {
             let f = match negate {
-                None => Dep::UseEnabled,
-                Some(_) => Dep::UseDisabled,
+                None => DepSpec::UseEnabled,
+                Some(_) => DepSpec::UseDisabled,
             };
             f(u.to_string(), vals.into_iter().map(Box::new).collect())
         }
 
-    rule exactly_one_of<T: Ordered>(expr: rule<Dep<T>>) -> Dep<T>
+    rule exactly_one_of<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
         = "^^" _ vals:parens(<expr()>)
-        { Dep::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
+        { DepSpec::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<Dep<T>>) -> Dep<T>
+    rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<DepSpec<T>>) -> DepSpec<T>
         = "??" _ vals:parens(<expr()>) {?
             if !eapi.has(Feature::RequiredUseOneOf) {
                 return Err("?? groups are supported in >= EAPI 5");
             }
-            Ok(Dep::AtMostOneOf(vals.into_iter().map(Box::new).collect()))
+            Ok(DepSpec::AtMostOneOf(vals.into_iter().map(Box::new).collect()))
         }
 
-    rule license_dep_restrict() -> Dep<String>
+    rule license_dep_restrict() -> DepSpec<String>
         = use_cond(<license_dep_restrict()>)
             / any_of(<license_dep_restrict()>)
             / all_of(<license_dep_restrict()>)
             / license_val()
 
-    rule src_uri_dep_restrict(eapi: &'static Eapi) -> Dep<Uri>
+    rule src_uri_dep_restrict(eapi: &'static Eapi) -> DepSpec<Uri>
         = use_cond(<src_uri_dep_restrict(eapi)>)
             / all_of(<src_uri_dep_restrict(eapi)>)
             / uri_val(eapi)
 
-    rule properties_dep_restrict() -> Dep<String>
+    rule properties_dep_restrict() -> DepSpec<String>
         = use_cond(<properties_dep_restrict()>)
             / all_of(<properties_dep_restrict()>)
             / properties_restrict_val()
 
-    rule required_use_dep_restrict(eapi: &'static Eapi) -> Dep<String>
+    rule required_use_dep_restrict(eapi: &'static Eapi) -> DepSpec<String>
         = use_cond(<required_use_dep_restrict(eapi)>)
             / any_of(<required_use_dep_restrict(eapi)>)
             / all_of(<required_use_dep_restrict(eapi)>)
@@ -319,12 +319,12 @@ peg::parser!(grammar depspec() for str {
             / at_most_one_of(eapi, <required_use_dep_restrict(eapi)>)
             / useflag_val()
 
-    rule restrict_dep_restrict() -> Dep<String>
+    rule restrict_dep_restrict() -> DepSpec<String>
         = use_cond(<restrict_dep_restrict()>)
             / all_of(<restrict_dep_restrict()>)
             / properties_restrict_val()
 
-    rule dependencies_restrict(eapi: &'static Eapi) -> Dep<PkgDep>
+    rule dependencies_restrict(eapi: &'static Eapi) -> DepSpec<Dep>
         = use_cond(<dependencies_restrict(eapi)>)
             / any_of(<dependencies_restrict(eapi)>)
             / all_of(<dependencies_restrict(eapi)>)
@@ -345,7 +345,7 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule restrict() -> DepSet<String>
         = v:restrict_dep_restrict() ++ " " { DepSet::from_iter(v) }
 
-    pub(super) rule dependencies(eapi: &'static Eapi) -> DepSet<PkgDep>
+    pub(super) rule dependencies(eapi: &'static Eapi) -> DepSet<Dep>
         = v:dependencies_restrict(eapi) ++ " " { DepSet::from_iter(v) }
 });
 
@@ -383,57 +383,57 @@ pub fn repo(s: &str) -> crate::Result<()> {
     Ok(())
 }
 
-pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedPkgDep> {
+pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedDep> {
     depspec::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s}"), s, e))
 }
 
 #[cached(
-    type = "SizedCache<String, crate::Result<PkgDep>>",
+    type = "SizedCache<String, crate::Result<Dep>>",
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ s.to_string() }"#
 )]
-pub(super) fn cpv(s: &str) -> crate::Result<PkgDep> {
+pub(super) fn cpv(s: &str) -> crate::Result<Dep> {
     let mut cpv = cpv_str(s)?;
     cpv.version_str = Some(s);
     cpv.into_owned()
 }
 
-pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedPkgDep<'a>> {
-    let (dep_s, mut pkgdep) =
+pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedDep<'a>> {
+    let (dep_s, mut dep) =
         depspec::dep(s, eapi).map_err(|e| peg_error(format!("invalid dep: {s}"), s, e))?;
     match depspec::cpv_with_op(dep_s) {
         Ok((op, cpv_s, glob)) => {
             let cpv = depspec::cpv(cpv_s)
                 .map_err(|e| peg_error(format!("invalid dep: {s}"), cpv_s, e))?;
-            pkgdep.category = cpv.category;
-            pkgdep.package = cpv.package;
-            pkgdep.version = Some(
+            dep.category = cpv.category;
+            dep.package = cpv.package;
+            dep.version = Some(
                 cpv.version
                     .unwrap()
                     .with_op(op, glob)
                     .map_err(|e| Error::InvalidValue(format!("invalid dep: {s}: {e}")))?,
             );
-            pkgdep.version_str = Some(cpv_s);
+            dep.version_str = Some(cpv_s);
         }
         _ => {
             let (cat, pkg) =
                 depspec::cp(dep_s).map_err(|e| peg_error(format!("invalid dep: {s}"), dep_s, e))?;
-            pkgdep.category = cat;
-            pkgdep.package = pkg;
+            dep.category = cat;
+            dep.package = pkg;
         }
     }
 
-    Ok(pkgdep)
+    Ok(dep)
 }
 
 #[cached(
-    type = "SizedCache<(String, &Eapi), crate::Result<PkgDep>>",
+    type = "SizedCache<(String, &Eapi), crate::Result<Dep>>",
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
-pub(super) fn pkgdep(s: &str, eapi: &'static Eapi) -> crate::Result<PkgDep> {
-    let pkgdep = dep_str(s, eapi)?;
-    pkgdep.into_owned()
+pub(super) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
+    let dep = dep_str(s, eapi)?;
+    dep.into_owned()
 }
 
 pub fn license(s: &str) -> crate::Result<Option<DepSet<String>>> {
@@ -486,7 +486,7 @@ pub fn restrict(s: &str) -> crate::Result<Option<DepSet<String>>> {
     }
 }
 
-pub fn dependencies(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<PkgDep>>> {
+pub fn dependencies(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<Dep>>> {
     if s.is_empty() {
         Ok(None)
     } else {
@@ -501,18 +501,18 @@ mod tests {
     use indexmap::IndexSet;
 
     use crate::eapi::{self, EAPIS, EAPIS_OFFICIAL, EAPI_LATEST};
-    use crate::test::PkgDepToml;
+    use crate::test::DepToml;
 
     use super::*;
 
     #[test]
     fn test_parse() {
-        let data = PkgDepToml::load().unwrap();
+        let data = DepToml::load().unwrap();
 
         // invalid deps
         for s in data.invalid {
             for eapi in EAPIS.iter() {
-                let result = pkgdep(&s, eapi);
+                let result = dep(&s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
@@ -523,23 +523,23 @@ mod tests {
             let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
             // verify parse successes
             for eapi in &passing_eapis {
-                let result = pkgdep(s, eapi);
+                let result = dep(s, eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
-                let dep = result.unwrap();
-                assert_eq!(dep.category(), e.category, "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.package(), e.package, "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.blocker(), e.blocker, "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.version(), e.version.as_ref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.revision(), e.revision.as_ref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.slot(), e.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.subslot(), e.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.slot_op(), e.slot_op, "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.use_deps(), e.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(dep.to_string(), s, "{s:?} failed for EAPI={eapi}");
+                let d = result.unwrap();
+                assert_eq!(d.category(), e.category, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.package(), e.package, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.blocker(), e.blocker, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.version(), e.version.as_ref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.revision(), e.revision.as_ref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.slot(), e.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.subslot(), e.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.slot_op(), e.slot_op, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.use_deps(), e.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.to_string(), s, "{s:?} failed for EAPI={eapi}");
             }
             // verify parse failures
             for eapi in EAPIS.difference(&passing_eapis) {
-                let result = pkgdep(s, eapi);
+                let result = dep(s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
@@ -551,12 +551,12 @@ mod tests {
         for slot in ["0", "a", "_", "_a", "99", "aBc", "a+b_c.d-e"] {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg:{slot}");
-                let result = pkgdep(&s, eapi);
+                let result = dep(&s, eapi);
                 if eapi.has(Feature::SlotDeps) {
                     assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let dep = result.unwrap();
-                    assert_eq!(dep.slot(), Some(slot));
-                    assert_eq!(dep.to_string(), s);
+                    let d = result.unwrap();
+                    assert_eq!(d.slot(), Some(slot));
+                    assert_eq!(d.to_string(), s);
                 } else {
                     assert!(result.is_err(), "{s:?} didn't fail");
                 }
@@ -567,8 +567,8 @@ mod tests {
     #[test]
     fn test_parse_blockers() {
         // non-blocker
-        let dep = pkgdep("cat/pkg", &eapi::EAPI2).unwrap();
-        assert!(dep.blocker().is_none());
+        let d = dep("cat/pkg", &eapi::EAPI2).unwrap();
+        assert!(d.blocker().is_none());
 
         // good deps
         for (s, blocker) in [
@@ -578,16 +578,16 @@ mod tests {
             ("!!<cat/pkg-1", Some(Blocker::Strong)),
         ] {
             for eapi in EAPIS.iter() {
-                let result = pkgdep(s, eapi);
+                let result = dep(s, eapi);
                 if eapi.has(Feature::Blockers) {
                     assert!(
                         result.is_ok(),
                         "{s:?} failed for EAPI {eapi}: {}",
                         result.err().unwrap()
                     );
-                    let dep = result.unwrap();
-                    assert_eq!(dep.blocker(), blocker);
-                    assert_eq!(dep.to_string(), s);
+                    let d = result.unwrap();
+                    assert_eq!(d.blocker(), blocker);
+                    assert_eq!(d.to_string(), s);
                 } else {
                     assert!(result.is_err(), "{s:?} didn't fail");
                 }
@@ -601,13 +601,13 @@ mod tests {
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg[{use_deps}]");
-                let result = pkgdep(&s, eapi);
+                let result = dep(&s, eapi);
                 if eapi.has(Feature::UseDeps) {
                     assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let dep = result.unwrap();
+                    let d = result.unwrap();
                     let expected = use_deps.split(',').map(|s| s.to_string()).collect();
-                    assert_eq!(dep.use_deps(), Some(&expected));
-                    assert_eq!(dep.to_string(), s);
+                    assert_eq!(d.use_deps(), Some(&expected));
+                    assert_eq!(d.to_string(), s);
                 } else {
                     assert!(result.is_err(), "{s:?} didn't fail");
                 }
@@ -621,13 +621,13 @@ mod tests {
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg[{use_deps}]");
-                let result = pkgdep(&s, eapi);
+                let result = dep(&s, eapi);
                 if eapi.has(Feature::UseDepDefaults) {
                     assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let dep = result.unwrap();
+                    let d = result.unwrap();
                     let expected = use_deps.split(',').map(|s| s.to_string()).collect();
-                    assert_eq!(dep.use_deps(), Some(&expected));
-                    assert_eq!(dep.to_string(), s);
+                    assert_eq!(d.use_deps(), Some(&expected));
+                    assert_eq!(d.to_string(), s);
                 } else {
                     assert!(result.is_err(), "{s:?} didn't fail");
                 }
@@ -647,14 +647,14 @@ mod tests {
         ] {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg:{slot_str}");
-                let result = pkgdep(&s, eapi);
+                let result = dep(&s, eapi);
                 if eapi.has(Feature::SlotOps) {
                     assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let dep = result.unwrap();
-                    assert_eq!(dep.slot(), slot);
-                    assert_eq!(dep.subslot(), subslot);
-                    assert_eq!(dep.slot_op(), slot_op);
-                    assert_eq!(dep.to_string(), s);
+                    let d = result.unwrap();
+                    assert_eq!(d.slot(), slot);
+                    assert_eq!(d.subslot(), subslot);
+                    assert_eq!(d.slot_op(), slot_op);
+                    assert_eq!(d.to_string(), s);
                 } else {
                     assert!(result.is_err(), "{s:?} didn't fail");
                 }
@@ -675,14 +675,14 @@ mod tests {
         ] {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg:{slot_str}");
-                let result = pkgdep(&s, eapi);
+                let result = dep(&s, eapi);
                 if eapi.has(Feature::SlotOps) {
                     assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let dep = result.unwrap();
-                    assert_eq!(dep.slot(), slot);
-                    assert_eq!(dep.subslot(), subslot);
-                    assert_eq!(dep.slot_op(), slot_op);
-                    assert_eq!(dep.to_string(), s);
+                    let d = result.unwrap();
+                    assert_eq!(d.slot(), slot);
+                    assert_eq!(d.subslot(), subslot);
+                    assert_eq!(d.slot_op(), slot_op);
+                    assert_eq!(d.to_string(), s);
                 } else {
                     assert!(result.is_err(), "{s:?} didn't fail");
                 }
@@ -698,88 +698,88 @@ mod tests {
 
             // repo ids aren't supported in official EAPIs
             for eapi in EAPIS_OFFICIAL.iter() {
-                assert!(pkgdep(&s, eapi).is_err(), "{s:?} didn't fail");
+                assert!(dep(&s, eapi).is_err(), "{s:?} didn't fail");
             }
 
-            let result = pkgdep(&s, &eapi::EAPI_PKGCRAFT);
+            let result = dep(&s, &eapi::EAPI_PKGCRAFT);
             assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-            let dep = result.unwrap();
-            assert_eq!(dep.repo(), Some(repo));
-            assert_eq!(dep.to_string(), s);
+            let d = result.unwrap();
+            assert_eq!(d.repo(), Some(repo));
+            assert_eq!(d.to_string(), s);
         }
     }
 
-    fn vs(val: &str) -> Dep<String> {
-        Dep::Enabled(val.to_string())
+    fn vs(val: &str) -> DepSpec<String> {
+        DepSpec::Enabled(val.to_string())
     }
 
-    fn vd(val: &str) -> Dep<String> {
-        Dep::Disabled(val.to_string())
+    fn vd(val: &str) -> DepSpec<String> {
+        DepSpec::Disabled(val.to_string())
     }
 
-    fn va(val: &str) -> Dep<PkgDep> {
-        Dep::Enabled(PkgDep::from_str(val).unwrap())
+    fn vp(val: &str) -> DepSpec<Dep> {
+        DepSpec::Enabled(Dep::from_str(val).unwrap())
     }
 
-    fn vu(u1: &str, u2: Option<&str>) -> Dep<Uri> {
+    fn vu(u1: &str, u2: Option<&str>) -> DepSpec<Uri> {
         let uri = Uri {
             uri: u1.to_string(),
             rename: u2.map(String::from),
         };
-        Dep::Enabled(uri)
+        DepSpec::Enabled(uri)
     }
 
-    fn allof<I, T>(val: I) -> Dep<T>
+    fn allof<I, T>(val: I) -> DepSpec<T>
     where
-        I: IntoIterator<Item = Dep<T>>,
+        I: IntoIterator<Item = DepSpec<T>>,
         T: Ordered,
     {
-        Dep::AllOf(val.into_iter().map(Box::new).collect())
+        DepSpec::AllOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn anyof<I, T>(val: I) -> Dep<T>
+    fn anyof<I, T>(val: I) -> DepSpec<T>
     where
-        I: IntoIterator<Item = Dep<T>>,
+        I: IntoIterator<Item = DepSpec<T>>,
         T: Ordered,
     {
-        Dep::AnyOf(val.into_iter().map(Box::new).collect())
+        DepSpec::AnyOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn exactly_one_of<I, T>(val: I) -> Dep<T>
+    fn exactly_one_of<I, T>(val: I) -> DepSpec<T>
     where
-        I: IntoIterator<Item = Dep<T>>,
+        I: IntoIterator<Item = DepSpec<T>>,
         T: Ordered,
     {
-        Dep::ExactlyOneOf(val.into_iter().map(Box::new).collect())
+        DepSpec::ExactlyOneOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn at_most_one_of<I, T>(val: I) -> Dep<T>
+    fn at_most_one_of<I, T>(val: I) -> DepSpec<T>
     where
-        I: IntoIterator<Item = Dep<T>>,
+        I: IntoIterator<Item = DepSpec<T>>,
         T: Ordered,
     {
-        Dep::AtMostOneOf(val.into_iter().map(Box::new).collect())
+        DepSpec::AtMostOneOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn use_enabled<I, T>(s: &str, val: I) -> Dep<T>
+    fn use_enabled<I, T>(s: &str, val: I) -> DepSpec<T>
     where
-        I: IntoIterator<Item = Dep<T>>,
+        I: IntoIterator<Item = DepSpec<T>>,
         T: Ordered,
     {
-        Dep::UseEnabled(s.to_string(), val.into_iter().map(Box::new).collect())
+        DepSpec::UseEnabled(s.to_string(), val.into_iter().map(Box::new).collect())
     }
 
-    fn use_disabled<I, T>(s: &str, val: I) -> Dep<T>
+    fn use_disabled<I, T>(s: &str, val: I) -> DepSpec<T>
     where
-        I: IntoIterator<Item = Dep<T>>,
+        I: IntoIterator<Item = DepSpec<T>>,
         T: Ordered,
     {
-        Dep::UseDisabled(s.to_string(), val.into_iter().map(Box::new).collect())
+        DepSpec::UseDisabled(s.to_string(), val.into_iter().map(Box::new).collect())
     }
 
     fn ds<I, T>(val: I) -> DepSet<T>
     where
-        I: IntoIterator<Item = Dep<T>>,
+        I: IntoIterator<Item = DepSpec<T>>,
         T: Ordered,
     {
         DepSet::from_iter(val)
@@ -953,18 +953,18 @@ mod tests {
 
         // valid
         for (s, expected, expected_flatten) in [
-            ("a/b", ds([va("a/b")]), vec!["a/b"]),
-            ("a/b c/d", ds([va("a/b"), va("c/d")]), vec!["a/b", "c/d"]),
-            ("( a/b c/d )", ds([allof([va("a/b"), va("c/d")])]), vec!["a/b", "c/d"]),
-            ("u? ( a/b c/d )", ds([use_enabled("u", [va("a/b"), va("c/d")])]), vec!["a/b", "c/d"]),
+            ("a/b", ds([vp("a/b")]), vec!["a/b"]),
+            ("a/b c/d", ds([vp("a/b"), vp("c/d")]), vec!["a/b", "c/d"]),
+            ("( a/b c/d )", ds([allof([vp("a/b"), vp("c/d")])]), vec!["a/b", "c/d"]),
+            ("u? ( a/b c/d )", ds([use_enabled("u", [vp("a/b"), vp("c/d")])]), vec!["a/b", "c/d"]),
             (
                 "!u? ( a/b c/d )",
-                ds([use_disabled("u", [va("a/b"), va("c/d")])]),
+                ds([use_disabled("u", [vp("a/b"), vp("c/d")])]),
                 vec!["a/b", "c/d"],
             ),
             (
                 "u1? ( a/b !u2? ( c/d ) )",
-                ds([use_enabled("u1", [va("a/b"), use_disabled("u2", [va("c/d")])])]),
+                ds([use_enabled("u1", [vp("a/b"), use_disabled("u2", [vp("c/d")])])]),
                 vec!["a/b", "c/d"],
             ),
         ] {

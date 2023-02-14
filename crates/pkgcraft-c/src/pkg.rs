@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int, CString};
 
-use pkgcraft::dep::{PkgDep, Version};
+use pkgcraft::dep::{Dep, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::{Package, Pkg};
 use pkgcraft::repo::Repo;
@@ -42,7 +42,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_format(p: *mut Pkg) -> PkgFormat {
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_cpv(p: *mut Pkg) -> *mut PkgDep {
+pub unsafe extern "C" fn pkgcraft_pkg_cpv(p: *mut Pkg) -> *mut Dep {
     let pkg = null_ptr_check!(p.as_ref());
     Box::into_raw(Box::new(pkg.cpv().clone()))
 }

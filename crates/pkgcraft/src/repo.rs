@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::config::RepoConfig;
-use crate::dep::PkgDep;
+use crate::dep::Dep;
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict as BaseRestrict;
 use crate::Error;
@@ -187,7 +187,7 @@ impl<'a> Iterator for IterRestrict<'a> {
 }
 
 pub trait PkgRepository:
-    fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a PkgDep>
+    fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a Dep>
 {
     type Pkg<'a>: Package
     where
@@ -257,11 +257,11 @@ where
     }
 }
 
-impl<T> Contains<&PkgDep> for &T
+impl<T> Contains<&Dep> for &T
 where
     T: PkgRepository,
 {
-    fn contains(&self, dep: &PkgDep) -> bool {
+    fn contains(&self, dep: &Dep) -> bool {
         self.iter_restrict(dep).next().is_some()
     }
 }
@@ -448,8 +448,8 @@ pub trait Contains<T> {
 
 macro_rules! make_contains_dep {
     ($x:ty) => {
-        impl $crate::repo::Contains<&crate::dep::PkgDep> for $x {
-            fn contains(&self, dep: &crate::dep::PkgDep) -> bool {
+        impl $crate::repo::Contains<&crate::dep::Dep> for $x {
+            fn contains(&self, dep: &crate::dep::Dep) -> bool {
                 self.iter_restrict(dep).next().is_some()
             }
         }

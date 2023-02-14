@@ -8,7 +8,7 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
-use crate::dep::{self, DepSet, PkgDep, Uri};
+use crate::dep::{self, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
@@ -73,7 +73,7 @@ impl Key {
 pub(crate) struct Metadata {
     description: String,
     slot: String,
-    deps: HashMap<Key, DepSet<PkgDep>>,
+    deps: HashMap<Key, DepSet<Dep>>,
     license: Option<DepSet<String>>,
     properties: Option<DepSet<String>>,
     required_use: Option<DepSet<String>>,
@@ -152,7 +152,7 @@ impl Metadata {
     }
 
     /// Load metadata from cache.
-    pub(crate) fn load(dep: &PkgDep, eapi: &'static Eapi, repo: &EbuildRepo) -> Option<Self> {
+    pub(crate) fn load(dep: &Dep, eapi: &'static Eapi, repo: &EbuildRepo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
         let path = build_from_paths!(repo.path(), "metadata", "md5-cache", dep.to_string());
         let s = match fs::read_to_string(&path) {
@@ -176,7 +176,7 @@ impl Metadata {
 
     /// Source ebuild to determine metadata.
     pub(crate) fn source(
-        dep: &PkgDep,
+        dep: &Dep,
         path: &Utf8Path,
         eapi: &'static Eapi,
         repo: &EbuildRepo,
@@ -237,7 +237,7 @@ impl Metadata {
         s.split_once('/').map(|x| x.1)
     }
 
-    pub(crate) fn deps(&self, key: Key) -> Option<&DepSet<PkgDep>> {
+    pub(crate) fn deps(&self, key: Key) -> Option<&DepSet<Dep>> {
         self.deps.get(&key)
     }
 
