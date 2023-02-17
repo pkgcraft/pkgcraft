@@ -8,6 +8,7 @@ on:
       - "crates/scallop/**"
       - "crates/pkgcraft/**"
       - "!crates/pkgcraft/src/bin/**"
+      - "!crates/pkgcraft/tests/**"
       - "crates/pkgcraft-c/**"
       - ".github/workflows/pkgcraft-c.yml"
   workflow_dispatch:
