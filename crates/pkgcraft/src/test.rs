@@ -1,6 +1,7 @@
-#![cfg(test)]
+#![cfg(any(test, feature = "test"))]
 use std::{env, fmt, fs};
 
+use assert_cmd::Command;
 use camino::Utf8PathBuf;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
@@ -15,7 +16,16 @@ use crate::Error;
 static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
     Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "toml"));
 
+/// Construct a Command from a given string.
+pub fn cmd(cmd: &str) -> Command {
+    let args: Vec<_> = cmd.split_whitespace().collect();
+    let mut cmd = Command::cargo_bin(args[0]).unwrap();
+    cmd.args(&args[1..]);
+    cmd
+}
+
 /// Initialization for all test executables.
+#[cfg(test)]
 #[ctor::ctor]
 fn initialize() {
     // verify running under `cargo nextest` ignoring benchmark runs
@@ -28,22 +38,22 @@ fn initialize() {
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-pub(crate) struct ValidDep {
-    pub(crate) dep: String,
-    pub(crate) eapis: String,
-    pub(crate) category: String,
-    pub(crate) package: String,
+pub struct ValidDep {
+    pub dep: String,
+    pub eapis: String,
+    pub category: String,
+    pub package: String,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub(crate) blocker: Option<Blocker>,
-    pub(crate) version: Option<Version>,
+    pub blocker: Option<Blocker>,
+    pub version: Option<Version>,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub(crate) revision: Option<Revision>,
-    pub(crate) slot: Option<String>,
-    pub(crate) subslot: Option<String>,
+    pub revision: Option<Revision>,
+    pub slot: Option<String>,
+    pub subslot: Option<String>,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub(crate) slot_op: Option<SlotOperator>,
+    pub slot_op: Option<SlotOperator>,
     #[serde(rename = "use")]
-    pub(crate) use_deps: Option<OrderedSet<String>>,
+    pub use_deps: Option<OrderedSet<String>>,
 }
 
 impl<'de> Deserialize<'de> for Version {
@@ -67,67 +77,67 @@ impl<'de> Deserialize<'de> for OrderedSet<String> {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Intersects {
-    pub(crate) vals: Vec<String>,
-    pub(crate) status: bool,
+pub struct Intersects {
+    pub vals: Vec<String>,
+    pub status: bool,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Sorted {
-    pub(crate) sorted: Vec<String>,
-    pub(crate) equal: bool,
+pub struct Sorted {
+    pub sorted: Vec<String>,
+    pub equal: bool,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct DepToml {
-    pub(crate) valid: Vec<ValidDep>,
-    pub(crate) invalid: Vec<String>,
+pub struct DepToml {
+    pub valid: Vec<ValidDep>,
+    pub invalid: Vec<String>,
     compares: Vec<String>,
-    pub(crate) intersects: Vec<Intersects>,
-    pub(crate) sorting: Vec<Sorted>,
+    pub intersects: Vec<Intersects>,
+    pub sorting: Vec<Sorted>,
 }
 
 impl DepToml {
-    pub(crate) fn load() -> crate::Result<Self> {
+    pub fn load() -> crate::Result<Self> {
         let path = TOML_DATA_DIR.join("dep.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
     }
 
-    pub(crate) fn compares(&self) -> ComparesIter {
+    pub fn compares(&self) -> ComparesIter {
         ComparesIter { iter: self.compares.iter() }
     }
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Hashing {
-    pub(crate) versions: Vec<String>,
-    pub(crate) equal: bool,
+pub struct Hashing {
+    pub versions: Vec<String>,
+    pub equal: bool,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct VersionToml {
+pub struct VersionToml {
     compares: Vec<String>,
-    pub(crate) intersects: Vec<Intersects>,
-    pub(crate) sorting: Vec<Sorted>,
-    pub(crate) hashing: Vec<Hashing>,
+    pub intersects: Vec<Intersects>,
+    pub sorting: Vec<Sorted>,
+    pub hashing: Vec<Hashing>,
 }
 
 impl VersionToml {
-    pub(crate) fn load() -> crate::Result<Self> {
+    pub fn load() -> crate::Result<Self> {
         let path = TOML_DATA_DIR.join("version.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
     }
 
-    pub(crate) fn compares(&self) -> ComparesIter {
+    pub fn compares(&self) -> ComparesIter {
         ComparesIter { iter: self.compares.iter() }
     }
 }
 
-pub(crate) struct ComparesIter<'a> {
+pub struct ComparesIter<'a> {
     iter: std::slice::Iter<'a, String>,
 }
 
@@ -144,7 +154,7 @@ impl<'a> Iterator for ComparesIter<'a> {
 }
 
 /// Verify two, unordered iterables contain the same elements.
-pub(crate) fn assert_unordered_eq<I, J, T, S>(a: I, b: J)
+pub fn assert_unordered_eq<I, J, T, S>(a: I, b: J)
 where
     I: IntoIterator<Item = T>,
     J: IntoIterator<Item = S>,
@@ -159,7 +169,7 @@ where
 }
 
 /// Verify two, ordered iterables are equal.
-pub(crate) fn assert_ordered_eq<I, J, T, S>(a: I, b: J)
+pub fn assert_ordered_eq<I, J, T, S>(a: I, b: J)
 where
     I: IntoIterator<Item = T>,
     J: IntoIterator<Item = S>,

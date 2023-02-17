@@ -28,6 +28,8 @@ git = ["dep:git2"]
 https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
 # build command-line tools
 tools = ["dep:aho-corasick", "dep:anyhow", "dep:is-terminal"]
+# export test support for integration tests
+test = ["dep:assert_cmd"]
 
 [dependencies]
 async-trait = "0.1.64"
@@ -71,6 +73,9 @@ aho-corasick = { version = "0.7.20", optional = true }
 anyhow = { version = "1.0.69", optional = true }
 is-terminal = { version = "0.4.3", optional = true }
 
+# test feature dependencies
+assert_cmd = { version = "2.0.8", optional = true }
+
 [dev-dependencies]
 criterion = "0.4"
 ctor = "0.1.26"
@@ -80,3 +85,7 @@ tracing-test = "0.2.4"
 [[bench]]
 name = "bench"
 harness = false
+
+[[test]]
+name = "pk"
+path = "tests/pk/pk.rs"

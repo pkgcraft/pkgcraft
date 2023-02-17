@@ -15,7 +15,7 @@ pub mod repo;
 pub mod restrict;
 pub mod set;
 mod sync;
-pub(crate) mod test;
+pub mod test;
 pub mod utils;
 
 pub use self::error::{Error, Result};
