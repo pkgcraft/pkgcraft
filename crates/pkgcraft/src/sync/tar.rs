@@ -74,7 +74,7 @@ impl Syncable for Repo {
         // create tempfile
         let mut temp_file = Builder::new()
             .suffix(&format!(".{repo_name}.tar.gz"))
-            .tempfile_in(&repos_dir)
+            .tempfile_in(repos_dir)
             .map_err(|e| Error::RepoSync(e.to_string()))?;
 
         // download tarball to tempfile
@@ -90,16 +90,16 @@ impl Syncable for Repo {
         // unpack repo data to tempdir
         let tmp_dir = Builder::new()
             .suffix(&format!(".{repo_name}.update"))
-            .tempdir_in(&repos_dir)
+            .tempdir_in(repos_dir)
             .map_err(|e| Error::RepoSync(e.to_string()))?;
         let tmp_dir_old = Builder::new()
             .suffix(&format!(".{repo_name}.old"))
-            .tempdir_in(&repos_dir)
+            .tempdir_in(repos_dir)
             .map_err(|e| Error::RepoSync(e.to_string()))?;
 
         // try unpacking via tar first since it's a lot faster for large repos
         let tar_unpack = Command::new("tar")
-            .args(&[
+            .args([
                 "--extract",
                 "--gzip",
                 "-f",
@@ -141,11 +141,11 @@ impl Syncable for Repo {
 
         // move old repo out of the way if it exists and replace with unpacked repo
         if path.exists() {
-            fs::rename(&path, &tmp_dir_old).map_err(|e| {
+            fs::rename(path, &tmp_dir_old).map_err(|e| {
                 Error::RepoSync(format!("failed moving old repo {path:?} -> {tmp_dir_old:?}: {e}"))
             })?;
         }
-        fs::rename(&tmp_dir, &path).map_err(|e| {
+        fs::rename(&tmp_dir, path).map_err(|e| {
             Error::RepoSync(format!("failed moving repo {tmp_dir:?} -> {path:?}: {e}"))
         })?;
 

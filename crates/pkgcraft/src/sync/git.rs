@@ -28,7 +28,7 @@ impl Syncable for Repo {
     async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
         if path.exists() {
-            let repo = git2::Repository::open(&path).map_err(|e| {
+            let repo = git2::Repository::open(path).map_err(|e| {
                 Error::RepoSync(format!("failed initializing git repo: {}", e.message()))
             })?;
             let head = repo.head().map_err(|e| {
