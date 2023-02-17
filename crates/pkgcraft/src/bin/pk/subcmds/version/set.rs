@@ -2,13 +2,11 @@ use std::io::stdin;
 use std::process::ExitCode;
 use std::str::FromStr;
 
-use anyhow::bail;
 use clap::Args;
 use indexmap::IndexSet;
-use is_terminal::IsTerminal;
 use pkgcraft::dep::Version;
 
-use crate::Run;
+use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
 pub struct Set {
@@ -19,11 +17,7 @@ impl Run for Set {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut versions = IndexSet::<Version>::new();
 
-        if self.vals.is_empty() || self.vals[0] == "-" {
-            if stdin().is_terminal() {
-                bail!("missing input on stdin");
-            }
-
+        if self.vals.stdin_args()? {
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
                     versions.insert(Version::from_str(s)?);

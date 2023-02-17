@@ -2,14 +2,12 @@ use std::io::stdin;
 use std::process::ExitCode;
 use std::str::FromStr;
 
-use anyhow::bail;
 use clap::Args;
-use is_terminal::IsTerminal;
 use pkgcraft::dep::Dep;
 use strum::{Display, EnumIter, EnumString};
 
 use crate::format::{EnumVariable, FormatString};
-use crate::Run;
+use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
 pub struct Parse {
@@ -24,7 +22,7 @@ pub struct Parse {
     // positionals
     /// Deps to parse, uses stdin if empty or "-"
     #[arg(value_name = "DEP", required = false)]
-    deps: Vec<String>,
+    vals: Vec<String>,
 }
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -108,17 +106,14 @@ impl Run for Parse {
             }
         };
 
-        if self.deps.is_empty() || self.deps[0] == "-" {
-            if stdin().is_terminal() {
-                bail!("missing input on stdin");
-            }
+        if self.vals.stdin_args()? {
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
                     parse(s);
                 }
             }
         } else {
-            for s in &self.deps {
+            for s in &self.vals {
                 parse(s);
             }
         }

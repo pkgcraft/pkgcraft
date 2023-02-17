@@ -2,12 +2,10 @@ use std::io::stdin;
 use std::process::ExitCode;
 use std::str::FromStr;
 
-use anyhow::bail;
 use clap::Args;
-use is_terminal::IsTerminal;
 use pkgcraft::dep::Version;
 
-use crate::Run;
+use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
 pub struct Sort {
@@ -18,11 +16,7 @@ impl Run for Sort {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut versions = Vec::<Version>::new();
 
-        if self.vals.is_empty() || self.vals[0] == "-" {
-            if stdin().is_terminal() {
-                bail!("missing input on stdin");
-            }
-
+        if self.vals.stdin_args()? {
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
                     versions.push(Version::from_str(s)?);

@@ -1,14 +1,12 @@
 use std::io::stdin;
 use std::process::ExitCode;
 
-use anyhow::bail;
 use clap::Args;
-use is_terminal::IsTerminal;
 use pkgcraft::dep::Version;
 use strum::{Display, EnumIter, EnumString};
 
 use crate::format::{EnumVariable, FormatString};
-use crate::Run;
+use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
 pub struct Parse {
@@ -17,7 +15,7 @@ pub struct Parse {
     format: Option<String>,
     /// Versions to parse, uses stdin if empty or "-"
     #[arg(value_name = "VERSION", required = false)]
-    versions: Vec<String>,
+    vals: Vec<String>,
 }
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -70,17 +68,14 @@ impl Run for Parse {
             }
         };
 
-        if self.versions.is_empty() || self.versions[0] == "-" {
-            if stdin().is_terminal() {
-                bail!("missing input on stdin");
-            }
+        if self.vals.stdin_args()? {
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
                     parse(s);
                 }
             }
         } else {
-            for s in &self.versions {
+            for s in &self.vals {
                 parse(s);
             }
         }
