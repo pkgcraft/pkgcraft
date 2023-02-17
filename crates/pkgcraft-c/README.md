@@ -9,5 +9,4 @@ semantic versioning before reaching its 1.0.0 release.
 
 ## Development
 
-Requirements: [cargo-c](https://crates.io/crates/cargo-c) and meson (to build and
-run the tests)
+Requirements: [cargo-c](https://crates.io/crates/cargo-c)
