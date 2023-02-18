@@ -36,7 +36,7 @@ async-trait = "0.1.64"
 cached = "0.42.0"
 camino = { version = "1.1.2", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.1.4", features = ["derive"] }
+clap = { version = "4.1.6", features = ["derive"] }
 crossbeam-channel = "0.5.6"
 enum-as-inner = "0.5.1"
 filetime = "0.2.20"
