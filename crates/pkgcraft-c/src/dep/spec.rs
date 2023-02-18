@@ -34,13 +34,13 @@ pub enum DepSetKind {
 
 /// Opaque wrapper for pkgcraft::dep::DepSet.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DepSetW {
+pub enum DepSetWrapper {
     Dep(dep::DepSet<Dep>),
     String(dep::DepSet<String>),
     Uri(dep::DepSet<Uri>),
 }
 
-impl fmt::Display for DepSetW {
+impl fmt::Display for DepSetWrapper {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Dep(d) => write!(f, "{d}"),
@@ -56,7 +56,7 @@ impl fmt::Display for DepSetW {
 pub struct DepSet {
     unit: DepSpecUnit,
     kind: DepSetKind,
-    dep: *mut DepSetW,
+    dep: *mut DepSetWrapper,
 }
 
 impl Drop for DepSet {
@@ -72,7 +72,7 @@ impl DepSet {
         Self {
             unit: DepSpecUnit::Dep,
             kind: DepSetKind::Dependencies,
-            dep: Box::into_raw(Box::new(DepSetW::Dep(d))),
+            dep: Box::into_raw(Box::new(DepSetWrapper::Dep(d))),
         }
     }
 
@@ -80,7 +80,7 @@ impl DepSet {
         Self {
             unit: DepSpecUnit::String,
             kind,
-            dep: Box::into_raw(Box::new(DepSetW::String(d))),
+            dep: Box::into_raw(Box::new(DepSetWrapper::String(d))),
         }
     }
 
@@ -88,7 +88,7 @@ impl DepSet {
         Self {
             unit: DepSpecUnit::Uri,
             kind: DepSetKind::SrcUri,
-            dep: Box::into_raw(Box::new(DepSetW::Uri(d))),
+            dep: Box::into_raw(Box::new(DepSetWrapper::Uri(d))),
         }
     }
 }
@@ -108,7 +108,7 @@ impl PartialEq for DepSet {
 impl Eq for DepSet {}
 
 impl Deref for DepSet {
-    type Target = DepSetW;
+    type Target = DepSetWrapper;
 
     fn deref(&self) -> &Self::Target {
         null_ptr_check!(self.dep.as_ref())
@@ -143,13 +143,13 @@ impl Iterator for DepSpecIntoIter {
 
 /// Opaque wrapper for pkgcraft::dep::DepSpec.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DepSpecW {
+pub enum DepSpecWrapper {
     Dep(dep::DepSpec<Dep>),
     String(dep::DepSpec<String>),
     Uri(dep::DepSpec<Uri>),
 }
 
-impl fmt::Display for DepSpecW {
+impl fmt::Display for DepSpecWrapper {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Dep(d) => write!(f, "{d}"),
@@ -195,7 +195,7 @@ impl<T: Ordered> From<&dep::DepSpec<T>> for DepSpecKind {
 pub struct DepSpec {
     unit: DepSpecUnit,
     kind: DepSpecKind,
-    dep: *mut DepSpecW,
+    dep: *mut DepSpecWrapper,
 }
 
 impl Drop for DepSpec {
@@ -211,7 +211,7 @@ impl DepSpec {
         Self {
             unit: DepSpecUnit::Dep,
             kind: DepSpecKind::from(&d),
-            dep: Box::into_raw(Box::new(DepSpecW::Dep(d))),
+            dep: Box::into_raw(Box::new(DepSpecWrapper::Dep(d))),
         }
     }
 
@@ -219,7 +219,7 @@ impl DepSpec {
         Self {
             unit: DepSpecUnit::String,
             kind: DepSpecKind::from(&d),
-            dep: Box::into_raw(Box::new(DepSpecW::String(d))),
+            dep: Box::into_raw(Box::new(DepSpecWrapper::String(d))),
         }
     }
 
@@ -227,7 +227,7 @@ impl DepSpec {
         Self {
             unit: DepSpecUnit::Uri,
             kind: DepSpecKind::from(&d),
-            dep: Box::into_raw(Box::new(DepSpecW::Uri(d))),
+            dep: Box::into_raw(Box::new(DepSpecWrapper::Uri(d))),
         }
     }
 }
@@ -259,7 +259,7 @@ impl PartialEq for DepSpec {
 impl Eq for DepSpec {}
 
 impl Deref for DepSpec {
-    type Target = DepSpecW;
+    type Target = DepSpecWrapper;
 
     fn deref(&self) -> &Self::Target {
         null_ptr_check!(self.dep.as_ref())
@@ -459,9 +459,9 @@ pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepSpecIntoIter {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.deref().clone() {
-        DepSetW::Dep(d) => DepSpecIntoIter::Dep(d.into_iter()),
-        DepSetW::String(d) => DepSpecIntoIter::String(d.into_iter()),
-        DepSetW::Uri(d) => DepSpecIntoIter::Uri(d.into_iter()),
+        DepSetWrapper::Dep(d) => DepSpecIntoIter::Dep(d.into_iter()),
+        DepSetWrapper::String(d) => DepSpecIntoIter::String(d.into_iter()),
+        DepSetWrapper::Uri(d) => DepSpecIntoIter::Uri(d.into_iter()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -549,9 +549,9 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_flatten(
 ) -> *mut DepSpecIntoIterFlatten {
     let dep = null_ptr_check!(d.as_ref());
     let iter = match dep.deref().clone() {
-        DepSpecW::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
-        DepSpecW::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
-        DepSpecW::Uri(d) => DepSpecIntoIterFlatten::Uri(d.into_iter_flatten()),
+        DepSpecWrapper::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
+        DepSpecWrapper::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
+        DepSpecWrapper::Uri(d) => DepSpecIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -566,9 +566,9 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
 ) -> *mut DepSpecIntoIterFlatten {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.deref().clone() {
-        DepSetW::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
-        DepSetW::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
-        DepSetW::Uri(d) => DepSpecIntoIterFlatten::Uri(d.into_iter_flatten()),
+        DepSetWrapper::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
+        DepSetWrapper::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
+        DepSetWrapper::Uri(d) => DepSpecIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -608,9 +608,9 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_recursive(
 ) -> *mut DepSpecIntoIterRecursive {
     let dep = null_ptr_check!(d.as_ref());
     let iter = match dep.deref().clone() {
-        DepSpecW::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
-        DepSpecW::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
-        DepSpecW::Uri(d) => DepSpecIntoIterRecursive::Uri(d.into_iter_recursive()),
+        DepSpecWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
+        DepSpecWrapper::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
+        DepSpecWrapper::Uri(d) => DepSpecIntoIterRecursive::Uri(d.into_iter_recursive()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -625,9 +625,9 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
 ) -> *mut DepSpecIntoIterRecursive {
     let deps = null_ptr_check!(d.as_ref());
     let iter = match deps.deref().clone() {
-        DepSetW::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
-        DepSetW::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
-        DepSetW::Uri(d) => DepSpecIntoIterRecursive::Uri(d.into_iter_recursive()),
+        DepSetWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
+        DepSetWrapper::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
+        DepSetWrapper::Uri(d) => DepSpecIntoIterRecursive::Uri(d.into_iter_recursive()),
     };
     Box::into_raw(Box::new(iter))
 }
