@@ -1,6 +1,5 @@
 use std::io::stdin;
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use clap::Args;
 use indexmap::IndexSet;
@@ -20,12 +19,12 @@ impl Run for Set {
         if self.vals.stdin_args()? {
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
-                    versions.insert(Version::from_str(s)?);
+                    versions.insert(Version::new(s)?);
                 }
             }
         } else {
             for s in &self.vals {
-                versions.insert(Version::from_str(s)?);
+                versions.insert(Version::new(s)?);
             }
         }
 

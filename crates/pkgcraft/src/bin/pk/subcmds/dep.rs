@@ -1,7 +1,5 @@
 use std::process::ExitCode;
 
-use clap::{Args, Subcommand};
-
 use crate::Run;
 
 mod compare;
@@ -10,21 +8,21 @@ mod parse;
 mod set;
 mod sort;
 
-#[derive(Debug, Args)]
+#[derive(Debug, clap::Args)]
 #[command(args_conflicts_with_subcommands = true)]
-pub struct Dep {
+pub struct DepCmd {
     #[command(subcommand)]
-    command: Command,
+    command: Subcommand,
 }
 
-impl Run for Dep {
+impl Run for DepCmd {
     fn run(self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
 }
 
-#[derive(Debug, Subcommand)]
-pub enum Command {
+#[derive(Debug, clap::Subcommand)]
+pub enum Subcommand {
     /// Compare two deps
     Compare(compare::Compare),
     /// Determine if two deps intersect
@@ -37,9 +35,9 @@ pub enum Command {
     Sort(sort::Sort),
 }
 
-impl Run for Command {
+impl Run for Subcommand {
     fn run(self) -> anyhow::Result<ExitCode> {
-        use Command::*;
+        use Subcommand::*;
         match self {
             Compare(cmd) => cmd.run(),
             Intersect(cmd) => cmd.run(),

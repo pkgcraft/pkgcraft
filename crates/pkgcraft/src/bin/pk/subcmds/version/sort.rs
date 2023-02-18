@@ -1,6 +1,5 @@
 use std::io::stdin;
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use clap::Args;
 use pkgcraft::dep::Version;
@@ -19,12 +18,12 @@ impl Run for Sort {
         if self.vals.stdin_args()? {
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
-                    versions.push(Version::from_str(s)?);
+                    versions.push(Version::new(s)?);
                 }
             }
         } else {
             for s in &self.vals {
-                versions.push(Version::from_str(s)?);
+                versions.push(Version::new(s)?);
             }
         }
 

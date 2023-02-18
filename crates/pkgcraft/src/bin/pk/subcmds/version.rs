@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use clap::{Args, Subcommand};
+use pkgcraft::dep::Version;
 
 use crate::Run;
 
@@ -10,21 +10,21 @@ mod parse;
 mod set;
 mod sort;
 
-#[derive(Debug, Args)]
+#[derive(Debug, clap::Args)]
 #[command(args_conflicts_with_subcommands = true)]
-pub struct Version {
+pub struct VersionCmd {
     #[command(subcommand)]
-    command: Command,
+    command: Subcommand,
 }
 
-impl Run for Version {
+impl Run for VersionCmd {
     fn run(self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
 }
 
-#[derive(Debug, Subcommand)]
-pub enum Command {
+#[derive(Debug, clap::Subcommand)]
+pub enum Subcommand {
     /// Compare two versions
     Compare(compare::Compare),
     /// Determine if two versions intersect
@@ -37,9 +37,9 @@ pub enum Command {
     Sort(sort::Sort),
 }
 
-impl Run for Command {
+impl Run for Subcommand {
     fn run(self) -> anyhow::Result<ExitCode> {
-        use Command::*;
+        use Subcommand::*;
         match self {
             Compare(cmd) => cmd.run(),
             Intersect(cmd) => cmd.run(),
@@ -48,4 +48,9 @@ impl Run for Command {
             Sort(cmd) => cmd.run(),
         }
     }
+}
+
+// Parse regular version with op-ed fallback.
+fn ver_new(s: &str) -> pkgcraft::Result<Version> {
+    Version::new(s).or_else(|_| Version::new_with_op(s))
 }

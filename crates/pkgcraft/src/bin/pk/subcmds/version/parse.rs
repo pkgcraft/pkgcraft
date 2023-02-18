@@ -49,7 +49,7 @@ impl FormatString for Parse {
 
 impl Parse {
     fn parse_version(&self, s: &str) -> anyhow::Result<()> {
-        let ver = Version::new(s).or_else(|_| Version::new_with_op(s))?;
+        let ver = super::ver_new(s)?;
         if let Some(fmt) = &self.format {
             println!("{}", self.format(fmt, &ver));
         }

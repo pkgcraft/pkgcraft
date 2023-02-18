@@ -1,5 +1,4 @@
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use anyhow::{anyhow, bail};
 use clap::Args;
@@ -20,8 +19,8 @@ impl Run for Compare {
             .split_whitespace()
             .collect_tuple()
             .ok_or_else(|| anyhow!("invalid comparison format: {}", self.compare))?;
-        let a1 = Version::from_str(s1)?;
-        let a2 = Version::from_str(s2)?;
+        let a1 = Version::new(s1)?;
+        let a2 = Version::new(s2)?;
         let result = match op {
             "<" => a1 < a2,
             "<=" => a1 <= a2,
