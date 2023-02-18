@@ -55,7 +55,7 @@ regex = "1.7.1"
 reqwest = { version = "0.11.14", default-features = false, features = ["rustls-tls", "stream"], optional = true }
 roxmltree = "0.18.0"
 rust-ini = "0.18.0"
-scallop = { path = "../scallop", version = "0.0.4" }
+scallop = { path = "../scallop", version = "0.0.5" }
 serde = { version = "1.0.152", features = ["derive"] }
 serde_with = { version = "2.2.0", default-features = false, features = ["macros"] }
 strum = { version = "0.24.1", features = ["derive"] }
