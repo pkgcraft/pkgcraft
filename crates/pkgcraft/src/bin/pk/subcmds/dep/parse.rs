@@ -81,7 +81,7 @@ impl Command {
     fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
         let dep = match &self.eapi {
             Some(eapi) => Dep::new(s, eapi.as_str()),
-            None => super::dep_new(s),
+            None => Dep::new_or_cpv(s),
         }?;
 
         // output formatted string if specified

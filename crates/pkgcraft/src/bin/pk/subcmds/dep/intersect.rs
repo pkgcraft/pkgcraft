@@ -1,6 +1,7 @@
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::dep::Dep;
 
 use crate::Run;
 
@@ -12,8 +13,8 @@ pub struct Command {
 
 impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
-        let d1 = super::dep_new(&self.dep1)?;
-        let d2 = super::dep_new(&self.dep2)?;
+        let d1 = Dep::new_or_cpv(&self.dep1)?;
+        let d2 = Dep::new_or_cpv(&self.dep2)?;
         Ok(ExitCode::from(!d1.intersects(&d2) as u8))
     }
 }

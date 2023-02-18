@@ -1,7 +1,5 @@
 use std::process::ExitCode;
 
-use pkgcraft::dep::Version;
-
 use crate::Run;
 
 mod compare;
@@ -48,9 +46,4 @@ impl Run for Subcommand {
             Sort(cmd) => cmd.run(),
         }
     }
-}
-
-// Parse regular version with op-ed fallback.
-fn ver_new(s: &str) -> pkgcraft::Result<Version> {
-    Version::new(s).or_else(|_| Version::new_with_op(s))
 }

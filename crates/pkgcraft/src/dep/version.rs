@@ -222,6 +222,11 @@ impl Version {
         parse::version_with_op(s)
     }
 
+    /// Create a new Version with optional operator support.
+    pub fn new_optional_op(s: &str) -> crate::Result<Self> {
+        parse::version(s).or_else(|_| parse::version_with_op(s))
+    }
+
     /// Return a version's string value without operator.
     pub fn as_str(&self) -> &str {
         &self.full
@@ -523,6 +528,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_new_optional_op() {
+        assert!(Version::new_optional_op("2").is_ok());
+        assert!(Version::new_optional_op(">=2").is_ok());
+    }
+
+    #[test]
     fn test_overflow_version() {
         let u64_max: u128 = u64::MAX as u128;
 
@@ -575,29 +586,22 @@ mod tests {
 
     #[test]
     fn test_intersects() {
-        // convert string to non-op version falling back to op-ed version
-        let parse = |s: &str| -> Version {
-            Version::new(s)
-                .or_else(|_| Version::new_with_op(s))
-                .unwrap()
-        };
-
         let data = VersionToml::load().unwrap();
         for d in data.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
-                let (s1, s2) = (vals[0], vals[1]);
-                let (v1, v2) = (parse(s1), parse(s2));
+                let v1 = Version::new_optional_op(vals[0]).unwrap();
+                let v2 = Version::new_optional_op(vals[1]).unwrap();
 
                 // elements intersect themselves
-                assert!(v1.intersects(&v1), "{s1} doesn't intersect {s1}");
-                assert!(v2.intersects(&v2), "{s2} doesn't intersect {s2}");
+                assert!(v1.intersects(&v1), "{v1} doesn't intersect {v2}");
+                assert!(v2.intersects(&v2), "{v2} doesn't intersect {v2}");
 
                 // intersects depending on status
                 if d.status {
-                    assert!(v1.intersects(&v2), "{s1} doesn't intersect {s2}");
+                    assert!(v1.intersects(&v2), "{v1} doesn't intersect {v2}");
                 } else {
-                    assert!(!v1.intersects(&v2), "{s1} intersects {s2}");
+                    assert!(!v1.intersects(&v2), "{v1} intersects {v2}");
                 }
             }
         }

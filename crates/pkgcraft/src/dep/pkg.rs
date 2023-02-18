@@ -147,6 +147,11 @@ impl Dep {
         parse::cpv(s)
     }
 
+    /// Create a new Dep with optional CPV support.
+    pub fn new_or_cpv(s: &str) -> crate::Result<Self> {
+        parse::dep(s, &EAPI_PKGCRAFT).or_else(|_| parse::cpv(s))
+    }
+
     /// Determine if two package dependencies intersect ignoring blockers.
     pub fn intersects(&self, other: &Self) -> bool {
         bool_not_equal!(&self.category(), &other.category());
@@ -372,7 +377,7 @@ impl FromStr for Dep {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Dep::new(s, &*EAPI_PKGCRAFT)
+        parse::dep(s, &EAPI_PKGCRAFT)
     }
 }
 
@@ -384,6 +389,13 @@ mod tests {
     use crate::utils::hash;
 
     use super::*;
+
+    #[test]
+    fn test_new_or_cpv() {
+        assert!(Dep::new_or_cpv("cat/pkg").is_ok());
+        assert!(Dep::new_or_cpv("=cat/pkg-1").is_ok());
+        assert!(Dep::new_or_cpv("cat/pkg-1").is_ok());
+    }
 
     #[test]
     fn test_to_string() {
@@ -534,16 +546,6 @@ mod tests {
 
     #[test]
     fn test_intersects() {
-        // convert string to CPV falling back to regular Dep
-        let parse = |s: &str| -> Dep { Dep::new_cpv(s).or_else(|_| Dep::from_str(s)).unwrap() };
-
-        // convert string to non-op version falling back to op-ed version
-        let ver_parse = |s: &str| -> Version {
-            Version::new(s)
-                .or_else(|_| Version::new_with_op(s))
-                .unwrap()
-        };
-
         // inject version intersects data from version.toml into Dep objects
         let data = VersionToml::load().unwrap();
         let a = Dep::from_str("a/b").unwrap();
@@ -551,8 +553,8 @@ mod tests {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
                 let (mut a1, mut a2) = (a.clone(), a.clone());
-                a1.version = Some(ver_parse(vals[0]));
-                a2.version = Some(ver_parse(vals[1]));
+                a1.version = Some(Version::new_optional_op(vals[0]).unwrap());
+                a2.version = Some(Version::new_optional_op(vals[1]).unwrap());
                 let (s1, s2) = (&a1.to_string(), &a2.to_string());
 
                 // elements intersect themselves
@@ -573,7 +575,7 @@ mod tests {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
                 let (s1, s2) = (vals[0], vals[1]);
-                let (a1, a2) = (parse(s1), parse(s2));
+                let (a1, a2) = (Dep::new_or_cpv(s1).unwrap(), Dep::new_or_cpv(s2).unwrap());
 
                 // elements intersect themselves
                 assert!(a1.intersects(&a1), "{s1} doesn't intersect {s1}");
