@@ -10,12 +10,12 @@ mod sort;
 
 #[derive(Debug, clap::Args)]
 #[command(args_conflicts_with_subcommands = true)]
-pub struct DepCmd {
+pub struct Command {
     #[command(subcommand)]
     command: Subcommand,
 }
 
-impl Run for DepCmd {
+impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
@@ -24,15 +24,15 @@ impl Run for DepCmd {
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
     /// Compare two deps
-    Compare(compare::Compare),
+    Compare(compare::Command),
     /// Determine if two deps intersect
-    Intersect(intersect::Intersect),
+    Intersect(intersect::Command),
     /// Parse a dep and optionally print formatted output
-    Parse(parse::Parse),
+    Parse(parse::Command),
     /// Collapse input into a set of deps
-    Set(set::Set),
+    Set(set::Command),
     /// Sort deps
-    Sort(sort::Sort),
+    Sort(sort::Command),
 }
 
 impl Run for Subcommand {

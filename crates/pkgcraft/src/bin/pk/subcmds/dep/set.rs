@@ -9,11 +9,11 @@ use pkgcraft::dep::Dep;
 use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
-pub struct Set {
+pub struct Command {
     vals: Vec<String>,
 }
 
-impl Run for Set {
+impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut deps = IndexSet::<Dep>::new();
 

@@ -11,7 +11,7 @@ mod subcmds;
 #[derive(Debug, Parser)]
 #[command(version, long_about = None, disable_help_subcommand = true)]
 /// pkgcraft command-line tool
-struct Cli {
+struct Command {
     #[command(subcommand)]
     subcmd: subcmds::Subcommand,
 }
@@ -39,6 +39,6 @@ impl StdinArgs for Vec<String> {
 }
 
 fn main() -> anyhow::Result<ExitCode> {
-    let args = Cli::parse();
+    let args = Command::parse();
     args.subcmd.run()
 }

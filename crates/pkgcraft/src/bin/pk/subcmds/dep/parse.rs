@@ -10,7 +10,7 @@ use crate::format::{EnumVariable, FormatString};
 use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
-pub struct Parse {
+pub struct Command {
     // options
     /// Use a specific EAPI
     #[arg(long)]
@@ -73,12 +73,12 @@ impl EnumVariable for Key {
     }
 }
 
-impl FormatString for Parse {
+impl FormatString for Command {
     type Object = Dep;
     type FormatKey = Key;
 }
 
-impl Parse {
+impl Command {
     fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
         // parse dep, falling back to cpv if no EAPI was specified
         let dep = match &self.eapi {
@@ -95,7 +95,7 @@ impl Parse {
     }
 }
 
-impl Run for Parse {
+impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
         // parse a dep, tracking overall process status

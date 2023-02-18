@@ -9,7 +9,7 @@ use crate::format::{EnumVariable, FormatString};
 use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
-pub struct Parse {
+pub struct Command {
     /// Output using a custom format
     #[arg(short, long)]
     format: Option<String>,
@@ -42,12 +42,12 @@ impl EnumVariable for Key {
     }
 }
 
-impl FormatString for Parse {
+impl FormatString for Command {
     type Object = Version;
     type FormatKey = Key;
 }
 
-impl Parse {
+impl Command {
     fn parse_version(&self, s: &str) -> anyhow::Result<()> {
         let ver = super::ver_new(s)?;
         if let Some(fmt) = &self.format {
@@ -57,7 +57,7 @@ impl Parse {
     }
 }
 
-impl Run for Parse {
+impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
         // parse a version, tracking overall process status

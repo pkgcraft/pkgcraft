@@ -8,11 +8,11 @@ use pkgcraft::dep::Version;
 use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
-pub struct Set {
+pub struct Command {
     vals: Vec<String>,
 }
 
-impl Run for Set {
+impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut versions = IndexSet::<Version>::new();
 

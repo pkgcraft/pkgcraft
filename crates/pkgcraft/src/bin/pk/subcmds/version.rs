@@ -12,12 +12,12 @@ mod sort;
 
 #[derive(Debug, clap::Args)]
 #[command(args_conflicts_with_subcommands = true)]
-pub struct VersionCmd {
+pub struct Command {
     #[command(subcommand)]
     command: Subcommand,
 }
 
-impl Run for VersionCmd {
+impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
@@ -26,15 +26,15 @@ impl Run for VersionCmd {
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
     /// Compare two versions
-    Compare(compare::Compare),
+    Compare(compare::Command),
     /// Determine if two versions intersect
-    Intersect(intersect::Intersect),
+    Intersect(intersect::Command),
     /// Parse a version and optionally print formatted output
-    Parse(parse::Parse),
+    Parse(parse::Command),
     /// Collapse input into a set of versions
-    Set(set::Set),
+    Set(set::Command),
     /// Sort versions
-    Sort(sort::Sort),
+    Sort(sort::Command),
 }
 
 impl Run for Subcommand {

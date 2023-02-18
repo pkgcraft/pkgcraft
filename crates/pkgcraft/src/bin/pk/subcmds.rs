@@ -8,9 +8,9 @@ use crate::Run;
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
     /// Perform dep-related actions including parsing, intersection, and sorting
-    Dep(dep::DepCmd),
+    Dep(dep::Command),
     /// Perform version-related actions including parsing, intersection, and sorting
-    Version(version::VersionCmd),
+    Version(version::Command),
 }
 
 impl Run for Subcommand {

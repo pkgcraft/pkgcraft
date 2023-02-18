@@ -8,11 +8,11 @@ use pkgcraft::dep::Dep;
 use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
-pub struct Sort {
+pub struct Command {
     vals: Vec<String>,
 }
 
-impl Run for Sort {
+impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
         let mut deps = Vec::<Dep>::new();
 

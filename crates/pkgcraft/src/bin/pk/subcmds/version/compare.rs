@@ -8,11 +8,11 @@ use pkgcraft::dep::Version;
 use crate::Run;
 
 #[derive(Debug, Args)]
-pub struct Compare {
+pub struct Command {
     compare: String,
 }
 
-impl Run for Compare {
+impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
         let (s1, op, s2) = self
             .compare
