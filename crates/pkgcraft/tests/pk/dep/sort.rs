@@ -1,7 +1,7 @@
 use pkgcraft::test::{cmd, DepToml};
 
 #[test]
-fn test_stdin() {
+fn stdin() {
     // using stdin when no args specified
     cmd("pk dep sort")
         .write_stdin("z/z a/a")
@@ -37,7 +37,7 @@ fn test_stdin() {
 }
 
 #[test]
-fn test_args() {
+fn args() {
     // valid args
     cmd("pk dep sort")
         .args(["z/z", "a/a"])
