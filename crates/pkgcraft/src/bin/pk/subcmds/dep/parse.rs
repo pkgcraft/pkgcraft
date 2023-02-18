@@ -1,6 +1,5 @@
 use std::io::stdin;
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use clap::Args;
 use pkgcraft::dep::Dep;
@@ -80,10 +79,9 @@ impl FormatString for Command {
 
 impl Command {
     fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
-        // parse dep, falling back to cpv if no EAPI was specified
         let dep = match &self.eapi {
             Some(eapi) => Dep::new(s, eapi.as_str()),
-            None => Dep::from_str(s).or_else(|_| Dep::new_cpv(s)),
+            None => super::dep_new(s),
         }?;
 
         // output formatted string if specified

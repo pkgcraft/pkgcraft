@@ -1,4 +1,7 @@
 use std::process::ExitCode;
+use std::str::FromStr;
+
+use pkgcraft::dep::Dep;
 
 use crate::Run;
 
@@ -46,4 +49,9 @@ impl Run for Subcommand {
             Sort(cmd) => cmd.run(),
         }
     }
+}
+
+// Parse regular package dependency with CPV fallback.
+fn dep_new(s: &str) -> pkgcraft::Result<Dep> {
+    Dep::from_str(s).or_else(|_| Dep::new_cpv(s))
 }
