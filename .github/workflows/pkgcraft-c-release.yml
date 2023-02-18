@@ -20,13 +20,13 @@ jobs:
 
     - name: Build package
       run: |
+        # build crate
         cargo package -p pkgcraft-c
+        cd target/package
 
         # extract release name
-        ref=$(echo target/package/pkgcraft-c-*.crate)
-        ref=${ref##*/}
-        ref=${ref%%.crate}
-        echo RELEASE_NAME=$ref >> $GITHUB_ENV
+        ref=$(echo pkgcraft-c-*.crate)
+        echo RELEASE_NAME=${ref%.crate} >> $GITHUB_ENV
 
     - name: Vendor dependencies
       run: |
@@ -76,5 +76,5 @@ jobs:
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
-        files: ${{ env.RELEASE_NAME }}.tar.xz
+        files: ${{ github.ref_name }}.tar.xz
         fail_on_unmatched_files: true
