@@ -40,5 +40,8 @@ impl StdinArgs for Vec<String> {
 
 fn main() -> anyhow::Result<ExitCode> {
     let args = Command::parse();
-    args.subcmd.run()
+    args.subcmd.run().or_else(|e| {
+        eprintln!("{e}");
+        Ok(ExitCode::from(2))
+    })
 }
