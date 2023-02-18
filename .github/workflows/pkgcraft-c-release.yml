@@ -1,0 +1,80 @@
+name: pkgcraft-c-release
+
+on:
+  push:
+    branches: [release]
+    tags: [pkgcraft-c-*]
+
+jobs:
+  build-tarball:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout pkgcraft workspace
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Set up rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      id: rust
+
+    - name: Build package
+      run: |
+        cargo package -p pkgcraft-c
+
+        # extract release name
+        ref=$(echo target/package/pkgcraft-c-*.crate)
+        ref=${ref##*/}
+        ref=${ref%%.crate}
+        echo RELEASE_NAME=$ref >> $GITHUB_ENV
+
+    - name: Vendor dependencies
+      run: |
+        # remove old workdir
+        cd target/package
+        rm -rfv $RELEASE_NAME
+
+        # unpack crate
+        tar -xvzf $RELEASE_NAME.crate
+
+        pushd $RELEASE_NAME
+
+        # vendor dependencies
+        cargo vendor
+
+        # force cargo to use vendored sources
+        mkdir .cargo
+        cat > .cargo/config.toml <<-EOF
+        [source.crates-io]
+        replace-with = "vendored-sources"
+
+        [source.vendored-sources]
+        directory = "vendor"
+        EOF
+
+        popd
+
+        # create release tarball
+        tar -Jvcf $RELEASE_NAME.tar.xz $RELEASE_NAME
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: pkgcraft-c
+        path: target/package/${{ env.RELEASE_NAME }}.tar.xz
+        if-no-files-found: error
+        retention-days: 3
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: ["build-tarball"]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download release tarball artifact
+      uses: actions/download-artifact@v3
+
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ env.RELEASE_NAME }}.tar.xz
+        fail_on_unmatched_files: true
