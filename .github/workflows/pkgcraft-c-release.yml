@@ -32,10 +32,10 @@ jobs:
       run: |
         # remove old workdir
         cd target/package
-        rm -rfv $RELEASE_NAME
+        rm -rf $RELEASE_NAME
 
         # unpack crate
-        tar -xvzf $RELEASE_NAME.crate
+        tar -xzf $RELEASE_NAME.crate
 
         pushd $RELEASE_NAME
 
@@ -55,7 +55,7 @@ jobs:
         popd
 
         # create release tarball
-        tar -Jvcf $RELEASE_NAME.tar.xz $RELEASE_NAME
+        tar -Jcf $RELEASE_NAME.tar.xz $RELEASE_NAME
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
