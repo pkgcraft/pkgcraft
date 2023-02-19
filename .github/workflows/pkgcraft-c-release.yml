@@ -18,50 +18,14 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
       id: rust
 
-    - name: Build package
-      run: |
-        # build crate
-        cargo package -p pkgcraft-c
-        cd target/package
-
-        # extract release name
-        ref=$(echo pkgcraft-c-*.crate)
-        echo RELEASE_NAME=${ref%.crate} >> $GITHUB_ENV
-
-    - name: Vendor dependencies
-      run: |
-        # remove old workdir
-        cd target/package
-        rm -rf $RELEASE_NAME
-
-        # unpack crate
-        tar -xzf $RELEASE_NAME.crate
-
-        pushd $RELEASE_NAME
-
-        # vendor dependencies
-        cargo vendor
-
-        # force cargo to use vendored sources
-        mkdir .cargo
-        cat > .cargo/config.toml <<-EOF
-        [source.crates-io]
-        replace-with = "vendored-sources"
-
-        [source.vendored-sources]
-        directory = "vendor"
-        EOF
-
-        popd
-
-        # create release tarball
-        tar -Jcf $RELEASE_NAME.tar.xz $RELEASE_NAME
+    - name: Create vendored release tarball
+      run: .ci/vendor-tarball pkgcraft-c
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
         name: pkgcraft-c
-        path: target/package/${{ env.RELEASE_NAME }}.tar.xz
+        path: target/package/*.tar.xz
         if-no-files-found: error
         retention-days: 3
 
