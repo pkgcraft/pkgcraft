@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Create a vendored rust release tarball.
+
+set -e
+
+PACKAGE=${1:-pkgcraft-c}
+
+# build crate
+cargo package -p ${PACKAGE}
+
+pushd target/package >/dev/null
+
+# determine release name
+RELEASE=$(echo ${PACKAGE}-*.crate)
+RELEASE=${RELEASE%.crate}
+
+# rename old workdir
+mv ${RELEASE} ${RELEASE}.old
+
+# unpack crate
+tar -zvxf ${RELEASE}.crate
+
+pushd ${RELEASE} >/dev/null
+
+# vendor dependencies
+cargo vendor
+
+# force cargo to use vendored packages
+mkdir .cargo
+cat > .cargo/config.toml <<-EOF
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"
+EOF
+
+popd >/dev/null
+
+# create release tarball
+tar -cv -I 'xz -9 -T0' -f ${RELEASE}.tar.xz ${RELEASE}
