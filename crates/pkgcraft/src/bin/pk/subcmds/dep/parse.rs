@@ -49,25 +49,25 @@ pub enum Key {
 impl EnumVariable for Key {
     type Object = Dep;
 
-    fn value(&self, dep: &Dep) -> String {
+    fn value(&self, obj: &Self::Object) -> String {
         use Key::*;
         match self {
-            BLOCKER => dep.blocker().map(|x| x.to_string()).unwrap_or_default(),
-            CATEGORY => dep.category().to_string(),
-            P => dep.p(),
-            PF => dep.pf(),
-            PN => dep.package().to_string(),
-            PR => dep.pr(),
-            PV => dep.pv(),
-            PVR => dep.pvr(),
-            CPN => dep.cpn(),
-            CPV => dep.cpv(),
-            OP => dep.op().map(|x| x.to_string()).unwrap_or_default(),
-            SLOT => dep.slot().unwrap_or_default().to_string(),
-            SUBSLOT => dep.subslot().unwrap_or_default().to_string(),
-            SLOT_OP => dep.slot_op().map(|x| x.to_string()).unwrap_or_default(),
-            REPO => dep.repo().unwrap_or_default().to_string(),
-            DEP => dep.to_string(),
+            BLOCKER => obj.blocker().map(|x| x.to_string()).unwrap_or_default(),
+            CATEGORY => obj.category().to_string(),
+            P => obj.p(),
+            PF => obj.pf(),
+            PN => obj.package().to_string(),
+            PR => obj.pr(),
+            PV => obj.pv(),
+            PVR => obj.pvr(),
+            CPN => obj.cpn(),
+            CPV => obj.cpv(),
+            OP => obj.op().map(|x| x.to_string()).unwrap_or_default(),
+            SLOT => obj.slot().unwrap_or_default().to_string(),
+            SUBSLOT => obj.subslot().unwrap_or_default().to_string(),
+            SLOT_OP => obj.slot_op().map(|x| x.to_string()).unwrap_or_default(),
+            REPO => obj.repo().unwrap_or_default().to_string(),
+            DEP => obj.to_string(),
         }
     }
 }

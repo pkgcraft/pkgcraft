@@ -29,11 +29,11 @@ pub enum Key {
 impl EnumVariable for Key {
     type Object = Version;
 
-    fn value(&self, ver: &Version) -> String {
+    fn value(&self, obj: &Self::Object) -> String {
         use Key::*;
         match self {
-            VER => ver.as_str().to_string(),
-            REV => ver
+            VER => obj.as_str().to_string(),
+            REV => obj
                 .revision()
                 .map(|r| r.as_str())
                 .unwrap_or_default()
