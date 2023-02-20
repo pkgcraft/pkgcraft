@@ -22,6 +22,7 @@ pub struct Command {
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
 pub enum Key {
+    OP,
     VER,
     REV,
 }
@@ -32,6 +33,7 @@ impl EnumVariable for Key {
     fn value(&self, obj: &Self::Object) -> String {
         use Key::*;
         match self {
+            OP => obj.op().map(|x| x.to_string()).unwrap_or_default(),
             VER => obj.as_str().to_string(),
             REV => obj
                 .revision()
