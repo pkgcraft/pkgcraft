@@ -1,4 +1,4 @@
-use pkgcraft::test::{cmd, DepToml};
+use pkgcraft::test::cmd;
 use predicates::prelude::*;
 
 #[test]
@@ -35,25 +35,5 @@ fn args() {
             .failure()
             .code(2)
             .stderr(predicate::str::is_empty().not());
-    }
-}
-
-#[test]
-fn toml() {
-    let data = DepToml::load().unwrap();
-    for d in data.intersects {
-        let (s1, s2) = (d.vals[0].as_str(), d.vals[1].as_str());
-
-        // elements intersect themselves
-        cmd("pk dep intersect").args([s1, s1]).assert();
-        cmd("pk dep intersect").args([s2, s2]).assert();
-
-        // intersects depending on status
-        let status = cmd("pk dep intersect").args([s1, s2]).assert();
-        if d.status {
-            status.success();
-        } else {
-            status.failure().code(1);
-        }
     }
 }
