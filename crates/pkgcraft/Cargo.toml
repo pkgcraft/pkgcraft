@@ -1,6 +1,6 @@
 [package]
 name = "pkgcraft"
-version = "0.0.6"
+version = "0.0.7"
 description = "library of Gentoo functionality"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft"
