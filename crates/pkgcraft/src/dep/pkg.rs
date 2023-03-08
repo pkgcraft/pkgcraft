@@ -381,6 +381,23 @@ impl FromStr for Dep {
     }
 }
 
+pub trait TryIntoCpv {
+    fn try_into_cpv(self) -> crate::Result<Dep>;
+}
+
+impl TryIntoCpv for &str {
+    fn try_into_cpv(self) -> crate::Result<Dep> {
+        Dep::new_cpv(self)
+    }
+}
+
+impl TryIntoCpv for &Dep {
+    fn try_into_cpv(self) -> crate::Result<Dep> {
+        let s = self.to_string();
+        Dep::valid_cpv(&s).map(|_| self.clone())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::{HashMap, HashSet};
