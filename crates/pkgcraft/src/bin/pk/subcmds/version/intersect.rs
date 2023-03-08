@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use pkgcraft::dep::Version;
+use pkgcraft::dep::{Intersects, Version};
 
 use crate::Run;
 

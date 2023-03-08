@@ -152,38 +152,6 @@ impl Dep {
         parse::dep(s, &EAPI_PKGCRAFT).or_else(|_| parse::cpv(s))
     }
 
-    /// Determine if two package dependencies intersect ignoring blockers.
-    pub fn intersects(&self, other: &Self) -> bool {
-        bool_not_equal!(&self.category(), &other.category());
-        bool_not_equal!(&self.package(), &other.package());
-
-        if let (Some(x), Some(y)) = (self.slot(), other.slot()) {
-            bool_not_equal!(x, y);
-        }
-
-        if let (Some(x), Some(y)) = (self.subslot(), other.subslot()) {
-            bool_not_equal!(x, y);
-        }
-
-        if let (Some(x), Some(y)) = (self.use_deps(), other.use_deps()) {
-            let flags: HashSet<_> = x.symmetric_difference(y).map(|s| s.as_str()).collect();
-            for f in &flags {
-                if f.starts_with('-') && flags.contains(&f[1..]) {
-                    return false;
-                }
-            }
-        }
-
-        if let (Some(x), Some(y)) = (self.repo(), other.repo()) {
-            bool_not_equal!(x, y);
-        }
-
-        match (self.version(), other.version()) {
-            (Some(x), Some(y)) => x.intersects(y),
-            (None, _) | (_, None) => true,
-        }
-    }
-
     /// Return a package dependency's category.
     pub fn category(&self) -> &str {
         &self.category
@@ -378,6 +346,45 @@ impl FromStr for Dep {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         parse::dep(s, &EAPI_PKGCRAFT)
+    }
+}
+
+/// Determine if two objects intersect.
+pub trait Intersects<T> {
+    fn intersects(&self, obj: &T) -> bool;
+}
+
+/// Determine if two package dependencies intersect ignoring blockers.
+impl Intersects<Dep> for Dep {
+    fn intersects(&self, other: &Dep) -> bool {
+        bool_not_equal!(&self.category(), &other.category());
+        bool_not_equal!(&self.package(), &other.package());
+
+        if let (Some(x), Some(y)) = (self.slot(), other.slot()) {
+            bool_not_equal!(x, y);
+        }
+
+        if let (Some(x), Some(y)) = (self.subslot(), other.subslot()) {
+            bool_not_equal!(x, y);
+        }
+
+        if let (Some(x), Some(y)) = (self.use_deps(), other.use_deps()) {
+            let flags: HashSet<_> = x.symmetric_difference(y).map(|s| s.as_str()).collect();
+            for f in &flags {
+                if f.starts_with('-') && flags.contains(&f[1..]) {
+                    return false;
+                }
+            }
+        }
+
+        if let (Some(x), Some(y)) = (self.repo(), other.repo()) {
+            bool_not_equal!(x, y);
+        }
+
+        match (self.version(), other.version()) {
+            (Some(x), Some(y)) => x.intersects(y),
+            (None, _) | (_, None) => true,
+        }
     }
 }
 

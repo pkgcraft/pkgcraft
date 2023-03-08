@@ -6,9 +6,10 @@ use std::{fmt, str};
 
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::dep::parse;
 use crate::macros::cmp_not_equal;
 use crate::Error;
+
+use super::{parse, Intersects};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Suffix {
@@ -263,9 +264,11 @@ impl Version {
     pub fn revision(&self) -> Option<&Revision> {
         self.revision.value.as_ref().map(|_| &self.revision)
     }
+}
 
-    /// Determine if two versions intersect.
-    pub fn intersects(&self, other: &Self) -> bool {
+/// Determine if two versions intersect.
+impl Intersects<Version> for Version {
+    fn intersects(&self, other: &Version) -> bool {
         use Operator::*;
         match (self.op(), other.op()) {
             // intersects if both are unbounded in the same direction

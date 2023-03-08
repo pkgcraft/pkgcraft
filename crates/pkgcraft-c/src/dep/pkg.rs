@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int, CStr, CString};
 use std::ptr;
 use std::str::FromStr;
 
-use pkgcraft::dep::{Blocker, Dep, SlotOperator, Version};
+use pkgcraft::dep::{Blocker, Dep, Intersects, SlotOperator, Version};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;

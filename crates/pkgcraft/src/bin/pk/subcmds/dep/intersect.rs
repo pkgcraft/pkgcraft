@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::dep::Dep;
+use pkgcraft::dep::{Dep, Intersects};
 
 use crate::Run;
 

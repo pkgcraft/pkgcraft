@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::dep::{Blocker, Dep, Version};
+use crate::dep::{Blocker, Dep, Intersects, Version};
 
 use super::set::OrderedSetRestrict;
 use super::str::Restrict as StrRestrict;

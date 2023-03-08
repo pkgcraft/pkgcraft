@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int, CStr, CString};
 use std::ptr;
 use std::str::FromStr;
 
-use pkgcraft::dep::{Operator, Version};
+use pkgcraft::dep::{Intersects, Operator, Version};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
