@@ -211,7 +211,7 @@ mod tests {
         let mut config = Config::default();
 
         // unmatching pkgs sorted by dep attributes
-        let r1: Repo = fake::Repo::new("b", 0, ["cat/pkg-1"]).into();
+        let r1: Repo = fake::Repo::new("b", 0).pkgs(["cat/pkg-1"]).into();
         let (t, repo) = config.temp_repo("a", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
         let r2 = Repo::Ebuild(repo);
@@ -221,7 +221,7 @@ mod tests {
         assert_eq!(pkg_strs, ["cat/pkg-0::a", "cat/pkg-1::b"]);
 
         // matching pkgs sorted by repo priority
-        let r1: Repo = fake::Repo::new("a", -1, ["cat/pkg-0"]).into();
+        let r1: Repo = fake::Repo::new("a", -1).pkgs(["cat/pkg-0"]).into();
         let (t, repo) = config.temp_repo("b", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
         let r2 = Repo::Ebuild(repo);
@@ -231,7 +231,7 @@ mod tests {
         assert_eq!(pkg_strs, ["cat/pkg-0::b", "cat/pkg-0::a"]);
 
         // matching pkgs sorted by repo id since repos have matching priorities
-        let r1: Repo = fake::Repo::new("2", 0, ["cat/pkg-0"]).into();
+        let r1: Repo = fake::Repo::new("2", 0).pkgs(["cat/pkg-0"]).into();
         let (t, repo) = config.temp_repo("1", 0).unwrap();
         t.create_ebuild("cat/pkg-0", []).unwrap();
         let r2 = Repo::Ebuild(repo);
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn package_trait_attributes() {
         let cpv = Dep::new_cpv("cat/pkg-1-r2").unwrap();
-        let r: Repo = fake::Repo::new("b", 0, ["cat/pkg-1-r2"]).into();
+        let r: Repo = fake::Repo::new("b", 0).pkgs([&cpv]).into();
         let pkg = r.iter_restrict(&cpv).next().unwrap();
         assert_eq!(pkg.p(), "pkg-1");
         assert_eq!(pkg.pf(), "pkg-1-r2");

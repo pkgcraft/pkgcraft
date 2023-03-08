@@ -41,7 +41,7 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_new(
             cpv_strs.push(s);
         }
     }
-    let repo = FakeRepo::new(id, priority, cpv_strs);
+    let repo = FakeRepo::new(id, priority).pkgs(cpv_strs);
     Box::into_raw(Box::new(repo.into()))
 }
 

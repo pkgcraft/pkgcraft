@@ -277,16 +277,16 @@ mod tests {
         assert_eq!(hash(s1), hash(s2));
 
         // different parameter order are still sorted lexically by repo id
-        let r1: Repo = fake::Repo::new("r1", 0, []).into();
-        let r2: Repo = fake::Repo::new("r2", 0, []).into();
+        let r1: Repo = fake::Repo::new("r1", 0).into();
+        let r2: Repo = fake::Repo::new("r2", 0).into();
         let s1 = RepoSet::new([&r1, &r2]);
         let s2 = RepoSet::new([&r2, &r1]);
         assert_eq!(s1, s2);
         assert_eq!(hash(s1), hash(s2));
 
         // higher priority repos come before lower priority ones
-        let r1: Repo = fake::Repo::new("r1", -1, []).into();
-        let r2: Repo = fake::Repo::new("r2", 0, []).into();
+        let r1: Repo = fake::Repo::new("r1", -1).into();
+        let r2: Repo = fake::Repo::new("r2", 0).into();
         let s1 = RepoSet::new([&r1]);
         let s2 = RepoSet::new([&r2]);
         assert!(s2 < s1);
@@ -299,8 +299,8 @@ mod tests {
         let s = RepoSet::new([]);
         assert!(s.repos().is_empty());
 
-        let r1: Repo = fake::Repo::new("r1", 0, []).into();
-        let r2: Repo = fake::Repo::new("r2", 0, []).into();
+        let r1: Repo = fake::Repo::new("r1", 0).into();
+        let r2: Repo = fake::Repo::new("r2", 0).into();
         let s = RepoSet::new([&r1, &r2]);
         assert_ordered_eq(s.repos(), [&r1, &r2]);
         // different parameter order are still sorted lexically by repo id
@@ -308,8 +308,8 @@ mod tests {
         assert_ordered_eq(s.repos(), [&r1, &r2]);
 
         // higher priority repos come before lower priority ones
-        let r1: Repo = fake::Repo::new("r1", -1, []).into();
-        let r2: Repo = fake::Repo::new("r2", 0, []).into();
+        let r1: Repo = fake::Repo::new("r1", -1).into();
+        let r2: Repo = fake::Repo::new("r2", 0).into();
         let s = RepoSet::new([&r1, &r2]);
         assert_ordered_eq(s.repos(), [&r2, &r1]);
     }
@@ -318,7 +318,7 @@ mod tests {
     fn test_repo_traits() {
         let mut config = Config::default();
         let (t, ebuild_repo) = config.temp_repo("test", 0).unwrap();
-        let fake_repo = fake::Repo::new("fake", 0, []);
+        let fake_repo = fake::Repo::new("fake", 0);
 
         let e_repo: Repo = ebuild_repo.into();
         let f_repo: Repo = fake_repo.into();
@@ -354,7 +354,7 @@ mod tests {
         assert!(s.contains(&cpv));
 
         // multiple pkgs of different types
-        let fake_repo = fake::Repo::new("fake", 0, ["cat/pkg-1"]);
+        let fake_repo = fake::Repo::new("fake", 0).pkgs(["cat/pkg-1"]);
         let f_repo: Repo = fake_repo.into();
         let s = RepoSet::new([&e_repo, &f_repo]);
         assert_eq!(s.categories(), ["cat"]);
@@ -372,14 +372,14 @@ mod tests {
 
     #[test]
     fn test_bit_ops() {
-        let r1: Repo = fake::Repo::new("1", 0, ["cat/pkg-1"]).into();
-        let r2: Repo = fake::Repo::new("2", 0, ["cat/pkg-2"]).into();
-        let r3: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).into();
-        let r4: Repo = fake::Repo::new("3", 0, ["cat/pkg-3"]).into();
         let cpv1 = Dep::new_cpv("cat/pkg-1").unwrap();
         let cpv2 = Dep::new_cpv("cat/pkg-2").unwrap();
         let cpv3 = Dep::new_cpv("cat/pkg-3").unwrap();
-        let cpv4 = Dep::new_cpv("cat/pkg-3").unwrap();
+        let cpv4 = Dep::new_cpv("cat/pkg-4").unwrap();
+        let r1: Repo = fake::Repo::new("1", 0).pkgs([&cpv1]).into();
+        let r2: Repo = fake::Repo::new("2", 0).pkgs([&cpv2]).into();
+        let r3: Repo = fake::Repo::new("3", 0).pkgs([&cpv3]).into();
+        let r4: Repo = fake::Repo::new("4", 0).pkgs([&cpv4]).into();
 
         let mut s = RepoSet::new([]);
         assert!(!s.contains(&cpv1));

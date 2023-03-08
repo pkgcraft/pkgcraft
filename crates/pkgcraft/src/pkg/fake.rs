@@ -77,24 +77,24 @@ mod tests {
     #[test]
     fn test_ordering() {
         // unmatching pkgs sorted by dep attributes
-        let r1 = Repo::new("b", 0, ["cat/pkg-1"]);
-        let r2 = Repo::new("a", 0, ["cat/pkg-0"]);
+        let r1 = Repo::new("b", 0).pkgs(["cat/pkg-1"]);
+        let r2 = Repo::new("a", 0).pkgs(["cat/pkg-0"]);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::a", "cat/pkg-1::b"]);
 
         // matching pkgs sorted by repo priority
-        let r1 = Repo::new("a", -1, ["cat/pkg-0"]);
-        let r2 = Repo::new("b", 0, ["cat/pkg-0"]);
+        let r1 = Repo::new("a", -1).pkgs(["cat/pkg-0"]);
+        let r2 = Repo::new("b", 0).pkgs(["cat/pkg-0"]);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::b", "cat/pkg-0::a"]);
 
         // matching pkgs sorted by repo id since repos have matching priorities
-        let r1 = Repo::new("b", 0, ["cat/pkg-0"]);
-        let r2 = Repo::new("a", 0, ["cat/pkg-0"]);
+        let r1 = Repo::new("b", 0).pkgs(["cat/pkg-0"]);
+        let r2 = Repo::new("a", 0).pkgs(["cat/pkg-0"]);
         let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
