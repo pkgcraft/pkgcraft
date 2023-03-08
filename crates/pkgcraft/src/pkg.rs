@@ -37,6 +37,36 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     fn version(&self) -> &Version {
         self.cpv().version().expect("invalid CPV")
     }
+
+    /// Return a package's name and version.
+    fn p(&self) -> String {
+        self.cpv().p()
+    }
+
+    /// Return a package's name, version, and revision.
+    fn pf(&self) -> String {
+        self.cpv().pf()
+    }
+
+    /// Return a package's revision.
+    fn pr(&self) -> String {
+        self.cpv().pr()
+    }
+
+    /// Return a package's version.
+    fn pv(&self) -> String {
+        self.cpv().pv()
+    }
+
+    /// Returna package's version and revision.
+    fn pvr(&self) -> String {
+        self.cpv().pvr()
+    }
+
+    /// Return a package's category and package.
+    fn cpn(&self) -> String {
+        self.cpv().cpn()
+    }
 }
 
 macro_rules! make_pkg_traits {
@@ -209,5 +239,18 @@ mod tests {
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::1", "cat/pkg-0::2"]);
+    }
+
+    #[test]
+    fn package_trait_attributes() {
+        let cpv = Dep::new_cpv("cat/pkg-1-r2").unwrap();
+        let r: Repo = fake::Repo::new("b", 0, ["cat/pkg-1-r2"]).into();
+        let pkg = r.iter_restrict(&cpv).next().unwrap();
+        assert_eq!(pkg.p(), "pkg-1");
+        assert_eq!(pkg.pf(), "pkg-1-r2");
+        assert_eq!(pkg.pr(), "r2");
+        assert_eq!(pkg.pv(), "1");
+        assert_eq!(pkg.pvr(), "1-r2");
+        assert_eq!(pkg.cpn(), "cat/pkg");
     }
 }
