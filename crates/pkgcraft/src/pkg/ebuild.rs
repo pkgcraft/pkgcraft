@@ -8,7 +8,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 
-use crate::dep::Dep;
+use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
 use crate::eapi::{self, Eapi};
 use crate::pkgsh::metadata::{Key, Metadata};
@@ -30,7 +30,7 @@ static EAPI_LINE_RE: Lazy<Regex> =
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     path: Utf8PathBuf,
-    cpv: Dep,
+    cpv: Cpv,
     eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata,
@@ -41,7 +41,7 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(path: Utf8PathBuf, cpv: Dep, repo: &'a Repo) -> crate::Result<Self> {
+    pub(crate) fn new(path: Utf8PathBuf, cpv: Cpv, repo: &'a Repo) -> crate::Result<Self> {
         let err = |e: Error| -> Error {
             Error::InvalidPkg {
                 path: relpath(&path, repo.path()).expect("invalid relative pkg path"),
@@ -265,7 +265,7 @@ impl AsRef<Utf8Path> for Pkg<'_> {
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn cpv(&self) -> &Dep {
+    fn cpv(&self) -> &Cpv {
         &self.cpv
     }
 
@@ -342,8 +342,8 @@ mod tests {
         // temp repo ebuild creation defaults to the latest EAPI
         assert_eq!(pkg1.eapi(), *eapi::EAPI_LATEST);
         assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
-        assert_eq!(pkg1.cpv(), &Dep::new_cpv("cat/pkg-1").unwrap());
-        assert_eq!(pkg2.cpv(), &Dep::new_cpv("cat/pkg-2").unwrap());
+        assert_eq!(pkg1.cpv(), &Cpv::new("cat/pkg-1").unwrap());
+        assert_eq!(pkg2.cpv(), &Cpv::new("cat/pkg-2").unwrap());
 
         // repo attribute allows recursion
         assert_eq!(pkg1.repo(), pkg2.repo());

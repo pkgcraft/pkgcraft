@@ -1,7 +1,8 @@
 use std::process::ExitCode;
+use std::str::FromStr;
 
 use clap::Args;
-use pkgcraft::dep::{Dep, Intersects};
+use pkgcraft::dep::{CpvOrDep, Intersects};
 
 use crate::Run;
 
@@ -13,8 +14,8 @@ pub struct Command {
 
 impl Run for Command {
     fn run(self) -> anyhow::Result<ExitCode> {
-        let d1 = Dep::new_or_cpv(&self.dep1)?;
-        let d2 = Dep::new_or_cpv(&self.dep2)?;
-        Ok(ExitCode::from(!d1.intersects(&d2) as u8))
+        let obj1 = CpvOrDep::from_str(&self.dep1)?;
+        let obj2 = CpvOrDep::from_str(&self.dep2)?;
+        Ok(ExitCode::from(!obj1.intersects(&obj2) as u8))
     }
 }

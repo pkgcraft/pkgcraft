@@ -261,7 +261,7 @@ impl SubAssign<&Repo> for RepoSet {
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::dep::Dep;
+    use crate::dep::Cpv;
     use crate::pkg::Package;
     use crate::repo::{fake, Contains, Repository};
     use crate::test::assert_ordered_eq;
@@ -322,7 +322,7 @@ mod tests {
 
         let e_repo: Repo = ebuild_repo.into();
         let f_repo: Repo = fake_repo.into();
-        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
+        let cpv = Cpv::new("cat/pkg-1").unwrap();
 
         // empty repo set
         let s = RepoSet::new([]);
@@ -372,10 +372,10 @@ mod tests {
 
     #[test]
     fn test_bit_ops() {
-        let cpv1 = Dep::new_cpv("cat/pkg-1").unwrap();
-        let cpv2 = Dep::new_cpv("cat/pkg-2").unwrap();
-        let cpv3 = Dep::new_cpv("cat/pkg-3").unwrap();
-        let cpv4 = Dep::new_cpv("cat/pkg-4").unwrap();
+        let cpv1 = Cpv::new("cat/pkg-1").unwrap();
+        let cpv2 = Cpv::new("cat/pkg-2").unwrap();
+        let cpv3 = Cpv::new("cat/pkg-3").unwrap();
+        let cpv4 = Cpv::new("cat/pkg-4").unwrap();
         let r1: Repo = fake::Repo::new("1", 0).pkgs([&cpv1]).into();
         let r2: Repo = fake::Repo::new("2", 0).pkgs([&cpv2]).into();
         let r3: Repo = fake::Repo::new("3", 0).pkgs([&cpv3]).into();

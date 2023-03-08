@@ -14,7 +14,7 @@ use scallop::{functions, source, Error};
 use strum::{AsRefStr, Display};
 use sys_info::os_release;
 
-use crate::dep::Dep;
+use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::{build_from_paths, extend_left};
 use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
@@ -157,7 +157,7 @@ use assert_stderr;
 #[derive(Default)]
 struct BuildData<'a> {
     eapi: &'static Eapi,
-    cpv: Option<Dep>,
+    cpv: Option<Cpv>,
     repo: Option<&'a ebuild::Repo>,
 
     captured_io: bool,
@@ -220,7 +220,7 @@ impl BuildData<'_> {
         }
     }
 
-    fn update(cpv: &Dep, repo: &ebuild::Repo) {
+    fn update(cpv: &Cpv, repo: &ebuild::Repo) {
         // TODO: remove this hack once BuildData is reworked
         // Drop the lifetime bound on the repo reference in order for it to be stored in BuildData
         // which currently requires `'static` due to its usage in a global, thread local, static

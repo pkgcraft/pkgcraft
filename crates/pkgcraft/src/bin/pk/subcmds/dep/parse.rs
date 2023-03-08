@@ -1,5 +1,6 @@
 use std::io::stdin;
 use std::process::ExitCode;
+use std::str::FromStr;
 
 use clap::Args;
 use pkgcraft::dep::Dep;
@@ -81,7 +82,7 @@ impl Command {
     fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
         let dep = match &self.eapi {
             Some(eapi) => Dep::new(s, eapi.as_str()),
-            None => Dep::new_or_cpv(s),
+            None => Dep::from_str(s),
         }?;
 
         // output formatted string if specified

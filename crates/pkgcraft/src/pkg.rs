@@ -2,7 +2,7 @@ use std::fmt;
 
 use enum_as_inner::EnumAsInner;
 
-use crate::dep::{Dep, Version};
+use crate::dep::{Cpv, Version};
 use crate::eapi;
 use crate::repo::{Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -31,11 +31,11 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     fn repo(&self) -> Self::Repo;
 
     /// Return a package's CPV.
-    fn cpv(&self) -> &Dep;
+    fn cpv(&self) -> &Cpv;
 
     /// Return a package's version.
     fn version(&self) -> &Version {
-        self.cpv().version().expect("invalid CPV")
+        self.cpv().version()
     }
 
     /// Return a package's name and version.
@@ -120,7 +120,7 @@ pub(self) use make_pkg_traits;
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
-    fn cpv(&self) -> &Dep {
+    fn cpv(&self) -> &Cpv {
         match self {
             Self::Ebuild(pkg, _) => pkg.cpv(),
             Self::Fake(pkg, _) => pkg.cpv(),
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn package_trait_attributes() {
-        let cpv = Dep::new_cpv("cat/pkg-1-r2").unwrap();
+        let cpv = Cpv::new("cat/pkg-1-r2").unwrap();
         let r: Repo = fake::Repo::new("b", 0).pkgs([&cpv]).into();
         let pkg = r.iter_restrict(&cpv).next().unwrap();
         assert_eq!(pkg.p(), "pkg-1");

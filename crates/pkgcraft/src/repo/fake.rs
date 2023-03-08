@@ -6,7 +6,7 @@ use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
 use crate::config::RepoConfig;
-use crate::dep::{Dep, TryIntoCpv};
+use crate::dep::{Cpv, TryIntoCpv};
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::Error;
@@ -21,7 +21,7 @@ pub struct Repo {
     id: String,
     repo_config: RepoConfig,
     pkgmap: PkgMap,
-    cpvs: IndexSet<Dep>,
+    cpvs: IndexSet<Cpv>,
 }
 
 make_repo_traits!(Repo);
@@ -90,7 +90,7 @@ impl<C: TryIntoCpv> Extend<C> for Repo {
                     .or_insert_with(VersionMap::new)
                     .entry(cpv.package().into())
                     .or_insert_with(IndexSet::new)
-                    .insert(cpv.version().unwrap().into());
+                    .insert(cpv.version().into());
             }
             self.pkgmap = pkgmap;
         }
@@ -180,7 +180,7 @@ impl<'a> IntoIterator for &'a Repo {
 
 #[derive(Debug)]
 pub struct Iter<'a> {
-    iter: indexmap::set::Iter<'a, Dep>,
+    iter: indexmap::set::Iter<'a, Cpv>,
     repo: &'a Repo,
 }
 
@@ -216,6 +216,7 @@ impl<'a> Iterator for IterRestrict<'a> {
 mod tests {
     use std::str::FromStr;
 
+    use crate::dep::Dep;
     use crate::pkg::Package;
     use crate::repo::Contains;
 
@@ -297,10 +298,10 @@ mod tests {
         // path is always false due to fake repo
         assert!(!repo.contains("cat/pkg"));
 
-        // versioned dep
-        let cpv = Dep::new_cpv("cat/pkg-0").unwrap();
+        // cpv
+        let cpv = Cpv::new("cat/pkg-0").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
+        let cpv = Cpv::new("cat/pkg-1").unwrap();
         assert!(!repo.contains(&cpv));
 
         // unversioned dep

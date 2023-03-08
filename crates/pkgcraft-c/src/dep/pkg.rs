@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int, CStr, CString};
 use std::ptr;
 use std::str::FromStr;
 
-use pkgcraft::dep::{Blocker, Dep, Intersects, SlotOperator, Version};
+use pkgcraft::dep::{Blocker, Cpv, Dep, Intersects, SlotOperator, Version};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
@@ -25,20 +25,6 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
     let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
     let dep = unwrap_or_return!(Dep::new(s, eapi), ptr::null_mut());
     Box::into_raw(Box::new(dep))
-}
-
-/// Parse a CPV string into a package dependency.
-///
-/// Returns NULL on error.
-///
-/// # Safety
-/// The argument should be a UTF-8 string.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Dep {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let cpv = unwrap_or_return!(Dep::new_cpv(s), ptr::null_mut());
-    Box::into_raw(Box::new(cpv))
 }
 
 /// Parse a string into a Blocker.
@@ -101,6 +87,17 @@ pub unsafe extern "C" fn pkgcraft_dep_intersects(d1: *mut Dep, d2: *mut Dep) -> 
     let d1 = null_ptr_check!(d1.as_ref());
     let d2 = null_ptr_check!(d2.as_ref());
     d1.intersects(d2)
+}
+
+/// Determine if a package dependency intersects with a Cpv.
+///
+/// # Safety
+/// The arguments must be non-null Cpv and Dep pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_intersects_cpv(d: *mut Dep, c: *mut Cpv) -> bool {
+    let d = null_ptr_check!(d.as_ref());
+    let c = null_ptr_check!(c.as_ref());
+    d.intersects(c)
 }
 
 /// Get the category of a package dependency.

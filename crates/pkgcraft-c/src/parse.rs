@@ -1,7 +1,7 @@
 use std::ffi::{c_char, CStr};
 use std::ptr;
 
-use pkgcraft::dep::{parse, Dep, Version};
+use pkgcraft::dep::{parse, Cpv, Dep, Version};
 use pkgcraft::eapi::{Eapi, IntoEapi};
 
 use crate::macros::*;
@@ -87,6 +87,6 @@ pub unsafe extern "C" fn pkgcraft_parse_repo(s: *const c_char) -> *const c_char 
 pub unsafe extern "C" fn pkgcraft_parse_cpv(s: *const c_char) -> *const c_char {
     let val = null_ptr_check!(s.as_ref());
     let val = unsafe { unwrap_or_return!(CStr::from_ptr(val).to_str(), ptr::null()) };
-    unwrap_or_return!(Dep::valid_cpv(val), ptr::null());
+    unwrap_or_return!(Cpv::valid(val), ptr::null());
     s
 }

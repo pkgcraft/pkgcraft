@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::dep::{Blocker, Dep, Intersects, Version};
+use crate::dep::{Blocker, Cpv, Dep, Intersects, Version};
 
 use super::set::OrderedSetRestrict;
 use super::str::Restrict as StrRestrict;
@@ -60,6 +60,24 @@ impl Restrict {
     }
 }
 
+impl Restriction<&Cpv> for Restrict {
+    fn matches(&self, cpv: &Cpv) -> bool {
+        use self::Restrict::*;
+        match self {
+            Category(r) => r.matches(cpv.category()),
+            Package(r) => r.matches(cpv.package()),
+            Version(Some(v)) => v.intersects(cpv.version()),
+            VersionStr(r) => r.matches(cpv.version().as_str()),
+            Blocker(None) => true,
+            Slot(None) => true,
+            Subslot(None) => true,
+            UseDeps(None) => true,
+            Repo(None) => true,
+            _ => false,
+        }
+    }
+}
+
 impl Restriction<&Dep> for Restrict {
     fn matches(&self, dep: &Dep) -> bool {
         use self::Restrict::*;
@@ -107,11 +125,29 @@ impl From<Restrict> for BaseRestrict {
     }
 }
 
+impl Restriction<&Cpv> for BaseRestrict {
+    fn matches(&self, cpv: &Cpv) -> bool {
+        crate::restrict::restrict_match! {self, cpv,
+            Self::Dep(r) => r.matches(cpv),
+        }
+    }
+}
+
 impl Restriction<&Dep> for BaseRestrict {
     fn matches(&self, dep: &Dep) -> bool {
         crate::restrict::restrict_match! {self, dep,
             Self::Dep(r) => r.matches(dep),
         }
+    }
+}
+
+impl From<&Cpv> for BaseRestrict {
+    fn from(cpv: &Cpv) -> Self {
+        BaseRestrict::and([
+            Restrict::category(cpv.category()),
+            Restrict::package(cpv.package()),
+            Restrict::Version(Some(cpv.version().clone())),
+        ])
     }
 }
 
@@ -155,7 +191,7 @@ mod tests {
     fn test_restrict_methods() {
         let unversioned = Dep::from_str("cat/pkg").unwrap();
         let blocker = Dep::from_str("!cat/pkg").unwrap();
-        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
+        let cpv = Cpv::new("cat/pkg-1").unwrap();
         let full = Dep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
@@ -260,7 +296,7 @@ mod tests {
     #[test]
     fn test_restrict_conversion() {
         let unversioned = Dep::from_str("cat/pkg").unwrap();
-        let cpv = Dep::new_cpv("cat/pkg-1").unwrap();
+        let cpv = Cpv::new("cat/pkg-1").unwrap();
         let full = Dep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // unversioned restriction
@@ -292,8 +328,8 @@ mod tests {
         let ge = Dep::from_str(">=cat/pkg-1-r1").unwrap();
         let gt = Dep::from_str(">cat/pkg-1-r1").unwrap();
 
-        let lt_cpv = Dep::new_cpv("cat/pkg-0").unwrap();
-        let gt_cpv = Dep::new_cpv("cat/pkg-2").unwrap();
+        let lt_cpv = Cpv::new("cat/pkg-0").unwrap();
+        let gt_cpv = Cpv::new("cat/pkg-2").unwrap();
 
         let r = BaseRestrict::from(&lt);
         assert!(r.matches(&lt_cpv));
@@ -314,7 +350,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&eq_glob));
         for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
-            let cpv = Dep::new_cpv(s).unwrap();
+            let cpv = Cpv::new(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));
@@ -322,7 +358,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&approx));
         for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
-            let cpv = Dep::new_cpv(s).unwrap();
+            let cpv = Cpv::new(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));

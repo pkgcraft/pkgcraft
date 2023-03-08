@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
 
-use crate::dep::pkg::ParsedDep;
+use crate::dep::pkg::{ParsedCpv, ParsedDep};
 use crate::dep::version::{ParsedVersion, Suffix};
-use crate::dep::{Blocker, Dep, DepSet, DepSpec, SlotOperator, Uri, Version};
+use crate::dep::{Blocker, Cpv, Dep, DepSet, DepSpec, SlotOperator, Uri, Version};
 use crate::eapi::{Eapi, Feature};
 use crate::peg::peg_error;
 use crate::set::Ordered;
@@ -175,13 +175,13 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    pub(super) rule cpv() -> ParsedDep<'input>
-        = cat:category() "/" pkg:package() "-" ver:version() {
-            ParsedDep {
-                category: cat,
-                package: pkg,
-                version: Some(ver),
-                ..Default::default()
+    pub(super) rule cpv() -> ParsedCpv<'input>
+        = category:category() "/" package:package() "-" version:version() {
+            ParsedCpv {
+                category,
+                package,
+                version,
+                version_str: "",
             }
         }
 
@@ -383,18 +383,18 @@ pub fn repo(s: &str) -> crate::Result<()> {
     Ok(())
 }
 
-pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedDep> {
+pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedCpv> {
     depspec::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s}"), s, e))
 }
 
 #[cached(
-    type = "SizedCache<String, crate::Result<Dep>>",
+    type = "SizedCache<String, crate::Result<Cpv>>",
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ s.to_string() }"#
 )]
-pub(super) fn cpv(s: &str) -> crate::Result<Dep> {
+pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
     let mut cpv = cpv_str(s)?;
-    cpv.version_str = Some(s);
+    cpv.version_str = s;
     cpv.into_owned()
 }
 
@@ -409,7 +409,6 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
             dep.package = cpv.package;
             dep.version = Some(
                 cpv.version
-                    .unwrap()
                     .with_op(op, glob)
                     .map_err(|e| Error::InvalidValue(format!("invalid dep: {s}: {e}")))?,
             );
