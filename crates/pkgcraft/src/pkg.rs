@@ -35,7 +35,7 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
 
     /// Return a package's version.
     fn version(&self) -> &Version {
-        self.cpv().version().unwrap()
+        self.cpv().version().expect("invalid CPV")
     }
 }
 
