@@ -2,7 +2,8 @@ use std::str::FromStr;
 
 use cached::{proc_macro::cached, SizedCache};
 
-use crate::dep::pkg::{ParsedCpv, ParsedDep};
+use crate::dep::cpv::ParsedCpv;
+use crate::dep::pkg::ParsedDep;
 use crate::dep::version::{ParsedVersion, Suffix};
 use crate::dep::{Blocker, Cpv, Dep, DepSet, DepSpec, SlotOperator, Uri, Version};
 use crate::eapi::{Eapi, Feature};
