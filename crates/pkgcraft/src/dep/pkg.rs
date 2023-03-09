@@ -7,7 +7,7 @@ use std::str::FromStr;
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::eapi::{IntoEapi, EAPI_PKGCRAFT};
+use crate::eapi::{IntoEapi, EAPI_LATEST};
 use crate::macros::bool_not_equal;
 use crate::set::OrderedSet;
 use crate::Error;
@@ -329,7 +329,7 @@ impl FromStr for Dep {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        parse::dep(s, &EAPI_PKGCRAFT)
+        parse::dep(s, &EAPI_LATEST)
     }
 }
 

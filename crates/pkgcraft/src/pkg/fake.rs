@@ -1,5 +1,5 @@
 use crate::dep::Cpv;
-use crate::eapi::{Eapi, EAPI_LATEST};
+use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::pkg;
 use crate::repo::{fake::Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -29,7 +29,7 @@ impl<'a> Package for Pkg<'a> {
     }
 
     fn eapi(&self) -> &'static Eapi {
-        &EAPI_LATEST
+        &EAPI_LATEST_OFFICIAL
     }
 
     fn repo(&self) -> Self::Repo {

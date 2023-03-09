@@ -61,7 +61,7 @@ impl Repo {
 
         // ebuild defaults
         let mut values = indexmap::IndexMap::from([
-            (Eapi, eapi::EAPI_LATEST.as_str()),
+            (Eapi, eapi::EAPI_LATEST_OFFICIAL.as_str()),
             (Slot, "0"),
             (Description, "stub package description"),
             (Homepage, "https://github.com/pkgcraft"),

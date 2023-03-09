@@ -500,7 +500,7 @@ pub fn dependencies(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet
 mod tests {
     use indexmap::IndexSet;
 
-    use crate::eapi::{self, EAPIS, EAPIS_OFFICIAL, EAPI_LATEST};
+    use crate::eapi::{self, EAPIS, EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL};
     use crate::test::DepToml;
 
     use super::*;
@@ -831,7 +831,7 @@ mod tests {
     #[test]
     fn test_src_uri() -> crate::Result<()> {
         // empty string
-        assert!(src_uri("", &EAPI_LATEST).unwrap().is_none());
+        assert!(src_uri("", &EAPI_LATEST_OFFICIAL).unwrap().is_none());
 
         // valid
         for (s, expected, expected_flatten) in [
@@ -892,11 +892,11 @@ mod tests {
     fn test_required_use() -> crate::Result<()> {
         // invalid
         for s in ["(", ")", "( )", "( u)", "| ( u )"] {
-            assert!(required_use(s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(required_use(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
         }
 
         // empty string
-        assert!(required_use("", &EAPI_LATEST).unwrap().is_none());
+        assert!(required_use("", &EAPI_LATEST_OFFICIAL).unwrap().is_none());
 
         // valid
         for (s, expected, expected_flatten) in [
@@ -916,7 +916,7 @@ mod tests {
                 vec!["u2", "u3"],
             ),
         ] {
-            let depset = required_use(s, &EAPI_LATEST)?.unwrap();
+            let depset = required_use(s, &EAPI_LATEST_OFFICIAL)?.unwrap();
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset, expected, "{s} failed");
@@ -945,11 +945,11 @@ mod tests {
     fn test_dependencies() -> crate::Result<()> {
         // invalid
         for s in ["(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
-            assert!(dependencies(s, &EAPI_LATEST).is_err(), "{s:?} didn't fail");
+            assert!(dependencies(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
         }
 
         // empty string
-        assert!(dependencies("", &EAPI_LATEST).unwrap().is_none());
+        assert!(dependencies("", &EAPI_LATEST_OFFICIAL).unwrap().is_none());
 
         // valid
         for (s, expected, expected_flatten) in [
@@ -968,7 +968,7 @@ mod tests {
                 vec!["a/b", "c/d"],
             ),
         ] {
-            let depset = dependencies(s, &EAPI_LATEST)?.unwrap();
+            let depset = dependencies(s, &EAPI_LATEST_OFFICIAL)?.unwrap();
             let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
             assert_eq!(flatten, expected_flatten);
             assert_eq!(depset, expected, "{s} failed");

@@ -779,7 +779,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::dep::Dep;
-    use crate::eapi::EAPI_LATEST;
+    use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::pkgsh::metadata::Key;
@@ -866,9 +866,9 @@ mod tests {
         assert_eq!(repo.eapi(), &*EAPI0);
 
         // explicit repo EAPI
-        let t = TempRepo::new("test", None, Some(*EAPI_LATEST)).unwrap();
+        let t = TempRepo::new("test", None, Some(*EAPI_LATEST_OFFICIAL)).unwrap();
         let repo = Repo::from_path("test", 0, t.path()).unwrap();
-        assert_eq!(repo.eapi(), *EAPI_LATEST);
+        assert_eq!(repo.eapi(), *EAPI_LATEST_OFFICIAL);
     }
 
     #[test]

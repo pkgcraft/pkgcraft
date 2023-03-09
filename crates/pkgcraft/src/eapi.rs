@@ -587,17 +587,21 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
         .disable_archives(&["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
 
-/// Reference to the latest, official EAPI.
-pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
+/// Reference to the most recent official EAPI.
+pub static EAPI_LATEST_OFFICIAL: Lazy<&'static Eapi> = Lazy::new(|| EAPIS_OFFICIAL.last().unwrap());
+
+/// Reference to the most recent EAPI.
+pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| EAPIS.last().unwrap());
 
 /// The latest EAPI with extensions on top.
-pub static EAPI_PKGCRAFT: Lazy<Eapi> =
-    Lazy::new(|| Eapi::new("pkgcraft", Some(&EAPI_LATEST)).enable_features(&[Feature::RepoIds]));
+pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
+    Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL)).enable_features(&[Feature::RepoIds])
+});
 
 /// Ordered set of official EAPIs.
 pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     let mut eapis = IndexSet::new();
-    let mut eapi: &Eapi = &EAPI_LATEST;
+    let mut eapi: &Eapi = &EAPI8;
     while let Some(x) = eapi.parent {
         eapis.insert(eapi);
         eapi = x;
@@ -681,17 +685,18 @@ mod tests {
 
     #[test]
     fn test_ordering() {
-        assert!(*EAPI0 < **EAPI_LATEST);
+        assert!(*EAPI0 < **EAPI_LATEST_OFFICIAL);
         assert!(*EAPI0 <= *EAPI0);
         assert!(*EAPI0 == *EAPI0);
         assert!(*EAPI0 >= *EAPI0);
-        assert!(**EAPI_LATEST > *EAPI0);
+        assert!(**EAPI_LATEST_OFFICIAL > *EAPI0);
+        assert!(**EAPI_LATEST > **EAPI_LATEST_OFFICIAL);
     }
 
     #[test]
     fn test_has() {
         assert!(!EAPI0.has(Feature::UseDeps));
-        assert!(EAPI_LATEST.has(Feature::UseDeps));
+        assert!(EAPI_LATEST_OFFICIAL.has(Feature::UseDeps));
     }
 
     #[test]
@@ -709,8 +714,10 @@ mod tests {
 
         let r = EAPI0.dep("cat/pkg:0");
         assert_err_re!(r, "invalid dep: cat/pkg:0");
-        let r = EAPI_LATEST.dep("cat/pkg::repo");
+        let r = EAPI_LATEST_OFFICIAL.dep("cat/pkg::repo");
         assert_err_re!(r, "invalid dep: cat/pkg::repo");
+        let dep = EAPI_LATEST.dep("cat/pkg::repo").unwrap();
+        assert_eq!(dep.repo().unwrap(), "repo");
     }
 
     #[test]
