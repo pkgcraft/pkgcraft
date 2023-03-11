@@ -158,7 +158,6 @@ impl TryIntoCpv for &str {
 
 impl TryIntoCpv for &Cpv {
     fn try_into_cpv(self) -> crate::Result<Cpv> {
-        let s = self.to_string();
-        Cpv::valid(&s).map(|_| self.clone())
+        Ok(self.clone())
     }
 }
