@@ -852,10 +852,18 @@ mod tests {
     }
 
     #[test]
-    fn test_id() {
-        let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0).unwrap();
+    fn test_id_and_name() {
+        // repo id matches name
+        let t = TempRepo::new("test", None, None).unwrap();
+        let repo = Repo::from_path("test", 0, t.path()).unwrap();
         assert_eq!(repo.id(), "test");
+        assert_eq!(repo.name(), "test");
+
+        // repo id differs from name
+        let t = TempRepo::new("name", None, None).unwrap();
+        let repo = Repo::from_path("id", 0, t.path()).unwrap();
+        assert_eq!(repo.id(), "id");
+        assert_eq!(repo.name(), "name");
     }
 
     #[test]
