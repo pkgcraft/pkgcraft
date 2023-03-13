@@ -28,16 +28,12 @@ struct InstallOptions {
     preserve_timestamps: bool,
 }
 
+#[derive(Default)]
 enum InstallOpts {
+    #[default]
     None,
     Internal(InstallOptions),
     Cmd(Vec<String>),
-}
-
-impl Default for InstallOpts {
-    fn default() -> Self {
-        InstallOpts::None
-    }
 }
 
 #[derive(Default)]
