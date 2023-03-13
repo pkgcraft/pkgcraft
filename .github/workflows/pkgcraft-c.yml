@@ -128,3 +128,11 @@ jobs:
     with:
       perl-version: '5'
       event-type: 'call'
+
+  pkgcraft-ruby:
+    needs: build
+    uses: pkgcraft/pkgcraft-ruby/.github/workflows/ci.yml@main
+    secrets: inherit
+    with:
+      ruby-version: '3.2'
+      event-type: 'call'
