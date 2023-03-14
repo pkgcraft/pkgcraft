@@ -1,7 +1,7 @@
 use criterion::Criterion;
 
 use pkgcraft::config::Config;
-use pkgcraft::dep::Dep;
+use pkgcraft::dep::Cpv;
 use pkgcraft::repo::PkgRepository;
 
 pub fn bench_repo_ebuild(c: &mut Criterion) {
@@ -25,7 +25,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
 
     c.bench_function("repo-ebuild-iter-restrict", |b| {
         let mut pkgs = 0;
-        let cpv = Dep::new_cpv("cat/pkg-50").unwrap();
+        let cpv = Cpv::new("cat/pkg-50").unwrap();
         b.iter(|| {
             pkgs = 0;
             for _ in repo.iter_restrict(&cpv) {
