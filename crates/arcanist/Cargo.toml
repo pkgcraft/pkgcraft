@@ -16,11 +16,11 @@ anyhow = "1.0.69"
 async-stream = "0.3.4"
 clap = { version = "4.1.8", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.13.3", default-features = false, features = ["toml"] }
-futures = "0.3.26"
+futures = "0.3.27"
 pkgcraft = { path = "../pkgcraft", version = "0.0.7" }
 prost = "0.11.8"
 regex = "1.7.1"
-serde = { version = "1.0.154", features = ["derive"] }
+serde = { version = "1.0.155", features = ["derive"] }
 thiserror = "1.0.39"
 tokio = { version = "1.26", features = ["full"] }
 tokio-stream = { version = "0.1.12", features = ["net"] }
