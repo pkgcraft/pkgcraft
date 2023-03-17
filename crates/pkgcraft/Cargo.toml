@@ -36,7 +36,7 @@ async-trait = "0.1.66"
 cached = "0.42.0"
 camino = { version = "1.1.4", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.1.8", features = ["derive"] }
+clap = { version = "4.1.9", features = ["derive"] }
 crossbeam-channel = "0.5.7"
 enum-as-inner = "0.5.1"
 filetime = "0.2.20"
@@ -56,7 +56,7 @@ reqwest = { version = "0.11.14", default-features = false, features = ["rustls-t
 roxmltree = "0.18.0"
 rust-ini = "0.18.0"
 scallop = { path = "../scallop", version = "0.0.5" }
-serde = { version = "1.0.155", features = ["derive"] }
+serde = { version = "1.0.156", features = ["derive"] }
 serde_with = { version = "2.3.1", default-features = false, features = ["macros"] }
 strum = { version = "0.24.1", features = ["derive"] }
 sys-info = "0.9.1"
@@ -66,7 +66,7 @@ thiserror = "1.0.39"
 tokio = { version = "1.26.0", features = ["full"], optional = true }
 toml = "0.7.3"
 tracing = "0.1.37"
-walkdir = "2.3.2"
+walkdir = "2.3.3"
 
 # pk dependencies
 aho-corasick = { version = "0.7.20", optional = true }
@@ -74,14 +74,14 @@ anyhow = { version = "1.0.69", optional = true }
 is-terminal = { version = "0.4.4", optional = true }
 
 # test feature dependencies
-assert_cmd = { version = "2.0.8", optional = true }
+assert_cmd = { version = "2.0.10", optional = true }
 
 [dev-dependencies]
-assert_cmd = "2.0.8"
+assert_cmd = "2.0.10"
 criterion = "0.4"
 ctor = "0.1.26"
 maplit = "1.0.2"
-predicates = "2.1.5"
+predicates = "3.0.1"
 tracing-test = "0.2.4"
 
 [[bench]]
