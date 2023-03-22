@@ -35,9 +35,13 @@ impl<T> PanicOrDefault for *const T {
 
 macro_rules! ffi_catch_panic {
     ( $($tt:tt)* ) => {
-        match std::panic::catch_unwind(|| {
-            $($tt)*
-        }) {
+        // Override the default panic hook to suppress stderr output and restore it on completion.
+        let prev_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let result = std::panic::catch_unwind(|| { $($tt)* });
+        std::panic::set_hook(prev_hook);
+
+        match result {
             Ok(ret) => ret,
             Err(_) => return $crate::panic::PanicOrDefault::value(),
         }
