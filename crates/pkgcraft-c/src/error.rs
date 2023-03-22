@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::ffi::{c_char, CString};
 use std::{fmt, ptr};
 
+use crate::panic::ffi_catch_panic;
+
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub enum ErrorKind {
@@ -54,6 +56,12 @@ impl From<std::str::Utf8Error> for Error {
     }
 }
 
+impl From<std::ffi::NulError> for Error {
+    fn from(e: std::ffi::NulError) -> Self {
+        Error::new(e.to_string())
+    }
+}
+
 #[repr(C)]
 pub struct PkgcraftError {
     message: *mut c_char,
@@ -91,9 +99,11 @@ pub(crate) fn update_last_error<E: Into<Error> + fmt::Debug>(err: E) {
 /// Get the most recent error, returns NULL if none exists.
 #[no_mangle]
 pub extern "C" fn pkgcraft_error_last() -> *mut PkgcraftError {
-    match LAST_ERROR.with(|prev| prev.borrow_mut().take()) {
-        Some(e) => Box::into_raw(Box::new(e.into())),
-        None => ptr::null_mut(),
+    ffi_catch_panic! {
+        match LAST_ERROR.with(|prev| prev.borrow_mut().take()) {
+            Some(e) => Box::into_raw(Box::new(e.into())),
+            None => ptr::null_mut(),
+        }
     }
 }
 
@@ -103,7 +113,9 @@ pub extern "C" fn pkgcraft_error_last() -> *mut PkgcraftError {
 /// The argument must be a non-null PkgcraftError pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_error_free(e: *mut PkgcraftError) {
-    if !e.is_null() {
-        unsafe { drop(Box::from_raw(e)) };
+    ffi_catch_panic! {
+        if !e.is_null() {
+            unsafe { drop(Box::from_raw(e)) };
+        }
     }
 }

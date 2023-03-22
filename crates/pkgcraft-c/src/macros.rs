@@ -56,3 +56,61 @@ macro_rules! iter_to_array {
     }};
 }
 pub(crate) use iter_to_array;
+
+/// Convert a given pointer into a &T.
+macro_rules! try_ref_from_ptr {
+    ( $var:ident ) => {
+        match unsafe { $var.as_ref() } {
+            Some(c) => c,
+            None => {
+                let e = $crate::error::Error::new("unexpected NULL reference");
+                $crate::error::update_last_error(e.clone());
+                panic!("{e}")
+            }
+        }
+    };
+}
+pub(crate) use try_ref_from_ptr;
+
+/// Convert a given char* into a &str.
+macro_rules! try_str_from_ptr {
+    ( $var:ident ) => {{
+        let p = $crate::macros::try_ref_from_ptr!($var);
+        match unsafe { std::ffi::CStr::from_ptr(p).to_str() } {
+            Ok(s) => s,
+            Err(e) => {
+                $crate::error::update_last_error(e.clone());
+                panic!("{e}")
+            }
+        }
+    }};
+}
+pub(crate) use try_str_from_ptr;
+
+/// Convert a given &str into a char*.
+macro_rules! try_ptr_from_str {
+    ( $s:expr ) => {{
+        match std::ffi::CString::new($s) {
+            Ok(s) => s.into_raw(),
+            Err(e) => {
+                $crate::error::update_last_error(e.clone());
+                panic!("{e}")
+            }
+        }
+    }};
+}
+pub(crate) use try_ptr_from_str;
+
+/// Unwrap an expression's Result or panic after registering the error.
+macro_rules! unwrap_or_panic {
+    ( $e:expr ) => {
+        match $e {
+            Ok(x) => x,
+            Err(e) => {
+                $crate::error::update_last_error(e.clone());
+                panic!("{e}")
+            }
+        }
+    };
+}
+pub(crate) use unwrap_or_panic;

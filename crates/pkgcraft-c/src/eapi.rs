@@ -1,12 +1,12 @@
 use std::cmp::Ordering;
-use std::ffi::{c_char, c_int, CStr, CString};
-use std::ptr;
+use std::ffi::{c_char, c_int};
 use std::str::FromStr;
 
 use pkgcraft::eapi::{self, Eapi};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 use crate::utils::str_to_raw;
 
 /// Get all known EAPIS.
@@ -15,7 +15,9 @@ use crate::utils::str_to_raw;
 /// The returned array must be freed via pkgcraft_eapis_free().
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapis(len: *mut usize) -> *mut *const Eapi {
-    iter_to_array!(eapi::EAPIS.iter(), len, |&e| { e as *const _ })
+    ffi_catch_panic! {
+        iter_to_array!(eapi::EAPIS.iter(), len, |&e| { e as *const _ })
+    }
 }
 
 /// Get all official EAPIS.
@@ -24,7 +26,9 @@ pub unsafe extern "C" fn pkgcraft_eapis(len: *mut usize) -> *mut *const Eapi {
 /// The returned array must be freed via pkgcraft_eapis_free().
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapis_official(len: *mut usize) -> *mut *const Eapi {
-    iter_to_array!(eapi::EAPIS_OFFICIAL.iter(), len, |&e| { e as *const _ })
+    ffi_catch_panic! {
+        iter_to_array!(eapi::EAPIS_OFFICIAL.iter(), len, |&e| { e as *const _ })
+    }
 }
 
 /// Free an array of borrowed Eapi objects.
@@ -34,8 +38,10 @@ pub unsafe extern "C" fn pkgcraft_eapis_official(len: *mut usize) -> *mut *const
 /// NULL along with the length of the array.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapis_free(eapis: *mut *const Eapi, len: usize) {
-    if !eapis.is_null() {
-        unsafe { Vec::from_raw_parts(eapis, len, len) };
+    ffi_catch_panic! {
+        if !eapis.is_null() {
+            unsafe { Vec::from_raw_parts(eapis, len, len) };
+        }
     }
 }
 
@@ -47,9 +53,10 @@ pub unsafe extern "C" fn pkgcraft_eapis_free(eapis: *mut *const Eapi, len: usize
 /// The argument must be a non-null string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_from_str(s: *const c_char) -> *const Eapi {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null()) };
-    unwrap_or_return!(<&Eapi>::from_str(s), ptr::null())
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        unwrap_or_panic!(<&Eapi>::from_str(s))
+    }
 }
 
 /// Check if an EAPI has a feature.
@@ -58,12 +65,13 @@ pub unsafe extern "C" fn pkgcraft_eapi_from_str(s: *const c_char) -> *const Eapi
 /// The arguments must be a non-null Eapi pointer and non-null string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) -> bool {
-    let eapi = null_ptr_check!(eapi.as_ref());
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), false) };
-    match eapi::Feature::from_str(s) {
-        Ok(feature) => eapi.has(feature),
-        _ => false,
+    ffi_catch_panic! {
+        let eapi = try_ref_from_ptr!(eapi);
+        let s = try_str_from_ptr!(s);
+        match eapi::Feature::from_str(s) {
+            Ok(feature) => eapi.has(feature),
+            _ => false,
+        }
     }
 }
 
@@ -73,8 +81,10 @@ pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) 
 /// The arguments must be a non-null Eapi pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char {
-    let eapi = null_ptr_check!(eapi.as_ref());
-    CString::new(eapi.as_str()).unwrap().into_raw()
+    ffi_catch_panic! {
+        let eapi = try_ref_from_ptr!(eapi);
+        try_ptr_from_str!(eapi.as_str())
+    }
 }
 
 /// Compare two Eapi objects chronologically returning -1, 0, or 1 if the first is less than, equal
@@ -84,13 +94,15 @@ pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char 
 /// The arguments must be non-null Eapi pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_cmp(e1: *const Eapi, e2: *const Eapi) -> c_int {
-    let eapi1 = null_ptr_check!(e1.as_ref());
-    let eapi2 = null_ptr_check!(e2.as_ref());
+    ffi_catch_panic! {
+        let eapi1 = try_ref_from_ptr!(e1);
+        let eapi2 = try_ref_from_ptr!(e2);
 
-    match eapi1.cmp(eapi2) {
-        Ordering::Less => -1,
-        Ordering::Equal => 0,
-        Ordering::Greater => 1,
+        match eapi1.cmp(eapi2) {
+            Ordering::Less => -1,
+            Ordering::Equal => 0,
+            Ordering::Greater => 1,
+        }
     }
 }
 
@@ -103,8 +115,10 @@ pub unsafe extern "C" fn pkgcraft_eapi_dep_keys(
     eapi: *const Eapi,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let eapi = null_ptr_check!(eapi.as_ref());
-    iter_to_array!(eapi.dep_keys().iter(), len, str_to_raw)
+    ffi_catch_panic! {
+        let eapi = try_ref_from_ptr!(eapi);
+        iter_to_array!(eapi.dep_keys().iter(), len, str_to_raw)
+    }
 }
 
 /// Return the array of metadata keys for an Eapi.
@@ -116,8 +130,10 @@ pub unsafe extern "C" fn pkgcraft_eapi_metadata_keys(
     eapi: *const Eapi,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let eapi = null_ptr_check!(eapi.as_ref());
-    iter_to_array!(eapi.metadata_keys().iter(), len, str_to_raw)
+    ffi_catch_panic! {
+        let eapi = try_ref_from_ptr!(eapi);
+        iter_to_array!(eapi.metadata_keys().iter(), len, str_to_raw)
+    }
 }
 
 /// Return the hash value for an Eapi.
@@ -126,8 +142,10 @@ pub unsafe extern "C" fn pkgcraft_eapi_metadata_keys(
 /// The argument must be a non-null Eapi pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_hash(eapi: *const Eapi) -> u64 {
-    let eapi = null_ptr_check!(eapi.as_ref());
-    hash(eapi)
+    ffi_catch_panic! {
+        let eapi = try_ref_from_ptr!(eapi);
+        hash(eapi)
+    }
 }
 
 /// Convert EAPI range into an array of Eapi objects.
@@ -141,8 +159,9 @@ pub unsafe extern "C" fn pkgcraft_eapis_range(
     s: *const c_char,
     len: *mut usize,
 ) -> *mut *const Eapi {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let eapis = unwrap_or_return!(eapi::range(s), ptr::null_mut());
-    iter_to_array!(eapis, len, |e| { e as *const _ })
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapis = unwrap_or_panic!(eapi::range(s));
+        iter_to_array!(eapis, len, |e| { e as *const _ })
+    }
 }
