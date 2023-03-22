@@ -6,6 +6,7 @@ use tracing::{Event, Level, Subscriber};
 use tracing_subscriber::{prelude::*, Layer};
 
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
@@ -62,8 +63,10 @@ impl Drop for PkgcraftLog {
 /// The argument must be a non-null PkgcraftLog pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_log_free(l: *mut PkgcraftLog) {
-    if !l.is_null() {
-        unsafe { drop(Box::from_raw(l)) };
+    ffi_catch_panic! {
+        if !l.is_null() {
+            unsafe { drop(Box::from_raw(l)) };
+        }
     }
 }
 
@@ -103,8 +106,10 @@ where
 /// Enable pkgcraft logging support.
 #[no_mangle]
 pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback) {
-    let layer = PkgcraftLayer::new(cb);
-    tracing_subscriber::registry().with(layer).init();
+    ffi_catch_panic! {
+        let layer = PkgcraftLayer::new(cb);
+        tracing_subscriber::registry().with(layer).init();
+    }
 }
 
 /// Replay a given PkgcraftLog object for test purposes.
@@ -113,18 +118,20 @@ pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback) {
 /// The argument must be a non-null PkgcraftLog pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_log_test(l: *const PkgcraftLog) {
-    let log = null_ptr_check!(l.as_ref());
-    let message = unsafe {
-        CStr::from_ptr(log.message)
-            .to_str()
-            .expect("invalid log message")
-    };
-    use LogLevel::*;
-    match log.level {
-        Trace => tracing::trace!("{message}"),
-        Debug => tracing::debug!("{message}"),
-        Info => tracing::info!("{message}"),
-        Warn => tracing::warn!("{message}"),
-        Error => tracing::error!("{message}"),
+    ffi_catch_panic! {
+        let log = null_ptr_check!(l.as_ref());
+        let message = unsafe {
+            CStr::from_ptr(log.message)
+                .to_str()
+                .expect("invalid log message")
+        };
+        use LogLevel::*;
+        match log.level {
+            Trace => tracing::trace!("{message}"),
+            Debug => tracing::debug!("{message}"),
+            Info => tracing::info!("{message}"),
+            Warn => tracing::warn!("{message}"),
+            Error => tracing::error!("{message}"),
+        }
     }
 }

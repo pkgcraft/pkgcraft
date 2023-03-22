@@ -72,6 +72,21 @@ macro_rules! try_ref_from_ptr {
 }
 pub(crate) use try_ref_from_ptr;
 
+/// Convert a given pointer into a &mut T.
+macro_rules! try_mut_from_ptr {
+    ( $var:ident ) => {
+        match unsafe { $var.as_mut() } {
+            Some(c) => c,
+            None => {
+                let e = $crate::error::Error::new("unexpected NULL reference");
+                $crate::error::update_last_error(e);
+                panic!()
+            }
+        }
+    };
+}
+pub(crate) use try_mut_from_ptr;
+
 /// Convert a given char* into a &str.
 macro_rules! try_str_from_ptr {
     ( $var:ident ) => {{

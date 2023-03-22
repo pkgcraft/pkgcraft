@@ -38,7 +38,7 @@ macro_rules! ffi_catch_panic {
         // Override the default panic hook to suppress stderr output and restore it on completion.
         let prev_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
-        let result = std::panic::catch_unwind(|| { $($tt)* });
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| { $($tt)* }));
         std::panic::set_hook(prev_hook);
 
         match result {

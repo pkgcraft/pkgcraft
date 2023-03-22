@@ -1,17 +1,19 @@
-use std::ffi::{c_char, c_int, CStr};
-use std::ptr;
+use std::ffi::{c_char, c_int};
 
 use pkgcraft::config::{Config, RepoSetType};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::Repo;
 
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 
 /// Create an empty pkgcraft config.
 #[no_mangle]
 pub extern "C" fn pkgcraft_config_new() -> *mut Config {
-    let config = Config::new("pkgcraft", "");
-    Box::into_raw(Box::new(config))
+    ffi_catch_panic! {
+        let config = Config::new("pkgcraft", "");
+        Box::into_raw(Box::new(config))
+    }
 }
 
 /// Add local repo from filesystem path.
@@ -22,21 +24,22 @@ pub extern "C" fn pkgcraft_config_new() -> *mut Config {
 /// The path argument should be a valid path on the system.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
-    config: *mut Config,
+    c: *mut Config,
     id: *const c_char,
     priority: c_int,
     path: *const c_char,
 ) -> *mut Repo {
-    let path = null_ptr_check!(path.as_ref());
-    let path = unsafe { unwrap_or_return!(CStr::from_ptr(path).to_str(), ptr::null_mut()) };
-    let id = match id.is_null() {
-        true => path,
-        false => unsafe { unwrap_or_return!(CStr::from_ptr(id).to_str(), ptr::null_mut()) },
-    };
+    ffi_catch_panic! {
+        let path = try_str_from_ptr!(path);
+        let id = match id.is_null() {
+            true => path,
+            false => try_str_from_ptr!(id),
+        };
 
-    let config = null_ptr_check!(config.as_mut());
-    let repo = unwrap_or_return!(config.add_repo_path(id, priority, path), ptr::null_mut());
-    Box::into_raw(Box::new(repo))
+        let config = try_mut_from_ptr!(c);
+        let repo = unwrap_or_panic!(config.add_repo_path(id, priority, path));
+        Box::into_raw(Box::new(repo))
+    }
 }
 
 /// Add an external Repo to the config.
@@ -47,10 +50,12 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
 /// The arguments must be valid Config and Repo pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_config_add_repo(c: *mut Config, r: *mut Repo) -> *mut Repo {
-    let config = null_ptr_check!(c.as_mut());
-    let repo = null_ptr_check!(r.as_ref());
-    unwrap_or_return!(config.add_repo(repo), ptr::null_mut());
-    r
+    ffi_catch_panic! {
+        let config = try_mut_from_ptr!(c);
+        let repo = try_ref_from_ptr!(r);
+        unwrap_or_panic!(config.add_repo(repo));
+        r
+    }
 }
 
 /// Load repos from a path to a portage-compatible repos.conf directory or file.
@@ -61,15 +66,16 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo(c: *mut Config, r: *mut Repo) 
 /// The path argument should be a valid path on the system.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_config_load_repos_conf(
-    config: *mut Config,
+    c: *mut Config,
     path: *const c_char,
     len: *mut usize,
 ) -> *mut *mut Repo {
-    let path = null_ptr_check!(path.as_ref());
-    let path = unsafe { unwrap_or_return!(CStr::from_ptr(path).to_str(), ptr::null_mut()) };
-    let config = null_ptr_check!(config.as_mut());
-    let repos = unwrap_or_return!(config.load_repos_conf(path), ptr::null_mut());
-    iter_to_array!(repos.into_iter(), len, |r| { Box::into_raw(Box::new(r)) })
+    ffi_catch_panic! {
+        let path = try_str_from_ptr!(path);
+        let config = try_mut_from_ptr!(c);
+        let repos = unwrap_or_panic!(config.load_repos_conf(path));
+        iter_to_array!(repos.into_iter(), len, |r| { Box::into_raw(Box::new(r)) })
+    }
 }
 
 /// Return the repos for a config.
@@ -78,12 +84,14 @@ pub unsafe extern "C" fn pkgcraft_config_load_repos_conf(
 /// The config argument must be a non-null Config pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_config_repos(
-    config: *mut Config,
+    c: *mut Config,
     len: *mut usize,
 ) -> *mut *const Repo {
-    // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
-    let config = null_ptr_check!(config.as_ref());
-    iter_to_array!(config.repos.into_iter(), len, |(_, r)| { r as *const _ })
+    ffi_catch_panic! {
+        // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
+        let config = try_ref_from_ptr!(c);
+        iter_to_array!(config.repos.into_iter(), len, |(_, r)| { r as *const _ })
+    }
 }
 
 /// Return the RepoSet for a given set type.
@@ -92,11 +100,13 @@ pub unsafe extern "C" fn pkgcraft_config_repos(
 /// The config argument must be a non-null Config pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_config_repos_set(
-    config: *mut Config,
+    c: *mut Config,
     set_type: RepoSetType,
 ) -> *mut RepoSet {
-    let config = null_ptr_check!(config.as_ref());
-    Box::into_raw(Box::new(config.repos.set(set_type)))
+    ffi_catch_panic! {
+        let config = try_ref_from_ptr!(c);
+        Box::into_raw(Box::new(config.repos.set(set_type)))
+    }
 }
 
 /// Free an array of configured repos.
@@ -106,8 +116,10 @@ pub unsafe extern "C" fn pkgcraft_config_repos_set(
 /// length of the array.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repos_free(repos: *mut *mut Repo, len: usize) {
-    if !repos.is_null() {
-        unsafe { Vec::from_raw_parts(repos, len, len) };
+    ffi_catch_panic! {
+        if !repos.is_null() {
+            unsafe { Vec::from_raw_parts(repos, len, len) };
+        }
     }
 }
 
@@ -116,8 +128,10 @@ pub unsafe extern "C" fn pkgcraft_repos_free(repos: *mut *mut Repo, len: usize) 
 /// # Safety
 /// The argument must be a Config pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_config_free(config: *mut Config) {
-    if !config.is_null() {
-        unsafe { drop(Box::from_raw(config)) };
+pub unsafe extern "C" fn pkgcraft_config_free(c: *mut Config) {
+    ffi_catch_panic! {
+        if !c.is_null() {
+            unsafe { drop(Box::from_raw(c)) };
+        }
     }
 }
