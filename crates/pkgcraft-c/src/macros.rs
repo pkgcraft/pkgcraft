@@ -64,8 +64,8 @@ macro_rules! try_ref_from_ptr {
             Some(c) => c,
             None => {
                 let e = $crate::error::Error::new("unexpected NULL reference");
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
+                $crate::error::update_last_error(e);
+                panic!()
             }
         }
     };
@@ -79,8 +79,8 @@ macro_rules! try_str_from_ptr {
         match unsafe { std::ffi::CStr::from_ptr(p).to_str() } {
             Ok(s) => s,
             Err(e) => {
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
+                $crate::error::update_last_error(e);
+                panic!()
             }
         }
     }};
@@ -93,8 +93,8 @@ macro_rules! try_ptr_from_str {
         match std::ffi::CString::new($s) {
             Ok(s) => s.into_raw(),
             Err(e) => {
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
+                $crate::error::update_last_error(e);
+                panic!()
             }
         }
     }};
@@ -107,8 +107,8 @@ macro_rules! unwrap_or_panic {
         match $e {
             Ok(x) => x,
             Err(e) => {
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
+                $crate::error::update_last_error(e);
+                panic!()
             }
         }
     };
