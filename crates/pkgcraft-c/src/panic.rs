@@ -10,9 +10,6 @@ pub(crate) trait PanicOrDefault {
 // Defaultable is a subset of Default used as return values by pkgcraft-c.
 pub(crate) trait Defaultable: Default {}
 
-impl Defaultable for i32 {}
-impl Defaultable for u64 {}
-impl Defaultable for bool {}
 impl Defaultable for () {}
 
 impl<T: Defaultable> PanicOrDefault for T {

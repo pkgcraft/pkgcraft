@@ -42,11 +42,9 @@ pub unsafe extern "C" fn pkgcraft_restrict_parse_pkg(s: *const c_char) -> *mut R
 /// The arguments must be non-null Restrict pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_restrict_eq(r1: *mut Restrict, r2: *mut Restrict) -> bool {
-    ffi_catch_panic! {
-        let r1 = try_ref_from_ptr!(r1);
-        let r2 = try_ref_from_ptr!(r2);
-        r1.eq(r2)
-    }
+    let r1 = try_ref_from_ptr!(r1);
+    let r2 = try_ref_from_ptr!(r2);
+    r1.eq(r2)
 }
 
 /// Return the hash value for a restriction.
@@ -55,10 +53,8 @@ pub unsafe extern "C" fn pkgcraft_restrict_eq(r1: *mut Restrict, r2: *mut Restri
 /// The argument must be a non-null Restrict pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_restrict_hash(r: *mut Restrict) -> u64 {
-    ffi_catch_panic! {
-        let restrict = try_ref_from_ptr!(r);
-        hash(restrict)
-    }
+    let restrict = try_ref_from_ptr!(r);
+    hash(restrict)
 }
 
 /// Create a new restriction combining two restrictions via logical AND.

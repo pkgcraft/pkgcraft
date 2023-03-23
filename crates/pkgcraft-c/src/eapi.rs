@@ -65,13 +65,11 @@ pub unsafe extern "C" fn pkgcraft_eapi_from_str(s: *const c_char) -> *const Eapi
 /// The arguments must be a non-null Eapi pointer and non-null string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) -> bool {
-    ffi_catch_panic! {
-        let eapi = try_ref_from_ptr!(eapi);
-        let s = try_str_from_ptr!(s);
-        match eapi::Feature::from_str(s) {
-            Ok(feature) => eapi.has(feature),
-            _ => false,
-        }
+    let eapi = try_ref_from_ptr!(eapi);
+    let s = try_str_from_ptr!(s);
+    match eapi::Feature::from_str(s) {
+        Ok(feature) => eapi.has(feature),
+        _ => false,
     }
 }
 
@@ -94,15 +92,13 @@ pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char 
 /// The arguments must be non-null Eapi pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_cmp(e1: *const Eapi, e2: *const Eapi) -> c_int {
-    ffi_catch_panic! {
-        let eapi1 = try_ref_from_ptr!(e1);
-        let eapi2 = try_ref_from_ptr!(e2);
+    let eapi1 = try_ref_from_ptr!(e1);
+    let eapi2 = try_ref_from_ptr!(e2);
 
-        match eapi1.cmp(eapi2) {
-            Ordering::Less => -1,
-            Ordering::Equal => 0,
-            Ordering::Greater => 1,
-        }
+    match eapi1.cmp(eapi2) {
+        Ordering::Less => -1,
+        Ordering::Equal => 0,
+        Ordering::Greater => 1,
     }
 }
 
@@ -142,10 +138,8 @@ pub unsafe extern "C" fn pkgcraft_eapi_metadata_keys(
 /// The argument must be a non-null Eapi pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_hash(eapi: *const Eapi) -> u64 {
-    ffi_catch_panic! {
-        let eapi = try_ref_from_ptr!(eapi);
-        hash(eapi)
-    }
+    let eapi = try_ref_from_ptr!(eapi);
+    hash(eapi)
 }
 
 /// Convert EAPI range into an array of Eapi objects.
