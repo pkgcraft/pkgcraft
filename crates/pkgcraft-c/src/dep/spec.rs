@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::ffi::{c_char, c_int, c_void, CStr, CString};
+use std::ffi::{c_char, c_int, c_void};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{fmt, ptr};
@@ -10,6 +10,7 @@ use pkgcraft::set::Ordered;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 
 /// DepSpec unit variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -111,7 +112,7 @@ impl Deref for DepSet {
     type Target = DepSetWrapper;
 
     fn deref(&self) -> &Self::Target {
-        null_ptr_check!(self.dep.as_ref())
+        try_ref_from_ptr!(self.dep)
     }
 }
 
@@ -262,7 +263,7 @@ impl Deref for DepSpec {
     type Target = DepSpecWrapper;
 
     fn deref(&self) -> &Self::Target {
-        null_ptr_check!(self.dep.as_ref())
+        try_ref_from_ptr!(self.dep)
     }
 }
 
@@ -290,7 +291,7 @@ impl Iterator for DepSpecIntoIterFlatten {
                 .map(|x| Box::into_raw(Box::new(x)) as *mut c_void),
             Self::String(iter) => iter
                 .next()
-                .map(|x| CString::new(x.as_str()).unwrap().into_raw() as *mut c_void),
+                .map(|x| try_ptr_from_str!(x.as_str()) as *mut c_void),
             Self::Uri(iter) => iter
                 .next()
                 .map(|x| Box::into_raw(Box::new(x)) as *mut c_void),
@@ -329,12 +330,13 @@ pub unsafe extern "C" fn pkgcraft_dep_set_dependencies(
     s: *const c_char,
     eapi: *const Eapi,
 ) -> *mut DepSet {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
-    let opt_dep = unwrap_or_return!(dep::parse::dependencies(s, eapi), ptr::null_mut());
-    let dep = DepSet::new_dep(opt_dep.unwrap_or_default());
-    Box::into_raw(Box::new(dep))
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapi = unwrap_or_panic!(IntoEapi::into_eapi(eapi));
+        let opt_dep = unwrap_or_panic!(dep::parse::dependencies(s, eapi));
+        let dep = DepSet::new_dep(opt_dep.unwrap_or_default());
+        Box::into_raw(Box::new(dep))
+    }
 }
 
 /// Parse a string into a Restrict DepSet.
@@ -345,11 +347,12 @@ pub unsafe extern "C" fn pkgcraft_dep_set_dependencies(
 /// The argument should be a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_restrict(s: *const c_char) -> *mut DepSet {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let opt_dep = unwrap_or_return!(dep::parse::restrict(s), ptr::null_mut());
-    let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::Restrict);
-    Box::into_raw(Box::new(dep))
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let opt_dep = unwrap_or_panic!(dep::parse::restrict(s));
+        let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::Restrict);
+        Box::into_raw(Box::new(dep))
+    }
 }
 
 /// Parse a string into a RequiredUse DepSet.
@@ -363,12 +366,13 @@ pub unsafe extern "C" fn pkgcraft_dep_set_required_use(
     s: *const c_char,
     eapi: *const Eapi,
 ) -> *mut DepSet {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
-    let opt_dep = unwrap_or_return!(dep::parse::required_use(s, eapi), ptr::null_mut());
-    let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::RequiredUse);
-    Box::into_raw(Box::new(dep))
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapi = unwrap_or_panic!(IntoEapi::into_eapi(eapi));
+        let opt_dep = unwrap_or_panic!(dep::parse::required_use(s, eapi));
+        let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::RequiredUse);
+        Box::into_raw(Box::new(dep))
+    }
 }
 
 /// Parse a string into a Properties DepSet.
@@ -379,11 +383,12 @@ pub unsafe extern "C" fn pkgcraft_dep_set_required_use(
 /// The argument should be a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_properties(s: *const c_char) -> *mut DepSet {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let opt_dep = unwrap_or_return!(dep::parse::properties(s), ptr::null_mut());
-    let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::Properties);
-    Box::into_raw(Box::new(dep))
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let opt_dep = unwrap_or_panic!(dep::parse::properties(s));
+        let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::Properties);
+        Box::into_raw(Box::new(dep))
+    }
 }
 
 /// Parse a string into a SrcUri DepSet.
@@ -397,12 +402,13 @@ pub unsafe extern "C" fn pkgcraft_dep_set_src_uri(
     s: *const c_char,
     eapi: *const Eapi,
 ) -> *mut DepSet {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
-    let opt_dep = unwrap_or_return!(dep::parse::src_uri(s, eapi), ptr::null_mut());
-    let dep = DepSet::new_uri(opt_dep.unwrap_or_default());
-    Box::into_raw(Box::new(dep))
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapi = unwrap_or_panic!(IntoEapi::into_eapi(eapi));
+        let opt_dep = unwrap_or_panic!(dep::parse::src_uri(s, eapi));
+        let dep = DepSet::new_uri(opt_dep.unwrap_or_default());
+        Box::into_raw(Box::new(dep))
+    }
 }
 
 /// Parse a string into a License DepSet.
@@ -413,11 +419,12 @@ pub unsafe extern "C" fn pkgcraft_dep_set_src_uri(
 /// The argument should be a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_license(s: *const c_char) -> *mut DepSet {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let opt_dep = unwrap_or_return!(dep::parse::license(s), ptr::null_mut());
-    let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::License);
-    Box::into_raw(Box::new(dep))
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let opt_dep = unwrap_or_panic!(dep::parse::license(s));
+        let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::License);
+        Box::into_raw(Box::new(dep))
+    }
 }
 
 /// Return the formatted string for a DepSet object.
@@ -426,8 +433,8 @@ pub unsafe extern "C" fn pkgcraft_dep_set_license(s: *const c_char) -> *mut DepS
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_str(d: *mut DepSet) -> *mut c_char {
-    let deps = null_ptr_check!(d.as_ref());
-    CString::new(deps.to_string()).unwrap().into_raw()
+    let deps = try_ref_from_ptr!(d);
+    try_ptr_from_str!(deps.to_string())
 }
 
 /// Determine if two DepSets are equal.
@@ -436,8 +443,8 @@ pub unsafe extern "C" fn pkgcraft_dep_set_str(d: *mut DepSet) -> *mut c_char {
 /// The arguments must be non-null DepSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_eq(d1: *mut DepSet, d2: *mut DepSet) -> bool {
-    let d1 = null_ptr_check!(d1.as_ref());
-    let d2 = null_ptr_check!(d2.as_ref());
+    let d1 = try_ref_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
     d1.eq(d2)
 }
 
@@ -447,7 +454,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_eq(d1: *mut DepSet, d2: *mut DepSet) -
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
-    let deps = null_ptr_check!(d.as_ref());
+    let deps = try_ref_from_ptr!(d);
     hash(deps)
 }
 
@@ -457,7 +464,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepSpecIntoIter {
-    let deps = null_ptr_check!(d.as_ref());
+    let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
         DepSetWrapper::Dep(d) => DepSpecIntoIter::Dep(d.into_iter()),
         DepSetWrapper::String(d) => DepSpecIntoIter::String(d.into_iter()),
@@ -474,7 +481,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepS
 /// The argument must be a non-null DepSpecIntoIter pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next(i: *mut DepSpecIntoIter) -> *mut DepSpec {
-    let iter = null_ptr_check!(i.as_mut());
+    let iter = try_mut_from_ptr!(i);
     iter.next()
         .map(|x| Box::into_raw(Box::new(x)))
         .unwrap_or(ptr::null_mut())
@@ -498,8 +505,8 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_free(i: *mut DepSpecIntoIter
 /// The arguments must be non-null DepSpec pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpec) -> c_int {
-    let d1 = null_ptr_check!(d1.as_ref());
-    let d2 = null_ptr_check!(d2.as_ref());
+    let d1 = try_ref_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
 
     match d1.cmp(d2) {
         Ordering::Less => -1,
@@ -514,7 +521,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpe
 /// The argument must be a non-null DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_hash(d: *mut DepSpec) -> u64 {
-    let deps = null_ptr_check!(d.as_ref());
+    let deps = try_ref_from_ptr!(d);
     hash(deps)
 }
 
@@ -535,8 +542,8 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_free(r: *mut DepSpec) {
 /// The argument must be a non-null DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_str(d: *mut DepSpec) -> *mut c_char {
-    let deps = null_ptr_check!(d.as_ref());
-    CString::new(deps.to_string()).unwrap().into_raw()
+    let deps = try_ref_from_ptr!(d);
+    try_ptr_from_str!(deps.to_string())
 }
 
 /// Return a flattened iterator for a DepSpec.
@@ -547,7 +554,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_str(d: *mut DepSpec) -> *mut c_char {
 pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_flatten(
     d: *mut DepSpec,
 ) -> *mut DepSpecIntoIterFlatten {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     let iter = match dep.deref().clone() {
         DepSpecWrapper::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
         DepSpecWrapper::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
@@ -564,7 +571,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_flatten(
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
     d: *mut DepSet,
 ) -> *mut DepSpecIntoIterFlatten {
-    let deps = null_ptr_check!(d.as_ref());
+    let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
         DepSetWrapper::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
         DepSetWrapper::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
@@ -583,7 +590,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_next(
     i: *mut DepSpecIntoIterFlatten,
 ) -> *mut c_void {
-    let iter = null_ptr_check!(i.as_mut());
+    let iter = try_mut_from_ptr!(i);
     iter.next().unwrap_or(ptr::null_mut())
 }
 
@@ -606,7 +613,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_free(i: *mut DepSpec
 pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_recursive(
     d: *mut DepSpec,
 ) -> *mut DepSpecIntoIterRecursive {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     let iter = match dep.deref().clone() {
         DepSpecWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
         DepSpecWrapper::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
@@ -623,7 +630,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_recursive(
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
     d: *mut DepSet,
 ) -> *mut DepSpecIntoIterRecursive {
-    let deps = null_ptr_check!(d.as_ref());
+    let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
         DepSetWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
         DepSetWrapper::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
@@ -642,7 +649,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_next(
     i: *mut DepSpecIntoIterRecursive,
 ) -> *mut DepSpec {
-    let iter = null_ptr_check!(i.as_mut());
+    let iter = try_mut_from_ptr!(i);
     iter.next()
         .map(|x| Box::into_raw(Box::new(x)))
         .unwrap_or(ptr::null_mut())
@@ -678,8 +685,8 @@ pub unsafe extern "C" fn pkgcraft_dep_set_free(d: *mut DepSet) {
 /// The argument must be a Uri pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_uri_uri(u: *mut Uri) -> *mut c_char {
-    let uri = null_ptr_check!(u.as_ref());
-    CString::new(uri.uri()).unwrap().into_raw()
+    let uri = try_ref_from_ptr!(u);
+    try_ptr_from_str!(uri.uri())
 }
 
 /// Get the filename rename for a Uri.
@@ -690,10 +697,10 @@ pub unsafe extern "C" fn pkgcraft_uri_uri(u: *mut Uri) -> *mut c_char {
 /// The argument must be a Uri pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_uri_rename(u: *mut Uri) -> *mut c_char {
-    let uri = null_ptr_check!(u.as_ref());
+    let uri = try_ref_from_ptr!(u);
     match uri.rename() {
+        Some(s) => try_ptr_from_str!(s),
         None => ptr::null_mut(),
-        Some(s) => CString::new(s).unwrap().into_raw(),
     }
 }
 
@@ -703,8 +710,8 @@ pub unsafe extern "C" fn pkgcraft_uri_rename(u: *mut Uri) -> *mut c_char {
 /// The argument must be a Uri pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_uri_str(u: *mut Uri) -> *mut c_char {
-    let uri = null_ptr_check!(u.as_ref());
-    CString::new(uri.to_string()).unwrap().into_raw()
+    let uri = try_ref_from_ptr!(u);
+    try_ptr_from_str!(uri.to_string())
 }
 
 /// Free a Uri object.

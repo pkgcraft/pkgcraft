@@ -1,16 +1,14 @@
 use std::ptr;
 
-// All function calls are wrapped in the ffi_catch_panic! macro that catches panics and
-// early-returns from the function using the proper return value to signify an error as occurred.
-// This trait provides that fallback value.
+// Function calls with return signatures able to signify errors can be wrapped in the
+// ffi_catch_panic! macro that catches panics and early-returns using the proper return value to
+// signify an error as occurred. This trait provides the fallback error value.
 pub(crate) trait PanicOrDefault {
     fn value() -> Self;
 }
 
 // Defaultable is a subset of Default used as return values by pkgcraft-c.
 pub(crate) trait Defaultable: Default {}
-
-impl Defaultable for () {}
 
 impl<T: Defaultable> PanicOrDefault for T {
     fn value() -> Self {

@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::ffi::{c_char, c_int, CStr, CString};
+use std::ffi::{c_char, c_int};
 use std::ptr;
 use std::str::FromStr;
 
@@ -9,6 +9,7 @@ use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 use crate::utils::str_to_raw;
 
 /// Parse a string into a package dependency using a specific EAPI. Pass NULL for the eapi argument
@@ -20,11 +21,12 @@ use crate::utils::str_to_raw;
 /// The eapi argument may be NULL to use the default EAPI.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -> *mut Dep {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let eapi = unwrap_or_return!(IntoEapi::into_eapi(eapi), ptr::null_mut());
-    let dep = unwrap_or_return!(Dep::new(s, eapi), ptr::null_mut());
-    Box::into_raw(Box::new(dep))
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapi = unwrap_or_panic!(IntoEapi::into_eapi(eapi));
+        let dep = unwrap_or_panic!(Dep::new(s, eapi));
+        Box::into_raw(Box::new(dep))
+    }
 }
 
 /// Parse a string into a Blocker.
@@ -33,15 +35,14 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
 /// The argument should be a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_blocker_from_str(s: *const c_char) -> Blocker {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), Blocker::NONE) };
+    let s = try_str_from_ptr!(s);
     Blocker::from_str(s).unwrap_or_default()
 }
 
 /// Return the string for a Blocker.
 #[no_mangle]
 pub extern "C" fn pkgcraft_dep_blocker_str(b: Blocker) -> *mut c_char {
-    CString::new(b.as_ref()).unwrap().into_raw()
+    try_ptr_from_str!(b.as_ref())
 }
 
 /// Parse a string into a SlotOperator.
@@ -50,15 +51,14 @@ pub extern "C" fn pkgcraft_dep_blocker_str(b: Blocker) -> *mut c_char {
 /// The argument should be a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_slot_op_from_str(s: *const c_char) -> SlotOperator {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), SlotOperator::NONE) };
+    let s = try_str_from_ptr!(s);
     SlotOperator::from_str(s).unwrap_or_default()
 }
 
 /// Return the string for a SlotOperator.
 #[no_mangle]
 pub extern "C" fn pkgcraft_dep_slot_op_str(op: SlotOperator) -> *mut c_char {
-    CString::new(op.as_ref()).unwrap().into_raw()
+    try_ptr_from_str!(op.as_ref())
 }
 
 /// Compare two package dependencies returning -1, 0, or 1 if the first is less than, equal to, or
@@ -68,8 +68,8 @@ pub extern "C" fn pkgcraft_dep_slot_op_str(op: SlotOperator) -> *mut c_char {
 /// The arguments must be non-null Dep pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
-    let d1 = null_ptr_check!(d1.as_ref());
-    let d2 = null_ptr_check!(d2.as_ref());
+    let d1 = try_ref_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
 
     match d1.cmp(d2) {
         Ordering::Less => -1,
@@ -84,8 +84,8 @@ pub unsafe extern "C" fn pkgcraft_dep_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
 /// The arguments must be non-null Dep pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_intersects(d1: *mut Dep, d2: *mut Dep) -> bool {
-    let d1 = null_ptr_check!(d1.as_ref());
-    let d2 = null_ptr_check!(d2.as_ref());
+    let d1 = try_ref_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
     d1.intersects(d2)
 }
 
@@ -95,8 +95,8 @@ pub unsafe extern "C" fn pkgcraft_dep_intersects(d1: *mut Dep, d2: *mut Dep) -> 
 /// The arguments must be non-null Cpv and Dep pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_intersects_cpv(d: *mut Dep, c: *mut Cpv) -> bool {
-    let d = null_ptr_check!(d.as_ref());
-    let c = null_ptr_check!(c.as_ref());
+    let d = try_ref_from_ptr!(d);
+    let c = try_ref_from_ptr!(c);
     d.intersects(c)
 }
 
@@ -107,8 +107,8 @@ pub unsafe extern "C" fn pkgcraft_dep_intersects_cpv(d: *mut Dep, c: *mut Cpv) -
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_category(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
-    CString::new(dep.category()).unwrap().into_raw()
+    let dep = try_ref_from_ptr!(d);
+    try_ptr_from_str!(dep.category())
 }
 
 /// Get the package name of a package dependency.
@@ -118,8 +118,8 @@ pub unsafe extern "C" fn pkgcraft_dep_category(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_package(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
-    CString::new(dep.package()).unwrap().into_raw()
+    let dep = try_ref_from_ptr!(d);
+    try_ptr_from_str!(dep.package())
 }
 
 /// Get the blocker of a package dependency.
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn pkgcraft_dep_package(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_blocker(d: *mut Dep) -> Blocker {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     dep.blocker().unwrap_or_default()
 }
 
@@ -142,10 +142,10 @@ pub unsafe extern "C" fn pkgcraft_dep_blocker(d: *mut Dep) -> Blocker {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_version(d: *mut Dep) -> *mut Version {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.version() {
-        None => ptr::null_mut(),
         Some(v) => Box::into_raw(Box::new(v.clone())),
+        None => ptr::null_mut(),
     }
 }
 
@@ -158,10 +158,10 @@ pub unsafe extern "C" fn pkgcraft_dep_version(d: *mut Dep) -> *mut Version {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_revision(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.revision() {
+        Some(r) => try_ptr_from_str!(r.as_str()),
         None => ptr::null_mut(),
-        Some(r) => CString::new(r.as_str()).unwrap().into_raw(),
     }
 }
 
@@ -174,10 +174,10 @@ pub unsafe extern "C" fn pkgcraft_dep_revision(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_slot(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.slot() {
+        Some(s) => try_ptr_from_str!(s),
         None => ptr::null_mut(),
-        Some(s) => CString::new(s).unwrap().into_raw(),
     }
 }
 
@@ -190,10 +190,10 @@ pub unsafe extern "C" fn pkgcraft_dep_slot(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_subslot(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.subslot() {
+        Some(s) => try_ptr_from_str!(s),
         None => ptr::null_mut(),
-        Some(s) => CString::new(s).unwrap().into_raw(),
     }
 }
 
@@ -204,7 +204,7 @@ pub unsafe extern "C" fn pkgcraft_dep_subslot(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_slot_op(d: *mut Dep) -> SlotOperator {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     dep.slot_op().unwrap_or_default()
 }
 
@@ -218,10 +218,10 @@ pub unsafe extern "C" fn pkgcraft_dep_slot_op(d: *mut Dep) -> SlotOperator {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_use_deps(d: *mut Dep, len: *mut usize) -> *mut *mut c_char {
     // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.use_deps() {
-        None => ptr::null_mut(),
         Some(use_deps) => iter_to_array!(use_deps.iter(), len, str_to_raw),
+        None => ptr::null_mut(),
     }
 }
 
@@ -234,10 +234,10 @@ pub unsafe extern "C" fn pkgcraft_dep_use_deps(d: *mut Dep, len: *mut usize) -> 
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_repo(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.repo() {
+        Some(s) => try_ptr_from_str!(s),
         None => ptr::null_mut(),
-        Some(s) => CString::new(s).unwrap().into_raw(),
     }
 }
 
@@ -248,8 +248,8 @@ pub unsafe extern "C" fn pkgcraft_dep_repo(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_p(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
-    CString::new(dep.p()).unwrap().into_raw()
+    let dep = try_ref_from_ptr!(d);
+    try_ptr_from_str!(dep.p())
 }
 
 /// Get the package, version, and revision of a package dependency.
@@ -259,8 +259,8 @@ pub unsafe extern "C" fn pkgcraft_dep_p(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_pf(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
-    CString::new(dep.pf()).unwrap().into_raw()
+    let dep = try_ref_from_ptr!(d);
+    try_ptr_from_str!(dep.pf())
 }
 
 /// Get the revision of a package dependency.
@@ -272,10 +272,10 @@ pub unsafe extern "C" fn pkgcraft_dep_pf(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_pr(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.pr().as_str() {
         "" => ptr::null_mut(),
-        s => CString::new(s).unwrap().into_raw(),
+        s => try_ptr_from_str!(s),
     }
 }
 
@@ -288,10 +288,10 @@ pub unsafe extern "C" fn pkgcraft_dep_pr(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_pv(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.pv().as_str() {
         "" => ptr::null_mut(),
-        s => CString::new(s).unwrap().into_raw(),
+        s => try_ptr_from_str!(s),
     }
 }
 
@@ -304,10 +304,10 @@ pub unsafe extern "C" fn pkgcraft_dep_pv(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_pvr(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     match dep.pvr().as_str() {
         "" => ptr::null_mut(),
-        s => CString::new(s).unwrap().into_raw(),
+        s => try_ptr_from_str!(s),
     }
 }
 
@@ -318,8 +318,8 @@ pub unsafe extern "C" fn pkgcraft_dep_pvr(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_cpn(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
-    CString::new(dep.cpn()).unwrap().into_raw()
+    let dep = try_ref_from_ptr!(d);
+    try_ptr_from_str!(dep.cpn())
 }
 
 /// Get the category, package, and version of a package dependency.
@@ -329,8 +329,8 @@ pub unsafe extern "C" fn pkgcraft_dep_cpn(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_cpv(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
-    CString::new(dep.cpv()).unwrap().into_raw()
+    let dep = try_ref_from_ptr!(d);
+    try_ptr_from_str!(dep.cpv())
 }
 
 /// Return the string for a package dependency.
@@ -339,8 +339,8 @@ pub unsafe extern "C" fn pkgcraft_dep_cpv(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_str(d: *mut Dep) -> *mut c_char {
-    let dep = null_ptr_check!(d.as_ref());
-    CString::new(dep.to_string()).unwrap().into_raw()
+    let dep = try_ref_from_ptr!(d);
+    try_ptr_from_str!(dep.to_string())
 }
 
 /// Return the hash value for a package dependency.
@@ -349,7 +349,7 @@ pub unsafe extern "C" fn pkgcraft_dep_str(d: *mut Dep) -> *mut c_char {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_hash(d: *mut Dep) -> u64 {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     hash(dep)
 }
 
@@ -359,7 +359,7 @@ pub unsafe extern "C" fn pkgcraft_dep_hash(d: *mut Dep) -> u64 {
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_restrict(d: *mut Dep) -> *mut Restrict {
-    let dep = null_ptr_check!(d.as_ref());
+    let dep = try_ref_from_ptr!(d);
     Box::into_raw(Box::new(dep.into()))
 }
 
@@ -369,8 +369,8 @@ pub unsafe extern "C" fn pkgcraft_dep_restrict(d: *mut Dep) -> *mut Restrict {
 /// The arguments must be valid Restrict and Dep pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_restrict_matches(d: *mut Dep, r: *mut Restrict) -> bool {
-    let dep = null_ptr_check!(d.as_ref());
-    let restrict = null_ptr_check!(r.as_ref());
+    let dep = try_ref_from_ptr!(d);
+    let restrict = try_ref_from_ptr!(r);
     restrict.matches(dep)
 }
 

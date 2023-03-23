@@ -1,4 +1,4 @@
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{c_char, CString};
 use std::str::FromStr;
 use std::{mem, ptr, slice};
 
@@ -8,6 +8,7 @@ use pkgcraft::pkgsh::Key;
 use crate::dep::spec::{DepSet, DepSetKind};
 use crate::error::Error;
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 use crate::utils::str_to_raw;
 
 /// Wrapper for package maintainers.
@@ -48,15 +49,25 @@ impl Drop for Upstream {
     }
 }
 
+/// Convert a given pointer into an ebuild package reference.
+macro_rules! try_pkg_from_ptr {
+    ( $var:expr ) => {{
+        let pkg = $crate::macros::try_ref_from_ptr!($var);
+        match pkg.as_ebuild() {
+            Some((p, _)) => p,
+            None => panic!("invalid pkg type: {pkg:?}"),
+        }
+    }};
+}
+
 /// Return a package's path.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_path(p: *mut Pkg) -> *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
-    CString::new(pkg.path().as_str()).unwrap().into_raw()
+    let pkg = try_pkg_from_ptr!(p);
+    try_ptr_from_str!(pkg.path().as_str())
 }
 
 /// Return a package's ebuild file content.
@@ -67,14 +78,11 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_path(p: *mut Pkg) -> *mut c_char {
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_ebuild(p: *mut Pkg) -> *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
-    let s = unwrap_or_return!(pkg.ebuild(), ptr::null_mut());
-    let cstring = unwrap_or_return!(
-        CString::new(s).map_err(|e| Error::new(format!("invalid ebuild file data: {e}"))),
-        ptr::null_mut()
-    );
-    cstring.into_raw()
+    ffi_catch_panic! {
+        let pkg = try_pkg_from_ptr!(p);
+        let s = unwrap_or_panic!(pkg.ebuild());
+        try_ptr_from_str!(s)
+    }
 }
 
 /// Return a package's description.
@@ -83,9 +91,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_ebuild(p: *mut Pkg) -> *mut c_char 
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_description(p: *mut Pkg) -> *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
-    CString::new(pkg.description()).unwrap().into_raw()
+    let pkg = try_pkg_from_ptr!(p);
+    try_ptr_from_str!(pkg.description())
 }
 
 /// Return a package's slot.
@@ -94,9 +101,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_description(p: *mut Pkg) -> *mut c_
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_slot(p: *mut Pkg) -> *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
-    CString::new(pkg.slot()).unwrap().into_raw()
+    let pkg = try_pkg_from_ptr!(p);
+    try_ptr_from_str!(pkg.slot())
 }
 
 /// Return a package's subslot.
@@ -105,9 +111,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_slot(p: *mut Pkg) -> *mut c_char {
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_subslot(p: *mut Pkg) -> *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
-    CString::new(pkg.subslot()).unwrap().into_raw()
+    let pkg = try_pkg_from_ptr!(p);
+    try_ptr_from_str!(pkg.subslot())
 }
 
 /// Return a package's dependencies for a given set of descriptors.
@@ -122,23 +127,21 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
     keys: *mut *mut c_char,
     len: usize,
 ) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    ffi_catch_panic! {
+        let pkg = try_pkg_from_ptr!(p);
+        let keys = unsafe { slice::from_raw_parts(keys, len) };
+        let mut dep_keys = Vec::<Key>::new();
+        for s in keys {
+            let s = try_str_from_ptr!(s);
+            let key = unwrap_or_panic!(
+                Key::from_str(s).map_err(|_| Error::new(format!("invalid dep key: {s}")))
+            );
+            dep_keys.push(key);
+        }
 
-    let keys = unsafe { slice::from_raw_parts(keys, len) };
-    let mut dep_keys = Vec::<Key>::new();
-    for s in keys {
-        let s = null_ptr_check!(s.as_ref());
-        let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-        let key = unwrap_or_return!(
-            Key::from_str(s).map_err(|_| Error::new(format!("invalid dep key: {s}"))),
-            ptr::null_mut()
-        );
-        dep_keys.push(key);
+        let deps = pkg.dependencies(&dep_keys);
+        Box::into_raw(Box::new(DepSet::new_dep(deps)))
     }
-
-    let deps = pkg.dependencies(&dep_keys);
-    Box::into_raw(Box::new(DepSet::new_dep(deps)))
 }
 
 /// Return a package's DEPEND.
@@ -149,11 +152,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.depend() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -165,11 +167,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet 
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.bdepend() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -181,11 +182,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.idepend() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -197,11 +197,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.pdepend() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -213,11 +212,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.rdepend() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -229,11 +227,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.license() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::License))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -245,11 +242,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.properties() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::Properties))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -261,11 +257,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut Dep
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.required_use() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::RequiredUse))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -277,11 +272,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut D
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.restrict() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::Restrict))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -293,11 +287,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSe
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_src_uri(p: *mut Pkg) -> *mut DepSet {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.src_uri() {
-        None => ptr::null_mut(),
         Some(d) => Box::into_raw(Box::new(DepSet::new_uri(d.clone()))),
+        None => ptr::null_mut(),
     }
 }
 
@@ -310,8 +303,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_homepage(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     iter_to_array!(pkg.homepage().iter(), len, str_to_raw)
 }
 
@@ -324,8 +316,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_defined_phases(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     iter_to_array!(pkg.defined_phases().iter(), len, str_to_raw)
 }
 
@@ -338,8 +329,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_keywords(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     iter_to_array!(pkg.keywords().iter(), len, str_to_raw)
 }
 
@@ -352,8 +342,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_iuse(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     iter_to_array!(pkg.iuse().iter(), len, str_to_raw)
 }
 
@@ -366,8 +355,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_inherit(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     iter_to_array!(pkg.inherit().iter(), len, str_to_raw)
 }
 
@@ -380,8 +368,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_inherited(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     iter_to_array!(pkg.inherited().iter(), len, str_to_raw)
 }
 
@@ -393,11 +380,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_inherited(
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_long_description(p: *mut Pkg) -> *mut c_char {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     match pkg.long_description() {
+        Some(s) => try_ptr_from_str!(s),
         None => ptr::null_mut(),
-        Some(s) => CString::new(s).unwrap().into_raw(),
     }
 }
 
@@ -410,14 +396,13 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_maintainers(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut Maintainer {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     let mut ptrs: Vec<_> = pkg
         .maintainers()
         .iter()
         .map(|m| {
             let maintainer = Maintainer {
-                email: CString::new(m.email()).unwrap().into_raw(),
+                email: try_ptr_from_str!(m.email()),
                 name: char_p_or_null!(m.name()),
                 description: char_p_or_null!(m.description()),
                 maint_type: char_p_or_null!(m.maint_type()),
@@ -461,15 +446,14 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstreams(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut Upstream {
-    let pkg = null_ptr_check!(p.as_ref());
-    let (pkg, _) = pkg.as_ebuild().expect("invalid pkg type: {pkg:?}");
+    let pkg = try_pkg_from_ptr!(p);
     let mut ptrs: Vec<_> = pkg
         .upstreams()
         .iter()
         .map(|m| {
             let upstream = Upstream {
-                site: CString::new(m.site()).unwrap().into_raw(),
-                name: CString::new(m.name()).unwrap().into_raw(),
+                site: try_ptr_from_str!(m.site()),
+                name: try_ptr_from_str!(m.name()),
             };
             Box::into_raw(Box::new(upstream))
         })

@@ -1,12 +1,13 @@
-use std::ffi::{c_char, c_int, CStr};
+use std::ffi::{c_char, c_int};
+use std::slice;
 use std::sync::Arc;
-use std::{ptr, slice};
 
 use pkgcraft::repo::fake::Repo as FakeRepo;
 use pkgcraft::repo::Repo;
 
 use crate::error::Error;
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 
 /// Create a fake repo from an array of CPV strings.
 ///
@@ -21,28 +22,16 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_new(
     cpvs: *mut *mut c_char,
     len: usize,
 ) -> *mut Repo {
-    let c_str = unsafe { CStr::from_ptr(id) };
-    let id = unwrap_or_return!(
-        c_str
-            .to_str()
-            .map_err(|e| Error::new(format!("invalid repo id: {c_str:?}: {e}"))),
-        ptr::null_mut()
-    );
-    let mut cpv_strs = vec![];
-    unsafe {
-        for ptr in slice::from_raw_parts(cpvs, len) {
-            let c_str = CStr::from_ptr(*ptr);
-            let s = unwrap_or_return!(
-                c_str
-                    .to_str()
-                    .map_err(|e| Error::new(format!("invalid CPV: {c_str:?}: {e}"))),
-                ptr::null_mut()
-            );
+    ffi_catch_panic! {
+        let id = try_str_from_ptr!(id);
+        let mut cpv_strs = vec![];
+        for ptr in unsafe { slice::from_raw_parts(cpvs, len) } {
+            let s = try_str_from_ptr!(*ptr);
             cpv_strs.push(s);
         }
+        let repo = FakeRepo::new(id, priority).pkgs(cpv_strs);
+        Box::into_raw(Box::new(repo.into()))
     }
-    let repo = FakeRepo::new(id, priority).pkgs(cpv_strs);
-    Box::into_raw(Box::new(repo.into()))
 }
 
 /// Add pkgs to an existing fake repo from an array of CPV strings.
@@ -57,22 +46,20 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_extend(
     cpvs: *mut *mut c_char,
     len: usize,
 ) -> *mut Repo {
-    let repo = null_ptr_check!(r.as_mut());
-    let repo = repo.as_fake_mut().expect("invalid repo type: {repo:?}");
-    let repo = unwrap_or_return!(
-        Arc::get_mut(repo).ok_or_else(|| Error::new("failed getting mutable repo ref".to_string())),
-        ptr::null_mut()
-    );
+    ffi_catch_panic! {
+        let repo = try_mut_from_ptr!(r);
+        let repo = repo.as_fake_mut().expect("invalid repo type: {repo:?}");
+        let repo = unwrap_or_panic!(
+            Arc::get_mut(repo).ok_or_else(|| Error::new("failed getting mutable repo ref".to_string()))
+        );
 
-    let mut cpv_strs = vec![];
-    unsafe {
-        for s in slice::from_raw_parts(cpvs, len) {
-            if let Ok(cpv) = CStr::from_ptr(*s).to_str() {
-                cpv_strs.push(cpv);
-            }
+        let mut cpv_strs = vec![];
+        for s in unsafe { slice::from_raw_parts(cpvs, len) } {
+            let s = try_str_from_ptr!(*s);
+            cpv_strs.push(s);
         }
-    }
 
-    repo.extend(cpv_strs);
-    r
+        repo.extend(cpv_strs);
+        r
+    }
 }

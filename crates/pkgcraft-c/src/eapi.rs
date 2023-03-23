@@ -15,9 +15,7 @@ use crate::utils::str_to_raw;
 /// The returned array must be freed via pkgcraft_eapis_free().
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapis(len: *mut usize) -> *mut *const Eapi {
-    ffi_catch_panic! {
-        iter_to_array!(eapi::EAPIS.iter(), len, |&e| { e as *const _ })
-    }
+    iter_to_array!(eapi::EAPIS.iter(), len, |&e| { e as *const _ })
 }
 
 /// Get all official EAPIS.
@@ -26,9 +24,7 @@ pub unsafe extern "C" fn pkgcraft_eapis(len: *mut usize) -> *mut *const Eapi {
 /// The returned array must be freed via pkgcraft_eapis_free().
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapis_official(len: *mut usize) -> *mut *const Eapi {
-    ffi_catch_panic! {
-        iter_to_array!(eapi::EAPIS_OFFICIAL.iter(), len, |&e| { e as *const _ })
-    }
+    iter_to_array!(eapi::EAPIS_OFFICIAL.iter(), len, |&e| { e as *const _ })
 }
 
 /// Free an array of borrowed Eapi objects.
@@ -38,10 +34,8 @@ pub unsafe extern "C" fn pkgcraft_eapis_official(len: *mut usize) -> *mut *const
 /// NULL along with the length of the array.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapis_free(eapis: *mut *const Eapi, len: usize) {
-    ffi_catch_panic! {
-        if !eapis.is_null() {
-            unsafe { Vec::from_raw_parts(eapis, len, len) };
-        }
+    if !eapis.is_null() {
+        unsafe { Vec::from_raw_parts(eapis, len, len) };
     }
 }
 
@@ -79,10 +73,8 @@ pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) 
 /// The arguments must be a non-null Eapi pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char {
-    ffi_catch_panic! {
-        let eapi = try_ref_from_ptr!(eapi);
-        try_ptr_from_str!(eapi.as_str())
-    }
+    let eapi = try_ref_from_ptr!(eapi);
+    try_ptr_from_str!(eapi.as_str())
 }
 
 /// Compare two Eapi objects chronologically returning -1, 0, or 1 if the first is less than, equal
@@ -111,10 +103,8 @@ pub unsafe extern "C" fn pkgcraft_eapi_dep_keys(
     eapi: *const Eapi,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    ffi_catch_panic! {
-        let eapi = try_ref_from_ptr!(eapi);
-        iter_to_array!(eapi.dep_keys().iter(), len, str_to_raw)
-    }
+    let eapi = try_ref_from_ptr!(eapi);
+    iter_to_array!(eapi.dep_keys().iter(), len, str_to_raw)
 }
 
 /// Return the array of metadata keys for an Eapi.
@@ -126,10 +116,8 @@ pub unsafe extern "C" fn pkgcraft_eapi_metadata_keys(
     eapi: *const Eapi,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    ffi_catch_panic! {
-        let eapi = try_ref_from_ptr!(eapi);
-        iter_to_array!(eapi.metadata_keys().iter(), len, str_to_raw)
-    }
+    let eapi = try_ref_from_ptr!(eapi);
+    iter_to_array!(eapi.metadata_keys().iter(), len, str_to_raw)
 }
 
 /// Return the hash value for an Eapi.

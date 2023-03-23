@@ -10,10 +10,8 @@ use crate::panic::ffi_catch_panic;
 /// Create an empty pkgcraft config.
 #[no_mangle]
 pub extern "C" fn pkgcraft_config_new() -> *mut Config {
-    ffi_catch_panic! {
-        let config = Config::new("pkgcraft", "");
-        Box::into_raw(Box::new(config))
-    }
+    let config = Config::new("pkgcraft", "");
+    Box::into_raw(Box::new(config))
 }
 
 /// Add local repo from filesystem path.
@@ -87,11 +85,9 @@ pub unsafe extern "C" fn pkgcraft_config_repos(
     c: *mut Config,
     len: *mut usize,
 ) -> *mut *const Repo {
-    ffi_catch_panic! {
-        // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
-        let config = try_ref_from_ptr!(c);
-        iter_to_array!(config.repos.into_iter(), len, |(_, r)| { r as *const _ })
-    }
+    // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
+    let config = try_ref_from_ptr!(c);
+    iter_to_array!(config.repos.into_iter(), len, |(_, r)| { r as *const _ })
 }
 
 /// Return the RepoSet for a given set type.
@@ -103,10 +99,8 @@ pub unsafe extern "C" fn pkgcraft_config_repos_set(
     c: *mut Config,
     set_type: RepoSetType,
 ) -> *mut RepoSet {
-    ffi_catch_panic! {
-        let config = try_ref_from_ptr!(c);
-        Box::into_raw(Box::new(config.repos.set(set_type)))
-    }
+    let config = try_ref_from_ptr!(c);
+    Box::into_raw(Box::new(config.repos.set(set_type)))
 }
 
 /// Free an array of configured repos.
@@ -116,10 +110,8 @@ pub unsafe extern "C" fn pkgcraft_config_repos_set(
 /// length of the array.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repos_free(repos: *mut *mut Repo, len: usize) {
-    ffi_catch_panic! {
-        if !repos.is_null() {
-            unsafe { Vec::from_raw_parts(repos, len, len) };
-        }
+    if !repos.is_null() {
+        unsafe { Vec::from_raw_parts(repos, len, len) };
     }
 }
 
@@ -129,9 +121,7 @@ pub unsafe extern "C" fn pkgcraft_repos_free(repos: *mut *mut Repo, len: usize) 
 /// The argument must be a Config pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_config_free(c: *mut Config) {
-    ffi_catch_panic! {
-        if !c.is_null() {
-            unsafe { drop(Box::from_raw(c)) };
-        }
+    if !c.is_null() {
+        unsafe { drop(Box::from_raw(c)) };
     }
 }

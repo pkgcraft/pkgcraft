@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::ffi::{c_char, c_int, CStr};
+use std::ffi::{c_char, c_int};
 use std::{ptr, slice};
 
 use pkgcraft::pkg::Pkg;
@@ -27,7 +27,7 @@ pub enum RepoSetOp {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_new(repos: *mut *mut Repo, len: usize) -> *mut RepoSet {
     let repos = unsafe { slice::from_raw_parts(repos, len) };
-    let repos = repos.iter().map(|r| null_ptr_check!(r.as_ref()));
+    let repos = repos.iter().map(|r| try_ref_from_ptr!(r));
     Box::into_raw(Box::new(RepoSet::new(repos)))
 }
 
@@ -40,13 +40,11 @@ pub unsafe extern "C" fn pkgcraft_repo_set_categories(
     s: *mut RepoSet,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let s = null_ptr_check!(s.as_ref());
+    let s = try_ref_from_ptr!(s);
     iter_to_array!(s.categories().iter(), len, str_to_raw)
 }
 
 /// Return a repo set's packages for a category.
-///
-/// Returns NULL on error.
 ///
 /// # Safety
 /// The arguments must be a non-null RepoSet pointer and category.
@@ -56,15 +54,12 @@ pub unsafe extern "C" fn pkgcraft_repo_set_packages(
     cat: *const c_char,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let s = null_ptr_check!(s.as_ref());
-    let cat = null_ptr_check!(cat.as_ref());
-    let cat = unsafe { unwrap_or_return!(CStr::from_ptr(cat).to_str(), ptr::null_mut()) };
+    let s = try_ref_from_ptr!(s);
+    let cat = try_str_from_ptr!(cat);
     iter_to_array!(s.packages(cat).iter(), len, str_to_raw)
 }
 
 /// Return a repo set's versions for a package.
-///
-/// Returns NULL on error.
 ///
 /// # Safety
 /// The arguments must be a non-null RepoSet pointer, category, and package.
@@ -75,11 +70,9 @@ pub unsafe extern "C" fn pkgcraft_repo_set_versions(
     pkg: *const c_char,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let s = null_ptr_check!(s.as_ref());
-    let cat = null_ptr_check!(cat.as_ref());
-    let pkg = null_ptr_check!(pkg.as_ref());
-    let cat = unsafe { unwrap_or_return!(CStr::from_ptr(cat).to_str(), ptr::null_mut()) };
-    let pkg = unsafe { unwrap_or_return!(CStr::from_ptr(pkg).to_str(), ptr::null_mut()) };
+    let s = try_ref_from_ptr!(s);
+    let cat = try_str_from_ptr!(cat);
+    let pkg = try_str_from_ptr!(pkg);
     iter_to_array!(s.versions(cat, pkg).iter(), len, str_to_raw)
 }
 
@@ -89,7 +82,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_versions(
 /// The argument must be a non-null RepoSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_len(s: *mut RepoSet) -> usize {
-    let s = null_ptr_check!(s.as_ref());
+    let s = try_ref_from_ptr!(s);
     s.len()
 }
 
@@ -99,7 +92,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_len(s: *mut RepoSet) -> usize {
 /// The argument must be a non-null RepoSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_is_empty(s: *mut RepoSet) -> bool {
-    let s = null_ptr_check!(s.as_ref());
+    let s = try_ref_from_ptr!(s);
     s.is_empty()
 }
 
@@ -112,8 +105,8 @@ pub unsafe extern "C" fn pkgcraft_repo_set_repos(
     s: *mut RepoSet,
     len: *mut usize,
 ) -> *mut *const Repo {
-    let set = null_ptr_check!(s.as_ref());
-    iter_to_array!(set.repos().iter(), len, |r| { r as *const _ })
+    let s = try_ref_from_ptr!(s);
+    iter_to_array!(s.repos().iter(), len, |r| { r as *const _ })
 }
 
 /// Compare two repo sets returning -1, 0, or 1 if the first set is less than, equal to, or greater
@@ -123,8 +116,8 @@ pub unsafe extern "C" fn pkgcraft_repo_set_repos(
 /// The arguments must be non-null RepoSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_cmp(s1: *mut RepoSet, s2: *mut RepoSet) -> c_int {
-    let s1 = null_ptr_check!(s1.as_ref());
-    let s2 = null_ptr_check!(s2.as_ref());
+    let s1 = try_ref_from_ptr!(s1);
+    let s2 = try_ref_from_ptr!(s2);
 
     match s1.cmp(s2) {
         Ordering::Less => -1,
@@ -139,7 +132,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_cmp(s1: *mut RepoSet, s2: *mut RepoSe
 /// The argument must be a non-null RepoSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_hash(s: *mut RepoSet) -> u64 {
-    let s = null_ptr_check!(s.as_ref());
+    let s = try_ref_from_ptr!(s);
     hash(s)
 }
 
@@ -161,13 +154,13 @@ pub unsafe extern "C" fn pkgcraft_repo_set_free(r: *mut RepoSet) {
 /// Restrict pointer or NULL to iterate over all packages.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter<'a>(
-    repo: *mut RepoSet,
+    s: *mut RepoSet,
     restrict: *mut Restrict,
 ) -> *mut RepoSetIter<'a> {
-    let repo = null_ptr_check!(repo.as_ref());
+    let s = try_ref_from_ptr!(s);
     let iter = match unsafe { restrict.as_ref() } {
-        None => repo.iter(),
-        Some(r) => repo.iter_restrict(r.clone()),
+        Some(r) => s.iter_restrict(r.clone()),
+        None => s.iter(),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -180,10 +173,10 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter<'a>(
 /// The argument must be a non-null RepoSetIter pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_next(i: *mut RepoSetIter) -> *mut Pkg {
-    let iter = null_ptr_check!(i.as_mut());
+    let iter = try_mut_from_ptr!(i);
     match iter.next() {
-        None => ptr::null_mut(),
         Some(p) => Box::into_raw(Box::new(p)),
+        None => ptr::null_mut(),
     }
 }
 
@@ -209,8 +202,8 @@ pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_set(
     s2: *mut RepoSet,
 ) {
     use RepoSetOp::*;
-    let s1 = null_ptr_check!(s1.as_mut());
-    let s2 = null_ptr_check!(s2.as_ref());
+    let s1 = try_mut_from_ptr!(s1);
+    let s2 = try_ref_from_ptr!(s2);
     match op {
         And => *s1 &= s2,
         Or => *s1 |= s2,
@@ -230,8 +223,8 @@ pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_repo(
     r: *mut Repo,
 ) {
     use RepoSetOp::*;
-    let s = null_ptr_check!(s.as_mut());
-    let r = null_ptr_check!(r.as_ref());
+    let s = try_mut_from_ptr!(s);
+    let r = try_ref_from_ptr!(r);
     match op {
         And => *s &= r,
         Or => *s |= r,
@@ -251,8 +244,8 @@ pub unsafe extern "C" fn pkgcraft_repo_set_op_set(
     s2: *mut RepoSet,
 ) -> *mut RepoSet {
     use RepoSetOp::*;
-    let s1 = null_ptr_check!(s1.as_mut());
-    let s2 = null_ptr_check!(s2.as_ref());
+    let s1 = try_mut_from_ptr!(s1);
+    let s2 = try_ref_from_ptr!(s2);
     let set = match op {
         And => s1.clone() & s2,
         Or => s1.clone() | s2,
@@ -273,8 +266,8 @@ pub unsafe extern "C" fn pkgcraft_repo_set_op_repo(
     r: *mut Repo,
 ) -> *mut RepoSet {
     use RepoSetOp::*;
-    let s = null_ptr_check!(s.as_mut());
-    let r = null_ptr_check!(r.as_ref());
+    let s = try_mut_from_ptr!(s);
+    let r = try_ref_from_ptr!(r);
     let set = match op {
         And => s.clone() & r,
         Or => s.clone() | r,

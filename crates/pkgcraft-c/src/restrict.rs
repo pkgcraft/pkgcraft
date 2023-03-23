@@ -66,11 +66,9 @@ pub unsafe extern "C" fn pkgcraft_restrict_and(
     r1: *mut Restrict,
     r2: *mut Restrict,
 ) -> *mut Restrict {
-    ffi_catch_panic! {
-        let r1 = try_ref_from_ptr!(r1);
-        let r2 = try_ref_from_ptr!(r2);
-        Box::into_raw(Box::new(r1.clone() & r2.clone()))
-    }
+    let r1 = try_ref_from_ptr!(r1);
+    let r2 = try_ref_from_ptr!(r2);
+    Box::into_raw(Box::new(r1.clone() & r2.clone()))
 }
 
 /// Create a new restriction combining two restrictions via logical OR.
@@ -82,11 +80,9 @@ pub unsafe extern "C" fn pkgcraft_restrict_or(
     r1: *mut Restrict,
     r2: *mut Restrict,
 ) -> *mut Restrict {
-    ffi_catch_panic! {
-        let r1 = try_ref_from_ptr!(r1);
-        let r2 = try_ref_from_ptr!(r2);
-        Box::into_raw(Box::new(r1.clone() | r2.clone()))
-    }
+    let r1 = try_ref_from_ptr!(r1);
+    let r2 = try_ref_from_ptr!(r2);
+    Box::into_raw(Box::new(r1.clone() | r2.clone()))
 }
 
 /// Create a new restriction combining two restrictions via logical XOR.
@@ -98,11 +94,9 @@ pub unsafe extern "C" fn pkgcraft_restrict_xor(
     r1: *mut Restrict,
     r2: *mut Restrict,
 ) -> *mut Restrict {
-    ffi_catch_panic! {
-        let r1 = try_ref_from_ptr!(r1);
-        let r2 = try_ref_from_ptr!(r2);
-        Box::into_raw(Box::new(r1.clone() ^ r2.clone()))
-    }
+    let r1 = try_ref_from_ptr!(r1);
+    let r2 = try_ref_from_ptr!(r2);
+    Box::into_raw(Box::new(r1.clone() ^ r2.clone()))
 }
 
 /// Create a new restriction inverting a restriction via logical NOT.
@@ -111,10 +105,8 @@ pub unsafe extern "C" fn pkgcraft_restrict_xor(
 /// The arguments must be a Restrict pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_restrict_not(r: *mut Restrict) -> *mut Restrict {
-    ffi_catch_panic! {
-        let r = try_ref_from_ptr!(r);
-        Box::into_raw(Box::new(!r.clone()))
-    }
+    let r = try_ref_from_ptr!(r);
+    Box::into_raw(Box::new(!r.clone()))
 }
 
 /// Free a restriction.
@@ -123,9 +115,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_not(r: *mut Restrict) -> *mut Restric
 /// The argument must be a Restrict pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_restrict_free(r: *mut Restrict) {
-    ffi_catch_panic! {
-        if !r.is_null() {
-            unsafe { drop(Box::from_raw(r)) };
-        }
+    if !r.is_null() {
+        unsafe { drop(Box::from_raw(r)) };
     }
 }

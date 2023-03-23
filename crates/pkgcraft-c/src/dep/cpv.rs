@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::ffi::{c_char, c_int, CStr, CString};
+use std::ffi::{c_char, c_int};
 use std::ptr;
 
 use pkgcraft::dep::{Cpv, Dep, Intersects, Version};
@@ -7,6 +7,7 @@ use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 
 /// Parse a CPV string into a Cpv object.
 ///
@@ -16,10 +17,11 @@ use crate::macros::*;
 /// The argument should be a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Cpv {
-    let s = null_ptr_check!(s.as_ref());
-    let s = unsafe { unwrap_or_return!(CStr::from_ptr(s).to_str(), ptr::null_mut()) };
-    let cpv = unwrap_or_return!(Cpv::new(s), ptr::null_mut());
-    Box::into_raw(Box::new(cpv))
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let cpv = unwrap_or_panic!(Cpv::new(s));
+        Box::into_raw(Box::new(cpv))
+    }
 }
 
 /// Compare two Cpvs returning -1, 0, or 1 if the first is less than, equal to, or
@@ -29,8 +31,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Cpv {
 /// The arguments must be non-null Cpv pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_cmp(c1: *mut Cpv, c2: *mut Cpv) -> c_int {
-    let c1 = null_ptr_check!(c1.as_ref());
-    let c2 = null_ptr_check!(c2.as_ref());
+    let c1 = try_ref_from_ptr!(c1);
+    let c2 = try_ref_from_ptr!(c2);
 
     match c1.cmp(c2) {
         Ordering::Less => -1,
@@ -45,8 +47,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_cmp(c1: *mut Cpv, c2: *mut Cpv) -> c_int {
 /// The arguments must be non-null Cpv pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_intersects(c1: *mut Cpv, c2: *mut Cpv) -> bool {
-    let c1 = null_ptr_check!(c1.as_ref());
-    let c2 = null_ptr_check!(c2.as_ref());
+    let c1 = try_ref_from_ptr!(c1);
+    let c2 = try_ref_from_ptr!(c2);
     c1.intersects(c2)
 }
 
@@ -56,8 +58,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_intersects(c1: *mut Cpv, c2: *mut Cpv) -> 
 /// The arguments must be non-null Cpv and Dep pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_intersects_dep(c: *mut Cpv, d: *mut Dep) -> bool {
-    let c = null_ptr_check!(c.as_ref());
-    let d = null_ptr_check!(d.as_ref());
+    let c = try_ref_from_ptr!(c);
+    let d = try_ref_from_ptr!(d);
     c.intersects(d)
 }
 
@@ -67,8 +69,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_intersects_dep(c: *mut Cpv, d: *mut Dep) -
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_category(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
-    CString::new(cpv.category()).unwrap().into_raw()
+    let cpv = try_ref_from_ptr!(c);
+    try_ptr_from_str!(cpv.category())
 }
 
 /// Get the package name of a Cpv object.
@@ -77,8 +79,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_category(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_package(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
-    CString::new(cpv.package()).unwrap().into_raw()
+    let cpv = try_ref_from_ptr!(c);
+    try_ptr_from_str!(cpv.package())
 }
 
 /// Get the version of a Cpv object.
@@ -87,7 +89,7 @@ pub unsafe extern "C" fn pkgcraft_cpv_package(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_version(c: *mut Cpv) -> *mut Version {
-    let cpv = null_ptr_check!(c.as_ref());
+    let cpv = try_ref_from_ptr!(c);
     Box::into_raw(Box::new(cpv.version().clone()))
 }
 
@@ -99,10 +101,10 @@ pub unsafe extern "C" fn pkgcraft_cpv_version(c: *mut Cpv) -> *mut Version {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_revision(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
+    let cpv = try_ref_from_ptr!(c);
     match cpv.revision() {
+        Some(r) => try_ptr_from_str!(r.as_str()),
         None => ptr::null_mut(),
-        Some(r) => CString::new(r.as_str()).unwrap().into_raw(),
     }
 }
 
@@ -112,8 +114,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_revision(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_p(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
-    CString::new(cpv.p()).unwrap().into_raw()
+    let cpv = try_ref_from_ptr!(c);
+    try_ptr_from_str!(cpv.p())
 }
 
 /// Get the package, version, and revision of a Cpv object.
@@ -122,8 +124,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_p(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_pf(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
-    CString::new(cpv.pf()).unwrap().into_raw()
+    let cpv = try_ref_from_ptr!(c);
+    try_ptr_from_str!(cpv.pf())
 }
 
 /// Get the revision of a Cpv object.
@@ -134,10 +136,10 @@ pub unsafe extern "C" fn pkgcraft_cpv_pf(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_pr(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
+    let cpv = try_ref_from_ptr!(c);
     match cpv.pr().as_str() {
         "" => ptr::null_mut(),
-        s => CString::new(s).unwrap().into_raw(),
+        s => try_ptr_from_str!(s),
     }
 }
 
@@ -147,8 +149,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_pr(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_pv(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
-    CString::new(cpv.pv().as_str()).unwrap().into_raw()
+    let cpv = try_ref_from_ptr!(c);
+    try_ptr_from_str!(cpv.pv())
 }
 
 /// Get the version and revision of a Cpv object.
@@ -157,8 +159,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_pv(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_pvr(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
-    CString::new(cpv.pvr().as_str()).unwrap().into_raw()
+    let cpv = try_ref_from_ptr!(c);
+    try_ptr_from_str!(cpv.pvr())
 }
 
 /// Get the category and package of a Cpv object.
@@ -167,8 +169,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_pvr(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_cpn(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
-    CString::new(cpv.cpn()).unwrap().into_raw()
+    let cpv = try_ref_from_ptr!(c);
+    try_ptr_from_str!(cpv.cpn())
 }
 
 /// Return the string for a Cpv object.
@@ -177,8 +179,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_cpn(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_str(c: *mut Cpv) -> *mut c_char {
-    let cpv = null_ptr_check!(c.as_ref());
-    CString::new(cpv.to_string()).unwrap().into_raw()
+    let cpv = try_ref_from_ptr!(c);
+    try_ptr_from_str!(cpv.to_string())
 }
 
 /// Return the hash value for a Cpv object.
@@ -187,7 +189,7 @@ pub unsafe extern "C" fn pkgcraft_cpv_str(c: *mut Cpv) -> *mut c_char {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_hash(c: *mut Cpv) -> u64 {
-    let cpv = null_ptr_check!(c.as_ref());
+    let cpv = try_ref_from_ptr!(c);
     hash(cpv)
 }
 
@@ -197,7 +199,7 @@ pub unsafe extern "C" fn pkgcraft_cpv_hash(c: *mut Cpv) -> u64 {
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_restrict(c: *mut Cpv) -> *mut Restrict {
-    let cpv = null_ptr_check!(c.as_ref());
+    let cpv = try_ref_from_ptr!(c);
     Box::into_raw(Box::new(cpv.into()))
 }
 
@@ -207,8 +209,8 @@ pub unsafe extern "C" fn pkgcraft_cpv_restrict(c: *mut Cpv) -> *mut Restrict {
 /// The arguments must be valid Restrict and Cpv pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_cpv_restrict_matches(c: *mut Cpv, r: *mut Restrict) -> bool {
-    let cpv = null_ptr_check!(c.as_ref());
-    let restrict = null_ptr_check!(r.as_ref());
+    let cpv = try_ref_from_ptr!(c);
+    let restrict = try_ref_from_ptr!(r);
     restrict.matches(cpv)
 }
 

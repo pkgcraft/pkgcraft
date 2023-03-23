@@ -8,6 +8,17 @@ use pkgcraft::repo::Repo;
 use crate::macros::*;
 use crate::utils::str_to_raw;
 
+/// Convert a given pointer into an ebuild repo reference.
+macro_rules! try_repo_from_ptr {
+    ( $var:expr ) => {{
+        let repo = $crate::macros::try_ref_from_ptr!($var);
+        match repo.as_ebuild() {
+            Some(r) => r,
+            None => panic!("invalid repo type: {repo:?}"),
+        }
+    }};
+}
+
 /// Return an ebuild repo's metadata arches.
 ///
 /// # Safety
@@ -17,8 +28,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_arches(
     r: *mut Repo,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let repo = null_ptr_check!(r.as_ref());
-    let repo = repo.as_ebuild().expect("invalid repo type: {repo:?}");
+    let repo = try_repo_from_ptr!(r);
     iter_to_array!(repo.metadata().arches().iter(), len, str_to_raw)
 }
 
@@ -31,8 +41,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_categories(
     r: *mut Repo,
     len: *mut usize,
 ) -> *mut *mut c_char {
-    let repo = null_ptr_check!(r.as_ref());
-    let repo = repo.as_ebuild().expect("invalid repo type: {repo:?}");
+    let repo = try_repo_from_ptr!(r);
     iter_to_array!(repo.metadata().categories().iter(), len, str_to_raw)
 }
 
@@ -42,8 +51,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_categories(
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_eapi(r: *mut Repo) -> *const Eapi {
-    let repo = null_ptr_check!(r.as_ref());
-    let repo = repo.as_ebuild().expect("invalid repo type: {repo:?}");
+    let repo = try_repo_from_ptr!(r);
     repo.eapi()
 }
 
@@ -56,8 +64,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
     r: *mut Repo,
     len: *mut usize,
 ) -> *mut *mut Repo {
-    let repo = null_ptr_check!(r.as_ref());
-    let repo = repo.as_ebuild().expect("invalid repo type: {repo:?}");
+    let repo = try_repo_from_ptr!(r);
     iter_to_array!(repo.masters().iter(), len, |r: &Arc<EbuildRepo>| {
         Box::into_raw(Box::new(Repo::Ebuild(r.clone())))
     })

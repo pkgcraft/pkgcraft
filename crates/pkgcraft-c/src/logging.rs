@@ -1,4 +1,4 @@
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{c_char, CString};
 use std::fmt::{Debug, Write};
 
 use tracing::field::{Field, Visit};
@@ -6,7 +6,6 @@ use tracing::{Event, Level, Subscriber};
 use tracing_subscriber::{prelude::*, Layer};
 
 use crate::macros::*;
-use crate::panic::ffi_catch_panic;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
@@ -43,7 +42,7 @@ impl<'a> From<&'a Event<'_>> for PkgcraftLog {
         event.record(&mut visitor);
 
         Self {
-            message: CString::new(message).unwrap().into_raw(),
+            message: try_ptr_from_str!(message),
             level: event.metadata().level().into(),
         }
     }
@@ -63,10 +62,8 @@ impl Drop for PkgcraftLog {
 /// The argument must be a non-null PkgcraftLog pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_log_free(l: *mut PkgcraftLog) {
-    ffi_catch_panic! {
-        if !l.is_null() {
-            unsafe { drop(Box::from_raw(l)) };
-        }
+    if !l.is_null() {
+        unsafe { drop(Box::from_raw(l)) };
     }
 }
 
@@ -106,10 +103,8 @@ where
 /// Enable pkgcraft logging support.
 #[no_mangle]
 pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback) {
-    ffi_catch_panic! {
-        let layer = PkgcraftLayer::new(cb);
-        tracing_subscriber::registry().with(layer).init();
-    }
+    let layer = PkgcraftLayer::new(cb);
+    tracing_subscriber::registry().with(layer).init();
 }
 
 /// Replay a given PkgcraftLog object for test purposes.
@@ -118,20 +113,14 @@ pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback) {
 /// The argument must be a non-null PkgcraftLog pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_log_test(l: *const PkgcraftLog) {
-    ffi_catch_panic! {
-        let log = null_ptr_check!(l.as_ref());
-        let message = unsafe {
-            CStr::from_ptr(log.message)
-                .to_str()
-                .expect("invalid log message")
-        };
-        use LogLevel::*;
-        match log.level {
-            Trace => tracing::trace!("{message}"),
-            Debug => tracing::debug!("{message}"),
-            Info => tracing::info!("{message}"),
-            Warn => tracing::warn!("{message}"),
-            Error => tracing::error!("{message}"),
-        }
+    let log = try_ref_from_ptr!(l);
+    let message = try_str_from_ptr!(log.message);
+    use LogLevel::*;
+    match log.level {
+        Trace => tracing::trace!("{message}"),
+        Debug => tracing::debug!("{message}"),
+        Info => tracing::info!("{message}"),
+        Warn => tracing::warn!("{message}"),
+        Error => tracing::error!("{message}"),
     }
 }
