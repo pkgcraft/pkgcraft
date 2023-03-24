@@ -5,6 +5,8 @@
 pub struct Pkg;
 /// Opaque wrapper for pkgcraft::repo::Repo objects.
 pub struct Repo;
+/// Opaque wrapper for pkgcraft::repo::temp::Repo objects.
+pub struct TempRepo;
 
 /// Opaque wrapper for pkgcraft::repo::Iter objects.
 pub struct RepoIter;

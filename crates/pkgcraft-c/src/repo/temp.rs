@@ -1,10 +1,10 @@
 use std::ffi::c_char;
 
 use pkgcraft::eapi::{Eapi, IntoEapi};
-use pkgcraft::repo::temp::Repo as TempRepo;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
+use crate::types::TempRepo;
 
 /// Create a temporary ebuild repository.
 ///
