@@ -1,6 +1,9 @@
 use std::ffi::c_char;
+use std::slice;
+use std::str::FromStr;
 
 use pkgcraft::eapi::{Eapi, IntoEapi};
+use pkgcraft::pkgsh::Key;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
@@ -34,6 +37,59 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(r: *mut TempRepo) -> *mut c_char {
     let repo = try_ref_from_ptr!(r);
     try_ptr_from_str!(repo.path().as_str())
+}
+
+/// Create an ebuild file in the repo.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument must be a non-null TempRepo pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
+    r: *mut TempRepo,
+    cpv: *const c_char,
+    key_vals: *mut *mut c_char,
+    len: usize,
+) -> *mut c_char {
+    ffi_catch_panic! {
+        let repo = try_ref_from_ptr!(r);
+        let cpv = try_str_from_ptr!(cpv);
+        let mut data = vec![];
+        for ptr in unsafe { slice::from_raw_parts(key_vals, len) } {
+            let s = try_str_from_ptr!(*ptr);
+            match s.split_once('=') {
+                Some((k, v)) => match Key::from_str(k) {
+                    Ok(key) => data.push((key, v)),
+                    Err(_) => panic!("unknown metadata key: {k}"),
+                }
+                None => panic!("invalid key-val format: {s}"),
+            }
+        }
+        let (path, _cpv) = unwrap_or_panic!(repo.create_ebuild(cpv, data));
+        try_ptr_from_str!(path.as_str())
+    }
+}
+
+/// Create an ebuild file in the repo from raw data.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument must be a non-null TempRepo pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_raw(
+    r: *mut TempRepo,
+    cpv: *const c_char,
+    data: *const c_char,
+) -> *mut c_char {
+    ffi_catch_panic! {
+        let repo = try_ref_from_ptr!(r);
+        let cpv = try_str_from_ptr!(cpv);
+        let data = try_str_from_ptr!(data);
+        let (path, _cpv) = unwrap_or_panic!(repo.create_ebuild_raw(cpv, data));
+        try_ptr_from_str!(path.as_str())
+    }
 }
 
 /// Persist a temporary repo to disk, returning its path.
