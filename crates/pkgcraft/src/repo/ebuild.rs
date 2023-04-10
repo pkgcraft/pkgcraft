@@ -521,7 +521,11 @@ impl PkgRepository for Repo {
             let entry = match entry {
                 Ok(e) => e,
                 Err(e) => {
-                    warn!("error walking {:?}: {e}", &path);
+                    if let Some(err) = e.io_error() {
+                        if err.kind() != io::ErrorKind::NotFound {
+                            warn!("error walking {:?}: {e}", &path);
+                        }
+                    }
                     continue;
                 }
             };
@@ -549,7 +553,11 @@ impl PkgRepository for Repo {
             let entry = match entry {
                 Ok(e) => e,
                 Err(e) => {
-                    warn!("error walking {:?}: {e}", &path);
+                    if let Some(err) = e.io_error() {
+                        if err.kind() != io::ErrorKind::NotFound {
+                            warn!("error walking {:?}: {e}", &path);
+                        }
+                    }
                     continue;
                 }
             };
