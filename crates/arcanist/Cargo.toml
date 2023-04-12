@@ -18,7 +18,7 @@ clap = { version = "4.2.1", default-features = false, features = ["std", "sugges
 config = { version = "0.13.3", default-features = false, features = ["toml"] }
 futures = "0.3.28"
 pkgcraft = { path = "../pkgcraft", version = "0.0.7" }
-prost = "0.11.8"
+prost = "0.11.9"
 regex = "1.7.3"
 serde = { version = "1.0.160", features = ["derive"] }
 thiserror = "1.0.40"

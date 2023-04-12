@@ -33,7 +33,7 @@ test = ["dep:assert_cmd"]
 
 [dependencies]
 async-trait = "0.1.68"
-cached = "0.42.0"
+cached = "0.43.0"
 camino = { version = "1.1.4", features = ["serde1"] }
 chic = "1.2.2"
 clap = { version = "4.2.1", features = ["derive"] }
