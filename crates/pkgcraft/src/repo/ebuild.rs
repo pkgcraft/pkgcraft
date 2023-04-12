@@ -14,7 +14,7 @@ use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::config::RepoConfig;
-use crate::dep::{self, Cpv, Version};
+use crate::dep::{self, Cpv, Operator, Version};
 use crate::eapi::{Eapi, EAPI0};
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
@@ -658,7 +658,7 @@ impl<'a> Iter<'a> {
                     Restrict::Dep(r @ Version(x)) => {
                         pkg_restricts.push(r.clone());
                         if let Some(v) = x {
-                            if v.op().is_none() {
+                            if v.op().is_none() || v.op() == Some(Operator::Equal) {
                                 ver = Some(v.to_string());
                             }
                         }
