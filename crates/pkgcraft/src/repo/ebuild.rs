@@ -658,7 +658,9 @@ impl<'a> Iter<'a> {
                     Restrict::Dep(r @ Version(x)) => {
                         pkg_restricts.push(r.clone());
                         if let Some(v) = x {
-                            ver = Some(v.to_string());
+                            if v.op().is_none() {
+                                ver = Some(v.to_string());
+                            }
                         }
                     }
                     _ => (),
