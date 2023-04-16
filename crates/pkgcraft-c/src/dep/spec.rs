@@ -26,11 +26,11 @@ pub enum DepSpecUnit {
 #[repr(C)]
 pub enum DepSetKind {
     Dependencies,
-    Restrict,
-    RequiredUse,
-    Properties,
-    SrcUri,
     License,
+    Properties,
+    RequiredUse,
+    Restrict,
+    SrcUri,
 }
 
 /// Opaque wrapper for pkgcraft::dep::DepSet.
