@@ -64,7 +64,6 @@ impl Repo {
             (Eapi, eapi::EAPI_LATEST_OFFICIAL.as_str()),
             (Slot, "0"),
             (Description, "stub package description"),
-            (Homepage, "https://github.com/pkgcraft"),
         ]);
 
         // overrides defaults with specified values, removing the defaults for "-"
