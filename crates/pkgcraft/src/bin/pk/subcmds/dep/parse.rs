@@ -87,7 +87,7 @@ impl Command {
 
         // output formatted string if specified
         if let Some(fmt) = &self.format {
-            println!("{}", self.format(fmt, &dep));
+            println!("{}", self.format_str(fmt, &dep)?);
         }
 
         Ok(())

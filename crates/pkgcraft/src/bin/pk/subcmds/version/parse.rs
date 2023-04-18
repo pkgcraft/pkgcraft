@@ -53,7 +53,7 @@ impl Command {
     fn parse_version(&self, s: &str) -> anyhow::Result<()> {
         let ver = Version::new_optional_op(s)?;
         if let Some(fmt) = &self.format {
-            println!("{}", self.format(fmt, &ver));
+            println!("{}", self.format_str(fmt, &ver)?);
         }
         Ok(())
     }
