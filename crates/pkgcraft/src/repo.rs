@@ -2,7 +2,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::sync::Arc;
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8Path;
 use enum_as_inner::EnumAsInner;
 use indexmap::IndexMap;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
@@ -83,10 +83,7 @@ impl Repo {
             false => "nonexistent repo path",
         };
 
-        Err(Error::InvalidRepo {
-            path: Utf8PathBuf::from(path),
-            err: err.to_string(),
-        })
+        Err(Error::RepoInit(err.to_string()))
     }
 
     /// Try to load a certain repo type from a given path.

@@ -230,6 +230,7 @@ impl Repo {
 
         let invalid_repo = |err: String| -> Error {
             Error::InvalidRepo {
+                format: RepoFormat::Ebuild,
                 path: Utf8PathBuf::from(path),
                 err,
             }
@@ -322,6 +323,7 @@ impl Repo {
         } else {
             let repos = nonexistent.join(", ");
             Err(Error::InvalidRepo {
+                format: RepoFormat::Ebuild,
                 path: self.path().into(),
                 err: format!("unconfigured repos: {repos}"),
             })
