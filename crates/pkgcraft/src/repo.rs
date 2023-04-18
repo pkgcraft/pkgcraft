@@ -73,8 +73,9 @@ impl Repo {
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
-            if let Ok(repo) = Self::from_format(id, priority, path, format, finalize) {
-                return Ok(repo);
+            match Self::from_format(id, priority, path, format, finalize) {
+                Err(e) => tracing::debug!("{e}"),
+                result => return result,
             }
         }
 
