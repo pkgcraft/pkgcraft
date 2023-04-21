@@ -32,7 +32,7 @@ impl Metadata {
                 Ok(s) => s
                     .lines()
                     .map(|s| s.trim())
-                    .filter(|s| !s.starts_with('#'))
+                    .filter(|s| !s.is_empty() && !s.starts_with('#'))
                     .map(String::from)
                     .collect(),
                 Err(_) => IndexSet::new(),
