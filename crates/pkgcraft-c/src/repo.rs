@@ -13,9 +13,9 @@ use crate::types::{RepoIter, RepoIterRestrict};
 use crate::utils::str_to_raw;
 
 pub mod ebuild;
+pub mod ebuild_temp;
 pub mod fake;
 pub mod set;
-pub mod temp;
 
 /// Load a repo from a given path.
 ///

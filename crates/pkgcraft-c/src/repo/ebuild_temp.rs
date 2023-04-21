@@ -7,7 +7,7 @@ use pkgcraft::pkgsh::Key;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::TempRepo;
+use crate::types::EbuildTempRepo;
 
 /// Create a temporary ebuild repository.
 ///
@@ -20,11 +20,11 @@ use crate::types::TempRepo;
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
     id: *const c_char,
     eapi: *const Eapi,
-) -> *mut TempRepo {
+) -> *mut EbuildTempRepo {
     ffi_catch_panic! {
         let id = try_str_from_ptr!(id);
         let eapi = unwrap_or_panic!(IntoEapi::into_eapi(eapi));
-        let repo = unwrap_or_panic!(TempRepo::new(id, None, Some(eapi)));
+        let repo = unwrap_or_panic!(EbuildTempRepo::new(id, None, Some(eapi)));
         Box::into_raw(Box::new(repo))
     }
 }
@@ -32,9 +32,9 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
 /// Return a temporary repo's path.
 ///
 /// # Safety
-/// The argument must be a non-null TempRepo pointer.
+/// The argument must be a non-null EbuildTempRepo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(r: *mut TempRepo) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(r: *mut EbuildTempRepo) -> *mut c_char {
     let repo = try_ref_from_ptr!(r);
     try_ptr_from_str!(repo.path().as_str())
 }
@@ -44,10 +44,10 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(r: *mut TempRepo) -> *mu
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The argument must be a non-null TempRepo pointer.
+/// The argument must be a non-null EbuildTempRepo pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
-    r: *mut TempRepo,
+    r: *mut EbuildTempRepo,
     cpv: *const c_char,
     key_vals: *mut *mut c_char,
     len: usize,
@@ -76,10 +76,10 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The argument must be a non-null TempRepo pointer.
+/// The argument must be a non-null EbuildTempRepo pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_raw(
-    r: *mut TempRepo,
+    r: *mut EbuildTempRepo,
     cpv: *const c_char,
     data: *const c_char,
 ) -> *mut c_char {
@@ -95,10 +95,10 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_raw(
 /// Persist a temporary repo to disk, returning its path.
 ///
 /// # Safety
-/// The related TempRepo pointer is invalid on function completion and should not be used.
+/// The related EbuildTempRepo pointer is invalid on function completion and should not be used.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_persist(
-    r: *mut TempRepo,
+    r: *mut EbuildTempRepo,
     path: *const c_char,
 ) -> *mut c_char {
     ffi_catch_panic! {
@@ -117,9 +117,9 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_persist(
 /// Freeing a temporary repo removes the related directory from the filesystem.
 ///
 /// # Safety
-/// The argument must be a TempRepo pointer or NULL.
+/// The argument must be a EbuildTempRepo pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_free(r: *mut TempRepo) {
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_free(r: *mut EbuildTempRepo) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };
     }

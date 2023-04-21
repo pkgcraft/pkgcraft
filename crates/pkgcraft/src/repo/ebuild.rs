@@ -795,7 +795,7 @@ mod tests {
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::pkgsh::metadata::Key;
-    use crate::repo::temp::Repo as TempRepo;
+    use crate::repo::ebuild_temp::Repo as TempRepo;
     use crate::repo::Contains;
     use crate::test::assert_unordered_eq;
 
