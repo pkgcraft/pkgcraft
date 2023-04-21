@@ -112,11 +112,10 @@ pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback) {
 /// # Safety
 /// The argument must be a non-null PkgcraftLog pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_log_test(l: *const PkgcraftLog) {
-    let log = try_ref_from_ptr!(l);
-    let message = try_str_from_ptr!(log.message);
+pub unsafe extern "C" fn pkgcraft_log_test(msg: *const c_char, level: LogLevel) {
+    let message = try_str_from_ptr!(msg);
     use LogLevel::*;
-    match log.level {
+    match level {
         Trace => tracing::trace!("{message}"),
         Debug => tracing::debug!("{message}"),
         Info => tracing::info!("{message}"),
