@@ -1,15 +1,18 @@
+use std::cell::RefCell;
 use std::ffi::{c_char, CString};
 use std::fmt::{Debug, Write};
 
 use tracing::field::{Field, Visit};
-use tracing::{Event, Level, Subscriber};
-use tracing_subscriber::{prelude::*, Layer};
+use tracing::{subscriber::DefaultGuard, Event, Level, Subscriber};
+use tracing_subscriber::filter::{EnvFilter, LevelFilter};
+use tracing_subscriber::{prelude::*, registry::Registry, Layer};
 
 use crate::macros::*;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub enum LogLevel {
+    Off,
     Trace,
     Debug,
     Info,
@@ -25,6 +28,19 @@ impl<'a> From<&'a Level> for LogLevel {
             Level::INFO => Self::Info,
             Level::WARN => Self::Warn,
             Level::ERROR => Self::Error,
+        }
+    }
+}
+
+impl From<LogLevel> for LevelFilter {
+    fn from(level: LogLevel) -> Self {
+        match level {
+            LogLevel::Off => LevelFilter::OFF,
+            LogLevel::Trace => LevelFilter::TRACE,
+            LogLevel::Debug => LevelFilter::DEBUG,
+            LogLevel::Info => LevelFilter::INFO,
+            LogLevel::Warn => LevelFilter::WARN,
+            LogLevel::Error => LevelFilter::ERROR,
         }
     }
 }
@@ -100,11 +116,26 @@ where
     }
 }
 
+thread_local! {
+    static SUBSCRIBER: RefCell<Option<DefaultGuard>> = RefCell::new(None);
+}
+
 /// Enable pkgcraft logging support.
 #[no_mangle]
-pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback) {
-    let layer = PkgcraftLayer::new(cb);
-    tracing_subscriber::registry().with(layer).init();
+pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback, level: LogLevel) {
+    let level_filter: LevelFilter = level.into();
+    let filter = EnvFilter::builder()
+        .with_default_directive(level_filter.into())
+        .from_env_lossy();
+
+    let subscriber = Registry::default()
+        .with(filter)
+        .with(PkgcraftLayer::new(cb));
+
+    // replace the current thread's subscriber
+    SUBSCRIBER.with(|prev| *prev.borrow_mut() = None);
+    let guard = tracing::subscriber::set_default(subscriber);
+    SUBSCRIBER.with(|prev| *prev.borrow_mut() = Some(guard));
 }
 
 /// Replay a given PkgcraftLog object for test purposes.
@@ -116,6 +147,7 @@ pub unsafe extern "C" fn pkgcraft_log_test(msg: *const c_char, level: LogLevel) 
     let message = try_str_from_ptr!(msg);
     use LogLevel::*;
     match level {
+        Off => (),
         Trace => tracing::trace!("{message}"),
         Debug => tracing::debug!("{message}"),
         Info => tracing::info!("{message}"),
