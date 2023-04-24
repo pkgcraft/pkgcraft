@@ -1,4 +1,4 @@
-use std::ffi::{c_char, CString};
+use std::ffi::{c_char, c_void, CString};
 
 /// Free a string.
 ///
@@ -23,5 +23,16 @@ pub unsafe extern "C" fn pkgcraft_str_array_free(strs: *mut *mut c_char, len: us
                 drop(CString::from_raw(s));
             }
         }
+    }
+}
+
+/// Free an array without dropping the objects inside it.
+///
+/// # Safety
+/// The array objects should be explicitly dropped using other methods otherwise they will leak.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_array_free(array: *mut *mut c_void, len: usize) {
+    if !array.is_null() {
+        unsafe { Vec::from_raw_parts(array, len, len) };
     }
 }
