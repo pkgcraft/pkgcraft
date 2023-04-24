@@ -103,18 +103,6 @@ pub unsafe extern "C" fn pkgcraft_config_repos_set(
     Box::into_raw(Box::new(config.repos.set(set_type)))
 }
 
-/// Free an array of configured repos.
-///
-/// # Safety
-/// The argument must be the value received from pkgcraft_config_repos() or NULL along with the
-/// length of the array.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repos_free(repos: *mut *mut Repo, len: usize) {
-    if !repos.is_null() {
-        unsafe { Vec::from_raw_parts(repos, len, len) };
-    }
-}
-
 /// Free a config.
 ///
 /// # Safety

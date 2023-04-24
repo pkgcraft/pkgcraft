@@ -27,18 +27,6 @@ pub unsafe extern "C" fn pkgcraft_eapis_official(len: *mut usize) -> *mut *const
     iter_to_array!(eapi::EAPIS_OFFICIAL.iter(), len, |&e| { e as *const _ })
 }
 
-/// Free an array of borrowed Eapi objects.
-///
-/// # Safety
-/// The argument must be the value received from pkgcraft_eapis(), pkgcraft_eapis_official(), or
-/// NULL along with the length of the array.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_eapis_free(eapis: *mut *const Eapi, len: usize) {
-    if !eapis.is_null() {
-        unsafe { Vec::from_raw_parts(eapis, len, len) };
-    }
-}
-
 /// Get an EAPI from its identifier.
 ///
 /// Returns NULL on error.
