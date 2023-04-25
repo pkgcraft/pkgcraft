@@ -198,8 +198,8 @@ pub struct Repo {
     eapi: &'static Eapi,
     repo_config: RepoConfig,
     config: IniConfig,
-    metadata: Metadata,
     name: String,
+    metadata: OnceCell<Metadata>,
     masters: OnceCell<Vec<Weak<Self>>>,
     trees: OnceCell<Vec<Weak<Self>>>,
     eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
@@ -284,7 +284,6 @@ impl Repo {
             eapi,
             repo_config,
             config,
-            metadata: Metadata::new(profiles_base),
             name,
             ..Default::default()
         })
@@ -339,7 +338,9 @@ impl Repo {
     }
 
     pub fn metadata(&self) -> &Metadata {
-        &self.metadata
+        self.metadata.get_or_init(|| {
+            Metadata::new(self.path().join("profiles"))
+        })
     }
 
     pub fn eapi(&self) -> &'static Eapi {
@@ -503,7 +504,7 @@ impl PkgRepository for Repo {
         // use profiles/categories from repos, falling back to raw fs dirs
         let mut categories = HashSet::<String>::new();
         for r in self.trees() {
-            categories.extend(r.metadata.categories().iter().cloned())
+            categories.extend(r.metadata().categories().iter().cloned())
         }
         let mut categories: Vec<_> = categories.into_iter().collect();
         categories.sort();
