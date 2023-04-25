@@ -1,17 +1,27 @@
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
 use std::{fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use once_cell::sync::OnceCell;
+use strum::{Display, EnumString};
 use tracing::{error, warn};
+
+#[derive(Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum ArchStatus {
+    Stable,
+    Testing,
+    Transitional,
+}
 
 #[derive(Debug, Default)]
 pub struct Metadata {
     repo: String,
     profiles_base: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
-    arches_desc: OnceCell<HashMap<String, HashSet<String>>>,
+    arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceCell<IndexSet<String>>,
 }
 
@@ -52,12 +62,10 @@ impl Metadata {
 
     /// Architecture stability status from `profiles/arches.desc`.
     /// See GLEP 72 (https://www.gentoo.org/glep/glep-0072.html).
-    pub fn arches_desc(&self) -> &HashMap<String, HashSet<String>> {
+    pub fn arches_desc(&self) -> &HashMap<ArchStatus, HashSet<String>> {
         self.arches_desc.get_or_init(|| {
             let path = self.profiles_base.join("arches.desc");
-            // TODO: move allowed status list to repo setting
-            let known_statuses = HashSet::from(["stable", "transitional", "testing"]);
-            let mut vals = HashMap::<String, HashSet<String>>::new();
+            let mut vals = HashMap::<ArchStatus, HashSet<String>>::new();
             match fs::read_to_string(path) {
                 Ok(s) => {
                     s.lines()
@@ -77,16 +85,15 @@ impl Metadata {
                                     return;
                                 }
 
-                                if !known_statuses.contains(status) {
+                                if let Ok(status) = ArchStatus::from_str(status) {
+                                    let arches = vals.entry(status).or_insert_with(HashSet::new);
+                                    arches.insert(arch.to_string());
+                                } else {
                                     warn!(
                                         "{}::profiles/arches.desc, line {}: unknown status: {status}",
                                         self.repo, i + 1
                                     );
-                                    return;
                                 }
-
-                                let arches = vals.entry(status.to_string()).or_insert_with(HashSet::new);
-                                arches.insert(arch.to_string());
                             }
                             _ => error!(
                                 "{}::profiles/arches.desc, line {}: \
@@ -134,7 +141,7 @@ mod tests {
 
     use crate::macros::*;
     use crate::repo::ebuild_temp::Repo as TempRepo;
-    use crate::test::assert_ordered_eq;
+    use crate::test::{assert_ordered_eq, assert_unordered_eq};
 
     use super::*;
 
@@ -198,6 +205,18 @@ mod tests {
         fs::write(metadata.profiles_base().join("arches.desc"), "amd64 test").unwrap();
         assert!(metadata.arches_desc().is_empty());
         assert_logs_re!(format!(".+, line 1: unknown status: test$"));
+
+        // multiple with ignored 3rd column
+        metadata = Metadata::new("test", repo.path());
+        fs::write(metadata.profiles_base().join("arch.list"), "amd64\narm64\nppc64").unwrap();
+        fs::write(
+            metadata.profiles_base().join("arches.desc"),
+            "amd64 stable\narm64 testing\nppc64 transitional 3rd-col",
+        )
+        .unwrap();
+        assert_unordered_eq(&metadata.arches_desc()[&ArchStatus::Stable], ["amd64"]);
+        assert_unordered_eq(&metadata.arches_desc()[&ArchStatus::Testing], ["arm64"]);
+        assert_unordered_eq(&metadata.arches_desc()[&ArchStatus::Transitional], ["ppc64"]);
     }
 
     #[test]
