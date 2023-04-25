@@ -3,17 +3,20 @@ use std::{fs, io};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use once_cell::sync::OnceCell;
+use tracing::{error, warn};
 
 #[derive(Debug, Default)]
 pub struct Metadata {
+    repo: String,
     profiles_base: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
     categories: OnceCell<IndexSet<String>>,
 }
 
 impl Metadata {
-    pub(super) fn new<P: Into<Utf8PathBuf>>(path: P) -> Self {
+    pub(super) fn new<P: Into<Utf8PathBuf>>(repo: &str, path: P) -> Self {
         Self {
+            repo: repo.to_string(),
             profiles_base: path.into(),
             ..Default::default()
         }
@@ -37,7 +40,7 @@ impl Metadata {
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        tracing::warn!("failed reading {path:?}: {e}");
+                        warn!("{}: failed reading {path:?}: {e}", self.repo);
                     }
                     IndexSet::new()
                 }
@@ -58,7 +61,7 @@ impl Metadata {
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        tracing::warn!("failed reading {path:?}: {e}");
+                        warn!("{}: failed reading {path:?}: {e}", self.repo);
                     }
                     IndexSet::new()
                 }
@@ -80,11 +83,11 @@ mod tests {
         let mut metadata: Metadata;
 
         // nonexistent file
-        metadata = Metadata::new(repo.path());
+        metadata = Metadata::new("test", repo.path());
         assert!(metadata.arches().is_empty());
 
         // empty file
-        metadata = Metadata::new(repo.path());
+        metadata = Metadata::new("test", repo.path());
         fs::write(metadata.profiles_base().join("arch.list"), "").unwrap();
         assert!(metadata.arches().is_empty());
 
@@ -94,7 +97,7 @@ mod tests {
             arm64
             amd64-linux
         "#};
-        metadata = Metadata::new(repo.path());
+        metadata = Metadata::new("test", repo.path());
         fs::write(metadata.profiles_base().join("arch.list"), data).unwrap();
         assert_unordered_eq(metadata.arches(), ["amd64", "arm64", "amd64-linux"]);
     }

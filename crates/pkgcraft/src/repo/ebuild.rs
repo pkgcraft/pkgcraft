@@ -338,9 +338,8 @@ impl Repo {
     }
 
     pub fn metadata(&self) -> &Metadata {
-        self.metadata.get_or_init(|| {
-            Metadata::new(self.path().join("profiles"))
-        })
+        self.metadata
+            .get_or_init(|| Metadata::new(self.id(), self.path().join("profiles")))
     }
 
     pub fn eapi(&self) -> &'static Eapi {
@@ -398,7 +397,7 @@ impl Repo {
             let entry = match entry {
                 Ok(e) => e,
                 Err(e) => {
-                    warn!("error walking {:?}: {e}", self.path());
+                    warn!("{}: failed walking {:?}: {e}", self.id(), self.path());
                     continue;
                 }
             };
@@ -406,9 +405,9 @@ impl Repo {
             match entry.file_name().to_str() {
                 Some(s) => match dep::parse::category(s) {
                     Ok(_) => v.push(s.into()),
-                    Err(e) => warn!("{e}: {path:?}"),
+                    Err(e) => warn!("{}: {e}: {path:?}", self.id()),
                 },
-                None => warn!("non-unicode path: {path:?}"),
+                None => warn!("{}: non-unicode path: {path:?}", self.id()),
             }
         }
         v
@@ -526,7 +525,7 @@ impl PkgRepository for Repo {
                 Err(e) => {
                     if let Some(err) = e.io_error() {
                         if err.kind() != io::ErrorKind::NotFound {
-                            warn!("error walking {:?}: {e}", &path);
+                            warn!("{}: failed walking {:?}: {e}", self.id(), &path);
                         }
                     }
                     continue;
@@ -536,9 +535,9 @@ impl PkgRepository for Repo {
             match entry.file_name().to_str() {
                 Some(s) => match dep::parse::package(s) {
                     Ok(_) => v.push(s.into()),
-                    Err(e) => warn!("{e}: {path:?}"),
+                    Err(e) => warn!("{}: {e}: {path:?}", self.id()),
                 },
-                None => warn!("non-unicode path: {path:?}"),
+                None => warn!("{}: non-unicode path: {path:?}", self.id()),
             }
         }
         v
@@ -558,7 +557,7 @@ impl PkgRepository for Repo {
                 Err(e) => {
                     if let Some(err) = e.io_error() {
                         if err.kind() != io::ErrorKind::NotFound {
-                            warn!("error walking {:?}: {e}", &path);
+                            warn!("{}: failed walking {:?}: {e}", self.id(), &path);
                         }
                     }
                     continue;
@@ -571,11 +570,11 @@ impl PkgRepository for Repo {
                 (Some(pn), Some(pf)) => match pn == &pf[..pn.len()] {
                     true => match Version::new(&pf[pn.len() + 1..]) {
                         Ok(v) => versions.push(v),
-                        Err(e) => warn!("{e}: {path:?}"),
+                        Err(e) => warn!("{}: {e}: {path:?}", self.id()),
                     },
-                    false => warn!("unmatched ebuild: {path:?}"),
+                    false => warn!("{}: unmatched ebuild: {path:?}", self.id()),
                 },
-                _ => warn!("non-unicode path: {path:?}"),
+                _ => warn!("{}: non-unicode path: {path:?}", self.id()),
             }
         }
         versions.sort();
@@ -758,7 +757,7 @@ impl<'a> Iterator for Iter<'a> {
         for (path, cpv) in &mut self.iter {
             match Pkg::new(path, cpv, self.repo) {
                 Ok(pkg) => return Some(pkg),
-                Err(e) => warn!("{} repo: {e}", self.repo.id()),
+                Err(e) => warn!("{}: {e}", self.repo.id()),
             }
         }
         None
@@ -1057,7 +1056,7 @@ mod tests {
             t.create_ebuild("cat/pkg-0", data).unwrap();
             let mut iter = repo.iter();
             assert!(iter.next().is_none());
-            assert_logs_re!(format!("test repo: invalid pkg: .+: {err}$"));
+            assert_logs_re!(format!("test: invalid pkg: .+: {err}$"));
         }
     }
 }
