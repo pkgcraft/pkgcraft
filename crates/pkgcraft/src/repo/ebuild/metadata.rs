@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::{fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -11,7 +11,7 @@ pub struct Metadata {
     repo: String,
     profiles_base: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
-    arches_desc: OnceCell<HashMap<String, String>>,
+    arches_desc: OnceCell<HashMap<String, HashSet<String>>>,
     categories: OnceCell<IndexSet<String>>,
 }
 
@@ -33,7 +33,7 @@ impl Metadata {
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
             let path = self.profiles_base.join("arch.list");
-            match fs::read_to_string(&path) {
+            match fs::read_to_string(path) {
                 Ok(s) => s
                     .lines()
                     .map(|s| s.trim())
@@ -42,7 +42,7 @@ impl Metadata {
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}: failed reading {path:?}: {e}", self.repo);
+                        warn!("{}::profiles/arch.list: {e}", self.repo);
                     }
                     IndexSet::new()
                 }
@@ -52,30 +52,53 @@ impl Metadata {
 
     /// Architecture stability status from `profiles/arches.desc`.
     /// See GLEP 72 (https://www.gentoo.org/glep/glep-0072.html).
-    pub fn arches_desc(&self) -> &HashMap<String, String> {
+    pub fn arches_desc(&self) -> &HashMap<String, HashSet<String>> {
         self.arches_desc.get_or_init(|| {
-            let path = self.profiles_base.join("arch.desc");
-            let mut vals = HashMap::new();
-            match fs::read_to_string(&path) {
-                Ok(s) => s
-                    .lines()
-                    .enumerate()
-                    .map(|(i, s)| (i, s.trim()))
-                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
-                    .map(|(i, s)| (i, s.split_whitespace()))
-                    // ony pull the first two columns, ignoring any additional
-                    .for_each(|(i, mut iter)| match (iter.next(), iter.next()) {
-                        (Some(arch), Some(status)) => {
-                            vals.insert(arch.to_string(), status.to_string());
-                        }
-                        _ => error!(
-                            "{}: line {i}: invalid line format: should be '<arch> <status>'",
-                            self.repo
-                        ),
-                    }),
+            let path = self.profiles_base.join("arches.desc");
+            // TODO: move allowed status list to repo setting
+            let known_statuses = HashSet::from(["stable", "transitional", "testing"]);
+            let mut vals = HashMap::<String, HashSet<String>>::new();
+            match fs::read_to_string(path) {
+                Ok(s) => {
+                    s.lines()
+                        .map(|s| s.trim())
+                        .enumerate()
+                        .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                        .map(|(i, s)| (i, s.split_whitespace()))
+                        // only pull the first two columns, ignoring any additional
+                        .for_each(|(i, mut iter)| match (iter.next(), iter.next()) {
+                            (Some(arch), Some(status)) => {
+                                if !self.arches().contains(arch) {
+                                    warn!(
+                                        "{}::profiles/arches.desc, line {}: unknown arch: {arch}",
+                                        self.repo,
+                                        i + 1
+                                    );
+                                    return;
+                                }
+
+                                if !known_statuses.contains(status) {
+                                    warn!(
+                                        "{}::profiles/arches.desc, line {}: unknown status: {status}",
+                                        self.repo, i + 1
+                                    );
+                                    return;
+                                }
+
+                                let arches = vals.entry(status.to_string()).or_insert_with(HashSet::new);
+                                arches.insert(arch.to_string());
+                            }
+                            _ => error!(
+                                "{}::profiles/arches.desc, line {}: \
+                                invalid line format: should be '<arch> <status>'",
+                                self.repo,
+                                i + 1
+                            ),
+                        })
+                }
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}: failed reading {path:?}: {e}", self.repo);
+                        warn!("{}::profiles/arches.desc: {e}", self.repo);
                     }
                 }
             }
@@ -87,7 +110,7 @@ impl Metadata {
     pub fn categories(&self) -> &IndexSet<String> {
         self.categories.get_or_init(|| {
             let path = self.profiles_base.join("categories");
-            match fs::read_to_string(&path) {
+            match fs::read_to_string(path) {
                 Ok(s) => s
                     .lines()
                     .map(|s| s.trim())
@@ -96,7 +119,7 @@ impl Metadata {
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}: failed reading {path:?}: {e}", self.repo);
+                        warn!("{}::profiles/categories: {e}", self.repo);
                     }
                     IndexSet::new()
                 }
@@ -107,8 +130,11 @@ impl Metadata {
 
 #[cfg(test)]
 mod tests {
+    use tracing_test::traced_test;
+
+    use crate::macros::*;
     use crate::repo::ebuild_temp::Repo as TempRepo;
-    use crate::test::assert_unordered_eq;
+    use crate::test::assert_ordered_eq;
 
     use super::*;
 
@@ -134,6 +160,68 @@ mod tests {
         "#};
         metadata = Metadata::new("test", repo.path());
         fs::write(metadata.profiles_base().join("arch.list"), data).unwrap();
-        assert_unordered_eq(metadata.arches(), ["amd64", "arm64", "amd64-linux"]);
+        assert_ordered_eq(metadata.arches(), ["amd64", "arm64", "amd64-linux"]);
+    }
+
+    #[traced_test]
+    #[test]
+    fn test_arches_desc() {
+        let repo = TempRepo::new("test", None, None).unwrap();
+        let mut metadata: Metadata;
+
+        // nonexistent file
+        metadata = Metadata::new("test", repo.path());
+        assert!(metadata.arches_desc().is_empty());
+
+        // empty file
+        metadata = Metadata::new("test", repo.path());
+        fs::write(metadata.profiles_base().join("arches.desc"), "").unwrap();
+        assert!(metadata.arches_desc().is_empty());
+
+        // invalid line format
+        metadata = Metadata::new("test", repo.path());
+        fs::write(metadata.profiles_base().join("arch.list"), "amd64\narm64").unwrap();
+        fs::write(metadata.profiles_base().join("arches.desc"), "amd64 stable\narm64").unwrap();
+        assert!(!metadata.arches_desc().is_empty());
+        assert_logs_re!(format!(".+, line 2: invalid line format: .+$"));
+
+        // unknown arch
+        metadata = Metadata::new("test", repo.path());
+        fs::write(metadata.profiles_base().join("arch.list"), "amd64").unwrap();
+        fs::write(metadata.profiles_base().join("arches.desc"), "arm64 stable").unwrap();
+        assert!(metadata.arches_desc().is_empty());
+        assert_logs_re!(format!(".+, line 1: unknown arch: arm64$"));
+
+        // unknown status
+        metadata = Metadata::new("test", repo.path());
+        fs::write(metadata.profiles_base().join("arch.list"), "amd64").unwrap();
+        fs::write(metadata.profiles_base().join("arches.desc"), "amd64 test").unwrap();
+        assert!(metadata.arches_desc().is_empty());
+        assert_logs_re!(format!(".+, line 1: unknown status: test$"));
+    }
+
+    #[test]
+    fn test_categories() {
+        let repo = TempRepo::new("test", None, None).unwrap();
+        let mut metadata: Metadata;
+
+        // nonexistent file
+        metadata = Metadata::new("test", repo.path());
+        assert!(metadata.categories().is_empty());
+
+        // empty file
+        metadata = Metadata::new("test", repo.path());
+        fs::write(metadata.profiles_base().join("categories"), "").unwrap();
+        assert!(metadata.categories().is_empty());
+
+        // multiple
+        let data = indoc::indoc! {r#"
+            cat1
+            cat2
+            cat-3
+        "#};
+        metadata = Metadata::new("test", repo.path());
+        fs::write(metadata.profiles_base().join("categories"), data).unwrap();
+        assert_ordered_eq(metadata.categories(), ["cat1", "cat2", "cat-3"]);
     }
 }
