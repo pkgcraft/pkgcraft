@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
@@ -28,14 +28,19 @@ impl Metadata {
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
             let path = self.profiles_base.join("arch.list");
-            match fs::read_to_string(path) {
+            match fs::read_to_string(&path) {
                 Ok(s) => s
                     .lines()
                     .map(|s| s.trim())
                     .filter(|s| !s.is_empty() && !s.starts_with('#'))
                     .map(String::from)
                     .collect(),
-                Err(_) => IndexSet::new(),
+                Err(e) => {
+                    if e.kind() != io::ErrorKind::NotFound {
+                        tracing::warn!("failed reading {path:?}: {e}");
+                    }
+                    IndexSet::new()
+                }
             }
         })
     }
@@ -44,14 +49,19 @@ impl Metadata {
     pub fn categories(&self) -> &IndexSet<String> {
         self.categories.get_or_init(|| {
             let path = self.profiles_base.join("categories");
-            match fs::read_to_string(path) {
+            match fs::read_to_string(&path) {
                 Ok(s) => s
                     .lines()
                     .map(|s| s.trim())
-                    .filter(|s| !s.starts_with('#'))
+                    .filter(|s| !s.is_empty() && !s.starts_with('#'))
                     .map(String::from)
                     .collect(),
-                Err(_) => IndexSet::new(),
+                Err(e) => {
+                    if e.kind() != io::ErrorKind::NotFound {
+                        tracing::warn!("failed reading {path:?}: {e}");
+                    }
+                    IndexSet::new()
+                }
             }
         })
     }
