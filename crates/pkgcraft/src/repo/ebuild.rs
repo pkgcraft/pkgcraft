@@ -222,7 +222,7 @@ make_repo_traits!(Repo);
 impl Repo {
     pub(crate) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
-        S: AsRef<str>,
+        S: Into<String>,
         P: AsRef<Utf8Path>,
     {
         let path = path.as_ref();
@@ -280,7 +280,7 @@ impl Repo {
         let config = IniConfig::new(path).map_err(|e| invalid_repo(e.to_string()))?;
 
         Ok(Self {
-            id: id.as_ref().to_string(),
+            id: id.into(),
             eapi,
             repo_config,
             config,
