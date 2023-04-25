@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::{fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -10,6 +11,7 @@ pub struct Metadata {
     repo: String,
     profiles_base: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
+    arches_desc: OnceCell<HashMap<String, String>>,
     categories: OnceCell<IndexSet<String>>,
 }
 
@@ -45,6 +47,39 @@ impl Metadata {
                     IndexSet::new()
                 }
             }
+        })
+    }
+
+    /// Architecture stability status from `profiles/arches.desc`.
+    /// See GLEP 72 (https://www.gentoo.org/glep/glep-0072.html).
+    pub fn arches_desc(&self) -> &HashMap<String, String> {
+        self.arches_desc.get_or_init(|| {
+            let path = self.profiles_base.join("arch.desc");
+            let mut vals = HashMap::new();
+            match fs::read_to_string(&path) {
+                Ok(s) => s
+                    .lines()
+                    .enumerate()
+                    .map(|(i, s)| (i, s.trim()))
+                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                    .map(|(i, s)| (i, s.split_whitespace()))
+                    // ony pull the first two columns, ignoring any additional
+                    .for_each(|(i, mut iter)| match (iter.next(), iter.next()) {
+                        (Some(arch), Some(status)) => {
+                            vals.insert(arch.to_string(), status.to_string());
+                        }
+                        _ => error!(
+                            "{}: line {i}: invalid line format: should be '<arch> <status>'",
+                            self.repo
+                        ),
+                    }),
+                Err(e) => {
+                    if e.kind() != io::ErrorKind::NotFound {
+                        warn!("{}: failed reading {path:?}: {e}", self.repo);
+                    }
+                }
+            }
+            vals
         })
     }
 
