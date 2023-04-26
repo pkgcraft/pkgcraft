@@ -40,9 +40,6 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 pub(crate) trait CacheData: Default {
     const RELPATH: &'static str;
     fn new(path: &Utf8Path) -> crate::Result<Self>;
-    fn hash(path: &Utf8Path) -> blake3::Hash {
-        blake3::hash(&fs::read(path.join(Self::RELPATH)).unwrap_or_default())
-    }
 }
 
 #[derive(Debug)]
@@ -78,7 +75,8 @@ where
                     Ok(Msg::Key(s)) => {
                         // evict cache entries based on file content hash
                         let path = repo_path.join(&s);
-                        let hash = T::hash(&path);
+                        let hash =
+                            blake3::hash(&fs::read(path.join(T::RELPATH)).unwrap_or_default());
                         let data = match pkg_data.get(&s) {
                             Some((cached_hash, data)) if cached_hash == &hash => data.clone(),
                             _ => {
