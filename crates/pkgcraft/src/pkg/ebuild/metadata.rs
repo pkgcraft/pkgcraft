@@ -176,18 +176,18 @@ impl XmlMetadata {
     }
 
     fn parse_xml(xml: &str) -> crate::Result<Self> {
+        let doc = Document::parse(xml).map_err(|e| Error::InvalidValue(e.to_string()))?;
         let mut data = Self::default();
-        if let Ok(doc) = Document::parse(xml) {
-            for node in doc.root_element().children() {
-                let lang = node.attribute("lang").unwrap_or("en");
-                let en = lang == "en";
-                match node.tag_name().name() {
-                    "maintainer" => Self::parse_maintainer(node, &mut data)?,
-                    "upstream" => Self::parse_upstreams(node, &mut data),
-                    "use" if en => Self::parse_use(node, &mut data),
-                    "longdescription" if en => Self::parse_long_desc(node, &mut data),
-                    _ => (),
-                }
+
+        for node in doc.root_element().children() {
+            let lang = node.attribute("lang").unwrap_or("en");
+            let en = lang == "en";
+            match node.tag_name().name() {
+                "maintainer" => Self::parse_maintainer(node, &mut data)?,
+                "upstream" => Self::parse_upstreams(node, &mut data),
+                "use" if en => Self::parse_use(node, &mut data),
+                "longdescription" if en => Self::parse_long_desc(node, &mut data),
+                _ => (),
             }
         }
 
