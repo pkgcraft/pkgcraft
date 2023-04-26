@@ -11,7 +11,6 @@ use tracing::{error, warn};
 
 use crate::dep::{parse, Dep};
 use crate::eapi::{Eapi, EAPI0};
-use crate::repo::RepoFormat;
 use crate::Error;
 
 const DEFAULT_SECTION: Option<String> = None;
@@ -38,18 +37,15 @@ impl fmt::Debug for IniConfig {
 }
 
 impl IniConfig {
-    fn new(repo_path: &Utf8Path) -> Self {
+    fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
         let path = repo_path.join("metadata/layout.conf");
         match Ini::load_from_file(&path) {
-            Ok(ini) => Self { path: Some(path), ini },
-            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Self {
+            Ok(ini) => Ok(Self { path: Some(path), ini }),
+            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Self {
                 path: Some(path),
                 ini: Ini::new(),
-            },
-            Err(e) => {
-                error!("invalid repo config: {path}: {e}");
-                Self::default()
-            }
+            }),
+            Err(e) => Err(Error::IO(e.to_string())),
         }
     }
 
@@ -112,6 +108,7 @@ pub enum ArchStatus {
 
 #[derive(Debug, Default)]
 pub struct Metadata {
+    pub(super) id: String,
     pub(super) name: String,
     pub(super) eapi: &'static Eapi,
     config: IniConfig,
@@ -120,54 +117,47 @@ pub struct Metadata {
     arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceCell<IndexSet<String>>,
     pkg_mask: OnceCell<HashSet<Dep>>,
+    pkg_deprecated: OnceCell<HashSet<Dep>>,
 }
 
 impl Metadata {
-    pub(super) fn new(path: &Utf8Path) -> crate::Result<Self> {
-        let invalid_repo = |err: String| -> Error {
+    pub(super) fn new(id: &str, path: &Utf8Path) -> crate::Result<Self> {
+        let invalid_repo = |err: &str| -> Error {
             Error::InvalidRepo {
-                format: RepoFormat::Ebuild,
-                path: Utf8PathBuf::from(path),
-                err,
+                id: id.to_string(),
+                err: err.to_string(),
             }
         };
 
         // verify repo name
-        let repo_name_path = path.join("profiles/repo_name");
-        let name = match fs::read_to_string(&repo_name_path) {
-            Ok(data) => match data.lines().next() {
-                // TODO: verify repo name matches spec
-                Some(s) => s.trim_end().to_string(),
-                None => {
-                    let err = format!("invalid repo name: {repo_name_path}");
-                    return Err(invalid_repo(err));
-                }
+        let name = match fs::read_to_string(path.join("profiles/repo_name")) {
+            Ok(data) => match data.lines().next().map(|s| parse::repo(s.trim())) {
+                Some(Ok(s)) => s.to_string(),
+                Some(Err(e)) => return Err(invalid_repo(&format!("profiles/repo_name: {e}"))),
+                None => return Err(invalid_repo("profiles/repo_name empty")),
             },
-            Err(e) => {
-                let err = format!("failed reading repo name: {repo_name_path}: {e}");
-                return Err(invalid_repo(err));
-            }
+            Err(e) => return Err(invalid_repo(&format!("profiles/repo_name: {e}"))),
         };
 
         // verify repo EAPI
-        let eapi_path = path.join("profiles/eapi");
-        let eapi = match fs::read_to_string(&eapi_path) {
+        let eapi = match fs::read_to_string(path.join("profiles/eapi")) {
             Ok(data) => {
                 let s = data.lines().next().unwrap_or_default();
                 <&Eapi>::from_str(s.trim_end())
-                    .map_err(|e| invalid_repo(format!("invalid repo eapi: {e}")))?
+                    .map_err(|e| invalid_repo(&format!("profiles/eapi: {e}")))?
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => &*EAPI0,
-            Err(e) => {
-                let err = format!("failed reading repo eapi: {eapi_path}: {e}");
-                return Err(invalid_repo(err));
-            }
+            Err(e) => return Err(invalid_repo(&format!("profiles/eapi: {e}"))),
         };
 
+        let config = IniConfig::new(path)
+            .map_err(|e| invalid_repo(&format!("metadata/layout.conf: {e}")))?;
+
         Ok(Self {
+            id: id.to_string(),
             name,
             eapi,
-            config: IniConfig::new(path),
+            config,
             path: Utf8PathBuf::from(path),
             ..Default::default()
         })
@@ -190,7 +180,7 @@ impl Metadata {
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/arch.list: {e}", self.name);
+                        warn!("{}::profiles/arch.list: {e}", self.id);
                     }
                     IndexSet::new()
                 }
@@ -217,7 +207,7 @@ impl Metadata {
                                 if !self.arches().contains(arch) {
                                     warn!(
                                         "{}::profiles/arches.desc, line {}: unknown arch: {arch}",
-                                        self.name,
+                                        self.id,
                                         i + 1
                                     );
                                     return;
@@ -229,21 +219,21 @@ impl Metadata {
                                 } else {
                                     warn!(
                                         "{}::profiles/arches.desc, line {}: unknown status: {status}",
-                                        self.name, i + 1
+                                        self.id, i + 1
                                     );
                                 }
                             }
                             _ => error!(
                                 "{}::profiles/arches.desc, line {}: \
                                 invalid line format: should be '<arch> <status>'",
-                                self.name,
+                                self.id,
                                 i + 1
                             ),
                         })
                 }
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/arches.desc: {e}", self.name);
+                        warn!("{}::profiles/arches.desc: {e}", self.id);
                     }
                 }
             }
@@ -264,14 +254,14 @@ impl Metadata {
                     .filter_map(|(i, s)| match parse::category(s) {
                         Ok(_) => Some(s.to_string()),
                         Err(e) => {
-                            warn!("{}::profiles/categories, line {}: {e}", self.name, i + 1);
+                            warn!("{}::profiles/categories, line {}: {e}", self.id, i + 1);
                             None
                         }
                     })
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/categories: {e}", self.name);
+                        warn!("{}::profiles/categories: {e}", self.id);
                     }
                     IndexSet::new()
                 }
@@ -292,14 +282,42 @@ impl Metadata {
                     .filter_map(|(i, s)| match self.eapi.dep(s) {
                         Ok(dep) => Some(dep),
                         Err(e) => {
-                            warn!("{}::profiles/package.mask, line {}: {e}", self.name, i + 1);
+                            warn!("{}::profiles/package.mask, line {}: {e}", self.id, i + 1);
                             None
                         }
                     })
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/package.mask: {e}", self.name);
+                        warn!("{}::profiles/package.mask: {e}", self.id);
+                    }
+                    HashSet::new()
+                }
+            }
+        })
+    }
+
+    /// Return a repo's globally deprecated packages.
+    pub fn pkg_deprecated(&self) -> &HashSet<Dep> {
+        self.pkg_deprecated.get_or_init(|| {
+            let path = self.path.join("profiles/package.deprecated");
+            match fs::read_to_string(path) {
+                Ok(s) => s
+                    .lines()
+                    .map(|s| s.trim())
+                    .enumerate()
+                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                    .filter_map(|(i, s)| match self.eapi.dep(s) {
+                        Ok(dep) => Some(dep),
+                        Err(e) => {
+                            warn!("{}::profiles/package.deprecated, line {}: {e}", self.id, i + 1);
+                            None
+                        }
+                    })
+                    .collect(),
+                Err(e) => {
+                    if e.kind() != io::ErrorKind::NotFound {
+                        warn!("{}::profiles/package.deprecated: {e}", self.id);
                     }
                     HashSet::new()
                 }
@@ -321,7 +339,7 @@ mod tests {
     #[test]
     fn test_config() {
         let t = TempRepo::new("test", None, None).unwrap();
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
 
         // invalid config
         metadata.config.write(Some("data")).unwrap();
@@ -332,13 +350,13 @@ mod tests {
     fn test_config_properties_and_restrict_allowed() {
         // empty
         let t = TempRepo::new("test", None, None).unwrap();
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         assert!(metadata.config().properties_allowed().is_empty());
         assert!(metadata.config().restrict_allowed().is_empty());
 
         // existing
         let t = TempRepo::new("test", None, None).unwrap();
-        let mut metadata = Metadata::new(t.path()).unwrap();
+        let mut metadata = Metadata::new("test", t.path()).unwrap();
         metadata
             .config
             .set("properties-allowed", "interactive live");
@@ -353,11 +371,11 @@ mod tests {
         let t = TempRepo::new("test", None, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         assert!(metadata.arches().is_empty());
 
         // empty file
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "").unwrap();
         assert!(metadata.arches().is_empty());
 
@@ -367,7 +385,7 @@ mod tests {
             arm64
             amd64-linux
         "#};
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), data).unwrap();
         assert_ordered_eq(metadata.arches(), ["amd64", "arm64", "amd64-linux"]);
     }
@@ -378,37 +396,37 @@ mod tests {
         let t = TempRepo::new("test", None, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         assert!(metadata.arches_desc().is_empty());
 
         // empty file
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "").unwrap();
         assert!(metadata.arches_desc().is_empty());
 
         // invalid line format
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "amd64 stable\narm64").unwrap();
         assert!(!metadata.arches_desc().is_empty());
         assert_logs_re!(format!(".+, line 2: invalid line format: .+$"));
 
         // unknown arch
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "arm64 stable").unwrap();
         assert!(metadata.arches_desc().is_empty());
         assert_logs_re!(format!(".+, line 1: unknown arch: arm64$"));
 
         // unknown status
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "amd64 test").unwrap();
         assert!(metadata.arches_desc().is_empty());
         assert_logs_re!(format!(".+, line 1: unknown status: test$"));
 
         // multiple with ignored 3rd column
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64\nppc64").unwrap();
         fs::write(
             metadata.path.join("profiles/arches.desc"),
@@ -426,16 +444,16 @@ mod tests {
         let t = TempRepo::new("test", None, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         assert!(metadata.categories().is_empty());
 
         // empty file
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), "").unwrap();
         assert!(metadata.categories().is_empty());
 
         // multiple with invalid entry
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), "cat\nc@t").unwrap();
         assert_ordered_eq(metadata.categories(), ["cat"]);
         assert_logs_re!(format!(".+, line 2: .* invalid category name: c@t$"));
@@ -446,7 +464,7 @@ mod tests {
             cat2
             cat-3
         "#};
-        let metadata = Metadata::new(t.path()).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), data).unwrap();
         assert_ordered_eq(metadata.categories(), ["cat1", "cat2", "cat-3"]);
     }

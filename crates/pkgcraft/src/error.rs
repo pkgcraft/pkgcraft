@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use camino::Utf8PathBuf;
-
 use crate::peg;
-use crate::repo::RepoFormat;
 
 /// A `Result` alias where the `Err` case is `pkgcraft::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -16,12 +13,8 @@ pub enum Error {
     Config(String),
     #[error("{0}")]
     InvalidValue(String),
-    #[error("invalid {format} repo: {path}: {err}")]
-    InvalidRepo {
-        format: RepoFormat,
-        path: Utf8PathBuf,
-        err: String,
-    },
+    #[error("invalid repo: {id}: {err}")]
+    InvalidRepo { id: String, err: String },
     #[error("invalid pkg: {path}: {err}")]
     InvalidPkg { path: PathBuf, err: String },
     #[error("{0}")]

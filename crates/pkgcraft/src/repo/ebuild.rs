@@ -137,7 +137,7 @@ make_repo_traits!(Repo);
 impl Repo {
     pub(crate) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
-        S: Into<String>,
+        S: AsRef<str>,
         P: AsRef<Utf8Path>,
     {
         let path = path.as_ref();
@@ -149,9 +149,8 @@ impl Repo {
         };
 
         Ok(Self {
-            id: id.into(),
             config,
-            metadata: Metadata::new(path)?,
+            metadata: Metadata::new(id.as_ref(), path)?,
             ..Default::default()
         })
     }
@@ -189,8 +188,7 @@ impl Repo {
         } else {
             let repos = nonexistent.join(", ");
             Err(Error::InvalidRepo {
-                format: RepoFormat::Ebuild,
-                path: self.path().into(),
+                id: self.id().to_string(),
                 err: format!("unconfigured repos: {repos}"),
             })
         }
@@ -458,7 +456,7 @@ impl Repository for Repo {
     }
 
     fn id(&self) -> &str {
-        &self.id
+        &self.metadata().id
     }
 
     fn name(&self) -> &str {

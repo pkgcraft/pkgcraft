@@ -350,14 +350,14 @@ peg::parser!(grammar depspec() for str {
         = v:dependencies_restrict(eapi) ++ " " { DepSet::from_iter(v) }
 });
 
-pub fn category(s: &str) -> crate::Result<()> {
+pub fn category(s: &str) -> crate::Result<&str> {
     depspec::category(s).map_err(|e| peg_error(format!("invalid category name: {s}"), s, e))?;
-    Ok(())
+    Ok(s)
 }
 
-pub fn package(s: &str) -> crate::Result<()> {
+pub fn package(s: &str) -> crate::Result<&str> {
     depspec::package(s).map_err(|e| peg_error(format!("invalid package name: {s}"), s, e))?;
-    Ok(())
+    Ok(s)
 }
 
 pub(super) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
@@ -379,9 +379,9 @@ pub(super) fn version_with_op(s: &str) -> crate::Result<Version> {
     ver.into_owned(s)
 }
 
-pub fn repo(s: &str) -> crate::Result<()> {
+pub fn repo(s: &str) -> crate::Result<&str> {
     depspec::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s}"), s, e))?;
-    Ok(())
+    Ok(s)
 }
 
 pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedCpv> {
