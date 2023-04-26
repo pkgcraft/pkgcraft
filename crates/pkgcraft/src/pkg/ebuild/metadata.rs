@@ -124,18 +124,21 @@ pub struct XmlMetadata {
 impl CacheData for XmlMetadata {
     fn new(path: &Utf8Path) -> Self {
         let path = path.join("metadata.xml");
+        let mut data = Self::default();
         let warn = |e: Error| {
             warn!("invalid XML metadata: {path}: {e}");
         };
+
         match fs::read_to_string(&path) {
-            Ok(s) => Self::parse_xml(&s, warn),
+            Ok(s) => Self::parse_xml(&s, &mut data, warn),
             Err(e) => {
                 if e.kind() != io::ErrorKind::NotFound {
                     warn!("failed loading XML metadata: {path}: {e}");
                 }
-                Self::default()
             }
         }
+
+        data
     }
 }
 
@@ -182,22 +185,20 @@ impl XmlMetadata {
         data.long_desc = node.text().map(|s| s.split_whitespace().join(" "));
     }
 
-    fn parse_xml<F: Fn(Error)>(xml: &str, warn: F) -> Self {
-        let mut data = Self::default();
+    fn parse_xml<F: Fn(Error)>(xml: &str, data: &mut Self, warn: F) {
         if let Ok(doc) = Document::parse(xml) {
             for node in doc.root_element().children() {
                 let lang = node.attribute("lang").unwrap_or("en");
                 let en = lang == "en";
                 match node.tag_name().name() {
-                    "maintainer" => Self::parse_maintainer(node, &mut data, &warn),
-                    "upstream" => Self::parse_upstreams(node, &mut data),
-                    "use" if en => Self::parse_use(node, &mut data),
-                    "longdescription" if en => Self::parse_long_desc(node, &mut data),
+                    "maintainer" => Self::parse_maintainer(node, data, &warn),
+                    "upstream" => Self::parse_upstreams(node, data),
+                    "use" if en => Self::parse_use(node, data),
+                    "longdescription" if en => Self::parse_long_desc(node, data),
                     _ => (),
                 }
             }
         }
-        data
     }
 
     pub(crate) fn maintainers(&self) -> &[Maintainer] {
