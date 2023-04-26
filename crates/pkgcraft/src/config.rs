@@ -165,8 +165,7 @@ impl Config {
                             ))
                         })?;
 
-                        let r = self.repos.add_path(name, priority, path)?;
-                        repos.push(r);
+                        repos.push(Repo::from_path(name, priority, path, false)?);
                     }
                     Ok(())
                 })?;
@@ -193,7 +192,7 @@ impl Config {
 
     /// Add local repo from a filesystem path.
     pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> crate::Result<Repo> {
-        let r = self.repos.add_path(name, priority, path)?;
+        let r = Repo::from_path(name, priority, path, false)?;
         self.add_repo(&r)?;
         Ok(r)
     }
@@ -242,10 +241,11 @@ mod tests {
     use std::env;
 
     use tempfile::tempdir;
+    use tracing_test::traced_test;
 
-    use crate::macros::assert_err_re;
+    use crate::macros::*;
     use crate::repo::Repository;
-    use crate::test::assert_ordered_eq;
+    use crate::test::{assert_ordered_eq, TEST_DATA_PATH};
 
     use super::*;
 
@@ -292,6 +292,7 @@ mod tests {
         assert_eq!(config.path.run, Utf8PathBuf::from("/run/pkgcraft"));
     }
 
+    #[traced_test]
     #[test]
     fn test_load_repos_conf() {
         let mut config = Config::new("pkgcraft", "");
@@ -342,6 +343,7 @@ mod tests {
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["a"]);
 
         // multiple, prioritized repos
+        let mut config = Config::new("pkgcraft", "");
         let t2 = TempRepo::new("r2", None, None).unwrap();
         let data = indoc::formatdoc! {r#"
             [b]
@@ -355,6 +357,7 @@ mod tests {
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["c", "b"]);
 
         // multiple config files in a specified directory
+        let mut config = Config::new("pkgcraft", "");
         let t3 = TempRepo::new("r3", None, None).unwrap();
         let tmpdir = tempdir().unwrap();
         let conf_dir = tmpdir.path();
@@ -378,25 +381,26 @@ mod tests {
         let repos = config.load_repos_conf(conf_dir.to_str().unwrap()).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]);
 
-        // reloading existing repo fails
+        // reloading existing repo causes log output
         let data = indoc::formatdoc! {r#"
             [r1]
             location = {}
         "#, t1.path()};
         fs::write(path, data).unwrap();
-        let r = config.load_repos_conf(path);
-        assert_err_re!(r, "existing repo: r1");
+        config.load_repos_conf(path).unwrap();
+        assert_logs_re!("config: skipping \"r1\" repo with existing name: test$");
 
         // nonexistent masters causes finalization failure
-        let t = TempRepo::new("bad", None, None).unwrap();
-        let repo = EbuildRepo::from_path("bad", 0, t.path()).unwrap();
-        repo.config().write(Some("masters = x y z")).unwrap();
+        let mut config = Config::new("pkgcraft", "");
+        let repos_path = TEST_DATA_PATH.join("repos");
         let data = indoc::formatdoc! {r#"
-            [bad]
-            location = {}
-        "#, t.path()};
+            [primary]
+            location = {repos_path}/dependent-primary
+            [nonexistent]
+            location = {repos_path}/dependent-nonexistent
+        "#};
         fs::write(path, data).unwrap();
         let r = config.load_repos_conf(path);
-        assert_err_re!(r, "^.* unconfigured repos: x, y, z$");
+        assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
     }
 }

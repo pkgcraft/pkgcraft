@@ -221,7 +221,12 @@ pub trait PkgRepository:
 
 pub trait Repository: PkgRepository + fmt::Display {
     fn format(&self) -> RepoFormat;
+    /// Locally configured repo identifier.
     fn id(&self) -> &str;
+    /// Official repo identifier.
+    fn name(&self) -> &str {
+        self.id()
+    }
     fn priority(&self) -> i32;
     fn path(&self) -> &Utf8Path;
     fn sync(&self) -> crate::Result<()>;
@@ -279,6 +284,9 @@ impl<'a, T: Repository + PkgRepository> Repository for &'a T {
     }
     fn id(&self) -> &str {
         (*self).id()
+    }
+    fn name(&self) -> &str {
+        (*self).name()
     }
     fn priority(&self) -> i32 {
         (*self).priority()
@@ -363,6 +371,14 @@ impl Repository for Repo {
     fn id(&self) -> &str {
         match self {
             Self::Ebuild(repo) => repo.id(),
+            Self::Fake(repo) => repo.id(),
+            Self::Unsynced(repo) => repo.id(),
+        }
+    }
+
+    fn name(&self) -> &str {
+        match self {
+            Self::Ebuild(repo) => repo.name(),
             Self::Fake(repo) => repo.id(),
             Self::Unsynced(repo) => repo.id(),
         }

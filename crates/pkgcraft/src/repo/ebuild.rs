@@ -1,13 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
-use std::str::{FromStr, SplitWhitespace};
 use std::sync::{Arc, Weak};
-use std::{fmt, fs, io, iter, thread};
+use std::{fmt, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::IndexMap;
-use ini::Ini;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use tracing::warn;
@@ -15,7 +13,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::config::RepoConfig;
 use crate::dep::{self, Cpv, Operator, Version};
-use crate::eapi::{Eapi, EAPI0};
+use crate::eapi::Eapi;
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
@@ -32,91 +30,11 @@ pub use metadata::Metadata;
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
-const DEFAULT_SECTION: Option<String> = None;
 static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ["eclass", "profiles", "metadata", "licenses"]
         .into_iter()
         .collect()
 });
-
-pub struct IniConfig {
-    path: Option<Utf8PathBuf>,
-    ini: Ini,
-}
-
-impl Default for IniConfig {
-    fn default() -> Self {
-        Self { path: None, ini: Ini::new() }
-    }
-}
-
-impl fmt::Debug for IniConfig {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let section = self.ini.section(DEFAULT_SECTION);
-        f.debug_struct("Metadata")
-            .field("path", &self.path)
-            .field("ini", &section)
-            .finish()
-    }
-}
-
-impl IniConfig {
-    fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
-        let path = repo_path.join("metadata/layout.conf");
-        match Ini::load_from_file(&path) {
-            Ok(ini) => Ok(Self { path: Some(path), ini }),
-            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Self {
-                path: Some(path),
-                ini: Ini::new(),
-            }),
-            Err(e) => Err(Error::InvalidValue(format!("invalid repo config: {path:?}: {e}"))),
-        }
-    }
-
-    #[cfg(test)]
-    fn set<S1, S2>(&mut self, key: S1, val: S2)
-    where
-        S1: Into<String>,
-        S2: Into<String>,
-    {
-        self.ini.set_to(DEFAULT_SECTION, key.into(), val.into());
-    }
-
-    #[cfg(test)]
-    pub(crate) fn write(&self, data: Option<&str>) -> crate::Result<()> {
-        use std::io::Write;
-        if let Some(path) = &self.path {
-            self.ini
-                .write_to_file(path)
-                .map_err(|e| Error::IO(e.to_string()))?;
-
-            if let Some(data) = data {
-                let mut f = fs::File::options()
-                    .append(true)
-                    .open(path)
-                    .map_err(|e| Error::IO(e.to_string()))?;
-                write!(f, "{data}").map_err(|e| Error::IO(e.to_string()))?;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn iter(&self, key: &str) -> SplitWhitespace {
-        self.ini
-            .get_from(DEFAULT_SECTION, key)
-            .unwrap_or_default()
-            .split_whitespace()
-    }
-
-    pub fn properties_allowed(&self) -> HashSet<&str> {
-        self.iter("properties-allowed").collect()
-    }
-
-    pub fn restrict_allowed(&self) -> HashSet<&str> {
-        self.iter("restrict-allowed").collect()
-    }
-}
 
 /// Shared data cache trait.
 pub(crate) trait CacheData {
@@ -195,11 +113,8 @@ where
 #[derive(Default)]
 pub struct Repo {
     id: String,
-    eapi: &'static Eapi,
-    repo_config: RepoConfig,
-    config: IniConfig,
-    name: String,
-    metadata: OnceCell<Metadata>,
+    config: RepoConfig,
+    metadata: Metadata,
     masters: OnceCell<Vec<Weak<Self>>>,
     trees: OnceCell<Vec<Weak<Self>>>,
     eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
@@ -211,8 +126,8 @@ impl fmt::Debug for Repo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Repo")
             .field("id", &self.id)
-            .field("repo_config", &self.repo_config)
-            .field("name", &self.name)
+            .field("repo_config", &self.repo_config())
+            .field("name", &self.name())
             .finish()
     }
 }
@@ -226,65 +141,17 @@ impl Repo {
         P: AsRef<Utf8Path>,
     {
         let path = path.as_ref();
-        let profiles_base = path.join("profiles");
 
-        let invalid_repo = |err: String| -> Error {
-            Error::InvalidRepo {
-                format: RepoFormat::Ebuild,
-                path: Utf8PathBuf::from(path),
-                err,
-            }
-        };
-
-        if !profiles_base.exists() {
-            return Err(invalid_repo("missing profiles dir".to_string()));
-        }
-
-        // verify repo name
-        let repo_name_path = profiles_base.join("repo_name");
-        let name = match fs::read_to_string(&repo_name_path) {
-            Ok(data) => match data.lines().next() {
-                // TODO: verify repo name matches spec
-                Some(s) => s.trim_end().to_string(),
-                None => {
-                    let err = format!("invalid repo name: {:?}", &repo_name_path);
-                    return Err(invalid_repo(err));
-                }
-            },
-            Err(e) => {
-                let err = format!("failed reading repo name: {:?}: {e}", &repo_name_path);
-                return Err(invalid_repo(err));
-            }
-        };
-
-        // verify repo EAPI
-        let eapi = match fs::read_to_string(profiles_base.join("eapi")) {
-            Ok(data) => {
-                let s = data.lines().next().unwrap_or_default();
-                <&Eapi>::from_str(s.trim_end())
-                    .map_err(|e| invalid_repo(format!("invalid repo eapi: {e}")))?
-            }
-            Err(e) if e.kind() == io::ErrorKind::NotFound => &*EAPI0,
-            Err(e) => {
-                let err = format!("failed reading repo eapi: {:?}: {e}", &repo_name_path);
-                return Err(invalid_repo(err));
-            }
-        };
-
-        let repo_config = RepoConfig {
+        let config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,
             ..Default::default()
         };
 
-        let config = IniConfig::new(path).map_err(|e| invalid_repo(e.to_string()))?;
-
         Ok(Self {
             id: id.into(),
-            eapi,
-            repo_config,
             config,
-            name,
+            metadata: Metadata::new(path)?,
             ..Default::default()
         })
     }
@@ -302,7 +169,7 @@ impl Repo {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
-        for id in self.config.iter("masters") {
+        for id in self.metadata().config().iter("masters") {
             match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
                 Some(r) => masters.push(Arc::downgrade(r)),
                 None => nonexistent.push(id),
@@ -330,20 +197,15 @@ impl Repo {
     }
 
     pub(super) fn repo_config(&self) -> &RepoConfig {
-        &self.repo_config
-    }
-
-    pub fn config(&self) -> &IniConfig {
         &self.config
     }
 
     pub fn metadata(&self) -> &Metadata {
-        self.metadata
-            .get_or_init(|| Metadata::new(self.id(), self.path().join("profiles")))
+        &self.metadata
     }
 
     pub fn eapi(&self) -> &'static Eapi {
-        self.eapi
+        self.metadata().eapi
     }
 
     /// Return the list of inherited repos.
@@ -469,10 +331,6 @@ impl Repo {
             .recv()
             .expect("failed receiving pkg manifest data")
     }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
 }
 
 impl fmt::Display for Repo {
@@ -596,23 +454,27 @@ impl PkgRepository for Repo {
 
 impl Repository for Repo {
     fn format(&self) -> RepoFormat {
-        self.repo_config.format
+        self.repo_config().format
     }
 
     fn id(&self) -> &str {
         &self.id
     }
 
+    fn name(&self) -> &str {
+        &self.metadata().name
+    }
+
     fn priority(&self) -> i32 {
-        self.repo_config.priority
+        self.repo_config().priority
     }
 
     fn path(&self) -> &Utf8Path {
-        &self.repo_config.location
+        &self.repo_config().location
     }
 
     fn sync(&self) -> crate::Result<()> {
-        self.repo_config.sync()
+        self.repo_config().sync()
     }
 }
 
@@ -785,82 +647,53 @@ impl<'a> Iterator for IterRestrict<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use std::str::FromStr;
 
     use tracing_test::traced_test;
 
     use crate::config::Config;
     use crate::dep::Dep;
-    use crate::eapi::EAPI_LATEST_OFFICIAL;
+    use crate::eapi::{EAPI0, EAPI_LATEST_OFFICIAL};
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::pkgsh::metadata::Key;
     use crate::repo::ebuild_temp::Repo as TempRepo;
     use crate::repo::Contains;
-    use crate::test::assert_unordered_eq;
+    use crate::test::TEST_DATA_PATH;
 
     use super::*;
 
     #[test]
     fn test_masters() {
         let mut config = Config::default();
-
-        // nonexistent
-        let t = TempRepo::new("test", None, None).unwrap();
-        let mut repo = Repo::from_path("test", 0, t.path()).unwrap();
-        repo.config.set("masters", "a b c");
-        repo.config.write(None).unwrap();
-        let r = config.add_repo_path(repo.id(), 0, repo.path().as_str());
-        assert_err_re!(r, "^.* unconfigured repos: a, b, c$");
+        let repos_path = TEST_DATA_PATH.join("repos");
 
         // none
-        let t = TempRepo::new("a", None, None).unwrap();
-        let repo = Repo::from_path("a", 0, t.path()).unwrap();
-        config
+        let repo = Repo::from_path("a", 0, repos_path.join("dependent-primary")).unwrap();
+        let repo = config
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
-        let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
-        assert!(r.masters().is_empty());
-        let trees: Vec<_> = r.trees().iter().map(|r| r.id().to_string()).collect();
+        let repo = repo.as_ebuild().unwrap();
+        assert!(repo.masters().is_empty());
+        let trees: Vec<_> = repo.trees().iter().map(|r| r.id().to_string()).collect();
         assert_eq!(trees, ["a"]);
 
+        // nonexistent
+        let repo = Repo::from_path("test", 0, repos_path.join("dependent-nonexistent")).unwrap();
+        let r = config.add_repo_path(repo.id(), 0, repo.path().as_str());
+        assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
+
         // single
-        let t = TempRepo::new("b", None, None).unwrap();
-        let mut repo = Repo::from_path("b", 0, t.path()).unwrap();
-        repo.config.set("masters", "a");
-        repo.config.write(None).unwrap();
-        config
+        let repo = Repo::from_path("b", 0, repos_path.join("dependent-secondary")).unwrap();
+        let repo = config
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
-        let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
-        let masters: Vec<_> = r.masters().iter().map(|r| r.id().to_string()).collect();
+        let repo = repo.as_ebuild().unwrap();
+        let masters: Vec<_> = repo.masters().iter().map(|r| r.id().to_string()).collect();
         assert_eq!(masters, ["a"]);
-        let trees: Vec<_> = r.trees().iter().map(|r| r.id().to_string()).collect();
+        let trees: Vec<_> = repo.trees().iter().map(|r| r.id().to_string()).collect();
         assert_eq!(trees, ["a", "b"]);
-
-        // multiple
-        let t = TempRepo::new("c", None, None).unwrap();
-        let mut repo = Repo::from_path("c", 0, t.path()).unwrap();
-        repo.config.set("masters", "a b");
-        repo.config.write(None).unwrap();
-        config
-            .add_repo_path(repo.id(), 0, repo.path().as_str())
-            .unwrap();
-        let r = config.repos.get(repo.id()).unwrap().as_ebuild().unwrap();
-        let masters: Vec<_> = r.masters().iter().map(|r| r.id().to_string()).collect();
-        assert_eq!(masters, ["a", "b"]);
-        let trees: Vec<_> = r.trees().into_iter().map(|r| r.id().to_string()).collect();
-        assert_eq!(trees, ["a", "b", "c"]);
-    }
-
-    #[test]
-    fn test_invalid_config() {
-        let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0).unwrap();
-
-        repo.config.write(Some("data")).unwrap();
-        let r = Repo::from_path(repo.id(), 0, repo.path());
-        assert_err_re!(r, "^.* invalid repo config: .*$");
     }
 
     #[test]
@@ -983,24 +816,6 @@ mod tests {
         assert!(repo.contains(&d));
         let d = Dep::from_str("cat/pkg-a").unwrap();
         assert!(!repo.contains(&d));
-    }
-
-    #[test]
-    fn test_config() {
-        // empty
-        let t = TempRepo::new("test", None, None).unwrap();
-        let repo = Repo::from_path("c", 0, t.path()).unwrap();
-        assert!(repo.config().properties_allowed().is_empty());
-        assert!(repo.config().restrict_allowed().is_empty());
-
-        // existing
-        let t = TempRepo::new("test", None, None).unwrap();
-        let mut repo = Repo::from_path("c", 0, t.path()).unwrap();
-        repo.config.set("properties-allowed", "interactive live");
-        repo.config.set("restrict-allowed", "fetch mirror");
-        repo.config.write(None).unwrap();
-        assert_unordered_eq(repo.config().properties_allowed(), ["live", "interactive"]);
-        assert_unordered_eq(repo.config().restrict_allowed(), ["fetch", "mirror"]);
     }
 
     #[test]

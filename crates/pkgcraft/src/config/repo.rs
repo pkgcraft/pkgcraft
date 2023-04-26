@@ -6,10 +6,9 @@ use std::str::FromStr;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
-use tracing::warn;
+use tracing::{error, warn};
 
 use crate::repo::ebuild_temp::Repo as TempRepo;
 use crate::repo::set::RepoSet;
@@ -131,25 +130,8 @@ impl Config {
         Ok(())
     }
 
-    /// Add local repo from a filesystem path.
-    pub(super) fn add_path<P: AsRef<Utf8Path>>(
-        &mut self,
-        name: &str,
-        priority: i32,
-        path: P,
-    ) -> crate::Result<Repo> {
-        if self.repos.get(name).is_some() {
-            return Err(Error::Config(format!("existing repo: {name}")));
-        }
-        Repo::from_path(name, priority, path, false)
-    }
-
     /// Add external repo from a URI.
     pub(super) fn add_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
-        if self.repos.get(name).is_some() {
-            return Err(Error::Config(format!("existing repo: {name}")));
-        }
-
         let config = RepoConfig {
             location: self.repo_dir.join(name),
             priority,
@@ -175,17 +157,11 @@ impl Config {
     }
 
     pub(super) fn create(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
-        match self.repos.get(name) {
-            Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
-            None => {
-                let path = self.repo_dir.join(name);
-                // create temporary repo and persist it to disk
-                let temp_repo = TempRepo::new(name, Some(&self.repo_dir), None)?;
-                temp_repo.persist(Some(&path))?;
-                // add repo to config
-                self.add_path(name, priority, path.as_str())
-            }
-        }
+        let path = self.repo_dir.join(name);
+        // create temporary repo and persist it to disk
+        let temp_repo = TempRepo::new(name, Some(&self.repo_dir), None)?;
+        temp_repo.persist(Some(&path))?;
+        Repo::from_path(name, priority, path.as_str(), false)
     }
 
     pub(super) fn create_temp(
@@ -193,14 +169,9 @@ impl Config {
         name: &str,
         priority: i32,
     ) -> crate::Result<(TempRepo, Repo)> {
-        match self.repos.get(name) {
-            Some(_) => Err(Error::Config(format!("existing repo: {name}"))),
-            None => {
-                let temp_repo = TempRepo::new(name, None, None)?;
-                let r = self.add_path(name, priority, temp_repo.path())?;
-                Ok((temp_repo, r))
-            }
-        }
+        let temp_repo = TempRepo::new(name, None, None)?;
+        let r = Repo::from_path(name, priority, temp_repo.path(), false)?;
+        Ok((temp_repo, r))
     }
 
     pub(super) fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
@@ -274,22 +245,20 @@ impl Config {
         repos: I,
     ) -> crate::Result<()> {
         let repos: Vec<_> = repos.into_iter().collect();
-        let existing: Vec<_> = repos
-            .iter()
-            .filter_map(|r| self.repos.get(r.id()))
-            .map(|r| r.id())
-            .collect();
-
-        if !existing.is_empty() {
-            let existing = existing.iter().join(", ");
-            return Err(Error::Config(format!("can't override existing repos: {existing}")));
-        }
 
         // copy original repos so it can be reverted to if an error occurs
         let orig_repos = self.repos.clone();
+
         // add repos to config
         for repo in &repos {
-            self.repos.insert(repo.id().to_string(), (*repo).clone());
+            match self.repos.get(repo.name()) {
+                Some(r) => {
+                    error!("config: skipping {:?} repo with existing name: {}", r.id(), r.name())
+                }
+                None => {
+                    self.repos.insert(repo.name().to_string(), (*repo).clone());
+                }
+            }
         }
 
         // verify new repos

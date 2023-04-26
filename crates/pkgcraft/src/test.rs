@@ -13,8 +13,8 @@ use crate::macros::build_from_paths;
 use crate::set::OrderedSet;
 use crate::Error;
 
-static TOML_DATA_DIR: Lazy<Utf8PathBuf> =
-    Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "toml"));
+pub static TEST_DATA_PATH: Lazy<Utf8PathBuf> =
+    Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata"));
 
 /// Construct a Command from a given string.
 pub fn cmd(cmd: &str) -> Command {
@@ -99,7 +99,7 @@ pub struct DepToml {
 
 impl DepToml {
     pub fn load() -> crate::Result<Self> {
-        let path = TOML_DATA_DIR.join("dep.toml");
+        let path = TEST_DATA_PATH.join("toml/dep.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
@@ -126,7 +126,7 @@ pub struct VersionToml {
 
 impl VersionToml {
     pub fn load() -> crate::Result<Self> {
-        let path = TOML_DATA_DIR.join("version.toml");
+        let path = TEST_DATA_PATH.join("toml/version.toml");
         let data = fs::read_to_string(&path)
             .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
         toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
