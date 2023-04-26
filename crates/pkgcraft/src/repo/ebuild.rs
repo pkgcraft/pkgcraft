@@ -83,14 +83,11 @@ where
                         let data = match pkg_data.get(&s) {
                             Some((cached_hash, data)) if cached_hash == &hash => data.clone(),
                             _ => {
-                                let data = match T::new(&path) {
-                                    Ok(d) => d,
-                                    Err(e) => {
-                                        // fallback to default on parsing failure
-                                        warn!("{e}");
-                                        T::default()
-                                    }
-                                };
+                                let data = T::new(&path).unwrap_or_else(|e| {
+                                    // fallback to default on parsing failure
+                                    warn!("{e}");
+                                    T::default()
+                                });
 
                                 // insert Arc-wrapped data into the cache and return a copy
                                 let data = Arc::new(data);
