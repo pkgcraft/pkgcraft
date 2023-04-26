@@ -115,7 +115,7 @@ pub struct Metadata {
     pub(super) name: String,
     pub(super) eapi: &'static Eapi,
     config: IniConfig,
-    profiles_base: Utf8PathBuf,
+    path: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
     arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceCell<IndexSet<String>>,
@@ -124,8 +124,6 @@ pub struct Metadata {
 
 impl Metadata {
     pub(super) fn new(path: &Utf8Path) -> crate::Result<Self> {
-        let profiles_base = path.join("profiles");
-
         let invalid_repo = |err: String| -> Error {
             Error::InvalidRepo {
                 format: RepoFormat::Ebuild,
@@ -134,12 +132,8 @@ impl Metadata {
             }
         };
 
-        if !profiles_base.exists() {
-            return Err(invalid_repo("missing profiles dir".to_string()));
-        }
-
         // verify repo name
-        let repo_name_path = profiles_base.join("repo_name");
+        let repo_name_path = path.join("profiles/repo_name");
         let name = match fs::read_to_string(&repo_name_path) {
             Ok(data) => match data.lines().next() {
                 // TODO: verify repo name matches spec
@@ -156,7 +150,7 @@ impl Metadata {
         };
 
         // verify repo EAPI
-        let eapi_path = profiles_base.join("eapi");
+        let eapi_path = path.join("profiles/eapi");
         let eapi = match fs::read_to_string(&eapi_path) {
             Ok(data) => {
                 let s = data.lines().next().unwrap_or_default();
@@ -174,7 +168,7 @@ impl Metadata {
             name,
             eapi,
             config: IniConfig::new(path),
-            profiles_base,
+            path: Utf8PathBuf::from(path),
             ..Default::default()
         })
     }
@@ -183,15 +177,10 @@ impl Metadata {
         &self.config
     }
 
-    /// Return the full path to a repo's `profiles` directory.
-    pub fn profiles_base(&self) -> &Utf8Path {
-        &self.profiles_base
-    }
-
     /// Return a repo's known architectures from `profiles/arch.list`.
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
-            let path = self.profiles_base.join("arch.list");
+            let path = self.path.join("profiles/arch.list");
             match fs::read_to_string(path) {
                 Ok(s) => s
                     .lines()
@@ -213,7 +202,7 @@ impl Metadata {
     /// See GLEP 72 (https://www.gentoo.org/glep/glep-0072.html).
     pub fn arches_desc(&self) -> &HashMap<ArchStatus, HashSet<String>> {
         self.arches_desc.get_or_init(|| {
-            let path = self.profiles_base.join("arches.desc");
+            let path = self.path.join("profiles/arches.desc");
             let mut vals = HashMap::<ArchStatus, HashSet<String>>::new();
             match fs::read_to_string(path) {
                 Ok(s) => {
@@ -265,7 +254,7 @@ impl Metadata {
     /// Return a repo's configured categories from `profiles/categories`.
     pub fn categories(&self) -> &IndexSet<String> {
         self.categories.get_or_init(|| {
-            let path = self.profiles_base.join("categories");
+            let path = self.path.join("profiles/categories");
             match fs::read_to_string(path) {
                 Ok(s) => s
                     .lines()
@@ -293,7 +282,7 @@ impl Metadata {
     /// Return a repo's globally masked packages.
     pub fn pkg_mask(&self) -> &HashSet<Dep> {
         self.pkg_mask.get_or_init(|| {
-            let path = self.profiles_base.join("package.mask");
+            let path = self.path.join("profiles/package.mask");
             match fs::read_to_string(path) {
                 Ok(s) => s
                     .lines()
@@ -369,7 +358,7 @@ mod tests {
 
         // empty file
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("arch.list"), "").unwrap();
+        fs::write(metadata.path.join("profiles/arch.list"), "").unwrap();
         assert!(metadata.arches().is_empty());
 
         // multiple
@@ -379,7 +368,7 @@ mod tests {
             amd64-linux
         "#};
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("arch.list"), data).unwrap();
+        fs::write(metadata.path.join("profiles/arch.list"), data).unwrap();
         assert_ordered_eq(metadata.arches(), ["amd64", "arm64", "amd64-linux"]);
     }
 
@@ -394,35 +383,35 @@ mod tests {
 
         // empty file
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("arches.desc"), "").unwrap();
+        fs::write(metadata.path.join("profiles/arches.desc"), "").unwrap();
         assert!(metadata.arches_desc().is_empty());
 
         // invalid line format
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("arch.list"), "amd64\narm64").unwrap();
-        fs::write(metadata.profiles_base().join("arches.desc"), "amd64 stable\narm64").unwrap();
+        fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64").unwrap();
+        fs::write(metadata.path.join("profiles/arches.desc"), "amd64 stable\narm64").unwrap();
         assert!(!metadata.arches_desc().is_empty());
         assert_logs_re!(format!(".+, line 2: invalid line format: .+$"));
 
         // unknown arch
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("arch.list"), "amd64").unwrap();
-        fs::write(metadata.profiles_base().join("arches.desc"), "arm64 stable").unwrap();
+        fs::write(metadata.path.join("profiles/arch.list"), "amd64").unwrap();
+        fs::write(metadata.path.join("profiles/arches.desc"), "arm64 stable").unwrap();
         assert!(metadata.arches_desc().is_empty());
         assert_logs_re!(format!(".+, line 1: unknown arch: arm64$"));
 
         // unknown status
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("arch.list"), "amd64").unwrap();
-        fs::write(metadata.profiles_base().join("arches.desc"), "amd64 test").unwrap();
+        fs::write(metadata.path.join("profiles/arch.list"), "amd64").unwrap();
+        fs::write(metadata.path.join("profiles/arches.desc"), "amd64 test").unwrap();
         assert!(metadata.arches_desc().is_empty());
         assert_logs_re!(format!(".+, line 1: unknown status: test$"));
 
         // multiple with ignored 3rd column
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("arch.list"), "amd64\narm64\nppc64").unwrap();
+        fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64\nppc64").unwrap();
         fs::write(
-            metadata.profiles_base().join("arches.desc"),
+            metadata.path.join("profiles/arches.desc"),
             "amd64 stable\narm64 testing\nppc64 transitional 3rd-col",
         )
         .unwrap();
@@ -442,12 +431,12 @@ mod tests {
 
         // empty file
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("categories"), "").unwrap();
+        fs::write(metadata.path.join("profiles/categories"), "").unwrap();
         assert!(metadata.categories().is_empty());
 
         // multiple with invalid entry
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("categories"), "cat\nc@t").unwrap();
+        fs::write(metadata.path.join("profiles/categories"), "cat\nc@t").unwrap();
         assert_ordered_eq(metadata.categories(), ["cat"]);
         assert_logs_re!(format!(".+, line 2: .* invalid category name: c@t$"));
 
@@ -458,7 +447,7 @@ mod tests {
             cat-3
         "#};
         let metadata = Metadata::new(t.path()).unwrap();
-        fs::write(metadata.profiles_base().join("categories"), data).unwrap();
+        fs::write(metadata.path.join("profiles/categories"), data).unwrap();
         assert_ordered_eq(metadata.categories(), ["cat1", "cat2", "cat-3"]);
     }
 }
