@@ -288,6 +288,34 @@ impl Metadata {
             }
         })
     }
+
+    /// Return a repo's globally masked packages.
+    pub fn pkg_mask(&self) -> &HashSet<Dep> {
+        self.pkg_mask.get_or_init(|| {
+            let path = self.profiles_base.join("package.mask");
+            match fs::read_to_string(path) {
+                Ok(s) => s
+                    .lines()
+                    .map(|s| s.trim())
+                    .enumerate()
+                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                    .filter_map(|(i, s)| match self.eapi.dep(s) {
+                        Ok(dep) => Some(dep),
+                        Err(e) => {
+                            warn!("{}::profiles/package.mask, line {}: {e}", self.name, i + 1);
+                            None
+                        }
+                    })
+                    .collect(),
+                Err(e) => {
+                    if e.kind() != io::ErrorKind::NotFound {
+                        warn!("{}::profiles/package.mask: {e}", self.name);
+                    }
+                    HashSet::new()
+                }
+            }
+        })
+    }
 }
 
 #[cfg(test)]

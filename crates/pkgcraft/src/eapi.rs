@@ -210,7 +210,6 @@ impl Eapi {
     }
 
     /// Parse a package depedency using EAPI specific support.
-    #[inline]
     pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<Dep> {
         Dep::new(s.as_ref(), self)
     }
