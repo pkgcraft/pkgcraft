@@ -8,6 +8,8 @@ use once_cell::sync::OnceCell;
 use strum::{Display, EnumString};
 use tracing::{error, warn};
 
+use crate::dep::parse;
+
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum ArchStatus {
@@ -121,8 +123,15 @@ impl Metadata {
                 Ok(s) => s
                     .lines()
                     .map(|s| s.trim())
-                    .filter(|s| !s.is_empty() && !s.starts_with('#'))
-                    .map(String::from)
+                    .enumerate()
+                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                    .filter_map(|(i, s)| match parse::category(s) {
+                        Ok(_) => Some(s.to_string()),
+                        Err(e) => {
+                            warn!("{}::profiles/categories, line {}: {e}", self.repo, i + 1);
+                            None
+                        }
+                    })
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
@@ -219,6 +228,7 @@ mod tests {
         assert_unordered_eq(&metadata.arches_desc()[&ArchStatus::Transitional], ["ppc64"]);
     }
 
+    #[traced_test]
     #[test]
     fn test_categories() {
         let repo = TempRepo::new("test", None, None).unwrap();
@@ -232,6 +242,12 @@ mod tests {
         metadata = Metadata::new("test", repo.path());
         fs::write(metadata.profiles_base().join("categories"), "").unwrap();
         assert!(metadata.categories().is_empty());
+
+        // multiple with invalid entry
+        metadata = Metadata::new("test", repo.path());
+        fs::write(metadata.profiles_base().join("categories"), "cat\nc@t").unwrap();
+        assert_ordered_eq(metadata.categories(), ["cat"]);
+        assert_logs_re!(format!(".+, line 2: .* invalid category name: c@t$"));
 
         // multiple
         let data = indoc::indoc! {r#"
