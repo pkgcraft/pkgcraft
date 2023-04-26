@@ -37,9 +37,9 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 });
 
 /// Shared data cache trait.
-pub(crate) trait CacheData {
+pub(crate) trait CacheData: Default {
     const RELPATH: &'static str;
-    fn new(path: &Utf8Path) -> Self;
+    fn new(path: &Utf8Path) -> crate::Result<Self>;
     fn hash(path: &Utf8Path) -> blake3::Hash {
         blake3::hash(&fs::read(path.join(Self::RELPATH)).unwrap_or_default())
     }
@@ -83,7 +83,17 @@ where
                         let data = match pkg_data.get(&s) {
                             Some((cached_hash, data)) if cached_hash == &hash => data.clone(),
                             _ => {
-                                let data = Arc::new(T::new(&path));
+                                let data = match T::new(&path) {
+                                    Ok(d) => d,
+                                    Err(e) => {
+                                        // fallback to default on parsing failure
+                                        warn!("{e}");
+                                        T::default()
+                                    }
+                                };
+
+                                // insert Arc-wrapped data into the cache and return a copy
+                                let data = Arc::new(data);
                                 pkg_data.insert(s, (hash, data.clone()));
                                 data
                             }
