@@ -147,9 +147,8 @@ impl XmlMetadata {
         }
         let maint_type = node.attribute("type");
         let proxied = node.attribute("proxied");
-        let m = Maintainer::new(email, name, description, maint_type, proxied)?;
-        data.maintainers.push(m);
-        Ok(())
+        Maintainer::new(email, name, description, maint_type, proxied)
+            .map(|m| data.maintainers.push(m))
     }
 
     fn parse_upstreams(node: Node, data: &mut Self) {
