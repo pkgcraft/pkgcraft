@@ -67,10 +67,9 @@ where
     fn new(repo: &Repo) -> Cache<T> {
         let (path_tx, path_rx) = bounded::<Msg>(10);
         let (meta_tx, meta_rx) = bounded::<Arc<T>>(10);
-        let path = Utf8PathBuf::from(repo.path());
+        let repo_path = Utf8PathBuf::from(repo.path());
 
         let thread = thread::spawn(move || {
-            let repo_path = path;
             // TODO: limit cache size using an LRU cache with set capacity
             let mut pkg_data = HashMap::<String, (blake3::Hash, Arc<T>)>::new();
             loop {
