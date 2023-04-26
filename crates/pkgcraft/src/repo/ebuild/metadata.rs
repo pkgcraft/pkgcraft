@@ -156,7 +156,8 @@ impl Metadata {
         };
 
         // verify repo EAPI
-        let eapi = match fs::read_to_string(profiles_base.join("eapi")) {
+        let eapi_path = profiles_base.join("eapi");
+        let eapi = match fs::read_to_string(&eapi_path) {
             Ok(data) => {
                 let s = data.lines().next().unwrap_or_default();
                 <&Eapi>::from_str(s.trim_end())
@@ -164,7 +165,7 @@ impl Metadata {
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => &*EAPI0,
             Err(e) => {
-                let err = format!("failed reading repo eapi: {:?}: {e}", &repo_name_path);
+                let err = format!("failed reading repo eapi: {:?}: {e}", &eapi_path);
                 return Err(invalid_repo(err));
             }
         };
