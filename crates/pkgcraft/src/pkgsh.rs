@@ -155,10 +155,10 @@ macro_rules! assert_stderr {
 use assert_stderr;
 
 #[derive(Default)]
-struct BuildData<'a> {
+struct BuildData {
     eapi: &'static Eapi,
     cpv: Option<Cpv>,
-    repo: Option<&'a ebuild::Repo>,
+    repo: Option<&'static ebuild::Repo>,
 
     captured_io: bool,
     stdin: Stdin,
@@ -212,7 +212,7 @@ struct BuildData<'a> {
     restrict: VecDeque<String>,
 }
 
-impl BuildData<'_> {
+impl BuildData {
     fn new() -> Self {
         Self {
             captured_io: cfg!(test),
@@ -317,7 +317,7 @@ impl BuildData<'_> {
 }
 
 thread_local! {
-    static BUILD_DATA: RefCell<BuildData<'static>> = RefCell::new(BuildData::new())
+    static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::new())
 }
 
 /// Initialize bash for library usage.
