@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
-use std::{fmt, io, iter, thread};
+use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
@@ -38,7 +38,11 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 
 /// Shared data cache trait.
 pub(crate) trait CacheData {
+    const RELPATH: &'static str;
     fn new(path: &Utf8Path) -> Self;
+    fn hash(path: &Utf8Path) -> blake3::Hash {
+        blake3::hash(&fs::read(path.join(Self::RELPATH)).unwrap_or_default())
+    }
 }
 
 #[derive(Debug)]
@@ -67,21 +71,24 @@ where
 
         let thread = thread::spawn(move || {
             let repo_path = path;
-            let mut pkg_data = HashMap::<String, Arc<T>>::new();
+            // TODO: limit cache size using an LRU cache with set capacity
+            let mut pkg_data = HashMap::<String, (blake3::Hash, Arc<T>)>::new();
             loop {
                 match path_rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
                     Ok(Msg::Key(s)) => {
-                        // TODO: evict cache entries based on file modification time
+                        // evict cache entries based on file content hash
+                        let path = repo_path.join(&s);
+                        let hash = T::hash(&path);
                         let data = match pkg_data.get(&s) {
-                            Some(data) => data.clone(),
-                            None => {
-                                let path = repo_path.join(&s);
+                            Some((cached_hash, data)) if cached_hash == &hash => data.clone(),
+                            _ => {
                                 let data = Arc::new(T::new(&path));
-                                pkg_data.insert(s, data.clone());
+                                pkg_data.insert(s, (hash, data.clone()));
                                 data
                             }
                         };
+
                         meta_tx.send(data).expect("failed sending shared pkg data");
                     }
                 }

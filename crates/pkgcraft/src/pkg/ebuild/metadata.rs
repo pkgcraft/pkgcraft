@@ -122,8 +122,10 @@ pub struct XmlMetadata {
 }
 
 impl CacheData for XmlMetadata {
+    const RELPATH: &'static str = "metadata.xml";
+
     fn new(path: &Utf8Path) -> Self {
-        let path = path.join("metadata.xml");
+        let path = path.join(Self::RELPATH);
         let mut data = Self::default();
         let warn = |e: Error| {
             warn!("invalid XML metadata: {path}: {e}");
@@ -245,8 +247,10 @@ pub struct Manifest {
 }
 
 impl CacheData for Manifest {
+    const RELPATH: &'static str = "Manifest";
+
     fn new(path: &Utf8Path) -> Self {
-        match fs::read_to_string(path.join("Manifest")) {
+        match fs::read_to_string(path.join(Self::RELPATH)) {
             Err(_) => Self::default(),
             Ok(s) => Self::parse_manifest(&s),
         }
