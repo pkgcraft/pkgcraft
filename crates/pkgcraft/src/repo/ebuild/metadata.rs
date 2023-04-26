@@ -47,7 +47,7 @@ impl IniConfig {
                 ini: Ini::new(),
             },
             Err(e) => {
-                error!("invalid repo config: {path:?}: {e}");
+                error!("invalid repo config: {path}: {e}");
                 Self::default()
             }
         }
@@ -145,12 +145,12 @@ impl Metadata {
                 // TODO: verify repo name matches spec
                 Some(s) => s.trim_end().to_string(),
                 None => {
-                    let err = format!("invalid repo name: {:?}", &repo_name_path);
+                    let err = format!("invalid repo name: {repo_name_path}");
                     return Err(invalid_repo(err));
                 }
             },
             Err(e) => {
-                let err = format!("failed reading repo name: {:?}: {e}", &repo_name_path);
+                let err = format!("failed reading repo name: {repo_name_path}: {e}");
                 return Err(invalid_repo(err));
             }
         };
@@ -165,7 +165,7 @@ impl Metadata {
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => &*EAPI0,
             Err(e) => {
-                let err = format!("failed reading repo eapi: {:?}: {e}", &eapi_path);
+                let err = format!("failed reading repo eapi: {eapi_path}: {e}");
                 return Err(invalid_repo(err));
             }
         };
