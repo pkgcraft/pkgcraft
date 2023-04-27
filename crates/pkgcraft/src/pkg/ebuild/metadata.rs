@@ -1,9 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::{fs, io};
 
-use camino::Utf8Path;
 use itertools::Itertools;
 use roxmltree::{Document, Node};
 
@@ -123,14 +121,23 @@ pub struct XmlMetadata {
 impl CacheData for XmlMetadata {
     const RELPATH: &'static str = "metadata.xml";
 
-    fn new(path: &Utf8Path) -> crate::Result<Self> {
-        let path = path.join(Self::RELPATH);
-        match fs::read_to_string(&path) {
-            Ok(s) => Self::parse_xml(&s)
-                .map_err(|e| Error::InvalidValue(format!("invalid XML metadata: {path}: {e}"))),
-            Err(e) if e.kind() != io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(Error::IO(format!("failed reading XML metadata: {path}: {e}"))),
+    fn parse(data: &str) -> crate::Result<Self> {
+        let doc = Document::parse(data).map_err(|e| Error::InvalidValue(e.to_string()))?;
+        let mut data = Self::default();
+
+        for node in doc.root_element().children() {
+            let lang = node.attribute("lang").unwrap_or("en");
+            let en = lang == "en";
+            match node.tag_name().name() {
+                "maintainer" => Self::parse_maintainer(node, &mut data)?,
+                "upstream" => Self::parse_upstreams(node, &mut data),
+                "use" if en => Self::parse_use(node, &mut data),
+                "longdescription" if en => Self::parse_long_desc(node, &mut data),
+                _ => (),
+            }
         }
+
+        Ok(data)
     }
 }
 
@@ -173,25 +180,6 @@ impl XmlMetadata {
 
     fn parse_long_desc(node: Node, data: &mut Self) {
         data.long_desc = node.text().map(|s| s.split_whitespace().join(" "));
-    }
-
-    fn parse_xml(xml: &str) -> crate::Result<Self> {
-        let doc = Document::parse(xml).map_err(|e| Error::InvalidValue(e.to_string()))?;
-        let mut data = Self::default();
-
-        for node in doc.root_element().children() {
-            let lang = node.attribute("lang").unwrap_or("en");
-            let en = lang == "en";
-            match node.tag_name().name() {
-                "maintainer" => Self::parse_maintainer(node, &mut data)?,
-                "upstream" => Self::parse_upstreams(node, &mut data),
-                "use" if en => Self::parse_use(node, &mut data),
-                "longdescription" if en => Self::parse_long_desc(node, &mut data),
-                _ => (),
-            }
-        }
-
-        Ok(data)
     }
 
     pub(crate) fn maintainers(&self) -> &[Maintainer] {
@@ -240,18 +228,8 @@ pub struct Manifest {
 impl CacheData for Manifest {
     const RELPATH: &'static str = "Manifest";
 
-    fn new(path: &Utf8Path) -> crate::Result<Self> {
-        match fs::read_to_string(path.join(Self::RELPATH)) {
-            Ok(s) => Self::parse_manifest(&s),
-            Err(e) if e.kind() != io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(Error::IO(format!("failed reading Manifest: {path}: {e}"))),
-        }
-    }
-}
-
-impl Manifest {
     // TODO: handle error checking
-    fn parse_manifest(data: &str) -> crate::Result<Self> {
+    fn parse(data: &str) -> crate::Result<Self> {
         let mut dist = vec![];
         for line in data.lines() {
             let mut fields = line.split_whitespace();
@@ -272,7 +250,9 @@ impl Manifest {
         }
         Ok(Self { dist })
     }
+}
 
+impl Manifest {
     pub(crate) fn distfiles(&self) -> &[Distfile] {
         &self.dist
     }

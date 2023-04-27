@@ -39,7 +39,7 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 /// Shared data cache trait.
 pub(crate) trait CacheData: Default {
     const RELPATH: &'static str;
-    fn new(path: &Utf8Path) -> crate::Result<Self>;
+    fn parse(data: &str) -> crate::Result<Self>;
 }
 
 #[derive(Debug)]
@@ -68,32 +68,39 @@ where
 
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
-            let mut pkg_data = HashMap::<String, (blake3::Hash, Arc<T>)>::new();
+            let mut pkg_cache = HashMap::<String, (blake3::Hash, Arc<T>)>::new();
             loop {
                 match path_rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
                     Ok(Msg::Key(s)) => {
+                        let path = build_from_paths!(&repo_path, &s, T::RELPATH);
+                        let data = fs::read_to_string(&path).unwrap_or_else(|e| {
+                            if e.kind() != io::ErrorKind::NotFound {
+                                warn!("metadata cache: failed reading: {path}: {e}");
+                            }
+                            String::default()
+                        });
+
                         // evict cache entries based on file content hash
-                        let path = repo_path.join(&s);
-                        let hash =
-                            blake3::hash(&fs::read(path.join(T::RELPATH)).unwrap_or_default());
-                        let data = match pkg_data.get(&s) {
-                            Some((cached_hash, data)) if cached_hash == &hash => data.clone(),
+                        let hash = blake3::hash(data.as_bytes());
+
+                        let val = match pkg_cache.get(&s) {
+                            Some((cached_hash, val)) if cached_hash == &hash => val.clone(),
                             _ => {
-                                let data = T::new(&path).unwrap_or_else(|e| {
-                                    // fallback to default on parsing failure
-                                    warn!("{e}");
+                                let val = T::parse(&data).unwrap_or_else(|e| {
+                                    // fallback to default value on parsing failure
+                                    warn!("metadata cache: failed parsing: {path}: {e}");
                                     T::default()
                                 });
 
-                                // insert Arc-wrapped data into the cache and return a copy
-                                let data = Arc::new(data);
-                                pkg_data.insert(s, (hash, data.clone()));
-                                data
+                                // insert Arc-wrapped value into the cache and return a copy
+                                let val = Arc::new(val);
+                                pkg_cache.insert(s, (hash, val.clone()));
+                                val
                             }
                         };
 
-                        meta_tx.send(data).expect("failed sending shared pkg data");
+                        meta_tx.send(val).expect("failed sending shared pkg data");
                     }
                 }
             }
