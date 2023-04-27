@@ -6,9 +6,10 @@ use std::str::FromStr;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
-use tracing::{error, warn};
+use tracing::warn;
 
 use crate::repo::ebuild_temp::Repo as TempRepo;
 use crate::repo::set::RepoSet;
@@ -244,21 +245,21 @@ impl Config {
         &mut self,
         repos: I,
     ) -> crate::Result<()> {
-        let repos: Vec<_> = repos.into_iter().collect();
+        let (existing, repos): (Vec<_>, Vec<_>) = repos
+            .into_iter()
+            .partition(|r| self.repos.get(r.name()).is_some());
+
+        if !existing.is_empty() {
+            let existing = existing.iter().map(|r| r.id()).join(", ");
+            return Err(Error::Config(format!("can't override existing repos: {existing}")));
+        }
 
         // copy original repos so it can be reverted to if an error occurs
         let orig_repos = self.repos.clone();
 
         // add repos to config
         for repo in &repos {
-            match self.repos.get(repo.name()) {
-                Some(r) => {
-                    error!("config: skipping {:?} repo with existing name: {}", r.id(), r.name())
-                }
-                None => {
-                    self.repos.insert(repo.name().to_string(), (*repo).clone());
-                }
-            }
+            self.repos.insert(repo.name().to_string(), (*repo).clone());
         }
 
         // verify new repos

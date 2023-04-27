@@ -381,14 +381,23 @@ mod tests {
         let repos = config.load_repos_conf(conf_dir.to_str().unwrap()).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]);
 
-        // reloading existing repo causes log output
+        // reloading existing repo fails
         let data = indoc::formatdoc! {r#"
             [r1]
             location = {}
         "#, t1.path()};
         fs::write(path, data).unwrap();
-        config.load_repos_conf(path).unwrap();
-        assert_logs_re!("config: skipping \"r1\" repo with existing name: test$");
+        let r = config.load_repos_conf(path);
+        assert_err_re!(r, "existing repos: r1");
+
+        // reloading existing repo using a different id fails
+        let data = indoc::formatdoc! {r#"
+            [r4]
+            location = {}
+        "#, t1.path()};
+        fs::write(path, data).unwrap();
+        let r = config.load_repos_conf(path);
+        assert_err_re!(r, "existing repos: r4");
 
         // nonexistent masters causes finalization failure
         let mut config = Config::new("pkgcraft", "");
