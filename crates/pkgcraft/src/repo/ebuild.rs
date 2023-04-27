@@ -61,10 +61,9 @@ impl<T> Cache<T>
 where
     T: CacheData + Send + Sync + 'static,
 {
-    fn new(repo: &Repo) -> Cache<T> {
+    fn new(repo: Arc<Repo>) -> Cache<T> {
         let (path_tx, path_rx) = bounded::<Msg>(10);
         let (meta_tx, meta_rx) = bounded::<Arc<T>>(10);
-        let repo_path = Utf8PathBuf::from(repo.path());
 
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
@@ -73,10 +72,10 @@ where
                 match path_rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
                     Ok(Msg::Key(s)) => {
-                        let path = build_from_paths!(&repo_path, &s, T::RELPATH);
+                        let path = build_from_paths!(repo.path(), &s, T::RELPATH);
                         let data = fs::read_to_string(&path).unwrap_or_else(|e| {
                             if e.kind() != io::ErrorKind::NotFound {
-                                warn!("metadata cache: failed reading: {path}: {e}");
+                                warn!("{}: failed reading: {path}: {e}", repo.id());
                             }
                             String::default()
                         });
@@ -89,7 +88,7 @@ where
                             _ => {
                                 let val = T::parse(&data).unwrap_or_else(|e| {
                                     // fallback to default value on parsing failure
-                                    warn!("metadata cache: failed parsing: {path}: {e}");
+                                    warn!("{}: failed parsing: {path}: {e}", repo.id());
                                     T::default()
                                 });
 
@@ -244,6 +243,16 @@ impl Repo {
             .collect()
     }
 
+    /// Return an Arc-wrapped repo reference.
+    fn arc(&self) -> Arc<Self> {
+        self.trees
+            .get()
+            .expect("finalize() uncalled")
+            .last()
+            .map(|p| p.upgrade().expect("unconfigured repo"))
+            .expect("finalize() uncalled")
+    }
+
     /// Return the mapping of inherited eclass names to file paths.
     pub fn eclasses(&self) -> &HashMap<String, Utf8PathBuf> {
         self.eclasses.get_or_init(|| {
@@ -318,12 +327,12 @@ impl Repo {
 
     fn xml_cache(&self) -> &Cache<XmlMetadata> {
         self.xml_cache
-            .get_or_init(|| Cache::<XmlMetadata>::new(self))
+            .get_or_init(|| Cache::<XmlMetadata>::new(self.arc()))
     }
 
     fn manifest_cache(&self) -> &Cache<Manifest> {
         self.manifest_cache
-            .get_or_init(|| Cache::<Manifest>::new(self))
+            .get_or_init(|| Cache::<Manifest>::new(self.arc()))
     }
 
     pub(crate) fn pkg_xml(&self, cpv: &Cpv) -> Arc<XmlMetadata> {
