@@ -73,12 +73,13 @@ where
                     Ok(Msg::Stop) | Err(RecvError) => break,
                     Ok(Msg::Key(s)) => {
                         let path = build_from_paths!(repo.path(), &s, T::RELPATH);
-                        let data = fs::read_to_string(&path).unwrap_or_else(|e| {
-                            if e.kind() != io::ErrorKind::NotFound {
-                                warn!("{}: failed reading: {path}: {e}", repo.id());
-                            }
-                            String::default()
-                        });
+                        let data = fs::read_to_string(&path)
+                            .map_err(|e| {
+                                if e.kind() != io::ErrorKind::NotFound {
+                                    warn!("{}: failed reading: {path}: {e}", repo.id());
+                                }
+                            })
+                            .unwrap_or_default();
 
                         // evict cache entries based on file content hash
                         let hash = blake3::hash(data.as_bytes());
@@ -86,11 +87,12 @@ where
                         let val = match pkg_cache.get(&s) {
                             Some((cached_hash, val)) if cached_hash == &hash => val.clone(),
                             _ => {
-                                let val = T::parse(&data).unwrap_or_else(|e| {
-                                    // fallback to default value on parsing failure
-                                    warn!("{}: failed parsing: {path}: {e}", repo.id());
-                                    T::default()
-                                });
+                                // fallback to default value on parsing failure
+                                let val = T::parse(&data)
+                                    .map_err(|e| {
+                                        warn!("{}: failed parsing: {path}: {e}", repo.id());
+                                    })
+                                    .unwrap_or_default();
 
                                 // insert Arc-wrapped value into the cache and return a copy
                                 let val = Arc::new(val);
