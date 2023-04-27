@@ -113,6 +113,14 @@ where
             rx: meta_rx,
         }
     }
+
+    /// Get the cache data related to a given package Cpv.
+    fn get(&self, cpv: &Cpv) -> Arc<T> {
+        self.tx
+            .send(Msg::Key(cpv.cpn()))
+            .expect("failed requesting pkg manifest data");
+        self.rx.recv().expect("failed receiving pkg manifest data")
+    }
 }
 
 // Note that the thread will currently be killed without joining on exit since
@@ -312,36 +320,16 @@ impl Repo {
             })
     }
 
-    fn xml_cache(&self) -> &Cache<XmlMetadata> {
+    pub(crate) fn pkg_xml(&self, cpv: &Cpv) -> Arc<XmlMetadata> {
         self.xml_cache
             .get_or_init(|| Cache::<XmlMetadata>::new(self.arc()))
-    }
-
-    fn manifest_cache(&self) -> &Cache<Manifest> {
-        self.manifest_cache
-            .get_or_init(|| Cache::<Manifest>::new(self.arc()))
-    }
-
-    pub(crate) fn pkg_xml(&self, cpv: &Cpv) -> Arc<XmlMetadata> {
-        self.xml_cache()
-            .tx
-            .send(Msg::Key(cpv.cpn()))
-            .expect("failed requesting pkg xml data");
-        self.xml_cache()
-            .rx
-            .recv()
-            .expect("failed receiving pkg xml data")
+            .get(cpv)
     }
 
     pub(crate) fn pkg_manifest(&self, cpv: &Cpv) -> Arc<Manifest> {
-        self.manifest_cache()
-            .tx
-            .send(Msg::Key(cpv.cpn()))
-            .expect("failed requesting pkg manifest data");
-        self.manifest_cache()
-            .rx
-            .recv()
-            .expect("failed receiving pkg manifest data")
+        self.manifest_cache
+            .get_or_init(|| Cache::<Manifest>::new(self.arc()))
+            .get(cpv)
     }
 }
 
