@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -142,8 +142,8 @@ pub struct Repo {
     id: String,
     config: RepoConfig,
     metadata: Metadata,
-    masters: OnceCell<Vec<Arc<Self>>>,
-    trees: OnceCell<Vec<Arc<Self>>>,
+    masters: OnceCell<Vec<Weak<Self>>>,
+    trees: OnceCell<Vec<Weak<Self>>>,
     eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
     manifest_cache: OnceCell<Cache<Manifest>>,
@@ -185,7 +185,7 @@ impl Repo {
     pub(super) fn finalize(
         &self,
         existing_repos: &IndexMap<String, BaseRepo>,
-        repo: Arc<Self>,
+        repo: Weak<Self>,
     ) -> crate::Result<()> {
         // skip finalized, stand-alone repos
         if self.masters.get().is_some() && self.trees.get().is_some() {
@@ -197,7 +197,7 @@ impl Repo {
 
         for id in self.metadata().config().iter("masters") {
             match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
-                Some(r) => masters.push(r.clone()),
+                Some(r) => masters.push(Arc::downgrade(r)),
                 None => nonexistent.push(id),
             }
         }
@@ -234,18 +234,33 @@ impl Repo {
     }
 
     /// Return the list of inherited repos.
-    pub fn masters(&self) -> &[Arc<Self>] {
-        self.masters.get().expect("finalize() uncalled")
+    pub fn masters(&self) -> Vec<Arc<Self>> {
+        self.masters
+            .get()
+            .expect("finalize() uncalled")
+            .iter()
+            .map(|p| p.upgrade().expect("unconfigured repo"))
+            .collect()
     }
 
     /// Return a repo's inheritance list including itself.
-    pub fn trees(&self) -> &[Arc<Self>] {
-        self.trees.get().expect("finalize() uncalled")
+    pub fn trees(&self) -> Vec<Arc<Self>> {
+        self.trees
+            .get()
+            .expect("finalize() uncalled")
+            .iter()
+            .map(|p| p.upgrade().expect("unconfigured repo"))
+            .collect()
     }
 
     /// Return an Arc-wrapped repo reference.
     fn arc(&self) -> Arc<Self> {
-        self.trees().last().expect("finalize() uncalled").clone()
+        self.trees
+            .get()
+            .expect("finalize() uncalled")
+            .last()
+            .map(|p| p.upgrade().expect("unconfigured repo"))
+            .expect("finalize() uncalled")
     }
 
     /// Return the mapping of inherited eclass names to file paths.

@@ -119,7 +119,7 @@ impl Repo {
 
     pub(super) fn finalize(&self, existing_repos: &IndexMap<String, Repo>) -> crate::Result<()> {
         match self {
-            Self::Ebuild(repo) => repo.finalize(existing_repos, repo.clone()),
+            Self::Ebuild(repo) => repo.finalize(existing_repos, Arc::downgrade(repo)),
             _ => Ok(()),
         }
     }
