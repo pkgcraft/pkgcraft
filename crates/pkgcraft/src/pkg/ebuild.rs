@@ -232,6 +232,11 @@ impl<'a> Pkg<'a> {
         self.xml().upstream()
     }
 
+    /// Return a package's maintainers.
+    pub fn stabilize_allarches(&self) -> bool {
+        self.xml().stabilize_allarches()
+    }
+
     /// Return a package's local USE flag mapping.
     pub fn local_use(&self) -> &HashMap<String, String> {
         self.xml().local_use()

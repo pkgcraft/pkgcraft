@@ -253,6 +253,7 @@ pub struct XmlMetadata {
     upstream: Option<Upstream>,
     slots: HashMap<String, String>,
     subslots: Option<String>,
+    stabilize_allarches: bool,
     local_use: HashMap<String, String>,
     long_desc: Option<String>,
 }
@@ -271,6 +272,7 @@ impl CacheData for XmlMetadata {
                 "maintainer" => data.maintainers.push(node.try_into()?),
                 "upstream" => data.upstream = Some(node.try_into()?),
                 "slots" => Self::parse_slots(node, &mut data),
+                "stabilize-allarches" => data.stabilize_allarches = true,
                 "use" if en => Self::parse_use(node, &mut data),
                 "longdescription" if en => Self::parse_long_desc(node, &mut data),
                 _ => (),
@@ -323,6 +325,10 @@ impl XmlMetadata {
 
     pub(crate) fn subslots(&self) -> Option<&str> {
         self.subslots.as_deref()
+    }
+
+    pub(crate) fn stabilize_allarches(&self) -> bool {
+        self.stabilize_allarches
     }
 
     pub(crate) fn local_use(&self) -> &HashMap<String, String> {
