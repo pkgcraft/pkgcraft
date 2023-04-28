@@ -5,42 +5,40 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 use roxmltree::{Document, Node};
-use strum::{Display, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumString};
 
 use crate::macros::cmp_not_equal;
 use crate::repo::ebuild::CacheData;
 use crate::set::OrderedSet;
 use crate::Error;
 
-#[derive(Debug)]
+#[derive(AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum MaintainerType {
+    #[default]
+    Person,
+    Project,
+}
+
+#[derive(AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum Proxied {
+    Proxy,
+    Yes,
+    #[default]
+    No,
+}
+
+#[derive(Debug, Default)]
 pub struct Maintainer {
     email: String,
     name: Option<String>,
     description: Option<String>,
-    maint_type: Option<String>,
-    proxied: Option<String>,
+    maint_type: MaintainerType,
+    proxied: Proxied,
 }
 
 impl Maintainer {
-    fn new(
-        email: Option<&str>,
-        name: Option<&str>,
-        description: Option<&str>,
-        maint_type: Option<&str>,
-        proxied: Option<&str>,
-    ) -> crate::Result<Self> {
-        match email {
-            Some(email) => Ok(Self {
-                email: String::from(email),
-                name: name.map(String::from),
-                description: description.map(String::from),
-                maint_type: maint_type.map(String::from),
-                proxied: proxied.map(String::from),
-            }),
-            None => Err(Error::InvalidValue("maintainer missing required email".to_string())),
-        }
-    }
-
     pub fn email(&self) -> &str {
         &self.email
     }
@@ -53,12 +51,12 @@ impl Maintainer {
         self.description.as_deref()
     }
 
-    pub fn maint_type(&self) -> Option<&str> {
-        self.maint_type.as_deref()
+    pub fn maint_type(&self) -> MaintainerType {
+        self.maint_type
     }
 
-    pub fn proxied(&self) -> Option<&str> {
-        self.proxied.as_deref()
+    pub fn proxied(&self) -> Proxied {
+        self.proxied
     }
 }
 
@@ -90,22 +88,44 @@ impl Hash for Maintainer {
     }
 }
 
+/// Convert &str to Option<String> with whitespace-only strings returning None.
+fn string_or_none(s: &str) -> Option<String> {
+    match s.trim() {
+        "" => None,
+        s => Some(s.to_string()),
+    }
+}
+
+/// Convert Option<&str> to String with None mapping to the empty string.
+fn string_or_empty(s: Option<&str>) -> String {
+    s.map(|s| s.trim()).unwrap_or_default().to_string()
+}
+
 impl TryFrom<Node<'_, '_>> for Maintainer {
     type Error = Error;
 
     fn try_from(node: Node<'_, '_>) -> Result<Self, Self::Error> {
-        let (mut email, mut name, mut description) = (None, None, None);
+        let mut maintainer = Maintainer::default();
+
         for n in node.children() {
             match n.tag_name().name() {
-                "email" => email = n.text(),
-                "name" => name = n.text(),
-                "description" => description = n.text(),
+                "email" => maintainer.email = string_or_empty(n.text()),
+                "name" => maintainer.name = n.text().and_then(string_or_none),
+                "description" => maintainer.description = n.text().and_then(string_or_none),
                 _ => (),
             }
         }
-        let maint_type = node.attribute("type");
-        let proxied = node.attribute("proxied");
-        Maintainer::new(email, name, description, maint_type, proxied)
+
+        let maint_type = node.attribute("type").unwrap_or_default();
+        maintainer.maint_type = MaintainerType::from_str(maint_type).unwrap_or_default();
+        let proxied = node.attribute("proxied").unwrap_or_default();
+        maintainer.proxied = Proxied::from_str(proxied).unwrap_or_default();
+
+        if maintainer.email.is_empty() {
+            return Err(Error::InvalidValue("maintainer missing required email".to_string()));
+        }
+
+        Ok(maintainer)
     }
 }
 
@@ -125,7 +145,7 @@ impl RemoteId {
     }
 }
 
-#[derive(Display, EnumIter, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Display, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum MaintainerStatus {
     Active,
@@ -191,18 +211,6 @@ impl TryFrom<Node<'_, '_>> for Upstream {
 
     fn try_from(node: Node<'_, '_>) -> Result<Self, Self::Error> {
         let mut upstream = Upstream::default();
-
-        // convert a &str with whitespace-only strings returning None
-        let string_or_none = |s: &str| -> Option<String> {
-            match s.trim() {
-                "" => None,
-                s => Some(s.to_string()),
-            }
-        };
-
-        // Convert Option<&str> to String with None mapping to the empty string.
-        let string_or_empty =
-            |s: Option<&str>| -> String { s.map(|s| s.trim()).unwrap_or_default().to_string() };
 
         for u_child in node.children() {
             match u_child.tag_name().name() {

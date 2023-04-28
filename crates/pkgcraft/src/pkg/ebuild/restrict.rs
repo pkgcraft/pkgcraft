@@ -183,8 +183,8 @@ restrict_with_boolean! {MaintainerRestrict,
     Email(StrRestrict),
     Name(Option<StrRestrict>),
     Description(Option<StrRestrict>),
-    Type(Option<StrRestrict>),
-    Proxied(Option<StrRestrict>),
+    Type(StrRestrict),
+    Proxied(StrRestrict),
 }
 
 impl MaintainerRestrict {
@@ -205,16 +205,8 @@ impl Restriction<&Maintainer> for MaintainerRestrict {
                 (None, None) => true,
                 _ => false,
             },
-            Self::Type(r) => match (r, m.maint_type()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
-            Self::Proxied(r) => match (r, m.proxied()) {
-                (Some(r), Some(s)) => r.matches(s),
-                (None, None) => true,
-                _ => false,
-            },
+            Self::Type(r) => r.matches(m.maint_type().as_ref()),
+            Self::Proxied(r) => r.matches(m.proxied().as_ref()),
         }
     }
 }

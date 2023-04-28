@@ -28,8 +28,8 @@ impl Drop for Maintainer {
             drop(CString::from_raw(self.email));
             char_p_or_null_free!(self.name);
             char_p_or_null_free!(self.description);
-            char_p_or_null_free!(self.maint_type);
-            char_p_or_null_free!(self.proxied);
+            drop(CString::from_raw(self.maint_type));
+            drop(CString::from_raw(self.proxied));
         }
     }
 }
@@ -454,8 +454,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_maintainers(
                 email: try_ptr_from_str!(m.email()),
                 name: char_p_or_null!(m.name()),
                 description: char_p_or_null!(m.description()),
-                maint_type: char_p_or_null!(m.maint_type()),
-                proxied: char_p_or_null!(m.proxied()),
+                maint_type: try_ptr_from_str!(m.maint_type().as_ref()),
+                proxied: try_ptr_from_str!(m.proxied().as_ref()),
             };
             Box::into_raw(Box::new(maintainer))
         })

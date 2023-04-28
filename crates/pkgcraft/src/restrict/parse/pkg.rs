@@ -311,15 +311,12 @@ peg::parser!(grammar restrict() for str {
         ) { r }
 
     rule maintainer_attr_optional() -> MaintainerRestrict
-        = attr:$(("name" / "description" / "type" / "proxied"))
-                is_op() ("None" / "none")
+        = attr:$(("name" / "description")) is_op() ("None" / "none")
         {
             use MaintainerRestrict::*;
             match attr {
                 "name" => Name(None),
                 "description" => Description(None),
-                "type" => Type(None),
-                "proxied" => Proxied(None),
                 _ => panic!("unknown optional maintainer attribute: {attr}"),
             }
         }
@@ -334,8 +331,8 @@ peg::parser!(grammar restrict() for str {
                 "email" => Ok(Email(r)),
                 "name" => Ok(Name(Some(r))),
                 "description" => Ok(Description(Some(r))),
-                "type" => Ok(Type(Some(r))),
-                "proxied" => Ok(Proxied(Some(r))),
+                "type" => Ok(Type(r)),
+                "proxied" => Ok(Proxied(r)),
                 _ => panic!("unknown maintainer attribute: {attr}"),
             }
         }
