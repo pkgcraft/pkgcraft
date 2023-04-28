@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs;
 use std::io::{self, prelude::*};
 use std::str::FromStr;
@@ -20,7 +19,7 @@ use crate::Error;
 use super::{make_pkg_traits, Package};
 
 pub mod metadata;
-use metadata::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
+use metadata::{Distfile, Manifest, XmlMetadata};
 mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
 
@@ -216,39 +215,14 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's XML metadata.
-    fn xml(&self) -> &XmlMetadata {
+    pub fn xml(&self) -> &XmlMetadata {
         self.xml
             .get_or_init(|| self.repo.pkg_xml(&self.cpv))
             .as_ref()
     }
 
-    /// Return a package's maintainers.
-    pub fn maintainers(&self) -> &[Maintainer] {
-        self.xml().maintainers()
-    }
-
-    /// Return a package's upstream info.
-    pub fn upstream(&self) -> Option<&Upstream> {
-        self.xml().upstream()
-    }
-
-    /// Return a package's maintainers.
-    pub fn stabilize_allarches(&self) -> bool {
-        self.xml().stabilize_allarches()
-    }
-
-    /// Return a package's local USE flag mapping.
-    pub fn local_use(&self) -> &HashMap<String, String> {
-        self.xml().local_use()
-    }
-
-    /// Return a package's long description.
-    pub fn long_description(&self) -> Option<&str> {
-        self.xml().long_desc()
-    }
-
     /// Return a package's manifest.
-    fn manifest(&self) -> &Manifest {
+    pub fn manifest(&self) -> &Manifest {
         self.manifest
             .get_or_init(|| self.repo.pkg_manifest(&self.cpv))
             .as_ref()
@@ -690,7 +664,7 @@ mod tests {
         // none
         let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(pkg.maintainers().is_empty());
+        assert!(pkg.xml().maintainers().is_empty());
 
         // single
         let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
@@ -709,7 +683,7 @@ mod tests {
         let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            let m = pkg.maintainers();
+            let m = pkg.xml().maintainers();
             assert_eq!(m.len(), 1);
             assert_eq!(m[0].email(), "a.person@email.com");
             assert_eq!(m[0].name(), Some("A Person"));
@@ -736,7 +710,7 @@ mod tests {
         let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            let m = pkg.maintainers();
+            let m = pkg.xml().maintainers();
             assert_eq!(m.len(), 2);
             assert_eq!(m[0].email(), "a.person@email.com");
             assert_eq!(m[0].name(), Some("A Person"));
@@ -753,7 +727,7 @@ mod tests {
         // none
         let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(pkg.upstream().is_none());
+        assert!(pkg.xml().upstream().is_none());
 
         // single
         let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
@@ -771,7 +745,7 @@ mod tests {
         let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            let m = pkg.upstream().unwrap().remote_ids();
+            let m = pkg.xml().upstream().unwrap().remote_ids();
             assert_eq!(m.len(), 1);
             assert_eq!(m[0].site(), "github");
             assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
@@ -794,7 +768,7 @@ mod tests {
         let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            let m = pkg.upstream().unwrap().remote_ids();
+            let m = pkg.xml().upstream().unwrap().remote_ids();
             assert_eq!(m.len(), 2);
             assert_eq!(m[0].site(), "github");
             assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
@@ -811,7 +785,7 @@ mod tests {
         // none
         let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(pkg.local_use().is_empty());
+        assert!(pkg.xml().local_use().is_empty());
 
         // single
         let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
@@ -829,8 +803,8 @@ mod tests {
         let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            assert_eq!(pkg.local_use().len(), 1);
-            assert_eq!(pkg.local_use().get("flag").unwrap(), "flag desc");
+            assert_eq!(pkg.xml().local_use().len(), 1);
+            assert_eq!(pkg.xml().local_use().get("flag").unwrap(), "flag desc");
         }
 
         // multiple
@@ -854,9 +828,9 @@ mod tests {
         let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            assert_eq!(pkg.local_use().len(), 2);
-            assert_eq!(pkg.local_use().get("flag1").unwrap(), "flag1 desc");
-            assert_eq!(pkg.local_use().get("flag2").unwrap(), "flag2 desc");
+            assert_eq!(pkg.xml().local_use().len(), 2);
+            assert_eq!(pkg.xml().local_use().get("flag1").unwrap(), "flag1 desc");
+            assert_eq!(pkg.xml().local_use().get("flag2").unwrap(), "flag2 desc");
         }
     }
 
@@ -868,7 +842,7 @@ mod tests {
         // none
         let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(pkg.long_description().is_none());
+        assert!(pkg.xml().long_description().is_none());
 
         // empty
         let (path, cpv) = t.create_ebuild("empty/pkg-1", []).unwrap();
@@ -883,7 +857,7 @@ mod tests {
         let (path, cpv) = t.create_ebuild("empty/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            assert_eq!(pkg.long_description().unwrap(), "");
+            assert_eq!(pkg.xml().long_description().unwrap(), "");
         }
 
         // invalid XML
@@ -900,7 +874,7 @@ mod tests {
         let (path, cpv) = t.create_ebuild("invalid/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            assert!(pkg.long_description().is_none());
+            assert!(pkg.xml().long_description().is_none());
         }
 
         // single
@@ -924,7 +898,7 @@ mod tests {
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(
-                pkg.long_description().unwrap(),
+                pkg.xml().long_description().unwrap(),
                 "A wrapped sentence. Another sentence. New paragraph."
             );
         }
@@ -953,7 +927,7 @@ mod tests {
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(
-                pkg.long_description().unwrap(),
+                pkg.xml().long_description().unwrap(),
                 "A wrapped sentence. Another sentence. New paragraph."
             );
         }

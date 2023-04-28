@@ -430,7 +430,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_inherited(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_long_description(p: *mut Pkg) -> *mut c_char {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.long_description() {
+    match pkg.xml().long_description() {
         Some(s) => try_ptr_from_str!(s),
         None => ptr::null_mut(),
     }
@@ -447,6 +447,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_maintainers(
 ) -> *mut *mut Maintainer {
     let pkg = try_pkg_from_ptr!(p);
     let mut ptrs: Vec<_> = pkg
+        .xml()
         .maintainers()
         .iter()
         .map(|m| {
@@ -495,7 +496,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_maintainers_free(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstream(p: *mut Pkg) -> *mut Upstream {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.upstream() {
+    match pkg.xml().upstream() {
         Some(u) => {
             // convert remote ids to C wrapper objects
             let mut remote_ids_len: usize = 0;

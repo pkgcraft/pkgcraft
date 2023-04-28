@@ -247,6 +247,7 @@ impl TryFrom<Node<'_, '_>> for Upstream {
     }
 }
 
+/// Package metadata contained in metadata.xml files as defined by GLEP 68.
 #[derive(Debug, Default)]
 pub struct XmlMetadata {
     maintainers: Vec<Maintainer>,
@@ -311,31 +312,38 @@ impl XmlMetadata {
         data.long_desc = node.text().map(|s| s.split_whitespace().join(" "));
     }
 
-    pub(crate) fn maintainers(&self) -> &[Maintainer] {
+    /// Return a package's maintainers.
+    pub fn maintainers(&self) -> &[Maintainer] {
         &self.maintainers
     }
 
-    pub(crate) fn upstream(&self) -> Option<&Upstream> {
+    /// Return a package's upstream info.
+    pub fn upstream(&self) -> Option<&Upstream> {
         self.upstream.as_ref()
     }
 
-    pub(crate) fn slots(&self) -> &HashMap<String, String> {
+    /// Return a package's slot descriptions.
+    pub fn slots(&self) -> &HashMap<String, String> {
         &self.slots
     }
 
-    pub(crate) fn subslots(&self) -> Option<&str> {
+    /// Return a package's subslots description.
+    pub fn subslots(&self) -> Option<&str> {
         self.subslots.as_deref()
     }
 
-    pub(crate) fn stabilize_allarches(&self) -> bool {
+    /// Return a package's architecture-independent status.
+    pub fn stabilize_allarches(&self) -> bool {
         self.stabilize_allarches
     }
 
-    pub(crate) fn local_use(&self) -> &HashMap<String, String> {
+    /// Return a package's local USE flag mapping.
+    pub fn local_use(&self) -> &HashMap<String, String> {
         &self.local_use
     }
 
-    pub(crate) fn long_desc(&self) -> Option<&str> {
+    /// Return a package's long description.
+    pub fn long_description(&self) -> Option<&str> {
         self.long_desc.as_deref()
     }
 }
@@ -394,7 +402,7 @@ impl CacheData for Manifest {
 }
 
 impl Manifest {
-    pub(crate) fn distfiles(&self) -> &[Distfile] {
+    pub fn distfiles(&self) -> &[Distfile] {
         &self.dist
     }
 }

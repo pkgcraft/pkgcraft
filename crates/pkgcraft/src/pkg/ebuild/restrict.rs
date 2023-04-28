@@ -166,14 +166,14 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
-            LongDescription(r) => match (r, pkg.long_description()) {
+            LongDescription(r) => match (r, pkg.xml().long_description()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
             },
             Maintainers(r) => match r {
-                Some(r) => r.matches(pkg.maintainers()),
-                None => pkg.maintainers().is_empty(),
+                Some(r) => r.matches(pkg.xml().maintainers()),
+                None => pkg.xml().maintainers().is_empty(),
             },
         }
     }
