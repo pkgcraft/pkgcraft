@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::peg::peg_error;
-use crate::pkg::ebuild::{MaintainerRestrict, Restrict as EbuildRestrict, UpstreamRestrict};
+use crate::pkg::ebuild::{MaintainerRestrict, Restrict as EbuildRestrict};
 
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::depset::Restrict as DepSetRestrict;
@@ -62,7 +62,6 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
         "inherit" => Inherit(None),
         "long_description" => LongDescription(None),
         "maintainers" => Maintainers(None),
-        "upstreams" => Upstreams(None),
         _ => panic!("unknown optional package attribute: {attr}"),
     }
 }
@@ -103,7 +102,7 @@ peg::parser!(grammar restrict() for str {
             / "inherit"
             / "long_description"
             / "maintainers"
-            / "upstreams"
+            / "upstream"
         )) { attr }
 
     rule attr_optional() -> BaseRestrict
@@ -345,30 +344,6 @@ peg::parser!(grammar restrict() for str {
         = exprs:(maintainer_attr_optional() / maintainer_restrict()) ++ (_* "&&" _*)
         { MaintainerRestrict::and(exprs) }
 
-    rule upstreams() -> BaseRestrict
-        = "upstreams" r:(ordered_ops(<upstream_exprs()>) / count())
-        { r.into() }
-
-    rule upstream_exprs() -> UpstreamRestrict
-        = r:(upstream_restrict() / parens(<upstream_and()>)) { r }
-
-    rule upstream_restrict() -> UpstreamRestrict
-        = attr:$(("site" / "name"))
-            op:string_ops() s:quoted_string()
-        {?
-            use UpstreamRestrict::*;
-            let r = str_restrict(op, s)?;
-            match attr {
-                "site" => Ok(Site(r)),
-                "name" => Ok(Name(r)),
-                _ => panic!("unknown upstream attribute: {attr}"),
-            }
-        }
-
-    rule upstream_and() -> UpstreamRestrict
-        = exprs:upstream_restrict() ++ (_* "&&" _*)
-        { UpstreamRestrict::and(exprs) }
-
     rule _ = quiet!{[' ' | '\n' | '\t']+}
 
     rule parens<T>(expr: rule<T>) -> T = _* "(" _* v:expr() _* ")" _* { v }
@@ -381,7 +356,6 @@ peg::parser!(grammar restrict() for str {
            / attr_dep_restrict()
            / attr_orderedset_str()
            / maintainers()
-           / upstreams()
            / pkg_restrict()
         ) { r }
 

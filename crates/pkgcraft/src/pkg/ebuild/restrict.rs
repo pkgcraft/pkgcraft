@@ -8,7 +8,7 @@ use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
-use super::metadata::{Maintainer, Upstream};
+use super::metadata::Maintainer;
 use super::Pkg;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -36,7 +36,6 @@ pub enum Restrict {
     Inherited(Option<OrderedSetRestrict<String, StrRestrict>>),
     LongDescription(Option<StrRestrict>),
     Maintainers(Option<OrderedRestrict<MaintainerRestrict>>),
-    Upstreams(Option<OrderedRestrict<UpstreamRestrict>>),
 }
 
 impl From<Restrict> for BaseRestrict {
@@ -176,10 +175,6 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
                 Some(r) => r.matches(pkg.maintainers()),
                 None => pkg.maintainers().is_empty(),
             },
-            Upstreams(r) => match r {
-                Some(r) => r.matches(pkg.upstreams()),
-                None => pkg.upstreams().is_empty(),
-            },
         }
     }
 }
@@ -230,31 +225,7 @@ impl From<OrderedRestrict<MaintainerRestrict>> for BaseRestrict {
     }
 }
 
-restrict_with_boolean! {UpstreamRestrict,
-    Site(StrRestrict),
-    Name(StrRestrict),
-}
-
-impl UpstreamRestrict {
-    restrict_impl_boolean! {Self}
-}
-
-impl Restriction<&Upstream> for UpstreamRestrict {
-    fn matches(&self, u: &Upstream) -> bool {
-        restrict_match_boolean! {self, u,
-            Self::Site(r) => r.matches(u.site()),
-            Self::Name(r) => r.matches(u.name()),
-        }
-    }
-}
-
-impl From<OrderedRestrict<UpstreamRestrict>> for BaseRestrict {
-    fn from(r: OrderedRestrict<UpstreamRestrict>) -> Self {
-        Restrict::Upstreams(Some(r)).into()
-    }
-}
-
-make_ordered_restrictions!((&[Maintainer], MaintainerRestrict), (&[Upstream], UpstreamRestrict));
+make_ordered_restrictions!((&[Maintainer], MaintainerRestrict));
 
 #[cfg(test)]
 mod tests {
@@ -489,53 +460,6 @@ mod tests {
         assert_eq!(cpvs, ["noxml/pkg-1"]);
 
         // pkgs with maintainers
-        let iter = repo.iter_restrict(!r);
-        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
-        assert_eq!(cpvs, ["cat/pkg-a-1", "cat/pkg-b-1"]);
-    }
-
-    #[test]
-    fn test_upstreams() {
-        let mut config = Config::default();
-        let (t, repo) = config.temp_repo("xml", 0).unwrap();
-
-        // none
-        t.create_ebuild("noxml/pkg-1", []).unwrap();
-
-        // single
-        let (path, _) = t.create_ebuild("cat/pkg-a-1", []).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <upstream>
-                    <remote-id type="github">user/project</remote-id>
-                </upstream>
-            </pkgmetadata>
-        "#};
-        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-
-        // multiple
-        let (path, _) = t.create_ebuild("cat/pkg-b-1", []).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <upstream>
-                    <remote-id type="github">pkgcraft/pkgcraft</remote-id>
-                    <remote-id type="pypi">pkgcraft</remote-id>
-                </upstream>
-            </pkgmetadata>
-        "#};
-        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
-
-        // pkgs with no upstreams
-        let r: BaseRestrict = Restrict::Upstreams(None).into();
-        let iter = repo.iter_restrict(r.clone());
-        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
-        assert_eq!(cpvs, ["noxml/pkg-1"]);
-
-        // pkgs with upstreams
         let iter = repo.iter_restrict(!r);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, ["cat/pkg-a-1", "cat/pkg-b-1"]);

@@ -7,6 +7,7 @@ use roxmltree::{Document, Node};
 
 use crate::macros::cmp_not_equal;
 use crate::repo::ebuild::CacheData;
+use crate::set::OrderedSet;
 use crate::Error;
 
 #[derive(Debug)]
@@ -87,20 +88,32 @@ impl Hash for Maintainer {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Upstream {
+impl TryFrom<Node<'_, '_>> for Maintainer {
+    type Error = Error;
+
+    fn try_from(node: Node<'_, '_>) -> Result<Self, Self::Error> {
+        let (mut email, mut name, mut description) = (None, None, None);
+        for n in node.children() {
+            match n.tag_name().name() {
+                "email" => email = n.text(),
+                "name" => name = n.text(),
+                "description" => description = n.text(),
+                _ => (),
+            }
+        }
+        let maint_type = node.attribute("type");
+        let proxied = node.attribute("proxied");
+        Maintainer::new(email, name, description, maint_type, proxied)
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RemoteId {
     site: String,
     name: String,
 }
 
-impl Upstream {
-    fn new(site: &str, name: &str) -> Self {
-        Self {
-            site: site.to_string(),
-            name: name.to_string(),
-        }
-    }
-
+impl RemoteId {
     pub fn site(&self) -> &str {
         &self.site
     }
@@ -111,9 +124,71 @@ impl Upstream {
 }
 
 #[derive(Debug, Default)]
+pub struct Upstream {
+    remote_ids: OrderedSet<RemoteId>,
+    bugs_to: Option<String>,
+    changelog: Option<String>,
+    doc: Option<String>,
+}
+
+impl Upstream {
+    pub fn remote_ids(&self) -> &OrderedSet<RemoteId> {
+        &self.remote_ids
+    }
+
+    pub fn bugs_to(&self) -> Option<&str> {
+        self.bugs_to.as_deref()
+    }
+
+    pub fn changelog(&self) -> Option<&str> {
+        self.changelog.as_deref()
+    }
+
+    pub fn doc(&self) -> Option<&str> {
+        self.doc.as_deref()
+    }
+}
+
+impl TryFrom<Node<'_, '_>> for Upstream {
+    type Error = Error;
+
+    fn try_from(node: Node<'_, '_>) -> Result<Self, Self::Error> {
+        let mut upstream = Upstream::default();
+
+        // convert a &str with whitespace-only strings returning None
+        let string_or_none = |s: &str| -> Option<String> {
+            match s.trim() {
+                "" => None,
+                s => Some(s.to_string()),
+            }
+        };
+
+        for n in node.children() {
+            match n.tag_name().name() {
+                "bugs-to" => upstream.bugs_to = n.text().and_then(string_or_none),
+                "changelog" => upstream.changelog = n.text().and_then(string_or_none),
+                "doc" => upstream.doc = n.text().and_then(string_or_none),
+                "remote-id" => {
+                    if let (Some(site), Some(name)) = (n.attribute("type"), n.text()) {
+                        let r = RemoteId {
+                            site: site.to_string(),
+                            name: name.to_string(),
+                        };
+                        upstream.remote_ids.insert(r);
+                    }
+                }
+                _ => (),
+            }
+        }
+
+        Ok(upstream)
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct XmlMetadata {
     maintainers: Vec<Maintainer>,
-    upstreams: Vec<Upstream>,
+    upstream: Option<Upstream>,
     local_use: HashMap<String, String>,
     long_desc: Option<String>,
 }
@@ -129,8 +204,8 @@ impl CacheData for XmlMetadata {
             let lang = node.attribute("lang").unwrap_or("en");
             let en = lang == "en";
             match node.tag_name().name() {
-                "maintainer" => Self::parse_maintainer(node, &mut data)?,
-                "upstream" => Self::parse_upstreams(node, &mut data),
+                "maintainer" => data.maintainers.push(node.try_into()?),
+                "upstream" => data.upstream = Some(node.try_into()?),
                 "use" if en => Self::parse_use(node, &mut data),
                 "longdescription" if en => Self::parse_long_desc(node, &mut data),
                 _ => (),
@@ -142,33 +217,6 @@ impl CacheData for XmlMetadata {
 }
 
 impl XmlMetadata {
-    fn parse_maintainer(node: Node, data: &mut Self) -> crate::Result<()> {
-        let (mut email, mut name, mut description) = (None, None, None);
-        for n in node.children() {
-            match n.tag_name().name() {
-                "email" => email = n.text(),
-                "name" => name = n.text(),
-                "description" => description = n.text(),
-                _ => (),
-            }
-        }
-        let maint_type = node.attribute("type");
-        let proxied = node.attribute("proxied");
-        Maintainer::new(email, name, description, maint_type, proxied)
-            .map(|m| data.maintainers.push(m))
-    }
-
-    fn parse_upstreams(node: Node, data: &mut Self) {
-        let nodes = node
-            .children()
-            .filter(|n| n.tag_name().name() == "remote-id");
-        for n in nodes {
-            if let (Some(site), Some(name)) = (n.attribute("type"), n.text()) {
-                data.upstreams.push(Upstream::new(site, name));
-            }
-        }
-    }
-
     fn parse_use(node: Node, data: &mut Self) {
         let nodes = node.children().filter(|n| n.tag_name().name() == "flag");
         for n in nodes {
@@ -186,8 +234,8 @@ impl XmlMetadata {
         &self.maintainers
     }
 
-    pub(crate) fn upstreams(&self) -> &[Upstream] {
-        &self.upstreams
+    pub(crate) fn upstream(&self) -> Option<&Upstream> {
+        self.upstream.as_ref()
     }
 
     pub(crate) fn local_use(&self) -> &HashMap<String, String> {

@@ -22,7 +22,7 @@ use super::{make_pkg_traits, Package};
 pub mod metadata;
 use metadata::{Distfile, Maintainer, Manifest, Upstream, XmlMetadata};
 mod restrict;
-pub use restrict::{MaintainerRestrict, Restrict, UpstreamRestrict};
+pub use restrict::{MaintainerRestrict, Restrict};
 
 static EAPI_LINE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[^'\"]*)['\"]?[\t ]*(?:#.*)?").unwrap());
@@ -227,9 +227,9 @@ impl<'a> Pkg<'a> {
         self.xml().maintainers()
     }
 
-    /// Return a package's upstreams.
-    pub fn upstreams(&self) -> &[Upstream] {
-        self.xml().upstreams()
+    /// Return a package's upstream info.
+    pub fn upstream(&self) -> Option<&Upstream> {
+        self.xml().upstream()
     }
 
     /// Return a package's local USE flag mapping.
@@ -741,14 +741,14 @@ mod tests {
     }
 
     #[test]
-    fn test_upstreams() {
+    fn test_upstream() {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("xml", 0).unwrap();
 
         // none
         let (path, cpv) = t.create_ebuild("noxml/pkg-1", []).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
-        assert!(pkg.upstreams().is_empty());
+        assert!(pkg.upstream().is_none());
 
         // single
         let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
@@ -766,7 +766,7 @@ mod tests {
         let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            let m = pkg.upstreams();
+            let m = pkg.upstream().unwrap().remote_ids();
             assert_eq!(m.len(), 1);
             assert_eq!(m[0].site(), "github");
             assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
@@ -789,7 +789,7 @@ mod tests {
         let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
-            let m = pkg.upstreams();
+            let m = pkg.upstream().unwrap().remote_ids();
             assert_eq!(m.len(), 2);
             assert_eq!(m[0].site(), "github");
             assert_eq!(m[0].name(), "pkgcraft/pkgcraft");

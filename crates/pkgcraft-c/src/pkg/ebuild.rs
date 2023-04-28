@@ -2,6 +2,7 @@ use std::ffi::{c_char, CString};
 use std::str::FromStr;
 use std::{mem, ptr, slice};
 
+use pkgcraft::pkg::ebuild::metadata;
 use pkgcraft::pkg::Pkg;
 use pkgcraft::pkgsh::Key;
 
@@ -33,18 +34,42 @@ impl Drop for Maintainer {
     }
 }
 
-/// Wrapper for package upstreams.
+/// Wrapper for package upstream remote-ids.
 #[repr(C)]
-pub struct Upstream {
+pub struct RemoteId {
     site: *mut c_char,
     name: *mut c_char,
+}
+
+impl Drop for RemoteId {
+    fn drop(&mut self) {
+        unsafe {
+            drop(CString::from_raw(self.site));
+            drop(CString::from_raw(self.name));
+        }
+    }
+}
+
+/// Wrapper for package upstream info.
+#[repr(C)]
+pub struct Upstream {
+    remote_ids_len: usize,
+    remote_ids: *mut *mut RemoteId,
+    bugs_to: *mut c_char,
+    changelog: *mut c_char,
+    doc: *mut c_char,
 }
 
 impl Drop for Upstream {
     fn drop(&mut self) {
         unsafe {
-            drop(CString::from_raw(self.site));
-            drop(CString::from_raw(self.name));
+            let len = self.remote_ids_len;
+            for ptr in Vec::from_raw_parts(self.remote_ids, len, len).into_iter() {
+                drop(Box::from_raw(ptr));
+            }
+            char_p_or_null_free!(self.bugs_to);
+            char_p_or_null_free!(self.changelog);
+            char_p_or_null_free!(self.doc);
         }
     }
 }
@@ -437,49 +462,49 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_maintainers_free(
     }
 }
 
-/// Return a package's upstreams.
+/// Return a package's upstream info.
+///
+/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstreams(
-    p: *mut Pkg,
-    len: *mut usize,
-) -> *mut *mut Upstream {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstream(p: *mut Pkg) -> *mut Upstream {
     let pkg = try_pkg_from_ptr!(p);
-    let mut ptrs: Vec<_> = pkg
-        .upstreams()
-        .iter()
-        .map(|m| {
-            let upstream = Upstream {
-                site: try_ptr_from_str!(m.site()),
-                name: try_ptr_from_str!(m.name()),
+    match pkg.upstream() {
+        Some(u) => {
+            // convert remote ids to C wrapper objects
+            let mut len: usize = 0;
+            let convert = |r: &metadata::RemoteId| {
+                let remote_id = RemoteId {
+                    site: try_ptr_from_str!(r.site()),
+                    name: try_ptr_from_str!(r.name()),
+                };
+                Box::into_raw(Box::new(remote_id))
             };
+            let remote_ids = iter_to_array!(u.remote_ids().iter(), &mut len as *mut _, convert);
+
+            let upstream = Upstream {
+                remote_ids_len: len,
+                remote_ids,
+                bugs_to: char_p_or_null!(u.bugs_to()),
+                changelog: char_p_or_null!(u.changelog()),
+                doc: char_p_or_null!(u.doc()),
+            };
+
             Box::into_raw(Box::new(upstream))
-        })
-        .collect();
-    ptrs.shrink_to_fit();
-    unsafe { *len = ptrs.len() };
-    let p = ptrs.as_mut_ptr();
-    mem::forget(ptrs);
-    p
+        }
+        None => ptr::null_mut(),
+    }
 }
 
-/// Free an array of Upstream pointers.
+/// Free an Upstream.
 ///
 /// # Safety
-/// The argument must be the value received from pkgcraft_pkg_ebuild_upstreams() or NULL along
-/// with the length of the array.
+/// The argument must be a Upstream pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstreams_free(
-    upstreams: *mut *mut Upstream,
-    len: usize,
-) {
-    if !upstreams.is_null() {
-        unsafe {
-            for ptr in Vec::from_raw_parts(upstreams, len, len).into_iter() {
-                drop(Box::from_raw(ptr));
-            }
-        }
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstream_free(u: *mut Upstream) {
+    if !u.is_null() {
+        unsafe { drop(Box::from_raw(u)) };
     }
 }
