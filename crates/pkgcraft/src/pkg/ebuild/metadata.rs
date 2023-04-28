@@ -1,9 +1,11 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::str::FromStr;
 
 use itertools::Itertools;
 use roxmltree::{Document, Node};
+use strum::{Display, EnumIter, EnumString};
 
 use crate::macros::cmp_not_equal;
 use crate::repo::ebuild::CacheData;
@@ -123,9 +125,40 @@ impl RemoteId {
     }
 }
 
+#[derive(Display, EnumIter, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum MaintainerStatus {
+    Active,
+    Inactive,
+    #[default]
+    Unknown,
+}
+
+#[derive(Debug, Default)]
+pub struct UpstreamMaintainer {
+    name: String,
+    email: Option<String>,
+    status: MaintainerStatus,
+}
+
+impl UpstreamMaintainer {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn email(&self) -> Option<&str> {
+        self.email.as_deref()
+    }
+
+    pub fn status(&self) -> MaintainerStatus {
+        self.status
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Upstream {
     remote_ids: OrderedSet<RemoteId>,
+    maintainers: Vec<UpstreamMaintainer>,
     bugs_to: Option<String>,
     changelog: Option<String>,
     doc: Option<String>,
@@ -134,6 +167,10 @@ pub struct Upstream {
 impl Upstream {
     pub fn remote_ids(&self) -> &OrderedSet<RemoteId> {
         &self.remote_ids
+    }
+
+    pub fn maintainers(&self) -> &[UpstreamMaintainer] {
+        &self.maintainers
     }
 
     pub fn bugs_to(&self) -> Option<&str> {
@@ -163,13 +200,30 @@ impl TryFrom<Node<'_, '_>> for Upstream {
             }
         };
 
-        for n in node.children() {
-            match n.tag_name().name() {
-                "bugs-to" => upstream.bugs_to = n.text().and_then(string_or_none),
-                "changelog" => upstream.changelog = n.text().and_then(string_or_none),
-                "doc" => upstream.doc = n.text().and_then(string_or_none),
+        // Convert Option<&str> to String with None mapping to the empty string.
+        let string_or_empty =
+            |s: Option<&str>| -> String { s.map(|s| s.trim()).unwrap_or_default().to_string() };
+
+        for u_child in node.children() {
+            match u_child.tag_name().name() {
+                "maintainer" => {
+                    let mut m = UpstreamMaintainer::default();
+                    let status = u_child.attribute("status").unwrap_or_default();
+                    m.status = MaintainerStatus::from_str(status).unwrap_or_default();
+                    for m_child in u_child.children() {
+                        match m_child.tag_name().name() {
+                            "name" => m.name = string_or_empty(m_child.text()),
+                            "email" => m.email = m_child.text().and_then(string_or_none),
+                            _ => (),
+                        }
+                    }
+                    upstream.maintainers.push(m);
+                }
+                "bugs-to" => upstream.bugs_to = u_child.text().and_then(string_or_none),
+                "changelog" => upstream.changelog = u_child.text().and_then(string_or_none),
+                "doc" => upstream.doc = u_child.text().and_then(string_or_none),
                 "remote-id" => {
-                    if let (Some(site), Some(name)) = (n.attribute("type"), n.text()) {
+                    if let (Some(site), Some(name)) = (u_child.attribute("type"), u_child.text()) {
                         let r = RemoteId {
                             site: site.to_string(),
                             name: name.to_string(),

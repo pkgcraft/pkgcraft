@@ -50,11 +50,31 @@ impl Drop for RemoteId {
     }
 }
 
+/// Wrapper for upstream package maintainers.
+#[repr(C)]
+pub struct UpstreamMaintainer {
+    name: *mut c_char,
+    email: *mut c_char,
+    status: *mut c_char,
+}
+
+impl Drop for UpstreamMaintainer {
+    fn drop(&mut self) {
+        unsafe {
+            drop(CString::from_raw(self.name));
+            char_p_or_null_free!(self.email);
+            drop(CString::from_raw(self.status));
+        }
+    }
+}
+
 /// Wrapper for package upstream info.
 #[repr(C)]
 pub struct Upstream {
     remote_ids_len: usize,
     remote_ids: *mut *mut RemoteId,
+    maintainers_len: usize,
+    maintainers: *mut *mut UpstreamMaintainer,
     bugs_to: *mut c_char,
     changelog: *mut c_char,
     doc: *mut c_char,
@@ -65,6 +85,10 @@ impl Drop for Upstream {
         unsafe {
             let len = self.remote_ids_len;
             for ptr in Vec::from_raw_parts(self.remote_ids, len, len).into_iter() {
+                drop(Box::from_raw(ptr));
+            }
+            let len = self.maintainers_len;
+            for ptr in Vec::from_raw_parts(self.maintainers, len, len).into_iter() {
                 drop(Box::from_raw(ptr));
             }
             char_p_or_null_free!(self.bugs_to);
@@ -474,19 +498,35 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstream(p: *mut Pkg) -> *mut Upstr
     match pkg.upstream() {
         Some(u) => {
             // convert remote ids to C wrapper objects
-            let mut len: usize = 0;
+            let mut remote_ids_len: usize = 0;
             let convert = |r: &metadata::RemoteId| {
-                let remote_id = RemoteId {
+                let obj = RemoteId {
                     site: try_ptr_from_str!(r.site()),
                     name: try_ptr_from_str!(r.name()),
                 };
-                Box::into_raw(Box::new(remote_id))
+                Box::into_raw(Box::new(obj))
             };
-            let remote_ids = iter_to_array!(u.remote_ids().iter(), &mut len as *mut _, convert);
+            let remote_ids =
+                iter_to_array!(u.remote_ids().iter(), &mut remote_ids_len as *mut _, convert);
+
+            // convert upstream maintainers to C wrapper objects
+            let mut maintainers_len: usize = 0;
+            let convert = |m: &metadata::UpstreamMaintainer| {
+                let obj = UpstreamMaintainer {
+                    name: try_ptr_from_str!(m.name()),
+                    email: char_p_or_null!(m.email()),
+                    status: try_ptr_from_str!(m.status().to_string()),
+                };
+                Box::into_raw(Box::new(obj))
+            };
+            let maintainers =
+                iter_to_array!(u.maintainers().iter(), &mut maintainers_len as *mut _, convert);
 
             let upstream = Upstream {
-                remote_ids_len: len,
+                remote_ids_len,
                 remote_ids,
+                maintainers_len,
+                maintainers,
                 bugs_to: char_p_or_null!(u.bugs_to()),
                 changelog: char_p_or_null!(u.changelog()),
                 doc: char_p_or_null!(u.doc()),
