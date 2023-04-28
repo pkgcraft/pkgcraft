@@ -201,14 +201,8 @@ pub struct IterRestrict<'a> {
 impl<'a> Iterator for IterRestrict<'a> {
     type Item = Pkg<'a>;
 
-    #[allow(clippy::manual_find)]
     fn next(&mut self) -> Option<Self::Item> {
-        for pkg in &mut self.iter {
-            if self.restrict.matches(&pkg) {
-                return Some(pkg);
-            }
-        }
-        None
+        self.iter.find(|pkg| self.restrict.matches(pkg))
     }
 }
 
