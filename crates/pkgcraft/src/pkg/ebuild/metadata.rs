@@ -251,6 +251,8 @@ impl TryFrom<Node<'_, '_>> for Upstream {
 pub struct XmlMetadata {
     maintainers: Vec<Maintainer>,
     upstream: Option<Upstream>,
+    slots: HashMap<String, String>,
+    subslots: Option<String>,
     local_use: HashMap<String, String>,
     long_desc: Option<String>,
 }
@@ -268,6 +270,7 @@ impl CacheData for XmlMetadata {
             match node.tag_name().name() {
                 "maintainer" => data.maintainers.push(node.try_into()?),
                 "upstream" => data.upstream = Some(node.try_into()?),
+                "slots" => Self::parse_slots(node, &mut data),
                 "use" if en => Self::parse_use(node, &mut data),
                 "longdescription" if en => Self::parse_long_desc(node, &mut data),
                 _ => (),
@@ -279,6 +282,20 @@ impl CacheData for XmlMetadata {
 }
 
 impl XmlMetadata {
+    fn parse_slots(node: Node, data: &mut Self) {
+        for n in node.children() {
+            match (n.tag_name().name(), n.text().and_then(string_or_none)) {
+                ("slot", Some(desc)) => {
+                    if let Some(name) = n.attribute("name") {
+                        data.slots.insert(name.to_string(), desc);
+                    }
+                }
+                ("subslots", desc @ Some(_)) => data.subslots = desc,
+                _ => (),
+            }
+        }
+    }
+
     fn parse_use(node: Node, data: &mut Self) {
         let nodes = node.children().filter(|n| n.tag_name().name() == "flag");
         for n in nodes {
@@ -298,6 +315,14 @@ impl XmlMetadata {
 
     pub(crate) fn upstream(&self) -> Option<&Upstream> {
         self.upstream.as_ref()
+    }
+
+    pub(crate) fn slots(&self) -> &HashMap<String, String> {
+        &self.slots
+    }
+
+    pub(crate) fn subslots(&self) -> Option<&str> {
+        self.subslots.as_deref()
     }
 
     pub(crate) fn local_use(&self) -> &HashMap<String, String> {
