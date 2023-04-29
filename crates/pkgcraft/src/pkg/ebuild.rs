@@ -20,7 +20,7 @@ use crate::Error;
 use super::{make_pkg_traits, Package};
 
 pub mod metadata;
-use metadata::{Distfile, Manifest, XmlMetadata};
+use metadata::{Manifest, ManifestFile, XmlMetadata};
 mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
 
@@ -230,7 +230,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's distfiles.
-    pub fn distfiles(&self) -> Vec<&Distfile> {
+    pub fn distfiles(&self) -> Vec<&ManifestFile> {
         // pull filenames from flattened SRC_URI
         let files: HashSet<_> = self
             .src_uri()

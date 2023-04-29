@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use itertools::Itertools;
 use roxmltree::{Document, Node};
-use strum::{AsRefStr, Display, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::cmp_not_equal;
 use crate::repo::ebuild::CacheData;
@@ -348,14 +348,35 @@ impl XmlMetadata {
     }
 }
 
+#[derive(Display, EnumString, EnumIter, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum ManifestType {
+    Aux,
+    Dist,
+    Ebuild,
+    Misc,
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Distfile {
+pub struct ManifestFile {
     name: String,
     size: u64,
     checksums: Vec<(String, String)>,
 }
 
-impl Distfile {
+impl ManifestFile {
+    fn new(name: &str, size: u64, chksums: &[&str]) -> crate::Result<Self> {
+        Ok(ManifestFile {
+            name: name.to_string(),
+            size,
+            checksums: chksums
+                .iter()
+                .tuples()
+                .map(|(s, val)| (s.to_ascii_lowercase(), val.to_string()))
+                .collect(),
+        })
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -369,34 +390,45 @@ impl Distfile {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct Manifest {
-    dist: OrderedSet<Distfile>,
+    files: HashMap<ManifestType, HashSet<ManifestFile>>,
+}
+
+impl Default for Manifest {
+    fn default() -> Self {
+        let files = ManifestType::iter().map(|t| (t, HashSet::new())).collect();
+        Self { files }
+    }
 }
 
 impl CacheData for Manifest {
     const RELPATH: &'static str = "Manifest";
 
-    // TODO: handle error checking
     fn parse(data: &str) -> crate::Result<Self> {
         let mut manifest = Self::default();
 
-        for line in data.lines() {
-            let mut fields = line.split_whitespace();
-            // TODO: support other field types
-            if let Some("DIST") = fields.next() {
-                let filename = fields.next().unwrap();
-                let size = fields.next().unwrap();
-                let checksums = fields
-                    .tuples()
-                    .map(|(s, val)| (s.to_ascii_lowercase(), val.to_string()))
-                    .collect::<Vec<(String, String)>>();
-                manifest.dist.insert(Distfile {
-                    name: filename.to_string(),
-                    size: size.parse().unwrap(),
-                    checksums,
-                });
+        for (i, line) in data.lines().enumerate() {
+            let fields: Vec<_> = line.split_whitespace().collect();
+            // verify manifest tokens include at least one checksum
+            if fields.len() < 5 || (fields.len() % 2 == 0) {
+                return Err(Error::InvalidValue(format!(
+                    "line {}, invalid number of manifest tokens",
+                    i + 1,
+                )));
             }
+
+            let filetype = ManifestType::from_str(fields[0])
+                .map_err(|e| Error::InvalidValue(e.to_string()))?;
+            let name = &fields[1];
+            let size = fields[2]
+                .parse()
+                .map_err(|e| Error::InvalidValue(format!("line {}, invalid size: {e}", i + 1)))?;
+            manifest
+                .files
+                .entry(filetype)
+                .or_insert_with(HashSet::new)
+                .insert(ManifestFile::new(name, size, &fields[3..])?);
         }
 
         Ok(manifest)
@@ -404,7 +436,9 @@ impl CacheData for Manifest {
 }
 
 impl Manifest {
-    pub fn distfiles(&self) -> &OrderedSet<Distfile> {
-        &self.dist
+    pub fn distfiles(&self) -> &HashSet<ManifestFile> {
+        self.files
+            .get(&ManifestType::Dist)
+            .expect("invalid ManifestFile::default()")
     }
 }
