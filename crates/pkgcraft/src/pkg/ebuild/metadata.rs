@@ -29,7 +29,7 @@ pub enum Proxied {
     No,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Maintainer {
     email: String,
     name: Option<String>,
@@ -154,7 +154,7 @@ pub enum MaintainerStatus {
     Unknown,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct UpstreamMaintainer {
     name: String,
     email: Option<String>,
@@ -175,7 +175,7 @@ impl UpstreamMaintainer {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Upstream {
     remote_ids: OrderedSet<RemoteId>,
     maintainers: Vec<UpstreamMaintainer>,
@@ -248,7 +248,7 @@ impl TryFrom<Node<'_, '_>> for Upstream {
 }
 
 /// Package metadata contained in metadata.xml files as defined by GLEP 68.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct XmlMetadata {
     maintainers: Vec<Maintainer>,
     upstream: Option<Upstream>,
@@ -348,7 +348,7 @@ impl XmlMetadata {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Distfile {
     name: String,
     size: u64,
@@ -369,7 +369,7 @@ impl Distfile {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Manifest {
     dist: Vec<Distfile>,
 }
