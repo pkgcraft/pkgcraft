@@ -371,7 +371,7 @@ impl Distfile {
 
 #[derive(Debug, Default, Clone)]
 pub struct Manifest {
-    dist: Vec<Distfile>,
+    dist: OrderedSet<Distfile>,
 }
 
 impl CacheData for Manifest {
@@ -379,7 +379,8 @@ impl CacheData for Manifest {
 
     // TODO: handle error checking
     fn parse(data: &str) -> crate::Result<Self> {
-        let mut dist = vec![];
+        let mut manifest = Self::default();
+
         for line in data.lines() {
             let mut fields = line.split_whitespace();
             // TODO: support other field types
@@ -390,19 +391,20 @@ impl CacheData for Manifest {
                     .tuples()
                     .map(|(s, val)| (s.to_ascii_lowercase(), val.to_string()))
                     .collect::<Vec<(String, String)>>();
-                dist.push(Distfile {
+                manifest.dist.insert(Distfile {
                     name: filename.to_string(),
                     size: size.parse().unwrap(),
                     checksums,
-                })
+                });
             }
         }
-        Ok(Self { dist })
+
+        Ok(manifest)
     }
 }
 
 impl Manifest {
-    pub fn distfiles(&self) -> &[Distfile] {
+    pub fn distfiles(&self) -> &OrderedSet<Distfile> {
         &self.dist
     }
 }

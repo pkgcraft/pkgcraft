@@ -16,8 +16,14 @@ use itertools::Itertools;
 pub trait Ordered: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 impl<T> Ordered for T where T: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct OrderedSet<T: Ordered>(pub(crate) IndexSet<T>);
+
+impl<T: Ordered> Default for OrderedSet<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<T: Ordered> OrderedSet<T> {
     pub fn new() -> Self {
@@ -100,8 +106,14 @@ impl<T: Ordered> DerefMut for OrderedSet<T> {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct SortedSet<T: Ordered>(pub(crate) IndexSet<T>);
+
+impl<T: Ordered> Default for SortedSet<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<T: Ordered> SortedSet<T> {
     pub fn new() -> Self {
