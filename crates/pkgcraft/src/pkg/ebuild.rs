@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::io::{self, prelude::*};
 use std::str::FromStr;
@@ -229,9 +230,24 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's distfiles.
-    pub fn distfiles(&self) -> &[Distfile] {
-        // TODO: parse SRC_URI to determine version specific distfiles
-        self.manifest().distfiles()
+    pub fn distfiles(&self) -> Vec<&Distfile> {
+        let mut dist = vec![];
+
+        // filter distfiles using SRC_URI
+        if let Some(src_uri) = self.src_uri() {
+            let files: HashSet<_> = src_uri
+                .iter_flatten()
+                .filter_map(|u| u.filename())
+                .collect();
+            dist.extend(
+                self.manifest()
+                    .distfiles()
+                    .iter()
+                    .filter(|d| files.contains(d.name())),
+            );
+        }
+
+        dist
     }
 }
 
@@ -944,13 +960,18 @@ mod tests {
         assert!(pkg.distfiles().is_empty());
 
         // single
-        let (path, cpv) = t.create_ebuild("cat1/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
+            DESCRIPTION="testing distfiles"
+            SLOT=0
+            SRC_URI="https://url/to/a.tar.gz"
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat1/pkg-1", data).unwrap();
+        let manifest = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
-        fs::write(path.parent().unwrap().join("Manifest"), data).unwrap();
+        fs::write(path.parent().unwrap().join("Manifest"), manifest).unwrap();
         let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
-        let (path, cpv) = t.create_ebuild("cat1/pkg-2", []).unwrap();
+        let (path, cpv) = t.create_ebuild_raw("cat1/pkg-2", data).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
         for pkg in [pkg1, pkg2] {
             let dist = pkg.distfiles();
@@ -962,26 +983,37 @@ mod tests {
         }
 
         // multiple
-        let (path, cpv) = t.create_ebuild("cat2/pkg-1", []).unwrap();
         let data = indoc::indoc! {r#"
+            DESCRIPTION="testing distfiles"
+            SLOT=0
+            SRC_URI="https://url/to/a.tar.gz"
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat2/pkg-1", data).unwrap();
+        let manifest = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
             DIST b.tar.gz 2 BLAKE2B c SHA512 d
+            DIST c.tar.gz 3 BLAKE2B c SHA512 d
         "#};
-        fs::write(path.parent().unwrap().join("Manifest"), data).unwrap();
+        fs::write(path.parent().unwrap().join("Manifest"), manifest).unwrap();
         let pkg1 = Pkg::new(path, cpv, &repo).unwrap();
-        let (path, cpv) = t.create_ebuild("cat2/pkg-2", []).unwrap();
+        let data = indoc::indoc! {r#"
+            DESCRIPTION="testing distfiles"
+            SLOT=0
+            SRC_URI="https://url/to/b.tar.gz"
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat2/pkg-2", data).unwrap();
         let pkg2 = Pkg::new(path, cpv, &repo).unwrap();
-        for pkg in [pkg1, pkg2] {
-            let dist = pkg.distfiles();
-            assert_eq!(dist.len(), 2);
-            assert_eq!(dist[0].name(), "a.tar.gz");
-            assert_eq!(dist[0].size(), 1);
-            assert_eq!(dist[0].checksums()[0], ("blake2b".into(), "a".into()));
-            assert_eq!(dist[0].checksums()[1], ("sha512".into(), "b".into()));
-            assert_eq!(dist[1].name(), "b.tar.gz");
-            assert_eq!(dist[1].size(), 2);
-            assert_eq!(dist[1].checksums()[0], ("blake2b".into(), "c".into()));
-            assert_eq!(dist[1].checksums()[1], ("sha512".into(), "d".into()));
-        }
+        let dist = pkg1.distfiles();
+        assert_eq!(dist.len(), 1);
+        assert_eq!(dist[0].name(), "a.tar.gz");
+        assert_eq!(dist[0].size(), 1);
+        assert_eq!(dist[0].checksums()[0], ("blake2b".into(), "a".into()));
+        assert_eq!(dist[0].checksums()[1], ("sha512".into(), "b".into()));
+        let dist = pkg2.distfiles();
+        assert_eq!(dist.len(), 1);
+        assert_eq!(dist[0].name(), "b.tar.gz");
+        assert_eq!(dist[0].size(), 2);
+        assert_eq!(dist[0].checksums()[0], ("blake2b".into(), "c".into()));
+        assert_eq!(dist[0].checksums()[1], ("sha512".into(), "d".into()));
     }
 }

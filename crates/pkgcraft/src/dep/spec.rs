@@ -38,6 +38,11 @@ impl Uri {
     pub fn rename(&self) -> Option<&str> {
         self.rename.as_deref()
     }
+
+    pub fn filename(&self) -> Option<&str> {
+        self.rename()
+            .or_else(|| self.uri.rsplit_once('/').map(|(_, f)| f))
+    }
 }
 
 impl fmt::Display for Uri {
