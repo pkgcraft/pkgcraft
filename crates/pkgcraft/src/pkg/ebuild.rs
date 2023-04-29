@@ -231,23 +231,18 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's distfiles.
     pub fn distfiles(&self) -> Vec<&Distfile> {
-        let mut dist = vec![];
+        // pull filenames from flattened SRC_URI
+        let files: HashSet<_> = self
+            .src_uri()
+            .map(|d| d.iter_flatten().filter_map(|u| u.filename()).collect())
+            .unwrap_or_default();
 
-        // filter distfiles using SRC_URI
-        if let Some(src_uri) = self.src_uri() {
-            let files: HashSet<_> = src_uri
-                .iter_flatten()
-                .filter_map(|u| u.filename())
-                .collect();
-            dist.extend(
-                self.manifest()
-                    .distfiles()
-                    .iter()
-                    .filter(|d| files.contains(d.name())),
-            );
-        }
-
-        dist
+        // filter distfiles to be package version specific
+        self.manifest()
+            .distfiles()
+            .iter()
+            .filter(|d| files.contains(d.name()))
+            .collect()
     }
 }
 
