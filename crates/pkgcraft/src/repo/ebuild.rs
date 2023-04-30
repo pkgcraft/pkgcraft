@@ -195,10 +195,10 @@ impl Repo {
         let mut nonexistent = vec![];
         let mut masters = vec![];
 
-        for id in self.metadata().config().iter("masters") {
+        for id in self.metadata().config().masters() {
             match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
                 Some(r) => masters.push(Arc::downgrade(r)),
-                None => nonexistent.push(id),
+                None => nonexistent.push(id.as_str()),
             }
         }
 

@@ -4,97 +4,114 @@ use std::{fmt, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
-use ini::Ini;
 use once_cell::sync::OnceCell;
 use strum::{Display, EnumString};
 use tracing::{error, warn};
 
 use crate::dep::{parse, Dep};
 use crate::eapi::{Eapi, EAPI0};
+use crate::pkg::ebuild::metadata::HashType;
+use crate::set::OrderedSet;
 use crate::Error;
 
 const DEFAULT_SECTION: Option<String> = None;
 
-pub struct IniConfig {
-    path: Option<Utf8PathBuf>,
-    ini: Ini,
-}
+/// Wrapper for ini format config files.
+struct Ini(ini::Ini);
 
-impl Default for IniConfig {
-    fn default() -> Self {
-        Self { path: None, ini: Ini::new() }
-    }
-}
-
-impl fmt::Debug for IniConfig {
+impl fmt::Debug for Ini {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let section = self.ini.section(DEFAULT_SECTION);
-        f.debug_struct("Metadata")
-            .field("path", &self.path)
-            .field("ini", &section)
-            .finish()
+        let section = self.0.section(DEFAULT_SECTION);
+        f.debug_tuple("Ini").field(&section).finish()
     }
 }
 
-impl IniConfig {
-    fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
-        let path = repo_path.join("metadata/layout.conf");
-        match Ini::load_from_file(&path) {
-            Ok(ini) => Ok(Self { path: Some(path), ini }),
-            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Self {
-                path: Some(path),
-                ini: Ini::new(),
-            }),
+impl Default for Ini {
+    fn default() -> Self {
+        Self(ini::Ini::new())
+    }
+}
+
+impl Ini {
+    fn load(path: &Utf8Path) -> crate::Result<Self> {
+        match ini::Ini::load_from_file(path) {
+            Ok(c) => Ok(Self(c)),
+            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(Error::IO(e.to_string())),
         }
     }
 
-    #[cfg(test)]
-    fn set<S1, S2>(&mut self, key: S1, val: S2)
-    where
-        S1: Into<String>,
-        S2: Into<String>,
-    {
-        self.ini.set_to(DEFAULT_SECTION, key.into(), val.into());
-    }
-
-    #[cfg(test)]
-    pub(crate) fn write(&self, data: Option<&str>) -> crate::Result<()> {
-        use std::io::Write;
-        if let Some(path) = &self.path {
-            self.ini
-                .write_to_file(path)
-                .map_err(|e| Error::IO(e.to_string()))?;
-
-            if let Some(data) = data {
-                let mut f = fs::File::options()
-                    .append(true)
-                    .open(path)
-                    .map_err(|e| Error::IO(e.to_string()))?;
-                write!(f, "{data}").map_err(|e| Error::IO(e.to_string()))?;
-            }
-        }
-
-        Ok(())
-    }
-
+    /// Iterate over the config values for a given key, splitting by whitespace.
     pub(super) fn iter(&self, key: &str) -> SplitWhitespace {
-        self.ini
+        self.0
             .get_from(DEFAULT_SECTION, key)
             .unwrap_or_default()
             .split_whitespace()
     }
+}
 
-    pub fn properties_allowed(&self) -> HashSet<&str> {
-        self.iter("properties-allowed").collect()
+/// Ebuild repo configuration as defined by GLEP 82.
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+pub struct Config {
+    manifest_hashes: OrderedSet<HashType>,
+    manifest_required_hashes: OrderedSet<HashType>,
+    masters: OrderedSet<String>,
+    properties_allowed: OrderedSet<String>,
+    restrict_allowed: OrderedSet<String>,
+}
+
+impl Config {
+    fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
+        let path = repo_path.join("metadata/layout.conf");
+        let ini = Ini::load(&path)?;
+
+        // convert iterable config values into collection
+        let ini_iter = |key: &str| ini.iter(key).map(String::from).collect();
+
+        // convert iterable hash values into collection
+        let ini_hashes = |key: &str| -> crate::Result<OrderedSet<_>> {
+            ini.iter(key)
+                .map(|s| HashType::from_str(s).map_err(|e| Error::InvalidValue(e.to_string())))
+                .collect()
+        };
+
+        Ok(Self {
+            manifest_hashes: ini_hashes("manifest-hashes")?,
+            manifest_required_hashes: ini_hashes("manifest-required-hashes")?,
+            masters: ini_iter("masters"),
+            properties_allowed: ini_iter("properties-allowed"),
+            restrict_allowed: ini_iter("restrict-allowed"),
+        })
     }
 
-    pub fn restrict_allowed(&self) -> HashSet<&str> {
-        self.iter("restrict-allowed").collect()
+    /// Return the list of hash types that must be used for Manifest entries.
+    pub fn manifest_required_hashes(&self) -> &OrderedSet<HashType> {
+        &self.manifest_required_hashes
     }
 
+    /// Return the list of hash types that should be used for Manifest entries.
+    pub fn manifest_hashes(&self) -> &OrderedSet<HashType> {
+        &self.manifest_hashes
+    }
+
+    /// Return the list of inherited repo ids.
+    pub fn masters(&self) -> &OrderedSet<String> {
+        &self.masters
+    }
+
+    /// Allowed values for ebuild PROPERTIES.
+    pub fn properties_allowed(&self) -> &OrderedSet<String> {
+        &self.properties_allowed
+    }
+
+    /// Allowed values for ebuild RESTRICT.
+    pub fn restrict_allowed(&self) -> &OrderedSet<String> {
+        &self.restrict_allowed
+    }
+
+    /// The config file contains no settings or is nonexistent.
     pub fn is_empty(&self) -> bool {
-        self.ini.is_empty()
+        self == &Self::default()
     }
 }
 
@@ -111,7 +128,7 @@ pub struct Metadata {
     pub(super) id: String,
     pub(super) name: String,
     pub(super) eapi: &'static Eapi,
-    config: IniConfig,
+    config: Config,
     path: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
     arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
@@ -150,8 +167,8 @@ impl Metadata {
             Err(e) => return Err(invalid_repo(&format!("profiles/eapi: {e}"))),
         };
 
-        let config = IniConfig::new(path)
-            .map_err(|e| invalid_repo(&format!("metadata/layout.conf: {e}")))?;
+        let config =
+            Config::new(path).map_err(|e| invalid_repo(&format!("metadata/layout.conf: {e}")))?;
 
         Ok(Self {
             id: id.to_string(),
@@ -163,7 +180,7 @@ impl Metadata {
         })
     }
 
-    pub fn config(&self) -> &IniConfig {
+    pub fn config(&self) -> &Config {
         &self.config
     }
 
@@ -339,29 +356,33 @@ mod tests {
     #[test]
     fn test_config() {
         let t = TempRepo::new("test", None, None).unwrap();
+
+        // empty config
+        fs::write(t.path().join("metadata/layout.conf"), "").unwrap();
         let metadata = Metadata::new("test", t.path()).unwrap();
+        assert!(metadata.config().is_empty());
 
         // invalid config
-        metadata.config.write(Some("data")).unwrap();
-        assert!(metadata.config().is_empty());
+        fs::write(t.path().join("metadata/layout.conf"), "data").unwrap();
+        assert!(Metadata::new("test", t.path()).is_err());
     }
 
     #[test]
     fn test_config_properties_and_restrict_allowed() {
-        // empty
         let t = TempRepo::new("test", None, None).unwrap();
+
+        // empty
         let metadata = Metadata::new("test", t.path()).unwrap();
         assert!(metadata.config().properties_allowed().is_empty());
         assert!(metadata.config().restrict_allowed().is_empty());
 
         // existing
-        let t = TempRepo::new("test", None, None).unwrap();
-        let mut metadata = Metadata::new("test", t.path()).unwrap();
-        metadata
-            .config
-            .set("properties-allowed", "interactive live");
-        metadata.config.set("restrict-allowed", "fetch mirror");
-        metadata.config.write(None).unwrap();
+        let data = indoc::indoc! {r#"
+            properties-allowed = interactive live
+            restrict-allowed = fetch mirror
+        "#};
+        fs::write(t.path().join("metadata/layout.conf"), data).unwrap();
+        let metadata = Metadata::new("test", t.path()).unwrap();
         assert_unordered_eq(metadata.config().properties_allowed(), ["live", "interactive"]);
         assert_unordered_eq(metadata.config().restrict_allowed(), ["fetch", "mirror"]);
     }
