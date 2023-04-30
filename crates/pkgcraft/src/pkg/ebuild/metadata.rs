@@ -370,18 +370,18 @@ impl Checksum {
         Ok(chksum(value.to_string()))
     }
 
+    /// Hash the given data using a specified digest function and return the hex-encoded value.
+    fn hash<D: Digest>(data: &[u8]) -> String {
+        let mut hasher = D::new();
+        hasher.update(data);
+        hex::encode(hasher.finalize())
+    }
+
+    /// Verify the checksum matches the given data.
     fn verify(&self, data: &[u8]) -> crate::Result<()> {
         let (orig, new) = match self {
-            Checksum::Blake2b(s) => {
-                let mut hasher = Blake2b512::new();
-                hasher.update(data);
-                (s, hex::encode(hasher.finalize()))
-            }
-            Checksum::Sha512(s) => {
-                let mut hasher = Sha512::new();
-                hasher.update(data);
-                (s, hex::encode(hasher.finalize()))
-            }
+            Checksum::Blake2b(s) => (s, Self::hash::<Blake2b512>(data)),
+            Checksum::Sha512(s) => (s, Self::hash::<Sha512>(data)),
         };
 
         if orig != &new {
