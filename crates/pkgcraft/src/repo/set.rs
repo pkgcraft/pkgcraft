@@ -6,6 +6,7 @@ use std::ops::{
 
 use indexmap::IndexSet;
 
+use crate::dep::Version;
 use crate::pkg::Pkg;
 use crate::repo::{PkgRepository, Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -51,7 +52,7 @@ impl PkgRepository for RepoSet {
         pkgs
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
         let versions: HashSet<_> = self
             .repos
             .iter()
@@ -346,7 +347,7 @@ mod tests {
         t.create_ebuild("cat/pkg-1", []).unwrap();
         assert_eq!(s.categories(), ["cat"]);
         assert_eq!(s.packages("cat"), ["pkg"]);
-        assert_eq!(s.versions("cat", "pkg"), ["1"]);
+        assert_eq!(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
         assert_eq!(s.len(), 1);
         assert!(!s.is_empty());
         assert!(s.iter().next().is_some());
@@ -359,7 +360,7 @@ mod tests {
         let s = RepoSet::new([&e_repo, &f_repo]);
         assert_eq!(s.categories(), ["cat"]);
         assert_eq!(s.packages("cat"), ["pkg"]);
-        assert_eq!(s.versions("cat", "pkg"), ["1"]);
+        assert_eq!(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
         assert_eq!(s.len(), 2);
         assert!(s.contains(&cpv));
         assert_eq!(s.iter().count(), 2);

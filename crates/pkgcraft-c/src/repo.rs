@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
+use pkgcraft::dep::Version;
 use pkgcraft::pkg::Pkg;
 use pkgcraft::repo::{Contains, PkgRepository, Repo, RepoFormat, Repository};
 use pkgcraft::restrict::Restrict;
@@ -10,7 +11,7 @@ use pkgcraft::utils::hash;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 use crate::types::{RepoIter, RepoIterRestrict};
-use crate::utils::str_to_raw;
+use crate::utils::{boxed, str_to_raw};
 
 pub mod ebuild;
 pub mod ebuild_temp;
@@ -156,11 +157,11 @@ pub unsafe extern "C" fn pkgcraft_repo_versions(
     cat: *const c_char,
     pkg: *const c_char,
     len: *mut usize,
-) -> *mut *mut c_char {
+) -> *mut *mut Version {
     let repo = try_ref_from_ptr!(r);
     let cat = try_str_from_ptr!(cat);
     let pkg = try_str_from_ptr!(pkg);
-    iter_to_array!(repo.versions(cat, pkg).iter(), len, str_to_raw)
+    iter_to_array!(repo.versions(cat, pkg).into_iter(), len, boxed)
 }
 
 /// Compare two repos returning -1, 0, or 1 if the first repo is less than, equal to, or greater

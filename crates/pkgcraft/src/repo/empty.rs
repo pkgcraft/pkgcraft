@@ -3,6 +3,7 @@ use std::{fmt, iter};
 use camino::Utf8Path;
 
 use crate::config::RepoConfig;
+use crate::dep::Version;
 use crate::pkg::Pkg;
 use crate::restrict::Restrict;
 use crate::Error;
@@ -64,7 +65,7 @@ impl PkgRepository for Repo {
         vec![]
     }
 
-    fn versions(&self, _cat: &str, _pkg: &str) -> Vec<String> {
+    fn versions(&self, _cat: &str, _pkg: &str) -> Vec<Version> {
         vec![]
     }
 

@@ -416,7 +416,7 @@ impl PkgRepository for Repo {
         v
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
         let path = build_from_paths!(
             self.path(),
             cat.strip_prefix('/').unwrap_or(cat),
@@ -451,7 +451,7 @@ impl PkgRepository for Repo {
             }
         }
         versions.sort();
-        versions.iter().map(|v| v.to_string()).collect()
+        versions
     }
 
     fn iter(&self) -> Self::Iter<'_> {
@@ -778,28 +778,29 @@ mod tests {
     fn test_versions() {
         let mut config = Config::default();
         let (_t, repo) = config.temp_repo("test", 0).unwrap();
+        let ver = |s: &str| Version::new(s).unwrap();
 
         assert!(repo.versions("cat", "pkg").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-1.ebuild")).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), ["1"]);
+        assert_eq!(repo.versions("cat", "pkg"), [ver("1")]);
 
         // unmatching ebuilds are ignored
         fs::File::create(repo.path().join("cat/pkg/foo-2.ebuild")).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), ["1"]);
+        assert_eq!(repo.versions("cat", "pkg"), [ver("1")]);
 
         // wrongly named files are ignored
         fs::File::create(repo.path().join("cat/pkg/pkg-2.txt")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-2..ebuild")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-2ebuild")).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), ["1"]);
+        assert_eq!(repo.versions("cat", "pkg"), [ver("1")]);
 
         fs::File::create(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), ["1", "2"]);
+        assert_eq!(repo.versions("cat", "pkg"), [ver("1"), ver("2")]);
 
         fs::create_dir_all(repo.path().join("a-cat/pkg10a")).unwrap();
         fs::File::create(repo.path().join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
-        assert_eq!(repo.versions("a-cat", "pkg10a"), ["0-r0"]);
+        assert_eq!(repo.versions("a-cat", "pkg10a"), [ver("0-r0")]);
     }
 
     #[test]

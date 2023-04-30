@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::{ptr, slice};
 
+use pkgcraft::dep::Version;
 use pkgcraft::pkg::Pkg;
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::{PkgRepository, Repo};
@@ -10,7 +11,7 @@ use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::types::RepoSetIter;
-use crate::utils::str_to_raw;
+use crate::utils::{boxed, str_to_raw};
 
 #[repr(C)]
 pub enum RepoSetOp {
@@ -69,11 +70,11 @@ pub unsafe extern "C" fn pkgcraft_repo_set_versions(
     cat: *const c_char,
     pkg: *const c_char,
     len: *mut usize,
-) -> *mut *mut c_char {
+) -> *mut *mut Version {
     let s = try_ref_from_ptr!(s);
     let cat = try_str_from_ptr!(cat);
     let pkg = try_str_from_ptr!(pkg);
-    iter_to_array!(s.versions(cat, pkg).iter(), len, str_to_raw)
+    iter_to_array!(s.versions(cat, pkg).into_iter(), len, boxed)
 }
 
 /// Return a repo set's length.

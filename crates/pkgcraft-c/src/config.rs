@@ -6,6 +6,7 @@ use pkgcraft::repo::Repo;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
+use crate::utils::boxed;
 
 /// Create an empty pkgcraft config.
 #[no_mangle]
@@ -72,7 +73,7 @@ pub unsafe extern "C" fn pkgcraft_config_load_repos_conf(
         let path = try_str_from_ptr!(path);
         let config = try_mut_from_ptr!(c);
         let repos = unwrap_or_panic!(config.load_repos_conf(path));
-        iter_to_array!(repos.into_iter(), len, |r| { Box::into_raw(Box::new(r)) })
+        iter_to_array!(repos.into_iter(), len, boxed)
     }
 }
 

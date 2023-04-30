@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::config::RepoConfig;
-use crate::dep::{Cpv, Dep};
+use crate::dep::{Cpv, Dep, Version};
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict as BaseRestrict;
 use crate::Error;
@@ -201,7 +201,7 @@ pub trait PkgRepository:
 
     fn categories(&self) -> Vec<String>;
     fn packages(&self, cat: &str) -> Vec<String>;
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<String>;
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version>;
     fn len(&self) -> usize {
         let mut count = 0;
         for c in self.categories() {
@@ -246,7 +246,7 @@ where
     fn packages(&self, cat: &str) -> Vec<String> {
         (*self).packages(cat)
     }
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
         (*self).versions(cat, pkg)
     }
     fn len(&self) -> usize {
@@ -330,7 +330,7 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
         match self {
             Self::Ebuild(repo) => repo.versions(cat, pkg),
             Self::Fake(repo) => repo.versions(cat, pkg),

@@ -6,14 +6,14 @@ use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
 use crate::config::RepoConfig;
-use crate::dep::{Cpv, TryIntoCpv};
+use crate::dep::{Cpv, TryIntoCpv, Version};
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
-type VersionMap = IndexMap<String, IndexSet<String>>;
+type VersionMap = IndexMap<String, IndexSet<Version>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
 #[derive(Debug, Default, Clone)]
@@ -90,7 +90,7 @@ impl<C: TryIntoCpv> Extend<C> for Repo {
                     .or_insert_with(VersionMap::new)
                     .entry(cpv.package().into())
                     .or_insert_with(IndexSet::new)
-                    .insert(cpv.version().into());
+                    .insert(cpv.version().clone());
             }
             self.pkgmap = pkgmap;
         }
@@ -120,11 +120,11 @@ impl PkgRepository for Repo {
             .unwrap_or_default()
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<String> {
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
         self.pkgmap
             .get(cat)
             .and_then(|pkgs| pkgs.get(pkg))
-            .map(|vers| vers.iter().map(|v| v.to_string()).collect())
+            .map(|vers| vers.iter().cloned().collect())
             .unwrap_or_default()
     }
 
@@ -247,6 +247,7 @@ mod tests {
 
     #[test]
     fn test_versions() {
+        let ver = |s: &str| Version::new(s).unwrap();
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", 0);
@@ -254,8 +255,8 @@ mod tests {
         // existing pkgs
         repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
         assert!(repo.versions("cat", "pkg").is_empty());
-        assert_eq!(repo.versions("cat1", "pkg-a"), ["1", "2"]);
-        assert_eq!(repo.versions("cat2", "pkg-b"), ["3"]);
+        assert_eq!(repo.versions("cat1", "pkg-a"), [ver("1"), ver("2")]);
+        assert_eq!(repo.versions("cat2", "pkg-b"), [ver("3")]);
     }
 
     #[test]
