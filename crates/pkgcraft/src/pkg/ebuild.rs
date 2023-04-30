@@ -272,6 +272,7 @@ impl<'a> Package for Pkg<'a> {
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
+    use crate::pkg::ebuild::metadata::Checksum;
     use crate::repo::PkgRepository;
     use crate::test::{assert_ordered_eq, assert_unordered_eq};
 
@@ -973,8 +974,8 @@ mod tests {
             assert_eq!(dist.len(), 1);
             assert_eq!(dist[0].name(), "a.tar.gz");
             assert_eq!(dist[0].size(), 1);
-            assert_eq!(dist[0].checksums()[0], ("blake2b".into(), "a".into()));
-            assert_eq!(dist[0].checksums()[1], ("sha512".into(), "b".into()));
+            assert_eq!(dist[0].checksums()[0], Checksum::Blake2b("a".into()));
+            assert_eq!(dist[0].checksums()[1], Checksum::Sha512("b".into()));
         }
 
         // multiple
@@ -1002,13 +1003,13 @@ mod tests {
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "a.tar.gz");
         assert_eq!(dist[0].size(), 1);
-        assert_eq!(dist[0].checksums()[0], ("blake2b".into(), "a".into()));
-        assert_eq!(dist[0].checksums()[1], ("sha512".into(), "b".into()));
+        assert_eq!(dist[0].checksums()[0], Checksum::Blake2b("a".into()));
+        assert_eq!(dist[0].checksums()[1], Checksum::Sha512("b".into()));
         let dist = pkg2.distfiles();
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "b.tar.gz");
         assert_eq!(dist[0].size(), 2);
-        assert_eq!(dist[0].checksums()[0], ("blake2b".into(), "c".into()));
-        assert_eq!(dist[0].checksums()[1], ("sha512".into(), "d".into()));
+        assert_eq!(dist[0].checksums()[0], Checksum::Blake2b("c".into()));
+        assert_eq!(dist[0].checksums()[1], Checksum::Sha512("d".into()));
     }
 }

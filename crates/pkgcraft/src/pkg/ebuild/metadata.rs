@@ -1,13 +1,17 @@
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::{hash_map, HashMap, HashSet};
+use std::fs;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use blake2::{Blake2b512, Digest};
+use camino::Utf8Path;
 use itertools::Itertools;
 use roxmltree::{Document, Node};
+use sha2::Sha512;
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::macros::cmp_not_equal;
+use crate::macros::{build_from_paths, cmp_not_equal};
 use crate::repo::ebuild::CacheData;
 use crate::set::OrderedSet;
 use crate::Error;
@@ -348,7 +352,51 @@ impl XmlMetadata {
     }
 }
 
-#[derive(Display, EnumString, EnumIter, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Display, Debug, PartialEq, Eq, Hash, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum Checksum {
+    Blake2b(String),
+    Sha512(String),
+}
+
+impl Checksum {
+    fn new(kind: &str, value: &str) -> crate::Result<Self> {
+        let chksum = match kind {
+            "BLAKE2B" => Self::Blake2b,
+            "SHA512" => Self::Sha512,
+            s => return Err(Error::InvalidValue(format!("unknown checksum kind: {s}"))),
+        };
+
+        Ok(chksum(value.to_string()))
+    }
+
+    fn verify(&self, data: &[u8]) -> crate::Result<()> {
+        let (orig, new) = match self {
+            Checksum::Blake2b(s) => {
+                let mut hasher = Blake2b512::new();
+                hasher.update(data);
+                (s, hex::encode(hasher.finalize()))
+            }
+            Checksum::Sha512(s) => {
+                let mut hasher = Sha512::new();
+                hasher.update(data);
+                (s, hex::encode(hasher.finalize()))
+            }
+        };
+
+        if orig != &new {
+            return Err(Error::InvalidValue(format!(
+                "{self} checksum failed: orig: {orig}, new: {new}"
+            )));
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(
+    Display, EnumString, EnumIter, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum ManifestType {
     Aux,
@@ -357,23 +405,42 @@ pub enum ManifestType {
     Misc,
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ManifestFile {
+    kind: ManifestType,
     name: String,
     size: u64,
-    checksums: Vec<(String, String)>,
+    checksums: Vec<Checksum>,
+}
+
+impl Ord for ManifestFile {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.kind.cmp(&other.kind) {
+            Ordering::Equal => self.name.cmp(&other.name),
+            x => x,
+        }
+    }
+}
+
+impl PartialOrd for ManifestFile {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl ManifestFile {
-    fn new(name: &str, size: u64, chksums: &[&str]) -> crate::Result<Self> {
+    fn new(kind: ManifestType, name: &str, size: u64, chksums: &[&str]) -> crate::Result<Self> {
+        let checksums: Result<Vec<_>, _> = chksums
+            .iter()
+            .tuples()
+            .map(|(kind, val)| Checksum::new(kind, val))
+            .collect();
+
         Ok(ManifestFile {
+            kind,
             name: name.to_string(),
             size,
-            checksums: chksums
-                .iter()
-                .tuples()
-                .map(|(s, val)| (s.to_ascii_lowercase(), val.to_string()))
-                .collect(),
+            checksums: checksums?,
         })
     }
 
@@ -385,8 +452,22 @@ impl ManifestFile {
         self.size
     }
 
-    pub fn checksums(&self) -> &[(String, String)] {
+    pub fn checksums(&self) -> &[Checksum] {
         &self.checksums
+    }
+
+    pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
+        let path = match self.kind {
+            ManifestType::Aux => build_from_paths!(pkgdir, "files", &self.name),
+            ManifestType::Dist => distdir.join(&self.name),
+            _ => pkgdir.join(&self.name),
+        };
+        let data =
+            fs::read(&path).map_err(|e| Error::IO(format!("failed verifying: {path}: {e}")))?;
+        for c in &self.checksums {
+            c.verify(&data)?;
+        }
+        Ok(())
     }
 }
 
@@ -397,8 +478,9 @@ pub struct Manifest {
 
 impl Default for Manifest {
     fn default() -> Self {
-        let files = ManifestType::iter().map(|t| (t, HashSet::new())).collect();
-        Self { files }
+        Self {
+            files: ManifestType::iter().map(|t| (t, HashSet::new())).collect(),
+        }
     }
 }
 
@@ -410,6 +492,7 @@ impl CacheData for Manifest {
 
         for (i, line) in data.lines().enumerate() {
             let fields: Vec<_> = line.split_whitespace().collect();
+
             // verify manifest tokens include at least one checksum
             if fields.len() < 5 || (fields.len() % 2 == 0) {
                 return Err(Error::InvalidValue(format!(
@@ -418,7 +501,7 @@ impl CacheData for Manifest {
                 )));
             }
 
-            let filetype = ManifestType::from_str(fields[0])
+            let kind = ManifestType::from_str(fields[0])
                 .map_err(|e| Error::InvalidValue(e.to_string()))?;
             let name = &fields[1];
             let size = fields[2]
@@ -426,9 +509,13 @@ impl CacheData for Manifest {
                 .map_err(|e| Error::InvalidValue(format!("line {}, invalid size: {e}", i + 1)))?;
             manifest
                 .files
-                .entry(filetype)
+                .entry(kind)
                 .or_insert_with(HashSet::new)
-                .insert(ManifestFile::new(name, size, &fields[3..])?);
+                .insert(ManifestFile::new(kind, name, size, &fields[3..])?);
+        }
+
+        if manifest.is_empty() {
+            return Err(Error::InvalidValue("empty Manifest".to_string()));
         }
 
         Ok(manifest)
@@ -440,5 +527,83 @@ impl Manifest {
         self.files
             .get(&ManifestType::Dist)
             .expect("invalid ManifestFile::default()")
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.files.values().all(|s| s.is_empty())
+    }
+
+    pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
+        self.into_iter().try_for_each(|f| f.verify(pkgdir, distdir))
+    }
+}
+
+impl<'a> IntoIterator for &'a Manifest {
+    type Item = &'a ManifestFile;
+    type IntoIter = Iter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Iter {
+            iter: self.files.values().flatten(),
+        }
+    }
+}
+
+pub struct Iter<'a> {
+    iter: std::iter::Flatten<hash_map::Values<'a, ManifestType, HashSet<ManifestFile>>>,
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = &'a ManifestFile;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use crate::macros::assert_err_re;
+
+    use super::*;
+
+    #[test]
+    fn test_distfile_verification() {
+        let tmpdir = tempdir().unwrap();
+        let distdir: &Utf8Path = tmpdir.path().try_into().unwrap();
+
+        // empty
+        let r = Manifest::parse("");
+        assert_err_re!(r, "empty Manifest");
+
+        // missing distfile
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B a SHA512 b
+        "#};
+        let manifest = Manifest::parse(data).unwrap();
+        let r = manifest.verify(distdir, distdir);
+        assert_err_re!(r, "No such file or directory");
+
+        // failing primary checksum
+        fs::write(distdir.join("a.tar.gz"), "value").unwrap();
+        let r = manifest.verify(distdir, distdir);
+        assert_err_re!(r, "blake2b checksum failed");
+
+        // failing secondary checksum
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 b
+        "#};
+        let manifest = Manifest::parse(data).unwrap();
+        let r = manifest.verify(distdir, distdir);
+        assert_err_re!(r, "sha512 checksum failed");
+
+        // verified
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
+        "#};
+        let manifest = Manifest::parse(data).unwrap();
+        assert!(manifest.verify(distdir, distdir).is_ok());
     }
 }
