@@ -1,9 +1,8 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::write_stderr;
+use crate::pkgsh::{unescape::unescape_iter, write_stderr};
 
-use super::super::unescape::unescape;
 use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "Display information message when starting a process.";
@@ -23,8 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         write_stderr!("[ ok ]\n")?;
     } else {
         if !args.is_empty() {
-            let unescaped: Result<Vec<_>, _> = args.iter().map(|s| unescape(s)).collect();
-            let msg = unescaped?.join(" ");
+            let msg = unescape_iter(args)?.join(" ");
             write_stderr!("{msg} ")?;
         }
         write_stderr!("[ !! ]\n")?;

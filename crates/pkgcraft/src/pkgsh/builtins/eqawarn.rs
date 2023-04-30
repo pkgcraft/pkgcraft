@@ -1,9 +1,8 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::write_stderr;
+use crate::pkgsh::{unescape::unescape_iter, write_stderr};
 
-use super::super::unescape::unescape;
 use super::{make_builtin, ALL};
 
 const LONG_DOC: &str = "Display QA warning message.";
@@ -14,8 +13,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    let unescaped: Result<Vec<_>, _> = args.iter().map(|s| unescape(s)).collect();
-    let msg = unescaped?.join(" ");
+    let msg = unescape_iter(args)?.join(" ");
     write_stderr!("* {msg}\n")?;
 
     Ok(ExecStatus::Success)

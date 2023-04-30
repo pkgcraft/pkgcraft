@@ -1,7 +1,13 @@
 use std::borrow::Cow;
 
+/// Unescape a given string.
 pub(crate) fn unescape(s: &str) -> Result<Cow<str>, Error> {
     UnescapeString::unescape(s)
+}
+
+/// Unescape a given slice of strings.
+pub(crate) fn unescape_iter<'a>(vals: &[&'a str]) -> Result<Vec<Cow<'a, str>>, Error> {
+    vals.iter().map(|&s| unescape(s)).collect()
 }
 
 #[derive(Debug, Clone)]
