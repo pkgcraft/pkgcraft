@@ -248,20 +248,10 @@ peg::parser!(grammar depspec() for str {
 
     rule uri_val(eapi: &'static Eapi) -> DepSpec<Uri>
         = s:$(quiet!{!")" [^' ']+}) rename:(_ "->" _ s:$([^' ']+) {s})? {?
-            let mut uri = Uri {
-                uri: s.to_string(),
-                rename: match rename {
-                    Some(r) => {
-                        if !eapi.has(Feature::SrcUriRenames) {
-                            return Err("SRC_URI renames available in EAPI >= 2");
-                        }
-                        Some(r.to_string())
-                    }
-                    None => None
-                }
-            };
-            Ok(DepSpec::Enabled(uri))
-
+            if rename.is_some() && !eapi.has(Feature::SrcUriRenames) {
+                return Err("SRC_URI renames available in EAPI >= 2");
+            }
+            Ok(DepSpec::Enabled(Uri::new(s, rename)))
         }
 
     rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
@@ -722,11 +712,7 @@ mod tests {
     }
 
     fn vu(u1: &str, u2: Option<&str>) -> DepSpec<Uri> {
-        let uri = Uri {
-            uri: u1.to_string(),
-            rename: u2.map(String::from),
-        };
-        DepSpec::Enabled(uri)
+        DepSpec::Enabled(Uri::new(u1, u2))
     }
 
     fn allof<I, T>(val: I) -> DepSpec<T>

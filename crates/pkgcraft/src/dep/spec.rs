@@ -26,11 +26,18 @@ pub trait Recursive {
 /// Uri object.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Uri {
-    pub(crate) uri: String,
-    pub(crate) rename: Option<String>,
+    uri: String,
+    rename: Option<String>,
 }
 
 impl Uri {
+    pub(crate) fn new(uri: &str, rename: Option<&str>) -> Self {
+        Self {
+            uri: uri.to_string(),
+            rename: rename.map(String::from),
+        }
+    }
+
     pub fn uri(&self) -> &str {
         &self.uri
     }
