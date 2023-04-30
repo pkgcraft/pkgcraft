@@ -4,11 +4,10 @@ use std::fs;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
-use blake2::{Blake2b512, Digest};
 use camino::Utf8Path;
+use digest::Digest;
 use itertools::Itertools;
 use roxmltree::{Document, Node};
-use sha2::Sha512;
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::{build_from_paths, cmp_not_equal};
@@ -383,9 +382,9 @@ impl Checksum {
     /// Verify the checksum matches the given data.
     fn verify(&self, data: &[u8]) -> crate::Result<()> {
         let new = match self.kind {
-            HashType::Blake2b => Self::hash::<Blake2b512>(data),
+            HashType::Blake2b => Self::hash::<blake2::Blake2b512>(data),
             HashType::Blake3 => Self::hash::<blake3::Hasher>(data),
-            HashType::Sha512 => Self::hash::<Sha512>(data),
+            HashType::Sha512 => Self::hash::<sha2::Sha512>(data),
         };
 
         if self.value != new {

@@ -1718,6 +1718,7 @@ dependencies = [
  "criterion",
  "crossbeam-channel",
  "ctor",
+ "digest",
  "enum-as-inner",
  "filetime",
  "flate2",
