@@ -33,6 +33,14 @@ impl Repo {
             fs::create_dir(temp_path.join(dir))
                 .map_err(|e| Error::RepoInit(format!("failed creating repo {id:?}: {e}")))?;
         }
+
+        let config = indoc::indoc! {"
+            manifest-hashes = BLAKE2B SHA512
+            manifest-required-hashes = BLAKE2B
+        "};
+        fs::write(temp_path.join("metadata/layout.conf"), config)
+            .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
+
         fs::write(temp_path.join("profiles/repo_name"), format!("{id}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
 

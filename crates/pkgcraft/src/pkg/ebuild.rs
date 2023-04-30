@@ -974,8 +974,8 @@ mod tests {
             assert_eq!(dist.len(), 1);
             assert_eq!(dist[0].name(), "a.tar.gz");
             assert_eq!(dist[0].size(), 1);
-            assert_eq!(dist[0].checksums()[0], Checksum::Blake2b("a".into()));
-            assert_eq!(dist[0].checksums()[1], Checksum::Sha512("b".into()));
+            assert_eq!(dist[0].checksums()[0], Checksum::new("BLAKE2B", "a").unwrap());
+            assert_eq!(dist[0].checksums()[1], Checksum::new("SHA512", "b").unwrap());
         }
 
         // multiple
@@ -1003,13 +1003,13 @@ mod tests {
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "a.tar.gz");
         assert_eq!(dist[0].size(), 1);
-        assert_eq!(dist[0].checksums()[0], Checksum::Blake2b("a".into()));
-        assert_eq!(dist[0].checksums()[1], Checksum::Sha512("b".into()));
+        assert_eq!(dist[0].checksums()[0], Checksum::new("BLAKE2B", "a").unwrap());
+        assert_eq!(dist[0].checksums()[1], Checksum::new("SHA512", "b").unwrap());
         let dist = pkg2.distfiles();
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "b.tar.gz");
         assert_eq!(dist[0].size(), 2);
-        assert_eq!(dist[0].checksums()[0], Checksum::Blake2b("c".into()));
-        assert_eq!(dist[0].checksums()[1], Checksum::Sha512("d".into()));
+        assert_eq!(dist[0].checksums()[0], Checksum::new("BLAKE2B", "c").unwrap());
+        assert_eq!(dist[0].checksums()[1], Checksum::new("SHA512", "d").unwrap());
     }
 }

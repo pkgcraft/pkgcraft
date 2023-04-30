@@ -352,24 +352,25 @@ impl XmlMetadata {
     }
 }
 
-#[derive(Display, Debug, PartialEq, Eq, Hash, Clone)]
-#[strum(serialize_all = "snake_case")]
-pub enum Checksum {
-    Blake2b(String),
-    Blake3(String),
-    Sha512(String),
+#[derive(Display, EnumString, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum HashType {
+    Blake2b,
+    Blake3,
+    Sha512,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct Checksum {
+    kind: HashType,
+    value: String,
 }
 
 impl Checksum {
-    fn new(kind: &str, value: &str) -> crate::Result<Self> {
-        let chksum = match kind {
-            "BLAKE2B" => Self::Blake2b,
-            "BLAKE3" => Self::Blake3,
-            "SHA512" => Self::Sha512,
-            s => return Err(Error::InvalidValue(format!("unknown checksum kind: {s}"))),
-        };
-
-        Ok(chksum(value.to_string()))
+    pub(super) fn new(kind: &str, value: &str) -> crate::Result<Self> {
+        let kind = HashType::from_str(kind)
+            .map_err(|_| Error::InvalidValue(format!("unknown checksum kind: {kind}")))?;
+        Ok(Checksum { kind, value: value.to_string() })
     }
 
     /// Hash the given data using a specified digest function and return the hex-encoded value.
@@ -381,15 +382,16 @@ impl Checksum {
 
     /// Verify the checksum matches the given data.
     fn verify(&self, data: &[u8]) -> crate::Result<()> {
-        let (orig, new) = match self {
-            Checksum::Blake2b(s) => (s, Self::hash::<Blake2b512>(data)),
-            Checksum::Blake3(s) => (s, Self::hash::<blake3::Hasher>(data)),
-            Checksum::Sha512(s) => (s, Self::hash::<Sha512>(data)),
+        let new = match self.kind {
+            HashType::Blake2b => Self::hash::<Blake2b512>(data),
+            HashType::Blake3 => Self::hash::<blake3::Hasher>(data),
+            HashType::Sha512 => Self::hash::<Sha512>(data),
         };
 
-        if orig != &new {
+        if self.value != new {
             return Err(Error::InvalidValue(format!(
-                "{self} checksum failed: orig: {orig}, new: {new}"
+                "{} checksum failed: orig: {}, new: {new}",
+                self.kind, self.value
             )));
         }
 
@@ -408,6 +410,7 @@ pub enum ManifestType {
     Misc,
 }
 
+/// Package manifest contained in Manifest files as defined by GLEP 44.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ManifestFile {
     kind: ManifestType,
@@ -433,7 +436,7 @@ impl PartialOrd for ManifestFile {
 
 impl ManifestFile {
     fn new(kind: ManifestType, name: &str, size: u64, chksums: &[&str]) -> crate::Result<Self> {
-        let checksums: Result<Vec<_>, _> = chksums
+        let checksums: crate::Result<Vec<_>> = chksums
             .iter()
             .tuples()
             .map(|(kind, val)| Checksum::new(kind, val))
@@ -459,7 +462,12 @@ impl ManifestFile {
         &self.checksums
     }
 
-    pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
+    pub fn verify(
+        &self,
+        required_hashes: &OrderedSet<HashType>,
+        pkgdir: &Utf8Path,
+        distdir: &Utf8Path,
+    ) -> crate::Result<()> {
         let path = match self.kind {
             ManifestType::Aux => build_from_paths!(pkgdir, "files", &self.name),
             ManifestType::Dist => distdir.join(&self.name),
@@ -467,10 +475,11 @@ impl ManifestFile {
         };
         let data =
             fs::read(&path).map_err(|e| Error::IO(format!("failed verifying: {path}: {e}")))?;
-        for c in &self.checksums {
-            c.verify(&data)?;
-        }
-        Ok(())
+
+        self.checksums
+            .iter()
+            .filter(|c| required_hashes.contains(&c.kind))
+            .try_for_each(|c| c.verify(&data))
     }
 }
 
@@ -536,8 +545,14 @@ impl Manifest {
         self.files.values().all(|s| s.is_empty())
     }
 
-    pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
-        self.into_iter().try_for_each(|f| f.verify(pkgdir, distdir))
+    pub fn verify(
+        &self,
+        required_hashes: &OrderedSet<HashType>,
+        pkgdir: &Utf8Path,
+        distdir: &Utf8Path,
+    ) -> crate::Result<()> {
+        self.into_iter()
+            .try_for_each(|f| f.verify(required_hashes, pkgdir, distdir))
     }
 }
 
@@ -569,11 +584,17 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::macros::assert_err_re;
+    use crate::repo::ebuild::Repo;
+    use crate::repo::ebuild_temp::Repo as TempRepo;
 
     use super::*;
 
     #[test]
     fn test_distfile_verification() {
+        let t = TempRepo::new("test", None, None).unwrap();
+        let repo = Repo::from_path("test", 0, t.path()).unwrap();
+        let manifest_hashes = repo.metadata().config().manifest_hashes();
+        let required_hashes = repo.metadata().config().manifest_required_hashes();
         let tmpdir = tempdir().unwrap();
         let distdir: &Utf8Path = tmpdir.path().try_into().unwrap();
 
@@ -586,27 +607,34 @@ mod tests {
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        let r = manifest.verify(distdir, distdir);
+        let r = manifest.verify(required_hashes, distdir, distdir);
         assert_err_re!(r, "No such file or directory");
 
         // failing primary checksum
         fs::write(distdir.join("a.tar.gz"), "value").unwrap();
-        let r = manifest.verify(distdir, distdir);
-        assert_err_re!(r, "blake2b checksum failed");
+        let r = manifest.verify(required_hashes, distdir, distdir);
+        assert_err_re!(r, "BLAKE2B checksum failed");
 
-        // failing secondary checksum
+        // secondary checksum failure is ignored since it's not in manifest-required-hashes for the repo
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 b
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        let r = manifest.verify(distdir, distdir);
-        assert_err_re!(r, "sha512 checksum failed");
+        assert!(manifest.verify(required_hashes, distdir, distdir).is_ok());
+
+        // secondary checksum failure due to including it in the required hashes param
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 b
+        "#};
+        let manifest = Manifest::parse(data).unwrap();
+        let r = manifest.verify(manifest_hashes, distdir, distdir);
+        assert_err_re!(r, "SHA512 checksum failed");
 
         // verified
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        assert!(manifest.verify(distdir, distdir).is_ok());
+        assert!(manifest.verify(required_hashes, distdir, distdir).is_ok());
     }
 }
