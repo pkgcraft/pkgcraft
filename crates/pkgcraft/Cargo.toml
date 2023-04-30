@@ -34,7 +34,7 @@ test = ["dep:assert_cmd"]
 [dependencies]
 async-trait = "0.1.68"
 blake2 = "0.10.6"
-blake3 = "1.3.3"
+blake3 = { version = "1.3.3", features = ["traits-preview"] }
 cached = "0.43.0"
 camino = { version = "1.1.4", features = ["serde1"] }
 chic = "1.2.2"

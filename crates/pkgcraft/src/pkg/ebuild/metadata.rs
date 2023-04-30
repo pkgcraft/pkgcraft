@@ -356,6 +356,7 @@ impl XmlMetadata {
 #[strum(serialize_all = "snake_case")]
 pub enum Checksum {
     Blake2b(String),
+    Blake3(String),
     Sha512(String),
 }
 
@@ -363,6 +364,7 @@ impl Checksum {
     fn new(kind: &str, value: &str) -> crate::Result<Self> {
         let chksum = match kind {
             "BLAKE2B" => Self::Blake2b,
+            "BLAKE3" => Self::Blake3,
             "SHA512" => Self::Sha512,
             s => return Err(Error::InvalidValue(format!("unknown checksum kind: {s}"))),
         };
@@ -381,6 +383,7 @@ impl Checksum {
     fn verify(&self, data: &[u8]) -> crate::Result<()> {
         let (orig, new) = match self {
             Checksum::Blake2b(s) => (s, Self::hash::<Blake2b512>(data)),
+            Checksum::Blake3(s) => (s, Self::hash::<blake3::Hasher>(data)),
             Checksum::Sha512(s) => (s, Self::hash::<Sha512>(data)),
         };
 
