@@ -12,6 +12,7 @@ use std::ops::{Deref, DerefMut};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
+use serde::{Deserialize, Deserializer};
 
 pub trait Ordered: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 impl<T> Ordered for T where T: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
@@ -106,6 +107,16 @@ impl<T: Ordered> DerefMut for OrderedSet<T> {
     }
 }
 
+impl<'de, T: Ordered + Deserialize<'de>> Deserialize<'de> for OrderedSet<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let vals: Vec<T> = Deserialize::deserialize(deserializer)?;
+        Ok(vals.into_iter().collect())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct SortedSet<T: Ordered>(pub(crate) IndexSet<T>);
 
@@ -193,6 +204,16 @@ impl<T: Ordered> Deref for SortedSet<T> {
 impl<T: Ordered> DerefMut for SortedSet<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<'de, T: Ordered + Deserialize<'de>> Deserialize<'de> for SortedSet<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let vals: Vec<T> = Deserialize::deserialize(deserializer)?;
+        Ok(vals.into_iter().collect())
     }
 }
 

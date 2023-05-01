@@ -66,16 +66,6 @@ impl<'de> Deserialize<'de> for Version {
     }
 }
 
-impl<'de> Deserialize<'de> for OrderedSet<String> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let vals: Vec<String> = Deserialize::deserialize(deserializer)?;
-        Ok(vals.into_iter().collect())
-    }
-}
-
 #[derive(Debug, Deserialize)]
 pub struct Intersects {
     pub vals: Vec<String>,
