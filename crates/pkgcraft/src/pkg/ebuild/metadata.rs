@@ -359,7 +359,7 @@ pub enum HashType {
     Sha512,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Checksum {
     kind: HashType,
     value: String,
@@ -410,27 +410,12 @@ pub enum ManifestType {
 }
 
 /// Package manifest contained in Manifest files as defined by GLEP 44.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone)]
 pub struct ManifestFile {
     kind: ManifestType,
     name: String,
     size: u64,
     checksums: Vec<Checksum>,
-}
-
-impl Ord for ManifestFile {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.kind.cmp(&other.kind) {
-            Ordering::Equal => self.name.cmp(&other.name),
-            x => x,
-        }
-    }
-}
-
-impl PartialOrd for ManifestFile {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 impl ManifestFile {
