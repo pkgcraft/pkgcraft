@@ -234,7 +234,7 @@ impl<'a> Pkg<'a> {
         // pull filenames from flattened SRC_URI
         let files: HashSet<_> = self
             .src_uri()
-            .map(|d| d.iter_flatten().filter_map(|u| u.filename()).collect())
+            .map(|d| d.iter_flatten().map(|u| u.filename()).collect())
             .unwrap_or_default();
 
         // filter distfiles to be package version specific

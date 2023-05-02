@@ -251,7 +251,8 @@ peg::parser!(grammar depspec() for str {
             if rename.is_some() && !eapi.has(Feature::SrcUriRenames) {
                 return Err("SRC_URI renames available in EAPI >= 2");
             }
-            Ok(DepSpec::Enabled(Uri::new(s, rename)))
+            let uri = Uri::new(s, rename).map_err(|_| "invalid URI")?;
+            Ok(DepSpec::Enabled(uri))
         }
 
     rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
@@ -712,7 +713,7 @@ mod tests {
     }
 
     fn vu(u1: &str, u2: Option<&str>) -> DepSpec<Uri> {
-        DepSpec::Enabled(Uri::new(u1, u2))
+        DepSpec::Enabled(Uri::new(u1, u2).unwrap())
     }
 
     fn allof<I, T>(val: I) -> DepSpec<T>
@@ -869,6 +870,11 @@ mod tests {
                     assert_eq!(depset.to_string(), s);
                 }
             }
+        }
+
+        for s in ["https://", "https://web/site/root.com/"] {
+            let r = src_uri(s, &EAPI_LATEST_OFFICIAL);
+            assert!(r.is_err(), "{s:?} didn't fail");
         }
 
         Ok(())

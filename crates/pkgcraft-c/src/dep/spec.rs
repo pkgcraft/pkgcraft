@@ -689,19 +689,14 @@ pub unsafe extern "C" fn pkgcraft_uri_uri(u: *mut Uri) -> *mut c_char {
     try_ptr_from_str!(uri.uri())
 }
 
-/// Get the filename rename for a Uri.
-///
-/// Returns NULL when no rename exists.
+/// Get the filename for a Uri.
 ///
 /// # Safety
 /// The argument must be a Uri pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_uri_rename(u: *mut Uri) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_uri_filename(u: *mut Uri) -> *mut c_char {
     let uri = try_ref_from_ptr!(u);
-    match uri.rename() {
-        Some(s) => try_ptr_from_str!(s),
-        None => ptr::null_mut(),
-    }
+    try_ptr_from_str!(uri.filename())
 }
 
 /// Return the formatted string for a Uri object.
