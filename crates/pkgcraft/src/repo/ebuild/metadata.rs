@@ -135,7 +135,7 @@ pub struct Metadata {
     categories: OnceCell<IndexSet<String>>,
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceCell<IndexSet<Dep>>,
-    pkg_mask: OnceCell<HashSet<Dep>>,
+    pkg_mask: OnceCell<IndexSet<Dep>>,
 }
 
 impl Metadata {
@@ -352,7 +352,7 @@ impl Metadata {
     }
 
     /// Return a repo's globally masked packages.
-    pub fn pkg_mask(&self) -> &HashSet<Dep> {
+    pub fn pkg_mask(&self) -> &IndexSet<Dep> {
         self.pkg_mask.get_or_init(|| {
             let path = self.path.join("profiles/package.mask");
             match fs::read_to_string(path) {
@@ -373,7 +373,7 @@ impl Metadata {
                     if e.kind() != io::ErrorKind::NotFound {
                         warn!("{}::profiles/package.mask: {e}", self.id);
                     }
-                    HashSet::new()
+                    IndexSet::new()
                 }
             }
         })
@@ -605,6 +605,54 @@ mod tests {
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_deprecated(),
+            [&Dep::from_str("cat/slotted:0").unwrap(), &Dep::from_str("cat/subslot:0/1").unwrap()],
+        );
+    }
+
+    #[traced_test]
+    #[test]
+    fn test_pkg_mask() {
+        let t = TempRepo::new("test", None, None).unwrap();
+
+        // nonexistent file
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        assert!(metadata.pkg_mask().is_empty());
+
+        // empty file
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/package.mask"), "").unwrap();
+        assert!(metadata.pkg_mask().is_empty());
+
+        // multiple with invalid dep for repo EAPI
+        let data = indoc::indoc! {r#"
+            # comment 1
+            cat/pkg-a
+
+            # comment 2
+            another/pkg
+
+            # invalid for repo EAPI
+            cat/slotted:0
+        "#};
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
+        assert_ordered_eq(
+            metadata.pkg_mask(),
+            [&Dep::from_str("cat/pkg-a").unwrap(), &Dep::from_str("another/pkg").unwrap()],
+        );
+        assert_logs_re!(format!(".+, line 8: .* invalid dep: cat/slotted:0$"));
+
+        // newer repo EAPI allows using newer dep format features
+        let t = TempRepo::new("test", None, Some(&EAPI_LATEST_OFFICIAL)).unwrap();
+        // multiple with invalid dep for repo EAPI
+        let data = indoc::indoc! {r#"
+            cat/slotted:0
+            cat/subslot:0/1
+        "#};
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
+        assert_ordered_eq(
+            metadata.pkg_mask(),
             [&Dep::from_str("cat/slotted:0").unwrap(), &Dep::from_str("cat/subslot:0/1").unwrap()],
         );
     }
