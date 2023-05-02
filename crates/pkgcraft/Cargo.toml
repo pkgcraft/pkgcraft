@@ -61,7 +61,7 @@ roxmltree = "0.18.0"
 rust-ini = "0.18.0"
 scallop = { path = "../scallop", version = "0.0.5" }
 serde = { version = "1.0.160", features = ["derive"] }
-serde_with = { version = "2.3.3", default-features = false, features = ["macros"] }
+serde_with = { version = "3.0.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.6"
 strum = { version = "0.24.1", features = ["derive"] }
 sys-info = "0.9.1"
