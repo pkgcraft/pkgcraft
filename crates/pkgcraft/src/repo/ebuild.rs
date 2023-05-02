@@ -234,24 +234,22 @@ impl Repo {
         self.metadata().eapi
     }
 
-    /// Return the list of inherited repos.
-    pub fn masters(&self) -> Vec<Arc<Self>> {
+    /// Return the inherited repos for the repo.
+    pub fn masters(&self) -> impl Iterator<Item = Arc<Self>> + '_ {
         self.masters
             .get()
             .expect("finalize() uncalled")
             .iter()
             .map(|p| p.upgrade().expect("unconfigured repo"))
-            .collect()
     }
 
-    /// Return a repo's inheritance list including itself.
-    pub fn trees(&self) -> Vec<Arc<Self>> {
+    /// Return the complete, repo inheritance set for the repo.
+    pub fn trees(&self) -> impl Iterator<Item = Arc<Self>> + '_ {
         self.trees
             .get()
             .expect("finalize() uncalled")
             .iter()
             .map(|p| p.upgrade().expect("unconfigured repo"))
-            .collect()
     }
 
     /// Return an Arc-wrapped repo reference.
@@ -268,7 +266,6 @@ impl Repo {
     pub fn eclasses(&self) -> &HashMap<String, Utf8PathBuf> {
         self.eclasses.get_or_init(|| {
             self.trees()
-                .iter()
                 .filter_map(|repo| repo.path().join("eclass").read_dir_utf8().ok())
                 .flatten()
                 .filter_map(|e| e.ok())
@@ -340,7 +337,6 @@ impl Repo {
     pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
         self.mirrors.get_or_init(|| {
             self.trees()
-                .iter()
                 .flat_map(|r| r.metadata().mirrors().clone().into_iter())
                 .collect()
         })
@@ -695,8 +691,8 @@ mod tests {
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
         let repo = repo.as_ebuild().unwrap();
-        assert!(repo.masters().is_empty());
-        let trees: Vec<_> = repo.trees().iter().map(|r| r.id().to_string()).collect();
+        assert!(repo.masters().next().is_none());
+        let trees: Vec<_> = repo.trees().map(|r| r.id().to_string()).collect();
         assert_eq!(trees, ["a"]);
 
         // nonexistent
@@ -710,9 +706,9 @@ mod tests {
             .add_repo_path(repo.id(), 0, repo.path().as_str())
             .unwrap();
         let repo = repo.as_ebuild().unwrap();
-        let masters: Vec<_> = repo.masters().iter().map(|r| r.id().to_string()).collect();
+        let masters: Vec<_> = repo.masters().map(|r| r.id().to_string()).collect();
         assert_eq!(masters, ["a"]);
-        let trees: Vec<_> = repo.trees().iter().map(|r| r.id().to_string()).collect();
+        let trees: Vec<_> = repo.trees().map(|r| r.id().to_string()).collect();
         assert_eq!(trees, ["a", "b"]);
     }
 

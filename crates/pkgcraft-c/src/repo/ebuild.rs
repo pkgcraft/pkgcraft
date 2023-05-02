@@ -65,7 +65,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
     len: *mut usize,
 ) -> *mut *mut Repo {
     let repo = try_repo_from_ptr!(r);
-    iter_to_array!(repo.masters().iter(), len, |r: &Arc<EbuildRepo>| {
-        Box::into_raw(Box::new(Repo::Ebuild(r.clone())))
+    iter_to_array!(repo.masters(), len, |r: Arc<EbuildRepo>| {
+        Box::into_raw(Box::new(Repo::Ebuild(r)))
     })
 }
