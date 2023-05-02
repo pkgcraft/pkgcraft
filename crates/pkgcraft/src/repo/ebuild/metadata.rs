@@ -3,7 +3,7 @@ use std::str::{FromStr, SplitWhitespace};
 use std::{fmt, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
 use strum::{Display, EnumString};
 use tracing::{error, warn};
@@ -133,8 +133,9 @@ pub struct Metadata {
     arches: OnceCell<IndexSet<String>>,
     arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceCell<IndexSet<String>>,
-    pkg_mask: OnceCell<HashSet<Dep>>,
+    mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceCell<HashSet<Dep>>,
+    pkg_mask: OnceCell<HashSet<Dep>>,
 }
 
 impl Metadata {
@@ -286,29 +287,37 @@ impl Metadata {
         })
     }
 
-    /// Return a repo's globally masked packages.
-    pub fn pkg_mask(&self) -> &HashSet<Dep> {
-        self.pkg_mask.get_or_init(|| {
-            let path = self.path.join("profiles/package.mask");
+    /// Return a repo's globally defined mirrors.
+    pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
+        self.mirrors.get_or_init(|| {
+            let path = self.path.join("profiles/thirdpartymirrors");
             match fs::read_to_string(path) {
                 Ok(s) => s
                     .lines()
                     .map(|s| s.trim())
                     .enumerate()
                     .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
-                    .filter_map(|(i, s)| match self.eapi.dep(s) {
-                        Ok(dep) => Some(dep),
-                        Err(e) => {
-                            warn!("{}::profiles/package.mask, line {}: {e}", self.id, i + 1);
+                    .filter_map(|(i, s)| {
+                        let vals: Vec<_> = s.split_whitespace().collect();
+                        if vals.len() <= 1 {
+                            warn!(
+                                "{}::profiles/thirdpartymirrors, line {}: no mirrors listed",
+                                self.id,
+                                i + 1
+                            );
                             None
+                        } else {
+                            let name = vals[0].to_string();
+                            let mirrors = vals[1..].iter().map(|s| s.to_string()).collect();
+                            Some((name, mirrors))
                         }
                     })
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/package.mask: {e}", self.id);
+                        warn!("{}::profiles/thirdpartymirrors: {e}", self.id);
                     }
-                    HashSet::new()
+                    IndexMap::<String, IndexSet<String>>::new()
                 }
             }
         })
@@ -335,6 +344,34 @@ impl Metadata {
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
                         warn!("{}::profiles/package.deprecated: {e}", self.id);
+                    }
+                    HashSet::new()
+                }
+            }
+        })
+    }
+
+    /// Return a repo's globally masked packages.
+    pub fn pkg_mask(&self) -> &HashSet<Dep> {
+        self.pkg_mask.get_or_init(|| {
+            let path = self.path.join("profiles/package.mask");
+            match fs::read_to_string(path) {
+                Ok(s) => s
+                    .lines()
+                    .map(|s| s.trim())
+                    .enumerate()
+                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                    .filter_map(|(i, s)| match self.eapi.dep(s) {
+                        Ok(dep) => Some(dep),
+                        Err(e) => {
+                            warn!("{}::profiles/package.mask, line {}: {e}", self.id, i + 1);
+                            None
+                        }
+                    })
+                    .collect(),
+                Err(e) => {
+                    if e.kind() != io::ErrorKind::NotFound {
+                        warn!("{}::profiles/package.mask: {e}", self.id);
                     }
                     HashSet::new()
                 }
@@ -488,5 +525,35 @@ mod tests {
         let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), data).unwrap();
         assert_ordered_eq(metadata.categories(), ["cat1", "cat2", "cat-3"]);
+    }
+
+    #[test]
+    fn test_mirrors() {
+        let t = TempRepo::new("test", None, None).unwrap();
+
+        // nonexistent file
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        assert!(metadata.mirrors().is_empty());
+
+        // empty file
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/thirdpartymirrors"), "").unwrap();
+        assert!(metadata.mirrors().is_empty());
+
+        // multiple with mixed whitespace
+        let data = indoc::indoc! {r#"
+            mirror1 https://a/mirror/ https://another/mirror
+            mirror2	http://yet/another/mirror/
+        "#};
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/thirdpartymirrors"), data).unwrap();
+        assert_ordered_eq(
+            metadata.mirrors().get("mirror1").unwrap(),
+            ["https://a/mirror/", "https://another/mirror"],
+        );
+        assert_ordered_eq(
+            metadata.mirrors().get("mirror2").unwrap(),
+            ["http://yet/another/mirror/"],
+        );
     }
 }
