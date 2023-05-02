@@ -144,6 +144,7 @@ pub struct Repo {
     metadata: Metadata,
     masters: OnceCell<Vec<Weak<Self>>>,
     trees: OnceCell<Vec<Weak<Self>>>,
+    arches: OnceCell<IndexSet<String>>,
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
@@ -331,6 +332,15 @@ impl Repo {
                         false => Err(err("mismatched package dir")),
                     })
             })
+    }
+
+    /// Return a repo's known architectures merged via inheritance.
+    pub fn arches(&self) -> &IndexSet<String> {
+        self.arches.get_or_init(|| {
+            self.trees()
+                .flat_map(|r| r.metadata().arches().clone().into_iter())
+                .collect()
+        })
     }
 
     /// Return a repo's globally defined mirrors merged via inheritance.
