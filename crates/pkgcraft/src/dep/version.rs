@@ -35,7 +35,7 @@ impl FromStr for Revision {
         } else {
             let int = s
                 .parse()
-                .map_err(|e| Error::InvalidValue(format!("invalid revision: {e}: {s}")))?;
+                .map_err(|e| Error::Overflow(format!("invalid revision: {e}: {s}")))?;
             Ok(Revision {
                 value: Some(s.to_string()),
                 int,
@@ -140,7 +140,7 @@ impl<'a> ParsedVersion<'a> {
         for s in self.numbers.iter() {
             let num = s
                 .parse()
-                .map_err(|e| Error::InvalidValue(format!("invalid version: {e}: {s}")))?;
+                .map_err(|e| Error::Overflow(format!("invalid version: {e}: {s}")))?;
             numbers.push((s.to_string(), num));
         }
 
@@ -215,39 +215,15 @@ impl Version {
 
     /// Create a new Version from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
-        parse::version(s)
-    }
-
-    /// Create a new Version from a given string with operators.
-    pub fn new_with_op(s: &str) -> crate::Result<Self> {
-        parse::version_with_op(s)
-    }
-
-    /// Create a new Version with optional operator support.
-    pub fn new_optional_op(s: &str) -> crate::Result<Self> {
-        parse::version(s).or_else(|_| parse::version_with_op(s))
+        parse::version(s).or_else(|e| match e {
+            Error::Overflow(_) => Err(e),
+            _ => parse::version_with_op(s),
+        })
     }
 
     /// Return a version's string value without operator.
     pub fn as_str(&self) -> &str {
         &self.full
-    }
-
-    /// Return a version's string value including operator if it exists.
-    pub fn to_string_with_op(&self) -> String {
-        use Operator::*;
-        let s = self.as_str();
-        match self.op() {
-            None => s.to_string(),
-            Some(Less) => format!("<{s}"),
-            Some(LessOrEqual) => format!("<={s}"),
-            Some(Equal) => format!("={s}"),
-            Some(EqualGlob) => format!("={s}*"),
-            Some(Approximate) => format!("~{s}"),
-            Some(GreaterOrEqual) => format!(">={s}"),
-            Some(Greater) => format!(">{s}"),
-            Some(NONE) => panic!("Operator::NONE is only valid as a C bindings fallback"),
-        }
     }
 
     /// Return a version's operator, if one exists.
@@ -347,7 +323,20 @@ impl AsRef<Version> for Version {
 
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        use Operator::*;
+
+        let s = self.as_str();
+        match self.op() {
+            None => write!(f, "{}", s),
+            Some(Less) => write!(f, "<{}", s),
+            Some(LessOrEqual) => write!(f, "<={}", s),
+            Some(Equal) => write!(f, "={}", s),
+            Some(EqualGlob) => write!(f, "={}*", s),
+            Some(Approximate) => write!(f, "~{}", s),
+            Some(GreaterOrEqual) => write!(f, ">={}", s),
+            Some(Greater) => write!(f, ">{}", s),
+            Some(NONE) => panic!("Operator::NONE is only valid as a C bindings fallback"),
+        }
     }
 }
 
@@ -457,9 +446,8 @@ impl PartialOrd for Version {
 impl FromStr for Version {
     type Err = Error;
 
-    #[inline]
     fn from_str(s: &str) -> crate::Result<Self> {
-        parse::version(s)
+        Self::new(s)
     }
 }
 
@@ -531,9 +519,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_optional_op() {
-        assert!(Version::new_optional_op("2").is_ok());
-        assert!(Version::new_optional_op(">=2").is_ok());
+    fn test_new() {
+        assert!(Version::new("2").is_ok());
+        assert!(Version::new(">=2").is_ok());
     }
 
     #[test]
@@ -593,8 +581,8 @@ mod tests {
         for d in data.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
-                let v1 = Version::new_optional_op(vals[0]).unwrap();
-                let v2 = Version::new_optional_op(vals[1]).unwrap();
+                let v1 = Version::new(vals[0]).unwrap();
+                let v2 = Version::new(vals[1]).unwrap();
 
                 // elements intersect themselves
                 assert!(v1.intersects(&v1), "{v1} doesn't intersect {v2}");

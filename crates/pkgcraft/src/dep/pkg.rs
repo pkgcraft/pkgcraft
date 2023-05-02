@@ -211,7 +211,7 @@ impl Dep {
     /// For example, the package dependency "=cat/pkg-1-r2" returns "1-r2".
     pub fn pvr(&self) -> String {
         match &self.version {
-            Some(ver) => ver.to_string(),
+            Some(ver) => ver.as_str().to_string(),
             None => String::default(),
         }
     }
@@ -226,7 +226,7 @@ impl Dep {
     /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
     pub fn cpv(&self) -> String {
         match &self.version {
-            Some(ver) => format!("{}/{}-{ver}", self.category, self.package),
+            Some(ver) => format!("{}/{}-{}", self.category, self.package, ver.as_str()),
             None => self.cpn(),
         }
     }
@@ -551,8 +551,8 @@ mod tests {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
                 let (mut a1, mut a2) = (a.clone(), a.clone());
-                a1.version = Some(Version::new_optional_op(vals[0]).unwrap());
-                a2.version = Some(Version::new_optional_op(vals[1]).unwrap());
+                a1.version = Some(Version::new(vals[0]).unwrap());
+                a2.version = Some(Version::new(vals[1]).unwrap());
                 let (s1, s2) = (&a1.to_string(), &a2.to_string());
 
                 // objects intersect themselves

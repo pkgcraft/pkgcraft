@@ -24,21 +24,6 @@ pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut Version 
     }
 }
 
-/// Parse a string into a version with an operator.
-///
-/// Returns NULL on error.
-///
-/// # Safety
-/// The version argument should point to a valid string.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_with_op(s: *const c_char) -> *mut Version {
-    ffi_catch_panic! {
-        let s = try_str_from_ptr!(s);
-        let ver = unwrap_or_panic!(Version::new_with_op(s));
-        Box::into_raw(Box::new(ver))
-    }
-}
-
 /// Return a version's operator.
 ///
 /// # Safety
@@ -125,17 +110,7 @@ pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut Version) -> *mut c_ch
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_str(v: *mut Version) -> *mut c_char {
     let ver = try_ref_from_ptr!(v);
-    try_ptr_from_str!(ver.as_str())
-}
-
-/// Return a version's string value including the operator if it exists.
-///
-/// # Safety
-/// The version argument should be a non-null Version pointer.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_str_with_op(v: *mut Version) -> *mut c_char {
-    let ver = try_ref_from_ptr!(v);
-    try_ptr_from_str!(ver.to_string_with_op())
+    try_ptr_from_str!(ver.to_string())
 }
 
 /// Free a version.

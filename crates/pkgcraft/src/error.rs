@@ -20,6 +20,8 @@ pub enum Error {
     #[error("{0}")]
     IO(String),
     #[error("{0}")]
+    Overflow(String),
+    #[error("{0}")]
     Pkgsh(#[from] scallop::Error),
     #[error("{0}")]
     RepoInit(String),

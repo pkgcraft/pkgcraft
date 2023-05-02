@@ -5,7 +5,7 @@ use assert_cmd::Command;
 use camino::Utf8PathBuf;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use serde::{de, Deserialize, Deserializer};
+use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 
 use crate::dep::{Blocker, Revision, SlotOperator, Version};
@@ -45,6 +45,7 @@ pub struct ValidDep {
     pub package: String,
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub blocker: Option<Blocker>,
+    #[serde_as(as = "Option<DisplayFromStr>")]
     pub version: Option<Version>,
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub revision: Option<Revision>,
@@ -54,16 +55,6 @@ pub struct ValidDep {
     pub slot_op: Option<SlotOperator>,
     #[serde(rename = "use")]
     pub use_deps: Option<OrderedSet<String>>,
-}
-
-impl<'de> Deserialize<'de> for Version {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: String = Deserialize::deserialize(deserializer)?;
-        Version::new_with_op(&s).map_err(de::Error::custom)
-    }
 }
 
 #[derive(Debug, Deserialize)]

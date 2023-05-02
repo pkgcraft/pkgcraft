@@ -117,7 +117,7 @@ impl Cpv {
 
     /// Return the version and revision.
     pub fn pvr(&self) -> String {
-        self.version.to_string()
+        self.version.as_str().to_string()
     }
 
     /// Return the category and package.
@@ -128,7 +128,7 @@ impl Cpv {
 
 impl fmt::Display for Cpv {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}-{}", self.category, self.package, self.version)
+        write!(f, "{}/{}-{}", self.category, self.package, self.version.as_str())
     }
 }
 
