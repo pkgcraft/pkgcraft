@@ -5,7 +5,7 @@ use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use tracing::warn;
@@ -144,6 +144,7 @@ pub struct Repo {
     metadata: Metadata,
     masters: OnceCell<Vec<Weak<Self>>>,
     trees: OnceCell<Vec<Weak<Self>>>,
+    mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
     manifest_cache: OnceCell<Cache<Manifest>>,
@@ -333,6 +334,16 @@ impl Repo {
                         false => Err(err("mismatched package dir")),
                     })
             })
+    }
+
+    /// Return a repo's globally defined mirrors merged via inheritance.
+    pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
+        self.mirrors.get_or_init(|| {
+            self.trees()
+                .iter()
+                .flat_map(|r| r.metadata().mirrors().clone().into_iter())
+                .collect()
+        })
     }
 
     pub(crate) fn pkg_xml(&self, cpv: &Cpv) -> Arc<XmlMetadata> {
