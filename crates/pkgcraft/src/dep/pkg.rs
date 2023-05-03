@@ -397,7 +397,6 @@ mod tests {
 
     #[test]
     fn test_to_string() {
-        let mut dep: Dep;
         for s in [
             "cat/pkg",
             "<cat/pkg-4",
@@ -413,21 +412,20 @@ mod tests {
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
-            dep = Dep::from_str(s).unwrap();
+            let dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.to_string(), s);
         }
 
         // Package dependencies with certain use flag patterns aren't returned 1 to 1 since use
         // flags are sorted into an ordered set for equivalency purposes.
         for (s, expected) in [("cat/pkg[u,u]", "cat/pkg[u]"), ("cat/pkg[b,a]", "cat/pkg[a,b]")] {
-            dep = Dep::from_str(s).unwrap();
+            let dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.to_string(), expected);
         }
     }
 
     #[test]
     fn test_cpn() {
-        let mut dep: Dep;
         for (s, key) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg"),
@@ -438,14 +436,13 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
             (">cat/pkg-4-r1:0=", "cat/pkg"),
         ] {
-            dep = Dep::from_str(s).unwrap();
+            let dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.cpn(), key);
         }
     }
 
     #[test]
     fn test_version() {
-        let mut dep: Dep;
         for (s, version) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", Some("<4")),
@@ -456,7 +453,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(">=2-r3")),
             (">cat/pkg-4-r1:0=", Some(">4-r1")),
         ] {
-            dep = Dep::from_str(s).unwrap();
+            let dep = Dep::from_str(s).unwrap();
             let version = version.map(|s| parse::version_with_op(s).unwrap());
             assert_eq!(dep.version(), version.as_ref());
         }
@@ -464,7 +461,6 @@ mod tests {
 
     #[test]
     fn test_revision() {
-        let mut dep: Dep;
         for (s, revision) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", None),
@@ -473,7 +469,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some("3")),
             (">cat/pkg-4-r1:0=", Some("1")),
         ] {
-            dep = Dep::from_str(s).unwrap();
+            let dep = Dep::from_str(s).unwrap();
             let revision = revision.map(|s| Revision::from_str(s).unwrap());
             assert_eq!(dep.revision(), revision.as_ref(), "{s} failed");
         }
@@ -498,7 +494,6 @@ mod tests {
 
     #[test]
     fn test_cpv() {
-        let mut dep: Dep;
         for (s, cpv) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg-4"),
@@ -509,7 +504,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
             (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
         ] {
-            dep = Dep::from_str(s).unwrap();
+            let dep = Dep::from_str(s).unwrap();
             assert_eq!(dep.cpv(), cpv);
         }
     }
