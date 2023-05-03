@@ -513,7 +513,7 @@ mod tests {
 
     use itertools::Itertools;
 
-    use crate::test::VersionToml;
+    use crate::test::TEST_DATA;
     use crate::utils::hash;
 
     use super::*;
@@ -554,8 +554,7 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        let data = VersionToml::load().unwrap();
-        for (expr, (v1, op, v2)) in data.compares() {
+        for (expr, (v1, op, v2)) in TEST_DATA.version_toml.compares() {
             let v1 = Version::from_str(v1).unwrap();
             let v2 = Version::from_str(v2).unwrap();
             if op == "!=" {
@@ -577,8 +576,7 @@ mod tests {
 
     #[test]
     fn test_intersects() {
-        let data = VersionToml::load().unwrap();
-        for d in data.intersects {
+        for d in &TEST_DATA.version_toml.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
                 let v1 = Version::new(vals[0]).unwrap();
@@ -600,8 +598,7 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let data = VersionToml::load().unwrap();
-        for d in data.sorting {
+        for d in &TEST_DATA.version_toml.sorting {
             let mut reversed: Vec<_> = d
                 .sorted
                 .iter()
@@ -620,8 +617,7 @@ mod tests {
 
     #[test]
     fn test_hashing() {
-        let data = VersionToml::load().unwrap();
-        for d in data.hashing {
+        for d in &TEST_DATA.version_toml.hashing {
             let set: HashSet<_> = d
                 .versions
                 .iter()

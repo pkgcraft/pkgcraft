@@ -134,6 +134,17 @@ impl<'a> Iterator for ComparesIter<'a> {
     }
 }
 
+#[derive(Debug)]
+pub struct TestData {
+    pub dep_toml: DepToml,
+    pub version_toml: VersionToml,
+}
+
+pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| TestData {
+    dep_toml: DepToml::load().unwrap(),
+    version_toml: VersionToml::load().unwrap(),
+});
+
 /// Verify two, unordered iterables contain the same elements.
 pub fn assert_unordered_eq<I, J, T, S>(a: I, b: J)
 where

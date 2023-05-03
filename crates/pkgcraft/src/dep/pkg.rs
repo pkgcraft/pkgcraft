@@ -390,7 +390,7 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use crate::dep::CpvOrDep;
-    use crate::test::{DepToml, VersionToml};
+    use crate::test::TEST_DATA;
     use crate::utils::hash;
 
     use super::*;
@@ -521,8 +521,7 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        let data = DepToml::load().unwrap();
-        for (expr, (s1, op, s2)) in data.compares() {
+        for (expr, (s1, op, s2)) in TEST_DATA.dep_toml.compares() {
             let a1 = Dep::from_str(s1).unwrap();
             let a2 = Dep::from_str(s2).unwrap();
             if op == "!=" {
@@ -545,9 +544,8 @@ mod tests {
     #[test]
     fn test_intersects() {
         // inject version intersects data from version.toml into Dep objects
-        let data = VersionToml::load().unwrap();
         let a = Dep::from_str("a/b").unwrap();
-        for d in data.intersects {
+        for d in &TEST_DATA.version_toml.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
                 let (mut a1, mut a2) = (a.clone(), a.clone());
@@ -568,8 +566,7 @@ mod tests {
             }
         }
 
-        let data = DepToml::load().unwrap();
-        for d in data.intersects {
+        for d in &TEST_DATA.dep_toml.intersects {
             // test intersections between all pairs of distinct values
             for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
                 let (s1, s2) = (vals[0], vals[1]);
@@ -592,8 +589,7 @@ mod tests {
 
     #[test]
     fn test_sorting() {
-        let data = DepToml::load().unwrap();
-        for d in data.sorting {
+        for d in &TEST_DATA.dep_toml.sorting {
             let mut reversed: Vec<_> = d
                 .sorted
                 .iter()
@@ -612,8 +608,7 @@ mod tests {
 
     #[test]
     fn test_hashing() {
-        let data = VersionToml::load().unwrap();
-        for d in data.hashing {
+        for d in &TEST_DATA.version_toml.hashing {
             let set: HashSet<_> = d
                 .versions
                 .iter()

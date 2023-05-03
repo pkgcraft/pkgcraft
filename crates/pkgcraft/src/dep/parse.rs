@@ -492,24 +492,22 @@ mod tests {
     use indexmap::IndexSet;
 
     use crate::eapi::{self, EAPIS, EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL};
-    use crate::test::DepToml;
+    use crate::test::TEST_DATA;
 
     use super::*;
 
     #[test]
     fn test_parse() {
-        let data = DepToml::load().unwrap();
-
         // invalid deps
-        for s in data.invalid {
+        for s in &TEST_DATA.dep_toml.invalid {
             for eapi in EAPIS.iter() {
-                let result = dep(&s, eapi);
+                let result = dep(s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
 
         // valid deps
-        for e in data.valid {
+        for e in &TEST_DATA.dep_toml.valid {
             let s = e.dep.as_str();
             let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
             // verify parse successes

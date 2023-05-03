@@ -47,7 +47,7 @@ mod tests {
     use scallop::variables::*;
 
     use crate::macros::assert_err_re;
-    use crate::test::VersionToml;
+    use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as ver_test;
@@ -108,8 +108,7 @@ mod tests {
 
         let mut pvr = Variable::new("PVR");
 
-        let data = VersionToml::load().unwrap();
-        for (expr, (v1, op, v2)) in data.compares() {
+        for (expr, (v1, op, v2)) in TEST_DATA.version_toml.compares() {
             let inverted_op = op_map[inverted_op_map[op]];
             let op = op_map[op];
             let r = ver_test(&[v1, op, v2]);
