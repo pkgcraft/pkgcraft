@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::str::{FromStr, SplitWhitespace};
 use std::{fmt, fs, io};
@@ -115,6 +116,23 @@ impl Config {
     }
 }
 
+trait FilterLines {
+    fn filter_lines(&self) -> Box<dyn Iterator<Item = (usize, &str)> + '_>;
+}
+
+impl<T: Borrow<str>> FilterLines for T {
+    fn filter_lines(&self) -> Box<dyn Iterator<Item = (usize, &str)> + '_> {
+        let iter = self
+            .borrow()
+            .lines()
+            .map(|s| s.trim())
+            .enumerate()
+            .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'));
+
+        Box::new(iter)
+    }
+}
+
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum ArchStatus {
@@ -190,11 +208,8 @@ impl Metadata {
         self.arches.get_or_init(|| {
             let path = self.path.join("profiles/arch.list");
             match fs::read_to_string(path) {
-                Ok(s) => s
-                    .lines()
-                    .map(|s| s.trim())
-                    .filter(|s| !s.is_empty() && !s.starts_with('#'))
-                    .map(String::from)
+                Ok(s) => s.filter_lines()
+                    .map(|(_, s)| s.to_string())
                     .collect(),
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
@@ -214,10 +229,7 @@ impl Metadata {
             let mut vals = HashMap::<ArchStatus, HashSet<String>>::new();
             match fs::read_to_string(path) {
                 Ok(s) => {
-                    s.lines()
-                        .map(|s| s.trim())
-                        .enumerate()
-                        .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                    s.filter_lines()
                         .map(|(i, s)| (i, s.split_whitespace()))
                         // only pull the first two columns, ignoring any additional
                         .for_each(|(i, mut iter)| match (iter.next(), iter.next()) {
@@ -265,11 +277,7 @@ impl Metadata {
         self.categories.get_or_init(|| {
             let path = self.path.join("profiles/categories");
             match fs::read_to_string(path) {
-                Ok(s) => s
-                    .lines()
-                    .map(|s| s.trim())
-                    .enumerate()
-                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                Ok(s) => s.filter_lines()
                     .filter_map(|(i, s)| match parse::category(s) {
                         Ok(_) => Some(s.to_string()),
                         Err(e) => {
@@ -293,11 +301,7 @@ impl Metadata {
         self.mirrors.get_or_init(|| {
             let path = self.path.join("profiles/thirdpartymirrors");
             match fs::read_to_string(path) {
-                Ok(s) => s
-                    .lines()
-                    .map(|s| s.trim())
-                    .enumerate()
-                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                Ok(s) => s.filter_lines()
                     .filter_map(|(i, s)| {
                         let vals: Vec<_> = s.split_whitespace().collect();
                         if vals.len() <= 1 {
@@ -329,11 +333,7 @@ impl Metadata {
         self.pkg_deprecated.get_or_init(|| {
             let path = self.path.join("profiles/package.deprecated");
             match fs::read_to_string(path) {
-                Ok(s) => s
-                    .lines()
-                    .map(|s| s.trim())
-                    .enumerate()
-                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                Ok(s) => s.filter_lines()
                     .filter_map(|(i, s)| match self.eapi.dep(s) {
                         Ok(dep) => Some(dep),
                         Err(e) => {
@@ -357,11 +357,7 @@ impl Metadata {
         self.pkg_mask.get_or_init(|| {
             let path = self.path.join("profiles/package.mask");
             match fs::read_to_string(path) {
-                Ok(s) => s
-                    .lines()
-                    .map(|s| s.trim())
-                    .enumerate()
-                    .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+                Ok(s) => s.filter_lines()
                     .filter_map(|(i, s)| match self.eapi.dep(s) {
                         Ok(dep) => Some(dep),
                         Err(e) => {
