@@ -133,6 +133,22 @@ impl<T: Borrow<str>> FilterLines for T {
     }
 }
 
+trait FileReader {
+    fn read_path(&self, relpath: &str) -> String;
+}
+
+impl FileReader for Metadata {
+    fn read_path(&self, relpath: &str) -> String {
+        let path = self.path.join(relpath);
+        fs::read_to_string(path).unwrap_or_else(|e| {
+            if e.kind() != io::ErrorKind::NotFound {
+                warn!("{}::{relpath}: {e}", self.id);
+            }
+            Default::default()
+        })
+    }
+}
+
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum ArchStatus {
@@ -206,18 +222,10 @@ impl Metadata {
     /// Return a repo's known architectures from `profiles/arch.list`.
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
-            let path = self.path.join("profiles/arch.list");
-            match fs::read_to_string(path) {
-                Ok(s) => s.filter_lines()
-                    .map(|(_, s)| s.to_string())
-                    .collect(),
-                Err(e) => {
-                    if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/arch.list: {e}", self.id);
-                    }
-                    Default::default()
-                }
-            }
+            self.read_path("profiles/arch.list")
+                .filter_lines()
+                .map(|(_, s)| s.to_string())
+                .collect()
         })
     }
 
@@ -225,49 +233,42 @@ impl Metadata {
     /// See GLEP 72 (https://www.gentoo.org/glep/glep-0072.html).
     pub fn arches_desc(&self) -> &HashMap<ArchStatus, HashSet<String>> {
         self.arches_desc.get_or_init(|| {
-            let path = self.path.join("profiles/arches.desc");
             let mut vals = HashMap::<ArchStatus, HashSet<String>>::new();
-            match fs::read_to_string(path) {
-                Ok(s) => {
-                    s.filter_lines()
-                        .map(|(i, s)| (i, s.split_whitespace()))
-                        // only pull the first two columns, ignoring any additional
-                        .for_each(|(i, mut iter)| match (iter.next(), iter.next()) {
-                            (Some(arch), Some(status)) => {
-                                if !self.arches().contains(arch) {
-                                    warn!(
-                                        "{}::profiles/arches.desc, line {}: unknown arch: {arch}",
-                                        self.id,
-                                        i + 1
-                                    );
-                                    return;
-                                }
-
-                                if let Ok(status) = ArchStatus::from_str(status) {
-                                    vals.entry(status)
-                                        .or_insert_with(HashSet::new)
-                                        .insert(arch.to_string());
-                                } else {
-                                    warn!(
-                                        "{}::profiles/arches.desc, line {}: unknown status: {status}",
-                                        self.id, i + 1
-                                    );
-                                }
-                            }
-                            _ => error!(
-                                "{}::profiles/arches.desc, line {}: \
-                                invalid line format: should be '<arch> <status>'",
+            self.read_path("profiles/arches.desc")
+                .filter_lines()
+                .map(|(i, s)| (i, s.split_whitespace()))
+                // only pull the first two columns, ignoring any additional
+                .for_each(|(i, mut iter)| match (iter.next(), iter.next()) {
+                    (Some(arch), Some(status)) => {
+                        if !self.arches().contains(arch) {
+                            warn!(
+                                "{}::profiles/arches.desc, line {}: unknown arch: {arch}",
                                 self.id,
                                 i + 1
-                            ),
-                        })
-                }
-                Err(e) => {
-                    if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/arches.desc: {e}", self.id);
+                            );
+                            return;
+                        }
+
+                        if let Ok(status) = ArchStatus::from_str(status) {
+                            vals.entry(status)
+                                .or_insert_with(HashSet::new)
+                                .insert(arch.to_string());
+                        } else {
+                            warn!(
+                                "{}::profiles/arches.desc, line {}: unknown status: {status}",
+                                self.id,
+                                i + 1
+                            );
+                        }
                     }
-                }
-            }
+                    _ => error!(
+                        "{}::profiles/arches.desc, line {}: \
+                        invalid line format: should be '<arch> <status>'",
+                        self.id,
+                        i + 1
+                    ),
+                });
+
             vals
         })
     }
@@ -275,104 +276,72 @@ impl Metadata {
     /// Return a repo's configured categories from `profiles/categories`.
     pub fn categories(&self) -> &IndexSet<String> {
         self.categories.get_or_init(|| {
-            let path = self.path.join("profiles/categories");
-            match fs::read_to_string(path) {
-                Ok(s) => s.filter_lines()
-                    .filter_map(|(i, s)| match parse::category(s) {
-                        Ok(_) => Some(s.to_string()),
-                        Err(e) => {
-                            warn!("{}::profiles/categories, line {}: {e}", self.id, i + 1);
-                            None
-                        }
-                    })
-                    .collect(),
-                Err(e) => {
-                    if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/categories: {e}", self.id);
+            self.read_path("profiles/categories")
+                .filter_lines()
+                .filter_map(|(i, s)| match parse::category(s) {
+                    Ok(_) => Some(s.to_string()),
+                    Err(e) => {
+                        warn!("{}::profiles/categories, line {}: {e}", self.id, i + 1);
+                        None
                     }
-                    Default::default()
-                }
-            }
+                })
+                .collect()
         })
     }
 
     /// Return a repo's globally defined mirrors.
     pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
         self.mirrors.get_or_init(|| {
-            let path = self.path.join("profiles/thirdpartymirrors");
-            match fs::read_to_string(path) {
-                Ok(s) => s.filter_lines()
-                    .filter_map(|(i, s)| {
-                        let vals: Vec<_> = s.split_whitespace().collect();
-                        if vals.len() <= 1 {
-                            warn!(
-                                "{}::profiles/thirdpartymirrors, line {}: no mirrors listed",
-                                self.id,
-                                i + 1
-                            );
-                            None
-                        } else {
-                            let name = vals[0].to_string();
-                            let mirrors = vals[1..].iter().map(|s| s.to_string()).collect();
-                            Some((name, mirrors))
-                        }
-                    })
-                    .collect(),
-                Err(e) => {
-                    if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/thirdpartymirrors: {e}", self.id);
+            self.read_path("profiles/thirdpartymirrors")
+                .filter_lines()
+                .filter_map(|(i, s)| {
+                    let vals: Vec<_> = s.split_whitespace().collect();
+                    if vals.len() <= 1 {
+                        warn!(
+                            "{}::profiles/thirdpartymirrors, line {}: no mirrors listed",
+                            self.id,
+                            i + 1
+                        );
+                        None
+                    } else {
+                        let name = vals[0].to_string();
+                        let mirrors = vals[1..].iter().map(|s| s.to_string()).collect();
+                        Some((name, mirrors))
                     }
-                    Default::default()
-                }
-            }
+                })
+                .collect()
         })
     }
 
     /// Return a repo's globally deprecated packages.
     pub fn pkg_deprecated(&self) -> &IndexSet<Dep> {
         self.pkg_deprecated.get_or_init(|| {
-            let path = self.path.join("profiles/package.deprecated");
-            match fs::read_to_string(path) {
-                Ok(s) => s.filter_lines()
-                    .filter_map(|(i, s)| match self.eapi.dep(s) {
-                        Ok(dep) => Some(dep),
-                        Err(e) => {
-                            warn!("{}::profiles/package.deprecated, line {}: {e}", self.id, i + 1);
-                            None
-                        }
-                    })
-                    .collect(),
-                Err(e) => {
-                    if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/package.deprecated: {e}", self.id);
+            self.read_path("profiles/package.deprecated")
+                .filter_lines()
+                .filter_map(|(i, s)| match self.eapi.dep(s) {
+                    Ok(dep) => Some(dep),
+                    Err(e) => {
+                        warn!("{}::profiles/package.deprecated, line {}: {e}", self.id, i + 1);
+                        None
                     }
-                    Default::default()
-                }
-            }
+                })
+                .collect()
         })
     }
 
     /// Return a repo's globally masked packages.
     pub fn pkg_mask(&self) -> &IndexSet<Dep> {
         self.pkg_mask.get_or_init(|| {
-            let path = self.path.join("profiles/package.mask");
-            match fs::read_to_string(path) {
-                Ok(s) => s.filter_lines()
-                    .filter_map(|(i, s)| match self.eapi.dep(s) {
-                        Ok(dep) => Some(dep),
-                        Err(e) => {
-                            warn!("{}::profiles/package.mask, line {}: {e}", self.id, i + 1);
-                            None
-                        }
-                    })
-                    .collect(),
-                Err(e) => {
-                    if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}::profiles/package.mask: {e}", self.id);
+            self.read_path("profiles/package.mask")
+                .filter_lines()
+                .filter_map(|(i, s)| match self.eapi.dep(s) {
+                    Ok(dep) => Some(dep),
+                    Err(e) => {
+                        warn!("{}::profiles/package.mask, line {}: {e}", self.id, i + 1);
+                        None
                     }
-                    Default::default()
-                }
-            }
+                })
+                .collect()
         })
     }
 }
