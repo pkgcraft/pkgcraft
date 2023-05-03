@@ -200,7 +200,7 @@ impl Metadata {
                     if e.kind() != io::ErrorKind::NotFound {
                         warn!("{}::profiles/arch.list: {e}", self.id);
                     }
-                    IndexSet::new()
+                    Default::default()
                 }
             }
         })
@@ -282,7 +282,7 @@ impl Metadata {
                     if e.kind() != io::ErrorKind::NotFound {
                         warn!("{}::profiles/categories: {e}", self.id);
                     }
-                    IndexSet::new()
+                    Default::default()
                 }
             }
         })
@@ -318,7 +318,7 @@ impl Metadata {
                     if e.kind() != io::ErrorKind::NotFound {
                         warn!("{}::profiles/thirdpartymirrors: {e}", self.id);
                     }
-                    IndexMap::<String, IndexSet<String>>::new()
+                    Default::default()
                 }
             }
         })
@@ -346,7 +346,7 @@ impl Metadata {
                     if e.kind() != io::ErrorKind::NotFound {
                         warn!("{}::profiles/package.deprecated: {e}", self.id);
                     }
-                    IndexSet::new()
+                    Default::default()
                 }
             }
         })
@@ -374,7 +374,7 @@ impl Metadata {
                     if e.kind() != io::ErrorKind::NotFound {
                         warn!("{}::profiles/package.mask: {e}", self.id);
                     }
-                    IndexSet::new()
+                    Default::default()
                 }
             }
         })
