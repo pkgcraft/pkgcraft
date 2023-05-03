@@ -232,8 +232,9 @@ impl Metadata {
                                 }
 
                                 if let Ok(status) = ArchStatus::from_str(status) {
-                                    let arches = vals.entry(status).or_insert_with(HashSet::new);
-                                    arches.insert(arch.to_string());
+                                    vals.entry(status)
+                                        .or_insert_with(HashSet::new)
+                                        .insert(arch.to_string());
                                 } else {
                                     warn!(
                                         "{}::profiles/arches.desc, line {}: unknown status: {status}",
