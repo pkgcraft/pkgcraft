@@ -167,6 +167,7 @@ pub struct Metadata {
     arches: OnceCell<IndexSet<String>>,
     arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceCell<IndexSet<String>>,
+    licenses: OnceCell<IndexSet<String>>,
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceCell<IndexSet<Dep>>,
     pkg_mask: OnceCell<IndexSet<Dep>>,
@@ -287,6 +288,25 @@ impl Metadata {
                 })
                 .collect()
         })
+    }
+
+    /// Return the ordered set of licenses.
+    pub fn licenses(&self) -> &IndexSet<String> {
+        self.licenses
+            .get_or_init(|| match self.path.join("licenses").read_dir_utf8() {
+                Ok(entries) => {
+                    let mut vals: Vec<_> = entries
+                        .filter_map(|e| e.ok())
+                        .map(|e| e.file_name().to_string())
+                        .collect();
+                    vals.sort();
+                    vals.into_iter().collect()
+                }
+                Err(e) => {
+                    warn!("{}: reading licenses failed: {e}", self.id);
+                    Default::default()
+                }
+            })
     }
 
     /// Return a repo's globally defined mirrors.
@@ -492,6 +512,26 @@ mod tests {
         let metadata = Metadata::new("test", t.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), data).unwrap();
         assert_ordered_eq(metadata.categories(), ["cat1", "cat2", "cat-3"]);
+    }
+
+    #[test]
+    fn test_licenses() {
+        let t = TempRepo::new("test", None, None).unwrap();
+
+        // nonexistent dir
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        assert!(metadata.licenses().is_empty());
+
+        // empty dir
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::create_dir(metadata.path.join("licenses")).unwrap();
+        assert!(metadata.licenses().is_empty());
+
+        // multiple
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("licenses/L1"), "").unwrap();
+        fs::write(metadata.path.join("licenses/L2"), "").unwrap();
+        assert_ordered_eq(metadata.licenses(), ["L1", "L2"]);
     }
 
     #[test]

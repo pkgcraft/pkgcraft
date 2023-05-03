@@ -144,7 +144,8 @@ pub struct Repo {
     metadata: Metadata,
     masters: OnceCell<Vec<Weak<Self>>>,
     trees: OnceCell<Vec<Weak<Self>>>,
-    arches: OnceCell<IndexSet<String>>,
+    arches: OnceCell<HashSet<String>>,
+    licenses: OnceCell<HashSet<String>>,
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
@@ -334,8 +335,8 @@ impl Repo {
             })
     }
 
-    /// Return a repo's known architectures merged via inheritance.
-    pub fn arches(&self) -> &IndexSet<String> {
+    /// Return the set of known architectures merged via inheritance.
+    pub fn arches(&self) -> &HashSet<String> {
         self.arches.get_or_init(|| {
             self.trees()
                 .flat_map(|r| r.metadata().arches().clone().into_iter())
@@ -343,7 +344,16 @@ impl Repo {
         })
     }
 
-    /// Return a repo's globally defined mirrors merged via inheritance.
+    /// Return the set of licenses merged via inheritance.
+    pub fn licenses(&self) -> &HashSet<String> {
+        self.licenses.get_or_init(|| {
+            self.trees()
+                .flat_map(|r| r.metadata().licenses().clone().into_iter())
+                .collect()
+        })
+    }
+
+    /// Return the set of mirrors merged via inheritance.
     pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
         self.mirrors.get_or_init(|| {
             self.trees()
