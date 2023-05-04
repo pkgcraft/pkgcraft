@@ -30,6 +30,8 @@ pub use metadata::Metadata;
 
 static EBUILD_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
+
+// root level directories that aren't categories
 static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ["eclass", "profiles", "metadata", "licenses"]
         .into_iter()

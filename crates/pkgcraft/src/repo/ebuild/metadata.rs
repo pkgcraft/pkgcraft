@@ -168,6 +168,7 @@ pub struct Metadata {
     arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceCell<IndexSet<String>>,
     licenses: OnceCell<IndexSet<String>>,
+    license_groups: OnceCell<HashMap<String, HashSet<String>>>,
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceCell<IndexSet<Dep>>,
     pkg_mask: OnceCell<IndexSet<Dep>>,
@@ -307,6 +308,100 @@ impl Metadata {
                     Default::default()
                 }
             })
+    }
+
+    /// Return the ordered set of licenses.
+    pub fn license_groups(&self) -> &HashMap<String, HashSet<String>> {
+        self.license_groups.get_or_init(|| {
+            let mut mapping = HashMap::<String, HashSet<String>>::new();
+            let mut alias_map = IndexMap::<String, IndexSet<String>>::new();
+            self.read_path("profiles/license_groups")
+                .filter_lines()
+                .for_each(|(i, s)| {
+                    let vals: Vec<_> = s.split_whitespace().collect();
+                    if vals.len() <= 1 {
+                        warn!(
+                            "{}::profiles/license_groups, line {}: no licenses listed",
+                            self.id,
+                            i + 1
+                        );
+                    } else {
+                        let set_name = vals[0].to_string();
+                        let licenses = vals[1..]
+                            .iter()
+                            .filter_map(|s| match s.strip_prefix('@') {
+                                None => {
+                                    if self.licenses().contains(*s) {
+                                        Some(s.to_string())
+                                    } else {
+                                        warn!(
+                                            "{}::profiles/license_groups, line {}: unknown license: {s}",
+                                            self.id,
+                                            i + 1
+                                        );
+                                        None
+                                    }
+                                }
+                                Some(alias) => {
+                                    if !alias.is_empty() {
+                                        alias_map.entry(set_name.clone())
+                                            .or_insert_with(IndexSet::new)
+                                            .insert(alias.to_string());
+                                    } else {
+                                        warn!(
+                                            "{}::profiles/license_groups, line {}: invalid alias: {s}",
+                                            self.id,
+                                            i + 1
+                                        );
+                                    }
+                                    None
+                                }
+                            })
+                            .collect();
+
+                        mapping.insert(set_name, licenses);
+                    }
+                });
+
+            // resolve aliases using DFS
+            for (set, aliases) in &alias_map {
+                let mut seen = IndexSet::new();
+                let mut stack = aliases.clone();
+                while let Some(s) = stack.pop() {
+                    if !seen.contains(&s) {
+                        seen.insert(s.clone());
+                    }
+
+                    // push unresolved, nested aliases onto the stack
+                    if let Some(aliases) = alias_map.get(&s) {
+                        for x in aliases {
+                            if !seen.contains(x) {
+                                stack.insert(x.clone());
+                            } else {
+                                warn!(
+                                    "{}::profiles/license_groups: {set}: cyclic alias: {x}",
+                                    self.id,
+                                );
+                            }
+                        }
+                    }
+
+                    // resolve alias values
+                    if let Some(values) = mapping.get(&s).cloned() {
+                        mapping.entry(set.clone())
+                            .or_insert_with(HashSet::new)
+                            .extend(values);
+                    } else {
+                        warn!(
+                            "{}::profiles/license_groups: {set}: unknown alias: {s}",
+                            self.id,
+                        );
+                    }
+                }
+            }
+
+            mapping
+        })
     }
 
     /// Return a repo's globally defined mirrors.
@@ -532,6 +627,74 @@ mod tests {
         fs::write(metadata.path.join("licenses/L1"), "").unwrap();
         fs::write(metadata.path.join("licenses/L2"), "").unwrap();
         assert_ordered_eq(metadata.licenses(), ["L1", "L2"]);
+    }
+
+    #[traced_test]
+    #[test]
+    fn test_license_groups() {
+        let t = TempRepo::new("test", None, None).unwrap();
+
+        // nonexistent dir
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        assert!(metadata.license_groups().is_empty());
+
+        // empty file
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/license_groups"), "").unwrap();
+        assert!(metadata.license_groups().is_empty());
+
+        // create license files
+        fs::create_dir(metadata.path.join("licenses")).unwrap();
+        for l in ["a", "b", "c"] {
+            fs::write(metadata.path.join(format!("licenses/{l}")), "").unwrap();
+        }
+
+        // multiple with unknown and mixed whitespace
+        let data = indoc::indoc! {r#"
+            # comment 1
+            set1 a b
+
+            # comment 2
+            set2 a	z
+        "#};
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
+        assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["a", "b"]);
+        assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a"]);
+        assert_logs_re!(format!(".+, line 5: unknown license: z$"));
+
+        // multiple with unknown and invalid aliases
+        let data = indoc::indoc! {r#"
+            # comment 1
+            set1 b @
+
+            # comment 2
+            set2 a c @set1 @set3
+        "#};
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
+        assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["b"]);
+        assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a", "b", "c"]);
+        assert_logs_re!(format!(".+, line 2: invalid alias: @"));
+        assert_logs_re!(format!(".+ set2: unknown alias: set3"));
+
+        // multiple with cyclic aliases
+        let data = indoc::indoc! {r#"
+            set1 a @set2
+            set2 b @set1
+            set3 c @set2
+            set4 c @set4
+        "#};
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
+        assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["a", "b"]);
+        assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a", "b"]);
+        assert_unordered_eq(metadata.license_groups().get("set3").unwrap(), ["a", "b", "c"]);
+        assert_unordered_eq(metadata.license_groups().get("set4").unwrap(), ["c"]);
+        assert_logs_re!(format!(".+ set1: cyclic alias: set2"));
+        assert_logs_re!(format!(".+ set2: cyclic alias: set1"));
+        assert_logs_re!(format!(".+ set3: cyclic alias: set2"));
+        assert_logs_re!(format!(".+ set4: cyclic alias: set4"));
     }
 
     #[test]
