@@ -310,28 +310,19 @@ impl Metadata {
             })
     }
 
-    /// Return the ordered set of licenses.
+    /// Return the mapping of license groups.
     pub fn license_groups(&self) -> &HashMap<String, HashSet<String>> {
         self.license_groups.get_or_init(|| {
-            let mut mapping = HashMap::<String, HashSet<String>>::new();
             let mut alias_map = IndexMap::<String, IndexSet<String>>::new();
-            self.read_path("profiles/license_groups")
+            let mut group_map: HashMap<_, _> = self.read_path("profiles/license_groups")
                 .filter_lines()
-                .for_each(|(i, s)| {
-                    let vals: Vec<_> = s.split_whitespace().collect();
-                    if vals.len() <= 1 {
-                        warn!(
-                            "{}::profiles/license_groups, line {}: no licenses listed",
-                            self.id,
-                            i + 1
-                        );
-                    } else {
-                        let set_name = vals[0].to_string();
-                        let licenses = vals[1..]
-                            .iter()
+                .filter_map(|(i, s)| {
+                    let mut vals = s.split_whitespace();
+                    if let Some(name) = vals.next() {
+                        let licenses = vals
                             .filter_map(|s| match s.strip_prefix('@') {
                                 None => {
-                                    if self.licenses().contains(*s) {
+                                    if self.licenses().contains(s) {
                                         Some(s.to_string())
                                     } else {
                                         warn!(
@@ -344,7 +335,7 @@ impl Metadata {
                                 }
                                 Some(alias) => {
                                     if !alias.is_empty() {
-                                        alias_map.entry(set_name.clone())
+                                        alias_map.entry(name.to_string())
                                             .or_insert_with(IndexSet::new)
                                             .insert(alias.to_string());
                                     } else {
@@ -358,14 +349,16 @@ impl Metadata {
                                 }
                             })
                             .collect();
-
-                        mapping.insert(set_name, licenses);
+                        Some((name.to_string(), licenses))
+                    } else {
+                        None
                     }
-                });
+                })
+                .collect();
 
             // resolve aliases using DFS
             for (set, aliases) in &alias_map {
-                let mut seen = IndexSet::new();
+                let mut seen = HashSet::new();
                 let mut stack = aliases.clone();
                 while let Some(s) = stack.pop() {
                     if !seen.contains(&s) {
@@ -373,8 +366,8 @@ impl Metadata {
                     }
 
                     // push unresolved, nested aliases onto the stack
-                    if let Some(aliases) = alias_map.get(&s) {
-                        for x in aliases {
+                    if let Some(nested_aliases) = alias_map.get(&s) {
+                        for x in nested_aliases {
                             if !seen.contains(x) {
                                 stack.insert(x.clone());
                             } else {
@@ -387,8 +380,8 @@ impl Metadata {
                     }
 
                     // resolve alias values
-                    if let Some(values) = mapping.get(&s).cloned() {
-                        mapping.entry(set.clone())
+                    if let Some(values) = group_map.get(&s).cloned() {
+                        group_map.entry(set.clone())
                             .or_insert_with(HashSet::new)
                             .extend(values);
                     } else {
@@ -400,7 +393,7 @@ impl Metadata {
                 }
             }
 
-            mapping
+            group_map
         })
     }
 
