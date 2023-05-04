@@ -148,6 +148,7 @@ pub struct Repo {
     trees: OnceCell<Vec<Weak<Self>>>,
     arches: OnceCell<HashSet<String>>,
     licenses: OnceCell<HashSet<String>>,
+    license_groups: OnceCell<HashMap<String, HashSet<String>>>,
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
@@ -352,6 +353,22 @@ impl Repo {
             self.trees()
                 .flat_map(|r| r.metadata().licenses().clone().into_iter())
                 .collect()
+        })
+    }
+
+    /// Return the mapping of license groups merged via inheritance.
+    pub fn license_groups(&self) -> &HashMap<String, HashSet<String>> {
+        self.license_groups.get_or_init(|| {
+            let mut group_map = self.metadata().license_groups().clone();
+            self.masters()
+                .flat_map(|r| r.metadata().license_groups().clone().into_iter())
+                .for_each(|(name, set)| {
+                    group_map
+                        .entry(name)
+                        .or_insert_with(HashSet::new)
+                        .extend(set);
+                });
+            group_map
         })
     }
 
