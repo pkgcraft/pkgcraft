@@ -127,6 +127,7 @@ impl<T: Borrow<str>> FilterLines for T {
             .lines()
             .map(|s| s.trim())
             .enumerate()
+            .map(|(i, s)| (i + 1, s))
             .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'));
 
         Box::new(iter)
@@ -244,9 +245,8 @@ impl Metadata {
                     (Some(arch), Some(status)) => {
                         if !self.arches().contains(arch) {
                             warn!(
-                                "{}::profiles/arches.desc, line {}: unknown arch: {arch}",
-                                self.id,
-                                i + 1
+                                "{}::profiles/arches.desc, line {i}: unknown arch: {arch}",
+                                self.id
                             );
                             return;
                         }
@@ -257,17 +257,15 @@ impl Metadata {
                                 .insert(arch.to_string());
                         } else {
                             warn!(
-                                "{}::profiles/arches.desc, line {}: unknown status: {status}",
+                                "{}::profiles/arches.desc, line {i}: unknown status: {status}",
                                 self.id,
-                                i + 1
                             );
                         }
                     }
                     _ => error!(
-                        "{}::profiles/arches.desc, line {}: \
+                        "{}::profiles/arches.desc, line {i}: \
                         invalid line format: should be '<arch> <status>'",
                         self.id,
-                        i + 1
                     ),
                 });
 
@@ -283,7 +281,7 @@ impl Metadata {
                 .filter_map(|(i, s)| match parse::category(s) {
                     Ok(_) => Some(s.to_string()),
                     Err(e) => {
-                        warn!("{}::profiles/categories, line {}: {e}", self.id, i + 1);
+                        warn!("{}::profiles/categories, line {i}: {e}", self.id);
                         None
                     }
                 })
@@ -326,9 +324,8 @@ impl Metadata {
                                         Some(s.to_string())
                                     } else {
                                         warn!(
-                                            "{}::profiles/license_groups, line {}: unknown license: {s}",
+                                            "{}::profiles/license_groups, line {i}: unknown license: {s}",
                                             self.id,
-                                            i + 1
                                         );
                                         None
                                     }
@@ -340,9 +337,8 @@ impl Metadata {
                                             .insert(alias.to_string());
                                     } else {
                                         warn!(
-                                            "{}::profiles/license_groups, line {}: invalid alias: {s}",
+                                            "{}::profiles/license_groups, line {i}: invalid alias: {s}",
                                             self.id,
-                                            i + 1
                                         );
                                     }
                                     None
@@ -406,9 +402,8 @@ impl Metadata {
                     let vals: Vec<_> = s.split_whitespace().collect();
                     if vals.len() <= 1 {
                         warn!(
-                            "{}::profiles/thirdpartymirrors, line {}: no mirrors listed",
+                            "{}::profiles/thirdpartymirrors, line {i}: no mirrors listed",
                             self.id,
-                            i + 1
                         );
                         None
                     } else {
@@ -429,7 +424,7 @@ impl Metadata {
                 .filter_map(|(i, s)| match self.eapi.dep(s) {
                     Ok(dep) => Some(dep),
                     Err(e) => {
-                        warn!("{}::profiles/package.deprecated, line {}: {e}", self.id, i + 1);
+                        warn!("{}::profiles/package.deprecated, line {i}: {e}", self.id);
                         None
                     }
                 })
@@ -445,7 +440,7 @@ impl Metadata {
                 .filter_map(|(i, s)| match self.eapi.dep(s) {
                     Ok(dep) => Some(dep),
                     Err(e) => {
-                        warn!("{}::profiles/package.mask, line {}: {e}", self.id, i + 1);
+                        warn!("{}::profiles/package.mask, line {i}: {e}", self.id);
                         None
                     }
                 })
