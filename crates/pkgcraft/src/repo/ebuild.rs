@@ -933,9 +933,9 @@ mod tests {
 
     #[test]
     fn test_licenses() {
-        let repo = TEST_DATA.config.repos.get("dependent-primary").unwrap().as_ebuild().unwrap();
+        let repo = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
         assert_unordered_eq(repo.licenses(), ["a"]);
-        let repo = TEST_DATA.config.repos.get("dependent-secondary").unwrap().as_ebuild().unwrap();
+        let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
         assert_unordered_eq(repo.licenses(), ["a", "b"]);
     }
 }

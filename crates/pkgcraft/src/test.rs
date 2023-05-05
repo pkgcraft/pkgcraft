@@ -139,6 +139,15 @@ pub struct TestData {
     pub version_toml: VersionToml,
 }
 
+impl TestData {
+    pub fn ebuild_repo(&self, name: &str) -> Option<&crate::repo::ebuild::Repo> {
+        self.config
+            .repos
+            .get(name)
+            .and_then(|r| r.as_ebuild().map(|r| r.as_ref()))
+    }
+}
+
 pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
     let path = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata");
 
