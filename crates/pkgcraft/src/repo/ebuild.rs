@@ -715,7 +715,7 @@ mod tests {
     use crate::pkgsh::metadata::Key;
     use crate::repo::ebuild_temp::Repo as TempRepo;
     use crate::repo::Contains;
-    use crate::test::TEST_DATA;
+    use crate::test::{assert_unordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -929,5 +929,13 @@ mod tests {
             assert!(iter.next().is_none());
             assert_logs_re!(format!("test: invalid pkg: .+: {err}$"));
         }
+    }
+
+    #[test]
+    fn test_licenses() {
+        let repo = TEST_DATA.config.repos.get("dependent-primary").unwrap().as_ebuild().unwrap();
+        assert_unordered_eq(repo.licenses(), ["a"]);
+        let repo = TEST_DATA.config.repos.get("dependent-secondary").unwrap().as_ebuild().unwrap();
+        assert_unordered_eq(repo.licenses(), ["a", "b"]);
     }
 }
