@@ -136,6 +136,11 @@ impl Dep {
         parse::dep(s, eapi.into_eapi()?)
     }
 
+    /// Create a new unversioned Dep from a given string.
+    pub fn unversioned(s: &str) -> crate::Result<Self> {
+        parse::dep_unversioned(s)
+    }
+
     /// Return a package dependency's category.
     pub fn category(&self) -> &str {
         &self.category

@@ -190,8 +190,10 @@ peg::parser!(grammar depspec() for str {
         = op:$(("<" "="?) / "=" / "~" / (">" "="?)) cpv:$([^'*']+) glob:$("*")?
         { (op, cpv, glob) }
 
-    pub(super) rule cp() -> (&'input str, &'input str)
-        = cat:category() "/" pkg:package() { (cat, pkg) }
+    pub(super) rule cp() -> ParsedDep<'input>
+        = category:category() "/" package:package() {
+            ParsedDep { category, package, ..Default::default() }
+        }
 
     pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
         = blocker:blocker(eapi)? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
@@ -407,10 +409,10 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
             dep.version_str = Some(cpv_s);
         }
         _ => {
-            let (cat, pkg) =
+            let d =
                 depspec::cp(dep_s).map_err(|e| peg_error(format!("invalid dep: {s}"), dep_s, e))?;
-            dep.category = cat;
-            dep.package = pkg;
+            dep.category = d.category;
+            dep.package = d.package;
         }
     }
 
@@ -424,6 +426,12 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
 )]
 pub(super) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
     let dep = dep_str(s, eapi)?;
+    dep.into_owned()
+}
+
+pub(super) fn dep_unversioned(s: &str) -> crate::Result<Dep> {
+    let dep =
+        depspec::cp(s).map_err(|e| peg_error(format!("invalid unversioned dep: {s}"), s, e))?;
     dep.into_owned()
 }
 
