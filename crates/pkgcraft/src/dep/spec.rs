@@ -86,13 +86,21 @@ macro_rules! p {
 /// Dependency specification variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DepSpec<T: Ordered> {
+    /// Enabled dependency.
     Enabled(T),
+    /// Disabled dependency.
     Disabled(T), // REQUIRED_USE only
+    /// All of a given dependency set.
     AllOf(SortedSet<Box<DepSpec<T>>>),
+    /// Any of a given dependency set.
     AnyOf(OrderedSet<Box<DepSpec<T>>>),
-    ExactlyOneOf(OrderedSet<Box<DepSpec<T>>>), // REQUIRED_USE only
-    AtMostOneOf(OrderedSet<Box<DepSpec<T>>>),  // REQUIRED_USE only
+    /// Exactly one of a given dependency set (REQUIRED_USE only).
+    ExactlyOneOf(OrderedSet<Box<DepSpec<T>>>),
+    /// At most of a given dependency set (REQUIRED_USE only).
+    AtMostOneOf(OrderedSet<Box<DepSpec<T>>>),
+    /// Conditionally enabled dependency.
     UseEnabled(String, SortedSet<Box<DepSpec<T>>>),
+    /// Conditionally disabled dependency.
     UseDisabled(String, SortedSet<Box<DepSpec<T>>>),
 }
 
