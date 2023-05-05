@@ -2,19 +2,18 @@
 use std::{env, fmt, fs};
 
 use assert_cmd::Command;
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
+use walkdir::WalkDir;
 
+use crate::config::Config;
 use crate::dep::{Blocker, Revision, SlotOperator, Version};
 use crate::macros::build_from_paths;
 use crate::set::OrderedSet;
 use crate::Error;
-
-pub static TEST_DATA_PATH: Lazy<Utf8PathBuf> =
-    Lazy::new(|| build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata"));
 
 /// Construct a Command from a given string.
 pub fn cmd(cmd: &str) -> Command {
@@ -79,11 +78,10 @@ pub struct DepToml {
 }
 
 impl DepToml {
-    pub fn load() -> crate::Result<Self> {
-        let path = TEST_DATA_PATH.join("toml/dep.toml");
-        let data = fs::read_to_string(&path)
-            .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
-        toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
+    pub fn load(path: &Utf8Path) -> crate::Result<Self> {
+        let data = fs::read_to_string(path)
+            .map_err(|e| Error::IO(format!("failed loading data: {path}: {e}")))?;
+        toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path}: {e}")))
     }
 
     pub fn compares(&self) -> ComparesIter {
@@ -106,11 +104,10 @@ pub struct VersionToml {
 }
 
 impl VersionToml {
-    pub fn load() -> crate::Result<Self> {
-        let path = TEST_DATA_PATH.join("toml/version.toml");
-        let data = fs::read_to_string(&path)
-            .map_err(|e| Error::IO(format!("failed loading data: {path:?}: {e}")))?;
-        toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path:?}: {e}")))
+    pub fn load(path: &Utf8Path) -> crate::Result<Self> {
+        let data = fs::read_to_string(path)
+            .map_err(|e| Error::IO(format!("failed loading data: {path}: {e}")))?;
+        toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path}: {e}")))
     }
 
     pub fn compares(&self) -> ComparesIter {
@@ -136,13 +133,30 @@ impl<'a> Iterator for ComparesIter<'a> {
 
 #[derive(Debug)]
 pub struct TestData {
+    pub path: Utf8PathBuf,
+    pub config: Config,
     pub dep_toml: DepToml,
     pub version_toml: VersionToml,
 }
 
-pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| TestData {
-    dep_toml: DepToml::load().unwrap(),
-    version_toml: VersionToml::load().unwrap(),
+pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
+    let path = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata");
+
+    // load valid repos from test data, ignoring purposefully broken ones
+    let mut config = Config::new("pkgcraft", "");
+    for entry in WalkDir::new(path.join("repos")).sort_by_file_name() {
+        let entry = entry.unwrap();
+        let name = entry.file_name().to_str().unwrap();
+        let path = entry.path().to_str().unwrap();
+        config.add_repo_path(name, 0, path).ok();
+    }
+
+    TestData {
+        path: path.clone(),
+        config,
+        dep_toml: DepToml::load(&path.join("toml/dep.toml")).unwrap(),
+        version_toml: VersionToml::load(&path.join("toml/version.toml")).unwrap(),
+    }
 });
 
 /// Verify two, unordered iterables contain the same elements.

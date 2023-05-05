@@ -1,4 +1,4 @@
-use pkgcraft::test::{cmd, VersionToml};
+use pkgcraft::test::{cmd, TEST_DATA};
 
 #[test]
 fn stdin() {
@@ -47,11 +47,9 @@ fn args() {
     // invalid args
     cmd("pk version sort").arg("a/b").assert().failure();
 
-    // use shared test data
-    let data = VersionToml::load().unwrap();
-    for d in data.hashing {
-        let versions = d.versions;
-        let output = cmd("pk version set").args(&versions).output().unwrap();
+    for d in &TEST_DATA.version_toml.hashing {
+        let versions = &d.versions;
+        let output = cmd("pk version set").args(versions).output().unwrap();
         let set: Vec<_> = std::str::from_utf8(&output.stdout)
             .unwrap()
             .split_whitespace()

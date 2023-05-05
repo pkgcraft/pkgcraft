@@ -1,4 +1,4 @@
-use pkgcraft::test::{cmd, DepToml};
+use pkgcraft::test::{cmd, TEST_DATA};
 
 #[test]
 fn stdin() {
@@ -47,9 +47,7 @@ fn args() {
     // invalid args
     cmd("pk dep sort").arg("a/b/c").assert().failure();
 
-    // use shared test data
-    let data = DepToml::load().unwrap();
-    for d in data.sorting {
+    for d in &TEST_DATA.dep_toml.sorting {
         let mut reversed: Vec<_> = d.sorted.clone();
         reversed.reverse();
         let output = cmd("pk dep sort").args(&reversed).output().unwrap();

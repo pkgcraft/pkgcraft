@@ -1,4 +1,4 @@
-use pkgcraft::test::{cmd, VersionToml};
+use pkgcraft::test::{cmd, TEST_DATA};
 
 #[test]
 fn stdin() {
@@ -47,9 +47,7 @@ fn args() {
     // invalid args
     cmd("pk version sort").arg("a/b").assert().failure();
 
-    // use shared test data
-    let data = VersionToml::load().unwrap();
-    for d in data.sorting {
+    for d in &TEST_DATA.version_toml.sorting {
         let mut reversed: Vec<_> = d.sorted.clone();
         reversed.reverse();
         let output = cmd("pk version sort").args(&reversed).output().unwrap();

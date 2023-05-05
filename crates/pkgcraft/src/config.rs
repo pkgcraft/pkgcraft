@@ -191,7 +191,12 @@ impl Config {
     // during mutations causing references to change.
 
     /// Add local repo from a filesystem path.
-    pub fn add_repo_path(&mut self, name: &str, priority: i32, path: &str) -> crate::Result<Repo> {
+    pub fn add_repo_path<P: AsRef<Utf8Path>>(
+        &mut self,
+        name: &str,
+        priority: i32,
+        path: P,
+    ) -> crate::Result<Repo> {
         let r = Repo::from_path(name, priority, path, false)?;
         self.add_repo(&r)?;
         Ok(r)
@@ -245,7 +250,7 @@ mod tests {
 
     use crate::macros::*;
     use crate::repo::Repository;
-    use crate::test::{assert_ordered_eq, TEST_DATA_PATH};
+    use crate::test::{assert_ordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -401,7 +406,7 @@ mod tests {
 
         // nonexistent masters causes finalization failure
         let mut config = Config::new("pkgcraft", "");
-        let repos_path = TEST_DATA_PATH.join("repos");
+        let repos_path = TEST_DATA.path.join("repos");
         let data = indoc::formatdoc! {r#"
             [primary]
             location = {repos_path}/dependent-primary

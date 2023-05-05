@@ -715,14 +715,14 @@ mod tests {
     use crate::pkgsh::metadata::Key;
     use crate::repo::ebuild_temp::Repo as TempRepo;
     use crate::repo::Contains;
-    use crate::test::TEST_DATA_PATH;
+    use crate::test::TEST_DATA;
 
     use super::*;
 
     #[test]
     fn test_masters() {
         let mut config = Config::default();
-        let repos_path = TEST_DATA_PATH.join("repos");
+        let repos_path = TEST_DATA.path.join("repos");
 
         // none
         let repo = Repo::from_path("a", 0, repos_path.join("dependent-primary")).unwrap();
