@@ -11,6 +11,7 @@ use tracing::{error, warn};
 
 use crate::dep::{parse, Dep};
 use crate::eapi::{Eapi, EAPI0};
+use crate::files::{is_file, is_hidden, sorted_dir_list};
 use crate::pkg::ebuild::metadata::HashType;
 use crate::set::OrderedSet;
 use crate::Error;
@@ -158,6 +159,34 @@ pub enum ArchStatus {
     Transitional,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[allow(clippy::large_enum_variant)]
+pub enum PkgUpdate {
+    Move(Dep, Dep),
+    SlotMove(Dep, String, String),
+}
+
+impl FromStr for PkgUpdate {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let tokens: Vec<_> = s.split_whitespace().collect();
+        match &tokens[..] {
+            ["move", s1, s2] => {
+                let d1 = Dep::unversioned(s1)?;
+                let d2 = Dep::unversioned(s2)?;
+                Ok(Self::Move(d1, d2))
+            }
+            ["slotmove", spec, s1, s2] => {
+                let dep = Dep::from_str(spec)?;
+                // TODO: validate slot names
+                Ok(Self::SlotMove(dep, s1.to_string(), s2.to_string()))
+            }
+            _ => Err(Error::InvalidValue(format!("invalid or unknown update: {s}"))),
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Metadata {
     pub(super) id: String,
@@ -173,6 +202,7 @@ pub struct Metadata {
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceCell<IndexSet<Dep>>,
     pkg_mask: OnceCell<IndexSet<Dep>>,
+    updates: OnceCell<IndexSet<PkgUpdate>>,
 }
 
 impl Metadata {
@@ -445,6 +475,31 @@ impl Metadata {
                     }
                 })
                 .collect()
+        })
+    }
+
+    /// Return the ordered set of package updates.
+    pub fn updates(&self) -> &IndexSet<PkgUpdate> {
+        self.updates.get_or_init(|| {
+            let mut vals = IndexSet::<PkgUpdate>::new();
+            sorted_dir_list(self.path.join("profiles/updates"))
+                .into_iter()
+                .filter_entry(|e| is_file(e) && !is_hidden(e))
+                .filter_map(|e| e.ok())
+                .filter_map(|e| fs::read_to_string(e.path()).ok().map(move |s| (e, s)))
+                .for_each(|(e, s)| {
+                    let file = e.file_name().to_str().unwrap_or_default().to_string();
+                    // TODO: Note that comments and empty lines are filtered even though
+                    // the specification doesn't allow them.
+                    vals.extend(s.filter_lines().flat_map(|(i, line)| {
+                        PkgUpdate::from_str(line)
+                            .map_err(|e| {
+                                warn!("{}::profiles/updates/{file}, line {i}: {e}", self.id)
+                            })
+                            .ok()
+                    }))
+                });
+            vals
         })
     }
 }
@@ -812,5 +867,38 @@ mod tests {
             metadata.pkg_mask(),
             [&Dep::from_str("cat/slotted:0").unwrap(), &Dep::from_str("cat/subslot:0/1").unwrap()],
         );
+    }
+
+    #[traced_test]
+    #[test]
+    fn test_updates() {
+        let t = TempRepo::new("test", None, None).unwrap();
+
+        // nonexistent
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        assert!(metadata.updates().is_empty());
+
+        // empty
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::create_dir_all(metadata.path.join("profiles/updates")).unwrap();
+        fs::write(metadata.path.join("profiles/updates/1Q-9999"), "").unwrap();
+        assert!(metadata.updates().is_empty());
+
+        // multiple with invalid
+        let data = indoc::indoc! {r#"
+            # comment 1
+            move cat/pkg1 cat/pkg2
+
+            # invalid
+            move cat/pkg3-1 cat/pkg4
+
+            # comment 2
+            slotmove <cat/pkg1-5 0 1
+        "#};
+        let metadata = Metadata::new("test", t.path()).unwrap();
+        fs::write(metadata.path.join("profiles/updates/1Q-9999"), data).unwrap();
+        let updates = metadata.updates();
+        assert_eq!(updates.len(), 2);
+        assert_logs_re!(format!(".+: invalid unversioned dep: cat/pkg3-1$"));
     }
 }
