@@ -932,6 +932,14 @@ mod tests {
     }
 
     #[test]
+    fn test_eclasses() {
+        let repo = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
+        assert_unordered_eq(repo.eclasses().keys(), ["a"]);
+        let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
+        assert_unordered_eq(repo.eclasses().keys(), ["a", "b"]);
+    }
+
+    #[test]
     fn test_arches() {
         let repo = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
         assert_unordered_eq(repo.arches(), ["x86"]);
