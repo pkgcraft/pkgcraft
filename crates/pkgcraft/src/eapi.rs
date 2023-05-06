@@ -1,9 +1,9 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
+use std::{fmt, fs, io};
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -177,6 +177,16 @@ impl IntoEapi for Option<&str> {
 impl IntoEapi for Option<&'static Eapi> {
     fn into_eapi(self) -> crate::Result<&'static Eapi> {
         Ok(self.unwrap_or_default())
+    }
+}
+
+impl IntoEapi for &Utf8Path {
+    fn into_eapi(self) -> crate::Result<&'static Eapi> {
+        match fs::read_to_string(self) {
+            Ok(s) => <&Eapi>::from_str(s.trim_end()),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(&*EAPI0),
+            Err(e) => Err(Error::IO(format!("failed reading EAPI: {self}: {e}"))),
+        }
     }
 }
 
