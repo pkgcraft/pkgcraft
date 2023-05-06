@@ -10,7 +10,7 @@ use strum::{Display, EnumString};
 use tracing::{error, warn};
 
 use crate::dep::{parse, Dep};
-use crate::eapi::{Eapi, EAPI0};
+use crate::eapi::{Eapi, IntoEapi};
 use crate::files::{is_file, is_hidden, sorted_dir_list};
 use crate::pkg::ebuild::metadata::HashType;
 use crate::set::OrderedSet;
@@ -207,36 +207,27 @@ pub struct Metadata {
 
 impl Metadata {
     pub(super) fn new(id: &str, path: &Utf8Path) -> crate::Result<Self> {
-        let invalid_repo = |err: &str| -> Error {
-            Error::InvalidRepo {
-                id: id.to_string(),
-                err: err.to_string(),
-            }
-        };
+        let invalid_repo =
+            |err: String| -> Error { Error::InvalidRepo { id: id.to_string(), err } };
 
         // verify repo name
         let name = match fs::read_to_string(path.join("profiles/repo_name")) {
             Ok(data) => match data.lines().next().map(|s| parse::repo(s.trim())) {
-                Some(Ok(s)) => s.to_string(),
-                Some(Err(e)) => return Err(invalid_repo(&format!("profiles/repo_name: {e}"))),
-                None => return Err(invalid_repo("profiles/repo_name empty")),
+                Some(Ok(s)) => Ok(s.to_string()),
+                Some(Err(e)) => Err(invalid_repo(format!("profiles/repo_name: {e}"))),
+                None => Err(invalid_repo("profiles/repo_name empty".to_string())),
             },
-            Err(e) => return Err(invalid_repo(&format!("profiles/repo_name: {e}"))),
-        };
+            Err(e) => Err(invalid_repo(format!("profiles/repo_name: {e}"))),
+        }?;
 
         // verify repo EAPI
-        let eapi = match fs::read_to_string(path.join("profiles/eapi")) {
-            Ok(data) => {
-                let s = data.lines().next().unwrap_or_default();
-                <&Eapi>::from_str(s.trim_end())
-                    .map_err(|e| invalid_repo(&format!("profiles/eapi: {e}")))?
-            }
-            Err(e) if e.kind() == io::ErrorKind::NotFound => &*EAPI0,
-            Err(e) => return Err(invalid_repo(&format!("profiles/eapi: {e}"))),
-        };
+        let eapi = path
+            .join("profiles/eapi")
+            .into_eapi()
+            .map_err(|e| invalid_repo(format!("profiles/eapi: {e}")))?;
 
         let config =
-            Config::new(path).map_err(|e| invalid_repo(&format!("metadata/layout.conf: {e}")))?;
+            Config::new(path).map_err(|e| invalid_repo(format!("metadata/layout.conf: {e}")))?;
 
         Ok(Self {
             id: id.to_string(),
