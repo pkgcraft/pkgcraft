@@ -1,5 +1,7 @@
 use std::borrow::Borrow;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
 use std::{fmt, fs, io};
 
@@ -13,7 +15,7 @@ use crate::dep::{parse, Dep};
 use crate::eapi::{Eapi, IntoEapi};
 use crate::files::{is_file, is_hidden, sorted_dir_list};
 use crate::pkg::ebuild::metadata::HashType;
-use crate::set::OrderedSet;
+use crate::set::{OrderedMap, OrderedSet};
 use crate::Error;
 
 const DEFAULT_SECTION: Option<String> = None;
@@ -187,6 +189,68 @@ impl FromStr for PkgUpdate {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct UseDesc {
+    name: String,
+    desc: String,
+}
+
+impl UseDesc {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn desc(&self) -> &str {
+        &self.desc
+    }
+}
+
+impl Ord for UseDesc {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
+impl PartialOrd for UseDesc {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for UseDesc {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for UseDesc {}
+
+impl Hash for UseDesc {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
+impl UseDesc {
+    fn new(name: &str, desc: &str) -> crate::Result<Self> {
+        Ok(Self {
+            name: parse::use_flag(name).map(|s| s.to_string())?,
+            desc: desc.to_string(),
+        })
+    }
+}
+
+impl FromStr for UseDesc {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let (flag, desc) = s
+            .split_once(" - ")
+            .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
+        UseDesc::new(flag, desc)
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Metadata {
     pub(super) id: String,
@@ -203,6 +267,9 @@ pub struct Metadata {
     pkg_deprecated: OnceCell<IndexSet<Dep>>,
     pkg_mask: OnceCell<IndexSet<Dep>>,
     updates: OnceCell<IndexSet<PkgUpdate>>,
+    use_desc: OnceCell<IndexSet<UseDesc>>,
+    use_expand_desc: OnceCell<IndexMap<String, IndexSet<UseDesc>>>,
+    use_local_desc: OnceCell<OrderedMap<Dep, OrderedSet<UseDesc>>>,
 }
 
 impl Metadata {
@@ -323,7 +390,9 @@ impl Metadata {
                     vals.into_iter().collect()
                 }
                 Err(e) => {
-                    warn!("{}: reading licenses failed: {e}", self.id);
+                    if e.kind() != io::ErrorKind::NotFound {
+                        warn!("{}: reading licenses failed: {e}", self.id);
+                    }
                     Default::default()
                 }
             })
@@ -490,6 +559,80 @@ impl Metadata {
                                 .ok()
                         })
                         .collect::<Vec<_>>()
+                })
+                .collect()
+        })
+    }
+
+    /// Return the ordered map of global USE flags.
+    pub fn use_desc(&self) -> &IndexSet<UseDesc> {
+        self.use_desc.get_or_init(|| {
+            self.read_path("profiles/use.desc")
+                .filter_lines()
+                .filter_map(|(i, s)| {
+                    UseDesc::from_str(s)
+                        .map_err(|e| {
+                            warn!("{}::profiles/use.desc, line {i}: invalid format: {e}", self.id);
+                        })
+                        .ok()
+                })
+                .collect()
+        })
+    }
+
+    /// Return the ordered map of USE_EXPAND flags.
+    pub fn use_expand_desc(&self) -> &IndexMap<String, IndexSet<UseDesc>> {
+        self.use_expand_desc.get_or_init(|| {
+            sorted_dir_list(self.path.join("profiles/desc"))
+                .into_iter()
+                .filter_entry(|e| is_file(e) && !is_hidden(e))
+                .filter_map(|e| e.ok())
+                .filter_map(|e| fs::read_to_string(e.path()).ok().map(|s| (e, s)))
+                .map(|(e, s)| {
+                    let file = e.file_name().to_str().unwrap_or_default();
+                    let name = e
+                        .path()
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or_default();
+                    let vals = s
+                        .filter_lines()
+                        .filter_map(|(i, line)| {
+                            UseDesc::from_str(line)
+                                .map_err(|err| {
+                                    warn!("{}::profiles/desc/{file}, line {i}: {err}", self.id)
+                                })
+                                .ok()
+                        })
+                        .collect::<IndexSet<_>>();
+                    (name.to_string(), vals)
+                })
+                .collect()
+        })
+    }
+
+    /// Return the ordered map of local USE flags.
+    pub fn use_local_desc(&self) -> &OrderedMap<Dep, OrderedSet<UseDesc>> {
+        // parse a use.local.desc line
+        let parse = |s: &str| -> crate::Result<(Dep, UseDesc)> {
+            let (cpn, use_desc) = s
+                .split_once(':')
+                .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
+            Ok((Dep::unversioned(cpn)?, UseDesc::from_str(use_desc)?))
+        };
+
+        self.use_local_desc.get_or_init(|| {
+            self.read_path("profiles/use.local.desc")
+                .filter_lines()
+                .filter_map(|(i, s)| {
+                    parse(s)
+                        .map_err(|e| {
+                            warn!(
+                                "{}::profiles/use.local.desc, line {i}: invalid format: {e}",
+                                self.id
+                            );
+                        })
+                        .ok()
                 })
                 .collect()
         })
