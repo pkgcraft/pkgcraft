@@ -481,25 +481,26 @@ impl Metadata {
     /// Return the ordered set of package updates.
     pub fn updates(&self) -> &IndexSet<PkgUpdate> {
         self.updates.get_or_init(|| {
-            let mut vals = IndexSet::<PkgUpdate>::new();
             sorted_dir_list(self.path.join("profiles/updates"))
                 .into_iter()
                 .filter_entry(|e| is_file(e) && !is_hidden(e))
                 .filter_map(|e| e.ok())
-                .filter_map(|e| fs::read_to_string(e.path()).ok().map(move |s| (e, s)))
-                .for_each(|(e, s)| {
-                    let file = e.file_name().to_str().unwrap_or_default().to_string();
+                .filter_map(|e| fs::read_to_string(e.path()).ok().map(|s| (e, s)))
+                .flat_map(|(e, s)| {
+                    let file = e.file_name().to_str().unwrap_or_default();
                     // TODO: Note that comments and empty lines are filtered even though
                     // the specification doesn't allow them.
-                    vals.extend(s.filter_lines().flat_map(|(i, line)| {
-                        PkgUpdate::from_str(line)
-                            .map_err(|e| {
-                                warn!("{}::profiles/updates/{file}, line {i}: {e}", self.id)
-                            })
-                            .ok()
-                    }))
-                });
-            vals
+                    s.filter_lines()
+                        .filter_map(|(i, line)| {
+                            PkgUpdate::from_str(line)
+                                .map_err(|err| {
+                                    warn!("{}::profiles/updates/{file}, line {i}: {err}", self.id)
+                                })
+                                .ok()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect()
         })
     }
 }
