@@ -126,18 +126,18 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    rule useflag() -> &'input str
+    pub(super) rule use_flag() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '@' | '-']*
-        } / expected!("useflag name")
+        } / expected!("USE flag name")
         ) { s }
 
     rule use_dep(eapi: &'static Eapi) -> &'input str
         = s:$(quiet!{
-            (useflag() use_dep_default(eapi)? ['=' | '?']?) /
-            ("-" useflag() use_dep_default(eapi)?) /
-            ("!" useflag() use_dep_default(eapi)? ['=' | '?'])
+            (use_flag() use_dep_default(eapi)? ['=' | '?']?) /
+            ("-" use_flag() use_dep_default(eapi)?) /
+            ("!" use_flag() use_dep_default(eapi)? ['=' | '?'])
         } / expected!("use dep")
         ) { s }
 
@@ -229,8 +229,8 @@ peg::parser!(grammar depspec() for str {
         } / expected!("license name")
         ) { DepSpec::Enabled(s.to_string()) }
 
-    rule useflag_val() -> DepSpec<String>
-        = disabled:"!"? s:useflag() {
+    rule use_flag_val() -> DepSpec<String>
+        = disabled:"!"? s:use_flag() {
             let val = s.to_string();
             if disabled.is_none() {
                 DepSpec::Enabled(val)
@@ -269,7 +269,7 @@ peg::parser!(grammar depspec() for str {
         { DepSpec::AnyOf(vals.into_iter().map(Box::new).collect()) }
 
     rule use_cond<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
-        = negate:"!"? u:useflag() "?" _ vals:parens(<expr()>) {
+        = negate:"!"? u:use_flag() "?" _ vals:parens(<expr()>) {
             let f = match negate {
                 None => DepSpec::UseEnabled,
                 Some(_) => DepSpec::UseDisabled,
@@ -311,7 +311,7 @@ peg::parser!(grammar depspec() for str {
             / all_of(<required_use_dep_restrict(eapi)>)
             / exactly_one_of(<required_use_dep_restrict(eapi)>)
             / at_most_one_of(eapi, <required_use_dep_restrict(eapi)>)
-            / useflag_val()
+            / use_flag_val()
 
     rule restrict_dep_restrict() -> DepSpec<String>
         = use_cond(<restrict_dep_restrict()>)
@@ -370,6 +370,11 @@ pub(super) fn version_with_op(s: &str) -> crate::Result<Version> {
     let ver = depspec::version_with_op(s)
         .map_err(|e| peg_error(format!("invalid version: {s}"), s, e))?;
     ver.into_owned(s)
+}
+
+pub fn use_flag(s: &str) -> crate::Result<&str> {
+    depspec::use_flag(s).map_err(|e| peg_error(format!("invalid USE flag name: {s}"), s, e))?;
+    Ok(s)
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {
