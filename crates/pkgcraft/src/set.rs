@@ -66,10 +66,7 @@ impl<T: Ordered> FromIterator<T> for OrderedSet<T> {
     }
 }
 
-impl<T: Ordered, const N: usize> From<[T; N]> for OrderedSet<T>
-where
-    T: Eq + Hash,
-{
+impl<T: Ordered, const N: usize> From<[T; N]> for OrderedSet<T> {
     fn from(arr: [T; N]) -> Self {
         Self::from_iter(arr)
     }
@@ -166,10 +163,7 @@ impl<T: Ordered> FromIterator<T> for SortedSet<T> {
     }
 }
 
-impl<T: Ordered, const N: usize> From<[T; N]> for SortedSet<T>
-where
-    T: Eq + Hash,
-{
+impl<T: Ordered, const N: usize> From<[T; N]> for SortedSet<T> {
     fn from(arr: [T; N]) -> Self {
         Self::from_iter(arr)
     }
