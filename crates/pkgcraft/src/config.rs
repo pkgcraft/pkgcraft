@@ -7,6 +7,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use ini::Ini;
 use serde::{Deserialize, Serialize};
 
+use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::repo::ebuild_temp::Repo as TempRepo;
@@ -233,8 +234,9 @@ impl Config {
         &mut self,
         name: &str,
         priority: i32,
+        eapi: Option<&Eapi>,
     ) -> crate::Result<(TempRepo, Arc<EbuildRepo>)> {
-        let (temp_repo, r) = self.repos.create_temp(name, priority)?;
+        let (temp_repo, r) = self.repos.create_temp(name, priority, eapi)?;
         self.add_repo(&r)?;
         let repo = r.as_ebuild().expect("invalid ebuild repo: {name}");
         Ok((temp_repo, repo.clone()))

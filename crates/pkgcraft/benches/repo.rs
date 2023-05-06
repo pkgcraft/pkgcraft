@@ -6,7 +6,7 @@ use pkgcraft::repo::PkgRepository;
 
 pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "");
-    let (t, repo) = config.temp_repo("test", 0).unwrap();
+    let (t, repo) = config.temp_repo("test", 0, None).unwrap();
     for i in 0..100 {
         t.create_ebuild(&format!("cat/pkg-{i}"), []).unwrap();
     }

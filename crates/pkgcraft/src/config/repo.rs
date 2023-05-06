@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use tracing::warn;
 
+use crate::eapi::Eapi;
 use crate::repo::ebuild_temp::Repo as TempRepo;
 use crate::repo::set::RepoSet;
 use crate::repo::{Repo, RepoFormat, Repository};
@@ -169,8 +170,9 @@ impl Config {
         &mut self,
         name: &str,
         priority: i32,
+        eapi: Option<&Eapi>,
     ) -> crate::Result<(TempRepo, Repo)> {
-        let temp_repo = TempRepo::new(name, None, None)?;
+        let temp_repo = TempRepo::new(name, None, eapi)?;
         let r = Repo::from_path(name, priority, temp_repo.path(), false)?;
         Ok((temp_repo, r))
     }

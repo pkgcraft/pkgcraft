@@ -498,7 +498,7 @@ mod tests {
     #[test]
     fn source_ebuild_disables_external_cmds() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // external commands are denied via restricted shell setting PATH=/dev/null
         let data = indoc::indoc! {r#"

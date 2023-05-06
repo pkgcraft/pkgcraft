@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn test_single() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"

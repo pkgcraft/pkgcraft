@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn test_nonexistent() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
         BuildData::update(&cpv, &repo);
         let r = inherit(&["nonexistent"]);
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn test_source_failure() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn test_single() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn test_multiple() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn test_nested_single() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn test_nested_multiple() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn test_pkg_env() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -249,7 +249,7 @@ mod tests {
     #[test]
     fn test_skip_reinherits() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"

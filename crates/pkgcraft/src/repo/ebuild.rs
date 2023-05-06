@@ -782,7 +782,7 @@ mod tests {
     #[test]
     fn test_len() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         assert_eq!(repo.len(), 0);
         assert!(repo.is_empty());
@@ -797,7 +797,7 @@ mod tests {
     #[test]
     fn test_categories() {
         let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0).unwrap();
+        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         assert!(repo.categories().is_empty());
         fs::create_dir(repo.path().join("cat")).unwrap();
@@ -810,7 +810,7 @@ mod tests {
     #[test]
     fn test_packages() {
         let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0).unwrap();
+        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         assert!(repo.packages("cat").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
@@ -823,7 +823,7 @@ mod tests {
     #[test]
     fn test_versions() {
         let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0).unwrap();
+        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
         let ver = |s: &str| Version::new(s).unwrap();
 
         assert!(repo.versions("cat", "pkg").is_empty());
@@ -852,7 +852,7 @@ mod tests {
     #[test]
     fn test_contains() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // path
         assert!(!repo.contains("cat/pkg"));
@@ -877,7 +877,7 @@ mod tests {
     #[test]
     fn test_iter() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
         t.create_ebuild("cat2/pkg-1", []).unwrap();
         t.create_ebuild("cat1/pkg-1", []).unwrap();
         let mut iter = repo.iter();
@@ -891,7 +891,7 @@ mod tests {
     #[test]
     fn test_iter_restrict() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
         t.create_ebuild("cat/pkg-1", []).unwrap();
         t.create_ebuild("cat/pkg-2", []).unwrap();
 
@@ -923,7 +923,7 @@ mod tests {
             ([(Key::Slot, "-")], "missing required values: SLOT"),
         ] {
             let mut config = Config::default();
-            let (t, repo) = config.temp_repo("test", 0).unwrap();
+            let (t, repo) = config.temp_repo("test", 0, None).unwrap();
             t.create_ebuild("cat/pkg-0", data).unwrap();
             let mut iter = repo.iter();
             assert!(iter.next().is_none());

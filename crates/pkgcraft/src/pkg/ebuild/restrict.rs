@@ -232,7 +232,7 @@ mod tests {
     #[test]
     fn test_ebuild() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // single
         let data = indoc::indoc! {r#"
@@ -268,7 +268,7 @@ mod tests {
     #[test]
     fn test_description() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         t.create_ebuild("cat/pkg-1", [(Key::Description, "desc1")])
             .unwrap();
@@ -297,7 +297,7 @@ mod tests {
     #[test]
     fn test_slot() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
         let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
@@ -323,7 +323,7 @@ mod tests {
     #[test]
     fn test_subslot() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // no explicit subslot
         let (path, cpv) = t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn test_long_description() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         let (path, cpv) = t.create_ebuild("cat/pkg-a-1", []).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
@@ -408,7 +408,7 @@ mod tests {
     #[test]
     fn test_maintainers() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("xml", 0).unwrap();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // none
         t.create_ebuild("noxml/pkg-1", []).unwrap();

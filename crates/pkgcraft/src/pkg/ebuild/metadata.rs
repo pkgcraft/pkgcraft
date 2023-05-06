@@ -568,15 +568,14 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::macros::assert_err_re;
-    use crate::repo::ebuild::Repo;
-    use crate::repo::ebuild_temp::Repo as TempRepo;
 
     use super::*;
 
     #[test]
     fn test_distfile_verification() {
-        let t = TempRepo::new("test", None, None).unwrap();
-        let repo = Repo::from_path("test", 0, t.path()).unwrap();
+        let mut config = crate::config::Config::default();
+        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+
         let manifest_hashes = repo.metadata().config().manifest_hashes();
         let required_hashes = repo.metadata().config().manifest_required_hashes();
         let tmpdir = tempdir().unwrap();
