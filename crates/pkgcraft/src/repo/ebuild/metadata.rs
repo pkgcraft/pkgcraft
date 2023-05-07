@@ -175,8 +175,8 @@ impl FromStr for PkgUpdate {
         let tokens: Vec<_> = s.split_whitespace().collect();
         match &tokens[..] {
             ["move", s1, s2] => {
-                let d1 = Dep::unversioned(s1)?;
-                let d2 = Dep::unversioned(s2)?;
+                let d1 = Dep::new_cpn(s1)?;
+                let d2 = Dep::new_cpn(s2)?;
                 Ok(Self::Move(d1, d2))
             }
             ["slotmove", spec, s1, s2] => {
@@ -619,7 +619,7 @@ impl Metadata {
             let (cpn, use_desc) = s
                 .split_once(':')
                 .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
-            let dep = Dep::unversioned(cpn)?;
+            let dep = Dep::new_cpn(cpn)?;
             Ok((dep.to_string(), UseDesc::from_str(use_desc)?))
         };
 

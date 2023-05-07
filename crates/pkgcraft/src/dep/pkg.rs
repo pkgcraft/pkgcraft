@@ -137,8 +137,8 @@ impl Dep {
     }
 
     /// Create a new unversioned Dep from a given string.
-    pub fn unversioned(s: &str) -> crate::Result<Self> {
-        parse::dep_unversioned(s)
+    pub fn new_cpn(s: &str) -> crate::Result<Self> {
+        parse::cpn(s)
     }
 
     /// Return a package dependency's category.

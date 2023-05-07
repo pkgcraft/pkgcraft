@@ -190,7 +190,7 @@ peg::parser!(grammar depspec() for str {
         = op:$(("<" "="?) / "=" / "~" / (">" "="?)) cpv:$([^'*']+) glob:$("*")?
         { (op, cpv, glob) }
 
-    pub(super) rule cp() -> ParsedDep<'input>
+    pub(super) rule cpn() -> ParsedDep<'input>
         = category:category() "/" package:package() {
             ParsedDep { category, package, ..Default::default() }
         }
@@ -419,8 +419,8 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
             dep.version_str = Some(cpv_s);
         }
         _ => {
-            let d =
-                depspec::cp(dep_s).map_err(|e| peg_error(format!("invalid dep: {s}"), dep_s, e))?;
+            let d = depspec::cpn(dep_s)
+                .map_err(|e| peg_error(format!("invalid dep: {s}"), dep_s, e))?;
             dep.category = d.category;
             dep.package = d.package;
         }
@@ -439,9 +439,9 @@ pub(super) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
     dep.into_owned()
 }
 
-pub(super) fn dep_unversioned(s: &str) -> crate::Result<Dep> {
+pub(super) fn cpn(s: &str) -> crate::Result<Dep> {
     let dep =
-        depspec::cp(s).map_err(|e| peg_error(format!("invalid unversioned dep: {s}"), s, e))?;
+        depspec::cpn(s).map_err(|e| peg_error(format!("invalid unversioned dep: {s}"), s, e))?;
     dep.into_owned()
 }
 
