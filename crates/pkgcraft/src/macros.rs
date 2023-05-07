@@ -31,10 +31,10 @@ macro_rules! assert_logs_re {
     ($x:expr) => {
         let re = ::regex::Regex::new($x.as_ref()).unwrap();
         logs_assert(|lines: &[&str]| {
-            let s = lines.join("\n");
-            match re.is_match(&s) {
-                false => Err(format!("{s:?} does not match regex: {re}")),
-                true => Ok(()),
+            if lines.iter().any(|l| re.is_match(l)) {
+                Ok(())
+            } else {
+                Err(format!("unmatched log regex: {re}"))
             }
         });
     };

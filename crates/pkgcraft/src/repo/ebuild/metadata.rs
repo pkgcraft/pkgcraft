@@ -731,21 +731,21 @@ mod tests {
         fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "amd64 stable\narm64").unwrap();
         assert!(!metadata.arches_desc().is_empty());
-        assert_logs_re!(format!(".+, line 2: invalid line format: .+$"));
+        assert_logs_re!(".+, line 2: invalid line format: .+$");
 
         // unknown arch
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "arm64 stable").unwrap();
         assert!(metadata.arches_desc().is_empty());
-        assert_logs_re!(format!(".+, line 1: unknown arch: arm64$"));
+        assert_logs_re!(".+, line 1: unknown arch: arm64$");
 
         // unknown status
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "amd64 test").unwrap();
         assert!(metadata.arches_desc().is_empty());
-        assert_logs_re!(format!(".+, line 1: unknown status: test$"));
+        assert_logs_re!(".+, line 1: unknown status: test$");
 
         // multiple with ignored 3rd column
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -779,7 +779,7 @@ mod tests {
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), "cat\nc@t").unwrap();
         assert_ordered_eq(metadata.categories(), ["cat"]);
-        assert_logs_re!(format!(".+, line 2: .* invalid category name: c@t$"));
+        assert_logs_re!(".+, line 2: .* invalid category name: c@t$");
 
         // multiple
         let data = indoc::indoc! {r#"
@@ -846,7 +846,7 @@ mod tests {
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
         assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["a", "b"]);
         assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a"]);
-        assert_logs_re!(format!(".+, line 5: unknown license: z$"));
+        assert_logs_re!(".+, line 5: unknown license: z$");
 
         // multiple with unknown and invalid aliases
         let data = indoc::indoc! {r#"
@@ -860,8 +860,8 @@ mod tests {
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
         assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["b"]);
         assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a", "b", "c"]);
-        assert_logs_re!(format!(".+, line 2: invalid alias: @"));
-        assert_logs_re!(format!(".+ set2: unknown alias: set3"));
+        assert_logs_re!(".+, line 2: invalid alias: @");
+        assert_logs_re!(".+ set2: unknown alias: set3");
 
         // multiple with cyclic aliases
         let data = indoc::indoc! {r#"
@@ -876,10 +876,10 @@ mod tests {
         assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a", "b"]);
         assert_unordered_eq(metadata.license_groups().get("set3").unwrap(), ["a", "b", "c"]);
         assert_unordered_eq(metadata.license_groups().get("set4").unwrap(), ["c"]);
-        assert_logs_re!(format!(".+ set1: cyclic alias: set2"));
-        assert_logs_re!(format!(".+ set2: cyclic alias: set1"));
-        assert_logs_re!(format!(".+ set3: cyclic alias: set2"));
-        assert_logs_re!(format!(".+ set4: cyclic alias: set4"));
+        assert_logs_re!(".+ set1: cyclic alias: set2");
+        assert_logs_re!(".+ set2: cyclic alias: set1");
+        assert_logs_re!(".+ set3: cyclic alias: set2");
+        assert_logs_re!(".+ set4: cyclic alias: set4");
     }
 
     #[test]
@@ -948,7 +948,7 @@ mod tests {
             metadata.pkg_deprecated(),
             [&Dep::from_str("cat/pkg-a").unwrap(), &Dep::from_str("another/pkg").unwrap()],
         );
-        assert_logs_re!(format!(".+, line 8: .* invalid dep: cat/slotted:0$"));
+        assert_logs_re!(".+, line 8: .* invalid dep: cat/slotted:0$");
 
         // newer repo EAPI allows using newer dep format features
         let (_t, repo) = config
@@ -999,7 +999,7 @@ mod tests {
             metadata.pkg_mask(),
             [&Dep::from_str("cat/pkg-a").unwrap(), &Dep::from_str("another/pkg").unwrap()],
         );
-        assert_logs_re!(format!(".+, line 8: .* invalid dep: cat/slotted:0$"));
+        assert_logs_re!(".+, line 8: .* invalid dep: cat/slotted:0$");
 
         // newer repo EAPI allows using newer dep format features
         let (_t, repo) = config
@@ -1049,6 +1049,6 @@ mod tests {
         fs::write(metadata.path.join("profiles/updates/1Q-9999"), data).unwrap();
         let updates = metadata.updates();
         assert_eq!(updates.len(), 2);
-        assert_logs_re!(format!(".+: invalid unversioned dep: cat/pkg3-1$"));
+        assert_logs_re!(".+: invalid unversioned dep: cat/pkg3-1$");
     }
 }
