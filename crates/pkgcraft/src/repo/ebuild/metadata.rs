@@ -269,7 +269,7 @@ pub struct Metadata {
     updates: OnceCell<IndexSet<PkgUpdate>>,
     use_desc: OnceCell<IndexSet<UseDesc>>,
     use_expand_desc: OnceCell<IndexMap<String, IndexSet<UseDesc>>>,
-    use_local_desc: OnceCell<OrderedMap<Dep, OrderedSet<UseDesc>>>,
+    use_local_desc: OnceCell<OrderedMap<String, OrderedSet<UseDesc>>>,
 }
 
 impl Metadata {
@@ -612,13 +612,14 @@ impl Metadata {
     }
 
     /// Return the ordered map of local USE flags.
-    pub fn use_local_desc(&self) -> &OrderedMap<Dep, OrderedSet<UseDesc>> {
+    pub fn use_local_desc(&self) -> &OrderedMap<String, OrderedSet<UseDesc>> {
         // parse a use.local.desc line
-        let parse = |s: &str| -> crate::Result<(Dep, UseDesc)> {
+        let parse = |s: &str| -> crate::Result<(String, UseDesc)> {
             let (cpn, use_desc) = s
                 .split_once(':')
                 .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
-            Ok((Dep::unversioned(cpn)?, UseDesc::from_str(use_desc)?))
+            let dep = Dep::unversioned(cpn)?;
+            Ok((dep.to_string(), UseDesc::from_str(use_desc)?))
         };
 
         self.use_local_desc.get_or_init(|| {
@@ -1076,12 +1077,48 @@ mod tests {
             b: b flag description
 
             # invalid USE flag name
-            @d - d flag description
+            @c - c flag description
         "#};
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), data).unwrap();
         assert_ordered_eq(metadata.use_desc(), [&UseDesc::new("a", "a flag description").unwrap()]);
         assert_logs_re!(".+ line 5: invalid format: b: b flag description$");
-        assert_logs_re!(".+ line 8: .+?: invalid USE flag name: @d$");
+        assert_logs_re!(".+ line 8: .+?: invalid USE flag name: @c$");
+    }
+
+    #[traced_test]
+    #[test]
+    fn test_use_local_desc() {
+        let mut config = crate::config::Config::default();
+        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+
+        // nonexistent
+        let metadata = Metadata::new("test", repo.path()).unwrap();
+        assert!(metadata.use_local_desc().is_empty());
+
+        // empty
+        let metadata = Metadata::new("test", repo.path()).unwrap();
+        fs::write(metadata.path.join("profiles/use.local.desc"), "").unwrap();
+        assert!(metadata.use_local_desc().is_empty());
+
+        // multiple with invalid
+        let data = indoc::indoc! {r#"
+            # normal
+            cat/pkg:a - a flag description
+
+            # invalid format
+            b - b flag description
+
+            # invalid USE flag name
+            cat/pkg:@c - c flag description
+        "#};
+        let metadata = Metadata::new("test", repo.path()).unwrap();
+        fs::write(metadata.path.join("profiles/use.local.desc"), data).unwrap();
+        assert_ordered_eq(
+            metadata.use_local_desc().get("cat/pkg").unwrap(),
+            [&UseDesc::new("a", "a flag description").unwrap()],
+        );
+        assert_logs_re!(".+ line 5: invalid format: b - b flag description$");
+        assert_logs_re!(".+ line 8: .+?: invalid USE flag name: @c$");
     }
 }
