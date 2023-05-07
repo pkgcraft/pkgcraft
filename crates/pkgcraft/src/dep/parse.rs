@@ -72,7 +72,7 @@ peg::parser!(grammar depspec() for str {
         { s }
 
     // Slot names must not begin with a hyphen, dot, or plus sign.
-    rule slot_name() -> &'input str
+    pub(super) rule slot_name() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
@@ -372,8 +372,13 @@ pub(super) fn version_with_op(s: &str) -> crate::Result<Version> {
     ver.into_owned(s)
 }
 
+pub fn slot(s: &str) -> crate::Result<&str> {
+    depspec::slot_name(s).map_err(|e| peg_error(format!("invalid slot: {s}"), s, e))?;
+    Ok(s)
+}
+
 pub fn use_flag(s: &str) -> crate::Result<&str> {
-    depspec::use_flag(s).map_err(|e| peg_error(format!("invalid USE flag name: {s}"), s, e))?;
+    depspec::use_flag(s).map_err(|e| peg_error(format!("invalid USE flag: {s}"), s, e))?;
     Ok(s)
 }
 

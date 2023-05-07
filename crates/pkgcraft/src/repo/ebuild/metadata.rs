@@ -181,7 +181,8 @@ impl FromStr for PkgUpdate {
             }
             ["slotmove", spec, s1, s2] => {
                 let dep = Dep::from_str(spec)?;
-                // TODO: validate slot names
+                let s1 = parse::slot(s1)?;
+                let s2 = parse::slot(s2)?;
                 Ok(Self::SlotMove(dep, s1.to_string(), s2.to_string()))
             }
             _ => Err(Error::InvalidValue(format!("invalid or unknown update: {s}"))),
@@ -1037,20 +1038,24 @@ mod tests {
 
         // multiple with invalid
         let data = indoc::indoc! {r#"
-            # comment 1
+            # valid move
             move cat/pkg1 cat/pkg2
 
-            # invalid
+            # invalid cpn
             move cat/pkg3-1 cat/pkg4
 
-            # comment 2
+            # valid slotmove
             slotmove <cat/pkg1-5 0 1
+
+            # invalid slot
+            slotmove >cat/pkg1-5 @ 1
         "#};
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/updates/1Q-9999"), data).unwrap();
         let updates = metadata.updates();
         assert_eq!(updates.len(), 2);
-        assert_logs_re!(".+: invalid unversioned dep: cat/pkg3-1$");
+        assert_logs_re!(".+ line 5: .+?: invalid unversioned dep: cat/pkg3-1$");
+        assert_logs_re!(".+ line 11: .+?: invalid slot: @$");
     }
 
     #[traced_test]
@@ -1076,14 +1081,14 @@ mod tests {
             # invalid format
             b: b flag description
 
-            # invalid USE flag name
+            # invalid USE flag
             @c - c flag description
         "#};
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), data).unwrap();
         assert_ordered_eq(metadata.use_desc(), [&UseDesc::new("a", "a flag description").unwrap()]);
         assert_logs_re!(".+ line 5: invalid format: b: b flag description$");
-        assert_logs_re!(".+ line 8: .+?: invalid USE flag name: @c$");
+        assert_logs_re!(".+ line 8: .+?: invalid USE flag: @c$");
     }
 
     #[traced_test]
@@ -1109,7 +1114,7 @@ mod tests {
             # invalid format
             b - b flag description
 
-            # invalid USE flag name
+            # invalid USE flag
             cat/pkg:@c - c flag description
         "#};
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -1119,6 +1124,6 @@ mod tests {
             [&UseDesc::new("a", "a flag description").unwrap()],
         );
         assert_logs_re!(".+ line 5: invalid format: b - b flag description$");
-        assert_logs_re!(".+ line 8: .+?: invalid USE flag name: @c$");
+        assert_logs_re!(".+ line 8: .+?: invalid USE flag: @c$");
     }
 }
