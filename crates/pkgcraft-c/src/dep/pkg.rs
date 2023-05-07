@@ -29,10 +29,25 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
     }
 }
 
+/// Parse a string into an unversioned package dependency.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument must be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_new_cpn(s: *const c_char) -> *mut Dep {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let dep = unwrap_or_panic!(Dep::new_cpn(s));
+        Box::into_raw(Box::new(dep))
+    }
+}
+
 /// Parse a string into a Blocker.
 ///
 /// # Safety
-/// The argument should be a UTF-8 string.
+/// The argument must be a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_blocker_from_str(s: *const c_char) -> Blocker {
     let s = try_str_from_ptr!(s);
@@ -48,7 +63,7 @@ pub extern "C" fn pkgcraft_dep_blocker_str(b: Blocker) -> *mut c_char {
 /// Parse a string into a SlotOperator.
 ///
 /// # Safety
-/// The argument should be a UTF-8 string.
+/// The argument must be a UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_slot_op_from_str(s: *const c_char) -> SlotOperator {
     let s = try_str_from_ptr!(s);
