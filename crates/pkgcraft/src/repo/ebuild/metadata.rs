@@ -1051,4 +1051,37 @@ mod tests {
         assert_eq!(updates.len(), 2);
         assert_logs_re!(".+: invalid unversioned dep: cat/pkg3-1$");
     }
+
+    #[traced_test]
+    #[test]
+    fn test_use_desc() {
+        let mut config = crate::config::Config::default();
+        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+
+        // nonexistent
+        let metadata = Metadata::new("test", repo.path()).unwrap();
+        assert!(metadata.use_desc().is_empty());
+
+        // empty
+        let metadata = Metadata::new("test", repo.path()).unwrap();
+        fs::write(metadata.path.join("profiles/use.desc"), "").unwrap();
+        assert!(metadata.use_desc().is_empty());
+
+        // multiple with invalid
+        let data = indoc::indoc! {r#"
+            # normal
+            a - a flag description
+
+            # invalid format
+            b: b flag description
+
+            # invalid USE flag name
+            @d - d flag description
+        "#};
+        let metadata = Metadata::new("test", repo.path()).unwrap();
+        fs::write(metadata.path.join("profiles/use.desc"), data).unwrap();
+        assert_ordered_eq(metadata.use_desc(), [&UseDesc::new("a", "a flag description").unwrap()]);
+        assert_logs_re!(".+ line 5: invalid format: b: b flag description$");
+        assert_logs_re!(".+ line 8: .+?: invalid USE flag name: @d$");
+    }
 }
