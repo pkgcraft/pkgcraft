@@ -146,18 +146,18 @@ impl Intersects<Dep> for Cpv {
     }
 }
 
-pub trait TryIntoCpv {
-    fn try_into_cpv(self) -> crate::Result<Cpv>;
-}
+impl TryFrom<&str> for Cpv {
+    type Error = Error;
 
-impl TryIntoCpv for &str {
-    fn try_into_cpv(self) -> crate::Result<Cpv> {
-        Cpv::new(self)
+    fn try_from(value: &str) -> crate::Result<Cpv> {
+        Cpv::new(value)
     }
 }
 
-impl TryIntoCpv for &Cpv {
-    fn try_into_cpv(self) -> crate::Result<Cpv> {
-        Ok(self.clone())
+impl TryFrom<&Cpv> for Cpv {
+    type Error = Error;
+
+    fn try_from(value: &Cpv) -> crate::Result<Cpv> {
+        Ok(value.clone())
     }
 }

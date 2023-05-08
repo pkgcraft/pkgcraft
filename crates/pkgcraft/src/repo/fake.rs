@@ -6,7 +6,7 @@ use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
 use crate::config::RepoConfig;
-use crate::dep::{Cpv, TryIntoCpv, Version};
+use crate::dep::{Cpv, Version};
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::Error;
@@ -36,10 +36,11 @@ impl Repo {
         }
     }
 
-    pub fn pkgs<I, C>(mut self, iter: I) -> Self
+    pub fn pkgs<I, T>(mut self, iter: I) -> Self
     where
-        I: IntoIterator<Item = C>,
-        C: TryIntoCpv,
+        I: IntoIterator<Item = T>,
+        T: TryInto<Cpv>,
+        <T as TryInto<Cpv>>::Error: std::fmt::Display,
     {
         self.extend(iter);
         self
@@ -67,11 +68,15 @@ impl Repo {
     }
 }
 
-impl<C: TryIntoCpv> Extend<C> for Repo {
-    fn extend<T: IntoIterator<Item = C>>(&mut self, iter: T) {
+impl<T> Extend<T> for Repo
+where
+    T: TryInto<Cpv>,
+    <T as TryInto<Cpv>>::Error: std::fmt::Display,
+{
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         let orig_len = self.cpvs.len();
         for s in iter {
-            match s.try_into_cpv() {
+            match s.try_into() {
                 Ok(cpv) => {
                     self.cpvs.insert(cpv);
                 }
