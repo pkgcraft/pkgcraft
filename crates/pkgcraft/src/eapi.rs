@@ -10,7 +10,7 @@ use indexmap::IndexSet;
 use itertools::Either;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::{escape, Regex, RegexBuilder};
-use strum::EnumString;
+use strum::{Display, EnumString};
 
 use crate::archive::Archive;
 use crate::dep::Dep;
@@ -98,6 +98,19 @@ pub enum Feature {
     RepoIds,
 }
 
+#[derive(Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum Operation {
+    Pretend,
+    Build,
+    Install,
+    Uninstall,
+    Replace,
+    Config,
+    Info,
+    NoFetch,
+}
+
 type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 
 /// EAPI object.
@@ -106,7 +119,8 @@ pub struct Eapi {
     id: String,
     parent: Option<&'static Self>,
     features: HashSet<Feature>,
-    phases: HashSet<Phase>,
+    operations: HashMap<Operation, IndexSet<Phase>>,
+    phases: OnceCell<HashSet<Phase>>,
     dep_keys: HashSet<Key>,
     incremental_keys: HashSet<Key>,
     mandatory_keys: HashSet<Key>,
@@ -224,8 +238,19 @@ impl Eapi {
         Dep::new(s.as_ref(), self)
     }
 
+    /// Return the ordered set of phases for a given operation.
+    // TODO: remove allow when public package building support is added
+    #[allow(dead_code)]
+    pub(crate) fn operation(&self, op: Operation) -> &IndexSet<Phase> {
+        self.operations
+            .get(&op)
+            .unwrap_or_else(|| panic!("unknown operation: {op}"))
+    }
+
+    /// Return all the known phases for an EAPI.
     pub(crate) fn phases(&self) -> &HashSet<Phase> {
-        &self.phases
+        self.phases
+            .get_or_init(|| self.operations.values().flatten().copied().collect())
     }
 
     pub(crate) fn archives_regex(&self) -> &Regex {
@@ -313,8 +338,34 @@ impl Eapi {
         self
     }
 
-    fn update_phases(mut self, updates: &[Phase]) -> Self {
-        self.phases.extend(updates);
+    fn register_operation<I>(mut self, op: Operation, phases: I) -> Self
+    where
+        I: IntoIterator<Item = Phase>,
+    {
+        self.operations.insert(op, phases.into_iter().collect());
+        self
+    }
+
+    fn update_phases<I>(mut self, phases: I) -> Self
+    where
+        I: IntoIterator<Item = Phase>,
+    {
+        let phases: IndexSet<_> = phases.into_iter().collect();
+
+        // replace phases registered into operations with new phases
+        self.operations = self
+            .operations
+            .into_iter()
+            .map(|(op, orig_phases)| {
+                let new_phases = orig_phases
+                    .iter()
+                    .map(|p| phases.get(p).unwrap_or(p))
+                    .copied()
+                    .collect();
+                (op, new_phases)
+            })
+            .collect();
+
         self
     }
 
@@ -419,21 +470,30 @@ impl FromStr for &'static Eapi {
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("0", None)
         .enable_features(&[Feature::RdependDefault])
-        .update_phases(&[
-            PkgSetup(PHASE_STUB),
-            PkgConfig(PHASE_STUB),
-            PkgInfo(PHASE_STUB),
-            PkgNofetch(PHASE_STUB),
-            PkgPrerm(PHASE_STUB),
-            PkgPostrm(PHASE_STUB),
-            PkgPreinst(PHASE_STUB),
-            PkgPostinst(PHASE_STUB),
-            SrcUnpack(PHASE_STUB),
-            SrcUnpack(eapi0::src_unpack),
-            SrcCompile(eapi0::src_compile),
-            SrcTest(eapi0::src_test),
-            SrcInstall(PHASE_STUB),
-        ])
+        .register_operation(
+            Operation::Build,
+            [
+                PkgSetup(PHASE_STUB),
+                SrcUnpack(eapi0::src_unpack),
+                SrcCompile(eapi0::src_compile),
+                SrcTest(eapi0::src_test),
+                SrcInstall(PHASE_STUB),
+            ],
+        )
+        .register_operation(Operation::Install, [PkgPreinst(PHASE_STUB), PkgPostinst(PHASE_STUB)])
+        .register_operation(Operation::Uninstall, [PkgPrerm(PHASE_STUB), PkgPostrm(PHASE_STUB)])
+        .register_operation(
+            Operation::Replace,
+            [
+                PkgPreinst(PHASE_STUB),
+                PkgPrerm(PHASE_STUB),
+                PkgPostrm(PHASE_STUB),
+                PkgPostinst(PHASE_STUB),
+            ],
+        )
+        .register_operation(Operation::Config, [PkgConfig(PHASE_STUB)])
+        .register_operation(Operation::Info, [PkgInfo(PHASE_STUB)])
+        .register_operation(Operation::NoFetch, [PkgNofetch(PHASE_STUB)])
         .update_dep_keys(&[Depend, Rdepend, Pdepend])
         .update_incremental_keys(&[Iuse, Depend, Rdepend, Pdepend])
         .update_mandatory_keys(&[Description, Slot])
@@ -487,7 +547,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("1", Some(&EAPI0))
         .enable_features(&[Feature::IuseDefaults, Feature::SlotDeps])
-        .update_phases(&[SrcCompile(eapi1::src_compile)])
+        .update_phases([SrcCompile(eapi1::src_compile)])
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
@@ -498,11 +558,18 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
             Feature::UseDeps,
             Feature::SrcUriRenames,
         ])
-        .update_phases(&[
-            SrcPrepare(PHASE_STUB),
-            SrcCompile(eapi2::src_compile),
-            SrcConfigure(eapi2::src_configure),
-        ])
+        .register_operation(
+            Operation::Build,
+            [
+                PkgSetup(PHASE_STUB),
+                SrcUnpack(eapi0::src_unpack),
+                SrcPrepare(PHASE_STUB),
+                SrcConfigure(eapi2::src_configure),
+                SrcCompile(eapi2::src_compile),
+                SrcTest(eapi0::src_test),
+                SrcInstall(PHASE_STUB),
+            ],
+        )
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
@@ -525,7 +592,8 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             Feature::UseDepDefaults,
         ])
         .disable_features(&[Feature::RdependDefault])
-        .update_phases(&[PkgPretend(PHASE_STUB), SrcInstall(eapi4::src_install)])
+        .register_operation(Operation::Pretend, [PkgPretend(PHASE_STUB)])
+        .update_phases([SrcInstall(eapi4::src_install)])
         .update_incremental_keys(&[RequiredUse])
         .update_metadata_keys(&[RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
@@ -558,7 +626,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             Feature::UnpackExtendedPath,
             Feature::UnpackCaseInsensitive,
         ])
-        .update_phases(&[SrcPrepare(eapi6::src_prepare), SrcInstall(eapi6::src_install)])
+        .update_phases([SrcPrepare(eapi6::src_prepare), SrcInstall(eapi6::src_install)])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
