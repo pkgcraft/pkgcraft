@@ -2,7 +2,7 @@ use std::ffi::c_char;
 use std::slice;
 use std::str::FromStr;
 
-use pkgcraft::eapi::{Eapi, IntoEapi};
+use pkgcraft::eapi::Eapi;
 use pkgcraft::pkgsh::Key;
 
 use crate::macros::*;
@@ -23,7 +23,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
 ) -> *mut EbuildTempRepo {
     ffi_catch_panic! {
         let id = try_str_from_ptr!(id);
-        let eapi = unwrap_or_panic!(IntoEapi::into_eapi(eapi));
+        let eapi = unwrap_or_panic!(TryInto::<&Eapi>::try_into(eapi));
         let repo = unwrap_or_panic!(EbuildTempRepo::new(id, None, Some(eapi)));
         Box::into_raw(Box::new(repo))
     }

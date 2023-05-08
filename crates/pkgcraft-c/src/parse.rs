@@ -1,7 +1,7 @@
 use std::ffi::c_char;
 
 use pkgcraft::dep::{parse, Cpv, Dep, Version};
-use pkgcraft::eapi::{Eapi, IntoEapi};
+use pkgcraft::eapi::Eapi;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
@@ -16,7 +16,7 @@ use crate::panic::ffi_catch_panic;
 pub unsafe extern "C" fn pkgcraft_parse_dep(s: *const c_char, eapi: *const Eapi) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
-        let eapi = unwrap_or_panic!(IntoEapi::into_eapi(eapi));
+        let eapi = unwrap_or_panic!(TryInto::<&Eapi>::try_into(eapi));
         unwrap_or_panic!(Dep::valid(val, eapi));
         s
     }

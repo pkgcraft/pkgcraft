@@ -152,49 +152,49 @@ impl Default for &'static Eapi {
     }
 }
 
-pub trait IntoEapi {
-    fn into_eapi(self) -> crate::Result<&'static Eapi>;
-}
+impl TryFrom<&str> for &'static Eapi {
+    type Error = Error;
 
-impl IntoEapi for &'static Eapi {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        Ok(self)
+    fn try_from(value: &str) -> crate::Result<&'static Eapi> {
+        <&Eapi>::from_str(value)
     }
 }
 
-impl IntoEapi for &str {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        <&Eapi>::from_str(self)
+impl TryFrom<Option<&str>> for &'static Eapi {
+    type Error = Error;
+
+    fn try_from(value: Option<&str>) -> crate::Result<&'static Eapi> {
+        value.map_or(Ok(Default::default()), <&Eapi>::from_str)
     }
 }
 
-impl IntoEapi for Option<&str> {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        self.map_or(Ok(Default::default()), <&Eapi>::from_str)
+impl TryFrom<Option<&'static Eapi>> for &'static Eapi {
+    type Error = Error;
+
+    fn try_from(value: Option<&'static Eapi>) -> crate::Result<&'static Eapi> {
+        Ok(value.unwrap_or_default())
     }
 }
 
-impl IntoEapi for Option<&'static Eapi> {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        Ok(self.unwrap_or_default())
-    }
-}
+impl TryFrom<&Utf8Path> for &'static Eapi {
+    type Error = Error;
 
-impl IntoEapi for &Utf8Path {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        match fs::read_to_string(self) {
+    fn try_from(value: &Utf8Path) -> crate::Result<&'static Eapi> {
+        match fs::read_to_string(value) {
             Ok(s) => <&Eapi>::from_str(s.trim_end()),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(&*EAPI0),
-            Err(e) => Err(Error::IO(format!("failed reading EAPI: {self}: {e}"))),
+            Err(e) => Err(Error::IO(format!("failed reading EAPI: {value}: {e}"))),
         }
     }
 }
 
 // Used by pkgcraft-c mapping NULL pointers to the default EAPI.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-impl IntoEapi for *const Eapi {
-    fn into_eapi(self) -> crate::Result<&'static Eapi> {
-        let eapi = unsafe { self.as_ref() };
+impl TryFrom<*const Eapi> for &'static Eapi {
+    type Error = Error;
+
+    fn try_from(value: *const Eapi) -> crate::Result<&'static Eapi> {
+        let eapi = unsafe { value.as_ref() };
         Ok(eapi.unwrap_or_default())
     }
 }
@@ -730,24 +730,31 @@ mod tests {
     }
 
     #[test]
-    fn test_into_eapi() {
-        assert_eq!(&*EAPI0, EAPI0.into_eapi().unwrap());
-        assert_eq!(&*EAPI1, "1".into_eapi().unwrap());
+    fn test_try_from() {
+        assert_eq!(&*EAPI0, TryInto::<&'static Eapi>::try_into(&*EAPI0).unwrap());
+        assert_eq!(&*EAPI1, TryInto::<&'static Eapi>::try_into("1").unwrap());
 
         let mut arg: Option<&str> = None;
-        assert_eq!(&*EAPI_PKGCRAFT, arg.into_eapi().unwrap());
+        let mut eapi: &Eapi;
+        eapi = arg.try_into().unwrap();
+        assert_eq!(&*EAPI_PKGCRAFT, eapi);
         arg = Some("1");
-        assert_eq!(&*EAPI1, arg.into_eapi().unwrap());
+        eapi = arg.try_into().unwrap();
+        assert_eq!(&*EAPI1, eapi);
 
         let mut arg: Option<&'static Eapi> = None;
-        assert_eq!(&*EAPI_PKGCRAFT, arg.into_eapi().unwrap());
+        eapi = arg.try_into().unwrap();
+        assert_eq!(&*EAPI_PKGCRAFT, eapi);
         arg = Some(&EAPI1);
-        assert_eq!(&*EAPI1, arg.into_eapi().unwrap());
+        eapi = arg.try_into().unwrap();
+        assert_eq!(&*EAPI1, eapi);
 
         let mut arg: *const Eapi = ptr::null();
-        assert_eq!(&*EAPI_PKGCRAFT, arg.into_eapi().unwrap());
+        eapi = arg.try_into().unwrap();
+        assert_eq!(&*EAPI_PKGCRAFT, eapi);
         arg = &*EAPI1 as *const _;
-        assert_eq!(&*EAPI1, arg.into_eapi().unwrap());
+        eapi = arg.try_into().unwrap();
+        assert_eq!(&*EAPI1, eapi);
     }
 
     #[test]

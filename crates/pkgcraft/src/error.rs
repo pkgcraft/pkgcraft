@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::path::PathBuf;
 
 use crate::peg;
@@ -34,5 +35,14 @@ pub enum Error {
 impl From<Error> for scallop::Error {
     fn from(e: Error) -> Self {
         scallop::Error::Base(e.to_string())
+    }
+}
+
+// Stub for infallible From<T> conversion types.
+// TODO: This should be able to be dropped when upstream stabilizes:
+// https://github.com/rust-lang/rust/issues/64715.
+impl From<Infallible> for Error {
+    fn from(_: Infallible) -> Self {
+        unreachable!()
     }
 }

@@ -12,7 +12,7 @@ use strum::{Display, EnumString};
 use tracing::{error, warn};
 
 use crate::dep::{parse, Dep};
-use crate::eapi::{Eapi, IntoEapi};
+use crate::eapi::Eapi;
 use crate::files::{is_file, is_hidden, sorted_dir_list};
 use crate::pkg::ebuild::metadata::HashType;
 use crate::types::{OrderedMap, OrderedSet};
@@ -291,7 +291,8 @@ impl Metadata {
         // verify repo EAPI
         let eapi = path
             .join("profiles/eapi")
-            .into_eapi()
+            .as_path()
+            .try_into()
             .map_err(|e| invalid_repo(format!("profiles/eapi: {e}")))?;
 
         let config =

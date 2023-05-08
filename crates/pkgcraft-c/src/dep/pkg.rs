@@ -4,7 +4,7 @@ use std::ptr;
 use std::str::FromStr;
 
 use pkgcraft::dep::{Blocker, Cpv, Dep, Intersects, SlotOperator, Version};
-use pkgcraft::eapi::{Eapi, IntoEapi};
+use pkgcraft::eapi::Eapi;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
 
@@ -23,7 +23,7 @@ use crate::utils::str_to_raw;
 pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -> *mut Dep {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let eapi = unwrap_or_panic!(IntoEapi::into_eapi(eapi));
+        let eapi = unwrap_or_panic!(TryInto::<&Eapi>::try_into(eapi));
         let dep = unwrap_or_panic!(Dep::new(s, eapi));
         Box::into_raw(Box::new(dep))
     }

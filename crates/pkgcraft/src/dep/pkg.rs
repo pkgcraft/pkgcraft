@@ -7,7 +7,7 @@ use std::str::FromStr;
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::eapi::{IntoEapi, EAPI_LATEST};
+use crate::eapi::{Eapi, EAPI_LATEST};
 use crate::macros::bool_not_equal;
 use crate::types::OrderedSet;
 use crate::Error;
@@ -126,14 +126,22 @@ type DepKey<'a> = (
 
 impl Dep {
     /// Verify a string represents a valid package dependency.
-    pub fn valid<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<()> {
-        parse::dep_str(s, eapi.into_eapi()?)?;
+    pub fn valid<T>(s: &str, eapi: T) -> crate::Result<()>
+    where
+        T: TryInto<&'static Eapi>,
+        Error: From<<T as TryInto<&'static Eapi>>::Error>,
+    {
+        parse::dep_str(s, eapi.try_into()?)?;
         Ok(())
     }
 
     /// Create a new Dep from a given string.
-    pub fn new<E: IntoEapi>(s: &str, eapi: E) -> crate::Result<Self> {
-        parse::dep(s, eapi.into_eapi()?)
+    pub fn new<T>(s: &str, eapi: T) -> crate::Result<Self>
+    where
+        T: TryInto<&'static Eapi>,
+        Error: From<<T as TryInto<&'static Eapi>>::Error>,
+    {
+        parse::dep(s, eapi.try_into()?)
     }
 
     /// Create a new unversioned Dep from a given string.
