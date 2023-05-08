@@ -11,7 +11,7 @@ use crate::pkg::Pkg;
 use crate::repo::{PkgRepository, Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict, Restriction};
-use crate::set::OrderedSet;
+use crate::types::OrderedSet;
 
 use super::make_contains_dep;
 

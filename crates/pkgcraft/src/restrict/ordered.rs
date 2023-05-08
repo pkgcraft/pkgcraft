@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::set::OrderedSet;
+use crate::types::OrderedSet;
 
 use super::str::Restrict as StrRestrict;
 

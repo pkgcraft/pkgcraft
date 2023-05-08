@@ -12,7 +12,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::{build_from_paths, cmp_not_equal};
 use crate::repo::ebuild::CacheData;
-use crate::set::OrderedSet;
+use crate::types::OrderedSet;
 use crate::Error;
 
 #[derive(AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]

@@ -15,7 +15,7 @@ use crate::dep::{parse, Dep};
 use crate::eapi::{Eapi, IntoEapi};
 use crate::files::{is_file, is_hidden, sorted_dir_list};
 use crate::pkg::ebuild::metadata::HashType;
-use crate::set::{OrderedMap, OrderedSet};
+use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
 const DEFAULT_SECTION: Option<String> = None;

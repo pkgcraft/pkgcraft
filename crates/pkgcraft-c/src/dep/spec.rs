@@ -6,7 +6,7 @@ use std::{fmt, ptr};
 
 use pkgcraft::dep::{self, Dep, Flatten, Recursive, Uri};
 use pkgcraft::eapi::{Eapi, IntoEapi};
-use pkgcraft::set::Ordered;
+use pkgcraft::types::Ordered;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;

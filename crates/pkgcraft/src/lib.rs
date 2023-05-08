@@ -13,9 +13,9 @@ pub mod pkg;
 pub mod pkgsh;
 pub mod repo;
 pub mod restrict;
-pub mod set;
 mod sync;
 pub mod test;
+pub mod types;
 pub mod utils;
 
 pub use self::error::{Error, Result};

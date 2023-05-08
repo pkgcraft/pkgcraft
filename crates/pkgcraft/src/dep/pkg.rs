@@ -9,7 +9,7 @@ use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::{IntoEapi, EAPI_LATEST};
 use crate::macros::bool_not_equal;
-use crate::set::OrderedSet;
+use crate::types::OrderedSet;
 use crate::Error;
 
 use super::version::{Operator, ParsedVersion, Revision, Version};

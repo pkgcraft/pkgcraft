@@ -8,7 +8,7 @@ use crate::dep::version::{ParsedVersion, Suffix};
 use crate::dep::{Blocker, Cpv, Dep, DepSet, DepSpec, SlotOperator, Uri, Version};
 use crate::eapi::{Eapi, Feature};
 use crate::peg::peg_error;
-use crate::set::Ordered;
+use crate::types::Ordered;
 use crate::Error;
 
 peg::parser!(grammar depspec() for str {

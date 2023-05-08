@@ -12,7 +12,7 @@ use walkdir::WalkDir;
 use crate::config::Config;
 use crate::dep::{Blocker, Revision, SlotOperator, Version};
 use crate::macros::build_from_paths;
-use crate::set::OrderedSet;
+use crate::types::OrderedSet;
 use crate::Error;
 
 /// Construct a Command from a given string.

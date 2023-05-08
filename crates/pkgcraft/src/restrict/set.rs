@@ -1,4 +1,4 @@
-use crate::set::{Ordered, OrderedSet};
+use crate::types::{Ordered, OrderedSet};
 
 use super::ordered::Restrict as OrderedRestrict;
 use super::str::Restrict as StrRestrict;

@@ -5,7 +5,7 @@ use itertools::Itertools;
 
 use crate::macros::extend_left;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
-use crate::set::{Ordered, OrderedSet, SortedSet};
+use crate::types::{Ordered, OrderedSet, SortedSet};
 use crate::Error;
 
 use super::Dep;

@@ -13,7 +13,7 @@ use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
 use crate::repo::{ebuild::Repo as EbuildRepo, Repository};
-use crate::set::OrderedSet;
+use crate::types::OrderedSet;
 use crate::Error;
 
 #[derive(AsRefStr, EnumString, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]

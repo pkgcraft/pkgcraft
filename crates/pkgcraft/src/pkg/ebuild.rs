@@ -13,7 +13,7 @@ use crate::dep::{DepSet, Uri};
 use crate::eapi::{self, Eapi};
 use crate::pkgsh::metadata::{Key, Metadata};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::set::OrderedSet;
+use crate::types::OrderedSet;
 use crate::utils::relpath;
 use crate::Error;
 
