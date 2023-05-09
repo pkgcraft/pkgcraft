@@ -27,9 +27,9 @@ const DOCS_DEFAULTS: &[&str] = &[
     "CHANGELOG",
 ];
 
-fn has_data(path: &Path) -> bool {
+fn has_data(recursive: bool, path: &Path) -> bool {
     match fs::metadata(path) {
-        Ok(m) => m.len() > 0,
+        Ok(m) => m.len() > 0 && (recursive || !m.file_type().is_dir()),
         _ => false,
     }
 }
@@ -42,7 +42,7 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<P
     // TODO: output warnings for unmatched patterns when running against non-default input
     for f in globs.iter() {
         let paths = glob(f.as_ref()).map_err(|e| Error::Base(e.to_string()))?;
-        files.extend(paths.flatten().filter(|p| force || has_data(p)));
+        files.extend(paths.flatten().filter(|p| force || has_data(force, p)));
     }
     Ok(files)
 }
