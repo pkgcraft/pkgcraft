@@ -20,8 +20,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             if !args.is_empty() {
                 eapply(&args)?;
             }
-            d.borrow_mut().user_patches_applied = true;
         }
+        d.borrow_mut().user_patches_applied = true;
         Ok(ExecStatus::Success)
     })
 }
