@@ -5,6 +5,7 @@ use std::str::FromStr;
 use pkgcraft::eapi::Eapi;
 use pkgcraft::pkgsh::Key;
 
+use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 use crate::types::EbuildTempRepo;
@@ -23,7 +24,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
 ) -> *mut EbuildTempRepo {
     ffi_catch_panic! {
         let id = try_str_from_ptr!(id);
-        let eapi = unwrap_or_panic!(TryInto::<&Eapi>::try_into(eapi));
+        let eapi = eapi_or_default!(eapi);
         let repo = unwrap_or_panic!(EbuildTempRepo::new(id, None, Some(eapi)));
         Box::into_raw(Box::new(repo))
     }

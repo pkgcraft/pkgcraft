@@ -9,6 +9,18 @@ use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 use crate::utils::str_to_raw;
 
+/// Convert Eapi pointer to reference, mapping NULL to the default EAPI.
+///
+/// # Safety
+/// The argument must be an Eapi pointer or NULL.
+macro_rules! eapi_or_default {
+    ( $var:expr ) => {{
+        let eapi = unsafe { $var.as_ref() };
+        eapi.unwrap_or_default()
+    }};
+}
+pub(crate) use eapi_or_default;
+
 /// Get all known EAPIS.
 ///
 /// # Safety

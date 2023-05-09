@@ -9,6 +9,7 @@ use pkgcraft::eapi::Eapi;
 use pkgcraft::types::Ordered;
 use pkgcraft::utils::hash;
 
+use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 
@@ -332,7 +333,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_dependencies(
 ) -> *mut DepSet {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let eapi = unwrap_or_panic!(TryInto::<&Eapi>::try_into(eapi));
+        let eapi = eapi_or_default!(eapi);
         let opt_dep = unwrap_or_panic!(dep::parse::dependencies(s, eapi));
         let dep = DepSet::new_dep(opt_dep.unwrap_or_default());
         Box::into_raw(Box::new(dep))
@@ -368,7 +369,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_required_use(
 ) -> *mut DepSet {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let eapi = unwrap_or_panic!(TryInto::<&Eapi>::try_into(eapi));
+        let eapi = eapi_or_default!(eapi);
         let opt_dep = unwrap_or_panic!(dep::parse::required_use(s, eapi));
         let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::RequiredUse);
         Box::into_raw(Box::new(dep))
@@ -404,7 +405,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_src_uri(
 ) -> *mut DepSet {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let eapi = unwrap_or_panic!(TryInto::<&Eapi>::try_into(eapi));
+        let eapi = eapi_or_default!(eapi);
         let opt_dep = unwrap_or_panic!(dep::parse::src_uri(s, eapi));
         let dep = DepSet::new_uri(opt_dep.unwrap_or_default());
         Box::into_raw(Box::new(dep))

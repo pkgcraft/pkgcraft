@@ -202,17 +202,6 @@ impl TryFrom<&Utf8Path> for &'static Eapi {
     }
 }
 
-// Used by pkgcraft-c mapping NULL pointers to the default EAPI.
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-impl TryFrom<*const Eapi> for &'static Eapi {
-    type Error = Error;
-
-    fn try_from(value: *const Eapi) -> crate::Result<&'static Eapi> {
-        let eapi = unsafe { value.as_ref() };
-        Ok(eapi.unwrap_or_default())
-    }
-}
-
 type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 
 impl Eapi {
@@ -746,8 +735,6 @@ pub fn range(s: &str) -> crate::Result<impl Iterator<Item = &'static Eapi>> {
 
 #[cfg(test)]
 mod tests {
-    use std::ptr;
-
     use crate::macros::assert_err_re;
     use crate::test::assert_ordered_eq;
 
@@ -814,13 +801,6 @@ mod tests {
         eapi = arg.try_into().unwrap();
         assert_eq!(&*EAPI_PKGCRAFT, eapi);
         arg = Some(&EAPI1);
-        eapi = arg.try_into().unwrap();
-        assert_eq!(&*EAPI1, eapi);
-
-        let mut arg: *const Eapi = ptr::null();
-        eapi = arg.try_into().unwrap();
-        assert_eq!(&*EAPI_PKGCRAFT, eapi);
-        arg = &*EAPI1 as *const _;
         eapi = arg.try_into().unwrap();
         assert_eq!(&*EAPI1, eapi);
     }
