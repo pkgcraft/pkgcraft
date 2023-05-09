@@ -16,7 +16,7 @@ use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 type VersionMap = IndexMap<String, IndexSet<Version>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct Repo {
     id: String,
     repo_config: RepoConfig,
