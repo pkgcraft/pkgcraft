@@ -21,6 +21,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         let mut inherited_var = Variable::new("INHERITED");
 
         let eapi = d.borrow().eapi;
+        let orig_scope = d.borrow().scope;
         d.borrow_mut().scope = Scope::Eclass;
 
         // Track direct ebuild inherits, note that this assumes the first level is via an ebuild
@@ -72,6 +73,9 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         for var in eapi.incremental_keys() {
             unbind(var)?;
         }
+
+        // restore the original scope
+        d.borrow_mut().scope = orig_scope;
 
         Ok(ExecStatus::Success)
     })
