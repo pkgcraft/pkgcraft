@@ -5,6 +5,7 @@ use glob::glob;
 use scallop::builtins::ExecStatus;
 use scallop::variables::var_to_vec;
 use scallop::Error;
+use tracing::warn;
 
 use crate::pkgsh::BUILD_DATA;
 
@@ -39,11 +40,23 @@ fn has_data(recursive: bool, path: &Path) -> bool {
 // TODO: need to perform word expansion on each string as well
 fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<PathBuf>> {
     let mut files = vec![];
-    // TODO: output warnings for unmatched patterns when running against non-default input
-    for f in globs.iter() {
-        let paths = glob(f.as_ref()).map_err(|e| Error::Base(e.to_string()))?;
-        files.extend(paths.flatten().filter(|p| force || has_data(force, p)));
+
+    for f in globs.iter().map(|s| s.as_ref()) {
+        let paths =
+            glob(f).map_err(|e| Error::Base(format!("invalid docs glob pattern: {f}: {e}")))?;
+        let paths: scallop::Result<Vec<_>> = paths
+            .map(|r| r.map_err(|e| Error::Base(format!("failed reading docs file: {e}"))))
+            .collect();
+        let paths = paths?;
+
+        // output warnings for unmatched patterns when running against non-default input
+        if !force && paths.is_empty() {
+            warn!("unmatched docs glob: {f}");
+        }
+
+        files.extend(paths.into_iter().filter(|p| force || has_data(force, p)));
     }
+
     Ok(files)
 }
 
