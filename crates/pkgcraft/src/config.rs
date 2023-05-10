@@ -441,6 +441,6 @@ mod tests {
 
         // reloading directory fails
         let r = config.load_portage_conf(Some(conf_path));
-        assert_err_re!(r, "existing repos: r3, r2, r1");
+        assert_err_re!(r, "existing repos: r3, r1, r2");
     }
 }

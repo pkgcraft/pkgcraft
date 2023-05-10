@@ -252,11 +252,12 @@ impl Config {
         &mut self,
         repos: I,
     ) -> crate::Result<()> {
-        let (existing, repos): (Vec<_>, Vec<_>) = repos
+        let (mut existing, repos): (Vec<_>, Vec<_>) = repos
             .into_iter()
             .partition(|r| self.repos.get(r.name()).is_some());
 
         if !existing.is_empty() {
+            existing.sort();
             let existing = existing.iter().map(|r| r.id()).join(", ");
             return Err(Error::Config(format!("can't override existing repos: {existing}")));
         }
