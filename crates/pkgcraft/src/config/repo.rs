@@ -282,6 +282,10 @@ impl Config {
         Ok(())
     }
 
+    pub fn iter(&self) -> ReposIter<'_> {
+        self.into_iter()
+    }
+
     /// Sort repos by priority then by name.
     fn sort(&mut self) {
         self.repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));

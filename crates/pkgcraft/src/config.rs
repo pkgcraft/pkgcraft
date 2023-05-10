@@ -143,7 +143,7 @@ impl Config {
     }
 
     /// Load portage config files from a given directory, falling back to the default locations.
-    pub fn load_portage_conf(&mut self, path: Option<&str>) -> crate::Result<Vec<Repo>> {
+    pub fn load_portage_conf(&mut self, path: Option<&str>) -> crate::Result<()> {
         // use specified path or use fallbacks
         let paths = match path {
             Some(p) => vec![p],
@@ -200,8 +200,7 @@ impl Config {
             self.repos.extend(&repos)?;
         }
 
-        repos.sort();
-        Ok(repos)
+        Ok(())
     }
 
     /// Create all config-related paths.
@@ -360,8 +359,8 @@ mod tests {
 
         // empty
         fs::write(path, "").unwrap();
-        let repos = config.load_portage_conf(Some(conf_path)).unwrap();
-        assert!(repos.is_empty());
+        config.load_portage_conf(Some(conf_path)).unwrap();
+        assert!(config.repos.is_empty());
 
         // single repo
         let t1 = TempRepo::new("test", None, None).unwrap();
@@ -370,8 +369,8 @@ mod tests {
             location = {}
         "#, t1.path()};
         fs::write(path, data).unwrap();
-        let repos = config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_ordered_eq(repos.iter().map(|r| r.id()), ["a"]);
+        config.load_portage_conf(Some(conf_path)).unwrap();
+        assert_ordered_eq(config.repos.iter().map(|(_, r)| r.id()), ["a"]);
 
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
@@ -384,8 +383,8 @@ mod tests {
             priority = 1
         "#, t1.path(), t2.path()};
         fs::write(path, data).unwrap();
-        let repos = config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_ordered_eq(repos.iter().map(|r| r.id()), ["c", "b"]);
+        config.load_portage_conf(Some(conf_path)).unwrap();
+        assert_ordered_eq(config.repos.iter().map(|(_, r)| r.id()), ["c", "b"]);
 
         // reloading existing repo using a different id fails
         let data = indoc::formatdoc! {r#"
@@ -433,8 +432,8 @@ mod tests {
             priority = 1
         "#, t3.path()};
         fs::write(conf_dir.join("repos.conf/r3.conf"), data).unwrap();
-        let repos = config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_ordered_eq(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]);
+        config.load_portage_conf(Some(conf_path)).unwrap();
+        assert_ordered_eq(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
 
         // reloading directory fails
         let r = config.load_portage_conf(Some(conf_path));
