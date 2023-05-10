@@ -1,6 +1,5 @@
 use std::env;
 use std::fs;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -12,10 +11,13 @@ use crate::macros::build_from_paths;
 use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::repo::ebuild_temp::Repo as TempRepo;
 use crate::repo::Repo;
+use crate::utils::find_existing_path;
 use crate::Error;
 pub(crate) use repo::RepoConfig;
 
 mod repo;
+
+const PORTAGE_CONFIG_PATHS: &[&str] = &["/etc/portage", "/usr/share/portage/config"];
 
 /// Set types of configured repos
 #[repr(C)]
@@ -131,21 +133,42 @@ impl Config {
         Config { path, ..Default::default() }
     }
 
-    /// Load repos from toml files in the related repos config dir.
-    pub fn load_repos(&mut self) -> crate::Result<()> {
+    /// Load pkgcraft config files, if none are found revert to loading portage files.
+    pub fn load(&mut self) -> crate::Result<()> {
         self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
+        if self.repos.is_empty() {
+            self.load_portage_conf(None).ok();
+        }
         Ok(())
     }
 
-    /// Load repos from a portage-compatible repos.conf directory or file.
-    pub fn load_repos_conf<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Vec<Repo>> {
-        let path = path.as_ref();
-        let files: Vec<_> = match path.read_dir() {
-            Ok(entries) => Ok(entries.filter_map(|d| d.ok()).map(|d| d.path()).collect()),
+    /// Load portage config files from a given directory, falling back to the default locations.
+    pub fn load_portage_conf(&mut self, path: Option<&str>) -> crate::Result<Vec<Repo>> {
+        // use specified path or use fallbacks
+        let paths = match path {
+            Some(p) => vec![p],
+            None => PORTAGE_CONFIG_PATHS.to_vec(),
+        };
+
+        // use the first path that exists
+        let config_dir = if let Some(p) = find_existing_path(&paths) {
+            p
+        } else {
+            return Err(Error::Config("portage config not found".to_string()));
+        };
+
+        let repos_path = config_dir.join("repos.conf");
+
+        // collect all repos.conf files
+        let files: Vec<_> = match repos_path.read_dir_utf8() {
+            Ok(entries) => Ok(entries
+                .filter_map(|d| d.ok())
+                .map(|d| d.path().into())
+                .collect()),
             // TODO: switch to `e.kind() == ErrorKind::NotADirectory` on rust stabilization
             // https://github.com/rust-lang/rust/issues/86442
-            Err(e) if e.raw_os_error() == Some(20) => Ok(vec![PathBuf::from(path)]),
-            Err(e) => Err(Error::Config(format!("failed reading repos.conf: {path:?}: {e}"))),
+            Err(e) if e.raw_os_error() == Some(20) => Ok(vec![repos_path]),
+            Err(e) => Err(Error::Config(format!("failed reading repos.conf: {repos_path}: {e}"))),
         }?;
 
         let mut repos = vec![];
@@ -301,15 +324,16 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_load_repos_conf() {
+    fn test_load_portage_conf() {
         let mut config = Config::new("pkgcraft", "");
         let tmpdir = tempdir().unwrap();
-        let conf_path = tmpdir.path().join("repos.conf");
-        let path = conf_path.to_str().unwrap();
+        let conf_path = tmpdir.path().to_str().unwrap();
+        let path = tmpdir.path().join("repos.conf");
+        let path = path.to_str().unwrap();
 
         // nonexistent
-        let r = config.load_repos_conf("nonexistent");
-        assert_err_re!(r, "failed reading repos.conf");
+        let r = config.load_portage_conf(Some("nonexistent"));
+        assert_err_re!(r, "portage config not found");
 
         // invalid ini format
         let data = indoc::indoc! {r#"
@@ -320,7 +344,7 @@ mod tests {
             location = /path/to/overlay
         "#};
         fs::write(path, data).unwrap();
-        let r = config.load_repos_conf(path);
+        let r = config.load_portage_conf(Some(conf_path));
         assert_err_re!(r, "invalid repos.conf file");
 
         // invalid ini format
@@ -331,12 +355,12 @@ mod tests {
             [overlay]
         "#};
         fs::write(path, data).unwrap();
-        let r = config.load_repos_conf(path);
+        let r = config.load_portage_conf(Some(conf_path));
         assert_err_re!(r, "missing location field: overlay");
 
         // empty
         fs::write(path, "").unwrap();
-        let repos = config.load_repos_conf(path).unwrap();
+        let repos = config.load_portage_conf(Some(conf_path)).unwrap();
         assert!(repos.is_empty());
 
         // single repo
@@ -346,7 +370,7 @@ mod tests {
             location = {}
         "#, t1.path()};
         fs::write(path, data).unwrap();
-        let repos = config.load_repos_conf(path).unwrap();
+        let repos = config.load_portage_conf(Some(conf_path)).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["a"]);
 
         // multiple, prioritized repos
@@ -360,42 +384,8 @@ mod tests {
             priority = 1
         "#, t1.path(), t2.path()};
         fs::write(path, data).unwrap();
-        let repos = config.load_repos_conf(path).unwrap();
+        let repos = config.load_portage_conf(Some(conf_path)).unwrap();
         assert_ordered_eq(repos.iter().map(|r| r.id()), ["c", "b"]);
-
-        // multiple config files in a specified directory
-        let mut config = Config::new("pkgcraft", "");
-        let t3 = TempRepo::new("r3", None, None).unwrap();
-        let tmpdir = tempdir().unwrap();
-        let conf_dir = tmpdir.path();
-        let data = indoc::formatdoc! {r#"
-            [r1]
-            location = {}
-        "#, t1.path()};
-        fs::write(conf_dir.join("r1.conf"), data).unwrap();
-        let data = indoc::formatdoc! {r#"
-            [r2]
-            location = {}
-            priority = -1
-        "#, t2.path()};
-        fs::write(conf_dir.join("r2.conf"), data).unwrap();
-        let data = indoc::formatdoc! {r#"
-            [r3]
-            location = {}
-            priority = 1
-        "#, t3.path()};
-        fs::write(conf_dir.join("r3.conf"), data).unwrap();
-        let repos = config.load_repos_conf(conf_dir.to_str().unwrap()).unwrap();
-        assert_ordered_eq(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]);
-
-        // reloading existing repo fails
-        let data = indoc::formatdoc! {r#"
-            [r1]
-            location = {}
-        "#, t1.path()};
-        fs::write(path, data).unwrap();
-        let r = config.load_repos_conf(path);
-        assert_err_re!(r, "existing repos: r1");
 
         // reloading existing repo using a different id fails
         let data = indoc::formatdoc! {r#"
@@ -403,7 +393,7 @@ mod tests {
             location = {}
         "#, t1.path()};
         fs::write(path, data).unwrap();
-        let r = config.load_repos_conf(path);
+        let r = config.load_portage_conf(Some(conf_path));
         assert_err_re!(r, "existing repos: r4");
 
         // nonexistent masters causes finalization failure
@@ -416,7 +406,38 @@ mod tests {
             location = {repos_path}/dependent-nonexistent
         "#};
         fs::write(path, data).unwrap();
-        let r = config.load_repos_conf(path);
+        let r = config.load_portage_conf(Some(conf_path));
         assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
+
+        // multiple config files in a specified directory
+        let mut config = Config::new("pkgcraft", "");
+        let t3 = TempRepo::new("r3", None, None).unwrap();
+        let tmpdir = tempdir().unwrap();
+        let conf_dir = tmpdir.path();
+        let conf_path = conf_dir.to_str().unwrap();
+        fs::create_dir(conf_dir.join("repos.conf")).unwrap();
+        let data = indoc::formatdoc! {r#"
+            [r1]
+            location = {}
+        "#, t1.path()};
+        fs::write(conf_dir.join("repos.conf/r1.conf"), data).unwrap();
+        let data = indoc::formatdoc! {r#"
+            [r2]
+            location = {}
+            priority = -1
+        "#, t2.path()};
+        fs::write(conf_dir.join("repos.conf/r2.conf"), data).unwrap();
+        let data = indoc::formatdoc! {r#"
+            [r3]
+            location = {}
+            priority = 1
+        "#, t3.path()};
+        fs::write(conf_dir.join("repos.conf/r3.conf"), data).unwrap();
+        let repos = config.load_portage_conf(Some(conf_path)).unwrap();
+        assert_ordered_eq(repos.iter().map(|r| r.id()), ["r3", "r1", "r2"]);
+
+        // reloading directory fails
+        let r = config.load_portage_conf(Some(conf_path));
+        assert_err_re!(r, "existing repos: r3, r2, r1");
     }
 }

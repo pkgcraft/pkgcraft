@@ -3,7 +3,7 @@ use std::env;
 use std::hash::{Hash, Hasher};
 use std::path::{Component, Path, PathBuf};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::Error;
 
@@ -20,6 +20,17 @@ pub(crate) fn current_dir() -> crate::Result<Utf8PathBuf> {
         .map_err(|e| Error::InvalidValue(format!("can't get current dir: {e}")))?;
     Utf8PathBuf::try_from(dir)
         .map_err(|e| Error::InvalidValue(format!("invalid unicode path: {e}")))
+}
+
+/// Find and return the first existing path from a list of paths, otherwise return None.
+pub(crate) fn find_existing_path(paths: &[&str]) -> Option<Utf8PathBuf> {
+    for p in paths {
+        let path = Utf8Path::new(p);
+        if let Ok(true) = path.try_exists() {
+            return Some(path.into());
+        }
+    }
+    None
 }
 
 // Construct a relative path from a base directory to the specified path.

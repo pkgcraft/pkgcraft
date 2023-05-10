@@ -242,6 +242,11 @@ impl Config {
         self.repos.get(key)
     }
 
+    /// Returns true if no repos exist and false otherwise.
+    pub(super) fn is_empty(&self) -> bool {
+        self.repos.is_empty()
+    }
+
     /// Extend the config with multiple repos.
     pub(super) fn extend<'a, I: IntoIterator<Item = &'a Repo>>(
         &mut self,

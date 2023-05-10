@@ -41,8 +41,7 @@ impl StdinArgs for Vec<String> {
 
 fn main() -> anyhow::Result<ExitCode> {
     let mut config = Config::new("pkgcraft", "");
-    // TODO: move repos.conf default locations into pkgcraft
-    config.load_repos_conf("/etc/portage/repos.conf")?;
+    config.load()?;
 
     let args = Command::parse();
     args.subcmd.run(&config).or_else(|e| {

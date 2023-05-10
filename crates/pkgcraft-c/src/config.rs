@@ -64,15 +64,15 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo(c: *mut Config, r: *mut Repo) 
 /// # Safety
 /// The path argument should be a valid path on the system.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_config_load_repos_conf(
+pub unsafe extern "C" fn pkgcraft_config_load_portage_conf(
     c: *mut Config,
     path: *const c_char,
     len: *mut usize,
 ) -> *mut *mut Repo {
     ffi_catch_panic! {
-        let path = try_str_from_ptr!(path);
+        let path = try_opt_str_from_ptr!(path);
         let config = try_mut_from_ptr!(c);
-        let repos = unwrap_or_panic!(config.load_repos_conf(path));
+        let repos = unwrap_or_panic!(config.load_portage_conf(path));
         iter_to_array!(repos.into_iter(), len, boxed)
     }
 }

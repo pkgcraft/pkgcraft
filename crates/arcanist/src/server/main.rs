@@ -66,7 +66,7 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
     // load pkgcraft config
     let mut config = PkgcraftConfig::new("pkgcraft", "");
     if !skip_config {
-        config.load_repos()?;
+        config.load()?;
     }
 
     // load config settings and then override them with command-line settings

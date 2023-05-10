@@ -77,6 +77,23 @@ macro_rules! try_str_from_ptr {
 }
 pub(crate) use try_str_from_ptr;
 
+/// Convert a given char* into an Option<&str>.
+macro_rules! try_opt_str_from_ptr {
+    ( $var:expr ) => {{
+        unsafe {
+            $var.as_ref()
+                .map(|p| match std::ffi::CStr::from_ptr(p).to_str() {
+                    Ok(s) => s,
+                    Err(e) => {
+                        $crate::error::update_last_error(e.clone());
+                        panic!("{e}")
+                    }
+                })
+        }
+    }};
+}
+pub(crate) use try_opt_str_from_ptr;
+
 /// Convert a given &str into a char*.
 macro_rules! try_ptr_from_str {
     ( $s:expr ) => {{
