@@ -6,8 +6,8 @@ use std::{fmt, fs, io, iter, thread};
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use once_cell::sync::{Lazy, OnceCell};
-use regex::Regex;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
@@ -27,9 +27,6 @@ use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repos
 
 mod metadata;
 pub use metadata::Metadata;
-
-static EBUILD_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(?P<cat>[^/]+)/(?P<pkg>[^/]+)/(?P<p>[^/]+).ebuild$").unwrap());
 
 // root level directories that aren't categories
 static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
@@ -320,15 +317,15 @@ impl Repo {
         };
         path.strip_prefix(self.path())
             .map_err(|_| err(&format!("missing repo prefix: {:?}", self.path())))
-            .and_then(|p| {
-                EBUILD_RE
-                    .captures(p.as_str())
-                    .ok_or_else(|| err("unmatched file"))
-            })
-            .and_then(|m| {
-                let cat = m.name("cat").unwrap().as_str();
-                let pkg = m.name("pkg").unwrap().as_str();
-                let p = m.name("p").unwrap().as_str();
+            .and_then(|path| {
+                let (cat, pkg, file) = path
+                    .components()
+                    .map(|s| s.as_str())
+                    .collect_tuple()
+                    .ok_or_else(|| err("mismatched path components"))?;
+                let p = file
+                    .strip_suffix(".ebuild")
+                    .ok_or_else(|| err("missing ebuild ext"))?;
                 Cpv::new(&format!("{cat}/{p}"))
                     .map_err(|_| err("invalid CPV"))
                     .and_then(|a| match a.package() == pkg {
