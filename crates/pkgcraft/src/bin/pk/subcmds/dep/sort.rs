@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use clap::Args;
+use pkgcraft::config::Config;
 use pkgcraft::dep::Dep;
 
 use crate::{Run, StdinArgs};
@@ -13,7 +14,7 @@ pub struct Command {
 }
 
 impl Run for Command {
-    fn run(self) -> anyhow::Result<ExitCode> {
+    fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
         let mut deps = Vec::<Dep>::new();
 
         if self.vals.stdin_args()? {

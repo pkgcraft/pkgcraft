@@ -2,6 +2,7 @@ use std::io::stdin;
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::config::Config;
 use pkgcraft::dep::Version;
 
 use crate::{Run, StdinArgs};
@@ -12,7 +13,7 @@ pub struct Command {
 }
 
 impl Run for Command {
-    fn run(self) -> anyhow::Result<ExitCode> {
+    fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
         let mut versions = Vec::<Version>::new();
 
         if self.vals.stdin_args()? {

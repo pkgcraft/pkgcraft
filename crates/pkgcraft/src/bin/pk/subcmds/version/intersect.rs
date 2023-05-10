@@ -1,5 +1,6 @@
 use std::process::ExitCode;
 
+use pkgcraft::config::Config;
 use pkgcraft::dep::{Intersects, Version};
 
 use crate::Run;
@@ -11,7 +12,7 @@ pub struct Command {
 }
 
 impl Run for Command {
-    fn run(self) -> anyhow::Result<ExitCode> {
+    fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
         let v1 = Version::new(&self.ver1)?;
         let v2 = Version::new(&self.ver2)?;
         Ok(ExitCode::from(!v1.intersects(&v2) as u8))

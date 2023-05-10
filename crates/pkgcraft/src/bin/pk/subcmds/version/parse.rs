@@ -2,6 +2,7 @@ use std::io::stdin;
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::config::Config;
 use pkgcraft::dep::Version;
 use strum::{Display, EnumIter, EnumString};
 
@@ -60,7 +61,7 @@ impl Command {
 }
 
 impl Run for Command {
-    fn run(self) -> anyhow::Result<ExitCode> {
+    fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
         // parse a version, tracking overall process status
         let mut parse = |s: &str| {

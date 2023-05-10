@@ -4,6 +4,7 @@ use std::process::ExitCode;
 use anyhow::bail;
 use clap::Parser;
 use is_terminal::IsTerminal;
+use pkgcraft::config::Config;
 
 mod format;
 mod subcmds;
@@ -17,7 +18,7 @@ struct Command {
 }
 
 trait Run {
-    fn run(self) -> anyhow::Result<ExitCode>;
+    fn run(self, config: &Config) -> anyhow::Result<ExitCode>;
 }
 
 trait StdinArgs {
@@ -39,8 +40,12 @@ impl StdinArgs for Vec<String> {
 }
 
 fn main() -> anyhow::Result<ExitCode> {
+    let mut config = Config::new("pkgcraft", "");
+    // TODO: move repos.conf default locations into pkgcraft
+    config.load_repos_conf("/etc/portage/repos.conf")?;
+
     let args = Command::parse();
-    args.subcmd.run().or_else(|e| {
+    args.subcmd.run(&config).or_else(|e| {
         eprintln!("{e}");
         Ok(ExitCode::from(2))
     })

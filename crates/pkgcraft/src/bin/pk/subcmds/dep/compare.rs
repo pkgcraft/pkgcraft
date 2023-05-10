@@ -4,6 +4,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, bail};
 use clap::Args;
 use itertools::Itertools;
+use pkgcraft::config::Config;
 use pkgcraft::dep::Dep;
 
 use crate::Run;
@@ -14,7 +15,7 @@ pub struct Command {
 }
 
 impl Run for Command {
-    fn run(self) -> anyhow::Result<ExitCode> {
+    fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
         let (s1, op, s2) = self
             .compare
             .split_whitespace()
