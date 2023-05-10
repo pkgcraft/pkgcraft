@@ -16,8 +16,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }?;
 
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let iuse_effective = &d.borrow().iuse_effective;
-        Ok(ExecStatus::from(iuse_effective.contains(flag)))
+        Ok(ExecStatus::from(d.borrow().pkg().iuse_effective().contains(flag)))
     })
 }
 
@@ -28,7 +27,9 @@ make_builtin!("in_iuse", in_iuse_builtin, run, LONG_DOC, USAGE, &[("6..", &[PHAS
 mod tests {
     use scallop::builtins::ExecStatus;
 
-    use crate::pkgsh::BUILD_DATA;
+    use crate::config::Config;
+    use crate::pkg::ebuild::Pkg;
+    use crate::pkgsh::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as in_iuse;
@@ -42,15 +43,17 @@ mod tests {
     }
 
     #[test]
-    fn known() {
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().iuse_effective.insert("use".to_string());
-            assert_eq!(in_iuse(&["use"]).unwrap(), ExecStatus::Success);
-        });
-    }
+    fn known_and_unknown() {
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        BuildData::from_pkg(&pkg);
 
-    #[test]
-    fn unknown() {
-        assert_eq!(in_iuse(&["use"]).unwrap(), ExecStatus::Failure(1));
+        // unknown
+        assert_eq!(in_iuse(&["unknown"]).unwrap(), ExecStatus::Failure(1));
+
+        // known
+        assert_eq!(in_iuse(&["use"]).unwrap(), ExecStatus::Success);
     }
 }

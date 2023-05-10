@@ -183,7 +183,6 @@ pub(crate) struct BuildData {
     // TODO: proxy these fields via borrowed package reference
     distfiles: Vec<String>,
     user_patches: Vec<String>,
-    iuse_effective: HashSet<String>,
     use_: HashSet<String>,
 
     phase: Option<phase::Phase>,
@@ -258,7 +257,6 @@ impl BuildData {
         let p = unsafe { mem::transmute(pkg) };
         let data = BuildData {
             state: BuildState::Build(p),
-            iuse_effective: pkg.iuse_effective().iter().map(|s| s.to_string()).collect(),
             ..BuildData::new()
         };
         BUILD_DATA.with(|d| d.replace(data));
@@ -288,6 +286,14 @@ impl BuildData {
             Metadata(_, _, repo) => repo,
             Build(pkg) => pkg.repo(),
             _ => panic!("repo invalid for state: {:?}", self.state),
+        }
+    }
+
+    fn pkg(&self) -> &crate::pkg::ebuild::Pkg {
+        use BuildState::*;
+        match &self.state {
+            Build(pkg) => pkg,
+            _ => panic!("pkg invalid for state: {:?}", self.state),
         }
     }
 

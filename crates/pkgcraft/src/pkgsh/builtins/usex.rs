@@ -36,8 +36,10 @@ make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, &[("5..", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {
+    use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::{assert_stdout, BUILD_DATA};
+    use crate::pkg::ebuild::Pkg;
+    use crate::pkgsh::{assert_stdout, BuildData, BUILD_DATA};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as usex;
@@ -52,29 +54,36 @@ mod tests {
 
     #[test]
     fn empty_iuse_effective() {
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        BuildData::from_pkg(&pkg);
+
         assert_err_re!(usex(&["use"]), "^.* not in IUSE$");
     }
 
     #[test]
-    fn disabled() {
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().iuse_effective.insert("use".to_string());
-            for (args, expected) in [
-                (vec!["use"], "no"),
-                (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
-                (vec!["!use"], "yes"),
-                (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
-            ] {
-                usex(&args).unwrap();
-                assert_stdout!(expected);
-            }
-        });
-    }
+    fn enabled_and_disabled() {
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        BuildData::from_pkg(&pkg);
 
-    #[test]
-    fn enabled() {
+        // disabled
+        for (args, expected) in [
+            (vec!["use"], "no"),
+            (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
+            (vec!["!use"], "yes"),
+            (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
+        ] {
+            usex(&args).unwrap();
+            assert_stdout!(expected);
+        }
+
+        // enabled
         BUILD_DATA.with(|d| {
-            d.borrow_mut().iuse_effective.insert("use".to_string());
             d.borrow_mut().use_.insert("use".to_string());
             for (args, expected) in [
                 (vec!["use"], "yes"),

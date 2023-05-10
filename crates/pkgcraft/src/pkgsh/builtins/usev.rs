@@ -41,9 +41,11 @@ make_builtin!("usev", usev_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
 mod tests {
     use scallop::builtins::ExecStatus;
 
+    use crate::config::Config;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkgsh::{assert_stdout, BuildData, BUILD_DATA};
+    use crate::pkg::ebuild::Pkg;
+    use crate::pkgsh::{assert_stdout, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as usev;
@@ -66,42 +68,56 @@ mod tests {
 
     #[test]
     fn empty_iuse_effective() {
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        BuildData::from_pkg(&pkg);
+
         assert_err_re!(usev(&["use"]), "^.* not in IUSE$");
     }
 
     #[test]
-    fn disabled() {
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().iuse_effective.insert("use".to_string());
+    fn enabled_and_disabled() {
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        BuildData::from_pkg(&pkg);
 
-            for (args, status, expected) in
-                [(&["use"], ExecStatus::Failure(1), ""), (&["!use"], ExecStatus::Success, "use")]
-            {
+        // disabled
+        for (args, status, expected) in
+            [(&["use"], ExecStatus::Failure(1), ""), (&["!use"], ExecStatus::Success, "use")]
+        {
+            assert_eq!(usev(args).unwrap(), status);
+            assert_stdout!(expected);
+        }
+
+        // check EAPIs that support two arg variant
+        for eapi in EAPIS_OFFICIAL
+            .iter()
+            .filter(|e| e.has(Feature::UsevTwoArgs))
+        {
+            let (path, cpv) = t
+                .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
+                .unwrap();
+            let pkg = Pkg::new(path, cpv, &repo).unwrap();
+            BuildData::from_pkg(&pkg);
+
+            for (args, status, expected) in [
+                (&["use", "out"], ExecStatus::Failure(1), ""),
+                (&["!use", "out"], ExecStatus::Success, "out"),
+            ] {
                 assert_eq!(usev(args).unwrap(), status);
                 assert_stdout!(expected);
             }
+        }
 
-            // check EAPIs that support two arg variant
-            for eapi in EAPIS_OFFICIAL
-                .iter()
-                .filter(|e| e.has(Feature::UsevTwoArgs))
-            {
-                BuildData::empty(eapi);
-                for (args, status, expected) in [
-                    (&["use", "out"], ExecStatus::Failure(1), ""),
-                    (&["!use", "out"], ExecStatus::Success, "out"),
-                ] {
-                    assert_eq!(usev(args).unwrap(), status);
-                    assert_stdout!(expected);
-                }
-            }
-        });
-    }
-
-    #[test]
-    fn enabled() {
+        // enabled
         BUILD_DATA.with(|d| {
-            d.borrow_mut().iuse_effective.insert("use".to_string());
+            let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+            let pkg = Pkg::new(path, cpv, &repo).unwrap();
+            BuildData::from_pkg(&pkg);
             d.borrow_mut().use_.insert("use".to_string());
 
             for (args, status, expected) in
@@ -116,7 +132,13 @@ mod tests {
                 .iter()
                 .filter(|e| e.has(Feature::UsevTwoArgs))
             {
-                BuildData::empty(eapi);
+                let (path, cpv) = t
+                    .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
+                    .unwrap();
+                let pkg = Pkg::new(path, cpv, &repo).unwrap();
+                BuildData::from_pkg(&pkg);
+                d.borrow_mut().use_.insert("use".to_string());
+
                 for (args, status, expected) in [
                     (&["use", "out"], ExecStatus::Success, "out"),
                     (&["!use", "out"], ExecStatus::Failure(1), ""),
