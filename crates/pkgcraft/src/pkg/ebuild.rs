@@ -293,6 +293,7 @@ impl<'a> BuildablePackage for Pkg<'a> {
             pkgsh::run_phase(*phase)?;
         }
         shell::toggle_restricted(true);
+        scallop::shell::reset();
         Ok(())
     }
 
@@ -304,6 +305,7 @@ impl<'a> BuildablePackage for Pkg<'a> {
             pkgsh::run_phase(*phase)?;
         }
         shell::toggle_restricted(true);
+        scallop::shell::reset();
         Ok(())
     }
 }
