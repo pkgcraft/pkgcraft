@@ -81,7 +81,7 @@ mod tests {
             SLOT=0
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         source_ebuild(&path).unwrap();
         // execute eclass-defined function
         let mut func = functions::find("src_compile").unwrap();

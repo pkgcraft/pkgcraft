@@ -15,7 +15,7 @@ const LONG_DOC: &str = "Create symbolic links.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         let (source, target, target_str) = match args.len() {
             3 if args[0] == "-r" && eapi.has(Feature::DosymRelative) => {
                 let (source, target) = (Path::new(args[1]), Path::new(args[2]));
@@ -61,7 +61,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as dosym;
@@ -73,15 +73,13 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(dosym, &[0, 1, 4]);
 
-        BUILD_DATA.with(|d| {
-            for eapi in EAPIS_OFFICIAL
-                .iter()
-                .filter(|e| !e.has(Feature::DosymRelative))
-            {
-                d.borrow_mut().eapi = eapi;
-                assert_invalid_args(dosym, &[3]);
-            }
-        });
+        for eapi in EAPIS_OFFICIAL
+            .iter()
+            .filter(|e| !e.has(Feature::DosymRelative))
+        {
+            BuildData::empty(eapi);
+            assert_invalid_args(dosym, &[3]);
+        }
     }
 
     #[test]

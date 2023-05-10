@@ -12,7 +12,7 @@ use crate::pkgsh::BUILD_DATA;
 // Underlying implementation for new* builtins.
 pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         let (source, dest) = match args.len() {
             2 => Ok((args[0], Path::new(args[1]))),
             n => Err(Error::Base(format!("requires 2, got {n}"))),

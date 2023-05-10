@@ -15,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let phase = &d.borrow().phase.unwrap();
-        let builtins = d.borrow().eapi.builtins(phase);
+        let builtins = d.borrow().eapi().builtins(phase);
         let default_phase = format!("default_{phase}");
         match builtins.get(default_phase.as_str()) {
             Some(b) => b.run(&[]),

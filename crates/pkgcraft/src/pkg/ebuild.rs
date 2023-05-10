@@ -7,17 +7,21 @@ use std::sync::Arc;
 use camino::{Utf8Path, Utf8PathBuf};
 use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
+use scallop::shell;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
-use crate::eapi::{self, Eapi};
-use crate::pkgsh::metadata::{Key, Metadata};
+use crate::eapi::{self, Eapi, Feature, Operation};
+use crate::pkgsh::{
+    self,
+    metadata::{Key, Metadata},
+};
 use crate::repo::{ebuild::Repo, Repository};
 use crate::types::OrderedSet;
 use crate::utils::relpath;
 use crate::Error;
 
-use super::{make_pkg_traits, Package};
+use super::{make_pkg_traits, BuildablePackage, Package};
 
 pub mod metadata;
 use metadata::{Manifest, ManifestFile, XmlMetadata};
@@ -205,6 +209,18 @@ impl<'a> Pkg<'a> {
         self.meta.iuse()
     }
 
+    /// Return an unconfigured package's IUSE_EFFECTIVE.
+    pub(crate) fn iuse_effective(&self) -> OrderedSet<&str> {
+        if self.eapi().has(Feature::IuseDefaults) {
+            self.iuse()
+                .iter()
+                .map(|s| s.trim_start_matches(['+', '-']))
+                .collect()
+        } else {
+            self.iuse().iter().map(|s| s.as_str()).collect()
+        }
+    }
+
     /// Return the ordered set of directly inherited eclasses for a package.
     pub fn inherit(&self) -> &OrderedSet<String> {
         self.meta.inherit()
@@ -268,6 +284,30 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
+impl<'a> BuildablePackage for Pkg<'a> {
+    fn build(&self) -> crate::Result<()> {
+        pkgsh::BuildData::from_pkg(self);
+        pkgsh::source_ebuild(self.path())?;
+        shell::toggle_restricted(false);
+        for phase in self.eapi().operation(Operation::Build) {
+            pkgsh::run_phase(*phase)?;
+        }
+        shell::toggle_restricted(true);
+        Ok(())
+    }
+
+    fn pretend(&self) -> crate::Result<()> {
+        pkgsh::BuildData::from_pkg(self);
+        pkgsh::source_ebuild(self.path())?;
+        shell::toggle_restricted(false);
+        for phase in self.eapi().operation(Operation::Pretend) {
+            pkgsh::run_phase(*phase)?;
+        }
+        shell::toggle_restricted(true);
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
@@ -292,6 +332,46 @@ mod tests {
             .unwrap();
         let r = Pkg::new(path, cpv, &repo);
         assert_err_re!(r, r"unknown EAPI: unknown");
+    }
+
+    #[test]
+    fn test_variable_exports() {
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        // single
+        let data = indoc::indoc! {r#"
+            DESCRIPTION="testing defined phases"
+            SLOT=0
+
+            VARIABLE_GLOBAL="a"
+
+            src_compile() {
+                VARIABLE_GLOBAL="b"
+                VARIABLE_DEFAULT="c"
+                export VARIABLE_EXPORTED="d"
+                local VARIABLE_LOCAL="e"
+            }
+
+            src_install() {
+                [[ ${VARIABLE_GLOBAL} == "b" ]] \
+                    || die "broken env saving for globals"
+
+                [[ ${VARIABLE_DEFAULT} == "c" ]] \
+                    || die "broken env saving for default"
+
+                [[ ${VARIABLE_EXPORTED} == "d" ]] \
+                    || die "broken env saving for exported"
+
+                [[ $(printenv VARIABLE_EXPORTED ) == "d" ]] \
+                    || die "broken env saving for exported"
+
+                [[ -z ${VARIABLE_LOCAL} ]] \
+                    || die "broken env saving for locals"
+            }
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat1/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        pkg.build().unwrap();
     }
 
     #[test]

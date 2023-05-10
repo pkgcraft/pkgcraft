@@ -13,7 +13,7 @@ pub(super) fn use_conf(
     disabled: &str,
 ) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         let (flag, opt, suffix) = match args.len() {
             1 => match args[0].starts_with('!') {
                 false => Ok((&args[..1], args[0], String::from(""))),

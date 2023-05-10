@@ -69,6 +69,13 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     }
 }
 
+pub trait BuildablePackage: Package {
+    /// Run the build operations for a package.
+    fn build(&self) -> crate::Result<()>;
+    /// Run the pkg_pretend operation for a package.
+    fn pretend(&self) -> crate::Result<()>;
+}
+
 macro_rules! make_pkg_traits {
     ($($x:ty),+) => {$(
         impl PartialEq for $x {

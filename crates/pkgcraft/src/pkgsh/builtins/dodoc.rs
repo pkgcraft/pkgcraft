@@ -43,7 +43,7 @@ where
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         let (recursive, args) = match args.first() {
             Some(&"-r") if eapi.has(Feature::DodocRecursive) => Ok((true, &args[1..])),
             Some(_) => Ok((false, args)),

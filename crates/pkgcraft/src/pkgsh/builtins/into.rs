@@ -56,12 +56,11 @@ mod tests {
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
 
         for eapi in EAPIS_OFFICIAL.iter() {
-            BuildData::update(&cpv, &repo);
+            BuildData::update(&cpv, &repo, Some(eapi));
             BUILD_DATA.with(|d| {
                 let phase = Phase::SrcInstall(PHASE_STUB);
                 d.borrow_mut().phase = Some(phase);
                 d.borrow_mut().scope = Scope::Phase(phase);
-                d.borrow_mut().eapi = eapi;
                 into(&["/test/path"]).unwrap();
                 assert_eq!(d.borrow().desttree, "/test/path");
 

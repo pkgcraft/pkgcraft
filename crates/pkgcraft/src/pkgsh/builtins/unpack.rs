@@ -34,7 +34,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
-        let eapi = d.eapi;
+        let eapi = d.eapi();
         let distdir = variables::required("DISTDIR")?;
 
         // Determine the source for a given archive target. Basic filenames are prefixed with
@@ -117,7 +117,7 @@ mod tests {
     use crate::command::run_commands;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::*;
@@ -138,48 +138,46 @@ mod tests {
 
     #[test]
     fn eapi_features() {
-        BUILD_DATA.with(|d| {
-            let tmp_dir = tempdir().unwrap();
-            let prefix = tmp_dir.path();
-            let distdir = prefix.join("distdir");
-            fs::create_dir(&distdir).unwrap();
-            env::set_current_dir(prefix).unwrap();
-            bind("DISTDIR", distdir.to_str().unwrap(), None, None).unwrap();
-            fs::File::create("distdir/a.TAR.GZ").unwrap();
-            let abs_path = prefix.join("distdir/a.tar.gz");
-            fs::File::create(&abs_path).unwrap();
+        let tmp_dir = tempdir().unwrap();
+        let prefix = tmp_dir.path();
+        let distdir = prefix.join("distdir");
+        fs::create_dir(&distdir).unwrap();
+        env::set_current_dir(prefix).unwrap();
+        bind("DISTDIR", distdir.to_str().unwrap(), None, None).unwrap();
+        fs::File::create("distdir/a.TAR.GZ").unwrap();
+        let abs_path = prefix.join("distdir/a.tar.gz");
+        fs::File::create(&abs_path).unwrap();
 
-            for eapi in EAPIS_OFFICIAL.iter() {
-                d.borrow_mut().eapi = eapi;
+        for eapi in EAPIS_OFFICIAL.iter() {
+            BuildData::empty(eapi);
 
-                // case insensitive support
-                let result = unpack(&["a.TAR.GZ"]);
-                if eapi.has(Feature::UnpackCaseInsensitive) {
-                    result.unwrap();
-                } else {
-                    assert_err_re!(result, "^unknown archive format: .*$");
-                }
-
-                // absolute path support
-                let result = unpack(&[abs_path.to_str().unwrap()]);
-                if eapi.has(Feature::UnpackExtendedPath) {
-                    result.unwrap();
-                } else {
-                    assert_err_re!(result, "^absolute paths not supported .*$");
-                }
-
-                // prefixed relative paths work everywhere
-                unpack(&["./distdir/a.tar.gz"]).unwrap();
-
-                // unprefixed are EAPI conditional
-                let result = unpack(&["distdir/a.tar.gz"]);
-                if eapi.has(Feature::UnpackExtendedPath) {
-                    result.unwrap();
-                } else {
-                    assert_err_re!(result, "^relative paths not supported .*$");
-                }
+            // case insensitive support
+            let result = unpack(&["a.TAR.GZ"]);
+            if eapi.has(Feature::UnpackCaseInsensitive) {
+                result.unwrap();
+            } else {
+                assert_err_re!(result, "^unknown archive format: .*$");
             }
-        })
+
+            // absolute path support
+            let result = unpack(&[abs_path.to_str().unwrap()]);
+            if eapi.has(Feature::UnpackExtendedPath) {
+                result.unwrap();
+            } else {
+                assert_err_re!(result, "^absolute paths not supported .*$");
+            }
+
+            // prefixed relative paths work everywhere
+            unpack(&["./distdir/a.tar.gz"]).unwrap();
+
+            // unprefixed are EAPI conditional
+            let result = unpack(&["distdir/a.tar.gz"]);
+            if eapi.has(Feature::UnpackExtendedPath) {
+                result.unwrap();
+            } else {
+                assert_err_re!(result, "^relative paths not supported .*$");
+            }
+        }
     }
 
     #[test]

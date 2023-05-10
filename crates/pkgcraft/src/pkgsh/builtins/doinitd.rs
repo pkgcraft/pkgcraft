@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let dest = "/etc/init.d";
-        let opts = match d.eapi.has(Feature::ConsistentFileOpts) {
+        let opts = match d.eapi().has(Feature::ConsistentFileOpts) {
             true => vec!["-m0755"],
             false => d.exeopts.iter().map(|s| s.as_str()).collect(),
         };
@@ -36,7 +36,7 @@ mod tests {
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::BuildData;
 
     use super::super::exeopts::run as exeopts;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -68,7 +68,7 @@ mod tests {
 
         // verify exeopts are respected depending on EAPI
         for eapi in EAPIS_OFFICIAL.iter() {
-            BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
+            BuildData::empty(eapi);
             exeopts(&["-m0777"]).unwrap();
             doinitd(&["pkgcraft"]).unwrap();
             let mode = match eapi.has(Feature::ConsistentFileOpts) {

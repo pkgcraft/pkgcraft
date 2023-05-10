@@ -12,7 +12,7 @@ The same as use, but also prints the flag name if the condition is met.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         let (flag, output) = match args.len() {
             1 => {
                 let output = args[0].strip_prefix('!').unwrap_or(args[0]);
@@ -43,7 +43,7 @@ mod tests {
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkgsh::{assert_stdout, BUILD_DATA};
+    use crate::pkgsh::{assert_stdout, BuildData, BUILD_DATA};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as usev;
@@ -55,15 +55,13 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(usev, &[0, 3]);
 
-        BUILD_DATA.with(|d| {
-            for eapi in EAPIS_OFFICIAL
-                .iter()
-                .filter(|e| !e.has(Feature::UsevTwoArgs))
-            {
-                d.borrow_mut().eapi = eapi;
-                assert_invalid_args(usev, &[2]);
-            }
-        });
+        for eapi in EAPIS_OFFICIAL
+            .iter()
+            .filter(|e| !e.has(Feature::UsevTwoArgs))
+        {
+            BuildData::empty(eapi);
+            assert_invalid_args(usev, &[2]);
+        }
     }
 
     #[test]
@@ -88,7 +86,7 @@ mod tests {
                 .iter()
                 .filter(|e| e.has(Feature::UsevTwoArgs))
             {
-                d.borrow_mut().eapi = eapi;
+                BuildData::empty(eapi);
                 for (args, status, expected) in [
                     (&["use", "out"], ExecStatus::Failure(1), ""),
                     (&["!use", "out"], ExecStatus::Success, "out"),
@@ -118,7 +116,7 @@ mod tests {
                 .iter()
                 .filter(|e| e.has(Feature::UsevTwoArgs))
             {
-                d.borrow_mut().eapi = eapi;
+                BuildData::empty(eapi);
                 for (args, status, expected) in [
                     (&["use", "out"], ExecStatus::Success, "out"),
                     (&["!use", "out"], ExecStatus::Failure(1), ""),

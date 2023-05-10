@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         let mut eclass_var = ScopedVariable::new("ECLASS");
         let mut inherited_var = Variable::new("INHERITED");
 
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         let orig_scope = d.borrow().scope;
         d.borrow_mut().scope = Scope::Eclass;
 
@@ -45,10 +45,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             // determine eclass file path
             let path = d
                 .borrow()
-                .repo
-                .unwrap()
+                .repo()
                 .eclasses()
                 .get(&eclass)
+                .cloned()
                 .ok_or_else(|| Error::Bail(format!("unknown eclass: {eclass}")))?;
 
             // update $ECLASS bash variable
@@ -109,7 +109,7 @@ mod tests {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         let r = inherit(&["nonexistent"]);
         assert_err_re!(r, r"^unknown eclass: nonexistent");
     }
@@ -127,7 +127,7 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         let r = inherit(&["e1"]);
         assert_err_re!(r, r"^failed loading eclass: e1: unknown command: unknown_cmd$");
     }
@@ -145,7 +145,7 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         inherit(&["e1"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
     }
@@ -168,7 +168,7 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         inherit(&["e1", "e2"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
@@ -192,7 +192,7 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         inherit(&["e2"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
@@ -222,7 +222,7 @@ mod tests {
         t.create_eclass("e3", eclass).unwrap();
 
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         inherit(&["e3"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
     }
@@ -269,7 +269,7 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         inherit(&["e1", "e2"]).unwrap();
         assert_eq!(optional("VAR").unwrap(), "e1 e2");
     }

@@ -17,6 +17,7 @@ use sys_info::os_release;
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::{build_from_paths, extend_left};
+use crate::pkg::Package;
 use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
 use crate::repo::{ebuild, Repository};
 
@@ -154,11 +155,22 @@ macro_rules! assert_stderr {
 #[cfg(test)]
 use assert_stderr;
 
+#[derive(Debug)]
+pub(crate) enum BuildState {
+    Empty(&'static Eapi),
+    Metadata(&'static Eapi, Cpv, &'static crate::repo::ebuild::Repo),
+    Build(&'static crate::pkg::ebuild::Pkg<'static>),
+}
+
+impl Default for BuildState {
+    fn default() -> Self {
+        Self::Empty(Default::default())
+    }
+}
+
 #[derive(Default)]
-struct BuildData {
-    eapi: &'static Eapi,
-    cpv: Option<Cpv>,
-    repo: Option<&'static ebuild::Repo>,
+pub(crate) struct BuildData {
+    state: BuildState,
 
     captured_io: bool,
     stdin: Stdin,
@@ -171,6 +183,8 @@ struct BuildData {
     // TODO: proxy these fields via borrowed package reference
     distfiles: Vec<String>,
     user_patches: Vec<String>,
+    iuse_effective: HashSet<String>,
+    use_: HashSet<String>,
 
     phase: Option<phase::Phase>,
     scope: Scope,
@@ -191,9 +205,6 @@ struct BuildData {
     compress_exclude: HashSet<String>,
     strip_include: HashSet<String>,
     strip_exclude: HashSet<String>,
-
-    iuse_effective: HashSet<String>,
-    use_: HashSet<String>,
 
     /// Eclasses directly inherited by an ebuild.
     inherit: IndexSet<String>,
@@ -216,33 +227,72 @@ impl BuildData {
     fn new() -> Self {
         Self {
             captured_io: cfg!(test),
+            insopts: vec!["-m0644".to_string()],
+            libopts: vec!["-m0644".to_string()],
+            diropts: vec!["-m0755".to_string()],
+            exeopts: vec!["-m0755".to_string()],
+            desttree: "/usr".into(),
             ..Default::default()
         }
     }
 
-    fn update(cpv: &Cpv, repo: &ebuild::Repo) {
+    #[cfg(test)]
+    pub(crate) fn empty(eapi: &'static Eapi) {
+        BUILD_DATA.with(|d| d.borrow_mut().state = BuildState::Empty(eapi));
+    }
+
+    pub(crate) fn update(cpv: &Cpv, repo: &ebuild::Repo, eapi: Option<&'static Eapi>) {
         // TODO: remove this hack once BuildData is reworked
         // Drop the lifetime bound on the repo reference in order for it to be stored in BuildData
         // which currently requires `'static` due to its usage in a global, thread local, static
         // variable.
         let r = unsafe { mem::transmute(repo) };
 
-        BUILD_DATA.with(|d| {
-            d.replace(BuildData {
-                cpv: Some(cpv.clone()),
-                repo: Some(r),
-                insopts: vec!["-m0644".to_string()],
-                libopts: vec!["-m0644".to_string()],
-                diropts: vec!["-m0755".to_string()],
-                exeopts: vec!["-m0755".to_string()],
-                desttree: "/usr".into(),
-                ..BuildData::new()
-            })
-        });
+        let eapi = eapi.unwrap_or_default();
+        let state = BuildState::Metadata(eapi, cpv.clone(), r);
+        BUILD_DATA.with(|d| d.replace(BuildData { state, ..BuildData::new() }));
+    }
+
+    pub(crate) fn from_pkg<'a>(pkg: &'a crate::pkg::ebuild::Pkg<'a>) {
+        // TODO: remove this hack once BuildData is reworked
+        let p = unsafe { mem::transmute(pkg) };
+        let data = BuildData {
+            state: BuildState::Build(p),
+            iuse_effective: pkg.iuse_effective().iter().map(|s| s.to_string()).collect(),
+            ..BuildData::new()
+        };
+        BUILD_DATA.with(|d| d.replace(data));
+    }
+
+    fn eapi(&self) -> &'static Eapi {
+        use BuildState::*;
+        match &self.state {
+            Empty(eapi) => eapi,
+            Metadata(eapi, _, _) => eapi,
+            Build(pkg) => pkg.eapi(),
+        }
+    }
+
+    fn cpv(&self) -> &Cpv {
+        use BuildState::*;
+        match &self.state {
+            Metadata(_, cpv, _) => cpv,
+            Build(pkg) => pkg.cpv(),
+            _ => panic!("cpv invalid for state: {:?}", self.state),
+        }
+    }
+
+    fn repo(&self) -> &ebuild::Repo {
+        use BuildState::*;
+        match &self.state {
+            Metadata(_, _, repo) => repo,
+            Build(pkg) => pkg.repo(),
+            _ => panic!("repo invalid for state: {:?}", self.state),
+        }
     }
 
     fn set_vars(&mut self) -> scallop::Result<()> {
-        for (var, scopes) in self.eapi.env() {
+        for (var, scopes) in self.eapi().env() {
             if scopes.matches(self.scope) {
                 if self.env.get(var.as_ref()).is_none() {
                     let val = var.get(self);
@@ -255,7 +305,7 @@ impl BuildData {
     }
 
     fn override_var(&self, var: BuildVariable, val: &str) -> scallop::Result<()> {
-        if let Some(scopes) = self.eapi.env().get(&var) {
+        if let Some(scopes) = self.eapi().env().get(&var) {
             if scopes.matches(self.scope) {
                 bind(var, val, None, None)?;
             } else {
@@ -329,13 +379,11 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
 });
 
-// TODO: remove allow when public package building support is added
-#[allow(dead_code)]
-fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
+pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     Lazy::force(&BASH);
 
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         d.borrow_mut().phase = Some(phase);
         d.borrow_mut().scope = Scope::Phase(phase);
         d.borrow_mut().set_vars()?;
@@ -365,7 +413,7 @@ fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     })
 }
 
-fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
+pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
     Lazy::force(&BASH);
 
     if !path.exists() {
@@ -373,7 +421,7 @@ fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
     }
 
     BUILD_DATA.with(|d| -> scallop::Result<()> {
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         d.borrow_mut().scope = Scope::Global;
         d.borrow_mut().set_vars()?;
 
@@ -454,26 +502,25 @@ pub enum BuildVariable {
 impl BuildVariable {
     fn get(&self, build: &BuildData) -> String {
         use BuildVariable::*;
-        let cpv = build.cpv.as_ref().expect("missing required cpv field");
         match self {
-            P => cpv.p(),
-            PF => cpv.pf(),
-            PN => cpv.package().to_string(),
-            CATEGORY => cpv.category().to_string(),
-            PV => cpv.pv(),
-            PR => cpv.pr(),
-            PVR => cpv.pvr(),
+            P => build.cpv().p(),
+            PF => build.cpv().pf(),
+            PN => build.cpv().package().to_string(),
+            CATEGORY => build.cpv().category().to_string(),
+            PV => build.cpv().pv(),
+            PR => build.cpv().pr(),
+            PVR => build.cpv().pvr(),
             FILESDIR => {
                 let path = build_from_paths!(
-                    build.repo.unwrap().path(),
-                    cpv.category(),
-                    cpv.package(),
+                    build.repo().path(),
+                    build.cpv().category(),
+                    build.cpv().package(),
                     "files"
                 );
                 path.into_string()
             }
-            PORTDIR => build.repo.unwrap().path().to_string(),
-            ECLASSDIR => build.repo.unwrap().path().join("eclass").into_string(),
+            PORTDIR => build.repo().path().to_string(),
+            ECLASSDIR => build.repo().path().join("eclass").into_string(),
             EBUILD_PHASE => build.phase.expect("missing phase").short_name().to_string(),
             EBUILD_PHASE_FUNC => build.phase.expect("missing phase").to_string(),
             KV => os_release().expect("failed to get OS version"),
@@ -509,7 +556,7 @@ mod tests {
             VAR=2
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         let r = source_ebuild(&path);
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, "unknown command: ls");
@@ -525,7 +572,7 @@ mod tests {
             VAR=2
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
-        BuildData::update(&cpv, &repo);
+        BuildData::update(&cpv, &repo, None);
         let r = source_ebuild(&path);
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");

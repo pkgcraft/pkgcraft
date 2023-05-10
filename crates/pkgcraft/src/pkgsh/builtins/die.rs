@@ -14,7 +14,7 @@ Displays a failure message provided in an optional argument and then aborts the 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi;
+        let eapi = d.borrow().eapi();
         let args = match args.len() {
             1 | 2 if eapi.has(Feature::NonfatalDie) && args[0] == "-n" => {
                 if NONFATAL.load(Ordering::Relaxed) {
@@ -50,7 +50,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::phase::{Phase, PHASE_STUB};
-    use crate::pkgsh::{assert_stderr, Scope, BUILD_DATA};
+    use crate::pkgsh::{assert_stderr, BuildData, Scope, BUILD_DATA};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as die;
@@ -62,15 +62,13 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(die, &[3]);
 
-        BUILD_DATA.with(|d| {
-            for eapi in EAPIS_OFFICIAL
-                .iter()
-                .filter(|e| !e.has(Feature::NonfatalDie))
-            {
-                d.borrow_mut().eapi = eapi;
-                assert_invalid_args(die, &[2]);
-            }
-        });
+        for eapi in EAPIS_OFFICIAL
+            .iter()
+            .filter(|e| !e.has(Feature::NonfatalDie))
+        {
+            BuildData::empty(eapi);
+            assert_invalid_args(die, &[2]);
+        }
     }
 
     #[test]

@@ -414,7 +414,7 @@ macro_rules! make_builtin {
                 $crate::pkgsh::BUILD_DATA.with(|d| {
                     let cmd = $name;
                     let scope = d.borrow().scope;
-                    let eapi = d.borrow().eapi;
+                    let eapi = d.borrow().eapi();
 
                     if eapi.builtins(scope).contains_key(cmd) {
                         match $func(&args) {
@@ -467,9 +467,7 @@ macro_rules! builtin_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
-            use crate::pkgsh::{
-                builtins::Scope::*, run_phase, source_ebuild, BuildData, BUILD_DATA,
-            };
+            use crate::pkgsh::{builtins::Scope::*, run_phase, source_ebuild, BuildData};
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
@@ -482,12 +480,11 @@ macro_rules! builtin_scope_tests {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
                 let scopes = static_scopes.iter().chain(phase_scopes.iter());
                 for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {
-                    BuildData::update(&cpv, &repo);
+                    // initialize build state
+                    BuildData::update(&cpv, &repo, Some(eapi));
+
                     let err = format!(" doesn't enable command: {name}");
                     let info = format!("EAPI={eapi}, scope: {scope}");
-
-                    // initialize build state
-                    BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
 
                     match scope {
                         Eclass => {

@@ -228,8 +228,6 @@ impl Eapi {
     }
 
     /// Return the ordered set of phases for a given operation.
-    // TODO: remove allow when public package building support is added
-    #[allow(dead_code)]
     pub(crate) fn operation(&self, op: Operation) -> &IndexSet<Phase> {
         self.operations
             .get(&op)

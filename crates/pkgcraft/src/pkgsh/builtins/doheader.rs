@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let d = d.borrow();
         let dest = "/usr/include";
-        let opts: Vec<_> = if d.eapi.has(Feature::ConsistentFileOpts) {
+        let opts: Vec<_> = if d.eapi().has(Feature::ConsistentFileOpts) {
             vec!["-m0644"]
         } else {
             d.insopts.iter().map(|s| s.as_str()).collect()
@@ -57,7 +57,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
-    use crate::pkgsh::BUILD_DATA;
+    use crate::pkgsh::BuildData;
 
     use super::super::insopts::run as insopts;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -99,7 +99,7 @@ mod tests {
         fs::create_dir_all("pkgcraft").unwrap();
         fs::File::create("pkgcraft/pkgcraft.h").unwrap();
         for eapi in EAPIS_OFFICIAL.iter() {
-            BUILD_DATA.with(|d| d.borrow_mut().eapi = eapi);
+            BuildData::empty(eapi);
             insopts(&["-m0755"]).unwrap();
             doheader(&["-r", "pkgcraft"]).unwrap();
             let mode = if eapi.has(Feature::ConsistentFileOpts) {

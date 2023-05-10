@@ -33,7 +33,7 @@ pub(crate) fn src_compile() -> scallop::Result<ExecStatus> {
 pub(crate) fn src_test() -> scallop::Result<ExecStatus> {
     BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let mut args = Vec::<&str>::new();
-        if !d.borrow().eapi.has(Feature::ParallelTests) {
+        if !d.borrow().eapi().has(Feature::ParallelTests) {
             args.push("-j1");
         }
         for target in ["check", "test"] {

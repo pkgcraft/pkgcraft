@@ -29,7 +29,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::phase::{Phase, PHASE_STUB};
-    use crate::pkgsh::{Scope, BUILD_DATA};
+    use crate::pkgsh::{BuildData, Scope, BUILD_DATA};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as assert;
@@ -44,15 +44,13 @@ mod tests {
 
         assert_invalid_args(assert, &[3]);
 
-        BUILD_DATA.with(|d| {
-            for eapi in EAPIS_OFFICIAL
-                .iter()
-                .filter(|e| !e.has(Feature::NonfatalDie))
-            {
-                d.borrow_mut().eapi = eapi;
-                assert_invalid_args(assert, &[2]);
-            }
-        });
+        for eapi in EAPIS_OFFICIAL
+            .iter()
+            .filter(|e| !e.has(Feature::NonfatalDie))
+        {
+            BuildData::empty(eapi);
+            assert_invalid_args(assert, &[2]);
+        }
     }
 
     #[test]
