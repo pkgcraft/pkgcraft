@@ -224,7 +224,6 @@ mod tests {
     use std::fs;
 
     use crate::config::Config;
-    use crate::pkgsh::metadata::Key;
     use crate::repo::PkgRepository;
 
     use super::*;
@@ -270,10 +269,10 @@ mod tests {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
-        t.create_ebuild("cat/pkg-1", [(Key::Description, "desc1")])
+        t.create_ebuild("cat/pkg-1", &["DESCRIPTION=desc1"])
             .unwrap();
         let (path, cpv) = t
-            .create_ebuild("cat/pkg-2", [(Key::Description, "desc2")])
+            .create_ebuild("cat/pkg-2", &["DESCRIPTION=desc2"])
             .unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
@@ -299,8 +298,8 @@ mod tests {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
-        t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
-        let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
+        t.create_ebuild("cat/pkg-0", &["SLOT=0"]).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["SLOT=1/2"]).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // verify pkg restrictions
@@ -326,12 +325,12 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // no explicit subslot
-        let (path, cpv) = t.create_ebuild("cat/pkg-0", [(Key::Slot, "0")]).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-0", &["SLOT=0"]).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
         let r = Restrict::RawSubslot(None);
         assert!(r.matches(&pkg));
 
-        let (path, cpv) = t.create_ebuild("cat/pkg-1", [(Key::Slot, "1/2")]).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["SLOT=1/2"]).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
         assert!(!r.matches(&pkg));
 
@@ -357,14 +356,14 @@ mod tests {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
-        let (path, cpv) = t.create_ebuild("cat/pkg-a-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-a-1", &[]).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
 
         // pkg lacking long description
         let r = Restrict::LongDescription(None);
         assert!(r.matches(&pkg));
 
-        let (path, cpv) = t.create_ebuild("cat/pkg-b-1", []).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-b-1", &[]).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -386,7 +385,7 @@ mod tests {
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, ["cat/pkg-b-1"]);
 
-        let (path, _) = t.create_ebuild("cat/pkg-c-1", []).unwrap();
+        let (path, _) = t.create_ebuild("cat/pkg-c-1", &[]).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -411,10 +410,10 @@ mod tests {
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // none
-        t.create_ebuild("noxml/pkg-1", []).unwrap();
+        t.create_ebuild("noxml/pkg-1", &[]).unwrap();
 
         // single
-        let (path, _) = t.create_ebuild("cat/pkg-a-1", []).unwrap();
+        let (path, _) = t.create_ebuild("cat/pkg-a-1", &[]).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -428,7 +427,7 @@ mod tests {
         fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // multiple
-        let (path, _) = t.create_ebuild("cat/pkg-b-1", []).unwrap();
+        let (path, _) = t.create_ebuild("cat/pkg-b-1", &[]).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">

@@ -1,10 +1,12 @@
 use std::io::Write;
+use std::str::FromStr;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use tempfile::TempDir;
 
 use crate::dep::Cpv;
+use crate::pkgsh::metadata::Key;
 use crate::{eapi, Error};
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
@@ -55,11 +57,8 @@ impl Repo {
     }
 
     /// Create an ebuild file in the repo.
-    pub fn create_ebuild<'a, I>(&self, cpv: &str, data: I) -> crate::Result<(Utf8PathBuf, Cpv)>
-    where
-        I: IntoIterator<Item = (crate::pkgsh::metadata::Key, &'a str)>,
-    {
-        use crate::pkgsh::metadata::Key::*;
+    pub fn create_ebuild(&self, cpv: &str, data: &[&str]) -> crate::Result<(Utf8PathBuf, Cpv)> {
+        use Key::*;
         let cpv = Cpv::new(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
@@ -75,9 +74,12 @@ impl Repo {
         ]);
 
         // overrides defaults with specified values, removing the defaults for "-"
-        for (key, val) in data.into_iter() {
+        for s in data {
+            let (key, val) = s.split_once('=').unwrap_or((s, ""));
+            let key = Key::from_str(key)
+                .map_err(|_| Error::InvalidValue(format!("invalid metadata key: {key}")))?;
             match val {
-                "-" => values.remove(&key),
+                "" => values.remove(&key),
                 _ => values.insert(key, val),
             };
         }

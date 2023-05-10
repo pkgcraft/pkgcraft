@@ -1,9 +1,7 @@
 use std::ffi::c_char;
 use std::slice;
-use std::str::FromStr;
 
 use pkgcraft::eapi::Eapi;
-use pkgcraft::pkgsh::Key;
 
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
@@ -58,16 +56,9 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
         let cpv = try_str_from_ptr!(cpv);
         let mut data = vec![];
         for ptr in unsafe { slice::from_raw_parts(key_vals, len) } {
-            let s = try_str_from_ptr!(*ptr);
-            match s.split_once('=') {
-                Some((k, v)) => match Key::from_str(k) {
-                    Ok(key) => data.push((key, v)),
-                    Err(_) => panic!("unknown metadata key: {k}"),
-                }
-                None => panic!("invalid key-val format: {s}"),
-            }
+            data.push(try_str_from_ptr!(*ptr));
         }
-        let (path, _cpv) = unwrap_or_panic!(repo.create_ebuild(cpv, data));
+        let (path, _cpv) = unwrap_or_panic!(repo.create_ebuild(cpv, &data));
         try_ptr_from_str!(path.as_str())
     }
 }

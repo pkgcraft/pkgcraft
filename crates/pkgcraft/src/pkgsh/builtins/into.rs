@@ -53,7 +53,7 @@ mod tests {
     fn set_path() {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
 
         for eapi in EAPIS_OFFICIAL.iter() {
             BuildData::update(&cpv, &repo, Some(eapi));

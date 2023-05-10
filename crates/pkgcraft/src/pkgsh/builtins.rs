@@ -473,7 +473,7 @@ macro_rules! builtin_scope_tests {
             let name = cmd.split(' ').next().unwrap();
             let mut config = Config::default();
             let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-            let (_, cpv) = t.create_ebuild("cat/pkg-1", []).unwrap();
+            let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
 
             let static_scopes: Vec<_> = vec![Global, Eclass];
             for eapi in EAPIS_OFFICIAL.iter() {

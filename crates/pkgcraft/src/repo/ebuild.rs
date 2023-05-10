@@ -709,7 +709,6 @@ mod tests {
     use crate::eapi::{EAPI0, EAPI_LATEST_OFFICIAL};
     use crate::macros::*;
     use crate::pkg::Package;
-    use crate::pkgsh::metadata::Key;
     use crate::repo::ebuild_temp::Repo as TempRepo;
     use crate::repo::Contains;
     use crate::test::{assert_unordered_eq, TEST_DATA};
@@ -783,10 +782,10 @@ mod tests {
 
         assert_eq!(repo.len(), 0);
         assert!(repo.is_empty());
-        t.create_ebuild("cat/pkg-1", []).unwrap();
+        t.create_ebuild("cat/pkg-1", &[]).unwrap();
         assert_eq!(repo.len(), 1);
         assert!(!repo.is_empty());
-        t.create_ebuild("cat2/pkg-1", []).unwrap();
+        t.create_ebuild("cat2/pkg-1", &[]).unwrap();
         assert_eq!(repo.len(), 2);
         assert!(!repo.is_empty());
     }
@@ -853,7 +852,7 @@ mod tests {
 
         // path
         assert!(!repo.contains("cat/pkg"));
-        t.create_ebuild("cat/pkg-1", []).unwrap();
+        t.create_ebuild("cat/pkg-1", &[]).unwrap();
         assert!(repo.contains("cat/pkg"));
         assert!(repo.contains("cat/pkg/pkg-1.ebuild"));
         assert!(!repo.contains("pkg-1.ebuild"));
@@ -875,8 +874,8 @@ mod tests {
     fn test_iter() {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        t.create_ebuild("cat2/pkg-1", []).unwrap();
-        t.create_ebuild("cat1/pkg-1", []).unwrap();
+        t.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        t.create_ebuild("cat1/pkg-1", &[]).unwrap();
         let mut iter = repo.iter();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             let pkg = iter.next();
@@ -889,8 +888,8 @@ mod tests {
     fn test_iter_restrict() {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        t.create_ebuild("cat/pkg-1", []).unwrap();
-        t.create_ebuild("cat/pkg-2", []).unwrap();
+        t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        t.create_ebuild("cat/pkg-2", &[]).unwrap();
 
         // single match via CPV
         let cpv = Cpv::new("cat/pkg-1").unwrap();
@@ -915,13 +914,13 @@ mod tests {
     #[test]
     fn test_invalid_pkgs() {
         for (data, err) in [
-            ([(Key::Eapi, "-1")], "invalid EAPI: -1"),
-            ([(Key::Eapi, "a")], "unknown EAPI: a"),
-            ([(Key::Slot, "-")], "missing required values: SLOT"),
+            ("EAPI=-1", "invalid EAPI: -1"),
+            ("EAPI=a", "unknown EAPI: a"),
+            ("SLOT=", "missing required values: SLOT"),
         ] {
             let mut config = Config::default();
             let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-            t.create_ebuild("cat/pkg-0", data).unwrap();
+            t.create_ebuild("cat/pkg-0", &[data]).unwrap();
             let mut iter = repo.iter();
             assert!(iter.next().is_none());
             assert_logs_re!(format!("test: invalid pkg: .+: {err}$"));
