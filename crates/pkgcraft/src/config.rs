@@ -154,7 +154,11 @@ impl Config {
         let config_dir = if let Some(p) = find_existing_path(&paths) {
             p
         } else {
-            return Err(Error::Config("portage config not found".to_string()));
+            let err = match path {
+                Some(s) => format!("nonexistent portage config path: {s}"),
+                None => "no portage config found".to_string(),
+            };
+            return Err(Error::Config(err));
         };
 
         let repos_path = config_dir.join("repos.conf");
@@ -331,8 +335,8 @@ mod tests {
         let path = path.to_str().unwrap();
 
         // nonexistent
-        let r = config.load_portage_conf(Some("nonexistent"));
-        assert_err_re!(r, "portage config not found");
+        let r = config.load_portage_conf(Some("unknown/path"));
+        assert_err_re!(r, "nonexistent portage config path: unknown/path");
 
         // invalid ini format
         let data = indoc::indoc! {r#"
