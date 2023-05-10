@@ -56,7 +56,22 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo(c: *mut Config, r: *mut Repo) 
     }
 }
 
-/// Load repos from a path to a portage-compatible repos.conf directory or file.
+/// Load the system config.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// A valid pkgcraft (or portage config) directory should be located on the system.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_config_load(c: *mut Config) -> *mut Config {
+    ffi_catch_panic! {
+        let config = try_mut_from_ptr!(c);
+        unwrap_or_panic!(config.load());
+        c
+    }
+}
+
+/// Load the portage config from a given path, use NULL for the default system paths.
 ///
 /// Returns NULL on error.
 ///
