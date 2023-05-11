@@ -23,8 +23,37 @@ use crate::pkgsh::phase::*;
 use crate::pkgsh::BuildVariable::{self, *};
 use crate::Error;
 
-static VALID_EAPI_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^[A-Za-z0-9_][A-Za-z0-9+_.-]*$").unwrap());
+peg::parser!(grammar parse() for str {
+    // EAPIs must not begin with a hyphen, dot, or plus sign.
+    pub(super) rule eapi_str() -> &'input str
+        = s:$(quiet!{
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
+        } / expected!("EAPI"))
+        { s }
+
+    rule optionally_quoted<T>(expr: rule<T>) -> T
+        = s:expr() { s }
+        / "\"" s:expr() "\"" { s }
+        / "\'" s:expr() "\'" { s }
+
+    rule ws() = quiet!{[' ' | '\t']+}
+
+    rule eol_comment()
+        = ws()* "#" [_]*
+
+    pub(super) rule eapi_line() -> &'input str
+        = s:optionally_quoted(<eapi_str()>) eol_comment()? { s }
+});
+
+pub(crate) fn parse_line(s: &str) -> crate::Result<&str> {
+    let err = |s: &str| -> Error {
+        let quotes: &[_] = &['"', '\''];
+        Error::InvalidValue(format!("invalid EAPI: {}", s.trim_matches(quotes)))
+    };
+
+    parse::eapi_line(s).map_err(|_| err(s))
+}
 
 #[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
@@ -446,7 +475,7 @@ impl FromStr for &'static Eapi {
     fn from_str(s: &str) -> crate::Result<Self> {
         if let Some(eapi) = EAPIS.get(s) {
             Ok(eapi)
-        } else if VALID_EAPI_RE.is_match(s) {
+        } else if parse::eapi_str(s).is_ok() {
             Err(Error::InvalidValue(format!("unknown EAPI: {s}")))
         } else {
             Err(Error::InvalidValue(format!("invalid EAPI: {s}")))

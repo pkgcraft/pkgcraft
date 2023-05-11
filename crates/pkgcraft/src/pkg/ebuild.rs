@@ -1,11 +1,9 @@
 use std::collections::HashSet;
 use std::fs;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use once_cell::sync::{Lazy, OnceCell};
-use regex::Regex;
+use once_cell::sync::OnceCell;
 use scallop::shell;
 
 use crate::dep::{Cpv, Dep};
@@ -27,9 +25,6 @@ pub mod metadata;
 use metadata::{Manifest, ManifestFile, XmlMetadata};
 mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
-
-static EAPI_LINE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^EAPI=['\"]?(?P<EAPI>[^'\"]*)['\"]?[\t ]*(?:#.*)?").unwrap());
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
@@ -72,8 +67,8 @@ impl<'a> Pkg<'a> {
     /// Get the parsed EAPI from the given ebuild data content.
     fn parse_eapi(data: &str) -> crate::Result<&'static Eapi> {
         let line = data.filter_lines().next();
-        match line.and_then(|(_, s)| EAPI_LINE_RE.captures(s)) {
-            Some(c) => <&Eapi>::from_str(c.name("EAPI").unwrap().as_str()),
+        match line.and_then(|(_, s)| s.split_once("EAPI=")) {
+            Some((_, s)) => eapi::parse_line(s)?.try_into(),
             None => Ok(&*eapi::EAPI0),
         }
     }
