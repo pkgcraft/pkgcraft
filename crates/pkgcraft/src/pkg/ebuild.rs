@@ -54,11 +54,8 @@ impl<'a> Pkg<'a> {
         };
 
         let eapi = Pkg::parse_eapi(&path).map_err(err)?;
-        // TODO: compare ebuild mtime vs cache mtime
-        let meta = match Metadata::load(&cpv, eapi, repo) {
-            Some(data) => data,
-            None => Metadata::source(&cpv, &path, eapi, repo).map_err(err)?,
-        };
+        let meta = Metadata::load_or_source(&cpv, &path, eapi, repo).map_err(err)?;
+
         Ok(Pkg {
             path,
             cpv,

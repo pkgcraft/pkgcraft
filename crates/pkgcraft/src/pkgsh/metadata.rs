@@ -151,6 +151,20 @@ impl Metadata {
         Ok(meta)
     }
 
+    /// Load metadata from cache if available, otherwise source it from the ebuild directly.
+    pub(crate) fn load_or_source(
+        cpv: &Cpv,
+        path: &Utf8Path,
+        eapi: &'static Eapi,
+        repo: &EbuildRepo,
+    ) -> crate::Result<Self> {
+        // TODO: compare ebuild mtime vs cache mtime
+        match Self::load(cpv, eapi, repo) {
+            Some(data) => Ok(data),
+            None => Self::source(cpv, path, eapi, repo),
+        }
+    }
+
     /// Load metadata from cache.
     pub(crate) fn load(cpv: &Cpv, eapi: &'static Eapi, repo: &EbuildRepo) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
