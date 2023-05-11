@@ -66,9 +66,17 @@ impl<'a> Pkg<'a> {
 
     /// Get the parsed EAPI from the given ebuild data content.
     fn parse_eapi(data: &str) -> crate::Result<&'static Eapi> {
-        let line = data.filter_lines().next();
-        match line.and_then(|(_, s)| s.split_once("EAPI=")) {
-            Some((_, s)) => eapi::parse_line(s)?.try_into(),
+        let val = data
+            .filter_lines()
+            .next()
+            .and_then(|(_, s)| s.split_once("EAPI="))
+            .map(|(_, s)| match s.split_once('#') {
+                Some((v, _)) => v.trim(),
+                None => s.trim(),
+            });
+
+        match val {
+            Some(s) => eapi::parse_value(s)?.try_into(),
             None => Ok(&*eapi::EAPI0),
         }
     }
@@ -304,13 +312,52 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_invalid_eapi() {
+    fn test_eapi() {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["EAPI=$EAPI"]).unwrap();
-        let r = Pkg::new(path, cpv, &repo);
-        assert_err_re!(r, r"invalid EAPI: \$EAPI");
+
+        // unknown
         let (path, cpv) = t.create_ebuild("cat/pkg-1", &["EAPI=unknown"]).unwrap();
+        let r = Pkg::new(path, cpv, &repo);
+        assert_err_re!(r, r"unknown EAPI: unknown");
+
+        // quoted and commented
+        let data = indoc::indoc! {r#"
+            EAPI="1" # comment
+            DESCRIPTION="testing EAPI"
+            SLOT=0
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        assert_eq!(pkg.eapi(), &*eapi::EAPI1);
+
+        // invalid with unquoted self reference
+        let data = indoc::indoc! {r#"
+            EAPI=$EAPI
+            DESCRIPTION="testing EAPI"
+            SLOT=0
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let r = Pkg::new(path, cpv, &repo);
+        assert_err_re!(r, r#"invalid EAPI: \$EAPI"#);
+
+        // unmatched quotes
+        let data = indoc::indoc! {r#"
+            EAPI='1"
+            DESCRIPTION="testing EAPI"
+            SLOT=0
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let r = Pkg::new(path, cpv, &repo);
+        assert_err_re!(r, r#"invalid EAPI: '1""#);
+
+        // unknown with leading whitespace, single quotes, and varying whitespace comment
+        let data = indoc::indoc! {r#"
+             EAPI='unknown' 	# comment
+            DESCRIPTION="testing EAPI"
+            SLOT=0
+        "#};
+        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         let r = Pkg::new(path, cpv, &repo);
         assert_err_re!(r, r"unknown EAPI: unknown");
     }

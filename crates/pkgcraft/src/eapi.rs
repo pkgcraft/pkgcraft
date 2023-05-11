@@ -37,22 +37,12 @@ peg::parser!(grammar parse() for str {
         / "\"" s:expr() "\"" { s }
         / "\'" s:expr() "\'" { s }
 
-    rule ws() = quiet!{[' ' | '\t']+}
-
-    rule eol_comment()
-        = ws()* "#" [_]*
-
-    pub(super) rule eapi_line() -> &'input str
-        = s:optionally_quoted(<eapi_str()>) eol_comment()? { s }
+    pub(super) rule eapi_value() -> &'input str
+        = s:optionally_quoted(<eapi_str()>) { s }
 });
 
-pub(crate) fn parse_line(s: &str) -> crate::Result<&str> {
-    let err = |s: &str| -> Error {
-        let quotes: &[_] = &['"', '\''];
-        Error::InvalidValue(format!("invalid EAPI: {}", s.trim_matches(quotes)))
-    };
-
-    parse::eapi_line(s).map_err(|_| err(s))
+pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
+    parse::eapi_value(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))
 }
 
 #[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]

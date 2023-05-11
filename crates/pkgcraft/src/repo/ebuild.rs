@@ -914,7 +914,7 @@ mod tests {
     #[test]
     fn test_invalid_pkgs() {
         for (data, err) in [
-            ("EAPI=-1", "invalid EAPI: -1"),
+            ("EAPI=-1", "invalid EAPI: \"-1\""),
             ("EAPI=a", "unknown EAPI: a"),
             ("SLOT=", "missing required values: SLOT"),
         ] {
