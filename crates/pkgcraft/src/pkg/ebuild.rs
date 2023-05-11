@@ -71,13 +71,15 @@ impl<'a> Pkg<'a> {
     fn parse_eapi(path: &Utf8Path) -> crate::Result<&'static Eapi> {
         let mut eapi = &*eapi::EAPI0;
         let f = fs::File::open(path).map_err(|e| Error::IO(e.to_string()))?;
-        let reader = io::BufReader::new(f);
-        for line in reader.lines() {
-            let line = line.map_err(|e| Error::IO(e.to_string()))?;
+        let lines = io::BufReader::new(f).lines();
+        for line in lines {
+            let line =
+                line.map_err(|e| Error::IO(format!("failed reading ebuild: {path}: {e}")))?;
+            let line = line.trim();
             match line.chars().next() {
                 None | Some('#') => continue,
                 _ => {
-                    if let Some(c) = EAPI_LINE_RE.captures(&line) {
+                    if let Some(c) = EAPI_LINE_RE.captures(line) {
                         eapi = <&Eapi>::from_str(c.name("EAPI").unwrap().as_str())?;
                     }
                     break;
