@@ -3,7 +3,6 @@ use std::fs;
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use ini::Ini;
 use serde::{Deserialize, Serialize};
 
 use crate::eapi::Eapi;
@@ -15,6 +14,7 @@ use crate::utils::find_existing_path;
 use crate::Error;
 pub(crate) use repo::RepoConfig;
 
+mod portage;
 mod repo;
 
 const PORTAGE_CONFIG_PATHS: &[&str] = &["/etc/portage", "/usr/share/portage/config"];
@@ -161,44 +161,7 @@ impl Config {
             return Err(Error::Config(err));
         };
 
-        let repos_path = config_dir.join("repos.conf");
-
-        // collect all repos.conf files
-        let files: Vec<_> = match repos_path.read_dir_utf8() {
-            Ok(entries) => Ok(entries
-                .filter_map(|d| d.ok())
-                .map(|d| d.path().into())
-                .collect()),
-            // TODO: switch to `e.kind() == ErrorKind::NotADirectory` on rust stabilization
-            // https://github.com/rust-lang/rust/issues/86442
-            Err(e) if e.raw_os_error() == Some(20) => Ok(vec![repos_path]),
-            Err(e) => Err(Error::Config(format!("failed reading repos.conf: {repos_path}: {e}"))),
-        }?;
-
-        let mut repos = vec![];
-
-        for f in files {
-            Ini::load_from_file(&f)
-                .map_err(|e| Error::Config(format!("invalid repos.conf file: {f:?}: {e}")))
-                .and_then(|ini| {
-                    for (name, settings) in ini.iter().filter_map(|(section, p)| match section {
-                        Some(s) if s != "DEFAULT" => Some((s, p)),
-                        _ => None,
-                    }) {
-                        // pull supported fields from config
-                        let priority = settings.get("priority").unwrap_or("0").parse().unwrap_or(0);
-                        let path = settings.get("location").ok_or_else(|| {
-                            Error::Config(format!(
-                                "invalid repos.conf file: {f:?}: missing location field: {name}"
-                            ))
-                        })?;
-
-                        repos.push(Repo::from_path(name, priority, path, false)?);
-                    }
-                    Ok(())
-                })?;
-        }
-
+        let repos = portage::load_repos_conf(config_dir.join("repos.conf"))?;
         if !repos.is_empty() {
             // add repos to config
             self.repos.extend(&repos)?;
