@@ -3,14 +3,13 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{self, Read, Write};
 use std::mem;
 
-use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use nix::unistd::isatty;
 use once_cell::sync::Lazy;
 use scallop::builtins::{ExecStatus, ScopedOptions};
+use scallop::functions;
 use scallop::variables::{self, *};
-use scallop::{functions, source, Error};
 use strum::{AsRefStr, Display};
 use sys_info::os_release;
 
@@ -20,6 +19,7 @@ use crate::macros::{build_from_paths, extend_left};
 use crate::pkg::Package;
 use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
 use crate::repo::{ebuild, Repository};
+use crate::traits::SourceBash;
 
 pub mod builtins;
 mod install;
@@ -323,7 +323,7 @@ impl BuildData {
 
     fn stdin(&mut self) -> scallop::Result<&mut dyn Read> {
         if !cfg!(test) && isatty(0).unwrap_or(false) {
-            return Err(Error::Base("no input available, stdin is a tty".into()));
+            return Err(scallop::Error::Base("no input available, stdin is a tty".into()));
         }
 
         match self.captured_io {
@@ -404,7 +404,7 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
             Some(mut func) => func.execute(&[])?,
             None => match eapi.phases().get(&phase) {
                 Some(phase) => phase.run()?,
-                None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
+                None => return Err(scallop::Error::Base(format!("nonexistent phase: {phase}"))),
             },
         };
 
@@ -417,32 +417,6 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
 
         Ok(ExecStatus::Success)
     })
-}
-
-/// Support bash sourcing via file paths or directly from string content.
-pub(crate) trait SourceBash {
-    fn source_bash(self) -> scallop::Result<ExecStatus>;
-}
-
-macro_rules! make_source_path_trait {
-    ($($x:ty),+) => {$(
-        impl SourceBash for $x {
-            fn source_bash(self) -> scallop::Result<ExecStatus> {
-                if !self.exists() {
-                    return Err(Error::Base(format!("nonexistent file: {self}")));
-                }
-
-                source::file(self)
-            }
-        }
-    )+};
-}
-make_source_path_trait!(&Utf8Path, &Utf8PathBuf);
-
-impl SourceBash for &str {
-    fn source_bash(self) -> scallop::Result<ExecStatus> {
-        source::string(self)
-    }
 }
 
 pub(crate) fn source_ebuild<T: SourceBash>(value: T) -> scallop::Result<ExecStatus> {
