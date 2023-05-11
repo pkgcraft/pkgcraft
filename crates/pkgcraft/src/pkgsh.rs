@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{self, Read, Write};
 use std::mem;
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use nix::unistd::isatty;
@@ -419,14 +419,36 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     })
 }
 
-pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
+/// Support bash sourcing via file paths or directly from string content.
+pub(crate) trait SourceBash {
+    fn source_bash(self) -> scallop::Result<ExecStatus>;
+}
+
+macro_rules! make_source_path_trait {
+    ($($x:ty),+) => {$(
+        impl SourceBash for $x {
+            fn source_bash(self) -> scallop::Result<ExecStatus> {
+                if !self.exists() {
+                    return Err(Error::Base(format!("nonexistent file: {self}")));
+                }
+
+                source::file(self)
+            }
+        }
+    )+};
+}
+make_source_path_trait!(&Utf8Path, &Utf8PathBuf);
+
+impl SourceBash for &str {
+    fn source_bash(self) -> scallop::Result<ExecStatus> {
+        source::string(self)
+    }
+}
+
+pub(crate) fn source_ebuild<T: SourceBash>(value: T) -> scallop::Result<ExecStatus> {
     Lazy::force(&BASH);
 
-    if !path.exists() {
-        return Err(Error::Base(format!("nonexistent ebuild: {path:?}")));
-    }
-
-    BUILD_DATA.with(|d| -> scallop::Result<()> {
+    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
         let eapi = d.borrow().eapi();
         d.borrow_mut().scope = Scope::Global;
         d.borrow_mut().set_vars()?;
@@ -436,7 +458,7 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
             opts.enable(["failglob"])?;
         }
 
-        source::file(path)?;
+        value.source_bash()?;
 
         // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
         if eapi.has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
@@ -458,7 +480,7 @@ pub(crate) fn source_ebuild(path: &Utf8Path) -> scallop::Result<()> {
             }
         }
 
-        Ok(())
+        Ok(ExecStatus::Success)
     })
 }
 

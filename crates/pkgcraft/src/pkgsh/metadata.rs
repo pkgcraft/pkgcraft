@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::{fs, io};
 
-use camino::Utf8Path;
 use itertools::Itertools;
 use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
@@ -151,17 +150,17 @@ impl Metadata {
         Ok(meta)
     }
 
-    /// Load metadata from cache if available, otherwise source it from the ebuild directly.
+    /// Load metadata from cache if available, otherwise source it from the ebuild content.
     pub(crate) fn load_or_source(
         cpv: &Cpv,
-        path: &Utf8Path,
+        data: &str,
         eapi: &'static Eapi,
         repo: &EbuildRepo,
     ) -> crate::Result<Self> {
         // TODO: compare ebuild mtime vs cache mtime
         match Self::load(cpv, eapi, repo) {
             Some(data) => Ok(data),
-            None => Self::source(cpv, path, eapi, repo),
+            None => Self::source(cpv, data, eapi, repo),
         }
     }
 
@@ -191,13 +190,13 @@ impl Metadata {
     /// Source ebuild to determine metadata.
     pub(crate) fn source(
         cpv: &Cpv,
-        path: &Utf8Path,
+        data: &str,
         eapi: &'static Eapi,
         repo: &EbuildRepo,
     ) -> crate::Result<Self> {
         BuildData::update(cpv, repo, Some(eapi));
         // TODO: run sourcing via an external process pool returning the requested variables
-        source_ebuild(path)?;
+        source_ebuild(data)?;
         let mut meta = Metadata::default();
 
         // verify sourced EAPI matches parsed EAPI

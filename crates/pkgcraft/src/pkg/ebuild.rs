@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::fs;
-use std::io::{self, prelude::*};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -17,6 +16,7 @@ use crate::pkgsh::{
     metadata::{Key, Metadata},
 };
 use crate::repo::{ebuild::Repo, Repository};
+use crate::traits::FilterLines;
 use crate::types::OrderedSet;
 use crate::utils::relpath;
 use crate::Error;
@@ -53,8 +53,10 @@ impl<'a> Pkg<'a> {
             }
         };
 
-        let eapi = Pkg::parse_eapi(&path).map_err(err)?;
-        let meta = Metadata::load_or_source(&cpv, &path, eapi, repo).map_err(err)?;
+        let data = fs::read_to_string(&path)
+            .map_err(|e| Error::IO(format!("failed reading ebuild: {path}: {e}")))?;
+        let eapi = Pkg::parse_eapi(&data).map_err(err)?;
+        let meta = Metadata::load_or_source(&cpv, &data, eapi, repo).map_err(err)?;
 
         Ok(Pkg {
             path,
@@ -67,26 +69,13 @@ impl<'a> Pkg<'a> {
         })
     }
 
-    /// Get the parsed EAPI from a given ebuild file.
-    fn parse_eapi(path: &Utf8Path) -> crate::Result<&'static Eapi> {
-        let mut eapi = &*eapi::EAPI0;
-        let f = fs::File::open(path).map_err(|e| Error::IO(e.to_string()))?;
-        let lines = io::BufReader::new(f).lines();
-        for line in lines {
-            let line =
-                line.map_err(|e| Error::IO(format!("failed reading ebuild: {path}: {e}")))?;
-            let line = line.trim();
-            match line.chars().next() {
-                None | Some('#') => continue,
-                _ => {
-                    if let Some(c) = EAPI_LINE_RE.captures(line) {
-                        eapi = <&Eapi>::from_str(c.name("EAPI").unwrap().as_str())?;
-                    }
-                    break;
-                }
-            }
+    /// Get the parsed EAPI from the given ebuild data content.
+    fn parse_eapi(data: &str) -> crate::Result<&'static Eapi> {
+        let line = data.filter_lines().next();
+        match line.and_then(|(_, s)| EAPI_LINE_RE.captures(s)) {
+            Some(c) => <&Eapi>::from_str(c.name("EAPI").unwrap().as_str()),
+            None => Ok(&*eapi::EAPI0),
         }
-        Ok(eapi)
     }
 
     /// Return a package's ebuild file path.

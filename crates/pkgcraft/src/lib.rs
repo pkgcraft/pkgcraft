@@ -15,6 +15,7 @@ pub mod repo;
 pub mod restrict;
 mod sync;
 pub mod test;
+pub mod traits;
 pub mod types;
 pub mod utils;
 
