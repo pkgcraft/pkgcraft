@@ -18,14 +18,12 @@ use crate::pkg::ebuild::metadata::HashType;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
-const DEFAULT_SECTION: Option<String> = None;
-
 /// Wrapper for ini format config files.
 struct Ini(ini::Ini);
 
 impl fmt::Debug for Ini {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let section = self.0.section(DEFAULT_SECTION);
+        let section = self.0.general_section();
         f.debug_tuple("Ini").field(&section).finish()
     }
 }
@@ -48,7 +46,8 @@ impl Ini {
     /// Iterate over the config values for a given key, splitting by whitespace.
     pub(super) fn iter(&self, key: &str) -> SplitWhitespace {
         self.0
-            .get_from(DEFAULT_SECTION, key)
+            .general_section()
+            .get(key)
             .unwrap_or_default()
             .split_whitespace()
     }
