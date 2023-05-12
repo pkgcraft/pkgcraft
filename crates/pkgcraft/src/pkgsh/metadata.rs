@@ -200,9 +200,11 @@ impl Metadata {
         let mut meta = Metadata::default();
 
         // verify sourced EAPI matches parsed EAPI
-        let sourced_eapi = variables::optional("EAPI");
-        let sourced_eapi = sourced_eapi.as_deref().unwrap_or("0");
-        if <&Eapi>::from_str(sourced_eapi)? != eapi {
+        let sourced_eapi: &Eapi = variables::optional("EAPI")
+            .as_deref()
+            .unwrap_or("0")
+            .try_into()?;
+        if sourced_eapi != eapi {
             return Err(Error::InvalidValue(format!(
                 "mismatched sourced and parsed EAPIs: {sourced_eapi} != {eapi}"
             )));
