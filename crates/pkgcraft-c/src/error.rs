@@ -20,9 +20,9 @@ pub struct Error {
 }
 
 impl Error {
-    pub fn new<S: Into<String>>(s: S) -> Self {
+    pub fn new<S: ToString>(s: S) -> Self {
         Error {
-            message: s.into(),
+            message: s.to_string(),
             kind: ErrorKind::Generic,
         }
     }
@@ -52,13 +52,13 @@ impl From<pkgcraft::Error> for Error {
 
 impl From<std::str::Utf8Error> for Error {
     fn from(e: std::str::Utf8Error) -> Self {
-        Error::new(e.to_string())
+        Error::new(e)
     }
 }
 
 impl From<std::ffi::NulError> for Error {
     fn from(e: std::ffi::NulError) -> Self {
-        Error::new(e.to_string())
+        Error::new(e)
     }
 }
 
