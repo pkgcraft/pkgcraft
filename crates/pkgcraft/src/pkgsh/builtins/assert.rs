@@ -29,7 +29,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::phase::{Phase, PHASE_STUB};
-    use crate::pkgsh::{BuildData, Scope, BUILD_DATA};
+    use crate::pkgsh::{get_build_mut, BuildData, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as assert;
@@ -101,24 +101,22 @@ mod tests {
     fn nonfatal() {
         builtins::enable(&["assert", "nonfatal"]).unwrap();
 
-        BUILD_DATA.with(|d| {
-            let phase = Phase::SrcInstall(PHASE_STUB);
-            d.borrow_mut().phase = Some(phase);
-            d.borrow_mut().scope = Scope::Phase(phase);
+        let phase = Phase::SrcInstall(PHASE_STUB);
+        get_build_mut().phase = Some(phase);
+        get_build_mut().scope = Scope::Phase(phase);
 
-            // nonfatal requires `die -n` call
-            let r = source::string("true | false; nonfatal assert");
-            assert_err_re!(r, r"^assert: error: \(no error message\)");
+        // nonfatal requires `die -n` call
+        let r = source::string("true | false; nonfatal assert");
+        assert_err_re!(r, r"^assert: error: \(no error message\)");
 
-            // nonfatal die in main process
-            bind("VAR", "1", None, None).unwrap();
-            source::string("true | false; nonfatal assert -n\nVAR=2").unwrap();
-            assert_eq!(variables::optional("VAR").unwrap(), "2");
+        // nonfatal die in main process
+        bind("VAR", "1", None, None).unwrap();
+        source::string("true | false; nonfatal assert -n\nVAR=2").unwrap();
+        assert_eq!(variables::optional("VAR").unwrap(), "2");
 
-            // nonfatal die in subshell
-            bind("VAR", "1", None, None).unwrap();
-            source::string("FOO=$(true | false; nonfatal assert -n); VAR=2").unwrap();
-            assert_eq!(variables::optional("VAR").unwrap(), "2");
-        })
+        // nonfatal die in subshell
+        bind("VAR", "1", None, None).unwrap();
+        source::string("FOO=$(true | false; nonfatal assert -n); VAR=2").unwrap();
+        assert_eq!(variables::optional("VAR").unwrap(), "2");
     }
 }

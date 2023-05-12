@@ -10,7 +10,7 @@ use tracing::warn;
 use crate::dep::{self, Cpv, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
-use crate::pkgsh::{source_ebuild, BuildData, BUILD_DATA};
+use crate::pkgsh::{get_build_mut, source_ebuild, BuildData};
 use crate::repo::{ebuild::Repo as EbuildRepo, Repository};
 use crate::types::OrderedSet;
 use crate::Error;
@@ -55,14 +55,14 @@ impl Key {
                     Some(phase_names.join(" "))
                 }
             }
-            Key::Inherit => BUILD_DATA.with(|d| {
-                let inherit = &d.borrow().inherit;
+            Key::Inherit => {
+                let inherit = &get_build_mut().inherit;
                 if inherit.is_empty() {
                     None
                 } else {
                     Some(inherit.iter().join(" "))
                 }
-            }),
+            }
             key => variables::optional(key).map(|s| s.split_whitespace().join(" ")),
         }
     }

@@ -3,29 +3,26 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::macros::build_from_paths;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install executables into DESTTREE/bin.";
 
 pub(super) fn install_bin(args: &[&str], dest: &str) -> scallop::Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let dest = build_from_paths!(&d.borrow().desttree, dest);
-        let opts: &[&str] = if geteuid().is_root() {
-            &["-m0755", "-o", "root", "-g", "root"]
-        } else {
-            &["-m0755"]
-        };
-        let install = d
-            .borrow()
-            .install()
-            .dest(dest)?
-            .file_options(opts.iter().copied());
+    let dest = build_from_paths!(&get_build_mut().desttree, dest);
+    let opts: &[&str] = if geteuid().is_root() {
+        &["-m0755", "-o", "root", "-g", "root"]
+    } else {
+        &["-m0755"]
+    };
+    let install = get_build_mut()
+        .install()
+        .dest(dest)?
+        .file_options(opts.iter().copied());
 
-        install.files(args)?;
-        Ok(ExecStatus::Success)
-    })
+    install.files(args)?;
+    Ok(ExecStatus::Success)
 }
 
 #[doc = stringify!(LONG_DOC)]

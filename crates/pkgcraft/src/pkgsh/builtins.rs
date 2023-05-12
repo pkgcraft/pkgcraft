@@ -411,25 +411,23 @@ macro_rules! make_builtin {
             let args: Vec<_> = words.into_iter().collect();
 
             let run_builtin = || -> ExecStatus {
-                $crate::pkgsh::BUILD_DATA.with(|d| {
-                    let cmd = $name;
-                    let scope = d.borrow().scope;
-                    let eapi = d.borrow().eapi();
+                let cmd = $name;
+                let scope = $crate::pkgsh::get_build_mut().scope;
+                let eapi = $crate::pkgsh::get_build_mut().eapi();
 
-                    if eapi.builtins(scope).contains_key(cmd) {
-                        match $func(&args) {
-                            Ok(ret) => ret,
-                            Err(e) => scallop::builtins::handle_error(cmd, e),
-                        }
-                    } else {
-                        let builtin = ALL_BUILTINS.get(cmd).expect("unknown builtin: {cmd}");
-                        let msg = match builtin.scope.get(eapi) {
-                            Some(_) => format!("{scope} scope doesn't enable command: {cmd}"),
-                            None => format!("EAPI={eapi} doesn't enable command: {cmd}"),
-                        };
-                        scallop::builtins::handle_error(cmd, scallop::Error::Bail(msg))
+                if eapi.builtins(scope).contains_key(cmd) {
+                    match $func(&args) {
+                        Ok(ret) => ret,
+                        Err(e) => scallop::builtins::handle_error(cmd, e),
                     }
-                })
+                } else {
+                    let builtin = ALL_BUILTINS.get(cmd).expect("unknown builtin: {cmd}");
+                    let msg = match builtin.scope.get(eapi) {
+                        Some(_) => format!("{scope} scope doesn't enable command: {cmd}"),
+                        None => format!("EAPI={eapi} doesn't enable command: {cmd}"),
+                    };
+                    scallop::builtins::handle_error(cmd, scallop::Error::Bail(msg))
+                }
             };
 
             i32::from(run_builtin())

@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::{make_builtin, PHASE};
 
@@ -13,17 +13,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let phase = &d.borrow().phase.unwrap();
-        let builtins = d.borrow().eapi().builtins(phase);
-        let default_phase = format!("default_{phase}");
-        match builtins.get(default_phase.as_str()) {
-            Some(b) => b.run(&[]),
-            None => {
-                Err(Error::Base(format!("nonexistent default phase function: {default_phase}",)))
-            }
-        }
-    })
+    let build = get_build_mut();
+    let phase = &build.phase.unwrap();
+    let builtins = build.eapi().builtins(phase);
+    let default_phase = format!("default_{phase}");
+    match builtins.get(default_phase.as_str()) {
+        Some(b) => b.run(&[]),
+        None => Err(Error::Base(format!("nonexistent default phase function: {default_phase}",))),
+    }
 }
 
 const USAGE: &str = "default";

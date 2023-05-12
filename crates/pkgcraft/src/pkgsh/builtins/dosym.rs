@@ -5,7 +5,7 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::eapi::Feature;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 use crate::utils::relpath;
 
 use super::make_builtin;
@@ -14,41 +14,39 @@ const LONG_DOC: &str = "Create symbolic links.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi();
-        let (source, target, target_str) = match args.len() {
-            3 if args[0] == "-r" && eapi.has(Feature::DosymRelative) => {
-                let (source, target) = (Path::new(args[1]), Path::new(args[2]));
-                if !source.is_absolute() {
-                    return Err(Error::Base(format!(
-                        "absolute source required with '-r': {source:?}",
-                    )));
-                }
-                let mut parent = PathBuf::from("/");
-                if let Some(p) = target.parent() {
-                    parent.push(p)
-                }
-                match relpath(source, &parent) {
-                    Some(source) => Ok((source, target, args[2])),
-                    None => {
-                        Err(Error::Base(format!("invalid relative path: {source:?} -> {target:?}")))
-                    }
+    let (source, target, target_str) = match args.len() {
+        3 if args[0] == "-r" && get_build_mut().eapi().has(Feature::DosymRelative) => {
+            let (source, target) = (Path::new(args[1]), Path::new(args[2]));
+            if !source.is_absolute() {
+                return Err(Error::Base(
+                    format!("absolute source required with '-r': {source:?}",),
+                ));
+            }
+            let mut parent = PathBuf::from("/");
+            if let Some(p) = target.parent() {
+                parent.push(p)
+            }
+            match relpath(source, &parent) {
+                Some(source) => Ok((source, target, args[2])),
+                None => {
+                    Err(Error::Base(format!("invalid relative path: {source:?} -> {target:?}")))
                 }
             }
-            2 => Ok((PathBuf::from(args[0]), Path::new(args[1]), args[1])),
-            n => Err(Error::Base(format!("requires 2 args, got {n}"))),
-        }?;
-
-        // check for unsupported dir target arg -- https://bugs.gentoo.org/379899
-        if target_str.ends_with('/') || (target.is_dir() && !target.is_symlink()) {
-            return Err(Error::Base(format!("missing filename target: {target:?}")));
         }
+        2 => Ok((PathBuf::from(args[0]), Path::new(args[1]), args[1])),
+        n => Err(Error::Base(format!("requires 2 args, got {n}"))),
+    }?;
 
-        let install = d.borrow().install();
-        install.link(|p, q| symlink(p, q), source, target)?;
+    // check for unsupported dir target arg -- https://bugs.gentoo.org/379899
+    if target_str.ends_with('/') || (target.is_dir() && !target.is_symlink()) {
+        return Err(Error::Base(format!("missing filename target: {target:?}")));
+    }
 
-        Ok(ExecStatus::Success)
-    })
+    get_build_mut()
+        .install()
+        .link(|p, q| symlink(p, q), source, target)?;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "dosym path/to/source /path/to/target";

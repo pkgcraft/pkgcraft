@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -18,9 +18,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| {
-        d.borrow_mut().exedesttree = path.to_string();
-    });
+    get_build_mut().exedesttree = path.to_string();
 
     Ok(ExecStatus::Success)
 }
@@ -30,8 +28,6 @@ make_builtin!("exeinto", exeinto_builtin, run, LONG_DOC, USAGE, &[("..", &["src_
 
 #[cfg(test)]
 mod tests {
-    use crate::pkgsh::BUILD_DATA;
-
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as exeinto;
     use super::*;
@@ -46,8 +42,6 @@ mod tests {
     #[test]
     fn set_path() {
         exeinto(&["/test/path"]).unwrap();
-        BUILD_DATA.with(|d| {
-            assert_eq!(d.borrow().exedesttree, "/test/path");
-        });
+        assert_eq!(get_build_mut().exedesttree, "/test/path");
     }
 }

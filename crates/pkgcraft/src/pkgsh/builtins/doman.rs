@@ -6,7 +6,7 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::eapi::Feature;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -31,44 +31,42 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("missing filename target".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
-        let eapi = d.eapi();
-        let install = d.install().dest("/usr/share/man")?.file_options(["-m0644"]);
+    let eapi = get_build_mut().eapi();
+    let install = get_build_mut()
+        .install()
+        .dest("/usr/share/man")?
+        .file_options(["-m0644"]);
 
-        let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
+    let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
 
-        for path in args.iter().map(Path::new) {
-            let (mut base, ext) = match (
-                path.file_stem().map(|s| s.to_str()),
-                path.extension().map(|s| s.to_str()),
-            ) {
+    for path in args.iter().map(Path::new) {
+        let (mut base, ext) =
+            match (path.file_stem().map(|s| s.to_str()), path.extension().map(|s| s.to_str())) {
                 (Some(Some(base)), Some(Some(ext))) => Ok((base, ext)),
                 _ => Err(Error::Base(format!("invalid file target, use `newman`: {path:?}"))),
             }?;
 
-            if eapi.has(Feature::DomanLangDetect) {
-                if let Some(m) = DETECT_LANG_RE.captures(base) {
-                    base = m.name("name").unwrap().as_str();
-                    if lang.is_empty() || !eapi.has(Feature::DomanLangOverride) {
-                        lang = m.name("lang").unwrap().as_str();
-                    }
+        if eapi.has(Feature::DomanLangDetect) {
+            if let Some(m) = DETECT_LANG_RE.captures(base) {
+                base = m.name("name").unwrap().as_str();
+                if lang.is_empty() || !eapi.has(Feature::DomanLangOverride) {
+                    lang = m.name("lang").unwrap().as_str();
                 }
             }
-
-            // construct man page subdirectory
-            let mut mandir = PathBuf::from(lang);
-            mandir.push(format!("man{ext}"));
-
-            files.push((path, mandir.join(format!("{base}.{ext}"))));
-            dirs.insert(mandir);
         }
 
-        install.dirs(dirs)?;
-        install.files_map(files)?;
+        // construct man page subdirectory
+        let mut mandir = PathBuf::from(lang);
+        mandir.push(format!("man{ext}"));
 
-        Ok(ExecStatus::Success)
-    })
+        files.push((path, mandir.join(format!("{base}.{ext}"))));
+        dirs.insert(mandir);
+    }
+
+    install.dirs(dirs)?;
+    install.files_map(files)?;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "doman path/to/man/page";

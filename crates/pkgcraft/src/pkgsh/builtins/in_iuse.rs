@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::{make_builtin, PHASE};
 
@@ -15,9 +15,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        Ok(ExecStatus::from(d.borrow().pkg().iuse_effective().contains(flag)))
-    })
+    Ok(ExecStatus::from(get_build_mut().pkg().iuse_effective().contains(flag)))
 }
 
 const USAGE: &str = "in_iuse flag";

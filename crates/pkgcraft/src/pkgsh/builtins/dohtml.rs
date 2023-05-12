@@ -8,7 +8,7 @@ use scallop::{variables, Error};
 use walkdir::DirEntry;
 
 use crate::macros::build_from_paths;
-use crate::pkgsh::{write_stderr, BUILD_DATA};
+use crate::pkgsh::{get_build_mut, write_stderr};
 
 use super::make_builtin;
 
@@ -120,39 +120,33 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
     };
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
-        let subdir = match d.docdesttree.as_str() {
-            "" => "html",
-            val => val,
-        };
-        let doc_prefix = match opts.doc_prefix.as_ref() {
-            None => "",
-            Some(s) => s.trim_start_matches('/'),
-        };
-        let dest =
-            build_from_paths!("/usr/share/doc", variables::required("PF")?, subdir, doc_prefix);
-        let install = d.install().dest(dest)?;
+    let build = get_build_mut();
+    let subdir = match build.docdesttree.as_str() {
+        "" => "html",
+        val => val,
+    };
+    let doc_prefix = match opts.doc_prefix.as_ref() {
+        None => "",
+        Some(s) => s.trim_start_matches('/'),
+    };
+    let dest = build_from_paths!("/usr/share/doc", variables::required("PF")?, subdir, doc_prefix);
+    let install = build.install().dest(dest)?;
 
-        let (dirs, files): (Vec<_>, Vec<_>) =
-            opts.targets.iter().map(Path::new).partition(|p| p.is_dir());
+    let (dirs, files): (Vec<_>, Vec<_>) =
+        opts.targets.iter().map(Path::new).partition(|p| p.is_dir());
 
-        if !dirs.is_empty() {
-            if opts.recursive {
-                install.recursive(dirs, Some(is_allowed))?;
-            } else {
-                return Err(Error::Base(format!(
-                    "trying to install directory as file: {:?}",
-                    dirs[0]
-                )));
-            }
+    if !dirs.is_empty() {
+        if opts.recursive {
+            install.recursive(dirs, Some(is_allowed))?;
+        } else {
+            return Err(Error::Base(format!("trying to install directory as file: {:?}", dirs[0])));
         }
+    }
 
-        let files = files.iter().filter(|f| allowed_file(f));
-        install.files(files)?;
+    let files = files.iter().filter(|f| allowed_file(f));
+    install.files(files)?;
 
-        Ok(ExecStatus::Success)
-    })
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "dohtml path/to/html/files";

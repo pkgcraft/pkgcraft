@@ -7,9 +7,9 @@ use scallop::builtins::ExecStatus;
 use scallop::{variables, Error};
 
 use crate::command::RunCommand;
+use crate::pkgsh::get_build_mut;
 use crate::pkgsh::utils::{configure, get_libdir};
 use crate::pkgsh::write_stdout;
-use crate::pkgsh::BUILD_DATA;
 
 use super::make_builtin;
 
@@ -81,14 +81,12 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
     }
 
-    BUILD_DATA.with(|d| {
-        // add EAPI specific options if found
-        for (opt, (markers, val)) in d.borrow().eapi().econf_options() {
-            if !known_opts.is_disjoint(markers) {
-                defaults.insert(opt, val.as_ref().and_then(variables::expand));
-            }
+    // add EAPI specific options if found
+    for (opt, (markers, val)) in get_build_mut().eapi().econf_options() {
+        if !known_opts.is_disjoint(markers) {
+            defaults.insert(opt, val.as_ref().and_then(variables::expand));
         }
-    });
+    }
 
     // merge args over default options and then add them as command args
     let mut econf = Command::new(&configure);

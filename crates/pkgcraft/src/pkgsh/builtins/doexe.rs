@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -13,13 +13,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let dest = &d.borrow().exedesttree;
-        let opts = &d.borrow().exeopts;
-        let install = d.borrow().install().dest(dest)?.file_options(opts);
-        install.files(args)?;
-        Ok(ExecStatus::Success)
-    })
+    let build = get_build_mut();
+    let dest = &build.exedesttree;
+    let opts = &build.exeopts;
+    let install = build.install().dest(dest)?.file_options(opts);
+    install.files(args)?;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "doexe path/to/executable";

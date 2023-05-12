@@ -2,7 +2,7 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::eapi::Feature;
-use crate::pkgsh::{write_stdout, BUILD_DATA};
+use crate::pkgsh::{get_build_mut, write_stdout};
 
 use super::{make_builtin, use_::run as use_, PHASE};
 
@@ -11,27 +11,24 @@ The same as use, but also prints the flag name if the condition is met.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi();
-        let (flag, output) = match args.len() {
-            1 => {
-                let output = args[0].strip_prefix('!').unwrap_or(args[0]);
-                Ok((&args[..1], output))
-            }
-            2 => match eapi.has(Feature::UsevTwoArgs) {
-                true => Ok((&args[..1], args[1])),
-                false => Err(Error::Base("requires 1 arg, got 2".into())),
-            },
-            n => Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
-        }?;
-
-        let ret = use_(flag)?;
-        if bool::from(&ret) {
-            write_stdout!("{output}")?;
+    let (flag, output) = match args.len() {
+        1 => {
+            let output = args[0].strip_prefix('!').unwrap_or(args[0]);
+            Ok((&args[..1], output))
         }
+        2 => match get_build_mut().eapi().has(Feature::UsevTwoArgs) {
+            true => Ok((&args[..1], args[1])),
+            false => Err(Error::Base("requires 1 arg, got 2".into())),
+        },
+        n => Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
+    }?;
 
-        Ok(ret)
-    })
+    let ret = use_(flag)?;
+    if bool::from(&ret) {
+        write_stdout!("{output}")?;
+    }
+
+    Ok(ret)
 }
 
 const USAGE: &str = "usev flag";
@@ -45,7 +42,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::Pkg;
-    use crate::pkgsh::{assert_stdout, BuildData};
+    use crate::pkgsh::{assert_stdout, get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as usev;
@@ -114,39 +111,37 @@ mod tests {
         }
 
         // enabled
-        BUILD_DATA.with(|d| {
-            let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        BuildData::from_pkg(&pkg);
+        get_build_mut().use_.insert("use".to_string());
+
+        for (args, status, expected) in
+            [(&["use"], ExecStatus::Success, "use"), (&["!use"], ExecStatus::Failure(1), "")]
+        {
+            assert_eq!(usev(args).unwrap(), status);
+            assert_stdout!(expected);
+        }
+
+        // check EAPIs that support two arg variant
+        for eapi in EAPIS_OFFICIAL
+            .iter()
+            .filter(|e| e.has(Feature::UsevTwoArgs))
+        {
+            let (path, cpv) = t
+                .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
+                .unwrap();
             let pkg = Pkg::new(path, cpv, &repo).unwrap();
             BuildData::from_pkg(&pkg);
-            d.borrow_mut().use_.insert("use".to_string());
+            get_build_mut().use_.insert("use".to_string());
 
-            for (args, status, expected) in
-                [(&["use"], ExecStatus::Success, "use"), (&["!use"], ExecStatus::Failure(1), "")]
-            {
+            for (args, status, expected) in [
+                (&["use", "out"], ExecStatus::Success, "out"),
+                (&["!use", "out"], ExecStatus::Failure(1), ""),
+            ] {
                 assert_eq!(usev(args).unwrap(), status);
                 assert_stdout!(expected);
             }
-
-            // check EAPIs that support two arg variant
-            for eapi in EAPIS_OFFICIAL
-                .iter()
-                .filter(|e| e.has(Feature::UsevTwoArgs))
-            {
-                let (path, cpv) = t
-                    .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
-                    .unwrap();
-                let pkg = Pkg::new(path, cpv, &repo).unwrap();
-                BuildData::from_pkg(&pkg);
-                d.borrow_mut().use_.insert("use".to_string());
-
-                for (args, status, expected) in [
-                    (&["use", "out"], ExecStatus::Success, "out"),
-                    (&["!use", "out"], ExecStatus::Failure(1), ""),
-                ] {
-                    assert_eq!(usev(args).unwrap(), status);
-                    assert_stdout!(expected);
-                }
-            }
-        });
+        }
     }
 }

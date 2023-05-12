@@ -3,7 +3,7 @@ use std::fs::hard_link;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -16,11 +16,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         n => Err(Error::Base(format!("requires 2 args, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let install = d.borrow().install();
-        install.link(|p, q| hard_link(p, q), source, target)?;
-        Ok(ExecStatus::Success)
-    })
+    get_build_mut()
+        .install()
+        .link(|p, q| hard_link(p, q), source, target)?;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "dohard path/to/source /path/to/target";

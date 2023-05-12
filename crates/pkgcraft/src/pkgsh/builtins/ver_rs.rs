@@ -57,7 +57,7 @@ mod tests {
     use scallop::variables::*;
 
     use crate::macros::assert_err_re;
-    use crate::pkgsh::{assert_stdout, BUILD_DATA};
+    use crate::pkgsh::{assert_stdout, get_build_mut};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as ver_rs;
@@ -115,16 +115,14 @@ mod tests {
 
     #[test]
     fn subshell() {
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().captured_io = false;
-            let ver = Variable::new("VER");
+        get_build_mut().captured_io = false;
+        let ver = Variable::new("VER");
 
-            source::string("VER=$(ver_rs 2 - 1.2.3)").unwrap();
-            assert_eq!(ver.optional().unwrap(), "1.2-3");
+        source::string("VER=$(ver_rs 2 - 1.2.3)").unwrap();
+        assert_eq!(ver.optional().unwrap(), "1.2-3");
 
-            // test pulling version from $PV
-            source::string("PV=1.2.3; VER=$(ver_rs 1 -)").unwrap();
-            assert_eq!(ver.optional().unwrap(), "1-2.3");
-        })
+        // test pulling version from $PV
+        source::string("PV=1.2.3; VER=$(ver_rs 1 -)").unwrap();
+        assert_eq!(ver.optional().unwrap(), "1-2.3");
     }
 }

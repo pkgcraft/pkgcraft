@@ -5,7 +5,7 @@ use scallop::builtins::ExecStatus;
 use scallop::{variables, Error};
 
 use crate::macros::build_from_paths;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -17,32 +17,34 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
-        let dest = build_from_paths!(
-            d.env.get("DESTTREE").map(|s| s.as_str()).unwrap_or("/usr"),
-            "share/locale"
-        );
-        let opts = ["-m0644"];
-        let install = d.install().dest(dest)?.file_options(opts);
+    let build = get_build_mut();
+    let dest = build_from_paths!(
+        build
+            .env
+            .get("DESTTREE")
+            .map(|s| s.as_str())
+            .unwrap_or("/usr"),
+        "share/locale"
+    );
+    let opts = ["-m0644"];
+    let install = build.install().dest(dest)?.file_options(opts);
 
-        let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
-        let filename = &format!("{}.mo", variables::required("PN")?);
+    let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
+    let filename = &format!("{}.mo", variables::required("PN")?);
 
-        for path in args.iter().map(Path::new) {
-            let dir = match path.file_stem() {
-                None => continue,
-                Some(v) => Path::new(v).join("LC_MESSAGES"),
-            };
-            files.push((path, dir.join(filename)));
-            dirs.insert(dir);
-        }
+    for path in args.iter().map(Path::new) {
+        let dir = match path.file_stem() {
+            None => continue,
+            Some(v) => Path::new(v).join("LC_MESSAGES"),
+        };
+        files.push((path, dir.join(filename)));
+        dirs.insert(dir);
+    }
 
-        install.dirs(dirs)?;
-        install.files_map(files)?;
+    install.dirs(dirs)?;
+    install.files_map(files)?;
 
-        Ok(ExecStatus::Success)
-    })
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "domo path/to/mo/file";

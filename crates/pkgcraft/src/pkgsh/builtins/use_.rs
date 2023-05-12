@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::{make_builtin, PHASE};
 
@@ -19,19 +19,18 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
+    let build = get_build_mut();
 
-        if !d.pkg().iuse_effective().contains(flag) {
-            return Err(Error::Base(format!("USE flag {flag:?} not in IUSE")));
-        }
+    if !build.pkg().iuse_effective().contains(flag) {
+        return Err(Error::Base(format!("USE flag {flag:?} not in IUSE")));
+    }
 
-        let mut ret = d.use_.contains(flag);
-        if negated {
-            ret = !ret;
-        }
-        Ok(ExecStatus::from(ret))
-    })
+    let mut ret = build.use_.contains(flag);
+    if negated {
+        ret = !ret;
+    }
+
+    Ok(ExecStatus::from(ret))
 }
 
 const USAGE: &str = "use flag";
@@ -44,7 +43,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::Pkg;
-    use crate::pkgsh::BuildData;
+    use crate::pkgsh::{get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as use_;
@@ -82,12 +81,10 @@ mod tests {
         assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Success);
 
         // enabled
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().use_.insert("use".to_string());
-            // use flag is enabled
-            assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Success);
-            // inverted check
-            assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Failure(1));
-        });
+        get_build_mut().use_.insert("use".to_string());
+        // use flag is enabled
+        assert_eq!(use_(&["use"]).unwrap(), ExecStatus::Success);
+        // inverted check
+        assert_eq!(use_(&["!use"]).unwrap(), ExecStatus::Failure(1));
     }
 }

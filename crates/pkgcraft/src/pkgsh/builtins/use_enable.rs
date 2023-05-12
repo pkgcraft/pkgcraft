@@ -22,7 +22,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::Pkg;
-    use crate::pkgsh::{assert_stdout, BuildData, BUILD_DATA};
+    use crate::pkgsh::{assert_stdout, get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as use_enable;
@@ -91,39 +91,37 @@ mod tests {
         }
 
         // enabled
-        BUILD_DATA.with(|d| {
-            let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        BuildData::from_pkg(&pkg);
+        get_build_mut().use_.insert("use".to_string());
+
+        assert!(use_enable(&["!use"]).is_err());
+        for (args, status, expected) in [
+            (vec!["use"], ExecStatus::Success, "--enable-use"),
+            (vec!["use", "opt"], ExecStatus::Success, "--enable-opt"),
+            (vec!["!use", "opt"], ExecStatus::Failure(1), "--disable-opt"),
+        ] {
+            assert_eq!(use_enable(&args).unwrap(), status);
+            assert_stdout!(expected);
+        }
+
+        // check EAPIs that support three arg variant
+        for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(Feature::UseConfArg)) {
+            let (path, cpv) = t
+                .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
+                .unwrap();
             let pkg = Pkg::new(path, cpv, &repo).unwrap();
             BuildData::from_pkg(&pkg);
-            d.borrow_mut().use_.insert("use".to_string());
+            get_build_mut().use_.insert("use".to_string());
 
-            assert!(use_enable(&["!use"]).is_err());
             for (args, status, expected) in [
-                (vec!["use"], ExecStatus::Success, "--enable-use"),
-                (vec!["use", "opt"], ExecStatus::Success, "--enable-opt"),
-                (vec!["!use", "opt"], ExecStatus::Failure(1), "--disable-opt"),
+                (&["use", "opt", "val"], ExecStatus::Success, "--enable-opt=val"),
+                (&["!use", "opt", "val"], ExecStatus::Failure(1), "--disable-opt=val"),
             ] {
-                assert_eq!(use_enable(&args).unwrap(), status);
+                assert_eq!(use_enable(args).unwrap(), status);
                 assert_stdout!(expected);
             }
-
-            // check EAPIs that support three arg variant
-            for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(Feature::UseConfArg)) {
-                let (path, cpv) = t
-                    .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
-                    .unwrap();
-                let pkg = Pkg::new(path, cpv, &repo).unwrap();
-                BuildData::from_pkg(&pkg);
-                d.borrow_mut().use_.insert("use".to_string());
-
-                for (args, status, expected) in [
-                    (&["use", "opt", "val"], ExecStatus::Success, "--enable-opt=val"),
-                    (&["!use", "opt", "val"], ExecStatus::Failure(1), "--disable-opt=val"),
-                ] {
-                    assert_eq!(use_enable(args).unwrap(), status);
-                    assert_stdout!(expected);
-                }
-            }
-        });
+        }
     }
 }

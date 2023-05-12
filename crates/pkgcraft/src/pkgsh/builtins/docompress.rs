@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -9,17 +9,15 @@ const LONG_DOC: &str = "Include or exclude paths for compression.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let mut d = d.borrow_mut();
-        let (set, args) = match args.first() {
-            Some(&"-x") => Ok((&mut d.compress_exclude, &args[1..])),
-            Some(_) => Ok((&mut d.compress_include, args)),
-            None => Err(Error::Base("requires 1 or more args, got 0".into())),
-        }?;
+    let build = get_build_mut();
+    let (set, args) = match args.first() {
+        Some(&"-x") => Ok((&mut build.compress_exclude, &args[1..])),
+        Some(_) => Ok((&mut build.compress_include, args)),
+        None => Err(Error::Base("requires 1 or more args, got 0".into())),
+    }?;
 
-        set.extend(args.iter().map(|s| s.to_string()));
-        Ok(ExecStatus::Success)
-    })
+    set.extend(args.iter().map(|s| s.to_string()));
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "docompress /path/to/compress";
@@ -41,16 +39,12 @@ mod tests {
     #[test]
     fn test_include() {
         docompress(&["/test/path"]).unwrap();
-        BUILD_DATA.with(|d| {
-            assert!(d.borrow().compress_include.contains("/test/path"));
-        });
+        assert!(get_build_mut().compress_include.contains("/test/path"));
     }
 
     #[test]
     fn test_exclude() {
         docompress(&["-x", "/test/path"]).unwrap();
-        BUILD_DATA.with(|d| {
-            assert!(d.borrow().compress_exclude.contains("/test/path"));
-        });
+        assert!(get_build_mut().compress_exclude.contains("/test/path"));
     }
 }

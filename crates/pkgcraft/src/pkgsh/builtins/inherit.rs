@@ -2,7 +2,7 @@ use scallop::builtins::{builtin_level, ExecStatus};
 use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error};
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::{make_builtin, Scope, ECLASS, GLOBAL};
 
@@ -14,71 +14,67 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Bail("requires 1 or more args, got 0".into()));
     }
 
+    let build = get_build_mut();
     let eclasses: Vec<_> = args.iter().map(|s| s.to_string()).collect();
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let mut eclass_var = ScopedVariable::new("ECLASS");
-        let mut inherited_var = Variable::new("INHERITED");
+    let mut eclass_var = ScopedVariable::new("ECLASS");
+    let mut inherited_var = Variable::new("INHERITED");
 
-        let eapi = d.borrow().eapi();
-        let orig_scope = d.borrow().scope;
-        d.borrow_mut().scope = Scope::Eclass;
+    let orig_scope = build.scope;
+    build.scope = Scope::Eclass;
 
-        // Track direct ebuild inherits, note that this assumes the first level is via an ebuild
-        // inherit, i.e. calling this function directly won't increment the value and thus won't
-        // work as expected.
-        if builtin_level() == 1 {
-            d.borrow_mut().inherit.extend(eclasses.clone());
-        }
+    // Track direct ebuild inherits, note that this assumes the first level is via an ebuild
+    // inherit, i.e. calling this function directly won't increment the value and thus won't
+    // work as expected.
+    if builtin_level() == 1 {
+        build.inherit.extend(eclasses.clone());
+    }
 
-        // skip eclasses that have already been inherited
-        let eclasses = eclasses
-            .into_iter()
-            .filter(|s| !d.borrow().inherited.contains(s));
+    // skip eclasses that have already been inherited
+    let eclasses = eclasses
+        .into_iter()
+        .filter(|s| !get_build_mut().inherited.contains(s));
 
-        for eclass in eclasses {
-            // unset metadata keys that incrementally accumulate
-            for var in eapi.incremental_keys() {
-                unbind(var)?;
-            }
-
-            // determine eclass file path
-            let path = d
-                .borrow()
-                .repo()
-                .eclasses()
-                .get(&eclass)
-                .cloned()
-                .ok_or_else(|| Error::Bail(format!("unknown eclass: {eclass}")))?;
-
-            // update $ECLASS bash variable
-            eclass_var.bind(&eclass, None, None)?;
-
-            source::file(path)
-                .map_err(|e| Error::Bail(format!("failed loading eclass: {eclass}: {e}")))?;
-
-            let mut d = d.borrow_mut();
-            // append metadata keys that incrementally accumulate
-            for var in eapi.incremental_keys() {
-                if let Ok(data) = string_vec(var) {
-                    d.get_deque(var).extend(data);
-                }
-            }
-
-            inherited_var.append(&format!(" {eclass}"))?;
-            d.inherited.insert(eclass);
-        }
-
+    for eclass in eclasses {
         // unset metadata keys that incrementally accumulate
-        for var in eapi.incremental_keys() {
+        for var in build.eapi().incremental_keys() {
             unbind(var)?;
         }
 
-        // restore the original scope
-        d.borrow_mut().scope = orig_scope;
+        // determine eclass file path
+        let path = build
+            .repo()
+            .eclasses()
+            .get(&eclass)
+            .cloned()
+            .ok_or_else(|| Error::Bail(format!("unknown eclass: {eclass}")))?;
 
-        Ok(ExecStatus::Success)
-    })
+        // update $ECLASS bash variable
+        eclass_var.bind(&eclass, None, None)?;
+
+        source::file(path)
+            .map_err(|e| Error::Bail(format!("failed loading eclass: {eclass}: {e}")))?;
+
+        // append metadata keys that incrementally accumulate
+        for var in build.eapi().incremental_keys() {
+            if let Ok(data) = string_vec(var) {
+                build.get_deque(var).extend(data);
+            }
+        }
+
+        inherited_var.append(&format!(" {eclass}"))?;
+        build.inherited.insert(eclass);
+    }
+
+    // unset metadata keys that incrementally accumulate
+    for var in build.eapi().incremental_keys() {
+        unbind(var)?;
+    }
+
+    // restore the original scope
+    build.scope = orig_scope;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "inherit eclass1 eclass2";

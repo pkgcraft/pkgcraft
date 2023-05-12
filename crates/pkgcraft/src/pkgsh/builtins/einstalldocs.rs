@@ -7,7 +7,7 @@ use scallop::variables::var_to_vec;
 use scallop::Error;
 use tracing::warn;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::{dodoc::install_docs, make_builtin};
 
@@ -68,29 +68,27 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
         _ => Err(Error::Base(format!("unknown variable: {var}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let (recursive, paths) = match var_to_vec(var) {
-            Ok(v) => (true, expand_docs(&v, true)?),
-            _ => match defaults {
-                Some(v) => (false, expand_docs(v, false)?),
-                None => (false, vec![]),
-            },
-        };
+    let (recursive, paths) = match var_to_vec(var) {
+        Ok(v) => (true, expand_docs(&v, true)?),
+        _ => match defaults {
+            Some(v) => (false, expand_docs(v, false)?),
+            None => (false, vec![]),
+        },
+    };
 
-        if !paths.is_empty() {
-            // save original docdesttree value and use custom value
-            let orig_docdestree = d.borrow().docdesttree.clone();
-            d.borrow_mut().docdesttree = String::from(docdesttree);
+    if !paths.is_empty() {
+        // save original docdesttree value and use custom value
+        let orig_docdestree = get_build_mut().docdesttree.clone();
+        get_build_mut().docdesttree = String::from(docdesttree);
 
-            let paths = paths.iter().map(|p| p.as_path());
-            install_docs(recursive, paths)?;
+        let paths = paths.iter().map(|p| p.as_path());
+        install_docs(recursive, paths)?;
 
-            // restore original docdesttree value
-            d.borrow_mut().docdesttree = orig_docdestree;
-        }
+        // restore original docdesttree value
+        get_build_mut().docdesttree = orig_docdestree;
+    }
 
-        Ok(ExecStatus::Success)
-    })
+    Ok(ExecStatus::Success)
 }
 
 #[doc = stringify!(LONG_DOC)]

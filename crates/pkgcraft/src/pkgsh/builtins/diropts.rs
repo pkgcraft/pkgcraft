@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -14,9 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| {
-        d.borrow_mut().diropts = args.iter().map(|s| s.to_string()).collect();
-    });
+    get_build_mut().diropts = args.iter().map(|s| s.to_string()).collect();
 
     Ok(ExecStatus::Success)
 }
@@ -26,8 +24,6 @@ make_builtin!("diropts", diropts_builtin, run, LONG_DOC, USAGE, &[("..", &["src_
 
 #[cfg(test)]
 mod tests {
-    use crate::pkgsh::BUILD_DATA;
-
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as diropts;
     use super::*;
@@ -42,8 +38,6 @@ mod tests {
     #[test]
     fn set_path() {
         diropts(&["-m0777", "-p"]).unwrap();
-        BUILD_DATA.with(|d| {
-            assert_eq!(d.borrow().diropts, ["-m0777", "-p"]);
-        });
+        assert_eq!(get_build_mut().diropts, ["-m0777", "-p"]);
     }
 }

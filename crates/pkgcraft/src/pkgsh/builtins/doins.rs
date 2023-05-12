@@ -4,7 +4,7 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::files::NO_WALKDIR_FILTER;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -18,23 +18,22 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         None => Err(Error::Base("requires 1 or more targets, got 0".into())),
     }?;
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let dest = &d.borrow().insdesttree;
-        let opts = &d.borrow().insopts;
-        let install = d.borrow().install().dest(dest)?.file_options(opts);
+    let build = get_build_mut();
+    let dest = &build.insdesttree;
+    let opts = &build.insopts;
+    let install = build.install().dest(dest)?.file_options(opts);
 
-        let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
+    let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
 
-        if !dirs.is_empty() {
-            match recursive {
-                true => install.recursive(dirs, NO_WALKDIR_FILTER),
-                false => Err(Error::Base(format!("non-recursive dir install: {:?}", dirs[0]))),
-            }?;
-        }
+    if !dirs.is_empty() {
+        match recursive {
+            true => install.recursive(dirs, NO_WALKDIR_FILTER),
+            false => Err(Error::Base(format!("non-recursive dir install: {:?}", dirs[0]))),
+        }?;
+    }
 
-        install.files(files)?;
-        Ok(ExecStatus::Success)
-    })
+    install.files(files)?;
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "doins path/to/file";

@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -13,13 +13,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let dest = "/usr/share/info";
-        let opts = ["-m0644"];
-        let install = d.borrow().install().dest(dest)?.file_options(opts);
-        install.files(args)?;
-        Ok(ExecStatus::Success)
-    })
+    let dest = "/usr/share/info";
+    let opts = ["-m0644"];
+    let install = get_build_mut().install().dest(dest)?.file_options(opts);
+    install.files(args)?;
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "doinfo path/to/info/file";

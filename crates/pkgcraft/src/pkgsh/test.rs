@@ -8,8 +8,6 @@ use serde::{Deserialize, Serialize};
 use tempfile::{tempdir, TempDir};
 use walkdir::WalkDir;
 
-use crate::pkgsh::BUILD_DATA;
-
 #[derive(Debug, Deserialize, Serialize)]
 struct Files {
     files: Vec<FileData>,
@@ -36,11 +34,9 @@ impl FileTree {
         let src_dir = path.join("src");
         let install_dir = path.join("image");
 
-        BUILD_DATA.with(|d| {
-            d.borrow_mut()
-                .env
-                .insert("ED".into(), install_dir.to_str().unwrap().into());
-        });
+        crate::pkgsh::get_build_mut()
+            .env
+            .insert("ED".into(), install_dir.to_str().unwrap().into());
 
         fs::create_dir(&install_dir).unwrap();
         fs::create_dir(&src_dir).unwrap();

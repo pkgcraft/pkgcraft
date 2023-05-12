@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::{eapply::run as eapply, make_builtin};
 
@@ -13,17 +13,18 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        if !d.borrow().user_patches_applied {
-            let patches = &d.borrow().user_patches;
-            let args: Vec<_> = patches.iter().map(|s| s.as_str()).collect();
-            if !args.is_empty() {
-                eapply(&args)?;
-            }
+    let build = get_build_mut();
+
+    if !build.user_patches_applied {
+        let args: Vec<_> = build.user_patches.iter().map(|s| s.as_str()).collect();
+        if !args.is_empty() {
+            eapply(&args)?;
         }
-        d.borrow_mut().user_patches_applied = true;
-        Ok(ExecStatus::Success)
-    })
+    }
+
+    build.user_patches_applied = true;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "eapply_user";

@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::{BuildVariable, BUILD_DATA};
+use crate::pkgsh::{get_build_mut, BuildVariable};
 
 use super::make_builtin;
 
@@ -18,12 +18,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
     }?;
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let mut d = d.borrow_mut();
-        d.desttree = path.to_string();
-        d.override_var(BuildVariable::DESTTREE, path)?;
-        Ok(ExecStatus::Success)
-    })
+    let build = get_build_mut();
+    build.desttree = path.to_string();
+    build.override_var(BuildVariable::DESTTREE, path)?;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "into /install/path";
@@ -36,7 +35,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkgsh::phase::{Phase, PHASE_STUB};
-    use crate::pkgsh::{BuildData, BuildVariable, Scope, BUILD_DATA};
+    use crate::pkgsh::{BuildData, BuildVariable, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as into;
@@ -57,20 +56,19 @@ mod tests {
 
         for eapi in EAPIS_OFFICIAL.iter() {
             BuildData::update(&cpv, &repo, Some(eapi));
-            BUILD_DATA.with(|d| {
-                let phase = Phase::SrcInstall(PHASE_STUB);
-                d.borrow_mut().phase = Some(phase);
-                d.borrow_mut().scope = Scope::Phase(phase);
-                into(&["/test/path"]).unwrap();
-                assert_eq!(d.borrow().desttree, "/test/path");
+            let phase = Phase::SrcInstall(PHASE_STUB);
+            let build = get_build_mut();
+            build.phase = Some(phase);
+            build.scope = Scope::Phase(phase);
+            into(&["/test/path"]).unwrap();
+            assert_eq!(build.desttree, "/test/path");
 
-                // verify conditional EAPI environment export
-                let env_val = variables::optional("DESTTREE");
-                match eapi.env().contains_key(&BuildVariable::DESTTREE) {
-                    true => assert_eq!(env_val.unwrap(), "/test/path"),
-                    false => assert!(env_val.is_none()),
-                }
-            });
+            // verify conditional EAPI environment export
+            let env_val = variables::optional("DESTTREE");
+            match eapi.env().contains_key(&BuildVariable::DESTTREE) {
+                true => assert_eq!(env_val.unwrap(), "/test/path"),
+                false => assert!(env_val.is_none()),
+            }
 
             // reset shell env
             shell::reset();

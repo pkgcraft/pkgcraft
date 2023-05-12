@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{self, Read, Write};
 use std::mem;
@@ -47,12 +47,11 @@ impl Default for Stdin {
 
 #[cfg(test)]
 macro_rules! write_stdin {
-    ($($arg:tt)*) => {
-        crate::pkgsh::BUILD_DATA.with(|d| {
-            write!(d.borrow_mut().stdin.fake, $($arg)*).unwrap();
-            d.borrow_mut().stdin.fake.set_position(0);
-        })
-    }
+    ($($arg:tt)*) => {{
+        let build = crate::pkgsh::get_build_mut();
+        write!(build.stdin.fake, $($arg)*).unwrap();
+        build.stdin.fake.set_position(0);
+    }}
 }
 #[cfg(test)]
 use write_stdin;
@@ -72,26 +71,23 @@ impl Default for Stdout {
 }
 
 macro_rules! write_stdout {
-    ($($arg:tt)*) => {
-        crate::pkgsh::BUILD_DATA.with(|d| {
-            write!(d.borrow_mut().stdout(), $($arg)*)?;
-            d.borrow_mut().stdout().flush()
-        })
-    }
+    ($($arg:tt)*) => {{
+        let build = crate::pkgsh::get_build_mut();
+        write!(build.stdout(), $($arg)*)?;
+        build.stdout().flush()
+    }}
 }
 use write_stdout;
 
 #[cfg(test)]
 macro_rules! get_stdout {
-    () => {
-        crate::pkgsh::BUILD_DATA.with(|d| {
-            let mut d = d.borrow_mut();
-            let output = std::str::from_utf8(d.stdout.fake.get_ref()).unwrap();
-            let output = String::from(output);
-            d.stdout.fake = std::io::Cursor::new(vec![]);
-            output
-        })
-    };
+    () => {{
+        let build = crate::pkgsh::get_build_mut();
+        let output = std::str::from_utf8(build.stdout.fake.get_ref()).unwrap();
+        let output = String::from(output);
+        build.stdout.fake = std::io::Cursor::new(vec![]);
+        output
+    }};
 }
 #[cfg(test)]
 use get_stdout;
@@ -121,26 +117,23 @@ impl Default for Stderr {
 }
 
 macro_rules! write_stderr {
-    ($($arg:tt)*) => {
-        crate::pkgsh::BUILD_DATA.with(|d| {
-            write!(d.borrow_mut().stderr(), $($arg)*)?;
-            d.borrow_mut().stderr().flush()
-        })
-    }
+    ($($arg:tt)*) => {{
+        let build = crate::pkgsh::get_build_mut();
+        write!(build.stderr(), $($arg)*)?;
+        build.stderr().flush()
+    }}
 }
 use write_stderr;
 
 #[cfg(test)]
 macro_rules! get_stderr {
-    () => {
-        crate::pkgsh::BUILD_DATA.with(|d| {
-            let mut d = d.borrow_mut();
-            let output = std::str::from_utf8(d.stderr.fake.get_ref()).unwrap();
-            let output = String::from(output);
-            d.stderr.fake = std::io::Cursor::new(vec![]);
-            output
-        })
-    };
+    () => {{
+        let build = crate::pkgsh::get_build_mut();
+        let output = std::str::from_utf8(build.stderr.fake.get_ref()).unwrap();
+        let output = String::from(output);
+        build.stderr.fake = std::io::Cursor::new(vec![]);
+        output
+    }};
 }
 #[cfg(test)]
 use get_stderr;
@@ -237,7 +230,7 @@ impl<'a> BuildData<'a> {
 
     #[cfg(test)]
     pub(crate) fn empty(eapi: &'static Eapi) {
-        BUILD_DATA.with(|d| d.borrow_mut().state = BuildState::Empty(eapi));
+        get_build_mut().state = BuildState::Empty(eapi);
     }
 
     pub(crate) fn update(cpv: &Cpv, repo: &'a ebuild::Repo, eapi: Option<&'static Eapi>) {
@@ -249,7 +242,7 @@ impl<'a> BuildData<'a> {
 
         let eapi = eapi.unwrap_or_default();
         let state = BuildState::Metadata(eapi, cpv.clone(), r);
-        BUILD_DATA.with(|d| d.replace(BuildData { state, ..BuildData::new() }));
+        update_build(BuildData { state, ..BuildData::new() });
     }
 
     pub(crate) fn from_pkg(pkg: &'a crate::pkg::ebuild::Pkg<'a>) {
@@ -259,7 +252,7 @@ impl<'a> BuildData<'a> {
             state: BuildState::Build(p),
             ..BuildData::new()
         };
-        BUILD_DATA.with(|d| d.replace(data));
+        update_build(data);
     }
 
     fn eapi(&self) -> &'static Eapi {
@@ -372,12 +365,29 @@ impl<'a> BuildData<'a> {
     }
 }
 
-thread_local! {
-    static BUILD_DATA: RefCell<BuildData<'static>> = RefCell::new(BuildData::new())
+struct State<'a>(UnsafeCell<BuildData<'a>>);
+
+impl State<'_> {
+    fn new() -> Self {
+        Self(UnsafeCell::new(BuildData::new()))
+    }
+}
+
+static mut STATE: Lazy<State<'static>> = Lazy::new(State::new);
+
+fn get_build_mut() -> &'static mut BuildData<'static> {
+    unsafe { STATE.0.get_mut() }
+}
+
+fn update_build(state: BuildData<'static>) {
+    unsafe {
+        STATE.0 = UnsafeCell::new(state);
+    }
 }
 
 /// Initialize bash for library usage.
 pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
+    unsafe { Lazy::force(&STATE) };
     scallop::shell::init(true);
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
@@ -388,74 +398,69 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
 pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     Lazy::force(&BASH);
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi();
-        d.borrow_mut().phase = Some(phase);
-        d.borrow_mut().scope = Scope::Phase(phase);
-        d.borrow_mut().set_vars()?;
+    let build = get_build_mut();
+    build.phase = Some(phase);
+    build.scope = Scope::Phase(phase);
+    build.set_vars()?;
 
-        // run user space pre-phase hooks
-        if let Some(mut func) = functions::find(format!("pre_{phase}")) {
-            func.execute(&[])?;
-        }
+    // run user space pre-phase hooks
+    if let Some(mut func) = functions::find(format!("pre_{phase}")) {
+        func.execute(&[])?;
+    }
 
-        // run user space phase function, falling back to internal default
-        match functions::find(phase) {
-            Some(mut func) => func.execute(&[])?,
-            None => match eapi.phases().get(&phase) {
-                Some(phase) => phase.run()?,
-                None => return Err(scallop::Error::Base(format!("nonexistent phase: {phase}"))),
-            },
-        };
+    // run user space phase function, falling back to internal default
+    match functions::find(phase) {
+        Some(mut func) => func.execute(&[])?,
+        None => match build.eapi().phases().get(&phase) {
+            Some(phase) => phase.run()?,
+            None => return Err(scallop::Error::Base(format!("nonexistent phase: {phase}"))),
+        },
+    };
 
-        // run user space post-phase hooks
-        if let Some(mut func) = functions::find(format!("post_{phase}")) {
-            func.execute(&[])?;
-        }
+    // run user space post-phase hooks
+    if let Some(mut func) = functions::find(format!("post_{phase}")) {
+        func.execute(&[])?;
+    }
 
-        d.borrow_mut().phase = None;
+    build.phase = None;
 
-        Ok(ExecStatus::Success)
-    })
+    Ok(ExecStatus::Success)
 }
 
 pub(crate) fn source_ebuild<T: SourceBash>(value: T) -> scallop::Result<ExecStatus> {
     Lazy::force(&BASH);
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi();
-        d.borrow_mut().scope = Scope::Global;
-        d.borrow_mut().set_vars()?;
+    let build = get_build_mut();
+    build.scope = Scope::Global;
+    build.set_vars()?;
 
-        let mut opts = ScopedOptions::default();
-        if eapi.has(Feature::GlobalFailglob) {
-            opts.enable(["failglob"])?;
+    let mut opts = ScopedOptions::default();
+    if build.eapi().has(Feature::GlobalFailglob) {
+        opts.enable(["failglob"])?;
+    }
+
+    value.source_bash()?;
+
+    // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
+    if build.eapi().has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
+        if let Some(depend) = variables::optional("DEPEND") {
+            bind("RDEPEND", depend, None, None)?;
         }
+    }
 
-        value.source_bash()?;
-
-        // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
-        if eapi.has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
-            if let Some(depend) = variables::optional("DEPEND") {
-                bind("RDEPEND", depend, None, None)?;
+    // prepend metadata keys that incrementally accumulate to eclass values
+    if !build.inherited.is_empty() {
+        for var in build.eapi().incremental_keys() {
+            let deque = build.get_deque(var);
+            if let Ok(data) = string_vec(var) {
+                extend_left!(deque, data.into_iter());
             }
+            // export the incrementally accumulated value
+            bind(var, deque.iter().join(" "), None, None)?;
         }
+    }
 
-        // prepend metadata keys that incrementally accumulate to eclass values
-        if !d.borrow().inherited.is_empty() {
-            let mut d = d.borrow_mut();
-            for var in eapi.incremental_keys() {
-                let deque = d.get_deque(var);
-                if let Ok(data) = string_vec(var) {
-                    extend_left!(deque, data.into_iter());
-                }
-                // export the incrementally accumulated value
-                bind(var, deque.iter().join(" "), None, None)?;
-            }
-        }
-
-        Ok(ExecStatus::Success)
-    })
+    Ok(ExecStatus::Success)
 }
 
 #[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]

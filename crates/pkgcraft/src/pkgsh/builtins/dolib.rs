@@ -2,26 +2,25 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::macros::build_from_paths;
+use crate::pkgsh::get_build_mut;
 use crate::pkgsh::utils::get_libdir;
-use crate::pkgsh::BUILD_DATA;
 
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install libraries.";
 
 pub(super) fn install_lib(args: &[&str], opts: Option<Vec<&str>>) -> scallop::Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
-        let libdir = get_libdir(Some("lib")).unwrap();
-        let dest = build_from_paths!(&d.desttree, &libdir);
-        let opts: Vec<&str> = match opts {
-            Some(v) => v,
-            None => d.libopts.iter().map(|s| s.as_str()).collect(),
-        };
-        let install = d.install().dest(dest)?.file_options(opts);
-        install.files(args)?;
-        Ok(ExecStatus::Success)
-    })
+    let build = get_build_mut();
+    let libdir = get_libdir(Some("lib")).unwrap();
+    let dest = build_from_paths!(&build.desttree, &libdir);
+    let opts: Vec<&str> = match opts {
+        Some(v) => v,
+        None => build.libopts.iter().map(|s| s.as_str()).collect(),
+    };
+    let install = build.install().dest(dest)?.file_options(opts);
+    install.files(args)?;
+
+    Ok(ExecStatus::Success)
 }
 
 #[doc = stringify!(LONG_DOC)]

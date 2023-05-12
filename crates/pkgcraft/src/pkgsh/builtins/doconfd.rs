@@ -2,7 +2,7 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::eapi::Feature;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -14,17 +14,16 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
-        let dest = "/etc/conf.d";
-        let opts: Vec<_> = match d.eapi().has(Feature::ConsistentFileOpts) {
-            true => vec!["-m0644"],
-            false => d.insopts.iter().map(|s| s.as_str()).collect(),
-        };
-        let install = d.install().dest(dest)?.file_options(opts);
-        install.files(args)?;
-        Ok(ExecStatus::Success)
-    })
+    let build = get_build_mut();
+    let dest = "/etc/conf.d";
+    let opts: Vec<_> = match build.eapi().has(Feature::ConsistentFileOpts) {
+        true => vec!["-m0644"],
+        false => build.insopts.iter().map(|s| s.as_str()).collect(),
+    };
+    let install = build.install().dest(dest)?.file_options(opts);
+    install.files(args)?;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "doconfd path/to/config/file";

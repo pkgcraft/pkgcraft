@@ -5,7 +5,7 @@ use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -19,32 +19,28 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         None => Err(Error::Base("requires 1 or more args, got 0".into())),
     }?;
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
-        let dest = "/usr/include";
-        let opts: Vec<_> = if d.eapi().has(Feature::ConsistentFileOpts) {
-            vec!["-m0644"]
+    let build = get_build_mut();
+    let dest = "/usr/include";
+    let opts: Vec<_> = if build.eapi().has(Feature::ConsistentFileOpts) {
+        vec!["-m0644"]
+    } else {
+        build.insopts.iter().map(|s| s.as_str()).collect()
+    };
+    let install = build.install().dest(dest)?.file_options(opts);
+
+    let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
+
+    if !dirs.is_empty() {
+        if recursive {
+            install.recursive(dirs, NO_WALKDIR_FILTER)?;
         } else {
-            d.insopts.iter().map(|s| s.as_str()).collect()
-        };
-        let install = d.install().dest(dest)?.file_options(opts);
-
-        let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
-
-        if !dirs.is_empty() {
-            if recursive {
-                install.recursive(dirs, NO_WALKDIR_FILTER)?;
-            } else {
-                return Err(Error::Base(format!(
-                    "trying to install directory as file: {:?}",
-                    dirs[0]
-                )));
-            }
+            return Err(Error::Base(format!("trying to install directory as file: {:?}", dirs[0])));
         }
+    }
 
-        install.files(files)?;
-        Ok(ExecStatus::Success)
-    })
+    install.files(files)?;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "doheader path/to/header.h";

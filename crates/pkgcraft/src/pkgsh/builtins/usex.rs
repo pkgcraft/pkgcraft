@@ -39,7 +39,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::Pkg;
-    use crate::pkgsh::{assert_stdout, BuildData, BUILD_DATA};
+    use crate::pkgsh::{assert_stdout, get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as usex;
@@ -83,17 +83,15 @@ mod tests {
         }
 
         // enabled
-        BUILD_DATA.with(|d| {
-            d.borrow_mut().use_.insert("use".to_string());
-            for (args, expected) in [
-                (vec!["use"], "yes"),
-                (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
-                (vec!["!use"], "no"),
-                (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
-            ] {
-                usex(&args).unwrap();
-                assert_stdout!(expected);
-            }
-        });
+        get_build_mut().use_.insert("use".to_string());
+        for (args, expected) in [
+            (vec!["use"], "yes"),
+            (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
+            (vec!["!use"], "no"),
+            (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
+        ] {
+            usex(&args).unwrap();
+            assert_stdout!(expected);
+        }
     }
 }

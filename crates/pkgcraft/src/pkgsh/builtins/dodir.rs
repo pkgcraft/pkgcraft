@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -13,12 +13,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let opts = &d.borrow().diropts;
-        let install = d.borrow().install().dir_options(opts);
-        install.dirs(args)?;
-        Ok(ExecStatus::Success)
-    })
+    let build = get_build_mut();
+    let opts = &build.diropts;
+    let install = build.install().dir_options(opts);
+    install.dirs(args)?;
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "dodir path/to/dir";

@@ -4,8 +4,8 @@ use scallop::builtins::ExecStatus;
 use strum::{AsRefStr, Display};
 
 use super::builtins::emake::run as emake;
+use super::get_build_mut;
 use super::utils::makefile_exists;
-use super::BUILD_DATA;
 
 pub(crate) mod eapi0;
 pub(crate) mod eapi1;
@@ -22,12 +22,9 @@ fn phase_stub() -> scallop::Result<ExecStatus> {
 
 fn emake_install() -> scallop::Result<ExecStatus> {
     if makefile_exists() {
-        BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-            let env = &d.borrow().env;
-            let destdir = env.get("D").expect("D undefined");
-            let args = &[&format!("DESTDIR={destdir}"), "install"];
-            emake(args)
-        })?;
+        let destdir = get_build_mut().env.get("D").expect("D undefined");
+        let args = &[&format!("DESTDIR={destdir}"), "install"];
+        emake(args)?;
     }
 
     Ok(ExecStatus::Success)

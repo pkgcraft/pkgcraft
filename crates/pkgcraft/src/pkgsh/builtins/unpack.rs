@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 use crate::archive::ArchiveFormat;
 use crate::eapi::Feature;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 use crate::utils::current_dir;
 
 use super::{make_builtin, PHASE};
@@ -32,73 +32,70 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let current_dir = current_dir()?;
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
-        let eapi = d.eapi();
-        let distdir = variables::required("DISTDIR")?;
+    let eapi = get_build_mut().eapi();
+    let distdir = variables::required("DISTDIR")?;
 
-        // Determine the source for a given archive target. Basic filenames are prefixed with
-        // DISTDIR while all other types are unprefixed including conditionally supported absolute
-        // and relative paths.
-        let determine_source = |path: &Utf8Path| -> scallop::Result<Utf8PathBuf> {
-            if path.parent() == Some(Utf8Path::new("")) {
-                Ok(Utf8PathBuf::from(&distdir).join(path))
-            } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
-                Ok(Utf8PathBuf::from(path))
-            } else {
-                let adj = match path.is_absolute() {
-                    true => "absolute",
-                    false => "relative",
-                };
-                let err = format!("{adj} paths not supported in EAPI {eapi}: {path:?}");
-                Err(Error::Base(err))
+    // Determine the source for a given archive target. Basic filenames are prefixed with
+    // DISTDIR while all other types are unprefixed including conditionally supported absolute
+    // and relative paths.
+    let determine_source = |path: &Utf8Path| -> scallop::Result<Utf8PathBuf> {
+        if path.parent() == Some(Utf8Path::new("")) {
+            Ok(Utf8PathBuf::from(&distdir).join(path))
+        } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
+            Ok(Utf8PathBuf::from(path))
+        } else {
+            let adj = match path.is_absolute() {
+                true => "absolute",
+                false => "relative",
+            };
+            let err = format!("{adj} paths not supported in EAPI {eapi}: {path:?}");
+            Err(Error::Base(err))
+        }
+    };
+
+    for path in args.iter().map(Utf8Path::new) {
+        let source = determine_source(path)?;
+        if !source.exists() {
+            return Err(Error::Base(format!("nonexistent archive: {path}")));
+        }
+
+        let (ext, archive) = eapi.archive_from_path(&source)?;
+        let base = source.file_name().unwrap();
+        let base = &base[0..base.len() - 1 - ext.len()];
+        let dest = &current_dir.join(base);
+        archive.unpack(dest)?;
+    }
+
+    // ensure proper permissions on unpacked files with minimal syscalls
+    for entry in WalkDir::new(&current_dir).min_depth(1) {
+        let entry =
+            entry.map_err(|e| Error::Base(format!("failed walking {current_dir:?}: {e}")))?;
+        let path = entry.path();
+        let stat =
+            lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
+        let mode = Mode::from_bits_truncate(stat.st_mode);
+        let new_mode = match SFlag::from_bits_truncate(stat.st_mode) {
+            flags if flags.contains(SFlag::S_IFLNK) => continue,
+            flags if flags.contains(SFlag::S_IFDIR) => {
+                if !mode.contains(*DIR_MODE) {
+                    mode.bitor(*DIR_MODE)
+                } else {
+                    continue;
+                }
+            }
+            _ => {
+                if !mode.contains(*FILE_MODE) {
+                    mode.bitor(*FILE_MODE)
+                } else {
+                    continue;
+                }
             }
         };
+        fchmodat(None, path, new_mode, FollowSymlink)
+            .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))?;
+    }
 
-        for path in args.iter().map(Utf8Path::new) {
-            let source = determine_source(path)?;
-            if !source.exists() {
-                return Err(Error::Base(format!("nonexistent archive: {path}")));
-            }
-
-            let (ext, archive) = eapi.archive_from_path(&source)?;
-            let base = source.file_name().unwrap();
-            let base = &base[0..base.len() - 1 - ext.len()];
-            let dest = &current_dir.join(base);
-            archive.unpack(dest)?;
-        }
-
-        // ensure proper permissions on unpacked files with minimal syscalls
-        for entry in WalkDir::new(&current_dir).min_depth(1) {
-            let entry =
-                entry.map_err(|e| Error::Base(format!("failed walking {current_dir:?}: {e}")))?;
-            let path = entry.path();
-            let stat =
-                lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
-            let mode = Mode::from_bits_truncate(stat.st_mode);
-            let new_mode = match SFlag::from_bits_truncate(stat.st_mode) {
-                flags if flags.contains(SFlag::S_IFLNK) => continue,
-                flags if flags.contains(SFlag::S_IFDIR) => {
-                    if !mode.contains(*DIR_MODE) {
-                        mode.bitor(*DIR_MODE)
-                    } else {
-                        continue;
-                    }
-                }
-                _ => {
-                    if !mode.contains(*FILE_MODE) {
-                        mode.bitor(*FILE_MODE)
-                    } else {
-                        continue;
-                    }
-                }
-            };
-            fchmodat(None, path, new_mode, FollowSymlink)
-                .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))?;
-        }
-
-        Ok(ExecStatus::Success)
-    })
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "unpack file.tar.gz";

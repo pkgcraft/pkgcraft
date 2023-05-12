@@ -5,7 +5,7 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::command::RunCommand;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -17,20 +17,17 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(format!("requires at least 2 args, got {}", args.len())));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let d = d.borrow();
-        let destdir = Path::new(d.destdir());
+    let destdir = Path::new(get_build_mut().destdir());
 
-        let mut chmod = Command::new("chmod");
-        for arg in args {
-            let path = arg.trim_start_matches('/');
-            chmod.arg(destdir.join(path));
-        }
+    let mut chmod = Command::new("chmod");
+    for arg in args {
+        let path = arg.trim_start_matches('/');
+        chmod.arg(destdir.join(path));
+    }
 
-        chmod.run()?;
+    chmod.run()?;
 
-        Ok(ExecStatus::Success)
-    })
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "fperms mode /path/to/file";

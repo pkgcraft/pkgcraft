@@ -3,7 +3,7 @@ use std::fs::File;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -15,19 +15,20 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let install = d.borrow().install();
-        // create dirs
-        install.dirs(args)?;
-        // create stub files
-        for path in args {
-            // TODO: add pkg data to file name
-            let keep = install.prefix(path).join(".keep");
-            File::create(&keep)
-                .map_err(|e| Error::Base(format!("failed creating keep file: {keep:?}: {e}")))?;
-        }
-        Ok(ExecStatus::Success)
-    })
+    let install = get_build_mut().install();
+
+    // create dirs
+    install.dirs(args)?;
+
+    // create stub files
+    for path in args {
+        // TODO: add pkg data to file name
+        let keep = install.prefix(path).join(".keep");
+        File::create(&keep)
+            .map_err(|e| Error::Base(format!("failed creating keep file: {keep:?}: {e}")))?;
+    }
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "keepdir path/to/kept/dir";

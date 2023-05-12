@@ -6,7 +6,7 @@ use scallop::{variables, Error};
 use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::macros::build_from_paths;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
 
@@ -17,41 +17,40 @@ pub(crate) fn install_docs<'a, I>(recursive: bool, paths: I) -> scallop::Result<
 where
     I: IntoIterator<Item = &'a Path>,
 {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let dest = build_from_paths!(
-            "/usr/share/doc",
-            &variables::required("PF")?,
-            d.borrow().docdesttree.trim_start_matches('/')
-        );
-        let install = d.borrow().install().dest(dest)?;
+    let build = get_build_mut();
+    let dest = build_from_paths!(
+        "/usr/share/doc",
+        &variables::required("PF")?,
+        build.docdesttree.trim_start_matches('/')
+    );
+    let install = build.install().dest(dest)?;
 
-        let (dirs, files): (Vec<_>, Vec<_>) = paths.into_iter().partition(|p| p.is_dir());
+    let (dirs, files): (Vec<_>, Vec<_>) = paths.into_iter().partition(|p| p.is_dir());
 
-        if !dirs.is_empty() {
-            if recursive {
-                install.recursive(dirs, NO_WALKDIR_FILTER)?;
-            } else {
-                return Err(Error::Base(format!("non-recursive dir install: {:?}", dirs[0])));
-            }
+    if !dirs.is_empty() {
+        if recursive {
+            install.recursive(dirs, NO_WALKDIR_FILTER)?;
+        } else {
+            return Err(Error::Base(format!("non-recursive dir install: {:?}", dirs[0])));
         }
+    }
 
-        install.files(files)?;
-        Ok(ExecStatus::Success)
-    })
+    install.files(files)?;
+
+    Ok(ExecStatus::Success)
 }
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi();
-        let (recursive, args) = match args.first() {
-            Some(&"-r") if eapi.has(Feature::DodocRecursive) => Ok((true, &args[1..])),
-            Some(_) => Ok((false, args)),
-            None => Err(Error::Base("requires 1 or more targets, got 0".into())),
-        }?;
+    let (recursive, args) = match args.first() {
+        Some(&"-r") if get_build_mut().eapi().has(Feature::DodocRecursive) => {
+            Ok((true, &args[1..]))
+        }
+        Some(_) => Ok((false, args)),
+        None => Err(Error::Base("requires 1 or more targets, got 0".into())),
+    }?;
 
-        install_docs(recursive, args.iter().map(Path::new))
-    })
+    install_docs(recursive, args.iter().map(Path::new))
 }
 
 const USAGE: &str = "dodoc doc_file";

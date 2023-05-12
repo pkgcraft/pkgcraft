@@ -7,41 +7,37 @@ use scallop::Error;
 use tempfile::tempdir;
 
 use crate::eapi::Feature;
-use crate::pkgsh::BUILD_DATA;
+use crate::pkgsh::get_build_mut;
 
 // Underlying implementation for new* builtins.
 pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus> {
-    BUILD_DATA.with(|d| -> scallop::Result<ExecStatus> {
-        let eapi = d.borrow().eapi();
-        let (source, dest) = match args.len() {
-            2 => Ok((args[0], Path::new(args[1]))),
-            n => Err(Error::Base(format!("requires 2, got {n}"))),
-        }?;
+    let (source, dest) = match args.len() {
+        2 => Ok((args[0], Path::new(args[1]))),
+        n => Err(Error::Base(format!("requires 2, got {n}"))),
+    }?;
 
-        // filename can't contain a path separator
-        if dest.parent() != Some(Path::new("")) {
-            return Err(Error::Base(format!("invalid filename: {dest:?}")));
-        }
+    // filename can't contain a path separator
+    if dest.parent() != Some(Path::new("")) {
+        return Err(Error::Base(format!("invalid filename: {dest:?}")));
+    }
 
-        // TODO: create tempdir in $T to avoid cross-fs issues as much as possible
-        let tmp_dir =
-            tempdir().map_err(|e| Error::Base(format!("failed creating tempdir: {e}")))?;
-        let dest = tmp_dir.path().join(dest);
+    // TODO: create tempdir in $T to avoid cross-fs issues as much as possible
+    let tmp_dir = tempdir().map_err(|e| Error::Base(format!("failed creating tempdir: {e}")))?;
+    let dest = tmp_dir.path().join(dest);
 
-        if eapi.has(Feature::NewSupportsStdin) && source == "-" {
-            let mut file = File::create(&dest)
-                .map_err(|e| Error::Base(format!("failed opening file: {dest:?}: {e}")))?;
-            io::copy(d.borrow_mut().stdin()?, &mut file)
-                .map_err(|e| Error::Base(format!("failed writing stdin to file: {dest:?}: {e}")))?;
-        } else {
-            fs::copy(source, &dest).map_err(|e| {
-                Error::Base(format!("failed copying file {source:?} to {dest:?}: {e}"))
-            })?;
-        }
+    let build = get_build_mut();
+    if build.eapi().has(Feature::NewSupportsStdin) && source == "-" {
+        let mut file = File::create(&dest)
+            .map_err(|e| Error::Base(format!("failed opening file: {dest:?}: {e}")))?;
+        io::copy(build.stdin()?, &mut file)
+            .map_err(|e| Error::Base(format!("failed writing stdin to file: {dest:?}: {e}")))?;
+    } else {
+        fs::copy(source, &dest)
+            .map_err(|e| Error::Base(format!("failed copying file {source:?} to {dest:?}: {e}")))?;
+    }
 
-        let path = dest.to_str().unwrap();
-        func(&[path])
-    })
+    let path = dest.to_str().unwrap();
+    func(&[path])
 }
 
 #[cfg(test)]
