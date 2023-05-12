@@ -156,21 +156,21 @@ macro_rules! assert_stderr {
 use assert_stderr;
 
 #[derive(Debug)]
-pub(crate) enum BuildState {
+pub(crate) enum BuildState<'a> {
     Empty(&'static Eapi),
-    Metadata(&'static Eapi, Cpv, &'static crate::repo::ebuild::Repo),
-    Build(&'static crate::pkg::ebuild::Pkg<'static>),
+    Metadata(&'static Eapi, Cpv, &'a crate::repo::ebuild::Repo),
+    Build(&'a crate::pkg::ebuild::Pkg<'a>),
 }
 
-impl Default for BuildState {
+impl Default for BuildState<'_> {
     fn default() -> Self {
         Self::Empty(Default::default())
     }
 }
 
 #[derive(Default)]
-pub(crate) struct BuildData {
-    state: BuildState,
+pub(crate) struct BuildData<'a> {
+    state: BuildState<'a>,
 
     captured_io: bool,
     stdin: Stdin,
@@ -222,7 +222,7 @@ pub(crate) struct BuildData {
     restrict: VecDeque<String>,
 }
 
-impl BuildData {
+impl<'a> BuildData<'a> {
     fn new() -> Self {
         Self {
             captured_io: cfg!(test),
@@ -240,7 +240,7 @@ impl BuildData {
         BUILD_DATA.with(|d| d.borrow_mut().state = BuildState::Empty(eapi));
     }
 
-    pub(crate) fn update(cpv: &Cpv, repo: &ebuild::Repo, eapi: Option<&'static Eapi>) {
+    pub(crate) fn update(cpv: &Cpv, repo: &'a ebuild::Repo, eapi: Option<&'static Eapi>) {
         // TODO: remove this hack once BuildData is reworked
         // Drop the lifetime bound on the repo reference in order for it to be stored in BuildData
         // which currently requires `'static` due to its usage in a global, thread local, static
@@ -252,7 +252,7 @@ impl BuildData {
         BUILD_DATA.with(|d| d.replace(BuildData { state, ..BuildData::new() }));
     }
 
-    pub(crate) fn from_pkg<'a>(pkg: &'a crate::pkg::ebuild::Pkg<'a>) {
+    pub(crate) fn from_pkg(pkg: &'a crate::pkg::ebuild::Pkg<'a>) {
         // TODO: remove this hack once BuildData is reworked
         let p = unsafe { mem::transmute(pkg) };
         let data = BuildData {
@@ -373,7 +373,7 @@ impl BuildData {
 }
 
 thread_local! {
-    static BUILD_DATA: RefCell<BuildData> = RefCell::new(BuildData::new())
+    static BUILD_DATA: RefCell<BuildData<'static>> = RefCell::new(BuildData::new())
 }
 
 /// Initialize bash for library usage.
