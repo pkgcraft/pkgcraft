@@ -12,27 +12,24 @@ use super::make_builtin;
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-struct PatchFile(Utf8PathBuf);
+struct PatchFile {
+    path: Utf8PathBuf,
+    name: String,
+}
 
 impl PatchFile {
     fn new(path: Utf8PathBuf) -> scallop::Result<Self> {
-        if path.file_name().is_some() {
-            Ok(Self(path))
-        } else {
-            Err(Error::Base(format!("invalid patch file: {path}")))
+        match path.file_name() {
+            Some(name) => {
+                let name = name.to_string();
+                Ok(Self { path, name })
+            }
+            None => Err(Error::Base(format!("invalid patch file: {path}"))),
         }
     }
 
-    fn path(&self) -> &Utf8Path {
-        &self.0
-    }
-
-    fn name(&self) -> &str {
-        self.0.file_name().expect("invalid patch file")
-    }
-
     fn apply(&self, options: &[&str]) -> scallop::Result<()> {
-        let path = self.path();
+        let path = &self.path;
         let data = File::open(path)
             .map_err(|e| Error::Base(format!("failed reading patch: {path}: {e}")))?;
 
@@ -139,10 +136,9 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         };
 
         for f in files {
-            let name = f.name();
             match &dir {
-                None => write_stdout!("{msg_prefix}Applying {name}...\n")?,
-                _ => write_stdout!("{msg_prefix}{name}...\n")?,
+                None => write_stdout!("{msg_prefix}Applying {}...\n", f.name)?,
+                _ => write_stdout!("{msg_prefix}{}...\n", f.name)?,
             }
             f.apply(&options)?;
         }
