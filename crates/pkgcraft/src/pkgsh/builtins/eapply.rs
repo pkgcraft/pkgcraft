@@ -11,7 +11,46 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
-type Patches = Vec<(Option<Utf8PathBuf>, Vec<Utf8PathBuf>)>;
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+struct PatchFile(Utf8PathBuf);
+
+impl PatchFile {
+    fn new(path: Utf8PathBuf) -> scallop::Result<Self> {
+        if path.file_name().is_some() {
+            Ok(Self(path))
+        } else {
+            Err(Error::Base(format!("invalid patch file: {path}")))
+        }
+    }
+
+    fn path(&self) -> &Utf8Path {
+        &self.0
+    }
+
+    fn name(&self) -> &str {
+        self.0.file_name().expect("invalid patch file")
+    }
+
+    fn apply(&self, options: &[&str]) -> scallop::Result<()> {
+        let path = self.path();
+        let data = File::open(path)
+            .map_err(|e| Error::Base(format!("failed reading patch: {path}: {e}")))?;
+
+        let output = Command::new("patch")
+            .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
+            .args(options)
+            .stdin(data)
+            .output()
+            .map_err(|e| Error::Base(format!("failed running patch: {e}")))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let error = String::from_utf8_lossy(&output.stdout);
+            Err(Error::Base(format!("failed applying: {path}\n{error}")))
+        }
+    }
+}
 
 // Predicate used to filter compatible patch files from an iterator.
 fn is_patch(entry: &Utf8DirEntry) -> bool {
@@ -25,6 +64,8 @@ fn is_patch(entry: &Utf8DirEntry) -> bool {
     }
 }
 
+type Patches = Vec<(Option<Utf8PathBuf>, Vec<PatchFile>)>;
+
 // Find the patches contained in a given set of paths.
 fn find_patches<P: AsRef<Utf8Path>>(paths: &[P]) -> scallop::Result<Patches> {
     let mut patches = Patches::new();
@@ -33,7 +74,7 @@ fn find_patches<P: AsRef<Utf8Path>>(paths: &[P]) -> scallop::Result<Patches> {
             let dir_patches: scallop::Result<Vec<_>> = path
                 .read_dir_utf8()?
                 .filter_map(|e| match e {
-                    Ok(e) if is_patch(&e) => Some(Ok(e.into_path())),
+                    Ok(e) if is_patch(&e) => Some(PatchFile::new(e.into_path())),
                     Ok(_) => None,
                     Err(e) => {
                         Some(Err(Error::Base(format!("failed reading patches: {path}: {e}"))))
@@ -51,7 +92,7 @@ fn find_patches<P: AsRef<Utf8Path>>(paths: &[P]) -> scallop::Result<Patches> {
             dir_patches.sort();
             patches.push((Some(path.into()), dir_patches));
         } else if path.exists() {
-            patches.push((None, vec![path.into()]));
+            patches.push((None, vec![PatchFile::new(path.to_path_buf())?]));
         } else {
             return Err(Error::Base(format!("nonexistent file: {path}")));
         }
@@ -88,9 +129,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("no patches specified".to_string()));
     }
 
-    let patches = find_patches(&files)?;
-    for (dir, files) in &patches {
-        let msg_prefix = match dir {
+    for (dir, files) in find_patches(&files)? {
+        let msg_prefix = match &dir {
             None => "",
             Some(path) => {
                 write_stdout!("Applying patches from {path}\n")?;
@@ -99,25 +139,12 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         };
 
         for f in files {
-            let name = f
-                .file_name()
-                .ok_or_else(|| Error::Base(format!("invalid patch path: {f}")))?;
-            match dir {
+            let name = f.name();
+            match &dir {
                 None => write_stdout!("{msg_prefix}Applying {name}...\n")?,
                 _ => write_stdout!("{msg_prefix}{name}...\n")?,
             }
-            let data = File::open(f)
-                .map_err(|e| Error::Base(format!("failed reading patch: {f}: {e}")))?;
-            let output = Command::new("patch")
-                .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
-                .args(&options)
-                .stdin(data)
-                .output()
-                .map_err(|e| Error::Base(format!("failed running patch: {e}")))?;
-            if !output.status.success() {
-                let error = String::from_utf8_lossy(&output.stdout);
-                return Err(Error::Base(format!("failed applying: {name}\n{error}")));
-            }
+            f.apply(&options)?;
         }
     }
 
