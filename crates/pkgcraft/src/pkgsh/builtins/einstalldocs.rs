@@ -83,8 +83,7 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
         let orig_docdestree = build.docdesttree.clone();
         build.docdesttree = String::from(docdesttree);
 
-        let paths = paths.iter().map(|p| p.as_path());
-        install_docs(recursive, build, paths)?;
+        install_docs(recursive, build, &paths)?;
 
         // restore original docdesttree value
         build.docdesttree = orig_docdestree;
