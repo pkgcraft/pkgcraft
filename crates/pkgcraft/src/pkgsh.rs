@@ -254,36 +254,33 @@ impl<'a> BuildData<'a> {
         }
     }
 
-    fn cpv(&self) -> &Cpv {
-        use BuildState::*;
+    fn cpv(&self) -> scallop::Result<&Cpv> {
         match &self.state {
-            Metadata(_, cpv, _) => cpv,
-            Build(pkg) => pkg.cpv(),
-            _ => panic!("cpv invalid for state: {:?}", self.state),
+            BuildState::Metadata(_, cpv, _) => Ok(cpv),
+            BuildState::Build(pkg) => Ok(pkg.cpv()),
+            _ => Err(Error::Base(format!("cpv invalid for scope: {}", self.scope))),
         }
     }
 
-    fn repo(&self) -> &ebuild::Repo {
-        use BuildState::*;
+    fn repo(&self) -> scallop::Result<&ebuild::Repo> {
         match &self.state {
-            Metadata(_, _, repo) => repo,
-            Build(pkg) => pkg.repo(),
-            _ => panic!("repo invalid for state: {:?}", self.state),
+            BuildState::Metadata(_, _, repo) => Ok(repo),
+            BuildState::Build(pkg) => Ok(pkg.repo()),
+            _ => Err(Error::Base(format!("repo invalid for scope: {}", self.scope))),
         }
     }
 
-    fn pkg(&self) -> &crate::pkg::ebuild::Pkg {
-        use BuildState::*;
+    fn pkg(&self) -> scallop::Result<&crate::pkg::ebuild::Pkg> {
         match &self.state {
-            Build(pkg) => pkg,
-            _ => panic!("pkg invalid for state: {:?}", self.state),
+            BuildState::Build(pkg) => Ok(pkg),
+            _ => Err(Error::Base(format!("pkg invalid for scope: {}", self.scope))),
         }
     }
 
     fn phase(&self) -> scallop::Result<phase::Phase> {
         match self.scope {
             Scope::Phase(phase) => Ok(phase),
-            scope => Err(Error::Base(format!("not running phase: {scope}"))),
+            scope => Err(Error::Base(format!("phase invalid for scope: {scope}"))),
         }
     }
 
@@ -291,7 +288,7 @@ impl<'a> BuildData<'a> {
         for (var, scopes) in self.eapi().env() {
             if scopes.matches(self.scope) {
                 if self.env.get(var.as_ref()).is_none() {
-                    let val = var.get(self);
+                    let val = var.get(self)?;
                     self.env.insert(var.to_string(), val);
                 }
                 bind(var, self.env.get(var.as_ref()).unwrap(), None, None)?;
@@ -486,47 +483,40 @@ pub enum BuildVariable {
 }
 
 impl BuildVariable {
-    fn get(&self, build: &BuildData) -> String {
+    fn get(&self, build: &BuildData) -> scallop::Result<String> {
         use BuildVariable::*;
         match self {
-            CATEGORY => build.cpv().category().to_string(),
-            P => build.cpv().p(),
-            PF => build.cpv().pf(),
-            PN => build.cpv().package().to_string(),
-            PR => build.cpv().pr(),
-            PV => build.cpv().pv(),
-            PVR => build.cpv().pvr(),
+            CATEGORY => build.cpv().map(|o| o.category().to_string()),
+            P => build.cpv().map(|o| o.p()),
+            PF => build.cpv().map(|o| o.pf()),
+            PN => build.cpv().map(|o| o.package().to_string()),
+            PR => build.cpv().map(|o| o.pr()),
+            PV => build.cpv().map(|o| o.pv()),
+            PVR => build.cpv().map(|o| o.pvr()),
 
-            AA => build
-                .pkg()
-                .src_uri()
-                .map(|d| d.iter_flatten().map(|u| u.filename()).join(" "))
-                .unwrap_or_default(),
+            AA => build.pkg().map(|pkg| {
+                pkg.src_uri()
+                    .map(|d| d.iter_flatten().map(|u| u.filename()).join(" "))
+                    .unwrap_or_default()
+            }),
             FILESDIR => {
-                let path = build_from_paths!(
-                    build.repo().path(),
-                    build.cpv().category(),
-                    build.cpv().package(),
-                    "files"
-                );
-                path.into_string()
+                let cpv = build.cpv()?;
+                let path =
+                    build_from_paths!(build.repo()?.path(), cpv.category(), cpv.package(), "files");
+                Ok(path.into_string())
             }
-            PORTDIR => build.repo().path().to_string(),
-            ECLASSDIR => build.repo().path().join("eclass").into_string(),
-            DESTTREE => build.desttree.to_string(),
-            INSDESTTREE => build.insdesttree.to_string(),
-            EBUILD_PHASE => build
-                .phase()
-                .expect("missing phase")
-                .short_name()
-                .to_string(),
-            EBUILD_PHASE_FUNC => build.phase().expect("missing phase").to_string(),
-            KV => os_release().expect("failed to get OS version"),
+            PORTDIR => build.repo().map(|r| r.path().to_string()),
+            ECLASSDIR => build.repo().map(|r| r.path().join("eclass").into_string()),
+            DESTTREE => Ok(build.desttree.to_string()),
+            INSDESTTREE => Ok(build.insdesttree.to_string()),
+            EBUILD_PHASE => build.phase().map(|p| p.short_name().to_string()),
+            EBUILD_PHASE_FUNC => build.phase().map(|p| p.to_string()),
+            KV => os_release().map_err(|e| Error::Base(format!("failed getting OS release: {e}"))),
 
             // TODO: Implement the remaining variable values which will probably require reworking
             // BuildData into operation specific types since not all variables are exported in all
             // situations, e.g. source builds vs binary pkg merging.
-            _ => "TODO".to_string(),
+            _ => Ok("TODO".to_string()),
         }
     }
 }

@@ -45,7 +45,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
         // determine eclass file path
         let path = build
-            .repo()
+            .repo()?
             .eclasses()
             .get(&eclass)
             .cloned()

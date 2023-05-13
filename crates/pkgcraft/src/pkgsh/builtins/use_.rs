@@ -21,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let build = get_build_mut();
 
-    if !build.pkg().iuse_effective().contains(flag) {
+    if !build.pkg()?.iuse_effective().contains(flag) {
         return Err(Error::Base(format!("USE flag {flag:?} not in IUSE")));
     }
 
