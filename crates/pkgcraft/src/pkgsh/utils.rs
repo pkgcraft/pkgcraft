@@ -17,7 +17,7 @@ pub(super) fn get_libdir(default: Option<&str>) -> Option<String> {
 // Check if a compatible makefile exists in the current working directory.
 pub(super) fn makefile_exists() -> bool {
     for f in ["Makefile", "GNUmakefile", "makefile"] {
-        if Path::new(f).exists() {
+        if Path::new(f).is_file() {
             return true;
         }
     }
