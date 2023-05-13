@@ -108,14 +108,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
+    // split args into options and files
     let mut options = Vec::<&str>::new();
     let mut files = Vec::<&str>::new();
     for (i, arg) in args.iter().enumerate() {
         if arg.starts_with('-') {
             if !files.is_empty() {
                 return Err(Error::Base("options must be specified before file arguments".into()));
-            }
-            if *arg == "--" {
+            } else if *arg == "--" {
                 files.extend(&args[i + 1..]);
                 break;
             } else {
@@ -131,18 +131,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     for (dir, patches) in find_patches(&files)? {
-        let msg_prefix = match &dir {
-            None => "",
-            Some(path) => {
-                write_stdout!("Applying patches from {path}\n")?;
-                "  "
-            }
-        };
+        if let Some(path) = &dir {
+            write_stdout!("Applying patches from {path}\n")?;
+        }
 
         for patch in patches {
             match &dir {
-                None => write_stdout!("{msg_prefix}Applying {patch}...\n")?,
-                _ => write_stdout!("{msg_prefix}{patch}...\n")?,
+                None => write_stdout!("Applying {patch}...\n")?,
+                _ => write_stdout!("  {patch}...\n")?,
             }
             patch.apply(&options)?;
         }
