@@ -245,6 +245,7 @@ impl<'a> BuildData<'a> {
         update_build(data);
     }
 
+    /// Get the current EAPI.
     fn eapi(&self) -> &'static Eapi {
         use BuildState::*;
         match &self.state {
@@ -254,6 +255,7 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    /// Get the current CPV if it exists.
     fn cpv(&self) -> scallop::Result<&Cpv> {
         match &self.state {
             BuildState::Metadata(_, cpv, _) => Ok(cpv),
@@ -262,6 +264,7 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    /// Get the current repo if it exists.
     fn repo(&self) -> scallop::Result<&ebuild::Repo> {
         match &self.state {
             BuildState::Metadata(_, _, repo) => Ok(repo),
@@ -270,6 +273,7 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    /// Get the current package being built if it exists.
     fn pkg(&self) -> scallop::Result<&crate::pkg::ebuild::Pkg> {
         match &self.state {
             BuildState::Build(pkg) => Ok(pkg),
@@ -277,6 +281,7 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    /// Get the current build phase if it exists.
     fn phase(&self) -> scallop::Result<phase::Phase> {
         match self.scope {
             Scope::Phase(phase) => Ok(phase),
@@ -284,6 +289,7 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    /// Get the value for a given build variable from the build state.
     fn get_var(&self, var: BuildVariable) -> scallop::Result<String> {
         use BuildVariable::*;
         match var {
@@ -321,6 +327,7 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    /// Cache and set all the build environment variables for the current EAPI and scope.
     fn set_vars(&mut self) -> scallop::Result<()> {
         for (var, scopes) in self.eapi().env() {
             if scopes.matches(self.scope) {
@@ -373,7 +380,7 @@ impl<'a> BuildData<'a> {
     fn destdir(&self) -> &str {
         self.env
             .get("ED")
-            .unwrap_or_else(|| self.env.get("D").expect("undefined destdirs $ED and $D"))
+            .unwrap_or_else(|| self.env.get("D").expect("undefined destdir vars: ED and D"))
     }
 
     fn install(&self) -> install::Install {
