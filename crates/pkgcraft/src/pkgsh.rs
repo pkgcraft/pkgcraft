@@ -198,21 +198,12 @@ pub(crate) struct BuildData<'a> {
     strip_include: HashSet<String>,
     strip_exclude: HashSet<String>,
 
-    /// Eclasses directly inherited by an ebuild.
+    /// set of directly inherited eclasses
     inherit: IndexSet<String>,
-    /// Full set of eclasses inherited by an ebuild.
+    /// complete set of inherited eclasses
     inherited: IndexSet<String>,
-
-    // ebuild metadata fields
-    iuse: VecDeque<String>,
-    required_use: VecDeque<String>,
-    depend: VecDeque<String>,
-    rdepend: VecDeque<String>,
-    pdepend: VecDeque<String>,
-    bdepend: VecDeque<String>,
-    idepend: VecDeque<String>,
-    properties: VecDeque<String>,
-    restrict: VecDeque<String>,
+    /// incremental metadata fields
+    incrementals: HashMap<Key, VecDeque<String>>,
 }
 
 impl<'a> BuildData<'a> {
@@ -348,21 +339,6 @@ impl<'a> BuildData<'a> {
     fn install(&self) -> install::Install {
         install::Install::new(self)
     }
-
-    fn get_deque(&mut self, key: &Key) -> &mut VecDeque<String> {
-        match key {
-            Key::Iuse => &mut self.iuse,
-            Key::RequiredUse => &mut self.required_use,
-            Key::Depend => &mut self.depend,
-            Key::Rdepend => &mut self.rdepend,
-            Key::Pdepend => &mut self.pdepend,
-            Key::Bdepend => &mut self.bdepend,
-            Key::Idepend => &mut self.idepend,
-            Key::Properties => &mut self.properties,
-            Key::Restrict => &mut self.restrict,
-            _ => panic!("unknown field name: {key}"),
-        }
-    }
 }
 
 struct State<'a>(UnsafeCell<BuildData<'a>>);
@@ -451,7 +427,7 @@ pub(crate) fn source_ebuild<T: SourceBash>(value: T) -> scallop::Result<ExecStat
     // prepend metadata keys that incrementally accumulate to eclass values
     if !build.inherited.is_empty() {
         for var in build.eapi().incremental_keys() {
-            let deque = build.get_deque(var);
+            let deque = build.incrementals.entry(*var).or_insert_with(VecDeque::new);
             if let Ok(data) = string_vec(var) {
                 extend_left!(deque, data.into_iter());
             }
@@ -518,12 +494,11 @@ impl BuildVariable {
             PV => build.cpv().pv(),
             PVR => build.cpv().pvr(),
 
-            AA => {
-                build.pkg()
+            AA => build
+                .pkg()
                 .src_uri()
                 .map(|d| d.iter_flatten().map(|u| u.filename()).join(" "))
-                .unwrap_or_default()
-            },
+                .unwrap_or_default(),
             FILESDIR => {
                 let path = build_from_paths!(
                     build.repo().path(),

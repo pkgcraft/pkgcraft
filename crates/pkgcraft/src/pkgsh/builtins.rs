@@ -536,7 +536,8 @@ macro_rules! builtin_scope_tests {
                                 }}
                             "#};
                             let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-                            let pkg = crate::pkg::ebuild::Pkg::new(path.clone(), cpv, &repo).unwrap();
+                            let pkg =
+                                crate::pkg::ebuild::Pkg::new(path.clone(), cpv, &repo).unwrap();
                             BuildData::from_pkg(&pkg);
                             source_ebuild(&path).unwrap();
                             let r = run_phase(*phase);

@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use scallop::builtins::{builtin_level, ExecStatus};
 use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error};
@@ -58,7 +60,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         // append metadata keys that incrementally accumulate
         for var in build.eapi().incremental_keys() {
             if let Ok(data) = string_vec(var) {
-                build.get_deque(var).extend(data);
+                build
+                    .incrementals
+                    .entry(*var)
+                    .or_insert_with(VecDeque::new)
+                    .extend(data);
             }
         }
 
