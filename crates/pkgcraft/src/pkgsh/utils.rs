@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use scallop::variables;
 
-// Get the system libdir.
+// Get the path to a package's configure script.
 pub(super) fn configure() -> PathBuf {
     PathBuf::from(variables::expand("${ECONF_SOURCE:-.}/configure").unwrap())
 }
