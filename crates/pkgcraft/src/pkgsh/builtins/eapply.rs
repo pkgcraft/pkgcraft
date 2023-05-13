@@ -1,3 +1,4 @@
+use std::fmt;
 use std::fs::File;
 use std::process::Command;
 
@@ -12,24 +13,20 @@ use super::make_builtin;
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-struct PatchFile {
-    path: Utf8PathBuf,
-    name: String,
-}
+struct PatchFile(Utf8PathBuf);
 
 impl PatchFile {
-    fn new(path: Utf8PathBuf) -> scallop::Result<Self> {
-        match path.file_name() {
-            Some(name) => {
-                let name = name.to_string();
-                Ok(Self { path, name })
-            }
-            None => Err(Error::Base(format!("invalid patch file: {path}"))),
+    fn new<P: Into<Utf8PathBuf>>(path: P) -> scallop::Result<Self> {
+        let path = path.into();
+        if path.file_name().is_some() {
+            Ok(Self(path))
+        } else {
+            Err(Error::Base(format!("invalid patch file: {path}")))
         }
     }
 
     fn apply(&self, options: &[&str]) -> scallop::Result<()> {
-        let path = &self.path;
+        let path = &self.0;
         let data = File::open(path)
             .map_err(|e| Error::Base(format!("failed reading patch: {path}: {e}")))?;
 
@@ -46,6 +43,13 @@ impl PatchFile {
             let error = String::from_utf8_lossy(&output.stdout);
             Err(Error::Base(format!("failed applying: {path}\n{error}")))
         }
+    }
+}
+
+impl fmt::Display for PatchFile {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = self.0.file_name().expect("invalid patch file");
+        write!(f, "{name}")
     }
 }
 
@@ -80,13 +84,13 @@ fn find_patches<P: AsRef<Utf8Path>>(paths: &[P]) -> scallop::Result<Patches> {
                 .collect();
 
             let mut dir_patches = dir_patches?;
+            // this sorts by utf8 not the POSIX locale specified by PMS
+            dir_patches.sort();
 
             if dir_patches.is_empty() {
                 return Err(Error::Base(format!("no patches in directory: {path}")));
             }
 
-            // note that this currently sorts by utf8 not the POSIX locale specified by PMS
-            dir_patches.sort();
             patches.push((Some(path.into()), dir_patches));
         } else if path.exists() {
             patches.push((None, vec![PatchFile::new(path.to_path_buf())?]));
@@ -126,7 +130,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("no patches specified".to_string()));
     }
 
-    for (dir, files) in find_patches(&files)? {
+    for (dir, patches) in find_patches(&files)? {
         let msg_prefix = match &dir {
             None => "",
             Some(path) => {
@@ -135,12 +139,12 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             }
         };
 
-        for f in files {
+        for patch in patches {
             match &dir {
-                None => write_stdout!("{msg_prefix}Applying {}...\n", f.name)?,
-                _ => write_stdout!("{msg_prefix}{}...\n", f.name)?,
+                None => write_stdout!("{msg_prefix}Applying {patch}...\n")?,
+                _ => write_stdout!("{msg_prefix}{patch}...\n")?,
             }
-            f.apply(&options)?;
+            patch.apply(&options)?;
         }
     }
 
