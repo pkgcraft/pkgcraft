@@ -510,13 +510,20 @@ impl BuildVariable {
     fn get(&self, build: &BuildData) -> String {
         use BuildVariable::*;
         match self {
+            CATEGORY => build.cpv().category().to_string(),
             P => build.cpv().p(),
             PF => build.cpv().pf(),
             PN => build.cpv().package().to_string(),
-            CATEGORY => build.cpv().category().to_string(),
-            PV => build.cpv().pv(),
             PR => build.cpv().pr(),
+            PV => build.cpv().pv(),
             PVR => build.cpv().pvr(),
+
+            AA => {
+                build.pkg()
+                .src_uri()
+                .map(|d| d.iter_flatten().map(|u| u.filename()).join(" "))
+                .unwrap_or_default()
+            },
             FILESDIR => {
                 let path = build_from_paths!(
                     build.repo().path(),
@@ -528,6 +535,8 @@ impl BuildVariable {
             }
             PORTDIR => build.repo().path().to_string(),
             ECLASSDIR => build.repo().path().join("eclass").into_string(),
+            DESTTREE => build.desttree.to_string(),
+            INSDESTTREE => build.insdesttree.to_string(),
             EBUILD_PHASE => build.phase.expect("missing phase").short_name().to_string(),
             EBUILD_PHASE_FUNC => build.phase.expect("missing phase").to_string(),
             KV => os_release().expect("failed to get OS version"),
