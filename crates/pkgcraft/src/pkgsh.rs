@@ -284,11 +284,48 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    fn get_var(&self, var: BuildVariable) -> scallop::Result<String> {
+        use BuildVariable::*;
+        match var {
+            CATEGORY => self.cpv().map(|o| o.category().to_string()),
+            P => self.cpv().map(|o| o.p()),
+            PF => self.cpv().map(|o| o.pf()),
+            PN => self.cpv().map(|o| o.package().to_string()),
+            PR => self.cpv().map(|o| o.pr()),
+            PV => self.cpv().map(|o| o.pv()),
+            PVR => self.cpv().map(|o| o.pvr()),
+
+            AA => self.pkg().map(|pkg| {
+                pkg.src_uri()
+                    .map(|d| d.iter_flatten().map(|u| u.filename()).join(" "))
+                    .unwrap_or_default()
+            }),
+            FILESDIR => {
+                let cpv = self.cpv()?;
+                let path =
+                    build_from_paths!(self.repo()?.path(), cpv.category(), cpv.package(), "files");
+                Ok(path.into_string())
+            }
+            PORTDIR => self.repo().map(|r| r.path().to_string()),
+            ECLASSDIR => self.repo().map(|r| r.path().join("eclass").into_string()),
+            DESTTREE => Ok(self.desttree.to_string()),
+            INSDESTTREE => Ok(self.insdesttree.to_string()),
+            EBUILD_PHASE => self.phase().map(|p| p.short_name().to_string()),
+            EBUILD_PHASE_FUNC => self.phase().map(|p| p.to_string()),
+            KV => os_release().map_err(|e| Error::Base(format!("failed getting OS release: {e}"))),
+
+            // TODO: Implement the remaining variable values which will probably require reworking
+            // BuildData into operation specific types since not all variables are exported in all
+            // situations, e.g. source builds vs binary pkg merging.
+            _ => Ok("TODO".to_string()),
+        }
+    }
+
     fn set_vars(&mut self) -> scallop::Result<()> {
         for (var, scopes) in self.eapi().env() {
             if scopes.matches(self.scope) {
                 if self.env.get(var.as_ref()).is_none() {
-                    let val = var.get(self)?;
+                    let val = self.get_var(*var)?;
                     self.env.insert(var.to_string(), val);
                 }
                 bind(var, self.env.get(var.as_ref()).unwrap(), None, None)?;
@@ -480,45 +517,6 @@ pub enum BuildVariable {
     MERGE_TYPE,
     REPLACING_VERSIONS,
     REPLACED_BY_VERSION,
-}
-
-impl BuildVariable {
-    fn get(&self, build: &BuildData) -> scallop::Result<String> {
-        use BuildVariable::*;
-        match self {
-            CATEGORY => build.cpv().map(|o| o.category().to_string()),
-            P => build.cpv().map(|o| o.p()),
-            PF => build.cpv().map(|o| o.pf()),
-            PN => build.cpv().map(|o| o.package().to_string()),
-            PR => build.cpv().map(|o| o.pr()),
-            PV => build.cpv().map(|o| o.pv()),
-            PVR => build.cpv().map(|o| o.pvr()),
-
-            AA => build.pkg().map(|pkg| {
-                pkg.src_uri()
-                    .map(|d| d.iter_flatten().map(|u| u.filename()).join(" "))
-                    .unwrap_or_default()
-            }),
-            FILESDIR => {
-                let cpv = build.cpv()?;
-                let path =
-                    build_from_paths!(build.repo()?.path(), cpv.category(), cpv.package(), "files");
-                Ok(path.into_string())
-            }
-            PORTDIR => build.repo().map(|r| r.path().to_string()),
-            ECLASSDIR => build.repo().map(|r| r.path().join("eclass").into_string()),
-            DESTTREE => Ok(build.desttree.to_string()),
-            INSDESTTREE => Ok(build.insdesttree.to_string()),
-            EBUILD_PHASE => build.phase().map(|p| p.short_name().to_string()),
-            EBUILD_PHASE_FUNC => build.phase().map(|p| p.to_string()),
-            KV => os_release().map_err(|e| Error::Base(format!("failed getting OS release: {e}"))),
-
-            // TODO: Implement the remaining variable values which will probably require reworking
-            // BuildData into operation specific types since not all variables are exported in all
-            // situations, e.g. source builds vs binary pkg merging.
-            _ => Ok("TODO".to_string()),
-        }
-    }
 }
 
 #[cfg(test)]
