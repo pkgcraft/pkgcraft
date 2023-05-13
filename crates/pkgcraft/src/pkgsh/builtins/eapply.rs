@@ -30,12 +30,18 @@ fn find_patches<P: AsRef<Utf8Path>>(paths: &[P]) -> scallop::Result<Patches> {
     let mut patches = Patches::new();
     for path in paths.iter().map(|p| p.as_ref()) {
         if path.is_dir() {
-            let mut dir_patches: Vec<_> = path
+            let dir_patches: scallop::Result<Vec<_>> = path
                 .read_dir_utf8()?
-                .filter_map(|e| e.ok())
-                .filter(is_patch)
-                .map(|e| e.into_path())
+                .filter_map(|e| match e {
+                    Ok(e) if is_patch(&e) => Some(Ok(e.into_path())),
+                    Ok(_) => None,
+                    Err(e) => {
+                        Some(Err(Error::Base(format!("failed reading patches: {path}: {e}"))))
+                    }
+                })
                 .collect();
+
+            let mut dir_patches = dir_patches?;
 
             if dir_patches.is_empty() {
                 return Err(Error::Base(format!("no patches in directory: {path}")));
