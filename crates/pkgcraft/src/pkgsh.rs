@@ -8,8 +8,8 @@ use itertools::Itertools;
 use nix::unistd::isatty;
 use once_cell::sync::Lazy;
 use scallop::builtins::{ExecStatus, ScopedOptions};
-use scallop::functions;
 use scallop::variables::{self, *};
+use scallop::{functions, Error};
 use strum::{AsRefStr, Display};
 use sys_info::os_release;
 
@@ -178,7 +178,6 @@ pub(crate) struct BuildData<'a> {
     user_patches: Vec<String>,
     use_: HashSet<String>,
 
-    phase: Option<phase::Phase>,
     scope: Scope,
     user_patches_applied: bool,
 
@@ -281,6 +280,13 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    fn phase(&self) -> scallop::Result<phase::Phase> {
+        match self.scope {
+            Scope::Phase(phase) => Ok(phase),
+            scope => Err(Error::Base(format!("not running phase: {scope}"))),
+        }
+    }
+
     fn set_vars(&mut self) -> scallop::Result<()> {
         for (var, scopes) in self.eapi().env() {
             if scopes.matches(self.scope) {
@@ -307,7 +313,7 @@ impl<'a> BuildData<'a> {
 
     fn stdin(&mut self) -> scallop::Result<&mut dyn Read> {
         if !cfg!(test) && isatty(0).unwrap_or(false) {
-            return Err(scallop::Error::Base("no input available, stdin is a tty".into()));
+            return Err(Error::Base("no input available, stdin is a tty".into()));
         }
 
         match self.captured_io {
@@ -375,7 +381,6 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     Lazy::force(&BASH);
 
     let build = get_build_mut();
-    build.phase = Some(phase);
     build.scope = Scope::Phase(phase);
     build.set_vars()?;
 
@@ -389,7 +394,7 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
         Some(mut func) => func.execute(&[])?,
         None => match build.eapi().phases().get(&phase) {
             Some(phase) => phase.run()?,
-            None => return Err(scallop::Error::Base(format!("nonexistent phase: {phase}"))),
+            None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
         },
     };
 
@@ -397,8 +402,6 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
     if let Some(mut func) = functions::find(format!("post_{phase}")) {
         func.execute(&[])?;
     }
-
-    build.phase = None;
 
     Ok(ExecStatus::Success)
 }
@@ -512,8 +515,12 @@ impl BuildVariable {
             ECLASSDIR => build.repo().path().join("eclass").into_string(),
             DESTTREE => build.desttree.to_string(),
             INSDESTTREE => build.insdesttree.to_string(),
-            EBUILD_PHASE => build.phase.expect("missing phase").short_name().to_string(),
-            EBUILD_PHASE_FUNC => build.phase.expect("missing phase").to_string(),
+            EBUILD_PHASE => build
+                .phase()
+                .expect("missing phase")
+                .short_name()
+                .to_string(),
+            EBUILD_PHASE_FUNC => build.phase().expect("missing phase").to_string(),
             KV => os_release().expect("failed to get OS version"),
 
             // TODO: Implement the remaining variable values which will probably require reworking

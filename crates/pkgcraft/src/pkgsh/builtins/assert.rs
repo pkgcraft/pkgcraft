@@ -102,7 +102,6 @@ mod tests {
         builtins::enable(&["assert", "nonfatal"]).unwrap();
 
         let phase = Phase::SrcInstall(PHASE_STUB);
-        get_build_mut().phase = Some(phase);
         get_build_mut().scope = Scope::Phase(phase);
 
         // nonfatal requires `die -n` call

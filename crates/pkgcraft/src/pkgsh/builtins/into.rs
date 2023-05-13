@@ -58,7 +58,6 @@ mod tests {
             BuildData::update(&cpv, &repo, Some(eapi));
             let phase = Phase::SrcInstall(PHASE_STUB);
             let build = get_build_mut();
-            build.phase = Some(phase);
             build.scope = Scope::Phase(phase);
             into(&["/test/path"]).unwrap();
             assert_eq!(build.desttree, "/test/path");
