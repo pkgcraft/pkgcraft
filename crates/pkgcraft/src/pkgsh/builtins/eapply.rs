@@ -1,10 +1,9 @@
 use std::fs::File;
-use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use scallop::builtins::ExecStatus;
 use scallop::Error;
-use walkdir::{DirEntry, WalkDir};
 
 use crate::pkgsh::write_stdout;
 
@@ -12,10 +11,10 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
-type Patches = Vec<(Option<PathBuf>, Vec<PathBuf>)>;
+type Patches = Vec<(Option<Utf8PathBuf>, Vec<Utf8PathBuf>)>;
 
 // Predicate used to filter compatible patch files from an iterator.
-fn is_patch(entry: &DirEntry) -> bool {
+fn is_patch(entry: &Utf8DirEntry) -> bool {
     let path = entry.path();
     if path.is_dir() {
         false
@@ -27,26 +26,28 @@ fn is_patch(entry: &DirEntry) -> bool {
 }
 
 // Find the patches contained in a given set of paths.
-fn find_patches(paths: &[&str]) -> scallop::Result<Patches> {
+fn find_patches<P: AsRef<Utf8Path>>(paths: &[P]) -> scallop::Result<Patches> {
     let mut patches = Patches::new();
-    for p in paths {
-        let path = Path::new(p);
+    for path in paths.iter().map(|p| p.as_ref()) {
         if path.is_dir() {
-            let dir_patches: Vec<PathBuf> = WalkDir::new(path)
-                .sort_by_file_name()
-                .into_iter()
+            let mut dir_patches: Vec<_> = path
+                .read_dir_utf8()?
                 .filter_map(|e| e.ok())
                 .filter(is_patch)
-                .map(|e| e.path().into())
+                .map(|e| e.into_path())
                 .collect();
+
             if dir_patches.is_empty() {
-                return Err(Error::Base(format!("no patches in directory: {p:?}")));
+                return Err(Error::Base(format!("no patches in directory: {path}")));
             }
+
+            // note that this currently sorts by utf8 not the POSIX locale specified by PMS
+            dir_patches.sort();
             patches.push((Some(path.into()), dir_patches));
         } else if path.exists() {
             patches.push((None, vec![path.into()]));
         } else {
-            return Err(Error::Base(format!("nonexistent file: {p}")));
+            return Err(Error::Base(format!("nonexistent file: {path}")));
         }
     }
 
@@ -66,7 +67,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             if !files.is_empty() {
                 return Err(Error::Base("options must be specified before file arguments".into()));
             }
-            if arg == &"--" {
+            if *arg == "--" {
                 files.extend(&args[i + 1..]);
                 break;
             } else {
@@ -82,23 +83,25 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let patches = find_patches(&files)?;
-    for (path, files) in patches.iter() {
-        let msg_prefix = match path {
+    for (dir, files) in &patches {
+        let msg_prefix = match dir {
             None => "",
-            Some(p) => {
-                write_stdout!("Applying patches from {p:?}\n")?;
+            Some(path) => {
+                write_stdout!("Applying patches from {path}\n")?;
                 "  "
             }
         };
 
         for f in files {
-            let name = f.file_name().unwrap().to_string_lossy();
-            match path {
+            let name = f
+                .file_name()
+                .ok_or_else(|| Error::Base(format!("invalid patch path: {f}")))?;
+            match dir {
                 None => write_stdout!("{msg_prefix}Applying {name}...\n")?,
                 _ => write_stdout!("{msg_prefix}{name}...\n")?,
             }
             let data = File::open(f)
-                .map_err(|e| Error::Base(format!("failed reading patch {f:?}: {e}")))?;
+                .map_err(|e| Error::Base(format!("failed reading patch: {f}: {e}")))?;
             let output = Command::new("patch")
                 .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
                 .args(&options)
