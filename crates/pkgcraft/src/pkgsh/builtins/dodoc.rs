@@ -6,18 +6,17 @@ use scallop::{variables, Error};
 use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::macros::build_from_paths;
-use crate::pkgsh::get_build_mut;
+use crate::pkgsh::{BuildData, get_build_mut};
 
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install documentation files.";
 
 /// Install document files from a given iterable of paths.
-pub(crate) fn install_docs<'a, I>(recursive: bool, paths: I) -> scallop::Result<ExecStatus>
+pub(crate) fn install_docs<'a, I>(recursive: bool, build: &mut BuildData, paths: I) -> scallop::Result<ExecStatus>
 where
     I: IntoIterator<Item = &'a Path>,
 {
-    let build = get_build_mut();
     let dest = build_from_paths!(
         "/usr/share/doc",
         &variables::required("PF")?,
@@ -42,15 +41,17 @@ where
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let build = get_build_mut();
+
     let (recursive, args) = match args.first() {
-        Some(&"-r") if get_build_mut().eapi().has(Feature::DodocRecursive) => {
+        Some(&"-r") if build.eapi().has(Feature::DodocRecursive) => {
             Ok((true, &args[1..]))
         }
         Some(_) => Ok((false, args)),
         None => Err(Error::Base("requires 1 or more targets, got 0".into())),
     }?;
 
-    install_docs(recursive, args.iter().map(Path::new))
+    install_docs(recursive, build, args.iter().map(Path::new))
 }
 
 const USAGE: &str = "dodoc doc_file";

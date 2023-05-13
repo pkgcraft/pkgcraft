@@ -77,15 +77,17 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
     };
 
     if !paths.is_empty() {
+        let build = get_build_mut();
+
         // save original docdesttree value and use custom value
-        let orig_docdestree = get_build_mut().docdesttree.clone();
-        get_build_mut().docdesttree = String::from(docdesttree);
+        let orig_docdestree = build.docdesttree.clone();
+        build.docdesttree = String::from(docdesttree);
 
         let paths = paths.iter().map(|p| p.as_path());
-        install_docs(recursive, paths)?;
+        install_docs(recursive, build, paths)?;
 
         // restore original docdesttree value
-        get_build_mut().docdesttree = orig_docdestree;
+        build.docdesttree = orig_docdestree;
     }
 
     Ok(ExecStatus::Success)
