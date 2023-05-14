@@ -124,7 +124,7 @@ impl From<&PkgBuiltin> for Builtin {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub(crate) enum Scope {
     #[default]
     Global,

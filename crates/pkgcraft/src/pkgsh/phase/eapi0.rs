@@ -5,15 +5,11 @@ use scallop::builtins::ExecStatus;
 
 use crate::eapi::Feature;
 use crate::pkgsh::builtins::{econf::run as econf, emake::run as emake, unpack::run as unpack};
-use crate::pkgsh::get_build_mut;
 use crate::pkgsh::utils::makefile_exists;
+use crate::pkgsh::BuildData;
 
-pub(crate) fn src_unpack() -> scallop::Result<ExecStatus> {
-    let args: Vec<&str> = get_build_mut()
-        .distfiles
-        .iter()
-        .map(|s| s.as_str())
-        .collect();
+pub(crate) fn src_unpack(build: &mut BuildData) -> scallop::Result<ExecStatus> {
+    let args: Vec<&str> = build.distfiles.iter().map(|s| s.as_str()).collect();
     if args.is_empty() {
         Ok(ExecStatus::Success)
     } else {
@@ -21,7 +17,7 @@ pub(crate) fn src_unpack() -> scallop::Result<ExecStatus> {
     }
 }
 
-pub(crate) fn src_compile() -> scallop::Result<ExecStatus> {
+pub(crate) fn src_compile(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     if Path::new("./configure").is_executable() {
         econf(&[])?;
     }
@@ -31,10 +27,10 @@ pub(crate) fn src_compile() -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub(crate) fn src_test() -> scallop::Result<ExecStatus> {
+pub(crate) fn src_test(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     let mut args = Vec::<&str>::new();
 
-    if !get_build_mut().eapi().has(Feature::ParallelTests) {
+    if !build.eapi().has(Feature::ParallelTests) {
         args.push("-j1");
     }
 

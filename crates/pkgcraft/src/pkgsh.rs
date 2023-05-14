@@ -347,7 +347,7 @@ impl<'a> BuildData<'a> {
             if scopes.matches(self.scope) {
                 bind(var, val, None, None)?;
             } else {
-                panic!("invalid scope {:?} for variable: {var}", self.scope);
+                panic!("invalid scope {} for variable: {var}", self.scope);
             }
         }
         Ok(())

@@ -286,7 +286,7 @@ impl Eapi {
             .get(self)
             .unwrap()
             .get(&scope)
-            .unwrap_or_else(|| panic!("EAPI {self}, unknown scope: {scope:?}"))
+            .unwrap_or_else(|| panic!("EAPI {self}, unknown scope: {scope}"))
     }
 
     /// Metadata variables for dependencies.
@@ -845,10 +845,7 @@ mod tests {
             let phase_scopes: Vec<Scope> = eapi.phases().iter().map(|p| p.into()).collect();
             let scopes = static_scopes.iter().chain(phase_scopes.iter());
             for scope in scopes {
-                assert!(
-                    !eapi.builtins(*scope).is_empty(),
-                    "EAPI {eapi} failed for scope: {scope:?}"
-                );
+                assert!(!eapi.builtins(*scope).is_empty(), "EAPI {eapi} failed for scope: {scope}");
             }
         }
     }

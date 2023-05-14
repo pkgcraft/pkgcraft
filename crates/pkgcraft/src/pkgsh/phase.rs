@@ -8,7 +8,7 @@ use strum::{AsRefStr, Display};
 
 use super::builtins::{emake::run as emake, Scope};
 use super::utils::makefile_exists;
-use super::{get_build_mut, BASH};
+use super::{get_build_mut, BuildData, BASH};
 
 pub(crate) mod eapi0;
 pub(crate) mod eapi1;
@@ -16,16 +16,16 @@ pub(crate) mod eapi2;
 pub(crate) mod eapi4;
 pub(crate) mod eapi6;
 
-pub(crate) type PhaseFn = fn() -> scallop::Result<ExecStatus>;
+pub(crate) type PhaseFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 static PHASE_STUB: PhaseFn = phase_stub;
 
-fn phase_stub() -> scallop::Result<ExecStatus> {
+fn phase_stub(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-fn emake_install() -> scallop::Result<ExecStatus> {
+fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     if makefile_exists() {
-        let destdir = get_build_mut().env.get("D").expect("D undefined");
+        let destdir = build.env.get("D").expect("D undefined");
         let args = &[&format!("DESTDIR={destdir}"), "install"];
         emake(args)?;
     }
@@ -73,7 +73,7 @@ impl PhaseKind {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub(crate) struct Phase {
     phase: PhaseKind,
     pre: Option<PhaseFn>,
@@ -128,7 +128,7 @@ impl Phase {
 
         // run internal pre-phase hooks
         if let Some(func) = self.pre {
-            func()?;
+            func(build)?;
         }
 
         // run user-defined pre-phase hooks
@@ -140,7 +140,7 @@ impl Phase {
         if let Some(mut func) = functions::find(self) {
             func.execute(&[])?;
         } else {
-            (self.func)()?;
+            (self.func)(build)?;
         }
 
         // run user-defined post-phase hooks
@@ -150,7 +150,7 @@ impl Phase {
 
         // run internal post-phase hooks
         if let Some(func) = self.post {
-            func()?;
+            func(build)?;
         }
 
         Ok(ExecStatus::Success)
@@ -168,9 +168,7 @@ impl Phase {
     }
 }
 
-pub(crate) fn pre_src_install() -> scallop::Result<ExecStatus> {
-    let build = get_build_mut();
-
+pub(crate) fn pre_src_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // set docompress include/exclude defaults for supported EAPIs
     if build
         .eapi()
@@ -190,7 +188,7 @@ pub(crate) fn pre_src_install() -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-pub(crate) fn post_src_install() -> scallop::Result<ExecStatus> {
+pub(crate) fn post_src_install(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // TODO: perform docompress and dostrip operations if supported
     Ok(ExecStatus::Success)
 }
