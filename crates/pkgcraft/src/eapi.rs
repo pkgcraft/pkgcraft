@@ -10,7 +10,7 @@ use indexmap::IndexSet;
 use itertools::Either;
 use once_cell::sync::{Lazy, OnceCell};
 use regex::{escape, Regex, RegexBuilder};
-use strum::{Display, EnumString};
+use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::dep::Dep;
@@ -18,8 +18,8 @@ use crate::pkgsh::builtins::{
     BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
 };
 use crate::pkgsh::metadata::Key::{self, *};
-use crate::pkgsh::phase::Phase::*;
-use crate::pkgsh::phase::*;
+use crate::pkgsh::operations::Operation;
+use crate::pkgsh::phase::{Phase::*, *};
 use crate::pkgsh::BuildVariable::{self, *};
 use crate::Error;
 
@@ -115,19 +115,6 @@ pub enum Feature {
     // EAPI EXTENDED
     /// repo deps -- cat/pkg::repo
     RepoIds,
-}
-
-#[derive(Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
-#[strum(serialize_all = "snake_case")]
-pub enum Operation {
-    Pretend,
-    Build,
-    Install,
-    Uninstall,
-    Replace,
-    Config,
-    Info,
-    NoFetch,
 }
 
 type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;

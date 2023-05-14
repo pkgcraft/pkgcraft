@@ -24,6 +24,7 @@ use crate::traits::SourceBash;
 pub mod builtins;
 mod install;
 pub(crate) mod metadata;
+pub(crate) mod operations;
 pub(crate) mod phase;
 pub(crate) mod test;
 mod unescape;

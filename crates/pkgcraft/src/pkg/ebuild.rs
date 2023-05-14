@@ -4,22 +4,18 @@ use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use once_cell::sync::OnceCell;
-use scallop::shell;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
-use crate::eapi::{self, Eapi, Feature, Operation};
-use crate::pkgsh::{
-    self,
-    metadata::{Key, Metadata},
-};
+use crate::eapi::{self, Eapi, Feature};
+use crate::pkgsh::metadata::{Key, Metadata};
 use crate::repo::{ebuild::Repo, Repository};
 use crate::traits::FilterLines;
 use crate::types::OrderedSet;
 use crate::utils::relpath;
 use crate::Error;
 
-use super::{make_pkg_traits, BuildablePackage, Package};
+use super::{make_pkg_traits, Package};
 
 pub mod metadata;
 use metadata::{Manifest, ManifestFile, XmlMetadata};
@@ -275,37 +271,12 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
-impl<'a> BuildablePackage for Pkg<'a> {
-    fn build(&self) -> crate::Result<()> {
-        pkgsh::BuildData::from_pkg(self);
-        pkgsh::source_ebuild(self.path())?;
-        shell::toggle_restricted(false);
-        for phase in self.eapi().operation(Operation::Build) {
-            pkgsh::run_phase(*phase)?;
-        }
-        shell::toggle_restricted(true);
-        scallop::shell::reset();
-        Ok(())
-    }
-
-    fn pretend(&self) -> crate::Result<()> {
-        pkgsh::BuildData::from_pkg(self);
-        pkgsh::source_ebuild(self.path())?;
-        shell::toggle_restricted(false);
-        for phase in self.eapi().operation(Operation::Pretend) {
-            pkgsh::run_phase(*phase)?;
-        }
-        shell::toggle_restricted(true);
-        scallop::shell::reset();
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::metadata::Checksum;
+    use crate::pkg::BuildablePackage;
     use crate::repo::PkgRepository;
     use crate::test::{assert_ordered_eq, assert_unordered_eq};
 
