@@ -431,14 +431,12 @@ pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
         func.execute(&[])?;
     }
 
-    // run user space phase function, falling back to internal default
-    match functions::find(phase) {
-        Some(mut func) => func.execute(&[])?,
-        None => match build.eapi().phases().get(&phase) {
-            Some(phase) => phase.run()?,
-            None => return Err(Error::Base(format!("nonexistent phase: {phase}"))),
-        },
-    };
+    // run explicitly defined phase function falling back to internal default
+    if let Some(mut func) = functions::find(phase) {
+        func.execute(&[])?;
+    } else {
+        phase.run()?;
+    }
 
     // run user space post-phase hooks
     if let Some(mut func) = functions::find(format!("post_{phase}")) {
