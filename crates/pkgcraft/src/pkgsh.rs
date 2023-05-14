@@ -9,7 +9,7 @@ use nix::unistd::isatty;
 use once_cell::sync::Lazy;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::{self, *};
-use scallop::{functions, Error};
+use scallop::Error;
 use strum::{AsRefStr, Display};
 use sys_info::os_release;
 
@@ -418,33 +418,6 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
 });
-
-pub(crate) fn run_phase(phase: phase::Phase) -> scallop::Result<ExecStatus> {
-    Lazy::force(&BASH);
-
-    let build = get_build_mut();
-    build.scope = Scope::Phase(phase);
-    build.set_vars()?;
-
-    // run user space pre-phase hooks
-    if let Some(mut func) = functions::find(format!("pre_{phase}")) {
-        func.execute(&[])?;
-    }
-
-    // run explicitly defined phase function falling back to internal default
-    if let Some(mut func) = functions::find(phase) {
-        func.execute(&[])?;
-    } else {
-        phase.run()?;
-    }
-
-    // run user space post-phase hooks
-    if let Some(mut func) = functions::find(format!("post_{phase}")) {
-        func.execute(&[])?;
-    }
-
-    Ok(ExecStatus::Success)
-}
 
 pub(crate) fn source_ebuild<T: SourceBash>(value: T) -> scallop::Result<ExecStatus> {
     Lazy::force(&BASH);

@@ -466,7 +466,7 @@ macro_rules! builtin_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
-            use crate::pkgsh::{builtins::Scope::*, run_phase, source_ebuild, BuildData};
+            use crate::pkgsh::{builtins::Scope::*, source_ebuild, BuildData};
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
@@ -541,7 +541,7 @@ macro_rules! builtin_scope_tests {
                                 crate::pkg::ebuild::Pkg::new(path.clone(), cpv, &repo).unwrap();
                             BuildData::from_pkg(&pkg);
                             source_ebuild(&path).unwrap();
-                            let r = run_phase(*phase);
+                            let r = phase.run();
                             // verify function stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
                             // verify error output

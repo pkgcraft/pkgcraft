@@ -28,7 +28,7 @@ mod tests {
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkgsh::phase::{Phase, PHASE_STUB};
+    use crate::pkgsh::phase::PhaseKind;
     use crate::pkgsh::{get_build_mut, BuildData, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -101,7 +101,7 @@ mod tests {
     fn nonfatal() {
         builtins::enable(&["assert", "nonfatal"]).unwrap();
 
-        let phase = Phase::SrcInstall(PHASE_STUB);
+        let phase = PhaseKind::SrcInstall.stub();
         get_build_mut().scope = Scope::Phase(phase);
 
         // nonfatal requires `die -n` call

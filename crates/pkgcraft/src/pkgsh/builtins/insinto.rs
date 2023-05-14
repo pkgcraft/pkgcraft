@@ -34,7 +34,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::pkgsh::phase::{Phase, PHASE_STUB};
+    use crate::pkgsh::phase::PhaseKind;
     use crate::pkgsh::{BuildData, BuildVariable, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -56,7 +56,7 @@ mod tests {
 
         for eapi in EAPIS_OFFICIAL.iter() {
             BuildData::update(&cpv, &repo, Some(eapi));
-            let phase = Phase::SrcInstall(PHASE_STUB);
+            let phase = PhaseKind::SrcInstall.stub();
             let build = get_build_mut();
             build.scope = Scope::Phase(phase);
             insinto(&["/test/path"]).unwrap();

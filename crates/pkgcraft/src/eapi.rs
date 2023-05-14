@@ -19,7 +19,7 @@ use crate::pkgsh::builtins::{
 };
 use crate::pkgsh::metadata::Key::{self, *};
 use crate::pkgsh::operations::Operation;
-use crate::pkgsh::phase::{Phase::*, *};
+use crate::pkgsh::phase::{PhaseKind::*, *};
 use crate::pkgsh::BuildVariable::{self, *};
 use crate::Error;
 
@@ -485,27 +485,25 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
         .register_operation(
             Operation::Build,
             [
-                PkgSetup(PHASE_STUB),
-                SrcUnpack(eapi0::src_unpack),
-                SrcCompile(eapi0::src_compile),
-                SrcTest(eapi0::src_test),
-                SrcInstall(PHASE_STUB),
+                PkgSetup.stub(),
+                SrcUnpack.func(eapi0::src_unpack),
+                SrcCompile.func(eapi0::src_compile),
+                SrcTest.func(eapi0::src_test),
+                SrcInstall
+                    .stub()
+                    .pre(pre_src_install)
+                    .post(post_src_install),
             ],
         )
-        .register_operation(Operation::Install, [PkgPreinst(PHASE_STUB), PkgPostinst(PHASE_STUB)])
-        .register_operation(Operation::Uninstall, [PkgPrerm(PHASE_STUB), PkgPostrm(PHASE_STUB)])
+        .register_operation(Operation::Install, [PkgPreinst.stub(), PkgPostinst.stub()])
+        .register_operation(Operation::Uninstall, [PkgPrerm.stub(), PkgPostrm.stub()])
         .register_operation(
             Operation::Replace,
-            [
-                PkgPreinst(PHASE_STUB),
-                PkgPrerm(PHASE_STUB),
-                PkgPostrm(PHASE_STUB),
-                PkgPostinst(PHASE_STUB),
-            ],
+            [PkgPreinst.stub(), PkgPrerm.stub(), PkgPostrm.stub(), PkgPostinst.stub()],
         )
-        .register_operation(Operation::Config, [PkgConfig(PHASE_STUB)])
-        .register_operation(Operation::Info, [PkgInfo(PHASE_STUB)])
-        .register_operation(Operation::NoFetch, [PkgNofetch(PHASE_STUB)])
+        .register_operation(Operation::Config, [PkgConfig.stub()])
+        .register_operation(Operation::Info, [PkgInfo.stub()])
+        .register_operation(Operation::NoFetch, [PkgNofetch.stub()])
         .update_dep_keys(&[Depend, Rdepend, Pdepend])
         .update_incremental_keys(&[Iuse, Depend, Rdepend, Pdepend])
         .update_mandatory_keys(&[Description, Slot])
@@ -559,7 +557,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("1", Some(&EAPI0))
         .enable_features(&[Feature::IuseDefaults, Feature::SlotDeps])
-        .update_phases([SrcCompile(eapi1::src_compile)])
+        .update_phases([SrcCompile.func(eapi1::src_compile)])
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
@@ -573,13 +571,16 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
         .register_operation(
             Operation::Build,
             [
-                PkgSetup(PHASE_STUB),
-                SrcUnpack(eapi0::src_unpack),
-                SrcPrepare(PHASE_STUB),
-                SrcConfigure(eapi2::src_configure),
-                SrcCompile(eapi2::src_compile),
-                SrcTest(eapi0::src_test),
-                SrcInstall(PHASE_STUB),
+                PkgSetup.stub(),
+                SrcUnpack.func(eapi0::src_unpack),
+                SrcPrepare.stub(),
+                SrcConfigure.func(eapi2::src_configure),
+                SrcCompile.func(eapi2::src_compile),
+                SrcTest.func(eapi0::src_test),
+                SrcInstall
+                    .stub()
+                    .pre(pre_src_install)
+                    .post(post_src_install),
             ],
         )
 });
@@ -604,8 +605,11 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             Feature::UseDepDefaults,
         ])
         .disable_features(&[Feature::RdependDefault])
-        .register_operation(Operation::Pretend, [PkgPretend(PHASE_STUB)])
-        .update_phases([SrcInstall(eapi4::src_install)])
+        .register_operation(Operation::Pretend, [PkgPretend.stub()])
+        .update_phases([SrcInstall
+            .func(eapi4::src_install)
+            .pre(pre_src_install)
+            .post(post_src_install)])
         .update_incremental_keys(&[RequiredUse])
         .update_metadata_keys(&[RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
@@ -638,7 +642,13 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             Feature::UnpackExtendedPath,
             Feature::UnpackCaseInsensitive,
         ])
-        .update_phases([SrcPrepare(eapi6::src_prepare), SrcInstall(eapi6::src_install)])
+        .update_phases([
+            SrcPrepare.func(eapi6::src_prepare),
+            SrcInstall
+                .func(eapi6::src_install)
+                .pre(pre_src_install)
+                .post(post_src_install),
+        ])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
