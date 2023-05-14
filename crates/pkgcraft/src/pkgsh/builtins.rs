@@ -333,7 +333,8 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
     builtins_map
 });
 
-static NONFATAL: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
+/// Controls the status set by the nonfatal builtin.
+static NONFATAL: AtomicBool = AtomicBool::new(false);
 
 static VERSION_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?P<sep>[[:^alnum:]]+)?(?P<comp>[[:digit:]]+|[[:alpha:]]+)?").unwrap()
