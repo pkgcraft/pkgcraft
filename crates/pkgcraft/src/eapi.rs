@@ -45,6 +45,7 @@ pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
     parse::eapi_value(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))
 }
 
+/// Features that relate to differentiation between EAPIs as specified by PMS.
 #[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Feature {
@@ -211,6 +212,7 @@ impl TryFrom<&Utf8Path> for &'static Eapi {
 type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 
 impl Eapi {
+    /// Create a new Eapi given an identifier and optional parent to inherit from.
     fn new(id: &str, parent: Option<&'static Eapi>) -> Self {
         let mut eapi = parent.cloned().unwrap_or_default();
         eapi.id = id.to_string();
@@ -246,6 +248,7 @@ impl Eapi {
             .get_or_init(|| self.operations.values().flatten().copied().collect())
     }
 
+    /// Return the regular expression for supported archive file extensions.
     pub(crate) fn archives_regex(&self) -> &Regex {
         self.archives_regex.get_or_init(|| {
             // Regex matches extensions from the longest to the shortest.
@@ -259,6 +262,7 @@ impl Eapi {
         })
     }
 
+    /// Load an archive from a given path if it's supported.
     pub(crate) fn archive_from_path<P>(&self, path: P) -> crate::Result<(String, Archive)>
     where
         P: AsRef<Utf8Path>,
@@ -271,10 +275,11 @@ impl Eapi {
                 let archive = Archive::from_path(path)?;
                 Ok((ext, archive))
             }
-            None => Err(Error::InvalidValue(format!("unknown archive format: {path:?}"))),
+            None => Err(Error::InvalidValue(format!("unknown archive format: {path}"))),
         }
     }
 
+    /// Return the mapping of all supported builtins for a given scope.
     pub(crate) fn builtins<S: Into<Scope>>(&self, scope: S) -> &BuiltinsMap {
         let scope = scope.into();
         BUILTINS_MAP
@@ -304,15 +309,17 @@ impl Eapi {
         &self.metadata_keys
     }
 
+    /// Return all EAPI-specific econf options.
     pub(crate) fn econf_options(&self) -> &EapiEconfOptions {
         &self.econf_options
     }
 
-    /// Environment variables that are required to be exported.
+    /// Return the mapping of all exported environment variables.
     pub(crate) fn env(&self) -> &HashMap<BuildVariable, Scopes> {
         &self.env
     }
 
+    /// Enable features during Eapi registration.
     fn enable_features(mut self, features: &[Feature]) -> Self {
         for x in features {
             if !self.features.insert(*x) {
@@ -322,6 +329,7 @@ impl Eapi {
         self
     }
 
+    /// Disable inherited features during Eapi registration.
     fn disable_features(mut self, features: &[Feature]) -> Self {
         for x in features {
             if !self.features.remove(x) {
@@ -331,6 +339,7 @@ impl Eapi {
         self
     }
 
+    /// Register or update an operation during Eapi registration.
     fn register_operation<I>(mut self, op: Operation, phases: I) -> Self
     where
         I: IntoIterator<Item = Phase>,
@@ -339,6 +348,7 @@ impl Eapi {
         self
     }
 
+    /// Update phases for all known operations during Eapi registration.
     fn update_phases<I>(mut self, phases: I) -> Self
     where
         I: IntoIterator<Item = Phase>,
@@ -362,28 +372,33 @@ impl Eapi {
         self
     }
 
+    /// Update dependency types during Eapi registration.
     fn update_dep_keys(mut self, updates: &[Key]) -> Self {
         self.dep_keys.extend(updates);
         self.metadata_keys.extend(updates);
         self
     }
 
+    /// Update incremental variables during Eapi registration.
     fn update_incremental_keys(mut self, updates: &[Key]) -> Self {
         self.incremental_keys.extend(updates);
         self
     }
 
+    /// Update mandatory metadata variables during Eapi registration.
     fn update_mandatory_keys(mut self, updates: &[Key]) -> Self {
         self.mandatory_keys.extend(updates);
         self.metadata_keys.extend(updates);
         self
     }
 
+    /// Update metadata variables during Eapi registration.
     fn update_metadata_keys(mut self, updates: &[Key]) -> Self {
         self.metadata_keys.extend(updates);
         self
     }
 
+    /// Update econf options during Eapi registration.
     fn update_econf(mut self, updates: &[EconfUpdate]) -> Self {
         for (opt, markers, val) in updates {
             let markers = markers
@@ -397,11 +412,13 @@ impl Eapi {
         self
     }
 
+    /// Enable support for archive extensions during Eapi registration.
     fn enable_archives(mut self, types: &[&str]) -> Self {
         self.archives.extend(types.iter().map(|s| s.to_string()));
         self
     }
 
+    /// Disable support for archive extensions during Eapi registration.
     fn disable_archives(mut self, types: &[&str]) -> Self {
         for x in types {
             if !self.archives.remove(*x) {
@@ -411,6 +428,7 @@ impl Eapi {
         self
     }
 
+    /// Enable support for build variables during Eapi registration.
     fn update_env(mut self, variables: &[(BuildVariable, &[&str])]) -> Self {
         for (var, scopes) in variables {
             self.env.insert(*var, Scopes::new(scopes));
@@ -418,6 +436,7 @@ impl Eapi {
         self
     }
 
+    /// Disable support for build variables during Eapi registration.
     fn disable_env(mut self, variables: &[BuildVariable]) -> Self {
         for x in variables {
             if self.env.remove(x).is_none() {
