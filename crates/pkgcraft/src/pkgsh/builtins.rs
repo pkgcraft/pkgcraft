@@ -466,7 +466,7 @@ macro_rules! builtin_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
-            use crate::pkgsh::{builtins::Scope::*, source_ebuild, BuildData};
+            use crate::pkgsh::{builtins::Scope::*, get_build_mut, BuildData};
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
@@ -481,6 +481,7 @@ macro_rules! builtin_scope_tests {
                 for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {
                     // initialize build state
                     BuildData::update(&cpv, &repo, Some(eapi));
+                    let build = get_build_mut();
 
                     let err = format!(" doesn't enable command: {name}");
                     let info = format!("EAPI={eapi}, scope: {scope}");
@@ -502,7 +503,7 @@ macro_rules! builtin_scope_tests {
                                 SLOT=0
                             "#};
                             let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-                            let r = source_ebuild(&path);
+                            let r = build.source_ebuild(&path);
                             // verify sourcing stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
                             // verify error output
@@ -519,7 +520,7 @@ macro_rules! builtin_scope_tests {
                                 VAR=2
                             "#};
                             let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-                            let r = source_ebuild(&path);
+                            let r = build.source_ebuild(&path);
                             // verify sourcing stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
                             // verify error output
@@ -540,7 +541,7 @@ macro_rules! builtin_scope_tests {
                             let pkg =
                                 crate::pkg::ebuild::Pkg::new(path.clone(), cpv, &repo).unwrap();
                             BuildData::from_pkg(&pkg);
-                            source_ebuild(&path).unwrap();
+                            build.source_ebuild(&path).unwrap();
                             let r = phase.run();
                             // verify function stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");

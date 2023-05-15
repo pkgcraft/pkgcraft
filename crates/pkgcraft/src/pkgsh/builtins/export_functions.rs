@@ -46,7 +46,7 @@ mod tests {
     use scallop::variables::optional;
 
     use crate::config::Config;
-    use crate::pkgsh::{source_ebuild, BuildData};
+    use crate::pkgsh::{get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as export_functions;
@@ -82,7 +82,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         BuildData::update(&cpv, &repo, None);
-        source_ebuild(&path).unwrap();
+        get_build_mut().source_ebuild(&path).unwrap();
         // execute eclass-defined function
         let mut func = functions::find("src_compile").unwrap();
         // verify the function runs

@@ -10,7 +10,7 @@ use tracing::warn;
 use crate::dep::{self, Cpv, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
-use crate::pkgsh::{get_build_mut, source_ebuild, BuildData};
+use crate::pkgsh::{get_build_mut, BuildData};
 use crate::repo::{ebuild::Repo as EbuildRepo, Repository};
 use crate::types::OrderedSet;
 use crate::Error;
@@ -40,7 +40,7 @@ pub enum Key {
 }
 
 impl Key {
-    pub(crate) fn get(&self, eapi: &'static Eapi) -> Option<String> {
+    pub(crate) fn get(&self, build: &mut BuildData, eapi: &'static Eapi) -> Option<String> {
         match self {
             Key::DefinedPhases => {
                 let mut phase_names: Vec<_> = eapi
@@ -56,7 +56,7 @@ impl Key {
                 }
             }
             Key::Inherit => {
-                let inherit = &get_build_mut().inherit;
+                let inherit = &build.inherit;
                 if inherit.is_empty() {
                     None
                 } else {
@@ -195,8 +195,9 @@ impl Metadata {
         repo: &EbuildRepo,
     ) -> crate::Result<Self> {
         BuildData::update(cpv, repo, Some(eapi));
+        let build = get_build_mut();
         // TODO: run sourcing via an external process pool returning the requested variables
-        source_ebuild(data)?;
+        build.source_ebuild(data)?;
         let mut meta = Metadata::default();
 
         // verify sourced EAPI matches parsed EAPI
@@ -213,7 +214,7 @@ impl Metadata {
         // required metadata variables
         let mut missing = Vec::<&str>::new();
         for key in eapi.mandatory_keys() {
-            match key.get(eapi) {
+            match key.get(build, eapi) {
                 Some(val) => meta.convert(eapi, *key, &val)?,
                 None => missing.push(key.as_ref()),
             }
@@ -227,7 +228,7 @@ impl Metadata {
 
         // metadata variables that default to empty
         for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
-            if let Some(val) = key.get(eapi) {
+            if let Some(val) = key.get(build, eapi) {
                 meta.convert(eapi, *key, &val)?;
             }
         }

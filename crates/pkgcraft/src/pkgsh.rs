@@ -399,6 +399,42 @@ impl<'a> BuildData<'a> {
     fn install(&self) -> install::Install {
         install::Install::new(self)
     }
+
+    fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
+        Lazy::force(&BASH);
+
+        self.scope = Scope::Global;
+        self.set_vars()?;
+
+        let mut opts = ScopedOptions::default();
+        if self.eapi().has(Feature::GlobalFailglob) {
+            opts.enable(["failglob"])?;
+        }
+
+        // run global sourcing in restricted shell mode
+        scallop::shell::restricted(|| value.source_bash())?;
+
+        // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
+        if self.eapi().has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
+            if let Some(depend) = variables::optional("DEPEND") {
+                bind("RDEPEND", depend, None, None)?;
+            }
+        }
+
+        // prepend metadata keys that incrementally accumulate to eclass values
+        if !self.inherited.is_empty() {
+            for var in self.eapi().incremental_keys() {
+                let deque = self.incrementals.entry(*var).or_insert_with(VecDeque::new);
+                if let Ok(data) = string_vec(var) {
+                    extend_left!(deque, data.into_iter());
+                }
+                // export the incrementally accumulated value
+                bind(var, deque.iter().join(" "), None, None)?;
+            }
+        }
+
+        Ok(ExecStatus::Success)
+    }
 }
 
 struct State<'a>(UnsafeCell<BuildData<'a>>);
@@ -430,43 +466,6 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
 });
-
-pub(crate) fn source_ebuild<T: SourceBash>(value: T) -> scallop::Result<ExecStatus> {
-    Lazy::force(&BASH);
-
-    let build = get_build_mut();
-    build.scope = Scope::Global;
-    build.set_vars()?;
-
-    let mut opts = ScopedOptions::default();
-    if build.eapi().has(Feature::GlobalFailglob) {
-        opts.enable(["failglob"])?;
-    }
-
-    // run global sourcing in restricted shell mode
-    scallop::shell::restricted(|| value.source_bash())?;
-
-    // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
-    if build.eapi().has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
-        if let Some(depend) = variables::optional("DEPEND") {
-            bind("RDEPEND", depend, None, None)?;
-        }
-    }
-
-    // prepend metadata keys that incrementally accumulate to eclass values
-    if !build.inherited.is_empty() {
-        for var in build.eapi().incremental_keys() {
-            let deque = build.incrementals.entry(*var).or_insert_with(VecDeque::new);
-            if let Ok(data) = string_vec(var) {
-                extend_left!(deque, data.into_iter());
-            }
-            // export the incrementally accumulated value
-            bind(var, deque.iter().join(" "), None, None)?;
-        }
-    }
-
-    Ok(ExecStatus::Success)
-}
 
 #[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[allow(non_camel_case_types)]
@@ -535,7 +534,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
         BuildData::update(&cpv, &repo, None);
-        let r = source_ebuild(&path);
+        let r = get_build_mut().source_ebuild(&path);
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, "unknown command: ls");
     }
@@ -557,7 +556,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
         BuildData::update(&cpv, &repo, None);
-        let r = source_ebuild(&path);
+        let r = get_build_mut().source_ebuild(&path);
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
     }
