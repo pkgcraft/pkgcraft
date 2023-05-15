@@ -412,7 +412,7 @@ fn update_build(state: BuildData<'static>) {
 /// Initialize bash for library usage.
 pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     unsafe { Lazy::force(&STATE) };
-    scallop::shell::init(true);
+    scallop::shell::init(false);
     let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
     // all builtins are enabled by default, access is restricted at runtime based on scope
@@ -431,7 +431,8 @@ pub(crate) fn source_ebuild<T: SourceBash>(value: T) -> scallop::Result<ExecStat
         opts.enable(["failglob"])?;
     }
 
-    value.source_bash()?;
+    // run global sourcing in restricted shell mode
+    scallop::shell::restricted(|| value.source_bash())?;
 
     // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
     if build.eapi().has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {

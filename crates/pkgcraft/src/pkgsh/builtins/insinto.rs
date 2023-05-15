@@ -71,7 +71,7 @@ mod tests {
             }
 
             // reset shell env
-            shell::reset();
+            shell::reset(&[]);
         }
     }
 }
