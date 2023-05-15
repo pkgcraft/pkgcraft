@@ -508,7 +508,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn source_ebuild_disables_external_cmds() {
+    fn global_scope_external_command() {
         let mut config = Config::default();
         let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
@@ -525,6 +525,12 @@ mod tests {
         let r = source_ebuild(&path);
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, "unknown command: ls");
+    }
+
+    #[test]
+    fn global_scope_absolute_path_command() {
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
 
         // absolute command errors in restricted shells currently don't bail, so force them to
         scallop::builtins::set(&["-e"]).unwrap();
