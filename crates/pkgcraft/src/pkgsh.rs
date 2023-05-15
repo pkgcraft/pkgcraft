@@ -315,6 +315,18 @@ impl<'a> BuildData<'a> {
             }
             PORTDIR => self.repo().map(|r| r.path().to_string()),
             ECLASSDIR => self.repo().map(|r| r.path().join("eclass").into_string()),
+
+            // TODO: pull these values from the config
+            T => {
+                let path = std::env::temp_dir();
+                let path = path
+                    .to_str()
+                    .ok_or_else(|| Error::Base(format!("non-unicode system tempdir: {path:?}")))?;
+                Ok(path.to_string())
+            }
+            TMPDIR => self.get_var(T),
+            HOME => self.get_var(T),
+
             DESTTREE => Ok(self.desttree.to_string()),
             INSDESTTREE => Ok(self.insdesttree.to_string()),
             EBUILD_PHASE => self.phase().map(|p| p.short_name().to_string()),
