@@ -31,9 +31,18 @@ pub fn init(restricted: bool) {
     SHELL.set(name).expect("failed setting shell name");
 }
 
-/// Reset the shell back to a pristine state.
-pub fn reset() {
+/// Reset the shell back to a pristine state, optionally skipping a list of variables.
+pub fn reset(ignore_vars: &[&str]) {
+    let cached: Vec<(&str, String)> = ignore_vars
+        .iter()
+        .filter_map(|&s| env::var(s).ok().map(|val| (s, val)))
+        .collect();
+
     unsafe { bash::lib_reset() };
+
+    for (var, value) in cached {
+        env::set_var(var, value);
+    }
 }
 
 /// Start an interactive shell session.
@@ -148,7 +157,7 @@ mod tests {
     fn test_reset() {
         bind("VAR", "1", None, None).unwrap();
         assert_eq!(optional("VAR").unwrap(), "1");
-        reset();
+        reset(&[]);
         assert_eq!(optional("VAR"), None);
     }
 }
