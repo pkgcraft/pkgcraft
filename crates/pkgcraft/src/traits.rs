@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use camino::{Utf8Path, Utf8PathBuf};
 use scallop::builtins::ExecStatus;
 use scallop::source;
@@ -10,10 +8,10 @@ pub trait FilterLines {
     fn filter_lines(&self) -> Box<dyn Iterator<Item = (usize, &str)> + '_>;
 }
 
-impl<T: Borrow<str>> FilterLines for T {
+impl<T: AsRef<str>> FilterLines for T {
     fn filter_lines(&self) -> Box<dyn Iterator<Item = (usize, &str)> + '_> {
         let iter = self
-            .borrow()
+            .as_ref()
             .lines()
             .map(|s| s.trim())
             .enumerate()
