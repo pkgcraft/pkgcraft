@@ -7,6 +7,7 @@ use nix::{
 };
 use once_cell::sync::{Lazy, OnceCell};
 
+use crate::builtins::ExecStatus;
 use crate::{bash, Error};
 
 use super::error;
@@ -133,6 +134,32 @@ pub fn is_restricted() -> bool {
 /// Returns true if shell started in restricted mode.
 pub fn is_restricted_shell() -> bool {
     unsafe { bash::RESTRICTED_SHELL != 0 }
+}
+
+/// Run a function in restricted mode.
+pub fn restricted<F>(func: F) -> crate::Result<ExecStatus>
+where
+    F: FnOnce() -> crate::Result<ExecStatus>,
+{
+    let orig_path = env::var("PATH").ok();
+    let orig_restricted = is_restricted();
+
+    if !orig_restricted {
+        toggle_restricted(true);
+    }
+
+    let result = func();
+
+    if !orig_restricted {
+        toggle_restricted(false);
+
+        // restore the original PATH
+        if let Some(s) = orig_path {
+            env::set_var("PATH", s);
+        }
+    }
+
+    result
 }
 
 /// Version string related to the bundled bash release.
