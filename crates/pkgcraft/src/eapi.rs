@@ -17,7 +17,7 @@ use crate::dep::Dep;
 use crate::pkgsh::builtins::{
     BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
 };
-use crate::pkgsh::metadata::Key::{self, *};
+use crate::pkgsh::metadata::Key;
 use crate::pkgsh::operations::Operation;
 use crate::pkgsh::phase::{PhaseKind::*, *};
 use crate::pkgsh::BuildVariable::{self, *};
@@ -508,21 +508,21 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
         .register_operation(Operation::Config, [PkgConfig.stub()])
         .register_operation(Operation::Info, [PkgInfo.stub()])
         .register_operation(Operation::NoFetch, [PkgNofetch.stub()])
-        .update_dep_keys(&[Depend, Rdepend, Pdepend])
-        .update_incremental_keys(&[Iuse, Depend, Rdepend, Pdepend])
-        .update_mandatory_keys(&[Description, Slot])
+        .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
+        .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
+        .update_mandatory_keys(&[Key::Description, Key::Slot])
         .update_metadata_keys(&[
-            DefinedPhases,
-            Eapi,
-            Homepage,
-            Inherit,
-            Inherited,
-            Iuse,
-            Keywords,
-            License,
-            Properties,
-            Restrict,
-            SrcUri,
+            Key::DefinedPhases,
+            Key::Eapi,
+            Key::Homepage,
+            Key::Inherit,
+            Key::Inherited,
+            Key::Iuse,
+            Key::Keywords,
+            Key::License,
+            Key::Properties,
+            Key::Restrict,
+            Key::SrcUri,
         ])
         .enable_archives(&[
             "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2", "tar.bz",
@@ -614,8 +614,8 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             .func(eapi4::src_install)
             .pre(pre_src_install)
             .post(post_src_install)])
-        .update_incremental_keys(&[RequiredUse])
-        .update_metadata_keys(&[RequiredUse])
+        .update_incremental_keys(&[Key::RequiredUse])
+        .update_metadata_keys(&[Key::RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
         .update_env(&[
             (MERGE_TYPE, &[PKG]),
@@ -663,8 +663,8 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
         .disable_features(&[Feature::TrailingSlash])
-        .update_dep_keys(&[Bdepend])
-        .update_incremental_keys(&[Bdepend])
+        .update_dep_keys(&[Key::Bdepend])
+        .update_incremental_keys(&[Key::Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
         .update_env(&[
             (SYSROOT, &[SRC, "pkg_setup"]),
@@ -682,8 +682,8 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
             Feature::SrcUriUnrestrict,
             Feature::UsevTwoArgs,
         ])
-        .update_dep_keys(&[Idepend])
-        .update_incremental_keys(&[Idepend, Properties, Restrict])
+        .update_dep_keys(&[Key::Idepend])
+        .update_incremental_keys(&[Key::Idepend, Key::Properties, Key::Restrict])
         .update_econf(&[
             ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
             ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
