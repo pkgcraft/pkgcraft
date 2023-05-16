@@ -437,23 +437,16 @@ impl<'a> BuildData<'a> {
     }
 }
 
-struct State<'a>(UnsafeCell<BuildData<'a>>);
-
-impl State<'_> {
-    fn new() -> Self {
-        Self(UnsafeCell::new(BuildData::new()))
-    }
-}
-
-static mut STATE: Lazy<State<'static>> = Lazy::new(State::new);
+static mut STATE: Lazy<UnsafeCell<BuildData<'static>>> =
+    Lazy::new(|| UnsafeCell::new(BuildData::new()));
 
 fn get_build_mut() -> &'static mut BuildData<'static> {
-    unsafe { STATE.0.get_mut() }
+    unsafe { STATE.get_mut() }
 }
 
 fn update_build(state: BuildData<'static>) {
     unsafe {
-        STATE.0 = UnsafeCell::new(state);
+        *STATE = UnsafeCell::new(state);
     }
 }
 
