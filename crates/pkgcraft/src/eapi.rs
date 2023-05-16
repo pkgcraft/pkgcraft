@@ -103,6 +103,10 @@ pub enum Feature {
     /// `unpack` performs case-insensitive file extension matching
     UnpackCaseInsensitive,
 
+    // EAPI 7
+    /// path variables ROOT, EROOT, D, and ED end with a trailing slash
+    TrailingSlash,
+
     // EAPI 8
     /// improve insopts/exeopts consistency for install functions
     ConsistentFileOpts,
@@ -481,7 +485,7 @@ impl FromStr for &'static Eapi {
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("0", None)
-        .enable_features(&[Feature::RdependDefault])
+        .enable_features(&[Feature::RdependDefault, Feature::TrailingSlash])
         .register_operation(
             Operation::Build,
             [
@@ -658,6 +662,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
+        .disable_features(&[Feature::TrailingSlash])
         .update_dep_keys(&[Bdepend])
         .update_incremental_keys(&[Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
