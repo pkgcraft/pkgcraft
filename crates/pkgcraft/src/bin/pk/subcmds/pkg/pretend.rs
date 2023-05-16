@@ -4,13 +4,20 @@ use std::process::ExitCode;
 use clap::Args;
 use pkgcraft::config::{Config, RepoSetType};
 use pkgcraft::pkg::BuildablePackage;
-use pkgcraft::repo::PkgRepository;
+use pkgcraft::repo::{set::RepoSet, PkgRepository, Repo};
 use pkgcraft::restrict::{self, Restrict};
 
 use crate::{Run, StdinArgs};
 
 #[derive(Debug, Args)]
 pub struct Command {
+    /// Target repository
+    #[arg(short, long)]
+    repo: Option<String>,
+
+    // positionals
+    /// Target packages
+    #[arg(value_name = "PKG", required = false)]
     vals: Vec<String>,
 }
 
@@ -33,13 +40,22 @@ impl Run for Command {
         // combine restricts into a single entity
         let restrict = Restrict::and(restricts);
 
-        // pull all ebuild repos into a set
+        // determine target repos
         // TODO: use configured ebuild repos instead of raw ones
-        let ebuild_repos = config.repos.set(RepoSetType::Ebuild);
+        let repos = if let Some(repo) = self.repo.as_deref() {
+            if let Some(r) = config.repos.get(repo) {
+                RepoSet::new([r])
+            } else {
+                let repo = Repo::from_path(repo, 0, repo, true)?;
+                RepoSet::new([&repo])
+            }
+        } else {
+            config.repos.set(RepoSetType::Ebuild)
+        };
 
         // run pkg_pretend across selected pkgs
         // TODO: run pkg_pretend in parallel for pkgs
-        for pkg in ebuild_repos.iter_restrict(restrict) {
+        for pkg in repos.iter_restrict(restrict) {
             // TODO: internally unwrap pkg types during iteration
             let (pkg, _) = pkg.as_ebuild().unwrap();
             if let Err(e) = pkg.pretend() {
