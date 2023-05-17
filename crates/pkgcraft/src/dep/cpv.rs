@@ -19,7 +19,7 @@ impl FromStr for CpvOrDep {
         if let Ok(d) = Dep::from_str(s) {
             Ok(CpvOrDep::Dep(d))
         } else {
-            Ok(CpvOrDep::Cpv(Cpv::new(s)?))
+            Ok(CpvOrDep::Cpv(Cpv::from_str(s)?))
         }
     }
 }
@@ -126,6 +126,14 @@ impl Cpv {
     }
 }
 
+impl FromStr for Cpv {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        parse::cpv(s)
+    }
+}
+
 impl fmt::Display for Cpv {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{}-{}", self.category, self.package, self.version.as_str())
@@ -150,7 +158,7 @@ impl TryFrom<&str> for Cpv {
     type Error = Error;
 
     fn try_from(value: &str) -> crate::Result<Cpv> {
-        Cpv::new(value)
+        Cpv::from_str(value)
     }
 }
 
