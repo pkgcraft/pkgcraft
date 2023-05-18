@@ -1,5 +1,3 @@
-use scallop::shell;
-
 use crate::pkg::{ebuild::Pkg, BuildablePackage, Package};
 use crate::pkgsh::{get_build_mut, BuildData};
 
@@ -14,8 +12,6 @@ impl<'a> BuildablePackage for Pkg<'a> {
             phase.run()?;
         }
 
-        shell::reset(&["PATH"]);
-
         Ok(())
     }
 
@@ -26,8 +22,6 @@ impl<'a> BuildablePackage for Pkg<'a> {
         for phase in self.eapi().operation(Operation::Pretend) {
             phase.run()?;
         }
-
-        shell::reset(&["PATH"]);
 
         Ok(())
     }

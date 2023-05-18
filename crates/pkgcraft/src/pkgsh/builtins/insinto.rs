@@ -30,7 +30,7 @@ make_builtin!("insinto", insinto_builtin, run, LONG_DOC, USAGE, &[("..", &["src_
 
 #[cfg(test)]
 mod tests {
-    use scallop::{shell, variables};
+    use scallop::variables;
 
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
@@ -69,9 +69,6 @@ mod tests {
             } else {
                 assert!(env_val.is_none());
             }
-
-            // reset shell env
-            shell::reset(&[]);
         }
     }
 }

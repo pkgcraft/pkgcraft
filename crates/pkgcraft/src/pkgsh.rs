@@ -445,9 +445,14 @@ fn get_build_mut() -> &'static mut BuildData<'static> {
 }
 
 fn update_build(state: BuildData<'static>) {
-    unsafe {
-        *STATE = UnsafeCell::new(state);
+    let build = get_build_mut();
+
+    // TODO: handle resets in external process pool
+    if !matches!(build.state, BuildState::Empty(_)) {
+        scallop::shell::reset(&["PATH"]);
     }
+
+    *build = state;
 }
 
 /// Initialize bash for library usage.

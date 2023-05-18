@@ -30,7 +30,7 @@ make_builtin!("into", into_builtin, run, LONG_DOC, USAGE, &[("..", &["src_instal
 
 #[cfg(test)]
 mod tests {
-    use scallop::{shell, variables};
+    use scallop::variables;
 
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
@@ -68,9 +68,6 @@ mod tests {
                 true => assert_eq!(env_val.unwrap(), "/test/path"),
                 false => assert!(env_val.is_none()),
             }
-
-            // reset shell env
-            shell::reset(&[]);
         }
     }
 }

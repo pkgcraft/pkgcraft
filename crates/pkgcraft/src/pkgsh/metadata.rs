@@ -233,9 +233,6 @@ impl Metadata {
             }
         }
 
-        // TODO: handle resets in external process pool
-        scallop::shell::reset(&["PATH"]);
-
         Ok(meta)
     }
 
