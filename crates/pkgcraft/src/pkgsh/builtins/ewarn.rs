@@ -3,7 +3,7 @@ use scallop::Error;
 
 use crate::pkgsh::{unescape::unescape_iter, write_stderr};
 
-use super::{make_builtin, ALL};
+use super::{make_builtin, PHASE};
 
 const LONG_DOC: &str = "Display warning message.";
 
@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ewarn \"message\"";
-make_builtin!("ewarn", ewarn_builtin, run, LONG_DOC, USAGE, &[("..", &[ALL])]);
+make_builtin!("ewarn", ewarn_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
 
 #[cfg(test)]
 mod tests {
