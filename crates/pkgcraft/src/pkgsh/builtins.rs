@@ -68,6 +68,7 @@ pub(super) mod einfo;
 pub(super) mod einfon;
 pub(super) mod einstall;
 pub(super) mod einstalldocs;
+pub(super) mod elog;
 pub(super) mod emake;
 pub(super) mod eqawarn;
 pub(super) mod ewarn;
@@ -261,6 +262,7 @@ pub(crate) static ALL_BUILTINS: Lazy<HashMap<&'static str, &PkgBuiltin>> = Lazy:
         &*einfon::PKG_BUILTIN,
         &*einstall::PKG_BUILTIN,
         &*einstalldocs::PKG_BUILTIN,
+        &*elog::PKG_BUILTIN,
         &*emake::PKG_BUILTIN,
         &*eqawarn::PKG_BUILTIN,
         &*ewarn::PKG_BUILTIN,
