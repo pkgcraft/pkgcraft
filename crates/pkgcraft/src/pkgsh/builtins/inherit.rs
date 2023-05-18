@@ -17,7 +17,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let eclasses: Vec<_> = args.iter().map(|s| s.to_string()).collect();
+
+    // skip eclasses that have already been inherited
+    let eclasses: Vec<_> = args
+        .iter()
+        .filter(|&s| !build.inherited.contains(*s))
+        .map(|s| s.to_string())
+        .collect();
 
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
@@ -31,11 +37,6 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if builtin_level() == 1 {
         build.inherit.extend(eclasses.clone());
     }
-
-    // skip eclasses that have already been inherited
-    let eclasses = eclasses
-        .into_iter()
-        .filter(|s| !get_build_mut().inherited.contains(s));
 
     for eclass in eclasses {
         // unset metadata keys that incrementally accumulate
