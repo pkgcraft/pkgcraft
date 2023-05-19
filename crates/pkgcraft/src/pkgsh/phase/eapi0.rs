@@ -9,7 +9,7 @@ use crate::pkgsh::utils::makefile_exists;
 use crate::pkgsh::BuildData;
 
 pub(crate) fn src_unpack(build: &mut BuildData) -> scallop::Result<ExecStatus> {
-    let args: Vec<&str> = build.distfiles.iter().map(|s| s.as_str()).collect();
+    let args: Vec<_> = build.distfiles.iter().map(|s| s.as_str()).collect();
     if args.is_empty() {
         Ok(ExecStatus::Success)
     } else {
