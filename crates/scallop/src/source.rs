@@ -2,9 +2,9 @@ use std::ffi::CString;
 
 use bitflags::bitflags;
 
+use crate::bash;
 use crate::builtins::ExecStatus;
 use crate::error::ok_or_error;
-use crate::bash;
 
 bitflags! {
     /// Flag values used with source::string() for altering string evaluation.
@@ -73,10 +73,7 @@ mod tests {
         // still raised on completion (unlike bash).
         let err = source::string("local VAR\nVAR=1").unwrap_err();
         assert_eq!(optional("VAR").unwrap(), "1");
-        assert_eq!(
-            err.to_string(),
-            format!("local: can only be used in a function")
-        );
+        assert_eq!(err.to_string(), format!("local: can only be used in a function"));
     }
 
     #[test]

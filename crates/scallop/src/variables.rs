@@ -51,10 +51,8 @@ bitflags! {
 pub fn unbind<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
     let name = name.as_ref();
     let cstr = CString::new(name).unwrap();
-    ok_or_error(|| {
-        unsafe {
-            bash::check_unbind_variable(cstr.as_ptr());
-        }
+    ok_or_error(|| unsafe {
+        bash::check_unbind_variable(cstr.as_ptr());
     })
 }
 

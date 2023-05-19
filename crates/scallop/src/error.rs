@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{c_char, CStr};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::io;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::builtins::ExecStatus;
 
@@ -37,7 +37,7 @@ pub(crate) fn reset() {
 }
 
 /// Return the most recent error if one exists, otherwise Ok(ExecStatus::Success).
-pub fn ok_or_error<F: FnOnce()>(func: F) -> Result<ExecStatus> {
+pub(crate) fn ok_or_error<F: FnOnce()>(func: F) -> Result<ExecStatus> {
     CALL_LEVEL.fetch_add(1, Ordering::Relaxed);
     func();
     crate::shell::raise_shm_error();
@@ -50,7 +50,7 @@ pub fn ok_or_error<F: FnOnce()>(func: F) -> Result<ExecStatus> {
 
 /// Wrapper to convert bash errors into native errors.
 #[no_mangle]
-pub(super) extern "C" fn bash_error(msg: *mut c_char) {
+pub(crate) extern "C" fn bash_error(msg: *mut c_char) {
     let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
 
     // Strip the shell name prefix that bash adds -- can't easily do this in bash since the same
@@ -73,7 +73,7 @@ pub(super) extern "C" fn bash_error(msg: *mut c_char) {
 
 /// Output given message as error level log message.
 #[no_mangle]
-pub(super) extern "C" fn bash_error_log(msg: *mut c_char) {
+pub(crate) extern "C" fn bash_error_log(msg: *mut c_char) {
     if let Ok(msg) = unsafe { CStr::from_ptr(msg).to_str() } {
         tracing::error!(msg);
     }
@@ -81,7 +81,7 @@ pub(super) extern "C" fn bash_error_log(msg: *mut c_char) {
 
 /// Output given message as warning level log message.
 #[no_mangle]
-pub(super) extern "C" fn bash_warning_log(msg: *mut c_char) {
+pub(crate) extern "C" fn bash_warning_log(msg: *mut c_char) {
     if let Ok(msg) = unsafe { CStr::from_ptr(msg).to_str() } {
         tracing::warn!(msg);
     }
@@ -89,7 +89,7 @@ pub(super) extern "C" fn bash_warning_log(msg: *mut c_char) {
 
 /// Wrapper to write errors and warning to stderr for interactive mode.
 #[no_mangle]
-pub(super) extern "C" fn stderr_output(msg: *mut c_char) {
+pub(crate) extern "C" fn stderr_output(msg: *mut c_char) {
     let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
     eprintln!("{msg}");
 }
