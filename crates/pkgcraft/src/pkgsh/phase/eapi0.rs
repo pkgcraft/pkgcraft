@@ -28,16 +28,13 @@ pub(crate) fn src_compile(_build: &mut BuildData) -> scallop::Result<ExecStatus>
 }
 
 pub(crate) fn src_test(build: &mut BuildData) -> scallop::Result<ExecStatus> {
-    let mut args = Vec::<&str>::new();
-
-    if !build.eapi().has(Feature::ParallelTests) {
-        args.push("-j1");
-    }
-
     for target in ["check", "test"] {
         if emake(&[target, "-n"]).is_ok() {
-            args.push(target);
-            emake(&args)?;
+            if build.eapi().has(Feature::ParallelTests) {
+                emake(&[target])?;
+            } else {
+                emake(&["-j1", target])?;
+            }
             break;
         }
     }
