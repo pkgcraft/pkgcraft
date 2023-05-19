@@ -125,7 +125,7 @@ mod tests {
         let file2_path = file2.path().to_str().unwrap().to_string();
         writeln!(file1, "source {:?}", file2_path).unwrap();
         writeln!(file2, "local VAR\nVAR=2").unwrap();
-        let err = source::file(&file1_path).unwrap_err();
+        let err = source::file(file1_path).unwrap_err();
         assert_eq!(optional("VAR").unwrap(), "2");
         assert_eq!(
             err.to_string(),
