@@ -27,7 +27,14 @@ git = ["dep:git2"]
 # enable repo syncing over https, e.g. tar+https
 https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
 # build command-line tools
-tools = ["dep:aho-corasick", "dep:anyhow", "dep:is-terminal"]
+tools = [
+	"dep:aho-corasick",
+	"dep:anyhow",
+	"dep:clap-verbosity-flag",
+	"dep:is-terminal",
+	"dep:tracing-log",
+	"dep:tracing-subscriber",
+]
 # export test support for integration tests
 test = ["dep:assert_cmd"]
 
@@ -76,7 +83,10 @@ walkdir = "2.3.3"
 # pk dependencies
 aho-corasick = { version = "1.0.1", optional = true }
 anyhow = { version = "1.0.71", optional = true }
+clap-verbosity-flag = { version = "2.0.1", optional = true }
 is-terminal = { version = "0.4.7", optional = true }
+tracing-log = { version = "0.1.3", optional = true }
+tracing-subscriber = { version = "0.3.17", optional = true }
 
 # test feature dependencies
 assert_cmd = { version = "2.0.11", optional = true }

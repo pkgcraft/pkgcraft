@@ -3,8 +3,10 @@ use std::process::ExitCode;
 
 use anyhow::bail;
 use clap::Parser;
+use clap_verbosity_flag::Verbosity;
 use is_terminal::IsTerminal;
 use pkgcraft::config::Config;
+use tracing_log::AsTrace;
 
 mod format;
 mod subcmds;
@@ -13,6 +15,8 @@ mod subcmds;
 #[command(version, long_about = None, disable_help_subcommand = true)]
 /// pkgcraft command-line tool
 struct Command {
+    #[command(flatten)]
+    verbose: Verbosity,
     #[command(subcommand)]
     subcmd: subcmds::Subcommand,
 }
@@ -44,6 +48,11 @@ fn main() -> anyhow::Result<ExitCode> {
     config.load()?;
 
     let args = Command::parse();
+
+    tracing_subscriber::fmt()
+        .with_max_level(args.verbose.log_level_filter().as_trace())
+        .init();
+
     args.subcmd.run(&config).or_else(|e| {
         eprintln!("{e}");
         Ok(ExitCode::from(2))
