@@ -1,3 +1,4 @@
+use itertools::Either;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
@@ -9,15 +10,15 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Install libraries.";
 
-pub(super) fn install_lib(args: &[&str], opts: Option<Vec<&str>>) -> scallop::Result<ExecStatus> {
+pub(super) fn install_lib(args: &[&str], opts: Option<&[&str]>) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let libdir = get_libdir(Some("lib")).unwrap();
     let dest = build_from_paths!(&build.desttree, &libdir);
-    let opts: Vec<&str> = match opts {
-        Some(v) => v,
-        None => build.libopts.iter().map(|s| s.as_str()).collect(),
+    let options = match opts {
+        Some(vals) => Either::Left(vals.iter().copied()),
+        None => Either::Right(build.libopts.iter().map(|s| s.as_str())),
     };
-    let install = build.install().dest(dest)?.file_options(opts);
+    let install = build.install().dest(dest)?.file_options(options);
     install.files(args)?;
 
     Ok(ExecStatus::Success)

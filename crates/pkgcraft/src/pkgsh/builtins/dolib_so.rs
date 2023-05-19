@@ -12,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    install_lib(args, Some(vec!["-m0755"]))
+    install_lib(args, Some(&["-m0755"]))
 }
 
 const USAGE: &str = "dolib.so path/to/lib.so";
