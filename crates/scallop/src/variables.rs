@@ -51,10 +51,11 @@ bitflags! {
 pub fn unbind<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
     let name = name.as_ref();
     let cstr = CString::new(name).unwrap();
-    unsafe {
-        bash::check_unbind_variable(cstr.as_ptr());
-    }
-    ok_or_error()
+    ok_or_error(|| {
+        unsafe {
+            bash::check_unbind_variable(cstr.as_ptr());
+        }
+    })
 }
 
 pub fn bind<S1, S2>(
@@ -71,13 +72,14 @@ where
     let value = CString::new(value.as_ref()).unwrap();
     let val = value.as_ptr() as *mut _;
     let flags = flags.unwrap_or(Assign::NONE).bits() as i32;
-    let var = unsafe { bash::bind_variable(name.as_ptr(), val, flags).as_mut() };
-    if let Some(var) = var {
-        if let Some(attrs) = attrs {
-            var.attributes |= attrs.bits() as i32;
+    ok_or_error(|| {
+        let var = unsafe { bash::bind_variable(name.as_ptr(), val, flags).as_mut() };
+        if let Some(var) = var {
+            if let Some(attrs) = attrs {
+                var.attributes |= attrs.bits() as i32;
+            }
         }
-    }
-    ok_or_error()
+    })
 }
 
 pub fn bind_global<S: AsRef<str>>(
@@ -90,13 +92,14 @@ pub fn bind_global<S: AsRef<str>>(
     let value = CString::new(value.as_ref()).unwrap();
     let val = value.as_ptr() as *mut _;
     let flags = flags.unwrap_or(Assign::NONE).bits() as i32;
-    let var = unsafe { bash::bind_global_variable(name.as_ptr(), val, flags).as_mut() };
-    if let Some(var) = var {
-        if let Some(attrs) = attrs {
-            var.attributes |= attrs.bits() as i32;
+    ok_or_error(|| {
+        let var = unsafe { bash::bind_global_variable(name.as_ptr(), val, flags).as_mut() };
+        if let Some(var) = var {
+            if let Some(attrs) = attrs {
+                var.attributes |= attrs.bits() as i32;
+            }
         }
-    }
-    ok_or_error()
+    })
 }
 
 #[derive(Debug, Clone)]

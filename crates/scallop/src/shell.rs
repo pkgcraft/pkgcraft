@@ -39,6 +39,7 @@ pub fn reset(ignore_vars: &[&str]) {
         .filter_map(|&s| env::var(s).ok().map(|val| (s, val)))
         .collect();
 
+    error::reset();
     unsafe { bash::lib_reset() };
 
     for (var, value) in cached {

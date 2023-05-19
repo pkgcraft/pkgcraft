@@ -1,5 +1,7 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::{c_char, CStr};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::io;
 
 use crate::builtins::ExecStatus;
@@ -24,19 +26,23 @@ impl From<io::Error> for Error {
     }
 }
 
+static CALL_LEVEL: AtomicUsize = AtomicUsize::new(0);
+
 thread_local! {
-    pub(crate) static LAST_ERROR: RefCell<Option<Error>> = RefCell::new(None);
+    static ERRORS: RefCell<HashMap<usize, Error>> = RefCell::new(Default::default());
 }
 
-/// Retrieve the most recent bash error.
-pub fn last_error() -> Option<Error> {
-    crate::shell::raise_shm_error();
-    LAST_ERROR.with(|prev| prev.borrow_mut().take())
+pub(crate) fn reset() {
+    CALL_LEVEL.store(0, Ordering::Relaxed);
 }
 
 /// Return the most recent error if one exists, otherwise Ok(ExecStatus::Success).
-pub fn ok_or_error() -> Result<ExecStatus> {
-    match last_error() {
+pub fn ok_or_error<F: FnOnce()>(func: F) -> Result<ExecStatus> {
+    CALL_LEVEL.fetch_add(1, Ordering::Relaxed);
+    func();
+    crate::shell::raise_shm_error();
+    let level = CALL_LEVEL.fetch_sub(1, Ordering::Relaxed);
+    match ERRORS.with(|errors| errors.borrow_mut().remove(&level)) {
         None => Ok(ExecStatus::Success),
         Some(e) => Err(e),
     }
@@ -52,14 +58,15 @@ pub(super) extern "C" fn bash_error(msg: *mut c_char) {
     let msg = msg.strip_prefix("scallop: ").unwrap_or(&msg);
 
     if !msg.is_empty() {
-        LAST_ERROR.with(|prev| {
+        let level = CALL_LEVEL.load(Ordering::Relaxed);
+        ERRORS.with(|errors| {
             let err = io::Error::last_os_error();
             // convert bash IO errors into scallop IO errors
             let e = match err.raw_os_error() {
                 Some(v) if v != 0 => Error::IO(err.kind(), msg.to_string()),
                 _ => Error::Base(msg.to_string()),
             };
-            *prev.borrow_mut() = Some(e);
+            errors.borrow_mut().insert(level, e);
         });
     }
 }

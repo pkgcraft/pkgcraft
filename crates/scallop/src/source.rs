@@ -3,8 +3,8 @@ use std::ffi::CString;
 use bitflags::bitflags;
 
 use crate::builtins::ExecStatus;
-use crate::error::last_error;
-use crate::{bash, Error};
+use crate::error::ok_or_error;
+use crate::bash;
 
 bitflags! {
     /// Flag values used with source::string() for altering string evaluation.
@@ -27,33 +27,17 @@ pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
     let s = s.as_ref();
     let c_str = CString::new(s).unwrap();
     let str_ptr = c_str.as_ptr() as *mut _;
-    // flush any previous error
-    last_error();
-    let ret = unsafe { bash::scallop_evalstring(str_ptr, 0) };
-    let err = last_error();
-    match ret {
-        0 => Ok(ExecStatus::Success),
-        _ => match err {
-            Some(e) => Err(e),
-            None => Err(Error::Base(format!("failed sourcing: {s}"))),
-        },
-    }
+    ok_or_error(|| {
+        unsafe { bash::scallop_evalstring(str_ptr, 0) };
+    })
 }
 
 pub fn file<S: AsRef<str>>(path: S) -> crate::Result<ExecStatus> {
     let path = path.as_ref();
     let c_str = CString::new(path).unwrap();
-    // flush any previous error
-    last_error();
-    let ret = unsafe { bash::scallop_source_file(c_str.as_ptr()) };
-    let err = last_error();
-    match ret {
-        0 => Ok(ExecStatus::Success),
-        _ => match err {
-            Some(e) => Err(e),
-            None => Err(Error::Base(format!("failed sourcing: {path:?}"))),
-        },
-    }
+    ok_or_error(|| {
+        unsafe { bash::scallop_source_file(c_str.as_ptr()) };
+    })
 }
 
 #[cfg(test)]
@@ -85,9 +69,14 @@ mod tests {
         let err = source::string("local VAR").unwrap_err();
         assert_eq!(err.to_string(), "local: can only be used in a function");
 
-        // Sourcing continues when an error occurs because `set -e` isn't enabled.
-        assert!(source::string("local VAR\nVAR=1").is_ok());
+        // Sourcing continues when an error occurs because `set -e` isn't enabled, but the error is
+        // still raised on completion (unlike bash).
+        let err = source::string("local VAR\nVAR=1").unwrap_err();
         assert_eq!(optional("VAR").unwrap(), "1");
+        assert_eq!(
+            err.to_string(),
+            format!("local: can only be used in a function")
+        );
     }
 
     #[test]
@@ -117,23 +106,34 @@ mod tests {
         // bad bash code raises error
         writeln!(file, "local VAR").unwrap();
         let err = source::file(&path).unwrap_err();
-        assert!(err
-            .to_string()
-            .ends_with("line 1: local: can only be used in a function"));
+        assert_eq!(
+            err.to_string(),
+            format!("{path}: line 1: local: can only be used in a function")
+        );
 
-        // Sourcing continues when an error occurs because `set -e` isn't enabled.
+        // Sourcing continues when an error occurs because `set -e` isn't enabled, but the error is
+        // still raised on completion (unlike bash).
         writeln!(file, "VAR=1").unwrap();
-        assert!(source::file(&path).is_ok());
+        let err = source::file(&path).unwrap_err();
         assert_eq!(optional("VAR").unwrap(), "1");
+        assert_eq!(
+            err.to_string(),
+            format!("{path}: line 1: local: can only be used in a function")
+        );
 
         // nested source without `set -e`
         let mut file1 = NamedTempFile::new().unwrap();
         let mut file2 = NamedTempFile::new().unwrap();
-        let path = file1.path().to_str().unwrap().to_string();
-        writeln!(file1, "source {:?}", file2.path()).unwrap();
+        let file1_path = file1.path().to_str().unwrap().to_string();
+        let file2_path = file2.path().to_str().unwrap().to_string();
+        writeln!(file1, "source {:?}", file2_path).unwrap();
         writeln!(file2, "local VAR\nVAR=2").unwrap();
-        assert!(source::file(path).is_ok());
+        let err = source::file(&file1_path).unwrap_err();
         assert_eq!(optional("VAR").unwrap(), "2");
+        assert_eq!(
+            err.to_string(),
+            format!("{file2_path}: line 1: local: can only be used in a function")
+        );
     }
 
     #[test]
