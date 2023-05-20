@@ -234,7 +234,7 @@ impl Eapi {
         self.features.get(&feature).is_some()
     }
 
-    /// Parse a package depedency using EAPI specific support.
+    /// Parse a package dependency using a specific EAPI.
     pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<Dep> {
         Dep::new(s.as_ref(), self)
     }
@@ -691,21 +691,21 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
         .disable_archives(&["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
 
-/// Reference to the most recent official EAPI.
-pub static EAPI_LATEST_OFFICIAL: Lazy<&'static Eapi> = Lazy::new(|| EAPIS_OFFICIAL.last().unwrap());
-
-/// Reference to the most recent EAPI.
-pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| EAPIS.last().unwrap());
+/// Reference to the most recent, official EAPI.
+pub static EAPI_LATEST_OFFICIAL: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
 
 /// The latest EAPI with extensions on top.
 pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL)).enable_features(&[Feature::RepoIds])
 });
 
+/// Reference to the most recent EAPI.
+pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| &EAPI_PKGCRAFT);
+
 /// Ordered set of official EAPIs.
 pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     let mut eapis = IndexSet::new();
-    let mut eapi: &Eapi = &EAPI8;
+    let mut eapi: &Eapi = &EAPI_LATEST_OFFICIAL;
     while let Some(x) = eapi.parent {
         eapis.insert(eapi);
         eapi = x;
@@ -717,8 +717,21 @@ pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
 });
 
 /// Ordered set of unofficial EAPIs.
-pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> =
-    Lazy::new(|| [&*EAPI_PKGCRAFT].into_iter().collect());
+pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
+    let mut eapis = IndexSet::new();
+    let mut eapi: &Eapi = &EAPI_LATEST;
+    while let Some(x) = eapi.parent {
+        eapis.insert(eapi);
+        if EAPIS_OFFICIAL.contains(x) {
+            break;
+        } else {
+            eapi = x;
+        }
+    }
+    // reverse so it's in chronological order
+    eapis.reverse();
+    eapis
+});
 
 /// Ordered set of EAPIs.
 pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
