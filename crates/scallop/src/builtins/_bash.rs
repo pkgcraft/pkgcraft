@@ -90,9 +90,11 @@ mod tests {
     fn test_local() {
         bind("VAR", "outer", None, None).unwrap();
         bash_func("func_name", || {
-            local(&["VAR=inner"]).unwrap();
+            let result = local(&["VAR=inner"]);
             assert_eq!(optional("VAR").unwrap(), "inner");
-        });
+            result
+        })
+        .unwrap();
         assert_eq!(optional("VAR").unwrap(), "outer");
     }
 }

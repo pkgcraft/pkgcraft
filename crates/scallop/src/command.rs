@@ -95,10 +95,10 @@ pub fn current<'a>() -> Option<&'a str> {
 }
 
 /// Run a function under a named bash command scope.
-pub(crate) fn cmd_scope<F: FnOnce() -> crate::Result<ExecStatus>>(
-    name: &str,
-    func: F,
-) -> crate::Result<ExecStatus> {
+pub(crate) fn cmd_scope<F>(name: &str, func: F) -> crate::Result<ExecStatus>
+where
+    F: FnOnce() -> crate::Result<ExecStatus>,
+{
     let name = CString::new(name).unwrap();
     unsafe { bash::CURRENT_COMMAND = name.as_ptr() as *mut _ };
     let result = func();

@@ -42,11 +42,15 @@ pub fn find<'a, S: AsRef<str>>(name: S) -> Option<Function<'a>> {
 }
 
 /// Run a function in bash function scope.
-pub fn bash_func<S: AsRef<str>, F: FnOnce()>(name: S, func: F) {
-    let func_name = CString::new(name.as_ref()).unwrap();
+pub fn bash_func<F>(name: &str, func: F) -> crate::Result<ExecStatus>
+where
+    F: FnOnce() -> crate::Result<ExecStatus>,
+{
+    let func_name = CString::new(name).unwrap();
     unsafe { bash::push_context(func_name.as_ptr() as *mut _, 0, bash::TEMPORARY_ENV) };
-    func();
+    let result = func();
     unsafe { bash::pop_context() };
+    result
 }
 
 #[cfg(test)]
@@ -58,14 +62,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_find() {
+    fn find_function() {
         assert!(find("foo").is_none());
         source::string("foo() { :; }").unwrap();
         assert!(find("foo").is_some());
     }
 
     #[test]
-    fn execute() {
+    fn execute_success() {
         assert_eq!(optional("VAR"), None);
         source::string("foo() { VAR=$1; }").unwrap();
         let mut func = find("foo").unwrap();
@@ -76,19 +80,21 @@ mod tests {
     }
 
     #[test]
-    fn failed_execute() {
+    fn execute_failure() {
         source::string("foo() { nonexistent_cmd; }").unwrap();
         let mut func = find("foo").unwrap();
         assert!(func.execute(&[]).is_err());
     }
 
     #[test]
-    fn test_bash_func() {
+    fn bash_func_scope() {
         bind("VAR", "outer", None, None).unwrap();
         bash_func("func_name", || {
-            local(&["VAR=inner"]).unwrap();
+            let result = local(&["VAR=inner"]);
             assert_eq!(optional("VAR").unwrap(), "inner");
-        });
+            result
+        })
+        .unwrap();
         assert_eq!(optional("VAR").unwrap(), "outer");
     }
 }
