@@ -18,16 +18,18 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let build = get_build_mut();
     let install = build.install();
+
+    // use custom file name including pkg info
     let pkg = build.pkg()?;
+    let (cat, pkg, slot) = (pkg.cpv().category(), pkg.cpv().package(), pkg.slot());
+    let file_name = format!(".keep_{cat}_{pkg}_{slot}");
 
     // create dirs
     install.dirs(args)?;
 
     // create stub files
     for path in args {
-        let (cat, pkg, slot) = (pkg.cpv().category(), pkg.cpv().package(), pkg.slot());
-        let file_name = format!(".keep_{cat}_{pkg}_{slot}");
-        let keep = install.prefix(path).join(file_name);
+        let keep = install.prefix(path).join(&file_name);
         File::create(&keep)
             .map_err(|e| Error::Base(format!("failed creating keep file: {keep:?}: {e}")))?;
     }
