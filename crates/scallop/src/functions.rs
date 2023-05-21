@@ -20,9 +20,11 @@ impl Function<'_> {
             arg_strs.iter().map(|s| s.as_ptr() as *mut _).collect();
         arg_ptrs.push(ptr::null_mut());
         let args = arg_ptrs.as_mut_ptr();
-        ok_or_error(|| unsafe {
-            let words = bash::strvec_to_word_list(args, 0, 0);
-            let ret = bash::scallop_execute_shell_function(self.func, words);
+        ok_or_error(|| {
+            let ret = unsafe {
+                let words = bash::strvec_to_word_list(args, 0, 0);
+                bash::scallop_execute_shell_function(self.func, words)
+            };
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {

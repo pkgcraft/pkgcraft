@@ -8,8 +8,8 @@ use crate::traits::*;
 pub fn declare(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
-        cmd_scope("declare", || unsafe {
-            let ret = bash::declare_builtin((&args).into());
+        cmd_scope("declare", || {
+            let ret = unsafe { bash::declare_builtin((&args).into()) };
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
@@ -23,8 +23,8 @@ pub fn declare(args: &[&str]) -> crate::Result<ExecStatus> {
 pub fn local(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
-        cmd_scope("local", || unsafe {
-            let ret = bash::local_builtin((&args).into());
+        cmd_scope("local", || {
+            let ret = unsafe { bash::local_builtin((&args).into()) };
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
@@ -38,8 +38,8 @@ pub fn local(args: &[&str]) -> crate::Result<ExecStatus> {
 pub fn set(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
-        cmd_scope("set", || unsafe {
-            let ret = bash::set_builtin((&args).into());
+        cmd_scope("set", || {
+            let ret = unsafe { bash::set_builtin((&args).into()) };
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
@@ -53,8 +53,8 @@ pub fn set(args: &[&str]) -> crate::Result<ExecStatus> {
 pub fn shopt(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
-        cmd_scope("shopt", || unsafe {
-            let ret = bash::shopt_builtin((&args).into());
+        cmd_scope("shopt", || {
+            let ret = unsafe { bash::shopt_builtin((&args).into()) };
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
@@ -68,8 +68,8 @@ pub fn shopt(args: &[&str]) -> crate::Result<ExecStatus> {
 pub fn source(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
-        cmd_scope("source", || unsafe {
-            let ret = bash::source_builtin((&args).into());
+        cmd_scope("source", || {
+            let ret = unsafe { bash::source_builtin((&args).into()) };
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
