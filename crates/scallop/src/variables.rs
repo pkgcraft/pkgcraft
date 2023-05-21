@@ -299,6 +299,24 @@ mod tests {
     use super::*;
 
     #[test]
+    fn bind_and_unbind() {
+        // nonexistent
+        assert!(unbind("NONEXISTENT_VAR").is_ok());
+
+        // existent
+        bind("VAR", "", None, None).unwrap();
+        assert_eq!(optional("VAR").unwrap(), "");
+        unbind("VAR").unwrap();
+        assert!(optional("VAR").is_none());
+
+        // existent with content
+        bind("VAR", "foo", None, None).unwrap();
+        assert_eq!(optional("VAR").unwrap(), "foo");
+        unbind("VAR").unwrap();
+        assert!(optional("VAR").is_none());
+    }
+
+    #[test]
     fn test_string_vec() {
         assert!(string_vec("VAR").is_err());
         bind("VAR", "", None, None).unwrap();
