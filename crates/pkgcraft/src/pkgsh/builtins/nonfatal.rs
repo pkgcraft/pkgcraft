@@ -34,8 +34,6 @@ make_builtin!("nonfatal", nonfatal_builtin, run, LONG_DOC, USAGE, &[("4..", &[PH
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins;
-
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as nonfatal;
     use super::*;
@@ -55,7 +53,6 @@ mod tests {
 
     #[test]
     fn test_nonfatal_die() {
-        builtins::enable(&["die"]).unwrap();
         let status = nonfatal(&["die", "-n", "message"]).unwrap();
         assert!(i32::from(status) != 0);
     }

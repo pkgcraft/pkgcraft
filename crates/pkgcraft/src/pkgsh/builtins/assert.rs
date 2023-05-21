@@ -23,8 +23,8 @@ make_builtin!("assert", assert_builtin, run, LONG_DOC, USAGE, &[("..", &[ALL])])
 
 #[cfg(test)]
 mod tests {
+    use scallop::source;
     use scallop::variables::{self, *};
-    use scallop::{builtins, source};
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
@@ -55,8 +55,6 @@ mod tests {
 
     #[test]
     fn success() {
-        builtins::enable(&["assert"]).unwrap();
-
         // unset PIPESTATUS
         source::string("assert").unwrap();
 
@@ -66,7 +64,6 @@ mod tests {
 
     #[test]
     fn main() {
-        builtins::enable(&["assert"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("true | false | true; assert && VAR=2");
@@ -83,7 +80,6 @@ mod tests {
     #[test]
     #[cfg_attr(target_os = "macos", ignore)] // TODO: debug bash failures
     fn subshell() {
-        builtins::enable(&["assert"]).unwrap();
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("FOO=$(true | false; assert); VAR=2");
@@ -99,8 +95,6 @@ mod tests {
 
     #[test]
     fn nonfatal() {
-        builtins::enable(&["assert", "nonfatal"]).unwrap();
-
         let phase = PhaseKind::SrcInstall.stub();
         get_build_mut().scope = Scope::Phase(phase);
 
