@@ -277,6 +277,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::metadata::Checksum;
     use crate::pkg::BuildablePackage;
+    use crate::pkgsh::BuildData;
     use crate::repo::PkgRepository;
     use crate::test::{assert_ordered_eq, assert_unordered_eq};
 
@@ -370,6 +371,7 @@ mod tests {
         "#};
         let (path, cpv) = t.create_ebuild_raw("cat1/pkg-1", data).unwrap();
         let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        BuildData::from_pkg(&pkg);
         pkg.build().unwrap();
     }
 

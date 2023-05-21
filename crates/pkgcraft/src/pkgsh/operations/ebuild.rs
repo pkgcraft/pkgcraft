@@ -5,7 +5,6 @@ use super::Operation;
 
 impl<'a> BuildablePackage for Pkg<'a> {
     fn build(&self) -> crate::Result<()> {
-        BuildData::from_pkg(self);
         get_build_mut().source_ebuild(self.path())?;
 
         for phase in self.eapi().operation(Operation::Build) {
