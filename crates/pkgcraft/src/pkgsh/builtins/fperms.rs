@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::process::Command;
 
 use scallop::builtins::ExecStatus;
@@ -17,15 +16,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(format!("requires at least 2 args, got {}", args.len())));
     }
 
-    let destdir = Path::new(get_build_mut().destdir());
-
-    let mut chmod = Command::new("chmod");
-    for arg in args {
-        let path = arg.trim_start_matches('/');
-        chmod.arg(destdir.join(path));
-    }
-
-    chmod.run()?;
+    Command::new("chmod")
+        .args(args.iter().map(|s| s.trim_start_matches('/')))
+        .current_dir(get_build_mut().destdir())
+        .run()?;
 
     Ok(ExecStatus::Success)
 }
