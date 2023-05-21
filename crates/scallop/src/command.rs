@@ -40,7 +40,7 @@ impl Command {
     pub fn execute(&self) -> crate::Result<ExecStatus> {
         match unsafe { bash::execute_command(self.ptr) } {
             0 => Ok(ExecStatus::Success),
-            n => Err(Error::Status(ExecStatus::Failure(n), "command failed".into())),
+            n => Err(Error::Status(ExecStatus::Failure(n))),
         }
     }
 }
@@ -95,9 +95,13 @@ pub fn current<'a>() -> Option<&'a str> {
 }
 
 /// Run a function under a named bash command scope.
-pub(crate) fn cmd_scope<F: FnOnce()>(name: &str, func: F) {
+pub(crate) fn cmd_scope<F: FnOnce() -> crate::Result<ExecStatus>>(
+    name: &str,
+    func: F,
+) -> crate::Result<ExecStatus> {
     let name = CString::new(name).unwrap();
     unsafe { bash::CURRENT_COMMAND = name.as_ptr() as *mut _ };
-    func();
+    let result = func();
     unsafe { bash::CURRENT_COMMAND = ptr::null_mut() };
+    result
 }

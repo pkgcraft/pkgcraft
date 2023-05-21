@@ -48,11 +48,14 @@ bitflags! {
     }
 }
 
+/// Unset a given variable name ignoring if it is nonexistent.
 pub fn unbind<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
     let name = name.as_ref();
     let cstr = CString::new(name).unwrap();
     ok_or_error(|| unsafe {
+        // ignore non-zero return values for nonexistent variables
         bash::check_unbind_variable(cstr.as_ptr());
+        Ok(ExecStatus::Success)
     })
 }
 
@@ -77,6 +80,7 @@ where
                 var.attributes |= attrs.bits() as i32;
             }
         }
+        Ok(ExecStatus::Success)
     })
 }
 
@@ -97,6 +101,7 @@ pub fn bind_global<S: AsRef<str>>(
                 var.attributes |= attrs.bits() as i32;
             }
         }
+        Ok(ExecStatus::Success)
     })
 }
 

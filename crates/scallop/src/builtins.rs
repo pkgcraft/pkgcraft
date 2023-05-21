@@ -385,6 +385,13 @@ pub enum ExecStatus {
     Failure(i32),
 }
 
+impl fmt::Display for ExecStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let ret: i32 = (*self).into();
+        write!(f, "{ret}")
+    }
+}
+
 impl From<ExecStatus> for i32 {
     fn from(exec: ExecStatus) -> i32 {
         match exec {
@@ -398,7 +405,7 @@ impl From<Error> for ExecStatus {
     fn from(e: Error) -> ExecStatus {
         match e {
             Error::Bail(_) => ExecStatus::Failure(bash::EX_LONGJMP as i32),
-            Error::Status(s, _) => s,
+            Error::Status(s) => s,
             _ => ExecStatus::Failure(1),
         }
     }

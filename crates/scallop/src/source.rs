@@ -4,7 +4,7 @@ use bitflags::bitflags;
 
 use crate::bash;
 use crate::builtins::ExecStatus;
-use crate::error::ok_or_error;
+use crate::error::{ok_or_error, Error};
 
 bitflags! {
     /// Flag values used with source::string() for altering string evaluation.
@@ -28,7 +28,12 @@ pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
     let c_str = CString::new(s).unwrap();
     let str_ptr = c_str.as_ptr() as *mut _;
     ok_or_error(|| {
-        unsafe { bash::scallop_evalstring(str_ptr, 0) };
+        let ret = unsafe { bash::scallop_evalstring(str_ptr, 0) };
+        if ret == 0 {
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed sourcing string: exit status {}", ret)))
+        }
     })
 }
 
@@ -36,7 +41,12 @@ pub fn file<S: AsRef<str>>(path: S) -> crate::Result<ExecStatus> {
     let path = path.as_ref();
     let c_str = CString::new(path).unwrap();
     ok_or_error(|| {
-        unsafe { bash::scallop_source_file(c_str.as_ptr()) };
+        let ret = unsafe { bash::scallop_source_file(c_str.as_ptr()) };
+        if ret == 0 {
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed sourcing file: {path}: exit status {}", ret)))
+        }
     })
 }
 

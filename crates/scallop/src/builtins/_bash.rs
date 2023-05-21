@@ -1,7 +1,7 @@
 use crate::bash;
 use crate::builtins::ExecStatus;
 use crate::command::cmd_scope;
-use crate::error::ok_or_error;
+use crate::error::{ok_or_error, Error};
 use crate::traits::*;
 
 /// Run the `declare` builtin with the given arguments.
@@ -9,8 +9,13 @@ pub fn declare(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
         cmd_scope("declare", || unsafe {
-            bash::declare_builtin((&args).into());
-        });
+            let ret = bash::declare_builtin((&args).into());
+            if ret == 0 {
+                Ok(ExecStatus::Success)
+            } else {
+                Err(Error::Base(format!("failed running declare builtin: exit status {}", ret)))
+            }
+        })
     })
 }
 
@@ -19,8 +24,13 @@ pub fn local(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
         cmd_scope("local", || unsafe {
-            bash::local_builtin((&args).into());
-        });
+            let ret = bash::local_builtin((&args).into());
+            if ret == 0 {
+                Ok(ExecStatus::Success)
+            } else {
+                Err(Error::Base(format!("failed running local builtin: exit status {}", ret)))
+            }
+        })
     })
 }
 
@@ -29,8 +39,13 @@ pub fn set(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
         cmd_scope("set", || unsafe {
-            bash::set_builtin((&args).into());
-        });
+            let ret = bash::set_builtin((&args).into());
+            if ret == 0 {
+                Ok(ExecStatus::Success)
+            } else {
+                Err(Error::Base(format!("failed running set builtin: exit status {}", ret)))
+            }
+        })
     })
 }
 
@@ -39,8 +54,13 @@ pub fn shopt(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
         cmd_scope("shopt", || unsafe {
-            bash::shopt_builtin((&args).into());
-        });
+            let ret = bash::shopt_builtin((&args).into());
+            if ret == 0 {
+                Ok(ExecStatus::Success)
+            } else {
+                Err(Error::Base(format!("failed running shopt builtin: exit status {}", ret)))
+            }
+        })
     })
 }
 
@@ -49,8 +69,13 @@ pub fn source(args: &[&str]) -> crate::Result<ExecStatus> {
     let args = Words::from_iter(args.iter().copied());
     ok_or_error(|| {
         cmd_scope("source", || unsafe {
-            bash::source_builtin((&args).into());
-        });
+            let ret = bash::source_builtin((&args).into());
+            if ret == 0 {
+                Ok(ExecStatus::Success)
+            } else {
+                Err(Error::Base(format!("failed running source builtin: exit status {}", ret)))
+            }
+        })
     })
 }
 

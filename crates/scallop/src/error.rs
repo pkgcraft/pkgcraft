@@ -16,8 +16,8 @@ pub enum Error {
     Base(String),
     #[error("{1}")]
     IO(io::ErrorKind, String),
-    #[error("{1}")]
-    Status(ExecStatus, String),
+    #[error("failed: {0}")]
+    Status(ExecStatus),
 }
 
 impl From<io::Error> for Error {
@@ -36,14 +36,16 @@ pub(crate) fn reset() {
     CALL_LEVEL.store(0, Ordering::Relaxed);
 }
 
-/// Return the most recent error if one exists, otherwise Ok(ExecStatus::Success).
-pub(crate) fn ok_or_error<F: FnOnce()>(func: F) -> Result<ExecStatus> {
+/// Run a function encompassing bash C calls that may spawn errors, returning the most recent if it
+/// exists. Otherwise, the error status is pulled from the integer-based function result, zero for
+/// success and nonzero for failure.
+pub(crate) fn ok_or_error<F: FnOnce() -> Result<ExecStatus>>(func: F) -> Result<ExecStatus> {
     CALL_LEVEL.fetch_add(1, Ordering::Relaxed);
-    func();
+    let result = func();
     crate::shell::raise_shm_error();
     let level = CALL_LEVEL.fetch_sub(1, Ordering::Relaxed);
     match ERRORS.with(|errors| errors.borrow_mut().remove(&level)) {
-        None => Ok(ExecStatus::Success),
+        None => result,
         Some(e) => Err(e),
     }
 }

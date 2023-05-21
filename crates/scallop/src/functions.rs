@@ -3,7 +3,7 @@ use std::ptr;
 
 use crate::bash;
 use crate::builtins::ExecStatus;
-use crate::error::ok_or_error;
+use crate::error::{ok_or_error, Error};
 
 #[derive(Debug)]
 pub struct Function<'a> {
@@ -22,7 +22,15 @@ impl Function<'_> {
         let args = arg_ptrs.as_mut_ptr();
         ok_or_error(|| unsafe {
             let words = bash::strvec_to_word_list(args, 0, 0);
-            bash::scallop_execute_shell_function(self.func, words);
+            let ret = bash::scallop_execute_shell_function(self.func, words);
+            if ret == 0 {
+                Ok(ExecStatus::Success)
+            } else {
+                Err(Error::Base(format!(
+                    "failed running function: {}: exit status {}",
+                    &self.name, ret
+                )))
+            }
         })
     }
 }
@@ -67,6 +75,13 @@ mod tests {
         assert_eq!(optional("VAR").unwrap(), "");
         func.execute(&["1"]).unwrap();
         assert_eq!(optional("VAR").unwrap(), "1");
+    }
+
+    #[test]
+    fn failed_execute() {
+        source::string("foo() { nonexistent_cmd; }").unwrap();
+        let mut func = find("foo").unwrap();
+        assert!(func.execute(&[]).is_err());
     }
 
     #[test]

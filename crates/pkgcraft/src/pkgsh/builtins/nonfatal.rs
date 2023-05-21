@@ -21,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::new(args.join(" "), None)?;
     let status = match cmd.execute() {
         Ok(s) => s,
-        Err(Error::Status(s, _)) => s,
+        Err(Error::Status(s)) => s,
         _ => ExecStatus::Failure(1),
     };
     NONFATAL.store(false, Ordering::Relaxed);
