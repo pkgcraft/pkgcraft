@@ -294,6 +294,28 @@ pub fn var_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
     }
 }
 
+/// Provide access to bash's $PIPESTATUS shell variable.
+pub struct PipeStatus {
+    statuses: Vec<i32>,
+}
+
+impl PipeStatus {
+    /// Get the current value for $PIPESTATUS.
+    pub fn get() -> Self {
+        let statuses = array_to_vec("PIPESTATUS")
+            .unwrap_or_default()
+            .iter()
+            .map(|s| s.parse::<i32>().unwrap_or(-1))
+            .collect();
+        Self { statuses }
+    }
+
+    /// Determine if a process failed in the related pipeline.
+    pub fn failed(&self) -> bool {
+        self.statuses.iter().any(|s| *s != 0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
