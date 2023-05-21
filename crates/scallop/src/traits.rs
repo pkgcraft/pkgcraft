@@ -1,7 +1,7 @@
-use std::ffi::{c_char, CStr, CString};
-use std::ptr;
+use std::ffi::CStr;
 
 use crate::bash;
+use crate::macros::*;
 
 pub struct Words {
     words: *mut bash::WordList,
@@ -57,10 +57,8 @@ impl IntoWords for *mut bash::WordList {
 
 impl<'a> FromIterator<&'a str> for Words {
     fn from_iter<I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
-        let strs: Vec<_> = iter.into_iter().map(|s| CString::new(s).unwrap()).collect();
-        let mut ptrs: Vec<_> = strs.iter().map(|s| s.as_ptr() as *mut c_char).collect();
-        ptrs.push(ptr::null_mut());
-        let words = unsafe { bash::strvec_to_word_list(ptrs.as_mut_ptr(), 1, 0) };
+        let mut strs = iter_to_array!(iter.into_iter(), str_to_raw);
+        let words = unsafe { bash::strvec_to_word_list(strs.as_mut_ptr(), 1, 0) };
         Words { words, drop: true }
     }
 }

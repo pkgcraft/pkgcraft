@@ -1,9 +1,9 @@
-use std::ffi::{c_char, CString};
-use std::ptr;
+use std::ffi::CString;
 
 use crate::bash;
 use crate::builtins::ExecStatus;
 use crate::error::{ok_or_error, Error};
+use crate::macros::*;
 
 #[derive(Debug)]
 pub struct Function<'a> {
@@ -15,14 +15,10 @@ impl Function<'_> {
     /// Execute a given shell function.
     pub fn execute(&mut self, args: &[&str]) -> crate::Result<ExecStatus> {
         let args = [&[self.name.as_str()], args].concat();
-        let arg_strs: Vec<CString> = args.iter().map(|s| CString::new(*s).unwrap()).collect();
-        let mut arg_ptrs: Vec<*mut c_char> =
-            arg_strs.iter().map(|s| s.as_ptr() as *mut _).collect();
-        arg_ptrs.push(ptr::null_mut());
-        let args = arg_ptrs.as_mut_ptr();
+        let mut args = iter_to_array!(args.iter(), str_to_raw);
         ok_or_error(|| {
             let ret = unsafe {
-                let words = bash::strvec_to_word_list(args, 0, 0);
+                let words = bash::strvec_to_word_list(args.as_mut_ptr(), 0, 0);
                 bash::scallop_execute_shell_function(self.func, words)
             };
             if ret == 0 {

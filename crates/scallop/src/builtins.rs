@@ -7,6 +7,7 @@ use std::{fmt, mem, process, ptr};
 use bitflags::bitflags;
 use nix::sys::signal::Signal;
 
+use crate::macros::*;
 use crate::{bash, shell, Error};
 
 mod _bash;
@@ -127,14 +128,9 @@ impl From<Builtin> for bash::Builtin {
         let short_doc = short_doc_str.as_ptr();
         mem::forget(short_doc_str);
 
-        let mut long_doc_ptr: Vec<*mut c_char> = builtin
-            .help
-            .split('\n')
-            .map(|s| CString::new(s).unwrap().into_raw())
-            .collect();
-        long_doc_ptr.push(ptr::null_mut());
-        let long_doc = long_doc_ptr.as_ptr();
-        mem::forget(long_doc_ptr);
+        let long_docs = iter_to_array!(builtin.help.lines(), str_to_raw);
+        let long_doc = long_docs.as_ptr();
+        mem::forget(long_docs);
 
         bash::Builtin {
             name,
