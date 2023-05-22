@@ -118,9 +118,11 @@ make_builtin!(
 #[cfg(test)]
 mod tests {
     use scallop::source;
-    use scallop::variables::bind;
 
+    use crate::config::Config;
     use crate::pkgsh::test::FileTree;
+    use crate::pkgsh::BuildData;
+    use crate::repo::PkgRepository;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as einstalldocs;
@@ -135,7 +137,12 @@ mod tests {
 
     #[test]
     fn test_no_files() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         einstalldocs(&[]).unwrap();
         assert!(file_tree.is_empty());
@@ -143,7 +150,12 @@ mod tests {
 
     #[test]
     fn test_default_files_empty() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         for f in DOCS_DEFAULTS {
             fs::File::create(f.trim_end_matches('*')).unwrap();
@@ -154,7 +166,12 @@ mod tests {
 
     #[test]
     fn test_default_files() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         for f in ["README", "NEWS"] {
             fs::write(f, "data").unwrap();
@@ -172,7 +189,12 @@ mod tests {
 
     #[test]
     fn test_default_files_globs() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         for f in ["README-1", "READMEa"] {
             fs::write(f, "data").unwrap();
@@ -190,7 +212,12 @@ mod tests {
 
     #[test]
     fn test_docs_array() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         source::string("DOCS=( NEWS subdir dir/. )").unwrap();
         fs::File::create("NEWS").unwrap();
@@ -213,7 +240,12 @@ mod tests {
 
     #[test]
     fn test_docs_string() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         source::string("DOCS=\"NEWS subdir dir/.\"").unwrap();
         fs::File::create("NEWS").unwrap();
@@ -236,7 +268,12 @@ mod tests {
 
     #[test]
     fn test_html_docs_array() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         source::string("HTML_DOCS=( a.html subdir dir/. )").unwrap();
         fs::File::create("a.html").unwrap();
@@ -259,7 +296,12 @@ mod tests {
 
     #[test]
     fn test_html_docs_string() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         source::string("HTML_DOCS=\"a.html subdir dir/.\"").unwrap();
         fs::File::create("a.html").unwrap();

@@ -1,11 +1,12 @@
 use std::path::Path;
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error};
+use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::macros::build_from_paths;
+use crate::pkg::Package;
 use crate::pkgsh::{get_build_mut, BuildData};
 
 use super::make_builtin;
@@ -20,7 +21,7 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
 ) -> scallop::Result<ExecStatus> {
     let dest = build_from_paths!(
         "/usr/share/doc",
-        &variables::required("PF")?,
+        build.pkg()?.cpv().pf(),
         build.docdesttree.trim_start_matches('/')
     );
     let install = build.install().dest(dest)?;
@@ -61,10 +62,10 @@ make_builtin!("dodoc", dodoc_builtin, run, LONG_DOC, USAGE, &[("..", &["src_inst
 mod tests {
     use std::fs;
 
-    use scallop::variables::bind;
-
+    use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
+    use crate::repo::PkgRepository;
 
     use super::super::docinto::run as docinto;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -77,7 +78,11 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(dodoc, &[0]);
 
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
         let _file_tree = FileTree::new();
 
         // non-recursive directory
@@ -88,7 +93,12 @@ mod tests {
 
     #[test]
     fn creation() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         let default_mode = 0o100644;
 

@@ -4,10 +4,11 @@ use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error};
+use scallop::Error;
 use walkdir::DirEntry;
 
 use crate::macros::build_from_paths;
+use crate::pkg::Package;
 use crate::pkgsh::{get_build_mut, write_stderr};
 
 use super::make_builtin;
@@ -134,7 +135,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .as_ref()
         .map(|s| s.trim_start_matches('/'))
         .unwrap_or_default();
-    let dest = build_from_paths!("/usr/share/doc", variables::required("PF")?, subdir, doc_prefix);
+    let dest = build_from_paths!("/usr/share/doc", build.pkg()?.cpv().pf(), subdir, doc_prefix);
     let install = build.install().dest(dest)?;
 
     let (dirs, files): (Vec<_>, Vec<_>) =
@@ -161,11 +162,11 @@ make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, &[("0..7", &["src_
 mod tests {
     use std::fs;
 
-    use scallop::variables::bind;
-
+    use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkgsh::assert_stderr;
     use crate::pkgsh::test::FileTree;
+    use crate::pkgsh::{assert_stderr, BuildData};
+    use crate::repo::PkgRepository;
 
     use super::super::docinto::run as docinto;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -178,7 +179,11 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(dohtml, &[0]);
 
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
         let _file_tree = FileTree::new();
 
         // non-recursive directory
@@ -189,7 +194,12 @@ mod tests {
 
     #[test]
     fn verbose_output() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let _file_tree = FileTree::new();
         fs::File::create("index.html").unwrap();
 
@@ -224,7 +234,12 @@ mod tests {
 
     #[test]
     fn creation() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
 
         // simple file
@@ -261,7 +276,12 @@ mod tests {
 
     #[test]
     fn options() {
-        bind("PF", "pkg-1", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
 
         fs::create_dir("doc").unwrap();
