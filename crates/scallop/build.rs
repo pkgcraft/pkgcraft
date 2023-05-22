@@ -63,20 +63,16 @@ fn main() {
         .disable("nls", None)
         // job control is required for $PIPESTATUS
         .enable("job-control", None)
-        .enable("restricted", None);
+        // enable restricted shell support
+        .enable("restricted", None)
+        // build as a static library
+        .enable("library", None)
+        .make_target("libbash.a")
+        .build();
 
-    if cfg!(feature = "plugin") {
-        // Plugins use symbols from bash externally so skip building the library.
-        bash.make_target("pathnames.h").build();
-    } else {
-        // build static bash library
-        bash.enable("library", None)
-            .make_target("libbash.a")
-            .build();
-        // link scallop statically with bash
-        println!("cargo:rustc-link-search=native={bash_build_dir}");
-        println!("cargo:rustc-link-lib=static=bash");
-    }
+    // statically link with bash library
+    println!("cargo:rustc-link-search=native={bash_build_dir}");
+    println!("cargo:rustc-link-lib=static=bash");
 
     // `cargo llvm-cov` currently appears to have somewhat naive object detection and erroneously
     // includes the config.status file causing it to error out
