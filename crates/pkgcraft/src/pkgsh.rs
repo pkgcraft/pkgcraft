@@ -166,7 +166,6 @@ impl Default for BuildState<'_> {
 pub(crate) struct BuildData<'a> {
     state: BuildState<'a>,
 
-    captured_io: bool,
     stdin: Stdin,
     stdout: Stdout,
     stderr: Stderr,
@@ -209,7 +208,6 @@ pub(crate) struct BuildData<'a> {
 impl<'a> BuildData<'a> {
     fn new() -> Self {
         Self {
-            captured_io: cfg!(test),
             insopts: vec!["-m0644".to_string()],
             libopts: vec!["-m0644".to_string()],
             diropts: vec!["-m0755".to_string()],
@@ -370,7 +368,7 @@ impl<'a> BuildData<'a> {
             return Err(Error::Base("no input available, stdin is a tty".into()));
         }
 
-        if self.captured_io {
+        if !cfg!(test) {
             Ok(&mut self.stdin.inner)
         } else {
             Ok(&mut self.stdin.fake)
@@ -378,7 +376,7 @@ impl<'a> BuildData<'a> {
     }
 
     fn stdout(&mut self) -> &mut dyn Write {
-        if self.captured_io {
+        if !cfg!(test) || scallop::shell::in_subshell() {
             &mut self.stdout.inner
         } else {
             &mut self.stdout.fake
@@ -386,7 +384,7 @@ impl<'a> BuildData<'a> {
     }
 
     fn stderr(&mut self) -> &mut dyn Write {
-        if self.captured_io {
+        if !cfg!(test) || scallop::shell::in_subshell() {
             &mut self.stderr.inner
         } else {
             &mut self.stderr.fake

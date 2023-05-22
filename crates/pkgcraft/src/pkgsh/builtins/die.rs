@@ -48,7 +48,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkgsh::phase::PhaseKind;
-    use crate::pkgsh::{assert_stderr, get_build_mut, BuildData, Scope};
+    use crate::pkgsh::{assert_stderr, BuildData, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as die;
@@ -116,8 +116,6 @@ mod tests {
         source::string("nonfatal die -n message; VAR=2").unwrap();
         assert_stderr!("message\n");
         assert_eq!(variables::optional("VAR").unwrap(), "2");
-
-        get_build_mut().captured_io = false;
 
         // nonfatal die in subshell without message
         bind("VAR", "1", None, None).unwrap();
