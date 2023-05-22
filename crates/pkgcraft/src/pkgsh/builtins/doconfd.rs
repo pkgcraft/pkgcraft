@@ -16,9 +16,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let build = get_build_mut();
     let dest = "/etc/conf.d";
-    let opts: Vec<_> = match build.eapi().has(Feature::ConsistentFileOpts) {
-        true => vec!["-m0644"],
-        false => build.insopts.iter().map(|s| s.as_str()).collect(),
+    let opts: Vec<_> = if build.eapi().has(Feature::ConsistentFileOpts) {
+        vec!["-m0644"]
+    } else {
+        build.insopts.iter().map(|s| s.as_str()).collect()
     };
     let install = build.install().dest(dest)?.file_options(opts);
     install.files(args)?;
@@ -70,9 +71,10 @@ mod tests {
             BuildData::empty(eapi);
             insopts(&["-m0755"]).unwrap();
             doconfd(&["pkgcraft"]).unwrap();
-            let mode = match eapi.has(Feature::ConsistentFileOpts) {
-                true => default_mode,
-                false => custom_mode,
+            let mode = if eapi.has(Feature::ConsistentFileOpts) {
+                default_mode
+            } else {
+                custom_mode
             };
             file_tree.assert(format!(
                 r#"

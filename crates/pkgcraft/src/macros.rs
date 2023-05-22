@@ -17,10 +17,11 @@ macro_rules! assert_err_re {
         let s = err.to_string();
         let re = ::regex::Regex::new($re.as_ref()).unwrap();
         let err_msg = format!("{s:?} does not match regex: {:?}", $re);
-        match $msg.is_empty() {
-            true => assert!(re.is_match(&s), "{}", err_msg),
-            false => assert!(re.is_match(&s), "{}", format!("{err_msg}: {}", $msg)),
-        };
+        if $msg.is_empty() {
+            assert!(re.is_match(&s), "{}", err_msg);
+        } else {
+            assert!(re.is_match(&s), "{}", format!("{err_msg}: {}", $msg));
+        }
     };
 }
 #[cfg(test)]

@@ -213,9 +213,10 @@ impl Install {
             let dir = dir.as_ref();
             // Determine whether to skip the base directory, path.components() can't be used
             // because it normalizes all occurrences of '.' away.
-            let depth = match dir.to_string_lossy().ends_with("/.") {
-                true => 1,
-                false => 0,
+            let depth = if dir.to_string_lossy().ends_with("/.") {
+                1
+            } else {
+                0
             };
 
             // optionally apply directory filtering
@@ -240,9 +241,10 @@ impl Install {
                         comp.as_path()
                     }
                 };
-                match path.is_dir() {
-                    true => self.dirs([dest])?,
-                    false => self.files_map([(path, dest)])?,
+                if path.is_dir() {
+                    self.dirs([dest])?;
+                } else {
+                    self.files_map([(path, dest)])?;
                 }
             }
         }

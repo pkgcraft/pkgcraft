@@ -16,10 +16,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             let output = args[0].strip_prefix('!').unwrap_or(args[0]);
             Ok((&args[..1], output))
         }
-        2 => match get_build_mut().eapi().has(Feature::UsevTwoArgs) {
-            true => Ok((&args[..1], args[1])),
-            false => Err(Error::Base("requires 1 arg, got 2".into())),
-        },
+        2 => {
+            if get_build_mut().eapi().has(Feature::UsevTwoArgs) {
+                Ok((&args[..1], args[1]))
+            } else {
+                Err(Error::Base("requires 1 arg, got 2".into()))
+            }
+        }
         n => Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
     }?;
 

@@ -64,9 +64,10 @@ mod tests {
 
             // verify conditional EAPI environment export
             let env_val = variables::optional("DESTTREE");
-            match eapi.env().contains_key(&BuildVariable::DESTTREE) {
-                true => assert_eq!(env_val.unwrap(), "/test/path"),
-                false => assert!(env_val.is_none()),
+            if eapi.env().contains_key(&BuildVariable::DESTTREE) {
+                assert_eq!(env_val.unwrap(), "/test/path")
+            } else {
+                assert!(env_val.is_none())
             }
         }
     }

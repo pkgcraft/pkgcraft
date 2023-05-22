@@ -7,10 +7,13 @@ use crate::Error;
 
 fn run_cmd(cmd: &mut Command) -> crate::Result<()> {
     match cmd.status() {
-        Ok(r) => match r.success() {
-            true => Ok(()),
-            false => Err(Error::IO(format!("failed running: {cmd:?}"))),
-        },
+        Ok(r) => {
+            if r.success() {
+                Ok(())
+            } else {
+                Err(Error::IO(format!("failed running: {cmd:?}")))
+            }
+        }
         Err(e) => Err(Error::IO(format!("failed running: {:?}: {e}", cmd.get_program()))),
     }
 }
@@ -41,9 +44,10 @@ impl RunCommand for Command {
         COMMANDS.with(|cmds| cmds.borrow_mut().push(cmd));
 
         RUN_COMMAND.with(|d| -> crate::Result<()> {
-            match *d.borrow() {
-                true => run_cmd(self),
-                false => Ok(()),
+            if *d.borrow() {
+                run_cmd(self)
+            } else {
+                Ok(())
             }
         })
     }

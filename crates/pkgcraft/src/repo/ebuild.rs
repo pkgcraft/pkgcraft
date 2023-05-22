@@ -328,9 +328,12 @@ impl Repo {
                     .ok_or_else(|| err("missing ebuild ext"))?;
                 Cpv::new(&format!("{cat}/{p}"))
                     .map_err(|_| err("invalid CPV"))
-                    .and_then(|a| match a.package() == pkg {
-                        true => Ok(a),
-                        false => Err(err("mismatched package dir")),
+                    .and_then(|a| {
+                        if a.package() == pkg {
+                            Ok(a)
+                        } else {
+                            Err(err("mismatched package dir"))
+                        }
                     })
             })
     }
@@ -482,15 +485,17 @@ impl PkgRepository for Repo {
             let path = entry.path();
             let pn = path.parent().unwrap().file_name().unwrap().to_str();
             let pf = path.file_stem().unwrap().to_str();
-            match (pn, pf) {
-                (Some(pn), Some(pf)) => match pn == &pf[..pn.len()] {
-                    true => match Version::new(&pf[pn.len() + 1..]) {
+            if let (Some(pn), Some(pf)) = (pn, pf) {
+                if pn == &pf[..pn.len()] {
+                    match Version::new(&pf[pn.len() + 1..]) {
                         Ok(v) => versions.push(v),
                         Err(e) => warn!("{}: {e}: {path:?}", self.id()),
-                    },
-                    false => warn!("{}: unmatched ebuild: {path:?}", self.id()),
-                },
-                _ => warn!("{}: non-unicode path: {path:?}", self.id()),
+                    }
+                } else {
+                    warn!("{}: unmatched ebuild: {path:?}", self.id());
+                }
+            } else {
+                warn!("{}: non-unicode path: {path:?}", self.id());
             }
         }
         versions.sort();

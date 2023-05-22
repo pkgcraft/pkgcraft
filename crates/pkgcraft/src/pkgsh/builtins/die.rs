@@ -27,9 +27,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         n => return Err(Error::Base(format!("takes up to 1 arg, got {n}"))),
     };
 
-    let msg = match args.is_empty() {
-        true => "(no error message)",
-        false => args[0],
+    let msg = if args.is_empty() {
+        "(no error message)"
+    } else {
+        args[0]
     };
 
     // TODO: add bash backtrace to output

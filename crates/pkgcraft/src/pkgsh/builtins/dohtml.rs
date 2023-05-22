@@ -103,10 +103,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // determine if a file is allowed
     let allowed_file = |path: &Path| -> bool {
         match (path.file_name().map(|s| s.to_str()), path.extension().map(|s| s.to_str())) {
-            (Some(Some(name)), Some(Some(ext))) => match allowed_files.is_empty() {
-                true => allowed_file_exts.contains(ext),
-                false => allowed_files.contains(name),
-            },
+            (Some(Some(name)), Some(Some(ext))) => {
+                if allowed_files.is_empty() {
+                    allowed_file_exts.contains(ext)
+                } else {
+                    allowed_files.contains(name)
+                }
+            }
             _ => false,
         }
     };
@@ -114,9 +117,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // determine if a walkdir entry is allowed
     let is_allowed = |entry: &DirEntry| -> bool {
         let path = entry.path();
-        match path.is_dir() {
-            true => !excluded_dirs.contains(path),
-            false => allowed_file(path),
+        if path.is_dir() {
+            !excluded_dirs.contains(path)
+        } else {
+            allowed_file(path)
         }
     };
 
@@ -125,10 +129,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         "" => "html",
         val => val,
     };
-    let doc_prefix = match opts.doc_prefix.as_ref() {
-        None => "",
-        Some(s) => s.trim_start_matches('/'),
-    };
+    let doc_prefix = opts
+        .doc_prefix
+        .as_ref()
+        .map(|s| s.trim_start_matches('/'))
+        .unwrap_or_default();
     let dest = build_from_paths!("/usr/share/doc", variables::required("PF")?, subdir, doc_prefix);
     let install = build.install().dest(dest)?;
 

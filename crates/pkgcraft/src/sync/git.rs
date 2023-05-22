@@ -19,9 +19,10 @@ pub(crate) struct Repo {
 #[async_trait]
 impl Syncable for Repo {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
-        match HANDLED_URI_RE.is_match(uri) {
-            true => Ok(Syncer::Git(Repo { uri: uri.to_string() })),
-            false => Err(Error::RepoInit(format!("invalid git repo: {uri:?}"))),
+        if HANDLED_URI_RE.is_match(uri) {
+            Ok(Syncer::Git(Repo { uri: uri.to_string() }))
+        } else {
+            Err(Error::RepoInit(format!("invalid git repo: {uri:?}")))
         }
     }
 

@@ -26,10 +26,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
 
     if !dirs.is_empty() {
-        match recursive {
-            true => install.recursive(dirs, NO_WALKDIR_FILTER),
-            false => Err(Error::Base(format!("non-recursive dir install: {:?}", dirs[0]))),
-        }?;
+        if recursive {
+            install.recursive(dirs, NO_WALKDIR_FILTER)?;
+        } else {
+            return Err(Error::Base(format!("non-recursive dir install: {:?}", dirs[0])));
+        }
     }
 
     install.files(files)?;

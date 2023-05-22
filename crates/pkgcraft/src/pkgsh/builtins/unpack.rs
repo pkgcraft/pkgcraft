@@ -44,11 +44,12 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
             Ok(Utf8PathBuf::from(path))
         } else {
-            let adj = match path.is_absolute() {
-                true => "absolute",
-                false => "relative",
+            let path_kind = if path.is_absolute() {
+                "absolute"
+            } else {
+                "relative"
             };
-            let err = format!("{adj} paths not supported in EAPI {eapi}: {path:?}");
+            let err = format!("{path_kind} paths not supported in EAPI {eapi}: {path:?}");
             Err(Error::Base(err))
         }
     };

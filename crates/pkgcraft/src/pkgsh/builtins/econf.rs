@@ -20,9 +20,10 @@ const LONG_DOC: &str = "Run a package's configure script.";
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let configure = configure();
     if !configure.is_executable() {
-        let msg = match configure.exists() {
-            true => "nonexecutable configure script",
-            false => "nonexistent configure script",
+        let msg = if configure.exists() {
+            "nonexecutable configure script"
+        } else {
+            "nonexistent configure script"
         };
         return Err(Error::Base(msg.to_string()));
     }

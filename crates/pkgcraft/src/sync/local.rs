@@ -15,9 +15,10 @@ pub(crate) struct Repo {
 impl Syncable for Repo {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
         let path = PathBuf::from(uri);
-        match path.exists() {
-            true => Ok(Syncer::Local(Repo { path: PathBuf::from(uri) })),
-            false => Err(Error::RepoInit(format!("invalid local repo: {uri:?}"))),
+        if path.exists() {
+            Ok(Syncer::Local(Repo { path: PathBuf::from(uri) }))
+        } else {
+            Err(Error::RepoInit(format!("invalid local repo: {uri:?}")))
         }
     }
 
