@@ -2,9 +2,10 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error};
+use scallop::Error;
 
 use crate::macros::build_from_paths;
+use crate::pkg::Package;
 use crate::pkgsh::get_build_mut;
 
 use super::make_builtin;
@@ -30,7 +31,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let install = build.install().dest(dest)?.file_options(opts);
 
     let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
-    let filename = format!("{}.mo", variables::required("PN")?);
+    let filename = format!("{}.mo", build.pkg()?.cpv().package());
 
     for path in args.iter().map(Path::new) {
         let dir = match path.file_stem() {
@@ -54,9 +55,10 @@ make_builtin!("domo", domo_builtin, run, LONG_DOC, USAGE, &[("..", &["src_instal
 mod tests {
     use std::fs;
 
-    use scallop::variables::bind;
-
+    use crate::config::Config;
     use crate::pkgsh::test::FileTree;
+    use crate::pkgsh::BuildData;
+    use crate::repo::PkgRepository;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as domo;
@@ -71,7 +73,12 @@ mod tests {
 
     #[test]
     fn creation() {
-        bind("PN", "pkgcraft", None, None).unwrap();
+        let mut config = Config::default();
+        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        BuildData::from_pkg(&pkg);
+
         let file_tree = FileTree::new();
         let default_mode = 0o100644;
 
@@ -80,7 +87,7 @@ mod tests {
         file_tree.assert(format!(
             r#"
             [[files]]
-            path = "/usr/share/locale/en/LC_MESSAGES/pkgcraft.mo"
+            path = "/usr/share/locale/en/LC_MESSAGES/pkg.mo"
             mode = {default_mode}
         "#
         ));
