@@ -30,14 +30,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let install = build.install().dest(dest)?.file_options(opts);
 
     let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
-    let filename = &format!("{}.mo", variables::required("PN")?);
+    let filename = format!("{}.mo", variables::required("PN")?);
 
     for path in args.iter().map(Path::new) {
         let dir = match path.file_stem() {
             None => continue,
             Some(v) => Path::new(v).join("LC_MESSAGES"),
         };
-        files.push((path, dir.join(filename)));
+        files.push((path, dir.join(&filename)));
         dirs.insert(dir);
     }
 
