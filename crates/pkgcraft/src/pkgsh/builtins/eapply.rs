@@ -30,17 +30,17 @@ impl PatchFile {
         let data = File::open(path)
             .map_err(|e| Error::Base(format!("failed reading patch: {path}: {e}")))?;
 
-        let output = Command::new("patch")
+        let patch = Command::new("patch")
             .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
             .args(options)
             .stdin(data)
             .output()
             .map_err(|e| Error::Base(format!("failed running patch: {e}")))?;
 
-        if output.status.success() {
+        if patch.status.success() {
             Ok(())
         } else {
-            let error = String::from_utf8_lossy(&output.stdout);
+            let error = String::from_utf8_lossy(&patch.stdout);
             Err(Error::Base(format!("failed applying: {path}\n{error}")))
         }
     }
