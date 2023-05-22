@@ -262,12 +262,15 @@ pub fn array_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
     let var_name = CString::new(name).unwrap();
     let var = unsafe { bash::find_variable(var_name.as_ptr()).as_ref() };
     let array_ptr = match var {
-        None => return Err(Error::Base(format!("undefined variable: {name}"))),
-        Some(v) => match (v.attributes as u32 & Attr::ARRAY.bits()) != 0 {
-            true => v.value as *mut bash::Array,
-            false => return Err(Error::Base(format!("variable is not an array: {name}"))),
-        },
-    };
+        None => Err(Error::Base(format!("undefined variable: {name}"))),
+        Some(v) => {
+            if (v.attributes as u32 & Attr::ARRAY.bits()) != 0 {
+                Ok(v.value as *mut bash::Array)
+            } else {
+                Err(Error::Base(format!("variable is not an array: {name}")))
+            }
+        }
+    }?;
 
     let mut count: i32 = 0;
     let strings: Vec<String>;
@@ -288,9 +291,10 @@ pub fn array_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
 pub fn var_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
     let name = name.as_ref();
     let var = Variable::new(name);
-    match var.is_array() {
-        false => string_vec(name),
-        true => array_to_vec(name),
+    if var.is_array() {
+        array_to_vec(name)
+    } else {
+        string_vec(name)
     }
 }
 

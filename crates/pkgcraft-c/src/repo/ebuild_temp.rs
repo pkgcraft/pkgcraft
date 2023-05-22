@@ -95,9 +95,10 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_persist(
 ) -> *mut c_char {
     ffi_catch_panic! {
         let repo = unsafe { r.read() };
-        let repo_path = match path.is_null() {
-            true => None,
-            false => Some(try_str_from_ptr!(path)),
+        let repo_path = if path.is_null() {
+            None
+        } else {
+            Some(try_str_from_ptr!(path))
         };
         let path = unwrap_or_panic!(repo.persist(repo_path));
         try_ptr_from_str!(path.as_str())

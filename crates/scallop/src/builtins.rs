@@ -186,9 +186,10 @@ fn toggle_status<S: AsRef<str>>(builtins: &[S], enable: bool) -> crate::Result<V
                 let enabled = (b.flags & Attr::ENABLED.bits() as i32) == 1;
                 if enabled != enable {
                     toggled.push(name);
-                    match enable {
-                        true => b.flags |= Attr::ENABLED.bits() as i32,
-                        false => b.flags &= !Attr::ENABLED.bits() as i32,
+                    if enable {
+                        b.flags |= Attr::ENABLED.bits() as i32;
+                    } else {
+                        b.flags &= !Attr::ENABLED.bits() as i32;
                     }
                 }
             }
@@ -196,12 +197,11 @@ fn toggle_status<S: AsRef<str>>(builtins: &[S], enable: bool) -> crate::Result<V
         }
     }
 
-    match unknown.is_empty() {
-        true => Ok(toggled),
-        false => {
-            unknown.sort();
-            Err(Error::Base(format!("unknown builtins: {}", unknown.join(", "))))
-        }
+    if unknown.is_empty() {
+        Ok(toggled)
+    } else {
+        unknown.sort();
+        Err(Error::Base(format!("unknown builtins: {}", unknown.join(", "))))
     }
 }
 
@@ -317,9 +317,10 @@ impl ScopedOptions {
             }
         }
 
-        match unknown.is_empty() {
-            true => Ok(()),
-            false => Err(Error::Base(format!("unknown options: {}", unknown.join(", ")))),
+        if unknown.is_empty() {
+            Ok(())
+        } else {
+            Err(Error::Base(format!("unknown options: {}", unknown.join(", "))))
         }
     }
 
@@ -346,9 +347,10 @@ impl ScopedOptions {
             }
         }
 
-        match unknown.is_empty() {
-            true => Ok(()),
-            false => Err(Error::Base(format!("unknown options: {}", unknown.join(", ")))),
+        if unknown.is_empty() {
+            Ok(())
+        } else {
+            Err(Error::Base(format!("unknown options: {}", unknown.join(", "))))
         }
     }
 }
@@ -424,18 +426,20 @@ impl From<&ExecStatus> for bool {
 
 impl From<bool> for ExecStatus {
     fn from(value: bool) -> ExecStatus {
-        match value {
-            true => ExecStatus::Success,
-            false => ExecStatus::Failure(1),
+        if value {
+            ExecStatus::Success
+        } else {
+            ExecStatus::Failure(1)
         }
     }
 }
 
 impl From<ExitStatus> for ExecStatus {
     fn from(status: ExitStatus) -> ExecStatus {
-        match status.success() {
-            true => ExecStatus::Success,
-            false => ExecStatus::Failure(1),
+        if status.success() {
+            ExecStatus::Success
+        } else {
+            ExecStatus::Failure(1)
         }
     }
 }

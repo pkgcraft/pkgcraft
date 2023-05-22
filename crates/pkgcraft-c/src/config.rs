@@ -29,9 +29,10 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
 ) -> *mut Repo {
     ffi_catch_panic! {
         let path = try_str_from_ptr!(path);
-        let id = match id.is_null() {
-            true => path,
-            false => try_str_from_ptr!(id),
+        let id = if id.is_null() {
+            path
+        } else {
+            try_str_from_ptr!(id)
         };
 
         let config = try_mut_from_ptr!(c);

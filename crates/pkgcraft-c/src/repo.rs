@@ -33,9 +33,10 @@ pub unsafe extern "C" fn pkgcraft_repo_from_path(
 ) -> *mut Repo {
     ffi_catch_panic! {
         let path = try_str_from_ptr!(path);
-        let id = match id.is_null() {
-            true => path,
-            false => try_str_from_ptr!(id),
+        let id = if id.is_null() {
+            path
+        } else {
+            try_str_from_ptr!(id)
         };
 
         let repo = unwrap_or_panic!(Repo::from_path(id, priority, path, finalize));
@@ -59,9 +60,10 @@ pub unsafe extern "C" fn pkgcraft_repo_from_format(
 ) -> *mut Repo {
     ffi_catch_panic! {
         let path = try_str_from_ptr!(path);
-        let id = match id.is_null() {
-            true => path,
-            false => try_str_from_ptr!(id),
+        let id = if id.is_null() {
+            path
+        } else {
+            try_str_from_ptr!(id)
         };
 
         let repo = unwrap_or_panic!(Repo::from_format(id, priority, path, format, finalize));

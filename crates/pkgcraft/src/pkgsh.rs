@@ -370,23 +370,26 @@ impl<'a> BuildData<'a> {
             return Err(Error::Base("no input available, stdin is a tty".into()));
         }
 
-        match self.captured_io {
-            false => Ok(&mut self.stdin.inner),
-            true => Ok(&mut self.stdin.fake),
+        if self.captured_io {
+            Ok(&mut self.stdin.inner)
+        } else {
+            Ok(&mut self.stdin.fake)
         }
     }
 
     fn stdout(&mut self) -> &mut dyn Write {
-        match self.captured_io {
-            false => &mut self.stdout.inner,
-            true => &mut self.stdout.fake,
+        if self.captured_io {
+            &mut self.stdout.inner
+        } else {
+            &mut self.stdout.fake
         }
     }
 
     fn stderr(&mut self) -> &mut dyn Write {
-        match self.captured_io {
-            false => &mut self.stderr.inner,
-            true => &mut self.stderr.fake,
+        if self.captured_io {
+            &mut self.stderr.inner
+        } else {
+            &mut self.stderr.fake
         }
     }
 
