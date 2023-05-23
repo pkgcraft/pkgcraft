@@ -88,22 +88,26 @@ static mut SHM: OnceCell<*mut c_char> = OnceCell::new();
 /// Create an error message in shared memory.
 pub(crate) fn set_shm_error(msg: &str) {
     let msg = CString::new(msg).unwrap();
-    let data = msg.into_bytes_with_nul();
+    let mut data = msg.into_bytes_with_nul();
+
+    // truncate error message if necessary
+    if data.len() > 4096 {
+        data = [&data[..4096], &[b'\0']].concat();
+    }
+
+    // write message into shared memory
     unsafe {
-        let addr = *SHM.get().expect("uninitialized shell");
-        ptr::copy_nonoverlapping(data.as_ptr(), addr as *mut u8, data.len());
+        let dst = *SHM.get().expect("uninitialized shell");
+        ptr::copy_nonoverlapping(data.as_ptr(), dst as *mut u8, data.len());
     }
 }
 
 /// Raise an error from shared memory if one exists.
 pub(crate) fn raise_shm_error() {
     unsafe {
-        // Note that this is ignored if the shell wasn't initialized, e.g. using scallop as a
-        // shared library for dynamic bash builtins.
-        if let Some(ptr) = SHM.get() {
-            error::bash_error(*ptr);
-            ptr::write_bytes(*ptr, b'\0', 4096);
-        }
+        let dst = *SHM.get().expect("uninitialized shell");
+        error::bash_error(dst);
+        ptr::write_bytes(dst, b'\0', 4096);
     }
 }
 
