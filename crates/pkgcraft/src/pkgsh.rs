@@ -314,6 +314,13 @@ impl<'a> BuildData<'a> {
             PORTDIR => self.repo().map(|r| r.path().to_string()),
             ECLASSDIR => self.repo().map(|r| r.path().join("eclass").into_string()),
 
+            // TODO: alter based on config settings
+            ROOT => Ok("".to_string()),
+            EROOT => Ok("".to_string()),
+            SYSROOT => Ok("".to_string()),
+            ESYSROOT => Ok("".to_string()),
+            BROOT => Ok("".to_string()),
+
             // TODO: pull these values from the config
             T => {
                 let path = std::env::temp_dir();
@@ -330,6 +337,10 @@ impl<'a> BuildData<'a> {
             EBUILD_PHASE => self.phase().map(|p| p.short_name().to_string()),
             EBUILD_PHASE_FUNC => self.phase().map(|p| p.to_string()),
             KV => os_release().map_err(|e| Error::Base(format!("failed getting OS release: {e}"))),
+
+            // TODO: alter for build vs install pkg state variants
+            REPLACING_VERSIONS => Ok("".to_string()),
+            REPLACED_BY_VERSION => Ok("".to_string()),
 
             // TODO: Implement the remaining variable values which will probably require reworking
             // BuildData into operation specific types since not all variables are exported in all
