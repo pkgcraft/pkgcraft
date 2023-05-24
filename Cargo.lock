@@ -1761,6 +1761,7 @@ dependencies = [
  "itertools",
  "maplit",
  "nix",
+ "num_cpus",
  "once_cell",
  "peg",
  "predicates",

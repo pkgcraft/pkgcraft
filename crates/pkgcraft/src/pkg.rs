@@ -70,6 +70,8 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
 }
 
 pub trait BuildablePackage: Package {
+    /// Generate the metadata for a package.
+    fn metadata(&self) -> crate::Result<()>;
     /// Run the build operations for a package.
     fn build(&self) -> crate::Result<()>;
     /// Run the pkg_pretend operation for a package.
