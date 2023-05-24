@@ -148,6 +148,9 @@ fn main() {
         .allowlist_var("temporary_env")
         .allowlist_var("att_.*") // variable attributes
 
+        .header("bash/jobs.h")
+        .allowlist_function("set_sigchld_handler")
+
         .header("bash/externs.h")
         .allowlist_function("parse_command")
         .allowlist_function("strvec_dispose")

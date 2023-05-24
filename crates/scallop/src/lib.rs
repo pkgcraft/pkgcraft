@@ -7,6 +7,7 @@ pub mod command;
 pub mod error;
 pub mod functions;
 mod macros;
+pub mod pool;
 pub mod shell;
 pub(crate) mod shm;
 pub mod source;

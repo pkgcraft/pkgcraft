@@ -2216,6 +2216,7 @@ dependencies = [
  "bitflags 2.3.1",
  "camino",
  "ctor",
+ "libc",
  "nix",
  "num_cpus",
  "once_cell",

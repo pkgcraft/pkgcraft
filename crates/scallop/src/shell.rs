@@ -8,10 +8,8 @@ use nix::{
 use once_cell::sync::{Lazy, OnceCell};
 
 use crate::builtins::ExecStatus;
-use crate::{bash, Error};
-
-use super::error;
-use super::shm::create_shm;
+use crate::shm::create_shm;
+use crate::{bash, error, Error};
 
 /// Initialize the shell for library use.
 pub fn init(restricted: bool) {
