@@ -21,8 +21,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // skip eclasses that have already been inherited
     let eclasses: Vec<_> = args
         .iter()
-        .filter(|&s| !build.inherited.contains(*s))
-        .map(|s| s.to_string())
+        .copied()
+        .filter(|s| !build.inherited.contains(*s))
         .collect();
 
     let mut eclass_var = ScopedVariable::new("ECLASS");
@@ -35,10 +35,18 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // inherit, i.e. calling this function directly won't increment the value and thus won't
     // work as expected.
     if builtin_level() == 1 {
-        build.inherit.extend(eclasses.clone());
+        build.inherit.extend(eclasses.iter().map(|s| s.to_string()));
     }
 
     for eclass in eclasses {
+        // skip inherits that occurred in nested calls
+        if build.inherited.contains(eclass) {
+            continue;
+        }
+
+        // mark as inherited before sourcing so nested, re-inherits can be skipped
+        build.inherited.insert(eclass.to_string());
+
         // unset metadata keys that incrementally accumulate
         for var in build.eapi().incremental_keys() {
             unbind(var)?;
@@ -48,14 +56,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         let path = build
             .repo()?
             .eclasses()
-            .get(&eclass)
-            .cloned()
+            .get(eclass)
             .ok_or_else(|| Error::Base(format!("unknown eclass: {eclass}")))?;
 
         // update $ECLASS bash variable
-        eclass_var.bind(&eclass, None, None)?;
+        eclass_var.bind(eclass, None, None)?;
 
-        source::file(&path)
+        source::file(path)
             .map_err(|e| {
                 // strip path prefix from bash error
                 let s = e.to_string();
@@ -83,7 +90,6 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         inherited_var.append(&format!(" {eclass}"))?;
-        build.inherited.insert(eclass);
     }
 
     // unset metadata keys that incrementally accumulate
