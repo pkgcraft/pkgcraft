@@ -6,6 +6,7 @@ use pkgcraft::config::{Config, RepoSetType};
 use pkgcraft::pkg::BuildablePackage;
 use pkgcraft::repo::{set::RepoSet, PkgRepository, Repo};
 use pkgcraft::restrict::{self, Restrict};
+use scallop::pool::Pool;
 
 use crate::{Run, StdinArgs};
 
@@ -53,14 +54,18 @@ impl Run for Command {
             config.repos.set(RepoSetType::Ebuild)
         };
 
+        let mut pool = Pool::new(num_cpus::get())?;
+
         // run pkg_pretend across selected pkgs
-        // TODO: run pkg_pretend in parallel for pkgs
+        // TODO: iterate over repo using non-sourced pkgs sourcing inside the forked processes
         for pkg in repos.iter_restrict(restrict) {
-            // TODO: internally unwrap pkg types during iteration
-            let (pkg, _) = pkg.as_ebuild().unwrap();
-            if let Err(e) = pkg.pretend() {
-                eprintln!("{pkg}: {e}");
-            }
+            pool.spawn(|| {
+                // TODO: internally unwrap pkg types during iteration
+                let (pkg, _) = pkg.as_ebuild().unwrap();
+                if let Err(e) = pkg.pretend() {
+                    eprintln!("{pkg}: {e}");
+                }
+            })?;
         }
 
         Ok(ExitCode::SUCCESS)
