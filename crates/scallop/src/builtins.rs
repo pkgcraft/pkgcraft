@@ -6,6 +6,7 @@ use std::{fmt, mem, process, ptr};
 
 use bitflags::bitflags;
 use nix::sys::signal::Signal;
+use serde::{Deserialize, Serialize};
 
 use crate::macros::*;
 use crate::{bash, shell, Error};
@@ -377,7 +378,7 @@ pub fn builtin_level() -> i32 {
     unsafe { bash::BUILTIN_LEVEL }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum ExecStatus {
     Success,
     Failure(i32),

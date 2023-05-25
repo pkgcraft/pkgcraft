@@ -71,11 +71,11 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
 
 pub trait BuildablePackage: Package {
     /// Generate the metadata for a package.
-    fn metadata(&self) -> crate::Result<()>;
+    fn metadata(&self) -> scallop::Result<()>;
     /// Run the build operations for a package.
-    fn build(&self) -> crate::Result<()>;
+    fn build(&self) -> scallop::Result<()>;
     /// Run the pkg_pretend operation for a package.
-    fn pretend(&self) -> crate::Result<()>;
+    fn pretend(&self) -> scallop::Result<()>;
 }
 
 macro_rules! make_pkg_traits {

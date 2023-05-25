@@ -1,6 +1,7 @@
-use std::panic::{catch_unwind, UnwindSafe};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::thread;
 
+use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::errno;
 use nix::unistd::{fork, ForkResult};
 
@@ -55,6 +56,8 @@ impl SharedSemaphore {
 
 pub struct Pool {
     sem: SharedSemaphore,
+    tx: IpcSender<Error>,
+    thread: thread::JoinHandle<()>,
 }
 
 impl Pool {
@@ -62,33 +65,52 @@ impl Pool {
         // enable internal bash SIGCHLD handler
         unsafe { bash::set_sigchld_handler() };
 
-        let sem_size = size.try_into()
+        let sem_size = size
+            .try_into()
             .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
         let sem = SharedSemaphore::new(sem_size)?;
+        let (tx, rx): (IpcSender<Error>, IpcReceiver<Error>) =
+            ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
 
-        Ok(Self { sem } )
+        let thread = thread::spawn(move || loop {
+            match rx.recv() {
+                Ok(e) => eprintln!("{e}"),
+                Err(IpcError::Disconnected) => break,
+                Err(e) => panic!("pool receiver failed: {e}"),
+            }
+        });
+
+        Ok(Self { sem, tx, thread })
     }
 
     /// Spawn a new, forked process if space is available in the pool, otherwise wait for space.
     pub fn spawn<F>(&mut self, func: F) -> crate::Result<()>
     where
-        F: FnOnce() + UnwindSafe,
+        F: Fn() -> crate::Result<()>,
     {
         // wait on bounded semaphore for pool space
         self.sem.acquire()?;
 
         match unsafe { fork() } {
-            Ok(ForkResult::Parent { .. }) => {
-                Ok(())
-            }
+            Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
-                // TODO: serialize errors/tracebacks and send them back to parent
-                let _ = catch_unwind(func);
+                // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
+                if let Err(e) = func() {
+                    self.tx.send(e).expect("pool sender failed");
+                }
                 self.sem.release().ok();
                 unsafe { libc::_exit(0) };
             }
             Err(e) => Err(Error::Base(format!("fork failed: {e}"))),
         }
+    }
+
+    pub fn join(self) -> crate::Result<()> {
+        // drop sender to signal receiving thread to exit
+        drop(self.tx);
+        self.thread
+            .join()
+            .map_err(|_| Error::Base("failed closing pool".to_string()))
     }
 }
 
@@ -105,24 +127,29 @@ mod tests {
 
         let mut pool = Pool::new(2).unwrap();
         for i in 0..8 {
-            pool.spawn(|| {
+            pool.spawn(|| -> crate::Result<()> {
                 source::string(format!("VAR={i}")).unwrap();
                 assert_eq!(optional("VAR").unwrap(), i.to_string());
+                Ok(())
             })
             .unwrap();
         }
+        pool.join().unwrap();
 
         assert!(optional("VAR").is_none());
     }
 
-    #[test]
+    // TODO: add panic handling tests once catch_unwind() is used
+    /*#[test]
     fn panic_handling() {
         let mut pool = Pool::new(2).unwrap();
         for _ in 0..8 {
-            pool.spawn(|| {
+            pool.spawn(|| -> crate::Result<()> {
                 source::string("exit 0").unwrap();
+                Ok(())
             })
             .unwrap();
         }
-    }
+        pool.join().unwrap();
+    }*/
 }

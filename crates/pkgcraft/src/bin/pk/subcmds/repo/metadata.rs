@@ -31,7 +31,9 @@ impl Command {
         let restrict = Restrict::and(restricts);
 
         // collapse repo into ebuild repo
-        let repo = repo.as_ebuild().ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
+        let repo = repo
+            .as_ebuild()
+            .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
         let jobs = self.jobs.unwrap_or_else(num_cpus::get);
         let mut pool = Pool::new(jobs)?;
@@ -39,12 +41,10 @@ impl Command {
         // generate metadata for the selected pkgs
         // TODO: iterate over repo using non-sourced pkgs sourcing inside the forked processes
         for pkg in repo.iter_restrict(restrict) {
-            pool.spawn(|| {
-                if let Err(e) = pkg.metadata() {
-                    eprintln!("{pkg}: {e}");
-                }
-            })?;
+            pool.spawn(|| pkg.metadata())?;
         }
+
+        pool.join()?;
 
         Ok(ExitCode::SUCCESS)
     }

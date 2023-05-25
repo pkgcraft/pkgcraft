@@ -4,25 +4,27 @@ use std::ffi::{c_char, CStr};
 use std::io;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use serde::{Deserialize, Serialize};
+
 use crate::builtins::ExecStatus;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, Deserialize, Serialize, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
     Bail(String),
     #[error("{0}")]
     Base(String),
-    #[error("{1}")]
-    IO(io::ErrorKind, String),
+    #[error("{0}")]
+    IO(String),
     #[error("failed: {0}")]
     Status(ExecStatus),
 }
 
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Self {
-        Error::IO(e.kind(), e.to_string())
+        Error::IO(format!("{e}: {}", e.kind()))
     }
 }
 
@@ -65,7 +67,7 @@ pub(crate) extern "C" fn bash_error(msg: *mut c_char) {
             let err = io::Error::last_os_error();
             // convert bash IO errors into scallop IO errors
             let e = match err.raw_os_error() {
-                Some(v) if v != 0 => Error::IO(err.kind(), msg.to_string()),
+                Some(v) if v != 0 => Error::IO(format!("{msg}: {err}")),
                 _ => Error::Base(msg.to_string()),
             };
             errors.borrow_mut().insert(level, e);

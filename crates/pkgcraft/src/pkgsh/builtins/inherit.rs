@@ -62,21 +62,20 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         // update $ECLASS bash variable
         eclass_var.bind(eclass, None, None)?;
 
-        source::file(path)
-            .map_err(|e| {
-                // strip path prefix from bash error
-                let s = e.to_string();
-                let s = if s.starts_with('/') {
-                    match s.split_once(": ") {
-                        Some((_, suffix)) => suffix,
-                        None => s.as_str(),
-                    }
-                } else {
-                    s.as_str()
-                };
-                // bail in order to truncate chained errors from nested sourcing
-                Error::Bail(format!("failed loading eclass: {eclass}: {s}"))
-            })?;
+        source::file(path).map_err(|e| {
+            // strip path prefix from bash error
+            let s = e.to_string();
+            let s = if s.starts_with('/') {
+                match s.split_once(": ") {
+                    Some((_, suffix)) => suffix,
+                    None => s.as_str(),
+                }
+            } else {
+                s.as_str()
+            };
+            // bail in order to truncate chained errors from nested sourcing
+            Error::Bail(format!("failed loading eclass: {eclass}: {s}"))
+        })?;
 
         // append metadata keys that incrementally accumulate
         for var in build.eapi().incremental_keys() {

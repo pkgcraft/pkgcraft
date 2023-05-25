@@ -460,7 +460,7 @@ fn update_build(state: BuildData<'static>) {
     let build = get_build_mut();
 
     // TODO: handle resets in external process pool
-    if !matches!(build.state, BuildState::Empty(_)) {
+    if cfg!(test) && !matches!(build.state, BuildState::Empty(_)) {
         scallop::shell::reset(&["PATH"]);
     }
 
@@ -568,6 +568,6 @@ mod tests {
         BuildData::update(&cpv, &repo, None);
         let r = get_build_mut().source_ebuild(&path);
         assert_eq!(variables::optional("VAR").unwrap(), "1");
-        assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
+        assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names: .+$");
     }
 }
