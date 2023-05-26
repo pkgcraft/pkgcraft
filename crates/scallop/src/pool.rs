@@ -57,7 +57,7 @@ impl SharedSemaphore {
 pub struct Pool {
     sem: SharedSemaphore,
     tx: IpcSender<Error>,
-    thread: thread::JoinHandle<()>,
+    thread: thread::JoinHandle<usize>,
 }
 
 impl Pool {
@@ -72,10 +72,14 @@ impl Pool {
         let (tx, rx): (IpcSender<Error>, IpcReceiver<Error>) =
             ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
 
+        let mut errors = 0;
         let thread = thread::spawn(move || loop {
             match rx.recv() {
-                Ok(e) => eprintln!("{e}"),
-                Err(IpcError::Disconnected) => break,
+                Ok(e) => {
+                    errors += 1;
+                    eprintln!("{e}")
+                }
+                Err(IpcError::Disconnected) => return errors,
                 Err(e) => panic!("pool receiver failed: {e}"),
             }
         });
@@ -105,7 +109,7 @@ impl Pool {
         }
     }
 
-    pub fn join(self) -> crate::Result<()> {
+    pub fn join(self) -> crate::Result<usize> {
         // drop sender to signal receiving thread to exit
         drop(self.tx);
         self.thread

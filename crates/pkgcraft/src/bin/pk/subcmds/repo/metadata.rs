@@ -36,8 +36,12 @@ impl Command {
             pool.spawn(move || pkg.metadata(self.force, self.pretend))?;
         }
 
-        pool.join()?;
+        let errors = pool.join()?;
 
-        Ok(ExitCode::SUCCESS)
+        if errors == 0 {
+            Ok(ExitCode::SUCCESS)
+        } else {
+            Ok(ExitCode::FAILURE)
+        }
     }
 }
