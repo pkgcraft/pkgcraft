@@ -554,7 +554,7 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
 
         // absolute command errors in restricted shells currently don't bail, so force them to
-        scallop::builtins::set(&["-e"]).unwrap();
+        scallop::builtins::set(["-e"]).unwrap();
         // absolute path for commands are denied via restricted shell
         let data = indoc::indoc! {r#"
             DESCRIPTION="unknown command failure"

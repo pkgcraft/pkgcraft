@@ -5,8 +5,12 @@ use crate::error::{ok_or_error, Error};
 use crate::traits::*;
 
 /// Run the `declare` builtin with the given arguments.
-pub fn declare(args: &[&str]) -> crate::Result<ExecStatus> {
-    let args = Words::from_iter(args.iter().copied());
+pub fn declare<I, S>(args: I) -> crate::Result<ExecStatus>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args = Words::from_iter(args);
     ok_or_error(|| {
         cmd_scope("declare", || {
             let ret = unsafe { bash::declare_builtin((&args).into()) };
@@ -20,8 +24,12 @@ pub fn declare(args: &[&str]) -> crate::Result<ExecStatus> {
 }
 
 /// Run the `local` builtin with the given arguments.
-pub fn local(args: &[&str]) -> crate::Result<ExecStatus> {
-    let args = Words::from_iter(args.iter().copied());
+pub fn local<I, S>(args: I) -> crate::Result<ExecStatus>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args = Words::from_iter(args);
     ok_or_error(|| {
         cmd_scope("local", || {
             let ret = unsafe { bash::local_builtin((&args).into()) };
@@ -35,8 +43,12 @@ pub fn local(args: &[&str]) -> crate::Result<ExecStatus> {
 }
 
 /// Run the `set` builtin with the given arguments.
-pub fn set(args: &[&str]) -> crate::Result<ExecStatus> {
-    let args = Words::from_iter(args.iter().copied());
+pub fn set<I, S>(args: I) -> crate::Result<ExecStatus>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args = Words::from_iter(args);
     ok_or_error(|| {
         cmd_scope("set", || {
             let ret = unsafe { bash::set_builtin((&args).into()) };
@@ -50,8 +62,12 @@ pub fn set(args: &[&str]) -> crate::Result<ExecStatus> {
 }
 
 /// Run the `shopt` builtin with the given arguments.
-pub fn shopt(args: &[&str]) -> crate::Result<ExecStatus> {
-    let args = Words::from_iter(args.iter().copied());
+pub fn shopt<I, S>(args: I) -> crate::Result<ExecStatus>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args = Words::from_iter(args);
     ok_or_error(|| {
         cmd_scope("shopt", || {
             let ret = unsafe { bash::shopt_builtin((&args).into()) };
@@ -65,8 +81,12 @@ pub fn shopt(args: &[&str]) -> crate::Result<ExecStatus> {
 }
 
 /// Run the `source` builtin with the given arguments.
-pub fn source(args: &[&str]) -> crate::Result<ExecStatus> {
-    let args = Words::from_iter(args.iter().copied());
+pub fn source<I, S>(args: I) -> crate::Result<ExecStatus>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args = Words::from_iter(args);
     ok_or_error(|| {
         cmd_scope("source", || {
             let ret = unsafe { bash::source_builtin((&args).into()) };
@@ -90,7 +110,7 @@ mod tests {
     fn test_local() {
         bind("VAR", "outer", None, None).unwrap();
         bash_func("func_name", || {
-            let result = local(&["VAR=inner"]);
+            let result = local(["VAR=inner"]);
             assert_eq!(optional("VAR").unwrap(), "inner");
             result
         })

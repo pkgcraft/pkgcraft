@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn test_source_file_error_longjmp() {
         // enable immediate exit on error
-        crate::builtins::set(&["-e"]).unwrap();
+        crate::builtins::set(["-e"]).unwrap();
 
         let mut file = NamedTempFile::new().unwrap();
         let path = file.path().to_str().unwrap().to_string();

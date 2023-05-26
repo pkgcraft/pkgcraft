@@ -90,7 +90,7 @@ mod tests {
     fn bash_func_scope() {
         bind("VAR", "outer", None, None).unwrap();
         bash_func("func_name", || {
-            let result = local(&["VAR=inner"]);
+            let result = local(["VAR=inner"]);
             assert_eq!(optional("VAR").unwrap(), "inner");
             result
         })

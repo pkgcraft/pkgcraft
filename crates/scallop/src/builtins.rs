@@ -35,19 +35,11 @@ pub mod set {
     use super::*;
 
     pub fn enable<S: AsRef<str>>(opts: &[S]) -> crate::Result<ExecStatus> {
-        let args: Vec<_> = ["-o"]
-            .into_iter()
-            .chain(opts.iter().map(|s| s.as_ref()))
-            .collect();
-        set(&args)
+        set(["-o"].into_iter().chain(opts.iter().map(|s| s.as_ref())))
     }
 
     pub fn disable<S: AsRef<str>>(opts: &[S]) -> crate::Result<ExecStatus> {
-        let args: Vec<_> = ["+o"]
-            .into_iter()
-            .chain(opts.iter().map(|s| s.as_ref()))
-            .collect();
-        set(&args)
+        set(["+o"].into_iter().chain(opts.iter().map(|s| s.as_ref())))
     }
 }
 
@@ -55,19 +47,11 @@ pub mod shopt {
     use super::*;
 
     pub fn enable<S: AsRef<str>>(opts: &[S]) -> crate::Result<ExecStatus> {
-        let args: Vec<_> = ["-s"]
-            .into_iter()
-            .chain(opts.iter().map(|s| s.as_ref()))
-            .collect();
-        shopt(&args)
+        shopt(["-s"].into_iter().chain(opts.iter().map(|s| s.as_ref())))
     }
 
     pub fn disable<S: AsRef<str>>(opts: &[S]) -> crate::Result<ExecStatus> {
-        let args: Vec<_> = ["-u"]
-            .into_iter()
-            .chain(opts.iter().map(|s| s.as_ref()))
-            .collect();
-        shopt(&args)
+        shopt(["-u"].into_iter().chain(opts.iter().map(|s| s.as_ref())))
     }
 }
 
