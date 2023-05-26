@@ -23,7 +23,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .eapi()
         .incremental_keys()
         .iter()
-        .map(|k| (*k, ScopedVariable::new(k.to_string())))
+        .map(|k| (*k, ScopedVariable::new(k)))
         .collect();
 
     // skip eclasses that have already been inherited

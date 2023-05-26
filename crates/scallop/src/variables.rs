@@ -111,8 +111,8 @@ pub struct Variable {
 }
 
 impl Variable {
-    pub fn new<S: Into<String>>(name: S) -> Self {
-        Variable { name: name.into() }
+    pub fn new<S: ToString>(name: S) -> Self {
+        Variable { name: name.to_string() }
     }
 }
 
@@ -201,7 +201,7 @@ pub struct ScopedVariable {
 
 /// Variable that will reset itself to its original value when it leaves scope.
 impl ScopedVariable {
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: ToString>(name: S) -> Self {
         let var = Variable::new(name);
         let orig = optional(&var.name);
         ScopedVariable { var, orig }
