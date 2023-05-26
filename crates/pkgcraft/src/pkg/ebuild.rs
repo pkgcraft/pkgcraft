@@ -106,7 +106,7 @@ make_pkg_traits!(Pkg<'_>);
 impl<'a> Pkg<'a> {
     pub(crate) fn new(raw_pkg: RawPkg<'a>) -> crate::Result<Self> {
         let meta = Metadata::load_or_source(&raw_pkg).map_err(|e| Error::InvalidPkg {
-            id: format!("{}::{}", &raw_pkg.cpv, raw_pkg.repo),
+            id: raw_pkg.to_string(),
             err: e.to_string(),
         })?;
 
