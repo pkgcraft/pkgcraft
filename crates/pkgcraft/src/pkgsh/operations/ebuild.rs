@@ -40,9 +40,7 @@ impl<'a> BuildablePackage for Pkg<'a> {
 impl<'a> SourceablePackage for RawPkg<'a> {
     fn source(&self) -> scallop::Result<()> {
         BuildData::from_raw_pkg(self);
-        get_build_mut()
-            .source_ebuild(self.data())
-            .map_err(|e| Error::Base(format!("{self}: {e}")))?;
+        get_build_mut().source_ebuild(self.data())?;
         Ok(())
     }
 
