@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+use itertools::{Either, Itertools};
 use scallop::builtins::{builtin_level, local, ExecStatus};
 use scallop::functions::bash_func;
 use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
@@ -21,11 +22,20 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let incrementals = build.eapi().incremental_keys();
 
     // skip eclasses that have already been inherited
-    let eclasses: Vec<_> = args
+    let repo_eclasses = get_build_mut().repo()?.eclasses();
+    let (eclasses, unknown): (Vec<_>, Vec<_>) = args
         .iter()
-        .copied()
-        .filter(|s| !build.inherited.contains(*s))
-        .collect();
+        .filter(|&s| !build.inherited.contains(*s))
+        .partition_map(|&s| match repo_eclasses.get(s) {
+            Some(v) => Either::Left(v),
+            None => Either::Right(s),
+        });
+
+    // verify all eclass args are viable
+    if !unknown.is_empty() {
+        let s = unknown.join(", ");
+        return Err(Error::Base(format!("unknown eclasses: {s}")));
+    }
 
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
@@ -47,24 +57,17 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
         for eclass in eclasses {
             // skip inherits that occurred in nested calls
-            if build.inherited.contains(eclass) {
+            if build.inherited.contains(eclass.name()) {
                 continue;
             }
 
             // mark as inherited before sourcing so nested, re-inherits can be skipped
             build.inherited.insert(eclass.to_string());
 
-            // determine eclass file path
-            let eclass_obj = build
-                .repo()?
-                .eclasses()
-                .get(eclass)
-                .ok_or_else(|| Error::Base(format!("unknown eclass: {eclass}")))?;
-
             // update $ECLASS bash variable
             eclass_var.bind(eclass, None, None)?;
 
-            source::file(eclass_obj.path()).map_err(|e| {
+            source::file(eclass.path()).map_err(|e| {
                 // strip path prefix from bash error
                 let s = e.to_string();
                 let s = if s.starts_with('/') {
@@ -131,11 +134,28 @@ mod tests {
     #[test]
     fn test_nonexistent() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+
+        // single
         let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         let r = inherit(&["nonexistent"]);
-        assert_err_re!(r, r"^unknown eclass: nonexistent");
+        assert_err_re!(r, r"^unknown eclasses: nonexistent");
+
+        // multiple
+        let r = inherit(&["e1", "e2"]);
+        assert_err_re!(r, r"^unknown eclasses: e1, e2");
+
+        // multiple with known and unknown
+        let t = config.temp_repo("test2", 0, None).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+        let r = inherit(&["unknown1", "e1", "unknown2"]);
+        assert_err_re!(r, r"^unknown eclasses: unknown1, unknown2");
     }
 
     #[test]
