@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<ExitCode> {
         .init();
 
     args.subcmd.run(&config).or_else(|e| {
-        eprintln!("{e}");
+        eprintln!("pk: error: {e}");
         Ok(ExitCode::from(2))
     })
 }
