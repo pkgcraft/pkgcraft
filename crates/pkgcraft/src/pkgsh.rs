@@ -433,13 +433,13 @@ impl<'a> BuildData<'a> {
 
         // prepend metadata keys that incrementally accumulate to eclass values
         if !self.inherited.is_empty() {
-            for var in self.eapi().incremental_keys() {
-                let deque = self.incrementals.entry(*var).or_insert_with(VecDeque::new);
-                if let Ok(data) = string_vec(var) {
+            for key in self.eapi().incremental_keys() {
+                let deque = self.incrementals.entry(*key).or_insert_with(VecDeque::new);
+                if let Some(data) = string_vec(key) {
                     extend_left!(deque, data.into_iter());
                 }
                 // export the incrementally accumulated value
-                bind(var, deque.iter().join(" "), None, None)?;
+                bind(key, deque.iter().join(" "), None, None)?;
             }
         }
 

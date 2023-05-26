@@ -21,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let make_prog = variables::optional("MAKE");
     let make_prog = make_prog.as_deref().unwrap_or("make");
     let mut emake = Command::new(make_prog);
-    if let Ok(opts) = string_vec("MAKEOPTS") {
+    if let Some(opts) = string_vec("MAKEOPTS") {
         emake.args(&opts);
     }
 

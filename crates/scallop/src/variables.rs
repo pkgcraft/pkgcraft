@@ -131,6 +131,10 @@ pub trait Variables: AsRef<str> {
         self.optional().and_then(expand)
     }
 
+    fn string_vec(&self) -> Option<Vec<String>> {
+        string_vec(self.name())
+    }
+
     fn bind<S: AsRef<str>>(
         &mut self,
         value: S,
@@ -252,19 +256,17 @@ pub fn expand<S: AsRef<str>>(val: S) -> Option<String> {
 }
 
 /// Get the string value of a given variable name splitting it into Vec<String> based on IFS.
-pub fn string_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
+pub fn string_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
     let name = name.as_ref();
     let var_name = CString::new(name).unwrap();
-    let ptr = unsafe { bash::get_string_value(var_name.as_ptr()).as_mut() };
-    match ptr {
-        None => Err(Error::Base(format!("undefined variable: {name}"))),
-        Some(s) => Ok(unsafe {
+    unsafe {
+        bash::get_string_value(var_name.as_ptr()).as_mut().map(|s| {
             bash::list_string(s, bash::IFS, 1)
                 .into_words(true)
                 .into_iter()
                 .map(|s| s.to_string())
                 .collect()
-        }),
+        })
     }
 }
 
@@ -306,7 +308,7 @@ pub fn var_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
     if var.is_array() {
         array_to_vec(name)
     } else {
-        string_vec(name)
+        string_vec(name).ok_or_else(|| Error::Base(format!("undefined variable: {name}")))
     }
 }
 
@@ -356,7 +358,7 @@ mod tests {
 
     #[test]
     fn test_string_vec() {
-        assert!(string_vec("VAR").is_err());
+        assert!(string_vec("VAR").is_none());
         bind("VAR", "", None, None).unwrap();
         assert!(string_vec("VAR").unwrap().is_empty());
         bind("VAR", "a", None, None).unwrap();
@@ -364,7 +366,7 @@ mod tests {
         bind("VAR", "1 2 3", None, None).unwrap();
         assert_eq!(string_vec("VAR").unwrap(), ["1", "2", "3"]);
         unbind("VAR").unwrap();
-        assert!(string_vec("VAR").is_err());
+        assert!(string_vec("VAR").is_none());
     }
 
     #[test]
