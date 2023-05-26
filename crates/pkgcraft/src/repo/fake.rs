@@ -104,7 +104,7 @@ where
 
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: fake repo", self.id)
+        write!(f, "{}", self.id)
     }
 }
 
