@@ -1,9 +1,8 @@
 use std::collections::VecDeque;
 
 use itertools::{Either, Itertools};
-use scallop::builtins::{builtin_level, local, ExecStatus};
-use scallop::functions::bash_func;
-use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
+use scallop::builtins::{builtin_level, ExecStatus};
+use scallop::variables::{ScopedVariable, Variable, Variables};
 use scallop::{source, Error};
 
 use crate::pkgsh::get_build_mut;
@@ -19,7 +18,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let incrementals = build.eapi().incremental_keys();
+    // force incrementals to be restored between nested inherits
+    let incrementals: Vec<(_, _)> = build
+        .eapi()
+        .incremental_keys()
+        .iter()
+        .map(|k| (*k, ScopedVariable::new(k.to_string())))
+        .collect();
 
     // skip eclasses that have already been inherited
     let repo_eclasses = get_build_mut().repo()?.eclasses();
@@ -50,57 +55,46 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         build.inherit.extend(eclasses.iter().map(|s| s.to_string()));
     }
 
-    // run in function scope in order to support setting local variables
-    bash_func("inherit", || {
-        // force incremental variables to be restored between nested inherits
-        local(incrementals)?;
-
-        for eclass in eclasses {
-            // skip inherits that occurred in nested calls
-            if build.inherited.contains(eclass.name()) {
-                continue;
-            }
-
-            // mark as inherited before sourcing so nested, re-inherits can be skipped
-            build.inherited.insert(eclass.to_string());
-
-            // update $ECLASS bash variable
-            eclass_var.bind(eclass, None, None)?;
-
-            source::file(eclass.path()).map_err(|e| {
-                // strip path prefix from bash error
-                let s = e.to_string();
-                let s = if s.starts_with('/') {
-                    match s.split_once(": ") {
-                        Some((_, suffix)) => suffix,
-                        None => s.as_str(),
-                    }
-                } else {
-                    s.as_str()
-                };
-                // bail in order to truncate chained errors from nested sourcing
-                Error::Bail(format!("failed loading eclass: {eclass}: {s}"))
-            })?;
-
-            // append metadata keys that incrementally accumulate
-            for var in incrementals {
-                if let Ok(data) = string_vec(var) {
-                    build
-                        .incrementals
-                        .entry(*var)
-                        .or_insert_with(VecDeque::new)
-                        .extend(data);
-
-                    // unset incremental variable
-                    unbind(var)?;
-                }
-            }
-
-            inherited_var.append(&format!(" {eclass}"))?;
+    for eclass in eclasses {
+        // skip inherits that occurred in nested calls
+        if build.inherited.contains(eclass.name()) {
+            continue;
         }
 
-        Ok(ExecStatus::Success)
-    })?;
+        // mark as inherited before sourcing so nested, re-inherits can be skipped
+        build.inherited.insert(eclass.to_string());
+
+        // update $ECLASS bash variable
+        eclass_var.bind(eclass, None, None)?;
+
+        source::file(eclass.path()).map_err(|e| {
+            // strip path prefix from bash error
+            let s = e.to_string();
+            let s = if s.starts_with('/') {
+                match s.split_once(": ") {
+                    Some((_, suffix)) => suffix,
+                    None => s.as_str(),
+                }
+            } else {
+                s.as_str()
+            };
+            // bail in order to truncate chained errors from nested sourcing
+            Error::Bail(format!("failed loading eclass: {eclass}: {s}"))
+        })?;
+
+        // append metadata keys that incrementally accumulate
+        for (key, var) in &incrementals {
+            if let Some(data) = var.string_vec() {
+                build
+                    .incrementals
+                    .entry(*key)
+                    .or_insert_with(VecDeque::new)
+                    .extend(data);
+            }
+        }
+
+        inherited_var.append(&format!(" {eclass}"))?;
+    }
 
     // restore the original scope
     build.scope = orig_scope;
@@ -113,7 +107,7 @@ make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, &[("..", &[GLOBA
 
 #[cfg(test)]
 mod tests {
-    use scallop::variables::optional;
+    use scallop::variables::{optional, string_vec};
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
@@ -203,6 +197,8 @@ mod tests {
         let eclass = indoc::indoc! {r#"
             # stub eclass
             [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
+            inherit e2
+            [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
         "#};
         t.create_eclass("e1", eclass).unwrap();
         let eclass = indoc::indoc! {r#"
@@ -213,8 +209,8 @@ mod tests {
 
         let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
-        inherit(&["e1", "e2"]).unwrap();
-        assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
+        inherit(&["e1"]).unwrap();
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e2", "e1"]);
     }
 
     #[test]
