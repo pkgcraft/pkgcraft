@@ -11,6 +11,14 @@ pub struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,
+
+    /// Force regeneration to occur
+    #[arg(short, long)]
+    force: bool,
+
+    /// Regenerate metadata without serializing to disk
+    #[arg(short, long)]
+    pretend: bool,
 }
 
 impl Command {
@@ -25,7 +33,7 @@ impl Command {
 
         // generate metadata for the selected pkgs
         for pkg in repo.iter_raw() {
-            pool.spawn(move || pkg.metadata())?;
+            pool.spawn(move || pkg.metadata(self.force, self.pretend))?;
         }
 
         pool.join()?;

@@ -5,7 +5,6 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use camino::Utf8Path;
-use digest::Digest;
 use itertools::Itertools;
 use roxmltree::{Document, Node};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
@@ -13,6 +12,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 use crate::macros::{build_from_paths, cmp_not_equal};
 use crate::repo::ebuild::CacheData;
 use crate::types::OrderedSet;
+use crate::utils::digest;
 use crate::Error;
 
 #[derive(AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
@@ -372,19 +372,12 @@ impl Checksum {
         Ok(Checksum { kind, value: value.to_string() })
     }
 
-    /// Hash the given data using a specified digest function and return the hex-encoded value.
-    fn hash<D: Digest>(data: &[u8]) -> String {
-        let mut hasher = D::new();
-        hasher.update(data);
-        hex::encode(hasher.finalize())
-    }
-
     /// Verify the checksum matches the given data.
     fn verify(&self, data: &[u8]) -> crate::Result<()> {
         let new = match self.kind {
-            HashType::Blake2b => Self::hash::<blake2::Blake2b512>(data),
-            HashType::Blake3 => Self::hash::<blake3::Hasher>(data),
-            HashType::Sha512 => Self::hash::<sha2::Sha512>(data),
+            HashType::Blake2b => digest::<blake2::Blake2b512>(data),
+            HashType::Blake3 => digest::<blake3::Hasher>(data),
+            HashType::Sha512 => digest::<sha2::Sha512>(data),
         };
 
         if self.value != new {

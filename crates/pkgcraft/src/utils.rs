@@ -4,17 +4,25 @@ use std::hash::{Hash, Hasher};
 use std::path::{Component, Path, PathBuf};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use digest::Digest;
 
 use crate::Error;
 
-// Return the hash of a given hashable object.
+/// Return the hash of a given hashable object.
 pub fn hash<T: Hash>(obj: T) -> u64 {
     let mut hasher = DefaultHasher::new();
     obj.hash(&mut hasher);
     hasher.finish()
 }
 
-// Get the current working directory as a Utf8PathBuf.
+/// Hash the given data using a specified digest function and return the hex-encoded value.
+pub(crate) fn digest<D: Digest>(data: &[u8]) -> String {
+    let mut hasher = D::new();
+    hasher.update(data);
+    hex::encode(hasher.finalize())
+}
+
+/// Get the current working directory as a Utf8PathBuf.
 pub(crate) fn current_dir() -> crate::Result<Utf8PathBuf> {
     let dir = env::current_dir()
         .map_err(|e| Error::InvalidValue(format!("can't get current dir: {e}")))?;

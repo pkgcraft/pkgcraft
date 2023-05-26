@@ -44,9 +44,21 @@ impl<'a> SourceablePackage for RawPkg<'a> {
         Ok(())
     }
 
-    fn metadata(&self) -> scallop::Result<()> {
-        let _meta = Metadata::source(self).map_err(|e| Error::Base(format!("{self}: {e}")))?;
-        // TODO: serialize to metadata/md5-cache
+    fn metadata(&self, force: bool, pretend: bool) -> scallop::Result<()> {
+        // verify metadata validity using ebuild and eclass hashes
+        if !pretend && !force && !Metadata::valid(self) {
+            return Ok(());
+        }
+
+        // source package and generate metadata
+        let meta = Metadata::source(self).map_err(|e| Error::Base(format!("{self}: {e}")))?;
+
+        // serialize metadata to disk
+        if !pretend || force {
+            meta.serialize(self)
+                .map_err(|e| Error::Base(format!("{self}: {e}")))?;
+        }
+
         Ok(())
     }
 }

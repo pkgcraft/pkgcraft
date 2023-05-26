@@ -21,6 +21,7 @@ use crate::pkg::ebuild::{Pkg, RawPkg};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
+use crate::utils::digest;
 use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
@@ -136,6 +137,41 @@ where
     }
 }
 
+pub struct Eclass {
+    name: String,
+    path: Utf8PathBuf,
+    digest: String,
+}
+
+impl Eclass {
+    fn new(path: &Utf8Path) -> crate::Result<Self> {
+        if let (Some(name), Some("eclass")) = (path.file_stem(), path.extension()) {
+            let data = fs::read(path)
+                .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;
+
+            Ok(Self {
+                name: name.to_string(),
+                path: path.to_path_buf(),
+                digest: digest::<md5::Md5>(&data),
+            })
+        } else {
+            Err(Error::InvalidValue(format!("invalid eclass: {path}")))
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn path(&self) -> &Utf8Path {
+        &self.path
+    }
+
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+}
+
 #[derive(Default)]
 pub struct Repo {
     id: String,
@@ -147,7 +183,7 @@ pub struct Repo {
     licenses: OnceCell<HashSet<String>>,
     license_groups: OnceCell<HashMap<String, HashSet<String>>>,
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
-    eclasses: OnceCell<HashMap<String, Utf8PathBuf>>,
+    eclasses: OnceCell<HashMap<String, Eclass>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
     manifest_cache: OnceCell<Cache<Manifest>>,
 }
@@ -265,18 +301,16 @@ impl Repo {
     }
 
     /// Return the mapping of inherited eclass names to file paths.
-    pub fn eclasses(&self) -> &HashMap<String, Utf8PathBuf> {
+    pub fn eclasses(&self) -> &HashMap<String, Eclass> {
         self.eclasses.get_or_init(|| {
             self.trees()
                 .filter_map(|repo| repo.path().join("eclass").read_dir_utf8().ok())
                 .flatten()
                 .filter_map(|e| e.ok())
                 .filter_map(|e| {
-                    let path = e.path();
-                    match (path.file_stem(), path.extension()) {
-                        (Some(f), Some("eclass")) => Some((f.to_string(), path.to_path_buf())),
-                        _ => None,
-                    }
+                    Eclass::new(e.path())
+                        .ok()
+                        .map(|e| (e.name().to_string(), e))
                 })
                 .collect()
         })

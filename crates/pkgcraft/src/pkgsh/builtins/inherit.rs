@@ -53,7 +53,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         // determine eclass file path
-        let path = build
+        let eclass_obj = build
             .repo()?
             .eclasses()
             .get(eclass)
@@ -62,7 +62,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         // update $ECLASS bash variable
         eclass_var.bind(eclass, None, None)?;
 
-        source::file(path).map_err(|e| {
+        source::file(eclass_obj.path()).map_err(|e| {
             // strip path prefix from bash error
             let s = e.to_string();
             let s = if s.starts_with('/') {

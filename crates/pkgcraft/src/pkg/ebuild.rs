@@ -12,6 +12,7 @@ use crate::pkgsh::metadata::{Key, Metadata};
 use crate::repo::ebuild::Repo;
 use crate::traits::FilterLines;
 use crate::types::OrderedSet;
+use crate::utils::digest;
 use crate::Error;
 
 use super::{make_pkg_traits, Package};
@@ -67,6 +68,10 @@ impl<'a> RawPkg<'a> {
 
     pub fn data(&self) -> &str {
         &self.data
+    }
+
+    pub(crate) fn digest(&self) -> String {
+        digest::<md5::Md5>(self.data().as_bytes())
     }
 
     pub fn into_pkg(self) -> crate::Result<Pkg<'a>> {
