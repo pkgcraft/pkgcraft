@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
-use scallop::builtins::{builtin_level, ExecStatus};
+use scallop::builtins::{builtin_level, local, ExecStatus};
+use scallop::functions::bash_func;
 use scallop::variables::{string_vec, unbind, ScopedVariable, Variable, Variables};
 use scallop::{source, Error};
 
@@ -17,6 +18,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
+    let incrementals = build.eapi().incremental_keys();
 
     // skip eclasses that have already been inherited
     let eclasses: Vec<_> = args
@@ -38,63 +40,64 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         build.inherit.extend(eclasses.iter().map(|s| s.to_string()));
     }
 
-    for eclass in eclasses {
-        // skip inherits that occurred in nested calls
-        if build.inherited.contains(eclass) {
-            continue;
-        }
+    // run in function scope in order to support setting local variables
+    bash_func("inherit", || {
+        // force incremental variables to be restored between nested inherits
+        local(incrementals)?;
 
-        // mark as inherited before sourcing so nested, re-inherits can be skipped
-        build.inherited.insert(eclass.to_string());
-
-        // unset metadata keys that incrementally accumulate
-        for var in build.eapi().incremental_keys() {
-            unbind(var)?;
-        }
-
-        // determine eclass file path
-        let eclass_obj = build
-            .repo()?
-            .eclasses()
-            .get(eclass)
-            .ok_or_else(|| Error::Base(format!("unknown eclass: {eclass}")))?;
-
-        // update $ECLASS bash variable
-        eclass_var.bind(eclass, None, None)?;
-
-        source::file(eclass_obj.path()).map_err(|e| {
-            // strip path prefix from bash error
-            let s = e.to_string();
-            let s = if s.starts_with('/') {
-                match s.split_once(": ") {
-                    Some((_, suffix)) => suffix,
-                    None => s.as_str(),
-                }
-            } else {
-                s.as_str()
-            };
-            // bail in order to truncate chained errors from nested sourcing
-            Error::Bail(format!("failed loading eclass: {eclass}: {s}"))
-        })?;
-
-        // append metadata keys that incrementally accumulate
-        for var in build.eapi().incremental_keys() {
-            if let Ok(data) = string_vec(var) {
-                build
-                    .incrementals
-                    .entry(*var)
-                    .or_insert_with(VecDeque::new)
-                    .extend(data);
+        for eclass in eclasses {
+            // skip inherits that occurred in nested calls
+            if build.inherited.contains(eclass) {
+                continue;
             }
+
+            // mark as inherited before sourcing so nested, re-inherits can be skipped
+            build.inherited.insert(eclass.to_string());
+
+            // determine eclass file path
+            let eclass_obj = build
+                .repo()?
+                .eclasses()
+                .get(eclass)
+                .ok_or_else(|| Error::Base(format!("unknown eclass: {eclass}")))?;
+
+            // update $ECLASS bash variable
+            eclass_var.bind(eclass, None, None)?;
+
+            source::file(eclass_obj.path()).map_err(|e| {
+                // strip path prefix from bash error
+                let s = e.to_string();
+                let s = if s.starts_with('/') {
+                    match s.split_once(": ") {
+                        Some((_, suffix)) => suffix,
+                        None => s.as_str(),
+                    }
+                } else {
+                    s.as_str()
+                };
+                // bail in order to truncate chained errors from nested sourcing
+                Error::Bail(format!("failed loading eclass: {eclass}: {s}"))
+            })?;
+
+            // append metadata keys that incrementally accumulate
+            for var in incrementals {
+                if let Ok(data) = string_vec(var) {
+                    build
+                        .incrementals
+                        .entry(*var)
+                        .or_insert_with(VecDeque::new)
+                        .extend(data);
+
+                    // unset incremental variable
+                    unbind(var)?;
+                }
+            }
+
+            inherited_var.append(&format!(" {eclass}"))?;
         }
 
-        inherited_var.append(&format!(" {eclass}"))?;
-    }
-
-    // unset metadata keys that incrementally accumulate
-    for var in build.eapi().incremental_keys() {
-        unbind(var)?;
-    }
+        Ok(ExecStatus::Success)
+    })?;
 
     // restore the original scope
     build.scope = orig_scope;
