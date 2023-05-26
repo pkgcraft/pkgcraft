@@ -152,7 +152,7 @@ use assert_stderr;
 #[derive(Debug)]
 pub(crate) enum BuildState<'a> {
     Empty(&'static Eapi),
-    Metadata(&'static Eapi, Cpv, &'a crate::repo::ebuild::Repo),
+    Metadata(&'a crate::pkg::ebuild::RawPkg<'a>),
     Build(&'a crate::pkg::ebuild::Pkg<'a>),
 }
 
@@ -222,16 +222,14 @@ impl<'a> BuildData<'a> {
         get_build_mut().state = BuildState::Empty(eapi);
     }
 
-    pub(crate) fn update(cpv: &Cpv, repo: &'a ebuild::Repo, eapi: Option<&'static Eapi>) {
+    pub(crate) fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::RawPkg<'a>) {
         // TODO: remove this hack once BuildData is reworked
-        // Drop the lifetime bound on the repo reference in order for it to be stored in BuildData
-        // which currently requires `'static` due to its usage in a global, thread local, static
-        // variable.
-        let r = unsafe { mem::transmute(repo) };
-
-        let eapi = eapi.unwrap_or_default();
-        let state = BuildState::Metadata(eapi, cpv.clone(), r);
-        update_build(BuildData { state, ..BuildData::new() });
+        let p = unsafe { mem::transmute(pkg) };
+        let data = BuildData {
+            state: BuildState::Metadata(p),
+            ..BuildData::new()
+        };
+        update_build(data);
     }
 
     pub(crate) fn from_pkg(pkg: &'a crate::pkg::ebuild::Pkg<'a>) {
@@ -249,7 +247,7 @@ impl<'a> BuildData<'a> {
         use BuildState::*;
         match &self.state {
             Empty(eapi) => eapi,
-            Metadata(eapi, _, _) => eapi,
+            Metadata(pkg) => pkg.eapi(),
             Build(pkg) => pkg.eapi(),
         }
     }
@@ -257,7 +255,7 @@ impl<'a> BuildData<'a> {
     /// Get the current CPV if it exists.
     fn cpv(&self) -> scallop::Result<&Cpv> {
         match &self.state {
-            BuildState::Metadata(_, cpv, _) => Ok(cpv),
+            BuildState::Metadata(pkg) => Ok(pkg.cpv()),
             BuildState::Build(pkg) => Ok(pkg.cpv()),
             _ => Err(Error::Base(format!("cpv invalid for scope: {}", self.scope))),
         }
@@ -266,7 +264,7 @@ impl<'a> BuildData<'a> {
     /// Get the current repo if it exists.
     fn repo(&self) -> scallop::Result<&ebuild::Repo> {
         match &self.state {
-            BuildState::Metadata(_, _, repo) => Ok(repo),
+            BuildState::Metadata(pkg) => Ok(pkg.repo()),
             BuildState::Build(pkg) => Ok(pkg.repo()),
             _ => Err(Error::Base(format!("repo invalid for scope: {}", self.scope))),
         }
@@ -526,13 +524,14 @@ mod tests {
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
+    use crate::pkg::SourceablePackage;
 
     use super::*;
 
     #[test]
     fn global_scope_external_command() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // external commands are denied via restricted shell setting PATH=/dev/null
         let data = indoc::indoc! {r#"
@@ -542,9 +541,9 @@ mod tests {
             ls /
             VAR=2
         "#};
-        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BuildData::update(&cpv, &repo, None);
-        let r = get_build_mut().source_ebuild(&path);
+        let pkg = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        BuildData::from_raw_pkg(&pkg);
+        let r = pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, "unknown command: ls");
     }
@@ -552,7 +551,7 @@ mod tests {
     #[test]
     fn global_scope_absolute_path_command() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // absolute command errors in restricted shells currently don't bail, so force them to
         scallop::builtins::set(&["-e"]).unwrap();
@@ -564,9 +563,9 @@ mod tests {
             /bin/ls /
             VAR=2
         "#};
-        let (path, cpv) = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
-        BuildData::update(&cpv, &repo, None);
-        let r = get_build_mut().source_ebuild(&path);
+        let pkg = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
+        BuildData::from_raw_pkg(&pkg);
+        let r = pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names: .+$");
     }

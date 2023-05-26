@@ -46,7 +46,7 @@ mod tests {
     use scallop::variables::optional;
 
     use crate::config::Config;
-    use crate::pkgsh::{get_build_mut, BuildData};
+    use crate::pkg::SourceablePackage;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as export_functions;
@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn test_single() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -80,9 +80,8 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BuildData::update(&cpv, &repo, None);
-        get_build_mut().source_ebuild(&path).unwrap();
+        let raw_pkg = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        raw_pkg.source().unwrap();
         // execute eclass-defined function
         let mut func = functions::find("src_compile").unwrap();
         // verify the function runs

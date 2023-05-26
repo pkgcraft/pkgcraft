@@ -111,7 +111,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::ebuild::Pkg;
+    use crate::pkg::SourceablePackage;
     use crate::pkgsh::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -128,9 +128,9 @@ mod tests {
     #[test]
     fn test_nonexistent() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        BuildData::update(&cpv, &repo, None);
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
         let r = inherit(&["nonexistent"]);
         assert_err_re!(r, r"^unknown eclass: nonexistent");
     }
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn test_source_failure() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -147,8 +147,8 @@ mod tests {
         "#};
         t.create_eclass("e1", eclass).unwrap();
 
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        BuildData::update(&cpv, &repo, None);
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
         let r = inherit(&["e1"]);
         assert_err_re!(r, r"^failed loading eclass: e1: unknown command: unknown_cmd$");
     }
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn test_single() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -165,8 +165,8 @@ mod tests {
         "#};
         t.create_eclass("e1", eclass).unwrap();
 
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        BuildData::update(&cpv, &repo, None);
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
     }
@@ -174,7 +174,7 @@ mod tests {
     #[test]
     fn test_multiple() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -188,8 +188,8 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        BuildData::update(&cpv, &repo, None);
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1", "e2"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn test_nested_single() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -212,8 +212,8 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        BuildData::update(&cpv, &repo, None);
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e2"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
@@ -221,7 +221,7 @@ mod tests {
     #[test]
     fn test_nested_multiple() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -242,8 +242,8 @@ mod tests {
         "#};
         t.create_eclass("e3", eclass).unwrap();
 
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        BuildData::update(&cpv, &repo, None);
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e3"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
     }
@@ -251,7 +251,7 @@ mod tests {
     #[test]
     fn test_pkg_env() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -267,14 +267,14 @@ mod tests {
             [[ -z ${ECLASS} ]] || die "\$ECLASS shouldn't be defined"
             [[ -n ${INHERITED} ]] || die "\$INHERITED should be defined"
         "#};
-        let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        Pkg::new(path, cpv, &repo).unwrap();
+        let raw_pkg = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        raw_pkg.source().unwrap();
     }
 
     #[test]
     fn test_skip_reinherits() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -289,8 +289,8 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        BuildData::update(&cpv, &repo, None);
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1", "e2"]).unwrap();
         assert_eq!(optional("VAR").unwrap(), "e1 e2");
     }

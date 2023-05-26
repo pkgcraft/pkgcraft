@@ -4,8 +4,8 @@ use std::process::ExitCode;
 use anyhow::anyhow;
 use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::pkg::BuildablePackage;
-use pkgcraft::repo::{PkgRepository, Repo};
+use pkgcraft::pkg::{ebuild::Pkg, BuildablePackage};
+use pkgcraft::repo::Repo;
 use pkgcraft::restrict::{self, Restrict};
 use scallop::pool::Pool;
 
@@ -63,9 +63,11 @@ impl Command {
         let mut pool = Pool::new(jobs)?;
 
         // run pkg_pretend across selected pkgs
-        // TODO: iterate over repo using non-sourced pkgs sourcing inside the forked processes
-        for pkg in repo.iter_restrict(restrict) {
-            pool.spawn(|| -> scallop::Result<()> { pkg.pretend() })?;
+        for raw_pkg in repo.iter_raw_restrict(restrict) {
+            pool.spawn(move || {
+                let pkg: Pkg = raw_pkg.into_pkg()?;
+                pkg.pretend()
+            })?;
         }
 
         pool.join()?;

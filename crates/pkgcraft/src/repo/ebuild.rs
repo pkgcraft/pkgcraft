@@ -17,7 +17,7 @@ use crate::eapi::Eapi;
 use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
-use crate::pkg::ebuild::Pkg;
+use crate::pkg::ebuild::{Pkg, RawPkg};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -392,6 +392,18 @@ impl Repo {
             .get_or_init(|| Cache::<Manifest>::new(self.arc()))
             .get(cpv)
     }
+
+    pub fn iter_raw(&self) -> IterRaw<'_> {
+        IterRaw::new(self, None)
+    }
+
+    pub fn iter_raw_restrict<R: Into<Restrict>>(&self, val: R) -> IterRawRestrict<'_> {
+        let restrict = val.into();
+        IterRawRestrict {
+            iter: IterRaw::new(self, Some(&restrict)),
+            restrict,
+        }
+    }
 }
 
 impl fmt::Display for Repo {
@@ -555,11 +567,37 @@ impl<'a> IntoIterator for &'a Repo {
 }
 
 pub struct Iter<'a> {
-    iter: Box<dyn Iterator<Item = (Utf8PathBuf, Cpv)> + 'a>,
+    iter: IterRaw<'a>,
     repo: &'a Repo,
 }
 
 impl<'a> Iter<'a> {
+    fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
+        let iter = IterRaw::new(repo, restrict);
+        Self { iter, repo }
+    }
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = Pkg<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for raw_pkg in &mut self.iter {
+            match raw_pkg.into_pkg() {
+                Ok(pkg) => return Some(pkg),
+                Err(e) => warn!("{}: {e}", self.repo.id()),
+            }
+        }
+        None
+    }
+}
+
+pub struct IterRaw<'a> {
+    iter: Box<dyn Iterator<Item = (Utf8PathBuf, Cpv)> + 'a>,
+    repo: &'a Repo,
+}
+
+impl<'a> IterRaw<'a> {
     fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package, Version};
         let mut cat_restricts = vec![];
@@ -675,12 +713,12 @@ impl<'a> Iter<'a> {
     }
 }
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = Pkg<'a>;
+impl<'a> Iterator for IterRaw<'a> {
+    type Item = RawPkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         for (path, cpv) in &mut self.iter {
-            match Pkg::new(path, cpv, self.repo) {
+            match RawPkg::new(path, cpv, self.repo) {
                 Ok(pkg) => return Some(pkg),
                 Err(e) => warn!("{}: {e}", self.repo.id()),
             }
@@ -696,6 +734,19 @@ pub struct IterRestrict<'a> {
 
 impl<'a> Iterator for IterRestrict<'a> {
     type Item = Pkg<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find(|pkg| self.restrict.matches(pkg))
+    }
+}
+
+pub struct IterRawRestrict<'a> {
+    iter: IterRaw<'a>,
+    restrict: Restrict,
+}
+
+impl<'a> Iterator for IterRawRestrict<'a> {
+    type Item = RawPkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
@@ -755,13 +806,12 @@ mod tests {
     #[test]
     fn test_id_and_name() {
         // repo id matches name
-        let t = TempRepo::new("test", None, None).unwrap();
-        let repo = Repo::from_path("test", 0, t.path()).unwrap();
-        assert_eq!(repo.id(), "test");
-        assert_eq!(repo.name(), "test");
+        let t = TempRepo::new("test", None, 0, None).unwrap();
+        assert_eq!(t.repo().id(), "test");
+        assert_eq!(t.repo().name(), "test");
 
         // repo id differs from name
-        let t = TempRepo::new("name", None, None).unwrap();
+        let t = TempRepo::new("name", None, 0, None).unwrap();
         let repo = Repo::from_path("id", 0, t.path()).unwrap();
         assert_eq!(repo.id(), "id");
         assert_eq!(repo.name(), "name");
@@ -770,20 +820,19 @@ mod tests {
     #[test]
     fn test_eapi() {
         // repos lacking profiles/eapi file use EAPI0
-        let t = TempRepo::new("test", None, None).unwrap();
-        let repo = Repo::from_path("test", 0, t.path()).unwrap();
-        assert_eq!(repo.eapi(), &*EAPI0);
+        let t = TempRepo::new("test", None, 0, None).unwrap();
+        assert_eq!(t.repo().eapi(), &*EAPI0);
 
         // explicit repo EAPI
-        let t = TempRepo::new("test", None, Some(*EAPI_LATEST_OFFICIAL)).unwrap();
-        let repo = Repo::from_path("test", 0, t.path()).unwrap();
-        assert_eq!(repo.eapi(), *EAPI_LATEST_OFFICIAL);
+        let t = TempRepo::new("test", None, 0, Some(*EAPI_LATEST_OFFICIAL)).unwrap();
+        assert_eq!(t.repo().eapi(), *EAPI_LATEST_OFFICIAL);
     }
 
     #[test]
     fn test_len() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
 
         assert_eq!(repo.len(), 0);
         assert!(repo.is_empty());
@@ -798,7 +847,8 @@ mod tests {
     #[test]
     fn test_categories() {
         let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
 
         assert!(repo.categories().is_empty());
         fs::create_dir(repo.path().join("cat")).unwrap();
@@ -811,7 +861,8 @@ mod tests {
     #[test]
     fn test_packages() {
         let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
 
         assert!(repo.packages("cat").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
@@ -824,7 +875,8 @@ mod tests {
     #[test]
     fn test_versions() {
         let mut config = Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
         let ver = |s: &str| Version::new(s).unwrap();
 
         assert!(repo.versions("cat", "pkg").is_empty());
@@ -853,7 +905,8 @@ mod tests {
     #[test]
     fn test_contains() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
 
         // path
         assert!(!repo.contains("cat/pkg"));
@@ -878,7 +931,8 @@ mod tests {
     #[test]
     fn test_iter() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
         t.create_ebuild("cat2/pkg-1", &[]).unwrap();
         t.create_ebuild("cat1/pkg-1", &[]).unwrap();
         let mut iter = repo.iter();
@@ -892,7 +946,8 @@ mod tests {
     #[test]
     fn test_iter_restrict() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
         t.create_ebuild("cat/pkg-1", &[]).unwrap();
         t.create_ebuild("cat/pkg-2", &[]).unwrap();
 
@@ -924,9 +979,9 @@ mod tests {
             ("SLOT=", "missing required values: SLOT"),
         ] {
             let mut config = Config::default();
-            let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-            t.create_ebuild("cat/pkg-0", &[data]).unwrap();
-            let mut iter = repo.iter();
+            let t = config.temp_repo("test", 0, None).unwrap();
+            t.create_ebuild("cat/pkg-0", &[data]).ok();
+            let mut iter = t.repo().iter();
             assert!(iter.next().is_none());
             assert_logs_re!(format!("test: invalid pkg: .+: {err}$"));
         }

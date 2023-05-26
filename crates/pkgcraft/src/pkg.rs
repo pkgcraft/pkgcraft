@@ -70,12 +70,17 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
 }
 
 pub trait BuildablePackage: Package {
-    /// Generate the metadata for a package.
-    fn metadata(&self) -> scallop::Result<()>;
     /// Run the build operations for a package.
     fn build(&self) -> scallop::Result<()>;
     /// Run the pkg_pretend operation for a package.
     fn pretend(&self) -> scallop::Result<()>;
+}
+
+pub trait SourceablePackage: Package {
+    /// Source a package.
+    fn source(&self) -> scallop::Result<()>;
+    /// Generate the metadata for a package.
+    fn metadata(&self) -> scallop::Result<()>;
 }
 
 macro_rules! make_pkg_traits {
@@ -221,30 +226,27 @@ mod tests {
 
         // unmatching pkgs sorted by dep attributes
         let r1: Repo = fake::Repo::new("b", 0).pkgs(["cat/pkg-1"]).into();
-        let (t, repo) = config.temp_repo("a", 0, None).unwrap();
+        let t = config.temp_repo("a", 0, None).unwrap();
         t.create_ebuild("cat/pkg-0", &[]).unwrap();
-        let r2 = Repo::Ebuild(repo);
-        let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::a", "cat/pkg-1::b"]);
 
         // matching pkgs sorted by repo priority
         let r1: Repo = fake::Repo::new("a", -1).pkgs(["cat/pkg-0"]).into();
-        let (t, repo) = config.temp_repo("b", 0, None).unwrap();
+        let t = config.temp_repo("b", 0, None).unwrap();
         t.create_ebuild("cat/pkg-0", &[]).unwrap();
-        let r2 = Repo::Ebuild(repo);
-        let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::b", "cat/pkg-0::a"]);
 
         // matching pkgs sorted by repo id since repos have matching priorities
         let r1: Repo = fake::Repo::new("2", 0).pkgs(["cat/pkg-0"]).into();
-        let (t, repo) = config.temp_repo("1", 0, None).unwrap();
+        let t = config.temp_repo("1", 0, None).unwrap();
         t.create_ebuild("cat/pkg-0", &[]).unwrap();
-        let r2 = Repo::Ebuild(repo);
-        let mut pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::1", "cat/pkg-0::2"]);

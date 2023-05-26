@@ -1,26 +1,35 @@
 use std::io::Write;
 use std::str::FromStr;
-use std::{env, fs};
+use std::{env, fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use tempfile::TempDir;
 
-use crate::dep::Cpv;
+use crate::dep::{Cpv, Version};
+use crate::pkg::ebuild::RawPkg;
 use crate::pkgsh::metadata::Key;
+use crate::repo::ebuild::Repo as EbuildRepo;
+use crate::restrict::Restrict;
 use crate::{eapi, Error};
+
+use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub struct Repo {
     tempdir: TempDir,
     path: Utf8PathBuf,
+    pub(crate) repo: BaseRepo,
 }
+
+make_repo_traits!(Repo);
 
 impl Repo {
     /// Create a temporary repo at a given path or inside `env::temp_dir()`.
     pub fn new(
         id: &str,
         path: Option<&Utf8Path>,
+        priority: i32,
         eapi: Option<&eapi::Eapi>,
     ) -> crate::Result<Self> {
         let path = match path {
@@ -53,11 +62,18 @@ impl Repo {
 
         let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
             .map_err(|p| Error::RepoInit(format!("non-unicode repo path: {p:?}")))?;
-        Ok(Self { tempdir, path })
+
+        let repo = EbuildRepo::from_path(id, priority, &path)?;
+
+        Ok(Self {
+            tempdir,
+            path,
+            repo: repo.into(),
+        })
     }
 
     /// Create an ebuild file in the repo.
-    pub fn create_ebuild(&self, cpv: &str, data: &[&str]) -> crate::Result<(Utf8PathBuf, Cpv)> {
+    pub fn create_ebuild(&self, cpv: &str, data: &[&str]) -> crate::Result<RawPkg> {
         use Key::*;
         let cpv = Cpv::new(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
@@ -89,18 +105,18 @@ impl Repo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
-        Ok((path, cpv))
+        RawPkg::new(path, cpv, self.repo())
     }
 
     /// Create an ebuild file in the repo from raw data.
-    pub fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<(Utf8PathBuf, Cpv)> {
+    pub fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<RawPkg> {
         let cpv = Cpv::new(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        Ok((path, cpv))
+        RawPkg::new(path, cpv, self.repo())
     }
 
     /// Create an eclass in the repo.
@@ -117,6 +133,11 @@ impl Repo {
         &self.path
     }
 
+    /// Return the temporary repo's file path.
+    pub fn repo(&self) -> &EbuildRepo {
+        self.repo.as_ebuild().expect("invalid repo type")
+    }
+
     /// Persist the temporary repo to disk, returning the [`Utf8PathBuf`] where it is located.
     pub fn persist<P: AsRef<Utf8Path>>(self, path: Option<P>) -> crate::Result<Utf8PathBuf> {
         let mut repo_path = Utf8PathBuf::from_path_buf(self.tempdir.into_path())
@@ -129,5 +150,71 @@ impl Repo {
             repo_path = path.to_path_buf();
         }
         Ok(repo_path)
+    }
+}
+
+impl fmt::Display for Repo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "temp repo: {}", self.repo())
+    }
+}
+
+impl Repository for Repo {
+    fn format(&self) -> RepoFormat {
+        self.repo().format()
+    }
+
+    fn id(&self) -> &str {
+        self.repo().id()
+    }
+
+    fn name(&self) -> &str {
+        self.repo().name()
+    }
+
+    fn priority(&self) -> i32 {
+        self.repo().priority()
+    }
+
+    fn path(&self) -> &Utf8Path {
+        self.repo().path()
+    }
+
+    fn sync(&self) -> crate::Result<()> {
+        self.repo().sync()
+    }
+}
+
+impl PkgRepository for Repo {
+    type Pkg<'a> = <EbuildRepo as PkgRepository>::Pkg<'a> where Self: 'a;
+    type Iter<'a> = <EbuildRepo as PkgRepository>::Iter<'a> where Self: 'a;
+    type IterRestrict<'a> = <EbuildRepo as PkgRepository>::IterRestrict<'a> where Self: 'a;
+
+    fn categories(&self) -> Vec<String> {
+        self.repo().categories()
+    }
+
+    fn packages(&self, cat: &str) -> Vec<String> {
+        self.repo().packages(cat)
+    }
+
+    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
+        self.repo().versions(cat, pkg)
+    }
+
+    fn len(&self) -> usize {
+        self.repo().len()
+    }
+
+    fn iter(&self) -> Self::Iter<'_> {
+        self.repo().iter()
+    }
+
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+        self.repo().iter_restrict(val)
+    }
+
+    fn is_empty(&self) -> bool {
+        self.repo().is_empty()
     }
 }

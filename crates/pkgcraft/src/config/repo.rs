@@ -161,7 +161,7 @@ impl Config {
     pub(super) fn create(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
         let path = self.repo_dir.join(name);
         // create temporary repo and persist it to disk
-        let temp_repo = TempRepo::new(name, Some(&self.repo_dir), None)?;
+        let temp_repo = TempRepo::new(name, Some(&self.repo_dir), priority, None)?;
         temp_repo.persist(Some(&path))?;
         Repo::from_path(name, priority, path.as_str(), false)
     }
@@ -171,10 +171,8 @@ impl Config {
         name: &str,
         priority: i32,
         eapi: Option<&Eapi>,
-    ) -> crate::Result<(TempRepo, Repo)> {
-        let temp_repo = TempRepo::new(name, None, eapi)?;
-        let r = Repo::from_path(name, priority, temp_repo.path(), false)?;
-        Ok((temp_repo, r))
+    ) -> crate::Result<TempRepo> {
+        TempRepo::new(name, None, priority, eapi)
     }
 
     pub(super) fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {

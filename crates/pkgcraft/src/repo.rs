@@ -522,9 +522,8 @@ mod tests {
 
     #[test]
     fn test_traits() {
-        let t = ebuild_temp::Repo::new("test", None, None).unwrap();
-        let repo = ebuild::Repo::from_path("test", 0, t.path()).unwrap();
-        let e_repo: Repo = repo.into();
+        let t = ebuild_temp::Repo::new("test", None, 0, None).unwrap();
+        let e_repo = t.repo;
         let f_repo: Repo = fake::Repo::new("fake", 0).into();
         assert!(e_repo != f_repo);
         assert!(e_repo > f_repo);

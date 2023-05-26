@@ -27,7 +27,6 @@ mod tests {
     use scallop::builtins::ExecStatus;
 
     use crate::config::Config;
-    use crate::pkg::ebuild::Pkg;
     use crate::pkgsh::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -44,9 +43,9 @@ mod tests {
     #[test]
     fn known_and_unknown() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
-        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = raw_pkg.into_pkg().unwrap();
         BuildData::from_pkg(&pkg);
 
         // unknown

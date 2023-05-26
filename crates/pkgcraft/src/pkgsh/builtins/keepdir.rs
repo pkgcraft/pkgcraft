@@ -46,7 +46,6 @@ mod tests {
     use crate::pkg::BuildablePackage;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::BuildData;
-    use crate::repo::PkgRepository;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as keepdir;
@@ -62,7 +61,7 @@ mod tests {
     #[test]
     fn creation() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
         let default_mode = 0o100644;
 
         for dirs in [
@@ -81,8 +80,8 @@ mod tests {
                     keepdir {args}
                 }}
             "#};
-            let (_, cpv) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-            let pkg = repo.iter_restrict(&cpv).next().unwrap();
+            let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+            let pkg = raw_pkg.into_pkg().unwrap();
             BuildData::from_pkg(&pkg);
             let file_tree = FileTree::new();
             pkg.build().unwrap();

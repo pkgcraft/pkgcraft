@@ -1,5 +1,4 @@
 use std::convert::Infallible;
-use std::path::PathBuf;
 
 use crate::peg;
 
@@ -16,8 +15,8 @@ pub enum Error {
     InvalidValue(String),
     #[error("invalid repo: {id}: {err}")]
     InvalidRepo { id: String, err: String },
-    #[error("invalid pkg: {path}: {err}")]
-    InvalidPkg { path: PathBuf, err: String },
+    #[error("invalid pkg: {id}: {err}")]
+    InvalidPkg { id: String, err: String },
     #[error("{0}")]
     IO(String),
     #[error("{0}")]

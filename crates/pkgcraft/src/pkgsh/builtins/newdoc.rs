@@ -22,7 +22,6 @@ mod tests {
     use crate::config::Config;
     use crate::pkgsh::test::FileTree;
     use crate::pkgsh::{write_stdin, BuildData};
-    use crate::repo::PkgRepository;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as newdoc;
@@ -38,9 +37,9 @@ mod tests {
     #[test]
     fn creation() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = raw_pkg.into_pkg().unwrap();
         BuildData::from_pkg(&pkg);
         let file_tree = FileTree::new();
 

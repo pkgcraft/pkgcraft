@@ -468,23 +468,19 @@ macro_rules! builtin_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
+            use crate::pkg::SourceablePackage;
             use crate::pkgsh::{builtins::Scope::*, get_build_mut, BuildData};
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
             let mut config = Config::default();
-            let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-            let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+            let t = config.temp_repo("test", 0, None).unwrap();
 
             let static_scopes: Vec<_> = vec![Global, Eclass];
             for eapi in EAPIS_OFFICIAL.iter() {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
                 let scopes = static_scopes.iter().chain(phase_scopes.iter());
                 for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {
-                    // initialize build state
-                    BuildData::update(&cpv, &repo, Some(eapi));
-                    let build = get_build_mut();
-
                     let err = format!(" doesn't enable command: {name}");
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
@@ -504,8 +500,8 @@ macro_rules! builtin_scope_tests {
                                 DESCRIPTION="testing builtin eclass scope failures"
                                 SLOT=0
                             "#};
-                            let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-                            let r = build.source_ebuild(&path);
+                            let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let r = raw_pkg.source();
                             // verify sourcing stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
                             // verify error output
@@ -521,8 +517,8 @@ macro_rules! builtin_scope_tests {
                                 {cmd}
                                 VAR=2
                             "#};
-                            let (path, _) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-                            let r = build.source_ebuild(&path);
+                            let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let r = raw_pkg.source();
                             // verify sourcing stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
                             // verify error output
@@ -539,14 +535,13 @@ macro_rules! builtin_scope_tests {
                                     VAR=2
                                 }}
                             "#};
-                            let (path, cpv) = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-                            let pkg =
-                                crate::pkg::ebuild::Pkg::new(path.clone(), cpv, &repo).unwrap();
+                            let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let pkg = raw_pkg.into_pkg().unwrap();
                             BuildData::from_pkg(&pkg);
-                            build.source_ebuild(&path).unwrap();
+                            get_build_mut().source_ebuild(pkg.path()).unwrap();
                             let r = phase.run();
                             // verify function stops at unknown command
-                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                            assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
                             // verify error output
                             assert_err_re!(r, err, &info);
                         }

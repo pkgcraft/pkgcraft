@@ -44,7 +44,6 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkg::ebuild::Pkg;
     use crate::pkgsh::{assert_stdout, get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -69,9 +68,9 @@ mod tests {
     #[test]
     fn empty_iuse_effective() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (path, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = raw_pkg.into_pkg().unwrap();
         BuildData::from_pkg(&pkg);
 
         assert_err_re!(usev(&["use"]), "^.* not in IUSE$");
@@ -80,9 +79,9 @@ mod tests {
     #[test]
     fn enabled_and_disabled() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
-        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = raw_pkg.into_pkg().unwrap();
         BuildData::from_pkg(&pkg);
 
         // disabled
@@ -98,10 +97,10 @@ mod tests {
             .iter()
             .filter(|e| e.has(Feature::UsevTwoArgs))
         {
-            let (path, cpv) = t
+            let raw_pkg = t
                 .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
-            let pkg = Pkg::new(path, cpv, &repo).unwrap();
+            let pkg = raw_pkg.into_pkg().unwrap();
             BuildData::from_pkg(&pkg);
 
             for (args, status, expected) in [
@@ -114,8 +113,8 @@ mod tests {
         }
 
         // enabled
-        let (path, cpv) = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
-        let pkg = Pkg::new(path, cpv, &repo).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = raw_pkg.into_pkg().unwrap();
         BuildData::from_pkg(&pkg);
         get_build_mut().use_.insert("use".to_string());
 
@@ -131,10 +130,10 @@ mod tests {
             .iter()
             .filter(|e| e.has(Feature::UsevTwoArgs))
         {
-            let (path, cpv) = t
+            let raw_pkg = t
                 .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
-            let pkg = Pkg::new(path, cpv, &repo).unwrap();
+            let pkg = raw_pkg.into_pkg().unwrap();
             BuildData::from_pkg(&pkg);
             get_build_mut().use_.insert("use".to_string());
 

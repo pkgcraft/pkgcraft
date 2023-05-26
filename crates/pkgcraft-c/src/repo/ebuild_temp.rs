@@ -23,7 +23,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
     ffi_catch_panic! {
         let id = try_str_from_ptr!(id);
         let eapi = eapi_or_default!(eapi);
-        let repo = unwrap_or_panic!(EbuildTempRepo::new(id, None, Some(eapi)));
+        let repo = unwrap_or_panic!(EbuildTempRepo::new(id, None, 0, Some(eapi)));
         Box::into_raw(Box::new(repo))
     }
 }
@@ -58,8 +58,8 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
         for ptr in unsafe { slice::from_raw_parts(key_vals, len) } {
             data.push(try_str_from_ptr!(*ptr));
         }
-        let (path, _cpv) = unwrap_or_panic!(repo.create_ebuild(cpv, &data));
-        try_ptr_from_str!(path.as_str())
+        let pkg = unwrap_or_panic!(repo.create_ebuild(cpv, &data));
+        try_ptr_from_str!(pkg.path().as_str())
     }
 }
 
@@ -79,8 +79,8 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_raw(
         let repo = try_ref_from_ptr!(r);
         let cpv = try_str_from_ptr!(cpv);
         let data = try_str_from_ptr!(data);
-        let (path, _cpv) = unwrap_or_panic!(repo.create_ebuild_raw(cpv, data));
-        try_ptr_from_str!(path.as_str())
+        let pkg = unwrap_or_panic!(repo.create_ebuild_raw(cpv, data));
+        try_ptr_from_str!(pkg.path().as_str())
     }
 }
 

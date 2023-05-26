@@ -86,7 +86,7 @@ impl Pool {
     /// Spawn a new, forked process if space is available in the pool, otherwise wait for space.
     pub fn spawn<F>(&mut self, func: F) -> crate::Result<()>
     where
-        F: Fn() -> crate::Result<()>,
+        F: FnOnce() -> crate::Result<()>,
     {
         // wait on bounded semaphore for pool space
         self.sem.acquire()?;

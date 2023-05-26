@@ -65,7 +65,6 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkgsh::test::FileTree;
-    use crate::repo::PkgRepository;
 
     use super::super::docinto::run as docinto;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -79,9 +78,9 @@ mod tests {
         assert_invalid_args(dodoc, &[0]);
 
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = raw_pkg.into_pkg().unwrap();
         BuildData::from_pkg(&pkg);
         let _file_tree = FileTree::new();
 
@@ -94,9 +93,9 @@ mod tests {
     #[test]
     fn creation() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let pkg = repo.iter_restrict(&cpv).next().unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = raw_pkg.into_pkg().unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();

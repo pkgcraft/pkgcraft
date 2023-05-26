@@ -51,11 +51,13 @@ mod tests {
     #[test]
     fn set_path() {
         let mut config = Config::default();
-        let (t, repo) = config.temp_repo("test", 0, None).unwrap();
-        let (_, cpv) = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in EAPIS_OFFICIAL.iter() {
-            BuildData::update(&cpv, &repo, Some(eapi));
+            let raw_pkg = t
+                .create_ebuild("cat/pkg-1", &[&format!("EAPI={eapi}")])
+                .unwrap();
+            BuildData::from_raw_pkg(&raw_pkg);
             let phase = PhaseKind::SrcInstall.stub();
             let build = get_build_mut();
             build.scope = Scope::Phase(phase);

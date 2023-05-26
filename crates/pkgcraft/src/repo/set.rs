@@ -318,10 +318,10 @@ mod tests {
     #[test]
     fn test_repo_traits() {
         let mut config = Config::default();
-        let (t, ebuild_repo) = config.temp_repo("test", 0, None).unwrap();
+        let t = config.temp_repo("test", 0, None).unwrap();
         let fake_repo = fake::Repo::new("fake", 0);
 
-        let e_repo: Repo = ebuild_repo.into();
+        let e_repo = t.repo.clone();
         let f_repo: Repo = fake_repo.into();
         let cpv = Cpv::new("cat/pkg-1").unwrap();
 

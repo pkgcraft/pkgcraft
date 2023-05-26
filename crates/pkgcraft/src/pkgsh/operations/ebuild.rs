@@ -1,20 +1,12 @@
 use scallop::Error;
 
-use crate::pkg::{ebuild::Pkg, BuildablePackage, Package};
+use crate::pkg::ebuild::{Pkg, RawPkg};
+use crate::pkg::{BuildablePackage, Package, SourceablePackage};
 use crate::pkgsh::{get_build_mut, BuildData};
 
 use super::Operation;
 
 impl<'a> BuildablePackage for Pkg<'a> {
-    fn metadata(&self) -> scallop::Result<()> {
-        BuildData::from_pkg(self);
-        get_build_mut()
-            .source_ebuild(self.path())
-            .map_err(|e| Error::Base(format!("{self}: {e}")))?;
-        // TODO: serialize to metadata/md5-cache
-        Ok(())
-    }
-
     fn build(&self) -> scallop::Result<()> {
         get_build_mut()
             .source_ebuild(self.path())
@@ -40,7 +32,22 @@ impl<'a> BuildablePackage for Pkg<'a> {
                 .run()
                 .map_err(|e| Error::Base(format!("{self}: {e}")))?;
         }
+        Ok(())
+    }
+}
 
+impl<'a> SourceablePackage for RawPkg<'a> {
+    fn source(&self) -> scallop::Result<()> {
+        BuildData::from_raw_pkg(self);
+        get_build_mut()
+            .source_ebuild(self.data())
+            .map_err(|e| Error::Base(format!("{self}: {e}")))?;
+        Ok(())
+    }
+
+    fn metadata(&self) -> scallop::Result<()> {
+        self.source()?;
+        // TODO: serialize to metadata/md5-cache
         Ok(())
     }
 }

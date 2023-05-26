@@ -629,7 +629,6 @@ mod tests {
 
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::*;
-    use crate::repo::Repository;
     use crate::test::{assert_ordered_eq, assert_unordered_eq};
 
     use super::*;
@@ -637,7 +636,7 @@ mod tests {
     #[test]
     fn test_config() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // empty config
         fs::write(repo.path().join("metadata/layout.conf"), "").unwrap();
@@ -652,7 +651,7 @@ mod tests {
     #[test]
     fn test_config_properties_and_restrict_allowed() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // empty
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -673,7 +672,7 @@ mod tests {
     #[test]
     fn test_arches() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent file
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -699,7 +698,7 @@ mod tests {
     #[test]
     fn test_arches_desc() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent file
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -748,7 +747,7 @@ mod tests {
     #[test]
     fn test_categories() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent file
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -779,7 +778,7 @@ mod tests {
     #[test]
     fn test_licenses() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent dir
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -801,7 +800,7 @@ mod tests {
     #[test]
     fn test_license_groups() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent dir
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -869,7 +868,7 @@ mod tests {
     #[test]
     fn test_mirrors() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent file
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -904,7 +903,7 @@ mod tests {
     #[test]
     fn test_pkg_deprecated() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test1", 0, None).unwrap();
+        let repo = config.temp_repo("test1", 0, None).unwrap();
 
         // nonexistent file
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -935,7 +934,7 @@ mod tests {
         assert_logs_re!(".+, line 8: .* invalid dep: cat/slotted:0$");
 
         // newer repo EAPI allows using newer dep format features
-        let (_t, repo) = config
+        let repo = config
             .temp_repo("test2", 0, Some(&EAPI_LATEST_OFFICIAL))
             .unwrap();
         // multiple with invalid dep for repo EAPI
@@ -955,7 +954,7 @@ mod tests {
     #[test]
     fn test_pkg_mask() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test1", 0, None).unwrap();
+        let repo = config.temp_repo("test1", 0, None).unwrap();
 
         // nonexistent file
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -986,7 +985,7 @@ mod tests {
         assert_logs_re!(".+, line 8: .* invalid dep: cat/slotted:0$");
 
         // newer repo EAPI allows using newer dep format features
-        let (_t, repo) = config
+        let repo = config
             .temp_repo("test2", 0, Some(&EAPI_LATEST_OFFICIAL))
             .unwrap();
         // multiple with invalid dep for repo EAPI
@@ -1006,7 +1005,7 @@ mod tests {
     #[test]
     fn test_updates() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -1044,7 +1043,7 @@ mod tests {
     #[test]
     fn test_use_desc() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent
         let metadata = Metadata::new("test", repo.path()).unwrap();
@@ -1077,7 +1076,7 @@ mod tests {
     #[test]
     fn test_use_local_desc() {
         let mut config = crate::config::Config::default();
-        let (_t, repo) = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent
         let metadata = Metadata::new("test", repo.path()).unwrap();

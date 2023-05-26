@@ -1,13 +1,11 @@
 use std::env;
 use std::fs;
-use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
-use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::repo::ebuild_temp::Repo as TempRepo;
 use crate::repo::Repo;
 use crate::utils::find_existing_path;
@@ -224,11 +222,10 @@ impl Config {
         name: &str,
         priority: i32,
         eapi: Option<&Eapi>,
-    ) -> crate::Result<(TempRepo, Arc<EbuildRepo>)> {
-        let (temp_repo, r) = self.repos.create_temp(name, priority, eapi)?;
-        self.add_repo(&r)?;
-        let repo = r.as_ebuild().expect("invalid ebuild repo: {name}");
-        Ok((temp_repo, repo.clone()))
+    ) -> crate::Result<TempRepo> {
+        let temp_repo = self.repos.create_temp(name, priority, eapi)?;
+        self.add_repo(&temp_repo.repo)?;
+        Ok(temp_repo)
     }
 }
 
@@ -330,7 +327,7 @@ mod tests {
         assert!(config.repos.is_empty());
 
         // single repo
-        let t1 = TempRepo::new("test", None, None).unwrap();
+        let t1 = TempRepo::new("test", None, 0, None).unwrap();
         let data = indoc::formatdoc! {r#"
             [a]
             location = {}
@@ -341,7 +338,7 @@ mod tests {
 
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
-        let t2 = TempRepo::new("r2", None, None).unwrap();
+        let t2 = TempRepo::new("r2", None, 0, None).unwrap();
         let data = indoc::formatdoc! {r#"
             [b]
             location = {}
@@ -377,7 +374,7 @@ mod tests {
 
         // multiple config files in a specified directory
         let mut config = Config::new("pkgcraft", "");
-        let t3 = TempRepo::new("r3", None, None).unwrap();
+        let t3 = TempRepo::new("r3", None, 0, None).unwrap();
         let tmpdir = tempdir().unwrap();
         let conf_dir = tmpdir.path();
         let conf_path = conf_dir.to_str().unwrap();

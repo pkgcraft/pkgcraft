@@ -7,11 +7,13 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
-use crate::dep::{self, Cpv, Dep, DepSet, Uri};
+use crate::dep::{self, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
+use crate::pkg::SourceablePackage;
+use crate::pkg::{ebuild::RawPkg, Package};
 use crate::pkgsh::{get_build_mut, BuildData};
-use crate::repo::{ebuild::Repo as EbuildRepo, Repository};
+use crate::repo::Repository;
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -151,23 +153,19 @@ impl Metadata {
     }
 
     /// Load metadata from cache if available, otherwise source it from the ebuild content.
-    pub(crate) fn load_or_source(
-        cpv: &Cpv,
-        data: &str,
-        eapi: &'static Eapi,
-        repo: &EbuildRepo,
-    ) -> crate::Result<Self> {
+    pub(crate) fn load_or_source(pkg: &RawPkg) -> crate::Result<Self> {
         // TODO: compare ebuild mtime vs cache mtime
-        match Self::load(cpv, eapi, repo) {
+        match Self::load(pkg) {
             Some(data) => Ok(data),
-            None => Self::source(cpv, data, eapi, repo),
+            None => Self::source(pkg),
         }
     }
 
     /// Load metadata from cache.
-    pub(crate) fn load(cpv: &Cpv, eapi: &'static Eapi, repo: &EbuildRepo) -> Option<Self> {
+    pub(crate) fn load(pkg: &RawPkg) -> Option<Self> {
         // TODO: validate cache entries in some fashion?
-        let path = build_from_paths!(repo.path(), "metadata", "md5-cache", cpv.to_string());
+        let path =
+            build_from_paths!(pkg.repo().path(), "metadata", "md5-cache", pkg.cpv().to_string());
         let s = match fs::read_to_string(&path) {
             Ok(s) => s,
             Err(e) => {
@@ -178,7 +176,7 @@ impl Metadata {
             }
         };
 
-        match Metadata::deserialize(&s, eapi) {
+        match Metadata::deserialize(&s, pkg.eapi()) {
             Ok(m) => Some(m),
             Err(e) => {
                 warn!("error deserializing ebuild metadata: {:?}: {e}", &path);
@@ -188,16 +186,12 @@ impl Metadata {
     }
 
     /// Source ebuild to determine metadata.
-    pub(crate) fn source(
-        cpv: &Cpv,
-        data: &str,
-        eapi: &'static Eapi,
-        repo: &EbuildRepo,
-    ) -> crate::Result<Self> {
-        BuildData::update(cpv, repo, Some(eapi));
-        let build = get_build_mut();
+    pub(crate) fn source(pkg: &RawPkg) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
-        build.source_ebuild(data)?;
+        pkg.source()?;
+
+        let eapi = pkg.eapi();
+        let build = get_build_mut();
         let mut meta = Metadata::default();
 
         // verify sourced EAPI matches parsed EAPI
