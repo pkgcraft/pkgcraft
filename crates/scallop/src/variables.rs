@@ -116,7 +116,7 @@ impl Variable {
     }
 }
 
-pub trait Variables {
+pub trait Variables: AsRef<str> {
     fn name(&self) -> &str;
 
     fn optional(&self) -> Option<String> {
@@ -177,9 +177,15 @@ pub trait Variables {
     }
 }
 
+impl AsRef<str> for Variable {
+    fn as_ref(&self) -> &str {
+        self.name()
+    }
+}
+
 impl Variables for Variable {
     fn name(&self) -> &str {
-        self.name.as_str()
+        &self.name
     }
 }
 
@@ -200,7 +206,13 @@ impl ScopedVariable {
 
 impl Variables for ScopedVariable {
     fn name(&self) -> &str {
-        self.var.name.as_str()
+        &self.var.name
+    }
+}
+
+impl AsRef<str> for ScopedVariable {
+    fn as_ref(&self) -> &str {
+        self.name()
     }
 }
 
