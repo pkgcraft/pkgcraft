@@ -1,8 +1,10 @@
 name: audit
 
 on:
+  schedule:
+    - cron: '39 7 13 * *'
   push:
-    branches: [main]
+    branches: ['**']
     paths:
       - "Cargo.lock"
       - ".github/workflows/audit.yml"
@@ -11,12 +13,12 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
         submodules: true
 
-    - uses: actions-rs/audit-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions-rust-lang/audit@v1
