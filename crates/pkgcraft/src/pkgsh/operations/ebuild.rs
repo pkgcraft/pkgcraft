@@ -2,6 +2,7 @@ use scallop::Error;
 
 use crate::pkg::ebuild::{Pkg, RawPkg};
 use crate::pkg::{BuildablePackage, Package, SourceablePackage};
+use crate::pkgsh::metadata::Metadata;
 use crate::pkgsh::{get_build_mut, BuildData};
 
 use super::Operation;
@@ -46,7 +47,7 @@ impl<'a> SourceablePackage for RawPkg<'a> {
     }
 
     fn metadata(&self) -> scallop::Result<()> {
-        self.source()?;
+        let _meta = Metadata::source(self).map_err(|e| Error::Base(format!("{self}: {e}")))?;
         // TODO: serialize to metadata/md5-cache
         Ok(())
     }
