@@ -237,36 +237,36 @@ impl Metadata {
         // read serialized metadata
         let data = match Self::read_to_string(pkg) {
             Some(data) => data,
-            None => return true,
+            None => return false,
         };
 
         // pull ebuild and eclass hash lines which should always be the last two
         let mut iter = data.lines().rev();
         let (ebuild_hash, eclasses) = match (iter.next(), iter.next()) {
             (Some(s1), Some(s2)) => (s1, s2),
-            _ => return true,
+            _ => return false,
         };
 
         // verify ebuild hash
         match ebuild_hash.strip_prefix("_md5_=") {
             Some(s) => {
                 if s != pkg.digest() {
-                    return true;
+                    return false;
                 }
             }
-            None => return true,
+            None => return false,
         }
 
-        // verify eclass hashes
         match eclasses.strip_prefix("_eclasses_=") {
-            Some(s) => s.split_whitespace().tuples().any(|(name, digest)| {
+            // verify all eclass hashes match
+            Some(s) => s.split_whitespace().tuples().all(|(name, digest)| {
                 match pkg.repo().eclasses().get(name) {
-                    Some(eclass) => eclass.digest() != digest,
-                    None => true,
+                    Some(eclass) => eclass.digest() == digest,
+                    None => false,
                 }
             }),
             // ebuilds without eclass inherits
-            None => false,
+            None => true,
         }
     }
 

@@ -46,7 +46,7 @@ impl<'a> SourceablePackage for RawPkg<'a> {
 
     fn metadata(&self, force: bool, pretend: bool) -> scallop::Result<()> {
         // verify metadata validity using ebuild and eclass hashes
-        if !pretend && !force && !Metadata::valid(self) {
+        if !pretend && !force && Metadata::valid(self) {
             return Ok(());
         }
 
