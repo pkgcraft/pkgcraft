@@ -4,6 +4,7 @@ use std::thread;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::errno;
 use nix::unistd::{fork, ForkResult};
+use serde::{Deserialize, Serialize};
 
 use crate::shm::create_shm;
 use crate::{bash, Error};
@@ -115,6 +116,66 @@ impl Pool {
         self.thread
             .join()
             .map_err(|_| Error::Base("failed closing pool".to_string()))
+    }
+}
+
+pub struct PoolIter<T: Serialize + for<'a> Deserialize<'a>> {
+    rx: IpcReceiver<T>,
+}
+
+impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
+    pub fn new<O, I, F>(size: usize, iter: I, func: F) -> crate::Result<Self>
+    where
+        I: Iterator<Item = O>,
+        F: FnOnce(O) -> T,
+    {
+        // enable internal bash SIGCHLD handler
+        unsafe { bash::set_sigchld_handler() };
+
+        let sem_size = size
+            .try_into()
+            .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
+        let mut sem = SharedSemaphore::new(sem_size)?;
+        let (tx, rx): (IpcSender<T>, IpcReceiver<T>) =
+            ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
+
+        match unsafe { fork() } {
+            Ok(ForkResult::Parent { .. }) => Ok(()),
+            Ok(ForkResult::Child) => {
+                for obj in iter {
+                    // wait on bounded semaphore for pool space
+                    sem.acquire().expect("failed acquiring pool token");
+
+                    match unsafe { fork() } {
+                        Ok(ForkResult::Parent { .. }) => (),
+                        Ok(ForkResult::Child) => {
+                            // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
+                            let r = func(obj);
+                            tx.send(r).expect("process pool sender failed");
+                            sem.release().expect("failed releasing pool token");
+                            unsafe { libc::_exit(0) };
+                        }
+                        Err(_) => panic!("process pool fork failed"),
+                    }
+                }
+                unsafe { libc::_exit(0) };
+            }
+            Err(e) => Err(Error::Base(format!("starting process pool failed: {e}"))),
+        }?;
+
+        Ok(Self { rx })
+    }
+}
+
+impl<T: Serialize + for<'a> Deserialize<'a>> Iterator for PoolIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.rx.recv() {
+            Ok(r) => Some(r),
+            Err(IpcError::Disconnected) => None,
+            Err(e) => panic!("process pool receiver failed: {e}"),
+        }
     }
 }
 
