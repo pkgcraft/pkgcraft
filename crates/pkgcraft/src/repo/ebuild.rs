@@ -271,6 +271,7 @@ impl Repo {
         })
     }
 
+    /// Finalize the repo, collapsing repo dependencies into references.
     pub(super) fn finalize(
         &self,
         existing_repos: &IndexMap<String, BaseRepo>,
@@ -461,26 +462,31 @@ impl Repo {
         })
     }
 
+    /// Return the shared XML metadata for a given package.
     pub(crate) fn pkg_xml(&self, cpv: &Cpv) -> Arc<XmlMetadata> {
         self.xml_cache
             .get_or_init(|| Cache::<XmlMetadata>::new(self.arc()))
             .get(cpv)
     }
 
+    /// Return the shared manifest data for a given package.
     pub(crate) fn pkg_manifest(&self, cpv: &Cpv) -> Arc<Manifest> {
         self.manifest_cache
             .get_or_init(|| Cache::<Manifest>::new(self.arc()))
             .get(cpv)
     }
 
+    /// Regenerate metadata for the repo, returning an iterator over the errors.
     pub fn metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<MetadataRegen> {
         MetadataRegen::new(self, jobs, force)
     }
 
+    /// Return an iterator of raw packages for the repo.
     pub fn iter_raw(&self) -> IterRaw<'_> {
         IterRaw::new(self, None)
     }
 
+    /// Return a filtered iterator of raw packages for the repo.
     pub fn iter_raw_restrict<R: Into<Restrict>>(&self, val: R) -> IterRawRestrict<'_> {
         let restrict = val.into();
         IterRawRestrict {
