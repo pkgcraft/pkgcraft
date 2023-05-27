@@ -11,6 +11,7 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use once_cell::sync::{Lazy, OnceCell};
+use scallop::pool::PoolIter;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
@@ -21,6 +22,7 @@ use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
+use crate::pkg::SourceablePackage;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -471,6 +473,10 @@ impl Repo {
             .get(cpv)
     }
 
+    pub fn metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<MetadataRegen> {
+        MetadataRegen::new(self, jobs, force)
+    }
+
     pub fn iter_raw(&self) -> IterRaw<'_> {
         IterRaw::new(self, None)
     }
@@ -828,6 +834,33 @@ impl<'a> Iterator for IterRawRestrict<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
+    }
+}
+
+pub struct MetadataRegen {
+    iter: PoolIter<scallop::Result<()>>,
+}
+
+impl MetadataRegen {
+    pub(crate) fn new(repo: &Repo, jobs: usize, force: bool) -> crate::Result<Self> {
+        let pkgs = Box::new(repo.iter_raw());
+        let func = |pkg: RawPkg| pkg.metadata(force);
+        let iter = PoolIter::new(jobs, pkgs, func)?;
+        Ok(MetadataRegen { iter })
+    }
+}
+
+impl Iterator for MetadataRegen {
+    type Item = scallop::Error;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.iter.next() {
+                Some(Err(e)) => return Some(e),
+                Some(Ok(_)) => (),
+                None => return None,
+            }
+        }
     }
 }
 

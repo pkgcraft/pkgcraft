@@ -2,9 +2,7 @@ use std::process::ExitCode;
 
 use anyhow::anyhow;
 use clap::Args;
-use pkgcraft::pkg::SourceablePackage;
 use pkgcraft::repo::Repo;
-use scallop::pool::Pool;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -15,10 +13,6 @@ pub struct Command {
     /// Force regeneration to occur
     #[arg(short, long)]
     force: bool,
-
-    /// Regenerate metadata without serializing to disk
-    #[arg(short, long)]
-    pretend: bool,
 }
 
 impl Command {
@@ -29,19 +23,17 @@ impl Command {
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
         let jobs = self.jobs.unwrap_or_else(num_cpus::get);
-        let mut pool = Pool::new(jobs)?;
 
-        // generate metadata for the selected pkgs
-        for pkg in repo.iter_raw() {
-            pool.spawn(move || pkg.metadata(self.force, self.pretend))?;
+        let mut failed = false;
+        for error in repo.metadata_regen(jobs, self.force)? {
+            failed = true;
+            eprintln!("{error}");
         }
 
-        let errors = pool.join()?;
-
-        if errors == 0 {
-            Ok(ExitCode::SUCCESS)
-        } else {
+        if failed {
             Ok(ExitCode::FAILURE)
+        } else {
+            Ok(ExitCode::SUCCESS)
         }
     }
 }

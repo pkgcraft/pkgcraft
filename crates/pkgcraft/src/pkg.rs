@@ -80,11 +80,13 @@ pub trait SourceablePackage: Package {
     /// Source a package.
     fn source(&self) -> scallop::Result<()>;
     /// Generate the metadata for a package.
-    fn metadata(&self, force: bool, pretend: bool) -> scallop::Result<()>;
+    fn metadata(&self, force: bool) -> scallop::Result<()>;
 }
 
 macro_rules! make_pkg_traits {
     ($($x:ty),+) => {$(
+        impl crate::error::PackageError for $x {}
+
         impl PartialEq for $x {
             fn eq(&self, other: &Self) -> bool {
                 self.repo() == other.repo() && self.cpv() == other.cpv()
