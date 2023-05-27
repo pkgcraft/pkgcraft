@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use itertools::{Either, Itertools};
-use scallop::builtins::{builtin_level, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::variables::{ScopedVariable, Variable, Variables};
 use scallop::{source, Error};
 
@@ -44,15 +44,12 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
-
     let orig_scope = build.scope;
-    build.scope = Scope::Eclass;
 
-    // Track direct ebuild inherits, note that this assumes the first level is via an ebuild
-    // inherit, i.e. calling this function directly won't increment the value and thus won't
-    // work as expected.
-    if builtin_level() == 1 {
+    // track direct inherits
+    if build.scope != Scope::Eclass {
         build.inherit.extend(eclasses.iter().map(|s| s.to_string()));
+        build.scope = Scope::Eclass;
     }
 
     for eclass in eclasses {
@@ -96,8 +93,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         inherited_var.append(&format!(" {eclass}"))?;
     }
 
-    // restore the original scope
-    build.scope = orig_scope;
+    // restore the original scope for non-nested contexts
+    if orig_scope != Scope::Eclass {
+        build.scope = orig_scope;
+    }
 
     Ok(ExecStatus::Success)
 }
