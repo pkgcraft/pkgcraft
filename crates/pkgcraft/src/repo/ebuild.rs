@@ -1,4 +1,7 @@
+use std::borrow::Borrow;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
 use std::{fmt, fs, io, iter, thread};
@@ -137,6 +140,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct Eclass {
     name: String,
     path: Utf8PathBuf,
@@ -184,6 +188,38 @@ impl AsRef<str> for Eclass {
     }
 }
 
+impl Eq for Eclass {}
+
+impl PartialEq for Eclass {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Ord for Eclass {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
+impl PartialOrd for Eclass {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Hash for Eclass {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
+impl Borrow<str> for Eclass {
+    fn borrow(&self) -> &str {
+        &self.name
+    }
+}
+
 #[derive(Default)]
 pub struct Repo {
     id: String,
@@ -195,7 +231,7 @@ pub struct Repo {
     licenses: OnceCell<HashSet<String>>,
     license_groups: OnceCell<HashMap<String, HashSet<String>>>,
     mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
-    eclasses: OnceCell<HashMap<String, Eclass>>,
+    eclasses: OnceCell<HashSet<Eclass>>,
     xml_cache: OnceCell<Cache<XmlMetadata>>,
     manifest_cache: OnceCell<Cache<Manifest>>,
 }
@@ -313,17 +349,13 @@ impl Repo {
     }
 
     /// Return the mapping of inherited eclass names to file paths.
-    pub fn eclasses(&self) -> &HashMap<String, Eclass> {
+    pub fn eclasses(&self) -> &HashSet<Eclass> {
         self.eclasses.get_or_init(|| {
             self.trees()
                 .filter_map(|repo| repo.path().join("eclass").read_dir_utf8().ok())
                 .flatten()
                 .filter_map(|e| e.ok())
-                .filter_map(|e| {
-                    Eclass::new(e.path())
-                        .ok()
-                        .map(|e| (e.name().to_string(), e))
-                })
+                .filter_map(|e| Eclass::new(e.path()).ok())
                 .collect()
         })
     }
@@ -1036,9 +1068,9 @@ mod tests {
     #[test]
     fn test_eclasses() {
         let repo = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
-        assert_unordered_eq(repo.eclasses().keys(), ["a"]);
+        assert_unordered_eq(repo.eclasses().iter().map(|e| e.as_ref()), ["a"]);
         let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
-        assert_unordered_eq(repo.eclasses().keys(), ["a", "b"]);
+        assert_unordered_eq(repo.eclasses().iter().map(|e| e.as_ref()), ["a", "b"]);
     }
 
     #[test]
