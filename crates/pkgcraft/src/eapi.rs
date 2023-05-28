@@ -288,9 +288,9 @@ impl Eapi {
         let scope = scope.into();
         BUILTINS_MAP
             .get(self)
-            .unwrap()
+            .expect("no builtins for EAPI: {self}")
             .get(&scope)
-            .unwrap_or_else(|| panic!("EAPI {self}, unknown scope: {scope}"))
+            .expect("EAPI {self}, unknown scope: {scope}")
     }
 
     /// Metadata variables for dependencies.
