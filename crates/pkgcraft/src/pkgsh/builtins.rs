@@ -344,14 +344,15 @@ static VERSION_RE: Lazy<Regex> = Lazy::new(|| {
 
 /// Split version string into a vector of separators and components.
 fn version_split(ver: &str) -> Vec<&str> {
-    let mut version_parts = Vec::new();
-    for caps in VERSION_RE.captures_iter(ver) {
-        version_parts.extend([
-            caps.name("sep").map_or("", |m| m.as_str()),
-            caps.name("comp").map_or("", |m| m.as_str()),
-        ]);
-    }
-    version_parts
+    VERSION_RE
+        .captures_iter(ver)
+        .flat_map(|cap| {
+            [
+                cap.name("sep").map_or("", |m| m.as_str()),
+                cap.name("comp").map_or("", |m| m.as_str()),
+            ]
+        })
+        .collect()
 }
 
 peg::parser! {
