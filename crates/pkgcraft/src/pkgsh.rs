@@ -347,17 +347,23 @@ impl<'a> BuildData<'a> {
         }
     }
 
-    /// Cache and set all the build environment variables for the current EAPI and scope.
+    /// Cache and set build environment variables for the current EAPI and scope.
     fn set_vars(&mut self) -> scallop::Result<()> {
         for (var, scopes) in self.eapi().env() {
             if scopes.matches(self.scope) {
-                if self.env.get(var.as_ref()).is_none() {
-                    let val = self.get_var(*var)?;
-                    self.env.insert(var.to_string(), val);
+                match self.env.get(var.as_ref()) {
+                    Some(val) => {
+                        bind(var, val, None, None)?;
+                    }
+                    None => {
+                        let val = self.get_var(*var)?;
+                        bind(var, &val, None, None)?;
+                        self.env.insert(var.to_string(), val);
+                    }
                 }
-                bind(var, self.env.get(var.as_ref()).unwrap(), None, None)?;
             }
         }
+
         Ok(())
     }
 
