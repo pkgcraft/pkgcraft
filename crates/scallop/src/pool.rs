@@ -103,7 +103,7 @@ impl Pool {
                 if let Err(e) = func() {
                     self.tx.send(e).expect("pool sender failed");
                 }
-                self.sem.release().ok();
+                self.sem.release().expect("failed releasing pool token");
                 unsafe { libc::_exit(0) };
             }
             Err(e) => Err(Error::Base(format!("fork failed: {e}"))),
