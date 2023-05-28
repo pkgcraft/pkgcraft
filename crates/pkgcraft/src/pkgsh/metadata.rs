@@ -99,16 +99,20 @@ pub(crate) struct Metadata {
     inherited: OrderedSet<String>,
 }
 
-fn split(s: &str) -> impl Iterator<Item = String> + '_ {
-    s.split_whitespace().map(String::from)
+macro_rules! split {
+    ($s:expr) => {
+        $s.split_whitespace().map(String::from)
+    };
 }
 
-fn join(data: &OrderedSet<String>) -> Option<String> {
-    if data.is_empty() {
-        None
-    } else {
-        Some(data.iter().join(" "))
-    }
+macro_rules! join {
+    ($set:expr) => {{
+        if $set.is_empty() {
+            None
+        } else {
+            Some($set.iter().join(" "))
+        }
+    }};
 }
 
 impl Metadata {
@@ -130,12 +134,12 @@ impl Metadata {
             RequiredUse => self.required_use = dep::parse::required_use(val, eapi)?,
             Restrict => self.restrict = dep::parse::restrict(val)?,
             SrcUri => self.src_uri = dep::parse::src_uri(val, eapi)?,
-            Homepage => self.homepage = split(val).collect(),
-            DefinedPhases => self.defined_phases = split(val).sorted().collect(),
-            Keywords => self.keywords = split(val).collect(),
-            Iuse => self.iuse = split(val).collect(),
-            Inherit => self.inherit = split(val).collect(),
-            Inherited => self.inherited = split(val).collect(),
+            Homepage => self.homepage = split!(val).collect(),
+            DefinedPhases => self.defined_phases = split!(val).sorted().collect(),
+            Keywords => self.keywords = split!(val).collect(),
+            Iuse => self.iuse = split!(val).collect(),
+            Inherit => self.inherit = split!(val).collect(),
+            Inherited => self.inherited = split!(val).collect(),
             Eapi => (),
         }
         Ok(())
@@ -205,7 +209,7 @@ impl Metadata {
                 RequiredUse => self.required_use.as_ref().map(|d| key.line(d)),
                 Restrict => self.restrict.as_ref().map(|d| key.line(d)),
                 SrcUri => self.src_uri.as_ref().map(|d| key.line(d)),
-                Homepage => join(&self.homepage).map(|s| key.line(s)),
+                Homepage => join!(&self.homepage).map(|s| key.line(s)),
                 DefinedPhases => {
                     // PMS specifies if no phase functions are defined, a single hyphen is used.
                     if self.defined_phases.is_empty() {
@@ -214,9 +218,9 @@ impl Metadata {
                         Some(key.line(self.defined_phases.iter().join(" ")))
                     }
                 }
-                Keywords => join(&self.keywords).map(|s| key.line(s)),
-                Iuse => join(&self.iuse).map(|s| key.line(s)),
-                Inherit => join(&self.inherit).map(|s| key.line(s)),
+                Keywords => join!(&self.keywords).map(|s| key.line(s)),
+                Iuse => join!(&self.iuse).map(|s| key.line(s)),
+                Inherit => join!(&self.inherit).map(|s| key.line(s)),
                 Inherited => {
                     if self.inherited.is_empty() {
                         None
