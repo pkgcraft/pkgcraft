@@ -148,8 +148,10 @@ impl Metadata {
         let iter = s
             .lines()
             .filter_map(|l| {
-                l.split_once('=').map(|(s, v)| match s {
-                    "_eclasses_" => ("INHERITED", v),
+                l.split_once('=').map(|(s, v)| match (s, v) {
+                    ("_eclasses_", v) => ("INHERITED", v),
+                    // single hyphen means no phases are defined as per PMS
+                    ("DEFINED_PHASES", "-") => ("DEFINED_PHASES", ""),
                     _ => (s, v),
                 })
             })
@@ -204,7 +206,14 @@ impl Metadata {
                 Restrict => self.restrict.as_ref().map(|d| key.line(d)),
                 SrcUri => self.src_uri.as_ref().map(|d| key.line(d)),
                 Homepage => join(&self.homepage).map(|s| key.line(s)),
-                DefinedPhases => join(&self.defined_phases).map(|s| key.line(s)),
+                DefinedPhases => {
+                    // PMS specifies if no phase functions are defined, a single hyphen is used.
+                    if self.defined_phases.is_empty() {
+                        Some(key.line("-"))
+                    } else {
+                        Some(key.line(self.defined_phases.iter().join(" ")))
+                    }
+                }
                 Keywords => join(&self.keywords).map(|s| key.line(s)),
                 Iuse => join(&self.iuse).map(|s| key.line(s)),
                 Inherit => join(&self.inherit).map(|s| key.line(s)),
