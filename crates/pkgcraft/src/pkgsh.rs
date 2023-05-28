@@ -1,5 +1,5 @@
 use std::cell::UnsafeCell;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::io::{self, Read, Write};
 use std::{env, mem};
 
@@ -15,11 +15,12 @@ use sys_info::os_release;
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature};
-use crate::macros::{build_from_paths, extend_left};
+use crate::macros::build_from_paths;
 use crate::pkg::Package;
 use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
 use crate::repo::{ebuild, Repository};
 use crate::traits::SourceBash;
+use crate::types::Deque;
 
 pub mod builtins;
 mod install;
@@ -202,7 +203,7 @@ pub(crate) struct BuildData<'a> {
     /// complete set of inherited eclasses
     inherited: IndexSet<String>,
     /// incremental metadata fields
-    incrementals: HashMap<Key, VecDeque<String>>,
+    incrementals: HashMap<Key, Deque<String>>,
 }
 
 impl<'a> BuildData<'a> {
@@ -446,9 +447,9 @@ impl<'a> BuildData<'a> {
         // prepend metadata keys that incrementally accumulate to eclass values
         if !self.inherited.is_empty() {
             for key in eapi.incremental_keys() {
-                let deque = self.incrementals.entry(*key).or_insert_with(VecDeque::new);
+                let deque = self.incrementals.entry(*key).or_insert_with(Deque::new);
                 if let Some(data) = string_vec(key) {
-                    extend_left!(deque, data.into_iter());
+                    deque.extend_left(data);
                 }
                 // export the incrementally accumulated value
                 bind(key, deque.iter().join(" "), None, None)?;

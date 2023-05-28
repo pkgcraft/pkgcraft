@@ -1,11 +1,10 @@
-use std::collections::VecDeque;
-
 use itertools::{Either, Itertools};
 use scallop::builtins::ExecStatus;
 use scallop::variables::{ScopedVariable, Variable, Variables};
 use scallop::{source, Error};
 
 use crate::pkgsh::get_build_mut;
+use crate::types::Deque;
 
 use super::{make_builtin, Scope, ECLASS, GLOBAL};
 
@@ -86,7 +85,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 build
                     .incrementals
                     .entry(*key)
-                    .or_insert_with(VecDeque::new)
+                    .or_insert_with(Deque::new)
                     .extend(data);
             }
         }

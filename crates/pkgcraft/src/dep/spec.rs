@@ -1,11 +1,9 @@
-use std::collections::VecDeque;
 use std::fmt;
 
 use itertools::Itertools;
 
-use crate::macros::extend_left;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
-use crate::types::{Ordered, OrderedSet, SortedSet};
+use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
 use crate::Error;
 
 use super::Dep;
@@ -233,7 +231,7 @@ impl<'a, T: Ordered> Recursive for &'a DepSet<T> {
 }
 
 #[derive(Debug)]
-pub struct IterFlatten<'a, T: Ordered>(VecDeque<&'a DepSpec<T>>);
+pub struct IterFlatten<'a, T: Ordered>(Deque<&'a DepSpec<T>>);
 
 impl<'a, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, T> {
     type Item = &'a T;
@@ -243,12 +241,12 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, T> {
         while let Some(dep) = self.0.pop_front() {
             match dep {
                 Enabled(val) | Disabled(val) => return Some(val),
-                AllOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                AnyOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                ExactlyOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                AtMostOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                UseEnabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                UseDisabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                AllOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                UseEnabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                UseDisabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
             }
         }
         None
@@ -294,7 +292,7 @@ impl<T: Ordered> Recursive for DepSet<T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterFlatten<T: Ordered>(VecDeque<DepSpec<T>>);
+pub struct IntoIterFlatten<T: Ordered>(Deque<DepSpec<T>>);
 
 impl<T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<T> {
     type Item = T;
@@ -304,12 +302,12 @@ impl<T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<T> {
         while let Some(dep) = self.0.pop_front() {
             match dep {
                 Enabled(val) | Disabled(val) => return Some(val),
-                AllOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
-                AnyOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
-                ExactlyOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
-                AtMostOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
-                UseEnabled(_, vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
-                UseDisabled(_, vals) => extend_left!(self.0, vals.into_iter().map(|x| *x)),
+                AllOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                UseEnabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                UseDisabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
             }
         }
         None
@@ -317,7 +315,7 @@ impl<T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<T> {
 }
 
 #[derive(Debug)]
-pub struct IterRecursive<'a, T: Ordered>(VecDeque<&'a DepSpec<T>>);
+pub struct IterRecursive<'a, T: Ordered>(Deque<&'a DepSpec<T>>);
 
 impl<'a, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, T> {
     type Item = &'a DepSpec<T>;
@@ -327,12 +325,12 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, T> {
         if let Some(dep) = self.0.pop_front() {
             match dep {
                 Enabled(_) | Disabled(_) => (),
-                AllOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                AnyOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                ExactlyOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                AtMostOneOf(vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                UseEnabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
-                UseDisabled(_, vals) => extend_left!(self.0, vals.iter().map(AsRef::as_ref)),
+                AllOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                UseEnabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                UseDisabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
             }
             Some(dep)
         } else {
@@ -342,7 +340,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterRecursive<T: Ordered>(VecDeque<DepSpec<T>>);
+pub struct IntoIterRecursive<T: Ordered>(Deque<DepSpec<T>>);
 
 impl<T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<T> {
     type Item = DepSpec<T>;
@@ -352,12 +350,12 @@ impl<T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<T> {
         if let Some(dep) = self.0.pop_front() {
             match &dep {
                 Enabled(_) | Disabled(_) => (),
-                AllOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
-                AnyOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
-                ExactlyOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
-                AtMostOneOf(vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
-                UseEnabled(_, vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
-                UseDisabled(_, vals) => extend_left!(self.0, vals.into_iter().map(|x| *x.clone())),
+                AllOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
+                AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
+                ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
+                AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
+                UseEnabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
+                UseDisabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
             }
             Some(dep)
         } else {

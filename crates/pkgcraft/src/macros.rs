@@ -68,14 +68,3 @@ macro_rules! bool_not_equal {
     };
 }
 pub(crate) use bool_not_equal;
-
-// Hack to implement extend_left() support for VecDeque objects.
-// TODO: extend_left() should be implemented upstream for VecDeque
-macro_rules! extend_left {
-    ($q:expr, $iter:expr) => {
-        for item in $iter.rev() {
-            $q.push_front(item);
-        }
-    };
-}
-pub(crate) use extend_left;
