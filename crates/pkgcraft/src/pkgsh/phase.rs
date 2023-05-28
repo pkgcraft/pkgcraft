@@ -1,10 +1,11 @@
+use std::borrow::Borrow;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
 use scallop::functions;
-use strum::{AsRefStr, Display};
+use strum::{AsRefStr, Display, EnumIter};
 
 use super::builtins::{emake::run as emake, Scope};
 use super::utils::makefile_exists;
@@ -33,7 +34,7 @@ fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-#[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(AsRefStr, Display, EnumIter, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub(crate) enum PhaseKind {
     PkgSetup,
@@ -56,7 +57,7 @@ pub(crate) enum PhaseKind {
 impl PhaseKind {
     pub(crate) fn stub(self) -> Phase {
         Phase {
-            phase: self,
+            kind: self,
             pre: None,
             func: PHASE_STUB,
             post: None,
@@ -65,7 +66,7 @@ impl PhaseKind {
 
     pub(crate) fn func(self, func: PhaseFn) -> Phase {
         Phase {
-            phase: self,
+            kind: self,
             pre: None,
             func,
             post: None,
@@ -75,27 +76,33 @@ impl PhaseKind {
 
 #[derive(Copy, Clone)]
 pub(crate) struct Phase {
-    phase: PhaseKind,
+    kind: PhaseKind,
     pre: Option<PhaseFn>,
     func: PhaseFn,
     post: Option<PhaseFn>,
 }
 
+impl<T: Borrow<Phase>> From<T> for PhaseKind {
+    fn from(phase: T) -> PhaseKind {
+        phase.borrow().kind
+    }
+}
+
 impl AsRef<str> for Phase {
     fn as_ref(&self) -> &str {
-        self.phase.as_ref()
+        self.kind.as_ref()
     }
 }
 
 impl fmt::Display for Phase {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.phase)
+        write!(f, "{}", self.kind)
     }
 }
 
 impl PartialEq for Phase {
     fn eq(&self, other: &Self) -> bool {
-        self.phase == other.phase
+        self.kind == other.kind
     }
 }
 
@@ -103,7 +110,13 @@ impl Eq for Phase {}
 
 impl Hash for Phase {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.phase.hash(state);
+        self.kind.hash(state);
+    }
+}
+
+impl Borrow<PhaseKind> for Phase {
+    fn borrow(&self) -> &PhaseKind {
+        &self.kind
     }
 }
 
@@ -123,7 +136,7 @@ impl Phase {
         Lazy::force(&BASH);
 
         let build = get_build_mut();
-        build.scope = Scope::Phase(*self);
+        build.scope = Scope::Phase(self.kind);
         build.set_vars()?;
 
         // run internal pre-phase hooks
@@ -156,14 +169,9 @@ impl Phase {
         Ok(ExecStatus::Success)
     }
 
-    /// Return the phase function name, e.g. src_compile.
-    pub(crate) fn name(&self) -> &str {
-        self.phase.as_ref()
-    }
-
     /// Return the shortened phase function name, e.g. src_compile -> compile.
     pub(crate) fn short_name(&self) -> &str {
-        let s = self.name();
+        let s = self.as_ref();
         s.split_once('_').map_or(s, |x| x.1)
     }
 }

@@ -58,9 +58,8 @@ mod tests {
                 .create_ebuild("cat/pkg-1", &[&format!("EAPI={eapi}")])
                 .unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
-            let phase = PhaseKind::SrcInstall.stub();
             let build = get_build_mut();
-            build.scope = Scope::Phase(phase);
+            build.scope = Scope::Phase(PhaseKind::SrcInstall);
             into(&["/test/path"]).unwrap();
             assert_eq!(build.desttree, "/test/path");
 

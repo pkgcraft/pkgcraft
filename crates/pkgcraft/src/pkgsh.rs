@@ -282,7 +282,7 @@ impl<'a> BuildData<'a> {
     /// Get the current build phase if it exists.
     fn phase(&self) -> scallop::Result<phase::Phase> {
         match self.scope {
-            Scope::Phase(phase) => Ok(phase),
+            Scope::Phase(k) => Ok(*self.eapi().phases().get(&k).expect("unknown scope phase")),
             scope => Err(Error::Base(format!("phase invalid for scope: {scope}"))),
         }
     }
@@ -351,7 +351,7 @@ impl<'a> BuildData<'a> {
     /// Cache and set build environment variables for the current EAPI and scope.
     fn set_vars(&mut self) -> scallop::Result<()> {
         for (var, scopes) in self.eapi().env() {
-            if scopes.matches(self.scope) {
+            if scopes.contains(&self.scope) {
                 match self.env.get(var.as_ref()) {
                     Some(val) => {
                         bind(var, val, None, None)?;
@@ -370,7 +370,7 @@ impl<'a> BuildData<'a> {
 
     fn override_var(&self, var: BuildVariable, val: &str) -> scallop::Result<()> {
         if let Some(scopes) = self.eapi().env().get(&var) {
-            if scopes.matches(self.scope) {
+            if scopes.contains(&self.scope) {
                 bind(var, val, None, None)?;
             } else {
                 panic!("invalid scope {} for variable: {var}", self.scope);

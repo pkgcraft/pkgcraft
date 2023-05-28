@@ -15,7 +15,7 @@ use strum::EnumString;
 use crate::archive::Archive;
 use crate::dep::Dep;
 use crate::pkgsh::builtins::{
-    BuiltinsMap, Scope, Scopes, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
+    BuiltinsMap, IterScopes, Scope, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
 };
 use crate::pkgsh::metadata::Key;
 use crate::pkgsh::operations::Operation;
@@ -139,7 +139,7 @@ pub struct Eapi {
     econf_options: EapiEconfOptions,
     archives: HashSet<String>,
     archives_regex: OnceCell<Regex>,
-    env: HashMap<BuildVariable, Scopes>,
+    env: HashMap<BuildVariable, HashSet<Scope>>,
 }
 
 impl Eq for Eapi {}
@@ -319,7 +319,7 @@ impl Eapi {
     }
 
     /// Return the mapping of all exported environment variables.
-    pub(crate) fn env(&self) -> &HashMap<BuildVariable, Scopes> {
+    pub(crate) fn env(&self) -> &HashMap<BuildVariable, HashSet<Scope>> {
         &self.env
     }
 
@@ -433,9 +433,10 @@ impl Eapi {
     }
 
     /// Enable support for build variables during Eapi registration.
-    fn update_env(mut self, variables: &[(BuildVariable, &[&str])]) -> Self {
+    fn update_env<I: IterScopes>(mut self, variables: &[(BuildVariable, &[I])]) -> Self {
         for (var, scopes) in variables {
-            self.env.insert(*var, Scopes::new(scopes));
+            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter_scopes()).collect();
+            self.env.insert(*var, scopes);
         }
         self
     }

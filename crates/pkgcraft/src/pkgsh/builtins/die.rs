@@ -104,8 +104,7 @@ mod tests {
     fn nonfatal() {
         bind("VAR", "1", None, None).unwrap();
 
-        let phase = PhaseKind::SrcInstall.stub();
-        get_build_mut().scope = Scope::Phase(phase);
+        get_build_mut().scope = Scope::Phase(PhaseKind::SrcInstall);
 
         // nonfatal requires `die -n` call
         let r = source::string("nonfatal die && VAR=2");

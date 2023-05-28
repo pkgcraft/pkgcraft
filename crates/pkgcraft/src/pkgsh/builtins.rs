@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::sync::atomic::AtomicBool;
 
@@ -7,10 +7,11 @@ use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::{Builtin, ExecStatus};
+use strum::IntoEnumIterator;
 
 use crate::{eapi, eapi::Eapi};
 
-use super::phase::Phase;
+use super::phase::{Phase, PhaseKind};
 
 mod _default_phase_func;
 mod _new;
@@ -116,7 +117,7 @@ pub(super) mod ver_test;
 #[derive(Debug)]
 pub(crate) struct PkgBuiltin {
     builtin: Builtin,
-    scope: IndexMap<&'static Eapi, Regex>,
+    scope: IndexMap<&'static Eapi, HashSet<Scope>>,
 }
 
 impl From<&PkgBuiltin> for Builtin {
@@ -125,31 +126,17 @@ impl From<&PkgBuiltin> for Builtin {
     }
 }
 
-#[derive(Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub(crate) enum Scope {
     #[default]
     Global,
     Eclass,
-    Phase(Phase),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Scopes(Regex);
-
-impl Scopes {
-    pub(crate) fn new(scopes: &[&str]) -> Self {
-        let s = scopes.join("|");
-        Self(Regex::new(&format!(r"^{s}$")).unwrap_or_else(|e| panic!("{e}")))
-    }
-
-    pub(crate) fn matches(&self, scope: Scope) -> bool {
-        self.0.is_match(scope.as_ref())
-    }
+    Phase(PhaseKind),
 }
 
 impl<T: Borrow<Phase>> From<T> for Scope {
     fn from(phase: T) -> Self {
-        Scope::Phase(*phase.borrow())
+        Scope::Phase(phase.borrow().into())
     }
 }
 
@@ -177,16 +164,49 @@ pub(crate) const PHASE: &str = ".+_.+";
 pub(crate) const SRC: &str = "src_.+";
 pub(crate) const PKG: &str = "pkg_.+";
 
+pub(crate) trait IterScopes {
+    fn iter_scopes(&self) -> Box<dyn Iterator<Item = Scope>>;
+}
+
+impl IterScopes for &str {
+    fn iter_scopes(&self) -> Box<dyn Iterator<Item = Scope>> {
+        match *self {
+            ECLASS => Box::new([Scope::Eclass].into_iter()),
+            GLOBAL => Box::new([Scope::Global].into_iter()),
+            PHASE => Box::new(PhaseKind::iter().map(Scope::Phase)),
+            SRC => Box::new(
+                PHASE
+                    .iter_scopes()
+                    .filter(|k| k.as_ref().starts_with("src_")),
+            ),
+            PKG => Box::new(
+                PHASE
+                    .iter_scopes()
+                    .filter(|k| k.as_ref().starts_with("pkg_")),
+            ),
+            ALL => Box::new(
+                [ECLASS.iter_scopes(), GLOBAL.iter_scopes(), PHASE.iter_scopes()]
+                    .into_iter()
+                    .flatten(),
+            ),
+            s => match PhaseKind::iter().find(|k| k.as_ref() == s) {
+                Some(k) => Box::new([Scope::Phase(k)].into_iter()),
+                None => panic!("unknown scope identifier: {s}"),
+            },
+        }
+    }
+}
+
 impl PkgBuiltin {
-    fn new(builtin: Builtin, scopes: &[(&str, &[&str])]) -> Self {
+    fn new<I: IterScopes>(builtin: Builtin, scopes: &[(&str, &[I])]) -> Self {
         let mut scope = IndexMap::new();
-        for (range, s) in scopes.iter() {
-            let scope_re = Regex::new(&format!(r"^{}$", s.join("|"))).unwrap();
+        for (range, scopes) in scopes.iter() {
+            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter_scopes()).collect();
             let eapis = eapi::range(range).unwrap_or_else(|e| {
                 panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
             });
             for e in eapis {
-                if scope.insert(e, scope_re.clone()).is_some() {
+                if scope.insert(e, scopes.clone()).is_some() {
                     panic!("clashing EAPI scopes: {e}");
                 }
             }
@@ -318,13 +338,13 @@ pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
     #[allow(clippy::mutable_key_type)]
     let mut builtins_map = EapiBuiltinsMap::new();
     for b in ALL_BUILTINS.values() {
-        for (eapi, re) in b.scope.iter() {
+        for (eapi, eapi_scopes) in b.scope.iter() {
             let scope_map = builtins_map
                 .entry(eapi)
                 .or_insert_with(ScopeBuiltinsMap::new);
             let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
             let scopes = static_scopes.iter().chain(phase_scopes.iter());
-            for scope in scopes.filter(|s| re.is_match(s.as_ref())) {
+            for scope in scopes.filter(|s| eapi_scopes.contains(s)) {
                 scope_map
                     .entry(*scope)
                     .or_insert_with(BuiltinsMap::new)
@@ -540,6 +560,7 @@ macro_rules! builtin_scope_tests {
                             let pkg = raw_pkg.into_pkg().unwrap();
                             BuildData::from_pkg(&pkg);
                             get_build_mut().source_ebuild(pkg.path()).unwrap();
+                            let phase = eapi.phases().get(phase).unwrap();
                             let r = phase.run();
                             // verify function stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
