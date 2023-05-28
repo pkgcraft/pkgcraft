@@ -12,7 +12,7 @@ impl<T> Deque<T> {
     pub fn extend_left<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>,
-        <I as std::iter::IntoIterator>::IntoIter: std::iter::DoubleEndedIterator,
+        <I as IntoIterator>::IntoIter: DoubleEndedIterator,
     {
         for item in iter.into_iter().rev() {
             self.push_front(item);
