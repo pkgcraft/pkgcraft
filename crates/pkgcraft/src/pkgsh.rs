@@ -1,7 +1,7 @@
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{self, Read, Write};
-use std::mem;
+use std::{env, mem};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -418,12 +418,18 @@ impl<'a> BuildData<'a> {
 
     fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
         Lazy::force(&BASH);
+        let eapi = self.eapi();
+
+        // remove external metadata vars from the environment
+        for var in eapi.metadata_keys() {
+            env::remove_var(var.as_ref());
+        }
 
         self.scope = Scope::Global;
         self.set_vars()?;
 
         let mut opts = ScopedOptions::default();
-        if self.eapi().has(Feature::GlobalFailglob) {
+        if eapi.has(Feature::GlobalFailglob) {
             opts.enable(["failglob"])?;
         }
 
@@ -431,7 +437,7 @@ impl<'a> BuildData<'a> {
         scallop::shell::restricted(|| value.source_bash())?;
 
         // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
-        if self.eapi().has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
+        if eapi.has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
             if let Some(depend) = variables::optional("DEPEND") {
                 bind("RDEPEND", depend, None, None)?;
             }
@@ -439,7 +445,7 @@ impl<'a> BuildData<'a> {
 
         // prepend metadata keys that incrementally accumulate to eclass values
         if !self.inherited.is_empty() {
-            for key in self.eapi().incremental_keys() {
+            for key in eapi.incremental_keys() {
                 let deque = self.incrementals.entry(*key).or_insert_with(VecDeque::new);
                 if let Some(data) = string_vec(key) {
                     extend_left!(deque, data.into_iter());
