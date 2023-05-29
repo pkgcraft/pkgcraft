@@ -7,7 +7,6 @@ use std::sync::atomic::AtomicBool;
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
-use regex::Regex;
 use scallop::builtins::{Builtin, ExecStatus};
 use strum::IntoEnumIterator;
 
@@ -356,26 +355,26 @@ pub(crate) static BUILTINS: Lazy<HashSet<&PkgBuiltin>> = Lazy::new(|| {
 /// Controls the status set by the nonfatal builtin.
 static NONFATAL: AtomicBool = AtomicBool::new(false);
 
-static VERSION_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?P<sep>[[:^alnum:]]+)?(?P<comp>[[:digit:]]+|[[:alpha:]]+)?").unwrap()
-});
-
-/// Split version string into a vector of separators and components.
-fn version_split(ver: &str) -> Vec<&str> {
-    VERSION_RE
-        .captures_iter(ver)
-        .flat_map(|cap| {
-            [
-                cap.name("sep").map_or("", |m| m.as_str()),
-                cap.name("comp").map_or("", |m| m.as_str()),
-            ]
-        })
-        .collect()
-}
-
 peg::parser! {
     grammar cmd() for str {
-        // Parse ranges used with the ver_rs and ver_cut commands.
+        rule version_separator() -> &'input str
+            = s:$([^ 'a'..='z' | 'A'..='Z' | '0'..='9']+) { s }
+
+        rule version_component() -> &'input str
+            = s:$(['0'..='9']+) { s }
+            / s:$(['a'..='z' | 'A'..='Z']+) { s }
+
+        rule version_element() -> [&'input str; 2]
+            = sep:version_separator() comp:version_component()?
+            { [sep, comp.unwrap_or_default()] }
+            / sep:version_separator()? comp:version_component()
+            { [sep.unwrap_or_default(), comp] }
+
+        // Split version strings for ver_rs and ver_cut.
+        pub(super) rule version_split() -> Vec<&'input str>
+            = vals:version_element()* { vals.into_iter().flatten().collect() }
+
+        // Parse ranges for ver_rs and ver_cut.
         pub(super) rule range(max: usize) -> (usize, usize)
             = start_s:$(['0'..='9']+) "-" end_s:$(['0'..='9']+) {?
                 match (start_s.parse(), end_s.parse()) {
@@ -398,12 +397,15 @@ peg::parser! {
 // provide public parsing functionality while converting error types
 mod parse {
     use crate::peg::peg_error;
-
     use crate::Error;
 
     use super::cmd;
 
-    pub(crate) fn range(s: &str, max: usize) -> crate::Result<(usize, usize)> {
+    pub(super) fn version_split(s: &str) -> crate::Result<Vec<&str>> {
+        cmd::version_split(s).map_err(|e| peg_error(format!("invalid version string: {s}"), s, e))
+    }
+
+    pub(super) fn range(s: &str, max: usize) -> crate::Result<(usize, usize)> {
         let (start, end) =
             cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {s}"), s, e))?;
         if end < start {

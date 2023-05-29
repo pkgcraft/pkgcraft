@@ -3,7 +3,7 @@ use scallop::{variables, Error};
 
 use crate::pkgsh::write_stdout;
 
-use super::{make_builtin, parse, version_split, Scopes::All};
+use super::{make_builtin, parse, Scopes::All};
 
 const LONG_DOC: &str = "Perform string substitution on package version strings.";
 
@@ -25,7 +25,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // split version string into separators and components, note that invalid versions
     // like ".1.2.3" are allowed
-    let mut version_parts = version_split(ver);
+    let mut version_parts = parse::version_split(ver)?;
     let len = version_parts.len();
 
     // iterate over (range, separator) pairs, altering the denoted separators as requested

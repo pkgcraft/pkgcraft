@@ -5,7 +5,7 @@ use scallop::{variables, Error};
 
 use crate::pkgsh::write_stdout;
 
-use super::{make_builtin, parse, version_split, Scopes::All};
+use super::{make_builtin, parse, Scopes::All};
 
 const LONG_DOC: &str = "Output substring from package version string and range arguments.";
 
@@ -18,7 +18,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         n => Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
     }?;
 
-    let version_parts = version_split(ver);
+    let version_parts = parse::version_split(ver)?;
     let len = version_parts.len();
     let (mut start, mut end) = parse::range(range, len / 2)?;
 
