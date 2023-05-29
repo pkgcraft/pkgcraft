@@ -14,7 +14,7 @@ use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::dep::Dep;
-use crate::pkgsh::builtins::{BuiltinsMap, Scope, Scopes, BUILTINS_MAP};
+use crate::pkgsh::builtins::{PkgBuiltin, Scope, Scopes, BUILTINS};
 use crate::pkgsh::metadata::Key;
 use crate::pkgsh::operations::Operation;
 use crate::pkgsh::phase::Phase;
@@ -120,6 +120,8 @@ pub enum Feature {
     RepoIds,
 }
 
+type ScopeBuiltinsMap = HashMap<Scope, HashSet<&'static PkgBuiltin>>;
+type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 
 /// EAPI object.
@@ -130,6 +132,7 @@ pub struct Eapi {
     features: HashSet<Feature>,
     operations: HashMap<Operation, IndexSet<Phase>>,
     phases: OnceCell<HashSet<Phase>>,
+    builtins: OnceCell<ScopeBuiltinsMap>,
     dep_keys: HashSet<Key>,
     incremental_keys: HashSet<Key>,
     mandatory_keys: HashSet<Key>,
@@ -211,8 +214,6 @@ impl TryFrom<&Utf8Path> for &'static Eapi {
     }
 }
 
-type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
-
 impl Eapi {
     /// Create a new Eapi given an identifier and optional parent to inherit from.
     fn new(id: &str, parent: Option<&'static Eapi>) -> Self {
@@ -281,11 +282,24 @@ impl Eapi {
         }
     }
 
-    /// Return the mapping of all supported builtins for a given scope.
-    pub(crate) fn builtins(&self, scope: &Scope) -> &BuiltinsMap {
-        BUILTINS_MAP
-            .get(self)
-            .expect("no builtins for EAPI: {self}")
+    /// Return the set of supported builtins for a given scope.
+    pub(crate) fn builtins(&self, scope: &Scope) -> &HashSet<&'static PkgBuiltin> {
+        self.builtins
+            .get_or_init(|| {
+                let mut scope_map = ScopeBuiltinsMap::new();
+                let builtins = BUILTINS
+                    .iter()
+                    .filter_map(|b| b.scope(self).map(|vals| (b, vals)));
+                for (b, eapi_scopes) in builtins {
+                    for scope in Scopes::All.iter().filter(|s| eapi_scopes.contains(s)) {
+                        scope_map
+                            .entry(scope)
+                            .or_insert_with(HashSet::new)
+                            .insert(b);
+                    }
+                }
+                scope_map
+            })
             .get(scope)
             .expect("EAPI {self}, unknown scope: {scope}")
     }

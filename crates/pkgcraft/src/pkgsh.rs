@@ -17,7 +17,7 @@ use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
-use crate::pkgsh::builtins::{Scope, ALL_BUILTINS};
+use crate::pkgsh::builtins::{Scope, BUILTINS};
 use crate::repo::{ebuild, Repository};
 use crate::traits::SourceBash;
 use crate::types::Deque;
@@ -482,7 +482,7 @@ fn update_build(state: BuildData<'static>) {
 pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     unsafe { Lazy::force(&STATE) };
     scallop::shell::init(false);
-    let builtins: Vec<_> = ALL_BUILTINS.values().map(|&b| b.into()).collect();
+    let builtins: Vec<_> = BUILTINS.iter().map(|&b| b.into()).collect();
     scallop::builtins::register(&builtins);
     // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");

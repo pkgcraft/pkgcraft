@@ -1,6 +1,8 @@
 use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
+use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::sync::atomic::AtomicBool;
 
 use indexmap::IndexMap;
@@ -126,6 +128,70 @@ impl From<&PkgBuiltin> for Builtin {
     }
 }
 
+impl PkgBuiltin {
+    fn new(builtin: Builtin, scopes: &[(&str, &[Scopes])]) -> Self {
+        let mut scope = IndexMap::new();
+        for (range, scopes) in scopes.iter() {
+            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter()).collect();
+            let eapis = eapi::range(range).unwrap_or_else(|e| {
+                panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
+            });
+            for e in eapis {
+                if scope.insert(e, scopes.clone()).is_some() {
+                    panic!("clashing EAPI scopes: {e}");
+                }
+            }
+        }
+        PkgBuiltin { builtin, scope }
+    }
+
+    pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
+        self.builtin.run(args)
+    }
+
+    pub(crate) fn scope(&self, eapi: &Eapi) -> Option<&HashSet<Scope>> {
+        self.scope.get(eapi)
+    }
+}
+
+impl AsRef<str> for PkgBuiltin {
+    fn as_ref(&self) -> &str {
+        self.builtin.name
+    }
+}
+
+impl Eq for PkgBuiltin {}
+
+impl PartialEq for PkgBuiltin {
+    fn eq(&self, other: &Self) -> bool {
+        self.builtin.name == other.builtin.name
+    }
+}
+
+impl Hash for PkgBuiltin {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.builtin.name.hash(state);
+    }
+}
+
+impl Ord for PkgBuiltin {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.builtin.name.cmp(other.builtin.name)
+    }
+}
+
+impl PartialOrd for PkgBuiltin {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Borrow<str> for &PkgBuiltin {
+    fn borrow(&self) -> &str {
+        self.builtin.name
+    }
+}
+
 #[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub(crate) enum Scope {
     #[default]
@@ -183,33 +249,7 @@ impl Scopes {
     }
 }
 
-impl PkgBuiltin {
-    fn new(builtin: Builtin, scopes: &[(&str, &[Scopes])]) -> Self {
-        let mut scope = IndexMap::new();
-        for (range, scopes) in scopes.iter() {
-            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter()).collect();
-            let eapis = eapi::range(range).unwrap_or_else(|e| {
-                panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
-            });
-            for e in eapis {
-                if scope.insert(e, scopes.clone()).is_some() {
-                    panic!("clashing EAPI scopes: {e}");
-                }
-            }
-        }
-        PkgBuiltin { builtin, scope }
-    }
-
-    pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
-        self.builtin.run(args)
-    }
-
-    pub(crate) fn name(&self) -> &'static str {
-        self.builtin.name
-    }
-}
-
-pub(crate) static ALL_BUILTINS: Lazy<HashMap<&'static str, &PkgBuiltin>> = Lazy::new(|| {
+pub(crate) static BUILTINS: Lazy<HashSet<&PkgBuiltin>> = Lazy::new(|| {
     [
         &*adddeny::PKG_BUILTIN,
         &*addpredict::PKG_BUILTIN,
@@ -310,35 +350,7 @@ pub(crate) static ALL_BUILTINS: Lazy<HashMap<&'static str, &PkgBuiltin>> = Lazy:
         &*ver_test::PKG_BUILTIN,
     ]
     .into_iter()
-    .map(|b| (b.name(), b))
     .collect()
-});
-
-pub(crate) type BuiltinsMap = HashMap<&'static str, &'static PkgBuiltin>;
-pub(crate) type ScopeBuiltinsMap = HashMap<Scope, BuiltinsMap>;
-pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, ScopeBuiltinsMap>;
-
-// TODO: auto-generate the builtin module imports and vector creation via build script
-pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
-    let static_scopes: Vec<_> = vec![Scope::Global, Scope::Eclass];
-    #[allow(clippy::mutable_key_type)]
-    let mut builtins_map = EapiBuiltinsMap::new();
-    for b in ALL_BUILTINS.values() {
-        for (eapi, eapi_scopes) in b.scope.iter() {
-            let scope_map = builtins_map
-                .entry(eapi)
-                .or_insert_with(ScopeBuiltinsMap::new);
-            let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
-            let scopes = static_scopes.iter().chain(phase_scopes.iter());
-            for scope in scopes.filter(|s| eapi_scopes.contains(s)) {
-                scope_map
-                    .entry(*scope)
-                    .or_insert_with(BuiltinsMap::new)
-                    .insert(b.name(), b);
-            }
-        }
-    }
-    builtins_map
 });
 
 /// Controls the status set by the nonfatal builtin.
@@ -413,7 +425,7 @@ macro_rules! make_builtin {
         use scallop::builtins::Builtin;
         use scallop::traits::IntoWords;
 
-        use $crate::pkgsh::builtins::{PkgBuiltin, ALL_BUILTINS};
+        use $crate::pkgsh::builtins::{PkgBuiltin, BUILTINS};
 
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> c_int {
@@ -425,13 +437,13 @@ macro_rules! make_builtin {
                 let scope = $crate::pkgsh::get_build_mut().scope;
                 let eapi = $crate::pkgsh::get_build_mut().eapi();
 
-                if eapi.builtins(&scope).contains_key(cmd) {
+                if eapi.builtins(&scope).contains(cmd) {
                     match $func(&args) {
                         Ok(ret) => ret,
                         Err(e) => scallop::builtins::handle_error(cmd, e),
                     }
                 } else {
-                    let builtin = ALL_BUILTINS.get(cmd).expect("unknown builtin: {cmd}");
+                    let builtin = BUILTINS.get(cmd).expect("unknown builtin: {cmd}");
                     let msg = match builtin.scope.get(eapi) {
                         Some(_) => format!("{scope} scope doesn't enable command: {cmd}"),
                         None => format!("EAPI={eapi} doesn't enable command: {cmd}"),
@@ -487,7 +499,7 @@ macro_rules! builtin_scope_tests {
             for eapi in EAPIS_OFFICIAL.iter() {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
                 let scopes = static_scopes.iter().chain(phase_scopes.iter());
-                for scope in scopes.filter(|&s| !eapi.builtins(s).contains_key(name)) {
+                for scope in scopes.filter(|&s| !eapi.builtins(s).contains(name)) {
                     let err = format!(" doesn't enable command: {name}");
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
