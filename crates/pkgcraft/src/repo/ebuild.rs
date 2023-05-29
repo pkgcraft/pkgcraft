@@ -8,7 +8,7 @@ use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
-use indexmap::{IndexMap, IndexSet};
+use indexmap::{Equivalent, IndexMap, IndexSet};
 use itertools::Itertools;
 use once_cell::sync::{Lazy, OnceCell};
 use scallop::pool::PoolIter;
@@ -165,10 +165,6 @@ impl Eclass {
         }
     }
 
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
     pub fn path(&self) -> &Utf8Path {
         &self.path
     }
@@ -180,13 +176,13 @@ impl Eclass {
 
 impl fmt::Display for Eclass {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name())
+        write!(f, "{}", self.name)
     }
 }
 
 impl AsRef<str> for Eclass {
     fn as_ref(&self) -> &str {
-        self.name()
+        &self.name
     }
 }
 
@@ -219,6 +215,12 @@ impl Hash for Eclass {
 impl Borrow<str> for Eclass {
     fn borrow(&self) -> &str {
         &self.name
+    }
+}
+
+impl Equivalent<String> for Eclass {
+    fn equivalent(&self, key: &String) -> bool {
+        &self.name == key
     }
 }
 

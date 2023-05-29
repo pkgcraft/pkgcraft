@@ -55,7 +55,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     for eclass in eclasses {
         // skip inherits that occurred in nested calls
-        if build.inherited.contains(eclass.name()) {
+        if build.inherited.contains(eclass) {
             continue;
         }
 
