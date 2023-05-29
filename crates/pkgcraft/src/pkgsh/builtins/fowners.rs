@@ -5,8 +5,9 @@ use scallop::Error;
 
 use crate::command::RunCommand;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::{PkgPostinst, PkgPreinst, SrcInstall};
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Run `chown` taking paths relative to the image directory.";
 
@@ -31,7 +32,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("..", &["src_install", "pkg_preinst", "pkg_postinst"])]
+    &[("..", &[Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)])]
 );
 
 #[cfg(test)]

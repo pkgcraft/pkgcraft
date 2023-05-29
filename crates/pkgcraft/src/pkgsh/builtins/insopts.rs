@@ -2,8 +2,9 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "\
 Sets the options for installing files via `doins` and similar commands.";
@@ -20,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "insopts -m0644";
-make_builtin!("insopts", insopts_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("insopts", insopts_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

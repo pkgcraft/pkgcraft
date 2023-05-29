@@ -1,8 +1,10 @@
 use scallop::builtins::ExecStatus;
 
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
+
 use super::_new::new;
 use super::doinitd::run as doinitd;
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install renamed init scripts into /etc/init.d/.";
 
@@ -12,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newinitd path/to/init/file new_filename";
-make_builtin!("newinitd", newinitd_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("newinitd", newinitd_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

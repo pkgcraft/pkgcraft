@@ -1,6 +1,6 @@
 use scallop::builtins::ExecStatus;
 
-use super::{make_builtin, PHASE};
+use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Add a directory to the sandbox permitted read list.";
 
@@ -11,7 +11,7 @@ pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "addread /sys";
-make_builtin!("addread", addread_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
+make_builtin!("addread", addread_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

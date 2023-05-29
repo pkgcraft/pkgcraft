@@ -2,8 +2,9 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install executables.";
 
@@ -23,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doexe path/to/executable";
-make_builtin!("doexe", doexe_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("doexe", doexe_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

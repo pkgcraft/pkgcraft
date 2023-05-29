@@ -1,8 +1,10 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
+
 use super::dolib::install_lib;
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install static libraries.";
 
@@ -16,7 +18,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dolib.a path/to/lib.a";
-make_builtin!("dolib.a", dolib_a_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("dolib.a", dolib_a_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

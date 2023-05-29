@@ -5,8 +5,9 @@ use scallop::Error;
 
 use crate::pkg::Package;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install directories.";
 
@@ -38,7 +39,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "keepdir path/to/kept/dir";
-make_builtin!("keepdir", keepdir_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("keepdir", keepdir_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

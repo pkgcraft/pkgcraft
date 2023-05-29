@@ -1,8 +1,10 @@
 use scallop::builtins::ExecStatus;
 
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
+
 use super::_new::new;
 use super::dodoc::run as dodoc;
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install renamed documentation files.";
 
@@ -12,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newdoc path/to/doc/file new_filename";
-make_builtin!("newdoc", newdoc_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("newdoc", newdoc_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

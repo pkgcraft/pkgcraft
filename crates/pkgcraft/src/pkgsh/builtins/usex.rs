@@ -3,7 +3,7 @@ use scallop::Error;
 
 use crate::pkgsh::write_stdout;
 
-use super::{make_builtin, use_::run as use_, PHASE};
+use super::{make_builtin, use_::run as use_, Scopes::Phases};
 
 const LONG_DOC: &str = "\
 Tests if a given USE flag is enabled and outputs a string related to its status.";
@@ -32,7 +32,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "usex flag";
-make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, &[("5..", &[PHASE])]);
+make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, &[("5..", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

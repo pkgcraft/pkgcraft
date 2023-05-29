@@ -6,8 +6,9 @@ use scallop::Error;
 use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install header files into /usr/include/.";
 
@@ -44,7 +45,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doheader path/to/header.h";
-make_builtin!("doheader", doheader_builtin, run, LONG_DOC, USAGE, &[("5..", &["src_install"])]);
+make_builtin!("doheader", doheader_builtin, run, LONG_DOC, USAGE, &[("5..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

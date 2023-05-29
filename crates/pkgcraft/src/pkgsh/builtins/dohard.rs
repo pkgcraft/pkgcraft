@@ -4,8 +4,9 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Create hard links.";
 
@@ -24,7 +25,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dohard path/to/source /path/to/target";
-make_builtin!("dohard", dohard_builtin, run, LONG_DOC, USAGE, &[("0..4", &["src_install"])]);
+make_builtin!("dohard", dohard_builtin, run, LONG_DOC, USAGE, &[("0..4", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

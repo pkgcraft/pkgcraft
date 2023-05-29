@@ -8,10 +8,11 @@ use scallop::{variables, Error};
 
 use crate::command::RunCommand;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::{SrcCompile, SrcConfigure};
 use crate::pkgsh::utils::{configure, get_libdir};
 use crate::pkgsh::write_stdout;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
 const LONG_DOC: &str = "Run a package's configure script.";
@@ -111,7 +112,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("0..2", &["src_compile"]), ("2..", &["src_configure"])]
+    &[("0..2", &[Phase(SrcCompile)]), ("2..", &[Phase(SrcConfigure)])]
 );
 
 #[cfg(test)]

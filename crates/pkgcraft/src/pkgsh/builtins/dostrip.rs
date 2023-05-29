@@ -2,8 +2,9 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Include or exclude paths for symbol stripping.";
 
@@ -22,7 +23,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dostrip /path/to/strip";
-make_builtin!("dostrip", dostrip_builtin, run, LONG_DOC, USAGE, &[("7..", &["src_install"])]);
+make_builtin!("dostrip", dostrip_builtin, run, LONG_DOC, USAGE, &[("7..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

@@ -1,8 +1,10 @@
 use scallop::builtins::ExecStatus;
 
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
+
 use super::_new::new;
 use super::doenvd::run as doenvd;
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
 
@@ -12,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newenvd path/to/env_file new_filename";
-make_builtin!("newenvd", newenvd_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("newenvd", newenvd_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

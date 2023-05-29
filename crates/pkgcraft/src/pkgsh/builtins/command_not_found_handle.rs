@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use super::{make_builtin, ALL, NONFATAL};
+use super::{make_builtin, Scopes::All, NONFATAL};
 
 static LONG_DOC: &str = "\
 Executed when the search for a command is unsuccessful.
@@ -28,5 +28,5 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    &[("..", &[ALL])]
+    &[("..", &[All])]
 );

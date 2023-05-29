@@ -3,7 +3,7 @@ use scallop::Error;
 
 use crate::pkgsh::get_build_mut;
 
-use super::{make_builtin, PHASE};
+use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "\
 Returns success if the USE flag argument is enabled, failure otherwise.
@@ -37,7 +37,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "use flag";
-make_builtin!("use", use_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
+make_builtin!("use", use_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

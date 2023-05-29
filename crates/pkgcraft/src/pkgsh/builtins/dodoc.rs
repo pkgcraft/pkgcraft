@@ -7,9 +7,10 @@ use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 use crate::pkgsh::{get_build_mut, BuildData};
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install documentation files.";
 
@@ -56,7 +57,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dodoc doc_file";
-make_builtin!("dodoc", dodoc_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("dodoc", dodoc_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

@@ -2,7 +2,7 @@ use scallop::builtins::ExecStatus;
 use scallop::variables;
 use scallop::{source, Error};
 
-use super::{make_builtin, ECLASS};
+use super::{make_builtin, Scopes::Eclass};
 
 const LONG_DOC: &str = "\
 Export stub functions that call the eclass's functions, thereby making them default.
@@ -37,7 +37,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("..", &[ECLASS])]
+    &[("..", &[Eclass])]
 );
 
 #[cfg(test)]

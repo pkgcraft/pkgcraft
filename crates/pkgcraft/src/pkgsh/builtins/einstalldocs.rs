@@ -8,8 +8,9 @@ use scallop::Error;
 use tracing::warn;
 
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::{dodoc::install_docs, make_builtin};
+use super::{dodoc::install_docs, make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "\
 Installs the files specified by the DOCS and HTML_DOCS variables or a default set of files.";
@@ -112,7 +113,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("6..", &["src_install"])]
+    &[("6..", &[Phase(SrcInstall)])]
 );
 
 #[cfg(test)]

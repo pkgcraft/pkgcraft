@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use super::{make_builtin, PHASE};
+use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Run sed patterns across files.";
 
@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dosed pattern file";
-make_builtin!("dosed", dosed_builtin, run, LONG_DOC, USAGE, &[("0..4", &[PHASE])]);
+make_builtin!("dosed", dosed_builtin, run, LONG_DOC, USAGE, &[("0..4", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

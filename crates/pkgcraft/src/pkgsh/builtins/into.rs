@@ -1,9 +1,10 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 use crate::pkgsh::{get_build_mut, BuildVariable};
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "\
 Takes exactly one argument and sets the value of DESTTREE.";
@@ -26,7 +27,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "into /install/path";
-make_builtin!("into", into_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("into", into_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

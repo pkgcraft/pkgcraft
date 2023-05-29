@@ -9,9 +9,10 @@ use walkdir::DirEntry;
 
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 use crate::pkgsh::{get_build_mut, write_stderr};
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install HTML documentation files.";
 
@@ -156,7 +157,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dohtml path/to/html/files";
-make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, &[("0..7", &["src_install"])]);
+make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, &[("0..7", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

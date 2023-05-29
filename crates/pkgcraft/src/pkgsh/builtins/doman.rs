@@ -7,8 +7,9 @@ use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install man pages into /usr/share/man.";
 
@@ -70,7 +71,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doman path/to/man/page";
-make_builtin!("doman", doman_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("doman", doman_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

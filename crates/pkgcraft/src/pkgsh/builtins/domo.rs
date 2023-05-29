@@ -7,8 +7,9 @@ use scallop::Error;
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install gettext *.mo files.";
 
@@ -49,7 +50,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "domo path/to/mo/file";
-make_builtin!("domo", domo_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("domo", domo_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

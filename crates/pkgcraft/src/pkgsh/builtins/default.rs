@@ -3,7 +3,7 @@ use scallop::Error;
 
 use crate::pkgsh::get_build_mut;
 
-use super::{make_builtin, PHASE};
+use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Calls the default_* function for the current phase.";
 
@@ -24,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "default";
-make_builtin!("default", default_builtin, run, LONG_DOC, USAGE, &[("2..", &[PHASE])]);
+make_builtin!("default", default_builtin, run, LONG_DOC, USAGE, &[("2..", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

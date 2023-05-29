@@ -5,8 +5,9 @@ use scallop::Error;
 
 use crate::files::NO_WALKDIR_FILTER;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install files into INSDESTREE.";
 
@@ -38,7 +39,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doins path/to/file";
-make_builtin!("doins", doins_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("doins", doins_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

@@ -6,7 +6,7 @@ use scallop::Error;
 use crate::eapi::Feature;
 use crate::pkgsh::{get_build_mut, write_stderr};
 
-use super::{make_builtin, ALL, NONFATAL};
+use super::{make_builtin, Scopes::All, NONFATAL};
 
 const LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
@@ -38,7 +38,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "die \"error message\"";
-make_builtin!("die", die_builtin, run, LONG_DOC, USAGE, &[("..", &[ALL])]);
+make_builtin!("die", die_builtin, run, LONG_DOC, USAGE, &[("..", &[All])]);
 
 #[cfg(test)]
 mod tests {

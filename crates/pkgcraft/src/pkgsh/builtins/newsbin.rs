@@ -1,8 +1,10 @@
 use scallop::builtins::ExecStatus;
 
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
+
 use super::_new::new;
 use super::dosbin::run as dosbin;
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install renamed executables into DESTTREE/sbin.";
 
@@ -12,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newsbin path/to/executable new_filename";
-make_builtin!("newsbin", newsbin_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("newsbin", newsbin_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

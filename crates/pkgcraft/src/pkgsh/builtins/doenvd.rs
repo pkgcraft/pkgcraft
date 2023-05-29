@@ -3,8 +3,9 @@ use scallop::Error;
 
 use crate::eapi::Feature;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install environment files into /etc/env.d/.";
 
@@ -28,7 +29,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doenvd path/to/env/file";
-make_builtin!("doenvd", doenvd_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("doenvd", doenvd_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

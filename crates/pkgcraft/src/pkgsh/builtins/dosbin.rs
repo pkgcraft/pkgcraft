@@ -1,8 +1,10 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
+
 use super::dobin::install_bin;
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install executables into DESTTREE/sbin.";
 
@@ -16,7 +18,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dosbin /path/to/executable";
-make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

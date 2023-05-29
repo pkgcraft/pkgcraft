@@ -4,9 +4,10 @@ use scallop::Error;
 
 use crate::macros::build_from_paths;
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 use crate::pkgsh::utils::get_libdir;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install libraries.";
 
@@ -34,7 +35,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dolib path/to/lib";
-make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, &[("0..7", &["src_install"])]);
+make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, &[("0..7", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

@@ -2,7 +2,7 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use super::debug_print::run as debug_print;
-use super::{make_builtin, ALL};
+use super::{make_builtin, Scopes::All};
 
 const LONG_DOC: &str = "\
 Calls debug-print with `now in section $*`.";
@@ -24,7 +24,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("..", &[ALL])]
+    &[("..", &[All])]
 );
 
 #[cfg(test)]

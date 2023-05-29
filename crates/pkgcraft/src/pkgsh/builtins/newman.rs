@@ -1,8 +1,10 @@
 use scallop::builtins::ExecStatus;
 
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
+
 use super::_new::new;
 use super::doman::run as doman;
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Install renamed man pages into /usr/share/man.";
 
@@ -12,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newman path/to/man/page new_filename";
-make_builtin!("newman", newman_builtin, run, LONG_DOC, USAGE, &[("..", &["src_install"])]);
+make_builtin!("newman", newman_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

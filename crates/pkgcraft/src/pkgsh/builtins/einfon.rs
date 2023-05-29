@@ -3,7 +3,7 @@ use scallop::Error;
 
 use crate::pkgsh::{unescape::unescape_iter, write_stderr};
 
-use super::{make_builtin, PHASE};
+use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Display informational message without trailing newline.";
 
@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "einfon \"message\"";
-make_builtin!("einfon", einfon_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
+make_builtin!("einfon", einfon_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

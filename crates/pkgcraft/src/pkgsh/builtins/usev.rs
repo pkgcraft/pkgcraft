@@ -4,7 +4,7 @@ use scallop::Error;
 use crate::eapi::Feature;
 use crate::pkgsh::{get_build_mut, write_stdout};
 
-use super::{make_builtin, use_::run as use_, PHASE};
+use super::{make_builtin, use_::run as use_, Scopes::Phases};
 
 const LONG_DOC: &str = "\
 The same as use, but also prints the flag name if the condition is met.";
@@ -35,7 +35,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "usev flag";
-make_builtin!("usev", usev_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
+make_builtin!("usev", usev_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

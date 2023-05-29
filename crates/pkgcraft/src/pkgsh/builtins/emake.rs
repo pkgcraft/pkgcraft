@@ -8,7 +8,7 @@ use crate::command::RunCommand;
 use crate::pkgsh::utils::makefile_exists;
 use crate::pkgsh::write_stdout;
 
-use super::{make_builtin, PHASE};
+use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Run the make command for a package.";
 
@@ -32,7 +32,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "emake -C builddir";
-make_builtin!("emake", emake_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
+make_builtin!("emake", emake_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

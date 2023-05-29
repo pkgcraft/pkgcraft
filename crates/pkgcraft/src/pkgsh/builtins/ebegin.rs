@@ -3,7 +3,7 @@ use scallop::Error;
 
 use crate::pkgsh::{unescape::unescape_iter, write_stderr};
 
-use super::{make_builtin, PHASE};
+use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Display information message when starting a process.";
 
@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ebegin \"message\"";
-make_builtin!("ebegin", ebegin_builtin, run, LONG_DOC, USAGE, &[("..", &[PHASE])]);
+make_builtin!("ebegin", ebegin_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

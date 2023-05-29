@@ -6,9 +6,10 @@ use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
+use crate::pkgsh::phase::PhaseKind::SrcPrepare;
 use crate::pkgsh::write_stdout;
 
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
@@ -148,7 +149,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eapply file.patch";
-make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, &[("6..", &["src_prepare"])]);
+make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, &[("6..", &[Phase(SrcPrepare)])]);
 
 #[cfg(test)]
 mod tests {

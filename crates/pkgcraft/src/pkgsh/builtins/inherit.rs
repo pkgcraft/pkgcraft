@@ -6,7 +6,8 @@ use scallop::{source, Error};
 use crate::pkgsh::get_build_mut;
 use crate::types::Deque;
 
-use super::{make_builtin, Scope, ECLASS, GLOBAL};
+use super::Scopes::{Eclass, Global};
+use super::{make_builtin, Scope};
 
 const LONG_DOC: &str = "Sources the given list of eclasses.";
 
@@ -102,7 +103,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "inherit eclass1 eclass2";
-make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, &[("..", &[GLOBAL, ECLASS])]);
+make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, &[("..", &[Global, Eclass])]);
 
 #[cfg(test)]
 mod tests {

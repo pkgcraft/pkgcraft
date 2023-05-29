@@ -2,8 +2,9 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcPrepare;
 
-use super::{eapply::run as eapply, make_builtin};
+use super::{eapply::run as eapply, make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Apply user patches.";
 
@@ -34,7 +35,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("6..", &["src_prepare"])]
+    &[("6..", &[Phase(SrcPrepare)])]
 );
 
 #[cfg(test)]

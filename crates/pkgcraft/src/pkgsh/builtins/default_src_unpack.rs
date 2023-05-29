@@ -1,7 +1,9 @@
 use scallop::builtins::ExecStatus;
 
+use crate::pkgsh::phase::PhaseKind::SrcUnpack;
+
 use super::_default_phase_func::default_phase_func;
-use super::make_builtin;
+use super::{make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "\
 Runs the default src_unpack implementation for a package's EAPI.";
@@ -18,7 +20,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("2..", &["src_unpack"])]
+    &[("2..", &[Phase(SrcUnpack)])]
 );
 
 #[cfg(test)]

@@ -1,9 +1,10 @@
 use scallop::builtins::ExecStatus;
 
 use crate::pkgsh::get_build_mut;
+use crate::pkgsh::phase::PhaseKind::SrcInstall;
 use crate::pkgsh::utils::get_libdir;
 
-use super::{emake::run as emake, make_builtin};
+use super::{emake::run as emake, make_builtin, Scopes::Phase};
 
 const LONG_DOC: &str = "Run `emake install` for a package.";
 
@@ -26,7 +27,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "einstall";
-make_builtin!("einstall", einstall_builtin, run, LONG_DOC, USAGE, &[("0..6", &["src_install"])]);
+make_builtin!(
+    "einstall",
+    einstall_builtin,
+    run,
+    LONG_DOC,
+    USAGE,
+    &[("0..6", &[Phase(SrcInstall)])]
+);
 
 #[cfg(test)]
 mod tests {

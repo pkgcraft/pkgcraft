@@ -134,24 +134,6 @@ pub(crate) enum Scope {
     Phase(PhaseKind),
 }
 
-impl Scope {
-    /// Convert an identifier into an iterable of [`Scope`] objects.
-    pub(crate) fn iter(id: &str) -> Box<dyn Iterator<Item = Self>> {
-        match id {
-            ECLASS => Box::new([Self::Eclass].into_iter()),
-            GLOBAL => Box::new([Self::Global].into_iter()),
-            PHASE => Box::new(PhaseKind::iter().map(Self::Phase)),
-            SRC => Box::new(Self::iter(PHASE).filter(|k| k.as_ref().starts_with("src_"))),
-            PKG => Box::new(Self::iter(PHASE).filter(|k| k.as_ref().starts_with("pkg_"))),
-            ALL => Box::new([ECLASS, GLOBAL, PHASE].iter().flat_map(|s| Self::iter(s))),
-            s => match PhaseKind::iter().find(|k| k.as_ref() == s) {
-                Some(k) => Box::new([Self::Phase(k)].into_iter()),
-                None => panic!("unknown scope identifier: {s}"),
-            },
-        }
-    }
-}
-
 impl<T: Borrow<Phase>> From<T> for Scope {
     fn from(phase: T) -> Self {
         Scope::Phase(phase.borrow().into())
@@ -174,19 +156,38 @@ impl fmt::Display for Scope {
     }
 }
 
-// scope patterns
-pub(crate) const ALL: &str = ".+";
-pub(crate) const ECLASS: &str = "eclass";
-pub(crate) const GLOBAL: &str = "global";
-pub(crate) const PHASE: &str = ".+_.+";
-pub(crate) const SRC: &str = "src_.+";
-pub(crate) const PKG: &str = "pkg_.+";
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub(crate) enum Scopes {
+    All,
+    Eclass,
+    Global,
+    Phases,
+    Src,
+    Pkg,
+    Phase(PhaseKind),
+}
+
+impl Scopes {
+    /// Convert a scopes identifier into an iterable of [`Scope`] objects.
+    pub(crate) fn iter(&self) -> Box<dyn Iterator<Item = Scope>> {
+        use Scopes::*;
+        match self {
+            Eclass => Box::new([Scope::Eclass].into_iter()),
+            Global => Box::new([Scope::Global].into_iter()),
+            Phases => Box::new(PhaseKind::iter().map(Scope::Phase)),
+            Src => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("src_"))),
+            Pkg => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("pkg_"))),
+            All => Box::new([Eclass, Global, Phases].iter().flat_map(|s| s.iter())),
+            Phase(p) => Box::new([Scope::Phase(*p)].into_iter()),
+        }
+    }
+}
 
 impl PkgBuiltin {
-    fn new(builtin: Builtin, scopes: &[(&str, &[&str])]) -> Self {
+    fn new(builtin: Builtin, scopes: &[(&str, &[Scopes])]) -> Self {
         let mut scope = IndexMap::new();
         for (range, scopes) in scopes.iter() {
-            let scopes: HashSet<_> = scopes.iter().flat_map(|s| Scope::iter(s)).collect();
+            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter()).collect();
             let eapis = eapi::range(range).unwrap_or_else(|e| {
                 panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
             });

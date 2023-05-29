@@ -1,6 +1,6 @@
 use scallop::builtins::ExecStatus;
 
-use super::{has::run as has, make_builtin, ALL};
+use super::{has::run as has, make_builtin, Scopes::All};
 
 const LONG_DOC: &str = "Deprecated synonym for has.";
 
@@ -10,7 +10,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "hasq needle ${haystack}";
-make_builtin!("hasq", hasq_builtin, run, LONG_DOC, USAGE, &[("0..8", &[ALL])]);
+make_builtin!("hasq", hasq_builtin, run, LONG_DOC, USAGE, &[("0..8", &[All])]);
 
 #[cfg(test)]
 mod tests {
