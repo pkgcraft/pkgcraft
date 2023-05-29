@@ -498,9 +498,10 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
     use crate::pkgsh::phase::{PhaseKind::*, *};
     use crate::pkgsh::BuildVariable::*;
+    use Feature::*;
 
     Eapi::new("0", None)
-        .enable_features(&[Feature::RdependDefault, Feature::TrailingSlash])
+        .enable_features(&[RdependDefault, TrailingSlash])
         .register_operation(
             Operation::Build,
             [
@@ -575,22 +576,19 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::phase::{PhaseKind::*, *};
+    use Feature::*;
 
     Eapi::new("1", Some(&EAPI0))
-        .enable_features(&[Feature::IuseDefaults, Feature::SlotDeps])
+        .enable_features(&[IuseDefaults, SlotDeps])
         .update_phases([SrcCompile.func(eapi1::src_compile)])
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::phase::{PhaseKind::*, *};
+    use Feature::*;
 
     Eapi::new("2", Some(&EAPI1))
-        .enable_features(&[
-            Feature::Blockers,
-            Feature::DomanLangDetect,
-            Feature::UseDeps,
-            Feature::SrcUriRenames,
-        ])
+        .enable_features(&[Blockers, DomanLangDetect, UseDeps, SrcUriRenames])
         .register_operation(
             Operation::Build,
             [
@@ -626,16 +624,17 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
     use crate::pkgsh::phase::{PhaseKind::*, *};
     use crate::pkgsh::BuildVariable::*;
+    use Feature::*;
 
     Eapi::new("4", Some(&EAPI3))
         .enable_features(&[
-            Feature::DodocRecursive,
-            Feature::DomanLangOverride,
-            Feature::RequiredUse,
-            Feature::UseConfArg,
-            Feature::UseDepDefaults,
+            DodocRecursive,
+            DomanLangOverride,
+            RequiredUse,
+            UseConfArg,
+            UseDepDefaults,
         ])
-        .disable_features(&[Feature::RdependDefault])
+        .disable_features(&[RdependDefault])
         .register_operation(Operation::Pretend, [PkgPretend.stub()])
         .update_phases([SrcInstall
             .func(eapi4::src_install)
@@ -655,29 +654,20 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
     use crate::pkgsh::BuildVariable::*;
+    use Feature::*;
 
     Eapi::new("5", Some(&EAPI4))
-        .enable_features(&[
-            Feature::NewSupportsStdin,
-            Feature::ParallelTests,
-            Feature::RequiredUseOneOf,
-            Feature::SlotOps,
-            Feature::Subslots,
-        ])
+        .enable_features(&[NewSupportsStdin, ParallelTests, RequiredUseOneOf, SlotOps, Subslots])
         .update_econf(&[("--disable-silent-rules", None, None)])
         .update_env(&[(EBUILD_PHASE_FUNC, &[Phases])])
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::phase::{PhaseKind::*, *};
+    use Feature::*;
 
     Eapi::new("6", Some(&EAPI5))
-        .enable_features(&[
-            Feature::NonfatalDie,
-            Feature::GlobalFailglob,
-            Feature::UnpackExtendedPath,
-            Feature::UnpackCaseInsensitive,
-        ])
+        .enable_features(&[NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
         .update_phases([
             SrcPrepare.func(eapi6::src_prepare),
             SrcInstall
@@ -696,9 +686,10 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
     use crate::pkgsh::phase::PhaseKind::*;
     use crate::pkgsh::BuildVariable::*;
+    use Feature::*;
 
     Eapi::new("7", Some(&EAPI6))
-        .disable_features(&[Feature::TrailingSlash])
+        .disable_features(&[TrailingSlash])
         .update_dep_keys(&[Key::Bdepend])
         .update_incremental_keys(&[Key::Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
@@ -711,13 +702,10 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
+    use Feature::*;
+
     Eapi::new("8", Some(&EAPI7))
-        .enable_features(&[
-            Feature::ConsistentFileOpts,
-            Feature::DosymRelative,
-            Feature::SrcUriUnrestrict,
-            Feature::UsevTwoArgs,
-        ])
+        .enable_features(&[ConsistentFileOpts, DosymRelative, SrcUriUnrestrict, UsevTwoArgs])
         .update_dep_keys(&[Key::Idepend])
         .update_incremental_keys(&[Key::Idepend, Key::Properties, Key::Restrict])
         .update_econf(&[
@@ -732,7 +720,8 @@ pub static EAPI_LATEST_OFFICIAL: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
 
 /// The latest EAPI with extensions on top.
 pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
-    Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL)).enable_features(&[Feature::RepoIds])
+    use Feature::*;
+    Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL)).enable_features(&[RepoIds])
 });
 
 /// Reference to the most recent EAPI.
