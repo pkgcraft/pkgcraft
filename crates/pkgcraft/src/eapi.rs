@@ -300,7 +300,7 @@ impl Eapi {
                     .collect()
             })
             .get(scope)
-            .expect("EAPI {self}, unknown scope: {scope}")
+            .expect("EAPI {self} has no builtins for scope: {scope}")
     }
 
     /// Metadata variables for dependencies.
