@@ -18,7 +18,7 @@ use crate::pkgsh::builtins::{PkgBuiltin, Scope, Scopes, BUILTINS};
 use crate::pkgsh::metadata::Key;
 use crate::pkgsh::operations::Operation;
 use crate::pkgsh::phase::Phase;
-use crate::pkgsh::BuildVariable::{self, *};
+use crate::pkgsh::BuildVariable;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
@@ -497,6 +497,7 @@ impl FromStr for &'static Eapi {
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
     use crate::pkgsh::phase::{PhaseKind::*, *};
+    use crate::pkgsh::BuildVariable::*;
 
     Eapi::new("0", None)
         .enable_features(&[Feature::RdependDefault, Feature::TrailingSlash])
@@ -610,6 +611,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
     use crate::pkgsh::phase::PhaseKind::*;
+    use crate::pkgsh::BuildVariable::*;
 
     Eapi::new("3", Some(&EAPI2))
         .enable_archives(&["tar.xz", "xz"])
@@ -623,6 +625,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
     use crate::pkgsh::phase::{PhaseKind::*, *};
+    use crate::pkgsh::BuildVariable::*;
 
     Eapi::new("4", Some(&EAPI3))
         .enable_features(&[
@@ -651,6 +654,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
+    use crate::pkgsh::BuildVariable::*;
 
     Eapi::new("5", Some(&EAPI4))
         .enable_features(&[
@@ -691,6 +695,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     use crate::pkgsh::builtins::Scopes::*;
     use crate::pkgsh::phase::PhaseKind::*;
+    use crate::pkgsh::BuildVariable::*;
 
     Eapi::new("7", Some(&EAPI6))
         .disable_features(&[Feature::TrailingSlash])
