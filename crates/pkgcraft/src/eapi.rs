@@ -19,6 +19,7 @@ use crate::pkgsh::metadata::Key;
 use crate::pkgsh::operations::Operation;
 use crate::pkgsh::phase::Phase;
 use crate::pkgsh::BuildVariable::{self, *};
+use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
 peg::parser!(grammar parse() for str {
@@ -120,7 +121,6 @@ pub enum Feature {
     RepoIds,
 }
 
-type ScopeBuiltinsMap = HashMap<Scope, HashSet<&'static PkgBuiltin>>;
 type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
 type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 
@@ -132,7 +132,7 @@ pub struct Eapi {
     features: HashSet<Feature>,
     operations: HashMap<Operation, IndexSet<Phase>>,
     phases: OnceCell<HashSet<Phase>>,
-    builtins: OnceCell<ScopeBuiltinsMap>,
+    builtins: OnceCell<OrderedMap<Scope, OrderedSet<&'static PkgBuiltin>>>,
     dep_keys: HashSet<Key>,
     incremental_keys: HashSet<Key>,
     mandatory_keys: HashSet<Key>,
@@ -283,22 +283,21 @@ impl Eapi {
     }
 
     /// Return the set of supported builtins for a given scope.
-    pub(crate) fn builtins(&self, scope: &Scope) -> &HashSet<&'static PkgBuiltin> {
+    pub(crate) fn builtins(&self, scope: &Scope) -> &OrderedSet<&'static PkgBuiltin> {
         self.builtins
             .get_or_init(|| {
-                let mut scope_map = ScopeBuiltinsMap::new();
-                let builtins = BUILTINS
+                BUILTINS
                     .iter()
-                    .filter_map(|b| b.scope(self).map(|vals| (b, vals)));
-                for (b, eapi_scopes) in builtins {
-                    for scope in Scopes::All.iter().filter(|s| eapi_scopes.contains(s)) {
-                        scope_map
-                            .entry(scope)
-                            .or_insert_with(HashSet::new)
-                            .insert(b);
-                    }
-                }
-                scope_map
+                    // filter into builtins supporting the EAPI
+                    .filter_map(|b| b.scope(self).map(|scopes| (b, scopes)))
+                    // filter into scopes supported by the builtin
+                    .flat_map(|(b, scopes)| {
+                        Scopes::All
+                            .iter()
+                            .filter(|s| scopes.contains(s))
+                            .map(|s| (s, *b))
+                    })
+                    .collect()
             })
             .get(scope)
             .expect("EAPI {self}, unknown scope: {scope}")

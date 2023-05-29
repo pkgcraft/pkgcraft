@@ -192,7 +192,7 @@ impl Borrow<str> for &PkgBuiltin {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Ord, PartialOrd, Copy, Clone)]
 pub(crate) enum Scope {
     #[default]
     Global,
@@ -243,7 +243,7 @@ impl Scopes {
             Phases => Box::new(PhaseKind::iter().map(Scope::Phase)),
             Src => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("src_"))),
             Pkg => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("pkg_"))),
-            All => Box::new([Eclass, Global, Phases].iter().flat_map(|s| s.iter())),
+            All => Box::new([Global, Eclass, Phases].iter().flat_map(|s| s.iter())),
             Phase(p) => Box::new([Scope::Phase(*p)].into_iter()),
         }
     }

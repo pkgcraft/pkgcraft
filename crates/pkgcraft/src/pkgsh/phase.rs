@@ -34,7 +34,7 @@ fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-#[derive(AsRefStr, Display, EnumIter, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(AsRefStr, Display, EnumIter, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub(crate) enum PhaseKind {
     PkgSetup,
