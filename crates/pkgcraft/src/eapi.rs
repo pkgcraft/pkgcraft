@@ -282,12 +282,11 @@ impl Eapi {
     }
 
     /// Return the mapping of all supported builtins for a given scope.
-    pub(crate) fn builtins<S: Into<Scope>>(&self, scope: S) -> &BuiltinsMap {
-        let scope = scope.into();
+    pub(crate) fn builtins(&self, scope: &Scope) -> &BuiltinsMap {
         BUILTINS_MAP
             .get(self)
             .expect("no builtins for EAPI: {self}")
-            .get(&scope)
+            .get(scope)
             .expect("EAPI {self}, unknown scope: {scope}")
     }
 
@@ -882,7 +881,7 @@ mod tests {
             let phase_scopes: Vec<Scope> = eapi.phases().iter().map(|p| p.into()).collect();
             let scopes = static_scopes.iter().chain(phase_scopes.iter());
             for scope in scopes {
-                assert!(!eapi.builtins(*scope).is_empty(), "EAPI {eapi} failed for scope: {scope}");
+                assert!(!eapi.builtins(scope).is_empty(), "EAPI {eapi} failed for scope: {scope}");
             }
         }
     }

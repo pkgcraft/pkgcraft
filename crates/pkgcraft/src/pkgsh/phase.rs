@@ -180,7 +180,7 @@ pub(crate) fn pre_src_install(build: &mut BuildData) -> scallop::Result<ExecStat
     // set docompress include/exclude defaults for supported EAPIs
     if build
         .eapi()
-        .builtins(build.scope)
+        .builtins(&build.scope)
         .contains_key("docompress")
     {
         let docompress_include_defaults = ["/usr/share/doc", "/usr/share/info", "/usr/share/man"]

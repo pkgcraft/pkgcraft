@@ -14,8 +14,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
+    let builtins = build.eapi().builtins(&build.scope);
     let phase = build.phase()?;
-    let builtins = build.eapi().builtins(phase);
     let default_phase = format!("default_{phase}");
     match builtins.get(default_phase.as_str()) {
         Some(b) => b.run(&[]),

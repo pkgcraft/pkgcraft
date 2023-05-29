@@ -209,10 +209,6 @@ impl PkgBuiltin {
     }
 }
 
-pub(crate) type BuiltinsMap = HashMap<&'static str, &'static PkgBuiltin>;
-pub(crate) type ScopeBuiltinsMap = HashMap<Scope, BuiltinsMap>;
-pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, ScopeBuiltinsMap>;
-
 pub(crate) static ALL_BUILTINS: Lazy<HashMap<&'static str, &PkgBuiltin>> = Lazy::new(|| {
     [
         &*adddeny::PKG_BUILTIN,
@@ -317,6 +313,10 @@ pub(crate) static ALL_BUILTINS: Lazy<HashMap<&'static str, &PkgBuiltin>> = Lazy:
     .map(|b| (b.name(), b))
     .collect()
 });
+
+pub(crate) type BuiltinsMap = HashMap<&'static str, &'static PkgBuiltin>;
+pub(crate) type ScopeBuiltinsMap = HashMap<Scope, BuiltinsMap>;
+pub(crate) type EapiBuiltinsMap = HashMap<&'static Eapi, ScopeBuiltinsMap>;
 
 // TODO: auto-generate the builtin module imports and vector creation via build script
 pub(crate) static BUILTINS_MAP: Lazy<EapiBuiltinsMap> = Lazy::new(|| {
@@ -425,7 +425,7 @@ macro_rules! make_builtin {
                 let scope = $crate::pkgsh::get_build_mut().scope;
                 let eapi = $crate::pkgsh::get_build_mut().eapi();
 
-                if eapi.builtins(scope).contains_key(cmd) {
+                if eapi.builtins(&scope).contains_key(cmd) {
                     match $func(&args) {
                         Ok(ret) => ret,
                         Err(e) => scallop::builtins::handle_error(cmd, e),
@@ -487,7 +487,7 @@ macro_rules! builtin_scope_tests {
             for eapi in EAPIS_OFFICIAL.iter() {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
                 let scopes = static_scopes.iter().chain(phase_scopes.iter());
-                for scope in scopes.filter(|&s| !eapi.builtins(*s).contains_key(name)) {
+                for scope in scopes.filter(|&s| !eapi.builtins(s).contains_key(name)) {
                     let err = format!(" doesn't enable command: {name}");
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
