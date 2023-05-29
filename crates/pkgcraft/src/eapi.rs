@@ -14,9 +14,7 @@ use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::dep::Dep;
-use crate::pkgsh::builtins::{
-    BuiltinsMap, IterScopes, Scope, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC,
-};
+use crate::pkgsh::builtins::{BuiltinsMap, Scope, ALL, BUILTINS_MAP, GLOBAL, PHASE, PKG, SRC};
 use crate::pkgsh::metadata::Key;
 use crate::pkgsh::operations::Operation;
 use crate::pkgsh::phase::{PhaseKind::*, *};
@@ -433,9 +431,9 @@ impl Eapi {
     }
 
     /// Enable support for build variables during Eapi registration.
-    fn update_env<I: IterScopes>(mut self, variables: &[(BuildVariable, &[I])]) -> Self {
+    fn update_env(mut self, variables: &[(BuildVariable, &[&str])]) -> Self {
         for (var, scopes) in variables {
-            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter_scopes()).collect();
+            let scopes: HashSet<_> = scopes.iter().flat_map(|s| Scope::iter(s)).collect();
             self.env.insert(*var, scopes);
         }
         self

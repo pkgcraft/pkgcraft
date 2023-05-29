@@ -134,6 +134,24 @@ pub(crate) enum Scope {
     Phase(PhaseKind),
 }
 
+impl Scope {
+    /// Convert an identifier into an iterable of [`Scope`] objects.
+    pub(crate) fn iter(id: &str) -> Box<dyn Iterator<Item = Self>> {
+        match id {
+            ECLASS => Box::new([Self::Eclass].into_iter()),
+            GLOBAL => Box::new([Self::Global].into_iter()),
+            PHASE => Box::new(PhaseKind::iter().map(Self::Phase)),
+            SRC => Box::new(Self::iter(PHASE).filter(|k| k.as_ref().starts_with("src_"))),
+            PKG => Box::new(Self::iter(PHASE).filter(|k| k.as_ref().starts_with("pkg_"))),
+            ALL => Box::new([ECLASS, GLOBAL, PHASE].iter().flat_map(|s| Self::iter(s))),
+            s => match PhaseKind::iter().find(|k| k.as_ref() == s) {
+                Some(k) => Box::new([Self::Phase(k)].into_iter()),
+                None => panic!("unknown scope identifier: {s}"),
+            },
+        }
+    }
+}
+
 impl<T: Borrow<Phase>> From<T> for Scope {
     fn from(phase: T) -> Self {
         Scope::Phase(phase.borrow().into())
@@ -164,44 +182,11 @@ pub(crate) const PHASE: &str = ".+_.+";
 pub(crate) const SRC: &str = "src_.+";
 pub(crate) const PKG: &str = "pkg_.+";
 
-pub(crate) trait IterScopes {
-    fn iter_scopes(&self) -> Box<dyn Iterator<Item = Scope>>;
-}
-
-impl IterScopes for &str {
-    fn iter_scopes(&self) -> Box<dyn Iterator<Item = Scope>> {
-        match *self {
-            ECLASS => Box::new([Scope::Eclass].into_iter()),
-            GLOBAL => Box::new([Scope::Global].into_iter()),
-            PHASE => Box::new(PhaseKind::iter().map(Scope::Phase)),
-            SRC => Box::new(
-                PHASE
-                    .iter_scopes()
-                    .filter(|k| k.as_ref().starts_with("src_")),
-            ),
-            PKG => Box::new(
-                PHASE
-                    .iter_scopes()
-                    .filter(|k| k.as_ref().starts_with("pkg_")),
-            ),
-            ALL => Box::new(
-                [ECLASS.iter_scopes(), GLOBAL.iter_scopes(), PHASE.iter_scopes()]
-                    .into_iter()
-                    .flatten(),
-            ),
-            s => match PhaseKind::iter().find(|k| k.as_ref() == s) {
-                Some(k) => Box::new([Scope::Phase(k)].into_iter()),
-                None => panic!("unknown scope identifier: {s}"),
-            },
-        }
-    }
-}
-
 impl PkgBuiltin {
-    fn new<I: IterScopes>(builtin: Builtin, scopes: &[(&str, &[I])]) -> Self {
+    fn new(builtin: Builtin, scopes: &[(&str, &[&str])]) -> Self {
         let mut scope = IndexMap::new();
         for (range, scopes) in scopes.iter() {
-            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter_scopes()).collect();
+            let scopes: HashSet<_> = scopes.iter().flat_map(|s| Scope::iter(s)).collect();
             let eapis = eapi::range(range).unwrap_or_else(|e| {
                 panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
             });
