@@ -66,41 +66,50 @@ fn is_patch(entry: &Utf8DirEntry) -> bool {
     }
 }
 
-type Patches = Vec<(Option<Utf8PathBuf>, Vec<PatchFile>)>;
+struct FindPatches<'a> {
+    paths: std::slice::Iter<'a, &'a Utf8Path>,
+}
 
-// Find the patches contained in a given set of paths.
-fn find_patches<P: AsRef<Utf8Path>>(paths: &[P]) -> scallop::Result<Patches> {
-    let mut patches = Patches::new();
-    for path in paths.iter().map(|p| p.as_ref()) {
-        if path.is_dir() {
-            let dir_patches: scallop::Result<Vec<_>> = path
-                .read_dir_utf8()?
-                .filter_map(|e| match e {
-                    Ok(e) if is_patch(&e) => Some(PatchFile::new(e.into_path())),
-                    Ok(_) => None,
-                    Err(e) => {
-                        Some(Err(Error::Base(format!("failed reading patches: {path}: {e}"))))
-                    }
-                })
-                .collect();
-
-            let mut dir_patches = dir_patches?;
-            // this sorts by utf8 not the POSIX locale specified by PMS
-            dir_patches.sort();
-
-            if dir_patches.is_empty() {
-                return Err(Error::Base(format!("no patches in directory: {path}")));
-            }
-
-            patches.push((Some(path.into()), dir_patches));
-        } else if path.exists() {
-            patches.push((None, vec![PatchFile::new(path.to_path_buf())?]));
-        } else {
-            return Err(Error::Base(format!("nonexistent file: {path}")));
-        }
+impl<'a> FindPatches<'a> {
+    fn new(paths: &'a [&'a Utf8Path]) -> Self {
+        FindPatches { paths: paths.iter() }
     }
+}
 
-    Ok(patches)
+/// Return all the patches for a given path.
+fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec<PatchFile>)> {
+    if path.is_dir() {
+        let dir_patches: scallop::Result<Vec<_>> = path
+            .read_dir_utf8()?
+            .filter_map(|e| match e {
+                Ok(e) if is_patch(&e) => Some(PatchFile::new(e.into_path())),
+                Ok(_) => None,
+                Err(e) => Some(Err(Error::Base(format!("failed reading patches: {path}: {e}")))),
+            })
+            .collect();
+
+        let mut dir_patches = dir_patches?;
+        // this sorts by utf8 not the POSIX locale specified by PMS
+        dir_patches.sort();
+
+        if dir_patches.is_empty() {
+            Err(Error::Base(format!("no patches in directory: {path}")))
+        } else {
+            Ok((Some(path), dir_patches))
+        }
+    } else if path.exists() {
+        Ok((None, vec![PatchFile::new(path.to_path_buf())?]))
+    } else {
+        Err(Error::Base(format!("nonexistent file: {path}")))
+    }
+}
+
+impl<'a> Iterator for FindPatches<'a> {
+    type Item = scallop::Result<(Option<&'a Utf8Path>, Vec<PatchFile>)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.paths.next().map(|p| patches_from_path(p))
+    }
 }
 
 #[doc = stringify!(LONG_DOC)]
@@ -111,19 +120,20 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // split args into options and files
     let mut options = Vec::<&str>::new();
-    let mut files = Vec::<&str>::new();
+    let mut files = Vec::<&Utf8Path>::new();
     for (i, arg) in args.iter().enumerate() {
         if arg.starts_with('-') {
             if !files.is_empty() {
                 return Err(Error::Base("options must be specified before file arguments".into()));
             } else if *arg == "--" {
-                files.extend(&args[i + 1..]);
+                let paths = &args[i + 1..];
+                files.extend(paths.iter().map(Utf8Path::new));
                 break;
             } else {
                 options.push(arg);
             }
         } else {
-            files.push(arg);
+            files.push(Utf8Path::new(arg));
         }
     }
 
@@ -131,7 +141,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("no patches specified".to_string()));
     }
 
-    for (dir, patches) in find_patches(&files)? {
+    for patches in FindPatches::new(&files) {
+        let (dir, patches) = patches?;
         if let Some(path) = &dir {
             write_stdout!("Applying patches from {path}\n")?;
         }
