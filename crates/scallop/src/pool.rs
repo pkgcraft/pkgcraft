@@ -24,7 +24,7 @@ impl SharedSemaphore {
     fn new(size: usize) -> crate::Result<Self> {
         let pid = std::process::id();
         let id = get_id();
-        let shm_name = format!("scallop-pool-sem-{pid}-{id}");
+        let shm_name = format!("/scallop-pool-sem-{pid}-{id}");
         let ptr = create_shm(&shm_name, std::mem::size_of::<libc::sem_t>())?;
         let sem = ptr as *mut libc::sem_t;
 

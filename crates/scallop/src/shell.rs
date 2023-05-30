@@ -13,7 +13,7 @@ use crate::{bash, error, Error};
 
 /// Initialize the shell for library use.
 pub fn init(restricted: bool) {
-    let shm_name = format!("scallop-{}", getpid());
+    let shm_name = format!("/scallop-{}", getpid());
     let shm = create_shm(&shm_name, 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     let name = CString::new("scallop").unwrap();
     unsafe {
