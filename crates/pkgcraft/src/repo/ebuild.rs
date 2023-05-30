@@ -303,6 +303,7 @@ impl Repo {
             self.trees
                 .set(trees)
                 .unwrap_or_else(|_| panic!("trees already set: {}", self.id()));
+            self.collapse_lazy_fields();
             Ok(())
         } else {
             let repos = nonexistent.join(", ");
@@ -310,6 +311,16 @@ impl Repo {
                 id: self.id().to_string(),
                 err: format!("unconfigured repos: {repos}"),
             })
+        }
+    }
+
+    /// Collapse various lazy fields that require repo dependencies.
+    ///
+    /// This is called during repo finalization when not running tests in order to avoid duplicate
+    /// calls when run under forked processes such as during metadata regen.
+    fn collapse_lazy_fields(&self) {
+        if !cfg!(any(test, feature = "test")) {
+            self.eclasses();
         }
     }
 
