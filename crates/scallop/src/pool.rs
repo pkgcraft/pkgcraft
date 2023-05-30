@@ -21,12 +21,17 @@ struct SharedSemaphore {
 }
 
 impl SharedSemaphore {
-    fn new(size: u32) -> crate::Result<Self> {
+    fn new(size: usize) -> crate::Result<Self> {
         let pid = std::process::id();
         let id = get_id();
         let shm_name = format!("scallop-pool-sem-{pid}-{id}");
         let ptr = create_shm(&shm_name, std::mem::size_of::<libc::sem_t>())?;
         let sem = ptr as *mut libc::sem_t;
+
+        // sem_init() uses u32 values
+        let size: u32 = size
+            .try_into()
+            .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
 
         if unsafe { libc::sem_init(sem, 1, size) } == 0 {
             Ok(Self { sem })
@@ -66,10 +71,7 @@ impl Pool {
         // enable internal bash SIGCHLD handler
         unsafe { bash::set_sigchld_handler() };
 
-        let sem_size = size
-            .try_into()
-            .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
-        let sem = SharedSemaphore::new(sem_size)?;
+        let sem = SharedSemaphore::new(size)?;
         let (tx, rx): (IpcSender<Error>, IpcReceiver<Error>) =
             ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
 
@@ -132,10 +134,7 @@ impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
         // enable internal bash SIGCHLD handler
         unsafe { bash::set_sigchld_handler() };
 
-        let sem_size = size
-            .try_into()
-            .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
-        let mut sem = SharedSemaphore::new(sem_size)?;
+        let mut sem = SharedSemaphore::new(size)?;
         let (tx, rx): (IpcSender<T>, IpcReceiver<T>) =
             ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
 
