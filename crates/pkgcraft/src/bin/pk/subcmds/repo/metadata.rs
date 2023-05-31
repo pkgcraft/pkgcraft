@@ -23,14 +23,9 @@ impl Command {
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
         let jobs = self.jobs.unwrap_or_else(num_cpus::get);
+        let errors = repo.metadata_regen(jobs, self.force)?;
 
-        let mut failed = false;
-        for error in repo.metadata_regen(jobs, self.force)? {
-            failed = true;
-            eprintln!("{error}");
-        }
-
-        if failed {
+        if errors > 0 {
             Ok(ExitCode::FAILURE)
         } else {
             Ok(ExitCode::SUCCESS)

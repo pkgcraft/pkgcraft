@@ -12,7 +12,7 @@ use indexmap::{Equivalent, IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::{Lazy, OnceCell};
 use scallop::pool::PoolIter;
-use tracing::warn;
+use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
 
 use crate::config::RepoConfig;
@@ -486,9 +486,14 @@ impl Repo {
             .get(cpv)
     }
 
-    /// Regenerate metadata for the repo, returning an iterator over the errors.
-    pub fn metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<MetadataRegen> {
-        MetadataRegen::new(self, jobs, force)
+    /// Regenerate metadata for the repo, returning the number of errors that occurred.
+    pub fn metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<usize> {
+        let mut errors = 0;
+        for err in MetadataRegen::new(self, jobs, force)? {
+            errors += 1;
+            error!("{err}");
+        }
+        Ok(errors)
     }
 
     /// Return an iterator of raw packages for the repo.
