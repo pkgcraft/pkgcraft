@@ -9,7 +9,7 @@ use std::{fmt, fs, io, iter, thread};
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{Equivalent, IndexMap, IndexSet};
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use once_cell::sync::{Lazy, OnceCell};
 use scallop::pool::PoolIter;
 use tracing::warn;
@@ -284,15 +284,12 @@ impl Repo {
             return Ok(());
         }
 
-        let mut nonexistent = vec![];
-        let mut masters = vec![];
-
-        for id in self.metadata().config().masters() {
-            match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
-                Some(r) => masters.push(Arc::downgrade(r)),
-                None => nonexistent.push(id.as_str()),
-            }
-        }
+        let repo_ids = self.metadata().config().masters().iter();
+        let (masters, nonexistent): (Vec<_>, Vec<_>) =
+            repo_ids.partition_map(|id| match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
+                Some(r) => Either::Left(Arc::downgrade(r)),
+                None => Either::Right(id.as_str()),
+            });
 
         if nonexistent.is_empty() {
             let mut trees = masters.clone();
