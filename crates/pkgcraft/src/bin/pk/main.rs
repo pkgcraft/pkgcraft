@@ -49,8 +49,16 @@ fn main() -> anyhow::Result<ExitCode> {
 
     let args = Command::parse();
 
+    // custom log event formatter
+    let format = tracing_subscriber::fmt::format()
+        .with_level(true)
+        .with_target(false)
+        .without_time()
+        .compact();
+
     tracing_subscriber::fmt()
         .with_max_level(args.verbose.log_level_filter().as_trace())
+        .event_format(format)
         .init();
 
     args.subcmd.run(&config).or_else(|e| {
