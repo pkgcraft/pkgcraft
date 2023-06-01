@@ -6,6 +6,7 @@ use pkgcraft::repo::ebuild::Repo as EbuildRepo;
 use pkgcraft::repo::Repo;
 
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 use crate::utils::str_to_raw;
 
 /// Convert a given pointer into an ebuild repo reference.
@@ -68,4 +69,23 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
     iter_to_array!(repo.masters(), len, |r: Arc<EbuildRepo>| {
         Box::into_raw(Box::new(Repo::Ebuild(r)))
     })
+}
+
+/// Regenerate an ebuild repo's package metadata cache.
+///
+/// # Safety
+/// The argument must be a non-null Repo pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_pkg_metadata_regen(
+    r: *mut Repo,
+    len: *mut usize,
+    jobs: usize,
+    force: bool,
+) -> *mut usize {
+    ffi_catch_panic! {
+        let repo = try_repo_from_ptr!(r);
+        let errors = unwrap_or_panic!(repo.pkg_metadata_regen(jobs, force));
+        unsafe { *len = errors };
+        len
+    }
 }

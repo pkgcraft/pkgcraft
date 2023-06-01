@@ -314,7 +314,7 @@ impl Repo {
     /// Collapse various lazy fields that require repo dependencies.
     ///
     /// This is called during repo finalization when not running tests in order to avoid duplicate
-    /// calls when run under forked processes such as during metadata regen.
+    /// calls when run under forked processes such as during package cache generation.
     fn collapse_lazy_fields(&self) {
         if !cfg!(any(test, feature = "test")) {
             self.eclasses();
@@ -486,10 +486,10 @@ impl Repo {
             .get(cpv)
     }
 
-    /// Regenerate metadata for the repo, returning the number of errors that occurred.
-    pub fn metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<usize> {
+    /// Regenerate the package metadata cache, returning the number of errors that occurred.
+    pub fn pkg_metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<usize> {
         let mut errors = 0;
-        for err in MetadataRegen::new(self, jobs, force)? {
+        for err in PkgMetadataRegen::new(self, jobs, force)? {
             errors += 1;
             error!("{err}");
         }
@@ -858,20 +858,20 @@ impl<'a> Iterator for IterRawRestrict<'a> {
     }
 }
 
-pub struct MetadataRegen {
+struct PkgMetadataRegen {
     iter: PoolIter<scallop::Result<()>>,
 }
 
-impl MetadataRegen {
+impl PkgMetadataRegen {
     pub(crate) fn new(repo: &Repo, jobs: usize, force: bool) -> crate::Result<Self> {
         let pkgs = Box::new(repo.iter_raw());
         let func = |pkg: RawPkg| pkg.metadata(force);
         let iter = PoolIter::new(jobs, pkgs, func)?;
-        Ok(MetadataRegen { iter })
+        Ok(PkgMetadataRegen { iter })
     }
 }
 
-impl Iterator for MetadataRegen {
+impl Iterator for PkgMetadataRegen {
     type Item = scallop::Error;
 
     fn next(&mut self) -> Option<Self::Item> {
