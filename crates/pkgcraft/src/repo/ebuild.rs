@@ -487,12 +487,29 @@ impl Repo {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<usize> {
+    pub fn pkg_metadata_regen<F: Fn()>(
+        &self,
+        jobs: usize,
+        force: bool,
+        callback: Option<F>,
+    ) -> crate::Result<usize> {
+        let pkgs = Box::new(self.iter_raw());
+        let func = |pkg: RawPkg| pkg.metadata(force);
         let mut errors = 0;
-        for err in PkgMetadataRegen::new(self, jobs, force)? {
-            errors += 1;
-            error!("{err}");
+
+        for r in PoolIter::new(jobs, pkgs, func)? {
+            // log errors
+            if let Err(e) = r {
+                errors += 1;
+                error!("{e}");
+            }
+
+            // run callback per result to support features such as progress indication
+            if let Some(cb) = &callback {
+                cb();
+            }
         }
+
         Ok(errors)
     }
 
@@ -855,33 +872,6 @@ impl<'a> Iterator for IterRawRestrict<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
-    }
-}
-
-struct PkgMetadataRegen {
-    iter: PoolIter<scallop::Result<()>>,
-}
-
-impl PkgMetadataRegen {
-    pub(crate) fn new(repo: &Repo, jobs: usize, force: bool) -> crate::Result<Self> {
-        let pkgs = Box::new(repo.iter_raw());
-        let func = |pkg: RawPkg| pkg.metadata(force);
-        let iter = PoolIter::new(jobs, pkgs, func)?;
-        Ok(PkgMetadataRegen { iter })
-    }
-}
-
-impl Iterator for PkgMetadataRegen {
-    type Item = scallop::Error;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.iter.next() {
-                Some(Err(e)) => return Some(e),
-                Some(Ok(_)) => (),
-                None => return None,
-            }
-        }
     }
 }
 

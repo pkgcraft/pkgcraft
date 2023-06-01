@@ -32,6 +32,7 @@ tools = [
 	"dep:anyhow",
 	"dep:clap-verbosity-flag",
 	"dep:num_cpus",
+	"dep:indicatif",
 	"dep:is-terminal",
 	"dep:tracing-log",
 	"dep:tracing-subscriber",
@@ -87,6 +88,7 @@ walkdir = "2.3.3"
 aho-corasick = { version = "1.0.1", optional = true }
 anyhow = { version = "1.0.71", optional = true }
 clap-verbosity-flag = { version = "2.0.1", optional = true }
+indicatif = { version = "0.17.4", optional = true }
 is-terminal = { version = "0.4.7", optional = true }
 tracing-log = { version = "0.1.3", optional = true }
 tracing-subscriber = { version = "0.3.17", optional = true }
