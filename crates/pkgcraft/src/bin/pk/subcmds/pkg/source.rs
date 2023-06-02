@@ -72,7 +72,7 @@ impl Command {
         let mut errors = 0;
         for r in PoolIter::new(jobs, pkgs, func)? {
             match r {
-                Ok((pkg, elapsed)) => eprintln!("{pkg}: {elapsed:?}"),
+                Ok((pkg, elapsed)) => println!("{pkg}: {elapsed:?}"),
                 Err(e) => {
                     // log errors
                     errors += 1;
