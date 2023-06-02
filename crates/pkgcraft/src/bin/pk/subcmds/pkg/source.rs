@@ -65,8 +65,8 @@ impl Command {
         let func = |pkg: RawPkg| -> scallop::Result<(String, Duration)> {
             let start = Instant::now();
             pkg.source()?;
-            let duration = start.elapsed();
-            Ok((pkg.to_string(), duration))
+            let elapsed = start.elapsed();
+            Ok((pkg.to_string(), elapsed))
         };
 
         let mut errors = 0;
