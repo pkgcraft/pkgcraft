@@ -493,7 +493,7 @@ impl Repo {
         force: bool,
         callback: Option<F>,
     ) -> crate::Result<usize> {
-        let pkgs = Box::new(self.iter_raw());
+        let pkgs = self.iter_raw();
         let func = |pkg: RawPkg| pkg.metadata(force);
         let mut errors = 0;
 
