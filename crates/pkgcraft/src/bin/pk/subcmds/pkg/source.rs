@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::anyhow;
 use clap::Args;
+use humantime::Duration as HumanDuration;
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::RawPkg;
 use pkgcraft::pkg::SourceablePackage;
@@ -23,6 +24,10 @@ pub struct Command {
     /// Target repository
     #[arg(short, long, default_value = "gentoo", required = false)]
     repo: String,
+
+    /// Minimum duration to report
+    #[arg(short, long, default_value = "0ms", required = false)]
+    duration: HumanDuration,
 
     // positionals
     /// Target packages
@@ -70,9 +75,14 @@ impl Command {
         };
 
         let mut errors = 0;
+        let duration: Duration = self.duration.into();
         for r in PoolIter::new(jobs, pkgs, func)? {
             match r {
-                Ok((pkg, elapsed)) => println!("{pkg}: {elapsed:?}"),
+                Ok((pkg, elapsed)) => {
+                    if elapsed >= duration {
+                        println!("{pkg}: {elapsed:?}")
+                    }
+                }
                 Err(e) => {
                     // log errors
                     errors += 1;
