@@ -39,13 +39,19 @@ impl FromStr for Bound {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> anyhow::Result<Self> {
-        let (bound, val): (fn(Duration) -> Self, &str) = match s {
+        let (bound, val): (fn(Duration) -> Self, &str) = {
             // TODO: use an actual parser
-            s if s.starts_with(">=") => (Self::GreaterOrEqual, &s[2..]),
-            s if s.starts_with('>') => (Self::Greater, &s[1..]),
-            s if s.starts_with("<=") => (Self::LessOrEqual, &s[2..]),
-            s if s.starts_with('<') => (Self::Less, &s[1..]),
-            _ => (Self::GreaterOrEqual, s),
+            if let Some(v) = s.strip_prefix(">=") {
+                (Self::GreaterOrEqual, v)
+            } else if let Some(v) = s.strip_prefix('>') {
+                (Self::Greater, v)
+            } else if let Some(v) = s.strip_prefix("<=") {
+                (Self::LessOrEqual, v)
+            } else if let Some(v) = s.strip_prefix('<') {
+                (Self::Less, v)
+            } else {
+                (Self::GreaterOrEqual, s)
+            }
         };
 
         let val = humantime::Duration::from_str(val)?;
