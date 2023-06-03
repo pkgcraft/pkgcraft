@@ -118,7 +118,7 @@ impl Command {
             .as_ebuild()
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
-        let jobs = self.jobs.unwrap_or_else(num_cpus::get);
+        let jobs = self.jobs.unwrap_or_else(num_cpus::get_physical);
         let pkgs = repo.iter_raw_restrict(restrict);
         let func = |pkg: RawPkg| -> scallop::Result<(String, Duration)> {
             let start = Instant::now();
