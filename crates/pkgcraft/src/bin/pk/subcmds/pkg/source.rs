@@ -69,6 +69,10 @@ pub struct Command {
     #[arg(short, long, default_value = "gentoo", required = false)]
     repo: String,
 
+    /// Benchmark sourcing for a given number of seconds per package
+    #[arg(long, required = false)]
+    bench: Option<u64>,
+
     /// Elapsed time bound to apply
     #[arg(short, long, required = false)]
     bound: Option<Bound>,
@@ -87,6 +91,84 @@ impl Command {
         } else {
             true
         }
+    }
+
+    /// Run package sourcing benchmarks for a given amount of seconds per package.
+    fn benchmark<'a, I>(&self, secs: u64, jobs: usize, pkgs: I) -> anyhow::Result<bool>
+    where
+        I: Iterator<Item = RawPkg<'a>>,
+    {
+        let mut failed = false;
+        let func = |pkg: RawPkg| -> scallop::Result<(String, Vec<Duration>)> {
+            let mut data = vec![];
+            let mut elapsed = Duration::new(0, 0);
+            while elapsed.as_secs() < secs {
+                let start = Instant::now();
+                pkg.source()?;
+                let source_elapsed = start.elapsed();
+                data.push(source_elapsed);
+                elapsed += source_elapsed;
+                scallop::shell::reset(&[]);
+            }
+            Ok((pkg.to_string(), data))
+        };
+
+        for r in PoolIter::new(jobs, pkgs, func)? {
+            match r {
+                Ok((pkg, data)) => {
+                    let n = data.len() as u64;
+                    let micros: Vec<u64> = data
+                        .iter()
+                        .map(|v| v.as_micros().try_into().unwrap())
+                        .collect();
+                    let min = Duration::from_micros(*micros.iter().min().unwrap());
+                    let max = Duration::from_micros(*micros.iter().max().unwrap());
+                    let total: u64 = micros.iter().sum();
+                    let mean: u64 = total / n;
+                    let variance =
+                        (micros.iter().map(|v| (v - mean).pow(2)).sum::<u64>()) as f64 / n as f64;
+                    let std_dev = Duration::from_micros(variance.sqrt().round() as u64);
+                    let mean = Duration::from_micros(mean);
+                    println!("{pkg}: min: {min:?}, mean: {mean:?}, max: {max:?}, σ = {std_dev:?}, N = {n}")
+                }
+                Err(e) => {
+                    failed = true;
+                    error!("{e}");
+                }
+            }
+        }
+
+        Ok(failed)
+    }
+
+    /// Run package sourcing a single time per package.
+    fn source<'a, I>(&self, jobs: usize, pkgs: I) -> anyhow::Result<bool>
+    where
+        I: Iterator<Item = RawPkg<'a>>,
+    {
+        let mut failed = false;
+        let func = |pkg: RawPkg| -> scallop::Result<(String, Duration)> {
+            let start = Instant::now();
+            pkg.source()?;
+            let elapsed = start.elapsed();
+            Ok((pkg.to_string(), elapsed))
+        };
+
+        for r in PoolIter::new(jobs, pkgs, func)? {
+            match r {
+                Ok((pkg, elapsed)) => {
+                    if self.bounded(&elapsed) {
+                        println!("{pkg}: {elapsed:?}")
+                    }
+                }
+                Err(e) => {
+                    failed = true;
+                    error!("{e}");
+                }
+            }
+        }
+
+        Ok(failed)
     }
 
     pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
@@ -120,27 +202,12 @@ impl Command {
 
         let jobs = self.jobs.unwrap_or_else(num_cpus::get_physical);
         let pkgs = repo.iter_raw_restrict(restrict);
-        let func = |pkg: RawPkg| -> scallop::Result<(String, Duration)> {
-            let start = Instant::now();
-            pkg.source()?;
-            let elapsed = start.elapsed();
-            Ok((pkg.to_string(), elapsed))
-        };
 
-        let mut failed = false;
-        for r in PoolIter::new(jobs, pkgs, func)? {
-            match r {
-                Ok((pkg, elapsed)) => {
-                    if self.bounded(&elapsed) {
-                        println!("{pkg}: {elapsed:?}")
-                    }
-                }
-                Err(e) => {
-                    failed = true;
-                    error!("{e}");
-                }
-            }
-        }
+        let failed = if let Some(secs) = self.bench {
+            self.benchmark(secs, jobs, pkgs)
+        } else {
+            self.source(jobs, pkgs)
+        }?;
 
         if failed {
             Ok(ExitCode::FAILURE)
