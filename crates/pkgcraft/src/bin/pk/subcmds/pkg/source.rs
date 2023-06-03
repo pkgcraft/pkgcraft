@@ -1,5 +1,6 @@
 use std::io::stdin;
 use std::process::ExitCode;
+use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use anyhow::anyhow;
@@ -14,6 +15,44 @@ use tracing::error;
 
 use crate::StdinArgs;
 
+/// Duration bound to apply against elapsed time values.
+#[derive(Debug, Copy, Clone)]
+enum Bound {
+    Less(Duration),
+    LessOrEqual(Duration),
+    Greater(Duration),
+    GreaterOrEqual(Duration),
+}
+
+impl Bound {
+    fn matches(&self, duration: &Duration) -> bool {
+        match self {
+            Self::Less(bound) => duration < bound,
+            Self::LessOrEqual(bound) => duration <= bound,
+            Self::GreaterOrEqual(bound) => duration >= bound,
+            Self::Greater(bound) => duration > bound,
+        }
+    }
+}
+
+impl FromStr for Bound {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> anyhow::Result<Self> {
+        let (bound, val): (fn(Duration) -> Self, &str) = match s {
+            // TODO: use an actual parser
+            s if s.starts_with(">=") => (Self::GreaterOrEqual, &s[2..]),
+            s if s.starts_with('>') => (Self::Greater, &s[1..]),
+            s if s.starts_with("<=") => (Self::LessOrEqual, &s[2..]),
+            s if s.starts_with('<') => (Self::Less, &s[1..]),
+            _ => (Self::GreaterOrEqual, s),
+        };
+
+        let val = humantime::Duration::from_str(val)?;
+        Ok(bound(val.into()))
+    }
+}
+
 #[derive(Debug, Args)]
 pub struct Command {
     /// Parallel jobs to run
@@ -23,6 +62,10 @@ pub struct Command {
     /// Target repository
     #[arg(short, long, default_value = "gentoo", required = false)]
     repo: String,
+
+    /// Elapsed time bound to apply
+    #[arg(short, long, default_value = "0ms", required = false)]
+    bound: Bound,
 
     // positionals
     /// Target packages
@@ -72,7 +115,11 @@ impl Command {
         let mut errors = 0;
         for r in PoolIter::new(jobs, pkgs, func)? {
             match r {
-                Ok((pkg, elapsed)) => println!("{pkg}: {elapsed:?}"),
+                Ok((pkg, elapsed)) => {
+                    if self.bound.matches(&elapsed) {
+                        println!("{pkg}: {elapsed:?}")
+                    }
+                }
                 Err(e) => {
                     // log errors
                     errors += 1;
