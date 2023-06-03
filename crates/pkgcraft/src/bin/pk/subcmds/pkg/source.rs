@@ -121,7 +121,7 @@ impl Command {
             Ok((pkg.to_string(), elapsed))
         };
 
-        let mut errors = 0;
+        let mut failed = false;
         for r in PoolIter::new(jobs, pkgs, func)? {
             match r {
                 Ok((pkg, elapsed)) => {
@@ -130,17 +130,16 @@ impl Command {
                     }
                 }
                 Err(e) => {
-                    // log errors
-                    errors += 1;
+                    failed = true;
                     error!("{e}");
                 }
             }
         }
 
-        if errors == 0 {
-            Ok(ExitCode::SUCCESS)
-        } else {
+        if failed {
             Ok(ExitCode::FAILURE)
+        } else {
+            Ok(ExitCode::SUCCESS)
         }
     }
 }
