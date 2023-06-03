@@ -64,8 +64,8 @@ pub struct Command {
     repo: String,
 
     /// Elapsed time bound to apply
-    #[arg(short, long, default_value = "0ms", required = false)]
-    bound: Bound,
+    #[arg(short, long, required = false)]
+    bound: Option<Bound>,
 
     // positionals
     /// Target packages
@@ -74,6 +74,15 @@ pub struct Command {
 }
 
 impl Command {
+    /// Determine if a duration matches a given, optional bound.
+    fn bounded(&self, elapsed: &Duration) -> bool {
+        if let Some(bound) = self.bound {
+            bound.matches(elapsed)
+        } else {
+            true
+        }
+    }
+
     pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
         let mut restricts = vec![];
 
@@ -116,7 +125,7 @@ impl Command {
         for r in PoolIter::new(jobs, pkgs, func)? {
             match r {
                 Ok((pkg, elapsed)) => {
-                    if self.bound.matches(&elapsed) {
+                    if self.bounded(&elapsed) {
                         println!("{pkg}: {elapsed:?}")
                     }
                 }
