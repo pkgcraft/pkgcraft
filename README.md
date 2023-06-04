@@ -4,9 +4,10 @@
 
 Highly experimental tooling ecosystem for Gentoo comprised of the following:
 
-- scallop: bash support
-- pkgcraft: Gentoo functionality 
-- pkgcraft-c: C library for language bindings
+- scallop: bash library
+- pkgcraft: core library
+- pkgcraft-c: C bindings
+- pkgcraft-tools: command-line tools
 - arcanist: package-building daemon
 
 ## Development
