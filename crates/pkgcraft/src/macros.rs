@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! build_from_paths {
     ($base:expr, $($segment:expr),+) => {{
         let mut base: ::camino::Utf8PathBuf = $base.into();
@@ -5,7 +6,7 @@ macro_rules! build_from_paths {
         base
     }}
 }
-pub(crate) use build_from_paths;
+pub use build_from_paths;
 
 #[cfg(test)]
 macro_rules! assert_err_re {

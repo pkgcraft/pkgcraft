@@ -7,7 +7,7 @@ pub mod dep;
 pub mod eapi;
 mod error;
 pub(crate) mod files;
-mod macros;
+pub mod macros;
 pub mod peg;
 pub mod pkg;
 pub mod pkgsh;

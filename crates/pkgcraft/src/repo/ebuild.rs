@@ -316,7 +316,7 @@ impl Repo {
     /// This is called during repo finalization when not running tests in order to avoid duplicate
     /// calls when run under forked processes such as during package cache generation.
     fn collapse_lazy_fields(&self) {
-        if !cfg!(any(test, feature = "test")) {
+        if !*crate::test::TESTING {
             self.eclasses();
         }
     }

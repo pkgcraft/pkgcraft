@@ -1513,12 +1513,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "518ef76f2f87365916b142844c16d8fefd85039bc5699050210a7778ee1cd1de"
 
 [[package]]
-name = "maplit"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
-
-[[package]]
 name = "matchers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1883,8 +1877,6 @@ checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
 name = "pkgcraft"
 version = "0.0.7"
 dependencies = [
- "aho-corasick",
- "anyhow",
  "assert_cmd",
  "async-trait",
  "blake2",
@@ -1893,7 +1885,6 @@ dependencies = [
  "camino",
  "chic",
  "clap",
- "clap-verbosity-flag",
  "criterion",
  "crossbeam-channel 0.5.8",
  "ctor",
@@ -1905,20 +1896,15 @@ dependencies = [
  "git2",
  "glob",
  "hex",
- "humantime",
  "indexmap",
- "indicatif",
  "indoc",
- "is-terminal",
  "is_executable",
  "itertools",
- "maplit",
  "md-5",
  "nix",
  "num_cpus",
  "once_cell",
  "peg",
- "predicates",
  "regex",
  "reqwest",
  "roxmltree",
@@ -1935,8 +1921,6 @@ dependencies = [
  "tokio",
  "toml 0.7.4",
  "tracing",
- "tracing-log",
- "tracing-subscriber",
  "tracing-test",
  "walkdir",
 ]
@@ -1947,6 +1931,29 @@ version = "0.0.7"
 dependencies = [
  "pkgcraft",
  "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "pkgcraft-tools"
+version = "0.0.7"
+dependencies = [
+ "aho-corasick",
+ "anyhow",
+ "clap",
+ "clap-verbosity-flag",
+ "humantime",
+ "indexmap",
+ "indicatif",
+ "is-terminal",
+ "itertools",
+ "num_cpus",
+ "pkgcraft",
+ "predicates",
+ "scallop",
+ "strum",
+ "tracing",
+ "tracing-log",
  "tracing-subscriber",
 ]
 

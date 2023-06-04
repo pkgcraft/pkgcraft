@@ -1,4 +1,3 @@
-#![cfg(any(test, feature = "test"))]
 use std::{env, fmt, fs};
 
 use assert_cmd::Command;
@@ -14,6 +13,10 @@ use crate::dep::{Blocker, Revision, SlotOperator, Version};
 use crate::macros::build_from_paths;
 use crate::types::OrderedSet;
 use crate::Error;
+
+/// Flag denoting a test suite, either internally or externally, is running.
+pub(crate) static TESTING: Lazy<bool> =
+    Lazy::new(|| cfg!(test) || std::env::var("CARGO_MANIFEST_DIR").is_ok());
 
 /// Construct a Command from a given string.
 pub fn cmd(cmd: &str) -> Command {
