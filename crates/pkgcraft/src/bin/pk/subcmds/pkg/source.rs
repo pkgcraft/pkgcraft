@@ -83,6 +83,14 @@ pub struct Command {
     vals: Vec<String>,
 }
 
+// Truncate a duration to microsecond precision.
+macro_rules! micros {
+    ($val:expr) => {{
+        let val = $val.as_micros().try_into().expect("duration overflow");
+        Duration::from_micros(val)
+    }};
+}
+
 impl Command {
     /// Determine if a duration matches a given, optional bound.
     fn bounded(&self, elapsed: &Duration) -> bool {
@@ -105,7 +113,7 @@ impl Command {
             while elapsed.as_secs() < secs {
                 let start = Instant::now();
                 pkg.source()?;
-                let source_elapsed = start.elapsed();
+                let source_elapsed = micros!(start.elapsed());
                 data.push(source_elapsed);
                 elapsed += source_elapsed;
                 scallop::shell::reset(&[]);
@@ -150,7 +158,7 @@ impl Command {
         let func = |pkg: RawPkg| -> scallop::Result<(String, Duration)> {
             let start = Instant::now();
             pkg.source()?;
-            let elapsed = start.elapsed();
+            let elapsed = micros!(start.elapsed());
             Ok((pkg.to_string(), elapsed))
         };
 
