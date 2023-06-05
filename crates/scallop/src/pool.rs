@@ -60,28 +60,28 @@ impl SharedSemaphore {
     }
 }
 
-pub struct Pool {
+pub struct Pool<T: Serialize + for<'a> Deserialize<'a> + Send + 'static> {
     sem: SharedSemaphore,
-    tx: IpcSender<Error>,
+    tx: IpcSender<T>,
     thread: thread::JoinHandle<usize>,
 }
 
-impl Pool {
-    pub fn new(size: usize) -> crate::Result<Self> {
+impl<T: Serialize + for<'a> Deserialize<'a> + Send + 'static> Pool<T> {
+    pub fn new<F>(size: usize, func: F) -> crate::Result<Self>
+    where
+        F: FnOnce(T, &mut usize) + Copy + Send + 'static,
+    {
         // enable internal bash SIGCHLD handler
         unsafe { bash::set_sigchld_handler() };
 
         let sem = SharedSemaphore::new(size)?;
-        let (tx, rx): (IpcSender<Error>, IpcReceiver<Error>) =
+        let (tx, rx): (IpcSender<T>, IpcReceiver<T>) =
             ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
 
         let mut errors = 0;
         let thread = thread::spawn(move || loop {
             match rx.recv() {
-                Ok(e) => {
-                    errors += 1;
-                    eprintln!("{e}")
-                }
+                Ok(obj) => func(obj, &mut errors),
                 Err(IpcError::Disconnected) => return errors,
                 Err(e) => panic!("pool receiver failed: {e}"),
             }
@@ -93,7 +93,7 @@ impl Pool {
     /// Spawn a new, forked process if space is available in the pool, otherwise wait for space.
     pub fn spawn<F>(&mut self, func: F) -> crate::Result<()>
     where
-        F: FnOnce() -> crate::Result<()>,
+        F: FnOnce() -> T,
     {
         // wait on bounded semaphore for pool space
         self.sem.acquire()?;
@@ -102,9 +102,8 @@ impl Pool {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
                 // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
-                if let Err(e) = func() {
-                    self.tx.send(e).expect("pool sender failed");
-                }
+                let r = func();
+                self.tx.send(r).expect("pool sender failed");
                 self.sem.release().expect("failed releasing pool token");
                 unsafe { libc::_exit(0) };
             }
@@ -189,7 +188,8 @@ mod tests {
     fn env_leaking() {
         assert!(optional("VAR").is_none());
 
-        let mut pool = Pool::new(2).unwrap();
+        let func = |_: crate::Result<()>, _: &mut usize| {};
+        let mut pool = Pool::new(2, func).unwrap();
         for i in 0..8 {
             pool.spawn(|| -> crate::Result<()> {
                 source::string(format!("VAR={i}")).unwrap();

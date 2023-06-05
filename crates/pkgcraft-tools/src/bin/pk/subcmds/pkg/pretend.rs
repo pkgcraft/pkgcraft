@@ -60,7 +60,13 @@ impl Command {
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
         let jobs = self.jobs.unwrap_or_else(num_cpus::get);
-        let mut pool = Pool::new(jobs)?;
+        let handle_error = |r: scallop::Result<()>, errors: &mut usize| {
+            if let Err(e) = r {
+                *errors += 1;
+                eprintln!("{e}");
+            }
+        };
+        let mut pool = Pool::new(jobs, handle_error)?;
 
         // run pkg_pretend across selected pkgs
         for raw_pkg in repo.iter_raw_restrict(restrict) {
