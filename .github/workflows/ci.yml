@@ -14,12 +14,31 @@ on:
       - "crates/**"
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      rust-version: ${{ steps.vars.outputs.rust-version }}
+    steps:
+    - name: Checkout code to determine the minimum supported rust version
+      uses: actions/checkout@v3
+
+    - name: Set rust versions to test against
+      id: vars
+      run: |
+        min_ver=$(sed -rn '/^rust-version\s*=/ s/^.*=\s*"([0-9](\.[0-9]+)+)(.*)/\1/p' Cargo.toml)
+        if [[ -n ${min_ver} ]]; then
+          echo "rust-version=['${min_ver}', 'stable']" >> $GITHUB_OUTPUT
+        else
+          exit 1
+        fi
+
   test:
+    needs: setup
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
-        rust-version: ['1.65.0', 'stable']
+        rust-version: ${{ fromJson(needs.setup.outputs.rust-version) }}
 
     steps:
     - name: Checkout pkgcraft workspace
