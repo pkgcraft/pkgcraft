@@ -1,9 +1,11 @@
+use std::fs::File;
+use std::os::fd::{AsRawFd, RawFd};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::errno;
-use nix::unistd::{fork, ForkResult};
+use nix::unistd::{close, dup2, fork, ForkResult};
 use serde::{Deserialize, Serialize};
 
 use crate::shm::create_shm;
@@ -18,6 +20,21 @@ fn get_id() -> usize {
 /// Semaphore wrapping libc semaphore calls on top of shared memory.
 struct SharedSemaphore {
     sem: *mut libc::sem_t,
+}
+
+/// Redirect stdout and stderr to a given raw file descriptor.
+pub fn redirect_output(fd: RawFd) -> crate::Result<()> {
+    dup2(fd, 1)?;
+    dup2(fd, 2)?;
+    close(fd)?;
+    Ok(())
+}
+
+/// Suppress stdout and stderr.
+pub fn suppress_output() -> crate::Result<()> {
+    let f = File::options().write(true).open("/dev/null")?;
+    redirect_output(f.as_raw_fd())?;
+    Ok(())
 }
 
 impl SharedSemaphore {
@@ -125,7 +142,7 @@ pub struct PoolIter<T: Serialize + for<'a> Deserialize<'a>> {
 }
 
 impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
-    pub fn new<O, I, F>(size: usize, iter: I, func: F) -> crate::Result<Self>
+    pub fn new<O, I, F>(size: usize, iter: I, func: F, suppress: bool) -> crate::Result<Self>
     where
         I: Iterator<Item = O>,
         F: FnOnce(O) -> T,
@@ -140,6 +157,11 @@ impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
+                if suppress {
+                    // suppress stdout and stderr in forked processes
+                    suppress_output().expect("failed suppressing output");
+                }
+
                 for obj in iter {
                     // wait on bounded semaphore for pool space
                     sem.acquire().expect("failed acquiring pool token");

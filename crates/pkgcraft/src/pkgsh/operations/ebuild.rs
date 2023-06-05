@@ -1,13 +1,13 @@
 use std::fs;
 use std::os::fd::AsRawFd;
 
+use scallop::pool::redirect_output;
 use tempfile::NamedTempFile;
 
 use crate::error::{Error, PackageError};
 use crate::pkg::ebuild::{Pkg, RawPkg};
 use crate::pkg::{BuildablePackage, Package, SourceablePackage};
 use crate::pkgsh::metadata::Metadata;
-use crate::pkgsh::utils::redirect_output;
 use crate::pkgsh::{get_build_mut, BuildData};
 
 use super::Operation;

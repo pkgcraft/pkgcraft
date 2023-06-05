@@ -121,7 +121,7 @@ impl Command {
             Ok((pkg.to_string(), data))
         };
 
-        for r in PoolIter::new(jobs, pkgs, func)? {
+        for r in PoolIter::new(jobs, pkgs, func, true)? {
             match r {
                 Ok((pkg, data)) => {
                     let n = data.len() as u64;
@@ -162,7 +162,7 @@ impl Command {
             Ok((pkg.to_string(), elapsed))
         };
 
-        for r in PoolIter::new(jobs, pkgs, func)? {
+        for r in PoolIter::new(jobs, pkgs, func, true)? {
             match r {
                 Ok((pkg, elapsed)) => {
                     if self.bounded(&elapsed) {

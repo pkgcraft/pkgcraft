@@ -497,7 +497,7 @@ impl Repo {
         let func = |pkg: RawPkg| pkg.metadata(force);
         let mut errors = 0;
 
-        for r in PoolIter::new(jobs, pkgs, func)? {
+        for r in PoolIter::new(jobs, pkgs, func, true)? {
             // log errors
             if let Err(e) = r {
                 errors += 1;
