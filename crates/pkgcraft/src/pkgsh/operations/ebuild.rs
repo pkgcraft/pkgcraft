@@ -28,14 +28,14 @@ impl<'a> BuildablePackage for Pkg<'a> {
     fn pretend(&self) -> scallop::Result<()> {
         // ignore packages lacking pkg_pretend() support
         if let Ok(phases) = self.eapi().operation(Operation::Pretend) {
-            // redirect stdout and stderr to a temporary file
-            let file = NamedTempFile::new()?;
-            redirect_output(file.as_raw_fd())?;
-
             BuildData::from_pkg(self);
             get_build_mut()
                 .source_ebuild(self.path())
                 .map_err(|e| self.invalid_pkg_err(e))?;
+
+            // redirect pkg_pretend() output to a temporary file
+            let file = NamedTempFile::new()?;
+            redirect_output(file.as_raw_fd())?;
 
             for phase in phases {
                 phase.run().map_err(|e| {
