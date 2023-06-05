@@ -3,7 +3,7 @@ use std::fmt;
 use enum_as_inner::EnumAsInner;
 
 use crate::dep::{Cpv, Version};
-use crate::eapi;
+use crate::eapi::{self, Restrict as EapiRestrict};
 use crate::repo::{Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -160,14 +160,14 @@ impl<'a> Package for Pkg<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
-    Eapi(StrRestrict),
+    Eapi(EapiRestrict),
     Ebuild(ebuild::Restrict),
     Repo(StrRestrict),
 }
 
 impl Restrict {
     pub fn eapi(s: &str) -> Self {
-        Self::Eapi(StrRestrict::equal(s))
+        Self::Eapi(EapiRestrict::Id(StrRestrict::equal(s)))
     }
 
     pub fn repo(s: &str) -> Self {
@@ -185,7 +185,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
         use Restrict::*;
         match self {
-            Eapi(r) => r.matches(pkg.eapi().as_str()),
+            Eapi(r) => r.matches(pkg.eapi()),
             Repo(r) => r.matches(pkg.repo().id()),
             Ebuild(r) => match pkg {
                 Pkg::Ebuild(p, _) => r.matches(p),

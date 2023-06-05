@@ -61,7 +61,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
     fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
         use pkg::Restrict::*;
         match self {
-            Eapi(r) => r.matches(pkg.eapi().as_str()),
+            Eapi(r) => r.matches(pkg.eapi()),
             Repo(r) => r.matches(pkg.repo().id()),
             _ => false,
         }

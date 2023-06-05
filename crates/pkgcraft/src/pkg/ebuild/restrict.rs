@@ -99,7 +99,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
         use pkg::Restrict::*;
         match self {
             Ebuild(r) => r.matches(pkg),
-            Eapi(r) => r.matches(pkg.eapi().as_str()),
+            Eapi(r) => r.matches(pkg.eapi()),
             Repo(r) => r.matches(pkg.repo().id()),
         }
     }

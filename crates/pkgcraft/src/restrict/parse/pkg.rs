@@ -180,10 +180,11 @@ peg::parser!(grammar restrict() for str {
     rule pkg_restrict() -> BaseRestrict
         = attr:$(("eapi" / "repo")) op:string_ops() s:quoted_string()
         {?
+            use crate::eapi::Restrict::*;
             use crate::pkg::Restrict::*;
             let r = str_restrict(op, s)?;
             match attr {
-                "eapi" => Ok(Eapi(r).into()),
+                "eapi" => Ok(Eapi(Id(r)).into()),
                 "repo" => Ok(Repo(r).into()),
                 _ => panic!("unknown package attribute: {attr}"),
             }

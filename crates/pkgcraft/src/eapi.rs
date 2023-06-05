@@ -19,6 +19,8 @@ use crate::pkgsh::metadata::Key;
 use crate::pkgsh::operations::Operation;
 use crate::pkgsh::phase::Phase;
 use crate::pkgsh::BuildVariable;
+use crate::restrict::str::Restrict as StrRestrict;
+use crate::restrict::Restriction;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
@@ -807,6 +809,22 @@ pub fn range(s: &str) -> crate::Result<impl Iterator<Item = &'static Eapi>> {
     };
 
     Ok(eapis)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Restrict {
+    Id(StrRestrict),
+    Has(Feature),
+}
+
+impl Restriction<&'static Eapi> for Restrict {
+    fn matches(&self, eapi: &'static Eapi) -> bool {
+        use Restrict::*;
+        match self {
+            Id(r) => r.matches(eapi.as_str()),
+            Has(feature) => eapi.has(*feature),
+        }
+    }
 }
 
 #[cfg(test)]
