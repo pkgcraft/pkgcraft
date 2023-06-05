@@ -239,10 +239,10 @@ impl Eapi {
     }
 
     /// Return the ordered set of phases for a given operation.
-    pub(crate) fn operation(&self, op: Operation) -> &IndexSet<Phase> {
+    pub(crate) fn operation(&self, op: Operation) -> crate::Result<&IndexSet<Phase>> {
         self.operations
             .get(&op)
-            .unwrap_or_else(|| panic!("unknown operation: {op}"))
+            .ok_or_else(|| Error::InvalidValue(format!("EAPI {self}: unknown operation: {op}")))
     }
 
     /// Return all the known phases for an EAPI.

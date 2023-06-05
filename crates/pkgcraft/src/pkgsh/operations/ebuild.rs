@@ -18,7 +18,7 @@ impl<'a> BuildablePackage for Pkg<'a> {
             .source_ebuild(self.path())
             .map_err(|e| self.invalid_pkg_err(e))?;
 
-        for phase in self.eapi().operation(Operation::Build) {
+        for phase in self.eapi().operation(Operation::Build)? {
             phase.run().map_err(|e| self.pkg_err(e))?;
         }
 
@@ -26,6 +26,12 @@ impl<'a> BuildablePackage for Pkg<'a> {
     }
 
     fn pretend(&self) -> scallop::Result<()> {
+        // ignore packages lacking pkg_pretend() support
+        let phases = match self.eapi().operation(Operation::Pretend) {
+            Ok(vals) => vals,
+            Err(_) => return Ok(()),
+        };
+
         // redirect stdout and stderr to a temporary file
         let file = NamedTempFile::new()?;
         redirect_output(file.as_raw_fd())?;
@@ -35,7 +41,7 @@ impl<'a> BuildablePackage for Pkg<'a> {
             .source_ebuild(self.path())
             .map_err(|e| self.invalid_pkg_err(e))?;
 
-        for phase in self.eapi().operation(Operation::Pretend) {
+        for phase in phases {
             phase.run().map_err(|e| {
                 // get redirected output
                 let output = fs::read_to_string(file.path()).unwrap_or_default();
