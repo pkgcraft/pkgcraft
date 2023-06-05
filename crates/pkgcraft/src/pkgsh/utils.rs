@@ -1,6 +1,16 @@
+use std::os::fd::RawFd;
 use std::path::{Path, PathBuf};
 
+use nix::unistd::{close, dup2};
 use scallop::variables;
+
+/// Redirect stdout and stderr to a given raw file descriptor.
+pub(super) fn redirect_output(fd: RawFd) -> scallop::Result<()> {
+    dup2(fd, 1)?;
+    dup2(fd, 2)?;
+    close(fd)?;
+    Ok(())
+}
 
 // Get the path to a package's configure script.
 pub(super) fn configure() -> PathBuf {
