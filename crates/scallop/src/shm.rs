@@ -4,7 +4,7 @@ use std::num::NonZeroUsize;
 use nix::fcntl::OFlag;
 use nix::sys::mman::{mmap, shm_open, shm_unlink, MapFlags, ProtFlags};
 use nix::sys::stat::Mode;
-use nix::unistd::ftruncate;
+use nix::unistd::{close, ftruncate};
 
 use crate::Error;
 
@@ -33,6 +33,7 @@ pub(crate) fn create_shm(id: &str, size: usize) -> crate::Result<*mut c_void> {
         .map_err(|e| Error::Base(format!("mmap(): {e}")))?
     };
 
+    close(shm_fd)?;
     shm_unlink(id).map_err(|e| Error::Base(format!("shm_unlink(): {e}")))?;
 
     Ok(shm_ptr)
