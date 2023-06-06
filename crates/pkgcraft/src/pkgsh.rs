@@ -352,15 +352,12 @@ impl<'a> BuildData<'a> {
     fn set_vars(&mut self) -> scallop::Result<()> {
         for (var, scopes) in self.eapi().env() {
             if scopes.contains(&self.scope) {
-                match self.env.get(var.as_ref()) {
-                    Some(val) => {
-                        bind(var, val, None, None)?;
-                    }
-                    None => {
-                        let val = self.get_var(*var)?;
-                        bind(var, &val, None, None)?;
-                        self.env.insert(var.to_string(), val);
-                    }
+                if let Some(val) = self.env.get(var.as_ref()) {
+                    bind(var, val, None, None)?;
+                } else {
+                    let val = self.get_var(*var)?;
+                    bind(var, &val, None, None)?;
+                    self.env.insert(var.to_string(), val);
                 }
             }
         }
