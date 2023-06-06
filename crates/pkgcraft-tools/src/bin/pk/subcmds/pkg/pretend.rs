@@ -4,10 +4,11 @@ use std::process::ExitCode;
 use anyhow::anyhow;
 use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::pkg::{ebuild::Pkg, BuildablePackage};
+use pkgcraft::pkg::ebuild::{Pkg, RawPkg};
+use pkgcraft::pkg::BuildablePackage;
 use pkgcraft::repo::Repo;
 use pkgcraft::restrict::{self, Restrict};
-use scallop::pool::Pool;
+use scallop::pool::PoolIter;
 
 use crate::StdinArgs;
 
@@ -59,29 +60,26 @@ impl Command {
             .as_ebuild()
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
+        let mut failed = false;
         let jobs = self.jobs.unwrap_or_else(num_cpus::get);
-        let handle_error = |r: scallop::Result<()>, errors: &mut usize| {
-            if let Err(e) = r {
-                *errors += 1;
-                eprintln!("{e}");
-            }
+        let pkgs = repo.iter_raw_restrict(restrict);
+        let func = |raw_pkg: RawPkg| -> scallop::Result<()> {
+            let pkg: Pkg = raw_pkg.into_pkg()?;
+            pkg.pretend()
         };
-        let mut pool = Pool::new(jobs, handle_error)?;
 
         // run pkg_pretend across selected pkgs
-        for raw_pkg in repo.iter_raw_restrict(restrict) {
-            pool.spawn(move || {
-                let pkg: Pkg = raw_pkg.into_pkg()?;
-                pkg.pretend()
-            })?;
+        for r in PoolIter::new(jobs, pkgs, func, true)? {
+            if let Err(e) = r {
+                failed = true;
+                eprintln!("{e}");
+            }
         }
 
-        let errors = pool.join()?;
-
-        if errors == 0 {
-            Ok(ExitCode::SUCCESS)
-        } else {
+        if failed {
             Ok(ExitCode::FAILURE)
+        } else {
+            Ok(ExitCode::SUCCESS)
         }
     }
 }
