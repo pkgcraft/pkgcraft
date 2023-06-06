@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use std::fs::File;
 use std::os::fd::{AsRawFd, RawFd};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -35,7 +34,6 @@ pub fn suppress_output() -> crate::Result<()> {
 
 /// Semaphore wrapping libc semaphore calls on top of shared memory.
 struct SharedSemaphore {
-    name: String,
     sem: *mut libc::sem_t,
 }
 
@@ -53,7 +51,7 @@ impl SharedSemaphore {
             .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
 
         if unsafe { libc::sem_init(sem, 1, size) } == 0 {
-            Ok(Self { name, sem })
+            Ok(Self { sem })
         } else {
             let err = errno();
             Err(Error::Base(format!("sem_init() failed: {err}")))
@@ -81,8 +79,7 @@ impl SharedSemaphore {
 
 impl Drop for SharedSemaphore {
     fn drop(&mut self) {
-        let name = CString::new(self.name.as_str()).unwrap();
-        unsafe { libc::sem_unlink(name.as_ptr()) };
+        unsafe { libc::sem_destroy(self.sem) };
     }
 }
 
