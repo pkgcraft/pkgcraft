@@ -132,7 +132,7 @@ pub struct Eapi {
     parent: Option<&'static Self>,
     features: HashSet<Feature>,
     operations: HashMap<Operation, IndexSet<Phase>>,
-    phases: OnceCell<HashSet<Phase>>,
+    phases: HashSet<Phase>,
     dep_keys: HashSet<Key>,
     incremental_keys: HashSet<Key>,
     mandatory_keys: HashSet<Key>,
@@ -247,8 +247,7 @@ impl Eapi {
 
     /// Return all the known phases for an EAPI.
     pub(crate) fn phases(&self) -> &HashSet<Phase> {
-        self.phases
-            .get_or_init(|| self.operations.values().flatten().copied().collect())
+        &self.phases
     }
 
     /// Return the regular expression for supported archive file extensions.
@@ -439,6 +438,12 @@ impl Eapi {
         }
         self
     }
+
+    /// Finalize remaining fields that depend on previous fields.
+    fn finalize(mut self) -> Self {
+        self.phases = self.operations.values().flatten().copied().collect();
+        self
+    }
 }
 
 impl fmt::Display for Eapi {
@@ -551,6 +556,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             (EBUILD_PHASE, &[Phases]),
             (KV, &[All]),
         ])
+        .finalize()
 });
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
@@ -560,6 +566,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("1", Some(&EAPI0))
         .enable_features(&[IuseDefaults, SlotDeps])
         .update_phases([SrcCompile.func(eapi1::src_compile)])
+        .finalize()
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
@@ -583,6 +590,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
                     .post(post_src_install),
             ],
         )
+        .finalize()
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
@@ -597,6 +605,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
             (ED, &[Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
             (EROOT, &[Pkg]),
         ])
+        .finalize()
 });
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
@@ -628,6 +637,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             (REPLACED_BY_VERSION, &[Phase(PkgPrerm), Phase(PkgPostrm)]),
         ])
         .disable_env(&[AA, KV])
+        .finalize()
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
@@ -639,6 +649,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
         .enable_features(&[NewSupportsStdin, ParallelTests, RequiredUseOneOf, SlotOps, Subslots])
         .update_econf(&[("--disable-silent-rules", None, None)])
         .update_env(&[(EBUILD_PHASE_FUNC, &[Phases])])
+        .finalize()
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
@@ -659,6 +670,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
         ])
         .enable_archives(&["txz"])
+        .finalize()
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
@@ -678,6 +690,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
             (BROOT, &[Src, Phase(PkgSetup)]),
         ])
         .disable_env(&[PORTDIR, ECLASSDIR, DESTTREE, INSDESTTREE])
+        .finalize()
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
@@ -692,6 +705,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
             ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
         ])
         .disable_archives(&["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
+        .finalize()
 });
 
 /// Reference to the most recent, official EAPI.
@@ -700,7 +714,9 @@ pub static EAPI_LATEST_OFFICIAL: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
 /// The latest EAPI with extensions on top.
 pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
     use Feature::*;
-    Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL)).enable_features(&[RepoIds])
+    Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL))
+        .enable_features(&[RepoIds])
+        .finalize()
 });
 
 /// Reference to the most recent EAPI.
