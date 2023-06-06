@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::os::fd::{AsRawFd, RawFd};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread;
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::errno;
@@ -83,66 +82,6 @@ impl Drop for SharedSemaphore {
     }
 }
 
-pub struct Pool<T: Serialize + for<'a> Deserialize<'a> + Send + 'static> {
-    sem: SharedSemaphore,
-    tx: IpcSender<T>,
-    thread: thread::JoinHandle<usize>,
-}
-
-impl<T: Serialize + for<'a> Deserialize<'a> + Send + 'static> Pool<T> {
-    pub fn new<F>(size: usize, func: F) -> crate::Result<Self>
-    where
-        F: FnOnce(T, &mut usize) + Copy + Send + 'static,
-    {
-        // enable internal bash SIGCHLD handler
-        unsafe { bash::set_sigchld_handler() };
-
-        let sem = SharedSemaphore::new(size)?;
-        let (tx, rx): (IpcSender<T>, IpcReceiver<T>) =
-            ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
-
-        let mut errors = 0;
-        let thread = thread::spawn(move || loop {
-            match rx.recv() {
-                Ok(obj) => func(obj, &mut errors),
-                Err(IpcError::Disconnected) => return errors,
-                Err(e) => panic!("pool receiver failed: {e}"),
-            }
-        });
-
-        Ok(Self { sem, tx, thread })
-    }
-
-    /// Spawn a new, forked process if space is available in the pool, otherwise wait for space.
-    pub fn spawn<F>(&mut self, func: F) -> crate::Result<()>
-    where
-        F: FnOnce() -> T,
-    {
-        // wait on bounded semaphore for pool space
-        self.sem.acquire()?;
-
-        match unsafe { fork() } {
-            Ok(ForkResult::Parent { .. }) => Ok(()),
-            Ok(ForkResult::Child) => {
-                // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
-                let r = func();
-                self.tx.send(r).expect("pool sender failed");
-                self.sem.release().expect("failed releasing pool token");
-                unsafe { libc::_exit(0) };
-            }
-            Err(e) => Err(Error::Base(format!("fork failed: {e}"))),
-        }
-    }
-
-    pub fn join(self) -> crate::Result<usize> {
-        // drop sender to signal receiving thread to exit
-        drop(self.tx);
-        self.thread
-            .join()
-            .map_err(|_| Error::Base("failed closing pool".to_string()))
-    }
-}
-
 pub struct PoolIter<T: Serialize + for<'a> Deserialize<'a>> {
     rx: IpcReceiver<T>,
 }
@@ -216,17 +155,16 @@ mod tests {
     fn env_leaking() {
         assert!(optional("VAR").is_none());
 
-        let func = |_: crate::Result<()>, _: &mut usize| {};
-        let mut pool = Pool::new(2, func).unwrap();
-        for i in 0..8 {
-            pool.spawn(|| -> crate::Result<()> {
-                source::string(format!("VAR={i}")).unwrap();
-                assert_eq!(optional("VAR").unwrap(), i.to_string());
-                Ok(())
-            })
-            .unwrap();
-        }
-        pool.join().unwrap();
+        let vals: Vec<_> = (0..16).collect();
+        let func = |i: u64| {
+            source::string(format!("VAR={i}")).unwrap();
+            assert_eq!(optional("VAR").unwrap(), i.to_string());
+            i
+        };
+
+        PoolIter::new(2, vals.into_iter(), func, false)
+            .unwrap()
+            .for_each(drop);
 
         assert!(optional("VAR").is_none());
     }
