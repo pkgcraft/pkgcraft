@@ -11,6 +11,7 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{Equivalent, IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::{Lazy, OnceCell};
+use rayon::prelude::*;
 use scallop::pool::PoolIter;
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
@@ -23,6 +24,7 @@ use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
 use crate::pkg::SourceablePackage;
+use crate::pkgsh::metadata::Metadata as MetadataCache;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -486,18 +488,34 @@ impl Repo {
             .get(cpv)
     }
 
+    /// Verify package metadata cache validity using ebuild and eclass hashes.
+    /// Returns the vector of raw pkgs that need their metadata regenerated.
+    pub fn pkg_metadata_validate(&self, force: bool) -> Vec<RawPkg> {
+        let pkgs: Vec<_> = self.iter_raw().collect();
+
+        if force {
+            pkgs
+        } else {
+            pkgs.into_par_iter()
+                .filter(|p| !MetadataCache::valid(p))
+                .collect()
+        }
+    }
+
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen<F: Fn()>(
+    pub fn pkg_metadata_regen<'a, I, F: Fn()>(
         &self,
         jobs: usize,
-        force: bool,
+        pkgs: I,
         callback: Option<F>,
-    ) -> crate::Result<usize> {
-        let pkgs = self.iter_raw();
-        let func = |pkg: RawPkg| pkg.metadata(force);
+    ) -> crate::Result<usize>
+    where
+        I: IntoIterator<Item = RawPkg<'a>>,
+    {
+        let func = |pkg: RawPkg| pkg.metadata();
         let mut errors = 0;
 
-        for r in PoolIter::new(jobs, pkgs, func, true)? {
+        for r in PoolIter::new(jobs, pkgs.into_iter(), func, true)? {
             // log errors
             if let Err(e) = r {
                 errors += 1;

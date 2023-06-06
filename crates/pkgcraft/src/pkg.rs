@@ -80,7 +80,7 @@ pub trait SourceablePackage: Package {
     /// Source a package.
     fn source(&self) -> scallop::Result<()>;
     /// Generate the metadata for a package.
-    fn metadata(&self, force: bool) -> scallop::Result<()>;
+    fn metadata(&self) -> scallop::Result<()>;
 }
 
 macro_rules! make_pkg_traits {
