@@ -8,8 +8,7 @@ use std::{fmt, fs, io};
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Either;
-use once_cell::sync::{Lazy, OnceCell};
-use regex::{escape, Regex, RegexBuilder};
+use once_cell::sync::Lazy;
 use strum::EnumString;
 
 use crate::archive::Archive;
@@ -138,8 +137,7 @@ pub struct Eapi {
     mandatory_keys: HashSet<Key>,
     metadata_keys: HashSet<Key>,
     econf_options: EapiEconfOptions,
-    archives: HashSet<String>,
-    archives_regex: OnceCell<Regex>,
+    archives: IndexSet<String>,
     env: HashMap<BuildVariable, HashSet<Scope>>,
 }
 
@@ -250,35 +248,31 @@ impl Eapi {
         &self.phases
     }
 
-    /// Return the regular expression for supported archive file extensions.
-    pub(crate) fn archives_regex(&self) -> &Regex {
-        self.archives_regex.get_or_init(|| {
-            // Regex matches extensions from the longest to the shortest.
-            let mut possible_exts: Vec<String> = self.archives.iter().map(|s| escape(s)).collect();
-            possible_exts.sort_by_key(|s| s.len());
-            possible_exts.reverse();
-            RegexBuilder::new(&format!(r"\.(?P<ext>{})$", possible_exts.join("|")))
-                .case_insensitive(self.has(Feature::UnpackCaseInsensitive))
-                .build()
-                .unwrap()
-        })
-    }
-
     /// Load an archive from a given path if it's supported.
-    pub(crate) fn archive_from_path<P>(&self, path: P) -> crate::Result<(String, Archive)>
+    pub(crate) fn archive_from_path<P>(&self, path: P) -> crate::Result<(&str, Archive)>
     where
         P: AsRef<Utf8Path>,
     {
         let path = path.as_ref();
 
-        match self.archives_regex().captures(path.as_str()) {
-            Some(c) => {
-                let ext = String::from(c.name("ext").unwrap().as_str());
-                let archive = Archive::from_path(path)?;
-                Ok((ext, archive))
+        let matches = |path: &Utf8Path, ext: &str| -> bool {
+            if self.has(Feature::UnpackCaseInsensitive) {
+                let ext = format!(".{}", ext.to_lowercase());
+                path.as_str().to_lowercase().ends_with(&ext)
+            } else {
+                let ext = format!(".{ext}");
+                path.as_str().ends_with(&ext)
             }
-            None => Err(Error::InvalidValue(format!("unknown archive format: {path}"))),
+        };
+
+        for ext in &self.archives {
+            if matches(path, ext) {
+                let archive = Archive::from_path(path)?;
+                return Ok((ext, archive));
+            }
         }
+
+        Err(Error::InvalidValue(format!("unknown archive format: {path}")))
     }
 
     /// Metadata variables for dependencies.
@@ -407,6 +401,9 @@ impl Eapi {
     /// Enable support for archive extensions during Eapi registration.
     fn enable_archives(mut self, types: &[&str]) -> Self {
         self.archives.extend(types.iter().map(|s| s.to_string()));
+        // sort archives by extension length, longest to shortest.
+        self.archives.sort_by(|s1, s2| s1.len().cmp(&s2.len()));
+        self.archives.reverse();
         self
     }
 
