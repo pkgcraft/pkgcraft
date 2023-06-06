@@ -7,7 +7,7 @@ use scallop::builtins::ExecStatus;
 use scallop::functions;
 use strum::{AsRefStr, Display, EnumIter};
 
-use super::builtins::{emake::run as emake, Scope};
+use super::builtins::{emake::run as emake, Scope, BUILTINS};
 use super::utils::makefile_exists;
 use super::{get_build_mut, BuildData, BASH};
 
@@ -178,7 +178,8 @@ impl Phase {
 
 pub(crate) fn pre_src_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // set docompress include/exclude defaults for supported EAPIs
-    if build.eapi().builtins(&build.scope).contains("docompress") {
+    let docompress = BUILTINS.get("docompress").expect("missing docompress");
+    if docompress.enabled() {
         let docompress_include_defaults = ["/usr/share/doc", "/usr/share/info", "/usr/share/man"]
             .into_iter()
             .map(String::from);

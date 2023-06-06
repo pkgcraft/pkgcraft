@@ -125,7 +125,7 @@ mod tests {
 
     use crate::command::last_command;
     use crate::macros::{assert_err_re, build_from_paths};
-    use crate::pkgsh::BuildData;
+    use crate::pkgsh::{BuildData, Scope};
 
     use super::super::builtin_scope_tests;
     use super::PKG_BUILTIN as econf;
@@ -147,11 +147,13 @@ mod tests {
 
     #[test]
     fn nonexistent() {
+        get_build_mut().scope = Scope::Phase(SrcConfigure);
         assert_err_re!(econf.run(&[]), "^nonexistent configure .*$");
     }
 
     #[test]
     fn nonexecutable() {
+        get_build_mut().scope = Scope::Phase(SrcConfigure);
         let dir = tempdir().unwrap();
         let configure = dir.path().join("configure");
         File::create(configure).unwrap();
@@ -161,6 +163,7 @@ mod tests {
 
     #[test]
     fn args() {
+        get_build_mut().scope = Scope::Phase(SrcConfigure);
         let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "autotools");
         env::set_current_dir(configure_dir).unwrap();
 

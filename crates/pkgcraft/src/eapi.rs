@@ -14,14 +14,13 @@ use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::dep::Dep;
-use crate::pkgsh::builtins::{PkgBuiltin, Scope, Scopes, BUILTINS};
+use crate::pkgsh::builtins::{Scope, Scopes};
 use crate::pkgsh::metadata::Key;
 use crate::pkgsh::operations::Operation;
 use crate::pkgsh::phase::Phase;
 use crate::pkgsh::BuildVariable;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
-use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
 peg::parser!(grammar parse() for str {
@@ -134,7 +133,6 @@ pub struct Eapi {
     features: HashSet<Feature>,
     operations: HashMap<Operation, IndexSet<Phase>>,
     phases: OnceCell<HashSet<Phase>>,
-    builtins: OnceCell<OrderedMap<Scope, OrderedSet<&'static PkgBuiltin>>>,
     dep_keys: HashSet<Key>,
     incremental_keys: HashSet<Key>,
     mandatory_keys: HashSet<Key>,
@@ -282,27 +280,6 @@ impl Eapi {
             }
             None => Err(Error::InvalidValue(format!("unknown archive format: {path}"))),
         }
-    }
-
-    /// Return the set of supported builtins for a given scope.
-    pub(crate) fn builtins(&self, scope: &Scope) -> &OrderedSet<&'static PkgBuiltin> {
-        self.builtins
-            .get_or_init(|| {
-                BUILTINS
-                    .iter()
-                    // filter into builtins supporting the EAPI
-                    .filter_map(|b| b.scope(self).map(|scopes| (b, scopes)))
-                    // filter into scopes supported by the builtin
-                    .flat_map(|(b, scopes)| {
-                        Scopes::All
-                            .iter()
-                            .filter(|s| scopes.contains(s))
-                            .map(|s| (s, *b))
-                    })
-                    .collect()
-            })
-            .get(scope)
-            .expect("EAPI {self} has no builtins for scope: {scope}")
     }
 
     /// Metadata variables for dependencies.
@@ -764,8 +741,8 @@ pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
 pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     EAPIS_OFFICIAL
         .iter()
+        .chain(EAPIS_UNOFFICIAL.iter())
         .copied()
-        .chain(EAPIS_UNOFFICIAL.iter().copied())
         .collect()
 });
 
@@ -897,18 +874,6 @@ mod tests {
         arg = Some(&EAPI1);
         eapi = arg.try_into().unwrap();
         assert_eq!(&*EAPI1, eapi);
-    }
-
-    #[test]
-    fn test_builtins() {
-        let static_scopes: Vec<Scope> = vec![Scope::Global, Scope::Eclass];
-        for eapi in EAPIS.iter() {
-            let phase_scopes: Vec<Scope> = eapi.phases().iter().map(|p| p.into()).collect();
-            let scopes = static_scopes.iter().chain(phase_scopes.iter());
-            for scope in scopes {
-                assert!(!eapi.builtins(scope).is_empty(), "EAPI {eapi} failed for scope: {scope}");
-            }
-        }
     }
 
     #[test]

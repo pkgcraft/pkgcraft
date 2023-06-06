@@ -145,11 +145,24 @@ impl PkgBuiltin {
     }
 
     pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
-        self.builtin.run(args)
+        if self.enabled() {
+            self.builtin.run(args)
+        } else {
+            let build = crate::pkgsh::get_build_mut();
+            Err(scallop::Error::Base(format!(
+                "{self} invalid in EAPI {}, scope {}",
+                build.eapi(),
+                build.scope
+            )))
+        }
     }
 
-    pub(crate) fn scope(&self, eapi: &Eapi) -> Option<&HashSet<Scope>> {
-        self.scope.get(eapi)
+    pub(crate) fn enabled(&self) -> bool {
+        let build = crate::pkgsh::get_build_mut();
+        self.scope
+            .get(build.eapi())
+            .map(|s| s.contains(&build.scope))
+            .unwrap_or_default()
     }
 }
 
@@ -188,6 +201,12 @@ impl PartialOrd for PkgBuiltin {
 impl Borrow<str> for &PkgBuiltin {
     fn borrow(&self) -> &str {
         self.builtin.name
+    }
+}
+
+impl fmt::Display for PkgBuiltin {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_ref())
     }
 }
 
@@ -438,14 +457,14 @@ macro_rules! make_builtin {
                 let cmd = $name;
                 let scope = $crate::pkgsh::get_build_mut().scope;
                 let eapi = $crate::pkgsh::get_build_mut().eapi();
+                let builtin = BUILTINS.get(cmd).expect("unknown builtin: {cmd}");
 
-                if eapi.builtins(&scope).contains(cmd) {
+                if builtin.enabled() {
                     match $func(&args) {
                         Ok(ret) => ret,
                         Err(e) => scallop::builtins::handle_error(cmd, e),
                     }
                 } else {
-                    let builtin = BUILTINS.get(cmd).expect("unknown builtin: {cmd}");
                     let msg = match builtin.scope.get(eapi) {
                         Some(_) => format!("{scope} scope doesn't enable command: {cmd}"),
                         None => format!("EAPI={eapi} doesn't enable command: {cmd}"),
@@ -490,18 +509,29 @@ macro_rules! builtin_scope_tests {
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
             use crate::pkg::SourceablePackage;
-            use crate::pkgsh::{builtins::Scope::*, get_build_mut, BuildData};
+            use crate::pkgsh::builtins::{Scope::*, BUILTINS};
+            use crate::pkgsh::{get_build_mut, BuildData};
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
+            let builtin = BUILTINS.get(name).unwrap();
             let mut config = Config::default();
             let t = config.temp_repo("test", 0, None).unwrap();
 
             let static_scopes: Vec<_> = vec![Global, Eclass];
             for eapi in EAPIS_OFFICIAL.iter() {
                 let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
-                let scopes = static_scopes.iter().chain(phase_scopes.iter());
-                for scope in scopes.filter(|&s| !eapi.builtins(s).contains(name)) {
+                let scopes = static_scopes
+                    .iter()
+                    .chain(phase_scopes.iter())
+                    .filter(|&s| {
+                        !builtin
+                            .scope
+                            .get(eapi)
+                            .map(|set| set.contains(s))
+                            .unwrap_or_default()
+                    });
+                for scope in scopes {
                     let err = format!(" doesn't enable command: {name}");
                     let info = format!("EAPI={eapi}, scope: {scope}");
 

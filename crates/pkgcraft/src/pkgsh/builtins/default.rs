@@ -14,12 +14,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let builtins = build.eapi().builtins(&build.scope);
     let phase = build.phase()?;
     let default_phase = format!("default_{phase}");
-    match builtins.get(default_phase.as_str()) {
-        Some(b) => b.run(&[]),
-        None => Err(Error::Base(format!("nonexistent default phase function: {default_phase}",))),
+
+    if let Some(builtin) = BUILTINS.get(default_phase.as_str()) {
+        builtin.run(&[])
+    } else {
+        Err(Error::Base(format!("nonexistent default phase function: {default_phase}")))
     }
 }
 
