@@ -1,3 +1,4 @@
+use std::ffi::CString;
 use std::fs::File;
 use std::os::fd::{AsRawFd, RawFd};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -17,11 +18,6 @@ fn get_id() -> usize {
     COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
-/// Semaphore wrapping libc semaphore calls on top of shared memory.
-struct SharedSemaphore {
-    sem: *mut libc::sem_t,
-}
-
 /// Redirect stdout and stderr to a given raw file descriptor.
 pub fn redirect_output(fd: RawFd) -> crate::Result<()> {
     dup2(fd, 1)?;
@@ -37,12 +33,18 @@ pub fn suppress_output() -> crate::Result<()> {
     Ok(())
 }
 
+/// Semaphore wrapping libc semaphore calls on top of shared memory.
+struct SharedSemaphore {
+    name: String,
+    sem: *mut libc::sem_t,
+}
+
 impl SharedSemaphore {
     fn new(size: usize) -> crate::Result<Self> {
         let pid = std::process::id();
         let id = get_id();
-        let shm_name = format!("/scallop-pool-sem-{pid}-{id}");
-        let ptr = create_shm(&shm_name, std::mem::size_of::<libc::sem_t>())?;
+        let name = format!("/scallop-pool-sem-{pid}-{id}");
+        let ptr = create_shm(&name, std::mem::size_of::<libc::sem_t>())?;
         let sem = ptr as *mut libc::sem_t;
 
         // sem_init() uses u32 values
@@ -51,7 +53,7 @@ impl SharedSemaphore {
             .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
 
         if unsafe { libc::sem_init(sem, 1, size) } == 0 {
-            Ok(Self { sem })
+            Ok(Self { name, sem })
         } else {
             let err = errno();
             Err(Error::Base(format!("sem_init() failed: {err}")))
@@ -74,6 +76,13 @@ impl SharedSemaphore {
             let err = errno();
             Err(Error::Base(format!("sem_post() failed: {err}")))
         }
+    }
+}
+
+impl Drop for SharedSemaphore {
+    fn drop(&mut self) {
+        let name = CString::new(self.name.as_str()).unwrap();
+        unsafe { libc::sem_unlink(name.as_ptr()) };
     }
 }
 
