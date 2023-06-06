@@ -68,7 +68,12 @@ impl<'a> SourceablePackage for RawPkg<'a> {
         Ok(())
     }
 
-    fn metadata(&self) -> scallop::Result<()> {
+    fn metadata(&self, force: bool) -> scallop::Result<()> {
+        // verify metadata validity using ebuild and eclass hashes
+        if !force && Metadata::valid(self) {
+            return Ok(());
+        }
+
         // source package and generate metadata
         let meta = Metadata::source(self)?;
 
