@@ -1897,6 +1897,7 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "peg",
+ "rayon",
  "regex",
  "reqwest",
  "roxmltree",

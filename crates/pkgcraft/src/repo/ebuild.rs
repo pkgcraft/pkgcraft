@@ -12,6 +12,7 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{Equivalent, IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::{Lazy, OnceCell};
+use rayon::prelude::*;
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
 
@@ -22,7 +23,8 @@ use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
-use crate::pkg::SourceablePackage;
+use crate::pkg::{Package, SourceablePackage};
+use crate::pkgsh::metadata::Metadata as MetadataCache;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -490,26 +492,57 @@ impl Repo {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen<F: Fn()>(
+    pub fn pkg_metadata_regen<F: Fn(), G: Fn(u64)>(
         &self,
         jobs: usize,
         force: bool,
-        callback: Option<F>,
+        callbacks: Option<(F, G)>,
     ) -> crate::Result<usize> {
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
-            pkg.metadata(force)
+            pkg.metadata()
         };
         use scallop::pool::{Msg, PoolSendIter};
         let (tx, iter) = PoolSendIter::new(jobs, func, true)?;
 
         thread::scope(|s| {
-            s.spawn(move || {
-                for cpv in self.iter_cpv() {
-                    tx.send(Msg::Val(cpv)).expect("sending failed");
+            if force {
+                let cpvs: Vec<_> = self.iter_cpv().collect();
+
+                // set progress bar length
+                if let Some((_, cb_len)) = &callbacks {
+                    cb_len(cpvs.len().try_into().unwrap());
                 }
-                tx.send(Msg::Stop).expect("sending stop failed");
-            });
+
+                s.spawn(move || {
+                    for cpv in cpvs {
+                        tx.send(Msg::Val(cpv)).expect("sending failed");
+                    }
+                    tx.send(Msg::Stop).expect("sending stop failed");
+                });
+            } else {
+                // verify metadata validity using ebuild and eclass hashes in a thread pool
+                let pkgs: Vec<_> = self.iter_raw().collect();
+
+                let pkgs: Vec<_> = pkgs
+                    .into_par_iter()
+                    .filter(|p| !MetadataCache::valid(p))
+                    .collect();
+
+                // set progress bar length
+                if let Some((_, cb_len)) = &callbacks {
+                    cb_len(pkgs.len().try_into().unwrap());
+                }
+
+                // send package Cpvs that require metadata regen to process pool
+                s.spawn(move || {
+                    for pkg in pkgs {
+                        tx.send(Msg::Val(pkg.cpv().clone()))
+                            .expect("sending failed");
+                    }
+                    tx.send(Msg::Stop).expect("sending stop failed");
+                });
+            }
 
             let mut errors = 0;
             for r in iter {
@@ -519,8 +552,8 @@ impl Repo {
                     error!("{e}");
                 }
 
-                // run callback per result to support features such as progress indication
-                if let Some(cb) = &callback {
+                // increment progressbar
+                if let Some((cb, _)) = &callbacks {
                     cb();
                 }
             }

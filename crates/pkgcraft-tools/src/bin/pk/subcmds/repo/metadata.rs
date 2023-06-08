@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use clap::Args;
 use indicatif::ProgressBar;
 use is_terminal::IsTerminal;
-use pkgcraft::repo::{PkgRepository, Repo};
+use pkgcraft::repo::Repo;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -18,6 +18,8 @@ pub struct Command {
     force: bool,
 }
 
+type Callbacks = Option<(Box<dyn Fn()>, Box<dyn Fn(u64)>)>;
+
 impl Command {
     pub(super) fn run(&self, repo: Repo) -> anyhow::Result<ExitCode> {
         // collapse repo into ebuild repo
@@ -28,16 +30,16 @@ impl Command {
         let jobs = self.jobs.unwrap_or_else(num_cpus::get);
 
         // use progress bar to show completion progress when outputting to a terminal
-        let cb: Option<Box<dyn Fn()>> = if stdout().is_terminal() {
-            let repo_size = repo.len().try_into().expect("repo size too large");
-            let pb = ProgressBar::new(repo_size);
-            Some(Box::new(move || pb.inc(1)))
+        let cbs: Callbacks = if stdout().is_terminal() {
+            let pb = ProgressBar::new(0);
+            let pb_len = pb.clone();
+            Some((Box::new(move || pb.inc(1)), Box::new(move |len| pb_len.set_length(len))))
         } else {
             None
         };
 
         // run metadata regeneration
-        let errors = repo.pkg_metadata_regen(jobs, self.force, cb)?;
+        let errors = repo.pkg_metadata_regen(jobs, self.force, cbs)?;
 
         if errors > 0 {
             Ok(ExitCode::FAILURE)
