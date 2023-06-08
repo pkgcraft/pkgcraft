@@ -12,7 +12,6 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{Equivalent, IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::{Lazy, OnceCell};
-use scallop::pool::PoolIter;
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
 
@@ -497,24 +496,37 @@ impl Repo {
         force: bool,
         callback: Option<F>,
     ) -> crate::Result<usize> {
-        let pkgs = self.iter_raw();
-        let func = |pkg: RawPkg| pkg.metadata(force);
-        let mut errors = 0;
+        let func = |cpv: Cpv| {
+            let pkg = RawPkg::new(cpv, self)?;
+            pkg.metadata(force)
+        };
+        use scallop::pool::{Msg, PoolSendIter};
+        let (tx, iter) = PoolSendIter::new(jobs, func, true)?;
 
-        for r in PoolIter::new(jobs, pkgs, func, true)? {
-            // log errors
-            if let Err(e) = r {
-                errors += 1;
-                error!("{e}");
+        thread::scope(|s| {
+            s.spawn(move || {
+                for cpv in self.iter_cpv() {
+                    tx.send(Msg::Val(cpv)).expect("sending failed");
+                }
+                tx.send(Msg::Stop).expect("sending stop failed");
+            });
+
+            let mut errors = 0;
+            for r in iter {
+                // log errors
+                if let Err(e) = r {
+                    errors += 1;
+                    error!("{e}");
+                }
+
+                // run callback per result to support features such as progress indication
+                if let Some(cb) = &callback {
+                    cb();
+                }
             }
 
-            // run callback per result to support features such as progress indication
-            if let Some(cb) = &callback {
-                cb();
-            }
-        }
-
-        Ok(errors)
+            Ok(errors)
+        })
     }
 
     /// Return an iterator of Cpvs for the repo.

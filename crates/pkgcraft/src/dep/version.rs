@@ -4,6 +4,7 @@ use std::iter::zip;
 use std::str::FromStr;
 use std::{fmt, str};
 
+use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumString};
 
 use crate::macros::cmp_not_equal;
@@ -11,7 +12,7 @@ use crate::Error;
 
 use super::{parse, Intersects};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Suffix {
     Alpha(Option<u64>),
     Beta(Option<u64>),
@@ -20,7 +21,7 @@ pub(crate) enum Suffix {
     P(Option<u64>),
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Revision {
     value: Option<String>,
     int: u64,
@@ -158,7 +159,20 @@ impl<'a> ParsedVersion<'a> {
 
 #[repr(C)]
 #[derive(
-    AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr,
+    Display,
+    EnumString,
+    Debug,
+    Default,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
 )]
 pub enum Operator {
     #[default]
@@ -195,7 +209,7 @@ impl Operator {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Version {
     full: String,
     base_end: usize,

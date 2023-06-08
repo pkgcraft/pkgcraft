@@ -3,6 +3,7 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 use camino::Utf8PathBuf;
+use serde::{Deserialize, Serialize};
 
 use crate::Error;
 
@@ -58,7 +59,7 @@ impl ParsedCpv<'_> {
 }
 
 /// Package identifier.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Cpv {
     category: String,
     package: String,

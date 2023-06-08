@@ -144,6 +144,89 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Iterator for PoolIter<T> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Msg<T> {
+    Val(T),
+    Stop,
+}
+
+pub struct PoolSendIter<O>
+where
+    O: Serialize + for<'a> Deserialize<'a>,
+{
+    output_rx: IpcReceiver<O>,
+}
+
+impl<O> PoolSendIter<O>
+where
+    O: Serialize + for<'a> Deserialize<'a>,
+{
+    pub fn new<I, F>(
+        size: usize,
+        func: F,
+        suppress: bool,
+    ) -> crate::Result<(IpcSender<Msg<I>>, Self)>
+    where
+        I: Serialize + for<'a> Deserialize<'a>,
+        F: FnOnce(I) -> O,
+    {
+        // enable internal bash SIGCHLD handler
+        unsafe { bash::set_sigchld_handler() };
+
+        let mut sem = SharedSemaphore::new(size)?;
+        let (input_tx, input_rx): (IpcSender<Msg<I>>, IpcReceiver<Msg<I>>) = ipc::channel()
+            .map_err(|e| Error::Base(format!("failed creating input channel: {e}")))?;
+        let (output_tx, output_rx): (IpcSender<O>, IpcReceiver<O>) = ipc::channel()
+            .map_err(|e| Error::Base(format!("failed creating output channel: {e}")))?;
+
+        match unsafe { fork() } {
+            Ok(ForkResult::Parent { .. }) => Ok(()),
+            Ok(ForkResult::Child) => {
+                if suppress {
+                    // suppress stdout and stderr in forked processes
+                    suppress_output().expect("failed suppressing output");
+                }
+
+                while let Ok(Msg::Val(obj)) = input_rx.recv() {
+                    // wait on bounded semaphore for pool space
+                    sem.acquire().expect("failed acquiring pool token");
+
+                    match unsafe { fork() } {
+                        Ok(ForkResult::Parent { .. }) => (),
+                        Ok(ForkResult::Child) => {
+                            // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
+                            let r = func(obj);
+                            output_tx.send(r).expect("output sender failed");
+                            sem.release().expect("failed releasing pool token");
+                            unsafe { libc::_exit(0) };
+                        }
+                        Err(_) => panic!("process pool fork failed"),
+                    }
+                }
+                unsafe { libc::_exit(0) }
+            }
+            Err(e) => Err(Error::Base(format!("starting process pool failed: {e}"))),
+        }?;
+
+        Ok((input_tx, Self { output_rx }))
+    }
+}
+
+impl<O> Iterator for PoolSendIter<O>
+where
+    O: Serialize + for<'a> Deserialize<'a>,
+{
+    type Item = O;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.output_rx.recv() {
+            Ok(r) => Some(r),
+            Err(IpcError::Disconnected) => None,
+            Err(e) => panic!("output receiver failed: {e}"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::source;
