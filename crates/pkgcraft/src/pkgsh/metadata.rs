@@ -7,12 +7,13 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::warn;
 
-use crate::dep::{self, Dep, DepSet, Uri};
+use crate::dep::{self, Cpv, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::pkg::SourceablePackage;
 use crate::pkg::{ebuild::RawPkg, Package};
 use crate::pkgsh::{get_build_mut, BuildData};
+use crate::repo::ebuild::Repo;
 use crate::repo::Repository;
 use crate::types::OrderedSet;
 use crate::Error;
@@ -246,9 +247,14 @@ impl Metadata {
     }
 
     /// Verify metadata validity using ebuild and eclass checksums.
-    pub(crate) fn valid(pkg: &RawPkg) -> bool {
+    pub(crate) fn valid(cpv: &Cpv, repo: &Repo) -> bool {
+        let pkg = match RawPkg::new(cpv.clone(), repo) {
+            Ok(pkg) => pkg,
+            _ => return false,
+        };
+
         // read serialized metadata
-        let data = match Self::read_to_string(pkg) {
+        let data = match Self::read_to_string(&pkg) {
             Some(data) => data,
             None => return false,
         };

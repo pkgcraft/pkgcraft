@@ -23,7 +23,7 @@ use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
-use crate::pkg::{Package, SourceablePackage};
+use crate::pkg::SourceablePackage;
 use crate::pkgsh::metadata::Metadata as MetadataCache;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -527,22 +527,22 @@ impl Repo {
                 });
             } else {
                 // verify cache validity in a thread pool
-                let pkgs: Vec<_> = self.iter_raw().collect();
-                let pkgs: Vec<_> = pkgs
+                let cpvs: Vec<_> = self
+                    .iter_cpv()
+                    .collect::<Vec<_>>()
                     .into_par_iter()
-                    .filter(|p| !MetadataCache::valid(p))
+                    .filter(|cpv| !MetadataCache::valid(cpv, self))
                     .collect();
 
                 // set progress bar length
                 if let Some((_, cb_len)) = &callbacks {
-                    cb_len(pkgs.len().try_into().unwrap());
+                    cb_len(cpvs.len().try_into().unwrap());
                 }
 
                 // send Cpvs that require regen to the process pool
                 s.spawn(move || {
-                    for pkg in pkgs {
-                        tx.send(Msg::Val(pkg.cpv().clone()))
-                            .expect("sending failed");
+                    for cpv in cpvs {
+                        tx.send(Msg::Val(cpv)).expect("sending failed");
                     }
                     tx.send(Msg::Stop).expect("sending stop failed");
                 });
