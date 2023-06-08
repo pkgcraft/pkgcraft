@@ -507,7 +507,7 @@ impl Repo {
         let mut cpvs: Vec<_> = self.iter_cpv().collect();
 
         // run cache validation in a thread pool
-        if !force {
+        if !force && self.metadata().cache_path().exists() {
             cpvs = cpvs
                 .into_par_iter()
                 .filter(|cpv| !MetadataCache::valid(cpv, self))

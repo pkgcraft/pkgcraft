@@ -240,6 +240,7 @@ pub struct Metadata {
     pub(super) eapi: &'static Eapi,
     config: Config,
     path: Utf8PathBuf,
+    cache_path: Utf8PathBuf,
     arches: OnceCell<IndexSet<String>>,
     arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceCell<IndexSet<String>>,
@@ -285,8 +286,13 @@ impl Metadata {
             eapi,
             config,
             path: Utf8PathBuf::from(path),
+            cache_path: path.join("metadata/md5-cache"),
             ..Default::default()
         })
+    }
+
+    pub fn cache_path(&self) -> &Utf8Path {
+        &self.cache_path
     }
 
     pub fn config(&self) -> &Config {

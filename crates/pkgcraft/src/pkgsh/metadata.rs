@@ -9,12 +9,10 @@ use tracing::warn;
 
 use crate::dep::{self, Cpv, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
-use crate::macros::build_from_paths;
 use crate::pkg::SourceablePackage;
 use crate::pkg::{ebuild::RawPkg, Package};
 use crate::pkgsh::{get_build_mut, BuildData};
 use crate::repo::ebuild::Repo;
-use crate::repo::Repository;
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -180,8 +178,11 @@ impl Metadata {
 
     /// Serialize [`Metadata`] to the given package's metadata/md5-cache file in the related repo.
     pub(crate) fn serialize(&self, pkg: &RawPkg) -> crate::Result<()> {
-        let dir =
-            build_from_paths!(pkg.repo().path(), "metadata", "md5-cache", pkg.cpv().category());
+        let dir = pkg
+            .repo()
+            .metadata()
+            .cache_path()
+            .join(pkg.cpv().category());
 
         if !dir.exists() {
             fs::create_dir_all(&dir)
@@ -242,12 +243,14 @@ impl Metadata {
         data.push_str(&format!("\n_md5_={}\n", pkg.digest()));
 
         // write to a temporary file
-        let path = dir.join(format!(".update.{}.{}", process::id(), pkg.pf()));
+        let pid = process::id();
+        let pf = pkg.pf();
+        let path = dir.join(format!(".update.{pid}.{pf}"));
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing metadata: {path}: {e}")))?;
 
         // atomically move it into place
-        let new_path = dir.join(pkg.pf());
+        let new_path = dir.join(pf);
         fs::rename(&path, &new_path)
             .map_err(|e| Error::IO(format!("failed renaming metadata: {path} -> {new_path}: {e}")))
     }
@@ -297,8 +300,11 @@ impl Metadata {
 
     /// Load metadata from cache.
     pub(crate) fn read_to_string(pkg: &RawPkg) -> Option<String> {
-        let path =
-            build_from_paths!(pkg.repo().path(), "metadata", "md5-cache", pkg.cpv().to_string());
+        let path = pkg
+            .repo()
+            .metadata()
+            .cache_path()
+            .join(pkg.cpv().to_string());
 
         match fs::read_to_string(&path) {
             Ok(s) => Some(s),
