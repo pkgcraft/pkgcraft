@@ -499,14 +499,16 @@ impl Repo {
         callbacks: Option<(F, G)>,
     ) -> crate::Result<usize> {
         use scallop::pool::{Msg, PoolSendIter};
+
+        // initialize pool before validation to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
         let (tx, results_iter) = PoolSendIter::new(jobs, func, true)?;
-        let mut cpvs: Vec<_> = self.iter_cpv().collect();
 
         // run cache validation in a thread pool
+        let mut cpvs: Vec<_> = self.iter_cpv().collect();
         if !force && self.metadata().cache_path().exists() {
             cpvs = cpvs
                 .into_par_iter()
@@ -520,7 +522,7 @@ impl Repo {
         }
 
         thread::scope(|s| {
-            // use separate thread to send Cpvs that require regen to the process pool
+            // send Cpvs that require regen to the process pool
             s.spawn(move || {
                 for cpv in cpvs {
                     tx.send(Msg::Val(cpv)).expect("sending failed");
