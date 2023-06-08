@@ -144,24 +144,31 @@ impl PkgBuiltin {
         PkgBuiltin { builtin, scope }
     }
 
+    /// Run a builtin if it's enabled for the current build state.
     pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
         if self.enabled() {
             self.builtin.run(args)
         } else {
             let build = crate::pkgsh::get_build_mut();
-            Err(scallop::Error::Base(format!(
-                "{self} invalid in EAPI {}, scope {}",
-                build.eapi(),
-                build.scope
-            )))
+            let eapi = build.eapi();
+            let scope = &build.scope;
+            let msg = match self.scope.get(eapi) {
+                Some(_) => format!("{scope} scope doesn't enable command: {self}"),
+                None => format!("EAPI={eapi} doesn't enable command: {self}"),
+            };
+            Err(scallop::Error::Bail(msg))
         }
     }
 
+    /// Check if a builtin is enabled for the current build state.
     pub(crate) fn enabled(&self) -> bool {
         let build = crate::pkgsh::get_build_mut();
+        let eapi = build.eapi();
+        let scope = &build.scope;
+
         self.scope
-            .get(build.eapi())
-            .map(|s| s.contains(&build.scope))
+            .get(eapi)
+            .map(|s| s.contains(scope))
             .unwrap_or_default()
     }
 }
@@ -443,7 +450,7 @@ macro_rules! make_builtin {
         use std::ffi::c_int;
 
         use once_cell::sync::Lazy;
-        use scallop::builtins::Builtin;
+        use scallop::builtins::{handle_error, Builtin};
         use scallop::traits::IntoWords;
 
         use $crate::pkgsh::builtins::{PkgBuiltin, BUILTINS};
@@ -452,28 +459,14 @@ macro_rules! make_builtin {
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> c_int {
             let words = list.into_words(false);
             let args: Vec<_> = words.into_iter().collect();
+            let builtin = BUILTINS.get($name).expect("unregistered builtin");
 
-            let run_builtin = || -> ExecStatus {
-                let cmd = $name;
-                let scope = $crate::pkgsh::get_build_mut().scope;
-                let eapi = $crate::pkgsh::get_build_mut().eapi();
-                let builtin = BUILTINS.get(cmd).expect("unknown builtin: {cmd}");
-
-                if builtin.enabled() {
-                    match $func(&args) {
-                        Ok(ret) => ret,
-                        Err(e) => scallop::builtins::handle_error(cmd, e),
-                    }
-                } else {
-                    let msg = match builtin.scope.get(eapi) {
-                        Some(_) => format!("{scope} scope doesn't enable command: {cmd}"),
-                        None => format!("EAPI={eapi} doesn't enable command: {cmd}"),
-                    };
-                    scallop::builtins::handle_error(cmd, scallop::Error::Bail(msg))
-                }
+            let ret = match builtin.run(&args) {
+                Ok(ret) => ret,
+                Err(e) => handle_error(builtin, e),
             };
 
-            i32::from(run_builtin())
+            i32::from(ret)
         }
 
         pub(super) static BUILTIN: Builtin = Builtin {

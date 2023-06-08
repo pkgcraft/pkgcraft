@@ -430,9 +430,9 @@ impl From<ExitStatus> for ExecStatus {
 }
 
 /// Handle builtin errors.
-pub fn handle_error(cmd: &str, err: Error) -> ExecStatus {
+pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
     // command_not_found_handle builtin messages are unprefixed
-    let msg = match cmd {
+    let msg = match cmd.as_ref() {
         "command_not_found_handle" => err.to_string(),
         s => format!("{s}: error: {err}"),
     };
