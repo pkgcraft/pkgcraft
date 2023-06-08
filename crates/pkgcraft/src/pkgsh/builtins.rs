@@ -17,106 +17,106 @@ use super::phase::{Phase, PhaseKind};
 mod _default_phase_func;
 mod _new;
 mod _use_conf;
-pub(super) mod adddeny;
-pub(super) mod addpredict;
-pub(super) mod addread;
-pub(super) mod addwrite;
-pub(super) mod assert;
-pub(super) mod best_version;
-pub(super) mod command_not_found_handle;
-pub(super) mod debug_print;
-pub(super) mod debug_print_function;
-pub(super) mod debug_print_section;
-pub(super) mod default;
-pub(super) mod default_pkg_nofetch;
-pub(super) mod default_src_compile;
-pub(super) mod default_src_configure;
-pub(super) mod default_src_install;
-pub(super) mod default_src_prepare;
-pub(super) mod default_src_test;
-pub(super) mod default_src_unpack;
-pub(super) mod die;
-pub(super) mod diropts;
-pub(super) mod dobin;
-pub(super) mod docinto;
-pub(super) mod docompress;
-pub(super) mod doconfd;
-pub(super) mod dodir;
-pub(super) mod dodoc;
-pub(super) mod doenvd;
-pub(super) mod doexe;
-pub(super) mod dohard;
-pub(super) mod doheader;
-pub(super) mod dohtml;
-pub(super) mod doinfo;
-pub(super) mod doinitd;
-pub(super) mod doins;
-pub(super) mod dolib;
-pub(super) mod dolib_a;
-pub(super) mod dolib_so;
-pub(super) mod doman;
-pub(super) mod domo;
-pub(super) mod dosbin;
-pub(super) mod dosed;
-pub(super) mod dostrip;
-pub(super) mod dosym;
+mod adddeny;
+mod addpredict;
+mod addread;
+mod addwrite;
+mod assert;
+mod best_version;
+mod command_not_found_handle;
+mod debug_print;
+mod debug_print_function;
+mod debug_print_section;
+mod default;
+mod default_pkg_nofetch;
+mod default_src_compile;
+mod default_src_configure;
+mod default_src_install;
+mod default_src_prepare;
+mod default_src_test;
+mod default_src_unpack;
+mod die;
+mod diropts;
+mod dobin;
+mod docinto;
+mod docompress;
+mod doconfd;
+mod dodir;
+mod dodoc;
+mod doenvd;
+mod doexe;
+mod dohard;
+mod doheader;
+mod dohtml;
+mod doinfo;
+mod doinitd;
+mod doins;
+mod dolib;
+mod dolib_a;
+mod dolib_so;
+mod doman;
+mod domo;
+mod dosbin;
+mod dosed;
+mod dostrip;
+mod dosym;
 pub(super) mod eapply;
 pub(super) mod eapply_user;
-pub(super) mod ebegin;
+mod ebegin;
 pub(super) mod econf;
-pub(super) mod eend;
-pub(super) mod eerror;
-pub(super) mod einfo;
-pub(super) mod einfon;
-pub(super) mod einstall;
+mod eend;
+mod eerror;
+mod einfo;
+mod einfon;
+mod einstall;
 pub(super) mod einstalldocs;
-pub(super) mod elog;
+mod elog;
 pub(super) mod emake;
-pub(super) mod eqawarn;
-pub(super) mod ewarn;
-pub(super) mod exeinto;
-pub(super) mod exeopts;
-pub(super) mod export_functions;
-pub(super) mod fowners;
-pub(super) mod fperms;
-pub(super) mod get_libdir;
-pub(super) mod has;
-pub(super) mod has_version;
-pub(super) mod hasq;
-pub(super) mod hasv;
-pub(super) mod in_iuse;
-pub(super) mod inherit;
-pub(super) mod insinto;
-pub(super) mod insopts;
-pub(super) mod into;
-pub(super) mod keepdir;
-pub(super) mod libopts;
-pub(super) mod newbin;
-pub(super) mod newconfd;
-pub(super) mod newdoc;
-pub(super) mod newenvd;
-pub(super) mod newexe;
-pub(super) mod newheader;
-pub(super) mod newinitd;
-pub(super) mod newins;
-pub(super) mod newlib_a;
-pub(super) mod newlib_so;
-pub(super) mod newman;
-pub(super) mod newsbin;
-pub(super) mod nonfatal;
+mod eqawarn;
+mod ewarn;
+mod exeinto;
+mod exeopts;
+mod export_functions;
+mod fowners;
+mod fperms;
+mod get_libdir;
+mod has;
+mod has_version;
+mod hasq;
+mod hasv;
+mod in_iuse;
+mod inherit;
+mod insinto;
+mod insopts;
+mod into;
+mod keepdir;
+mod libopts;
+mod newbin;
+mod newconfd;
+mod newdoc;
+mod newenvd;
+mod newexe;
+mod newheader;
+mod newinitd;
+mod newins;
+mod newlib_a;
+mod newlib_so;
+mod newman;
+mod newsbin;
+mod nonfatal;
 pub(super) mod unpack;
-pub(super) mod use_;
-pub(super) mod use_enable;
-pub(super) mod use_with;
-pub(super) mod useq;
-pub(super) mod usev;
-pub(super) mod usex;
-pub(super) mod ver_cut;
-pub(super) mod ver_rs;
-pub(super) mod ver_test;
+mod use_;
+mod use_enable;
+mod use_with;
+mod useq;
+mod usev;
+mod usex;
+mod ver_cut;
+mod ver_rs;
+mod ver_test;
 
 #[derive(Debug)]
-pub(crate) struct PkgBuiltin {
+pub(super) struct PkgBuiltin {
     builtin: Builtin,
     scope: IndexMap<&'static Eapi, HashSet<Scope>>,
 }
@@ -145,7 +145,7 @@ impl PkgBuiltin {
     }
 
     /// Run a builtin if it's enabled for the current build state.
-    pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
+    fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
         if self.enabled() {
             self.builtin.run(args)
         } else {
@@ -161,7 +161,7 @@ impl PkgBuiltin {
     }
 
     /// Check if a builtin is enabled for the current build state.
-    pub(crate) fn enabled(&self) -> bool {
+    pub(super) fn enabled(&self) -> bool {
         let build = crate::pkgsh::get_build_mut();
         let eapi = build.eapi();
         let scope = &build.scope;
@@ -274,7 +274,7 @@ impl Scopes {
     }
 }
 
-pub(crate) static BUILTINS: Lazy<HashSet<&PkgBuiltin>> = Lazy::new(|| {
+pub(super) static BUILTINS: Lazy<HashSet<&PkgBuiltin>> = Lazy::new(|| {
     [
         &*adddeny::PKG_BUILTIN,
         &*addpredict::PKG_BUILTIN,
