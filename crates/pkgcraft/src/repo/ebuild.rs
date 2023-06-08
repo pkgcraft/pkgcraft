@@ -517,8 +517,22 @@ impl Repo {
         Ok(errors)
     }
 
+    /// Return an iterator of Cpvs for the repo.
+    pub fn iter_cpv(&self) -> IterCpv {
+        IterCpv::new(self, None)
+    }
+
+    /// Return a filtered iterator of Cpvs for the repo.
+    pub fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpvRestrict<'_> {
+        let restrict = val.into();
+        IterCpvRestrict {
+            iter: IterCpv::new(self, Some(&restrict)),
+            restrict,
+        }
+    }
+
     /// Return an iterator of raw packages for the repo.
-    pub fn iter_raw(&self) -> IterRaw<'_> {
+    pub fn iter_raw(&self) -> IterRaw {
         IterRaw::new(self, None)
     }
 
@@ -719,11 +733,36 @@ impl<'a> Iterator for Iter<'a> {
 }
 
 pub struct IterRaw<'a> {
-    iter: Box<dyn Iterator<Item = Cpv> + 'a>,
+    iter: IterCpv<'a>,
     repo: &'a Repo,
 }
 
 impl<'a> IterRaw<'a> {
+    fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
+        let iter = IterCpv::new(repo, restrict);
+        Self { iter, repo }
+    }
+}
+
+impl<'a> Iterator for IterRaw<'a> {
+    type Item = RawPkg<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for cpv in &mut self.iter {
+            match RawPkg::new(cpv, self.repo) {
+                Ok(pkg) => return Some(pkg),
+                Err(e) => warn!("{}: {e}", self.repo.id()),
+            }
+        }
+        None
+    }
+}
+
+pub struct IterCpv<'a> {
+    iter: Box<dyn Iterator<Item = Cpv> + 'a>,
+}
+
+impl<'a> IterCpv<'a> {
     fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package, Version};
         let mut cat_restricts = vec![];
@@ -818,22 +857,15 @@ impl<'a> IterRaw<'a> {
                         .filter(move |cpv| pkg_restrict.matches(cpv)),
                 )
             },
-            repo,
         }
     }
 }
 
-impl<'a> Iterator for IterRaw<'a> {
-    type Item = RawPkg<'a>;
+impl<'a> Iterator for IterCpv<'a> {
+    type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for cpv in &mut self.iter {
-            match RawPkg::new(cpv, self.repo) {
-                Ok(pkg) => return Some(pkg),
-                Err(e) => warn!("{}: {e}", self.repo.id()),
-            }
-        }
-        None
+        self.iter.next()
     }
 }
 
@@ -847,6 +879,19 @@ impl<'a> Iterator for IterRestrict<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
+    }
+}
+
+pub struct IterCpvRestrict<'a> {
+    iter: IterCpv<'a>,
+    restrict: Restrict,
+}
+
+impl<'a> Iterator for IterCpvRestrict<'a> {
+    type Item = Cpv;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find(|cpv| self.restrict.matches(cpv))
     }
 }
 
