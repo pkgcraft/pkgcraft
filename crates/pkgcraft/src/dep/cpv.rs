@@ -134,6 +134,16 @@ impl FromStr for Cpv {
     }
 }
 
+/// Try converting a (category, package, version) string tuple into a Cpv.
+impl TryFrom<(&str, &str, &str)> for Cpv {
+    type Error = Error;
+
+    fn try_from(vals: (&str, &str, &str)) -> Result<Self, Self::Error> {
+        let (cat, pn, ver) = vals;
+        parse::cpv(&format!("{cat}/{pn}-{ver}"))
+    }
+}
+
 impl fmt::Display for Cpv {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{}-{}", self.category, self.package, self.version.as_str())

@@ -794,41 +794,37 @@ impl<'a> IterRaw<'a> {
             paths
         };
 
+        let restricts = (cat.as_deref(), pkg.as_deref(), ver.as_deref());
+
         Self {
-            iter: match (cat, pkg, ver) {
+            iter: if let (Some(cat), Some(pkg), Some(ver)) = restricts {
                 // specific package restriction
-                (Some(cat), Some(pkg), Some(ver)) => {
-                    let s = format!("{cat}/{pkg}-{ver}");
-                    let cpv = Cpv::new(&s).expect("dep restrict failed");
-                    let path =
-                        build_from_paths!(repo.path(), &cat, &pkg, format!("{pkg}-{ver}.ebuild"));
-                    Box::new(iter::once((path, cpv)))
-                }
-
+                let cpv = Cpv::try_from((cat, pkg, ver)).expect("dep restrict failed");
+                let path = build_from_paths!(repo.path(), cat, pkg, format!("{pkg}-{ver}.ebuild"));
+                Box::new(iter::once((path, cpv)))
+            } else {
                 // complex restriction filtering
-                _ => {
-                    let cat_restrict = match &cat_restricts[..] {
-                        [] => Restrict::True,
-                        [_] => cat_restricts.remove(0).into(),
-                        _ => Restrict::and(cat_restricts),
-                    };
+                let cat_restrict = match &cat_restricts[..] {
+                    [] => Restrict::True,
+                    [_] => cat_restricts.remove(0).into(),
+                    _ => Restrict::and(cat_restricts),
+                };
 
-                    let pkg_restrict = match &pkg_restricts[..] {
-                        [] => Restrict::True,
-                        [_] => pkg_restricts.remove(0).into(),
-                        _ => Restrict::and(pkg_restricts),
-                    };
+                let pkg_restrict = match &pkg_restricts[..] {
+                    [] => Restrict::True,
+                    [_] => pkg_restricts.remove(0).into(),
+                    _ => Restrict::and(pkg_restricts),
+                };
 
-                    Box::new(
-                        repo.categories()
-                            .into_iter()
-                            .filter(move |s| cat_restrict.matches(s.as_str()))
-                            .map(|s| repo.path().join(s))
-                            .filter(|p| p.exists())
-                            .flat_map(category_pkgs)
-                            .filter(move |(_, cpv)| pkg_restrict.matches(cpv)),
-                    )
-                }
+                Box::new(
+                    repo.categories()
+                        .into_iter()
+                        .filter(move |s| cat_restrict.matches(s.as_str()))
+                        .map(|s| repo.path().join(s))
+                        .filter(|p| p.exists())
+                        .flat_map(category_pkgs)
+                        .filter(move |(_, cpv)| pkg_restrict.matches(cpv)),
+                )
             },
             repo,
         }
