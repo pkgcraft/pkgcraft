@@ -1,6 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
+use crate::pkgsh::builtins::BUILTINS;
 use crate::pkgsh::get_build_mut;
 
 use super::{make_builtin, Scopes::Phases};

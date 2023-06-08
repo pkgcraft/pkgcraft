@@ -450,13 +450,16 @@ macro_rules! make_builtin {
         use std::ffi::c_int;
 
         use once_cell::sync::Lazy;
-        use scallop::builtins::{handle_error, Builtin};
-        use scallop::traits::IntoWords;
+        use scallop::builtins::Builtin;
 
-        use $crate::pkgsh::builtins::{PkgBuiltin, BUILTINS};
+        use $crate::pkgsh::builtins::PkgBuiltin;
 
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> c_int {
+            use scallop::builtins::handle_error;
+            use scallop::traits::IntoWords;
+            use $crate::pkgsh::builtins::BUILTINS;
+
             let words = list.into_words(false);
             let args: Vec<_> = words.into_iter().collect();
             let builtin = BUILTINS.get($name).expect("unregistered builtin");
