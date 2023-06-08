@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::{fs, io};
+use std::{fs, io, process};
 
 use itertools::Itertools;
 use scallop::{functions, variables};
@@ -241,9 +241,15 @@ impl Metadata {
         // append ebuild hash
         data.push_str(&format!("\n_md5_={}\n", pkg.digest()));
 
-        let path = dir.join(pkg.pf());
+        // write to a temporary file
+        let path = dir.join(format!(".update.{}.{}", process::id(), pkg.pf()));
         fs::write(&path, data)
-            .map_err(|e| Error::IO(format!("failed writing metadata: {path}: {e}")))
+            .map_err(|e| Error::IO(format!("failed writing metadata: {path}: {e}")))?;
+
+        // atomically move it into place
+        let new_path = dir.join(pkg.pf());
+        fs::rename(&path, &new_path)
+            .map_err(|e| Error::IO(format!("failed renaming metadata: {path} -> {new_path}: {e}")))
     }
 
     /// Verify metadata validity using ebuild and eclass checksums.
