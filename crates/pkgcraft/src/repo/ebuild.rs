@@ -498,13 +498,17 @@ impl Repo {
         force: bool,
         callbacks: Option<(F, G)>,
     ) -> crate::Result<usize> {
+        use scallop::pool::{Msg, PoolSendIter};
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
-        use scallop::pool::{Msg, PoolSendIter};
         let (tx, iter) = PoolSendIter::new(jobs, func, true)?;
 
+        // Spawn a separate thread that sends Cpv objects for packages that require metadata cache
+        // updates to the process pool. There are two separate paths encompassing forced
+        // regeneration and regular runs since forcing allows for more efficiency as it doesn't
+        // require using RawPkg objects for validation in a thread pool.
         thread::scope(|s| {
             if force {
                 let cpvs: Vec<_> = self.iter_cpv().collect();
@@ -514,6 +518,7 @@ impl Repo {
                     cb_len(cpvs.len().try_into().unwrap());
                 }
 
+                // send Cpvs that require regen to the process pool
                 s.spawn(move || {
                     for cpv in cpvs {
                         tx.send(Msg::Val(cpv)).expect("sending failed");
@@ -521,9 +526,8 @@ impl Repo {
                     tx.send(Msg::Stop).expect("sending stop failed");
                 });
             } else {
-                // verify metadata validity using ebuild and eclass hashes in a thread pool
+                // verify cache validity in a thread pool
                 let pkgs: Vec<_> = self.iter_raw().collect();
-
                 let pkgs: Vec<_> = pkgs
                     .into_par_iter()
                     .filter(|p| !MetadataCache::valid(p))
@@ -534,7 +538,7 @@ impl Repo {
                     cb_len(pkgs.len().try_into().unwrap());
                 }
 
-                // send package Cpvs that require metadata regen to process pool
+                // send Cpvs that require regen to the process pool
                 s.spawn(move || {
                     for pkg in pkgs {
                         tx.send(Msg::Val(pkg.cpv().clone()))
@@ -544,6 +548,7 @@ impl Repo {
                 });
             }
 
+            // iterate over returned results, tracking progress and errors
             let mut errors = 0;
             for r in iter {
                 // log errors
@@ -552,7 +557,7 @@ impl Repo {
                     error!("{e}");
                 }
 
-                // increment progressbar
+                // increment progress bar
                 if let Some((cb, _)) = &callbacks {
                     cb();
                 }
