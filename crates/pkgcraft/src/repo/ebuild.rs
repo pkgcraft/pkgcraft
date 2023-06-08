@@ -503,54 +503,34 @@ impl Repo {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
-        let (tx, iter) = PoolSendIter::new(jobs, func, true)?;
+        let (tx, results_iter) = PoolSendIter::new(jobs, func, true)?;
+        let mut cpvs: Vec<_> = self.iter_cpv().collect();
 
-        // Spawn a separate thread that sends Cpv objects for packages that require metadata cache
-        // updates to the process pool. There are two separate paths encompassing forced
-        // regeneration and regular runs since forcing allows for more efficiency as it doesn't
-        // require using RawPkg objects for validation in a thread pool.
+        // run cache validation in a thread pool
+        if !force {
+            cpvs = cpvs
+                .into_par_iter()
+                .filter(|cpv| !MetadataCache::valid(cpv, self))
+                .collect()
+        }
+
+        // set progress bar length
+        if let Some((_, cb_len)) = &callbacks {
+            cb_len(cpvs.len().try_into().unwrap());
+        }
+
         thread::scope(|s| {
-            if force {
-                let cpvs: Vec<_> = self.iter_cpv().collect();
-
-                // set progress bar length
-                if let Some((_, cb_len)) = &callbacks {
-                    cb_len(cpvs.len().try_into().unwrap());
+            // use separate thread to send Cpvs that require regen to the process pool
+            s.spawn(move || {
+                for cpv in cpvs {
+                    tx.send(Msg::Val(cpv)).expect("sending failed");
                 }
-
-                // send Cpvs that require regen to the process pool
-                s.spawn(move || {
-                    for cpv in cpvs {
-                        tx.send(Msg::Val(cpv)).expect("sending failed");
-                    }
-                    tx.send(Msg::Stop).expect("sending stop failed");
-                });
-            } else {
-                // verify cache validity in a thread pool
-                let cpvs: Vec<_> = self
-                    .iter_cpv()
-                    .collect::<Vec<_>>()
-                    .into_par_iter()
-                    .filter(|cpv| !MetadataCache::valid(cpv, self))
-                    .collect();
-
-                // set progress bar length
-                if let Some((_, cb_len)) = &callbacks {
-                    cb_len(cpvs.len().try_into().unwrap());
-                }
-
-                // send Cpvs that require regen to the process pool
-                s.spawn(move || {
-                    for cpv in cpvs {
-                        tx.send(Msg::Val(cpv)).expect("sending failed");
-                    }
-                    tx.send(Msg::Stop).expect("sending stop failed");
-                });
-            }
+                tx.send(Msg::Stop).expect("sending stop failed");
+            });
 
             // iterate over returned results, tracking progress and errors
             let mut errors = 0;
-            for r in iter {
+            for r in results_iter {
                 // log errors
                 if let Err(e) = r {
                     errors += 1;
