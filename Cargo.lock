@@ -1867,7 +1867,7 @@ checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
 
 [[package]]
 name = "pkgcraft"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "assert_cmd",
  "async-trait",
@@ -1920,7 +1920,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcraft-c"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "pkgcraft",
  "tracing",
@@ -1929,7 +1929,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcraft-tools"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "aho-corasick",
  "anyhow",
@@ -2411,7 +2411,7 @@ dependencies = [
 
 [[package]]
 name = "scallop"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "autotools",
  "bindgen",
