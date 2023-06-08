@@ -15,7 +15,7 @@ use super::Operation;
 impl<'a> BuildablePackage for Pkg<'a> {
     fn build(&self) -> scallop::Result<()> {
         get_build_mut()
-            .source_ebuild(self.path())
+            .source_ebuild(&self.abspath())
             .map_err(|e| self.invalid_pkg_err(e))?;
 
         for phase in self.eapi().operation(Operation::Build)? {
@@ -30,7 +30,7 @@ impl<'a> BuildablePackage for Pkg<'a> {
         if let Ok(phases) = self.eapi().operation(Operation::Pretend) {
             BuildData::from_pkg(self);
             get_build_mut()
-                .source_ebuild(self.path())
+                .source_ebuild(&self.abspath())
                 .map_err(|e| self.invalid_pkg_err(e))?;
 
             // redirect pkg_pretend() output to a temporary file

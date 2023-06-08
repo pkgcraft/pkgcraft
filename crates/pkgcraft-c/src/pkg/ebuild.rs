@@ -116,7 +116,7 @@ macro_rules! try_pkg_from_ptr {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_path(p: *mut Pkg) -> *mut c_char {
     let pkg = try_pkg_from_ptr!(p);
-    try_ptr_from_str!(pkg.path().as_str())
+    try_ptr_from_str!(pkg.abspath().as_str())
 }
 
 /// Return a package's ebuild file content.

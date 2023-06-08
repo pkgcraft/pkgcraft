@@ -589,7 +589,7 @@ macro_rules! builtin_scope_tests {
                             let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
                             let pkg = raw_pkg.into_pkg().unwrap();
                             BuildData::from_pkg(&pkg);
-                            get_build_mut().source_ebuild(pkg.path()).unwrap();
+                            get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
                             let phase = eapi.phases().get(phase).unwrap();
                             let r = phase.run();
                             // verify function stops at unknown command

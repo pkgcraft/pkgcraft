@@ -105,7 +105,7 @@ impl Repo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
-        RawPkg::new(path, cpv, self.repo())
+        RawPkg::new(cpv, self.repo())
     }
 
     /// Create an ebuild file in the repo from raw data.
@@ -116,7 +116,7 @@ impl Repo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        RawPkg::new(path, cpv, self.repo())
+        RawPkg::new(cpv, self.repo())
     }
 
     /// Create an eclass in the repo.

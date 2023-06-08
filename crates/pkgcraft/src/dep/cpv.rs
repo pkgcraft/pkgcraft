@@ -2,6 +2,8 @@ use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
 
+use camino::Utf8PathBuf;
+
 use crate::Error;
 
 use super::version::{ParsedVersion, Revision, Version};
@@ -123,6 +125,11 @@ impl Cpv {
     /// Return the category and package.
     pub fn cpn(&self) -> String {
         format!("{}/{}", self.category, self.package)
+    }
+
+    /// Return the relative ebuild file path.
+    pub(crate) fn relpath(&self) -> Utf8PathBuf {
+        Utf8PathBuf::from(format!("{}/{}/{}.ebuild", self.category(), self.package(), self.pf()))
     }
 }
 

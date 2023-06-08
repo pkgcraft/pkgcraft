@@ -2,14 +2,14 @@ use std::collections::HashSet;
 use std::fs;
 use std::sync::Arc;
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use once_cell::sync::OnceCell;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
 use crate::eapi::{self, Eapi, Feature};
 use crate::pkgsh::metadata::{Key, Metadata};
-use crate::repo::ebuild::Repo;
+use crate::repo::{ebuild::Repo, Repository};
 use crate::traits::FilterLines;
 use crate::types::OrderedSet;
 use crate::utils::digest;
@@ -24,25 +24,27 @@ pub use restrict::{MaintainerRestrict, Restrict};
 
 #[derive(Debug, Clone)]
 pub struct RawPkg<'a> {
-    path: Utf8PathBuf,
     cpv: Cpv,
-    eapi: &'static Eapi,
     repo: &'a Repo,
+    eapi: &'static Eapi,
     data: String,
 }
 
 make_pkg_traits!(RawPkg<'_>);
 
 impl<'a> RawPkg<'a> {
-    pub(crate) fn new(path: Utf8PathBuf, cpv: Cpv, repo: &'a Repo) -> crate::Result<Self> {
-        let data = fs::read_to_string(&path)
-            .map_err(|e| Error::IO(format!("failed reading ebuild: {path}: {e}")))?;
+    pub(crate) fn new(cpv: Cpv, repo: &'a Repo) -> crate::Result<Self> {
+        let relpath = cpv.relpath();
+        let data = fs::read_to_string(repo.path().join(&relpath)).map_err(|e| {
+            Error::IO(format!("{}: failed reading ebuild: {relpath}: {e}", repo.id()))
+        })?;
+
         let eapi = Self::parse_eapi(&data).map_err(|e| Error::InvalidPkg {
             id: format!("{cpv}::{repo}"),
             err: e.to_string(),
         })?;
 
-        Ok(Self { path, cpv, eapi, repo, data })
+        Ok(Self { cpv, repo, eapi, data })
     }
 
     /// Get the parsed EAPI from the given ebuild data content.
@@ -62,8 +64,13 @@ impl<'a> RawPkg<'a> {
         }
     }
 
-    pub fn path(&self) -> &Utf8Path {
-        &self.path
+    /// Return the path of the package's ebuild file path relative to the repository root.
+    pub fn relpath(&self) -> Utf8PathBuf {
+        self.cpv.relpath()
+    }
+
+    pub fn abspath(&self) -> Utf8PathBuf {
+        self.repo.path().join(self.relpath())
     }
 
     pub fn data(&self) -> &str {
@@ -97,7 +104,6 @@ impl<'a> Package for RawPkg<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
-    path: Utf8PathBuf,
     cpv: Cpv,
     eapi: &'static Eapi,
     repo: &'a Repo,
@@ -116,7 +122,6 @@ impl<'a> Pkg<'a> {
         })?;
 
         Ok(Pkg {
-            path: raw_pkg.path,
             cpv: raw_pkg.cpv,
             eapi: raw_pkg.eapi,
             repo: raw_pkg.repo,
@@ -126,14 +131,19 @@ impl<'a> Pkg<'a> {
         })
     }
 
-    /// Return a package's ebuild file path.
-    pub fn path(&self) -> &Utf8Path {
-        &self.path
+    /// Return the path of the package's ebuild file path relative to the repository root.
+    pub fn relpath(&self) -> Utf8PathBuf {
+        self.cpv.relpath()
+    }
+
+    /// Return the absolute path of the package's ebuild file.
+    pub fn abspath(&self) -> Utf8PathBuf {
+        self.repo.path().join(self.relpath())
     }
 
     /// Return a package's ebuild file content.
     pub fn ebuild(&self) -> crate::Result<String> {
-        fs::read_to_string(&self.path).map_err(|e| Error::IO(e.to_string()))
+        fs::read_to_string(self.abspath()).map_err(|e| Error::IO(e.to_string()))
     }
 
     /// Return a package's description.
@@ -298,12 +308,6 @@ impl<'a> Pkg<'a> {
     }
 }
 
-impl AsRef<Utf8Path> for Pkg<'_> {
-    fn as_ref(&self) -> &Utf8Path {
-        self.path()
-    }
-}
-
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;
 
@@ -421,29 +425,15 @@ mod tests {
     }
 
     #[test]
-    fn test_as_ref_path() {
-        fn assert_path<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(pkg: P, path: Q) {
-            assert_eq!(pkg.as_ref(), path.as_ref());
-        }
-
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let path = raw_pkg.path().to_owned();
-        let pkg = raw_pkg.into_pkg().unwrap();
-        assert_path(pkg, path);
-    }
-
-    #[test]
     fn test_pkg_methods() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
         let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let path = raw_pkg.path().to_owned();
+        let relpath = raw_pkg.relpath();
         let pkg = raw_pkg.into_pkg().unwrap();
-        assert_eq!(pkg.path(), path);
+        assert_eq!(pkg.relpath(), relpath);
         assert!(!pkg.ebuild().unwrap().is_empty());
     }
 
@@ -812,7 +802,7 @@ mod tests {
                 </maintainer>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("cat1/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -839,7 +829,7 @@ mod tests {
                 </maintainer>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("cat2/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -874,7 +864,7 @@ mod tests {
                 </upstream>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("cat1/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -897,7 +887,7 @@ mod tests {
                 </upstream>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("cat2/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -932,7 +922,7 @@ mod tests {
                 </use>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("cat1/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -957,7 +947,7 @@ mod tests {
                 </use>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("cat2/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -986,7 +976,7 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("empty/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -1003,7 +993,7 @@ mod tests {
                 </longdescription>
             </pkg>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("invalid/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -1026,7 +1016,7 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("cat1/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -1055,7 +1045,7 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild("cat2/pkg-2", &[]).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -1087,7 +1077,7 @@ mod tests {
         let manifest = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("Manifest"), manifest).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("Manifest"), manifest).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let raw_pkg = t.create_ebuild_raw("cat1/pkg-2", data).unwrap();
         let pkg2 = raw_pkg.into_pkg().unwrap();
@@ -1112,7 +1102,7 @@ mod tests {
             DIST b.tar.gz 2 BLAKE2B c SHA512 d
             DIST c.tar.gz 3 BLAKE2B c SHA512 d
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("Manifest"), manifest).unwrap();
+        fs::write(raw_pkg.abspath().parent().unwrap().join("Manifest"), manifest).unwrap();
         let pkg1 = raw_pkg.into_pkg().unwrap();
         let data = indoc::indoc! {r#"
             DESCRIPTION="testing distfiles"

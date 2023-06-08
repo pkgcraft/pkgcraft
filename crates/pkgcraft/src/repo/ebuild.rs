@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use std::path::Path;
 use std::sync::{Arc, Weak};
 use std::{fmt, fs, io, iter, thread};
 
@@ -401,31 +402,34 @@ impl Repo {
         v
     }
 
-    /// Convert an ebuild path inside the repo into a CPV.
-    pub(crate) fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Cpv> {
+    /// Convert a relative ebuild file repo path into a CPV.
+    pub(crate) fn cpv_from_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv> {
+        let path = path.as_ref();
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
         };
-        path.strip_prefix(self.path())
-            .map_err(|_| err(&format!("missing repo prefix: {:?}", self.path())))
-            .and_then(|path| {
-                let (cat, pkg, file) = path
-                    .components()
-                    .map(|s| s.as_str())
-                    .collect_tuple()
-                    .ok_or_else(|| err("mismatched path components"))?;
-                let p = file
-                    .strip_suffix(".ebuild")
-                    .ok_or_else(|| err("missing ebuild ext"))?;
-                Cpv::new(&format!("{cat}/{p}"))
-                    .map_err(|_| err("invalid CPV"))
-                    .and_then(|a| {
-                        if a.package() == pkg {
-                            Ok(a)
-                        } else {
-                            Err(err("mismatched package dir"))
-                        }
-                    })
+
+        let relpath = path
+            .strip_prefix(self.path())
+            .map_err(|_| err("missing repo prefix"))?;
+        let relpath = <&Utf8Path>::try_from(relpath).map_err(|_| err("invalid unicode path"))?;
+
+        let (cat, pkg, file) = relpath
+            .components()
+            .map(|s| s.as_str())
+            .collect_tuple()
+            .ok_or_else(|| err("mismatched path components"))?;
+        let p = file
+            .strip_suffix(".ebuild")
+            .ok_or_else(|| err("missing ebuild ext"))?;
+        Cpv::new(&format!("{cat}/{p}"))
+            .map_err(|_| err("invalid CPV"))
+            .and_then(|a| {
+                if a.package() == pkg {
+                    Ok(a)
+                } else {
+                    Err(err("mismatched package dir"))
+                }
             })
     }
 
@@ -715,7 +719,7 @@ impl<'a> Iterator for Iter<'a> {
 }
 
 pub struct IterRaw<'a> {
-    iter: Box<dyn Iterator<Item = (Utf8PathBuf, Cpv)> + 'a>,
+    iter: Box<dyn Iterator<Item = Cpv> + 'a>,
     repo: &'a Repo,
 }
 
@@ -756,24 +760,15 @@ impl<'a> IterRaw<'a> {
         }
 
         // filter invalid ebuild paths
-        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<(Utf8PathBuf, Cpv)> {
+        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv> {
             match r {
-                Ok(e) => {
-                    let path = e.path();
-                    match <&Utf8Path>::try_from(path) {
-                        Ok(p) => match repo.cpv_from_path(p) {
-                            Ok(cpv) => Some((p.to_path_buf(), cpv)),
-                            Err(e) => {
-                                warn!("{}: {e}", repo.id());
-                                None
-                            }
-                        },
-                        Err(e) => {
-                            warn!("{}: invalid unicode path: {path:?}: {e}", repo.id());
-                            None
-                        }
+                Ok(e) => match repo.cpv_from_path(e.path()) {
+                    Ok(cpv) => Some(cpv),
+                    Err(e) => {
+                        warn!("{}: {e}", repo.id());
+                        None
                     }
-                }
+                },
                 Err(e) => {
                     warn!("{}: failed walking repo: {e}", repo.id());
                     None
@@ -781,17 +776,17 @@ impl<'a> IterRaw<'a> {
             }
         };
 
-        // return (path, cpv) tuples for pkgs in a category
-        let category_pkgs = move |path: Utf8PathBuf| -> Vec<(Utf8PathBuf, Cpv)> {
-            let mut paths: Vec<_> = WalkDir::new(path)
+        // return the Cpvs for pkgs in a category
+        let category_cpvs = move |category: &str| -> Vec<Cpv> {
+            let mut cpvs: Vec<_> = WalkDir::new(repo.path().join(category))
                 .min_depth(2)
                 .max_depth(2)
                 .into_iter()
                 .filter_entry(is_ebuild)
                 .filter_map(filter_path)
                 .collect();
-            paths.sort_by(|(_p1, cpv1), (_p2, cpv2)| cpv1.cmp(cpv2));
-            paths
+            cpvs.sort();
+            cpvs
         };
 
         let restricts = (cat.as_deref(), pkg.as_deref(), ver.as_deref());
@@ -800,8 +795,7 @@ impl<'a> IterRaw<'a> {
             iter: if let (Some(cat), Some(pkg), Some(ver)) = restricts {
                 // specific package restriction
                 let cpv = Cpv::try_from((cat, pkg, ver)).expect("dep restrict failed");
-                let path = build_from_paths!(repo.path(), cat, pkg, format!("{pkg}-{ver}.ebuild"));
-                Box::new(iter::once((path, cpv)))
+                Box::new(iter::once(cpv))
             } else {
                 // complex restriction filtering
                 let cat_restrict = match &cat_restricts[..] {
@@ -820,10 +814,8 @@ impl<'a> IterRaw<'a> {
                     repo.categories()
                         .into_iter()
                         .filter(move |s| cat_restrict.matches(s.as_str()))
-                        .map(|s| repo.path().join(s))
-                        .filter(|p| p.exists())
-                        .flat_map(category_pkgs)
-                        .filter(move |(_, cpv)| pkg_restrict.matches(cpv)),
+                        .flat_map(move |s| category_cpvs(&s))
+                        .filter(move |cpv| pkg_restrict.matches(cpv)),
                 )
             },
             repo,
@@ -835,8 +827,8 @@ impl<'a> Iterator for IterRaw<'a> {
     type Item = RawPkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for (path, cpv) in &mut self.iter {
-            match RawPkg::new(path, cpv, self.repo) {
+        for cpv in &mut self.iter {
+            match RawPkg::new(cpv, self.repo) {
                 Ok(pkg) => return Some(pkg),
                 Err(e) => warn!("{}: {e}", self.repo.id()),
             }
