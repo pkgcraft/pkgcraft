@@ -156,7 +156,7 @@ where
     I: Serialize + for<'a> Deserialize<'a>,
     O: Serialize + for<'a> Deserialize<'a>,
 {
-    request_pool_tx: IpcSender<usize>,
+    request_pool_tx: IpcSender<Msg<usize>>,
     create_pool_rx: IpcReceiver<(IpcSender<Msg<I>>, IpcReceiver<O>)>,
 }
 
@@ -172,7 +172,7 @@ where
         // enable internal bash SIGCHLD handler
         unsafe { bash::set_sigchld_handler() };
 
-        let (request_pool_tx, request_pool_rx) = ipc::channel::<usize>()
+        let (request_pool_tx, request_pool_rx) = ipc::channel::<Msg<usize>>()
             .map_err(|e| Error::Base(format!("failed creating pool request channel: {e}")))?;
         let (create_pool_tx, create_pool_rx) =
             ipc::channel::<(IpcSender<Msg<I>>, IpcReceiver<O>)>()
@@ -186,7 +186,7 @@ where
                     suppress_output().expect("failed suppressing output");
                 }
 
-                while let Ok(size) = request_pool_rx.recv() {
+                while let Ok(Msg::Val(size)) = request_pool_rx.recv() {
                     let mut sem = SharedSemaphore::new(size)
                         .unwrap_or_else(|e| panic!("failed creating semaphore: {e}"));
                     let (input_tx, input_rx): (IpcSender<Msg<I>>, IpcReceiver<Msg<I>>) =
@@ -234,7 +234,7 @@ where
         vals: V,
     ) -> crate::Result<PoolReceiveIter<O>> {
         self.request_pool_tx
-            .send(size)
+            .send(Msg::Val(size))
             .map_err(|e| Error::Base(format!("failed request pool: {e}")))?;
         let (tx, rx) = self
             .create_pool_rx
@@ -249,6 +249,18 @@ where
         });
 
         Ok(PoolReceiveIter { thread: Some(thread), rx })
+    }
+}
+
+impl<I, O> Drop for PoolSendIter<I, O>
+where
+    I: Serialize + for<'a> Deserialize<'a>,
+    O: Serialize + for<'a> Deserialize<'a>,
+{
+    fn drop(&mut self) {
+        self.request_pool_tx
+            .send(Msg::Stop)
+            .expect("failed stopping pool")
     }
 }
 
@@ -269,7 +281,7 @@ where
             .take()
             .unwrap()
             .join()
-            .expect("failed stopping pool");
+            .expect("failed stopping pool thread");
     }
 }
 
