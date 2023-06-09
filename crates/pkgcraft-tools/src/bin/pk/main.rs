@@ -8,6 +8,7 @@ use is_terminal::IsTerminal;
 use pkgcraft::config::Config;
 use tracing_log::AsTrace;
 
+mod args;
 mod format;
 mod subcmds;
 

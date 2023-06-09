@@ -7,6 +7,8 @@ use indicatif::ProgressBar;
 use is_terminal::IsTerminal;
 use pkgcraft::repo::Repo;
 
+use crate::args::bounded_jobs;
+
 #[derive(Debug, Args)]
 pub struct Command {
     /// Parallel jobs to run
@@ -27,7 +29,8 @@ impl Command {
             .as_ebuild()
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
-        let jobs = self.jobs.unwrap_or_else(num_cpus::get);
+        // force bounds on jobs
+        let jobs = bounded_jobs(self.jobs);
 
         // use progress bar to show completion progress when outputting to a terminal
         let cbs: Callbacks = if stdout().is_terminal() {
