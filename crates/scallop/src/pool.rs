@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::os::fd::{AsRawFd, RawFd};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::thread;
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::errno;
@@ -145,29 +146,28 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Iterator for PoolIter<T> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Msg<T> {
+enum Msg<T> {
     Val(T),
     Stop,
 }
 
-pub struct PoolSendIter<O>
+pub struct PoolSendIter<I, O>
 where
+    I: Serialize + for<'a> Deserialize<'a>,
     O: Serialize + for<'a> Deserialize<'a>,
 {
+    input_tx: Option<IpcSender<Msg<I>>>,
     output_rx: IpcReceiver<O>,
+    thread: Option<thread::JoinHandle<()>>,
 }
 
-impl<O> PoolSendIter<O>
+impl<I, O> PoolSendIter<I, O>
 where
-    O: Serialize + for<'a> Deserialize<'a>,
+    I: Serialize + for<'a> Deserialize<'a> + Send + 'static,
+    O: Serialize + for<'a> Deserialize<'a> + Send,
 {
-    pub fn new<I, F>(
-        size: usize,
-        func: F,
-        suppress: bool,
-    ) -> crate::Result<(IpcSender<Msg<I>>, Self)>
+    pub fn new<F>(size: usize, func: F, suppress: bool) -> crate::Result<Self>
     where
-        I: Serialize + for<'a> Deserialize<'a>,
         F: FnOnce(I) -> O,
     {
         // enable internal bash SIGCHLD handler
@@ -208,12 +208,50 @@ where
             Err(e) => Err(Error::Base(format!("starting process pool failed: {e}"))),
         }?;
 
-        Ok((input_tx, Self { output_rx }))
+        Ok(Self {
+            input_tx: Some(input_tx),
+            output_rx,
+            thread: None,
+        })
+    }
+
+    /// Queue work for forked process pool, note this can only be called once per pool instance.
+    pub fn queue<V: IntoIterator<Item = I> + Send + 'static>(
+        &mut self,
+        vals: V,
+    ) -> crate::Result<()> {
+        let input_tx = self
+            .input_tx
+            .take()
+            .ok_or_else(|| Error::Base("work already queued".to_string()))?;
+
+        let thread = thread::spawn(move || {
+            for val in vals {
+                input_tx.send(Msg::Val(val)).expect("queuing value failed");
+            }
+            input_tx.send(Msg::Stop).expect("failed stopping workers");
+        });
+
+        self.thread = Some(thread);
+        Ok(())
     }
 }
 
-impl<O> Iterator for PoolSendIter<O>
+impl<I, O> Drop for PoolSendIter<I, O>
 where
+    I: Serialize + for<'a> Deserialize<'a>,
+    O: Serialize + for<'a> Deserialize<'a>,
+{
+    fn drop(&mut self) {
+        if let Some(thread) = self.thread.take() {
+            thread.join().expect("failed stopping pool");
+        }
+    }
+}
+
+impl<I, O> Iterator for PoolSendIter<I, O>
+where
+    I: Serialize + for<'a> Deserialize<'a>,
     O: Serialize + for<'a> Deserialize<'a>,
 {
     type Item = O;

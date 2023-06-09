@@ -13,6 +13,7 @@ use indexmap::{Equivalent, IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::{Lazy, OnceCell};
 use rayon::prelude::*;
+use scallop::pool::PoolSendIter;
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
 
@@ -498,14 +499,12 @@ impl Repo {
         force: bool,
         callbacks: Option<(F, G)>,
     ) -> crate::Result<usize> {
-        use scallop::pool::{Msg, PoolSendIter};
-
         // initialize pool before validation to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
-        let (tx, results_iter) = PoolSendIter::new(jobs, func, true)?;
+        let mut pool = PoolSendIter::new(jobs, func, true)?;
 
         // run cache validation in a thread pool
         let mut cpvs: Vec<_> = self.iter_cpv().collect();
@@ -521,32 +520,25 @@ impl Repo {
             cb_len(cpvs.len().try_into().unwrap());
         }
 
-        thread::scope(|s| {
-            // send Cpvs that require regen to the process pool
-            s.spawn(move || {
-                for cpv in cpvs {
-                    tx.send(Msg::Val(cpv)).expect("sending failed");
-                }
-                tx.send(Msg::Stop).expect("sending stop failed");
-            });
+        // send Cpvs that require regen to the process pool
+        pool.queue(cpvs)?;
 
-            // iterate over returned results, tracking progress and errors
-            let mut errors = 0;
-            for r in results_iter {
-                // log errors
-                if let Err(e) = r {
-                    errors += 1;
-                    error!("{e}");
-                }
-
-                // increment progress bar
-                if let Some((cb, _)) = &callbacks {
-                    cb();
-                }
+        // iterate over returned results, tracking progress and errors
+        let mut errors = 0;
+        for r in pool {
+            // log errors
+            if let Err(e) = r {
+                errors += 1;
+                error!("{e}");
             }
 
-            Ok(errors)
-        })
+            // increment progress bar
+            if let Some((cb, _)) = &callbacks {
+                cb();
+            }
+        }
+
+        Ok(errors)
     }
 
     /// Return an iterator of Cpvs for the repo.
