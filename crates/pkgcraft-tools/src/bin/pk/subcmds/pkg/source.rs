@@ -13,6 +13,7 @@ use pkgcraft::restrict::{self, Restrict};
 use scallop::pool::PoolIter;
 use tracing::error;
 
+use crate::args::bounded_jobs;
 use crate::StdinArgs;
 
 /// Duration bound to apply against elapsed time values.
@@ -208,7 +209,7 @@ impl Command {
             .as_ebuild()
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
-        let jobs = self.jobs.unwrap_or_else(num_cpus::get_physical);
+        let jobs = bounded_jobs(self.jobs);
         let pkgs = repo.iter_raw_restrict(restrict);
 
         let failed = if let Some(secs) = self.bench {

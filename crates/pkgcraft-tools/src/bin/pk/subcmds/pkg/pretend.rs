@@ -10,6 +10,7 @@ use pkgcraft::repo::Repo;
 use pkgcraft::restrict::{self, Restrict};
 use scallop::pool::PoolIter;
 
+use crate::args::bounded_jobs;
 use crate::StdinArgs;
 
 #[derive(Debug, Args)]
@@ -61,7 +62,7 @@ impl Command {
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
         let mut failed = false;
-        let jobs = self.jobs.unwrap_or_else(num_cpus::get);
+        let jobs = bounded_jobs(self.jobs);
         let pkgs = repo.iter_raw_restrict(restrict);
         let func = |raw_pkg: RawPkg| -> scallop::Result<()> {
             let pkg: Pkg = raw_pkg.into_pkg()?;
