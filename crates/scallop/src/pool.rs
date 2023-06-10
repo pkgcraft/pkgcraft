@@ -250,11 +250,11 @@ where
     }
 
     /// Create a new forked process pool, sending the given data to it for processing.
-    pub fn iter<V: Iterator<Item = I> + ExactSizeIterator + Send + 'static>(
-        &mut self,
+    pub fn iter<'a, V: Iterator<Item = I> + ExactSizeIterator + Send + 'static>(
+        &'a mut self,
         size: usize,
         vals: V,
-        progress: Option<ProgressCallback>,
+        progress: Option<&'a ProgressCallback>,
     ) -> crate::Result<PoolReceiveIter<O>> {
         self.request_pool_tx
             .send(Msg::Val(size))
@@ -296,16 +296,16 @@ where
     }
 }
 
-pub struct PoolReceiveIter<T>
+pub struct PoolReceiveIter<'cb, T>
 where
     T: Serialize + for<'a> Deserialize<'a>,
 {
     thread: Option<thread::JoinHandle<()>>,
     rx: IpcReceiver<T>,
-    progress: Option<ProgressCallback>,
+    progress: Option<&'cb ProgressCallback>,
 }
 
-impl<T> Drop for PoolReceiveIter<T>
+impl<T> Drop for PoolReceiveIter<'_, T>
 where
     T: Serialize + for<'a> Deserialize<'a>,
 {
@@ -318,7 +318,7 @@ where
     }
 }
 
-impl<T> Iterator for PoolReceiveIter<T>
+impl<T> Iterator for PoolReceiveIter<'_, T>
 where
     T: Serialize + for<'a> Deserialize<'a>,
 {

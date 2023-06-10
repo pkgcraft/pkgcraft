@@ -23,22 +23,12 @@ pub struct Command {
 
     // positionals
     /// Target repository
-    #[arg(required = true)]
-    repo: String,
+    #[arg(value_name = "REPO")]
+    repos: Vec<String>,
 }
 
 impl Command {
     pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
-        // determine target repo
-        let repo = match config.repos.get(&self.repo) {
-            Some(r) => r.clone(),
-            None => RepoFormat::Ebuild.load_from_path(&self.repo, 0, &self.repo, true)?,
-        };
-
-        let repo = repo
-            .as_ebuild()
-            .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
-
         // force bounds on jobs
         let jobs = bounded_jobs(self.jobs)?;
 
@@ -53,10 +43,31 @@ impl Command {
             None
         };
 
-        // run metadata regeneration
-        let errors = repo.pkg_metadata_regen(jobs, self.force, progress_cb)?;
+        // determine target repos
+        let mut repos = vec![];
+        for repo in &self.repos {
+            let repo = match config.repos.get(repo) {
+                Some(r) => r.clone(),
+                None => RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)?,
+            };
 
-        if errors > 0 {
+            let repo = repo
+                .as_ebuild()
+                .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
+
+            repos.push(repo.clone());
+        }
+
+        // run metadata regeneration
+        let mut failed = false;
+        for repo in &repos {
+            let errors = repo.pkg_metadata_regen(jobs, self.force, progress_cb.as_ref())?;
+            if errors > 0 {
+                failed = true;
+            }
+        }
+
+        if failed {
             Ok(ExitCode::FAILURE)
         } else {
             Ok(ExitCode::SUCCESS)

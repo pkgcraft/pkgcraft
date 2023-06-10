@@ -498,7 +498,7 @@ impl Repo {
         &self,
         jobs: usize,
         force: bool,
-        progress_cb: Option<ProgressCallback>,
+        progress_cb: Option<&ProgressCallback>,
     ) -> crate::Result<usize> {
         // initialize pool before validation to minimize forked process memory pages
         let func = |cpv: Cpv| {
