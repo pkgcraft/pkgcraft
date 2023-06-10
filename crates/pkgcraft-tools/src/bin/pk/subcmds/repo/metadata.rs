@@ -32,7 +32,7 @@ impl Command {
         let jobs = bounded_jobs(self.jobs);
 
         // use progress bar to show completion progress when outputting to a terminal
-        let cbs: Option<ProgressCallback> = if stdout().is_terminal() {
+        let progress_cb: Option<ProgressCallback> = if stdout().is_terminal() {
             let pb = ProgressBar::new(0);
             let pb_len = pb.clone();
             let cb_inc = move |val| pb.inc(val);
@@ -43,7 +43,7 @@ impl Command {
         };
 
         // run metadata regeneration
-        let errors = repo.pkg_metadata_regen(jobs, self.force, cbs)?;
+        let errors = repo.pkg_metadata_regen(jobs, self.force, progress_cb)?;
 
         if errors > 0 {
             Ok(ExitCode::FAILURE)
