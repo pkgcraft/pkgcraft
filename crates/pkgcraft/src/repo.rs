@@ -30,6 +30,33 @@ pub enum RepoFormat {
     Empty,
 }
 
+impl RepoFormat {
+    /// Try to load a specific repo type from a given path.
+    pub fn load_from_path<P: AsRef<Utf8Path>>(
+        &self,
+        id: &str,
+        priority: i32,
+        path: P,
+        finalize: bool,
+    ) -> crate::Result<Repo> {
+        let path = path.as_ref();
+        let repo: Repo = match self {
+            Self::Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
+            Self::Fake => fake::Repo::from_path(id, priority, path)?.into(),
+            Self::Empty => empty::Repo::from_path(id, priority, path)?.into(),
+        };
+
+        // try to finalize as a stand-alone repo
+        if finalize {
+            let existing = IndexMap::<_, _>::new();
+            repo.finalize(&existing)
+                .map_err(|e| Error::RepoInit(format!("overlay must be added via config: {e}")))?;
+        }
+
+        Ok(repo)
+    }
+}
+
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Debug, Clone)]
 pub enum Repo {
@@ -66,14 +93,16 @@ make_repo_traits!(Repo);
 
 impl Repo {
     /// Try to load a repo from a given path.
-    pub fn from_path<P>(id: &str, priority: i32, path: P, finalize: bool) -> crate::Result<Self>
-    where
-        P: AsRef<Utf8Path>,
-    {
+    pub fn from_path<P: AsRef<Utf8Path>>(
+        id: &str,
+        priority: i32,
+        path: P,
+        finalize: bool,
+    ) -> crate::Result<Self> {
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
-            match Self::from_format(id, priority, path, format, finalize) {
+            match format.load_from_path(id, priority, path, finalize) {
                 Err(e @ Error::NotARepo { .. }) => tracing::debug!("{e}"),
                 Err(e) => return Err(e),
                 result => return result,
@@ -87,36 +116,6 @@ impl Repo {
         };
 
         Err(Error::RepoInit(err.to_string()))
-    }
-
-    /// Try to load a certain repo type from a given path.
-    pub fn from_format<P>(
-        id: &str,
-        priority: i32,
-        path: P,
-        format: RepoFormat,
-        finalize: bool,
-    ) -> crate::Result<Self>
-    where
-        P: AsRef<Utf8Path>,
-    {
-        let path = path.as_ref();
-
-        use RepoFormat::*;
-        let repo: Self = match format {
-            Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
-            Fake => fake::Repo::from_path(id, priority, path)?.into(),
-            Empty => empty::Repo::from_path(id, priority, path)?.into(),
-        };
-
-        // try to finalize as a stand-alone repo
-        if finalize {
-            let existing = IndexMap::<_, _>::new();
-            repo.finalize(&existing)
-                .map_err(|e| Error::RepoInit(format!("overlay must be added via config: {e}")))?;
-        }
-
-        Ok(repo)
     }
 
     pub(super) fn finalize(&self, existing_repos: &IndexMap<String, Repo>) -> crate::Result<()> {

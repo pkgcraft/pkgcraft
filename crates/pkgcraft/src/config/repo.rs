@@ -107,7 +107,10 @@ impl Config {
         let mut repos = vec![];
         for (name, c) in configs.into_iter() {
             // ignore unsynced or nonexistent repos
-            match Repo::from_format(&name, c.priority, &c.location, c.format, false) {
+            match c
+                .format
+                .load_from_path(&name, c.priority, &c.location, false)
+            {
                 Ok(repo) => repos.push(repo),
                 Err(err) => warn!("{err}"),
             }

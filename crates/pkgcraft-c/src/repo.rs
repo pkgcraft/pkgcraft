@@ -52,10 +52,10 @@ pub unsafe extern "C" fn pkgcraft_repo_from_path(
 /// The path argument should be a valid path on the system.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_from_format(
+    format: RepoFormat,
     id: *const c_char,
     priority: c_int,
     path: *const c_char,
-    format: RepoFormat,
     finalize: bool,
 ) -> *mut Repo {
     ffi_catch_panic! {
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn pkgcraft_repo_from_format(
             try_str_from_ptr!(id)
         };
 
-        let repo = unwrap_or_panic!(Repo::from_format(id, priority, path, format, finalize));
+        let repo = unwrap_or_panic!(format.load_from_path(id, priority, path, finalize));
         Box::into_raw(Box::new(repo))
     }
 }
