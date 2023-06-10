@@ -74,7 +74,8 @@ impl Repo {
 
         for format in RepoFormat::iter() {
             match Self::from_format(id, priority, path, format, finalize) {
-                Err(e) => tracing::debug!("{e}"),
+                Err(e @ Error::NotARepo { .. }) => tracing::debug!("{e}"),
+                Err(e) => return Err(e),
                 result => return result,
             }
         }

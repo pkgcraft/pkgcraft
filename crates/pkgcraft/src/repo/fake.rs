@@ -48,7 +48,11 @@ impl Repo {
 
     pub fn from_path<P: AsRef<Utf8Path>>(id: &str, priority: i32, path: P) -> crate::Result<Self> {
         let path = path.as_ref();
-        let data = fs::read_to_string(path).map_err(|e| Error::RepoInit(e.to_string()))?;
+        let data = fs::read_to_string(path).map_err(|e| Error::NotARepo {
+            kind: RepoFormat::Fake,
+            id: id.to_string(),
+            err: e.to_string(),
+        })?;
         let repo_config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,

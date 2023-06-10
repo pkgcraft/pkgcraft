@@ -2,6 +2,7 @@ use std::convert::Infallible;
 
 use crate::peg;
 use crate::pkg::Package;
+use crate::repo::RepoFormat;
 
 /// A `Result` alias where the `Err` case is `pkgcraft::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -16,6 +17,12 @@ pub enum Error {
     InvalidValue(String),
     #[error("invalid repo: {id}: {err}")]
     InvalidRepo { id: String, err: String },
+    #[error("invalid {kind} repo: {id}: {err}")]
+    NotARepo {
+        kind: RepoFormat,
+        id: String,
+        err: String,
+    },
     #[error("invalid pkg: {id}: {err}")]
     InvalidPkg { id: String, err: String },
     #[error("{id}: {err}")]

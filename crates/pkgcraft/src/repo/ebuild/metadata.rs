@@ -14,6 +14,7 @@ use crate::dep::{parse, Dep};
 use crate::eapi::Eapi;
 use crate::files::{is_file, is_hidden, sorted_dir_list};
 use crate::pkg::ebuild::metadata::HashType;
+use crate::repo::RepoFormat;
 use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
@@ -267,6 +268,13 @@ pub struct Metadata {
 
 impl Metadata {
     pub(super) fn new(id: &str, path: &Utf8Path) -> crate::Result<Self> {
+        let not_a_repo = |err: String| -> Error {
+            Error::NotARepo {
+                kind: RepoFormat::Ebuild,
+                id: id.to_string(),
+                err,
+            }
+        };
         let invalid_repo =
             |err: String| -> Error { Error::InvalidRepo { id: id.to_string(), err } };
 
@@ -277,7 +285,7 @@ impl Metadata {
                 Some(Err(e)) => Err(invalid_repo(format!("profiles/repo_name: {e}"))),
                 None => Err(invalid_repo("profiles/repo_name empty".to_string())),
             },
-            Err(e) => Err(invalid_repo(format!("profiles/repo_name: {e}"))),
+            Err(e) => Err(not_a_repo(format!("profiles/repo_name: {e}"))),
         }?;
 
         // verify repo EAPI

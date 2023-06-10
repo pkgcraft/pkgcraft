@@ -37,7 +37,11 @@ impl Repo {
         if path.exists() {
             Ok(Self::new(id, priority))
         } else {
-            Err(Error::RepoInit("not an empty repo".to_string()))
+            Err(Error::NotARepo {
+                kind: RepoFormat::Empty,
+                id: id.to_string(),
+                err: "repo dir exists".to_string(),
+            })
         }
     }
 
