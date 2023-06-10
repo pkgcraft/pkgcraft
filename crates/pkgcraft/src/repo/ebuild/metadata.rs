@@ -18,6 +18,8 @@ use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
+use super::cache::CacheFormat;
+
 /// Wrapper for ini format config files.
 struct Ini(ini::Ini);
 
@@ -56,6 +58,7 @@ impl Ini {
 /// Ebuild repo configuration as defined by GLEP 82.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Config {
+    cache_formats: OrderedSet<CacheFormat>,
     manifest_hashes: OrderedSet<HashType>,
     manifest_required_hashes: OrderedSet<HashType>,
     masters: OrderedSet<String>,
@@ -63,28 +66,32 @@ pub struct Config {
     restrict_allowed: OrderedSet<String>,
 }
 
+macro_rules! ordered_set {
+    ($ini:expr, $key:expr, $type:ident) => {
+        $ini.iter($key)
+            .map(|s| $type::from_str(s).map_err(|e| Error::InvalidValue(e.to_string())))
+            .collect::<crate::Result<OrderedSet<_>>>()
+    };
+}
+
 impl Config {
     fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
         let path = repo_path.join("metadata/layout.conf");
         let ini = Ini::load(&path)?;
 
-        // convert iterable config values into collection
-        let ini_iter = |key: &str| ini.iter(key).map(String::from).collect();
-
-        // convert iterable hash values into collection
-        let ini_hashes = |key: &str| -> crate::Result<OrderedSet<_>> {
-            ini.iter(key)
-                .map(|s| HashType::from_str(s).map_err(|e| Error::InvalidValue(e.to_string())))
-                .collect()
-        };
-
         Ok(Self {
-            manifest_hashes: ini_hashes("manifest-hashes")?,
-            manifest_required_hashes: ini_hashes("manifest-required-hashes")?,
-            masters: ini_iter("masters"),
-            properties_allowed: ini_iter("properties-allowed"),
-            restrict_allowed: ini_iter("restrict-allowed"),
+            cache_formats: ordered_set!(ini, "cache-formats", CacheFormat)?,
+            manifest_hashes: ordered_set!(ini, "manifest-hashes", HashType)?,
+            manifest_required_hashes: ordered_set!(ini, "manifest-required-hashes", HashType)?,
+            masters: ordered_set!(ini, "masters", String)?,
+            properties_allowed: ordered_set!(ini, "properties-allowed", String)?,
+            restrict_allowed: ordered_set!(ini, "restrict-allowed", String)?,
         })
+    }
+
+    /// Return the list of hash types that must be used for Manifest entries.
+    pub fn cache_formats(&self) -> &OrderedSet<CacheFormat> {
+        &self.cache_formats
     }
 
     /// Return the list of hash types that must be used for Manifest entries.

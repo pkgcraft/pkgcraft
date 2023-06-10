@@ -34,6 +34,7 @@ use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
+mod cache;
 mod metadata;
 pub use metadata::Metadata;
 
