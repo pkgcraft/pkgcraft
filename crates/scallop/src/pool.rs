@@ -151,6 +151,28 @@ enum Msg<T> {
     Stop,
 }
 
+pub struct ProgressCallback {
+    inc: Box<dyn Fn(u64)>,
+    set: Box<dyn Fn(u64)>,
+}
+
+impl ProgressCallback {
+    pub fn new<F: Fn(u64) + 'static, G: Fn(u64) + 'static>(inc: F, set: G) -> Self {
+        Self {
+            inc: Box::new(inc),
+            set: Box::new(set),
+        }
+    }
+
+    pub fn inc(&self, val: u64) {
+        (self.inc)(val)
+    }
+
+    pub fn set(&self, val: u64) {
+        (self.set)(val)
+    }
+}
+
 pub struct PoolSendIter<I, O>
 where
     I: Serialize + for<'a> Deserialize<'a>,
@@ -228,10 +250,11 @@ where
     }
 
     /// Create a new forked process pool, sending the given data to it for processing.
-    pub fn iter<V: IntoIterator<Item = I> + Send + 'static>(
+    pub fn iter<V: Iterator<Item = I> + ExactSizeIterator + Send + 'static>(
         &mut self,
         size: usize,
         vals: V,
+        progress: Option<ProgressCallback>,
     ) -> crate::Result<PoolReceiveIter<O>> {
         self.request_pool_tx
             .send(Msg::Val(size))
@@ -241,6 +264,11 @@ where
             .recv()
             .map_err(|e| Error::Base(format!("failed creating pool: {e}")))?;
 
+        // set progress bar length
+        if let Some(cb) = &progress {
+            cb.set(vals.len().try_into().unwrap());
+        }
+
         let thread = thread::spawn(move || {
             for val in vals {
                 tx.send(Msg::Val(val)).expect("queuing value failed");
@@ -248,7 +276,11 @@ where
             tx.send(Msg::Stop).expect("failed stopping workers");
         });
 
-        Ok(PoolReceiveIter { thread: Some(thread), rx })
+        Ok(PoolReceiveIter {
+            thread: Some(thread),
+            rx,
+            progress,
+        })
     }
 }
 
@@ -270,6 +302,7 @@ where
 {
     thread: Option<thread::JoinHandle<()>>,
     rx: IpcReceiver<T>,
+    progress: Option<ProgressCallback>,
 }
 
 impl<T> Drop for PoolReceiveIter<T>
@@ -293,7 +326,14 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.rx.recv() {
-            Ok(r) => Some(r),
+            Ok(r) => {
+                // increment progress bar
+                if let Some(cb) = &self.progress {
+                    cb.inc(1);
+                }
+
+                Some(r)
+            }
             Err(IpcError::Disconnected) => None,
             Err(e) => panic!("output receiver failed: {e}"),
         }

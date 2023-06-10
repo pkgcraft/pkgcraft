@@ -13,7 +13,7 @@ use indexmap::{Equivalent, IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::{Lazy, OnceCell};
 use rayon::prelude::*;
-use scallop::pool::PoolSendIter;
+use scallop::pool::{PoolSendIter, ProgressCallback};
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
 
@@ -493,11 +493,11 @@ impl Repo {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen<F: Fn(), G: Fn(u64)>(
+    pub fn pkg_metadata_regen(
         &self,
         jobs: usize,
         force: bool,
-        callbacks: Option<(F, G)>,
+        progress_cb: Option<ProgressCallback>,
     ) -> crate::Result<usize> {
         // initialize pool before validation to minimize forked process memory pages
         let func = |cpv: Cpv| {
@@ -515,23 +515,13 @@ impl Repo {
                 .collect()
         }
 
-        // set progress bar length
-        if let Some((_, cb_len)) = &callbacks {
-            cb_len(cpvs.len().try_into().unwrap());
-        }
-
         // send Cpvs and iterate over returned results, tracking progress and errors
         let mut errors = 0;
-        for r in pool.iter(jobs, cpvs)? {
+        for r in pool.iter(jobs, cpvs.into_iter(), progress_cb)? {
             // log errors
             if let Err(e) = r {
                 errors += 1;
                 error!("{e}");
-            }
-
-            // increment progress bar
-            if let Some((cb, _)) = &callbacks {
-                cb();
             }
         }
 

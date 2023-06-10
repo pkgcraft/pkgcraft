@@ -84,8 +84,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_pkg_metadata_regen(
 ) -> *mut usize {
     ffi_catch_panic! {
         let repo = try_repo_from_ptr!(r);
-        let cbs = None::<(&dyn Fn(), &dyn Fn(u64))>;
-        let errors = unwrap_or_panic!(repo.pkg_metadata_regen(jobs, force, cbs));
+        let errors = unwrap_or_panic!(repo.pkg_metadata_regen(jobs, force, None));
         unsafe { *len = errors };
         len
     }
