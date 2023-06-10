@@ -5,7 +5,8 @@ use anyhow::anyhow;
 use clap::Args;
 use indicatif::ProgressBar;
 use is_terminal::IsTerminal;
-use pkgcraft::repo::Repo;
+use pkgcraft::config::Config;
+use pkgcraft::repo::RepoFormat;
 use scallop::pool::ProgressCallback;
 
 use crate::args::bounded_jobs;
@@ -19,11 +20,21 @@ pub struct Command {
     /// Force regeneration to occur
     #[arg(short, long)]
     force: bool,
+
+    // positionals
+    /// Target repository
+    #[arg(required = true)]
+    repo: String,
 }
 
 impl Command {
-    pub(super) fn run(&self, repo: Repo) -> anyhow::Result<ExitCode> {
-        // collapse repo into ebuild repo
+    pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
+        // determine target repo
+        let repo = match config.repos.get(&self.repo) {
+            Some(r) => r.clone(),
+            None => RepoFormat::Ebuild.load_from_path(&self.repo, 0, &self.repo, true)?,
+        };
+
         let repo = repo
             .as_ebuild()
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;

@@ -1,8 +1,6 @@
 use std::process::ExitCode;
 
-use anyhow::anyhow;
 use pkgcraft::config::Config;
-use pkgcraft::repo::Repo;
 
 use crate::Run;
 
@@ -12,23 +10,11 @@ mod metadata;
 pub struct Command {
     #[command(subcommand)]
     command: Subcommand,
-
-    /// Target repository
-    #[arg(short, long, required = true)]
-    repo: String,
 }
 
 impl Run for Command {
     fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
-        // determine target repo
-        let repo = match config.repos.get(&self.repo) {
-            Some(r) => Ok(r.clone()),
-            None => Repo::from_path(&self.repo, 0, &self.repo, true),
-        };
-
-        let repo = repo.map_err(|_| anyhow!("unknown repo: {}", self.repo))?;
-
-        self.command.run(repo)
+        self.command.run(config)
     }
 }
 
@@ -39,10 +25,10 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    fn run(&self, repo: Repo) -> anyhow::Result<ExitCode> {
+    fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
-            Metadata(cmd) => cmd.run(repo),
+            Metadata(cmd) => cmd.run(config),
         }
     }
 }
