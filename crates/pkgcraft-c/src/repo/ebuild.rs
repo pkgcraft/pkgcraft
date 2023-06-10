@@ -73,19 +73,19 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
 
 /// Regenerate an ebuild repo's package metadata cache.
 ///
+/// Returns false on error, otherwise true.
+///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_pkg_metadata_regen(
     r: *mut Repo,
-    len: *mut usize,
     jobs: usize,
     force: bool,
-) -> *mut usize {
+) -> bool {
     ffi_catch_panic! {
         let repo = try_repo_from_ptr!(r);
         let errors = unwrap_or_panic!(repo.pkg_metadata_regen(jobs, force, None));
-        unsafe { *len = errors };
-        len
+        errors > 0
     }
 }
