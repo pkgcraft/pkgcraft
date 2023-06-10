@@ -209,7 +209,7 @@ impl Command {
             .as_ebuild()
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
-        let jobs = bounded_jobs(self.jobs);
+        let jobs = bounded_jobs(self.jobs)?;
         let pkgs = repo.iter_raw_restrict(restrict);
 
         let failed = if let Some(secs) = self.bench {

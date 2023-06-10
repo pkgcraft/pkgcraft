@@ -29,7 +29,7 @@ impl Command {
             .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
 
         // force bounds on jobs
-        let jobs = bounded_jobs(self.jobs);
+        let jobs = bounded_jobs(self.jobs)?;
 
         // use progress bar to show completion progress when outputting to a terminal
         let progress_cb: Option<ProgressCallback> = if stdout().is_terminal() {
