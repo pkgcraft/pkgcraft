@@ -22,8 +22,8 @@ pub struct Command {
     force: bool,
 
     // positionals
-    /// Target repository
-    #[arg(value_name = "REPO")]
+    /// Target repositories
+    #[arg(value_name = "REPO", required = true)]
     repos: Vec<String>,
 }
 
