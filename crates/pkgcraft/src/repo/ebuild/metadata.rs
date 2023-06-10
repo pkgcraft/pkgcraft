@@ -69,7 +69,10 @@ pub struct Config {
 macro_rules! ordered_set {
     ($ini:expr, $key:expr, $type:ident) => {
         $ini.iter($key)
-            .map(|s| $type::from_str(s).map_err(|e| Error::InvalidValue(e.to_string())))
+            .map(|s| {
+                $type::from_str(s)
+                    .map_err(|_| Error::InvalidValue(format!("unsupported {}: {s}", $key)))
+            })
             .collect::<crate::Result<OrderedSet<_>>>()
     };
 }
