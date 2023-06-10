@@ -93,22 +93,22 @@ impl Config {
         })
     }
 
-    /// Return the list of hash types that must be used for Manifest entries.
+    /// Return the ordered set of metadata cache types.
     pub fn cache_formats(&self) -> &OrderedSet<CacheFormat> {
         &self.cache_formats
     }
 
-    /// Return the list of hash types that must be used for Manifest entries.
+    /// Return the ordered set of hash types that must be used for Manifest entries.
     pub fn manifest_required_hashes(&self) -> &OrderedSet<HashType> {
         &self.manifest_required_hashes
     }
 
-    /// Return the list of hash types that should be used for Manifest entries.
+    /// Return the ordered set of hash types that should be used for Manifest entries.
     pub fn manifest_hashes(&self) -> &OrderedSet<HashType> {
         &self.manifest_hashes
     }
 
-    /// Return the list of inherited repo ids.
+    /// Return the ordered set of inherited repo ids.
     pub fn masters(&self) -> &OrderedSet<String> {
         &self.masters
     }
