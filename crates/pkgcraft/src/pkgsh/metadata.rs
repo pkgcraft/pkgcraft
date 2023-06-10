@@ -177,7 +177,7 @@ impl Metadata {
     }
 
     /// Serialize [`Metadata`] to the given package's metadata/md5-cache file in the related repo.
-    pub(crate) fn serialize(&self, pkg: &RawPkg) -> crate::Result<()> {
+    pub(crate) fn serialize(pkg: &RawPkg) -> crate::Result<()> {
         let dir = pkg
             .repo()
             .metadata()
@@ -197,37 +197,40 @@ impl Metadata {
                 .digest()
         };
 
+        // source package
+        let meta = Self::source(pkg)?;
+
         // convert metadata fields to metadata lines
         use Key::*;
         let mut data = Key::iter()
             .filter_map(|key| match key {
-                Description => Some(key.line(&self.description)),
-                Slot => Some(key.line(&self.slot)),
+                Description => Some(key.line(&meta.description)),
+                Slot => Some(key.line(&meta.slot)),
                 Depend | Bdepend | Idepend | Rdepend | Pdepend => {
-                    self.deps.get(&key).map(|d| key.line(d))
+                    meta.deps.get(&key).map(|d| key.line(d))
                 }
-                License => self.license.as_ref().map(|d| key.line(d)),
-                Properties => self.properties.as_ref().map(|d| key.line(d)),
-                RequiredUse => self.required_use.as_ref().map(|d| key.line(d)),
-                Restrict => self.restrict.as_ref().map(|d| key.line(d)),
-                SrcUri => self.src_uri.as_ref().map(|d| key.line(d)),
-                Homepage => join!(&self.homepage).map(|s| key.line(s)),
+                License => meta.license.as_ref().map(|d| key.line(d)),
+                Properties => meta.properties.as_ref().map(|d| key.line(d)),
+                RequiredUse => meta.required_use.as_ref().map(|d| key.line(d)),
+                Restrict => meta.restrict.as_ref().map(|d| key.line(d)),
+                SrcUri => meta.src_uri.as_ref().map(|d| key.line(d)),
+                Homepage => join!(&meta.homepage).map(|s| key.line(s)),
                 DefinedPhases => {
                     // PMS specifies if no phase functions are defined, a single hyphen is used.
-                    if self.defined_phases.is_empty() {
+                    if meta.defined_phases.is_empty() {
                         Some(key.line("-"))
                     } else {
-                        Some(key.line(self.defined_phases.iter().join(" ")))
+                        Some(key.line(meta.defined_phases.iter().join(" ")))
                     }
                 }
-                Keywords => join!(&self.keywords).map(|s| key.line(s)),
-                Iuse => join!(&self.iuse).map(|s| key.line(s)),
-                Inherit => join!(&self.inherit).map(|s| key.line(s)),
+                Keywords => join!(&meta.keywords).map(|s| key.line(s)),
+                Iuse => join!(&meta.iuse).map(|s| key.line(s)),
+                Inherit => join!(&meta.inherit).map(|s| key.line(s)),
                 Inherited => {
-                    if self.inherited.is_empty() {
+                    if meta.inherited.is_empty() {
                         None
                     } else {
-                        let data = self
+                        let data = meta
                             .inherited
                             .iter()
                             .flat_map(|s| [s.as_str(), eclass_digest(s)])

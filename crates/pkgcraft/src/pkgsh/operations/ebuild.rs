@@ -69,12 +69,7 @@ impl<'a> SourceablePackage for RawPkg<'a> {
     }
 
     fn metadata(&self) -> scallop::Result<()> {
-        // source package and generate metadata
-        let meta = Metadata::source(self)?;
-
-        // serialize metadata to disk
-        meta.serialize(self).map_err(|e| self.pkg_err(e))?;
-
-        Ok(())
+        // serialize package metadata to disk
+        Ok(Metadata::serialize(self).map_err(|e| self.pkg_err(e))?)
     }
 }
