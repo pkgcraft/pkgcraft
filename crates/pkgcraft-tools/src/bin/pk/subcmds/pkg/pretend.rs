@@ -3,16 +3,17 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use clap::Args;
+use is_terminal::IsTerminal;
+use itertools::Either;
 use pkgcraft::config::{Config, RepoSetType};
 use pkgcraft::pkg::ebuild::{Pkg, RawPkg};
 use pkgcraft::pkg::BuildablePackage;
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::restrict::{self, Restrict};
+use pkgcraft::restrict;
 use scallop::pool::PoolIter;
 
 use crate::args::bounded_jobs;
-use crate::StdinArgs;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -21,34 +22,17 @@ pub struct Command {
     jobs: Option<usize>,
 
     /// Target repository
-    #[arg(short, long, required = false)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     // positionals
     /// Target packages
-    #[arg(value_name = "PKG", required = false)]
+    #[arg(value_name = "PKG")]
     vals: Vec<String>,
 }
 
 impl Command {
     pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
-        let mut restricts = vec![];
-
-        if self.vals.stdin_args()? {
-            for line in stdin().lines() {
-                for s in line?.split_whitespace() {
-                    restricts.push(restrict::parse::dep(s)?);
-                }
-            }
-        } else {
-            for s in &self.vals {
-                restricts.push(restrict::parse::dep(s)?);
-            }
-        }
-
-        // combine restricts into a single entity
-        let restrict = Restrict::and(restricts);
-
         // determine target repo set
         let reposet = if let Some(repo) = self.repo.as_ref() {
             let repo = if let Some(r) = config.repos.get(repo) {
@@ -75,23 +59,33 @@ impl Command {
             anyhow::bail!("no matching ebuild repos found");
         }
 
-        // convert repos into packages
-        let pkgs = repos
-            .into_iter()
-            .flat_map(|r| r.iter_raw_restrict(restrict.clone()));
+        // pull targets from args or stdin
+        let args = if stdin().is_terminal() {
+            Either::Left(self.vals.clone().into_iter())
+        } else {
+            Either::Right(stdin().lines().map_while(Result::ok))
+        };
 
-        let mut failed = false;
-        let jobs = bounded_jobs(self.jobs)?;
         let func = |raw_pkg: RawPkg| -> scallop::Result<()> {
             let pkg: Pkg = raw_pkg.into_pkg()?;
             pkg.pretend()
         };
 
-        // run pkg_pretend across selected pkgs
-        for r in PoolIter::new(jobs, pkgs, func, true)? {
-            if let Err(e) = r {
-                failed = true;
-                eprintln!("{e}");
+        // loop over targets, tracking overall failure status
+        let jobs = bounded_jobs(self.jobs)?;
+        let mut failed = false;
+        for target in args {
+            let restrict = restrict::parse::dep(&target)?;
+
+            // convert repos into packages
+            let pkgs = repos.iter().flat_map(|r| r.iter_raw_restrict(&restrict));
+
+            // run pkg_pretend across selected pkgs
+            for r in PoolIter::new(jobs, pkgs, func, true)? {
+                if let Err(e) = r {
+                    failed = true;
+                    eprintln!("{e}");
+                }
             }
         }
 

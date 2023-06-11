@@ -5,17 +5,18 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::Args;
+use is_terminal::IsTerminal;
+use itertools::Either;
 use pkgcraft::config::{Config, RepoSetType};
 use pkgcraft::pkg::ebuild::RawPkg;
 use pkgcraft::pkg::SourceablePackage;
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::restrict::{self, Restrict};
+use pkgcraft::restrict;
 use scallop::pool::PoolIter;
 use tracing::error;
 
 use crate::args::bounded_jobs;
-use crate::StdinArgs;
 
 /// Duration bound to apply against elapsed time values.
 #[derive(Debug, Copy, Clone)]
@@ -68,20 +69,20 @@ pub struct Command {
     jobs: Option<usize>,
 
     /// Target repository
-    #[arg(short, long, required = false)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     /// Benchmark sourcing for a given number of seconds per package
-    #[arg(long, required = false)]
+    #[arg(long)]
     bench: Option<u64>,
 
     /// Elapsed time bound to apply
-    #[arg(short, long, required = false)]
+    #[arg(short, long)]
     bound: Option<Bound>,
 
     // positionals
     /// Target packages
-    #[arg(value_name = "PKG", required = false)]
+    #[arg(value_name = "PKG")]
     vals: Vec<String>,
 }
 
@@ -182,23 +183,6 @@ impl Command {
     }
 
     pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
-        let mut restricts = vec![];
-
-        if self.vals.stdin_args()? {
-            for line in stdin().lines() {
-                for s in line?.split_whitespace() {
-                    restricts.push(restrict::parse::dep(s)?);
-                }
-            }
-        } else {
-            for s in &self.vals {
-                restricts.push(restrict::parse::dep(s)?);
-            }
-        }
-
-        // combine restricts into a single entity
-        let restrict = Restrict::and(restricts);
-
         // determine target repo set
         let reposet = if let Some(repo) = self.repo.as_ref() {
             let repo = if let Some(r) = config.repos.get(repo) {
@@ -223,18 +207,32 @@ impl Command {
             anyhow::bail!("no matching ebuild repos found");
         }
 
-        // convert repos into packages
-        let pkgs = repos
-            .into_iter()
-            .flat_map(|r| r.iter_raw_restrict(restrict.clone()));
-
-        let jobs = bounded_jobs(self.jobs)?;
-
-        let failed = if let Some(secs) = self.bench {
-            self.benchmark(secs, jobs, pkgs)
+        // pull targets from args or stdin
+        let args = if stdin().is_terminal() {
+            Either::Left(self.vals.clone().into_iter())
         } else {
-            self.source(jobs, pkgs)
-        }?;
+            Either::Right(stdin().lines().map_while(Result::ok))
+        };
+
+        // loop over targets, tracking overall failure status
+        let jobs = bounded_jobs(self.jobs)?;
+        let mut failed = false;
+        for target in args {
+            let restrict = restrict::parse::dep(&target)?;
+
+            // convert repos into packages
+            let pkgs = repos.iter().flat_map(|r| r.iter_raw_restrict(&restrict));
+
+            let target_failed = if let Some(secs) = self.bench {
+                self.benchmark(secs, jobs, pkgs)
+            } else {
+                self.source(jobs, pkgs)
+            }?;
+
+            if target_failed {
+                failed = true;
+            }
+        }
 
         if failed {
             Ok(ExitCode::FAILURE)
