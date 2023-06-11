@@ -6,6 +6,7 @@ on:
     branches: ['**']
     paths:
       - ".github/workflows/pkgcraft-tools-release.yml"
+  workflow_dispatch:
 
 jobs:
   source:
