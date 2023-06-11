@@ -3,12 +3,13 @@ name: pkgcraft-tools-release
 on:
   push:
     tags: [pkgcraft-tools-*]
+    branches: ['**']
+    paths:
+      - ".github/workflows/pkgcraft-tools-release.yml"
 
 jobs:
-  release:
+  source:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
     - name: Checkout pkgcraft workspace
       uses: actions/checkout@v3
@@ -25,14 +26,63 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: pkgcraft-tools
-        path: target/package/${{ github.ref_name }}.tar.xz
+        name: source
+        path: ./*.tar.xz
         if-no-files-found: error
         retention-days: 3
 
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+
+    steps:
+    - name: Checkout pkgcraft workspace
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Set up rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cross
+      run: cargo install cross --git https://github.com/cross-rs/cross
+
+    - name: Create static binary
+      run: cross build --target ${{ matrix.target }} --release -p pkgcraft-tools
+
+    - name: Create tarball
+      run: |
+        tar -C target/${{ matrix.target }}/release \
+          -cv -I "xz -9 -T0" -f ${{ github.ref_name }}-${{ matrix.target }}.tar.xz \
+          pk
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux
+        path: ./*.tar.xz
+        if-no-files-found: error
+        retention-days: 3
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: ["source", "linux"]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+
     - name: Create GitHub release
-      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: target/package/${{ github.ref_name }}.tar.xz
+        files: |
+          source/*.tar.xz
+          linux/*.tar.xz
         fail_on_unmatched_files: true
