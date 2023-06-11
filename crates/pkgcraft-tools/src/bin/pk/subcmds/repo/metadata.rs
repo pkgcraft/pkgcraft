@@ -1,10 +1,11 @@
 use std::io::stdout;
+use std::path::Path;
 use std::process::ExitCode;
 
-use anyhow::anyhow;
 use clap::Args;
 use indicatif::ProgressBar;
 use is_terminal::IsTerminal;
+use itertools::Itertools;
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use scallop::pool::ProgressCallback;
@@ -44,18 +45,27 @@ impl Command {
         };
 
         // determine target repos
+        let mut invalid = vec![];
         let mut repos = vec![];
         for repo in &self.repos {
-            let repo = match config.repos.get(repo) {
-                Some(r) => r.clone(),
-                None => RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)?,
-            };
+            let repo = if Path::new(repo).exists() {
+                RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)
+            } else if let Some(r) = config.repos.get(repo) {
+                Ok(r.clone())
+            } else {
+                anyhow::bail!("unknown repo: {repo}")
+            }?;
 
-            let repo = repo
-                .as_ebuild()
-                .ok_or_else(|| anyhow!("non-ebuild repo: {repo}"))?;
+            if let Some(r) = repo.as_ebuild() {
+                repos.push(r.clone());
+            } else {
+                invalid.push(repo);
+            }
+        }
 
-            repos.push(repo.clone());
+        if !invalid.is_empty() {
+            let repos = invalid.iter().map(|s| s.to_string()).join(", ");
+            anyhow::bail!("non-ebuild repos: {repos}");
         }
 
         // run metadata regeneration
