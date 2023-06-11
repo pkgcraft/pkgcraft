@@ -24,6 +24,12 @@ boolean::restrict_with_boolean! {Restrict,
     Str(str::Restrict),
 }
 
+impl From<&Restrict> for Restrict {
+    fn from(r: &Restrict) -> Self {
+        r.clone()
+    }
+}
+
 macro_rules! restrict_match {
    ($r:expr, $obj:expr, $($matcher:pat $(if $pred:expr)* => $result:expr,)+) => {
        match $r {
