@@ -48,10 +48,10 @@ impl Command {
         let mut invalid = vec![];
         let mut repos = vec![];
         for repo in &self.repos {
-            let repo = if Path::new(repo).exists() {
-                RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)
-            } else if let Some(r) = config.repos.get(repo) {
+            let repo = if let Some(r) = config.repos.get(repo) {
                 Ok(r.clone())
+            } else if Path::new(repo).exists() {
+                RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)
             } else {
                 anyhow::bail!("unknown repo: {repo}")
             }?;

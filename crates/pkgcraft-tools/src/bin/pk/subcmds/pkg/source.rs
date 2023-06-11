@@ -201,10 +201,10 @@ impl Command {
 
         // determine target repo set
         let reposet = if let Some(repo) = self.repo.as_ref() {
-            let repo = if Path::new(repo).exists() {
-                RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)
-            } else if let Some(r) = config.repos.get(repo) {
+            let repo = if let Some(r) = config.repos.get(repo) {
                 Ok(r.clone())
+            } else if Path::new(repo).exists() {
+                RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)
             } else {
                 anyhow::bail!("unknown repo: {repo}")
             }?;
