@@ -72,9 +72,9 @@ pub struct Command {
     #[arg(short, long)]
     repo: Option<String>,
 
-    /// Benchmark sourcing for a given number of seconds per package
+    /// Benchmark sourcing for a given duration per package
     #[arg(long)]
-    bench: Option<u64>,
+    bench: Option<humantime::Duration>,
 
     /// Bounds applied to elapsed time
     #[arg(short, long)]
@@ -95,7 +95,7 @@ macro_rules! micros {
 }
 
 /// Run package sourcing benchmarks for a given amount of seconds per package.
-fn benchmark<'a, I>(secs: u64, jobs: usize, pkgs: I) -> anyhow::Result<bool>
+fn benchmark<'a, I>(duration: Duration, jobs: usize, pkgs: I) -> anyhow::Result<bool>
 where
     I: Iterator<Item = RawPkg<'a>>,
 {
@@ -103,7 +103,7 @@ where
     let func = |pkg: RawPkg| -> scallop::Result<(String, Vec<Duration>)> {
         let mut data = vec![];
         let mut elapsed = Duration::new(0, 0);
-        while elapsed.as_secs() < secs {
+        while elapsed < duration {
             let start = Instant::now();
             pkg.source()?;
             let source_elapsed = micros!(start.elapsed());
@@ -216,8 +216,8 @@ impl Command {
             // convert repos into packages
             let pkgs = repos.iter().flat_map(|r| r.iter_raw_restrict(&restrict));
 
-            let target_failed = if let Some(secs) = self.bench {
-                benchmark(secs, jobs, pkgs)
+            let target_failed = if let Some(duration) = self.bench {
+                benchmark(duration.into(), jobs, pkgs)
             } else {
                 source(jobs, pkgs, &self.bound)
             }?;
