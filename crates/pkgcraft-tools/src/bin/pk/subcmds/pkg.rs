@@ -12,7 +12,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         self.command.run(config)
     }
 }
@@ -26,7 +26,7 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
+    fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
             Pretend(cmd) => cmd.run(config),

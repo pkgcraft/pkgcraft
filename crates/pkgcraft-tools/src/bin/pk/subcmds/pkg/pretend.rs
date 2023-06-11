@@ -32,7 +32,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
         let reposet = if let Some(repo) = self.repo.as_ref() {
             let repo = if let Some(r) = config.repos.get(repo) {
@@ -61,7 +61,7 @@ impl Command {
 
         // pull targets from args or stdin
         let args = if stdin().is_terminal() {
-            Either::Left(self.vals.clone().into_iter())
+            Either::Left(self.vals.into_iter())
         } else {
             Either::Right(stdin().lines().map_while(Result::ok))
         };

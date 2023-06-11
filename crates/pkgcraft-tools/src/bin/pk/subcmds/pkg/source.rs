@@ -94,95 +94,97 @@ macro_rules! micros {
     }};
 }
 
-impl Command {
-    /// Determine if a duration matches a given, optional bound.
-    fn bounded(&self, elapsed: &Duration) -> bool {
-        if let Some(bound) = self.bound {
-            bound.matches(elapsed)
-        } else {
-            true
-        }
+/// Determine if a duration matches a given, optional bound.
+fn bounded(bound: Option<Bound>, elapsed: &Duration) -> bool {
+    if let Some(bound) = bound {
+        bound.matches(elapsed)
+    } else {
+        true
     }
+}
 
-    /// Run package sourcing benchmarks for a given amount of seconds per package.
-    fn benchmark<'a, I>(&self, secs: u64, jobs: usize, pkgs: I) -> anyhow::Result<bool>
-    where
-        I: Iterator<Item = RawPkg<'a>>,
-    {
-        let mut failed = false;
-        let func = |pkg: RawPkg| -> scallop::Result<(String, Vec<Duration>)> {
-            let mut data = vec![];
-            let mut elapsed = Duration::new(0, 0);
-            while elapsed.as_secs() < secs {
-                let start = Instant::now();
-                pkg.source()?;
-                let source_elapsed = micros!(start.elapsed());
-                data.push(source_elapsed);
-                elapsed += source_elapsed;
-                scallop::shell::reset(&[]);
-            }
-            Ok((pkg.to_string(), data))
-        };
-
-        for r in PoolIter::new(jobs, pkgs, func, true)? {
-            match r {
-                Ok((pkg, data)) => {
-                    let n = data.len() as u64;
-                    let micros: Vec<u64> = data
-                        .iter()
-                        .map(|v| v.as_micros().try_into().unwrap())
-                        .collect();
-                    let min = Duration::from_micros(*micros.iter().min().unwrap());
-                    let max = Duration::from_micros(*micros.iter().max().unwrap());
-                    let total: u64 = micros.iter().sum();
-                    let mean: u64 = total / n;
-                    let variance =
-                        (micros.iter().map(|v| (v - mean).pow(2)).sum::<u64>()) as f64 / n as f64;
-                    let std_dev = Duration::from_micros(variance.sqrt().round() as u64);
-                    let mean = Duration::from_micros(mean);
-                    println!("{pkg}: min: {min:?}, mean: {mean:?}, max: {max:?}, σ = {std_dev:?}, N = {n}")
-                }
-                Err(e) => {
-                    failed = true;
-                    error!("{e}");
-                }
-            }
-        }
-
-        Ok(failed)
-    }
-
-    /// Run package sourcing a single time per package.
-    fn source<'a, I>(&self, jobs: usize, pkgs: I) -> anyhow::Result<bool>
-    where
-        I: Iterator<Item = RawPkg<'a>>,
-    {
-        let mut failed = false;
-        let func = |pkg: RawPkg| -> scallop::Result<(String, Duration)> {
+/// Run package sourcing benchmarks for a given amount of seconds per package.
+fn benchmark<'a, I>(secs: u64, jobs: usize, pkgs: I) -> anyhow::Result<bool>
+where
+    I: Iterator<Item = RawPkg<'a>>,
+{
+    let mut failed = false;
+    let func = |pkg: RawPkg| -> scallop::Result<(String, Vec<Duration>)> {
+        let mut data = vec![];
+        let mut elapsed = Duration::new(0, 0);
+        while elapsed.as_secs() < secs {
             let start = Instant::now();
             pkg.source()?;
-            let elapsed = micros!(start.elapsed());
-            Ok((pkg.to_string(), elapsed))
-        };
+            let source_elapsed = micros!(start.elapsed());
+            data.push(source_elapsed);
+            elapsed += source_elapsed;
+            scallop::shell::reset(&[]);
+        }
+        Ok((pkg.to_string(), data))
+    };
 
-        for r in PoolIter::new(jobs, pkgs, func, true)? {
-            match r {
-                Ok((pkg, elapsed)) => {
-                    if self.bounded(&elapsed) {
-                        println!("{pkg}: {elapsed:?}")
-                    }
-                }
-                Err(e) => {
-                    failed = true;
-                    error!("{e}");
-                }
+    for r in PoolIter::new(jobs, pkgs, func, true)? {
+        match r {
+            Ok((pkg, data)) => {
+                let n = data.len() as u64;
+                let micros: Vec<u64> = data
+                    .iter()
+                    .map(|v| v.as_micros().try_into().unwrap())
+                    .collect();
+                let min = Duration::from_micros(*micros.iter().min().unwrap());
+                let max = Duration::from_micros(*micros.iter().max().unwrap());
+                let total: u64 = micros.iter().sum();
+                let mean: u64 = total / n;
+                let variance =
+                    (micros.iter().map(|v| (v - mean).pow(2)).sum::<u64>()) as f64 / n as f64;
+                let std_dev = Duration::from_micros(variance.sqrt().round() as u64);
+                let mean = Duration::from_micros(mean);
+                println!(
+                    "{pkg}: min: {min:?}, mean: {mean:?}, max: {max:?}, σ = {std_dev:?}, N = {n}"
+                )
+            }
+            Err(e) => {
+                failed = true;
+                error!("{e}");
             }
         }
-
-        Ok(failed)
     }
 
-    pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
+    Ok(failed)
+}
+
+/// Run package sourcing a single time per package.
+fn source<'a, I>(jobs: usize, pkgs: I, bound: Option<Bound>) -> anyhow::Result<bool>
+where
+    I: Iterator<Item = RawPkg<'a>>,
+{
+    let mut failed = false;
+    let func = |pkg: RawPkg| -> scallop::Result<(String, Duration)> {
+        let start = Instant::now();
+        pkg.source()?;
+        let elapsed = micros!(start.elapsed());
+        Ok((pkg.to_string(), elapsed))
+    };
+
+    for r in PoolIter::new(jobs, pkgs, func, true)? {
+        match r {
+            Ok((pkg, elapsed)) => {
+                if bounded(bound, &elapsed) {
+                    println!("{pkg}: {elapsed:?}")
+                }
+            }
+            Err(e) => {
+                failed = true;
+                error!("{e}");
+            }
+        }
+    }
+
+    Ok(failed)
+}
+
+impl Command {
+    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
         let reposet = if let Some(repo) = self.repo.as_ref() {
             let repo = if let Some(r) = config.repos.get(repo) {
@@ -209,7 +211,7 @@ impl Command {
 
         // pull targets from args or stdin
         let args = if stdin().is_terminal() {
-            Either::Left(self.vals.clone().into_iter())
+            Either::Left(self.vals.into_iter())
         } else {
             Either::Right(stdin().lines().map_while(Result::ok))
         };
@@ -224,9 +226,9 @@ impl Command {
             let pkgs = repos.iter().flat_map(|r| r.iter_raw_restrict(&restrict));
 
             let target_failed = if let Some(secs) = self.bench {
-                self.benchmark(secs, jobs, pkgs)
+                benchmark(secs, jobs, pkgs)
             } else {
-                self.source(jobs, pkgs)
+                source(jobs, pkgs, self.bound)
             }?;
 
             if target_failed {
