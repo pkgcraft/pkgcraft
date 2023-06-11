@@ -52,11 +52,11 @@ jobs:
       run: cargo install cross --git https://github.com/cross-rs/cross
 
     - name: Create static binary
-      run: cross build --target ${{ matrix.target }} --release -p pkgcraft-tools
+      run: cross build --target ${{ matrix.target }} --profile release-strip -p pkgcraft-tools
 
     - name: Create tarball
       run: |
-        tar -C target/${{ matrix.target }}/release \
+        tar -C target/${{ matrix.target }}/release-strip \
           -cv -I "xz -9 -T0" -f ${{ github.ref_name }}-${{ matrix.target }}.tar.xz \
           pk
 
