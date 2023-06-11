@@ -3,12 +3,14 @@ name: pkgcraft-c-release
 on:
   push:
     tags: [pkgcraft-c-*]
+    branches: ['**']
+    paths:
+      - ".github/workflows/pkgcraft-c-release.yml"
+  workflow_dispatch:
 
 jobs:
-  release:
+  source:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
     - name: Checkout pkgcraft workspace
       uses: actions/checkout@v3
@@ -25,14 +27,24 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: pkgcraft-c
-        path: target/package/${{ github.ref_name }}.tar.xz
+        name: source
+        path: ./*.tar.xz
         if-no-files-found: error
         retention-days: 3
 
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: source
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+
     - name: Create GitHub release
-      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: target/package/${{ github.ref_name }}.tar.xz
+        files: source/*.tar.xz
         fail_on_unmatched_files: true
