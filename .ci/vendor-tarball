@@ -3,7 +3,7 @@
 
 set -e
 
-PACKAGE=${1:-pkgcraft-c}
+PACKAGE=$1
 
 # build crate
 cargo package -p ${PACKAGE}
@@ -35,7 +35,10 @@ replace-with = "vendored-sources"
 directory = "vendor"
 EOF
 
+# ${RELEASE}
+popd >/dev/null
+# target/package
 popd >/dev/null
 
 # create release tarball
-tar -cv -I 'xz -9 -T0' -f ${RELEASE}.tar.xz ${RELEASE}
+tar -C target/package -cv -I 'xz -9 -T0' -f ${RELEASE}.tar.xz ${RELEASE}
