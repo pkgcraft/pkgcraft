@@ -76,9 +76,9 @@ pub struct Command {
     #[arg(long)]
     bench: Option<u64>,
 
-    /// Elapsed time bound to apply
+    /// Bounds applied to elapsed time
     #[arg(short, long)]
-    bound: Option<Bound>,
+    bound: Vec<Bound>,
 
     // positionals
     /// Target packages
@@ -92,15 +92,6 @@ macro_rules! micros {
         let val = $val.as_micros().try_into().expect("duration overflow");
         Duration::from_micros(val)
     }};
-}
-
-/// Determine if a duration matches a given, optional bound.
-fn bounded(bound: Option<Bound>, elapsed: &Duration) -> bool {
-    if let Some(bound) = bound {
-        bound.matches(elapsed)
-    } else {
-        true
-    }
 }
 
 /// Run package sourcing benchmarks for a given amount of seconds per package.
@@ -154,7 +145,7 @@ where
 }
 
 /// Run package sourcing a single time per package.
-fn source<'a, I>(jobs: usize, pkgs: I, bound: Option<Bound>) -> anyhow::Result<bool>
+fn source<'a, I>(jobs: usize, pkgs: I, bound: &[Bound]) -> anyhow::Result<bool>
 where
     I: Iterator<Item = RawPkg<'a>>,
 {
@@ -169,7 +160,7 @@ where
     for r in PoolIter::new(jobs, pkgs, func, true)? {
         match r {
             Ok((pkg, elapsed)) => {
-                if bounded(bound, &elapsed) {
+                if bound.iter().all(|b| b.matches(&elapsed)) {
                     println!("{pkg}: {elapsed:?}")
                 }
             }
@@ -228,7 +219,7 @@ impl Command {
             let target_failed = if let Some(secs) = self.bench {
                 benchmark(secs, jobs, pkgs)
             } else {
-                source(jobs, pkgs, self.bound)
+                source(jobs, pkgs, &self.bound)
             }?;
 
             if target_failed {
