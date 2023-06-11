@@ -208,7 +208,6 @@ impl Command {
             } else {
                 anyhow::bail!("unknown repo: {repo}")
             }?;
-
             RepoSet::new([&repo])
         } else {
             config.repos.set(RepoSetType::Ebuild)
