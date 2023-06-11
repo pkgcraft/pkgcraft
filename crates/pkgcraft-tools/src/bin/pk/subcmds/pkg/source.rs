@@ -206,7 +206,7 @@ impl Command {
             .filter_map(|r| r.as_ebuild())
             .collect();
         if repos.is_empty() {
-            anyhow::bail!("no matching ebuild repos found");
+            anyhow::bail!("no ebuild repos found");
         }
 
         // pull targets from args or stdin
