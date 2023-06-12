@@ -40,6 +40,10 @@ impl RepoFormat {
         finalize: bool,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
+        let path = path
+            .canonicalize_utf8()
+            .map_err(|_| Error::InvalidValue(format!("non-unicode path: {path}")))?;
+
         let repo: Repo = match self {
             Self::Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
             Self::Fake => fake::Repo::from_path(id, priority, path)?.into(),
@@ -54,6 +58,34 @@ impl RepoFormat {
         }
 
         Ok(repo)
+    }
+
+    /// Try to load a specific repo type from a given path, traversing parents.
+    pub fn load_from_nested_path<P: AsRef<Utf8Path>>(
+        self,
+        id: &str,
+        priority: i32,
+        path: P,
+        finalize: bool,
+    ) -> crate::Result<Repo> {
+        let path = path.as_ref();
+        let orig_path = path
+            .canonicalize_utf8()
+            .map_err(|_| Error::InvalidValue(format!("non-unicode path: {path}")))?;
+        let mut path = orig_path.as_path();
+
+        while let Some(parent) = path.parent() {
+            if let Ok(repo) = self.load_from_path(path.as_str(), priority, path, finalize) {
+                return Ok(repo);
+            }
+            path = parent;
+        }
+
+        Err(Error::NotARepo {
+            kind: self,
+            id: id.to_string(),
+            err: format!("no repo found under: {orig_path}"),
+        })
     }
 }
 
