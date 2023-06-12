@@ -17,7 +17,7 @@ mod subcmds;
 /// pkgcraft command-line tool
 struct Command {
     #[command(flatten)]
-    verbose: Verbosity,
+    verbosity: Verbosity,
     #[command(subcommand)]
     subcmd: subcmds::Subcommand,
 }
@@ -58,7 +58,7 @@ fn main() -> anyhow::Result<ExitCode> {
         .compact();
 
     tracing_subscriber::fmt()
-        .with_max_level(args.verbose.log_level_filter().as_trace())
+        .with_max_level(args.verbosity.log_level_filter().as_trace())
         .event_format(format)
         .init();
 
