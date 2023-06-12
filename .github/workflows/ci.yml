@@ -5,13 +5,13 @@ on:
     branches: ['**']
     paths:
       - "Cargo.*"
-      - "crates/**"
+      - "crates/*/src/**"
       - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "Cargo.*"
-      - "crates/**"
+      - "crates/*/src/**"
 
 jobs:
   setup:
