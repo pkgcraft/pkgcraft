@@ -505,7 +505,7 @@ impl Repo {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
-        let mut pool = PoolSendIter::new(func, true)?;
+        let mut pool = PoolSendIter::new(jobs, func, true)?;
 
         // run cache validation in a thread pool
         let mut cpvs: Vec<_> = self.iter_cpv().collect();
@@ -519,7 +519,7 @@ impl Repo {
         // send Cpvs and iterate over returned results, tracking progress and errors
         let mut errors = 0;
         if !cpvs.is_empty() {
-            for r in pool.iter(jobs, cpvs.into_iter(), progress_cb)? {
+            for r in pool.iter(cpvs.into_iter(), progress_cb)? {
                 // log errors
                 if let Err(e) = r {
                     errors += 1;

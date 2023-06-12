@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::os::fd::{AsRawFd, RawFd};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread;
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::errno;
@@ -148,6 +147,7 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Iterator for PoolIter<T> {
 #[derive(Debug, Serialize, Deserialize)]
 enum Msg<T> {
     Val(T),
+    Start,
     Stop,
 }
 
@@ -178,27 +178,27 @@ where
     I: Serialize + for<'a> Deserialize<'a>,
     O: Serialize + for<'a> Deserialize<'a>,
 {
-    request_pool_tx: IpcSender<Msg<usize>>,
-    create_pool_rx: IpcReceiver<(IpcSender<Msg<I>>, IpcReceiver<O>)>,
+    input_tx: IpcSender<Msg<I>>,
+    output_rx: IpcReceiver<Msg<O>>,
 }
 
 impl<I, O> PoolSendIter<I, O>
 where
-    I: Serialize + for<'a> Deserialize<'a> + Send + 'static,
-    O: Serialize + for<'a> Deserialize<'a> + Send,
+    I: Serialize + for<'a> Deserialize<'a>,
+    O: Serialize + for<'a> Deserialize<'a>,
 {
-    pub fn new<F>(func: F, suppress: bool) -> crate::Result<Self>
+    pub fn new<F>(size: usize, func: F, suppress: bool) -> crate::Result<Self>
     where
         F: FnOnce(I) -> O,
     {
         // enable internal bash SIGCHLD handler
         unsafe { bash::set_sigchld_handler() };
 
-        let (request_pool_tx, request_pool_rx) = ipc::channel::<Msg<usize>>()
-            .map_err(|e| Error::Base(format!("failed creating pool request channel: {e}")))?;
-        let (create_pool_tx, create_pool_rx) =
-            ipc::channel::<(IpcSender<Msg<I>>, IpcReceiver<O>)>()
-                .map_err(|e| Error::Base(format!("failed creating pool channel: {e}")))?;
+        let mut sem = SharedSemaphore::new(size)?;
+        let (input_tx, input_rx): (IpcSender<Msg<I>>, IpcReceiver<Msg<I>>) = ipc::channel()
+            .map_err(|e| Error::Base(format!("failed creating input channel: {e}")))?;
+        let (output_tx, output_rx): (IpcSender<Msg<O>>, IpcReceiver<Msg<O>>) = ipc::channel()
+            .map_err(|e| Error::Base(format!("failed creating output channel: {e}")))?;
 
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
@@ -208,19 +208,7 @@ where
                     suppress_output().expect("failed suppressing output");
                 }
 
-                while let Ok(Msg::Val(size)) = request_pool_rx.recv() {
-                    let mut sem = SharedSemaphore::new(size)
-                        .unwrap_or_else(|e| panic!("failed creating semaphore: {e}"));
-                    let (input_tx, input_rx): (IpcSender<Msg<I>>, IpcReceiver<Msg<I>>) =
-                        ipc::channel()
-                            .unwrap_or_else(|e| panic!("failed creating input channel: {e}"));
-                    let (output_tx, output_rx): (IpcSender<O>, IpcReceiver<O>) = ipc::channel()
-                        .unwrap_or_else(|e| panic!("failed creating output channel: {e}"));
-
-                    create_pool_tx
-                        .send((input_tx, output_rx))
-                        .expect("failed sending ipc channels");
-
+                while let Ok(Msg::Start) = input_rx.recv() {
                     while let Ok(Msg::Val(obj)) = input_rx.recv() {
                         // wait on bounded semaphore for pool space
                         sem.acquire().expect("failed acquiring pool token");
@@ -230,57 +218,55 @@ where
                             Ok(ForkResult::Child) => {
                                 // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
                                 let r = func(obj);
-                                output_tx.send(r).expect("output sender failed");
+                                output_tx.send(Msg::Val(r)).expect("failed sending output");
                                 sem.release().expect("failed releasing pool token");
                                 unsafe { libc::_exit(0) };
                             }
                             Err(_) => panic!("process pool fork failed"),
                         }
                     }
+                    output_tx.send(Msg::Stop).expect("failed stopping output");
                 }
                 unsafe { libc::_exit(0) }
             }
             Err(e) => Err(Error::Base(format!("starting process pool failed: {e}"))),
         }?;
 
-        Ok(Self {
-            request_pool_tx,
-            create_pool_rx,
-        })
+        Ok(Self { input_tx, output_rx })
     }
 
     /// Create a new forked process pool, sending the given data to it for processing.
-    pub fn iter<'a, V: Iterator<Item = I> + ExactSizeIterator + Send + 'static>(
+    pub fn iter<'a, V: Iterator<Item = I> + ExactSizeIterator>(
         &'a mut self,
-        size: usize,
         vals: V,
         progress: Option<&'a ProgressCallback>,
     ) -> crate::Result<PoolReceiveIter<O>> {
-        self.request_pool_tx
-            .send(Msg::Val(size))
-            .map_err(|e| Error::Base(format!("failed request pool: {e}")))?;
-        let (tx, rx) = self
-            .create_pool_rx
-            .recv()
-            .map_err(|e| Error::Base(format!("failed creating pool: {e}")))?;
-
         // set progress bar length
         if let Some(cb) = &progress {
             cb.set(vals.len().try_into().unwrap());
         }
 
-        let thread = thread::spawn(move || {
-            for val in vals {
-                tx.send(Msg::Val(val)).expect("queuing value failed");
+        // queue data in a separate process
+        match unsafe { fork() } {
+            Ok(ForkResult::Parent { .. }) => Ok(()),
+            Ok(ForkResult::Child) => {
+                self.input_tx
+                    .send(Msg::Start)
+                    .expect("failed starting workers");
+                for val in vals {
+                    self.input_tx
+                        .send(Msg::Val(val))
+                        .expect("queuing value failed");
+                }
+                self.input_tx
+                    .send(Msg::Stop)
+                    .expect("failed stopping workers");
+                unsafe { libc::_exit(0) };
             }
-            tx.send(Msg::Stop).expect("failed stopping workers");
-        });
+            Err(e) => Err(Error::Base(format!("failed starting queuing process: {e}"))),
+        }?;
 
-        Ok(PoolReceiveIter {
-            thread: Some(thread),
-            rx,
-            progress,
-        })
+        Ok(PoolReceiveIter { rx: &self.output_rx, progress })
     }
 }
 
@@ -290,32 +276,16 @@ where
     O: Serialize + for<'a> Deserialize<'a>,
 {
     fn drop(&mut self) {
-        self.request_pool_tx
-            .send(Msg::Stop)
-            .expect("failed stopping pool")
+        self.input_tx.send(Msg::Stop).expect("failed stopping pool")
     }
 }
 
-pub struct PoolReceiveIter<'cb, T>
+pub struct PoolReceiveIter<'p, T>
 where
     T: Serialize + for<'a> Deserialize<'a>,
 {
-    thread: Option<thread::JoinHandle<()>>,
-    rx: IpcReceiver<T>,
-    progress: Option<&'cb ProgressCallback>,
-}
-
-impl<T> Drop for PoolReceiveIter<'_, T>
-where
-    T: Serialize + for<'a> Deserialize<'a>,
-{
-    fn drop(&mut self) {
-        self.thread
-            .take()
-            .unwrap()
-            .join()
-            .expect("failed stopping pool thread");
-    }
+    rx: &'p IpcReceiver<Msg<T>>,
+    progress: Option<&'p ProgressCallback>,
 }
 
 impl<T> Iterator for PoolReceiveIter<'_, T>
@@ -326,7 +296,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.rx.recv() {
-            Ok(r) => {
+            Ok(Msg::Val(r)) => {
                 // increment progress bar
                 if let Some(cb) = &self.progress {
                     cb.inc(1);
@@ -334,7 +304,8 @@ where
 
                 Some(r)
             }
-            Err(IpcError::Disconnected) => None,
+            Ok(Msg::Stop) => None,
+            Ok(Msg::Start) => panic!("invalid start message"),
             Err(e) => panic!("output receiver failed: {e}"),
         }
     }
