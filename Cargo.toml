@@ -9,3 +9,5 @@ rust-version = "1.66"
 [profile.release-strip]
 inherits = "release"
 strip = "symbols"
+lto = "thin"
+codegen-units = 1
