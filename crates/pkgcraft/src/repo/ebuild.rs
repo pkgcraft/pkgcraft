@@ -32,7 +32,7 @@ use crate::restrict::{Restrict, Restriction};
 use crate::utils::digest;
 use crate::Error;
 
-use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
+use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
 mod cache;
 mod metadata;
@@ -558,6 +558,38 @@ impl Repo {
         IterRawRestrict {
             iter: IterRaw::new(self, Some(&restrict)),
             restrict,
+        }
+    }
+
+    /// Try converting a path to a [`Restrict`], returns None if the path isn't in the repo.
+    pub fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
+        let path = path.as_ref().canonicalize_utf8().ok()?;
+        if self.contains(&path) {
+            let mut restricts = vec![DepRestrict::repo(Some(self.id()))];
+
+            let relpath = path.strip_prefix(self.path()).unwrap_or(&path);
+            let components: Vec<_> = relpath.components().map(|c| c.as_str()).collect();
+            for (i, s) in components.iter().enumerate() {
+                match (i, s) {
+                    (0, s) if self.categories().contains(*s) => {
+                        restricts.push(DepRestrict::category(s));
+                    }
+                    (1, s) if self.packages(components[0]).contains(*s) => {
+                        restricts.push(DepRestrict::package(s));
+                    }
+                    (2, s) if s.ends_with(".ebuild") => {
+                        if let Ok(cpv) = self.cpv_from_path(&path) {
+                            let ver = cpv.version().clone();
+                            restricts.push(DepRestrict::Version(Some(ver)));
+                        }
+                    }
+                    _ => (),
+                }
+            }
+
+            Some(Restrict::and(restricts))
+        } else {
+            None
         }
     }
 }
