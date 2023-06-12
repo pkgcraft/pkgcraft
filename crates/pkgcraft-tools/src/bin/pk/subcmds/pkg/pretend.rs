@@ -9,11 +9,12 @@ use pkgcraft::config::{Config, RepoSetType};
 use pkgcraft::pkg::ebuild::{Pkg, RawPkg};
 use pkgcraft::pkg::BuildablePackage;
 use pkgcraft::repo::set::RepoSet;
-use pkgcraft::repo::RepoFormat;
-use pkgcraft::restrict;
+use pkgcraft::repo::RepoFormat::Ebuild as EbuildRepo;
 use scallop::pool::PoolIter;
 
 use crate::args::bounded_jobs;
+
+use super::target_restriction;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -31,6 +32,8 @@ pub struct Command {
     vals: Vec<String>,
 }
 
+// TODO: use configured ebuild repos instead of raw ones
+// TODO: support binpkg repos
 impl Command {
     pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
@@ -38,7 +41,7 @@ impl Command {
             let repo = if let Some(r) = config.repos.get(repo) {
                 Ok(r.clone())
             } else if Path::new(repo).exists() {
-                RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)
+                EbuildRepo.load_from_path(repo, 0, repo, true)
             } else {
                 anyhow::bail!("unknown repo: {repo}")
             }?;
@@ -46,18 +49,6 @@ impl Command {
         } else {
             config.repos.set(RepoSetType::Ebuild)
         };
-
-        // TODO: use configured ebuild repos instead of raw ones
-        // TODO: support binpkg repos
-        // restrict searches to ebuild repos
-        let repos: Vec<_> = reposet
-            .repos()
-            .iter()
-            .filter_map(|r| r.as_ebuild())
-            .collect();
-        if repos.is_empty() {
-            anyhow::bail!("no ebuild repos found");
-        }
 
         // pull targets from args or stdin
         let args = if stdin().is_terminal() {
@@ -75,10 +66,15 @@ impl Command {
         let jobs = bounded_jobs(self.jobs)?;
         let mut failed = false;
         for target in args {
-            let restrict = restrict::parse::dep(&target)?;
+            // determine target restriction
+            let (reposet, restrict) = target_restriction(&reposet, &target)?;
 
-            // convert repos into packages
-            let pkgs = repos.iter().flat_map(|r| r.iter_raw_restrict(&restrict));
+            // find matching packages from targeted repos
+            let pkgs = reposet
+                .repos()
+                .iter()
+                .filter_map(|r| r.as_ebuild())
+                .flat_map(|r| r.iter_raw_restrict(&restrict));
 
             // run pkg_pretend across selected pkgs
             for r in PoolIter::new(jobs, pkgs, func, true)? {
