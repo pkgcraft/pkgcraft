@@ -378,13 +378,13 @@ impl Repo {
     }
 
     /// Return a repo's category dirs from the filesystem.
-    pub fn category_dirs(&self) -> Vec<String> {
+    pub fn category_dirs(&self) -> IndexSet<String> {
         // filter out non-category dirs
         let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
         let cats = sorted_dir_list(self.path())
             .into_iter()
             .filter_entry(filter);
-        let mut v = vec![];
+        let mut v = IndexSet::new();
         for entry in cats {
             let entry = match entry {
                 Ok(e) => e,
@@ -396,7 +396,9 @@ impl Repo {
             let path = entry.path();
             match entry.file_name().to_str() {
                 Some(s) => match dep::parse::category(s) {
-                    Ok(_) => v.push(s.into()),
+                    Ok(_) => {
+                        v.insert(s.into());
+                    }
                     Err(e) => warn!("{}: {e}: {path:?}", self.id()),
                 },
                 None => warn!("{}: non-unicode path: {path:?}", self.id()),
@@ -584,13 +586,12 @@ impl PkgRepository for Repo {
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
-    fn categories(&self) -> Vec<String> {
+    fn categories(&self) -> IndexSet<String> {
         // use profiles/categories from repos, falling back to raw fs dirs
-        let mut categories = HashSet::<String>::new();
-        for r in self.trees() {
-            categories.extend(r.metadata().categories().iter().cloned())
-        }
-        let mut categories: Vec<_> = categories.into_iter().collect();
+        let mut categories: IndexSet<_> = self
+            .trees()
+            .flat_map(|r| r.metadata().categories().clone())
+            .collect();
         categories.sort();
         if categories.is_empty() {
             self.category_dirs()
@@ -599,11 +600,11 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn packages(&self, cat: &str) -> Vec<String> {
+    fn packages(&self, cat: &str) -> IndexSet<String> {
         let path = self.path().join(cat.strip_prefix('/').unwrap_or(cat));
         let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
         let pkgs = sorted_dir_list(&path).into_iter().filter_entry(filter);
-        let mut v = vec![];
+        let mut v = IndexSet::new();
         for entry in pkgs {
             let entry = match entry {
                 Ok(e) => e,
@@ -619,7 +620,9 @@ impl PkgRepository for Repo {
             let path = entry.path();
             match entry.file_name().to_str() {
                 Some(s) => match dep::parse::package(s) {
-                    Ok(_) => v.push(s.into()),
+                    Ok(_) => {
+                        v.insert(s.into());
+                    }
                     Err(e) => warn!("{}: {e}: {path:?}", self.id()),
                 },
                 None => warn!("{}: non-unicode path: {path:?}", self.id()),
@@ -628,14 +631,14 @@ impl PkgRepository for Repo {
         v
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         let path = build_from_paths!(
             self.path(),
             cat.strip_prefix('/').unwrap_or(cat),
             pkg.strip_prefix('/').unwrap_or(pkg)
         );
         let ebuilds = sorted_dir_list(&path).into_iter().filter_entry(is_ebuild);
-        let mut versions = vec![];
+        let mut versions = IndexSet::new();
         for entry in ebuilds {
             let entry = match entry {
                 Ok(e) => e,
@@ -654,7 +657,9 @@ impl PkgRepository for Repo {
             if let (Some(pn), Some(pf)) = (pn, pf) {
                 if pn == &pf[..pn.len()] {
                     match Version::new(&pf[pn.len() + 1..]) {
-                        Ok(v) => versions.push(v),
+                        Ok(v) => {
+                            versions.insert(v);
+                        }
                         Err(e) => warn!("{}: {e}: {path:?}", self.id()),
                     }
                 } else {
@@ -936,7 +941,7 @@ mod tests {
     use crate::pkg::Package;
     use crate::repo::ebuild_temp::Repo as TempRepo;
     use crate::repo::Contains;
-    use crate::test::{assert_unordered_eq, TEST_DATA};
+    use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -1021,10 +1026,10 @@ mod tests {
 
         assert!(repo.categories().is_empty());
         fs::create_dir(repo.path().join("cat")).unwrap();
-        assert_eq!(repo.categories(), ["cat"]);
+        assert_ordered_eq(repo.categories(), ["cat"]);
         fs::create_dir(repo.path().join("a-cat")).unwrap();
         fs::create_dir(repo.path().join("z-cat")).unwrap();
-        assert_eq!(repo.categories(), ["a-cat", "cat", "z-cat"]);
+        assert_ordered_eq(repo.categories(), ["a-cat", "cat", "z-cat"]);
     }
 
     #[test]
@@ -1035,10 +1040,10 @@ mod tests {
 
         assert!(repo.packages("cat").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
-        assert_eq!(repo.packages("cat"), ["pkg"]);
+        assert_ordered_eq(repo.packages("cat"), ["pkg"]);
         fs::create_dir_all(repo.path().join("a-cat/pkg-z")).unwrap();
         fs::create_dir_all(repo.path().join("a-cat/pkg-a")).unwrap();
-        assert_eq!(repo.packages("a-cat"), ["pkg-a", "pkg-z"]);
+        assert_ordered_eq(repo.packages("a-cat"), ["pkg-a", "pkg-z"]);
     }
 
     #[test]
@@ -1051,24 +1056,24 @@ mod tests {
         assert!(repo.versions("cat", "pkg").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-1.ebuild")).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), [ver("1")]);
+        assert_ordered_eq(repo.versions("cat", "pkg"), [ver("1")]);
 
         // unmatching ebuilds are ignored
         fs::File::create(repo.path().join("cat/pkg/foo-2.ebuild")).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), [ver("1")]);
+        assert_ordered_eq(repo.versions("cat", "pkg"), [ver("1")]);
 
         // wrongly named files are ignored
         fs::File::create(repo.path().join("cat/pkg/pkg-2.txt")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-2..ebuild")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-2ebuild")).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), [ver("1")]);
+        assert_ordered_eq(repo.versions("cat", "pkg"), [ver("1")]);
 
         fs::File::create(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
-        assert_eq!(repo.versions("cat", "pkg"), [ver("1"), ver("2")]);
+        assert_ordered_eq(repo.versions("cat", "pkg"), [ver("1"), ver("2")]);
 
         fs::create_dir_all(repo.path().join("a-cat/pkg10a")).unwrap();
         fs::File::create(repo.path().join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
-        assert_eq!(repo.versions("a-cat", "pkg10a"), [ver("0-r0")]);
+        assert_ordered_eq(repo.versions("a-cat", "pkg10a"), [ver("0-r0")]);
     }
 
     #[test]

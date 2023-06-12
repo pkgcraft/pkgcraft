@@ -1,6 +1,7 @@
 use std::{fmt, iter};
 
 use camino::Utf8Path;
+use indexmap::IndexSet;
 
 use crate::config::RepoConfig;
 use crate::dep::Version;
@@ -61,16 +62,16 @@ impl PkgRepository for Repo {
     type Iter<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
     type IterRestrict<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
 
-    fn categories(&self) -> Vec<String> {
-        vec![]
+    fn categories(&self) -> IndexSet<String> {
+        IndexSet::new()
     }
 
-    fn packages(&self, _cat: &str) -> Vec<String> {
-        vec![]
+    fn packages(&self, _cat: &str) -> IndexSet<String> {
+        IndexSet::new()
     }
 
-    fn versions(&self, _cat: &str, _pkg: &str) -> Vec<Version> {
-        vec![]
+    fn versions(&self, _cat: &str, _pkg: &str) -> IndexSet<Version> {
+        IndexSet::new()
     }
 
     fn len(&self) -> usize {

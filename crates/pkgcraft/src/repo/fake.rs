@@ -118,22 +118,22 @@ impl PkgRepository for Repo {
     type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
     // TODO: cache categories/packages/versions values in OnceCell fields?
-    fn categories(&self) -> Vec<String> {
+    fn categories(&self) -> IndexSet<String> {
         self.pkgmap.keys().map(|k| k.to_string()).collect()
     }
 
-    fn packages(&self, cat: &str) -> Vec<String> {
+    fn packages(&self, cat: &str) -> IndexSet<String> {
         self.pkgmap
             .get(cat)
             .map(|pkgs| pkgs.keys().map(|k| k.to_string()).collect())
             .unwrap_or_default()
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         self.pkgmap
             .get(cat)
             .and_then(|pkgs| pkgs.get(pkg))
-            .map(|vers| vers.iter().cloned().collect())
+            .cloned()
             .unwrap_or_default()
     }
 
@@ -222,6 +222,7 @@ mod tests {
     use crate::dep::Dep;
     use crate::pkg::Package;
     use crate::repo::Contains;
+    use crate::test::assert_ordered_eq;
 
     use super::*;
 
@@ -238,7 +239,7 @@ mod tests {
         assert!(repo.categories().is_empty());
         // existing pkgs
         repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
-        assert_eq!(repo.categories(), ["cat1", "cat2"])
+        assert_ordered_eq(repo.categories(), ["cat1", "cat2"])
     }
 
     #[test]
@@ -250,8 +251,8 @@ mod tests {
         // existing pkgs
         repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
         assert!(repo.packages("cat").is_empty());
-        assert_eq!(repo.packages("cat1"), ["pkg-a"]);
-        assert_eq!(repo.packages("cat2"), ["pkg-b"]);
+        assert_ordered_eq(repo.packages("cat1"), ["pkg-a"]);
+        assert_ordered_eq(repo.packages("cat2"), ["pkg-b"]);
     }
 
     #[test]
@@ -264,8 +265,8 @@ mod tests {
         // existing pkgs
         repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
         assert!(repo.versions("cat", "pkg").is_empty());
-        assert_eq!(repo.versions("cat1", "pkg-a"), [ver("1"), ver("2")]);
-        assert_eq!(repo.versions("cat2", "pkg-b"), [ver("3")]);
+        assert_ordered_eq(repo.versions("cat1", "pkg-a"), [ver("1"), ver("2")]);
+        assert_ordered_eq(repo.versions("cat2", "pkg-b"), [ver("3")]);
     }
 
     #[test]

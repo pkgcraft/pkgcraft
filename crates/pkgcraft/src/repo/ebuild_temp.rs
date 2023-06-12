@@ -3,6 +3,7 @@ use std::str::FromStr;
 use std::{env, fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use indexmap::IndexSet;
 use tempfile::TempDir;
 
 use crate::dep::{Cpv, Version};
@@ -190,15 +191,15 @@ impl PkgRepository for Repo {
     type Iter<'a> = <EbuildRepo as PkgRepository>::Iter<'a> where Self: 'a;
     type IterRestrict<'a> = <EbuildRepo as PkgRepository>::IterRestrict<'a> where Self: 'a;
 
-    fn categories(&self) -> Vec<String> {
+    fn categories(&self) -> IndexSet<String> {
         self.repo().categories()
     }
 
-    fn packages(&self, cat: &str) -> Vec<String> {
+    fn packages(&self, cat: &str) -> IndexSet<String> {
         self.repo().packages(cat)
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         self.repo().versions(cat, pkg)
     }
 

@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::hash::Hash;
 use std::ops::{
     BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, Sub, SubAssign,
@@ -38,27 +37,24 @@ impl PkgRepository for RepoSet {
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = Iter<'a> where Self: 'a;
 
-    fn categories(&self) -> Vec<String> {
-        let cats: HashSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
-        let mut cats: Vec<_> = cats.into_iter().collect();
+    fn categories(&self) -> IndexSet<String> {
+        let mut cats: IndexSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
         cats.sort();
         cats
     }
 
-    fn packages(&self, cat: &str) -> Vec<String> {
-        let pkgs: HashSet<_> = self.repos.iter().flat_map(|r| r.packages(cat)).collect();
-        let mut pkgs: Vec<_> = pkgs.into_iter().collect();
+    fn packages(&self, cat: &str) -> IndexSet<String> {
+        let mut pkgs: IndexSet<_> = self.repos.iter().flat_map(|r| r.packages(cat)).collect();
         pkgs.sort();
         pkgs
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
-        let versions: HashSet<_> = self
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
+        let mut versions: IndexSet<_> = self
             .repos
             .iter()
             .flat_map(|r| r.versions(cat, pkg))
             .collect();
-        let mut versions: Vec<_> = versions.into_iter().collect();
         versions.sort();
         versions
     }
@@ -344,9 +340,9 @@ mod tests {
 
         // single ebuild
         t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        assert_eq!(s.categories(), ["cat"]);
-        assert_eq!(s.packages("cat"), ["pkg"]);
-        assert_eq!(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
+        assert_ordered_eq(s.categories(), ["cat"]);
+        assert_ordered_eq(s.packages("cat"), ["pkg"]);
+        assert_ordered_eq(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
         assert_eq!(s.len(), 1);
         assert!(!s.is_empty());
         assert!(s.iter().next().is_some());
@@ -357,9 +353,9 @@ mod tests {
         let fake_repo = fake::Repo::new("fake", 0).pkgs(["cat/pkg-1"]);
         let f_repo: Repo = fake_repo.into();
         let s = RepoSet::new([&t.repo, &f_repo]);
-        assert_eq!(s.categories(), ["cat"]);
-        assert_eq!(s.packages("cat"), ["pkg"]);
-        assert_eq!(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
+        assert_ordered_eq(s.categories(), ["cat"]);
+        assert_ordered_eq(s.packages("cat"), ["pkg"]);
+        assert_ordered_eq(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
         assert_eq!(s.len(), 2);
         assert!(s.contains(&cpv));
         assert_eq!(s.iter().count(), 2);

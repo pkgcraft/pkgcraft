@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use camino::Utf8Path;
 use enum_as_inner::EnumAsInner;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::config::RepoConfig;
@@ -200,9 +200,9 @@ pub trait PkgRepository:
     where
         Self: 'a;
 
-    fn categories(&self) -> Vec<String>;
-    fn packages(&self, cat: &str) -> Vec<String>;
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version>;
+    fn categories(&self) -> IndexSet<String>;
+    fn packages(&self, cat: &str) -> IndexSet<String>;
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version>;
     fn len(&self) -> usize {
         let mut count = 0;
         for c in self.categories() {
@@ -241,13 +241,13 @@ where
     type Iter<'b> = T::Iter<'b> where Self: 'b;
     type IterRestrict<'b> = T::IterRestrict<'b> where Self: 'b;
 
-    fn categories(&self) -> Vec<String> {
+    fn categories(&self) -> IndexSet<String> {
         (*self).categories()
     }
-    fn packages(&self, cat: &str) -> Vec<String> {
+    fn packages(&self, cat: &str) -> IndexSet<String> {
         (*self).packages(cat)
     }
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         (*self).versions(cat, pkg)
     }
     fn len(&self) -> usize {
@@ -315,7 +315,7 @@ impl PkgRepository for Repo {
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
-    fn categories(&self) -> Vec<String> {
+    fn categories(&self) -> IndexSet<String> {
         match self {
             Self::Ebuild(repo) => repo.categories(),
             Self::Fake(repo) => repo.categories(),
@@ -323,7 +323,7 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn packages(&self, cat: &str) -> Vec<String> {
+    fn packages(&self, cat: &str) -> IndexSet<String> {
         match self {
             Self::Ebuild(repo) => repo.packages(cat),
             Self::Fake(repo) => repo.packages(cat),
@@ -331,7 +331,7 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> Vec<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         match self {
             Self::Ebuild(repo) => repo.versions(cat, pkg),
             Self::Fake(repo) => repo.versions(cat, pkg),
