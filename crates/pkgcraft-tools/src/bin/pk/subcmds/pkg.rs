@@ -40,12 +40,8 @@ fn target_restriction(reposet: &RepoSet, target: &str) -> anyhow::Result<(RepoSe
         }
     }
 
-    if let Ok(r) = restrict::parse::dep(target) {
-        // target is a regular dep restrict
-        return Ok((reposet.clone(), r));
-    }
-
-    anyhow::bail!("invalid target: {target}")
+    let restrict = restrict::parse::dep(target)?;
+    Ok((reposet.clone(), restrict))
 }
 
 #[derive(Debug, clap::Subcommand)]
