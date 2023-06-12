@@ -5,15 +5,15 @@ use clap::Args;
 use pkgcraft::config::Config;
 use pkgcraft::dep::Version;
 
-use crate::{Run, StdinArgs};
+use crate::StdinArgs;
 
 #[derive(Debug, Args)]
 pub struct Command {
     vals: Vec<String>,
 }
 
-impl Run for Command {
-    fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
+impl Command {
+    pub(super) fn run(&self, _config: &Config) -> anyhow::Result<ExitCode> {
         let mut versions = Vec::<Version>::new();
 
         if self.vals.stdin_args()? {

@@ -7,8 +7,6 @@ mod version;
 
 use pkgcraft::config::Config;
 
-use crate::Run;
-
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
     /// Perform dep-related actions including parsing, intersection, and sorting
@@ -21,8 +19,8 @@ pub enum Subcommand {
     Version(version::Command),
 }
 
-impl Run for Subcommand {
-    fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
+impl Subcommand {
+    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
             Dep(cmd) => cmd.run(config),

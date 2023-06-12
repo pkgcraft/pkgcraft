@@ -22,10 +22,6 @@ struct Command {
     subcmd: subcmds::Subcommand,
 }
 
-trait Run {
-    fn run(self, config: &Config) -> anyhow::Result<ExitCode>;
-}
-
 trait StdinArgs {
     fn stdin_args(&self) -> anyhow::Result<bool>;
 }

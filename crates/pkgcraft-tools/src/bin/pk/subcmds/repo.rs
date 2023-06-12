@@ -2,8 +2,6 @@ use std::process::ExitCode;
 
 use pkgcraft::config::Config;
 
-use crate::Run;
-
 mod metadata;
 
 #[derive(Debug, clap::Args)]
@@ -12,8 +10,8 @@ pub struct Command {
     command: Subcommand,
 }
 
-impl Run for Command {
-    fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
+impl Command {
+    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         self.command.run(config)
     }
 }

@@ -7,7 +7,7 @@ use pkgcraft::dep::Version;
 use strum::{Display, EnumIter, EnumString};
 
 use crate::format::{EnumVariable, FormatString};
-use crate::{Run, StdinArgs};
+use crate::StdinArgs;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -60,8 +60,8 @@ impl Command {
     }
 }
 
-impl Run for Command {
-    fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
+impl Command {
+    pub(super) fn run(&self, _config: &Config) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
         // parse a version, tracking overall process status
         let mut parse = |s: &str| {

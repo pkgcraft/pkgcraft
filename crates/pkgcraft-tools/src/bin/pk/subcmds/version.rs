@@ -2,8 +2,6 @@ use std::process::ExitCode;
 
 use pkgcraft::config::Config;
 
-use crate::Run;
-
 mod compare;
 mod intersect;
 mod parse;
@@ -17,8 +15,8 @@ pub struct Command {
     command: Subcommand,
 }
 
-impl Run for Command {
-    fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
+impl Command {
+    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         self.command.run(config)
     }
 }
@@ -37,7 +35,7 @@ pub enum Subcommand {
     Sort(sort::Command),
 }
 
-impl Run for Subcommand {
+impl Subcommand {
     fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
