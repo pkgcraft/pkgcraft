@@ -24,11 +24,9 @@ bitflags! {
 }
 
 pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
-    let s = s.as_ref();
-    let c_str = CString::new(s).unwrap();
-    let str_ptr = c_str.as_ptr() as *mut _;
+    let c_str = CString::new(s.as_ref()).unwrap();
     ok_or_error(|| {
-        let ret = unsafe { bash::scallop_evalstring(str_ptr, 0) };
+        let ret = unsafe { bash::scallop_evalstring(c_str.as_ptr(), 0) };
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {

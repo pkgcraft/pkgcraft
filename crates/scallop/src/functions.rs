@@ -38,7 +38,10 @@ pub fn find<'a, S: AsRef<str>>(name: S) -> Option<Function<'a>> {
     let name = name.as_ref();
     let func_name = CString::new(name).unwrap();
     let func = unsafe { bash::find_function(func_name.as_ptr()).as_mut() };
-    func.map(|f| Function { name: name.into(), func: f })
+    func.map(|f| Function {
+        name: name.to_string(),
+        func: f,
+    })
 }
 
 /// Run a function in bash function scope.
