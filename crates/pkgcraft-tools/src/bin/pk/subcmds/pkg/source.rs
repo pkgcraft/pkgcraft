@@ -127,8 +127,11 @@ where
                 let max = Duration::from_micros(*micros.iter().max().unwrap());
                 let total: u64 = micros.iter().sum();
                 let mean: u64 = total / n;
-                let variance =
-                    (micros.iter().map(|v| (v - mean).pow(2)).sum::<u64>()) as f64 / n as f64;
+                let variance = (micros
+                    .iter()
+                    .map(|v| (*v as i64 - mean as i64).pow(2))
+                    .sum::<i64>()) as f64
+                    / n as f64;
                 let std_dev = Duration::from_micros(variance.sqrt().round() as u64);
                 let mean = Duration::from_micros(mean);
                 println!(
