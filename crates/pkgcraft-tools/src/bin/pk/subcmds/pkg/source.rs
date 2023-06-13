@@ -62,7 +62,7 @@ impl FromStr for Bound {
 
 #[derive(Debug, Args)]
 pub struct Command {
-    /// Parallel jobs to run
+    /// Parallel jobs to run (default: # of physical CPUs)
     #[arg(short, long)]
     jobs: Option<usize>,
 
@@ -223,8 +223,10 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
+        // default to running a job on each physical CPU in order to limit contention
+        let jobs = bounded_jobs(self.jobs.or(Some(num_cpus::get_physical())))?;
+
         // loop over targets, tracking overall failure status
-        let jobs = bounded_jobs(self.jobs)?;
         let mut failed = false;
         for target in stdin_or_args(self.targets) {
             // determine target restriction
