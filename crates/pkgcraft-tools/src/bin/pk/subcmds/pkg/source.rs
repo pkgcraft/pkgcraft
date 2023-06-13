@@ -78,7 +78,7 @@ pub struct Command {
     #[arg(short, long)]
     bound: Vec<Bound>,
 
-    /// Sort output in ascending order
+    /// Sort output in ascending order for elapsed time
     #[arg(long)]
     sort: bool,
 
