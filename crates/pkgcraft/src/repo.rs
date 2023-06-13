@@ -40,9 +40,10 @@ impl RepoFormat {
         finalize: bool,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
-        let path = path
-            .canonicalize_utf8()
-            .map_err(|_| Error::InvalidValue(format!("invalid repo path: {path}")))?;
+        let path = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
+            id: path.to_string(),
+            err: e.to_string(),
+        })?;
 
         let repo: Repo = match self {
             Self::Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
@@ -70,9 +71,10 @@ impl RepoFormat {
     ) -> crate::Result<Repo> {
         let id = id.as_ref();
         let path = path.as_ref();
-        let orig_path = path
-            .canonicalize_utf8()
-            .map_err(|_| Error::InvalidValue(format!("invalid repo path: {path}")))?;
+        let orig_path = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
+            id: path.to_string(),
+            err: e.to_string(),
+        })?;
         let mut path = orig_path.as_path();
 
         while let Some(parent) = path.parent() {
