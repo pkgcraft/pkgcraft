@@ -42,7 +42,7 @@ impl RepoFormat {
         let path = path.as_ref();
         let path = path
             .canonicalize_utf8()
-            .map_err(|_| Error::InvalidValue(format!("non-unicode path: {path}")))?;
+            .map_err(|_| Error::InvalidValue(format!("invalid repo path: {path}")))?;
 
         let repo: Repo = match self {
             Self::Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
@@ -72,7 +72,7 @@ impl RepoFormat {
         let path = path.as_ref();
         let orig_path = path
             .canonicalize_utf8()
-            .map_err(|_| Error::InvalidValue(format!("non-unicode path: {path}")))?;
+            .map_err(|_| Error::InvalidValue(format!("invalid repo path: {path}")))?;
         let mut path = orig_path.as_path();
 
         while let Some(parent) = path.parent() {
