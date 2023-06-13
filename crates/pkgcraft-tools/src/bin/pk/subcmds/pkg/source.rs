@@ -78,6 +78,10 @@ pub struct Command {
     #[arg(short, long)]
     bound: Vec<Bound>,
 
+    /// Sort output in ascending order
+    #[arg(long)]
+    sort: bool,
+
     // positionals
     /// Target packages or directories
     #[arg(value_name = "TARGET", default_value = ".")]
@@ -93,7 +97,7 @@ macro_rules! micros {
 }
 
 /// Run package sourcing benchmarks for a given amount of seconds per package.
-fn benchmark<'a, I>(duration: Duration, jobs: usize, pkgs: I) -> anyhow::Result<bool>
+fn benchmark<'a, I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
     I: Iterator<Item = RawPkg<'a>>,
 {
@@ -112,6 +116,8 @@ where
         Ok((pkg.to_string(), data))
     };
 
+    let mut sorted = if sort { Some(vec![]) } else { None };
+
     for r in PoolIter::new(jobs, pkgs, func, true)? {
         match r {
             Ok((pkg, data)) => {
@@ -129,11 +135,15 @@ where
                     .map(|v| (*v as i64 - mean as i64).pow(2))
                     .sum::<i64>()) as f64
                     / n as f64;
-                let std_dev = Duration::from_micros(variance.sqrt().round() as u64);
+                let sdev = Duration::from_micros(variance.sqrt().round() as u64);
                 let mean = Duration::from_micros(mean);
-                println!(
-                    "{pkg}: min: {min:?}, mean: {mean:?}, max: {max:?}, σ = {std_dev:?}, N = {n}"
-                )
+                if let Some(values) = sorted.as_mut() {
+                    values.push((pkg, mean, min, max, sdev, n));
+                } else {
+                    println!(
+                        "{pkg}: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}"
+                    )
+                }
             }
             Err(e) => {
                 failed = true;
@@ -142,11 +152,19 @@ where
         }
     }
 
+    // output in ascending order if sorting is enabled
+    if let Some(values) = sorted.as_mut() {
+        values.sort_by(|(_, t1, ..), (_, t2, ..)| t1.cmp(t2));
+        for (pkg, mean, min, max, sdev, n) in values {
+            println!("{pkg}: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}");
+        }
+    }
+
     Ok(failed)
 }
 
 /// Run package sourcing a single time per package.
-fn source<'a, I>(jobs: usize, pkgs: I, bound: &[Bound]) -> anyhow::Result<bool>
+fn source<'a, I>(jobs: usize, pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
 where
     I: Iterator<Item = RawPkg<'a>>,
 {
@@ -158,17 +176,31 @@ where
         Ok((pkg.to_string(), elapsed))
     };
 
+    let mut sorted = if sort { Some(vec![]) } else { None };
+
     for r in PoolIter::new(jobs, pkgs, func, true)? {
         match r {
             Ok((pkg, elapsed)) => {
                 if bound.iter().all(|b| b.matches(&elapsed)) {
-                    println!("{pkg}: {elapsed:?}")
+                    if let Some(values) = sorted.as_mut() {
+                        values.push((pkg, elapsed));
+                    } else {
+                        println!("{pkg}: {elapsed:?}")
+                    }
                 }
             }
             Err(e) => {
                 failed = true;
                 error!("{e}");
             }
+        }
+    }
+
+    // output in ascending order if sorting is enabled
+    if let Some(values) = sorted.as_mut() {
+        values.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
+        for (pkg, elapsed) in values {
+            println!("{pkg}: {elapsed:?}")
         }
     }
 
@@ -202,9 +234,9 @@ impl Command {
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
 
             let target_failed = if let Some(duration) = self.bench {
-                benchmark(duration.into(), jobs, pkgs)
+                benchmark(duration.into(), jobs, pkgs, self.sort)
             } else {
-                source(jobs, pkgs, &self.bound)
+                source(jobs, pkgs, &self.bound, self.sort)
             }?;
 
             if target_failed {
