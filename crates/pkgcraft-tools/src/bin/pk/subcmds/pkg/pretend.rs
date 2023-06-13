@@ -37,7 +37,7 @@ pub struct Command {
 impl Command {
     pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
-        let reposet = if let Some(repo) = self.repo.as_ref() {
+        let repos = if let Some(repo) = self.repo.as_ref() {
             let repo = if let Some(r) = config.repos.get(repo) {
                 Ok(r.clone())
             } else if Path::new(repo).exists() {
@@ -67,14 +67,10 @@ impl Command {
         let mut failed = false;
         for target in args {
             // determine target restriction
-            let (reposet, restrict) = target_restriction(&reposet, &target)?;
+            let (repos, restrict) = target_restriction(&repos, &target)?;
 
             // find matching packages from targeted repos
-            let pkgs = reposet
-                .repos()
-                .iter()
-                .filter_map(|r| r.as_ebuild())
-                .flat_map(|r| r.iter_raw_restrict(&restrict));
+            let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
 
             // run pkg_pretend across selected pkgs
             for r in PoolIter::new(jobs, pkgs, func, true)? {

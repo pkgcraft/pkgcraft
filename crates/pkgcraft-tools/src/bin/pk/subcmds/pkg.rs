@@ -21,14 +21,13 @@ impl Command {
     }
 }
 
-fn target_restriction(reposet: &RepoSet, target: &str) -> anyhow::Result<(RepoSet, Restrict)> {
+fn target_restriction(repos: &RepoSet, target: &str) -> anyhow::Result<(RepoSet, Restrict)> {
     let path = Path::new(target);
 
     if path.exists() {
-        let mut ebuild_repos = reposet.repos().iter().filter_map(|r| r.as_ebuild());
-        if let Some(r) = ebuild_repos.find_map(|r| r.restrict_from_path(target)) {
+        if let Some(r) = repos.ebuild().find_map(|r| r.restrict_from_path(target)) {
             // target is an configured repo path restrict
-            return Ok((reposet.clone(), r));
+            return Ok((repos.clone(), r));
         } else if let Ok(repo) = EbuildRepo.load_from_nested_path(target, 0, target, true) {
             // target is an external repo path restrict
             let restrict = repo
@@ -41,7 +40,7 @@ fn target_restriction(reposet: &RepoSet, target: &str) -> anyhow::Result<(RepoSe
     }
 
     let restrict = restrict::parse::dep(target)?;
-    Ok((reposet.clone(), restrict))
+    Ok((repos.clone(), restrict))
 }
 
 #[derive(Debug, clap::Subcommand)]

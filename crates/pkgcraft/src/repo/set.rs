@@ -2,17 +2,18 @@ use std::hash::Hash;
 use std::ops::{
     BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, Sub, SubAssign,
 };
+use std::sync::Arc;
 
 use indexmap::IndexSet;
 
 use crate::dep::Version;
 use crate::pkg::Pkg;
-use crate::repo::{PkgRepository, Repo, Repository};
+use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::types::OrderedSet;
 
-use super::make_contains_dep;
+use super::{make_contains_dep, PkgRepository, Repo, Repository};
 
 /// Ordered set of repos
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -27,8 +28,14 @@ impl RepoSet {
         Self { repos }
     }
 
+    /// Return the ordered set of all repos in the set.
     pub fn repos(&self) -> &OrderedSet<Repo> {
         &self.repos
+    }
+
+    /// Iterate over all ebuild repos in the set.
+    pub fn ebuild(&self) -> impl Iterator<Item = &Arc<EbuildRepo>> {
+        self.repos.iter().filter_map(|r| r.as_ebuild())
     }
 }
 
