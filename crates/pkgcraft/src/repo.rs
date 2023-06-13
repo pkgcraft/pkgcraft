@@ -76,7 +76,7 @@ impl RepoFormat {
         let mut path = orig_path.as_path();
 
         while let Some(parent) = path.parent() {
-            if let Ok(repo) = self.load_from_path(id, priority, path, finalize) {
+            if let Ok(repo) = self.load_from_path(path, priority, path, finalize) {
                 return Ok(repo);
             }
             path = parent;
