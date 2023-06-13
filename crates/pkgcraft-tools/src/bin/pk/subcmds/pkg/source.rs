@@ -96,7 +96,7 @@ macro_rules! micros {
     }};
 }
 
-/// Run package sourcing benchmarks for a given amount of seconds per package.
+/// Run package sourcing benchmarks for a given duration per package.
 fn benchmark<'a, I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
     I: Iterator<Item = RawPkg<'a>>,
