@@ -1,12 +1,9 @@
-use std::io::stdin;
 use std::path::Path;
 use std::process::ExitCode;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::Args;
-use is_terminal::IsTerminal;
-use itertools::Either;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::ebuild::RawPkg;
 use pkgcraft::pkg::SourceablePackage;
@@ -15,7 +12,7 @@ use pkgcraft::repo::RepoFormat::Ebuild as EbuildRepo;
 use scallop::pool::PoolIter;
 use tracing::error;
 
-use crate::args::bounded_jobs;
+use crate::args::{bounded_jobs, stdin_or_args};
 
 use super::target_restriction;
 
@@ -194,17 +191,10 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        // pull targets from args or stdin
-        let targets = if stdin().is_terminal() {
-            Either::Left(self.targets.into_iter())
-        } else {
-            Either::Right(stdin().lines().map_while(Result::ok))
-        };
-
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs)?;
         let mut failed = false;
-        for target in targets {
+        for target in stdin_or_args(self.targets) {
             // determine target restriction
             let (repos, restrict) = target_restriction(&repos, &target)?;
 
