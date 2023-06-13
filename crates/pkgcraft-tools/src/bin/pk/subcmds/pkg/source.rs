@@ -82,9 +82,9 @@ pub struct Command {
     bound: Vec<Bound>,
 
     // positionals
-    /// Target packages
-    #[arg(value_name = "PKG")]
-    vals: Vec<String>,
+    /// Target packages or directories
+    #[arg(value_name = "TARGET", default_value = ".")]
+    targets: Vec<String>,
 }
 
 // Truncate a duration to microsecond precision.
@@ -195,8 +195,8 @@ impl Command {
         };
 
         // pull targets from args or stdin
-        let args = if stdin().is_terminal() {
-            Either::Left(self.vals.into_iter())
+        let targets = if stdin().is_terminal() {
+            Either::Left(self.targets.into_iter())
         } else {
             Either::Right(stdin().lines().map_while(Result::ok))
         };
@@ -204,7 +204,7 @@ impl Command {
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs)?;
         let mut failed = false;
-        for target in args {
+        for target in targets {
             // determine target restriction
             let (repos, restrict) = target_restriction(&repos, &target)?;
 

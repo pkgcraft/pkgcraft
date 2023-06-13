@@ -1,6 +1,6 @@
-use std::path::Path;
 use std::process::ExitCode;
 
+use camino::Utf8Path;
 use pkgcraft::config::Config;
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::RepoFormat::Ebuild as EbuildRepo;
@@ -22,25 +22,27 @@ impl Command {
 }
 
 fn target_restriction(repos: &RepoSet, target: &str) -> anyhow::Result<(RepoSet, Restrict)> {
-    let path = Path::new(target);
+    let path_target = Utf8Path::new(target).canonicalize_utf8();
 
-    if path.exists() {
-        if let Some(r) = repos.ebuild().find_map(|r| r.restrict_from_path(target)) {
-            // target is an configured repo path restrict
-            return Ok((repos.clone(), r));
-        } else if let Ok(repo) = EbuildRepo.load_from_nested_path(target, 0, target, true) {
-            // target is an external repo path restrict
-            let restrict = repo
-                .as_ebuild()
-                .unwrap()
-                .restrict_from_path(target)
-                .unwrap();
-            return Ok((RepoSet::new([&repo]), restrict));
+    if let Ok(path) = &path_target {
+        if path.exists() {
+            if let Some(r) = repos.ebuild().find_map(|r| r.restrict_from_path(path)) {
+                // target is an configured repo path restrict
+                return Ok((repos.clone(), r));
+            } else if let Ok(repo) = EbuildRepo.load_from_nested_path(path, 0, path, true) {
+                // target is an external repo path restrict
+                let restrict = repo.as_ebuild().unwrap().restrict_from_path(path).unwrap();
+                return Ok((RepoSet::new([&repo]), restrict));
+            }
         }
     }
 
-    let restrict = restrict::parse::dep(target)?;
-    Ok((repos.clone(), restrict))
+    match (restrict::parse::dep(target), path_target) {
+        (Ok(restrict), _) => Ok((repos.clone(), restrict)),
+        (_, Ok(path)) if path.exists() => anyhow::bail!("invalid repo path: {path}"),
+        (_, Err(_)) => anyhow::bail!("invalid path target: {target:?}"),
+        (Err(e), _) => anyhow::bail!(e),
+    }
 }
 
 #[derive(Debug, clap::Subcommand)]

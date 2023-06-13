@@ -32,9 +32,9 @@ pub enum RepoFormat {
 
 impl RepoFormat {
     /// Try to load a specific repo type from a given path.
-    pub fn load_from_path<P: AsRef<Utf8Path>>(
+    pub fn load_from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
         &self,
-        id: &str,
+        id: S,
         priority: i32,
         path: P,
         finalize: bool,
@@ -61,13 +61,14 @@ impl RepoFormat {
     }
 
     /// Try to load a specific repo type from a given path, traversing parents.
-    pub fn load_from_nested_path<P: AsRef<Utf8Path>>(
+    pub fn load_from_nested_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
         self,
-        id: &str,
+        id: S,
         priority: i32,
         path: P,
         finalize: bool,
     ) -> crate::Result<Repo> {
+        let id = id.as_ref();
         let path = path.as_ref();
         let orig_path = path
             .canonicalize_utf8()
@@ -75,7 +76,7 @@ impl RepoFormat {
         let mut path = orig_path.as_path();
 
         while let Some(parent) = path.parent() {
-            if let Ok(repo) = self.load_from_path(path.as_str(), priority, path, finalize) {
+            if let Ok(repo) = self.load_from_path(id, priority, path, finalize) {
                 return Ok(repo);
             }
             path = parent;

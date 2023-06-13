@@ -46,7 +46,12 @@ impl Repo {
         self
     }
 
-    pub fn from_path<P: AsRef<Utf8Path>>(id: &str, priority: i32, path: P) -> crate::Result<Self> {
+    pub fn from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
+        id: S,
+        priority: i32,
+        path: P,
+    ) -> crate::Result<Self> {
+        let id = id.as_ref();
         let path = path.as_ref();
         let data = fs::read_to_string(path).map_err(|e| Error::NotARepo {
             kind: RepoFormat::Fake,

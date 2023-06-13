@@ -29,11 +29,12 @@ impl Repo {
         }
     }
 
-    pub(super) fn from_path<P: AsRef<Utf8Path>>(
-        id: &str,
+    pub(super) fn from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
+        id: S,
         priority: i32,
         path: P,
     ) -> crate::Result<Self> {
+        let id = id.as_ref();
         let path = path.as_ref();
         if path.exists() {
             Ok(Self::new(id, priority))

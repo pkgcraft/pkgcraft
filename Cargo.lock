@@ -1933,6 +1933,7 @@ version = "0.0.8"
 dependencies = [
  "aho-corasick",
  "anyhow",
+ "camino",
  "clap",
  "clap-verbosity-flag",
  "humantime",
