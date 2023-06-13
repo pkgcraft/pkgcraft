@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use clap::Args;
 use is_terminal::IsTerminal;
 use itertools::Either;
-use pkgcraft::config::{Config, RepoSetType};
+use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::ebuild::{Pkg, RawPkg};
 use pkgcraft::pkg::BuildablePackage;
 use pkgcraft::repo::set::RepoSet;
@@ -47,7 +47,7 @@ impl Command {
             }?;
             RepoSet::new([&repo])
         } else {
-            config.repos.set(RepoSetType::Ebuild)
+            config.repos.set(Repos::Ebuild)
         };
 
         // pull targets from args or stdin

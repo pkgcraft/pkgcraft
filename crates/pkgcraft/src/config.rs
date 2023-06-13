@@ -17,10 +17,10 @@ mod repo;
 
 const PORTAGE_CONFIG_PATHS: &[&str] = &["/etc/portage", "/usr/share/portage/config"];
 
-/// Set types of configured repos
+/// Repo set types registered in the config object.
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub enum RepoSetType {
+pub enum Repos {
     All,
     Ebuild,
 }

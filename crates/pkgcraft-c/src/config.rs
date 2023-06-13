@@ -1,6 +1,6 @@
 use std::ffi::{c_char, c_int};
 
-use pkgcraft::config::{Config, RepoSetType};
+use pkgcraft::config::{Config, Repos};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::Repo;
 
@@ -110,12 +110,9 @@ pub unsafe extern "C" fn pkgcraft_config_repos(
 /// # Safety
 /// The config argument must be a non-null Config pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_config_repos_set(
-    c: *mut Config,
-    set_type: RepoSetType,
-) -> *mut RepoSet {
+pub unsafe extern "C" fn pkgcraft_config_repos_set(c: *mut Config, kind: Repos) -> *mut RepoSet {
     let config = try_ref_from_ptr!(c);
-    Box::into_raw(Box::new(config.repos.set(set_type)))
+    Box::into_raw(Box::new(config.repos.set(kind)))
 }
 
 /// Free a config.

@@ -18,7 +18,7 @@ use crate::repo::{Repo, RepoFormat, Repository};
 use crate::sync::Syncer;
 use crate::Error;
 
-use super::RepoSetType;
+use super::Repos;
 
 #[serde_as]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -228,13 +228,12 @@ impl Config {
         }
     }
 
-    /// RepoSet objects from matching configured repo types
-    pub fn set(&self, set_type: RepoSetType) -> RepoSet {
-        use RepoSetType::*;
+    /// RepoSet objects from sets of repos registered in the config object.
+    pub fn set(&self, kind: Repos) -> RepoSet {
         let repos = self.repos.values();
-        match set_type {
-            All => RepoSet::new(repos),
-            Ebuild => RepoSet::new(repos.filter(|r| matches!(r, Repo::Ebuild(_)))),
+        match kind {
+            Repos::All => RepoSet::new(repos),
+            Repos::Ebuild => RepoSet::new(repos.filter(|r| matches!(r, Repo::Ebuild(_)))),
         }
     }
 

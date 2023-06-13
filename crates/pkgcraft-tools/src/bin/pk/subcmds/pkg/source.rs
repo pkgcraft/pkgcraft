@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use clap::Args;
 use is_terminal::IsTerminal;
 use itertools::Either;
-use pkgcraft::config::{Config, RepoSetType};
+use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::ebuild::RawPkg;
 use pkgcraft::pkg::SourceablePackage;
 use pkgcraft::repo::set::RepoSet;
@@ -191,7 +191,7 @@ impl Command {
             }?;
             RepoSet::new([&repo])
         } else {
-            config.repos.set(RepoSetType::Ebuild)
+            config.repos.set(Repos::Ebuild)
         };
 
         // pull targets from args or stdin
