@@ -460,16 +460,18 @@ macro_rules! make_builtin {
         use std::ffi::c_int;
 
         use $crate::builtins::Builtin;
-        use $crate::traits::IntoWords;
 
         #[no_mangle]
         extern "C" fn $func_name(list: *mut $crate::bash::WordList) -> c_int {
+            use $crate::builtins::handle_error;
+            use $crate::traits::IntoWords;
+
             let words = list.into_words(false);
             let args: Vec<_> = words.into_iter().collect();
 
             let ret = match $func(&args) {
                 Ok(ret) => ret,
-                Err(e) => $crate::builtins::handle_error($name, e),
+                Err(e) => handle_error($name, e),
             };
             i32::from(ret)
         }
