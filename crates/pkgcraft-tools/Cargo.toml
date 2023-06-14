@@ -23,7 +23,6 @@ clap = { version = "4.3.3", features = ["derive"] }
 clap-verbosity-flag = "2.0.1"
 humantime = "2.1.0"
 indexmap = { version = "1.9.3", features = ["serde"] }
-indicatif = "0.17.5"
 is-terminal = "0.4.7"
 itertools = "0.10.5"
 num_cpus = "1.15.0"

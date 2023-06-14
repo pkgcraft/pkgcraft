@@ -3,12 +3,10 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use clap::Args;
-use indicatif::ProgressBar;
 use is_terminal::IsTerminal;
 use itertools::Itertools;
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
-use scallop::pool::ProgressCallback;
 
 use crate::args::bounded_jobs;
 
@@ -32,17 +30,6 @@ impl Command {
     pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
         // force bounds on jobs
         let jobs = bounded_jobs(self.jobs)?;
-
-        // use progress bar to show completion progress when outputting to a terminal
-        let progress_cb: Option<ProgressCallback> = if stdout().is_terminal() {
-            let pb = ProgressBar::new(0);
-            let pb_len = pb.clone();
-            let cb_inc = move |val| pb.inc(val);
-            let cb_set = move |val| pb_len.set_length(val);
-            Some(ProgressCallback::new(cb_inc, cb_set))
-        } else {
-            None
-        };
 
         // determine target repos
         let mut invalid = vec![];
@@ -71,7 +58,7 @@ impl Command {
         // run metadata regeneration
         let mut status = ExitCode::SUCCESS;
         for repo in &repos {
-            let errors = repo.pkg_metadata_regen(jobs, self.force, progress_cb.as_ref())?;
+            let errors = repo.pkg_metadata_regen(jobs, self.force, stdout().is_terminal())?;
             if errors > 0 {
                 status = ExitCode::FAILURE;
             }

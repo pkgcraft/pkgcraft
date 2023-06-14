@@ -151,32 +151,6 @@ enum Msg<T> {
     Stop,
 }
 
-pub struct ProgressCallback {
-    inc: Box<dyn Fn(u64) + Send + Sync>,
-    set: Box<dyn Fn(u64) + Send + Sync>,
-}
-
-impl ProgressCallback {
-    pub fn new<F, G>(inc: F, set: G) -> Self
-    where
-        F: Fn(u64) + Send + Sync + 'static,
-        G: Fn(u64) + Send + Sync + 'static,
-    {
-        Self {
-            inc: Box::new(inc),
-            set: Box::new(set),
-        }
-    }
-
-    pub fn inc(&self, val: u64) {
-        (self.inc)(val)
-    }
-
-    pub fn set(&self, val: u64) {
-        (self.set)(val)
-    }
-}
-
 pub struct PoolSendIter<I, O>
 where
     I: Serialize + for<'a> Deserialize<'a>,
@@ -240,16 +214,10 @@ where
     }
 
     /// Create a new forked process pool, sending the given data to it for processing.
-    pub fn iter<'a, V: Iterator<Item = I> + ExactSizeIterator>(
-        &'a mut self,
+    pub fn iter<V: Iterator<Item = I> + ExactSizeIterator>(
+        &mut self,
         vals: V,
-        progress: Option<&'a ProgressCallback>,
     ) -> crate::Result<PoolReceiveIter<O>> {
-        // set progress bar length
-        if let Some(cb) = &progress {
-            cb.set(vals.len().try_into().unwrap());
-        }
-
         // queue data in a separate process
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
@@ -270,7 +238,7 @@ where
             Err(e) => Err(Error::Base(format!("failed starting queuing process: {e}"))),
         }?;
 
-        Ok(PoolReceiveIter { rx: &self.output_rx, progress })
+        Ok(PoolReceiveIter { rx: &self.output_rx })
     }
 }
 
@@ -289,7 +257,6 @@ where
     T: Serialize + for<'a> Deserialize<'a>,
 {
     rx: &'p IpcReceiver<Msg<T>>,
-    progress: Option<&'p ProgressCallback>,
 }
 
 impl<T> Iterator for PoolReceiveIter<'_, T>
@@ -300,14 +267,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.rx.recv() {
-            Ok(Msg::Val(r)) => {
-                // increment progress bar
-                if let Some(cb) = &self.progress {
-                    cb.inc(1);
-                }
-
-                Some(r)
-            }
+            Ok(Msg::Val(r)) => Some(r),
             Ok(Msg::Stop) => None,
             Ok(Msg::Start) => panic!("invalid start message"),
             Err(e) => panic!("output receiver failed: {e}"),

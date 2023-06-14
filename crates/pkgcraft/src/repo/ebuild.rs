@@ -10,10 +10,11 @@ use std::{fmt, fs, io, iter, thread};
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{Equivalent, IndexMap, IndexSet};
+use indicatif::ProgressBar;
 use itertools::{Either, Itertools};
 use once_cell::sync::{Lazy, OnceCell};
 use rayon::prelude::*;
-use scallop::pool::{PoolSendIter, ProgressCallback};
+use scallop::pool::PoolSendIter;
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
 
@@ -530,7 +531,7 @@ impl Repo {
         &self,
         jobs: usize,
         force: bool,
-        progress_cb: Option<&ProgressCallback>,
+        progress: bool,
     ) -> crate::Result<usize> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
@@ -547,26 +548,36 @@ impl Repo {
             .flat_map(|s| self.category_cpvs(&s))
             .collect();
 
+        // use progress bar to show completion progress when outputting to a terminal
+        let pb = ProgressBar::new(cpvs.len().try_into().unwrap());
+
         // run cache validation in a thread pool
         if !force && self.metadata().cache_path().exists() {
-            if let Some(cb) = &progress_cb {
-                cb.set(cpvs.len().try_into().unwrap());
-            }
             cpvs = cpvs
                 .into_par_iter()
                 .filter(|cpv| {
-                    if let Some(cb) = &progress_cb {
-                        cb.inc(1);
+                    if progress {
+                        pb.inc(1);
                     }
                     !MetadataCache::valid(cpv, self)
                 })
-                .collect()
+                .collect();
+
+            // reset progression in case validation decreased cpvs
+            if progress {
+                pb.set_position(0);
+                pb.set_length(cpvs.len().try_into().unwrap());
+            }
         }
 
         // send Cpvs and iterate over returned results, tracking progress and errors
         let mut errors = 0;
         if !cpvs.is_empty() {
-            for r in pool.iter(cpvs.into_iter(), progress_cb)? {
+            for r in pool.iter(cpvs.into_iter())? {
+                if progress {
+                    pb.inc(1);
+                }
+
                 // log errors
                 if let Err(e) = r {
                     errors += 1;
