@@ -1,4 +1,4 @@
-use std::io::stdin;
+use std::io::{self, ErrorKind::BrokenPipe, Write};
 use std::process::ExitCode;
 
 use anyhow::bail;
@@ -30,7 +30,7 @@ impl StdinArgs for Vec<String> {
     fn stdin_args(&self) -> anyhow::Result<bool> {
         match self.iter().next().map(|s| s.as_str()) {
             Some("-") | None => {
-                if stdin().is_terminal() {
+                if io::stdin().is_terminal() {
                     bail!("missing input on stdin");
                 }
                 Ok(true)
@@ -58,8 +58,13 @@ fn main() -> anyhow::Result<ExitCode> {
         .event_format(format)
         .init();
 
-    args.subcmd.run(&config).or_else(|e| {
-        eprintln!("pk: error: {e}");
-        Ok(ExitCode::from(2))
-    })
+    args.subcmd
+        .run(&config)
+        .or_else(|err| match err.root_cause().downcast_ref::<io::Error>() {
+            Some(e) if e.kind() == BrokenPipe => Ok(ExitCode::from(0)),
+            _ => {
+                writeln!(io::stderr(), "pk: error: {err}").ok();
+                Ok(ExitCode::from(2))
+            }
+        })
 }

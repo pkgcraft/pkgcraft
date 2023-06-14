@@ -1,3 +1,4 @@
+use std::io::{stderr, Write};
 use std::path::Path;
 use std::process::ExitCode;
 
@@ -66,7 +67,7 @@ impl Command {
             for r in PoolIter::new(jobs, pkgs, func, true)? {
                 if let Err(e) = r {
                     failed = true;
-                    eprintln!("{e}");
+                    writeln!(stderr(), "{e}")?;
                 }
             }
         }

@@ -1,4 +1,4 @@
-use std::io::stdin;
+use std::io::{stderr, stdin, stdout, Write};
 use std::process::ExitCode;
 
 use clap::Args;
@@ -54,7 +54,7 @@ impl Command {
     fn parse_version(&self, s: &str) -> anyhow::Result<()> {
         let ver = Version::new(s)?;
         if let Some(fmt) = &self.format {
-            println!("{}", self.format_str(fmt, &ver)?);
+            writeln!(stdout(), "{}", self.format_str(fmt, &ver)?)?;
         }
         Ok(())
     }
@@ -64,22 +64,23 @@ impl Command {
     pub(super) fn run(&self, _config: &Config) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
         // parse a version, tracking overall process status
-        let mut parse = |s: &str| {
+        let mut parse = |s: &str| -> anyhow::Result<()> {
             if self.parse_version(s).is_err() {
-                eprintln!("INVALID VERSION: {s}");
+                writeln!(stderr(), "INVALID VERSION: {s}")?;
                 status = ExitCode::FAILURE;
             }
+            Ok(())
         };
 
         if self.vals.stdin_args()? {
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
-                    parse(s);
+                    parse(s)?;
                 }
             }
         } else {
             for s in &self.vals {
-                parse(s);
+                parse(s)?;
             }
         }
 

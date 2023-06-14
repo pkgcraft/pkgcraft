@@ -1,4 +1,4 @@
-use std::io::stdin;
+use std::io::{stdin, stdout, Write};
 use std::process::ExitCode;
 
 use clap::Args;
@@ -30,7 +30,7 @@ impl Command {
 
         versions.sort();
         for v in versions {
-            println!("{v}");
+            writeln!(stdout(), "{v}")?;
         }
         Ok(ExitCode::SUCCESS)
     }

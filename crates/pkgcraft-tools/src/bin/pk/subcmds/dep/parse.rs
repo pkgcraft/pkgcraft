@@ -1,4 +1,4 @@
-use std::io::stdin;
+use std::io::{stderr, stdin, stdout, Write};
 use std::process::ExitCode;
 use std::str::FromStr;
 
@@ -88,7 +88,7 @@ impl Command {
 
         // output formatted string if specified
         if let Some(fmt) = &self.format {
-            println!("{}", self.format_str(fmt, &dep)?);
+            writeln!(stdout(), "{}", self.format_str(fmt, &dep)?)?;
         }
 
         Ok(())
@@ -99,22 +99,23 @@ impl Command {
     pub(super) fn run(&self, _config: &Config) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
         // parse a dep, tracking overall process status
-        let mut parse = |s: &str| {
+        let mut parse = |s: &str| -> anyhow::Result<()> {
             if self.parse_dep(s).is_err() {
-                eprintln!("INVALID DEP: {s}");
+                writeln!(stderr(), "INVALID DEP: {s}")?;
                 status = ExitCode::FAILURE;
             }
+            Ok(())
         };
 
         if self.vals.stdin_args()? {
             for line in stdin().lines() {
                 for s in line?.split_whitespace() {
-                    parse(s);
+                    parse(s)?;
                 }
             }
         } else {
             for s in &self.vals {
-                parse(s);
+                parse(s)?;
             }
         }
 

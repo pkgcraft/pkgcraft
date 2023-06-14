@@ -1,4 +1,4 @@
-use std::io::stdin;
+use std::io::{stdin, stdout, Write};
 use std::process::ExitCode;
 use std::str::FromStr;
 
@@ -31,7 +31,7 @@ impl Command {
         }
 
         for d in deps {
-            println!("{d}");
+            writeln!(stdout(), "{d}")?;
         }
         Ok(ExitCode::SUCCESS)
     }
