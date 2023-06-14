@@ -13,6 +13,7 @@ pub(crate) mod shm;
 pub mod source;
 mod test;
 pub mod traits;
+pub mod utils;
 pub mod variables;
 
 pub use self::error::{Error, Result};
