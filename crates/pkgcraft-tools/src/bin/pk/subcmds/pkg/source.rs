@@ -219,7 +219,7 @@ impl Command {
             let repo = if let Some(r) = config.repos.get(repo) {
                 Ok(r.clone())
             } else if Path::new(repo).exists() {
-                EbuildRepo.load_from_path(repo, 0, repo, true)
+                EbuildRepo.load_from_nested_path(repo, 0, repo, true)
             } else {
                 anyhow::bail!("unknown repo: {repo}")
             }?;
