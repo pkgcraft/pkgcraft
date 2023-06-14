@@ -39,11 +39,17 @@ impl RepoFormat {
         path: P,
         finalize: bool,
     ) -> crate::Result<Repo> {
+        let mut id = id.as_ref();
         let path = path.as_ref();
-        let path = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
+        let abspath = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
             id: path.to_string(),
             err: e.to_string(),
         })?;
+
+        // don't use relative paths for repo ids
+        if id == path {
+            id = abspath.as_str();
+        }
 
         let repo: Repo = match self {
             Self::Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
@@ -71,12 +77,12 @@ impl RepoFormat {
     ) -> crate::Result<Repo> {
         let id = id.as_ref();
         let path = path.as_ref();
-        let orig_path = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
+        let abspath = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
             id: path.to_string(),
             err: e.to_string(),
         })?;
-        let mut path = orig_path.as_path();
 
+        let mut path = abspath.as_path();
         while let Some(parent) = path.parent() {
             if let Ok(repo) = self.load_from_path(path, priority, path, finalize) {
                 return Ok(repo);
@@ -87,7 +93,7 @@ impl RepoFormat {
         Err(Error::NotARepo {
             kind: self,
             id: id.to_string(),
-            err: format!("no repo found under: {orig_path}"),
+            err: format!("no repo found under: {abspath}"),
         })
     }
 }
