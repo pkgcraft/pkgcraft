@@ -495,6 +495,36 @@ impl Repo {
             .get(cpv)
     }
 
+    /// Return the sorted list of Cpvs in a given category.
+    fn category_cpvs(&self, category: &str) -> Vec<Cpv> {
+        // filter invalid ebuild paths
+        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv> {
+            match r {
+                Ok(e) => match self.cpv_from_path(e.path()) {
+                    Ok(cpv) => Some(cpv),
+                    Err(e) => {
+                        warn!("{}: {e}", self.id());
+                        None
+                    }
+                },
+                Err(e) => {
+                    warn!("{}: failed walking repo: {e}", self.id());
+                    None
+                }
+            }
+        };
+
+        let mut cpvs: Vec<_> = WalkDir::new(self.path().join(category))
+            .min_depth(2)
+            .max_depth(2)
+            .into_iter()
+            .filter_entry(is_ebuild)
+            .filter_map(filter_path)
+            .collect();
+        cpvs.sort();
+        cpvs
+    }
+
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
     pub fn pkg_metadata_regen(
         &self,
@@ -509,8 +539,13 @@ impl Repo {
         };
         let mut pool = PoolSendIter::new(jobs, func, true)?;
 
+        // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
         // pull all package Cpvs from the repo
-        let mut cpvs: Vec<_> = self.iter_cpv().collect();
+        let mut cpvs: Vec<_> = self
+            .categories()
+            .into_par_iter()
+            .flat_map(|s| self.category_cpvs(&s))
+            .collect();
 
         // run cache validation in a thread pool
         if !force && self.metadata().cache_path().exists() {
@@ -859,36 +894,6 @@ impl<'a> IterCpv<'a> {
             }
         }
 
-        // filter invalid ebuild paths
-        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv> {
-            match r {
-                Ok(e) => match repo.cpv_from_path(e.path()) {
-                    Ok(cpv) => Some(cpv),
-                    Err(e) => {
-                        warn!("{}: {e}", repo.id());
-                        None
-                    }
-                },
-                Err(e) => {
-                    warn!("{}: failed walking repo: {e}", repo.id());
-                    None
-                }
-            }
-        };
-
-        // return the Cpvs for pkgs in a category
-        let category_cpvs = move |category: &str| -> Vec<Cpv> {
-            let mut cpvs: Vec<_> = WalkDir::new(repo.path().join(category))
-                .min_depth(2)
-                .max_depth(2)
-                .into_iter()
-                .filter_entry(is_ebuild)
-                .filter_map(filter_path)
-                .collect();
-            cpvs.sort();
-            cpvs
-        };
-
         let restricts = (cat.as_deref(), pkg.as_deref(), ver.as_deref());
 
         Self {
@@ -914,7 +919,7 @@ impl<'a> IterCpv<'a> {
                     repo.categories()
                         .into_iter()
                         .filter(move |s| cat_restrict.matches(s.as_str()))
-                        .flat_map(move |s| category_cpvs(&s))
+                        .flat_map(|s| repo.category_cpvs(&s))
                         .filter(move |cpv| pkg_restrict.matches(cpv)),
                 )
             },
