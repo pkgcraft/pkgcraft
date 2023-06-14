@@ -69,18 +69,14 @@ impl Command {
         }
 
         // run metadata regeneration
-        let mut failed = false;
+        let mut status = ExitCode::SUCCESS;
         for repo in &repos {
             let errors = repo.pkg_metadata_regen(jobs, self.force, progress_cb.as_ref())?;
             if errors > 0 {
-                failed = true;
+                status = ExitCode::FAILURE;
             }
         }
 
-        if failed {
-            Ok(ExitCode::FAILURE)
-        } else {
-            Ok(ExitCode::SUCCESS)
-        }
+        Ok(status)
     }
 }

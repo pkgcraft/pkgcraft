@@ -232,7 +232,7 @@ impl Command {
         let jobs = bounded_jobs(self.jobs.or(Some(num_cpus::get_physical())))?;
 
         // loop over targets, tracking overall failure status
-        let mut failed = false;
+        let mut status = ExitCode::SUCCESS;
         for target in stdin_or_args(self.targets) {
             // determine target restriction
             let (repos, restrict) = target_restriction(&repos, &target)?;
@@ -247,14 +247,10 @@ impl Command {
             }?;
 
             if target_failed {
-                failed = true;
+                status = ExitCode::FAILURE;
             }
         }
 
-        if failed {
-            Ok(ExitCode::FAILURE)
-        } else {
-            Ok(ExitCode::SUCCESS)
-        }
+        Ok(status)
     }
 }

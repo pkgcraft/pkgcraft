@@ -55,7 +55,7 @@ impl Command {
 
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs)?;
-        let mut failed = false;
+        let mut status = ExitCode::SUCCESS;
         for target in stdin_or_args(self.targets) {
             // determine target restriction
             let (repos, restrict) = target_restriction(&repos, &target)?;
@@ -66,16 +66,12 @@ impl Command {
             // run pkg_pretend across selected pkgs
             for r in PoolIter::new(jobs, pkgs, func, true)? {
                 if let Err(e) = r {
-                    failed = true;
+                    status = ExitCode::FAILURE;
                     writeln!(stderr(), "{e}")?;
                 }
             }
         }
 
-        if failed {
-            Ok(ExitCode::FAILURE)
-        } else {
-            Ok(ExitCode::SUCCESS)
-        }
+        Ok(status)
     }
 }
