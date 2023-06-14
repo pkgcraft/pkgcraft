@@ -502,19 +502,29 @@ impl Repo {
         force: bool,
         progress_cb: Option<&ProgressCallback>,
     ) -> crate::Result<usize> {
-        // initialize pool before validation to minimize forked process memory pages
+        // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
         let mut pool = PoolSendIter::new(jobs, func, true)?;
 
-        // run cache validation in a thread pool
+        // pull all package Cpvs from the repo
         let mut cpvs: Vec<_> = self.iter_cpv().collect();
+        if let Some(cb) = &progress_cb {
+            cb.set(cpvs.len().try_into().unwrap());
+        }
+
+        // run cache validation in a thread pool
         if !force && self.metadata().cache_path().exists() {
             cpvs = cpvs
                 .into_par_iter()
-                .filter(|cpv| !MetadataCache::valid(cpv, self))
+                .filter(|cpv| {
+                    if let Some(cb) = &progress_cb {
+                        cb.inc(1);
+                    }
+                    !MetadataCache::valid(cpv, self)
+                })
                 .collect()
         }
 

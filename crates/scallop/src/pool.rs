@@ -152,12 +152,16 @@ enum Msg<T> {
 }
 
 pub struct ProgressCallback {
-    inc: Box<dyn Fn(u64)>,
-    set: Box<dyn Fn(u64)>,
+    inc: Box<dyn Fn(u64) + Send + Sync>,
+    set: Box<dyn Fn(u64) + Send + Sync>,
 }
 
 impl ProgressCallback {
-    pub fn new<F: Fn(u64) + 'static, G: Fn(u64) + 'static>(inc: F, set: G) -> Self {
+    pub fn new<F, G>(inc: F, set: G) -> Self
+    where
+        F: Fn(u64) + Send + Sync + 'static,
+        G: Fn(u64) + Send + Sync + 'static,
+    {
         Self {
             inc: Box::new(inc),
             set: Box::new(set),
