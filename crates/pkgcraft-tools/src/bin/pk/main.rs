@@ -1,4 +1,4 @@
-use std::io::{self, ErrorKind::BrokenPipe, Write};
+use std::io::{stderr, stdin, Write};
 use std::process::ExitCode;
 
 use anyhow::bail;
@@ -6,6 +6,7 @@ use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use is_terminal::IsTerminal;
 use pkgcraft::config::Config;
+use scallop::utils::reset_sigpipe;
 use tracing_log::AsTrace;
 
 mod args;
@@ -30,7 +31,7 @@ impl StdinArgs for Vec<String> {
     fn stdin_args(&self) -> anyhow::Result<bool> {
         match self.iter().next().map(|s| s.as_str()) {
             Some("-") | None => {
-                if io::stdin().is_terminal() {
+                if stdin().is_terminal() {
                     bail!("missing input on stdin");
                 }
                 Ok(true)
@@ -41,6 +42,9 @@ impl StdinArgs for Vec<String> {
 }
 
 fn main() -> anyhow::Result<ExitCode> {
+    // reset SIGPIPE behavior since rust ignores it by default
+    reset_sigpipe();
+
     let mut config = Config::new("pkgcraft", "");
     config.load()?;
 
@@ -58,13 +62,8 @@ fn main() -> anyhow::Result<ExitCode> {
         .event_format(format)
         .init();
 
-    args.subcmd
-        .run(&config)
-        .or_else(|err| match err.root_cause().downcast_ref::<io::Error>() {
-            Some(e) if e.kind() == BrokenPipe => Ok(ExitCode::from(141)),
-            _ => {
-                writeln!(io::stderr(), "pk: error: {err}").ok();
-                Ok(ExitCode::from(2))
-            }
-        })
+    args.subcmd.run(&config).or_else(|err| {
+        writeln!(stderr(), "pk: error: {err}").ok();
+        Ok(ExitCode::from(2))
+    })
 }
