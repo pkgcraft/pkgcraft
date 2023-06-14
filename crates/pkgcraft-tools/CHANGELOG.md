@@ -1,5 +1,9 @@
 - unreleased
 
+  - Ignore output errors when SIGPIPE occurs (#112).
+
+  - `pk pkg source`: `-j/--jobs` defaults to # of physical CPUs
+
   - `pk pkg source`: support sorting in ascending order via `--sort`
 
   - `pk pkg`: source ebuild from the current working directory by default

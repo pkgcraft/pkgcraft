@@ -61,7 +61,7 @@ fn main() -> anyhow::Result<ExitCode> {
     args.subcmd
         .run(&config)
         .or_else(|err| match err.root_cause().downcast_ref::<io::Error>() {
-            Some(e) if e.kind() == BrokenPipe => Ok(ExitCode::from(0)),
+            Some(e) if e.kind() == BrokenPipe => Ok(ExitCode::SUCCESS),
             _ => {
                 writeln!(io::stderr(), "pk: error: {err}").ok();
                 Ok(ExitCode::from(2))
