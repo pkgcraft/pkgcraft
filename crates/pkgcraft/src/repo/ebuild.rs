@@ -511,12 +511,12 @@ impl Repo {
 
         // pull all package Cpvs from the repo
         let mut cpvs: Vec<_> = self.iter_cpv().collect();
-        if let Some(cb) = &progress_cb {
-            cb.set(cpvs.len().try_into().unwrap());
-        }
 
         // run cache validation in a thread pool
         if !force && self.metadata().cache_path().exists() {
+            if let Some(cb) = &progress_cb {
+                cb.set(cpvs.len().try_into().unwrap());
+            }
             cpvs = cpvs
                 .into_par_iter()
                 .filter(|cpv| {
