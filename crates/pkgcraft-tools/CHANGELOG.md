@@ -1,6 +1,8 @@
 - unreleased
 
-  - Ignore output errors when SIGPIPE occurs (#112).
+  - `pk repo metadata`: show progress bar during cache validation phase
+
+  - Exit as expected when a SIGPIPE occurs (#112).
 
   - `pk pkg source`: `-j/--jobs` defaults to # of physical CPUs
 
