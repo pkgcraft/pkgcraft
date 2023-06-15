@@ -230,7 +230,7 @@ where
     }
 
     /// Create a new forked process pool, sending the given data to it for processing.
-    pub fn iter<V: Iterator<Item = I> + ExactSizeIterator>(
+    pub fn iter<V: Iterator<Item = I>>(
         &self,
         vals: V,
     ) -> crate::Result<PoolReceiveIter<O>> {
