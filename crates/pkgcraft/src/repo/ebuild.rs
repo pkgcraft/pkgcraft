@@ -652,12 +652,7 @@ impl Repo {
 
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (id, path) = (self.id(), self.path());
-        if id == path {
-            write!(f, "{id}")
-        } else {
-            write!(f, "{id}: {path}")
-        }
+        write!(f, "{}: {}", self.name(), self.path())
     }
 }
 
