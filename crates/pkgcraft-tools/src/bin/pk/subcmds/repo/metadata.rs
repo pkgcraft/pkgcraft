@@ -1,14 +1,11 @@
 use std::io::stdout;
-use std::path::Path;
 use std::process::ExitCode;
 
 use clap::Args;
 use is_terminal::IsTerminal;
-use itertools::Itertools;
 use pkgcraft::config::Config;
-use pkgcraft::repo::RepoFormat;
 
-use crate::args::bounded_jobs;
+use crate::args::{bounded_jobs, target_ebuild_repos};
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -31,33 +28,9 @@ impl Command {
         // force bounds on jobs
         let jobs = bounded_jobs(self.jobs)?;
 
-        // determine target repos
-        let mut invalid = vec![];
-        let mut repos = vec![];
-        for repo in &self.repos {
-            let repo = if let Some(r) = config.repos.get(repo) {
-                Ok(r.clone())
-            } else if Path::new(repo).exists() {
-                RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)
-            } else {
-                anyhow::bail!("unknown repo: {repo}")
-            }?;
-
-            if let Some(r) = repo.as_ebuild() {
-                repos.push(r.clone());
-            } else {
-                invalid.push(repo);
-            }
-        }
-
-        if !invalid.is_empty() {
-            let repos = invalid.iter().map(|s| s.to_string()).join(", ");
-            anyhow::bail!("non-ebuild repos: {repos}");
-        }
-
         // run metadata regeneration
         let mut status = ExitCode::SUCCESS;
-        for repo in &repos {
+        for repo in target_ebuild_repos(config, &self.repos)? {
             let errors = repo.pkg_metadata_regen(jobs, self.force, stdout().is_terminal())?;
             if errors > 0 {
                 status = ExitCode::FAILURE;
