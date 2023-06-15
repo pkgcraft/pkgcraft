@@ -538,7 +538,7 @@ impl Repo {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
-        let mut pool = PoolSendIter::new(jobs, func, true)?;
+        let pool = PoolSendIter::new(jobs, func, true)?;
 
         // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
         // pull all package Cpvs from the repo
