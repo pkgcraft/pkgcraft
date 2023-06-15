@@ -4,7 +4,6 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::dep::Cpv;
 use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::Package;
 
@@ -12,6 +11,10 @@ use crate::args::target_ebuild_repos;
 
 #[derive(Debug, Args)]
 pub struct Command {
+    /// Output packages for a target EAPI
+    #[arg(short, long)]
+    eapi: Option<&'static Eapi>,
+
     // positionals
     /// Target repositories
     #[arg(value_name = "REPO", required = true)]
@@ -21,7 +24,7 @@ pub struct Command {
 impl Command {
     pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
         for repo in target_ebuild_repos(config, &self.repos)? {
-            let mut eapis = HashMap::<&'static Eapi, Vec<Cpv>>::new();
+            let mut eapis = HashMap::<&'static Eapi, Vec<_>>::new();
             // TODO: use parallel iterator
             for pkg in repo.iter_raw() {
                 eapis
@@ -30,10 +33,19 @@ impl Command {
                     .push(pkg.cpv().clone());
             }
 
-            writeln!(stdout(), "{repo}:")?;
-            for eapi in EAPIS.iter() {
-                if let Some(cpvs) = eapis.get(eapi) {
-                    writeln!(stdout(), "  EAPI {eapi}: {} pkgs", cpvs.len())?;
+            if let Some(eapi) = self.eapi {
+                if let Some(cpvs) = eapis.get_mut(eapi) {
+                    cpvs.sort();
+                    for cpv in cpvs {
+                        writeln!(stdout(), "{cpv}")?;
+                    }
+                }
+            } else {
+                writeln!(stdout(), "{repo}")?;
+                for eapi in EAPIS.iter() {
+                    if let Some(cpvs) = eapis.get(eapi) {
+                        writeln!(stdout(), "  EAPI {eapi}: {} pkgs", cpvs.len())?;
+                    }
                 }
             }
         }
