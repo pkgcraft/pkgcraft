@@ -34,6 +34,7 @@ pub fn suppress_output() -> crate::Result<()> {
 /// Semaphore wrapping libc semaphore calls on top of shared memory.
 struct SharedSemaphore {
     sem: *mut libc::sem_t,
+    size: u32,
 }
 
 impl SharedSemaphore {
@@ -50,7 +51,7 @@ impl SharedSemaphore {
             .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
 
         if unsafe { libc::sem_init(sem, 1, size) } == 0 {
-            Ok(Self { sem })
+            Ok(Self { sem, size })
         } else {
             let err = errno();
             Err(Error::Base(format!("sem_init() failed: {err}")))
@@ -73,6 +74,13 @@ impl SharedSemaphore {
             let err = errno();
             Err(Error::Base(format!("sem_post() failed: {err}")))
         }
+    }
+
+    fn wait(&mut self) -> crate::Result<()> {
+        for _ in 0..self.size {
+            self.acquire()?;
+        }
+        Ok(())
     }
 }
 
@@ -149,7 +157,6 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Iterator for PoolIter<T> {
 #[derive(Debug, Serialize, Deserialize)]
 enum Msg<T> {
     Val(T),
-    Start,
     Stop,
 }
 
@@ -188,29 +195,32 @@ where
                     suppress_output()?;
                 }
 
-                while let Ok(Msg::Start) = input_rx.recv() {
-                    while let Ok(Msg::Val(obj)) = input_rx.recv() {
-                        // wait on bounded semaphore for pool space
-                        sem.acquire()?;
-
-                        match unsafe { fork() } {
-                            Ok(ForkResult::Parent { .. }) => (),
-                            Ok(ForkResult::Child) => {
-                                // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
-                                let r = func(obj);
-                                output_tx.send(Msg::Val(r)).map_err(|e| {
-                                    Error::Base(format!("process pool failed send: {e}"))
-                                })?;
-                                sem.release()?;
-                                unsafe { libc::_exit(0) };
-                            }
-                            Err(e) => panic!("process pool fork failed: {e}"),
+                while let Ok(Msg::Val(obj)) = input_rx.recv() {
+                    // wait on bounded semaphore for pool space
+                    sem.acquire()?;
+                    match unsafe { fork() } {
+                        Ok(ForkResult::Parent { .. }) => (),
+                        Ok(ForkResult::Child) => {
+                            // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
+                            let r = func(obj);
+                            output_tx.send(Msg::Val(r)).map_err(|e| {
+                                Error::Base(format!("process pool failed send: {e}"))
+                            })?;
+                            sem.release()?;
+                            unsafe { libc::_exit(0) };
                         }
+                        Err(e) => panic!("process pool fork failed: {e}"),
                     }
-                    output_tx
-                        .send(Msg::Stop)
-                        .map_err(|e| Error::Base(format!("process pool failed stop: {e}")))?;
                 }
+
+                // wait for forked processes to complete
+                sem.wait()?;
+
+                // signal iterator end
+                output_tx
+                    .send(Msg::Stop)
+                    .map_err(|e| Error::Base(format!("process pool failed stop: {e}")))?;
+
                 unsafe { libc::_exit(0) }
             }
             Err(e) => Err(Error::Base(format!("process pool failed start: {e}"))),
@@ -228,17 +238,18 @@ where
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
-                self.input_tx
-                    .send(Msg::Start)
-                    .map_err(|e| Error::Base(format!("failed starting workers: {e}")))?;
+                // send values to process pool
                 for val in vals {
                     self.input_tx
                         .send(Msg::Val(val))
                         .map_err(|e| Error::Base(format!("failed queuing value: {e}")))?;
                 }
+
+                // signal process pool end
                 self.input_tx
                     .send(Msg::Stop)
-                    .map_err(|e| Error::Base(format!("failed starting workers: {e}")))?;
+                    .map_err(|e| Error::Base(format!("failed stopping workers: {e}")))?;
+
                 unsafe { libc::_exit(0) };
             }
             Err(e) => Err(Error::Base(format!("failed starting queuing process: {e}"))),
@@ -275,7 +286,6 @@ where
         match self.rx.recv() {
             Ok(Msg::Val(r)) => Some(r),
             Ok(Msg::Stop) => None,
-            Ok(Msg::Start) => panic!("invalid start message"),
             Err(e) => panic!("output receiver failed: {e}"),
         }
     }
