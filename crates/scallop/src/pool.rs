@@ -104,23 +104,25 @@ impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
             Ok(ForkResult::Child) => {
                 if suppress {
                     // suppress stdout and stderr in forked processes
-                    suppress_output().expect("failed suppressing output");
+                    suppress_output()?;
                 }
 
                 for obj in iter {
                     // wait on bounded semaphore for pool space
-                    sem.acquire().expect("failed acquiring pool token");
+                    sem.acquire()?;
 
                     match unsafe { fork() } {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
                             // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
                             let r = func(obj);
-                            tx.send(r).expect("process pool sender failed");
-                            sem.release().expect("failed releasing pool token");
+                            tx.send(r).map_err(|e| {
+                                Error::Base(format!("process pool sending failed: {e}"))
+                            })?;
+                            sem.release()?;
                             unsafe { libc::_exit(0) };
                         }
-                        Err(_) => panic!("process pool fork failed"),
+                        Err(e) => panic!("process pool fork failed: {e}"),
                     }
                 }
                 unsafe { libc::_exit(0) };
@@ -183,31 +185,35 @@ where
             Ok(ForkResult::Child) => {
                 if suppress {
                     // suppress stdout and stderr in forked processes
-                    suppress_output().expect("failed suppressing output");
+                    suppress_output()?;
                 }
 
                 while let Ok(Msg::Start) = input_rx.recv() {
                     while let Ok(Msg::Val(obj)) = input_rx.recv() {
                         // wait on bounded semaphore for pool space
-                        sem.acquire().expect("failed acquiring pool token");
+                        sem.acquire()?;
 
                         match unsafe { fork() } {
                             Ok(ForkResult::Parent { .. }) => (),
                             Ok(ForkResult::Child) => {
                                 // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
                                 let r = func(obj);
-                                output_tx.send(Msg::Val(r)).expect("failed sending output");
-                                sem.release().expect("failed releasing pool token");
+                                output_tx.send(Msg::Val(r)).map_err(|e| {
+                                    Error::Base(format!("process pool failed send: {e}"))
+                                })?;
+                                sem.release()?;
                                 unsafe { libc::_exit(0) };
                             }
-                            Err(_) => panic!("process pool fork failed"),
+                            Err(e) => panic!("process pool fork failed: {e}"),
                         }
                     }
-                    output_tx.send(Msg::Stop).expect("failed stopping output");
+                    output_tx
+                        .send(Msg::Stop)
+                        .map_err(|e| Error::Base(format!("process pool failed stop: {e}")))?;
                 }
                 unsafe { libc::_exit(0) }
             }
-            Err(e) => Err(Error::Base(format!("starting process pool failed: {e}"))),
+            Err(e) => Err(Error::Base(format!("process pool failed start: {e}"))),
         }?;
 
         Ok(Self { input_tx, output_rx })
@@ -224,15 +230,15 @@ where
             Ok(ForkResult::Child) => {
                 self.input_tx
                     .send(Msg::Start)
-                    .expect("failed starting workers");
+                    .map_err(|e| Error::Base(format!("failed starting workers: {e}")))?;
                 for val in vals {
                     self.input_tx
                         .send(Msg::Val(val))
-                        .expect("queuing value failed");
+                        .map_err(|e| Error::Base(format!("failed queuing value: {e}")))?;
                 }
                 self.input_tx
                     .send(Msg::Stop)
-                    .expect("failed stopping workers");
+                    .map_err(|e| Error::Base(format!("failed starting workers: {e}")))?;
                 unsafe { libc::_exit(0) };
             }
             Err(e) => Err(Error::Base(format!("failed starting queuing process: {e}"))),
@@ -248,7 +254,7 @@ where
     O: Serialize + for<'a> Deserialize<'a>,
 {
     fn drop(&mut self) {
-        self.input_tx.send(Msg::Stop).expect("failed stopping pool")
+        self.input_tx.send(Msg::Stop).ok();
     }
 }
 
