@@ -230,10 +230,7 @@ where
     }
 
     /// Create a new forked process pool, sending the given data to it for processing.
-    pub fn iter<V: Iterator<Item = I>>(
-        &self,
-        vals: V,
-    ) -> crate::Result<PoolReceiveIter<O>> {
+    pub fn iter<V: Iterator<Item = I>>(&self, vals: V) -> crate::Result<PoolReceiveIter<O>> {
         // queue data in a separate process
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
