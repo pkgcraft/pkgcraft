@@ -35,16 +35,11 @@ impl Command {
         }
 
         for cpv in &cpvs {
-            let mut found = false;
-            if let Some(deps) = cache.get(&cpv.cpn()) {
-                for dep in deps {
-                    if dep.intersects(cpv) && dep.blocker().is_none() {
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if !found {
+            // TODO: use is_some_and() once MSRV >= 1.70
+            if !cache.get(&cpv.cpn()).map_or(false, |deps| {
+                deps.iter()
+                    .any(|d| d.intersects(cpv) && d.blocker().is_none())
+            }) {
                 writeln!(stdout(), "{cpv}")?;
             }
         }
