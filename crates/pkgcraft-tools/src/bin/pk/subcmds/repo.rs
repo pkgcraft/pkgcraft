@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use pkgcraft::config::Config;
 
 mod eapis;
+mod leaf;
 mod metadata;
 
 #[derive(Debug, clap::Args)]
@@ -19,8 +20,10 @@ impl Command {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
-    /// Output repo EAPI usage rates
+    /// Output EAPI usage rates
     Eapis(eapis::Command),
+    /// Output leaf packages
+    Leaf(leaf::Command),
     /// Generate repo metadata
     Metadata(metadata::Command),
 }
@@ -30,6 +33,7 @@ impl Subcommand {
         use Subcommand::*;
         match self {
             Eapis(cmd) => cmd.run(config),
+            Leaf(cmd) => cmd.run(config),
             Metadata(cmd) => cmd.run(config),
         }
     }

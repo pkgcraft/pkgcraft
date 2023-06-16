@@ -4,6 +4,7 @@
 - `pk pkg`: add support for path-based targets
 - `pk pkg source`: support sorting in ascending order via `--sort`
 - `pk repo eapis`: add subcommand to show EAPI usage
+- `pk repo leaf`: add subcommand to output leaf packages
 - `pk repo metadata`: show progress bar during cache validation phase
 
 ## Changed
