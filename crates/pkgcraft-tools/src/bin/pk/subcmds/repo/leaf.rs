@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::dep::Intersects;
+use pkgcraft::dep::{Cpv, Intersects};
 use pkgcraft::pkg::Package;
 
 use crate::args::target_ebuild_repo;
@@ -34,14 +34,17 @@ impl Command {
             }
         }
 
-        for cpv in &cpvs {
+        // determine if a given package is a leaf
+        let is_leaf = |cpv: &Cpv| -> bool {
             // TODO: use is_some_and() once MSRV >= 1.70
-            if !cache.get(&cpv.cpn()).map_or(false, |deps| {
+            !cache.get(&cpv.cpn()).map_or(false, |deps| {
                 deps.iter()
                     .any(|d| d.intersects(cpv) && d.blocker().is_none())
-            }) {
-                writeln!(stdout(), "{cpv}")?;
-            }
+            })
+        };
+
+        for cpv in cpvs.into_iter().filter(is_leaf) {
+            writeln!(stdout(), "{cpv}")?;
         }
 
         Ok(ExitCode::SUCCESS)
