@@ -577,6 +577,6 @@ mod tests {
         BuildData::from_raw_pkg(&pkg);
         let r = pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
-        assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names: .+$");
+        assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
     }
 }

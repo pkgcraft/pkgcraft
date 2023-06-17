@@ -72,12 +72,7 @@ pub(crate) extern "C" fn bash_error(msg: *mut c_char) {
     if !msg.is_empty() {
         let level = CALL_LEVEL.load(Ordering::Relaxed);
         ERRORS.with(|errors| {
-            let err = io::Error::last_os_error();
-            // convert bash IO errors into scallop IO errors
-            let e = match err.raw_os_error() {
-                Some(v) if v != 0 => Error::IO(format!("{msg}: {err}")),
-                _ => Error::Base(msg.to_string()),
-            };
+            let e = Error::Base(msg.to_string());
             errors.borrow_mut().insert(level, e);
         });
     }
