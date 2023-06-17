@@ -40,7 +40,7 @@ impl Command {
                         writeln!(stdout(), "{cpv}")?;
                     }
                 }
-            } else {
+            } else if !eapis.is_empty() {
                 writeln!(stdout(), "{repo}")?;
                 for eapi in EAPIS.iter() {
                     if let Some(cpvs) = eapis.get(eapi) {
