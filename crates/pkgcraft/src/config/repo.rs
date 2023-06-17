@@ -253,7 +253,7 @@ impl Config {
         repos: I,
         external: bool,
     ) -> crate::Result<()> {
-        // check for existing repos since configured repo duplicates aren't allowed
+        // check for existing repos since duplicate repo names aren't allowed
         let (mut existing, repos): (Vec<_>, Vec<_>) = repos.into_iter().partition_map(|r| {
             // always use path names for external repos
             let name = if external {
