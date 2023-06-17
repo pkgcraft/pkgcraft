@@ -20,7 +20,7 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
             Dep(cmd) => cmd.run(config),

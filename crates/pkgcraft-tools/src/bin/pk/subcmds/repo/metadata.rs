@@ -24,7 +24,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // force bounds on jobs
         let jobs = bounded_jobs(self.jobs)?;
 

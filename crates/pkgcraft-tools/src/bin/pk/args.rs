@@ -6,7 +6,6 @@ use is_terminal::IsTerminal;
 use itertools::Either;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::Repo as EbuildRepo;
-use pkgcraft::repo::RepoFormat;
 
 /// Limit parallel jobs to the number of logical CPUs on a system.
 pub(crate) fn bounded_jobs(jobs: Option<usize>) -> anyhow::Result<usize> {
@@ -31,11 +30,14 @@ where
 }
 
 /// Convert a target ebuild repo arg into an ebuild repo.
-pub(crate) fn target_ebuild_repo(config: &Config, repo: &str) -> anyhow::Result<Arc<EbuildRepo>> {
+pub(crate) fn target_ebuild_repo(
+    config: &mut Config,
+    repo: &str,
+) -> anyhow::Result<Arc<EbuildRepo>> {
     let repo = if let Some(r) = config.repos.get(repo) {
         Ok(r.clone())
     } else if Path::new(repo).exists() {
-        RepoFormat::Ebuild.load_from_path(repo, 0, repo, true)
+        config.add_repo_path(repo, 0, repo, true)
     } else {
         anyhow::bail!("unknown repo: {repo}")
     }?;
@@ -49,7 +51,7 @@ pub(crate) fn target_ebuild_repo(config: &Config, repo: &str) -> anyhow::Result<
 
 /// Convert a list of target ebuild repo args into ebuild repos.
 pub(crate) fn target_ebuild_repos(
-    config: &Config,
+    config: &mut Config,
     args: &[String],
 ) -> anyhow::Result<Vec<Arc<EbuildRepo>>> {
     let mut repos = vec![];

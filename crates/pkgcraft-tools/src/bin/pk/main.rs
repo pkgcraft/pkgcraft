@@ -62,7 +62,7 @@ fn main() -> anyhow::Result<ExitCode> {
         .event_format(format)
         .init();
 
-    args.subcmd.run(&config).or_else(|err| {
+    args.subcmd.run(&mut config).or_else(|err| {
         writeln!(stderr(), "pk: error: {err}").ok();
         Ok(ExitCode::from(2))
     })

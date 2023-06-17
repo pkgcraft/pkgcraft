@@ -22,7 +22,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         for repo in target_ebuild_repos(config, &self.repos)? {
             let mut eapis = HashMap::<&'static Eapi, Vec<_>>::new();
             // TODO: use parallel iterator

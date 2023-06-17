@@ -19,7 +19,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(&self, config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         let repo = target_ebuild_repo(config, &self.repo)?;
         let mut cpvs = vec![];
         let mut cache = HashMap::<_, HashSet<_>>::new();
