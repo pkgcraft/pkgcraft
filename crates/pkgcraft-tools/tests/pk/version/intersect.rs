@@ -34,8 +34,8 @@ fn args() {
         cmd("pk version intersect")
             .args(&args)
             .assert()
+            .stderr(predicate::str::is_empty().not())
             .failure()
-            .code(2)
-            .stderr(predicate::str::is_empty().not());
+            .code(2);
     }
 }
