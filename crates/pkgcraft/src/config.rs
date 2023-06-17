@@ -135,7 +135,7 @@ impl Config {
     pub fn load(&mut self) -> crate::Result<()> {
         self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
         if self.repos.is_empty() {
-            self.load_portage_conf(None).ok();
+            self.load_portage_conf(None)?;
         }
         Ok(())
     }
