@@ -1,7 +1,9 @@
 use camino::Utf8Path;
 use ini::Ini;
+use itertools::Itertools;
+use tracing::info;
 
-use crate::repo::Repo;
+use crate::repo::{Repo, Repository};
 use crate::Error;
 
 /// Load repos from a given repos.conf path.
@@ -25,7 +27,8 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
         let ini = Ini::load_from_file(f)
             .map_err(|e| Error::Config(format!("invalid repos.conf file: {f:?}: {e}")))?;
 
-        ini.iter()
+        let repos: Result<Vec<_>, _> = ini
+            .iter()
             .filter_map(|(section, p)| match section {
                 Some(s) if s != "DEFAULT" => Some((s, p)),
                 _ => None,
@@ -41,7 +44,20 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
                     )))
                 }
             })
-            .collect()
+            .collect();
+
+        // log repos loaded from the file
+        if let Ok(vals) = &repos {
+            let msg = if !vals.is_empty() {
+                vals.iter().map(|r| r.id()).join(", ")
+            } else {
+                "no repos found".to_string()
+            };
+
+            info!("loading portage config: {f}: {msg}");
+        }
+
+        repos
     };
 
     // load ini files in lexical order
