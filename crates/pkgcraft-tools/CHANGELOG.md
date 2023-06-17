@@ -1,4 +1,4 @@
-# Unreleased
+# 0.0.9 (2023-06-17)
 
 ## Added
 - `pk pkg`: add support for path-based targets
@@ -8,6 +8,8 @@
 - `pk repo metadata`: show progress bar during cache validation phase
 
 ## Changed
+- Using stdin with relevant commands requires an initial arg of `-`.
+- Log events are written to stderr instead of stdout.
 - `pk pkg`: source ebuild from the current working directory by default
 - `pk pkg source`
   - `-j/--jobs` defaults to # of physical CPUs
