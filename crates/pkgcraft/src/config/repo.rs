@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use tracing::warn;
@@ -123,7 +123,7 @@ impl Config {
         };
 
         // finalize, sort, and add repos to the config
-        config.extend(&repos)?;
+        config.extend(&repos, false)?;
         Ok(config)
     }
 
@@ -251,10 +251,23 @@ impl Config {
     pub(super) fn extend<'a, I: IntoIterator<Item = &'a Repo>>(
         &mut self,
         repos: I,
+        external: bool,
     ) -> crate::Result<()> {
-        let (mut existing, repos): (Vec<_>, Vec<_>) = repos
-            .into_iter()
-            .partition(|r| self.repos.get(r.name()).is_some());
+        // check for existing repos since configured repo duplicates aren't allowed
+        let (mut existing, repos): (Vec<_>, Vec<_>) = repos.into_iter().partition_map(|r| {
+            // always use path names for external repos
+            let name = if external {
+                r.path().as_str()
+            } else {
+                r.name()
+            };
+
+            if self.repos.get(name).is_some() {
+                Either::Left(r)
+            } else {
+                Either::Right((name, r))
+            }
+        });
 
         if !existing.is_empty() {
             existing.sort();
@@ -266,12 +279,11 @@ impl Config {
         let orig_repos = self.repos.clone();
 
         // add repos to config
-        for repo in &repos {
-            self.repos.insert(repo.name().to_string(), (*repo).clone());
-        }
+        self.repos
+            .extend(repos.iter().map(|(s, r)| (s.to_string(), (*r).clone())));
 
         // verify new repos
-        for repo in &repos {
+        for (_, repo) in &repos {
             if let Err(e) = repo.finalize(&self.repos) {
                 // revert to previous repos
                 self.repos = orig_repos;

@@ -1006,7 +1006,7 @@ mod tests {
         // none
         let repo = Repo::from_path("a", 0, repos_path.join("dependent-primary")).unwrap();
         let repo = config
-            .add_repo_path(repo.id(), 0, repo.path().as_str())
+            .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
             .unwrap();
         let repo = repo.as_ebuild().unwrap();
         assert!(repo.masters().next().is_none());
@@ -1015,13 +1015,13 @@ mod tests {
 
         // nonexistent
         let repo = Repo::from_path("test", 0, repos_path.join("dependent-nonexistent")).unwrap();
-        let r = config.add_repo_path(repo.id(), 0, repo.path().as_str());
+        let r = config.add_repo_path(repo.id(), 0, repo.path().as_str(), false);
         assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
 
         // single
         let repo = Repo::from_path("b", 0, repos_path.join("dependent-secondary")).unwrap();
         let repo = config
-            .add_repo_path(repo.id(), 0, repo.path().as_str())
+            .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
             .unwrap();
         let repo = repo.as_ebuild().unwrap();
         let masters: Vec<_> = repo.masters().map(|r| r.id().to_string()).collect();

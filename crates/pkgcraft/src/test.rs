@@ -160,7 +160,7 @@ pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
         let entry = entry.unwrap();
         let name = entry.file_name().to_str().unwrap();
         let path = entry.path().to_str().unwrap();
-        config.add_repo_path(name, 0, path).ok();
+        config.add_repo_path(name, 0, path, false).ok();
     }
 
     TestData {

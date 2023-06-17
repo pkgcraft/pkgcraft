@@ -162,7 +162,7 @@ impl Config {
         let repos = portage::load_repos_conf(config_dir.join("repos.conf"))?;
         if !repos.is_empty() {
             // add repos to config
-            self.repos.extend(&repos)?;
+            self.repos.extend(&repos, false)?;
         }
 
         Ok(())
@@ -184,28 +184,29 @@ impl Config {
         name: &str,
         priority: i32,
         path: P,
+        external: bool,
     ) -> crate::Result<Repo> {
         let r = Repo::from_path(name, priority, path, false)?;
-        self.add_repo(&r)?;
+        self.add_repo(&r, external)?;
         Ok(r)
     }
 
     /// Add external repo from a URI.
     pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;
-        self.add_repo(&r)?;
+        self.add_repo(&r, false)?;
         Ok(r)
     }
 
     /// Add a repo to the config.
-    pub fn add_repo(&mut self, repo: &Repo) -> crate::Result<()> {
-        self.repos.extend([repo])
+    pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<()> {
+        self.repos.extend([repo], external)
     }
 
     /// Create a new repo.
     pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
         let r = self.repos.create(name, priority)?;
-        self.add_repo(&r)?;
+        self.add_repo(&r, false)?;
         Ok(r)
     }
 
@@ -224,7 +225,7 @@ impl Config {
         eapi: Option<&Eapi>,
     ) -> crate::Result<TempRepo> {
         let temp_repo = self.repos.create_temp(name, priority, eapi)?;
-        self.add_repo(&temp_repo.repo)?;
+        self.add_repo(&temp_repo.repo, false)?;
         Ok(temp_repo)
     }
 }

@@ -36,7 +36,7 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
         };
 
         let config = try_mut_from_ptr!(c);
-        let repo = unwrap_or_panic!(config.add_repo_path(id, priority, path));
+        let repo = unwrap_or_panic!(config.add_repo_path(id, priority, path, true));
         Box::into_raw(Box::new(repo))
     }
 }
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo(c: *mut Config, r: *mut Repo) 
     ffi_catch_panic! {
         let config = try_mut_from_ptr!(c);
         let repo = try_ref_from_ptr!(r);
-        unwrap_or_panic!(config.add_repo(repo));
+        unwrap_or_panic!(config.add_repo(repo, false));
         r
     }
 }
