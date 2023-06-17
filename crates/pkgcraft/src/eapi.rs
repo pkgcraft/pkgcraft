@@ -45,7 +45,7 @@ pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
 }
 
 /// Features that relate to differentiation between EAPIs as specified by PMS.
-#[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Feature {
     // EAPI 0
@@ -129,7 +129,7 @@ type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 pub struct Eapi {
     id: String,
     parent: Option<&'static Self>,
-    features: HashSet<Feature>,
+    features: IndexSet<Feature>,
     operations: HashMap<Operation, IndexSet<Phase>>,
     phases: HashSet<Phase>,
     dep_keys: IndexSet<Key>,
@@ -312,6 +312,7 @@ impl Eapi {
                 panic!("EAPI {self}: enabling set feature: {x:?}");
             }
         }
+        self.features.sort();
         self
     }
 
@@ -322,6 +323,7 @@ impl Eapi {
                 panic!("EAPI {self}: disabling unset feature: {x:?}");
             }
         }
+        self.features.sort();
         self
     }
 
