@@ -7,7 +7,6 @@ use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::ebuild::{Pkg, RawPkg};
 use pkgcraft::pkg::BuildablePackage;
 use pkgcraft::repo::set::RepoSet;
-use pkgcraft::repo::RepoFormat::Ebuild as EbuildRepo;
 use scallop::pool::PoolIter;
 
 use crate::args::{bounded_jobs, stdin_or_args};
@@ -33,13 +32,13 @@ pub struct Command {
 // TODO: use configured ebuild repos instead of raw ones
 // TODO: support binpkg repos
 impl Command {
-    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
         let repos = if let Some(repo) = self.repo.as_ref() {
             let repo = if let Some(r) = config.repos.get(repo) {
                 Ok(r.clone())
             } else if Path::new(repo).exists() {
-                EbuildRepo.load_from_nested_path(repo, 0, repo, true)
+                config.add_nested_repo_path(repo, 0, repo, true)
             } else {
                 anyhow::bail!("unknown repo: {repo}")
             }?;
@@ -58,7 +57,7 @@ impl Command {
         let mut status = ExitCode::SUCCESS;
         for target in stdin_or_args(self.targets) {
             // determine target restriction
-            let (repos, restrict) = target_restriction(&repos, &target)?;
+            let (repos, restrict) = target_restriction(config, &repos, &target)?;
 
             // find matching packages from targeted repos
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));

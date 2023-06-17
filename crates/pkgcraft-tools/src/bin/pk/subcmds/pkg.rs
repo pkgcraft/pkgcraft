@@ -3,7 +3,6 @@ use std::process::ExitCode;
 use camino::Utf8Path;
 use pkgcraft::config::Config;
 use pkgcraft::repo::set::RepoSet;
-use pkgcraft::repo::RepoFormat::Ebuild as EbuildRepo;
 use pkgcraft::restrict::{self, Restrict};
 
 mod pretend;
@@ -16,12 +15,16 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         self.command.run(config)
     }
 }
 
-fn target_restriction(repos: &RepoSet, target: &str) -> anyhow::Result<(RepoSet, Restrict)> {
+fn target_restriction(
+    config: &mut Config,
+    repos: &RepoSet,
+    target: &str,
+) -> anyhow::Result<(RepoSet, Restrict)> {
     let path_target = Utf8Path::new(target).canonicalize_utf8();
 
     if let Ok(path) = &path_target {
@@ -29,10 +32,15 @@ fn target_restriction(repos: &RepoSet, target: &str) -> anyhow::Result<(RepoSet,
             if let Some(r) = repos.ebuild().find_map(|r| r.restrict_from_path(path)) {
                 // target is an configured repo path restrict
                 return Ok((repos.clone(), r));
-            } else if let Ok(repo) = EbuildRepo.load_from_nested_path(path, 0, path, true) {
+            } else {
                 // target is an external repo path restrict
-                let restrict = repo.as_ebuild().unwrap().restrict_from_path(path).unwrap();
-                return Ok((RepoSet::new([&repo]), restrict));
+                let repo = config.add_nested_repo_path(path.as_str(), 0, path, true)?;
+                if let Some(r) = repo.as_ebuild() {
+                    let restrict = r.restrict_from_path(path).unwrap();
+                    return Ok((RepoSet::new([&repo]), restrict));
+                } else {
+                    anyhow::bail!("non-ebuild repo: {repo}")
+                }
             }
         }
     }
@@ -54,7 +62,7 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    fn run(self, config: &Config) -> anyhow::Result<ExitCode> {
+    fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
             Pretend(cmd) => cmd.run(config),
