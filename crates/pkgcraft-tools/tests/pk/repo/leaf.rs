@@ -23,6 +23,17 @@ fn nonexistent_repo() {
 }
 
 #[test]
+fn multiple_repos_not_supported() {
+    let t = TempRepo::new("test", None, 0, None).unwrap();
+    cmd(&format!("pk repo leaf {} {}", t.path(), t.path()))
+        .assert()
+        .stdout("")
+        .stderr(predicate::str::is_empty().not())
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn no_pkgs() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     cmd(&format!("pk repo leaf {}", t.path()))
