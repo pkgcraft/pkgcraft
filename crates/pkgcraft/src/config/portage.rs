@@ -9,7 +9,7 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
     let path = path.as_ref();
 
     // expand directory path into files
-    let files = match path.read_dir_utf8() {
+    let mut files = match path.read_dir_utf8() {
         Ok(entries) => entries
             .filter_map(|d| d.ok())
             .map(|d| d.path().to_path_buf())
@@ -43,6 +43,9 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
             })
             .collect()
     };
+
+    // load ini files in lexical order
+    files.sort();
 
     files
         .iter()
