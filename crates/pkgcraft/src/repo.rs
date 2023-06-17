@@ -84,10 +84,11 @@ impl RepoFormat {
 
         let mut path = abspath.as_path();
         while let Some(parent) = path.parent() {
-            if let Ok(repo) = self.load_from_path(path, priority, path, finalize) {
-                return Ok(repo);
+            match self.load_from_path(path, priority, path, finalize) {
+                Ok(repo) => return Ok(repo),
+                Err(Error::NotARepo { .. }) => path = parent,
+                Err(e) => return Err(e),
             }
-            path = parent;
         }
 
         Err(Error::NotARepo {
