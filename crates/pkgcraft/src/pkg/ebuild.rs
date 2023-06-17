@@ -3,6 +3,7 @@ use std::fs;
 use std::sync::Arc;
 
 use camino::Utf8PathBuf;
+use itertools::Either;
 use once_cell::sync::OnceCell;
 
 use crate::dep::{Cpv, Dep};
@@ -162,15 +163,17 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, mut keys: &[Key]) -> DepSet<Dep> {
+    pub fn dependencies(&self, keys: &[Key]) -> DepSet<Dep> {
         use Key::*;
 
-        // default to all dependency types in lexical order if no keys are passed
-        if keys.is_empty() {
-            keys = &[Bdepend, Depend, Idepend, Pdepend, Rdepend];
-        }
+        // default to all dependency types defined by the package EAPI if no keys are passed
+        let keys = if keys.is_empty() {
+            Either::Left(self.eapi().dep_keys())
+        } else {
+            Either::Right(keys)
+        };
 
-        keys.iter()
+        keys.into_iter()
             .filter_map(|k| match k {
                 Bdepend => self.bdepend(),
                 Depend => self.depend(),
