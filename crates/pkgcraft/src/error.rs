@@ -13,6 +13,8 @@ pub enum Error {
     PegParse(peg::Error),
     #[error("config error: {0}")]
     Config(String),
+    #[error("config error: {0}")]
+    ConfigMissing(String),
     #[error("{0}")]
     InvalidValue(String),
     #[error("invalid repo: {id}: {err}")]

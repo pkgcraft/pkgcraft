@@ -134,9 +134,15 @@ impl Config {
     /// Load pkgcraft config files, if none are found revert to loading portage files.
     pub fn load(&mut self) -> crate::Result<()> {
         self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
+
         if self.repos.is_empty() {
-            self.load_portage_conf(None)?;
+            // ignore error for missing portage config
+            match self.load_portage_conf(None) {
+                Err(Error::ConfigMissing(_)) => (),
+                e => return e,
+            }
         }
+
         Ok(())
     }
 
@@ -153,10 +159,10 @@ impl Config {
             p
         } else {
             let err = match path {
-                Some(s) => format!("nonexistent portage config path: {s}"),
-                None => "no portage config found".to_string(),
+                Some(s) => Error::Config(format!("nonexistent portage config path: {s}")),
+                None => Error::ConfigMissing("no portage config found".to_string()),
             };
-            return Err(Error::Config(err));
+            return Err(err);
         };
 
         let repos = portage::load_repos_conf(config_dir.join("repos.conf"))?;
