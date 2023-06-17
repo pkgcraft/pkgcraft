@@ -57,7 +57,7 @@ rust-ini = "0.19.0"
 scallop = { path = "../scallop", version = "0.0.7" }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_with = { version = "3.0.0", default-features = false, features = ["macros"] }
-sha2 = "0.10.6"
+sha2 = "0.10.7"
 strum = { version = "0.24.1", features = ["derive"] }
 sys-info = "0.9.1"
 tar = { version = "0.4.38", optional = true }
