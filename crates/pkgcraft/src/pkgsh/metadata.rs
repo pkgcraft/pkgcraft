@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::{fs, io, process};
@@ -39,6 +40,18 @@ pub enum Key {
     SrcUri,
     // last to match serialized data
     Inherited,
+}
+
+impl Ord for Key {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_ref().cmp(other.as_ref())
+    }
+}
+
+impl PartialOrd for Key {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl Key {

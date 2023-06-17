@@ -132,10 +132,10 @@ pub struct Eapi {
     features: HashSet<Feature>,
     operations: HashMap<Operation, IndexSet<Phase>>,
     phases: HashSet<Phase>,
-    dep_keys: HashSet<Key>,
-    incremental_keys: HashSet<Key>,
-    mandatory_keys: HashSet<Key>,
-    metadata_keys: HashSet<Key>,
+    dep_keys: IndexSet<Key>,
+    incremental_keys: IndexSet<Key>,
+    mandatory_keys: IndexSet<Key>,
+    metadata_keys: IndexSet<Key>,
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
     env: HashMap<BuildVariable, HashSet<Scope>>,
@@ -276,22 +276,22 @@ impl Eapi {
     }
 
     /// Metadata variables for dependencies.
-    pub fn dep_keys(&self) -> &HashSet<Key> {
+    pub fn dep_keys(&self) -> &IndexSet<Key> {
         &self.dep_keys
     }
 
     /// Metadata variables that are incrementally handled.
-    pub(crate) fn incremental_keys(&self) -> &HashSet<Key> {
+    pub(crate) fn incremental_keys(&self) -> &IndexSet<Key> {
         &self.incremental_keys
     }
 
     /// Metadata variables that must exist.
-    pub(crate) fn mandatory_keys(&self) -> &HashSet<Key> {
+    pub(crate) fn mandatory_keys(&self) -> &IndexSet<Key> {
         &self.mandatory_keys
     }
 
     /// Metadata variables that may exist.
-    pub fn metadata_keys(&self) -> &HashSet<Key> {
+    pub fn metadata_keys(&self) -> &IndexSet<Key> {
         &self.metadata_keys
     }
 
@@ -361,26 +361,32 @@ impl Eapi {
     /// Update dependency types during Eapi registration.
     fn update_dep_keys(mut self, updates: &[Key]) -> Self {
         self.dep_keys.extend(updates);
+        self.dep_keys.sort();
         self.metadata_keys.extend(updates);
+        self.metadata_keys.sort();
         self
     }
 
     /// Update incremental variables during Eapi registration.
     fn update_incremental_keys(mut self, updates: &[Key]) -> Self {
         self.incremental_keys.extend(updates);
+        self.incremental_keys.sort();
         self
     }
 
     /// Update mandatory metadata variables during Eapi registration.
     fn update_mandatory_keys(mut self, updates: &[Key]) -> Self {
         self.mandatory_keys.extend(updates);
+        self.mandatory_keys.sort();
         self.metadata_keys.extend(updates);
+        self.metadata_keys.sort();
         self
     }
 
     /// Update metadata variables during Eapi registration.
     fn update_metadata_keys(mut self, updates: &[Key]) -> Self {
         self.metadata_keys.extend(updates);
+        self.metadata_keys.sort();
         self
     }
 
