@@ -191,6 +191,19 @@ impl Config {
         Ok(r)
     }
 
+    /// Add local repo from a potentially nested filesystem path.
+    pub fn add_nested_repo_path<P: AsRef<Utf8Path>>(
+        &mut self,
+        name: &str,
+        priority: i32,
+        path: P,
+        external: bool,
+    ) -> crate::Result<Repo> {
+        let r = Repo::from_nested_path(name, priority, path, false)?;
+        self.add_repo(&r, external)?;
+        Ok(r)
+    }
+
     /// Add external repo from a URI.
     pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;

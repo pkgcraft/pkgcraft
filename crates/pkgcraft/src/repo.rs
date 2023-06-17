@@ -134,7 +134,7 @@ impl From<empty::Repo> for Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    /// Try to load a repo from a given path.
+    /// Try to load a repo from a path.
     pub fn from_path<P: AsRef<Utf8Path>>(
         id: &str,
         priority: i32,
@@ -145,6 +145,32 @@ impl Repo {
 
         for format in RepoFormat::iter() {
             match format.load_from_path(id, priority, path, finalize) {
+                Err(e @ Error::NotARepo { .. }) => tracing::debug!("{e}"),
+                Err(e) => return Err(e),
+                result => return result,
+            }
+        }
+
+        let err = if path.exists() {
+            "unknown or invalid format"
+        } else {
+            "nonexistent repo path"
+        };
+
+        Err(Error::RepoInit(err.to_string()))
+    }
+
+    /// Try to load a repo from a potentially nested path.
+    pub fn from_nested_path<P: AsRef<Utf8Path>>(
+        id: &str,
+        priority: i32,
+        path: P,
+        finalize: bool,
+    ) -> crate::Result<Self> {
+        let path = path.as_ref();
+
+        for format in RepoFormat::iter() {
+            match format.load_from_nested_path(id, priority, path, finalize) {
                 Err(e @ Error::NotARepo { .. }) => tracing::debug!("{e}"),
                 Err(e) => return Err(e),
                 result => return result,
