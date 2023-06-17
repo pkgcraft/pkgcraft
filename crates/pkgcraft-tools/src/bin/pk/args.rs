@@ -17,15 +17,16 @@ pub(crate) fn bounded_jobs(jobs: Option<usize>) -> anyhow::Result<usize> {
     }
 }
 
-/// Pull values from stdin or arguments depending on if stdin is a terminal.
+/// Pull values from stdin if it's not a terminal and the first argument is `-`, otherwise use the
+/// provided arguments.
 pub(crate) fn stdin_or_args<I>(args: I) -> impl Iterator<Item = String>
 where
     I: IntoIterator<Item = String>,
 {
-    if stdin().is_terminal() {
-        Either::Left(args.into_iter())
-    } else {
-        Either::Right(stdin().lines().map_while(Result::ok))
+    let mut iter = args.into_iter().peekable();
+    match iter.peek().map(|s| s.as_str()) {
+        Some("-") if !stdin().is_terminal() => Either::Left(stdin().lines().map_while(Result::ok)),
+        _ => Either::Right(iter),
     }
 }
 
