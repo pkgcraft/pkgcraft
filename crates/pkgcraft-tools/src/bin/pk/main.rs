@@ -45,9 +45,6 @@ fn main() -> anyhow::Result<ExitCode> {
     // reset SIGPIPE behavior since rust ignores it by default
     reset_sigpipe();
 
-    let mut config = Config::new("pkgcraft", "");
-    config.load()?;
-
     let args = Command::parse();
 
     // custom log event formatter
@@ -62,6 +59,9 @@ fn main() -> anyhow::Result<ExitCode> {
         .with_max_level(args.verbosity.log_level_filter().as_trace())
         .with_writer(stderr)
         .init();
+
+    let mut config = Config::new("pkgcraft", "");
+    config.load()?;
 
     args.subcmd.run(&mut config).or_else(|err| {
         writeln!(stderr(), "pk: error: {err}").ok();
