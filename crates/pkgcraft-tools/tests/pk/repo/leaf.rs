@@ -4,7 +4,7 @@ use predicates::prelude::*;
 
 #[test]
 fn missing_repo_arg() {
-    cmd(&format!("pk repo leaf"))
+    cmd("pk repo leaf")
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -14,7 +14,7 @@ fn missing_repo_arg() {
 
 #[test]
 fn nonexistent_repo() {
-    cmd(&format!("pk repo leaf path/to/nonexistent/repo"))
+    cmd("pk repo leaf path/to/nonexistent/repo")
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -25,7 +25,7 @@ fn nonexistent_repo() {
 #[test]
 fn multiple_repos_not_supported() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    cmd(&format!("pk repo leaf {} {}", t.path(), t.path()))
+    cmd(format!("pk repo leaf {} {}", t.path(), t.path()))
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -36,7 +36,7 @@ fn multiple_repos_not_supported() {
 #[test]
 fn no_pkgs() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    cmd(&format!("pk repo leaf {}", t.path()))
+    cmd(format!("pk repo leaf {}", t.path()))
         .assert()
         .stdout("")
         .stderr("")
@@ -49,7 +49,7 @@ fn single() {
     t.create_ebuild("cat/dep-1", &[]).unwrap();
     t.create_ebuild("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    cmd(&format!("pk repo leaf {}", t.path()))
+    cmd(format!("pk repo leaf {}", t.path()))
         .assert()
         .stdout("cat/leaf-1\n")
         .stderr("")
@@ -64,7 +64,7 @@ fn multiple() {
         .unwrap();
     t.create_ebuild("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    cmd(&format!("pk repo leaf {}", t.path()))
+    cmd(format!("pk repo leaf {}", t.path()))
         .assert()
         .stdout("cat/leaf-1\ncat/leaf-2\n")
         .stderr("")
@@ -76,7 +76,7 @@ fn none() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_ebuild("cat/a-1", &["DEPEND=>=cat/b-1"]).unwrap();
     t.create_ebuild("cat/b-1", &["DEPEND=>=cat/a-1"]).unwrap();
-    cmd(&format!("pk repo leaf {}", t.path()))
+    cmd(format!("pk repo leaf {}", t.path()))
         .assert()
         .stdout("")
         .stderr("")

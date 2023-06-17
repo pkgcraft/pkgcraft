@@ -4,7 +4,7 @@ use predicates::prelude::*;
 
 #[test]
 fn missing_repo_arg() {
-    cmd(&format!("pk repo metadata"))
+    cmd("pk repo metadata")
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -14,7 +14,7 @@ fn missing_repo_arg() {
 
 #[test]
 fn nonexistent_repo() {
-    cmd(&format!("pk repo metadata path/to/nonexistent/repo"))
+    cmd("pk repo metadata path/to/nonexistent/repo")
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -25,7 +25,7 @@ fn nonexistent_repo() {
 #[test]
 fn no_pkgs() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    cmd(&format!("pk repo metadata {}", t.path()))
+    cmd(format!("pk repo metadata {}", t.path()))
         .assert()
         .stdout("")
         .stderr("")
@@ -36,7 +36,7 @@ fn no_pkgs() {
 fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_ebuild("cat/dep-1", &["EAPI=1"]).unwrap();
-    cmd(&format!("pk repo metadata {}", t.path()))
+    cmd(format!("pk repo metadata {}", t.path()))
         .assert()
         .stdout("")
         .stderr("")
@@ -50,7 +50,7 @@ fn multiple() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_ebuild("cat/a-1", &["EAPI=7"]).unwrap();
     t.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
-    cmd(&format!("pk repo metadata {}", t.path()))
+    cmd(format!("pk repo metadata {}", t.path()))
         .assert()
         .stdout("")
         .stderr("")
@@ -65,7 +65,7 @@ fn pkg_with_invalid_eapi() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_ebuild("cat/a-1", &["EAPI=invalid"]).ok();
     t.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
-    cmd(&format!("pk repo metadata {}", t.path()))
+    cmd(format!("pk repo metadata {}", t.path()))
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -81,7 +81,7 @@ fn multiple_repos() {
     t1.create_ebuild("cat/a-1", &["EAPI=7"]).unwrap();
     let t2 = TempRepo::new("test2", None, 0, None).unwrap();
     t2.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
-    cmd(&format!("pk repo metadata {} {}", t1.path(), t2.path()))
+    cmd(format!("pk repo metadata {} {}", t1.path(), t2.path()))
         .assert()
         .stdout("")
         .stderr("")

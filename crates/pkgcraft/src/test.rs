@@ -19,8 +19,8 @@ pub(crate) static TESTING: Lazy<bool> =
     Lazy::new(|| cfg!(test) || std::env::var("CARGO_MANIFEST_DIR").is_ok());
 
 /// Construct a Command from a given string.
-pub fn cmd(cmd: &str) -> Command {
-    let args: Vec<_> = cmd.split_whitespace().collect();
+pub fn cmd<S: AsRef<str>>(cmd: S) -> Command {
+    let args: Vec<_> = cmd.as_ref().split_whitespace().collect();
     let mut cmd = Command::cargo_bin(args[0]).unwrap();
     cmd.args(&args[1..]);
     cmd
