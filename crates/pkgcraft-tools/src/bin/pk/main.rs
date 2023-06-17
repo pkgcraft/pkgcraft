@@ -58,8 +58,9 @@ fn main() -> anyhow::Result<ExitCode> {
         .compact();
 
     tracing_subscriber::fmt()
-        .with_max_level(args.verbosity.log_level_filter().as_trace())
         .event_format(format)
+        .with_max_level(args.verbosity.log_level_filter().as_trace())
+        .with_writer(stderr)
         .init();
 
     args.subcmd.run(&mut config).or_else(|err| {
