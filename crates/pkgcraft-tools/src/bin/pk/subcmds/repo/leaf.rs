@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::io::{stdout, Write};
+use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
@@ -43,8 +43,9 @@ impl Command {
             })
         };
 
+        let mut handle = io::stdout().lock();
         for cpv in cpvs.into_iter().filter(is_leaf) {
-            writeln!(stdout(), "{cpv}")?;
+            writeln!(handle, "{cpv}")?;
         }
 
         Ok(ExitCode::SUCCESS)

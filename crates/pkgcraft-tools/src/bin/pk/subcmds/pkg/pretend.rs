@@ -1,4 +1,4 @@
-use std::io::{stderr, Write};
+use std::io::{self, Write};
 use std::path::Path;
 use std::process::ExitCode;
 
@@ -63,10 +63,11 @@ impl Command {
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
 
             // run pkg_pretend across selected pkgs
+            let mut handle = io::stderr().lock();
             for r in PoolIter::new(jobs, pkgs, func, true)? {
                 if let Err(e) = r {
                     status = ExitCode::FAILURE;
-                    writeln!(stderr(), "{e}")?;
+                    writeln!(handle, "{e}")?;
                 }
             }
         }

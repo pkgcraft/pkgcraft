@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{stdout, Write};
+use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
@@ -33,18 +33,19 @@ impl Command {
                     .push(pkg.cpv().clone());
             }
 
+            let mut handle = io::stdout().lock();
             if let Some(eapi) = self.eapi {
                 if let Some(cpvs) = eapis.get_mut(eapi) {
                     cpvs.sort();
                     for cpv in cpvs {
-                        writeln!(stdout(), "{cpv}")?;
+                        writeln!(handle, "{cpv}")?;
                     }
                 }
             } else if !eapis.is_empty() {
-                writeln!(stdout(), "{repo}")?;
+                writeln!(handle, "{repo}")?;
                 for eapi in EAPIS.iter() {
                     if let Some(cpvs) = eapis.get(eapi) {
-                        writeln!(stdout(), "  EAPI {eapi}: {} pkgs", cpvs.len())?;
+                        writeln!(handle, "  EAPI {eapi}: {} pkgs", cpvs.len())?;
                     }
                 }
             }

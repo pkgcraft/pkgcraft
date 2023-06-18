@@ -1,4 +1,4 @@
-use std::io::{stdout, Write};
+use std::io::{self, Write};
 use std::path::Path;
 use std::process::ExitCode;
 use std::str::FromStr;
@@ -140,10 +140,9 @@ where
                 if let Some(values) = sorted.as_mut() {
                     values.push((pkg, mean, min, max, sdev, n));
                 } else {
-                    writeln!(
-                        stdout(),
+                    println!(
                         "{pkg}: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}"
-                    )?;
+                    );
                 }
             }
             Err(e) => {
@@ -157,10 +156,7 @@ where
     if let Some(values) = sorted.as_mut() {
         values.sort_by(|(_, t1, ..), (_, t2, ..)| t1.cmp(t2));
         for (pkg, mean, min, max, sdev, n) in values {
-            writeln!(
-                stdout(),
-                "{pkg}: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}"
-            )?;
+            println!("{pkg}: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}");
         }
     }
 
@@ -181,6 +177,7 @@ where
     };
 
     let mut sorted = if sort { Some(vec![]) } else { None };
+    let mut handle = io::stdout().lock();
 
     for r in PoolIter::new(jobs, pkgs, func, true)? {
         match r {
@@ -189,7 +186,7 @@ where
                     if let Some(values) = sorted.as_mut() {
                         values.push((pkg, elapsed));
                     } else {
-                        writeln!(stdout(), "{pkg}: {elapsed:?}")?;
+                        writeln!(handle, "{pkg}: {elapsed:?}")?;
                     }
                 }
             }
@@ -204,7 +201,7 @@ where
     if let Some(values) = sorted.as_mut() {
         values.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
         for (pkg, elapsed) in values {
-            writeln!(stdout(), "{pkg}: {elapsed:?}")?;
+            writeln!(handle, "{pkg}: {elapsed:?}")?;
         }
     }
 
