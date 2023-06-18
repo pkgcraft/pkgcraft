@@ -1,3 +1,4 @@
+use std::mem;
 use std::process::ExitCode;
 
 use clap::Args;
@@ -14,7 +15,7 @@ pub struct Command {
     format: Option<String>,
     /// Versions to parse (uses stdin if "-")
     #[arg(value_name = "VERSION", required = false)]
-    vals: Option<Vec<String>>,
+    vals: Vec<String>,
 }
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -62,7 +63,7 @@ impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
-        for s in stdin_or_args(self.vals.take().unwrap_or_default()) {
+        for s in stdin_or_args(mem::take(&mut self.vals)) {
             if self.parse_version(&s).is_err() {
                 eprintln!("INVALID VERSION: {s}");
                 status = ExitCode::FAILURE;
