@@ -25,7 +25,13 @@ where
 {
     let mut iter = args.into_iter().peekable();
     match iter.peek().map(|s| s.as_str()) {
-        Some("-") if !stdin().is_terminal() => Either::Left(stdin().lines().map_while(Result::ok)),
+        Some("-") if !stdin().is_terminal() => {
+            Either::Left(stdin().lines().map_while(Result::ok).flat_map(|s| {
+                s.split_whitespace()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>()
+            }))
+        }
         _ => Either::Right(iter),
     }
 }
