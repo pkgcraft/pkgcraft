@@ -91,9 +91,7 @@ impl Command {
 
         Ok(())
     }
-}
 
-impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
