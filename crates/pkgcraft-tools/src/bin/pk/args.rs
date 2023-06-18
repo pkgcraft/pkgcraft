@@ -61,9 +61,5 @@ pub(crate) fn target_ebuild_repos(
     config: &mut Config,
     args: &[String],
 ) -> anyhow::Result<Vec<Arc<EbuildRepo>>> {
-    let mut repos = vec![];
-    for target in args {
-        repos.push(target_ebuild_repo(config, target)?);
-    }
-    Ok(repos)
+    args.iter().map(|s| target_ebuild_repo(config, s)).collect()
 }
