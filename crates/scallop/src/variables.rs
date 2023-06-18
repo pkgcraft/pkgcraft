@@ -230,7 +230,7 @@ impl Drop for ScopedVariable {
                     self.var.unbind()
                 }
             };
-            reset().unwrap_or_else(|_| panic!("failed resetting variable: {}", self.var.name));
+            reset().unwrap_or_else(|e| panic!("failed resetting variable: {}: {e}", self.var.name));
         }
     }
 }
