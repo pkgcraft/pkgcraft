@@ -1,4 +1,3 @@
-use std::io::{stderr, stdin, stdout, Write};
 use std::process::ExitCode;
 use std::str::FromStr;
 
@@ -7,8 +6,8 @@ use pkgcraft::config::Config;
 use pkgcraft::dep::Dep;
 use strum::{Display, EnumIter, EnumString};
 
+use crate::args::stdin_or_args;
 use crate::format::{EnumVariable, FormatString};
-use crate::StdinArgs;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -21,9 +20,9 @@ pub struct Command {
     format: Option<String>,
 
     // positionals
-    /// Deps to parse, uses stdin if empty or "-"
+    /// Deps to parse (uses stdin if "-")
     #[arg(value_name = "DEP", required = false)]
-    vals: Vec<String>,
+    vals: Option<Vec<String>>,
 }
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -88,7 +87,7 @@ impl Command {
 
         // output formatted string if specified
         if let Some(fmt) = &self.format {
-            writeln!(stdout(), "{}", self.format_str(fmt, &dep)?)?;
+            println!("{}", self.format_str(fmt, &dep)?);
         }
 
         Ok(())
@@ -96,26 +95,13 @@ impl Command {
 }
 
 impl Command {
-    pub(super) fn run(&self, _config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(mut self, _config: &Config) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
-        // parse a dep, tracking overall process status
-        let mut parse = |s: &str| -> anyhow::Result<()> {
-            if self.parse_dep(s).is_err() {
-                writeln!(stderr(), "INVALID DEP: {s}")?;
-                status = ExitCode::FAILURE;
-            }
-            Ok(())
-        };
 
-        if self.vals.stdin_args()? {
-            for line in stdin().lines() {
-                for s in line?.split_whitespace() {
-                    parse(s)?;
-                }
-            }
-        } else {
-            for s in &self.vals {
-                parse(s)?;
+        for s in stdin_or_args(self.vals.take().unwrap_or_default()) {
+            if self.parse_dep(&s).is_err() {
+                eprintln!("INVALID DEP: {s}");
+                status = ExitCode::FAILURE;
             }
         }
 

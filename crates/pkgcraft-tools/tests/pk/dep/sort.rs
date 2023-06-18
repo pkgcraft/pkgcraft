@@ -2,38 +2,21 @@ use pkgcraft::test::{cmd, TEST_DATA};
 
 #[test]
 fn stdin() {
-    // using stdin when no args specified
-    cmd("pk dep sort")
-        .write_stdin("z/z a/a")
-        .assert()
-        .stdout("a/a\nz/z\n");
-
     // iterates over all values separated by whitespace
-    cmd("pk dep sort")
+    cmd("pk dep sort -")
         .write_stdin("z/z a/a\nc/c \tb/b")
         .assert()
         .stdout("a/a\nb/b\nc/c\nz/z\n");
 
-    // using stdin when "-" arg specified
-    cmd("pk dep sort")
-        .arg("-")
-        .write_stdin("z/z a/a")
-        .assert()
-        .stdout("a/a\nz/z\n");
-
     // invalid args
-    cmd("pk dep sort")
-        .arg("-")
-        .write_stdin("a/b/c")
-        .assert()
-        .failure();
+    cmd("pk dep sort -").write_stdin("a/b/c").assert().failure();
 
-    // ignoring stdin when regular args specified
-    cmd("pk dep sort")
+    // remaining args ignored when "-" specified
+    cmd("pk dep sort -")
         .args(["c/c", "b/b"])
         .write_stdin("z/z a/a")
         .assert()
-        .stdout("b/b\nc/c\n");
+        .stdout("a/a\nz/z\n");
 }
 
 #[test]

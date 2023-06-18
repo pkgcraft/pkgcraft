@@ -1,4 +1,4 @@
-use std::io::{stdin, stdout, Write};
+use std::io::{self, Write};
 use std::process::ExitCode;
 use std::str::FromStr;
 
@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 use pkgcraft::config::Config;
 use pkgcraft::dep::Dep;
 
-use crate::StdinArgs;
+use crate::args::stdin_or_args;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -15,23 +15,14 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(&self, _config: &Config) -> anyhow::Result<ExitCode> {
-        let mut deps = IndexSet::<Dep>::new();
+    pub(super) fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
+        let deps: Result<IndexSet<_>, _> = stdin_or_args(self.vals)
+            .map(|s| Dep::from_str(&s))
+            .collect();
 
-        if self.vals.stdin_args()? {
-            for line in stdin().lines() {
-                for s in line?.split_whitespace() {
-                    deps.insert(Dep::from_str(s)?);
-                }
-            }
-        } else {
-            for s in &self.vals {
-                deps.insert(Dep::from_str(s)?);
-            }
-        }
-
-        for d in deps {
-            writeln!(stdout(), "{d}")?;
+        let mut handle = io::stdout().lock();
+        for d in deps? {
+            writeln!(handle, "{d}")?;
         }
         Ok(ExitCode::SUCCESS)
     }

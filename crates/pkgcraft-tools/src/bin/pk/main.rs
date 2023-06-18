@@ -1,10 +1,8 @@
-use std::io::{stderr, stdin, Write};
+use std::io::stderr;
 use std::process::ExitCode;
 
-use anyhow::bail;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
-use is_terminal::IsTerminal;
 use pkgcraft::config::Config;
 use scallop::utils::reset_sigpipe;
 use tracing_log::AsTrace;
@@ -21,24 +19,6 @@ struct Command {
     verbosity: Verbosity,
     #[command(subcommand)]
     subcmd: subcmds::Subcommand,
-}
-
-trait StdinArgs {
-    fn stdin_args(&self) -> anyhow::Result<bool>;
-}
-
-impl StdinArgs for Vec<String> {
-    fn stdin_args(&self) -> anyhow::Result<bool> {
-        match self.iter().next().map(|s| s.as_str()) {
-            Some("-") | None => {
-                if stdin().is_terminal() {
-                    bail!("missing input on stdin");
-                }
-                Ok(true)
-            }
-            _ => Ok(false),
-        }
-    }
 }
 
 fn main() -> anyhow::Result<ExitCode> {
@@ -64,7 +44,7 @@ fn main() -> anyhow::Result<ExitCode> {
     config.load()?;
 
     args.subcmd.run(&mut config).or_else(|err| {
-        writeln!(stderr(), "pk: error: {err}").ok();
+        eprintln!("pk: error: {err}");
         Ok(ExitCode::from(2))
     })
 }

@@ -2,38 +2,24 @@ use pkgcraft::test::{cmd, TEST_DATA};
 
 #[test]
 fn stdin() {
-    // using stdin when no args specified
-    cmd("pk version sort")
-        .write_stdin("2.10 2.9")
-        .assert()
-        .stdout("2.9\n2.10\n");
-
     // iterates over all values separated by whitespace
-    cmd("pk version sort")
+    cmd("pk version sort -")
         .write_stdin("2.10 2.9\n2.11 \t2.8")
         .assert()
         .stdout("2.8\n2.9\n2.10\n2.11\n");
 
-    // using stdin when "-" arg specified
-    cmd("pk version sort")
-        .arg("-")
-        .write_stdin("2.10 2.9")
-        .assert()
-        .stdout("2.9\n2.10\n");
-
     // invalid args
-    cmd("pk version sort")
-        .arg("-")
+    cmd("pk version sort -")
         .write_stdin("a/b")
         .assert()
         .failure();
 
-    // ignoring stdin when regular args specified
-    cmd("pk version sort")
+    // remaining args ignored when "-" specified
+    cmd("pk version sort -")
         .args(["2.11", "2.8"])
         .write_stdin("2.10 2.9")
         .assert()
-        .stdout("2.8\n2.11\n");
+        .stdout("2.9\n2.10\n");
 }
 
 #[test]
