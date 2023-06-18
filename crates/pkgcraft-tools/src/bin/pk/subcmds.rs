@@ -23,10 +23,10 @@ impl Subcommand {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
-            Dep(cmd) => cmd.run(config),
+            Dep(cmd) => cmd.run(),
             Pkg(cmd) => cmd.run(config),
             Repo(cmd) => cmd.run(config),
-            Version(cmd) => cmd.run(config),
+            Version(cmd) => cmd.run(),
         }
     }
 }

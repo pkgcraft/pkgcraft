@@ -1,7 +1,6 @@
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::config::Config;
 use pkgcraft::dep::Version;
 use strum::{Display, EnumIter, EnumString};
 
@@ -60,7 +59,7 @@ impl Command {
 }
 
 impl Command {
-    pub(super) fn run(mut self, _config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
         for s in stdin_or_args(self.vals.take().unwrap_or_default()) {

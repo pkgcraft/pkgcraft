@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcraft::config::Config;
 use pkgcraft::dep::Dep;
 
 use crate::args::stdin_or_args;
@@ -15,7 +14,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(self, _config: &Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         let deps: Result<IndexSet<_>, _> = stdin_or_args(self.vals)
             .map(|s| Dep::from_str(&s))
             .collect();
