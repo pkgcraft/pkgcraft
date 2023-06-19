@@ -27,11 +27,12 @@ impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // force bounds on jobs
         let jobs = bounded_jobs(self.jobs)?;
-
-        // run metadata regeneration
+        let progress = stdout().is_terminal();
         let mut status = ExitCode::SUCCESS;
+
+        // run metadata regeneration displaying a progress bar if stdout is a terminal
         for repo in target_ebuild_repos(config, &self.repos)? {
-            let errors = repo.pkg_metadata_regen(jobs, self.force, stdout().is_terminal())?;
+            let errors = repo.pkg_metadata_regen(jobs, self.force, progress)?;
             if errors > 0 {
                 status = ExitCode::FAILURE;
             }
