@@ -89,7 +89,7 @@ fn jobs() {
         // invalid
         for val in ["", "0"] {
             cmd("pk repo metadata")
-                .arg(format!("{opt} {val}"))
+                .args([opt, val])
                 .assert()
                 .stdout("")
                 .stderr(predicate::str::is_empty().not())
@@ -101,7 +101,7 @@ fn jobs() {
         for val in [1, num_cpus::get(), 999999] {
             cmd("pk repo metadata")
                 .arg(opt)
-                .arg(format!("{val}"))
+                .arg(val.to_string())
                 .arg(t.path())
                 .assert()
                 .stdout("")

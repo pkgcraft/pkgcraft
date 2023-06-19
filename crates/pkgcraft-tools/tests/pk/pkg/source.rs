@@ -25,7 +25,8 @@ fn nonexistent_target() {
 #[test]
 fn no_pkgs() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    cmd(format!("pk pkg source {}", t.path()))
+    cmd("pk pkg source")
+        .arg(t.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -36,7 +37,8 @@ fn no_pkgs() {
 fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_ebuild("cat/dep-1", &[]).unwrap();
-    cmd(format!("pk pkg source {}", t.path()))
+    cmd("pk pkg source")
+        .arg(t.path())
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
