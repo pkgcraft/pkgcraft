@@ -1,3 +1,5 @@
+use std::fs;
+
 use pkgcraft::repo::ebuild_temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
 use predicates::prelude::*;
@@ -30,6 +32,8 @@ fn no_pkgs() {
         .stdout("")
         .stderr("")
         .success();
+
+    assert!(!t.path().join("metadata/md5-cache").exists());
 }
 
 #[test]
@@ -42,7 +46,31 @@ fn single() {
         .stderr("")
         .success();
 
-    assert!(t.path().join("metadata/md5-cache/cat/dep-1").exists());
+    let path = t.path().join("metadata/md5-cache/cat/dep-1");
+    assert!(path.exists());
+    let orig_modified = fs::metadata(&path).unwrap().modified().unwrap();
+
+    // running again won't change the cache
+    cmd(format!("pk repo metadata {}", t.path()))
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    let modified = fs::metadata(&path).unwrap().modified().unwrap();
+    assert_eq!(orig_modified, modified);
+
+    // -f/--force will change the cache
+    for s in ["-f", "--force"] {
+        cmd(format!("pk repo metadata {s} {}", t.path()))
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+
+        let modified = fs::metadata(&path).unwrap().modified().unwrap();
+        assert_ne!(orig_modified, modified);
+    }
 }
 
 #[test]
@@ -72,6 +100,7 @@ fn pkg_with_invalid_eapi() {
         .failure()
         .code(1);
 
+    assert!(!t.path().join("metadata/md5-cache/cat/a-1").exists());
     assert!(t.path().join("metadata/md5-cache/cat/b-1").exists());
 }
 
