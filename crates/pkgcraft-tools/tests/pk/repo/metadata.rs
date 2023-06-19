@@ -41,7 +41,8 @@ fn no_pkgs() {
 #[test]
 fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/dep-1", &["EAPI=1"]).unwrap();
+    t.create_ebuild("cat/pkg-1", &["EAPI=1"]).unwrap();
+
     cmd("pk repo metadata")
         .arg(t.path())
         .assert()
@@ -49,7 +50,7 @@ fn single() {
         .stderr("")
         .success();
 
-    let path = t.path().join("metadata/md5-cache/cat/dep-1");
+    let path = t.path().join("metadata/md5-cache/cat/pkg-1");
     assert!(path.exists());
     let orig_modified = fs::metadata(&path).unwrap().modified().unwrap();
 
@@ -65,9 +66,9 @@ fn single() {
     assert_eq!(orig_modified, modified);
 
     // -f/--force will change the cache
-    for s in ["-f", "--force"] {
+    for opt in ["-f", "--force"] {
         cmd("pk repo metadata")
-            .arg(s)
+            .arg(opt)
             .arg(t.path())
             .assert()
             .stdout("")
@@ -76,6 +77,37 @@ fn single() {
 
         let modified = fs::metadata(&path).unwrap().modified().unwrap();
         assert_ne!(orig_modified, modified);
+    }
+}
+
+#[test]
+fn jobs() {
+    let t = TempRepo::new("test", None, 0, None).unwrap();
+    t.create_ebuild("cat/pkg-1", &[]).unwrap();
+
+    for opt in ["-j", "--jobs"] {
+        // invalid
+        for val in ["", "0"] {
+            cmd("pk repo metadata")
+                .arg(format!("{opt} {val}"))
+                .assert()
+                .stdout("")
+                .stderr(predicate::str::is_empty().not())
+                .failure()
+                .code(2);
+        }
+
+        // valid (max limited to logical system cores)
+        for val in [1, num_cpus::get(), 999999] {
+            cmd("pk repo metadata")
+                .arg(opt)
+                .arg(format!("{val}"))
+                .arg(t.path())
+                .assert()
+                .stdout("")
+                .stderr("")
+                .success();
+        }
     }
 }
 
