@@ -4,7 +4,7 @@ use std::{mem, ptr, slice};
 
 use pkgcraft::pkg::ebuild::metadata;
 use pkgcraft::pkg::Pkg;
-use pkgcraft::pkgsh::Key;
+use pkgcraft::shell::Key;
 
 use crate::dep::spec::{DepSet, DepSetKind};
 use crate::error::Error;

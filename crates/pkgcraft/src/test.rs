@@ -35,7 +35,7 @@ fn initialize() {
         env::var("NEXTEST").expect("tests must be run via cargo-nextest");
     }
     // initialize bash
-    Lazy::force(&crate::pkgsh::BASH);
+    Lazy::force(&crate::shell::BASH);
 }
 
 #[serde_as]

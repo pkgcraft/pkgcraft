@@ -26,10 +26,10 @@ use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
 use crate::pkg::SourceablePackage;
-use crate::pkgsh::metadata::Metadata as MetadataCache;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
+use crate::shell::metadata::Metadata as MetadataCache;
 use crate::utils::digest;
 use crate::Error;
 

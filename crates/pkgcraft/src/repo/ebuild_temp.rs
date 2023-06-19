@@ -8,9 +8,9 @@ use tempfile::TempDir;
 
 use crate::dep::{Cpv, Version};
 use crate::pkg::ebuild::RawPkg;
-use crate::pkgsh::metadata::Key;
 use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::restrict::Restrict;
+use crate::shell::metadata::Key;
 use crate::{eapi, Error};
 
 use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};

@@ -9,8 +9,8 @@ use once_cell::sync::OnceCell;
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
 use crate::eapi::{self, Eapi, Feature};
-use crate::pkgsh::metadata::{Key, Metadata};
 use crate::repo::{ebuild::Repo, Repository};
+use crate::shell::metadata::{Key, Metadata};
 use crate::traits::FilterLines;
 use crate::types::OrderedSet;
 use crate::utils::digest;
@@ -333,8 +333,8 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::metadata::Checksum;
     use crate::pkg::BuildablePackage;
-    use crate::pkgsh::BuildData;
     use crate::repo::PkgRepository;
+    use crate::shell::BuildData;
     use crate::test::{assert_ordered_eq, assert_unordered_eq};
 
     use super::*;

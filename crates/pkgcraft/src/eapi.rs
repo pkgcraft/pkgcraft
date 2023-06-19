@@ -13,13 +13,13 @@ use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::dep::Dep;
-use crate::pkgsh::builtins::{Scope, Scopes};
-use crate::pkgsh::metadata::Key;
-use crate::pkgsh::operations::Operation;
-use crate::pkgsh::phase::Phase;
-use crate::pkgsh::BuildVariable;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
+use crate::shell::builtins::{Scope, Scopes};
+use crate::shell::metadata::Key;
+use crate::shell::operations::Operation;
+use crate::shell::phase::Phase;
+use crate::shell::BuildVariable;
 use crate::Error;
 
 peg::parser!(grammar parse() for str {
@@ -484,9 +484,9 @@ impl FromStr for &'static Eapi {
 }
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
-    use crate::pkgsh::builtins::Scopes::*;
-    use crate::pkgsh::phase::{PhaseKind::*, *};
-    use crate::pkgsh::BuildVariable::*;
+    use crate::shell::builtins::Scopes::*;
+    use crate::shell::phase::{PhaseKind::*, *};
+    use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("0", None)
@@ -565,7 +565,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
-    use crate::pkgsh::phase::{PhaseKind::*, *};
+    use crate::shell::phase::{PhaseKind::*, *};
     use Feature::*;
 
     Eapi::new("1", Some(&EAPI0))
@@ -575,7 +575,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
-    use crate::pkgsh::phase::{PhaseKind::*, *};
+    use crate::shell::phase::{PhaseKind::*, *};
     use Feature::*;
 
     Eapi::new("2", Some(&EAPI1))
@@ -599,9 +599,9 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
-    use crate::pkgsh::builtins::Scopes::*;
-    use crate::pkgsh::phase::PhaseKind::*;
-    use crate::pkgsh::BuildVariable::*;
+    use crate::shell::builtins::Scopes::*;
+    use crate::shell::phase::PhaseKind::*;
+    use crate::shell::BuildVariable::*;
 
     Eapi::new("3", Some(&EAPI2))
         .enable_archives(&["tar.xz", "xz"])
@@ -614,9 +614,9 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
-    use crate::pkgsh::builtins::Scopes::*;
-    use crate::pkgsh::phase::{PhaseKind::*, *};
-    use crate::pkgsh::BuildVariable::*;
+    use crate::shell::builtins::Scopes::*;
+    use crate::shell::phase::{PhaseKind::*, *};
+    use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("4", Some(&EAPI3))
@@ -646,8 +646,8 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
-    use crate::pkgsh::builtins::Scopes::*;
-    use crate::pkgsh::BuildVariable::*;
+    use crate::shell::builtins::Scopes::*;
+    use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("5", Some(&EAPI4))
@@ -658,7 +658,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
-    use crate::pkgsh::phase::{PhaseKind::*, *};
+    use crate::shell::phase::{PhaseKind::*, *};
     use Feature::*;
 
     Eapi::new("6", Some(&EAPI5))
@@ -679,9 +679,9 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
-    use crate::pkgsh::builtins::Scopes::*;
-    use crate::pkgsh::phase::PhaseKind::*;
-    use crate::pkgsh::BuildVariable::*;
+    use crate::shell::builtins::Scopes::*;
+    use crate::shell::phase::PhaseKind::*;
+    use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("7", Some(&EAPI6))
