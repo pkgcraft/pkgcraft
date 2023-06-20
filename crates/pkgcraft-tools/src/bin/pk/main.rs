@@ -1,3 +1,4 @@
+use std::env;
 use std::io::stderr;
 use std::process::ExitCode;
 
@@ -17,6 +18,11 @@ mod subcmds;
 struct Command {
     #[command(flatten)]
     verbosity: Verbosity,
+    /// Use a custom config
+    #[arg(short, long, value_name = "PATH", global = true)]
+    config: Option<String>,
+
+    // positional
     #[command(subcommand)]
     subcmd: subcmds::Subcommand,
 }
@@ -41,7 +47,11 @@ fn main() -> anyhow::Result<ExitCode> {
         .init();
 
     let mut config = Config::new("pkgcraft", "");
-    config.load()?;
+    if let Some(path) = args.config {
+        config.load_path(&path)?;
+    } else if env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
+        config.load()?;
+    }
 
     args.subcmd.run(&mut config).or_else(|err| {
         eprintln!("pk: error: {err}");
