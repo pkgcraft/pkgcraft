@@ -1940,6 +1940,7 @@ dependencies = [
  "clap-verbosity-flag",
  "humantime",
  "indexmap",
+ "indoc",
  "is-terminal",
  "itertools",
  "num_cpus",

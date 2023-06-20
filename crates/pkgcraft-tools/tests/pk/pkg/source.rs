@@ -1,4 +1,5 @@
-use std::env;
+use std::os::fd::AsRawFd;
+use std::{env, fs};
 
 use pkgcraft::repo::ebuild_temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
@@ -86,4 +87,36 @@ fn path_targets() {
         .stdout(predicate::str::is_empty().not())
         .stderr("")
         .success();
+}
+
+#[test]
+fn bound() {
+    let t = TempRepo::new("test", None, 0, None).unwrap();
+    t.create_ebuild("cat/fast-1", &[]).unwrap();
+    let f = fs::File::open(t.path().join("profiles/repo_name")).unwrap();
+    let fd = f.as_raw_fd();
+
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with slower global scope code"
+        SLOT=0
+
+        # forcibly wait for at least 25ms to slow down ebuild sourcing
+        read -t 0.025 -u {fd}
+
+        :
+    "#};
+    t.create_ebuild_raw("cat/slow-1", &data).unwrap();
+
+    for opt in ["-b", "--bound"] {
+        for val in ["25ms", ">25ms", "<25ms"] {
+            cmd("pk pkg source")
+                .args([opt, val])
+                .arg(t.path())
+                .assert()
+                .stdout(predicate::str::is_empty().not())
+                .stderr("")
+                .success();
+        }
+    }
 }
