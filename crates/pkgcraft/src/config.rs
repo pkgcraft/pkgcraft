@@ -1,5 +1,4 @@
-use std::env;
-use std::fs;
+use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
@@ -131,7 +130,7 @@ impl Config {
         Config { path, ..Default::default() }
     }
 
-    /// Load pkgcraft config files, if none are found revert to loading portage files.
+    /// Load user or system config files, if none are found revert to loading portage files.
     pub fn load(&mut self) -> crate::Result<()> {
         self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
 
@@ -141,6 +140,17 @@ impl Config {
                 Err(Error::ConfigMissing(_)) => (),
                 e => return e,
             }
+        }
+
+        Ok(())
+    }
+
+    /// Load config files from a given path.
+    pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
+        if self.path.config.exists() {
+            self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
+        } else {
+            self.load_portage_conf(Some(path))?;
         }
 
         Ok(())
