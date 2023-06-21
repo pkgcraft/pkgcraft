@@ -4,23 +4,31 @@ use std::{env, fs};
 use pkgcraft::repo::ebuild_temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
 use predicates::prelude::*;
+use predicates::function::FnPredicate;
+use predicates::str::contains;
+
+type FnPredStr = dyn Fn(&str) -> bool;
+
+fn output_lines(n: usize) -> FnPredicate<Box<FnPredStr>, str> {
+    predicate::function(Box::new(move |s: &str| s.lines().count() == n))
+}
 
 #[test]
 fn invalid_cwd_target() {
     cmd("pk pkg source")
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(contains("non-ebuild repo"))
         .failure()
         .code(2);
 }
 
 #[test]
-fn nonexistent_target() {
+fn nonexistent_path_target() {
     cmd("pk pkg source path/to/nonexistent/repo")
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(contains("invalid dep restriction"))
         .failure()
         .code(2);
 }
@@ -43,7 +51,7 @@ fn pkg_target_from_stdin() {
     cmd(format!("pk pkg source -r {} -", t.path()))
         .write_stdin("cat/dep")
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(output_lines(1))
         .stderr("")
         .success();
 }
@@ -54,13 +62,12 @@ fn path_targets() {
     t.create_ebuild("cat1/a-1", &[]).unwrap();
     t.create_ebuild("cat1/b-1", &[]).unwrap();
     t.create_ebuild("cat2/c-1", &[]).unwrap();
-    t.create_ebuild("cat2/c-2", &[]).unwrap();
 
     // repo path
     cmd("pk pkg source")
         .arg(t.path())
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(output_lines(3))
         .stderr("")
         .success();
 
@@ -68,7 +75,7 @@ fn path_targets() {
     cmd("pk pkg source")
         .arg(t.path().join("cat1"))
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(output_lines(2))
         .stderr("")
         .success();
 
@@ -76,7 +83,7 @@ fn path_targets() {
     cmd("pk pkg source")
         .arg(t.path().join("cat2/c"))
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(output_lines(1).and(contains("cat2/c-1")))
         .stderr("")
         .success();
 
@@ -84,7 +91,7 @@ fn path_targets() {
     env::set_current_dir(t.path().join("cat2/c")).unwrap();
     cmd("pk pkg source")
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(output_lines(1).and(contains("cat2/c-1")))
         .stderr("")
         .success();
 }
@@ -109,12 +116,12 @@ fn bound() {
     t.create_ebuild_raw("cat/slow-1", &data).unwrap();
 
     for opt in ["-b", "--bound"] {
-        for val in ["25ms", ">25ms", "<25ms"] {
+        for (val, pkg) in [("25ms", "cat/slow"), (">25ms", "cat/slow"), ("<25ms", "cat/fast")] {
             cmd("pk pkg source")
                 .args([opt, val])
                 .arg(t.path())
                 .assert()
-                .stdout(predicate::str::is_empty().not())
+                .stdout(output_lines(1).and(contains(pkg)))
                 .stderr("")
                 .success();
         }
