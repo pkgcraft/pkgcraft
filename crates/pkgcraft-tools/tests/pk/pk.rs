@@ -2,6 +2,7 @@ use std::env;
 
 mod dep;
 mod pkg;
+mod predicates;
 mod repo;
 mod version;
 

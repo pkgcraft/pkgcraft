@@ -4,6 +4,8 @@ use pkgcraft::repo::ebuild_temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
 use predicates::prelude::*;
 
+use crate::predicates::lines_contain;
+
 #[test]
 fn missing_repo_arg() {
     cmd("pk repo metadata")
@@ -136,7 +138,7 @@ fn pkg_with_invalid_eapi() {
         .arg(t.path())
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(lines_contain(["cat/a-1"]))
         .failure()
         .code(1);
 
