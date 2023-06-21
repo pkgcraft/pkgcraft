@@ -37,7 +37,7 @@ tracing = "0.1.37"
 
 [build-dependencies]
 autotools = "0.2.6"
-bindgen = "0.66.0"
+bindgen = "0.66.1"
 camino = "1.1.4"
 num_cpus = "1.15.0"
 
