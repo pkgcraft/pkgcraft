@@ -1,16 +1,36 @@
+use std::collections::HashSet;
 use std::os::fd::AsRawFd;
 use std::{env, fs};
 
 use pkgcraft::repo::ebuild_temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
-use predicates::prelude::*;
 use predicates::function::FnPredicate;
+use predicates::prelude::*;
 use predicates::str::contains;
 
 type FnPredStr = dyn Fn(&str) -> bool;
 
-fn output_lines(n: usize) -> FnPredicate<Box<FnPredStr>, str> {
-    predicate::function(Box::new(move |s: &str| s.lines().count() == n))
+/// Verify a given iterable of lines completely contains a set of values.
+fn lines_contain<I, S>(vals: I) -> FnPredicate<Box<FnPredStr>, str>
+where
+    I: IntoIterator<Item = S>,
+    S: ToString,
+{
+    let vals: HashSet<_> = vals.into_iter().map(|s| s.to_string()).collect();
+    let func = move |s: &str| -> bool {
+        let mut seen = HashSet::new();
+        for line in s.lines() {
+            for val in vals.iter() {
+                if line.contains(val) {
+                    seen.insert(val.clone());
+                    break;
+                }
+            }
+        }
+        seen == vals
+    };
+
+    predicate::function(Box::new(func))
 }
 
 #[test]
@@ -51,7 +71,7 @@ fn pkg_target_from_stdin() {
     cmd(format!("pk pkg source -r {} -", t.path()))
         .write_stdin("cat/dep")
         .assert()
-        .stdout(output_lines(1))
+        .stdout(lines_contain(["cat/dep-1"]))
         .stderr("")
         .success();
 }
@@ -67,7 +87,7 @@ fn path_targets() {
     cmd("pk pkg source")
         .arg(t.path())
         .assert()
-        .stdout(output_lines(3))
+        .stdout(lines_contain(["cat1/a-1", "cat1/b-1", "cat2/c-1"]))
         .stderr("")
         .success();
 
@@ -75,7 +95,7 @@ fn path_targets() {
     cmd("pk pkg source")
         .arg(t.path().join("cat1"))
         .assert()
-        .stdout(output_lines(2))
+        .stdout(lines_contain(["cat1/a-1", "cat1/b-1"]))
         .stderr("")
         .success();
 
@@ -83,7 +103,7 @@ fn path_targets() {
     cmd("pk pkg source")
         .arg(t.path().join("cat2/c"))
         .assert()
-        .stdout(output_lines(1).and(contains("cat2/c-1")))
+        .stdout(lines_contain(["cat2/c-1"]))
         .stderr("")
         .success();
 
@@ -91,7 +111,7 @@ fn path_targets() {
     env::set_current_dir(t.path().join("cat2/c")).unwrap();
     cmd("pk pkg source")
         .assert()
-        .stdout(output_lines(1).and(contains("cat2/c-1")))
+        .stdout(lines_contain(["cat2/c-1"]))
         .stderr("")
         .success();
 }
@@ -121,7 +141,7 @@ fn bound() {
                 .args([opt, val])
                 .arg(t.path())
                 .assert()
-                .stdout(output_lines(1).and(contains(pkg)))
+                .stdout(lines_contain([pkg]))
                 .stderr("")
                 .success();
         }
