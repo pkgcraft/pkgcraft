@@ -159,23 +159,28 @@ impl Config {
     /// Load portage config files from a given directory, falling back to the default locations.
     pub fn load_portage_conf(&mut self, path: Option<&str>) -> crate::Result<()> {
         // use specified path or use fallbacks
-        let paths = match path {
+        let config_dirs = match path {
             Some(p) => vec![p],
             None => PORTAGE_CONFIG_PATHS.to_vec(),
         };
 
-        // use the first path that exists
-        let config_dir = if let Some(p) = find_existing_path(&paths) {
+        let paths = config_dirs
+            .iter()
+            .map(|s| Utf8Path::new(s).join("repos.conf"));
+
+        // use the repos.conf file that exists
+        let repos_conf = if let Some(p) = find_existing_path(paths) {
             p
         } else {
-            let err = match path {
-                Some(s) => Error::Config(format!("nonexistent portage config path: {s}")),
-                None => Error::ConfigMissing("no portage config found".to_string()),
+            let err = if let Some(s) = path {
+                Error::Config(format!("nonexistent portage config path: {s}"))
+            } else {
+                Error::ConfigMissing("no portage config found".to_string())
             };
             return Err(err);
         };
 
-        let repos = portage::load_repos_conf(config_dir.join("repos.conf"))?;
+        let repos = portage::load_repos_conf(repos_conf)?;
         if !repos.is_empty() {
             // add repos to config
             self.repos.extend(&repos, false)?;

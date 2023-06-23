@@ -31,9 +31,13 @@ pub(crate) fn current_dir() -> crate::Result<Utf8PathBuf> {
 }
 
 /// Find and return the first existing path from a list of paths, otherwise return None.
-pub(crate) fn find_existing_path(paths: &[&str]) -> Option<Utf8PathBuf> {
+pub(crate) fn find_existing_path<I, P>(paths: I) -> Option<Utf8PathBuf>
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<Utf8Path>,
+{
     for p in paths {
-        let path = Utf8Path::new(p);
+        let path = p.as_ref();
         if let Ok(true) = path.try_exists() {
             return Some(path.into());
         }
