@@ -26,8 +26,8 @@ indexmap = { version = "1.9.3", features = ["serde"] }
 is-terminal = "0.4.7"
 itertools = "0.10.5"
 num_cpus = "1.15.0"
-pkgcraft = { path = "../pkgcraft", version = "0.0.9" }
-scallop = { path = "../scallop", version = "0.0.8" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.10" }
+scallop = { path = "../scallop", version = "0.0.9" }
 strum = { version = "0.25.0", features = ["derive"] }
 tracing = "0.1.37"
 tracing-log = "0.1.3"

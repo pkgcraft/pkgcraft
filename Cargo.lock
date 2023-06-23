@@ -1868,7 +1868,7 @@ checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
 
 [[package]]
 name = "pkgcraft"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "assert_cmd",
  "async-trait",
@@ -2415,7 +2415,7 @@ dependencies = [
 
 [[package]]
 name = "scallop"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "autotools",
  "bindgen",
