@@ -19,7 +19,7 @@ bench = false
 aho-corasick = "1.0.2"
 anyhow = "1.0.71"
 camino = "1.1.4"
-clap = { version = "4.3.5", features = ["derive"] }
+clap = { version = "4.3.6", features = ["derive"] }
 clap-verbosity-flag = "2.0.1"
 humantime = "2.1.0"
 indexmap = { version = "1.9.3", features = ["serde"] }
