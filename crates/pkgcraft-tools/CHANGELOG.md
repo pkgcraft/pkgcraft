@@ -1,3 +1,12 @@
+# 0.0.10 (2023-06-23)
+
+## Added
+- Support loading the config from a custom path and disabling config loading
+  via the `PKGCRAFT_NO_CONFIG` environment variable (#115).
+
+## Fixed
+- `pk repo metadata`: ignore `declare` errors with unset variables
+
 # 0.0.9 (2023-06-17)
 
 ## Added
