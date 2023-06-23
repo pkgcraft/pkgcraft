@@ -1931,7 +1931,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcraft-tools"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "aho-corasick",
  "anyhow",
