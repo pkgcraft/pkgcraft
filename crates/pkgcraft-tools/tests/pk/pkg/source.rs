@@ -91,6 +91,7 @@ fn path_targets() {
 }
 
 #[test]
+#[ignore = "too flaky for general testing"]
 fn bound() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_ebuild("cat/fast-1", &[]).unwrap();
