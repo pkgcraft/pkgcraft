@@ -51,23 +51,34 @@ fn single() {
         .stdout("")
         .stderr("")
         .success();
-
     let path = t.path().join("metadata/md5-cache/cat/pkg-1");
     assert!(path.exists());
-    let orig_modified = fs::metadata(&path).unwrap().modified().unwrap();
+    let prev_modified = fs::metadata(&path).unwrap().modified().unwrap();
 
-    // running again won't change the cache
+    // re-run doesn't change cache
     cmd("pk repo metadata")
         .arg(t.path())
         .assert()
         .stdout("")
         .stderr("")
         .success();
-
     let modified = fs::metadata(&path).unwrap().modified().unwrap();
-    assert_eq!(orig_modified, modified);
+    assert_eq!(modified, prev_modified);
+    let prev_modified = modified;
 
-    // -f/--force will change the cache
+    // package changes cause cache updates
+    t.create_ebuild("cat/pkg-1", &["EAPI=2"]).unwrap();
+    cmd("pk repo metadata")
+        .arg(t.path())
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let modified = fs::metadata(&path).unwrap().modified().unwrap();
+    assert_ne!(modified, prev_modified);
+    let prev_modified = modified;
+
+    // -f/--force option cause cache updates
     for opt in ["-f", "--force"] {
         cmd("pk repo metadata")
             .arg(opt)
@@ -78,7 +89,7 @@ fn single() {
             .success();
 
         let modified = fs::metadata(&path).unwrap().modified().unwrap();
-        assert_ne!(orig_modified, modified);
+        assert_ne!(modified, prev_modified);
     }
 }
 
