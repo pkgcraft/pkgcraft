@@ -1,5 +1,4 @@
-use std::os::fd::AsRawFd;
-use std::{env, fs};
+use std::env;
 
 use pkgcraft::repo::ebuild_temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
@@ -91,11 +90,13 @@ fn path_targets() {
 }
 
 #[test]
-#[ignore = "too flaky for general testing"]
+#[cfg(feature = "flaky")]
 fn bound() {
+    use std::os::fd::AsRawFd;
+
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_ebuild("cat/fast-1", &[]).unwrap();
-    let f = fs::File::open(t.path().join("profiles/repo_name")).unwrap();
+    let f = std::fs::File::open(t.path().join("profiles/repo_name")).unwrap();
     let fd = f.as_raw_fd();
 
     let data = indoc::formatdoc! {r#"

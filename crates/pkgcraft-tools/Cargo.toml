@@ -15,6 +15,10 @@ rust-version.workspace = true
 name = "pk"
 bench = false
 
+[features]
+# flaky tests that aren't run by default
+flaky = []
+
 [dependencies]
 aho-corasick = "1.0.2"
 anyhow = "1.0.71"
