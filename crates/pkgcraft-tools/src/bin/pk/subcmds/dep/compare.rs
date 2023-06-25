@@ -1,3 +1,4 @@
+use std::mem;
 use std::process::ExitCode;
 use std::str::FromStr;
 
@@ -6,29 +7,42 @@ use clap::Args;
 use itertools::Itertools;
 use pkgcraft::dep::Dep;
 
+use crate::args::StdinOrArgs;
+
 #[derive(Debug, Args)]
 pub struct Command {
-    compare: String,
+    /// Dep comparison expressions (uses stdin if "-")
+    #[arg(value_name = "EXPR")]
+    vals: Vec<String>,
 }
 
 impl Command {
-    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let (s1, op, s2) = self
-            .compare
-            .split_whitespace()
-            .collect_tuple()
-            .ok_or_else(|| anyhow!("invalid comparison format: {}", self.compare))?;
-        let d1 = Dep::from_str(s1)?;
-        let d2 = Dep::from_str(s2)?;
-        let result = match op {
-            "<" => d1 < d2,
-            "<=" => d1 <= d2,
-            "==" => d1 == d2,
-            "!=" => d1 != d2,
-            ">=" => d1 >= d2,
-            ">" => d1 > d2,
-            _ => bail!("invalid operator: {op}"),
-        };
-        Ok(ExitCode::from(!result as u8))
+    pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
+        let mut status = ExitCode::SUCCESS;
+
+        let vals = mem::take(&mut self.vals);
+        for s in vals.stdin_or_args() {
+            let (s1, op, s2) = s
+                .split_whitespace()
+                .collect_tuple()
+                .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
+            let d1 = Dep::from_str(s1)?;
+            let d2 = Dep::from_str(s2)?;
+            let result = match op {
+                "<" => d1 < d2,
+                "<=" => d1 <= d2,
+                "==" => d1 == d2,
+                "!=" => d1 != d2,
+                ">=" => d1 >= d2,
+                ">" => d1 > d2,
+                _ => bail!("invalid operator: {op}"),
+            };
+
+            if !result {
+                status = ExitCode::FAILURE;
+            }
+        }
+
+        Ok(status)
     }
 }

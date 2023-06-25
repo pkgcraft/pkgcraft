@@ -5,7 +5,7 @@ use std::str::FromStr;
 use clap::Args;
 use pkgcraft::dep::Dep;
 
-use crate::args::stdin_or_args;
+use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -14,7 +14,10 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let deps: Result<Vec<_>, _> = stdin_or_args(self.vals)
+        let deps: Result<Vec<_>, _> = self
+            .vals
+            .stdin_or_args()
+            .split_whitespace()
             .map(|s| Dep::from_str(&s))
             .collect();
 

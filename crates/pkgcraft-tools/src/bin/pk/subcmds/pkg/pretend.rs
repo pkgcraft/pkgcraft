@@ -9,7 +9,7 @@ use pkgcraft::pkg::BuildablePackage;
 use pkgcraft::repo::set::RepoSet;
 use scallop::pool::PoolIter;
 
-use crate::args::{bounded_jobs, stdin_or_args};
+use crate::args::{bounded_jobs, StdinOrArgs};
 
 use super::target_restriction;
 
@@ -55,7 +55,7 @@ impl Command {
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs)?;
         let mut status = ExitCode::SUCCESS;
-        for target in stdin_or_args(self.targets) {
+        for target in self.targets.stdin_or_args().split_whitespace() {
             // determine target restriction
             let (repos, restrict) = target_restriction(config, &repos, &target)?;
 

@@ -6,7 +6,7 @@ use clap::Args;
 use pkgcraft::dep::Dep;
 use strum::{Display, EnumIter, EnumString};
 
-use crate::args::stdin_or_args;
+use crate::args::StdinOrArgs;
 use crate::format::{EnumVariable, FormatString};
 
 #[derive(Debug, Args)]
@@ -96,7 +96,8 @@ impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
-        for s in stdin_or_args(mem::take(&mut self.vals)) {
+        let vals = mem::take(&mut self.vals);
+        for s in vals.stdin_or_args().split_whitespace() {
             if self.parse_dep(&s).is_err() {
                 eprintln!("INVALID DEP: {s}");
                 status = ExitCode::FAILURE;
