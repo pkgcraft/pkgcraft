@@ -38,8 +38,10 @@ jobs:
     strategy:
       matrix:
         target:
-          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
 
     steps:
     - name: Checkout pkgcraft workspace
@@ -53,7 +55,7 @@ jobs:
     - name: Install cross
       run: cargo install cross --git https://github.com/cross-rs/cross
 
-    - name: Create static binary
+    - name: Build pkgcraft-tools
       run: cross build --target ${{ matrix.target }} --profile release-strip -p pkgcraft-tools
 
     - name: Create tarball
