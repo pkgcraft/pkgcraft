@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::os::fd::{AsRawFd, RawFd};
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::errno;
@@ -9,12 +8,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::shm::create_shm;
 use crate::{bash, Error};
-
-/// Get a unique ID for shared memory names.
-fn get_id() -> usize {
-    static COUNTER: AtomicUsize = AtomicUsize::new(1);
-    COUNTER.fetch_add(1, Ordering::Relaxed)
-}
 
 /// Redirect stdout and stderr to a given raw file descriptor.
 pub fn redirect_output(fd: RawFd) -> crate::Result<()> {
@@ -39,10 +32,7 @@ struct SharedSemaphore {
 
 impl SharedSemaphore {
     fn new(size: usize) -> crate::Result<Self> {
-        let pid = std::process::id();
-        let id = get_id();
-        let name = format!("/scallop-pool-sem-{pid}-{id}");
-        let ptr = create_shm(&name, std::mem::size_of::<libc::sem_t>())?;
+        let ptr = create_shm("scallop-pool-sem", std::mem::size_of::<libc::sem_t>())?;
         let sem = ptr as *mut libc::sem_t;
 
         // sem_init() uses u32 values
