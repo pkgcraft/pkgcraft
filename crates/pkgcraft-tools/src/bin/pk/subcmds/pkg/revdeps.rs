@@ -48,6 +48,7 @@ impl Command {
             .collect();
         let targets = targets?;
 
+        // TODO: use a revdeps cache for queries
         for repo in repos.ebuild() {
             let cpvs: Vec<_> = repo.iter_cpv().collect();
             // iterate over cpvs in parallel looking for reverse deps
