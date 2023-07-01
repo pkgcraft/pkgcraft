@@ -6,6 +6,7 @@ use pkgcraft::config::{Config, Repos};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restriction};
+use rayon::prelude::*;
 
 use crate::args::StdinOrArgs;
 
@@ -41,13 +42,17 @@ impl Command {
             let restrict = restrict::parse::dep(&target)?;
 
             for repo in repos.ebuild() {
-                for pkg in repo.iter() {
+                let cpvs: Vec<_> = repo.iter_cpv().collect();
+
+                // iterate over cpvs in parallel looking for reverse deps
+                cpvs.into_par_iter().for_each(|cpv| {
+                    let pkg = repo.iter_restrict(&cpv).next().unwrap();
                     for dep in pkg.dependencies(&[]).iter_flatten() {
                         if restrict.matches(dep) && dep.blocker().is_none() {
                             println!("{pkg}: {dep}");
                         }
                     }
-                }
+                });
             }
         }
 
