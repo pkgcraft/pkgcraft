@@ -1985,7 +1985,6 @@ dependencies = [
  "num_cpus",
  "pkgcraft",
  "predicates",
- "rayon",
  "scallop",
  "strum",
  "tracing",

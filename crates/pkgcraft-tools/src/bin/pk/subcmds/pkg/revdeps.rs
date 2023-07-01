@@ -7,7 +7,6 @@ use pkgcraft::config::{Config, Repos};
 use pkgcraft::dep::{CpvOrDep, Intersects};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::PkgRepository;
-use rayon::prelude::*;
 
 use crate::args::StdinOrArgs;
 
@@ -49,18 +48,15 @@ impl Command {
         let targets = targets?;
 
         // TODO: use a revdeps cache for queries (#120)
-        // TODO: currently this requires a valid repo metadata cache (#121)
+        // TODO: parallelize while generating metadata on the fly (#121)
         for repo in repos.ebuild() {
-            let cpvs: Vec<_> = repo.iter_cpv().collect();
-            // iterate over cpvs in parallel looking for reverse deps
-            cpvs.par_iter().for_each(|cpv| {
-                let pkg = repo.iter_restrict(cpv).next().unwrap();
+            for pkg in repo.iter() {
                 for dep in pkg.dependencies(&[]).iter_flatten() {
                     if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {
                         println!("{pkg}: {dep}");
                     }
                 }
-            });
+            }
         }
 
         Ok(ExitCode::SUCCESS)
