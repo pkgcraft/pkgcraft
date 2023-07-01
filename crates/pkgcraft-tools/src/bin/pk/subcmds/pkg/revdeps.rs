@@ -48,7 +48,8 @@ impl Command {
             .collect();
         let targets = targets?;
 
-        // TODO: use a revdeps cache for queries
+        // TODO: use a revdeps cache for queries (#120)
+        // TODO: currently this requires a valid repo metadata cache (#121)
         for repo in repos.ebuild() {
             let cpvs: Vec<_> = repo.iter_cpv().collect();
             // iterate over cpvs in parallel looking for reverse deps
