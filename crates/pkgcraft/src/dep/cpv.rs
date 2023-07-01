@@ -39,6 +39,26 @@ impl Intersects<CpvOrDep> for CpvOrDep {
     }
 }
 
+impl Intersects<Cpv> for CpvOrDep {
+    fn intersects(&self, other: &Cpv) -> bool {
+        use CpvOrDep::*;
+        match (self, other) {
+            (Cpv(obj1), obj2) => obj1.intersects(obj2),
+            (Dep(obj1), obj2) => obj1.intersects(obj2),
+        }
+    }
+}
+
+impl Intersects<Dep> for CpvOrDep {
+    fn intersects(&self, other: &Dep) -> bool {
+        use CpvOrDep::*;
+        match (self, other) {
+            (Cpv(obj1), obj2) => obj1.intersects(obj2),
+            (Dep(obj1), obj2) => obj1.intersects(obj2),
+        }
+    }
+}
+
 /// Parsed package identifier from borrowed input string.
 #[derive(Debug)]
 pub(crate) struct ParsedCpv<'a> {
