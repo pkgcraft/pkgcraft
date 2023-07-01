@@ -6,6 +6,7 @@ use pkgcraft::repo::set::RepoSet;
 use pkgcraft::restrict::{self, Restrict};
 
 mod pretend;
+mod revdeps;
 mod source;
 
 #[derive(Debug, clap::Args)]
@@ -56,6 +57,8 @@ fn target_restriction(
 pub enum Subcommand {
     /// Run the pkg_pretend phase
     Pretend(pretend::Command),
+    /// Output reverse dependencies
+    Revdeps(revdeps::Command),
     /// Source ebuilds and dump elapsed time
     Source(source::Command),
 }
@@ -65,6 +68,7 @@ impl Subcommand {
         use Subcommand::*;
         match self {
             Pretend(cmd) => cmd.run(config),
+            Revdeps(cmd) => cmd.run(config),
             Source(cmd) => cmd.run(config),
         }
     }
