@@ -1,11 +1,12 @@
 use std::path::Path;
 use std::process::ExitCode;
+use std::str::FromStr;
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
+use pkgcraft::dep::{CpvOrDep, Intersects};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::{self, Restriction};
 use rayon::prelude::*;
 
 use crate::args::StdinOrArgs;
@@ -39,7 +40,7 @@ impl Command {
         };
 
         for target in self.targets.stdin_or_args().split_whitespace() {
-            let restrict = restrict::parse::dep(&target)?;
+            let target = CpvOrDep::from_str(&target)?;
 
             for repo in repos.ebuild() {
                 let cpvs: Vec<_> = repo.iter_cpv().collect();
@@ -48,7 +49,7 @@ impl Command {
                 cpvs.into_par_iter().for_each(|cpv| {
                     let pkg = repo.iter_restrict(&cpv).next().unwrap();
                     for dep in pkg.dependencies(&[]).iter_flatten() {
-                        if restrict.matches(dep) && dep.blocker().is_none() {
+                        if target.intersects(dep) && dep.blocker().is_none() {
                             println!("{pkg}: {dep}");
                         }
                     }
