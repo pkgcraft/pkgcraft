@@ -39,22 +39,26 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        for target in self.targets.stdin_or_args().split_whitespace() {
-            let target = CpvOrDep::from_str(&target)?;
+        // convert targets to Cpv or Dep objects
+        let targets: Result<Vec<_>, _> = self
+            .targets
+            .stdin_or_args()
+            .split_whitespace()
+            .map(|s| CpvOrDep::from_str(&s))
+            .collect();
+        let targets = targets?;
 
-            for repo in repos.ebuild() {
-                let cpvs: Vec<_> = repo.iter_cpv().collect();
-
-                // iterate over cpvs in parallel looking for reverse deps
-                cpvs.into_par_iter().for_each(|cpv| {
-                    let pkg = repo.iter_restrict(&cpv).next().unwrap();
-                    for dep in pkg.dependencies(&[]).iter_flatten() {
-                        if target.intersects(dep) && dep.blocker().is_none() {
-                            println!("{pkg}: {dep}");
-                        }
+        for repo in repos.ebuild() {
+            let cpvs: Vec<_> = repo.iter_cpv().collect();
+            // iterate over cpvs in parallel looking for reverse deps
+            cpvs.par_iter().for_each(|cpv| {
+                let pkg = repo.iter_restrict(cpv).next().unwrap();
+                for dep in pkg.dependencies(&[]).iter_flatten() {
+                    if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {
+                        println!("{pkg}: {dep}");
                     }
-                });
-            }
+                }
+            });
         }
 
         Ok(ExitCode::SUCCESS)
