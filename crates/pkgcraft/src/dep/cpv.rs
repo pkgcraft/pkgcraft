@@ -19,10 +19,12 @@ impl FromStr for CpvOrDep {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        if let Ok(d) = Dep::from_str(s) {
-            Ok(CpvOrDep::Dep(d))
+        if let Ok(val) = Dep::from_str(s) {
+            Ok(CpvOrDep::Dep(val))
+        } else if let Ok(val) = Cpv::from_str(s) {
+            Ok(CpvOrDep::Cpv(val))
         } else {
-            Ok(CpvOrDep::Cpv(Cpv::from_str(s)?))
+            Err(Error::InvalidValue(format!("invalid cpv or dep: {s}")))
         }
     }
 }
