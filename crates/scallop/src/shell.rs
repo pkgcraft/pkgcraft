@@ -172,7 +172,7 @@ pub static BASH_VERSION: Lazy<String> = Lazy::new(|| unsafe {
 
 #[cfg(test)]
 mod tests {
-    use crate::variables::*;
+    use crate::{functions, source, variables};
 
     use super::*;
 
@@ -183,10 +183,19 @@ mod tests {
     }
 
     #[test]
-    fn test_reset() {
-        bind("VAR", "1", None, None).unwrap();
-        assert_eq!(optional("VAR").unwrap(), "1");
+    fn test_reset_var() {
+        variables::bind("VAR", "1", None, None).unwrap();
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
         reset(&[]);
-        assert_eq!(optional("VAR"), None);
+        assert_eq!(variables::optional("VAR"), None);
+    }
+
+    #[test]
+    fn test_reset_func() {
+        assert!(functions::find("func").is_none());
+        source::string("func() { :; }").unwrap();
+        assert!(functions::find("func").is_some());
+        reset(&[]);
+        assert!(functions::find("func").is_none());
     }
 }

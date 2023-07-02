@@ -66,16 +66,16 @@ mod tests {
 
     #[test]
     fn find_function() {
-        assert!(find("foo").is_none());
-        source::string("foo() { :; }").unwrap();
-        assert!(find("foo").is_some());
+        assert!(find("func").is_none());
+        source::string("func() { :; }").unwrap();
+        assert!(find("func").is_some());
     }
 
     #[test]
     fn execute_success() {
         assert_eq!(optional("VAR"), None);
-        source::string("foo() { VAR=$1; }").unwrap();
-        let mut func = find("foo").unwrap();
+        source::string("func() { VAR=$1; }").unwrap();
+        let mut func = find("func").unwrap();
         func.execute(&[]).unwrap();
         assert_eq!(optional("VAR").unwrap(), "");
         func.execute(&["1"]).unwrap();
@@ -84,8 +84,8 @@ mod tests {
 
     #[test]
     fn execute_failure() {
-        source::string("foo() { nonexistent_cmd; }").unwrap();
-        let mut func = find("foo").unwrap();
+        source::string("func() { nonexistent_cmd; }").unwrap();
+        let mut func = find("func").unwrap();
         assert!(func.execute(&[]).is_err());
     }
 
