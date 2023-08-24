@@ -36,7 +36,7 @@ impl fmt::Display for Syncer {
 }
 
 #[async_trait]
-pub(self) trait Syncable {
+trait Syncable {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer>;
     async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()>;
 }

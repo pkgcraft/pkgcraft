@@ -484,7 +484,7 @@ macro_rules! make_builtin {
             Lazy::new(|| PkgBuiltin::new(BUILTIN, $scope));
     };
 }
-pub(self) use make_builtin;
+use make_builtin;
 
 #[cfg(test)]
 fn assert_invalid_args(func: ::scallop::builtins::BuiltinFn, nums: &[u32]) {
@@ -600,4 +600,4 @@ macro_rules! builtin_scope_tests {
     };
 }
 #[cfg(test)]
-pub(self) use builtin_scope_tests;
+use builtin_scope_tests;

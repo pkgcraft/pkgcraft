@@ -531,7 +531,7 @@ macro_rules! make_repo_traits {
         $crate::repo::make_contains_path!($x);
     )+};
 }
-pub(self) use make_repo_traits;
+use make_repo_traits;
 
 /// A repo contains a given object.
 pub trait Contains<T> {
@@ -553,7 +553,7 @@ macro_rules! make_contains_dep {
         }
     };
 }
-pub(self) use make_contains_dep;
+use make_contains_dep;
 
 macro_rules! make_contains_path {
     ($x:ty) => {
@@ -580,7 +580,7 @@ macro_rules! make_contains_path {
         }
     };
 }
-pub(self) use make_contains_path;
+use make_contains_path;
 
 #[cfg(test)]
 mod tests {

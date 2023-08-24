@@ -131,7 +131,7 @@ macro_rules! make_pkg_traits {
         }
     )+};
 }
-pub(self) use make_pkg_traits;
+use make_pkg_traits;
 
 impl<'a> Package for Pkg<'a> {
     type Repo = &'a Repo;

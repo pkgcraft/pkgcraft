@@ -22,7 +22,7 @@ pub(crate) use char_p_or_null_free;
 /// Convert an iterator to an array of object pointers using a given closure.
 macro_rules! iter_to_array {
     ( $iter:expr, $len:expr, $func:expr ) => {{
-        let mut ptrs: Vec<_> = $iter.map(|o| $func(o)).collect();
+        let mut ptrs: Vec<_> = $iter.map($func).collect();
         ptrs.shrink_to_fit();
         unsafe { *$len = ptrs.len() };
         let ptr = ptrs.as_mut_ptr();

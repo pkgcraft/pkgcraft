@@ -365,7 +365,7 @@ mod tests {
             SLOT=0
         "#};
         let r = t.create_ebuild_raw("cat/pkg-1", data);
-        assert_err_re!(r, r#"invalid EAPI: \$EAPI"#);
+        assert_err_re!(r, r"invalid EAPI: \$EAPI");
 
         // unmatched quotes
         let data = indoc::indoc! {r#"
