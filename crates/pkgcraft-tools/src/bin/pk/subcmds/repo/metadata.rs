@@ -1,8 +1,7 @@
-use std::io::stdout;
+use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
 use clap::Args;
-use is_terminal::IsTerminal;
 use pkgcraft::config::Config;
 
 use crate::args::{bounded_jobs, target_ebuild_repos};

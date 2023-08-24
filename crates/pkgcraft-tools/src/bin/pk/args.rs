@@ -1,8 +1,7 @@
-use std::io::stdin;
+use std::io::{stdin, IsTerminal};
 use std::path::Path;
 use std::sync::Arc;
 
-use is_terminal::IsTerminal;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::Repo as EbuildRepo;
 

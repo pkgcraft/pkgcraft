@@ -1949,7 +1949,6 @@ dependencies = [
  "humantime",
  "indexmap 2.0.0",
  "indoc",
- "is-terminal",
  "itertools 0.11.0",
  "num_cpus",
  "pkgcraft",
