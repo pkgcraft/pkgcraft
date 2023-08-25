@@ -36,8 +36,7 @@ impl Command {
 
         // determine if a given package is a leaf
         let is_leaf = |cpv: &Cpv| -> bool {
-            // TODO: use is_some_and() once MSRV >= 1.70
-            !cache.get(&cpv.cpn()).map_or(false, |deps| {
+            !cache.get(&cpv.cpn()).is_some_and(|deps| {
                 deps.iter()
                     .any(|d| d.intersects(cpv) && d.blocker().is_none())
             })
