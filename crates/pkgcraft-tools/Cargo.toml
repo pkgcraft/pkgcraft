@@ -23,7 +23,7 @@ flaky = []
 aho-corasick = "1.0.4"
 anyhow = "1.0.75"
 camino = "1.1.6"
-clap = { version = "4.3.24", features = ["derive"] }
+clap = { version = "4.4.0", features = ["derive"] }
 clap-verbosity-flag = "2.0.1"
 humantime = "2.1.0"
 indexmap = { version = "2.0.0", features = ["serde"] }

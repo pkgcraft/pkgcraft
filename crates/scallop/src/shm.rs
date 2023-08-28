@@ -1,5 +1,6 @@
 use std::ffi::c_void;
 use std::num::NonZeroUsize;
+use std::os::fd::AsRawFd;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use nix::fcntl::OFlag;
@@ -30,7 +31,7 @@ pub(crate) fn create_shm(prefix: &str, size: usize) -> crate::Result<*mut c_void
     .map_err(|e| Error::Base(format!("shm_open(): {e}")))?;
 
     // enlarge file to the given size
-    ftruncate(shm_fd, size as i64).map_err(|e| Error::Base(format!("ftruncate(): {e}")))?;
+    ftruncate(&shm_fd, size as i64).map_err(|e| Error::Base(format!("ftruncate(): {e}")))?;
 
     // map file into memory
     let length =
@@ -41,13 +42,13 @@ pub(crate) fn create_shm(prefix: &str, size: usize) -> crate::Result<*mut c_void
             length,
             ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
             MapFlags::MAP_SHARED,
-            shm_fd,
+            Some(&shm_fd),
             0,
         )
         .map_err(|e| Error::Base(format!("mmap(): {e}")))?
     };
 
-    close(shm_fd)?;
+    close(shm_fd.as_raw_fd())?;
     shm_unlink(name.as_str()).map_err(|e| Error::Base(format!("shm_unlink(): {e}")))?;
 
     Ok(shm_ptr)
