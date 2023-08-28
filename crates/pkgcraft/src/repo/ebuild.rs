@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::path::Path;
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -12,7 +12,7 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{Equivalent, IndexMap, IndexSet};
 use indicatif::ProgressBar;
 use itertools::{Either, Itertools};
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use scallop::pool::PoolSendIter;
 use tracing::{error, warn};
@@ -134,7 +134,7 @@ where
 }
 
 // Note that the thread will currently be killed without joining on exit since
-// Cache is contained in a OnceCell that doesn't call drop().
+// Cache is contained in a OnceLock that doesn't call drop().
 impl<T> Drop for Cache<T>
 where
     T: CacheData + Send + Sync,
@@ -234,15 +234,15 @@ pub struct Repo {
     id: String,
     config: RepoConfig,
     metadata: Metadata,
-    masters: OnceCell<Vec<Weak<Self>>>,
-    trees: OnceCell<Vec<Weak<Self>>>,
-    arches: OnceCell<HashSet<String>>,
-    licenses: OnceCell<HashSet<String>>,
-    license_groups: OnceCell<HashMap<String, HashSet<String>>>,
-    mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
-    eclasses: OnceCell<HashSet<Eclass>>,
-    xml_cache: OnceCell<Cache<XmlMetadata>>,
-    manifest_cache: OnceCell<Cache<Manifest>>,
+    masters: OnceLock<Vec<Weak<Self>>>,
+    trees: OnceLock<Vec<Weak<Self>>>,
+    arches: OnceLock<HashSet<String>>,
+    licenses: OnceLock<HashSet<String>>,
+    license_groups: OnceLock<HashMap<String, HashSet<String>>>,
+    mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
+    eclasses: OnceLock<HashSet<Eclass>>,
+    xml_cache: OnceLock<Cache<XmlMetadata>>,
+    manifest_cache: OnceLock<Cache<Manifest>>,
 }
 
 impl fmt::Debug for Repo {

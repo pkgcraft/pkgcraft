@@ -2,11 +2,11 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
+use std::sync::OnceLock;
 use std::{fmt, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::OnceCell;
 use strum::{Display, EnumString};
 use tracing::{error, warn};
 
@@ -252,18 +252,18 @@ pub struct Metadata {
     config: Config,
     path: Utf8PathBuf,
     cache_path: Utf8PathBuf,
-    arches: OnceCell<IndexSet<String>>,
-    arches_desc: OnceCell<HashMap<ArchStatus, HashSet<String>>>,
-    categories: OnceCell<IndexSet<String>>,
-    licenses: OnceCell<IndexSet<String>>,
-    license_groups: OnceCell<HashMap<String, HashSet<String>>>,
-    mirrors: OnceCell<IndexMap<String, IndexSet<String>>>,
-    pkg_deprecated: OnceCell<IndexSet<Dep>>,
-    pkg_mask: OnceCell<IndexSet<Dep>>,
-    updates: OnceCell<IndexSet<PkgUpdate>>,
-    use_desc: OnceCell<IndexSet<UseDesc>>,
-    use_expand_desc: OnceCell<IndexMap<String, IndexSet<UseDesc>>>,
-    use_local_desc: OnceCell<OrderedMap<String, OrderedSet<UseDesc>>>,
+    arches: OnceLock<IndexSet<String>>,
+    arches_desc: OnceLock<HashMap<ArchStatus, HashSet<String>>>,
+    categories: OnceLock<IndexSet<String>>,
+    licenses: OnceLock<IndexSet<String>>,
+    license_groups: OnceLock<HashMap<String, HashSet<String>>>,
+    mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
+    pkg_deprecated: OnceLock<IndexSet<Dep>>,
+    pkg_mask: OnceLock<IndexSet<Dep>>,
+    updates: OnceLock<IndexSet<PkgUpdate>>,
+    use_desc: OnceLock<IndexSet<UseDesc>>,
+    use_expand_desc: OnceLock<IndexMap<String, IndexSet<UseDesc>>>,
+    use_local_desc: OnceLock<OrderedMap<String, OrderedSet<UseDesc>>>,
 }
 
 impl Metadata {

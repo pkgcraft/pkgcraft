@@ -1,11 +1,12 @@
 use std::ffi::{c_char, c_int, CStr, CString};
+use std::sync::OnceLock;
 use std::{env, mem, process, ptr};
 
 use nix::{
     sys::signal,
     unistd::{getpid, Pid},
 };
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::Lazy;
 
 use crate::builtins::ExecStatus;
 use crate::shm::create_shm;
@@ -72,7 +73,7 @@ pub fn interactive() {
 }
 
 static PID: Lazy<Pid> = Lazy::new(getpid);
-static SHELL: OnceCell<CString> = OnceCell::new();
+static SHELL: OnceLock<CString> = OnceLock::new();
 
 /// Send a signal to the main bash process.
 pub(crate) fn kill<T: Into<Option<signal::Signal>>>(signal: T) -> crate::Result<()> {
@@ -80,7 +81,7 @@ pub(crate) fn kill<T: Into<Option<signal::Signal>>>(signal: T) -> crate::Result<
 }
 
 // Shared memory object for proxying subshell errors back to the main shell process.
-static mut SHM: OnceCell<*mut c_char> = OnceCell::new();
+static mut SHM: OnceLock<*mut c_char> = OnceLock::new();
 
 /// Create an error message in shared memory.
 pub(crate) fn set_shm_error(msg: &str) {

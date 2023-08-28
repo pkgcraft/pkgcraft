@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 use std::fs;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use camino::Utf8PathBuf;
 use itertools::Either;
-use once_cell::sync::OnceCell;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
@@ -109,8 +108,8 @@ pub struct Pkg<'a> {
     eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata,
-    xml: OnceCell<Arc<XmlMetadata>>,
-    manifest: OnceCell<Arc<Manifest>>,
+    xml: OnceLock<Arc<XmlMetadata>>,
+    manifest: OnceLock<Arc<Manifest>>,
 }
 
 make_pkg_traits!(Pkg<'_>);
@@ -127,8 +126,8 @@ impl<'a> Pkg<'a> {
             eapi: raw_pkg.eapi,
             repo: raw_pkg.repo,
             meta,
-            xml: OnceCell::new(),
-            manifest: OnceCell::new(),
+            xml: OnceLock::new(),
+            manifest: OnceLock::new(),
         })
     }
 
