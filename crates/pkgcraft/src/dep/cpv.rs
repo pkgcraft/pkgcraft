@@ -90,8 +90,8 @@ pub struct Cpv {
 
 impl Cpv {
     /// Create a new Cpv from a given string (e.g. cat/pkg-1).
-    pub fn new(s: &str) -> crate::Result<Self> {
-        parse::cpv(s)
+    pub fn new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        parse::cpv(s.as_ref())
     }
 
     /// Verify a string represents a valid CPV.

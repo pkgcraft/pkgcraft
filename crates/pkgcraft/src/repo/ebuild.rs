@@ -428,7 +428,7 @@ impl Repo {
         let p = file
             .strip_suffix(".ebuild")
             .ok_or_else(|| err("missing ebuild ext"))?;
-        Cpv::new(&format!("{cat}/{p}"))
+        Cpv::new(format!("{cat}/{p}"))
             .map_err(|_| err("invalid CPV"))
             .and_then(|a| {
                 if a.package() == pkg {
@@ -497,7 +497,7 @@ impl Repo {
     }
 
     /// Return the sorted list of Cpvs in a given category.
-    fn category_cpvs(&self, category: &str) -> Vec<Cpv> {
+    fn category_cpvs(&self, category: &str) -> IndexSet<Cpv> {
         // filter invalid ebuild paths
         let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv> {
             match r {
@@ -515,7 +515,7 @@ impl Repo {
             }
         };
 
-        let mut cpvs: Vec<_> = WalkDir::new(self.path().join(category))
+        let mut cpvs: IndexSet<_> = WalkDir::new(self.path().join(category))
             .min_depth(2)
             .max_depth(2)
             .into_iter()
@@ -542,7 +542,7 @@ impl Repo {
 
         // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
         // pull all package Cpvs from the repo
-        let mut cpvs: Vec<_> = self
+        let mut cpvs: IndexSet<_> = self
             .categories()
             .into_par_iter()
             .flat_map(|s| self.category_cpvs(&s))
@@ -559,6 +559,25 @@ impl Repo {
                     Error::IO(format!("failed removing metadata cache: {path}: {e}"))
                 })?;
             } else {
+                // remove outdated cache entries lacking matching ebuilds
+                WalkDir::new(path)
+                    .min_depth(2)
+                    .max_depth(2)
+                    .into_iter()
+                    .filter_map(|e| e.ok())
+                    .try_for_each(|e| {
+                        e.path()
+                            .strip_prefix(path)
+                            .ok()
+                            .and_then(|p| Cpv::new(p.to_string_lossy()).ok())
+                            .filter(|cpv| !cpvs.contains(cpv))
+                            .map_or(Ok(()), |_| {
+                                fs::remove_file(e.path()).map_err(|e| {
+                                    Error::IO(format!("failed removing metadata cache entry: {e}"))
+                                })
+                            })
+                    })?;
+
                 // run cache validation in a thread pool
                 cpvs = cpvs
                     .into_par_iter()
