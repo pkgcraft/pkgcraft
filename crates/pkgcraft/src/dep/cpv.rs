@@ -95,8 +95,8 @@ impl Cpv {
     }
 
     /// Verify a string represents a valid CPV.
-    pub fn valid(s: &str) -> crate::Result<()> {
-        parse::cpv_str(s)?;
+    pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
+        parse::cpv_str(s.as_ref())?;
         Ok(())
     }
 
