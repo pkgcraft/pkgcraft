@@ -1,8 +1,11 @@
 use std::fs;
 
-use pkgcraft::repo::ebuild_temp::Repo as TempRepo;
-use pkgcraft::test::cmd;
+use indexmap::IndexMap;
+use pkgcraft::repo::{ebuild_temp::Repo as TempRepo, Repository};
+use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::prelude::*;
+use pretty_assertions::assert_eq;
+use walkdir::WalkDir;
 
 use crate::predicates::lines_contain;
 
@@ -172,4 +175,42 @@ fn multiple_repos() {
 
     assert!(t1.path().join("metadata/md5-cache/cat/a-1").exists());
     assert!(t2.path().join("metadata/md5-cache/cat/b-1").exists());
+}
+
+#[test]
+fn data_content() {
+    let repo = TEST_DATA.ebuild_repo("metadata-gen").unwrap();
+
+    // determine metadata file content
+    let metadata_content = || {
+        WalkDir::new(repo.metadata().cache_path())
+            .sort_by_file_name()
+            .min_depth(2)
+            .max_depth(2)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .map(|e| {
+                let short_path = e.path().strip_prefix(repo.metadata().cache_path()).unwrap();
+                let data = fs::read_to_string(e.path()).unwrap();
+                (short_path.to_path_buf(), data)
+            })
+            .collect()
+    };
+
+    // record expected metadata file content
+    let expected: IndexMap<_, _> = metadata_content();
+    // wipe metadata
+    fs::remove_dir_all(repo.metadata().cache_path()).unwrap();
+
+    // regenerate metadata
+    cmd("pk repo metadata")
+        .arg(repo.path())
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    // verify new data matches original
+    let new: IndexMap<_, _> = metadata_content();
+    assert_eq!(&expected, &new);
 }
