@@ -4,11 +4,11 @@ on:
   push:
     branches: [main, pkgcraft-c]
     paths:
-      - "Cargo.*"
       - "crates/scallop/**"
       - "crates/pkgcraft/**"
       - "crates/pkgcraft-c/**"
       - ".github/workflows/pkgcraft-c.yml"
+      - "!**/README.md"
   workflow_dispatch:
 
 jobs:
