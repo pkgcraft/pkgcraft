@@ -272,90 +272,61 @@ impl Metadata {
             .map_err(|e| Error::IO(format!("failed renaming metadata: {path} -> {new_path}: {e}")))
     }
 
-    /// Verify metadata validity using ebuild and eclass checksums.
-    pub(crate) fn valid(cpv: &Cpv, repo: &Repo) -> bool {
-        let pkg = match RawPkg::new(cpv.clone(), repo) {
-            Ok(pkg) => pkg,
-            _ => return false,
-        };
+    /// Load valid metadata entry from cache.
+    pub(crate) fn load(cpv: &Cpv, repo: &Repo) -> crate::Result<String> {
+        let path = repo.metadata().cache_path().join(cpv.to_string());
+        let data = fs::read_to_string(&path).map_err(|e| {
+            if e.kind() != io::ErrorKind::NotFound {
+                warn!("error loading ebuild metadata: {path:?}: {e}");
+            }
+            Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
+        })?;
 
-        // read serialized metadata
-        let data = match Self::read_to_string(&pkg) {
-            Some(data) => data,
-            None => return false,
-        };
+        let pkg = RawPkg::new(cpv.clone(), repo)?;
 
         // pull ebuild and eclass hash lines which should always be the last two
         let mut iter = data.lines().rev();
         let (ebuild_hash, eclasses) = match (iter.next(), iter.next()) {
             (Some(s1), Some(s2)) => (s1, s2),
-            _ => return false,
+            _ => return Err(Error::InvalidValue("missing required metadata".to_string())),
         };
 
         // verify ebuild hash
         match ebuild_hash.strip_prefix("_md5_=") {
             Some(s) => {
                 if s != pkg.digest() {
-                    return false;
+                    return Err(Error::InvalidValue(
+                        "mismatched ebuild metadata digest".to_string(),
+                    ));
                 }
             }
-            None => return false,
+            None => return Err(Error::InvalidValue("missing ebuild metadata digest".to_string())),
         }
 
-        match eclasses.strip_prefix("_eclasses_=") {
-            // verify all eclass hashes match
-            Some(s) => s.split_whitespace().tuples().all(|(name, digest)| {
+        // verify all eclass hashes match
+        if let Some(s) = eclasses.strip_prefix("_eclasses_=") {
+            if !s.split_whitespace().tuples().all(|(name, digest)| {
                 match pkg.repo().eclasses().get(name) {
                     Some(eclass) => eclass.digest() == digest,
                     None => false,
                 }
-            }),
-            // ebuilds without eclass inherits
-            None => true,
-        }
-    }
-
-    /// Load metadata from cache.
-    pub(crate) fn read_to_string(pkg: &RawPkg) -> Option<String> {
-        let path = pkg
-            .repo()
-            .metadata()
-            .cache_path()
-            .join(pkg.cpv().to_string());
-
-        match fs::read_to_string(&path) {
-            Ok(s) => Some(s),
-            Err(e) => {
-                if e.kind() != io::ErrorKind::NotFound {
-                    warn!("error loading ebuild metadata: {:?}: {e}", &path);
-                }
-                None
+            }) {
+                return Err(Error::InvalidValue("mismatched eclass metadata digest".to_string()));
             }
         }
+
+        Ok(data)
     }
 
-    /// Load metadata from cache if available, otherwise source it from the ebuild content.
+    /// Load metadata from cache if valid, otherwise source it from the ebuild content.
     pub(crate) fn load_or_source(pkg: &RawPkg) -> crate::Result<Self> {
-        // TODO: compare ebuild mtime vs cache mtime
-        match Self::load(pkg) {
-            Some(data) => Ok(data),
-            None => Self::source(pkg),
-        }
-    }
-
-    /// Load metadata from cache.
-    pub(crate) fn load(pkg: &RawPkg) -> Option<Self> {
-        Self::read_to_string(pkg).and_then(|s| match Self::deserialize(&s, pkg.eapi()) {
-            Ok(m) => Some(m),
-            Err(e) => {
-                warn!("error deserializing ebuild metadata: {e}");
-                None
-            }
-        })
+        Self::load(pkg.cpv(), pkg.repo())
+            .and_then(|s| Self::deserialize(&s, pkg.eapi()))
+            .or_else(|_| Self::source(pkg))
     }
 
     /// Source ebuild to determine metadata.
-    pub(crate) fn source(pkg: &RawPkg) -> crate::Result<Self> {
+    fn source(pkg: &RawPkg) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 

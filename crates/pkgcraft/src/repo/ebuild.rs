@@ -559,7 +559,7 @@ impl Repo {
                     if progress {
                         pb.inc(1);
                     }
-                    !MetadataCache::valid(cpv, self)
+                    MetadataCache::load(cpv, self).is_err()
                 })
                 .collect();
 
