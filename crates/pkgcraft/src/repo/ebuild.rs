@@ -409,7 +409,7 @@ impl Repo {
     }
 
     /// Convert a relative ebuild file repo path into a CPV.
-    pub(crate) fn cpv_from_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv> {
+    fn cpv_from_ebuild_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv> {
         let path = path.as_ref();
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
@@ -501,7 +501,7 @@ impl Repo {
         // filter invalid ebuild paths
         let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv> {
             match r {
-                Ok(e) => match self.cpv_from_path(e.path()) {
+                Ok(e) => match self.cpv_from_ebuild_path(e.path()) {
                     Ok(cpv) => Some(cpv),
                     Err(e) => {
                         warn!("{}: {e}", self.id());
@@ -656,7 +656,7 @@ impl Repo {
                         restricts.push(DepRestrict::package(s));
                     }
                     (2, s) if s.ends_with(".ebuild") => {
-                        if let Ok(cpv) = self.cpv_from_path(&path) {
+                        if let Ok(cpv) = self.cpv_from_ebuild_path(&path) {
                             let ver = cpv.version().clone();
                             restricts.push(DepRestrict::Version(Some(ver)));
                         }
