@@ -558,6 +558,7 @@ impl Repo {
                 .min_depth(2)
                 .max_depth(2)
                 .into_iter()
+                .filter_entry(|e| is_file(e) && !is_hidden(e))
                 .filter_map(|e| e.ok())
                 .try_for_each(|e| {
                     e.path()
