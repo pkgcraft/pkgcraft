@@ -496,7 +496,7 @@ impl Repo {
             .get(cpv)
     }
 
-    /// Return the sorted list of Cpvs in a given category.
+    /// Return the sorted set of Cpvs in a given category.
     fn category_cpvs(&self, category: &str) -> IndexSet<Cpv> {
         // filter invalid ebuild paths
         let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv> {
@@ -542,7 +542,7 @@ impl Repo {
 
         // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
         // pull all package Cpvs from the repo
-        let mut cpvs: IndexSet<_> = self
+        let mut cpvs: HashSet<_> = self
             .categories()
             .into_par_iter()
             .flat_map(|s| self.category_cpvs(&s))
