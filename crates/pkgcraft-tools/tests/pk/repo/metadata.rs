@@ -40,7 +40,7 @@ fn no_pkgs() {
         .stderr("")
         .success();
 
-    assert!(!t.path().join("metadata/md5-cache").exists());
+    assert!(!t.repo().metadata().cache_path().exists());
 }
 
 #[test]
@@ -54,7 +54,7 @@ fn single() {
         .stdout("")
         .stderr("")
         .success();
-    let path = t.path().join("metadata/md5-cache/cat/pkg-1");
+    let path = t.repo().metadata().cache_path().join("cat/pkg-1");
     assert!(path.exists());
     let prev_modified = fs::metadata(&path).unwrap().modified().unwrap();
 
@@ -169,8 +169,9 @@ fn pkg_with_invalid_eapi() {
         .failure()
         .code(1);
 
-    assert!(!t.path().join("metadata/md5-cache/cat/a-1").exists());
-    assert!(t.path().join("metadata/md5-cache/cat/b-1").exists());
+    let path = t.repo().metadata().cache_path();
+    assert!(!path.join("cat/a-1").exists());
+    assert!(path.join("cat/b-1").exists());
 }
 
 #[test]
@@ -186,8 +187,10 @@ fn multiple_repos() {
         .stderr("")
         .success();
 
-    assert!(t1.path().join("metadata/md5-cache/cat/a-1").exists());
-    assert!(t2.path().join("metadata/md5-cache/cat/b-1").exists());
+    let cache_path_t1 = t1.repo().metadata().cache_path();
+    assert!(cache_path_t1.join("cat/a-1").exists());
+    let cache_path_t2 = t2.repo().metadata().cache_path();
+    assert!(cache_path_t2.join("cat/b-1").exists());
 }
 
 #[test]
