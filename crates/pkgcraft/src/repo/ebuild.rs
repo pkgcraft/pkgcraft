@@ -1237,4 +1237,30 @@ mod tests {
         let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
         assert_unordered_eq(repo.licenses(), ["a", "b"]);
     }
+
+    #[test]
+    fn test_pkg_metadata_regen() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
+
+        let data = indoc::indoc! {r#"
+            EAPI="8"
+            DESCRIPTION="testing metadata generation"
+            SLOT=0
+        "#};
+        t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+
+        repo.pkg_metadata_regen(1, false, false).unwrap();
+
+        let metadata = indoc::indoc! {r"
+            DEFINED_PHASES=-
+            DESCRIPTION=testing metadata generation
+            EAPI=8
+            SLOT=0
+            _md5_=ea4f236b663902c60595f1422d1544f3
+        "};
+        let path = repo.metadata().cache_path().join("cat/pkg-1");
+        assert_eq!(fs::read_to_string(path).unwrap(), metadata);
+    }
 }
