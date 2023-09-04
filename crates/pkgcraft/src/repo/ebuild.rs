@@ -553,31 +553,26 @@ impl Repo {
 
         let path = self.metadata().cache_path();
         if path.exists() {
-            if force {
-                // remove metadata cache dir
-                fs::remove_dir_all(path).map_err(|e| {
-                    Error::IO(format!("failed removing metadata cache: {path}: {e}"))
-                })?;
-            } else {
-                // remove outdated cache entries lacking matching ebuilds
-                WalkDir::new(path)
-                    .min_depth(2)
-                    .max_depth(2)
-                    .into_iter()
-                    .filter_map(|e| e.ok())
-                    .try_for_each(|e| {
-                        e.path()
-                            .strip_prefix(path)
-                            .ok()
-                            .and_then(|p| Cpv::new(p.to_string_lossy()).ok())
-                            .filter(|cpv| !cpvs.contains(cpv))
-                            .map_or(Ok(()), |_| {
-                                fs::remove_file(e.path()).map_err(|e| {
-                                    Error::IO(format!("failed removing metadata cache entry: {e}"))
-                                })
+            // remove outdated cache entries lacking matching ebuilds
+            WalkDir::new(path)
+                .min_depth(2)
+                .max_depth(2)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .try_for_each(|e| {
+                    e.path()
+                        .strip_prefix(path)
+                        .ok()
+                        .and_then(|p| Cpv::new(p.to_string_lossy()).ok())
+                        .filter(|cpv| !cpvs.contains(cpv))
+                        .map_or(Ok(()), |_| {
+                            fs::remove_file(e.path()).map_err(|e| {
+                                Error::IO(format!("failed removing metadata cache entry: {e}"))
                             })
-                    })?;
+                        })
+                })?;
 
+            if !force {
                 // run cache validation in a thread pool
                 cpvs = cpvs
                     .into_par_iter()
