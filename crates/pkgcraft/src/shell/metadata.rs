@@ -292,24 +292,21 @@ impl Metadata {
         };
 
         // verify ebuild hash
-        match ebuild_hash.strip_prefix("_md5_=") {
-            Some(s) => {
-                if s != pkg.digest() {
-                    return Err(Error::InvalidValue(
-                        "mismatched ebuild metadata digest".to_string(),
-                    ));
-                }
+        if let Some(s) = ebuild_hash.strip_prefix("_md5_=") {
+            if s != pkg.digest() {
+                return Err(Error::InvalidValue("mismatched ebuild metadata digest".to_string()));
             }
-            None => return Err(Error::InvalidValue("missing ebuild metadata digest".to_string())),
+        } else {
+            return Err(Error::InvalidValue("missing ebuild metadata digest".to_string()));
         }
 
-        // verify all eclass hashes match
+        // verify eclass hashes
         if let Some(s) = eclasses.strip_prefix("_eclasses_=") {
             if !s.split_whitespace().tuples().all(|(name, digest)| {
-                match pkg.repo().eclasses().get(name) {
-                    Some(eclass) => eclass.digest() == digest,
-                    None => false,
-                }
+                pkg.repo()
+                    .eclasses()
+                    .get(name)
+                    .map_or(false, |e| e.digest() == digest)
             }) {
                 return Err(Error::InvalidValue("mismatched eclass metadata digest".to_string()));
             }
