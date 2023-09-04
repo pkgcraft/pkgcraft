@@ -139,8 +139,21 @@ fn multiple() {
         .stderr("")
         .success();
 
-    assert!(t.path().join("metadata/md5-cache/cat/a-1").exists());
-    assert!(t.path().join("metadata/md5-cache/cat/b-1").exists());
+    let path = t.repo().metadata().cache_path();
+    assert!(path.join("cat/a-1").exists());
+    assert!(path.join("cat/b-1").exists());
+
+    // outdated cache entries lacking ebuilds are removed
+    fs::remove_dir_all(t.repo().path().join("cat/b")).unwrap();
+    cmd("pk repo metadata")
+        .arg(t.path())
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    assert!(path.join("cat/a-1").exists());
+    assert!(!path.join("cat/b-1").exists());
 }
 
 #[test]
