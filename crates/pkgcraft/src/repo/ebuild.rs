@@ -551,22 +551,30 @@ impl Repo {
         // use progress bar to show completion progress when outputting to a terminal
         let pb = ProgressBar::new(cpvs.len().try_into().unwrap());
 
-        // run cache validation in a thread pool
-        if !force && self.metadata().cache_path().exists() {
-            cpvs = cpvs
-                .into_par_iter()
-                .filter(|cpv| {
-                    if progress {
-                        pb.inc(1);
-                    }
-                    MetadataCache::load(cpv, self).is_err()
-                })
-                .collect();
+        let path = self.metadata().cache_path();
+        if path.exists() {
+            if force {
+                // remove metadata cache dir
+                fs::remove_dir_all(path).map_err(|e| {
+                    Error::IO(format!("failed removing metadata cache: {path}: {e}"))
+                })?;
+            } else {
+                // run cache validation in a thread pool
+                cpvs = cpvs
+                    .into_par_iter()
+                    .filter(|cpv| {
+                        if progress {
+                            pb.inc(1);
+                        }
+                        MetadataCache::load(cpv, self).is_err()
+                    })
+                    .collect();
 
-            // reset progression in case validation decreased cpvs
-            if progress {
-                pb.set_position(0);
-                pb.set_length(cpvs.len().try_into().unwrap());
+                // reset progression in case validation decreased cpvs
+                if progress {
+                    pb.set_position(0);
+                    pb.set_length(cpvs.len().try_into().unwrap());
+                }
             }
         }
 
