@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Read, Write};
@@ -224,9 +225,9 @@ impl<'a> BuildData<'a> {
         get_build_mut().state = BuildState::Empty(eapi);
     }
 
-    pub(crate) fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::RawPkg<'a>) {
+    pub(crate) fn from_raw_pkg<P: Borrow<crate::pkg::ebuild::RawPkg<'a>>>(pkg: P) {
         // TODO: remove this hack once BuildData is reworked
-        let p = unsafe { mem::transmute(pkg) };
+        let p = unsafe { mem::transmute(pkg.borrow()) };
         let data = BuildData {
             state: BuildState::Metadata(p),
             ..BuildData::new()
@@ -234,9 +235,9 @@ impl<'a> BuildData<'a> {
         update_build(data);
     }
 
-    pub(crate) fn from_pkg(pkg: &'a crate::pkg::ebuild::Pkg<'a>) {
+    pub(crate) fn from_pkg<P: Borrow<crate::pkg::ebuild::Pkg<'a>>>(pkg: P) {
         // TODO: remove this hack once BuildData is reworked
-        let p = unsafe { mem::transmute(pkg) };
+        let p = unsafe { mem::transmute(pkg.borrow()) };
         let data = BuildData {
             state: BuildState::Build(p),
             ..BuildData::new()
