@@ -15,8 +15,11 @@ use crate::types::OrderedSet;
 use crate::Error;
 
 /// Flag denoting a test suite, either internally or externally, is running.
-pub(crate) static TESTING: Lazy<bool> =
-    Lazy::new(|| cfg!(test) || std::env::var("CARGO_MANIFEST_DIR").is_ok());
+pub(crate) static TESTING: Lazy<bool> = Lazy::new(|| {
+    cfg!(test)
+        || std::env::var("CARGO_MANIFEST_DIR").is_ok()
+        || std::env::var("PKGCRAFT_TEST").is_ok()
+});
 
 /// Construct a Command from a given string.
 pub fn cmd<S: AsRef<str>>(cmd: S) -> Command {
