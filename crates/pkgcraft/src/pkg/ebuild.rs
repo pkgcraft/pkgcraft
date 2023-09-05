@@ -85,7 +85,7 @@ impl<'a> RawPkg<'a> {
     fn load_or_source(&self) -> crate::Result<Metadata> {
         Metadata::load(self.cpv(), self.repo())
             .and_then(|s| Metadata::deserialize(&s, self.eapi()))
-            .or_else(|_| Metadata::source(self))
+            .or_else(|_| self.try_into())
     }
 
     /// Convert a RawPkg into a Pkg.

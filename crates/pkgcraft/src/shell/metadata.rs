@@ -211,8 +211,8 @@ impl Metadata {
                 .digest()
         };
 
-        // source package
-        let meta = Self::source(pkg)?;
+        // convert raw pkg into metadata via sourcing
+        let meta: Metadata = pkg.try_into()?;
 
         // convert metadata fields to metadata lines
         use Key::*;
@@ -314,51 +314,6 @@ impl Metadata {
         Ok(data)
     }
 
-    /// Source ebuild to determine metadata.
-    pub(crate) fn source(pkg: &RawPkg) -> crate::Result<Self> {
-        // TODO: run sourcing via an external process pool returning the requested variables
-        pkg.source()?;
-
-        let eapi = pkg.eapi();
-        let build = get_build_mut();
-        let mut meta = Self::default();
-
-        // verify sourced EAPI matches parsed EAPI
-        let sourced_eapi: &Eapi = variables::optional("EAPI")
-            .as_deref()
-            .unwrap_or("0")
-            .try_into()?;
-        if sourced_eapi != eapi {
-            return Err(Error::InvalidValue(format!(
-                "mismatched sourced and parsed EAPIs: {sourced_eapi} != {eapi}"
-            )));
-        }
-
-        // required metadata variables
-        let mut missing = Vec::<&str>::new();
-        for key in eapi.mandatory_keys() {
-            match key.get(build, eapi) {
-                Some(val) => meta.convert(eapi, *key, &val)?,
-                None => missing.push(key.as_ref()),
-            }
-        }
-
-        if !missing.is_empty() {
-            missing.sort();
-            let keys = missing.join(", ");
-            return Err(Error::InvalidValue(format!("missing required values: {keys}")));
-        }
-
-        // metadata variables that default to empty
-        for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
-            if let Some(val) = key.get(build, eapi) {
-                meta.convert(eapi, *key, &val)?;
-            }
-        }
-
-        Ok(meta)
-    }
-
     pub(crate) fn description(&self) -> &str {
         &self.description
     }
@@ -419,5 +374,53 @@ impl Metadata {
 
     pub(crate) fn inherited(&self) -> &OrderedSet<String> {
         &self.inherited
+    }
+}
+
+impl TryFrom<&RawPkg<'_>> for Metadata {
+    type Error = Error;
+
+    fn try_from(pkg: &RawPkg) -> crate::Result<Metadata> {
+        // TODO: run sourcing via an external process pool returning the requested variables
+        pkg.source()?;
+
+        let eapi = pkg.eapi();
+        let build = get_build_mut();
+        let mut meta = Self::default();
+
+        // verify sourced EAPI matches parsed EAPI
+        let sourced_eapi: &Eapi = variables::optional("EAPI")
+            .as_deref()
+            .unwrap_or("0")
+            .try_into()?;
+        if sourced_eapi != eapi {
+            return Err(Error::InvalidValue(format!(
+                "mismatched sourced and parsed EAPIs: {sourced_eapi} != {eapi}"
+            )));
+        }
+
+        // required metadata variables
+        let mut missing = Vec::<&str>::new();
+        for key in eapi.mandatory_keys() {
+            match key.get(build, eapi) {
+                Some(val) => meta.convert(eapi, *key, &val)?,
+                None => missing.push(key.as_ref()),
+            }
+        }
+
+        if !missing.is_empty() {
+            missing.sort();
+            let keys = missing.join(", ");
+            return Err(Error::InvalidValue(format!("missing required values: {keys}")));
+        }
+
+        // metadata variables that default to empty
+        for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
+            if let Some(val) = key.get(build, eapi) {
+                meta.convert(eapi, *key, &val)?;
+            }
+        }
+
+        Ok(meta)
     }
 }
