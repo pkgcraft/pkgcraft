@@ -30,6 +30,7 @@ use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::shell::metadata::Metadata as MetadataCache;
+use crate::test::TESTING;
 use crate::utils::digest;
 use crate::Error;
 
@@ -321,7 +322,7 @@ impl Repo {
     /// This is called during repo finalization when not running tests in order to avoid duplicate
     /// calls when run under forked processes such as during package cache generation.
     fn collapse_lazy_fields(&self) {
-        if !*crate::test::TESTING {
+        if !*TESTING {
             self.eclasses();
         }
     }
