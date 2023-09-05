@@ -527,12 +527,7 @@ impl Repo {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen(
-        &self,
-        jobs: usize,
-        force: bool,
-        progress: bool,
-    ) -> crate::Result<usize> {
+    pub fn pkg_metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<usize> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
@@ -578,18 +573,14 @@ impl Repo {
                 cpvs = cpvs
                     .into_par_iter()
                     .filter(|cpv| {
-                        if progress {
-                            pb.inc(1);
-                        }
+                        pb.inc(1);
                         MetadataCache::load(cpv, self).is_err()
                     })
                     .collect();
 
                 // reset progression in case validation decreased cpvs
-                if progress {
-                    pb.set_position(0);
-                    pb.set_length(cpvs.len().try_into().unwrap());
-                }
+                pb.set_position(0);
+                pb.set_length(cpvs.len().try_into().unwrap());
             }
         }
 
@@ -597,9 +588,7 @@ impl Repo {
         let mut errors = 0;
         if !cpvs.is_empty() {
             for r in pool.iter(cpvs.into_iter())? {
-                if progress {
-                    pb.inc(1);
-                }
+                pb.inc(1);
 
                 // log errors
                 if let Err(e) = r {
@@ -1274,7 +1263,7 @@ mod tests {
         "#};
         t.create_ebuild_raw("cat/pkg-1", data).unwrap();
 
-        repo.pkg_metadata_regen(1, false, false).unwrap();
+        repo.pkg_metadata_regen(1, false).unwrap();
 
         let metadata = indoc::indoc! {r"
             DEFINED_PHASES=-
