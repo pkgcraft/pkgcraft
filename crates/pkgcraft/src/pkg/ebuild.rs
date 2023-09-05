@@ -81,6 +81,14 @@ impl<'a> RawPkg<'a> {
         digest::<md5::Md5>(self.data().as_bytes())
     }
 
+    /// Load metadata from cache if valid, otherwise source it from the ebuild.
+    fn load_or_source(&self) -> crate::Result<Metadata> {
+        Metadata::load(self.cpv(), self.repo())
+            .and_then(|s| Metadata::deserialize(&s, self.eapi()))
+            .or_else(|_| Metadata::source(self))
+    }
+
+    /// Convert a RawPkg into a Pkg.
     pub fn into_pkg(self) -> crate::Result<Pkg<'a>> {
         Pkg::new(self)
     }
@@ -116,7 +124,7 @@ make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(raw_pkg: RawPkg<'a>) -> crate::Result<Self> {
-        let meta = Metadata::load_or_source(&raw_pkg).map_err(|e| Error::InvalidPkg {
+        let meta = raw_pkg.load_or_source().map_err(|e| Error::InvalidPkg {
             id: raw_pkg.to_string(),
             err: e.to_string(),
         })?;

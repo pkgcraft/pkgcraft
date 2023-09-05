@@ -159,7 +159,7 @@ impl Metadata {
     }
 
     /// Deserialize a metadata string into [`Metadata`].
-    fn deserialize(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
+    pub(crate) fn deserialize(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
         let mut meta = Self::default();
 
         let iter = s
@@ -303,8 +303,7 @@ impl Metadata {
         // verify eclass hashes
         if let Some(s) = eclasses.strip_prefix("_eclasses_=") {
             if !s.split_whitespace().tuples().all(|(name, digest)| {
-                pkg.repo()
-                    .eclasses()
+                repo.eclasses()
                     .get(name)
                     .map_or(false, |e| e.digest() == digest)
             }) {
@@ -315,15 +314,8 @@ impl Metadata {
         Ok(data)
     }
 
-    /// Load metadata from cache if valid, otherwise source it from the ebuild content.
-    pub(crate) fn load_or_source(pkg: &RawPkg) -> crate::Result<Self> {
-        Self::load(pkg.cpv(), pkg.repo())
-            .and_then(|s| Self::deserialize(&s, pkg.eapi()))
-            .or_else(|_| Self::source(pkg))
-    }
-
     /// Source ebuild to determine metadata.
-    fn source(pkg: &RawPkg) -> crate::Result<Self> {
+    pub(crate) fn source(pkg: &RawPkg) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 
