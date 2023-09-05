@@ -165,9 +165,9 @@ fn pkg_with_invalid_eapi() {
         .arg(t.path())
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/a-1"]))
+        .stderr(lines_contain(["cat/a-1", "failed generating metadata"]))
         .failure()
-        .code(1);
+        .code(2);
 
     let path = t.repo().metadata().cache_path();
     assert!(!path.join("cat/a-1").exists());

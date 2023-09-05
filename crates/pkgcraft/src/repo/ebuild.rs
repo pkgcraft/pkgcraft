@@ -528,7 +528,7 @@ impl Repo {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<usize> {
+    pub fn pkg_metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
@@ -599,7 +599,13 @@ impl Repo {
             }
         }
 
-        Ok(errors)
+        if errors > 0 {
+            Err(Error::InvalidValue(
+                "failed generating metadata, check log for package errors".to_string(),
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     /// Return an iterator of Cpvs for the repo.
