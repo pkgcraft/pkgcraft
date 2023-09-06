@@ -41,7 +41,7 @@ ctor = "0.2.4"
 indoc = "2.0.3"
 predicates = "3.0.3"
 pretty_assertions = "1.4.0"
-walkdir = "2.3.3"
+walkdir = "2.4.0"
 
 [[test]]
 name = "pk"
