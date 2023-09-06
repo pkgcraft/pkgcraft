@@ -7,7 +7,7 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{Equivalent, IndexMap, IndexSet};
 use indicatif::ProgressBar;
@@ -21,7 +21,10 @@ use walkdir::{DirEntry, WalkDir};
 use crate::config::RepoConfig;
 use crate::dep::{self, Cpv, Operator, Version};
 use crate::eapi::Eapi;
-use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
+use crate::files::{
+    has_ext, has_ext_utf8, is_dir, is_file, is_file_utf8, is_hidden, is_hidden_utf8,
+    sorted_dir_list,
+};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
@@ -374,7 +377,14 @@ impl Repo {
                 .filter_map(|repo| repo.path().join("eclass").read_dir_utf8().ok())
                 .flatten()
                 .filter_map(|e| e.ok())
-                .filter_map(|e| Eclass::new(e.path()).ok())
+                .filter(is_eclass)
+                .filter_map(|entry| match Eclass::new(entry.path()) {
+                    Ok(eclass) => Some(eclass),
+                    Err(e) => {
+                        warn!("{}: {e}", self.id());
+                        None
+                    }
+                })
                 .collect()
         })
     }
@@ -816,6 +826,10 @@ impl Repository for Repo {
 
 fn is_ebuild(e: &DirEntry) -> bool {
     is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
+}
+
+fn is_eclass(e: &Utf8DirEntry) -> bool {
+    is_file_utf8(e) && !is_hidden_utf8(e) && has_ext_utf8(e, "eclass")
 }
 
 impl<'a> IntoIterator for &'a Repo {

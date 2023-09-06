@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::path::Path;
 use std::str::FromStr;
 
+use camino::Utf8DirEntry;
 use nix::{sys::stat, unistd};
 use walkdir::{DirEntry, WalkDir};
 
@@ -116,4 +117,20 @@ pub(crate) fn is_hidden(entry: &DirEntry) -> bool {
         .to_str()
         .map(|s| s.starts_with('.'))
         .unwrap_or(false)
+}
+
+pub(crate) fn is_file_utf8(entry: &Utf8DirEntry) -> bool {
+    entry.path().is_file()
+}
+
+pub(crate) fn is_hidden_utf8(entry: &Utf8DirEntry) -> bool {
+    entry.file_name().starts_with('.')
+}
+
+pub(crate) fn has_ext_utf8(entry: &Utf8DirEntry, ext: &str) -> bool {
+    entry
+        .path()
+        .extension()
+        .map(|s| s == ext)
+        .unwrap_or_default()
 }
