@@ -343,7 +343,7 @@ impl Repo {
     }
 
     /// Return the inherited repos for the repo.
-    pub fn masters(&self) -> impl Iterator<Item = Arc<Self>> + '_ {
+    pub fn masters(&self) -> impl DoubleEndedIterator<Item = Arc<Self>> + '_ {
         self.masters
             .get()
             .expect("finalize() uncalled")
@@ -352,7 +352,7 @@ impl Repo {
     }
 
     /// Return the complete, repo inheritance set for the repo.
-    pub fn trees(&self) -> impl Iterator<Item = Arc<Self>> + '_ {
+    pub fn trees(&self) -> impl DoubleEndedIterator<Item = Arc<Self>> + '_ {
         self.trees
             .get()
             .expect("finalize() uncalled")
@@ -374,6 +374,7 @@ impl Repo {
     pub fn eclasses(&self) -> &HashSet<Eclass> {
         self.eclasses.get_or_init(|| {
             self.trees()
+                .rev()
                 .filter_map(|repo| repo.path().join("eclass").read_dir_utf8().ok())
                 .flatten()
                 .filter_map(|e| e.ok())
@@ -1249,10 +1250,13 @@ mod tests {
 
     #[test]
     fn test_eclasses() {
-        let repo = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
-        assert_unordered_eq(repo.eclasses().iter().map(|e| e.as_ref()), ["a"]);
-        let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
-        assert_unordered_eq(repo.eclasses().iter().map(|e| e.as_ref()), ["a", "b"]);
+        let repo1 = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
+        assert_unordered_eq(repo1.eclasses().iter().map(|e| e.as_ref()), ["a", "c"]);
+        let repo2 = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
+        assert_unordered_eq(repo2.eclasses().iter().map(|e| e.as_ref()), ["a", "b", "c"]);
+        // verify the overridden eclass is from the secondary repo
+        let overridden_eclass = repo2.eclasses().get("c").unwrap();
+        assert!(overridden_eclass.path().starts_with(repo2.path()));
     }
 
     #[test]
