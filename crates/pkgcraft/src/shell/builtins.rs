@@ -547,7 +547,7 @@ macro_rules! builtin_scope_tests {
                                 DESCRIPTION="testing builtin eclass scope failures"
                                 SLOT=0
                             "#};
-                            let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                             let r = raw_pkg.source();
                             // verify sourcing stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
@@ -564,7 +564,7 @@ macro_rules! builtin_scope_tests {
                                 {cmd}
                                 VAR=2
                             "#};
-                            let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
+                            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                             let r = raw_pkg.source();
                             // verify sourcing stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
@@ -582,8 +582,7 @@ macro_rules! builtin_scope_tests {
                                     VAR=2
                                 }}
                             "#};
-                            let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-                            let pkg = raw_pkg.into_pkg().unwrap();
+                            let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
                             BuildData::from_pkg(&pkg);
                             get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
                             let phase = eapi.phases().get(phase).unwrap();

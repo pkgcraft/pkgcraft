@@ -553,9 +553,9 @@ mod tests {
             ls /
             VAR=2
         "#};
-        let pkg = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
-        BuildData::from_raw_pkg(&pkg);
-        let r = pkg.source();
+        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+        let r = raw_pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, "unknown command: ls");
     }
@@ -575,9 +575,9 @@ mod tests {
             /bin/ls /
             VAR=2
         "#};
-        let pkg = t.create_ebuild_raw("cat/pkg-2", data).unwrap();
-        BuildData::from_raw_pkg(&pkg);
-        let r = pkg.source();
+        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+        let r = raw_pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
     }

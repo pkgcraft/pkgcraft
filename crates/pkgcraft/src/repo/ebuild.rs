@@ -844,7 +844,7 @@ impl<'a> Iterator for Iter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for raw_pkg in &mut self.iter {
-            match raw_pkg.into_pkg() {
+            match raw_pkg.try_into() {
                 Ok(pkg) => return Some(pkg),
                 Err(e) => warn!("{}: {e}", self.repo.id()),
             }
@@ -1082,10 +1082,10 @@ mod tests {
 
         assert_eq!(repo.len(), 0);
         assert!(repo.is_empty());
-        t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         assert_eq!(repo.len(), 1);
         assert!(!repo.is_empty());
-        t.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
         assert_eq!(repo.len(), 2);
         assert!(!repo.is_empty());
     }
@@ -1156,7 +1156,7 @@ mod tests {
 
         // path
         assert!(!repo.contains("cat/pkg"));
-        t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         assert!(repo.contains("cat/pkg"));
         assert!(repo.contains("cat/pkg/pkg-1.ebuild"));
         assert!(!repo.contains("pkg-1.ebuild"));
@@ -1179,8 +1179,8 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
-        t.create_ebuild("cat2/pkg-1", &[]).unwrap();
-        t.create_ebuild("cat1/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
         let mut iter = repo.iter();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             let pkg = iter.next();
@@ -1194,8 +1194,8 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
-        t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        t.create_ebuild("cat/pkg-2", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-2", &[]).unwrap();
 
         // single match via CPV
         let cpv = Cpv::new("cat/pkg-1").unwrap();
@@ -1226,7 +1226,7 @@ mod tests {
         ] {
             let mut config = Config::default();
             let t = config.temp_repo("test", 0, None).unwrap();
-            t.create_ebuild("cat/pkg-0", &[data]).ok();
+            t.create_raw_pkg("cat/pkg-0", &[data]).ok();
             let mut iter = t.repo().iter();
             assert!(iter.next().is_none());
             assert_logs_re!(format!("test: invalid pkg: .+: {err}$"));
@@ -1268,7 +1268,7 @@ mod tests {
             DESCRIPTION="testing metadata generation"
             SLOT=0
         "#};
-        t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
 
         repo.pkg_metadata_regen(1, false).unwrap();
 

@@ -229,7 +229,7 @@ mod tests {
         // unmatching pkgs sorted by dep attributes
         let r1: Repo = fake::Repo::new("b", 0).pkgs(["cat/pkg-1"]).into();
         let t = config.temp_repo("a", 0, None).unwrap();
-        t.create_ebuild("cat/pkg-0", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-0", &[]).unwrap();
         let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
@@ -238,7 +238,7 @@ mod tests {
         // matching pkgs sorted by repo priority
         let r1: Repo = fake::Repo::new("a", -1).pkgs(["cat/pkg-0"]).into();
         let t = config.temp_repo("b", 0, None).unwrap();
-        t.create_ebuild("cat/pkg-0", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-0", &[]).unwrap();
         let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
@@ -247,7 +247,7 @@ mod tests {
         // matching pkgs sorted by repo id since repos have matching priorities
         let r1: Repo = fake::Repo::new("2", 0).pkgs(["cat/pkg-0"]).into();
         let t = config.temp_repo("1", 0, None).unwrap();
-        t.create_ebuild("cat/pkg-0", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-0", &[]).unwrap();
         let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();

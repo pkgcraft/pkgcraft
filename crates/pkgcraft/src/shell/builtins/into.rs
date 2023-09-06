@@ -56,7 +56,7 @@ mod tests {
 
         for eapi in EAPIS_OFFICIAL.iter() {
             let raw_pkg = t
-                .create_ebuild("cat/pkg-1", &[&format!("EAPI={eapi}")])
+                .create_raw_pkg("cat/pkg-1", &[&format!("EAPI={eapi}")])
                 .unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
             let build = get_build_mut();

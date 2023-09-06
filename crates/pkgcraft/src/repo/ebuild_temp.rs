@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 use tempfile::TempDir;
 
 use crate::dep::{Cpv, Version};
-use crate::pkg::ebuild::RawPkg;
+use crate::pkg::ebuild::{Pkg, RawPkg};
 use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::restrict::Restrict;
 use crate::shell::metadata::Key;
@@ -73,8 +73,8 @@ impl Repo {
         })
     }
 
-    /// Create an ebuild file in the repo.
-    pub fn create_ebuild(&self, cpv: &str, data: &[&str]) -> crate::Result<RawPkg> {
+    /// Create a [`RawPkg`] from ebuild field settings.
+    pub fn create_raw_pkg(&self, cpv: &str, data: &[&str]) -> crate::Result<RawPkg> {
         use Key::*;
         let cpv = Cpv::new(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
@@ -109,8 +109,14 @@ impl Repo {
         RawPkg::new(cpv, self.repo())
     }
 
+    /// Create a [`Pkg`] from ebuild field settings.
+    pub fn create_pkg(&self, cpv: &str, data: &[&str]) -> crate::Result<Pkg> {
+        let raw_pkg = self.create_raw_pkg(cpv, data)?;
+        raw_pkg.try_into()
+    }
+
     /// Create an ebuild file in the repo from raw data.
-    pub fn create_ebuild_raw(&self, cpv: &str, data: &str) -> crate::Result<RawPkg> {
+    pub fn create_raw_pkg_from_str(&self, cpv: &str, data: &str) -> crate::Result<RawPkg> {
         let cpv = Cpv::new(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
@@ -118,6 +124,12 @@ impl Repo {
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         RawPkg::new(cpv, self.repo())
+    }
+
+    /// Create a [`Pkg`] from an ebuild using raw data.
+    pub fn create_pkg_from_str(&self, cpv: &str, data: &str) -> crate::Result<Pkg> {
+        let raw_pkg = self.create_raw_pkg_from_str(cpv, data)?;
+        raw_pkg.try_into()
     }
 
     /// Create an eclass in the repo.

@@ -46,8 +46,7 @@ mod tests {
     fn empty_iuse_effective() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let pkg = raw_pkg.into_pkg().unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         assert_err_re!(use_enable(&["use"]), "^.* not in IUSE$");
@@ -57,8 +56,7 @@ mod tests {
     fn enabled_and_disabled() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let raw_pkg = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
-        let pkg = raw_pkg.into_pkg().unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
 
         // disabled
@@ -74,10 +72,9 @@ mod tests {
 
         // check EAPIs that support three arg variant
         for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(Feature::UseConfArg)) {
-            let raw_pkg = t
-                .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
+            let pkg = t
+                .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
-            let pkg = raw_pkg.into_pkg().unwrap();
             BuildData::from_pkg(&pkg);
 
             for (args, status, expected) in [
@@ -90,8 +87,7 @@ mod tests {
         }
 
         // enabled
-        let raw_pkg = t.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
-        let pkg = raw_pkg.into_pkg().unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
         get_build_mut().use_.insert("use".to_string());
 
@@ -107,10 +103,9 @@ mod tests {
 
         // check EAPIs that support three arg variant
         for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(Feature::UseConfArg)) {
-            let raw_pkg = t
-                .create_ebuild("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
+            let pkg = t
+                .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
-            let pkg = raw_pkg.into_pkg().unwrap();
             BuildData::from_pkg(&pkg);
             get_build_mut().use_.insert("use".to_string());
 

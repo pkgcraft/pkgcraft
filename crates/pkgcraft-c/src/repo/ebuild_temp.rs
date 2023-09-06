@@ -58,8 +58,8 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
         for ptr in unsafe { slice::from_raw_parts(key_vals, len) } {
             data.push(try_str_from_ptr!(*ptr));
         }
-        let pkg = unwrap_or_panic!(repo.create_ebuild(cpv, &data));
-        try_ptr_from_str!(pkg.abspath().as_str())
+        let raw_pkg = unwrap_or_panic!(repo.create_raw_pkg(cpv, &data));
+        try_ptr_from_str!(raw_pkg.abspath().as_str())
     }
 }
 
@@ -79,8 +79,8 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_raw(
         let repo = try_ref_from_ptr!(r);
         let cpv = try_str_from_ptr!(cpv);
         let data = try_str_from_ptr!(data);
-        let pkg = unwrap_or_panic!(repo.create_ebuild_raw(cpv, data));
-        try_ptr_from_str!(pkg.abspath().as_str())
+        let raw_pkg = unwrap_or_panic!(repo.create_raw_pkg_from_str(cpv, data));
+        try_ptr_from_str!(raw_pkg.abspath().as_str())
     }
 }
 

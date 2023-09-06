@@ -45,7 +45,7 @@ mod tests {
     fn creation() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let raw_pkg = t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(raw_pkg);
 
         let file_tree = FileTree::new();

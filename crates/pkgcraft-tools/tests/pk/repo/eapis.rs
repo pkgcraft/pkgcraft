@@ -36,7 +36,7 @@ fn no_pkgs() {
 #[test]
 fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/dep-1", &["EAPI=1"]).unwrap();
+    t.create_raw_pkg("cat/dep-1", &["EAPI=1"]).unwrap();
     cmd("pk repo eapis")
         .arg(t.path())
         .assert()
@@ -48,8 +48,8 @@ fn single() {
 #[test]
 fn multiple() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/a-1", &["EAPI=7"]).unwrap();
-    t.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
+    t.create_raw_pkg("cat/a-1", &["EAPI=7"]).unwrap();
+    t.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
     cmd("pk repo eapis")
         .arg(t.path())
         .assert()
@@ -61,9 +61,9 @@ fn multiple() {
 #[test]
 fn multiple_repos() {
     let t1 = TempRepo::new("test1", None, 0, None).unwrap();
-    t1.create_ebuild("cat/a-1", &["EAPI=7"]).unwrap();
+    t1.create_raw_pkg("cat/a-1", &["EAPI=7"]).unwrap();
     let t2 = TempRepo::new("test2", None, 0, None).unwrap();
-    t2.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
+    t2.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
     cmd("pk repo eapis")
         .args([t1.path(), t2.path()])
         .assert()

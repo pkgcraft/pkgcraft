@@ -46,7 +46,7 @@ fn no_pkgs() {
 #[test]
 fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/pkg-1", &["EAPI=1"]).unwrap();
+    t.create_raw_pkg("cat/pkg-1", &["EAPI=1"]).unwrap();
 
     cmd("pk repo metadata")
         .arg(t.path())
@@ -70,7 +70,7 @@ fn single() {
     let prev_modified = modified;
 
     // package changes cause cache updates
-    t.create_ebuild("cat/pkg-1", &["EAPI=2"]).unwrap();
+    t.create_raw_pkg("cat/pkg-1", &["EAPI=2"]).unwrap();
     cmd("pk repo metadata")
         .arg(t.path())
         .assert()
@@ -99,7 +99,7 @@ fn single() {
 #[test]
 fn jobs() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/pkg-1", &[]).unwrap();
+    t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
 
     for opt in ["-j", "--jobs"] {
         // invalid
@@ -130,8 +130,8 @@ fn jobs() {
 #[test]
 fn multiple() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/a-1", &["EAPI=7"]).unwrap();
-    t.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
+    t.create_raw_pkg("cat/a-1", &["EAPI=7"]).unwrap();
+    t.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
     cmd("pk repo metadata")
         .arg(t.path())
         .assert()
@@ -159,8 +159,8 @@ fn multiple() {
 #[test]
 fn pkg_with_invalid_eapi() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/a-1", &["EAPI=invalid"]).ok();
-    t.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
+    t.create_raw_pkg("cat/a-1", &["EAPI=invalid"]).ok();
+    t.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
     cmd("pk repo metadata")
         .arg(t.path())
         .assert()
@@ -177,9 +177,9 @@ fn pkg_with_invalid_eapi() {
 #[test]
 fn multiple_repos() {
     let t1 = TempRepo::new("test1", None, 0, None).unwrap();
-    t1.create_ebuild("cat/a-1", &["EAPI=7"]).unwrap();
+    t1.create_raw_pkg("cat/a-1", &["EAPI=7"]).unwrap();
     let t2 = TempRepo::new("test2", None, 0, None).unwrap();
-    t2.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
+    t2.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
     cmd("pk repo metadata")
         .args([t1.path(), t2.path()])
         .assert()

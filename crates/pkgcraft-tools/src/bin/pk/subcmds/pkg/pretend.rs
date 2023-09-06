@@ -48,7 +48,7 @@ impl Command {
         };
 
         let func = |raw_pkg: RawPkg| -> scallop::Result<()> {
-            let pkg: Pkg = raw_pkg.into_pkg()?;
+            let pkg: Pkg = raw_pkg.try_into()?;
             pkg.pretend()
         };
 

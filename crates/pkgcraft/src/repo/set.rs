@@ -346,7 +346,7 @@ mod tests {
         assert!(!s.contains(&cpv));
 
         // single ebuild
-        t.create_ebuild("cat/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         assert_ordered_eq(s.categories(), ["cat"]);
         assert_ordered_eq(s.packages("cat"), ["pkg"]);
         assert_ordered_eq(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);

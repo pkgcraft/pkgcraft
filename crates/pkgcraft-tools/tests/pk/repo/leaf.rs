@@ -48,8 +48,8 @@ fn no_pkgs() {
 #[test]
 fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/dep-1", &[]).unwrap();
-    t.create_ebuild("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
+    t.create_raw_pkg("cat/dep-1", &[]).unwrap();
+    t.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
     cmd("pk repo leaf")
         .arg(t.path())
@@ -62,10 +62,10 @@ fn single() {
 #[test]
 fn multiple() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/dep-1", &[]).unwrap();
-    t.create_ebuild("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
+    t.create_raw_pkg("cat/dep-1", &[]).unwrap();
+    t.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    t.create_ebuild("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
+    t.create_raw_pkg("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
         .unwrap();
     cmd("pk repo leaf")
         .arg(t.path())
@@ -78,8 +78,8 @@ fn multiple() {
 #[test]
 fn none() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/a-1", &["DEPEND=>=cat/b-1"]).unwrap();
-    t.create_ebuild("cat/b-1", &["DEPEND=>=cat/a-1"]).unwrap();
+    t.create_raw_pkg("cat/a-1", &["DEPEND=>=cat/b-1"]).unwrap();
+    t.create_raw_pkg("cat/b-1", &["DEPEND=>=cat/a-1"]).unwrap();
     cmd("pk repo leaf")
         .arg(t.path())
         .assert()

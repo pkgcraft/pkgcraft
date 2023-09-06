@@ -80,7 +80,7 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let raw_pkg = t.create_ebuild_raw("cat/pkg-1", data).unwrap();
+        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         raw_pkg.source().unwrap();
         // execute eclass-defined function
         let mut func = functions::find("src_compile").unwrap();

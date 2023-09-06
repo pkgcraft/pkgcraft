@@ -81,8 +81,7 @@ mod tests {
                     keepdir {args}
                 }}
             "#};
-            let raw_pkg = t.create_ebuild_raw("cat/pkg-1", &data).unwrap();
-            let pkg = raw_pkg.into_pkg().unwrap();
+            let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_pkg(&pkg);
             let file_tree = FileTree::new();
             pkg.build().unwrap();

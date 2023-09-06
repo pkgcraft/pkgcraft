@@ -40,7 +40,7 @@ fn no_pkgs() {
 #[test]
 fn pkg_target_from_stdin() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/dep-1", &[]).unwrap();
+    t.create_raw_pkg("cat/dep-1", &[]).unwrap();
     cmd(format!("pk pkg source -r {} -", t.path()))
         .write_stdin("cat/dep")
         .assert()
@@ -52,9 +52,9 @@ fn pkg_target_from_stdin() {
 #[test]
 fn path_targets() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat1/a-1", &[]).unwrap();
-    t.create_ebuild("cat1/b-1", &[]).unwrap();
-    t.create_ebuild("cat2/c-1", &[]).unwrap();
+    t.create_raw_pkg("cat1/a-1", &[]).unwrap();
+    t.create_raw_pkg("cat1/b-1", &[]).unwrap();
+    t.create_raw_pkg("cat2/c-1", &[]).unwrap();
 
     // repo path
     cmd("pk pkg source")
@@ -95,7 +95,7 @@ fn bound() {
     use std::os::fd::AsRawFd;
 
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_ebuild("cat/fast-1", &[]).unwrap();
+    t.create_raw_pkg("cat/fast-1", &[]).unwrap();
     let f = std::fs::File::open(t.path().join("profiles/repo_name")).unwrap();
     let fd = f.as_raw_fd();
 
@@ -109,7 +109,7 @@ fn bound() {
 
         :
     "#};
-    t.create_ebuild_raw("cat/slow-1", &data).unwrap();
+    t.create_raw_pkg_from_str("cat/slow-1", &data).unwrap();
 
     for opt in ["-b", "--bound"] {
         for (val, pkg) in [("25ms", "cat/slow"), (">25ms", "cat/slow"), ("<25ms", "cat/fast")] {
