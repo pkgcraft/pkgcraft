@@ -1,3 +1,14 @@
+# 0.0.11 (2023-09-06)
+
+## Added
+- `pk pkg revdeps`: initial support for querying reverse dependencies
+
+## Changed
+- Bumped MSRV to 1.70.
+
+## Fixed
+- `pk repo metadata`: remove outdated cache entries
+
 # 0.0.10 (2023-06-23)
 
 ## Added
@@ -43,4 +54,4 @@
 
 # 0.0.7 (2023-06-04)
 
-  - initial release
+- initial release
