@@ -28,6 +28,7 @@ use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::shell::metadata::Metadata as MetadataCache;
 use crate::test::TESTING;
+use crate::utils::bounded_jobs;
 use crate::Error;
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
@@ -450,13 +451,13 @@ impl Repo {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen(&self, jobs: usize, force: bool) -> crate::Result<()> {
+    pub fn pkg_metadata_regen(&self, jobs: Option<usize>, force: bool) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
-        let pool = PoolSendIter::new(jobs, func, true)?;
+        let pool = PoolSendIter::new(bounded_jobs(jobs), func, true)?;
 
         // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
         // pull all package Cpvs from the repo
@@ -1195,7 +1196,7 @@ mod tests {
         "#};
         t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
 
-        repo.pkg_metadata_regen(1, false).unwrap();
+        repo.pkg_metadata_regen(Some(1), false).unwrap();
 
         let metadata = indoc::indoc! {r"
             DEFINED_PHASES=-

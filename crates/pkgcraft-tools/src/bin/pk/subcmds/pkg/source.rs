@@ -9,10 +9,11 @@ use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::ebuild::RawPkg;
 use pkgcraft::pkg::SourceablePackage;
 use pkgcraft::repo::set::RepoSet;
+use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
 use tracing::error;
 
-use crate::args::{bounded_jobs, StdinOrArgs};
+use crate::args::StdinOrArgs;
 
 use super::target_restriction;
 
@@ -225,7 +226,7 @@ impl Command {
         };
 
         // default to running a job on each physical CPU in order to limit contention
-        let jobs = bounded_jobs(self.jobs.or(Some(num_cpus::get_physical())))?;
+        let jobs = bounded_jobs(self.jobs.or(Some(num_cpus::get_physical())));
 
         // loop over targets, tracking overall failure status
         let mut status = ExitCode::SUCCESS;

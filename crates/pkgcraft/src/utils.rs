@@ -8,6 +8,16 @@ use digest::Digest;
 
 use crate::Error;
 
+/// Limit parallel jobs to the number of logical CPUs on a system. All CPUs are used if
+/// jobs is None or 0.
+pub fn bounded_jobs(jobs: Option<usize>) -> usize {
+    let cpus = num_cpus::get();
+    match jobs {
+        Some(j) if j > 0 && j <= cpus => j,
+        _ => cpus,
+    }
+}
+
 /// Return the hash of a given hashable object.
 pub fn hash<T: Hash>(obj: T) -> u64 {
     let mut hasher = DefaultHasher::new();

@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use clap::Args;
 use pkgcraft::config::Config;
 
-use crate::args::{bounded_jobs, target_ebuild_repos};
+use crate::args::target_ebuild_repos;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -23,12 +23,9 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // force bounds on jobs
-        let jobs = bounded_jobs(self.jobs)?;
-
         // run metadata regeneration displaying a progress bar if stdout is a terminal
         for repo in target_ebuild_repos(config, &self.repos)? {
-            repo.pkg_metadata_regen(jobs, self.force)?;
+            repo.pkg_metadata_regen(self.jobs, self.force)?;
         }
 
         Ok(ExitCode::SUCCESS)
