@@ -689,7 +689,7 @@ mod tests {
 
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::*;
-    use crate::test::{assert_ordered_eq, assert_unordered_eq};
+    use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -833,6 +833,15 @@ mod tests {
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), data).unwrap();
         assert_ordered_eq(metadata.categories(), ["cat1", "cat2", "cat-3"]);
+    }
+
+    #[test]
+    fn test_eclasses() {
+        let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
+        // uninherited eclasses
+        assert_unordered_eq(repo.metadata().eclasses().iter().map(|e| e.as_ref()), ["b", "c"]);
+        // inherited eclasses
+        assert_unordered_eq(repo.eclasses().iter().map(|e| e.as_ref()), ["a", "b", "c"]);
     }
 
     #[test]
