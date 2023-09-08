@@ -1,15 +1,12 @@
-use std::borrow::Borrow;
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::path::Path;
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
-use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
+use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
-use indexmap::{Equivalent, IndexMap, IndexSet};
+use indexmap::{IndexMap, IndexSet};
 use indicatif::ProgressBar;
 use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
@@ -21,10 +18,7 @@ use walkdir::{DirEntry, WalkDir};
 use crate::config::RepoConfig;
 use crate::dep::{self, Cpv, Operator, Version};
 use crate::eapi::Eapi;
-use crate::files::{
-    has_ext, has_ext_utf8, is_dir, is_file, is_file_utf8, is_hidden, is_hidden_utf8,
-    sorted_dir_list,
-};
+use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
@@ -34,12 +28,13 @@ use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::shell::metadata::Metadata as MetadataCache;
 use crate::test::TESTING;
-use crate::utils::digest;
 use crate::Error;
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
 mod cache;
+mod eclass;
+pub use eclass::Eclass;
 mod metadata;
 pub use metadata::Metadata;
 
@@ -148,88 +143,6 @@ where
         if let Some(thread) = self.thread.take() {
             thread.join().unwrap();
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct Eclass {
-    name: String,
-    path: Utf8PathBuf,
-    digest: String,
-}
-
-impl Eclass {
-    fn new(path: &Utf8Path) -> crate::Result<Self> {
-        if let (Some(name), Some("eclass")) = (path.file_stem(), path.extension()) {
-            let data = fs::read(path)
-                .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;
-
-            Ok(Self {
-                name: name.to_string(),
-                path: path.to_path_buf(),
-                digest: digest::<md5::Md5>(&data),
-            })
-        } else {
-            Err(Error::InvalidValue(format!("invalid eclass: {path}")))
-        }
-    }
-
-    pub fn path(&self) -> &Utf8Path {
-        &self.path
-    }
-
-    pub fn digest(&self) -> &str {
-        &self.digest
-    }
-}
-
-impl fmt::Display for Eclass {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl AsRef<str> for Eclass {
-    fn as_ref(&self) -> &str {
-        &self.name
-    }
-}
-
-impl Eq for Eclass {}
-
-impl PartialEq for Eclass {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-    }
-}
-
-impl Ord for Eclass {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.name.cmp(&other.name)
-    }
-}
-
-impl PartialOrd for Eclass {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Hash for Eclass {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-    }
-}
-
-impl Borrow<str> for Eclass {
-    fn borrow(&self) -> &str {
-        &self.name
-    }
-}
-
-impl Equivalent<String> for Eclass {
-    fn equivalent(&self, key: &String) -> bool {
-        &self.name == key
     }
 }
 
@@ -373,19 +286,10 @@ impl Repo {
     /// Return the set of inherited eclasses sorted by name.
     pub fn eclasses(&self) -> &IndexSet<Eclass> {
         self.eclasses.get_or_init(|| {
-            let mut eclasses: IndexSet<_> = self.trees()
+            let mut eclasses: IndexSet<_> = self
+                .trees()
                 .rev()
-                .filter_map(|repo| repo.path().join("eclass").read_dir_utf8().ok())
-                .flatten()
-                .filter_map(|e| e.ok())
-                .filter(is_eclass)
-                .filter_map(|entry| match Eclass::new(entry.path()) {
-                    Ok(eclass) => Some(eclass),
-                    Err(e) => {
-                        warn!("{}: {e}", self.id());
-                        None
-                    }
-                })
+                .flat_map(|r| r.metadata().eclasses().clone().into_iter())
                 .collect();
             eclasses.sort();
             eclasses
@@ -453,7 +357,7 @@ impl Repo {
             })
     }
 
-    /// Return the set of known architectures merged via inheritance.
+    /// Return the set of inherited architectures sorted by name.
     pub fn arches(&self) -> &HashSet<String> {
         self.arches.get_or_init(|| {
             self.trees()
@@ -465,7 +369,8 @@ impl Repo {
     /// Return the set of inherited licenses sorted by name.
     pub fn licenses(&self) -> &IndexSet<String> {
         self.licenses.get_or_init(|| {
-            let mut licenses: IndexSet<_> = self.trees()
+            let mut licenses: IndexSet<_> = self
+                .trees()
                 .rev()
                 .flat_map(|r| r.metadata().licenses().clone().into_iter())
                 .collect();
@@ -832,10 +737,6 @@ impl Repository for Repo {
 
 fn is_ebuild(e: &DirEntry) -> bool {
     is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
-}
-
-fn is_eclass(e: &Utf8DirEntry) -> bool {
-    is_file_utf8(e) && !is_hidden_utf8(e) && has_ext_utf8(e, "eclass")
 }
 
 impl<'a> IntoIterator for &'a Repo {

@@ -5,14 +5,16 @@ use std::str::{FromStr, SplitWhitespace};
 use std::sync::OnceLock;
 use std::{fmt, fs, io};
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use strum::{Display, EnumString};
 use tracing::{error, warn};
 
 use crate::dep::{parse, Dep};
 use crate::eapi::Eapi;
-use crate::files::{is_file, is_hidden, sorted_dir_list};
+use crate::files::{
+    has_ext_utf8, is_file, is_file_utf8, is_hidden, is_hidden_utf8, sorted_dir_list,
+};
 use crate::pkg::ebuild::metadata::HashType;
 use crate::repo::RepoFormat;
 use crate::traits::FilterLines;
@@ -20,6 +22,7 @@ use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
 use super::cache::CacheFormat;
+use super::Eclass;
 
 /// Wrapper for ini format config files.
 struct Ini(ini::Ini);
@@ -244,6 +247,10 @@ impl FromStr for UseDesc {
     }
 }
 
+fn is_eclass(e: &Utf8DirEntry) -> bool {
+    is_file_utf8(e) && !is_hidden_utf8(e) && has_ext_utf8(e, "eclass")
+}
+
 #[derive(Debug, Default)]
 pub struct Metadata {
     pub(super) id: String,
@@ -255,6 +262,7 @@ pub struct Metadata {
     arches: OnceLock<IndexSet<String>>,
     arches_desc: OnceLock<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceLock<IndexSet<String>>,
+    eclasses: OnceLock<IndexSet<Eclass>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<HashMap<String, HashSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -384,6 +392,34 @@ impl Metadata {
         })
     }
 
+    /// Return the ordered set of eclasses.
+    pub fn eclasses(&self) -> &IndexSet<Eclass> {
+        self.eclasses
+            .get_or_init(|| match self.path.join("eclass").read_dir_utf8() {
+                Ok(entries) => {
+                    let mut vals: IndexSet<_> = entries
+                        .filter_map(|e| e.ok())
+                        .filter(is_eclass)
+                        .filter_map(|entry| match Eclass::new(entry.path()) {
+                            Ok(eclass) => Some(eclass),
+                            Err(e) => {
+                                warn!("{}: {e}", self.id);
+                                None
+                            }
+                        })
+                        .collect();
+                    vals.sort();
+                    vals
+                }
+                Err(e) => {
+                    if e.kind() != io::ErrorKind::NotFound {
+                        warn!("{}: reading eclasses dir failed: {e}", self.id);
+                    }
+                    Default::default()
+                }
+            })
+    }
+
     /// Return the ordered set of licenses.
     pub fn licenses(&self) -> &IndexSet<String> {
         self.licenses
@@ -398,7 +434,7 @@ impl Metadata {
                 }
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{}: reading licenses failed: {e}", self.id);
+                        warn!("{}: reading licenses dir failed: {e}", self.id);
                     }
                     Default::default()
                 }
