@@ -8,7 +8,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "");
     let t = config.temp_repo("test", 0, None).unwrap();
     for i in 0..100 {
-        t.create_ebuild(&format!("cat/pkg-{i}"), &[]).unwrap();
+        t.create_raw_pkg(&format!("cat/pkg-{i}"), &[]).unwrap();
     }
     let repo = t.repo();
 
@@ -33,5 +33,19 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
             }
         });
         assert_eq!(pkgs, 1);
+    });
+
+    let t = config.temp_repo("regen-repo", 0, None).unwrap();
+    for i in 0..10 {
+        for j in 0..10 {
+            t.create_raw_pkg(&format!("cat{i}/pkg-{j}"), &[]).unwrap();
+        }
+    }
+    let repo = t.repo();
+
+    c.bench_function("repo-ebuild-metadata-regen", |b| {
+        b.iter(|| {
+            let _ = repo.pkg_metadata_regen(None, true);
+        });
     });
 }
