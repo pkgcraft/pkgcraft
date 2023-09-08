@@ -389,12 +389,12 @@ impl Metadata {
         self.licenses
             .get_or_init(|| match self.path.join("licenses").read_dir_utf8() {
                 Ok(entries) => {
-                    let mut vals: Vec<_> = entries
+                    let mut vals: IndexSet<_> = entries
                         .filter_map(|e| e.ok())
                         .map(|e| e.file_name().to_string())
                         .collect();
                     vals.sort();
-                    vals.into_iter().collect()
+                    vals
                 }
                 Err(e) => {
                     if e.kind() != io::ErrorKind::NotFound {

@@ -241,7 +241,7 @@ pub struct Repo {
     masters: OnceLock<Vec<Weak<Self>>>,
     trees: OnceLock<Vec<Weak<Self>>>,
     arches: OnceLock<HashSet<String>>,
-    licenses: OnceLock<HashSet<String>>,
+    licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<HashMap<String, HashSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
@@ -462,12 +462,15 @@ impl Repo {
         })
     }
 
-    /// Return the set of licenses merged via inheritance.
-    pub fn licenses(&self) -> &HashSet<String> {
+    /// Return the set of inherited licenses sorted by name.
+    pub fn licenses(&self) -> &IndexSet<String> {
         self.licenses.get_or_init(|| {
-            self.trees()
+            let mut licenses: IndexSet<_> = self.trees()
+                .rev()
                 .flat_map(|r| r.metadata().licenses().clone().into_iter())
-                .collect()
+                .collect();
+            licenses.sort();
+            licenses
         })
     }
 
