@@ -153,7 +153,7 @@ pub struct Repo {
     metadata: Metadata,
     masters: OnceLock<Vec<Weak<Self>>>,
     trees: OnceLock<Vec<Weak<Self>>>,
-    arches: OnceLock<HashSet<String>>,
+    arches: OnceLock<IndexSet<String>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<HashMap<String, HashSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -358,9 +358,10 @@ impl Repo {
     }
 
     /// Return the set of inherited architectures sorted by name.
-    pub fn arches(&self) -> &HashSet<String> {
+    pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
             self.trees()
+                .rev()
                 .flat_map(|r| r.metadata().arches().clone().into_iter())
                 .collect()
         })
