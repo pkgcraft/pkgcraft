@@ -244,7 +244,7 @@ pub struct Repo {
     licenses: OnceLock<HashSet<String>>,
     license_groups: OnceLock<HashMap<String, HashSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
-    eclasses: OnceLock<HashSet<Eclass>>,
+    eclasses: OnceLock<IndexSet<Eclass>>,
     xml_cache: OnceLock<Cache<XmlMetadata>>,
     manifest_cache: OnceLock<Cache<Manifest>>,
 }
@@ -370,10 +370,10 @@ impl Repo {
             .expect("finalize() uncalled")
     }
 
-    /// Return the mapping of inherited eclass names to file paths.
-    pub fn eclasses(&self) -> &HashSet<Eclass> {
+    /// Return the set of inherited eclasses sorted by name.
+    pub fn eclasses(&self) -> &IndexSet<Eclass> {
         self.eclasses.get_or_init(|| {
-            self.trees()
+            let mut eclasses: IndexSet<_> = self.trees()
                 .rev()
                 .filter_map(|repo| repo.path().join("eclass").read_dir_utf8().ok())
                 .flatten()
@@ -386,7 +386,9 @@ impl Repo {
                         None
                     }
                 })
-                .collect()
+                .collect();
+            eclasses.sort();
+            eclasses
         })
     }
 
