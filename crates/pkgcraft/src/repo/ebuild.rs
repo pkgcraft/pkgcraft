@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
-use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
+use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use indicatif::ProgressBar;
@@ -309,14 +309,11 @@ impl Repo {
             }
         };
 
-        // filter out non-category dirs
-        let filter = |e: &Utf8DirEntry| -> bool {
-            is_dir_utf8(e) && !is_hidden_utf8(e) && !FAKE_CATEGORIES.contains(e.file_name())
-        };
-
         entries
             .into_iter()
-            .filter(filter)
+            .filter(|e| {
+                is_dir_utf8(e) && !is_hidden_utf8(e) && !FAKE_CATEGORIES.contains(e.file_name())
+            })
             .filter_map(|entry| {
                 let path = entry.path();
                 match dep::parse::category(entry.file_name()) {
@@ -630,12 +627,9 @@ impl PkgRepository for Repo {
             }
         };
 
-        // filter out non-package dirs
-        let filter = |e: &Utf8DirEntry| -> bool { is_dir_utf8(e) && !is_hidden_utf8(e) };
-
         entries
             .into_iter()
-            .filter(filter)
+            .filter(|e| is_dir_utf8(e) && !is_hidden_utf8(e))
             .filter_map(|entry| {
                 let path = entry.path();
                 match dep::parse::package(entry.file_name()) {
