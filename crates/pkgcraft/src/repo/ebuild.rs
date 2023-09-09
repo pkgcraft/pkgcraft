@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use indicatif::ProgressBar;
@@ -18,7 +18,10 @@ use walkdir::{DirEntry, WalkDir};
 use crate::config::RepoConfig;
 use crate::dep::{self, Cpv, Operator, Version};
 use crate::eapi::Eapi;
-use crate::files::{has_ext, is_dir, is_file, is_hidden, sorted_dir_list};
+use crate::files::{
+    has_ext, is_dir, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list,
+    sorted_dir_list_utf8,
+};
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
@@ -299,32 +302,32 @@ impl Repo {
 
     /// Return a repo's category dirs from the filesystem.
     pub fn category_dirs(&self) -> IndexSet<String> {
-        // filter out non-category dirs
-        let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) && !is_fake_category(e) };
-        let cats = sorted_dir_list(self.path())
-            .into_iter()
-            .filter_entry(filter);
-        let mut v = IndexSet::new();
-        for entry in cats {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(e) => {
-                    warn!("{}: failed walking {:?}: {e}", self.id(), self.path());
-                    continue;
-                }
-            };
-            let path = entry.path();
-            match entry.file_name().to_str() {
-                Some(s) => match dep::parse::category(s) {
-                    Ok(_) => {
-                        v.insert(s.into());
-                    }
-                    Err(e) => warn!("{}: {e}: {path:?}", self.id()),
-                },
-                None => warn!("{}: non-unicode path: {path:?}", self.id()),
+        let dirs = match sorted_dir_list_utf8(self.path()) {
+            Ok(vals) => vals,
+            Err(e) => {
+                warn!("{}: {}: {e}", self.id(), self.path());
+                return Default::default();
             }
-        }
-        v
+        };
+
+        // filter out non-category dirs
+        let filter = |e: &Utf8DirEntry| -> bool {
+            is_dir_utf8(e) && !is_hidden_utf8(e) && !FAKE_CATEGORIES.contains(e.file_name())
+        };
+
+        dirs.into_iter()
+            .filter(filter)
+            .filter_map(|entry| {
+                let path = entry.path();
+                match dep::parse::category(entry.file_name()) {
+                    Ok(_) => Some(entry.file_name().to_string()),
+                    Err(e) => {
+                        warn!("{}: {path}: {e}", self.id());
+                        None
+                    }
+                }
+            })
+            .collect()
     }
 
     /// Convert a relative ebuild file repo path into a CPV.
@@ -596,14 +599,6 @@ impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.name(), self.path())
     }
-}
-
-fn is_fake_category(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| FAKE_CATEGORIES.contains(s))
-        .unwrap_or(false)
 }
 
 impl PkgRepository for Repo {

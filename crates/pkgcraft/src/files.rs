@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::path::Path;
 use std::str::FromStr;
 
-use camino::Utf8DirEntry;
+use camino::{Utf8DirEntry, Utf8Path};
 use nix::{sys::stat, unistd};
 use walkdir::{DirEntry, WalkDir};
 
@@ -117,6 +117,24 @@ pub(crate) fn is_hidden(entry: &DirEntry) -> bool {
         .to_str()
         .map(|s| s.starts_with('.'))
         .unwrap_or(false)
+}
+
+pub(crate) fn sorted_dir_list_utf8<P: AsRef<Utf8Path>>(
+    path: P,
+) -> crate::Result<Vec<Utf8DirEntry>> {
+    let path = path.as_ref();
+    let entries = path
+        .read_dir_utf8()
+        .map_err(|e| Error::IO(format!("failed reading dir: {path}: {e}")))?;
+    let entries: Result<Vec<Utf8DirEntry>, _> = entries.collect();
+    let mut entries: Vec<_> =
+        entries.map_err(|e| Error::IO(format!("failed reading dir: {path}: {e}")))?;
+    entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
+    Ok(entries)
+}
+
+pub(crate) fn is_dir_utf8(entry: &Utf8DirEntry) -> bool {
+    entry.path().is_dir()
 }
 
 pub(crate) fn is_file_utf8(entry: &Utf8DirEntry) -> bool {
