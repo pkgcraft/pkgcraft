@@ -19,8 +19,7 @@ use crate::config::RepoConfig;
 use crate::dep::{self, Cpv, Operator, Version};
 use crate::eapi::Eapi;
 use crate::files::{
-    has_ext, is_dir, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list,
-    sorted_dir_list_utf8,
+    has_ext, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list, sorted_dir_list_utf8,
 };
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
@@ -302,7 +301,7 @@ impl Repo {
 
     /// Return a repo's category dirs from the filesystem.
     pub fn category_dirs(&self) -> IndexSet<String> {
-        let dirs = match sorted_dir_list_utf8(self.path()) {
+        let entries = match sorted_dir_list_utf8(self.path()) {
             Ok(vals) => vals,
             Err(e) => {
                 warn!("{}: {}: {e}", self.id(), self.path());
@@ -315,7 +314,8 @@ impl Repo {
             is_dir_utf8(e) && !is_hidden_utf8(e) && !FAKE_CATEGORIES.contains(e.file_name())
         };
 
-        dirs.into_iter()
+        entries
+            .into_iter()
             .filter(filter)
             .filter_map(|entry| {
                 let path = entry.path();
@@ -622,33 +622,31 @@ impl PkgRepository for Repo {
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
         let path = self.path().join(cat.strip_prefix('/').unwrap_or(cat));
-        let filter = |e: &DirEntry| -> bool { is_dir(e) && !is_hidden(e) };
-        let pkgs = sorted_dir_list(&path).into_iter().filter_entry(filter);
-        let mut v = IndexSet::new();
-        for entry in pkgs {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(e) => {
-                    if let Some(err) = e.io_error() {
-                        if err.kind() != io::ErrorKind::NotFound {
-                            warn!("{}: failed walking {:?}: {e}", self.id(), &path);
-                        }
-                    }
-                    continue;
-                }
-            };
-            let path = entry.path();
-            match entry.file_name().to_str() {
-                Some(s) => match dep::parse::package(s) {
-                    Ok(_) => {
-                        v.insert(s.into());
-                    }
-                    Err(e) => warn!("{}: {e}: {path:?}", self.id()),
-                },
-                None => warn!("{}: non-unicode path: {path:?}", self.id()),
+        let entries = match sorted_dir_list_utf8(&path) {
+            Ok(vals) => vals,
+            Err(e) => {
+                warn!("{}: {path}: {e}", self.id());
+                return Default::default();
             }
-        }
-        v
+        };
+
+        // filter out non-package dirs
+        let filter = |e: &Utf8DirEntry| -> bool { is_dir_utf8(e) && !is_hidden_utf8(e) };
+
+        entries
+            .into_iter()
+            .filter(filter)
+            .filter_map(|entry| {
+                let path = entry.path();
+                match dep::parse::package(entry.file_name()) {
+                    Ok(_) => Some(entry.file_name().to_string()),
+                    Err(e) => {
+                        warn!("{}: {path}: {e}", self.id());
+                        None
+                    }
+                }
+            })
+            .collect()
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {

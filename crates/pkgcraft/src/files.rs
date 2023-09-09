@@ -96,10 +96,6 @@ pub(crate) fn sorted_dir_list<P: AsRef<Path>>(path: P) -> WalkDir {
         .max_depth(1)
 }
 
-pub(crate) fn is_dir(entry: &DirEntry) -> bool {
-    entry.path().is_dir()
-}
-
 pub(crate) fn is_file(entry: &DirEntry) -> bool {
     entry.path().is_file()
 }
