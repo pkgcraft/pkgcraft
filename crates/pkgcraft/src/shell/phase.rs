@@ -18,11 +18,6 @@ pub(crate) mod eapi4;
 pub(crate) mod eapi6;
 
 pub(crate) type PhaseFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
-static PHASE_STUB: PhaseFn = phase_stub;
-
-fn phase_stub(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
-    Ok(ExecStatus::Success)
-}
 
 fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     if makefile_exists() {
@@ -55,16 +50,8 @@ pub(crate) enum PhaseKind {
 }
 
 impl PhaseKind {
-    pub(crate) fn stub(self) -> Phase {
-        Phase {
-            kind: self,
-            pre: None,
-            func: PHASE_STUB,
-            post: None,
-        }
-    }
-
-    pub(crate) fn func(self, func: PhaseFn) -> Phase {
+    /// Create a phase function that runs an optional, internal function by default.
+    pub(crate) fn func(self, func: Option<PhaseFn>) -> Phase {
         Phase {
             kind: self,
             pre: None,
@@ -78,7 +65,7 @@ impl PhaseKind {
 pub(crate) struct Phase {
     kind: PhaseKind,
     pre: Option<PhaseFn>,
-    func: PhaseFn,
+    func: Option<PhaseFn>,
     post: Option<PhaseFn>,
 }
 
@@ -149,7 +136,7 @@ impl Phase {
             func.execute(&[])?;
         }
 
-        // run phase function falling back to internal default
+        // run phase function falling back to internal default if it exists
         if let Some(mut func) = functions::find(self) {
             func.execute(&[])?;
         } else {
@@ -171,7 +158,10 @@ impl Phase {
 
     /// Run the default phase function.
     pub(crate) fn default(&self, build: &mut BuildData) -> scallop::Result<ExecStatus> {
-        (self.func)(build)
+        match self.func {
+            Some(func) => func(build),
+            None => Ok(ExecStatus::Success),
+        }
     }
 
     /// Return the shortened phase function name, e.g. src_compile -> compile.

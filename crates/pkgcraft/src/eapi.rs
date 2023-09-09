@@ -494,25 +494,30 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
         .register_operation(
             Operation::Build,
             [
-                PkgSetup.stub(),
-                SrcUnpack.func(eapi0::src_unpack),
-                SrcCompile.func(eapi0::src_compile),
-                SrcTest.func(eapi0::src_test),
+                PkgSetup.func(None),
+                SrcUnpack.func(Some(eapi0::src_unpack)),
+                SrcCompile.func(Some(eapi0::src_compile)),
+                SrcTest.func(Some(eapi0::src_test)),
                 SrcInstall
-                    .stub()
+                    .func(None)
                     .pre(pre_src_install)
                     .post(post_src_install),
             ],
         )
-        .register_operation(Operation::Install, [PkgPreinst.stub(), PkgPostinst.stub()])
-        .register_operation(Operation::Uninstall, [PkgPrerm.stub(), PkgPostrm.stub()])
+        .register_operation(Operation::Install, [PkgPreinst.func(None), PkgPostinst.func(None)])
+        .register_operation(Operation::Uninstall, [PkgPrerm.func(None), PkgPostrm.func(None)])
         .register_operation(
             Operation::Replace,
-            [PkgPreinst.stub(), PkgPrerm.stub(), PkgPostrm.stub(), PkgPostinst.stub()],
+            [
+                PkgPreinst.func(None),
+                PkgPrerm.func(None),
+                PkgPostrm.func(None),
+                PkgPostinst.func(None),
+            ],
         )
-        .register_operation(Operation::Config, [PkgConfig.stub()])
-        .register_operation(Operation::Info, [PkgInfo.stub()])
-        .register_operation(Operation::NoFetch, [PkgNofetch.stub()])
+        .register_operation(Operation::Config, [PkgConfig.func(None)])
+        .register_operation(Operation::Info, [PkgInfo.func(None)])
+        .register_operation(Operation::NoFetch, [PkgNofetch.func(None)])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_mandatory_keys(&[Key::Description, Key::Slot])
@@ -570,7 +575,7 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
 
     Eapi::new("1", Some(&EAPI0))
         .enable_features(&[IuseDefaults, SlotDeps])
-        .update_phases([SrcCompile.func(eapi1::src_compile)])
+        .update_phases([SrcCompile.func(Some(eapi1::src_compile))])
         .finalize()
 });
 
@@ -583,14 +588,14 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
         .register_operation(
             Operation::Build,
             [
-                PkgSetup.stub(),
-                SrcUnpack.func(eapi0::src_unpack),
-                SrcPrepare.stub(),
-                SrcConfigure.func(eapi2::src_configure),
-                SrcCompile.func(eapi2::src_compile),
-                SrcTest.func(eapi0::src_test),
+                PkgSetup.func(None),
+                SrcUnpack.func(Some(eapi0::src_unpack)),
+                SrcPrepare.func(None),
+                SrcConfigure.func(Some(eapi2::src_configure)),
+                SrcCompile.func(Some(eapi2::src_compile)),
+                SrcTest.func(Some(eapi0::src_test)),
                 SrcInstall
-                    .stub()
+                    .func(None)
                     .pre(pre_src_install)
                     .post(post_src_install),
             ],
@@ -628,9 +633,9 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             UseDepDefaults,
         ])
         .disable_features(&[RdependDefault])
-        .register_operation(Operation::Pretend, [PkgPretend.stub()])
+        .register_operation(Operation::Pretend, [PkgPretend.func(None)])
         .update_phases([SrcInstall
-            .func(eapi4::src_install)
+            .func(Some(eapi4::src_install))
             .pre(pre_src_install)
             .post(post_src_install)])
         .update_incremental_keys(&[Key::RequiredUse])
@@ -664,9 +669,9 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("6", Some(&EAPI5))
         .enable_features(&[NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
         .update_phases([
-            SrcPrepare.func(eapi6::src_prepare),
+            SrcPrepare.func(Some(eapi6::src_prepare)),
             SrcInstall
-                .func(eapi6::src_install)
+                .func(Some(eapi6::src_install))
                 .pre(pre_src_install)
                 .post(post_src_install),
         ])
