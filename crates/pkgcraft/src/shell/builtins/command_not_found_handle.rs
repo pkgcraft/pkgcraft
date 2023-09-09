@@ -1,9 +1,7 @@
-use std::sync::atomic::Ordering;
-
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use super::{make_builtin, Scopes::All, NONFATAL};
+use super::{make_builtin, Scopes::All};
 
 static LONG_DOC: &str = "\
 Executed when the search for a command is unsuccessful.
@@ -14,12 +12,7 @@ instead.
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let msg = format!("unknown command: {}", args[0]);
-    if NONFATAL.load(Ordering::Relaxed) {
-        Err(Error::Base(msg))
-    } else {
-        Err(Error::Bail(msg))
-    }
+    Err(Error::Base(format!("unknown command: {}", args[0])))
 }
 
 make_builtin!(

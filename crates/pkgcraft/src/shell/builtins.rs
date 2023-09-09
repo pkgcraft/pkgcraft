@@ -1,9 +1,8 @@
 use std::borrow::Borrow;
-use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::{cmp, fmt};
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
@@ -156,7 +155,7 @@ impl PkgBuiltin {
                 Some(_) => format!("{scope} scope doesn't enable command: {self}"),
                 None => format!("EAPI={eapi} doesn't enable command: {self}"),
             };
-            Err(scallop::Error::Bail(msg))
+            Err(scallop::Error::Base(msg))
         }
     }
 
@@ -194,13 +193,13 @@ impl Hash for PkgBuiltin {
 }
 
 impl Ord for PkgBuiltin {
-    fn cmp(&self, other: &Self) -> Ordering {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.builtin.name.cmp(other.builtin.name)
     }
 }
 
 impl PartialOrd for PkgBuiltin {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -443,6 +442,17 @@ mod parse {
     }
 }
 
+/// Handle builtin errors, bailing out when running normally.
+pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: scallop::Error) -> ExecStatus {
+    let e = if NONFATAL.load(Ordering::Relaxed) {
+        err
+    } else {
+        scallop::Error::Bail(err.to_string())
+    };
+
+    scallop::builtins::handle_error(cmd, e)
+}
+
 /// Create C compatible builtin function wrapper converting between rust and C types.
 #[macro_export]
 macro_rules! make_builtin {
@@ -452,11 +462,10 @@ macro_rules! make_builtin {
         use once_cell::sync::Lazy;
         use scallop::builtins::Builtin;
 
-        use $crate::shell::builtins::PkgBuiltin;
+        use $crate::shell::builtins::{handle_error, PkgBuiltin};
 
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> c_int {
-            use scallop::builtins::handle_error;
             use scallop::traits::IntoWords;
             use $crate::shell::builtins::BUILTINS;
 

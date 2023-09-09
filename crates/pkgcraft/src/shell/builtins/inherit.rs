@@ -76,8 +76,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             } else {
                 s.as_str()
             };
-            // bail in order to truncate chained errors from nested sourcing
-            Error::Bail(format!("failed loading eclass: {eclass}: {s}"))
+            Error::Base(format!("failed loading eclass: {eclass}: {s}"))
         })?;
 
         // append metadata keys that incrementally accumulate
