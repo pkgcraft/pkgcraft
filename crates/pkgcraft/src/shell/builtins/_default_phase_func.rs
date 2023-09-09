@@ -8,6 +8,7 @@ pub(super) fn default_phase_func(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
 
-    let phase = get_build_mut().phase()?;
-    phase.run()
+    let build = get_build_mut();
+    let phase = build.phase()?;
+    phase.default(build)
 }
