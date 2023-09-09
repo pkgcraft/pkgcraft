@@ -103,7 +103,7 @@ fn jobs() {
 
     for opt in ["-j", "--jobs"] {
         // invalid
-        for val in ["", "0"] {
+        for val in ["", "-1"] {
             cmd("pk repo metadata")
                 .args([opt, val])
                 .assert()
@@ -113,8 +113,8 @@ fn jobs() {
                 .code(2);
         }
 
-        // valid (max limited to logical system cores)
-        for val in [1, num_cpus::get(), 999999] {
+        // valid and automatically bounded between 1 and max CPUs
+        for val in [0, 999999] {
             cmd("pk repo metadata")
                 .arg(opt)
                 .arg(val.to_string())
