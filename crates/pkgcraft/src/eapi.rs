@@ -485,6 +485,7 @@ impl FromStr for &'static Eapi {
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::builtins::Scopes::*;
+    use crate::shell::operations::Operation::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::BuildVariable::*;
     use Feature::*;
@@ -492,7 +493,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("0", None)
         .enable_features(&[RdependDefault, TrailingSlash])
         .register_operation(
-            Operation::Build,
+            Build,
             [
                 PkgSetup.func(None),
                 SrcUnpack.func(Some(eapi0::src_unpack)),
@@ -504,10 +505,10 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
                     .post(post_src_install),
             ],
         )
-        .register_operation(Operation::Install, [PkgPreinst.func(None), PkgPostinst.func(None)])
-        .register_operation(Operation::Uninstall, [PkgPrerm.func(None), PkgPostrm.func(None)])
+        .register_operation(Install, [PkgPreinst.func(None), PkgPostinst.func(None)])
+        .register_operation(Uninstall, [PkgPrerm.func(None), PkgPostrm.func(None)])
         .register_operation(
-            Operation::Replace,
+            Replace,
             [
                 PkgPreinst.func(None),
                 PkgPrerm.func(None),
@@ -515,9 +516,9 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
                 PkgPostinst.func(None),
             ],
         )
-        .register_operation(Operation::Config, [PkgConfig.func(None)])
-        .register_operation(Operation::Info, [PkgInfo.func(None)])
-        .register_operation(Operation::NoFetch, [PkgNofetch.func(None)])
+        .register_operation(Config, [PkgConfig.func(None)])
+        .register_operation(Info, [PkgInfo.func(None)])
+        .register_operation(NoFetch, [PkgNofetch.func(None)])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_mandatory_keys(&[Key::Description, Key::Slot])
@@ -580,13 +581,14 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::operations::Operation::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use Feature::*;
 
     Eapi::new("2", Some(&EAPI1))
         .enable_features(&[Blockers, DomanLangDetect, UseDeps, SrcUriRenames])
         .register_operation(
-            Operation::Build,
+            Build,
             [
                 PkgSetup.func(None),
                 SrcUnpack.func(Some(eapi0::src_unpack)),
@@ -620,6 +622,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::builtins::Scopes::*;
+    use crate::shell::operations::Operation::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::BuildVariable::*;
     use Feature::*;
@@ -633,7 +636,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             UseDepDefaults,
         ])
         .disable_features(&[RdependDefault])
-        .register_operation(Operation::Pretend, [PkgPretend.func(None)])
+        .register_operation(Pretend, [PkgPretend.func(None)])
         .update_phases([SrcInstall
             .func(Some(eapi4::src_install))
             .pre(pre_src_install)
