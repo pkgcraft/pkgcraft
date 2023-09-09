@@ -43,9 +43,15 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
     }
     let repo = t.repo();
 
-    c.bench_function("repo-ebuild-metadata-regen", |b| {
+    c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {
             let _ = repo.pkg_metadata_regen(None, true);
+        });
+    });
+
+    c.bench_function("repo-ebuild-metadata-regen-verify", |b| {
+        b.iter(|| {
+            let _ = repo.pkg_metadata_regen(None, false);
         });
     });
 }
