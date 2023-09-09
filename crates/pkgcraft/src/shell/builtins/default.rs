@@ -30,6 +30,10 @@ make_builtin!("default", default_builtin, run, LONG_DOC, USAGE, &[("2..", &[Phas
 
 #[cfg(test)]
 mod tests {
+    use crate::config::Config;
+    use crate::pkg::BuildablePackage;
+    use crate::shell::{get_build_mut, BuildData};
+
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as default;
     use super::*;
@@ -41,5 +45,25 @@ mod tests {
         assert_invalid_args(default, &[1]);
     }
 
-    // TODO: add usage tests
+    #[test]
+    fn valid_phase() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let data = indoc::formatdoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing default command"
+            SLOT=0
+            src_prepare() {{
+                default
+                VAR=2
+            }}
+        "#};
+        let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+        BuildData::from_pkg(&pkg);
+        pkg.build().unwrap();
+        // verify default src_prepare() was run
+        assert!(get_build_mut().user_patches_applied);
+        // verify custom src_prepare() was run
+        assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("2"));
+    }
 }
