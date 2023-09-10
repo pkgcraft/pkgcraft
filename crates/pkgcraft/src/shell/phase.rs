@@ -7,17 +7,16 @@ use scallop::builtins::ExecStatus;
 use scallop::functions;
 use strum::{AsRefStr, Display, EnumIter};
 
-use super::builtins::{emake::run as emake, Scope, BUILTINS};
+use super::builtins::{emake::run as emake, Scope};
+use super::hooks::HookKind;
 use super::utils::makefile_exists;
-use super::{get_build_mut, BuildData, BASH};
+use super::{get_build_mut, BuildData, BuildFn, BASH};
 
 pub(crate) mod eapi0;
 pub(crate) mod eapi1;
 pub(crate) mod eapi2;
 pub(crate) mod eapi4;
 pub(crate) mod eapi6;
-
-pub(crate) type PhaseFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     if makefile_exists() {
@@ -51,22 +50,15 @@ pub(crate) enum PhaseKind {
 
 impl PhaseKind {
     /// Create a phase function that runs an optional, internal function by default.
-    pub(crate) fn func(self, func: Option<PhaseFn>) -> Phase {
-        Phase {
-            kind: self,
-            pre: None,
-            func,
-            post: None,
-        }
+    pub(crate) fn func(self, func: Option<BuildFn>) -> Phase {
+        Phase { kind: self, func }
     }
 }
 
 #[derive(Copy, Clone)]
 pub(crate) struct Phase {
     kind: PhaseKind,
-    pre: Option<PhaseFn>,
-    func: Option<PhaseFn>,
-    post: Option<PhaseFn>,
+    func: Option<BuildFn>,
 }
 
 impl<T: Borrow<Phase>> From<T> for PhaseKind {
@@ -108,16 +100,6 @@ impl Borrow<PhaseKind> for Phase {
 }
 
 impl Phase {
-    pub(crate) fn pre(mut self, func: PhaseFn) -> Self {
-        self.pre = Some(func);
-        self
-    }
-
-    pub(crate) fn post(mut self, func: PhaseFn) -> Self {
-        self.post = Some(func);
-        self
-    }
-
     /// Run the phase operation.
     pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
         Lazy::force(&BASH);
@@ -127,8 +109,12 @@ impl Phase {
         build.set_vars()?;
 
         // run internal pre-phase hooks
-        if let Some(func) = self.pre {
-            func(build)?;
+        if let Some(hooks) = build.eapi().hooks().get(&self.kind) {
+            if let Some(hooks) = hooks.get(&HookKind::Pre) {
+                for hook in hooks {
+                    hook.run(build)?;
+                }
+            }
         }
 
         // run user-defined pre-phase hooks
@@ -149,8 +135,12 @@ impl Phase {
         }
 
         // run internal post-phase hooks
-        if let Some(func) = self.post {
-            func(build)?;
+        if let Some(hooks) = build.eapi().hooks().get(&self.kind) {
+            if let Some(hooks) = hooks.get(&HookKind::Post) {
+                for hook in hooks {
+                    hook.run(build)?;
+                }
+            }
         }
 
         Ok(ExecStatus::Success)
@@ -169,26 +159,4 @@ impl Phase {
         let s = self.as_ref();
         s.split_once('_').map_or(s, |x| x.1)
     }
-}
-
-pub(crate) fn pre_src_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
-    // set docompress include/exclude defaults for supported EAPIs
-    let docompress = BUILTINS.get("docompress").expect("missing docompress");
-    if docompress.enabled() {
-        let docompress_include_defaults = ["/usr/share/doc", "/usr/share/info", "/usr/share/man"]
-            .into_iter()
-            .map(String::from);
-        let docompress_exclude_defaults = [format!("/usr/share/doc/{}/html", build.cpv()?.pf())];
-        build.compress_include.extend(docompress_include_defaults);
-        build.compress_exclude.extend(docompress_exclude_defaults);
-    }
-
-    // TODO: set dostrip include/exclude defaults
-
-    Ok(ExecStatus::Success)
-}
-
-pub(crate) fn post_src_install(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
-    // TODO: perform docompress and dostrip operations if supported
-    Ok(ExecStatus::Success)
 }

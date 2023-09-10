@@ -16,9 +16,10 @@ use crate::dep::Dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
 use crate::shell::builtins::{Scope, Scopes};
+use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
 use crate::shell::operations::Operation;
-use crate::shell::phase::Phase;
+use crate::shell::phase::{Phase, PhaseKind};
 use crate::shell::BuildVariable;
 use crate::Error;
 
@@ -139,6 +140,7 @@ pub struct Eapi {
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
     env: HashMap<BuildVariable, HashSet<Scope>>,
+    hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
 impl Eq for Eapi {}
@@ -305,6 +307,11 @@ impl Eapi {
         &self.env
     }
 
+    /// Return the hooks for a given Phase.
+    pub(crate) fn hooks(&self) -> &HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>> {
+        &self.hooks
+    }
+
     /// Enable features during Eapi registration.
     fn enable_features(mut self, features: &[Feature]) -> Self {
         for x in features {
@@ -444,6 +451,21 @@ impl Eapi {
         self
     }
 
+    /// Update incremental variables during Eapi registration.
+    fn update_hooks(mut self, values: &[(PhaseKind, HookKind, Vec<Hook>)]) -> Self {
+        for (phase, kind, new_hooks) in values.iter() {
+            let hooks = self
+                .hooks
+                .entry(*phase)
+                .or_insert_with(HashMap::new)
+                .entry(*kind)
+                .or_insert_with(IndexSet::new);
+            hooks.extend(new_hooks.iter().cloned());
+            hooks.sort();
+        }
+        self
+    }
+
     /// Finalize remaining fields that depend on previous fields.
     fn finalize(mut self) -> Self {
         self.phases = self.operations.values().flatten().copied().collect();
@@ -499,10 +521,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
                 SrcUnpack.func(Some(eapi0::src_unpack)),
                 SrcCompile.func(Some(eapi0::src_compile)),
                 SrcTest.func(Some(eapi0::src_test)),
-                SrcInstall
-                    .func(None)
-                    .pre(pre_src_install)
-                    .post(post_src_install),
+                SrcInstall.func(None),
             ],
         )
         .register_operation(Install, [PkgPreinst.func(None), PkgPostinst.func(None)])
@@ -596,10 +615,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
                 SrcConfigure.func(Some(eapi2::src_configure)),
                 SrcCompile.func(Some(eapi2::src_compile)),
                 SrcTest.func(Some(eapi0::src_test)),
-                SrcInstall
-                    .func(None)
-                    .pre(pre_src_install)
-                    .post(post_src_install),
+                SrcInstall.func(None),
             ],
         )
         .finalize()
@@ -622,6 +638,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::builtins::Scopes::*;
+    use crate::shell::hooks::eapi4::HOOKS;
     use crate::shell::operations::Operation::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::BuildVariable::*;
@@ -637,10 +654,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
         ])
         .disable_features(&[RdependDefault])
         .register_operation(Pretend, [PkgPretend.func(None)])
-        .update_phases([SrcInstall
-            .func(Some(eapi4::src_install))
-            .pre(pre_src_install)
-            .post(post_src_install)])
+        .update_phases([SrcInstall.func(Some(eapi4::src_install))])
         .update_incremental_keys(&[Key::RequiredUse])
         .update_metadata_keys(&[Key::RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
@@ -650,6 +664,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             (REPLACED_BY_VERSION, &[Phase(PkgPrerm), Phase(PkgPostrm)]),
         ])
         .disable_env(&[AA, KV])
+        .update_hooks(&HOOKS)
         .finalize()
 });
 
@@ -673,10 +688,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
         .enable_features(&[NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
         .update_phases([
             SrcPrepare.func(Some(eapi6::src_prepare)),
-            SrcInstall
-                .func(Some(eapi6::src_install))
-                .pre(pre_src_install)
-                .post(post_src_install),
+            SrcInstall.func(Some(eapi6::src_install)),
         ])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
@@ -688,6 +700,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::builtins::Scopes::*;
+    use crate::shell::hooks::eapi7::HOOKS;
     use crate::shell::phase::PhaseKind::*;
     use crate::shell::BuildVariable::*;
     use Feature::*;
@@ -703,6 +716,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
             (BROOT, &[Src, Phase(PkgSetup)]),
         ])
         .disable_env(&[PORTDIR, ECLASSDIR, DESTTREE, INSDESTTREE])
+        .update_hooks(&HOOKS)
         .finalize()
 });
 

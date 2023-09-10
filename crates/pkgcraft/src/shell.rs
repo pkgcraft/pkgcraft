@@ -25,6 +25,7 @@ use crate::traits::SourceBash;
 use crate::types::Deque;
 
 pub mod builtins;
+pub(crate) mod hooks;
 mod install;
 pub(crate) mod metadata;
 pub(crate) mod operations;
@@ -476,6 +477,8 @@ fn update_build(state: BuildData<'static>) {
 
     *build = state;
 }
+
+type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 /// Initialize bash for library usage.
 pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
