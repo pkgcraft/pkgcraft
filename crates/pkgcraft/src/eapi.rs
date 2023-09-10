@@ -452,15 +452,15 @@ impl Eapi {
     }
 
     /// Update incremental variables during Eapi registration.
-    fn update_hooks(mut self, values: &[(PhaseKind, HookKind, Vec<Hook>)]) -> Self {
-        for (phase, kind, new_hooks) in values.iter() {
+    fn update_hooks(mut self, values: &[Hook]) -> Self {
+        for hook in values {
             let hooks = self
                 .hooks
-                .entry(*phase)
+                .entry(hook.phase)
                 .or_insert_with(HashMap::new)
-                .entry(*kind)
+                .entry(hook.kind)
                 .or_insert_with(IndexSet::new);
-            hooks.extend(new_hooks.iter().cloned());
+            hooks.insert(hook.clone());
             hooks.sort();
         }
         self

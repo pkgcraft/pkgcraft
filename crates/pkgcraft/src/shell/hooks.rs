@@ -5,6 +5,7 @@ use scallop::builtins::ExecStatus;
 use crate::macros::cmp_not_equal;
 use crate::shell::BuildData;
 
+use super::phase::PhaseKind;
 use super::BuildFn;
 
 pub(crate) mod eapi4;
@@ -18,10 +19,12 @@ pub(crate) enum HookKind {
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub(crate) struct Hook {
-    name: String,
-    func: BuildFn,
-    priority: usize,
-    parallel: bool,
+    pub(crate) phase: PhaseKind,
+    pub(crate) kind: HookKind,
+    pub(crate) name: String,
+    pub(crate) func: BuildFn,
+    pub(crate) priority: usize,
+    pub(crate) parallel: bool,
 }
 
 impl Ord for Hook {
@@ -39,16 +42,6 @@ impl PartialOrd for Hook {
 }
 
 impl Hook {
-    /// Create a new hook.
-    pub(crate) fn new(name: &str, func: BuildFn, priority: usize, parallel: bool) -> Self {
-        Self {
-            name: name.to_string(),
-            func,
-            priority,
-            parallel,
-        }
-    }
-
     pub(crate) fn run(&self, build: &mut BuildData) -> scallop::Result<ExecStatus> {
         (self.func)(build)
     }

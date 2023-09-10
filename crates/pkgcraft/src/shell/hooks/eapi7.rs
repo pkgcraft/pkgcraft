@@ -1,15 +1,15 @@
 use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
 
-use crate::shell::phase::PhaseKind;
+use crate::shell::phase::PhaseKind::*;
 use crate::shell::BuildData;
 
-use super::{Hook, HookKind};
+use super::Hook;
 
-pub(crate) static HOOKS: Lazy<Vec<(PhaseKind, HookKind, Vec<Hook>)>> = Lazy::new(|| {
+pub(crate) static HOOKS: Lazy<Vec<Hook>> = Lazy::new(|| {
     [
-        (PhaseKind::SrcInstall, HookKind::Pre, vec![Hook::new("dostrip", dostrip_pre, 0, false)]),
-        (PhaseKind::SrcInstall, HookKind::Post, vec![Hook::new("dostrip", dostrip_post, 0, false)]),
+        SrcInstall.pre("dostrip", dostrip_pre, 0, false),
+        SrcInstall.post("dostrip", dostrip_post, 0, false),
     ]
     .into_iter()
     .collect()

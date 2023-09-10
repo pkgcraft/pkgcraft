@@ -8,7 +8,7 @@ use scallop::functions;
 use strum::{AsRefStr, Display, EnumIter};
 
 use super::builtins::{emake::run as emake, Scope};
-use super::hooks::HookKind;
+use super::hooks::{Hook, HookKind};
 use super::utils::makefile_exists;
 use super::{get_build_mut, BuildData, BuildFn, BASH};
 
@@ -52,6 +52,30 @@ impl PhaseKind {
     /// Create a phase function that runs an optional, internal function by default.
     pub(crate) fn func(self, func: Option<BuildFn>) -> Phase {
         Phase { kind: self, func }
+    }
+
+    /// Create a new pre-phase hook.
+    pub(crate) fn pre(self, name: &str, func: BuildFn, priority: usize, parallel: bool) -> Hook {
+        Hook {
+            phase: self,
+            kind: HookKind::Pre,
+            name: name.to_string(),
+            func,
+            priority,
+            parallel,
+        }
+    }
+
+    /// Create a new post-phase hook.
+    pub(crate) fn post(self, name: &str, func: BuildFn, priority: usize, parallel: bool) -> Hook {
+        Hook {
+            phase: self,
+            kind: HookKind::Post,
+            name: name.to_string(),
+            func,
+            priority,
+            parallel,
+        }
     }
 }
 
