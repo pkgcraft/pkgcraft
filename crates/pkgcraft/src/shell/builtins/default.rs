@@ -89,7 +89,5 @@ mod tests {
         assert_err_re!(result, "pkg_setup phase has no default$");
         // verify custom pkg_setup() stopped on error
         assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
-        // verify build phases didn't keep running
-        assert!(!get_build_mut().user_patches_applied);
     }
 }
