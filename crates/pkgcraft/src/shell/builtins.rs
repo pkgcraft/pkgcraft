@@ -6,7 +6,7 @@ use std::{cmp, fmt};
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
-use scallop::builtins::{Builtin, ExecStatus};
+use scallop::builtins::ExecStatus;
 use strum::IntoEnumIterator;
 
 use crate::{eapi, eapi::Eapi};
@@ -115,19 +115,19 @@ mod ver_rs;
 mod ver_test;
 
 #[derive(Debug)]
-pub(super) struct PkgBuiltin {
-    builtin: Builtin,
+pub(super) struct Builtin {
+    builtin: scallop::builtins::Builtin,
     scope: IndexMap<&'static Eapi, HashSet<Scope>>,
 }
 
-impl From<&PkgBuiltin> for Builtin {
-    fn from(b: &PkgBuiltin) -> Self {
+impl From<&Builtin> for scallop::builtins::Builtin {
+    fn from(b: &Builtin) -> Self {
         b.builtin
     }
 }
 
-impl PkgBuiltin {
-    fn new(builtin: Builtin, scopes: &[(&str, &[Scopes])]) -> Self {
+impl Builtin {
+    fn new(builtin: scallop::builtins::Builtin, scopes: &[(&str, &[Scopes])]) -> Self {
         let mut scope = IndexMap::new();
         for (range, scopes) in scopes.iter() {
             let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter()).collect();
@@ -140,7 +140,7 @@ impl PkgBuiltin {
                 }
             }
         }
-        PkgBuiltin { builtin, scope }
+        Builtin { builtin, scope }
     }
 
     /// Run a builtin if it's enabled for the current build state.
@@ -172,45 +172,45 @@ impl PkgBuiltin {
     }
 }
 
-impl AsRef<str> for PkgBuiltin {
+impl AsRef<str> for Builtin {
     fn as_ref(&self) -> &str {
         self.builtin.name
     }
 }
 
-impl Eq for PkgBuiltin {}
+impl Eq for Builtin {}
 
-impl PartialEq for PkgBuiltin {
+impl PartialEq for Builtin {
     fn eq(&self, other: &Self) -> bool {
         self.builtin.name == other.builtin.name
     }
 }
 
-impl Hash for PkgBuiltin {
+impl Hash for Builtin {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.builtin.name.hash(state);
     }
 }
 
-impl Ord for PkgBuiltin {
+impl Ord for Builtin {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.builtin.name.cmp(other.builtin.name)
     }
 }
 
-impl PartialOrd for PkgBuiltin {
+impl PartialOrd for Builtin {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Borrow<str> for &PkgBuiltin {
+impl Borrow<str> for &Builtin {
     fn borrow(&self) -> &str {
         self.builtin.name
     }
 }
 
-impl fmt::Display for PkgBuiltin {
+impl fmt::Display for Builtin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.as_ref())
     }
@@ -273,7 +273,7 @@ impl Scopes {
     }
 }
 
-pub(super) static BUILTINS: Lazy<HashSet<&PkgBuiltin>> = Lazy::new(|| {
+pub(super) static BUILTINS: Lazy<HashSet<&Builtin>> = Lazy::new(|| {
     [
         &*adddeny::BUILTIN,
         &*addpredict::BUILTIN,
@@ -460,9 +460,8 @@ macro_rules! make_builtin {
         use std::ffi::c_int;
 
         use once_cell::sync::Lazy;
-        use scallop::builtins::Builtin;
 
-        use $crate::shell::builtins::{handle_error, PkgBuiltin};
+        use $crate::shell::builtins::{handle_error, Builtin};
 
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> c_int {
@@ -481,8 +480,8 @@ macro_rules! make_builtin {
             i32::from(ret)
         }
 
-        pub(super) static BUILTIN: Lazy<PkgBuiltin> = Lazy::new(|| {
-            let builtin = Builtin {
+        pub(super) static BUILTIN: Lazy<Builtin> = Lazy::new(|| {
+            let builtin = scallop::builtins::Builtin {
                 name: $name,
                 func: $func,
                 cfunc: $func_name,
@@ -490,14 +489,14 @@ macro_rules! make_builtin {
                 usage: $usage,
             };
 
-            PkgBuiltin::new(builtin, $scope)
+            Builtin::new(builtin, $scope)
         });
     };
 }
 use make_builtin;
 
 #[cfg(test)]
-fn assert_invalid_args(func: ::scallop::builtins::BuiltinFn, nums: &[u32]) {
+fn assert_invalid_args(func: scallop::builtins::BuiltinFn, nums: &[u32]) {
     for n in nums {
         let args: Vec<String> = (0..*n).map(|n| n.to_string()).collect();
         let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
