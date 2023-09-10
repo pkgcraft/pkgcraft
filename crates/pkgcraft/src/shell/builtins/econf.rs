@@ -124,17 +124,18 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::command::last_command;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::{assert_err_re, build_from_paths};
     use crate::shell::{BuildData, Scope};
 
     use super::super::builtin_scope_tests;
-    use super::PKG_BUILTIN as econf;
+    use super::run as econf;
     use super::*;
 
     builtin_scope_tests!(USAGE);
 
     fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
-        econf.run(args).unwrap();
+        econf(args).unwrap();
         let cmd = last_command().unwrap();
         cmd[1..]
             .iter()
@@ -148,7 +149,7 @@ mod tests {
     #[test]
     fn nonexistent() {
         get_build_mut().scope = Scope::Phase(SrcConfigure);
-        assert_err_re!(econf.run(&[]), "^nonexistent configure .*$");
+        assert_err_re!(econf(&[]), "^nonexistent configure .*$");
     }
 
     #[test]
@@ -158,7 +159,7 @@ mod tests {
         let configure = dir.path().join("configure");
         File::create(configure).unwrap();
         env::set_current_dir(&dir).unwrap();
-        assert_err_re!(econf.run(&[]), "^nonexecutable configure .*$");
+        assert_err_re!(econf(&[]), "^nonexecutable configure .*$");
     }
 
     #[test]
@@ -173,7 +174,7 @@ mod tests {
         bind("PF", "pkg-1", None, None).unwrap();
 
         // verify EAPI specific options are added
-        for eapi in econf.scope.keys() {
+        for eapi in EAPIS_OFFICIAL.iter() {
             BuildData::empty(eapi);
             if !eapi.econf_options().is_empty() {
                 let opts = get_opts(&[]);
