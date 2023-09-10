@@ -24,7 +24,7 @@ pub(crate) static HOOKS: Lazy<Vec<(PhaseKind, HookKind, Vec<Hook>)>> = Lazy::new
 });
 
 /// Set docompress include/exclude defaults for supported EAPIs.
-pub(crate) fn docompress_pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
+fn docompress_pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     let docompress_include_defaults = ["/usr/share/doc", "/usr/share/info", "/usr/share/man"]
         .into_iter()
         .map(String::from);
@@ -34,7 +34,7 @@ pub(crate) fn docompress_pre(build: &mut BuildData) -> scallop::Result<ExecStatu
     Ok(ExecStatus::Success)
 }
 
-pub(crate) fn docompress_post(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
+fn docompress_post(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // TODO: perform docompress operation
     Ok(ExecStatus::Success)
 }

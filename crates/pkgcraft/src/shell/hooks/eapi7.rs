@@ -15,13 +15,13 @@ pub(crate) static HOOKS: Lazy<Vec<(PhaseKind, HookKind, Vec<Hook>)>> = Lazy::new
     .collect()
 });
 
-pub(crate) fn dostrip_pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
+fn dostrip_pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // TODO: conditionalize based on RESTRICT value
     build.strip_include.insert("/".to_string());
     Ok(ExecStatus::Success)
 }
 
-pub(crate) fn dostrip_post(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
+fn dostrip_post(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // TODO: perform dostrip operation
     Ok(ExecStatus::Success)
 }
