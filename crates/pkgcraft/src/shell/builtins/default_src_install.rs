@@ -47,18 +47,18 @@ mod tests {
     fn valid_phase() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let data = indoc::formatdoc! {r#"
+        let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing default_src_install command"
             SLOT=0
             VAR=1
-            DOCS=( "${{FILESDIR}}"/readme )
-            src_install() {{
+            DOCS=( "${FILESDIR}"/readme )
+            src_install() {
                 default_src_install
                 VAR=2
-            }}
+            }
         "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
 
         // create docs file
         let filesdir = pkg.abspath().parent().unwrap().join("files");
@@ -83,17 +83,17 @@ mod tests {
     fn invalid_phase() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let data = indoc::formatdoc! {r#"
+        let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing default_src_install command"
             SLOT=0
             VAR=1
-            pkg_setup() {{
+            pkg_setup() {
                 default_src_install
                 VAR=2
-            }}
+            }
         "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
         BuildData::from_pkg(&pkg);
         let r = pkg.build();
         assert_err_re!(r, "pkg_setup scope doesn't enable command: default_src_install$");

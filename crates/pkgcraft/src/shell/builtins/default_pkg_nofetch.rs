@@ -45,17 +45,17 @@ mod tests {
     fn invalid_phase() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let data = indoc::formatdoc! {r#"
+        let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing default_pkg_nofetch command"
             SLOT=0
             VAR=1
-            pkg_setup() {{
+            pkg_setup() {
                 default_pkg_nofetch
                 VAR=2
-            }}
+            }
         "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
         BuildData::from_pkg(&pkg);
         let result = pkg.build();
         assert_err_re!(result, "pkg_setup scope doesn't enable command: default_pkg_nofetch$");

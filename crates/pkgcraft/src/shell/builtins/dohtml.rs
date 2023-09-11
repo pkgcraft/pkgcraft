@@ -203,7 +203,7 @@ mod tests {
 
         // defaults
         dohtml(&["-V", "index.html"]).unwrap();
-        let s = indoc::formatdoc! {r#"
+        let s = indoc::indoc! {r#"
             dohtml:
               recursive: false
               verbose: true
@@ -217,7 +217,7 @@ mod tests {
 
         // extra options
         dohtml(&["-V", "-A", "svg,tiff", "-p", "docs", "index.html"]).unwrap();
-        let s = indoc::formatdoc! {r#"
+        let s = indoc::indoc! {r#"
             dohtml:
               recursive: false
               verbose: true
