@@ -5,7 +5,6 @@ use glob::glob;
 use scallop::builtins::ExecStatus;
 use scallop::variables::var_to_vec;
 use scallop::Error;
-use tracing::warn;
 
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
@@ -50,9 +49,9 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<P
             .collect();
         let paths = paths?;
 
-        // output warnings for unmatched patterns when running against non-default input
-        if !force && paths.is_empty() {
-            warn!("unmatched docs glob: {f}");
+        // unmatched patterns cause errors for non-default input
+        if force && paths.is_empty() {
+            return Err(Error::Base(format!("unmatched docs: {f}")));
         }
 
         files.extend(paths.into_iter().filter(|p| force || has_data(force, p)));
@@ -121,6 +120,7 @@ mod tests {
     use scallop::source;
 
     use crate::config::Config;
+    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
@@ -231,6 +231,11 @@ mod tests {
             path = "/usr/share/doc/pkg-1/subdir/README"
         "#,
         );
+
+        // unmatched file
+        source::string("DOCS=( readme )").unwrap();
+        let r = einstalldocs(&[]);
+        assert_err_re!(r, "^unmatched docs: readme$");
     }
 
     #[test]
@@ -258,6 +263,11 @@ mod tests {
             path = "/usr/share/doc/pkg-1/subdir/README"
         "#,
         );
+
+        // unmatched file
+        source::string("DOCS=\"readme\"").unwrap();
+        let r = einstalldocs(&[]);
+        assert_err_re!(r, "^unmatched docs: readme$");
     }
 
     #[test]
@@ -285,6 +295,11 @@ mod tests {
             path = "/usr/share/doc/pkg-1/html/subdir/b.html"
         "#,
         );
+
+        // unmatched file
+        source::string("HTML_DOCS=( readme.html )").unwrap();
+        let r = einstalldocs(&[]);
+        assert_err_re!(r, "^unmatched docs: readme.html$");
     }
 
     #[test]
@@ -312,5 +327,10 @@ mod tests {
             path = "/usr/share/doc/pkg-1/html/subdir/b.html"
         "#,
         );
+
+        // unmatched file
+        source::string("HTML_DOCS=\"readme.html\"").unwrap();
+        let r = einstalldocs(&[]);
+        assert_err_re!(r, "^unmatched docs: readme.html$");
     }
 }
