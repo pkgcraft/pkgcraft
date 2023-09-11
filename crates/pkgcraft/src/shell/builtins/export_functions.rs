@@ -1,6 +1,11 @@
+use std::str::FromStr;
+
 use scallop::builtins::ExecStatus;
 use scallop::variables;
 use scallop::{source, Error};
+
+use crate::shell::get_build_mut;
+use crate::shell::phase::PhaseKind;
 
 use super::{make_builtin, Scopes::Eclass};
 
@@ -23,8 +28,19 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // of the most recent `inherit` call scope since `EXPORT_FUNCTIONS` is allowed to be used
     // anywhere in an eclass including before the related functions are defined.
 
-    for func in args {
-        source::string(format!("{func}() {{ {eclass}_{func} \"$@\"; }}"))?;
+    let eapi = get_build_mut().eapi();
+    let phases = eapi.phases();
+
+    for arg in args {
+        if let Ok(phase) = PhaseKind::from_str(arg) {
+            if phases.contains(&phase) {
+                source::string(format!("{phase}() {{ {eclass}_{phase} \"$@\"; }}"))?;
+            } else {
+                return Err(Error::Base(format!("{phase} phase undefined in EAPI {eapi}")));
+            }
+        } else {
+            return Err(Error::Base(format!("invalid phase: {arg}")));
+        }
     }
 
     Ok(ExecStatus::Success)

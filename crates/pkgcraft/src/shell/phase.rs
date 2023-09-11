@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
 use scallop::functions;
-use strum::{AsRefStr, Display, EnumIter};
+use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::builtins::{emake::run as emake, Scope};
 use super::hooks::{Hook, HookKind};
@@ -28,7 +28,20 @@ fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-#[derive(AsRefStr, Display, EnumIter, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
+#[derive(
+    AsRefStr,
+    Display,
+    EnumIter,
+    EnumString,
+    Debug,
+    PartialEq,
+    Eq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Copy,
+    Clone,
+)]
 #[strum(serialize_all = "snake_case")]
 pub(crate) enum PhaseKind {
     PkgConfig,
