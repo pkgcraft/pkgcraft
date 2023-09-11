@@ -66,7 +66,7 @@ mod tests {
         fs::write(filesdir.join("readme"), "data").unwrap();
 
         BuildData::from_pkg(&pkg);
-        let file_tree = FileTree::new_build();
+        let file_tree = FileTree::new();
         pkg.build().unwrap();
         // verify default src_install() was run
         file_tree.assert(
