@@ -391,11 +391,6 @@ pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedCpv> {
     depspec::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s}"), s, e))
 }
 
-#[cached(
-    type = "SizedCache<String, crate::Result<Cpv>>",
-    create = "{ SizedCache::with_size(1000) }",
-    convert = r#"{ s.to_string() }"#
-)]
 pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
     let mut cpv = cpv_str(s)?;
     cpv.version_str = s;
