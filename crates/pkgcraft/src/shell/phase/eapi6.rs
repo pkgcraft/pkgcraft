@@ -113,4 +113,36 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn src_install() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        for eapi in eapi::range("6..").unwrap() {
+            for (s1, s2) in [("( a.txt )", "( a.html )"), ("\"a.txt\"", "\"a.html\"")] {
+                let data = indoc::formatdoc! {r#"
+                    EAPI={eapi}
+                    DESCRIPTION="src_install installing docs"
+                    SLOT=0
+                    DOCS={s1}
+                    HTML_DOCS={s2}
+                "#};
+                let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                BuildData::from_pkg(&pkg);
+                let file_tree = FileTree::new();
+                fs::write("a.txt", "data").unwrap();
+                fs::write("a.html", "data").unwrap();
+                pkg.build().unwrap();
+                file_tree.assert(
+                    r#"
+                    [[files]]
+                    path = "/usr/share/doc/pkg-1/a.txt"
+                    [[files]]
+                    path = "/usr/share/doc/pkg-1/html/a.html"
+                "#,
+                );
+            }
+        }
+    }
 }
