@@ -485,13 +485,18 @@ impl Repo {
 
         let path = self.metadata().cache_path();
         if path.exists() {
-            // remove outdated cache entries lacking matching ebuilds
-            WalkDir::new(path)
+            // TODO: replace with parallelized cache iterator
+            let entries: Vec<_> = WalkDir::new(path)
                 .min_depth(2)
                 .max_depth(2)
                 .into_iter()
-                .filter_entry(|e| is_file(e) && !is_hidden(e))
+                .collect();
+
+            // remove outdated cache entries lacking matching ebuilds in parallel
+            entries
+                .into_par_iter()
                 .filter_map(|e| e.ok())
+                .filter(|e| is_file(e) && !is_hidden(e))
                 .try_for_each(|e| {
                     e.path()
                         .strip_prefix(path)
