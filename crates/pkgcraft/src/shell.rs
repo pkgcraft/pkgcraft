@@ -609,4 +609,27 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn rdepend_default() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        for eapi in EAPIS.iter() {
+            let data = indoc::formatdoc! {r#"
+                EAPI={eapi}
+                DESCRIPTION="testing RDEPEND=DEPEND fallback support"
+                SLOT=0
+                DEPEND="a/b"
+            "#};
+            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+            BuildData::from_raw_pkg(&raw_pkg);
+            raw_pkg.source().unwrap();
+            if eapi.has(Feature::RdependDefault) {
+                assert_eq!(variables::optional("RDEPEND").unwrap(), "a/b");
+            } else {
+                assert!(variables::optional("RDEPEND").is_none());
+            }
+        }
+    }
 }
