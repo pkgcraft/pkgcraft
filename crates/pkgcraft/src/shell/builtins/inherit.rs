@@ -1,7 +1,7 @@
 use itertools::{Either, Itertools};
 use scallop::builtins::ExecStatus;
 use scallop::variables::{ScopedVariable, Variable, Variables};
-use scallop::{source, Error};
+use scallop::{functions, source, Error};
 
 use crate::shell::get_build_mut;
 use crate::types::Deque;
@@ -96,6 +96,16 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // restore the original scope for non-nested contexts
     if orig_scope != Scope::Eclass {
         build.scope = orig_scope;
+
+        // create aliases for EXPORT_FUNCTIONS calls
+        for (phase, eclass) in build.export_functions.drain(..) {
+            let func = format!("{eclass}_{phase}");
+            if functions::find(&func).is_some() {
+                source::string(format!("{phase}() {{ {func} \"$@\"; }}"))?;
+            } else {
+                return Err(Error::Base(format!("{eclass}: undefined phase function: {func}")));
+            }
+        }
     }
 
     Ok(ExecStatus::Success)

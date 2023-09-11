@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use scallop::builtins::ExecStatus;
 use scallop::variables;
-use scallop::{source, Error};
+use scallop::Error;
 
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind;
@@ -23,18 +23,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let eclass = variables::required("ECLASS")?;
-
-    // TODO: Verifying phase function existence would require "buffering" this call until the end
-    // of the most recent `inherit` call scope since `EXPORT_FUNCTIONS` is allowed to be used
-    // anywhere in an eclass including before the related functions are defined.
-
-    let eapi = get_build_mut().eapi();
+    let build = get_build_mut();
+    let eapi = build.eapi();
     let phases = eapi.phases();
 
     for arg in args {
         if let Ok(phase) = PhaseKind::from_str(arg) {
             if phases.contains(&phase) {
-                source::string(format!("{phase}() {{ {eclass}_{phase} \"$@\"; }}"))?;
+                build.export_functions.insert(phase, eclass.clone());
             } else {
                 return Err(Error::Base(format!("{phase} phase undefined in EAPI {eapi}")));
             }
@@ -156,5 +152,30 @@ mod tests {
         let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         let r = raw_pkg.source();
         assert_err_re!(r, "src_prepare phase undefined in EAPI 0$");
+    }
+
+    #[test]
+    fn undefined_phase() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        // create eclass
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            EXPORT_FUNCTIONS src_compile src_configure
+
+            e1_src_compile() { :; }
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            inherit e1
+            DESCRIPTION="testing EXPORT_FUNCTIONS support"
+            SLOT=0
+        "#};
+        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        let r = raw_pkg.source();
+        assert_err_re!(r, "e1: undefined phase function: e1_src_configure$");
     }
 }

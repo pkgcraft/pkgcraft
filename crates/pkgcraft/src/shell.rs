@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::{self, Read, Write};
 use std::{env, mem};
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nix::unistd::isatty;
 use once_cell::sync::Lazy;
@@ -195,11 +195,12 @@ pub(crate) struct BuildData<'a> {
     exeopts: Vec<String>,
     libopts: Vec<String>,
 
-    // TODO: add default values listed in the spec
     compress_include: HashSet<String>,
     compress_exclude: HashSet<String>,
     strip_include: HashSet<String>,
     strip_exclude: HashSet<String>,
+
+    export_functions: IndexMap<phase::PhaseKind, String>,
 
     /// set of directly inherited eclasses
     inherit: IndexSet<String>,
