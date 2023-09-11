@@ -539,7 +539,7 @@ mod tests {
     use scallop::variables;
 
     use crate::config::Config;
-    use crate::eapi::EAPIS;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkg::SourceablePackage;
 
@@ -592,7 +592,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        for eapi in EAPIS.iter() {
+        for eapi in EAPIS_OFFICIAL.iter() {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
                 DESCRIPTION="testing global failglob support"
@@ -615,7 +615,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        for eapi in EAPIS.iter() {
+        for eapi in EAPIS_OFFICIAL.iter() {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
                 DESCRIPTION="testing RDEPEND=DEPEND fallback support"
