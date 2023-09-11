@@ -44,6 +44,19 @@ impl FileTree {
         FileTree { _tmp_dir: tmp_dir, install_dir }
     }
 
+    pub(crate) fn new_build() -> Self {
+        let tmp_dir = tempdir().unwrap();
+        let path = PathBuf::from(tmp_dir.path());
+        let install_dir = path.join("image");
+
+        crate::shell::get_build_mut()
+            .env
+            .insert("ED".into(), install_dir.to_str().unwrap().into());
+
+        fs::create_dir(&install_dir).unwrap();
+        FileTree { _tmp_dir: tmp_dir, install_dir }
+    }
+
     pub(crate) fn wipe(&self) {
         fs::remove_dir_all(&self.install_dir).unwrap();
         fs::create_dir(&self.install_dir).unwrap();
