@@ -843,8 +843,12 @@ impl Restriction<&'static Eapi> for Restrict {
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use crate::macros::assert_err_re;
-    use crate::test::assert_ordered_eq;
+    use crate::pkg::{BuildablePackage, Package};
+    use crate::shell::{test::FileTree, BuildData};
+    use crate::test::{assert_ordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -928,5 +932,51 @@ mod tests {
         assert_ordered_eq(range("1..2").unwrap(), [&*EAPI1]);
         assert_ordered_eq(range("1..=2").unwrap(), [&*EAPI1, &*EAPI2]);
         assert_ordered_eq(range("..=2").unwrap(), [&*EAPI0, &*EAPI1, &*EAPI2]);
+    }
+
+    #[test]
+    fn pms() {
+        let repo = TEST_DATA.ebuild_repo("pms").unwrap();
+        let mut config = TEST_DATA.config.clone();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        // iterate over all pkgs in the repo, testing each build for all EAPIs
+        for raw_pkg in repo.iter_raw() {
+            let data = raw_pkg.data();
+            let eapis = data
+                .lines()
+                .nth(1)
+                .unwrap()
+                .strip_prefix("EAPIS_SUPPORTED=")
+                .unwrap();
+            let supported_eapis: IndexSet<_> = range(eapis).unwrap().collect();
+            for eapi in EAPIS.iter() {
+                let data = indoc::formatdoc! {r#"
+                    EAPI={eapi}
+                    EAPIS_SUPPORTED="{}"
+                    {}
+                "#,
+                supported_eapis.iter().map(|e| e.to_string()).join(" "),
+                raw_pkg.data().lines().skip(2).join("\n")};
+
+                let pkg = t
+                    .create_pkg_from_str(&raw_pkg.cpv().to_string(), &data)
+                    .unwrap();
+                BuildData::from_pkg(&pkg);
+                let file_tree = FileTree::new();
+                let result = pkg.build();
+
+                if supported_eapis.contains(eapi) {
+                    if let Some(s) = scallop::variables::optional("FILES_PASS") {
+                        file_tree.assert(s);
+                    }
+                    assert!(result.is_ok(), "{}", result.unwrap_err());
+                } else if let Some(s) = scallop::variables::optional("FILES_FAIL") {
+                    file_tree.assert(s);
+                } else {
+                    assert!(result.is_err(), "{pkg}: EAPI {eapi}: build didn't fail");
+                }
+            }
+        }
     }
 }
