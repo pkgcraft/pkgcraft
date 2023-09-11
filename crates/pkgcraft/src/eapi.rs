@@ -950,7 +950,7 @@ mod tests {
                 .strip_prefix("EAPIS_SUPPORTED=")
                 .unwrap();
             let supported_eapis: IndexSet<_> = range(eapis).unwrap().collect();
-            for eapi in EAPIS.iter() {
+            for eapi in EAPIS_OFFICIAL.iter() {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
                     EAPIS_SUPPORTED="{}"
