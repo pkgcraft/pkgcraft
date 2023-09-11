@@ -539,6 +539,7 @@ mod tests {
     use scallop::variables;
 
     use crate::config::Config;
+    use crate::eapi::EAPIS;
     use crate::macros::assert_err_re;
     use crate::pkg::SourceablePackage;
 
@@ -584,5 +585,28 @@ mod tests {
         let r = raw_pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
+    }
+
+    #[test]
+    fn failglob() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        for eapi in EAPIS.iter() {
+            let data = indoc::formatdoc! {r#"
+                EAPI={eapi}
+                DESCRIPTION="testing global failglob support"
+                SLOT=0
+                DOCS=( nonexistent* )
+            "#};
+            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+            BuildData::from_raw_pkg(&raw_pkg);
+            let r = raw_pkg.source();
+            if eapi.has(Feature::GlobalFailglob) {
+                assert_err_re!(r, "invalid pkg: cat/pkg-1::test: .+: no match: nonexistent\\*$");
+            } else {
+                assert!(r.is_ok());
+            }
+        }
     }
 }
