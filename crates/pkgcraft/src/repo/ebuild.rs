@@ -7,7 +7,7 @@ use std::{fmt, fs, io, iter, thread};
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
@@ -469,6 +469,8 @@ impl Repo {
 
         // use progress bar to show completion progress when outputting to a terminal
         let pb = ProgressBar::new(cpvs.len().try_into().unwrap());
+        let style = ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap();
+        pb.set_style(style);
 
         let path = self.metadata().cache_path();
         if path.exists() {
@@ -494,6 +496,7 @@ impl Repo {
 
             if !force {
                 // run cache validation in a thread pool
+                pb.set_message("validating metadata cache:");
                 cpvs = cpvs
                     .into_par_iter()
                     .filter(|cpv| {
@@ -511,6 +514,7 @@ impl Repo {
         // send Cpvs and iterate over returned results, tracking progress and errors
         let mut errors = 0;
         if !cpvs.is_empty() {
+            pb.set_message("generating metadata cache:");
             for r in pool.iter(cpvs.into_iter())? {
                 pb.inc(1);
 
