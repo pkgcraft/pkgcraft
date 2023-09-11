@@ -82,21 +82,11 @@ impl Borrow<OperationKind> for Operation {
     }
 }
 
-pub(crate) struct Iter<'a>(indexmap::set::Iter<'a, Phase>);
-
 impl<'a> IntoIterator for &'a Operation {
     type Item = &'a Phase;
-    type IntoIter = Iter<'a>;
+    type IntoIter = indexmap::set::Iter<'a, Phase>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter(self.phases.iter())
-    }
-}
-
-impl<'a> Iterator for Iter<'a> {
-    type Item = &'a Phase;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        self.phases.iter()
     }
 }
