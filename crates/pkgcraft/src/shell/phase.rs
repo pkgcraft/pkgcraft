@@ -31,21 +31,21 @@ fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
 #[derive(AsRefStr, Display, EnumIter, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub(crate) enum PhaseKind {
-    PkgSetup,
     PkgConfig,
     PkgInfo,
     PkgNofetch,
-    PkgPrerm,
+    PkgPostinst,
     PkgPostrm,
     PkgPreinst,
-    PkgPostinst,
+    PkgPrerm,
     PkgPretend,
-    SrcUnpack,
-    SrcPrepare,
-    SrcConfigure,
+    PkgSetup,
     SrcCompile,
-    SrcTest,
+    SrcConfigure,
     SrcInstall,
+    SrcPrepare,
+    SrcTest,
+    SrcUnpack,
 }
 
 impl PhaseKind {
@@ -79,7 +79,7 @@ impl PhaseKind {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialOrd, Ord)]
 pub(crate) struct Phase {
     kind: PhaseKind,
     func: Option<BuildFn>,
