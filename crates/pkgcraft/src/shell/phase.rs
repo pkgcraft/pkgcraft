@@ -85,6 +85,12 @@ pub(crate) struct Phase {
     func: Option<BuildFn>,
 }
 
+impl fmt::Debug for Phase {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Phase {{ {}: {:?} }}", self.kind, self.func)
+    }
+}
+
 impl<T: Borrow<Phase>> From<T> for PhaseKind {
     fn from(phase: T) -> PhaseKind {
         phase.borrow().kind
