@@ -62,6 +62,7 @@ mod tests {
     use scallop::variables::optional;
 
     use crate::config::Config;
+    use crate::macros::assert_err_re;
     use crate::pkg::SourceablePackage;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -86,7 +87,7 @@ mod tests {
             EXPORT_FUNCTIONS src_compile
 
             e1_src_compile() {
-                VAR=2
+                VAR=1
             }
         "#};
         t.create_eclass("e1", eclass).unwrap();
@@ -103,6 +104,57 @@ mod tests {
         // verify the function runs
         assert!(optional("VAR").is_none());
         func.execute(&[]).unwrap();
-        assert_eq!(optional("VAR").unwrap(), "2");
+        assert_eq!(optional("VAR").unwrap(), "1");
+    }
+
+    #[test]
+    fn invalid_phase() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        // create eclass
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            EXPORT_FUNCTIONS src_compile invalid_phase
+
+            e1_src_compile() { :; }
+            e1_invalid_phase() { :; }
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+
+        let data = indoc::indoc! {r#"
+            inherit e1
+            DESCRIPTION="testing EXPORT_FUNCTIONS support"
+            SLOT=0
+        "#};
+        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        let r = raw_pkg.source();
+        assert_err_re!(r, "invalid phase: invalid_phase$");
+    }
+
+    #[test]
+    fn invalid_phase_eapi() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        // create eclass
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            EXPORT_FUNCTIONS src_compile src_prepare
+
+            e1_src_compile() { :; }
+            e1_src_prepare() { :; }
+            }
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+
+        let data = indoc::indoc! {r#"
+            inherit e1
+            DESCRIPTION="testing EXPORT_FUNCTIONS support"
+            SLOT=0
+        "#};
+        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        let r = raw_pkg.source();
+        assert_err_re!(r, "src_prepare phase undefined in EAPI 0$");
     }
 }
