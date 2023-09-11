@@ -41,3 +41,41 @@ pub(crate) fn src_test(build: &mut BuildData) -> scallop::Result<ExecStatus> {
 
     Ok(ExecStatus::Success)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use crate::config::Config;
+    use crate::eapi;
+    use crate::pkg::BuildablePackage;
+    use crate::shell::test::FileTree;
+
+    use super::*;
+
+    #[test]
+    fn test_src_install() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        // default src_install is a no-op
+        for eapi in eapi::range("0..4").unwrap() {
+            for (s1, s2) in [("( a.txt )", "( a.html )"), ("\"a.txt\"", "\"a.html\"")] {
+                let data = indoc::formatdoc! {r#"
+                    EAPI={eapi}
+                    DESCRIPTION="src_install installing docs"
+                    SLOT=0
+                    DOCS={s1}
+                    HTML_DOCS={s2}
+                "#};
+                let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                BuildData::from_pkg(&pkg);
+                let file_tree = FileTree::new();
+                fs::write("a.txt", "data").unwrap();
+                fs::write("a.html", "data").unwrap();
+                pkg.build().unwrap();
+                assert!(file_tree.is_empty());
+            }
+        }
+    }
+}

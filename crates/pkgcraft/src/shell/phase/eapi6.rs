@@ -36,10 +36,11 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::BuildablePackage;
     use crate::shell::test::FileTree;
-    use crate::shell::BuildData;
+
+    use super::*;
 
     #[test]
-    fn src_prepare() {
+    fn test_src_prepare() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -115,10 +116,11 @@ mod tests {
     }
 
     #[test]
-    fn src_install() {
+    fn test_src_install() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
+        // default src_install handles DOCS and HTML_DOCS
         for eapi in eapi::range("6..").unwrap() {
             for (s1, s2) in [("( a.txt )", "( a.html )"), ("\"a.txt\"", "\"a.html\"")] {
                 let data = indoc::formatdoc! {r#"
