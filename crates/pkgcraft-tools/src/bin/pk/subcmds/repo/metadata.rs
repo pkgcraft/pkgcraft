@@ -1,3 +1,4 @@
+use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
 use clap::Args;
@@ -24,8 +25,9 @@ pub struct Command {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // run metadata regeneration displaying a progress bar if stdout is a terminal
+        let progress = stdout().is_terminal();
         for repo in target_ebuild_repos(config, &self.repos)? {
-            repo.pkg_metadata_regen(self.jobs, self.force)?;
+            repo.pkg_metadata_regen(self.jobs, self.force, progress)?;
         }
 
         Ok(ExitCode::SUCCESS)

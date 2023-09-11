@@ -85,7 +85,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_pkg_metadata_regen(
 ) -> bool {
     ffi_catch_panic! {
         let repo = try_repo_from_ptr!(r);
-        unwrap_or_panic!(repo.pkg_metadata_regen(Some(jobs), force));
+        unwrap_or_panic!(repo.pkg_metadata_regen(Some(jobs), force, false));
         true
     }
 }

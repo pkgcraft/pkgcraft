@@ -451,13 +451,26 @@ impl Repo {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen(&self, jobs: Option<usize>, force: bool) -> crate::Result<()> {
+    pub fn pkg_metadata_regen(
+        &self,
+        jobs: Option<usize>,
+        force: bool,
+        progress: bool,
+    ) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = RawPkg::new(cpv, self)?;
             pkg.metadata()
         };
         let pool = PoolSendIter::new(bounded_jobs(jobs), func, true)?;
+
+        // use progress bar to show completion progress if enabled
+        let pb = if progress {
+            ProgressBar::new(0)
+        } else {
+            ProgressBar::hidden()
+        };
+        pb.set_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
 
         // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
         // pull all package Cpvs from the repo
@@ -467,10 +480,8 @@ impl Repo {
             .flat_map(|s| self.category_cpvs(&s))
             .collect();
 
-        // use progress bar to show completion progress when outputting to a terminal
-        let pb = ProgressBar::new(cpvs.len().try_into().unwrap());
-        let style = ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap();
-        pb.set_style(style);
+        // set progression length encompassing all pkgs
+        pb.set_length(cpvs.len().try_into().unwrap());
 
         let path = self.metadata().cache_path();
         if path.exists() {
@@ -1187,7 +1198,7 @@ mod tests {
         "#};
         t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
 
-        repo.pkg_metadata_regen(Some(1), false).unwrap();
+        repo.pkg_metadata_regen(Some(1), false, false).unwrap();
 
         let metadata = indoc::indoc! {r"
             DEFINED_PHASES=-

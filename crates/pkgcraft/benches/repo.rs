@@ -45,13 +45,13 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
 
     c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {
-            let _ = repo.pkg_metadata_regen(None, true);
+            let _ = repo.pkg_metadata_regen(None, true, false);
         });
     });
 
     c.bench_function("repo-ebuild-metadata-regen-verify", |b| {
         b.iter(|| {
-            let _ = repo.pkg_metadata_regen(None, false);
+            let _ = repo.pkg_metadata_regen(None, false, false);
         });
     });
 }
