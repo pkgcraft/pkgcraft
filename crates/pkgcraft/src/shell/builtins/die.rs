@@ -14,14 +14,22 @@ Displays a failure message provided in an optional argument and then aborts the 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let args = match args.len() {
-        1 | 2 if get_build_mut().eapi().has(Feature::NonfatalDie) && args[0] == "-n" => {
-            if NONFATAL.load(Ordering::Relaxed) {
-                if args.len() == 2 {
-                    write_stderr!("{}\n", args[1])?;
+        1 | 2 if args[0] == "-n" => {
+            let eapi = get_build_mut().eapi();
+            if eapi.has(Feature::NonfatalDie) {
+                if NONFATAL.load(Ordering::Relaxed) {
+                    if args.len() == 2 {
+                        write_stderr!("{}\n", args[1])?;
+                    }
+                    return Ok(ExecStatus::Failure(1));
+                } else {
+                    return Err(Error::Base(
+                        "-n option requires running under nonfatal".to_string(),
+                    ));
                 }
-                return Ok(ExecStatus::Failure(1));
+            } else {
+                return Err(Error::Base(format!("-n option not supported in EAPI {eapi}")));
             }
-            &args[1..]
         }
         0 | 1 => args,
         n => return Err(Error::Base(format!("takes up to 1 arg, got {n}"))),
@@ -48,7 +56,7 @@ mod tests {
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::shell::phase::PhaseKind;
-    use crate::shell::{assert_stderr, BuildData, Scope};
+    use crate::shell::{assert_stderr, BuildData, BuildState, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as die;
@@ -104,7 +112,19 @@ mod tests {
     fn nonfatal() {
         bind("VAR", "1", None, None).unwrap();
 
-        get_build_mut().scope = Scope::Phase(PhaseKind::SrcInstall);
+        let build = get_build_mut();
+        build.scope = Scope::Phase(PhaseKind::SrcInstall);
+        build.state = BuildState::Empty(EAPIS_OFFICIAL[5]);
+
+        // `die -n` only works in supported EAPIs
+        let r = source::string("die -n");
+        assert_err_re!(r, r"^die: error: -n option not supported in EAPI 5");
+
+        build.state = BuildState::Empty(EAPIS_OFFICIAL.last().unwrap());
+
+        // `die -n` only works as expected when run with nonfatal
+        let r = source::string("die -n message");
+        assert_err_re!(r, r"^die: error: -n option requires running under nonfatal");
 
         // nonfatal requires `die -n` call
         let r = source::string("nonfatal die && VAR=2");
