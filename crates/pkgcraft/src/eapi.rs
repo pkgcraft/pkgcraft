@@ -351,14 +351,14 @@ impl Eapi {
     where
         I: IntoIterator<Item = Phase>,
     {
-        let phases: IndexSet<_> = phases.into_iter().collect();
+        let phases: Vec<_> = phases.into_iter().collect();
 
         // replace phases registered into operations with new phases
         self.operations = self
             .operations
             .into_iter()
             .map(|mut op| {
-                for phase in phases.iter() {
+                for phase in &phases {
                     op.phases.replace(*phase);
                 }
                 op
