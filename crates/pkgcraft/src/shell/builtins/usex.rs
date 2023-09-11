@@ -38,6 +38,7 @@ make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, &[("5..", &[Phases])])
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
+    use crate::pkg::BuildablePackage;
     use crate::shell::{assert_stdout, get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -89,6 +90,48 @@ mod tests {
         ] {
             usex(&args).unwrap();
             assert_stdout!(expected);
+        }
+    }
+
+    #[test]
+    fn subshell() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        for eapi in BUILTIN.scope.keys() {
+            let data = indoc::formatdoc! {r#"
+                EAPI={eapi}
+                DESCRIPTION="subshell usex success"
+                SLOT=0
+                IUSE="use1 use2"
+                pkg_setup() {{
+                    local disabled=$(usex use1)
+                    [[ ${{disabled}} == "no" ]] || die "usex failed disabled"
+                    local enabled=$(usex use2)
+                    [[ ${{enabled}} == "yes" ]] || die "usex failed enabled"
+                }}
+            "#};
+            let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            BuildData::from_pkg(&pkg);
+            get_build_mut().use_.insert("use2".to_string());
+            let r = pkg.build();
+            assert!(r.is_ok(), "{}", r.unwrap_err());
+
+            let data = indoc::formatdoc! {r#"
+                EAPI={eapi}
+                DESCRIPTION="subshell usex failure"
+                SLOT=0
+                IUSE="use1 use2"
+                VAR=1
+                pkg_setup() {{
+                    local disabled=$(usex)
+                    VAR=2
+                }}
+            "#};
+            let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            BuildData::from_pkg(&pkg);
+            let r = pkg.build();
+            assert_err_re!(r, "usex: error: requires 1 to 5 args, got 0$");
+            assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
         }
     }
 }
