@@ -50,11 +50,13 @@ mod tests {
     #[test]
     fn invalid_args() {
         // nonexistent
-        let r = new(&["bin", "pkgcraft"], newbin);
-        assert_err_re!(r, "^failed copying file \"bin\" .*$");
+        for f in ["pkgcraft", "pkgcraft/"] {
+            let r = new(&["bin", f], newbin);
+            assert_err_re!(r, "^failed copying file \"bin\" .*$");
+        }
 
         // filename contains path separator
-        for f in ["bin/pkgcraft", "/bin/pkgcraft", "/"] {
+        for f in ["bin/pkgcraft", "bin//pkgcraft", "/bin/pkgcraft", "/"] {
             let r = new(&["bin", f], newbin);
             assert_err_re!(r, format!("^invalid filename: {f:?}$"));
         }
