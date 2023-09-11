@@ -18,7 +18,7 @@ use crate::restrict::Restriction;
 use crate::shell::builtins::{Scope, Scopes};
 use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
-use crate::shell::operations::Operation;
+use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::{Phase, PhaseKind};
 use crate::shell::BuildVariable;
 use crate::Error;
@@ -131,7 +131,7 @@ pub struct Eapi {
     id: String,
     parent: Option<&'static Self>,
     features: IndexSet<Feature>,
-    operations: HashMap<Operation, IndexSet<Phase>>,
+    operations: IndexSet<Operation>,
     phases: IndexSet<Phase>,
     dep_keys: IndexSet<Key>,
     incremental_keys: IndexSet<Key>,
@@ -239,7 +239,7 @@ impl Eapi {
     }
 
     /// Return the ordered set of phases for a given operation.
-    pub(crate) fn operation(&self, op: Operation) -> crate::Result<&IndexSet<Phase>> {
+    pub(crate) fn operation(&self, op: OperationKind) -> crate::Result<&Operation> {
         self.operations
             .get(&op)
             .ok_or_else(|| Error::InvalidValue(format!("EAPI {self}: unknown operation: {op}")))
@@ -334,12 +334,15 @@ impl Eapi {
         self
     }
 
-    /// Register or update an operation during Eapi registration.
-    fn register_operation<I>(mut self, op: Operation, phases: I) -> Self
+    /// Update operations during Eapi registration.
+    fn update_operations<I>(mut self, operations: I) -> Self
     where
-        I: IntoIterator<Item = Phase>,
+        I: IntoIterator<Item = Operation>,
     {
-        self.operations.insert(op, phases.into_iter().collect());
+        for op in operations {
+            self.operations.replace(op);
+        }
+        self.operations.sort();
         self
     }
 
@@ -354,16 +357,13 @@ impl Eapi {
         self.operations = self
             .operations
             .into_iter()
-            .map(|(op, orig_phases)| {
-                let new_phases = orig_phases
-                    .iter()
-                    .map(|p| phases.get(p).unwrap_or(p))
-                    .copied()
-                    .collect();
-                (op, new_phases)
+            .map(|mut op| {
+                for phase in phases.iter() {
+                    op.phases.replace(*phase);
+                }
+                op
             })
             .collect();
-
         self
     }
 
@@ -468,7 +468,7 @@ impl Eapi {
 
     /// Finalize remaining fields that depend on previous fields.
     fn finalize(mut self) -> Self {
-        self.phases = self.operations.values().flatten().copied().collect();
+        self.phases = self.operations.iter().flatten().copied().collect();
         self.phases.sort();
         self
     }
@@ -508,37 +508,33 @@ impl FromStr for &'static Eapi {
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::builtins::Scopes::*;
-    use crate::shell::operations::Operation::*;
+    use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("0", None)
         .enable_features(&[RdependDefault, TrailingSlash])
-        .register_operation(
-            Build,
-            [
+        .update_operations([
+            Build.op([
                 PkgSetup.func(None),
                 SrcUnpack.func(Some(eapi0::src_unpack)),
                 SrcCompile.func(Some(eapi0::src_compile)),
                 SrcTest.func(Some(eapi0::src_test)),
                 SrcInstall.func(None),
-            ],
-        )
-        .register_operation(Install, [PkgPreinst.func(None), PkgPostinst.func(None)])
-        .register_operation(Uninstall, [PkgPrerm.func(None), PkgPostrm.func(None)])
-        .register_operation(
-            Replace,
-            [
+            ]),
+            Install.op([PkgPreinst.func(None), PkgPostinst.func(None)]),
+            Uninstall.op([PkgPrerm.func(None), PkgPostrm.func(None)]),
+            Replace.op([
                 PkgPreinst.func(None),
                 PkgPrerm.func(None),
                 PkgPostrm.func(None),
                 PkgPostinst.func(None),
-            ],
-        )
-        .register_operation(Config, [PkgConfig.func(None)])
-        .register_operation(Info, [PkgInfo.func(None)])
-        .register_operation(NoFetch, [PkgNofetch.func(None)])
+            ]),
+            Config.op([PkgConfig.func(None)]),
+            Info.op([PkgInfo.func(None)]),
+            NoFetch.op([PkgNofetch.func(None)]),
+        ])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_mandatory_keys(&[Key::Description, Key::Slot])
@@ -601,24 +597,21 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::operations::Operation::*;
+    use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use Feature::*;
 
     Eapi::new("2", Some(&EAPI1))
         .enable_features(&[Blockers, DomanLangDetect, UseDeps, SrcUriRenames])
-        .register_operation(
-            Build,
-            [
-                PkgSetup.func(None),
-                SrcUnpack.func(Some(eapi0::src_unpack)),
-                SrcPrepare.func(None),
-                SrcConfigure.func(Some(eapi2::src_configure)),
-                SrcCompile.func(Some(eapi2::src_compile)),
-                SrcTest.func(Some(eapi0::src_test)),
-                SrcInstall.func(None),
-            ],
-        )
+        .update_operations([Build.op([
+            PkgSetup.func(None),
+            SrcUnpack.func(Some(eapi0::src_unpack)),
+            SrcPrepare.func(None),
+            SrcConfigure.func(Some(eapi2::src_configure)),
+            SrcCompile.func(Some(eapi2::src_compile)),
+            SrcTest.func(Some(eapi0::src_test)),
+            SrcInstall.func(None),
+        ])])
         .finalize()
 });
 
@@ -640,7 +633,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::builtins::Scopes::*;
     use crate::shell::hooks::eapi4::HOOKS;
-    use crate::shell::operations::Operation::*;
+    use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::BuildVariable::*;
     use Feature::*;
@@ -654,7 +647,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             UseDepDefaults,
         ])
         .disable_features(&[RdependDefault])
-        .register_operation(Pretend, [PkgPretend.func(None)])
+        .update_operations([Pretend.op([PkgPretend.func(None)])])
         .update_phases([SrcInstall.func(Some(eapi4::src_install))])
         .update_incremental_keys(&[Key::RequiredUse])
         .update_metadata_keys(&[Key::RequiredUse])

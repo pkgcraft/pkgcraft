@@ -10,7 +10,7 @@ use crate::pkg::{BuildablePackage, Package, SourceablePackage};
 use crate::shell::metadata::Metadata;
 use crate::shell::{get_build_mut, BuildData};
 
-use super::Operation;
+use super::OperationKind::{Build, Pretend};
 
 impl<'a> BuildablePackage for Pkg<'a> {
     fn build(&self) -> scallop::Result<()> {
@@ -18,7 +18,7 @@ impl<'a> BuildablePackage for Pkg<'a> {
             .source_ebuild(&self.abspath())
             .map_err(|e| self.invalid_pkg_err(e))?;
 
-        for phase in self.eapi().operation(Operation::Build)? {
+        for phase in self.eapi().operation(Build)? {
             phase.run().map_err(|e| self.pkg_err(e))?;
         }
 
@@ -27,7 +27,7 @@ impl<'a> BuildablePackage for Pkg<'a> {
 
     fn pretend(&self) -> scallop::Result<()> {
         // ignore packages lacking pkg_pretend() support
-        if let Ok(phases) = self.eapi().operation(Operation::Pretend) {
+        if let Ok(phases) = self.eapi().operation(Pretend) {
             BuildData::from_pkg(self);
             get_build_mut()
                 .source_ebuild(&self.abspath())
