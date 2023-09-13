@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Read, Write};
 use std::{env, mem};
@@ -535,6 +536,18 @@ pub enum BuildVariable {
     MERGE_TYPE,
     REPLACING_VERSIONS,
     REPLACED_BY_VERSION,
+}
+
+impl Ord for BuildVariable {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_ref().cmp(other.as_ref())
+    }
+}
+
+impl PartialOrd for BuildVariable {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 #[cfg(test)]

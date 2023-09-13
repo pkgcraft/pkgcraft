@@ -1,12 +1,12 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Either;
 use once_cell::sync::Lazy;
 use strum::EnumString;
@@ -139,7 +139,7 @@ pub struct Eapi {
     metadata_keys: IndexSet<Key>,
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
-    env: HashMap<BuildVariable, HashSet<Scope>>,
+    env: IndexMap<BuildVariable, IndexSet<Scope>>,
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
@@ -303,7 +303,7 @@ impl Eapi {
     }
 
     /// Return the mapping of all exported environment variables.
-    pub(crate) fn env(&self) -> &HashMap<BuildVariable, HashSet<Scope>> {
+    pub(crate) fn env(&self) -> &IndexMap<BuildVariable, IndexSet<Scope>> {
         &self.env
     }
 
@@ -435,9 +435,11 @@ impl Eapi {
     /// Enable support for build variables during Eapi registration.
     fn update_env(mut self, variables: &[(BuildVariable, &[Scopes])]) -> Self {
         for (var, scopes) in variables.iter() {
-            let scopes: HashSet<_> = scopes.iter().flatten().collect();
+            let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
+            scopes.sort();
             self.env.insert(*var, scopes);
         }
+        self.env.sort_by(|var1, _, var2, _| var1.cmp(var2));
         self
     }
 
