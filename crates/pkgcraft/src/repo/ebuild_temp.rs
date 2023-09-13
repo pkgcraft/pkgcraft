@@ -74,9 +74,9 @@ impl Repo {
     }
 
     /// Create a [`RawPkg`] from ebuild field settings.
-    pub fn create_raw_pkg(&self, cpv: &str, data: &[&str]) -> crate::Result<RawPkg> {
+    pub fn create_raw_pkg<S: AsRef<str>>(&self, cpv: S, data: &[&str]) -> crate::Result<RawPkg> {
         use Key::*;
-        let cpv = Cpv::new(cpv)?;
+        let cpv = Cpv::new(cpv.as_ref())?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;

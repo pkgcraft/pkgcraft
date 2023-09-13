@@ -1,9 +1,10 @@
 use std::str::FromStr;
 
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error};
+use scallop::Error;
 
 use crate::dep::Version;
+use crate::shell::get_build_mut;
 
 use super::{make_builtin, Scopes::All};
 
@@ -11,11 +12,9 @@ const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let pvr = variables::optional("PVR").unwrap_or_default();
-    let pvr = pvr.as_str();
+    let pvr = get_build_mut().cpv()?.pvr();
     let (v1, op, v2) = match args.len() {
-        2 if pvr.is_empty() => Err(Error::Base("$PVR is undefined".into())),
-        2 => Ok((pvr, args[0], args[1])),
+        2 => Ok((pvr.as_str(), args[0], args[1])),
         3 => Ok((args[0], args[1], args[2])),
         n => Err(Error::Base(format!("only accepts 2 or 3 args, got {n}"))),
     }?;
@@ -44,9 +43,10 @@ mod tests {
     use std::collections::HashMap;
 
     use scallop::builtins::ExecStatus;
-    use scallop::variables::*;
 
+    use crate::config::Config;
     use crate::macros::assert_err_re;
+    use crate::shell::BuildData;
     use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -57,13 +57,21 @@ mod tests {
 
     #[test]
     fn invalid_args() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+
         assert_invalid_args(ver_test, &[0, 1, 4]);
-        // $PVR not defined
-        assert!(ver_test(&["-eq", "1"]).is_err());
     }
 
     #[test]
     fn overflow() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+
         let u64_max: u128 = u64::MAX as u128;
         let (vb, vo) = (format!("{u64_max}"), format!("{}", u64_max + 1));
         for args in [&[&vb, "-eq", &vo], &[&vo, "-eq", &vb]] {
@@ -74,6 +82,11 @@ mod tests {
 
     #[test]
     fn invalid_versions() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+
         for v in ["a", "1_1", "1-2"] {
             let r = ver_test(&[v, "-eq", v]);
             assert!(r.unwrap_err().to_string().contains("invalid version"));
@@ -82,6 +95,11 @@ mod tests {
 
     #[test]
     fn invalid_op() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+
         for op in [">", ">=", "<", "<=", "==", "!="] {
             let r = ver_test(&["1", op, "2"]);
             assert_err_re!(r, format!("^invalid operator: {op}$"));
@@ -101,14 +119,18 @@ mod tests {
         .into_iter()
         .collect();
 
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+
         let inverted_op_map: HashMap<&str, &str> =
             [("==", "!="), ("!=", "=="), ("<", ">="), (">", "<="), ("<=", ">"), (">=", "<")]
                 .into_iter()
                 .collect();
 
-        let mut pvr = Variable::new("PVR");
-
         for (expr, (v1, op, v2)) in TEST_DATA.version_toml.compares() {
+            let raw_pkg = t.create_raw_pkg(format!("cat/pkg-{v1}"), &[]).unwrap();
+            BuildData::from_raw_pkg(&raw_pkg);
+
             let inverted_op = op_map[inverted_op_map[op]];
             let op = op_map[op];
             let r = ver_test(&[v1, op, v2]);
@@ -117,7 +139,6 @@ mod tests {
             assert_eq!(r.unwrap(), ExecStatus::Failure(1), "failed comparing: {expr}");
 
             // test pulling v1 from $PVR
-            pvr.bind(v1, None, None).unwrap();
             let r = ver_test(&[op, v2]);
             assert_eq!(r.unwrap(), ExecStatus::Success, "failed comparing: {expr}");
             let r = ver_test(&[inverted_op, v2]);

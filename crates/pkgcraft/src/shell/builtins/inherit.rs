@@ -141,7 +141,7 @@ mod tests {
 
         // single
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(raw_pkg);
+        BuildData::from_raw_pkg(&raw_pkg);
         let r = inherit(&["nonexistent"]);
         assert_err_re!(r, r"^unknown eclasses: nonexistent");
 
@@ -152,7 +152,7 @@ mod tests {
         // multiple with known and unknown
         let t = config.temp_repo("test2", 0, None).unwrap();
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(raw_pkg);
+        BuildData::from_raw_pkg(&raw_pkg);
         let eclass = indoc::indoc! {r#"
             # stub eclass
         "#};
@@ -174,7 +174,7 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(raw_pkg);
+        BuildData::from_raw_pkg(&raw_pkg);
         let r = inherit(&["e1"]);
         assert_err_re!(r, r"^failed loading eclass: e1: unknown command: unknown_cmd$");
     }
@@ -192,7 +192,7 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(raw_pkg);
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
     }
@@ -217,7 +217,7 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(raw_pkg);
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e2", "e1"]);
     }
@@ -241,7 +241,7 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(raw_pkg);
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e2"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
@@ -271,7 +271,7 @@ mod tests {
         t.create_eclass("e3", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(raw_pkg);
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e3"]).unwrap();
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
     }
@@ -318,7 +318,7 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(raw_pkg);
+        BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1", "e2"]).unwrap();
         assert_eq!(optional("VAR").unwrap(), "e1 e2");
     }

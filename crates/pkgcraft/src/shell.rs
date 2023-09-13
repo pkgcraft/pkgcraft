@@ -231,9 +231,9 @@ impl<'a> BuildData<'a> {
         get_build_mut().state = BuildState::Empty(eapi);
     }
 
-    pub(crate) fn from_raw_pkg<P: Borrow<crate::pkg::ebuild::RawPkg<'a>>>(pkg: P) {
+    pub(crate) fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::RawPkg<'a>) {
         // TODO: remove this hack once BuildData is reworked
-        let p = unsafe { mem::transmute(pkg.borrow()) };
+        let p = unsafe { mem::transmute(pkg) };
         let data = BuildData {
             state: BuildState::Metadata(p),
             ..BuildData::new()
