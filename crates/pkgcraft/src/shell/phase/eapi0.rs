@@ -31,11 +31,10 @@ pub(crate) fn src_test(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     for target in ["check", "test"] {
         if emake(&[target, "-n"]).is_ok() {
             if build.eapi().has(Feature::ParallelTests) {
-                emake(&[target])?;
+                return emake(&[target]);
             } else {
-                emake(&["-j1", target])?;
+                return emake(&["-j1", target]);
             }
-            break;
         }
     }
 
