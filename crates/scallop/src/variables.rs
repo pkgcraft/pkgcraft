@@ -48,8 +48,19 @@ bitflags! {
     }
 }
 
-/// Unset a given variable name ignoring if it is nonexistent.
+/// Unset a given variable name ignoring if it is nonexistent or readonly.
 pub fn unbind<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
+    let name = name.as_ref();
+    let cstr = CString::new(name).unwrap();
+    ok_or_error(|| {
+        // ignore non-zero return values for nonexistent variables
+        unsafe { bash::unbind_variable(cstr.as_ptr()) };
+        Ok(ExecStatus::Success)
+    })
+}
+
+/// Unset a given variable name ignoring if it is nonexistent, erroring out if readonly.
+pub fn unbind_check<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
     let name = name.as_ref();
     let cstr = CString::new(name).unwrap();
     ok_or_error(|| {
@@ -350,10 +361,16 @@ mod tests {
         assert!(optional("VAR").is_none());
 
         // existent with content
-        bind("VAR", "foo", None, None).unwrap();
-        assert_eq!(optional("VAR").unwrap(), "foo");
+        bind("VAR", "1", None, None).unwrap();
+        assert_eq!(optional("VAR").unwrap(), "1");
         unbind("VAR").unwrap();
         assert!(optional("VAR").is_none());
+
+        // unbind readonly
+        bind("VAR", "2", None, Some(Attr::READONLY)).unwrap();
+        assert_eq!(optional("VAR").unwrap(), "2");
+        assert!(unbind_check("VAR").is_err());
+        assert!(unbind("VAR").is_ok());
     }
 
     #[test]
@@ -375,8 +392,9 @@ mod tests {
         assert_eq!(optional("VAR").unwrap(), "1");
         let err = bind("VAR", "1", None, None).unwrap_err();
         assert_eq!(err.to_string(), "VAR: readonly variable");
-        let err = unbind("VAR").unwrap_err();
+        let err = unbind_check("VAR").unwrap_err();
         assert_eq!(err.to_string(), "VAR: cannot unset: readonly variable");
+        assert!(unbind("VAR").is_ok());
     }
 
     #[test]
