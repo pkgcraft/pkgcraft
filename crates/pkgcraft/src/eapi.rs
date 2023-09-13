@@ -533,7 +533,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             ]),
             Config.op([PkgConfig.func(None)]),
             Info.op([PkgInfo.func(None)]),
-            NoFetch.op([PkgNofetch.func(eapi0::pkg_nofetch)]),
+            NoFetch.op([PkgNofetch.func(Some(eapi0::pkg_nofetch))]),
         ])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
