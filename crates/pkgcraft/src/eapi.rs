@@ -435,7 +435,7 @@ impl Eapi {
     /// Enable support for build variables during Eapi registration.
     fn update_env(mut self, variables: &[(BuildVariable, &[Scopes])]) -> Self {
         for (var, scopes) in variables.iter() {
-            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter()).collect();
+            let scopes: HashSet<_> = scopes.iter().flatten().collect();
             self.env.insert(*var, scopes);
         }
         self

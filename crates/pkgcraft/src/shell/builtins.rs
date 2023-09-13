@@ -130,7 +130,7 @@ impl Builtin {
     fn new(builtin: scallop::builtins::Builtin, scopes: &[(&str, &[Scopes])]) -> Self {
         let mut scope = IndexMap::new();
         for (range, scopes) in scopes.iter() {
-            let scopes: HashSet<_> = scopes.iter().flat_map(|s| s.iter()).collect();
+            let scopes: HashSet<_> = scopes.iter().flatten().collect();
             let eapis = eapi::range(range).unwrap_or_else(|e| {
                 panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
             });
@@ -258,8 +258,16 @@ pub(crate) enum Scopes {
 }
 
 impl Scopes {
-    /// Convert a scopes identifier into an iterable of [`Scope`] objects.
-    pub(crate) fn iter(&self) -> Box<dyn Iterator<Item = Scope>> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = Scope> {
+        self.into_iter()
+    }
+}
+
+impl IntoIterator for &Scopes {
+    type Item = Scope;
+    type IntoIter = Box<dyn Iterator<Item = Scope>>;
+
+    fn into_iter(self) -> Self::IntoIter {
         use Scopes::*;
         match self {
             Eclass => Box::new([Scope::Eclass].into_iter()),
@@ -267,7 +275,7 @@ impl Scopes {
             Phases => Box::new(PhaseKind::iter().map(Scope::Phase)),
             Src => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("src_"))),
             Pkg => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("pkg_"))),
-            All => Box::new([Global, Eclass, Phases].iter().flat_map(|s| s.iter())),
+            All => Box::new([Global, Eclass, Phases].iter().flatten()),
             Phase(p) => Box::new([Scope::Phase(*p)].into_iter()),
         }
     }
