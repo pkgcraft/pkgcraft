@@ -7,11 +7,10 @@ use std::{cmp, fmt};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
-use strum::IntoEnumIterator;
 
 use crate::{eapi, eapi::Eapi};
 
-use super::phase::{Phase, PhaseKind};
+use super::scope::{Scope, Scopes};
 
 mod _default_phase_func;
 mod _new;
@@ -213,71 +212,6 @@ impl Borrow<str> for &Builtin {
 impl fmt::Display for Builtin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.as_ref())
-    }
-}
-
-#[derive(Debug, Default, PartialEq, Eq, Hash, Ord, PartialOrd, Copy, Clone)]
-pub(crate) enum Scope {
-    #[default]
-    Global,
-    Eclass,
-    Phase(PhaseKind),
-}
-
-impl<T: Borrow<Phase>> From<T> for Scope {
-    fn from(phase: T) -> Self {
-        Scope::Phase(phase.borrow().into())
-    }
-}
-
-impl AsRef<str> for Scope {
-    fn as_ref(&self) -> &str {
-        match self {
-            Self::Eclass => "eclass",
-            Self::Global => "global",
-            Self::Phase(p) => p.as_ref(),
-        }
-    }
-}
-
-impl fmt::Display for Scope {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_ref())
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-pub(crate) enum Scopes {
-    All,
-    Eclass,
-    Global,
-    Phases,
-    Src,
-    Pkg,
-    Phase(PhaseKind),
-}
-
-impl Scopes {
-    pub(crate) fn iter(&self) -> impl Iterator<Item = Scope> {
-        self.into_iter()
-    }
-}
-
-impl IntoIterator for &Scopes {
-    type Item = Scope;
-    type IntoIter = Box<dyn Iterator<Item = Scope>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        use Scopes::*;
-        match self {
-            Eclass => Box::new([Scope::Eclass].into_iter()),
-            Global => Box::new([Scope::Global].into_iter()),
-            Phases => Box::new(PhaseKind::iter().map(Scope::Phase)),
-            Src => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("src_"))),
-            Pkg => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("pkg_"))),
-            All => Box::new([Global, Eclass, Phases].iter().flatten()),
-            Phase(p) => Box::new([Scope::Phase(*p)].into_iter()),
-        }
     }
 }
 
@@ -522,7 +456,8 @@ macro_rules! builtin_scope_tests {
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
             use crate::pkg::SourceablePackage;
-            use crate::shell::builtins::{Scope::*, BUILTINS};
+            use crate::shell::builtins::BUILTINS;
+            use crate::shell::scope::Scope::*;
             use crate::shell::{get_build_mut, BuildData};
 
             let cmd = $cmd;

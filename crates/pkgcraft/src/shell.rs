@@ -19,7 +19,6 @@ use crate::eapi::{Eapi, Feature};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
 use crate::repo::{ebuild, Repository};
-use crate::shell::builtins::{Scope, BUILTINS};
 use crate::test::TESTING;
 use crate::traits::SourceBash;
 use crate::types::Deque;
@@ -30,9 +29,13 @@ mod install;
 pub(crate) mod metadata;
 pub(crate) mod operations;
 pub(crate) mod phase;
+pub mod scope;
 pub(crate) mod test;
 mod unescape;
 mod utils;
+
+use builtins::BUILTINS;
+use scope::Scope;
 
 pub use metadata::Key;
 

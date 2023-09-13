@@ -15,11 +15,11 @@ use crate::archive::Archive;
 use crate::dep::Dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
-use crate::shell::builtins::{Scope, Scopes};
 use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::{Phase, PhaseKind};
+use crate::shell::scope::{Scope, Scopes};
 use crate::shell::BuildVariable;
 use crate::Error;
 
@@ -507,9 +507,9 @@ impl FromStr for &'static Eapi {
 }
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::builtins::Scopes::*;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
+    use crate::shell::scope::Scopes::*;
     use crate::shell::BuildVariable::*;
     use Feature::*;
 
@@ -616,8 +616,8 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::builtins::Scopes::*;
     use crate::shell::phase::PhaseKind::*;
+    use crate::shell::scope::Scopes::*;
     use crate::shell::BuildVariable::*;
 
     Eapi::new("3", Some(&EAPI2))
@@ -631,10 +631,10 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::builtins::Scopes::*;
     use crate::shell::hooks::eapi4::HOOKS;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
+    use crate::shell::scope::Scopes::*;
     use crate::shell::BuildVariable::*;
     use Feature::*;
 
@@ -663,7 +663,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::builtins::Scopes::*;
+    use crate::shell::scope::Scopes::*;
     use crate::shell::BuildVariable::*;
     use Feature::*;
 
@@ -693,9 +693,9 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::builtins::Scopes::*;
     use crate::shell::hooks::eapi7::HOOKS;
     use crate::shell::phase::PhaseKind::*;
+    use crate::shell::scope::Scopes::*;
     use crate::shell::BuildVariable::*;
     use Feature::*;
 
