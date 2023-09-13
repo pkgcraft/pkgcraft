@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
-use scallop::{variables, Error};
+use scallop::Error;
 
-use crate::shell::write_stdout;
+use crate::shell::{get_build_mut, write_stdout};
 
 use super::{make_builtin, parse, Scopes::All};
 
@@ -9,7 +9,7 @@ const LONG_DOC: &str = "Perform string substitution on package version strings."
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let pv = variables::optional("PV").unwrap_or_default();
+    let pv = get_build_mut().cpv()?.pv();
     let (ver, args) = match args.len() {
         n if n < 2 => Err(Error::Base(format!("requires 2 or more args, got {n}"))),
 
@@ -54,10 +54,10 @@ make_builtin!("ver_rs", ver_rs_builtin, run, LONG_DOC, USAGE, &[("7..", &[All])]
 mod tests {
     use scallop::builtins::ExecStatus;
     use scallop::source;
-    use scallop::variables::*;
 
+    use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::shell::assert_stdout;
+    use crate::shell::{assert_stdout, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as ver_rs;
@@ -67,11 +67,21 @@ mod tests {
 
     #[test]
     fn invalid_args() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+
         assert_invalid_args(ver_rs, &[0, 1]);
     }
 
     #[test]
     fn invalid_range() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+
         for rng in ["-", "-2"] {
             let r = ver_rs(&[rng, "2", "1.2.3"]);
             assert!(r.unwrap_err().to_string().contains("invalid range"));
@@ -83,30 +93,48 @@ mod tests {
 
     #[test]
     fn output() {
-        let mut pv = Variable::new("PV");
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+
+        // invalid PV
+        for (args, expected) in [
+            (vec!["1", "-", ".1.2.3"], ".1-2.3"),
+            (vec!["0", "-", ".1.2.3"], "-1.2.3"),
+            (vec!["2", ".", "1.2-3"], "1.2.3"),
+            (vec!["3-5", "_", "4-6", "-", "a1b2c3d4e5"], "a1b_2-c-3-d4e5"),
+        ] {
+            let raw_pkg = t.create_raw_pkg("cat/pkg-1.2.3", &[]).unwrap();
+            BuildData::from_raw_pkg(&raw_pkg);
+
+            let r = ver_rs(&args).unwrap();
+            assert_stdout!(expected);
+            assert_eq!(r, ExecStatus::Success);
+        }
+
+        // valid PV
         for (mut args, expected) in [
             (vec!["1", "-", "1.2.3"], "1-2.3"),
             (vec!["2", "-", "1.2.3"], "1.2-3"),
             (vec!["1-2", "-", "1.2.3.4"], "1-2-3.4"),
             (vec!["2-", "-", "1.2.3.4"], "1.2-3-4"),
-            (vec!["2", ".", "1.2-3"], "1.2.3"),
             (vec!["3", ".", "1.2.3a"], "1.2.3.a"),
             (vec!["2-3", "-", "1.2_alpha4"], "1.2-alpha-4"),
             (vec!["3", "-", "2", "", "1.2.3b_alpha4"], "1.23-b_alpha4"),
-            (vec!["3-5", "_", "4-6", "-", "a1b2c3d4e5"], "a1b_2-c-3-d4e5"),
-            (vec!["1", "-", ".1.2.3"], ".1-2.3"),
-            (vec!["0", "-", ".1.2.3"], "-1.2.3"),
             (vec!["0", "-", "1.2.3"], "1.2.3"),
             (vec!["3", ".", "1.2.3"], "1.2.3"),
             (vec!["3-", ".", "1.2.3"], "1.2.3"),
             (vec!["3-5", ".", "1.2.3"], "1.2.3"),
         ] {
+            let ver = args.last().unwrap();
+            let raw_pkg = t.create_raw_pkg(format!("cat/pkg-{ver}"), &[]).unwrap();
+            BuildData::from_raw_pkg(&raw_pkg);
+
             let r = ver_rs(&args).unwrap();
             assert_stdout!(expected);
             assert_eq!(r, ExecStatus::Success);
 
             // test pulling version from $PV
-            pv.bind(args.pop().unwrap(), None, None).unwrap();
+            args.pop();
             let r = ver_rs(&args).unwrap();
             assert_stdout!(expected);
             assert_eq!(r, ExecStatus::Success);
@@ -115,13 +143,16 @@ mod tests {
 
     #[test]
     fn subshell() {
-        let ver = Variable::new("VER");
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1.2.3", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
 
         source::string("VER=$(ver_rs 2 - 1.2.3)").unwrap();
-        assert_eq!(ver.optional().unwrap(), "1.2-3");
+        assert_eq!(scallop::variables::optional("VER").unwrap(), "1.2-3");
 
         // test pulling version from $PV
-        source::string("PV=1.2.3; VER=$(ver_rs 1 -)").unwrap();
-        assert_eq!(ver.optional().unwrap(), "1-2.3");
+        source::string("VER=$(ver_rs 1 -)").unwrap();
+        assert_eq!(scallop::variables::optional("VER").unwrap(), "1-2.3");
     }
 }
