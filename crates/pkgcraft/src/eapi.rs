@@ -517,7 +517,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
         .enable_features(&[RdependDefault, TrailingSlash])
         .update_operations([
             Build.op([
-                PkgSetup.func(None),
+                PkgSetup.func(Some(eapi0::pkg_nofetch)),
                 SrcUnpack.func(Some(eapi0::src_unpack)),
                 SrcCompile.func(Some(eapi0::src_compile)),
                 SrcTest.func(Some(eapi0::src_test)),

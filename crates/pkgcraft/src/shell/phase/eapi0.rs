@@ -6,7 +6,20 @@ use scallop::builtins::ExecStatus;
 use crate::eapi::Feature;
 use crate::shell::builtins::{econf::run as econf, emake::run as emake, unpack::run as unpack};
 use crate::shell::utils::makefile_exists;
-use crate::shell::BuildData;
+use crate::shell::{write_stderr, BuildData};
+
+pub(crate) fn pkg_nofetch(build: &mut BuildData) -> scallop::Result<ExecStatus> {
+    // TODO: only output URLs for missing distfiles
+    if !build.distfiles.is_empty() {
+        let pkg = build.pkg()?;
+        write_stderr!("The following files must be manually downloaded for {pkg}:\n")?;
+        for url in &build.distfiles {
+            write_stderr!("{url}\n")?;
+        }
+    }
+
+    Ok(ExecStatus::Success)
+}
 
 pub(crate) fn src_unpack(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     let args: Vec<_> = build.distfiles.iter().map(|s| s.as_str()).collect();
