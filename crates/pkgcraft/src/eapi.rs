@@ -517,7 +517,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
         .enable_features(&[RdependDefault, TrailingSlash])
         .update_operations([
             Build.op([
-                PkgSetup.func(Some(eapi0::pkg_nofetch)),
+                PkgSetup.func(None),
                 SrcUnpack.func(Some(eapi0::src_unpack)),
                 SrcCompile.func(Some(eapi0::src_compile)),
                 SrcTest.func(Some(eapi0::src_test)),
@@ -533,7 +533,7 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             ]),
             Config.op([PkgConfig.func(None)]),
             Info.op([PkgInfo.func(None)]),
-            NoFetch.op([PkgNofetch.func(None)]),
+            NoFetch.op([PkgNofetch.func(eapi0::pkg_nofetch)]),
         ])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
