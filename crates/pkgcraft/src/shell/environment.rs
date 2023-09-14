@@ -258,4 +258,43 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn state() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let data = indoc::indoc! {r#"
+            DESCRIPTION="testing environment state handling"
+            SLOT=0
+
+            VARIABLE_GLOBAL="a"
+
+            src_compile() {
+                VARIABLE_GLOBAL="b"
+                VARIABLE_DEFAULT="c"
+                export VARIABLE_EXPORTED="d"
+                local VARIABLE_LOCAL="e"
+            }
+
+            src_install() {
+                [[ ${VARIABLE_GLOBAL} == "b" ]] \
+                    || die "broken env saving for globals"
+
+                [[ ${VARIABLE_DEFAULT} == "c" ]] \
+                    || die "broken env saving for default"
+
+                [[ ${VARIABLE_EXPORTED} == "d" ]] \
+                    || die "broken env saving for exported"
+
+                [[ $(printenv VARIABLE_EXPORTED ) == "d" ]] \
+                    || die "broken env saving for exported"
+
+                [[ -z ${VARIABLE_LOCAL} ]] \
+                    || die "broken env saving for locals"
+            }
+        "#};
+        let pkg = t.create_pkg_from_str("cat1/pkg-1", data).unwrap();
+        BuildData::from_pkg(&pkg);
+        pkg.build().unwrap();
+    }
 }
