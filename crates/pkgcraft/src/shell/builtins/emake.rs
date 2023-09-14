@@ -15,17 +15,22 @@ const LONG_DOC: &str = "Run the make command for a package.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !makefile_exists() {
-        return Err(Error::Base("nonexistent makefile".into()));
+        return Err(Error::Base("nonexistent makefile".to_string()));
     }
 
+    // determine make program to run
     let make_prog = variables::optional("MAKE");
     let make_prog = make_prog.as_deref().unwrap_or("make");
     let mut emake = Command::new(make_prog);
+
+    // inject user options
     if let Some(opts) = string_vec("MAKEOPTS") {
         emake.args(&opts);
     }
 
+    // arguments override user options
     emake.args(args);
+
     write_stdout!("{}", emake.to_vec().join(" "))?;
     emake.run()?;
     Ok(ExecStatus::Success)
@@ -83,6 +88,10 @@ mod tests {
         emake(&[]).unwrap();
         let cmd = last_command().unwrap();
         assert_eq!(cmd[1..], ["-j20", "-l", "20"]);
+        // args override $MAKEOPTS
+        emake(&["-j1"]).unwrap();
+        let cmd = last_command().unwrap();
+        assert_eq!(cmd[1..], ["-j20", "-l", "20", "-j1"]);
 
         // custom $MAKE prog
         bind("MAKE", "custom-make", None, None).unwrap();
