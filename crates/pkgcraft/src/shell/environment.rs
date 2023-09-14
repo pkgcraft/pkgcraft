@@ -307,6 +307,9 @@ mod tests {
             DESCRIPTION="testing EBUILD_PHASE(_FUNC) variables"
             SLOT=0
 
+            [[ -z ${EBUILD_PHASE} ]] || die "invalid EBUILD_PHASE value: ${EBUILD_PHASE}"
+            [[ -z ${EBUILD_PHASE_FUNC} ]] || die "invalid EBUILD_PHASE_FUNC value: ${EBUILD_PHASE_FUNC}"
+
             pkg_setup() {
                 [[ ${EBUILD_PHASE} == "setup" ]] || die "invalid EBUILD_PHASE value: ${EBUILD_PHASE}"
                 [[ ${EBUILD_PHASE_FUNC} == "pkg_setup" ]] || die "invalid EBUILD_PHASE_FUNC value: ${EBUILD_PHASE_FUNC}"
