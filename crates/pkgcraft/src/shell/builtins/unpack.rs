@@ -2,6 +2,7 @@ use std::ops::BitOr;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
+use rayon::prelude::*;
 use scallop::builtins::ExecStatus;
 use scallop::{variables, Error};
 use walkdir::WalkDir;
@@ -54,6 +55,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
     };
 
+    // unpack all specified archives
     for path in args.iter().map(Utf8Path::new) {
         let source = determine_source(path)?;
         if !source.exists() {
@@ -67,8 +69,15 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         archive.unpack(dest)?;
     }
 
-    // ensure proper permissions on unpacked files with minimal syscalls
-    for entry in WalkDir::new(&current_dir).min_depth(1) {
+    // TODO: parallelize walking fs
+    // gather all unpacked files
+    let entries: Vec<_> = WalkDir::new(&current_dir)
+        .min_depth(1)
+        .into_iter()
+        .collect();
+
+    // ensure proper permissions on unpacked files with minimal syscalls in parallel
+    entries.into_par_iter().try_for_each(|entry| {
         let entry =
             entry.map_err(|e| Error::Base(format!("failed walking {current_dir:?}: {e}")))?;
         let path = entry.path();
@@ -76,25 +85,25 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
         let mode = Mode::from_bits_truncate(stat.st_mode);
         let new_mode = match SFlag::from_bits_truncate(stat.st_mode) {
-            flags if flags.contains(SFlag::S_IFLNK) => continue,
+            flags if flags.contains(SFlag::S_IFLNK) => return Ok(()),
             flags if flags.contains(SFlag::S_IFDIR) => {
                 if !mode.contains(*DIR_MODE) {
                     mode.bitor(*DIR_MODE)
                 } else {
-                    continue;
+                    return Ok(());
                 }
             }
             _ => {
                 if !mode.contains(*FILE_MODE) {
                     mode.bitor(*FILE_MODE)
                 } else {
-                    continue;
+                    return Ok(());
                 }
             }
         };
         fchmodat(None, path, new_mode, FollowSymlink)
-            .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))?;
-    }
+            .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))
+    })?;
 
     Ok(ExecStatus::Success)
 }
