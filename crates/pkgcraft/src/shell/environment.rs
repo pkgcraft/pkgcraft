@@ -293,7 +293,61 @@ mod tests {
                     || die "broken env saving for locals"
             }
         "#};
-        let pkg = t.create_pkg_from_str("cat1/pkg-1", data).unwrap();
+        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        BuildData::from_pkg(&pkg);
+        pkg.build().unwrap();
+    }
+
+    #[test]
+    fn vars_ebuild_phase() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing EBUILD_PHASE(_FUNC) variables"
+            SLOT=0
+
+            pkg_setup() {
+                [[ ${EBUILD_PHASE} == "setup" ]] || die "invalid EBUILD_PHASE value: ${EBUILD_PHASE}"
+                [[ ${EBUILD_PHASE_FUNC} == "pkg_setup" ]] || die "invalid EBUILD_PHASE_FUNC value: ${EBUILD_PHASE_FUNC}"
+            }
+
+            src_test() {
+                [[ ${EBUILD_PHASE} == "test" ]] || die "invalid EBUILD_PHASE value: ${EBUILD_PHASE}"
+                [[ ${EBUILD_PHASE_FUNC} == "src_test" ]] || die "invalid EBUILD_PHASE_FUNC value: ${EBUILD_PHASE_FUNC}"
+            }
+        "#};
+        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        BuildData::from_pkg(&pkg);
+        pkg.build().unwrap();
+    }
+
+    #[test]
+    fn vars_pkg() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing package-related variables"
+            SLOT=0
+
+            test_vars() {
+                [[ ${CATEGORY} == "cat" ]] || die "$1 scope: invalid CATEGORY value: ${CATEGORY}"
+                [[ ${P} == "pkg-1" ]] || die "$1 scope: invalid P value: ${P}"
+                [[ ${PF} == "pkg-1-r2" ]] || die "$1 scope: invalid PF value: ${PF}"
+                [[ ${PN} == "pkg" ]] || die "$1 scope: invalid PN value: ${PN}"
+                [[ ${PR} == "r2" ]] || die "$1 scope: invalid PR value: ${PR}"
+                [[ ${PV} == "1" ]] || die "$1 scope: invalid PV value: ${PV}"
+                [[ ${PVR} == "1-r2" ]] || die "$1 scope: invalid PVR value: ${PVR}"
+            }
+
+            pkg_setup() {
+                test_vars phase
+            }
+
+            test_vars global
+        "#};
+        let pkg = t.create_pkg_from_str("cat/pkg-1-r2", data).unwrap();
         BuildData::from_pkg(&pkg);
         pkg.build().unwrap();
     }
