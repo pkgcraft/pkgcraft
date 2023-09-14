@@ -1,9 +1,7 @@
-use std::str::FromStr;
-
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::dep::Version;
+use crate::dep;
 use crate::shell::get_build_mut;
 
 use super::{make_builtin, Scopes::All};
@@ -19,8 +17,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         n => Err(Error::Base(format!("only accepts 2 or 3 args, got {n}"))),
     }?;
 
-    let v1 = Version::from_str(v1)?;
-    let v2 = Version::from_str(v2)?;
+    let v1 = dep::parse::version(v1)?;
+    let v2 = dep::parse::version(v2)?;
 
     let ret = match op {
         "-eq" => v1 == v2,
@@ -87,9 +85,9 @@ mod tests {
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
-        for v in ["a", "1_1", "1-2"] {
+        for v in ["a", "1_1", "1-2", ">=1", "~1"] {
             let r = ver_test(&[v, "-eq", v]);
-            assert!(r.unwrap_err().to_string().contains("invalid version"));
+            assert_err_re!(r, format!("invalid version: {v}"));
         }
     }
 

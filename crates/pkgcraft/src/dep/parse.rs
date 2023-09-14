@@ -362,11 +362,11 @@ pub(super) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ s.to_string() }"#
 )]
-pub(super) fn version(s: &str) -> crate::Result<Version> {
+pub fn version(s: &str) -> crate::Result<Version> {
     version_str(s)?.into_owned(s)
 }
 
-pub(super) fn version_with_op(s: &str) -> crate::Result<Version> {
+pub fn version_with_op(s: &str) -> crate::Result<Version> {
     let ver = depspec::version_with_op(s)
         .map_err(|e| peg_error(format!("invalid version: {s}"), s, e))?;
     ver.into_owned(s)
