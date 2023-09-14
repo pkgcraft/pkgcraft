@@ -316,10 +316,10 @@ impl<'a> BuildData<'a> {
                 let cpv = self.cpv()?;
                 let path =
                     build_from_paths!(self.repo()?.path(), cpv.category(), cpv.package(), "files");
-                Ok(path.into_string())
+                Ok(path.to_string())
             }
             PORTDIR => self.repo().map(|r| r.path().to_string()),
-            ECLASSDIR => self.repo().map(|r| r.path().join("eclass").into_string()),
+            ECLASSDIR => self.repo().map(|r| r.path().join("eclass").to_string()),
 
             // TODO: alter based on config settings
             ROOT => Ok("".to_string()),
@@ -339,8 +339,8 @@ impl<'a> BuildData<'a> {
             TMPDIR => self.get_var(T),
             HOME => self.get_var(T),
 
-            DESTTREE => Ok(self.desttree.to_string()),
-            INSDESTTREE => Ok(self.insdesttree.to_string()),
+            DESTTREE => Ok(self.desttree.clone()),
+            INSDESTTREE => Ok(self.insdesttree.clone()),
             EBUILD_PHASE => self.phase().map(|p| p.short_name().to_string()),
             EBUILD_PHASE_FUNC => self.phase().map(|p| p.to_string()),
             KV => os_release().map_err(|e| Error::Base(format!("failed getting OS release: {e}"))),
