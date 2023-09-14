@@ -178,7 +178,7 @@ pub(crate) struct BuildData<'a> {
     stdout: Stdout,
     stderr: Stderr,
 
-    // mapping of variables conditionally exported to the build environment
+    // cache of generated environment variable values
     env: HashMap<VariableKind, String>,
 
     // TODO: proxy these fields via borrowed package reference
@@ -361,10 +361,10 @@ impl<'a> BuildData<'a> {
         for var in self.eapi().env() {
             if var.scopes().contains(&self.scope) {
                 if let Some(val) = self.env.get(var.borrow()) {
-                    bind(var, val, None, None)?;
+                    var.bind(val)?;
                 } else {
                     let val = self.get_var(var.into())?;
-                    bind(var, &val, None, None)?;
+                    var.bind(&val)?;
                     self.env.insert(var.into(), val);
                 }
             }
@@ -376,7 +376,7 @@ impl<'a> BuildData<'a> {
     fn override_var(&self, kind: VariableKind, val: &str) -> scallop::Result<()> {
         if let Some(var) = self.eapi().env().get(&kind) {
             if var.scopes().contains(&self.scope) {
-                bind(var, val, None, None)?;
+                var.bind(val)?;
             } else {
                 panic!("invalid scope {} for variable: {var}", self.scope);
             }

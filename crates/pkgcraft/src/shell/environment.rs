@@ -4,6 +4,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexSet;
+use scallop::builtins::ExecStatus;
+use scallop::variables::{bind, Attr};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::scope::{Scope, Scopes};
@@ -132,5 +134,21 @@ impl From<&Variable> for VariableKind {
 impl Variable {
     pub(crate) fn scopes(&self) -> &IndexSet<Scope> {
         &self.scopes
+    }
+
+    /// Externally exported to the package build environment.
+    pub(crate) fn exported(&self) -> bool {
+        use VariableKind::*;
+        matches!(self.kind, HOME | TMPDIR)
+    }
+
+    pub(crate) fn bind(&self, value: &str) -> scallop::Result<ExecStatus> {
+        let attrs = if self.exported() {
+            Some(Attr::EXPORTED)
+        } else {
+            None
+        };
+
+        bind(self, value, None, attrs)
     }
 }
