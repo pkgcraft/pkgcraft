@@ -89,17 +89,14 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(doman, &[0]);
-    }
 
-    #[test]
-    fn errors() {
         let _file_tree = FileTree::new();
 
         // no targets
         let r = doman(&["-i18n=en"]);
         assert_err_re!(r, "^missing filename target$");
 
-        // `newman` target
+        // nonexistent
         let r = doman(&["manpage"]);
         assert_err_re!(r, "^invalid file target, use `newman`: .*$");
     }

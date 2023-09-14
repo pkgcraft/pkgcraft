@@ -58,6 +58,7 @@ mod tests {
     use std::fs;
 
     use crate::config::Config;
+    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
@@ -70,6 +71,17 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(domo, &[0]);
+
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_pkg(&pkg);
+
+        let _file_tree = FileTree::new();
+
+        // nonexistent
+        let r = domo(&["nonexistent"]);
+        assert_err_re!(r, "^invalid file \"nonexistent\": No such file or directory .*$");
     }
 
     #[test]

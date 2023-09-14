@@ -73,6 +73,10 @@ mod tests {
         fs::create_dir("dir").unwrap();
         let r = doheader(&["dir"]);
         assert_err_re!(r, "^trying to install directory as file: .*$");
+
+        // nonexistent
+        let r = doheader(&["nonexistent"]);
+        assert_err_re!(r, "^invalid file \"nonexistent\": No such file or directory .*$");
     }
 
     #[test]

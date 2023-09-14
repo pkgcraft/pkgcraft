@@ -88,6 +88,10 @@ mod tests {
         fs::create_dir("dir").unwrap();
         let r = dodoc(&["dir"]);
         assert_err_re!(r, "^non-recursive dir install: .*$");
+
+        // nonexistent
+        let r = dodoc(&["nonexistent"]);
+        assert_err_re!(r, "^invalid file \"nonexistent\": No such file or directory .*$");
     }
 
     #[test]

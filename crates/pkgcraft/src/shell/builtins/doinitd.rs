@@ -36,6 +36,7 @@ mod tests {
     use std::fs;
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
+    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
@@ -49,6 +50,12 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(doinitd, &[0]);
+
+        let _file_tree = FileTree::new();
+
+        // nonexistent
+        let r = doinitd(&["nonexistent"]);
+        assert_err_re!(r, "^invalid file \"nonexistent\": No such file or directory .*$");
     }
 
     #[test]

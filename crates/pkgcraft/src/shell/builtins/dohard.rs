@@ -32,6 +32,7 @@ mod tests {
     use std::fs;
     use std::os::unix::fs::MetadataExt;
 
+    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -43,6 +44,12 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(dohard, &[0, 1, 3]);
+
+        let _file_tree = FileTree::new();
+
+        // nonexistent
+        let r = dohard(&["nonexistent", "/bin/bash"]);
+        assert_err_re!(r, "^failed creating link: .* No such file or directory .*$");
     }
 
     #[test]

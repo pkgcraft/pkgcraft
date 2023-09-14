@@ -28,6 +28,7 @@ make_builtin!("doinfo", doinfo_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(S
 mod tests {
     use std::fs;
 
+    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -39,6 +40,12 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(doinfo, &[0]);
+
+        let _file_tree = FileTree::new();
+
+        // nonexistent
+        let r = doinfo(&["nonexistent"]);
+        assert_err_re!(r, "^invalid file \"nonexistent\": No such file or directory .*$");
     }
 
     #[test]

@@ -46,11 +46,10 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(doexe, &[0]);
-    }
 
-    #[test]
-    fn nonexistent() {
         let _file_tree = FileTree::new();
+
+        // nonexistent
         let r = doexe(&["nonexistent"]);
         assert_err_re!(r, "^invalid file \"nonexistent\": No such file or directory .*$");
     }
