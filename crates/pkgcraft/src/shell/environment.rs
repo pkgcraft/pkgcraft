@@ -220,16 +220,33 @@ mod tests {
                                 ""
                             };
 
+                            let external = if eapi.env().get(&var).is_some_and(|v| v.is_exported())
+                            {
+                                "yes"
+                            } else {
+                                ""
+                            };
+
                             let data = indoc::formatdoc! {r#"
                                 EAPI={eapi}
                                 DESCRIPTION="testing {var} exporting"
                                 SLOT=0
                                 {phase}() {{
+                                    # verify internal export
                                     if [[ -n "{exported}" ]]; then
-                                        [[ -v {var} ]] || die "EAPI {eapi}: ${var} not exported in {phase}"
+                                        [[ -v {var} ]] || die "EAPI {eapi}: \${var} not exported in {phase}"
                                     else
-                                        [[ -v {var} ]] && die "EAPI {eapi}: ${var} shouldn't be exported in {phase}"
+                                        [[ -v {var} ]] && die "EAPI {eapi}: \${var} shouldn't be exported in {phase}"
                                     fi
+
+                                    # verify external export
+                                    var={var}
+                                    if [[ -n "{external}" ]]; then
+                                        [[ "${{!var@a}}" == *x* ]] || die "EAPI {eapi}: \${var} should be exported externally"
+                                    else
+                                        [[ "${{!var@a}}" == *x* ]] && die "EAPI {eapi}: \${var} shouldn't be exported externally"
+                                    fi
+
                                     :
                                 }}
                             "#};
