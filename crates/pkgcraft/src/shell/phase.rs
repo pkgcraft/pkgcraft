@@ -151,6 +151,8 @@ impl Phase {
 
         let build = get_build_mut();
         build.scope = Scope::Phase(self.kind);
+
+        // initialize phase scope variables
         build.set_vars()?;
 
         // run internal pre-phase hooks
@@ -185,6 +187,13 @@ impl Phase {
                 for hook in hooks {
                     hook.run(build)?;
                 }
+            }
+        }
+
+        // unset phase scope variables
+        for var in build.eapi().env() {
+            if var.scopes().contains(&build.scope) {
+                var.unbind()?;
             }
         }
 

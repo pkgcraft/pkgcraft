@@ -365,7 +365,9 @@ impl<'a> BuildData<'a> {
                 } else {
                     let val = self.get_var(var.into())?;
                     var.bind(&val)?;
-                    self.env.insert(var.into(), val);
+                    if var.is_static() {
+                        self.env.insert(var.into(), val);
+                    }
                 }
             }
         }
