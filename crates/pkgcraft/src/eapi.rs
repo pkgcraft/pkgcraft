@@ -69,6 +69,8 @@ pub enum Feature {
     UseDeps,
 
     // EAPI 4
+    /// PMS-defined commands die on failure
+    DieOnFailure,
     /// recursive install support via `dodoc -r`
     DodocRecursive,
     /// support `doman` language override via -i18n option
@@ -639,6 +641,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
 
     Eapi::new("4", Some(&EAPI3))
         .enable_features(&[
+            DieOnFailure,
             DodocRecursive,
             DomanLangOverride,
             RequiredUse,
