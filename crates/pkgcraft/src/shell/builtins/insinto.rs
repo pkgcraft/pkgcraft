@@ -1,8 +1,9 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
+use crate::shell::environment::VariableKind::INSDESTTREE;
+use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
-use crate::shell::{get_build_mut, BuildVariable};
 
 use super::{make_builtin, Scopes::Phase};
 
@@ -21,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let build = get_build_mut();
     build.insdesttree = path.to_string();
-    build.override_var(BuildVariable::INSDESTTREE, path)?;
+    build.override_var(INSDESTTREE, path)?;
 
     Ok(ExecStatus::Success)
 }
@@ -36,7 +37,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::shell::phase::PhaseKind;
-    use crate::shell::{BuildData, BuildVariable, Scope};
+    use crate::shell::{BuildData, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as insinto;
@@ -66,7 +67,7 @@ mod tests {
 
             // verify conditional EAPI environment export
             let env_val = variables::optional("INSDESTTREE");
-            if eapi.env().contains_key(&BuildVariable::INSDESTTREE) {
+            if eapi.env().contains(&INSDESTTREE) {
                 assert_eq!(env_val.unwrap(), "/test/path");
             } else {
                 assert!(env_val.is_none());

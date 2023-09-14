@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use itertools::Either;
 use once_cell::sync::Lazy;
 use strum::EnumString;
@@ -15,12 +15,11 @@ use crate::archive::Archive;
 use crate::dep::Dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
+use crate::shell::environment::{Variable, VariableKind};
 use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::{Phase, PhaseKind};
-use crate::shell::scope::{Scope, Scopes};
-use crate::shell::BuildVariable;
 use crate::Error;
 
 peg::parser!(grammar parse() for str {
@@ -139,7 +138,7 @@ pub struct Eapi {
     metadata_keys: IndexSet<Key>,
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
-    env: IndexMap<BuildVariable, IndexSet<Scope>>,
+    env: IndexSet<Variable>,
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
@@ -302,8 +301,8 @@ impl Eapi {
         &self.econf_options
     }
 
-    /// Return the mapping of all exported environment variables.
-    pub(crate) fn env(&self) -> &IndexMap<BuildVariable, IndexSet<Scope>> {
+    /// Return the ordered set of all environment variables.
+    pub(crate) fn env(&self) -> &IndexSet<Variable> {
         &self.env
     }
 
@@ -433,21 +432,19 @@ impl Eapi {
     }
 
     /// Enable support for build variables during Eapi registration.
-    fn update_env(mut self, variables: &[(BuildVariable, &[Scopes])]) -> Self {
-        for (var, scopes) in variables.iter() {
-            let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
-            scopes.sort();
-            self.env.insert(*var, scopes);
+    fn update_env<I: IntoIterator<Item = Variable>>(mut self, variables: I) -> Self {
+        for var in variables {
+            self.env.replace(var);
         }
-        self.env.sort_by(|var1, _, var2, _| var1.cmp(var2));
+        self.env.sort();
         self
     }
 
     /// Disable support for build variables during Eapi registration.
-    fn disable_env(mut self, variables: &[BuildVariable]) -> Self {
-        for x in variables {
-            if self.env.remove(x).is_none() {
-                panic!("EAPI {self}: disabling unregistered variable: {x:?}");
+    fn disable_env<I: IntoIterator<Item = VariableKind>>(mut self, variables: I) -> Self {
+        for var in variables {
+            if !self.env.remove(&var) {
+                panic!("EAPI {self}: disabling unregistered variable: {var}");
             }
         }
         self
@@ -509,10 +506,10 @@ impl FromStr for &'static Eapi {
 }
 
 pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::environment::VariableKind::*;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::scope::Scopes::*;
-    use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("0", None)
@@ -558,32 +555,32 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh", "a",
             "deb", "lzma", "tar.lzma",
         ])
-        .update_env(&[
-            (P, &[All]),
-            (PF, &[All]),
-            (PN, &[All]),
-            (CATEGORY, &[All]),
-            (PV, &[All]),
-            (PR, &[All]),
-            (PVR, &[All]),
-            (A, &[Src, Phase(PkgNofetch)]),
-            (AA, &[Src, Phase(PkgNofetch)]),
-            (FILESDIR, &[Src, Global]),
-            (DISTDIR, &[Src, Global]),
-            (WORKDIR, &[Src, Global]),
-            (S, &[Src]),
-            (PORTDIR, &[Src]),
-            (ECLASSDIR, &[Src]),
-            (ROOT, &[Pkg]),
-            (T, &[All]),
-            (TMPDIR, &[All]),
-            (HOME, &[All]),
-            (D, &[Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
-            (DESTTREE, &[Phase(SrcInstall)]),
-            (INSDESTTREE, &[Phase(SrcInstall)]),
-            (USE, &[All]),
-            (EBUILD_PHASE, &[Phases]),
-            (KV, &[All]),
+        .update_env([
+            P.scopes([All]),
+            PF.scopes([All]),
+            PN.scopes([All]),
+            CATEGORY.scopes([All]),
+            PV.scopes([All]),
+            PR.scopes([All]),
+            PVR.scopes([All]),
+            A.scopes([Src, Phase(PkgNofetch)]),
+            AA.scopes([Src, Phase(PkgNofetch)]),
+            FILESDIR.scopes([Src, Global]),
+            DISTDIR.scopes([Src, Global]),
+            WORKDIR.scopes([Src, Global]),
+            S.scopes([Src]),
+            PORTDIR.scopes([Src]),
+            ECLASSDIR.scopes([Src]),
+            ROOT.scopes([Pkg]),
+            T.scopes([All]),
+            TMPDIR.scopes([All]),
+            HOME.scopes([All]),
+            D.scopes([Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
+            DESTTREE.scopes([Phase(SrcInstall)]),
+            INSDESTTREE.scopes([Phase(SrcInstall)]),
+            USE.scopes([All]),
+            EBUILD_PHASE.scopes([Phases]),
+            KV.scopes([All]),
         ])
         .finalize()
 });
@@ -618,26 +615,26 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::environment::VariableKind::*;
     use crate::shell::phase::PhaseKind::*;
     use crate::shell::scope::Scopes::*;
-    use crate::shell::BuildVariable::*;
 
     Eapi::new("3", Some(&EAPI2))
         .enable_archives(&["tar.xz", "xz"])
-        .update_env(&[
-            (EPREFIX, &[Global]),
-            (ED, &[Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
-            (EROOT, &[Pkg]),
+        .update_env([
+            EPREFIX.scopes([Global]),
+            ED.scopes([Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
+            EROOT.scopes([Pkg]),
         ])
         .finalize()
 });
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::environment::VariableKind::*;
     use crate::shell::hooks::eapi4::HOOKS;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::scope::Scopes::*;
-    use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("4", Some(&EAPI3))
@@ -654,25 +651,25 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
         .update_incremental_keys(&[Key::RequiredUse])
         .update_metadata_keys(&[Key::RequiredUse])
         .update_econf(&[("--disable-dependency-tracking", None, None)])
-        .update_env(&[
-            (MERGE_TYPE, &[Pkg]),
-            (REPLACING_VERSIONS, &[Pkg]),
-            (REPLACED_BY_VERSION, &[Phase(PkgPrerm), Phase(PkgPostrm)]),
+        .update_env([
+            MERGE_TYPE.scopes([Pkg]),
+            REPLACING_VERSIONS.scopes([Pkg]),
+            REPLACED_BY_VERSION.scopes([Phase(PkgPrerm), Phase(PkgPostrm)]),
         ])
-        .disable_env(&[AA, KV])
+        .disable_env([AA, KV])
         .update_hooks(&HOOKS)
         .finalize()
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::environment::VariableKind::*;
     use crate::shell::scope::Scopes::*;
-    use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("5", Some(&EAPI4))
         .enable_features(&[NewSupportsStdin, ParallelTests, RequiredUseOneOf, SlotOps, Subslots])
         .update_econf(&[("--disable-silent-rules", None, None)])
-        .update_env(&[(EBUILD_PHASE_FUNC, &[Phases])])
+        .update_env([EBUILD_PHASE_FUNC.scopes([Phases])])
         .finalize()
 });
 
@@ -695,10 +692,10 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::environment::VariableKind::*;
     use crate::shell::hooks::eapi7::HOOKS;
     use crate::shell::phase::PhaseKind::*;
     use crate::shell::scope::Scopes::*;
-    use crate::shell::BuildVariable::*;
     use Feature::*;
 
     Eapi::new("7", Some(&EAPI6))
@@ -706,12 +703,12 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
         .update_dep_keys(&[Key::Bdepend])
         .update_incremental_keys(&[Key::Bdepend])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
-        .update_env(&[
-            (SYSROOT, &[Src, Phase(PkgSetup)]),
-            (ESYSROOT, &[Src, Phase(PkgSetup)]),
-            (BROOT, &[Src, Phase(PkgSetup)]),
+        .update_env([
+            SYSROOT.scopes([Src, Phase(PkgSetup)]),
+            ESYSROOT.scopes([Src, Phase(PkgSetup)]),
+            BROOT.scopes([Src, Phase(PkgSetup)]),
         ])
-        .disable_env(&[PORTDIR, ECLASSDIR, DESTTREE, INSDESTTREE])
+        .disable_env([PORTDIR, ECLASSDIR, DESTTREE, INSDESTTREE])
         .update_hooks(&HOOKS)
         .finalize()
 });

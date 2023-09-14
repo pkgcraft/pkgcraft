@@ -69,3 +69,12 @@ impl IntoIterator for &Scopes {
         }
     }
 }
+
+impl IntoIterator for Scopes {
+    type Item = Scope;
+    type IntoIter = Box<dyn Iterator<Item = Scope>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (&self).into_iter()
+    }
+}

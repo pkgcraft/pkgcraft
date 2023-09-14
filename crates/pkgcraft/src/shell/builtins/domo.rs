@@ -6,6 +6,7 @@ use scallop::Error;
 
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
+use crate::shell::environment::VariableKind::DESTTREE;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 
@@ -23,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let dest = build_from_paths!(
         build
             .env
-            .get("DESTTREE")
+            .get(&DESTTREE)
             .map(|s| s.as_str())
             .unwrap_or("/usr"),
         "share/locale"

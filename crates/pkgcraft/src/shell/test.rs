@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use tempfile::{tempdir, TempDir};
 use walkdir::WalkDir;
 
+use crate::shell::environment::VariableKind::ED;
+
 #[derive(Debug, Deserialize, Serialize)]
 struct Files {
     files: Vec<FileData>,
@@ -36,7 +38,7 @@ impl FileTree {
 
         crate::shell::get_build_mut()
             .env
-            .insert("ED".into(), install_dir.to_str().unwrap().into());
+            .insert(ED, install_dir.to_str().unwrap().into());
 
         fs::create_dir(&install_dir).unwrap();
         fs::create_dir(&src_dir).unwrap();

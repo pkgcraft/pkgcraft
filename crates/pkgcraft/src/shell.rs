@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Read, Write};
 use std::{env, mem};
@@ -12,7 +11,6 @@ use once_cell::sync::Lazy;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::{self, *};
 use scallop::Error;
-use strum::{AsRefStr, Display};
 use sys_info::os_release;
 
 use crate::dep::Cpv;
@@ -25,6 +23,7 @@ use crate::traits::SourceBash;
 use crate::types::Deque;
 
 pub mod builtins;
+pub(crate) mod environment;
 pub(crate) mod hooks;
 mod install;
 pub(crate) mod metadata;
@@ -36,6 +35,7 @@ mod unescape;
 mod utils;
 
 use builtins::BUILTINS;
+use environment::VariableKind;
 use scope::Scope;
 
 pub use metadata::Key;
@@ -179,7 +179,7 @@ pub(crate) struct BuildData<'a> {
     stderr: Stderr,
 
     // mapping of variables conditionally exported to the build environment
-    env: HashMap<String, String>,
+    env: HashMap<VariableKind, String>,
 
     // TODO: proxy these fields via borrowed package reference
     distfiles: Vec<String>,
@@ -296,8 +296,8 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the value for a given build variable from the build state.
-    fn get_var(&self, var: BuildVariable) -> scallop::Result<String> {
-        use BuildVariable::*;
+    fn get_var(&self, var: VariableKind) -> scallop::Result<String> {
+        use VariableKind::*;
         match var {
             CATEGORY => self.cpv().map(|o| o.category().to_string()),
             P => self.cpv().map(|o| o.p()),
@@ -358,14 +358,14 @@ impl<'a> BuildData<'a> {
 
     /// Cache and set build environment variables for the current EAPI and scope.
     fn set_vars(&mut self) -> scallop::Result<()> {
-        for (var, scopes) in self.eapi().env() {
-            if scopes.contains(&self.scope) {
-                if let Some(val) = self.env.get(var.as_ref()) {
+        for var in self.eapi().env() {
+            if var.scopes().contains(&self.scope) {
+                if let Some(val) = self.env.get(var.borrow()) {
                     bind(var, val, None, None)?;
                 } else {
-                    let val = self.get_var(*var)?;
+                    let val = self.get_var(var.into())?;
                     bind(var, &val, None, None)?;
-                    self.env.insert(var.to_string(), val);
+                    self.env.insert(var.into(), val);
                 }
             }
         }
@@ -373,9 +373,9 @@ impl<'a> BuildData<'a> {
         Ok(())
     }
 
-    fn override_var(&self, var: BuildVariable, val: &str) -> scallop::Result<()> {
-        if let Some(scopes) = self.eapi().env().get(&var) {
-            if scopes.contains(&self.scope) {
+    fn override_var(&self, kind: VariableKind, val: &str) -> scallop::Result<()> {
+        if let Some(var) = self.eapi().env().get(&kind) {
+            if var.scopes().contains(&self.scope) {
                 bind(var, val, None, None)?;
             } else {
                 panic!("invalid scope {} for variable: {var}", self.scope);
@@ -413,9 +413,11 @@ impl<'a> BuildData<'a> {
     }
 
     fn destdir(&self) -> &str {
-        self.env
-            .get("ED")
-            .unwrap_or_else(|| self.env.get("D").expect("undefined destdir vars: ED and D"))
+        self.env.get(&VariableKind::ED).unwrap_or_else(|| {
+            self.env
+                .get(&VariableKind::D)
+                .expect("undefined destdir vars: ED and D")
+        })
     }
 
     fn install(&self) -> install::Install {
@@ -494,61 +496,6 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");
 });
-
-#[derive(AsRefStr, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
-#[allow(non_camel_case_types)]
-pub enum BuildVariable {
-    // package specific
-    CATEGORY,
-    P,
-    PF,
-    PN,
-    PR,
-    PV,
-    PVR,
-
-    // environment specific
-    A,
-    AA,
-    FILESDIR,
-    DISTDIR,
-    WORKDIR,
-    S,
-    PORTDIR,
-    ECLASSDIR,
-    ROOT,
-    EROOT,
-    SYSROOT,
-    ESYSROOT,
-    BROOT,
-    T,
-    TMPDIR,
-    HOME,
-    EPREFIX,
-    D,
-    ED,
-    DESTTREE,
-    INSDESTTREE,
-    USE,
-    EBUILD_PHASE,
-    EBUILD_PHASE_FUNC,
-    KV,
-    MERGE_TYPE,
-    REPLACING_VERSIONS,
-    REPLACED_BY_VERSION,
-}
-
-impl Ord for BuildVariable {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for BuildVariable {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
 
 #[cfg(test)]
 mod tests {
