@@ -368,14 +368,12 @@ mod tests {
     use crate::shell::test::FileTree;
 
     #[test]
-    fn nonexistent_file() {
+    fn nonexistent() {
         let _file_tree = FileTree::new();
-
-        // nonexistent
         let r = get_build_mut()
             .install()
             .files_internal([("source", "dest")]);
-        assert_err_re!(r, "^invalid file \"source\": .*$");
+        assert_err_re!(r, "^invalid file \"source\": No such file or directory .*$");
     }
 
     #[test]
