@@ -1,10 +1,9 @@
 use std::borrow::Borrow;
-use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{cmp, fmt};
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
 
@@ -116,7 +115,7 @@ mod ver_test;
 #[derive(Debug)]
 pub(super) struct Builtin {
     builtin: scallop::builtins::Builtin,
-    scope: IndexMap<&'static Eapi, HashSet<Scope>>,
+    scope: IndexMap<&'static Eapi, IndexSet<Scope>>,
 }
 
 impl From<&Builtin> for scallop::builtins::Builtin {
@@ -129,13 +128,14 @@ impl Builtin {
     fn new(builtin: scallop::builtins::Builtin, scopes: &[(&str, &[Scopes])]) -> Self {
         let mut scope = IndexMap::new();
         for (range, scopes) in scopes.iter() {
-            let scopes: HashSet<_> = scopes.iter().flatten().collect();
+            let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
+            scopes.sort();
             let eapis = eapi::range(range).unwrap_or_else(|e| {
                 panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
             });
-            for e in eapis {
-                if scope.insert(e, scopes.clone()).is_some() {
-                    panic!("clashing EAPI scopes: {e}");
+            for eapi in eapis {
+                if scope.insert(eapi, scopes.clone()).is_some() {
+                    panic!("EAPI {eapi}: clashing {builtin} builtin scopes");
                 }
             }
         }
@@ -215,7 +215,7 @@ impl fmt::Display for Builtin {
     }
 }
 
-pub(super) static BUILTINS: Lazy<HashSet<&Builtin>> = Lazy::new(|| {
+pub(super) static BUILTINS: Lazy<IndexSet<&Builtin>> = Lazy::new(|| {
     [
         &*adddeny::BUILTIN,
         &*addpredict::BUILTIN,
