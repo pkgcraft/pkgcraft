@@ -16,7 +16,6 @@ use super::utils::makefile_exists;
 use super::{get_build_mut, BuildData, BuildFn, BASH};
 
 pub(crate) mod eapi0;
-pub(crate) mod eapi1;
 pub(crate) mod eapi2;
 pub(crate) mod eapi4;
 pub(crate) mod eapi6;

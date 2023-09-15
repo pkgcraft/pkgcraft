@@ -7,7 +7,7 @@ use itertools::Either;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
-use crate::eapi::{self, Eapi, Feature};
+use crate::eapi::{self, Eapi};
 use crate::repo::{ebuild::Repo, Repository};
 use crate::shell::metadata::{Key, Metadata};
 use crate::traits::FilterLines;
@@ -270,14 +270,10 @@ impl<'a> Pkg<'a> {
 
     /// Return an unconfigured package's IUSE_EFFECTIVE.
     pub(crate) fn iuse_effective(&self) -> OrderedSet<&str> {
-        if self.eapi().has(Feature::IuseDefaults) {
-            self.iuse()
-                .iter()
-                .map(|s| s.trim_start_matches(['+', '-']))
-                .collect()
-        } else {
-            self.iuse().iter().map(|s| s.as_str()).collect()
-        }
+        self.iuse()
+            .iter()
+            .map(|s| s.trim_start_matches(['+', '-']))
+            .collect()
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.

@@ -52,12 +52,6 @@ pub enum Feature {
     /// RDEPEND=DEPEND if RDEPEND is unset
     RdependDefault,
 
-    // EAPI 1
-    /// IUSE defaults
-    IuseDefaults,
-    /// slot deps -- cat/pkg:0
-    SlotDeps,
-
     // EAPI 2
     /// blockers -- !cat/pkg and !!cat/pkg
     Blockers,
@@ -509,20 +503,32 @@ impl FromStr for &'static Eapi {
     }
 }
 
-pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
+static OLD_EAPIS: Lazy<IndexSet<String>> =
+    Lazy::new(|| ["0", "1"].iter().map(|s| s.to_string()).collect());
+
+pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::VariableKind::*;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::scope::Scopes::*;
     use Feature::*;
 
-    Eapi::new("1", None)
-        .enable_features(&[RdependDefault, TrailingSlash, IuseDefaults, SlotDeps])
+    Eapi::new("2", None)
+        .enable_features(&[
+            RdependDefault,
+            TrailingSlash,
+            Blockers,
+            DomanLangDetect,
+            UseDeps,
+            SrcUriRenames,
+        ])
         .update_operations([
             Build.op([
                 PkgSetup.func(None),
                 SrcUnpack.func(Some(eapi0::src_unpack)),
-                SrcCompile.func(Some(eapi1::src_compile)),
+                SrcPrepare.func(None),
+                SrcConfigure.func(Some(eapi2::src_configure)),
+                SrcCompile.func(Some(eapi2::src_compile)),
                 SrcTest.func(Some(eapi0::src_test)),
                 SrcInstall.func(None),
             ]),
@@ -586,25 +592,6 @@ pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
             EBUILD_PHASE.scopes([Phases]),
             KV.scopes([All]),
         ])
-        .finalize()
-});
-
-pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::operations::OperationKind::*;
-    use crate::shell::phase::{PhaseKind::*, *};
-    use Feature::*;
-
-    Eapi::new("2", Some(&EAPI1))
-        .enable_features(&[Blockers, DomanLangDetect, UseDeps, SrcUriRenames])
-        .update_operations([Build.op([
-            PkgSetup.func(None),
-            SrcUnpack.func(Some(eapi0::src_unpack)),
-            SrcPrepare.func(None),
-            SrcConfigure.func(Some(eapi2::src_configure)),
-            SrcCompile.func(Some(eapi2::src_compile)),
-            SrcTest.func(Some(eapi0::src_test)),
-            SrcInstall.func(None),
-        ])])
         .finalize()
 });
 
@@ -784,7 +771,16 @@ pub fn range(s: &str) -> crate::Result<impl Iterator<Item = &'static Eapi>> {
     // convert EAPI identifier to index, "U" being an alias for the first unofficial EAPI
     let eapi_idx = |s: &str| match s {
         "U" => Ok(EAPIS.get_index_of(EAPIS_UNOFFICIAL[0].as_str()).unwrap()),
-        _ => EAPIS.get_index_of(s).ok_or_else(err),
+        _ => {
+            if let Some(idx) = EAPIS.get_index_of(s) {
+                Ok(idx)
+            } else if OLD_EAPIS.contains(s) {
+                // EAPI has been removed so use the oldest, supported EAPI
+                Ok(0)
+            } else {
+                Err(err())
+            }
+        }
     };
 
     // determine range operator
@@ -892,16 +888,16 @@ mod tests {
         let mut eapi: &Eapi;
         eapi = arg.try_into().unwrap();
         assert_eq!(&*EAPI_PKGCRAFT, eapi);
-        arg = Some("1");
+        arg = Some("8");
         eapi = arg.try_into().unwrap();
-        assert_eq!(&*EAPI1, eapi);
+        assert_eq!(&*EAPI8, eapi);
 
         let mut arg: Option<&'static Eapi> = None;
         eapi = arg.try_into().unwrap();
         assert_eq!(&*EAPI_PKGCRAFT, eapi);
-        arg = Some(&EAPI1);
+        arg = Some(&EAPI8);
         eapi = arg.try_into().unwrap();
-        assert_eq!(&*EAPI1, eapi);
+        assert_eq!(&*EAPI8, eapi);
     }
 
     #[test]
@@ -915,9 +911,9 @@ mod tests {
         assert_ordered_eq(range("..").unwrap(), EAPIS.iter().copied());
         assert_ordered_eq(range("..U").unwrap(), EAPIS_OFFICIAL.iter().copied());
         assert_ordered_eq(range("U..").unwrap(), EAPIS_UNOFFICIAL.iter().copied());
-        assert!(range("1..1").unwrap().next().is_none());
-        assert_ordered_eq(range("1..2").unwrap(), [&*EAPI1]);
-        assert_ordered_eq(range("1..=2").unwrap(), [&*EAPI1, &*EAPI2]);
-        assert_ordered_eq(range("..=2").unwrap(), [&*EAPI1, &*EAPI2]);
+        assert!(range("8..8").unwrap().next().is_none());
+        assert_ordered_eq(range("7..8").unwrap(), [&*EAPI7]);
+        assert_ordered_eq(range("7..=8").unwrap(), [&*EAPI7, &*EAPI8]);
+        assert_ordered_eq(range("..=3").unwrap(), [&*EAPI2, &*EAPI3]);
     }
 }

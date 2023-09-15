@@ -46,7 +46,7 @@ fn no_pkgs() {
 #[test]
 fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("cat/pkg-1", &["EAPI=1"]).unwrap();
+    t.create_raw_pkg("cat/pkg-1", &["EAPI=8"]).unwrap();
 
     cmd("pk repo metadata")
         .arg(t.path())

@@ -81,11 +81,7 @@ peg::parser!(grammar depspec() for str {
 
     rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
         = ":" slot_parts:slot_str(eapi) {?
-            if eapi.has(Feature::SlotDeps) {
-                Ok(slot_parts)
-            } else {
-                Err("slot deps are supported in >= EAPI 1")
-            }
+            Ok(slot_parts)
         }
 
     rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
@@ -554,14 +550,10 @@ mod tests {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg:{slot}");
                 let result = dep(&s, eapi);
-                if eapi.has(Feature::SlotDeps) {
-                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let d = result.unwrap();
-                    assert_eq!(d.slot(), Some(slot));
-                    assert_eq!(d.to_string(), s);
-                } else {
-                    assert!(result.is_err(), "{s:?} didn't fail");
-                }
+                assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                let d = result.unwrap();
+                assert_eq!(d.slot(), Some(slot));
+                assert_eq!(d.to_string(), s);
             }
         }
     }
