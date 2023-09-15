@@ -46,14 +46,20 @@ mod tests {
     }
 
     #[test]
-    fn test_nonzero_exit_status() {
+    fn exit_status() {
         let status = nonfatal(&["nonexistent_cmd"]).unwrap();
         assert!(i32::from(status) != 0);
     }
 
     #[test]
-    fn test_nonfatal_die() {
+    fn die() {
         let status = nonfatal(&["die", "-n", "message"]).unwrap();
+        assert!(i32::from(status) != 0);
+    }
+
+    #[test]
+    fn invalid_builtin_scope() {
+        let status = nonfatal(&["ewarn", "message"]).unwrap();
         assert!(i32::from(status) != 0);
     }
 }
