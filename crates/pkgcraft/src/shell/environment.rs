@@ -26,7 +26,6 @@ pub(crate) enum VariableKind {
 
     // environment specific
     A,
-    AA,
     FILESDIR,
     DISTDIR,
     WORKDIR,
@@ -49,7 +48,6 @@ pub(crate) enum VariableKind {
     USE,
     EBUILD_PHASE,
     EBUILD_PHASE_FUNC,
-    KV,
     MERGE_TYPE,
     REPLACING_VERSIONS,
     REPLACED_BY_VERSION,

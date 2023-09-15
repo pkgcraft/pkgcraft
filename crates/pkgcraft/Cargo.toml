@@ -59,7 +59,6 @@ serde = { version = "1.0.188", features = ["derive"] }
 serde_with = { version = "3.3.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.7"
 strum = { version = "0.25.0", features = ["derive"] }
-sys-info = "0.9.1"
 tar = { version = "0.4.40", optional = true }
 tempfile = "3.8.0"
 thiserror = "1.0.48"

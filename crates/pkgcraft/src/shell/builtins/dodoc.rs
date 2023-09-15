@@ -3,12 +3,11 @@ use std::path::Path;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::eapi::Feature;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
+use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
-use crate::shell::{get_build_mut, BuildData};
 
 use super::{make_builtin, Scopes::Phase};
 
@@ -17,9 +16,9 @@ const LONG_DOC: &str = "Install documentation files.";
 /// Install document files from a given list of paths.
 pub(crate) fn install_docs<P: AsRef<Path>>(
     recursive: bool,
-    build: &mut BuildData,
     paths: &[P],
 ) -> scallop::Result<ExecStatus> {
+    let build = get_build_mut();
     let dest = build_from_paths!(
         "/usr/share/doc",
         build.pkg()?.cpv().pf(),
@@ -45,15 +44,13 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let build = get_build_mut();
-
     let (recursive, args) = match args.first() {
-        Some(&"-r") if build.eapi().has(Feature::DodocRecursive) => Ok((true, &args[1..])),
+        Some(&"-r") => Ok((true, &args[1..])),
         Some(_) => Ok((false, args)),
         None => Err(Error::Base("requires 1 or more targets, got 0".into())),
     }?;
 
-    install_docs(recursive, build, args)
+    install_docs(recursive, args)
 }
 
 const USAGE: &str = "dodoc doc_file";
@@ -66,6 +63,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
+    use crate::shell::BuildData;
 
     use super::super::docinto::run as docinto;
     use super::super::{assert_invalid_args, builtin_scope_tests};

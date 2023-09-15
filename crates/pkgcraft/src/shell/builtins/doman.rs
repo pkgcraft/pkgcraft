@@ -5,7 +5,6 @@ use regex::Regex;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::eapi::Feature;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 
@@ -32,7 +31,6 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("missing filename target".into()));
     }
 
-    let eapi = get_build_mut().eapi();
     let install = get_build_mut()
         .install()
         .dest("/usr/share/man")?
@@ -49,7 +47,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
         if let Some(m) = DETECT_LANG_RE.captures(base) {
             base = m.name("name").unwrap().as_str();
-            if lang.is_empty() || !eapi.has(Feature::DomanLangOverride) {
+            if lang.is_empty() {
                 lang = m.name("lang").unwrap().as_str();
             }
         }

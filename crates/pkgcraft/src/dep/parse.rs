@@ -125,26 +125,22 @@ peg::parser!(grammar depspec() for str {
         } / expected!("USE flag name")
         ) { s }
 
-    rule use_dep(eapi: &'static Eapi) -> &'input str
+    rule use_dep() -> &'input str
         = s:$(quiet!{
-            (use_flag() use_dep_default(eapi)? ['=' | '?']?) /
-            ("-" use_flag() use_dep_default(eapi)?) /
-            ("!" use_flag() use_dep_default(eapi)? ['=' | '?'])
+            (use_flag() use_dep_default()? ['=' | '?']?) /
+            ("-" use_flag() use_dep_default()?) /
+            ("!" use_flag() use_dep_default()? ['=' | '?'])
         } / expected!("use dep")
         ) { s }
 
-    rule use_deps(eapi: &'static Eapi) -> Vec<&'input str>
-        = "[" use_deps:use_dep(eapi) ++ "," "]" {?
-            Ok(use_deps)
+    rule use_deps() -> Vec<&'input str>
+        = "[" use_deps:use_dep() ++ "," "]" {
+            use_deps
         }
 
-    rule use_dep_default(eapi: &'static Eapi) -> &'input str
-        = s:$("(+)" / "(-)") {?
-            if eapi.has(Feature::UseDepDefaults) {
-                Ok(s)
-            } else {
-                Err("use dep defaults are supported in >= EAPI 4")
-            }
+    rule use_dep_default() -> &'input str
+        = s:$("(+)" / "(-)") {
+            s
         }
 
     // repo must not begin with a hyphen and must also be a valid package name
@@ -185,7 +181,7 @@ peg::parser!(grammar depspec() for str {
 
     pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
         = blocker:blocker()? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
-                use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
+                use_deps:use_deps()? repo:repo_dep(eapi)? {
             let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
             (dep, ParsedDep {
                 blocker,
@@ -593,15 +589,11 @@ mod tests {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = dep(&s, eapi);
-                if eapi.has(Feature::UseDepDefaults) {
-                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let d = result.unwrap();
-                    let expected = use_deps.split(',').map(|s| s.to_string()).collect();
-                    assert_eq!(d.use_deps(), Some(&expected));
-                    assert_eq!(d.to_string(), s);
-                } else {
-                    assert!(result.is_err(), "{s:?} didn't fail");
-                }
+                assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                let d = result.unwrap();
+                let expected = use_deps.split(',').map(|s| s.to_string()).collect();
+                assert_eq!(d.use_deps(), Some(&expected));
+                assert_eq!(d.to_string(), s);
             }
         }
     }

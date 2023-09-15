@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::eapi::{self, Eapi, Feature};
+use crate::eapi::{self, Eapi};
 
 use super::get_build_mut;
 use super::scope::{Scope, Scopes};
@@ -373,10 +373,8 @@ mod parse {
 
 /// Handle builtin errors, bailing out when running normally.
 pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
-    let eapi = get_build_mut().eapi();
-    let bail = !NONFATAL.load(Ordering::Relaxed) && eapi.has(Feature::DieOnFailure);
     let err = match err {
-        Error::Base(s) if bail => Error::Bail(s),
+        Error::Base(s) if !NONFATAL.load(Ordering::Relaxed) => Error::Bail(s),
         _ => err,
     };
 
@@ -441,7 +439,7 @@ macro_rules! builtin_scope_tests {
         #[test]
         fn test_builtin_scope() {
             use crate::config::Config;
-            use crate::eapi::{Feature, EAPIS_OFFICIAL};
+            use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
             use crate::pkg::SourceablePackage;
             use crate::shell::builtins::BUILTINS;
@@ -489,18 +487,10 @@ macro_rules! builtin_scope_tests {
                             "#};
                             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                             let r = raw_pkg.source();
-                            if eapi.has(Feature::DieOnFailure) {
-                                // verify sourcing stops at unknown command
-                                assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
-                                // verify error output
-                                assert_err_re!(r, err, &info);
-                            } else {
-                                // verify sourcing doesn't bail on error
-                                assert_eq!(
-                                    scallop::variables::optional("VAR").as_deref(),
-                                    Some("2")
-                                );
-                            }
+                            // verify sourcing stops at unknown command
+                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                            // verify error output
+                            assert_err_re!(r, err, &info);
                         }
                         Global => {
                             let data = indoc::formatdoc! {r#"
@@ -514,18 +504,10 @@ macro_rules! builtin_scope_tests {
                             "#};
                             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                             let r = raw_pkg.source();
-                            if eapi.has(Feature::DieOnFailure) {
-                                // verify sourcing stops at unknown command
-                                assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
-                                // verify error output
-                                assert_err_re!(r, err, &info);
-                            } else {
-                                // verify sourcing doesn't bail on error
-                                assert_eq!(
-                                    scallop::variables::optional("VAR").as_deref(),
-                                    Some("2")
-                                );
-                            }
+                            // verify sourcing stops at unknown command
+                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                            // verify error output
+                            assert_err_re!(r, err, &info);
                         }
                         Phase(phase) => {
                             let data = indoc::formatdoc! {r#"
@@ -543,21 +525,10 @@ macro_rules! builtin_scope_tests {
                             get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
                             let phase = eapi.phases().get(phase).unwrap();
                             let r = phase.run();
-                            if eapi.has(Feature::DieOnFailure) {
-                                // verify function stops at unknown command
-                                assert_eq!(
-                                    scallop::variables::optional("VAR").as_deref(),
-                                    Some("1")
-                                );
-                                // verify error output
-                                assert_err_re!(r, err, &info);
-                            } else {
-                                // verify phase doesn't bail on error
-                                assert_eq!(
-                                    scallop::variables::optional("VAR").as_deref(),
-                                    Some("2")
-                                );
-                            }
+                            // verify function stops at unknown command
+                            assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
+                            // verify error output
+                            assert_err_re!(r, err, &info);
                         }
                     }
                 }

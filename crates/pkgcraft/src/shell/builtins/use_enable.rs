@@ -19,7 +19,7 @@ mod tests {
     use scallop::builtins::ExecStatus;
 
     use crate::config::Config;
-    use crate::eapi::{Feature, EAPIS_OFFICIAL};
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::shell::{assert_stdout, get_build_mut, BuildData};
 
@@ -32,14 +32,6 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(use_enable, &[0, 4]);
-
-        for eapi in EAPIS_OFFICIAL
-            .iter()
-            .filter(|e| !e.has(Feature::UseConfArg))
-        {
-            BuildData::empty(eapi);
-            assert_invalid_args(use_enable, &[3]);
-        }
     }
 
     #[test]
@@ -71,7 +63,7 @@ mod tests {
         }
 
         // check EAPIs that support three arg variant
-        for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(Feature::UseConfArg)) {
+        for eapi in EAPIS_OFFICIAL.iter() {
             let pkg = t
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
@@ -102,7 +94,7 @@ mod tests {
         }
 
         // check EAPIs that support three arg variant
-        for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(Feature::UseConfArg)) {
+        for eapi in EAPIS_OFFICIAL.iter() {
             let pkg = t
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();

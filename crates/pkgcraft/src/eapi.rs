@@ -48,24 +48,6 @@ pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
 #[derive(EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Feature {
-    // EAPI 0
-    /// RDEPEND=DEPEND if RDEPEND is unset
-    RdependDefault,
-
-    // EAPI 4
-    /// PMS-defined commands die on failure
-    DieOnFailure,
-    /// recursive install support via `dodoc -r`
-    DodocRecursive,
-    /// support `doman` language override via -i18n option
-    DomanLangOverride,
-    /// use defaults -- cat/pkg[use(+)] and cat/pkg[use(-)]
-    UseDepDefaults,
-    /// REQUIRED_USE support
-    RequiredUse,
-    /// use_with and use_enable support an optional third argument
-    UseConfArg,
-
     // EAPI 5
     /// new* helpers can use stdin for content instead of a file
     NewSupportsStdin,
@@ -494,18 +476,20 @@ impl FromStr for &'static Eapi {
 }
 
 static OLD_EAPIS: Lazy<IndexSet<String>> =
-    Lazy::new(|| ["0", "1", "2"].iter().map(|s| s.to_string()).collect());
+    Lazy::new(|| ["0", "1", "2", "3"].iter().map(|s| s.to_string()).collect());
 
-pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::VariableKind::*;
+    use crate::shell::hooks::eapi4::HOOKS;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::scope::Scopes::*;
     use Feature::*;
 
-    Eapi::new("3", None)
-        .enable_features(&[RdependDefault, TrailingSlash])
+    Eapi::new("4", None)
+        .enable_features(&[TrailingSlash])
         .update_operations([
+            Pretend.op([PkgPretend.func(None)]),
             Build.op([
                 PkgSetup.func(None),
                 SrcUnpack.func(Some(eapi0::src_unpack)),
@@ -513,7 +497,7 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
                 SrcConfigure.func(Some(eapi2::src_configure)),
                 SrcCompile.func(Some(eapi2::src_compile)),
                 SrcTest.func(Some(eapi0::src_test)),
-                SrcInstall.func(None),
+                SrcInstall.func(Some(eapi4::src_install)),
             ]),
             Install.op([PkgPreinst.func(None), PkgPostinst.func(None)]),
             Uninstall.op([PkgPrerm.func(None), PkgPostrm.func(None)]),
@@ -557,7 +541,6 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
             PR.scopes([All]),
             PVR.scopes([All]),
             A.scopes([Src, Phase(PkgNofetch)]),
-            AA.scopes([Src, Phase(PkgNofetch)]),
             FILESDIR.scopes([Src, Global]),
             DISTDIR.scopes([Src, Global]),
             WORKDIR.scopes([Src, Global]),
@@ -573,43 +556,16 @@ pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
             INSDESTTREE.scopes([Phase(SrcInstall)]),
             USE.scopes([All]),
             EBUILD_PHASE.scopes([Phases]),
-            KV.scopes([All]),
             EPREFIX.scopes([Global]),
             ED.scopes([Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
             EROOT.scopes([Pkg]),
-        ])
-        .finalize()
-});
-
-pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::environment::VariableKind::*;
-    use crate::shell::hooks::eapi4::HOOKS;
-    use crate::shell::operations::OperationKind::*;
-    use crate::shell::phase::{PhaseKind::*, *};
-    use crate::shell::scope::Scopes::*;
-    use Feature::*;
-
-    Eapi::new("4", Some(&EAPI3))
-        .enable_features(&[
-            DieOnFailure,
-            DodocRecursive,
-            DomanLangOverride,
-            RequiredUse,
-            UseConfArg,
-            UseDepDefaults,
-        ])
-        .disable_features(&[RdependDefault])
-        .update_operations([Pretend.op([PkgPretend.func(None)])])
-        .update_phases([SrcInstall.func(Some(eapi4::src_install))])
-        .update_incremental_keys(&[Key::RequiredUse])
-        .update_metadata_keys(&[Key::RequiredUse])
-        .update_econf(&[("--disable-dependency-tracking", None, None)])
-        .update_env([
             MERGE_TYPE.scopes([Pkg]),
             REPLACING_VERSIONS.scopes([Pkg]),
             REPLACED_BY_VERSION.scopes([Phase(PkgPrerm), Phase(PkgPostrm)]),
         ])
-        .disable_env([AA, KV])
+        .update_incremental_keys(&[Key::RequiredUse])
+        .update_metadata_keys(&[Key::RequiredUse])
+        .update_econf(&[("--disable-dependency-tracking", None, None)])
         .update_hooks(&HOOKS)
         .finalize()
 });
@@ -885,6 +841,6 @@ mod tests {
         assert!(range("8..8").unwrap().next().is_none());
         assert_ordered_eq(range("7..8").unwrap(), [&*EAPI7]);
         assert_ordered_eq(range("7..=8").unwrap(), [&*EAPI7, &*EAPI8]);
-        assert_ordered_eq(range("..=4").unwrap(), [&*EAPI3, &*EAPI4]);
+        assert_ordered_eq(range("..=5").unwrap(), [&*EAPI4, &*EAPI5]);
     }
 }

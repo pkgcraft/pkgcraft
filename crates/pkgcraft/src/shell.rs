@@ -9,9 +9,8 @@ use itertools::Itertools;
 use nix::unistd::isatty;
 use once_cell::sync::Lazy;
 use scallop::builtins::{ExecStatus, ScopedOptions};
-use scallop::variables::{self, *};
+use scallop::variables::*;
 use scallop::Error;
-use sys_info::os_release;
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature};
@@ -307,11 +306,6 @@ impl<'a> BuildData<'a> {
             PV => self.cpv().map(|o| o.pv()),
             PVR => self.cpv().map(|o| o.pvr()),
 
-            AA => self.pkg().map(|pkg| {
-                pkg.src_uri()
-                    .map(|d| d.iter_flatten().map(|u| u.filename()).join(" "))
-                    .unwrap_or_default()
-            }),
             FILESDIR => {
                 let cpv = self.cpv()?;
                 let path =
@@ -343,7 +337,6 @@ impl<'a> BuildData<'a> {
             INSDESTTREE => Ok(self.insdesttree.clone()),
             EBUILD_PHASE => self.phase().map(|p| p.short_name().to_string()),
             EBUILD_PHASE_FUNC => self.phase().map(|p| p.to_string()),
-            KV => os_release().map_err(|e| Error::Base(format!("failed getting OS release: {e}"))),
 
             // TODO: alter for build vs install pkg state variants
             REPLACING_VERSIONS => Ok("".to_string()),
@@ -446,13 +439,6 @@ impl<'a> BuildData<'a> {
         // run global sourcing in restricted shell mode
         scallop::shell::restricted(|| value.source_bash())?;
 
-        // set RDEPEND=DEPEND if RDEPEND is unset and DEPEND exists
-        if eapi.has(Feature::RdependDefault) && variables::optional("RDEPEND").is_none() {
-            if let Some(depend) = variables::optional("DEPEND") {
-                bind("RDEPEND", depend, None, None)?;
-            }
-        }
-
         // prepend metadata keys that incrementally accumulate to eclass values
         if !self.inherited.is_empty() {
             for key in eapi.incremental_keys() {
@@ -528,12 +514,8 @@ mod tests {
             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
             let r = raw_pkg.source();
-            if eapi.has(Feature::DieOnFailure) {
-                assert_eq!(variables::optional("VAR").unwrap(), "1");
-                assert_err_re!(r, "unknown command: ls");
-            } else {
-                assert_eq!(variables::optional("VAR").unwrap(), "2");
-            }
+            assert_eq!(variables::optional("VAR").unwrap(), "1");
+            assert_err_re!(r, "unknown command: ls");
         }
     }
 
@@ -584,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    fn rdepend_default() {
+    fn no_rdepend_default() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -598,11 +580,7 @@ mod tests {
             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
             raw_pkg.source().unwrap();
-            if eapi.has(Feature::RdependDefault) {
-                assert_eq!(variables::optional("RDEPEND").unwrap(), "a/b");
-            } else {
-                assert!(variables::optional("RDEPEND").is_none());
-            }
+            assert!(variables::optional("RDEPEND").is_none());
         }
     }
 }

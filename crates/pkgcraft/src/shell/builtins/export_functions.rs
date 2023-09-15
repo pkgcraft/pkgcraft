@@ -131,33 +131,6 @@ mod tests {
     }
 
     #[test]
-    fn invalid_phase_eapi() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
-        // create eclass
-        let eclass = indoc::indoc! {r#"
-            # stub eclass
-            EXPORT_FUNCTIONS src_compile pkg_pretend
-
-            e1_src_compile() { :; }
-            e1_pkg_pretend() { :; }
-            }
-        "#};
-        t.create_eclass("e1", eclass).unwrap();
-
-        let data = indoc::indoc! {r#"
-            EAPI=3
-            inherit e1
-            DESCRIPTION="testing EXPORT_FUNCTIONS support"
-            SLOT=0
-        "#};
-        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
-        let r = raw_pkg.source();
-        assert_err_re!(r, "pkg_pretend phase undefined in EAPI 3$");
-    }
-
-    #[test]
     fn undefined_phase() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();

@@ -1,8 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::eapi::Feature;
-use crate::shell::{get_build_mut, write_stdout};
+use crate::shell::write_stdout;
 
 use super::use_::run as use_;
 
@@ -21,13 +20,7 @@ pub(super) fn use_conf(
             }
         }
         2 => Ok((&args[..1], args[1], String::from(""))),
-        3 => {
-            if get_build_mut().eapi().has(Feature::UseConfArg) {
-                Ok((&args[..1], args[1], format!("={}", args[2])))
-            } else {
-                Err(Error::Base("requires 1 or 2 args, got 3".into()))
-            }
-        }
+        3 => Ok((&args[..1], args[1], format!("={}", args[2]))),
         n => Err(Error::Base(format!("requires 1, 2, or 3 args, got {n}"))),
     }?;
 
