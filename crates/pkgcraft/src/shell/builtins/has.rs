@@ -22,8 +22,6 @@ make_builtin!("has", has_builtin, run, LONG_DOC, USAGE, &[("..", &[All])]);
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins::ExecStatus;
-
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as has;
     use super::*;
