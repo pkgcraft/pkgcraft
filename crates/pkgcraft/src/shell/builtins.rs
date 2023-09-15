@@ -44,7 +44,6 @@ mod dodir;
 mod dodoc;
 mod doenvd;
 mod doexe;
-mod dohard;
 mod doheader;
 mod dohtml;
 mod doinfo;
@@ -56,7 +55,6 @@ mod dolib_so;
 mod doman;
 mod domo;
 mod dosbin;
-mod dosed;
 mod dostrip;
 mod dosym;
 pub(super) mod eapply;
@@ -232,7 +230,6 @@ pub(crate) static BUILTINS: Lazy<IndexSet<&Builtin>> = Lazy::new(|| {
         &*dodoc::BUILTIN,
         &*doenvd::BUILTIN,
         &*doexe::BUILTIN,
-        &*dohard::BUILTIN,
         &*doheader::BUILTIN,
         &*dohtml::BUILTIN,
         &*doinfo::BUILTIN,
@@ -244,7 +241,6 @@ pub(crate) static BUILTINS: Lazy<IndexSet<&Builtin>> = Lazy::new(|| {
         &*doman::BUILTIN,
         &*domo::BUILTIN,
         &*dosbin::BUILTIN,
-        &*dosed::BUILTIN,
         &*dostrip::BUILTIN,
         &*dosym::BUILTIN,
         &*eapply::BUILTIN,
