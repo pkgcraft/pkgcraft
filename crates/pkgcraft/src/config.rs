@@ -1,14 +1,17 @@
+use std::sync::atomic::Ordering::Relaxed;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::repo::ebuild_temp::Repo as TempRepo;
 use crate::repo::Repo;
+use crate::shell::builtins::BUILTINS;
 use crate::utils::find_existing_path;
-use crate::Error;
+use crate::{Error, COLLAPSE_LAZY_FIELDS};
 pub(crate) use repo::RepoConfig;
 
 mod portage;
@@ -261,6 +264,19 @@ impl Config {
         let temp_repo = self.repos.create_temp(name, priority, eapi)?;
         self.add_repo(&temp_repo.repo, false)?;
         Ok(temp_repo)
+    }
+
+    /// Collapse lazy fields before jobs requiring process-based parallelization. If this is not
+    /// called beforehand, each newly spawned process will reinitialize all lazy fields they
+    /// encounter often slowing down runtime considerably.
+    pub fn collapse(self) -> Self {
+        // collapse set of builtins
+        Lazy::force(&BUILTINS);
+
+        // enable global flag
+        COLLAPSE_LAZY_FIELDS.store(true, Relaxed);
+
+        self
     }
 }
 

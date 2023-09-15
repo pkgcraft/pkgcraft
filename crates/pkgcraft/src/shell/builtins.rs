@@ -115,7 +115,7 @@ mod ver_rs;
 mod ver_test;
 
 #[derive(Debug)]
-pub(super) struct Builtin {
+pub(crate) struct Builtin {
     builtin: scallop::builtins::Builtin,
     scope: IndexMap<&'static Eapi, IndexSet<Scope>>,
 }
@@ -202,7 +202,7 @@ impl fmt::Display for Builtin {
     }
 }
 
-pub(super) static BUILTINS: Lazy<IndexSet<&Builtin>> = Lazy::new(|| {
+pub(crate) static BUILTINS: Lazy<IndexSet<&Builtin>> = Lazy::new(|| {
     [
         &*adddeny::BUILTIN,
         &*addpredict::BUILTIN,

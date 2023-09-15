@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::path::Path;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
@@ -29,9 +30,8 @@ use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::shell::metadata::Metadata as MetadataCache;
-use crate::test::TESTING;
 use crate::utils::bounded_jobs;
-use crate::Error;
+use crate::{Error, COLLAPSE_LAZY_FIELDS};
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
@@ -225,7 +225,11 @@ impl Repo {
             self.trees
                 .set(trees)
                 .unwrap_or_else(|_| panic!("trees already set: {}", self.id()));
-            self.collapse_lazy_fields();
+
+            if COLLAPSE_LAZY_FIELDS.load(Relaxed) {
+                self.eclasses();
+            }
+
             Ok(())
         } else {
             let repos = nonexistent.join(", ");
@@ -233,16 +237,6 @@ impl Repo {
                 id: self.id().to_string(),
                 err: format!("unconfigured repos: {repos}"),
             })
-        }
-    }
-
-    /// Collapse various lazy fields that require repo dependencies.
-    ///
-    /// This is called during repo finalization when not running tests in order to avoid duplicate
-    /// calls when run under forked processes such as during package cache generation.
-    fn collapse_lazy_fields(&self) {
-        if !*TESTING {
-            self.eclasses();
         }
     }
 
