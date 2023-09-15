@@ -515,19 +515,26 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        // external commands are denied via restricted shell setting PATH=/dev/null
-        let data = indoc::indoc! {r#"
-            DESCRIPTION="unknown command failure"
-            SLOT=0
-            VAR=1
-            ls /
-            VAR=2
-        "#};
-        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
-        BuildData::from_raw_pkg(&raw_pkg);
-        let r = raw_pkg.source();
-        assert_eq!(variables::optional("VAR").unwrap(), "1");
-        assert_err_re!(r, "unknown command: ls");
+        for eapi in EAPIS_OFFICIAL.iter() {
+            // external commands are denied via restricted shell setting PATH=/dev/null
+            let data = indoc::formatdoc! {r#"
+                EAPI={eapi}
+                DESCRIPTION="unknown command failure"
+                SLOT=0
+                VAR=1
+                ls /
+                VAR=2
+            "#};
+            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+            BuildData::from_raw_pkg(&raw_pkg);
+            let r = raw_pkg.source();
+            if eapi.has(Feature::DieOnFailure) {
+                assert_eq!(variables::optional("VAR").unwrap(), "1");
+                assert_err_re!(r, "unknown command: ls");
+            } else {
+                assert_eq!(variables::optional("VAR").unwrap(), "2");
+            }
+        }
     }
 
     #[test]

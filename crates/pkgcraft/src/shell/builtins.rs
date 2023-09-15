@@ -6,9 +6,11 @@ use std::{cmp, fmt};
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
+use scallop::Error;
 
-use crate::{eapi, eapi::Eapi};
+use crate::eapi::{self, Eapi, Feature};
 
+use super::get_build_mut;
 use super::scope::{Scope, Scopes};
 
 mod _default_phase_func;
@@ -147,20 +149,20 @@ impl Builtin {
         if self.enabled() {
             self.builtin.run(args)
         } else {
-            let build = crate::shell::get_build_mut();
+            let build = get_build_mut();
             let eapi = build.eapi();
             let scope = &build.scope;
             let msg = match self.scope.get(eapi) {
                 Some(_) => format!("{scope} scope doesn't enable command: {self}"),
                 None => format!("EAPI={eapi} doesn't enable command: {self}"),
             };
-            Err(scallop::Error::Base(msg))
+            Err(Error::Base(msg))
         }
     }
 
     /// Check if a builtin is enabled for the current build state.
     pub(super) fn enabled(&self) -> bool {
-        let build = crate::shell::get_build_mut();
+        let build = get_build_mut();
         let eapi = build.eapi();
         let scope = &build.scope;
 
@@ -385,14 +387,15 @@ mod parse {
 }
 
 /// Handle builtin errors, bailing out when running normally.
-pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: scallop::Error) -> ExecStatus {
-    let e = if NONFATAL.load(Ordering::Relaxed) {
-        err
-    } else {
-        scallop::Error::Bail(err.to_string())
+pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
+    let eapi = get_build_mut().eapi();
+    let bail = !NONFATAL.load(Ordering::Relaxed) && eapi.has(Feature::DieOnFailure);
+    let err = match err {
+        Error::Base(s) if bail => Error::Bail(s),
+        _ => err,
     };
 
-    scallop::builtins::handle_error(cmd, e)
+    scallop::builtins::handle_error(cmd, err)
 }
 
 /// Create C compatible builtin function wrapper converting between rust and C types.
@@ -453,7 +456,7 @@ macro_rules! builtin_scope_tests {
         #[test]
         fn test_builtin_scope() {
             use crate::config::Config;
-            use crate::eapi::EAPIS_OFFICIAL;
+            use crate::eapi::{Feature, EAPIS_OFFICIAL};
             use crate::macros::assert_err_re;
             use crate::pkg::SourceablePackage;
             use crate::shell::builtins::BUILTINS;
@@ -501,10 +504,12 @@ macro_rules! builtin_scope_tests {
                             "#};
                             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                             let r = raw_pkg.source();
-                            // verify sourcing stops at unknown command
-                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
-                            // verify error output
-                            assert_err_re!(r, err, &info);
+                            if eapi.has(Feature::DieOnFailure) {
+                                // verify sourcing stops at unknown command
+                                assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                                // verify error output
+                                assert_err_re!(r, err, &info);
+                            }
                         }
                         Global => {
                             let data = indoc::formatdoc! {r#"
@@ -518,10 +523,12 @@ macro_rules! builtin_scope_tests {
                             "#};
                             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                             let r = raw_pkg.source();
-                            // verify sourcing stops at unknown command
-                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
-                            // verify error output
-                            assert_err_re!(r, err, &info);
+                            if eapi.has(Feature::DieOnFailure) {
+                                // verify sourcing stops at unknown command
+                                assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                                // verify error output
+                                assert_err_re!(r, err, &info);
+                            }
                         }
                         Phase(phase) => {
                             let data = indoc::formatdoc! {r#"
@@ -539,10 +546,15 @@ macro_rules! builtin_scope_tests {
                             get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
                             let phase = eapi.phases().get(phase).unwrap();
                             let r = phase.run();
-                            // verify function stops at unknown command
-                            assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
-                            // verify error output
-                            assert_err_re!(r, err, &info);
+                            if eapi.has(Feature::DieOnFailure) {
+                                // verify function stops at unknown command
+                                assert_eq!(
+                                    scallop::variables::optional("VAR").as_deref(),
+                                    Some("1")
+                                );
+                                // verify error output
+                                assert_err_re!(r, err, &info);
+                            }
                         }
                     }
                 }
