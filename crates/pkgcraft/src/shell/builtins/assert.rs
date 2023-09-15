@@ -26,8 +26,7 @@ mod tests {
 
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::shell::phase::PhaseKind;
-    use crate::shell::{get_build_mut, BuildData, Scope};
+    use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as assert;
@@ -93,8 +92,6 @@ mod tests {
 
     #[test]
     fn nonfatal() {
-        get_build_mut().scope = Scope::Phase(PhaseKind::SrcInstall);
-
         // nonfatal requires `die -n` call
         let r = source::string("true | false; nonfatal assert");
         assert_err_re!(r, r"^assert: error: \(no error message\)");
