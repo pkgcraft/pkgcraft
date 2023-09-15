@@ -509,6 +509,12 @@ macro_rules! builtin_scope_tests {
                                 assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
                                 // verify error output
                                 assert_err_re!(r, err, &info);
+                            } else {
+                                // verify sourcing doesn't bail on error
+                                assert_eq!(
+                                    scallop::variables::optional("VAR").as_deref(),
+                                    Some("2")
+                                );
                             }
                         }
                         Global => {
@@ -528,6 +534,12 @@ macro_rules! builtin_scope_tests {
                                 assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
                                 // verify error output
                                 assert_err_re!(r, err, &info);
+                            } else {
+                                // verify sourcing doesn't bail on error
+                                assert_eq!(
+                                    scallop::variables::optional("VAR").as_deref(),
+                                    Some("2")
+                                );
                             }
                         }
                         Phase(phase) => {
@@ -535,8 +547,8 @@ macro_rules! builtin_scope_tests {
                                 EAPI={eapi}
                                 DESCRIPTION="testing builtin phase scope failures"
                                 SLOT=0
+                                VAR=1
                                 {phase}() {{
-                                    local VAR=1
                                     {cmd}
                                     VAR=2
                                 }}
@@ -554,6 +566,12 @@ macro_rules! builtin_scope_tests {
                                 );
                                 // verify error output
                                 assert_err_re!(r, err, &info);
+                            } else {
+                                // verify phase doesn't bail on error
+                                assert_eq!(
+                                    scallop::variables::optional("VAR").as_deref(),
+                                    Some("2")
+                                );
                             }
                         }
                     }
