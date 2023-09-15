@@ -23,3 +23,29 @@ make_builtin!(
     "for internal use only",
     &[("..", &[All])]
 );
+
+#[cfg(test)]
+mod tests {
+    use scallop::source;
+    use scallop::variables::{bind, optional};
+
+    use crate::macros::assert_err_re;
+
+    #[test]
+    fn fatal() {
+        bind("VAR", "1", None, None).unwrap();
+
+        let r = source::string("nonexistent && VAR=2");
+        assert_err_re!(r, r"^unknown command: nonexistent$");
+
+        // verify bash state
+        assert_eq!(optional("VAR").unwrap(), "1");
+    }
+
+    #[test]
+    fn nonfatal() {
+        bind("VAR", "1", None, None).unwrap();
+        source::string("nonfatal nonexistent; VAR=2").unwrap();
+        assert_eq!(optional("VAR").unwrap(), "2");
+    }
+}
