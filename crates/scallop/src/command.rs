@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 
 use crate::bash;
 use crate::builtins::ExecStatus;
-use crate::Error;
+use crate::error::{ok_or_error, Error};
 
 bitflags! {
     /// Flag values used with commands.
@@ -38,10 +38,10 @@ impl Command {
     }
 
     pub fn execute(&self) -> crate::Result<ExecStatus> {
-        match unsafe { bash::execute_command(self.ptr) } {
+        ok_or_error(|| match unsafe { bash::execute_command(self.ptr) } {
             0 => Ok(ExecStatus::Success),
             n => Err(Error::Status(ExecStatus::Failure(n))),
-        }
+        })
     }
 }
 
