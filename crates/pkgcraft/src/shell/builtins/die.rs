@@ -42,7 +42,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     // TODO: add bash backtrace to output
-    Err(Error::Base(msg.to_string()))
+    Err(Error::Bail(msg.to_string()))
 }
 
 const USAGE: &str = "die \"error message\"";
