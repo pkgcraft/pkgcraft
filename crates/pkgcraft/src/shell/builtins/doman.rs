@@ -47,12 +47,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 _ => Err(Error::Base(format!("invalid file target, use `newman`: {path:?}"))),
             }?;
 
-        if eapi.has(Feature::DomanLangDetect) {
-            if let Some(m) = DETECT_LANG_RE.captures(base) {
-                base = m.name("name").unwrap().as_str();
-                if lang.is_empty() || !eapi.has(Feature::DomanLangOverride) {
-                    lang = m.name("lang").unwrap().as_str();
-                }
+        if let Some(m) = DETECT_LANG_RE.captures(base) {
+            base = m.name("name").unwrap().as_str();
+            if lang.is_empty() || !eapi.has(Feature::DomanLangOverride) {
+                lang = m.name("lang").unwrap().as_str();
             }
         }
 

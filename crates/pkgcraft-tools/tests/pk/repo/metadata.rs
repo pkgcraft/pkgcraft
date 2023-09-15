@@ -46,7 +46,7 @@ fn no_pkgs() {
 #[test]
 fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("cat/pkg-1", &["EAPI=8"]).unwrap();
+    t.create_raw_pkg("cat/pkg-1", &["EAPI=7"]).unwrap();
 
     cmd("pk repo metadata")
         .arg(t.path())
@@ -70,7 +70,7 @@ fn single() {
     let prev_modified = modified;
 
     // package changes cause cache updates
-    t.create_raw_pkg("cat/pkg-1", &["EAPI=2"]).unwrap();
+    t.create_raw_pkg("cat/pkg-1", &["EAPI=8"]).unwrap();
     cmd("pk repo metadata")
         .arg(t.path())
         .assert()

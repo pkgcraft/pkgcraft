@@ -52,16 +52,6 @@ pub enum Feature {
     /// RDEPEND=DEPEND if RDEPEND is unset
     RdependDefault,
 
-    // EAPI 2
-    /// blockers -- !cat/pkg and !!cat/pkg
-    Blockers,
-    /// support language detection via filename for `doman`
-    DomanLangDetect,
-    /// SRC_URI -> operator for url filename renaming
-    SrcUriRenames,
-    /// use deps -- cat/pkg\[use\]
-    UseDeps,
-
     // EAPI 4
     /// PMS-defined commands die on failure
     DieOnFailure,
@@ -504,24 +494,17 @@ impl FromStr for &'static Eapi {
 }
 
 static OLD_EAPIS: Lazy<IndexSet<String>> =
-    Lazy::new(|| ["0", "1"].iter().map(|s| s.to_string()).collect());
+    Lazy::new(|| ["0", "1", "2"].iter().map(|s| s.to_string()).collect());
 
-pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::VariableKind::*;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::scope::Scopes::*;
     use Feature::*;
 
-    Eapi::new("2", None)
-        .enable_features(&[
-            RdependDefault,
-            TrailingSlash,
-            Blockers,
-            DomanLangDetect,
-            UseDeps,
-            SrcUriRenames,
-        ])
+    Eapi::new("3", None)
+        .enable_features(&[RdependDefault, TrailingSlash])
         .update_operations([
             Build.op([
                 PkgSetup.func(None),
@@ -563,7 +546,7 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
         .enable_archives(&[
             "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2", "tar.bz",
             "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh", "a",
-            "deb", "lzma", "tar.lzma",
+            "deb", "lzma", "tar.lzma", "tar.xz", "xz",
         ])
         .update_env([
             P.scopes([All]),
@@ -591,18 +574,6 @@ pub static EAPI2: Lazy<Eapi> = Lazy::new(|| {
             USE.scopes([All]),
             EBUILD_PHASE.scopes([Phases]),
             KV.scopes([All]),
-        ])
-        .finalize()
-});
-
-pub static EAPI3: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::environment::VariableKind::*;
-    use crate::shell::phase::PhaseKind::*;
-    use crate::shell::scope::Scopes::*;
-
-    Eapi::new("3", Some(&EAPI2))
-        .enable_archives(&["tar.xz", "xz"])
-        .update_env([
             EPREFIX.scopes([Global]),
             ED.scopes([Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
             EROOT.scopes([Pkg]),
@@ -857,7 +828,7 @@ mod tests {
     #[test]
     fn test_has() {
         assert!(!EAPI_LATEST_OFFICIAL.has(Feature::RepoIds));
-        assert!(EAPI_LATEST_OFFICIAL.has(Feature::UseDeps));
+        assert!(EAPI_LATEST_OFFICIAL.has(Feature::UsevTwoArgs));
     }
 
     #[test]
@@ -914,6 +885,6 @@ mod tests {
         assert!(range("8..8").unwrap().next().is_none());
         assert_ordered_eq(range("7..8").unwrap(), [&*EAPI7]);
         assert_ordered_eq(range("7..=8").unwrap(), [&*EAPI7, &*EAPI8]);
-        assert_ordered_eq(range("..=3").unwrap(), [&*EAPI2, &*EAPI3]);
+        assert_ordered_eq(range("..=4").unwrap(), [&*EAPI3, &*EAPI4]);
     }
 }

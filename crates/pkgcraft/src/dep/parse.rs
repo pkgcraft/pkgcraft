@@ -113,13 +113,9 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    rule blocker(eapi: &'static Eapi) -> Blocker
+    rule blocker() -> Blocker
         = s:$("!" "!"?) {?
-            if eapi.has(Feature::Blockers) {
-                Blocker::from_str(s).map_err(|_| "invalid blocker")
-            } else {
-                Err("blockers are supported in >= EAPI 2")
-            }
+            Blocker::from_str(s).map_err(|_| "invalid blocker")
         }
 
     pub(super) rule use_flag() -> &'input str
@@ -139,11 +135,7 @@ peg::parser!(grammar depspec() for str {
 
     rule use_deps(eapi: &'static Eapi) -> Vec<&'input str>
         = "[" use_deps:use_dep(eapi) ++ "," "]" {?
-            if eapi.has(Feature::UseDeps) {
-                Ok(use_deps)
-            } else {
-                Err("use deps are supported in >= EAPI 2")
-            }
+            Ok(use_deps)
         }
 
     rule use_dep_default(eapi: &'static Eapi) -> &'input str
@@ -192,7 +184,7 @@ peg::parser!(grammar depspec() for str {
         }
 
     pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
-        = blocker:blocker(eapi)? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
+        = blocker:blocker()? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
                 use_deps:use_deps(eapi)? repo:repo_dep(eapi)? {
             let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
             (dep, ParsedDep {
@@ -244,11 +236,8 @@ peg::parser!(grammar depspec() for str {
             Ok(DepSpec::Enabled(dep))
         }
 
-    rule uri_val(eapi: &'static Eapi) -> DepSpec<Uri>
+    rule uri_val() -> DepSpec<Uri>
         = s:$(quiet!{!")" [^' ']+}) rename:(_ "->" _ s:$([^' ']+) {s})? {?
-            if rename.is_some() && !eapi.has(Feature::SrcUriRenames) {
-                return Err("SRC_URI renames available in EAPI >= 2");
-            }
             let uri = Uri::new(s, rename).map_err(|_| "invalid URI")?;
             Ok(DepSpec::Enabled(uri))
         }
@@ -294,7 +283,7 @@ peg::parser!(grammar depspec() for str {
     rule src_uri_dep_restrict(eapi: &'static Eapi) -> DepSpec<Uri>
         = use_cond(<src_uri_dep_restrict(eapi)>)
             / all_of(<src_uri_dep_restrict(eapi)>)
-            / uri_val(eapi)
+            / uri_val()
 
     rule properties_dep_restrict() -> DepSpec<String>
         = use_cond(<properties_dep_restrict()>)
@@ -561,7 +550,7 @@ mod tests {
     #[test]
     fn test_parse_blockers() {
         // non-blocker
-        let d = dep("cat/pkg", &eapi::EAPI2).unwrap();
+        let d = dep("cat/pkg", &eapi::EAPI_LATEST_OFFICIAL).unwrap();
         assert!(d.blocker().is_none());
 
         // good deps
@@ -573,18 +562,10 @@ mod tests {
         ] {
             for eapi in EAPIS.iter() {
                 let result = dep(s, eapi);
-                if eapi.has(Feature::Blockers) {
-                    assert!(
-                        result.is_ok(),
-                        "{s:?} failed for EAPI {eapi}: {}",
-                        result.err().unwrap()
-                    );
-                    let d = result.unwrap();
-                    assert_eq!(d.blocker(), blocker);
-                    assert_eq!(d.to_string(), s);
-                } else {
-                    assert!(result.is_err(), "{s:?} didn't fail");
-                }
+                assert!(result.is_ok(), "{s:?} failed for EAPI {eapi}: {}", result.err().unwrap());
+                let d = result.unwrap();
+                assert_eq!(d.blocker(), blocker);
+                assert_eq!(d.to_string(), s);
             }
         }
     }
@@ -596,15 +577,11 @@ mod tests {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = dep(&s, eapi);
-                if eapi.has(Feature::UseDeps) {
-                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let d = result.unwrap();
-                    let expected = use_deps.split(',').map(|s| s.to_string()).collect();
-                    assert_eq!(d.use_deps(), Some(&expected));
-                    assert_eq!(d.to_string(), s);
-                } else {
-                    assert!(result.is_err(), "{s:?} didn't fail");
-                }
+                assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                let d = result.unwrap();
+                let expected = use_deps.split(',').map(|s| s.to_string()).collect();
+                assert_eq!(d.use_deps(), Some(&expected));
+                assert_eq!(d.to_string(), s);
             }
         }
     }
@@ -865,13 +842,11 @@ mod tests {
             ),
         ] {
             for eapi in EAPIS.iter() {
-                if eapi.has(Feature::SrcUriRenames) {
-                    let depset = src_uri(s, eapi)?.unwrap();
-                    let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
-                    assert_eq!(flatten, expected_flatten);
-                    assert_eq!(depset, expected, "{s} failed");
-                    assert_eq!(depset.to_string(), s);
-                }
+                let depset = src_uri(s, eapi)?.unwrap();
+                let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
+                assert_eq!(flatten, expected_flatten);
+                assert_eq!(depset, expected, "{s} failed");
+                assert_eq!(depset.to_string(), s);
             }
         }
 
