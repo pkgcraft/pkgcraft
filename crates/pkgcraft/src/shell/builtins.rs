@@ -146,30 +146,15 @@ impl Builtin {
 
     /// Run a builtin if it's enabled for the current build state.
     fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
-        if self.enabled() {
-            self.builtin.run(args)
-        } else {
-            let build = get_build_mut();
-            let eapi = build.eapi();
-            let scope = &build.scope;
-            let msg = match self.scope.get(eapi) {
-                Some(_) => format!("{scope} scope doesn't enable command: {self}"),
-                None => format!("EAPI={eapi} doesn't enable command: {self}"),
-            };
-            Err(Error::Base(msg))
-        }
-    }
-
-    /// Check if a builtin is enabled for the current build state.
-    pub(super) fn enabled(&self) -> bool {
         let build = get_build_mut();
         let eapi = build.eapi();
         let scope = &build.scope;
 
-        self.scope
-            .get(eapi)
-            .map(|s| s.contains(scope))
-            .unwrap_or_default()
+        match self.scope.get(eapi) {
+            Some(s) if s.contains(scope) => self.builtin.run(args),
+            Some(_) => Err(Error::Base(format!("{scope} scope doesn't enable command: {self}"))),
+            None => Err(Error::Base(format!("EAPI={eapi} doesn't enable command: {self}"))),
+        }
     }
 }
 
