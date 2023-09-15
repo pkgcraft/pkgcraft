@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dosed pattern file";
-make_builtin!("dosed", dosed_builtin, run, LONG_DOC, USAGE, &[("0..4", &[Phases])]);
+make_builtin!("dosed", dosed_builtin, run, LONG_DOC, USAGE, &[("..4", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

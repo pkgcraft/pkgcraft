@@ -289,6 +289,7 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit e1
             DESCRIPTION="testing for eclass env transit"
             SLOT=0

@@ -112,7 +112,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("0..2", &[Phase(SrcCompile)]), ("2..", &[Phase(SrcConfigure)])]
+    &[("..2", &[Phase(SrcCompile)]), ("2..", &[Phase(SrcConfigure)])]
 );
 
 #[cfg(test)]

@@ -60,7 +60,7 @@ impl<'a> RawPkg<'a> {
 
         match val {
             Some(s) => eapi::parse_value(s)?.try_into(),
-            None => Ok(&*eapi::EAPI0),
+            None => Err(Error::InvalidValue("EAPI 0 unsupported".to_string())),
         }
     }
 
@@ -358,12 +358,12 @@ mod tests {
 
         // quoted and commented
         let data = indoc::indoc! {r#"
-            EAPI="1" # comment
+            EAPI="8" # comment
             DESCRIPTION="testing EAPI"
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_eq!(pkg.eapi(), &*eapi::EAPI1);
+        assert_eq!(pkg.eapi(), &*eapi::EAPI8);
 
         // invalid with unquoted self reference
         let data = indoc::indoc! {r#"
@@ -376,12 +376,12 @@ mod tests {
 
         // unmatched quotes
         let data = indoc::indoc! {r#"
-            EAPI='1"
+            EAPI='8"
             DESCRIPTION="testing EAPI"
             SLOT=0
         "#};
         let r = t.create_raw_pkg_from_str("cat/pkg-1", data);
-        assert_err_re!(r, r#"invalid EAPI: '1""#);
+        assert_err_re!(r, r#"invalid EAPI: '8""#);
 
         // unknown with leading whitespace, single quotes, and varying whitespace comment
         let data = indoc::indoc! {r#"
@@ -411,7 +411,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        t.create_raw_pkg("cat/pkg-2", &["EAPI=0"]).unwrap();
+        t.create_raw_pkg("cat/pkg-2", &["EAPI=8"]).unwrap();
 
         let mut iter = t.repo().iter();
         let pkg1 = iter.next().unwrap();
@@ -419,7 +419,7 @@ mod tests {
 
         // temp repo ebuild creation defaults to the latest EAPI
         assert_eq!(pkg1.eapi(), *eapi::EAPI_LATEST_OFFICIAL);
-        assert_eq!(pkg2.eapi(), &*eapi::EAPI0);
+        assert_eq!(pkg2.eapi(), &*eapi::EAPI8);
         assert_eq!(pkg1.cpv(), &Cpv::new("cat/pkg-1").unwrap());
         assert_eq!(pkg2.cpv(), &Cpv::new("cat/pkg-2").unwrap());
 
@@ -496,6 +496,7 @@ mod tests {
 
         // single
         let data = indoc::indoc! {r#"
+            EAPI=8
             DESCRIPTION="testing defined phases"
             SLOT=0
             src_compile() { :; }
@@ -632,6 +633,7 @@ mod tests {
 
         // inherited from single eclass
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit use1
             DESCRIPTION="testing inherited IUSE"
             SLOT=0
@@ -641,6 +643,7 @@ mod tests {
 
         // inherited from multiple eclasses
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit use1 use2
             DESCRIPTION="testing inherited IUSE"
             SLOT=0
@@ -650,6 +653,7 @@ mod tests {
 
         // accumulated from single eclass
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit use1
             DESCRIPTION="testing accumulated IUSE"
             IUSE="a"
@@ -660,6 +664,7 @@ mod tests {
 
         // accumulated from multiple eclasses
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit use1 use2
             DESCRIPTION="testing accumulated IUSE"
             IUSE="a"
@@ -692,6 +697,7 @@ mod tests {
 
         // single inherit
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit eclass1
             DESCRIPTION="testing inherits"
             SLOT=0
@@ -702,6 +708,7 @@ mod tests {
 
         // eclass with indirect inherit
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit eclass2
             DESCRIPTION="testing inherits"
             SLOT=0
@@ -712,6 +719,7 @@ mod tests {
 
         // multiple inherits
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit eclass1 eclass2
             DESCRIPTION="testing inherits"
             SLOT=0
@@ -985,6 +993,7 @@ mod tests {
 
         // single
         let data = indoc::indoc! {r#"
+            EAPI=8
             DESCRIPTION="testing distfiles"
             SLOT=0
             SRC_URI="https://url/to/a.tar.gz"
@@ -1006,6 +1015,7 @@ mod tests {
 
         // multiple
         let data = indoc::indoc! {r#"
+            EAPI=8
             DESCRIPTION="testing distfiles"
             SLOT=0
             SRC_URI="https://url/to/a.tar.gz"
@@ -1018,6 +1028,7 @@ mod tests {
         "#};
         fs::write(pkg1.abspath().parent().unwrap().join("Manifest"), manifest).unwrap();
         let data = indoc::indoc! {r#"
+            EAPI=8
             DESCRIPTION="testing distfiles"
             SLOT=0
             SRC_URI="https://url/to/b.tar.gz"

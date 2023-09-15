@@ -546,6 +546,7 @@ mod tests {
         scallop::builtins::set(["-e"]).unwrap();
         // absolute path for commands are denied via restricted shell
         let data = indoc::indoc! {r#"
+            EAPI=8
             DESCRIPTION="unknown command failure"
             SLOT=0
             VAR=1

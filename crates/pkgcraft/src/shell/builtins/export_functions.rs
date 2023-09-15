@@ -89,6 +89,7 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit e1
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
@@ -119,6 +120,7 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let data = indoc::indoc! {r#"
+            EAPI=8
             inherit e1
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
@@ -145,13 +147,14 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let data = indoc::indoc! {r#"
+            EAPI=1
             inherit e1
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
         let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         let r = raw_pkg.source();
-        assert_err_re!(r, "src_prepare phase undefined in EAPI 0$");
+        assert_err_re!(r, "src_prepare phase undefined in EAPI 1$");
     }
 
     #[test]

@@ -54,7 +54,7 @@ mod tests {
     use scallop::variables::{self, *};
 
     use crate::config::Config;
-    use crate::eapi::{Feature, EAPIS_OFFICIAL};
+    use crate::eapi::{Feature, EAPI5, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkg::BuildablePackage;
     use crate::shell::phase::PhaseKind;
@@ -135,7 +135,7 @@ mod tests {
 
         let build = get_build_mut();
         build.scope = Scope::Phase(PhaseKind::SrcInstall);
-        build.state = BuildState::Empty(EAPIS_OFFICIAL[5]);
+        build.state = BuildState::Empty(&EAPI5);
 
         // `die -n` only works in supported EAPIs
         let r = source::string("die -n");

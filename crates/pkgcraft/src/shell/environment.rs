@@ -281,6 +281,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let data = indoc::indoc! {r#"
+            EAPI=8
             DESCRIPTION="testing environment state handling"
             SLOT=0
 

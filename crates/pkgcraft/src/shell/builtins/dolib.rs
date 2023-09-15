@@ -35,7 +35,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dolib path/to/lib";
-make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, &[("0..7", &[Phase(SrcInstall)])]);
+make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, &[("..7", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

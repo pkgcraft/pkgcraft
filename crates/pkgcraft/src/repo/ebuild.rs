@@ -932,7 +932,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::dep::Dep;
-    use crate::eapi::{EAPI0, EAPI_LATEST_OFFICIAL};
+    use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::repo::ebuild_temp::Repo as TempRepo;
@@ -989,13 +989,13 @@ mod tests {
 
     #[test]
     fn test_eapi() {
-        // repos lacking profiles/eapi file use EAPI0
+        // repos lacking profiles/eapi file use the latest EAPI
         let t = TempRepo::new("test", None, 0, None).unwrap();
-        assert_eq!(t.repo().eapi(), &*EAPI0);
+        assert_eq!(t.repo().eapi(), *EAPI_LATEST_OFFICIAL);
 
         // explicit repo EAPI
-        let t = TempRepo::new("test", None, 0, Some(*EAPI_LATEST_OFFICIAL)).unwrap();
-        assert_eq!(t.repo().eapi(), *EAPI_LATEST_OFFICIAL);
+        let t = TempRepo::new("test", None, 0, Some(&*EAPI8)).unwrap();
+        assert_eq!(t.repo().eapi(), &*EAPI8);
     }
 
     #[test]

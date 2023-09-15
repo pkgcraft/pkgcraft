@@ -11,7 +11,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "useq flag";
-make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE, &[("0..8", &[Phases])]);
+make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE, &[("..8", &[Phases])]);
 
 #[cfg(test)]
 mod tests {

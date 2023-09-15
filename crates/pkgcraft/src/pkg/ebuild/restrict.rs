@@ -264,11 +264,13 @@ mod tests {
 
         // single
         let data = indoc::indoc! {r#"
+            EAPI=8
             DESCRIPTION="testing ebuild restrict"
             SLOT=0
         "#};
         t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         let data = indoc::indoc! {r#"
+            EAPI=8
             DESCRIPTION="testing ebuild restrict"
             SLOT=0
             VAR="a b c"

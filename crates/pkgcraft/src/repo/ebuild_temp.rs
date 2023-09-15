@@ -56,10 +56,9 @@ impl Repo {
         fs::write(temp_path.join("profiles/repo_name"), format!("{id}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
 
-        if let Some(eapi) = eapi {
-            fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
-                .map_err(|e| Error::RepoInit(format!("failed writing repo EAPI: {e}")))?;
-        }
+        let eapi = eapi.unwrap_or(&eapi::EAPI_LATEST_OFFICIAL);
+        fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
+            .map_err(|e| Error::RepoInit(format!("failed writing repo EAPI: {e}")))?;
 
         let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
             .map_err(|p| Error::RepoInit(format!("non-unicode repo path: {p:?}")))?;

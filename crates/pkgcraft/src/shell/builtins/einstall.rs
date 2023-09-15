@@ -27,14 +27,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "einstall";
-make_builtin!(
-    "einstall",
-    einstall_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    &[("0..6", &[Phase(SrcInstall)])]
-);
+make_builtin!("einstall", einstall_builtin, run, LONG_DOC, USAGE, &[("..6", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

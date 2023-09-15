@@ -157,7 +157,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dohtml path/to/html/files";
-make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, &[("0..7", &[Phase(SrcInstall)])]);
+make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, &[("..7", &[Phase(SrcInstall)])]);
 
 #[cfg(test)]
 mod tests {

@@ -209,7 +209,9 @@ impl TryFrom<&Utf8Path> for &'static Eapi {
     fn try_from(value: &Utf8Path) -> crate::Result<&'static Eapi> {
         match fs::read_to_string(value) {
             Ok(s) => <&Eapi>::from_str(s.trim_end()),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(&*EAPI0),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {
+                Err(Error::InvalidValue("EAPI 0 is unsupported".to_string()))
+            }
             Err(e) => Err(Error::IO(format!("failed reading EAPI: {value}: {e}"))),
         }
     }
@@ -507,20 +509,20 @@ impl FromStr for &'static Eapi {
     }
 }
 
-pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::VariableKind::*;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{PhaseKind::*, *};
     use crate::shell::scope::Scopes::*;
     use Feature::*;
 
-    Eapi::new("0", None)
-        .enable_features(&[RdependDefault, TrailingSlash])
+    Eapi::new("1", None)
+        .enable_features(&[RdependDefault, TrailingSlash, IuseDefaults, SlotDeps])
         .update_operations([
             Build.op([
                 PkgSetup.func(None),
                 SrcUnpack.func(Some(eapi0::src_unpack)),
-                SrcCompile.func(Some(eapi0::src_compile)),
+                SrcCompile.func(Some(eapi1::src_compile)),
                 SrcTest.func(Some(eapi0::src_test)),
                 SrcInstall.func(None),
             ]),
@@ -584,16 +586,6 @@ pub static EAPI0: Lazy<Eapi> = Lazy::new(|| {
             EBUILD_PHASE.scopes([Phases]),
             KV.scopes([All]),
         ])
-        .finalize()
-});
-
-pub static EAPI1: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::phase::{PhaseKind::*, *};
-    use Feature::*;
-
-    Eapi::new("1", Some(&EAPI0))
-        .enable_features(&[IuseDefaults, SlotDeps])
-        .update_phases([SrcCompile.func(Some(eapi1::src_compile))])
         .finalize()
 });
 
@@ -859,35 +851,32 @@ mod tests {
 
     #[test]
     fn test_ordering() {
-        assert!(*EAPI0 < **EAPI_LATEST_OFFICIAL);
-        assert!(*EAPI0 <= *EAPI0);
-        assert!(*EAPI0 == *EAPI0);
-        assert!(*EAPI0 >= *EAPI0);
-        assert!(**EAPI_LATEST_OFFICIAL > *EAPI0);
+        assert!(**EAPI_LATEST_OFFICIAL < **EAPI_LATEST);
+        assert!(*EAPI8 <= *EAPI8);
+        assert!(*EAPI8 == *EAPI8);
+        assert!(*EAPI8 >= *EAPI8);
         assert!(**EAPI_LATEST > **EAPI_LATEST_OFFICIAL);
     }
 
     #[test]
     fn test_has() {
-        assert!(!EAPI0.has(Feature::UseDeps));
+        assert!(!EAPI_LATEST_OFFICIAL.has(Feature::RepoIds));
         assert!(EAPI_LATEST_OFFICIAL.has(Feature::UseDeps));
     }
 
     #[test]
     fn test_dep_parsing() {
-        let dep = EAPI0.dep("cat/pkg").unwrap();
+        let dep = EAPI_LATEST_OFFICIAL.dep("cat/pkg").unwrap();
         assert_eq!(dep.category(), "cat");
         assert_eq!(dep.package(), "pkg");
         assert_eq!(dep.to_string(), "cat/pkg");
 
-        let dep = EAPI1.dep("cat/pkg:0").unwrap();
+        let dep = EAPI_LATEST_OFFICIAL.dep("cat/pkg:0").unwrap();
         assert_eq!(dep.category(), "cat");
         assert_eq!(dep.package(), "pkg");
         assert_eq!(dep.slot().unwrap(), "0");
         assert_eq!(dep.to_string(), "cat/pkg:0");
 
-        let r = EAPI0.dep("cat/pkg:0");
-        assert_err_re!(r, "invalid dep: cat/pkg:0");
         let r = EAPI_LATEST_OFFICIAL.dep("cat/pkg::repo");
         assert_err_re!(r, "invalid dep: cat/pkg::repo");
         let dep = EAPI_LATEST.dep("cat/pkg::repo").unwrap();
@@ -896,8 +885,8 @@ mod tests {
 
     #[test]
     fn test_try_from() {
-        assert_eq!(&*EAPI0, TryInto::<&'static Eapi>::try_into(&*EAPI0).unwrap());
-        assert_eq!(&*EAPI1, TryInto::<&'static Eapi>::try_into("1").unwrap());
+        assert_eq!(&*EAPI8, TryInto::<&'static Eapi>::try_into(&*EAPI8).unwrap());
+        assert_eq!(&*EAPI8, TryInto::<&'static Eapi>::try_into("8").unwrap());
 
         let mut arg: Option<&str> = None;
         let mut eapi: &Eapi;
@@ -929,6 +918,6 @@ mod tests {
         assert!(range("1..1").unwrap().next().is_none());
         assert_ordered_eq(range("1..2").unwrap(), [&*EAPI1]);
         assert_ordered_eq(range("1..=2").unwrap(), [&*EAPI1, &*EAPI2]);
-        assert_ordered_eq(range("..=2").unwrap(), [&*EAPI0, &*EAPI1, &*EAPI2]);
+        assert_ordered_eq(range("..=2").unwrap(), [&*EAPI1, &*EAPI2]);
     }
 }

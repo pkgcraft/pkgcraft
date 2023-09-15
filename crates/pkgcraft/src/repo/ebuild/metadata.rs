@@ -991,8 +991,8 @@ mod tests {
             # comment 2
             another/pkg
 
-            # invalid for repo EAPI
-            cat/slotted:0
+            # invalid
+            cat/pkg-1
         "#};
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
@@ -1000,7 +1000,7 @@ mod tests {
             metadata.pkg_deprecated(),
             [&Dep::from_str("cat/pkg-a").unwrap(), &Dep::from_str("another/pkg").unwrap()],
         );
-        assert_logs_re!(".+, line 8: .* invalid dep: cat/slotted:0$");
+        assert_logs_re!(".+, line 8: .* invalid dep: cat/pkg-1$");
 
         // newer repo EAPI allows using newer dep format features
         let repo = config
@@ -1042,8 +1042,8 @@ mod tests {
             # comment 2
             another/pkg
 
-            # invalid for repo EAPI
-            cat/slotted:0
+            # invalid
+            cat/pkg-1
         "#};
         let metadata = Metadata::new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
@@ -1051,7 +1051,7 @@ mod tests {
             metadata.pkg_mask(),
             [&Dep::from_str("cat/pkg-a").unwrap(), &Dep::from_str("another/pkg").unwrap()],
         );
-        assert_logs_re!(".+, line 8: .* invalid dep: cat/slotted:0$");
+        assert_logs_re!(".+, line 8: .* invalid dep: cat/pkg-1$");
 
         // newer repo EAPI allows using newer dep format features
         let repo = config
