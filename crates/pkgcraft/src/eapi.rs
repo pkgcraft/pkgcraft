@@ -164,7 +164,7 @@ impl TryFrom<&Utf8Path> for &'static Eapi {
         match fs::read_to_string(value) {
             Ok(s) => <&Eapi>::from_str(s.trim_end()),
             Err(e) if e.kind() == io::ErrorKind::NotFound => {
-                Err(Error::InvalidValue("EAPI 0 is unsupported".to_string()))
+                Err(Error::InvalidValue("unsupported EAPI: 0".to_string()))
             }
             Err(e) => Err(Error::IO(format!("failed reading EAPI: {value}: {e}"))),
         }

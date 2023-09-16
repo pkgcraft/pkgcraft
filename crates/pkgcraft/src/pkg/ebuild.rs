@@ -56,7 +56,7 @@ impl<'a> RawPkg<'a> {
                 Some((v, _)) => v.trim(),
                 None => s.trim(),
             })
-            .ok_or_else(|| Error::InvalidValue("EAPI 0 unsupported".to_string()))
+            .ok_or_else(|| Error::InvalidValue("unsupported EAPI: 0".to_string()))
             .and_then(eapi::parse_value)
             .and_then(TryInto::try_into)
     }
