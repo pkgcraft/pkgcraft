@@ -1,4 +1,3 @@
-use std::env;
 use std::io::stderr;
 use std::process::ExitCode;
 
@@ -49,7 +48,7 @@ fn main() -> anyhow::Result<ExitCode> {
     let mut config = Config::new("pkgcraft", "").collapse();
     if let Some(path) = args.config {
         config.load_path(&path)?;
-    } else if env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
+    } else {
         config.load()?;
     }
 
