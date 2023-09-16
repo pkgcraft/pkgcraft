@@ -66,8 +66,12 @@ impl PartialOrd for VariableKind {
 }
 
 impl VariableKind {
-    pub(crate) fn scopes<I: IntoIterator<Item = Scopes>>(self, scopes: I) -> Variable {
-        let mut scopes: IndexSet<_> = scopes.into_iter().flatten().collect();
+    pub(crate) fn scopes<I, S>(self, scopes: I) -> Variable
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<Scopes>,
+    {
+        let mut scopes: IndexSet<_> = scopes.into_iter().flat_map(Into::into).collect();
         scopes.sort();
         Variable { kind: self, scopes }
     }

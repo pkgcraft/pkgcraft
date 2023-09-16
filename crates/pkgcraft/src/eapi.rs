@@ -539,18 +539,18 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             T.scopes([All]),
             TMPDIR.scopes([All]),
             HOME.scopes([All]),
-            D.scopes([Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
-            DESTTREE.scopes([Phase(SrcInstall)]),
-            INSDESTTREE.scopes([Phase(SrcInstall)]),
+            D.scopes([SrcInstall, PkgPreinst, PkgPostinst]),
+            DESTTREE.scopes([SrcInstall]),
+            INSDESTTREE.scopes([SrcInstall]),
             USE.scopes([All]),
             EBUILD_PHASE.scopes([Phases]),
             EBUILD_PHASE_FUNC.scopes([Phases]),
             EPREFIX.scopes([Global]),
-            ED.scopes([Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
+            ED.scopes([SrcInstall, PkgPreinst, PkgPostinst]),
             EROOT.scopes([Pkg]),
             MERGE_TYPE.scopes([Pkg]),
             REPLACING_VERSIONS.scopes([Pkg]),
-            REPLACED_BY_VERSION.scopes([Phase(PkgPrerm), Phase(PkgPostrm)]),
+            REPLACED_BY_VERSION.scopes([PkgPrerm, PkgPostrm]),
         ])
         .update_incremental_keys(&[Key::RequiredUse])
         .update_metadata_keys(&[Key::RequiredUse])

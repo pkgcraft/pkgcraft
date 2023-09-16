@@ -46,6 +46,12 @@ pub(crate) enum Scopes {
     Phase(PhaseKind),
 }
 
+impl From<PhaseKind> for Scopes {
+    fn from(value: PhaseKind) -> Self {
+        Self::Phase(value)
+    }
+}
+
 impl Scopes {
     pub(crate) fn iter(&self) -> impl Iterator<Item = Scope> {
         self.into_iter()
