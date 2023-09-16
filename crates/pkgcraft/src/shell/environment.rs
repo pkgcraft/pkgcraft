@@ -175,7 +175,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn exports() {
+    fn set_and_export() {
         use crate::shell::scope::Scope::*;
 
         let mut config = Config::default();
@@ -189,7 +189,7 @@ mod tests {
                         Global => {
                             let data = indoc::formatdoc! {r#"
                                 EAPI={eapi}
-                                DESCRIPTION="testing {var} exporting"
+                                DESCRIPTION="testing {var} global scope"
                                 SLOT=0
                             "#};
                             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
@@ -201,12 +201,12 @@ mod tests {
                             {
                                 assert!(
                                     variables::optional(var).is_some(),
-                                    "EAPI {eapi}: ${var} not exported globally"
+                                    "EAPI {eapi}: ${var} not set globally"
                                 );
                             } else {
                                 assert!(
                                     variables::optional(var).is_none(),
-                                    "EAPI {eapi}: ${var} shouldn't be exported globally"
+                                    "EAPI {eapi}: ${var} shouldn't be set globally"
                                 );
                             }
                         }
@@ -338,10 +338,6 @@ mod tests {
                 EAPI={eapi}
                 DESCRIPTION="testing EBUILD_PHASE(_FUNC) variables"
                 SLOT=0
-
-                [[ -z $EBUILD_PHASE ]] || die "invalid EBUILD_PHASE value: $EBUILD_PHASE"
-                [[ -z $EBUILD_PHASE_FUNC ]] || die "invalid EBUILD_PHASE_FUNC value: $EBUILD_PHASE_FUNC"
-
                 {phases}
             "#};
             let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
