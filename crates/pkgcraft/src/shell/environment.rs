@@ -327,8 +327,8 @@ mod tests {
                     let short = phase.short_name();
                     indoc::formatdoc! {r#"
                     {phase}() {{
-                        [[ ${{EBUILD_PHASE}} == "{short}" ]] || die "invalid EBUILD_PHASE value: ${{EBUILD_PHASE}}"
-                        [[ ${{EBUILD_PHASE_FUNC}} == "{phase}" ]] || die "invalid EBUILD_PHASE_FUNC value: ${{EBUILD_PHASE_FUNC}}"
+                        [[ $EBUILD_PHASE == "{short}" ]] || die "invalid EBUILD_PHASE value: $EBUILD_PHASE"
+                        [[ $EBUILD_PHASE_FUNC == "{phase}" ]] || die "invalid EBUILD_PHASE_FUNC value: $EBUILD_PHASE_FUNC"
                     }}
                     "#}
                 })
@@ -339,14 +339,12 @@ mod tests {
                 DESCRIPTION="testing EBUILD_PHASE(_FUNC) variables"
                 SLOT=0
 
-                [[ -z ${{EBUILD_PHASE}} ]] || die "invalid EBUILD_PHASE value: ${{EBUILD_PHASE}}"
-                [[ -z ${{EBUILD_PHASE_FUNC}} ]] || die "invalid EBUILD_PHASE_FUNC value: ${{EBUILD_PHASE_FUNC}}"
+                [[ -z $EBUILD_PHASE ]] || die "invalid EBUILD_PHASE value: $EBUILD_PHASE"
+                [[ -z $EBUILD_PHASE_FUNC ]] || die "invalid EBUILD_PHASE_FUNC value: $EBUILD_PHASE_FUNC"
 
                 {phases}
             "#};
-            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
-            assert!(raw_pkg.source().is_ok());
-            let pkg = raw_pkg.try_into().unwrap();
+            let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_pkg(&pkg);
             get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
             for phase in eapi.phases() {
@@ -360,29 +358,46 @@ mod tests {
     fn vars_pkg() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            DESCRIPTION="testing package-related variables"
-            SLOT=0
+        for eapi in EAPIS_OFFICIAL.iter() {
+            // generate phase tests
+            let phases = eapi
+                .phases()
+                .iter()
+                .map(|phase| {
+                    indoc::formatdoc! {r#"
+                    {phase}() {{
+                        test_vars phase
+                    }}
+                    "#}
+                })
+                .join("\n");
 
-            test_vars() {
-                [[ ${CATEGORY} == "cat" ]] || die "$1 scope: invalid CATEGORY value: ${CATEGORY}"
-                [[ ${P} == "pkg-1" ]] || die "$1 scope: invalid P value: ${P}"
-                [[ ${PF} == "pkg-1-r2" ]] || die "$1 scope: invalid PF value: ${PF}"
-                [[ ${PN} == "pkg" ]] || die "$1 scope: invalid PN value: ${PN}"
-                [[ ${PR} == "r2" ]] || die "$1 scope: invalid PR value: ${PR}"
-                [[ ${PV} == "1" ]] || die "$1 scope: invalid PV value: ${PV}"
-                [[ ${PVR} == "1-r2" ]] || die "$1 scope: invalid PVR value: ${PVR}"
+            let data = indoc::formatdoc! {r#"
+                EAPI={eapi}
+                DESCRIPTION="testing package-related variables"
+                SLOT=0
+
+                test_vars() {{
+                    [[ $CATEGORY == "cat" ]] || die "$1 scope: invalid CATEGORY value: $CATEGORY"
+                    [[ $P == "pkg-1" ]] || die "$1 scope: invalid P value: $P"
+                    [[ $PF == "pkg-1-r2" ]] || die "$1 scope: invalid PF value: $PF"
+                    [[ $PN == "pkg" ]] || die "$1 scope: invalid PN value: $PN"
+                    [[ $PR == "r2" ]] || die "$1 scope: invalid PR value: $PR"
+                    [[ $PV == "1" ]] || die "$1 scope: invalid PV value: $PV"
+                    [[ $PVR == "1-r2" ]] || die "$1 scope: invalid PVR value: $PVR"
+                }}
+
+                test_vars global
+
+                {phases}
+            "#};
+            let pkg = t.create_pkg_from_str("cat/pkg-1-r2", &data).unwrap();
+            BuildData::from_pkg(&pkg);
+            get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
+            for phase in eapi.phases() {
+                let r = phase.run();
+                assert!(r.is_ok(), "EAPI {eapi}: failed running {phase}: {}", r.unwrap_err());
             }
-
-            pkg_setup() {
-                test_vars phase
-            }
-
-            test_vars global
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1-r2", data).unwrap();
-        BuildData::from_pkg(&pkg);
-        pkg.build().unwrap();
+        }
     }
 }
