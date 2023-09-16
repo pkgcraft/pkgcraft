@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use clap::Args;
 use pkgcraft::dep::Dep;
+use pkgcraft::eapi::Eapi;
 use strum::{Display, EnumIter, EnumString};
 
 use crate::args::StdinOrArgs;
@@ -14,7 +15,7 @@ pub struct Command {
     // options
     /// Use a specific EAPI
     #[arg(long)]
-    eapi: Option<String>,
+    eapi: Option<&'static Eapi>,
     /// Output using a custom format
     #[arg(short, long)]
     format: Option<String>,
@@ -80,8 +81,8 @@ impl FormatString for Command {
 
 impl Command {
     fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
-        let dep = match &self.eapi {
-            Some(eapi) => Dep::new(s, eapi.as_str()),
+        let dep = match self.eapi {
+            Some(eapi) => Dep::new(s, eapi),
             None => Dep::from_str(s),
         }?;
 

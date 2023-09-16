@@ -28,7 +28,21 @@ fn invalid() {
 
 #[test]
 fn eapi() {
-    // TODO: add tests for invalid and old EAPIs
+    // old and unsupported
+    cmd("pk dep parse --eapi 0 cat/pkg")
+        .assert()
+        .stdout("")
+        .stderr(predicate::str::is_empty().not())
+        .failure();
+
+    // invalid
+    cmd("pk dep parse --eapi $0 cat/pkg")
+        .assert()
+        .stdout("")
+        .stderr(predicate::str::is_empty().not())
+        .failure();
+
+    // valid and suppored
     cmd("pk dep parse --eapi 8 cat/pkg[use(+)]")
         .assert()
         .stdout("")
