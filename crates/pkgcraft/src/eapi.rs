@@ -383,7 +383,7 @@ impl Eapi {
     fn disable_archives(mut self, types: &[&str]) -> Self {
         for x in types {
             if !self.archives.remove(*x) {
-                panic!("disabling unknown archive format: {x:?}");
+                panic!("EAPI {self}: disabling unknown archive format: {x:?}");
             }
         }
         self
