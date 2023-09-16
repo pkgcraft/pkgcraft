@@ -135,12 +135,17 @@ impl Builtin {
         for (range, scopes) in valid {
             let mut scopes: IndexSet<_> = scopes.into_iter().flat_map(Into::into).collect();
             scopes.sort();
-            let eapis = eapi::range(range).unwrap_or_else(|e| {
-                panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")
-            });
+            let eapis: Vec<_> = eapi::range(range)
+                .unwrap_or_else(|e| panic!("{builtin}: failed parsing EAPI range: {range}: {e}"))
+                .collect();
+
+            if eapis.is_empty() {
+                panic!("{builtin}: no supported EAPIs in range: {range}");
+            }
+
             for eapi in eapis {
                 if scope.insert(eapi, scopes.clone()).is_some() {
-                    panic!("EAPI {eapi}: clashing {builtin} builtin scopes");
+                    panic!("{builtin}: EAPI {eapi} has clashing scopes");
                 }
             }
         }
