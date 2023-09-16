@@ -133,15 +133,18 @@ impl Config {
         Config { path, ..Default::default() }
     }
 
-    /// Load user or system config files, if none are found revert to loading portage files.
+    /// Load user or system config files, if none are found revert to loading portage files. Config
+    /// file loading is skipped if the environment variable PKGCRAFT_NO_CONFIG is defined.
     pub fn load(&mut self) -> crate::Result<()> {
-        self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
+        if env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
+            self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
 
-        if self.repos.is_empty() {
-            // ignore error for missing portage config
-            match self.load_portage_conf(None) {
-                Err(Error::ConfigMissing(_)) => (),
-                e => return e,
+            if self.repos.is_empty() {
+                // ignore error for missing portage config
+                match self.load_portage_conf(None) {
+                    Err(Error::ConfigMissing(_)) => (),
+                    e => return e,
+                }
             }
         }
 
