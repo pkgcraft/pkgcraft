@@ -44,6 +44,8 @@ mod tests {
         assert_invalid_args(docompress, &[0]);
     }
 
+    // TODO: run builds with tests and verify file modifications
+
     #[test]
     fn test_include() {
         docompress(&["/test/path"]).unwrap();

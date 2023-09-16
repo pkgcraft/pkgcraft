@@ -38,6 +38,8 @@ mod tests {
         assert_invalid_args(dostrip, &[0]);
     }
 
+    // TODO: run builds with tests and verify file modifications
+
     #[test]
     fn test_include() {
         dostrip(&["/test/path"]).unwrap();
