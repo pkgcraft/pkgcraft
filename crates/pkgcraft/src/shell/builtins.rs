@@ -385,16 +385,19 @@ macro_rules! make_builtin {
 
         use once_cell::sync::Lazy;
 
-        use $crate::shell::builtins::{handle_error, Builtin};
+        use $crate::shell::builtins::Builtin;
 
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> c_int {
             use scallop::traits::IntoWords;
-            use $crate::shell::builtins::BUILTINS;
+
+            use $crate::shell::builtins::{handle_error, BUILTINS};
 
             let words = list.into_words(false);
             let args: Vec<_> = words.into_iter().collect();
-            let builtin = BUILTINS.get($name).expect("unregistered builtin");
+            let builtin = BUILTINS
+                .get($name)
+                .unwrap_or_else(|| panic!("unregistered builtin: {}", $name));
 
             let ret = match builtin.run(&args) {
                 Ok(ret) => ret,
