@@ -125,9 +125,9 @@ impl From<&Builtin> for scallop::builtins::Builtin {
 }
 
 impl Builtin {
-    fn new(builtin: scallop::builtins::Builtin, scopes: &[(&str, &[Scopes])]) -> Self {
+    fn new(builtin: scallop::builtins::Builtin, valid: &[(&str, &[Scopes])]) -> Self {
         let mut scope = IndexMap::new();
-        for (range, scopes) in scopes.iter() {
+        for (range, scopes) in valid {
             let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
             scopes.sort();
             let eapis = eapi::range(range).unwrap_or_else(|e| {
