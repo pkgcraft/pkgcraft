@@ -475,8 +475,13 @@ impl FromStr for &'static Eapi {
     }
 }
 
-static OLD_EAPIS: Lazy<IndexSet<String>> =
-    Lazy::new(|| ["0", "1", "2", "3"].iter().map(|s| s.to_string()).collect());
+static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
+    let end = EAPIS_OFFICIAL[0]
+        .id
+        .parse()
+        .expect("non-integer based EAPI");
+    (0..end).map(|s| s.to_string()).collect()
+});
 
 pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::VariableKind::*;
