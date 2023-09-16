@@ -347,7 +347,7 @@ mod tests {
 
         // unknown
         let r = t.create_raw_pkg("cat/pkg-1", &["EAPI=unknown"]);
-        assert_err_re!(r, r"unknown EAPI: unknown");
+        assert_err_re!(r, r"unsupported EAPI: unknown");
 
         // quoted and commented
         let data = indoc::indoc! {r#"
@@ -383,7 +383,7 @@ mod tests {
             SLOT=0
         "#};
         let r = t.create_raw_pkg_from_str("cat/pkg-1", data);
-        assert_err_re!(r, r"unknown EAPI: unknown");
+        assert_err_re!(r, r"unsupported EAPI: unknown");
     }
 
     #[test]

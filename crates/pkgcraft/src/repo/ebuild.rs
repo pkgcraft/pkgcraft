@@ -1145,7 +1145,7 @@ mod tests {
     fn test_invalid_pkgs() {
         for (data, err) in [
             ("EAPI=-1", "invalid EAPI: \"-1\""),
-            ("EAPI=a", "unknown EAPI: a"),
+            ("EAPI=a", "unsupported EAPI: a"),
             ("SLOT=", "missing required values: SLOT"),
         ] {
             let mut config = Config::default();

@@ -456,7 +456,7 @@ impl FromStr for &'static Eapi {
         if let Some(eapi) = EAPIS.get(s) {
             Ok(eapi)
         } else if parse::eapi_str(s).is_ok() {
-            Err(Error::InvalidValue(format!("unknown EAPI: {s}")))
+            Err(Error::InvalidValue(format!("unsupported EAPI: {s}")))
         } else {
             Err(Error::InvalidValue(format!("invalid EAPI: {s}")))
         }
