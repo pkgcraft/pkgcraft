@@ -25,6 +25,9 @@ make_builtin!("diropts", diropts_builtin, run, LONG_DOC, USAGE, [("..", [SrcInst
 
 #[cfg(test)]
 mod tests {
+    use crate::shell::test::FileTree;
+
+    use super::super::dodir::run as dodir;
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as diropts;
     use super::*;
@@ -37,8 +40,18 @@ mod tests {
     }
 
     #[test]
-    fn set_path() {
-        diropts(&["-m0777", "-p"]).unwrap();
-        assert_eq!(get_build_mut().diropts, ["-m0777", "-p"]);
+    fn creation() {
+        let file_tree = FileTree::new();
+
+        // change mode and re-run dodir()
+        diropts(&["-m0777"]).unwrap();
+        dodir(&["dir"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/dir"
+            mode = 0o40777
+        "#,
+        );
     }
 }
