@@ -29,6 +29,14 @@ make_builtin!("docinto", docinto_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use crate::config::Config;
+    use crate::macros::assert_err_re;
+    use crate::shell::test::FileTree;
+    use crate::shell::BuildData;
+
+    use super::super::dodoc::run as dodoc;
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as docinto;
     use super::*;
@@ -42,7 +50,31 @@ mod tests {
 
     #[test]
     fn set_path() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_pkg(&pkg);
+
+        let file_tree = FileTree::new();
+        fs::File::create("file").unwrap();
+
+        // default location
+        dodoc(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkg-1/file"
+        "#,
+        );
+
+        // custom location
         docinto(&["examples"]).unwrap();
-        assert_eq!(get_build_mut().docdesttree, "examples");
+        dodoc(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkg-1/examples/file"
+        "#,
+        );
     }
 }
