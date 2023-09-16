@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "elog \"message\"";
-make_builtin!("elog", elog_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
+make_builtin!("elog", elog_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
 
 #[cfg(test)]
 mod tests {

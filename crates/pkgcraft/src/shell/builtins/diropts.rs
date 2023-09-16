@@ -4,7 +4,7 @@ use scallop::Error;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Sets the options for directory creation via `dodir` and similar commands.";
@@ -21,7 +21,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "diropts -m0750";
-make_builtin!("diropts", diropts_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
+make_builtin!("diropts", diropts_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

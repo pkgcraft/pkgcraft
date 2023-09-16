@@ -4,7 +4,7 @@ use scallop::Error;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Takes exactly one argument and sets the install path for dodoc and other doc-related commands.";
@@ -25,7 +25,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "docinto /install/path";
-make_builtin!("docinto", docinto_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
+make_builtin!("docinto", docinto_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

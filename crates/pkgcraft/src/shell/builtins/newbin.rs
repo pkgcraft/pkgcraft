@@ -4,7 +4,7 @@ use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::_new::new;
 use super::dobin::run as dobin;
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed executables into DESTTREE/bin.";
 
@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newbin path/to/executable new_filename";
-make_builtin!("newbin", newbin_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
+make_builtin!("newbin", newbin_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

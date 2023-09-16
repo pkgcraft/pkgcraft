@@ -4,7 +4,7 @@ use scallop::Error;
 use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::dolib::install_lib;
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install shared libraries.";
 
@@ -18,7 +18,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dolib.so path/to/lib.so";
-make_builtin!("dolib.so", dolib_so_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
+make_builtin!("dolib.so", dolib_so_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

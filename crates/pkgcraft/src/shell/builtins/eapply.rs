@@ -9,7 +9,7 @@ use scallop::Error;
 use crate::shell::phase::PhaseKind::SrcPrepare;
 use crate::shell::write_stdout;
 
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
@@ -160,7 +160,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eapply file.patch";
-make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, &[("6..", &[Phase(SrcPrepare)])]);
+make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, [("6..", [SrcPrepare])]);
 
 #[cfg(test)]
 mod tests {

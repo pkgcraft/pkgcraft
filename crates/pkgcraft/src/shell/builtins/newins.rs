@@ -4,7 +4,7 @@ use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::_new::new;
 use super::doins::run as doins;
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed files into INSDESTREE.";
 
@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newins path/to/file new_filename";
-make_builtin!("newins", newins_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
+make_builtin!("newins", newins_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

@@ -12,7 +12,7 @@ use crate::pkg::Package;
 use crate::shell::phase::PhaseKind::SrcInstall;
 use crate::shell::{get_build_mut, write_stderr};
 
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install HTML documentation files.";
 
@@ -157,7 +157,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dohtml path/to/html/files";
-make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, &[("..7", &[Phase(SrcInstall)])]);
+make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, [("..7", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

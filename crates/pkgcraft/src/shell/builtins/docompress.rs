@@ -4,7 +4,7 @@ use scallop::Error;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Include or exclude paths for compression.";
 
@@ -22,14 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "docompress /path/to/compress";
-make_builtin!(
-    "docompress",
-    docompress_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    &[("4..", &[Phase(SrcInstall)])]
-);
+make_builtin!("docompress", docompress_builtin, run, LONG_DOC, USAGE, [("4..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

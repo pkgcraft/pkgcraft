@@ -7,7 +7,7 @@ use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 use crate::shell::utils::get_libdir;
 
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install libraries.";
 
@@ -35,7 +35,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dolib path/to/lib";
-make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, &[("..7", &[Phase(SrcInstall)])]);
+make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, [("..7", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

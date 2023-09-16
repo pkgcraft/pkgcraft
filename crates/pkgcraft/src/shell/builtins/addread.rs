@@ -11,7 +11,7 @@ pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "addread /sys";
-make_builtin!("addread", addread_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
+make_builtin!("addread", addread_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
 
 #[cfg(test)]
 mod tests {

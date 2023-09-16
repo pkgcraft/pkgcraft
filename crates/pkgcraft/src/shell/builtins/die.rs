@@ -46,7 +46,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "die \"error message\"";
-make_builtin!("die", die_builtin, run, LONG_DOC, USAGE, &[("..", &[All])]);
+make_builtin!("die", die_builtin, run, LONG_DOC, USAGE, [("..", [All])]);
 
 #[cfg(test)]
 mod tests {

@@ -4,7 +4,7 @@ use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::_new::new;
 use super::doconfd::run as doconfd;
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed config files into /etc/conf.d/.";
 
@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newconfd path/to/config/file new_filename";
-make_builtin!("newconfd", newconfd_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
+make_builtin!("newconfd", newconfd_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

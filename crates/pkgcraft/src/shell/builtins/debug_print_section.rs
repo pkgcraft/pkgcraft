@@ -24,7 +24,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("..", &[All])]
+    [("..", [All])]
 );
 
 #[cfg(test)]

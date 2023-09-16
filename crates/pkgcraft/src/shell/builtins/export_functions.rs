@@ -49,7 +49,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("..", &[Eclass])]
+    [("..", [Eclass])]
 );
 
 #[cfg(test)]

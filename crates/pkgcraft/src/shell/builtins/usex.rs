@@ -32,7 +32,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "usex flag";
-make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, &[("5..", &[Phases])]);
+make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, [("5..", [Phases])]);
 
 #[cfg(test)]
 mod tests {

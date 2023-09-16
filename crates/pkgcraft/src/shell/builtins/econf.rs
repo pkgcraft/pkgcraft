@@ -12,7 +12,7 @@ use crate::shell::phase::PhaseKind::SrcConfigure;
 use crate::shell::utils::{configure, get_libdir};
 use crate::shell::write_stdout;
 
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
 const LONG_DOC: &str = "Run a package's configure script.";
@@ -106,7 +106,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "econf --enable-feature";
-make_builtin!("econf", econf_builtin, run, LONG_DOC, USAGE, &[("2..", &[Phase(SrcConfigure)])]);
+make_builtin!("econf", econf_builtin, run, LONG_DOC, USAGE, [("2..", [SrcConfigure])]);
 
 #[cfg(test)]
 mod tests {

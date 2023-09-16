@@ -9,7 +9,7 @@ use scallop::Error;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 
-use super::{dodoc::install_docs, make_builtin, Scopes::Phase};
+use super::{dodoc::install_docs, make_builtin};
 
 const LONG_DOC: &str = "\
 Installs the files specified by the DOCS and HTML_DOCS variables or a default set of files.";
@@ -106,14 +106,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "einstalldocs";
-make_builtin!(
-    "einstalldocs",
-    einstalldocs_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    &[("6..", &[Phase(SrcInstall)])]
-);
+make_builtin!("einstalldocs", einstalldocs_builtin, run, LONG_DOC, USAGE, [("6..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

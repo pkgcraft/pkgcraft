@@ -4,7 +4,7 @@ use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::_new::new;
 use super::doexe::run as doexe;
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
 
@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newexe path/to/executable new_filename";
-make_builtin!("newexe", newexe_builtin, run, LONG_DOC, USAGE, &[("..", &[Phase(SrcInstall)])]);
+make_builtin!("newexe", newexe_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "hasv needle ${haystack}";
-make_builtin!("hasv", hasv_builtin, run, LONG_DOC, USAGE, &[("..8", &[All])]);
+make_builtin!("hasv", hasv_builtin, run, LONG_DOC, USAGE, [("..8", [All])]);
 
 #[cfg(test)]
 mod tests {

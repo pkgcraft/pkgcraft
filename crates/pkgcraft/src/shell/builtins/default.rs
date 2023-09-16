@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "default";
-make_builtin!("default", default_builtin, run, LONG_DOC, USAGE, &[("2..", &[Phases])]);
+make_builtin!("default", default_builtin, run, LONG_DOC, USAGE, [("2..", [Phases])]);
 
 #[cfg(test)]
 mod tests {

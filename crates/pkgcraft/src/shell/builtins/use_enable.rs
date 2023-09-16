@@ -12,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "use_enable flag";
-make_builtin!("use_enable", use_enable_builtin, run, LONG_DOC, USAGE, &[("..", &[Phases])]);
+make_builtin!("use_enable", use_enable_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
 
 #[cfg(test)]
 mod tests {

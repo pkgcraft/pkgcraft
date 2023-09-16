@@ -21,7 +21,7 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    &[("..", &[All])]
+    [("..", [All])]
 );
 
 #[cfg(test)]

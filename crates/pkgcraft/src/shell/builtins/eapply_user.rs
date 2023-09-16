@@ -4,7 +4,7 @@ use scallop::Error;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcPrepare;
 
-use super::{eapply::run as eapply, make_builtin, Scopes::Phase};
+use super::{eapply::run as eapply, make_builtin};
 
 const LONG_DOC: &str = "Apply user patches.";
 
@@ -29,14 +29,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eapply_user";
-make_builtin!(
-    "eapply_user",
-    eapply_user_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    &[("6..", &[Phase(SrcPrepare)])]
-);
+make_builtin!("eapply_user", eapply_user_builtin, run, LONG_DOC, USAGE, [("6..", [SrcPrepare])]);
 
 #[cfg(test)]
 mod tests {

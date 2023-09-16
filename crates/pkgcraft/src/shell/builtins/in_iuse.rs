@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "in_iuse flag";
-make_builtin!("in_iuse", in_iuse_builtin, run, LONG_DOC, USAGE, &[("6..", &[Phases])]);
+make_builtin!("in_iuse", in_iuse_builtin, run, LONG_DOC, USAGE, [("6..", [Phases])]);
 
 #[cfg(test)]
 mod tests {

@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "assert \"error message\"";
-make_builtin!("assert", assert_builtin, run, LONG_DOC, USAGE, &[("..", &[All])]);
+make_builtin!("assert", assert_builtin, run, LONG_DOC, USAGE, [("..", [All])]);
 
 #[cfg(test)]
 mod tests {

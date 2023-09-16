@@ -3,7 +3,7 @@ use scallop::builtins::ExecStatus;
 use crate::shell::phase::PhaseKind::SrcCompile;
 
 use super::_default_phase_func::default_phase_func;
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Runs the default src_compile implementation for a package's EAPI.";
@@ -20,7 +20,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("2..", &[Phase(SrcCompile)])]
+    [("2..", [SrcCompile])]
 );
 
 #[cfg(test)]

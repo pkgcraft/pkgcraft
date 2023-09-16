@@ -4,7 +4,7 @@ use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::_new::new;
 use super::doheader::run as doheader;
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed header files into /usr/include/.";
 
@@ -14,14 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newheader path/to/header.h new_filename";
-make_builtin!(
-    "newheader",
-    newheader_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    &[("5..", &[Phase(SrcInstall)])]
-);
+make_builtin!("newheader", newheader_builtin, run, LONG_DOC, USAGE, [("5..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

@@ -4,7 +4,7 @@ use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::_new::new;
 use super::dolib_so::run as dolib_so;
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed shared libraries.";
 
@@ -14,14 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newlib.so path/to/lib.so new_filename";
-make_builtin!(
-    "newlib.so",
-    newlib_so_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    &[("..", &[Phase(SrcInstall)])]
-);
+make_builtin!("newlib.so", newlib_so_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
 
 #[cfg(test)]
 mod tests {

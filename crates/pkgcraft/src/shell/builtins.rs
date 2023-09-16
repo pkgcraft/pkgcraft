@@ -125,10 +125,15 @@ impl From<&Builtin> for scallop::builtins::Builtin {
 }
 
 impl Builtin {
-    fn new(builtin: scallop::builtins::Builtin, valid: &[(&str, &[Scopes])]) -> Self {
+    fn new<'a, I, J, S>(builtin: scallop::builtins::Builtin, valid: I) -> Self
+    where
+        I: IntoIterator<Item = (&'a str, J)>,
+        J: IntoIterator<Item = S>,
+        S: Into<Scopes>,
+    {
         let mut scope = IndexMap::new();
         for (range, scopes) in valid {
-            let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
+            let mut scopes: IndexSet<_> = scopes.into_iter().flat_map(Into::into).collect();
             scopes.sort();
             let eapis = eapi::range(range).unwrap_or_else(|e| {
                 panic!("failed to parse EAPI range for {builtin} builtin: {range}: {e}")

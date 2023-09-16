@@ -2,7 +2,7 @@ use super::{has::run as has, make_builtin, Scopes::All};
 
 const LONG_DOC: &str = "Deprecated synonym for has.";
 const USAGE: &str = "hasq needle ${haystack}";
-make_builtin!("hasq", hasq_builtin, has, LONG_DOC, USAGE, &[("..8", &[All])]);
+make_builtin!("hasq", hasq_builtin, has, LONG_DOC, USAGE, [("..8", [All])]);
 
 #[cfg(test)]
 mod tests {

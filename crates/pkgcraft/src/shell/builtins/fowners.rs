@@ -7,7 +7,7 @@ use crate::command::RunCommand;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::{PkgPostinst, PkgPreinst, SrcInstall};
 
-use super::{make_builtin, Scopes::Phase};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Run `chown` taking paths relative to the image directory.";
 
@@ -32,7 +32,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    &[("..", &[Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)])]
+    [("..", [SrcInstall, PkgPreinst, PkgPostinst])]
 );
 
 #[cfg(test)]
