@@ -25,6 +25,11 @@ make_builtin!("libopts", libopts_builtin, run, LONG_DOC, USAGE, [("..7", [SrcIns
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use crate::shell::test::FileTree;
+
+    use super::super::dolib::run as dolib;
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as libopts;
     use super::*;
@@ -37,8 +42,18 @@ mod tests {
     }
 
     #[test]
-    fn set_path() {
-        libopts(&["-m0777", "-p"]).unwrap();
-        assert_eq!(get_build_mut().libopts, ["-m0777", "-p"]);
+    fn creation() {
+        let file_tree = FileTree::new();
+        fs::File::create("pkgcraft").unwrap();
+
+        libopts(&["-m0755"]).unwrap();
+        dolib(&["pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/lib/pkgcraft"
+            mode = 0o100755
+        "#,
+        );
     }
 }
