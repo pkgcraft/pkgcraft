@@ -821,6 +821,7 @@ mod tests {
         assert!(range("8..8").unwrap().next().is_none());
         assert_ordered_eq(range("7..8").unwrap(), [&*EAPI7]);
         assert_ordered_eq(range("7..=8").unwrap(), [&*EAPI7, &*EAPI8]);
+        assert_ordered_eq(range("..6").unwrap(), [&*EAPI5]);
         assert_ordered_eq(range("..=6").unwrap(), [&*EAPI5, &*EAPI6]);
     }
 }
