@@ -482,7 +482,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("5", None)
         .enable_features(&[TrailingSlash])
         .update_operations([
-            Pretend.op([PkgPretend.func(None)]),
+            Pretend.op([PkgPretend]),
             Build.op([
                 PkgSetup.func(None),
                 SrcUnpack.func(Some(eapi5::src_unpack)),
@@ -492,16 +492,11 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
                 SrcTest.func(Some(eapi5::src_test)),
                 SrcInstall.func(Some(eapi5::src_install)),
             ]),
-            Install.op([PkgPreinst.func(None), PkgPostinst.func(None)]),
-            Uninstall.op([PkgPrerm.func(None), PkgPostrm.func(None)]),
-            Replace.op([
-                PkgPreinst.func(None),
-                PkgPrerm.func(None),
-                PkgPostrm.func(None),
-                PkgPostinst.func(None),
-            ]),
-            Config.op([PkgConfig.func(None)]),
-            Info.op([PkgInfo.func(None)]),
+            Install.op([PkgPreinst, PkgPostinst]),
+            Uninstall.op([PkgPrerm, PkgPostrm]),
+            Replace.op([PkgPreinst, PkgPrerm, PkgPostrm, PkgPostinst]),
+            Config.op([PkgConfig]),
+            Info.op([PkgInfo]),
             NoFetch.op([PkgNofetch.func(Some(eapi5::pkg_nofetch))]),
         ])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])

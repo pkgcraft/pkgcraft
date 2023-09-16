@@ -141,6 +141,12 @@ impl Borrow<PhaseKind> for Phase {
     }
 }
 
+impl From<PhaseKind> for Phase {
+    fn from(value: PhaseKind) -> Self {
+        Phase { kind: value, func: None }
+    }
+}
+
 impl Phase {
     /// Run the phase operation.
     pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {

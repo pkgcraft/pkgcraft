@@ -36,10 +36,14 @@ impl PartialOrd for OperationKind {
 
 impl OperationKind {
     /// Create an operation.
-    pub(crate) fn op<P: IntoIterator<Item = Phase>>(self, phases: P) -> Operation {
+    pub(crate) fn op<I, P>(self, phases: I) -> Operation
+    where
+        I: IntoIterator<Item = P>,
+        P: Into<Phase>,
+    {
         Operation {
             kind: self,
-            phases: phases.into_iter().collect(),
+            phases: phases.into_iter().map(Into::into).collect(),
         }
     }
 }
