@@ -475,7 +475,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::VariableKind::*;
     use crate::shell::hooks::eapi4::HOOKS;
     use crate::shell::operations::OperationKind::*;
-    use crate::shell::phase::{PhaseKind::*, *};
+    use crate::shell::phase::{eapi5::*, PhaseKind::*};
     use crate::shell::scope::Scopes::*;
     use Feature::*;
 
@@ -485,19 +485,19 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             Pretend.op([PkgPretend]),
             Build.op([
                 PkgSetup.func(None),
-                SrcUnpack.func(Some(eapi5::src_unpack)),
+                SrcUnpack.func(Some(src_unpack)),
                 SrcPrepare.func(None),
-                SrcConfigure.func(Some(eapi5::src_configure)),
-                SrcCompile.func(Some(eapi5::src_compile)),
-                SrcTest.func(Some(eapi5::src_test)),
-                SrcInstall.func(Some(eapi5::src_install)),
+                SrcConfigure.func(Some(src_configure)),
+                SrcCompile.func(Some(src_compile)),
+                SrcTest.func(Some(src_test)),
+                SrcInstall.func(Some(src_install)),
             ]),
             Install.op([PkgPreinst, PkgPostinst]),
             Uninstall.op([PkgPrerm, PkgPostrm]),
             Replace.op([PkgPreinst, PkgPrerm, PkgPostrm, PkgPostinst]),
             Config.op([PkgConfig]),
             Info.op([PkgInfo]),
-            NoFetch.op([PkgNofetch.func(Some(eapi5::pkg_nofetch))]),
+            NoFetch.op([PkgNofetch.func(Some(pkg_nofetch))]),
         ])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
@@ -563,15 +563,12 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::phase::{PhaseKind::*, *};
+    use crate::shell::phase::{eapi6::*, PhaseKind::*};
     use Feature::*;
 
     Eapi::new("6", Some(&EAPI5))
         .enable_features(&[NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
-        .update_phases([
-            SrcPrepare.func(Some(eapi6::src_prepare)),
-            SrcInstall.func(Some(eapi6::src_install)),
-        ])
+        .update_phases([SrcPrepare.func(Some(src_prepare)), SrcInstall.func(Some(src_install))])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
