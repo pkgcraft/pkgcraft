@@ -163,6 +163,7 @@ impl Variable {
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
     use scallop::variables;
     use strum::IntoEnumIterator;
 
@@ -318,27 +319,41 @@ mod tests {
     fn vars_ebuild_phase() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            DESCRIPTION="testing EBUILD_PHASE(_FUNC) variables"
-            SLOT=0
+        for eapi in EAPIS_OFFICIAL.iter() {
+            // generate phase tests
+            let phases = eapi.phases()
+                .iter()
+                .map(|phase| {
+                    let short = phase.short_name();
+                    indoc::formatdoc! {r#"
+                    {phase}() {{
+                        [[ ${{EBUILD_PHASE}} == "{short}" ]] || die "invalid EBUILD_PHASE value: ${{EBUILD_PHASE}}"
+                        [[ ${{EBUILD_PHASE_FUNC}} == "{phase}" ]] || die "invalid EBUILD_PHASE_FUNC value: ${{EBUILD_PHASE_FUNC}}"
+                    }}
+                    "#}
+                })
+                .join("\n");
 
-            [[ -z ${EBUILD_PHASE} ]] || die "invalid EBUILD_PHASE value: ${EBUILD_PHASE}"
-            [[ -z ${EBUILD_PHASE_FUNC} ]] || die "invalid EBUILD_PHASE_FUNC value: ${EBUILD_PHASE_FUNC}"
+            let data = indoc::formatdoc! {r#"
+                EAPI={eapi}
+                DESCRIPTION="testing EBUILD_PHASE(_FUNC) variables"
+                SLOT=0
 
-            pkg_setup() {
-                [[ ${EBUILD_PHASE} == "setup" ]] || die "invalid EBUILD_PHASE value: ${EBUILD_PHASE}"
-                [[ ${EBUILD_PHASE_FUNC} == "pkg_setup" ]] || die "invalid EBUILD_PHASE_FUNC value: ${EBUILD_PHASE_FUNC}"
+                [[ -z ${{EBUILD_PHASE}} ]] || die "invalid EBUILD_PHASE value: ${{EBUILD_PHASE}}"
+                [[ -z ${{EBUILD_PHASE_FUNC}} ]] || die "invalid EBUILD_PHASE_FUNC value: ${{EBUILD_PHASE_FUNC}}"
+
+                {phases}
+            "#};
+            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+            assert!(raw_pkg.source().is_ok());
+            let pkg = raw_pkg.try_into().unwrap();
+            BuildData::from_pkg(&pkg);
+            get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
+            for phase in eapi.phases() {
+                let r = phase.run();
+                assert!(r.is_ok(), "EAPI {eapi}: failed running {phase}: {}", r.unwrap_err());
             }
-
-            src_test() {
-                [[ ${EBUILD_PHASE} == "test" ]] || die "invalid EBUILD_PHASE value: ${EBUILD_PHASE}"
-                [[ ${EBUILD_PHASE_FUNC} == "src_test" ]] || die "invalid EBUILD_PHASE_FUNC value: ${EBUILD_PHASE_FUNC}"
-            }
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        BuildData::from_pkg(&pkg);
-        pkg.build().unwrap();
+        }
     }
 
     #[test]
