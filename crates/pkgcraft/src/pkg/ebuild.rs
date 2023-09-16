@@ -49,19 +49,16 @@ impl<'a> RawPkg<'a> {
 
     /// Get the parsed EAPI from the given ebuild data content.
     fn parse_eapi(data: &str) -> crate::Result<&'static Eapi> {
-        let val = data
-            .filter_lines()
+        data.filter_lines()
             .next()
             .and_then(|(_, s)| s.split_once("EAPI="))
             .map(|(_, s)| match s.split_once('#') {
                 Some((v, _)) => v.trim(),
                 None => s.trim(),
-            });
-
-        match val {
-            Some(s) => eapi::parse_value(s)?.try_into(),
-            None => Err(Error::InvalidValue("EAPI 0 unsupported".to_string())),
-        }
+            })
+            .ok_or_else(|| Error::InvalidValue("EAPI 0 unsupported".to_string()))
+            .and_then(eapi::parse_value)
+            .and_then(TryInto::try_into)
     }
 
     /// Return the path of the package's ebuild file path relative to the repository root.
