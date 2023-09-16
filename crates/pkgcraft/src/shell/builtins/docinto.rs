@@ -49,7 +49,7 @@ mod tests {
     }
 
     #[test]
-    fn set_path() {
+    fn creation() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
@@ -58,16 +58,6 @@ mod tests {
         let file_tree = FileTree::new();
         fs::File::create("file").unwrap();
 
-        // default location
-        dodoc(&["file"]).unwrap();
-        file_tree.assert(
-            r#"
-            [[files]]
-            path = "/usr/share/doc/pkg-1/file"
-        "#,
-        );
-
-        // custom location
         docinto(&["examples"]).unwrap();
         dodoc(&["file"]).unwrap();
         file_tree.assert(
