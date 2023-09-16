@@ -1,7 +1,14 @@
+use is_executable::IsExecutable;
 use scallop::builtins::ExecStatus;
 
-use crate::shell::builtins::{emake::run as emake, unpack::run as unpack};
+use crate::shell::builtins::{
+    econf::run as econf, einstalldocs::install_docs_from, emake::run as emake,
+    unpack::run as unpack,
+};
+use crate::shell::utils::{configure, makefile_exists};
 use crate::shell::{write_stderr, BuildData};
+
+use super::emake_install;
 
 pub(crate) fn pkg_nofetch(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // TODO: only output URLs for missing distfiles
@@ -25,6 +32,21 @@ pub(crate) fn src_unpack(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     }
 }
 
+pub(crate) fn src_configure(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
+    if configure().is_executable() {
+        econf(&[])
+    } else {
+        Ok(ExecStatus::Success)
+    }
+}
+
+pub(crate) fn src_compile(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
+    if makefile_exists() {
+        emake(&[])?;
+    }
+    Ok(ExecStatus::Success)
+}
+
 pub(crate) fn src_test(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     for target in ["check", "test"] {
         if emake(&[target, "-n"]).is_ok() {
@@ -33,6 +55,11 @@ pub(crate) fn src_test(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     }
 
     Ok(ExecStatus::Success)
+}
+
+pub(crate) fn src_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
+    emake_install(build)?;
+    install_docs_from("DOCS")
 }
 
 #[cfg(test)]
@@ -51,8 +78,8 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        // default src_install is a no-op
-        for eapi in eapi::range("..4").unwrap() {
+        // default src_install only handles DOCS and not HTML_DOCS
+        for eapi in eapi::range("..6").unwrap() {
             for (s1, s2) in [("( a.txt )", "( a.html )"), ("\"a.txt\"", "\"a.html\"")] {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
@@ -67,7 +94,12 @@ mod tests {
                 fs::write("a.txt", "data").unwrap();
                 fs::write("a.html", "data").unwrap();
                 pkg.build().unwrap();
-                assert!(file_tree.is_empty());
+                file_tree.assert(
+                    r#"
+                    [[files]]
+                    path = "/usr/share/doc/pkg-1/a.txt"
+                "#,
+                );
             }
         }
     }

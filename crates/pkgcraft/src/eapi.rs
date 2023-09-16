@@ -485,12 +485,12 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             Pretend.op([PkgPretend.func(None)]),
             Build.op([
                 PkgSetup.func(None),
-                SrcUnpack.func(Some(eapi0::src_unpack)),
+                SrcUnpack.func(Some(eapi5::src_unpack)),
                 SrcPrepare.func(None),
-                SrcConfigure.func(Some(eapi2::src_configure)),
-                SrcCompile.func(Some(eapi2::src_compile)),
-                SrcTest.func(Some(eapi0::src_test)),
-                SrcInstall.func(Some(eapi4::src_install)),
+                SrcConfigure.func(Some(eapi5::src_configure)),
+                SrcCompile.func(Some(eapi5::src_compile)),
+                SrcTest.func(Some(eapi5::src_test)),
+                SrcInstall.func(Some(eapi5::src_install)),
             ]),
             Install.op([PkgPreinst.func(None), PkgPostinst.func(None)]),
             Uninstall.op([PkgPrerm.func(None), PkgPostrm.func(None)]),
@@ -502,7 +502,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             ]),
             Config.op([PkgConfig.func(None)]),
             Info.op([PkgInfo.func(None)]),
-            NoFetch.op([PkgNofetch.func(Some(eapi0::pkg_nofetch))]),
+            NoFetch.op([PkgNofetch.func(Some(eapi5::pkg_nofetch))]),
         ])
         .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
         .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])

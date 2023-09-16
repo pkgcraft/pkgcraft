@@ -15,9 +15,7 @@ use super::scope::Scope;
 use super::utils::makefile_exists;
 use super::{get_build_mut, BuildData, BuildFn, BASH};
 
-pub(crate) mod eapi0;
-pub(crate) mod eapi2;
-pub(crate) mod eapi4;
+pub(crate) mod eapi5;
 pub(crate) mod eapi6;
 
 fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
