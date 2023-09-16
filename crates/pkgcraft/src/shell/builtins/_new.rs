@@ -6,7 +6,6 @@ use scallop::builtins::{BuiltinFn, ExecStatus};
 use scallop::Error;
 use tempfile::tempdir;
 
-use crate::eapi::Feature;
 use crate::shell::get_build_mut;
 
 // Underlying implementation for new* builtins.
@@ -25,11 +24,10 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus>
     let tmp_dir = tempdir().map_err(|e| Error::Base(format!("failed creating tempdir: {e}")))?;
     let dest = tmp_dir.path().join(dest);
 
-    let build = get_build_mut();
-    if build.eapi().has(Feature::NewSupportsStdin) && source == "-" {
+    if source == "-" {
         let mut file = File::create(&dest)
             .map_err(|e| Error::Base(format!("failed opening file: {dest:?}: {e}")))?;
-        io::copy(build.stdin()?, &mut file)
+        io::copy(get_build_mut().stdin()?, &mut file)
             .map_err(|e| Error::Base(format!("failed writing stdin to file: {dest:?}: {e}")))?;
     } else {
         fs::copy(source, &dest)

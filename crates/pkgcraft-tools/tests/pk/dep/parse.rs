@@ -28,14 +28,8 @@ fn invalid() {
 
 #[test]
 fn eapi() {
-    // use dep defaults in EAPI >= 4
-    cmd("pk dep parse --eapi 3 cat/pkg[use(+)]")
-        .assert()
-        .stdout("")
-        .stderr(predicate::str::is_empty().not())
-        .failure();
-
-    cmd("pk dep parse --eapi 4 cat/pkg[use(+)]")
+    // TODO: add tests for invalid and old EAPIs
+    cmd("pk dep parse --eapi 8 cat/pkg[use(+)]")
         .assert()
         .stdout("")
         .stderr("")

@@ -79,39 +79,24 @@ peg::parser!(grammar depspec() for str {
         } / expected!("slot name")
         ) { s }
 
-    rule slot_dep(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
-        = ":" slot_parts:slot_str(eapi) {?
-            Ok(slot_parts)
-        }
+    rule slot_dep() -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
+        = ":" slot_parts:slot_str() { slot_parts }
 
-    rule slot_str(eapi: &'static Eapi) -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
+    rule slot_str() -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
         = s:$("*" / "=") {?
-            if eapi.has(Feature::SlotOps) {
-                let op = SlotOperator::from_str(s).map_err(|_| "invalid slot operator")?;
-                Ok((None, None, Some(op)))
-            } else {
-                Err("slot operators are supported in >= EAPI 5")
-            }
-        } / slot:slot(eapi) op:$("=")? {?
-            match (op.is_some(), eapi.has(Feature::SlotOps)) {
-                (true, false) => Err("slot operators are supported in >= EAPI 5"),
-                _ => Ok((Some(slot.0), slot.1, op.map(|_| SlotOperator::Equal))),
-            }
+            let op = SlotOperator::from_str(s).map_err(|_| "invalid slot operator")?;
+            Ok((None, None, Some(op)))
+        } / slot:slot() op:$("=")? {?
+            Ok((Some(slot.0), slot.1, op.map(|_| SlotOperator::Equal)))
         }
 
-    rule slot(eapi: &'static Eapi) -> (&'input str, Option<&'input str>)
-        = slot:slot_name() subslot:subslot(eapi)? {
+    rule slot() -> (&'input str, Option<&'input str>)
+        = slot:slot_name() subslot:subslot()? {
             (slot, subslot)
         }
 
-    rule subslot(eapi: &'static Eapi) -> &'input str
-        = "/" s:slot_name() {?
-            if eapi.has(Feature::Subslots) {
-                Ok(s)
-            } else {
-                Err("subslots are supported in >= EAPI 5")
-            }
-        }
+    rule subslot() -> &'input str
+        = "/" s:slot_name() { s }
 
     rule blocker() -> Blocker
         = s:$("!" "!"?) {?
@@ -180,7 +165,7 @@ peg::parser!(grammar depspec() for str {
         }
 
     pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
-        = blocker:blocker()? dep:$([^':' | '[']+) slot_dep:slot_dep(eapi)?
+        = blocker:blocker()? dep:$([^':' | '[']+) slot_dep:slot_dep()?
                 use_deps:use_deps()? repo:repo_dep(eapi)? {
             let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
             (dep, ParsedDep {
@@ -263,11 +248,8 @@ peg::parser!(grammar depspec() for str {
         { DepSpec::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
 
     rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<DepSpec<T>>) -> DepSpec<T>
-        = "??" _ vals:parens(<expr()>) {?
-            if !eapi.has(Feature::RequiredUseOneOf) {
-                return Err("?? groups are supported in >= EAPI 5");
-            }
-            Ok(DepSpec::AtMostOneOf(vals.into_iter().map(Box::new).collect()))
+        = "??" _ vals:parens(<expr()>) {
+            DepSpec::AtMostOneOf(vals.into_iter().map(Box::new).collect())
         }
 
     rule license_dep_restrict() -> DepSpec<String>
@@ -611,16 +593,12 @@ mod tests {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = dep(&s, eapi);
-                if eapi.has(Feature::SlotOps) {
-                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let d = result.unwrap();
-                    assert_eq!(d.slot(), slot);
-                    assert_eq!(d.subslot(), subslot);
-                    assert_eq!(d.slot_op(), slot_op);
-                    assert_eq!(d.to_string(), s);
-                } else {
-                    assert!(result.is_err(), "{s:?} didn't fail");
-                }
+                assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                let d = result.unwrap();
+                assert_eq!(d.slot(), slot);
+                assert_eq!(d.subslot(), subslot);
+                assert_eq!(d.slot_op(), slot_op);
+                assert_eq!(d.to_string(), s);
             }
         }
     }
@@ -639,16 +617,12 @@ mod tests {
             for eapi in EAPIS.iter() {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = dep(&s, eapi);
-                if eapi.has(Feature::SlotOps) {
-                    assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
-                    let d = result.unwrap();
-                    assert_eq!(d.slot(), slot);
-                    assert_eq!(d.subslot(), subslot);
-                    assert_eq!(d.slot_op(), slot_op);
-                    assert_eq!(d.to_string(), s);
-                } else {
-                    assert!(result.is_err(), "{s:?} didn't fail");
-                }
+                assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
+                let d = result.unwrap();
+                assert_eq!(d.slot(), slot);
+                assert_eq!(d.subslot(), subslot);
+                assert_eq!(d.slot_op(), slot_op);
+                assert_eq!(d.to_string(), s);
             }
         }
     }
@@ -890,13 +864,11 @@ mod tests {
             [("?? ( u1 u2 )", ds([at_most_one_of([vs("u1"), vs("u2")])]), vec!["u1", "u2"])]
         {
             for eapi in EAPIS.iter() {
-                if eapi.has(Feature::RequiredUseOneOf) {
-                    let depset = required_use(s, eapi)?.unwrap();
-                    let flatten: Vec<_> = depset.iter_flatten().collect();
-                    assert_eq!(flatten, expected_flatten);
-                    assert_eq!(depset, expected, "{s} failed");
-                    assert_eq!(depset.to_string(), s);
-                }
+                let depset = required_use(s, eapi)?.unwrap();
+                let flatten: Vec<_> = depset.iter_flatten().collect();
+                assert_eq!(flatten, expected_flatten);
+                assert_eq!(depset, expected, "{s} failed");
+                assert_eq!(depset.to_string(), s);
             }
         }
 

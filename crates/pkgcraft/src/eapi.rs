@@ -48,18 +48,6 @@ pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
 #[derive(EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Feature {
-    // EAPI 5
-    /// new* helpers can use stdin for content instead of a file
-    NewSupportsStdin,
-    /// running tests in parallel is supported
-    ParallelTests,
-    /// REQUIRED_USE ?? operator
-    RequiredUseOneOf,
-    /// slot operators -- cat/pkg:=, cat/pkg:*, cat/pkg:0=
-    SlotOps,
-    /// subslots -- cat/pkg:0/4
-    Subslots,
-
     // EAPI 6
     /// `die -n` supports nonfatal usage
     NonfatalDie,
@@ -483,7 +471,7 @@ static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
     (0..end).map(|s| s.to_string()).collect()
 });
 
-pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::VariableKind::*;
     use crate::shell::hooks::eapi4::HOOKS;
     use crate::shell::operations::OperationKind::*;
@@ -491,7 +479,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::scope::Scopes::*;
     use Feature::*;
 
-    Eapi::new("4", None)
+    Eapi::new("5", None)
         .enable_features(&[TrailingSlash])
         .update_operations([
             Pretend.op([PkgPretend.func(None)]),
@@ -561,6 +549,7 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
             INSDESTTREE.scopes([Phase(SrcInstall)]),
             USE.scopes([All]),
             EBUILD_PHASE.scopes([Phases]),
+            EBUILD_PHASE_FUNC.scopes([Phases]),
             EPREFIX.scopes([Global]),
             ED.scopes([Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
             EROOT.scopes([Pkg]),
@@ -570,20 +559,11 @@ pub static EAPI4: Lazy<Eapi> = Lazy::new(|| {
         ])
         .update_incremental_keys(&[Key::RequiredUse])
         .update_metadata_keys(&[Key::RequiredUse])
-        .update_econf(&[("--disable-dependency-tracking", None, None)])
+        .update_econf(&[
+            ("--disable-dependency-tracking", None, None),
+            ("--disable-silent-rules", None, None),
+        ])
         .update_hooks(&HOOKS)
-        .finalize()
-});
-
-pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::environment::VariableKind::*;
-    use crate::shell::scope::Scopes::*;
-    use Feature::*;
-
-    Eapi::new("5", Some(&EAPI4))
-        .enable_features(&[NewSupportsStdin, ParallelTests, RequiredUseOneOf, SlotOps, Subslots])
-        .update_econf(&[("--disable-silent-rules", None, None)])
-        .update_env([EBUILD_PHASE_FUNC.scopes([Phases])])
         .finalize()
 });
 
@@ -656,7 +636,7 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
 /// Reference to the most recent EAPI.
 pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| &EAPI_PKGCRAFT);
 
-/// Ordered set of official EAPIs.
+/// Ordered set of official, supported EAPIs.
 pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
     let mut eapis = IndexSet::new();
     let mut eapi: &Eapi = &EAPI_LATEST_OFFICIAL;
@@ -846,6 +826,6 @@ mod tests {
         assert!(range("8..8").unwrap().next().is_none());
         assert_ordered_eq(range("7..8").unwrap(), [&*EAPI7]);
         assert_ordered_eq(range("7..=8").unwrap(), [&*EAPI7, &*EAPI8]);
-        assert_ordered_eq(range("..=5").unwrap(), [&*EAPI4, &*EAPI5]);
+        assert_ordered_eq(range("..=6").unwrap(), [&*EAPI5, &*EAPI6]);
     }
 }

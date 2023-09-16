@@ -1,6 +1,5 @@
 use scallop::builtins::ExecStatus;
 
-use crate::eapi::Feature;
 use crate::shell::builtins::{emake::run as emake, unpack::run as unpack};
 use crate::shell::{write_stderr, BuildData};
 
@@ -26,14 +25,10 @@ pub(crate) fn src_unpack(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     }
 }
 
-pub(crate) fn src_test(build: &mut BuildData) -> scallop::Result<ExecStatus> {
+pub(crate) fn src_test(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     for target in ["check", "test"] {
         if emake(&[target, "-n"]).is_ok() {
-            if build.eapi().has(Feature::ParallelTests) {
-                return emake(&[target]);
-            } else {
-                return emake(&["-j1", target]);
-            }
+            return emake(&[target]);
         }
     }
 
