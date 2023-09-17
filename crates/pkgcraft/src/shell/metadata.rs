@@ -252,7 +252,7 @@ impl Metadata {
                         Some(key.line(data))
                     }
                 }
-                Eapi => Some(key.line(pkg.eapi().to_string())),
+                Eapi => Some(key.line(pkg.eapi())),
             })
             .join("\n");
 
