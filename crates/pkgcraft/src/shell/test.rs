@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tempfile::{tempdir, TempDir};
 use walkdir::WalkDir;
 
-use crate::shell::environment::VariableKind::ED;
+use crate::shell::environment::Variable::ED;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Files {

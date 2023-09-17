@@ -15,7 +15,7 @@ use crate::archive::Archive;
 use crate::dep::Dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
-use crate::shell::environment::{Variable, VariableKind};
+use crate::shell::environment::{ScopedVariable, Variable};
 use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
 use crate::shell::operations::{Operation, OperationKind};
@@ -94,7 +94,7 @@ pub struct Eapi {
     metadata_keys: IndexSet<Key>,
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
-    env: IndexSet<Variable>,
+    env: IndexSet<ScopedVariable>,
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
@@ -260,7 +260,7 @@ impl Eapi {
     }
 
     /// Return the ordered set of all environment variables.
-    pub(crate) fn env(&self) -> &IndexSet<Variable> {
+    pub(crate) fn env(&self) -> &IndexSet<ScopedVariable> {
         &self.env
     }
 
@@ -390,7 +390,7 @@ impl Eapi {
     }
 
     /// Enable support for build variables during Eapi registration.
-    fn update_env<I: IntoIterator<Item = Variable>>(mut self, variables: I) -> Self {
+    fn update_env<I: IntoIterator<Item = ScopedVariable>>(mut self, variables: I) -> Self {
         for var in variables {
             self.env.replace(var);
         }
@@ -399,7 +399,7 @@ impl Eapi {
     }
 
     /// Disable support for build variables during Eapi registration.
-    fn disable_env<I: IntoIterator<Item = VariableKind>>(mut self, variables: I) -> Self {
+    fn disable_env<I: IntoIterator<Item = Variable>>(mut self, variables: I) -> Self {
         for var in variables {
             if !self.env.remove(&var) {
                 panic!("EAPI {self}: disabling unregistered variable: {var}");
@@ -472,7 +472,7 @@ static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::environment::VariableKind::*;
+    use crate::shell::environment::Variable::*;
     use crate::shell::hooks::eapi4::HOOKS;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{eapi5::*, PhaseKind::*};
@@ -578,7 +578,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
-    use crate::shell::environment::VariableKind::*;
+    use crate::shell::environment::Variable::*;
     use crate::shell::hooks::eapi7::HOOKS;
     use crate::shell::phase::PhaseKind::*;
     use crate::shell::scope::Scopes::*;

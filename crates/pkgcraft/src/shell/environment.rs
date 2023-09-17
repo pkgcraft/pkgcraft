@@ -14,7 +14,7 @@ use super::scope::{Scope, Scopes};
 #[strum(serialize_all = "UPPERCASE")]
 #[allow(non_camel_case_types)]
 #[allow(clippy::upper_case_acronyms)]
-pub(crate) enum VariableKind {
+pub(crate) enum Variable {
     // package specific
     CATEGORY,
     P,
@@ -53,39 +53,9 @@ pub(crate) enum VariableKind {
     REPLACED_BY_VERSION,
 }
 
-impl Ord for VariableKind {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for VariableKind {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl VariableKind {
-    pub(crate) fn scopes<I, S>(self, scopes: I) -> Variable
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<Scopes>,
-    {
-        let mut scopes: IndexSet<_> = scopes.into_iter().flat_map(Into::into).collect();
-        scopes.sort();
-        Variable { kind: self, scopes }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Variable {
-    kind: VariableKind,
-    scopes: IndexSet<Scope>,
-}
-
 impl Ord for Variable {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.kind.cmp(&other.kind)
+        self.as_ref().cmp(other.as_ref())
     }
 }
 
@@ -95,59 +65,89 @@ impl PartialOrd for Variable {
     }
 }
 
-impl PartialEq for Variable {
-    fn eq(&self, other: &Self) -> bool {
-        self.kind == other.kind
-    }
-}
-
-impl Eq for Variable {}
-
-impl Hash for Variable {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.kind.hash(state);
-    }
-}
-
-impl fmt::Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.kind)
-    }
-}
-
-impl Borrow<VariableKind> for Variable {
-    fn borrow(&self) -> &VariableKind {
-        &self.kind
-    }
-}
-
-impl AsRef<str> for Variable {
-    fn as_ref(&self) -> &str {
-        self.kind.as_ref()
-    }
-}
-
-impl From<&Variable> for VariableKind {
-    fn from(value: &Variable) -> Self {
-        value.kind
-    }
-}
-
 impl Variable {
+    pub(crate) fn scopes<I, S>(self, scopes: I) -> ScopedVariable
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<Scopes>,
+    {
+        let mut scopes: IndexSet<_> = scopes.into_iter().flat_map(Into::into).collect();
+        scopes.sort();
+        ScopedVariable { var: self, scopes }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ScopedVariable {
+    var: Variable,
+    scopes: IndexSet<Scope>,
+}
+
+impl Ord for ScopedVariable {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.var.cmp(&other.var)
+    }
+}
+
+impl PartialOrd for ScopedVariable {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for ScopedVariable {
+    fn eq(&self, other: &Self) -> bool {
+        self.var == other.var
+    }
+}
+
+impl Eq for ScopedVariable {}
+
+impl Hash for ScopedVariable {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.var.hash(state);
+    }
+}
+
+impl fmt::Display for ScopedVariable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.var)
+    }
+}
+
+impl Borrow<Variable> for ScopedVariable {
+    fn borrow(&self) -> &Variable {
+        &self.var
+    }
+}
+
+impl AsRef<str> for ScopedVariable {
+    fn as_ref(&self) -> &str {
+        self.var.as_ref()
+    }
+}
+
+impl From<&ScopedVariable> for Variable {
+    fn from(value: &ScopedVariable) -> Self {
+        value.var
+    }
+}
+
+impl ScopedVariable {
     pub(crate) fn scopes(&self) -> &IndexSet<Scope> {
         &self.scopes
     }
 
     /// Externally exported to the package build environment.
     pub(crate) fn is_exported(&self) -> bool {
-        use VariableKind::*;
-        matches!(self.kind, HOME | TMPDIR)
+        use Variable::*;
+        matches!(self.var, HOME | TMPDIR)
     }
 
     /// Variable value does not vary between phases.
     pub(crate) fn is_static(&self) -> bool {
-        use VariableKind::*;
-        !matches!(self.kind, EBUILD_PHASE | EBUILD_PHASE_FUNC)
+        use Variable::*;
+        !matches!(self.var, EBUILD_PHASE | EBUILD_PHASE_FUNC)
     }
 
     pub(crate) fn bind(&self, value: &str) -> scallop::Result<ExecStatus> {
@@ -187,7 +187,7 @@ mod tests {
         let all_scopes: IndexSet<_> = Scopes::All.into_iter().collect();
 
         for eapi in EAPIS_OFFICIAL.iter() {
-            for var in VariableKind::iter() {
+            for var in Variable::iter() {
                 for scope in &all_scopes {
                     match scope {
                         Global => {

@@ -34,7 +34,7 @@ mod unescape;
 mod utils;
 
 use builtins::BUILTINS;
-use environment::VariableKind;
+use environment::Variable;
 use scope::Scope;
 
 pub use metadata::Key;
@@ -178,7 +178,7 @@ pub(crate) struct BuildData<'a> {
     stderr: Stderr,
 
     // cache of generated environment variable values
-    env: HashMap<VariableKind, String>,
+    env: HashMap<Variable, String>,
 
     // TODO: proxy these fields via borrowed package reference
     distfiles: Vec<String>,
@@ -295,8 +295,8 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the value for a given build variable from the build state.
-    fn get_var(&self, var: VariableKind) -> scallop::Result<String> {
-        use VariableKind::*;
+    fn get_var(&self, var: Variable) -> scallop::Result<String> {
+        use Variable::*;
         match var {
             CATEGORY => self.cpv().map(|o| o.category().to_string()),
             P => self.cpv().map(|o| o.p()),
@@ -368,8 +368,8 @@ impl<'a> BuildData<'a> {
         Ok(())
     }
 
-    fn override_var(&self, kind: VariableKind, val: &str) -> scallop::Result<()> {
-        if let Some(var) = self.eapi().env().get(&kind) {
+    fn override_var(&self, var: Variable, val: &str) -> scallop::Result<()> {
+        if let Some(var) = self.eapi().env().get(&var) {
             if var.scopes().contains(&self.scope) {
                 var.bind(val)?;
             } else {
@@ -408,9 +408,9 @@ impl<'a> BuildData<'a> {
     }
 
     fn destdir(&self) -> &str {
-        self.env.get(&VariableKind::ED).unwrap_or_else(|| {
+        self.env.get(&Variable::ED).unwrap_or_else(|| {
             self.env
-                .get(&VariableKind::D)
+                .get(&Variable::D)
                 .expect("undefined destdir vars: ED and D")
         })
     }

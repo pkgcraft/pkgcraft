@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::shell::environment::VariableKind::INSDESTTREE;
+use crate::shell::environment::Variable::INSDESTTREE;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 

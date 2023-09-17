@@ -6,7 +6,7 @@ use scallop::Error;
 
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
-use crate::shell::environment::VariableKind::DESTTREE;
+use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
 
