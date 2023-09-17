@@ -25,6 +25,11 @@ make_builtin!("insopts", insopts_builtin, run, LONG_DOC, USAGE, [("..", [SrcInst
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use crate::shell::test::FileTree;
+
+    use super::super::doins::run as doins;
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as insopts;
     use super::*;
@@ -37,8 +42,18 @@ mod tests {
     }
 
     #[test]
-    fn set_path() {
-        insopts(&["-m0777", "-p"]).unwrap();
-        assert_eq!(get_build_mut().insopts, ["-m0777", "-p"]);
+    fn creation() {
+        let file_tree = FileTree::new();
+        fs::File::create("pkgcraft").unwrap();
+
+        insopts(&["-m0777"]).unwrap();
+        doins(&["pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/pkgcraft"
+            mode = 0o100777
+        "#,
+        );
     }
 }
