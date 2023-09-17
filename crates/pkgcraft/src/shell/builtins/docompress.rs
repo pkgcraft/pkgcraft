@@ -11,13 +11,18 @@ const LONG_DOC: &str = "Include or exclude paths for compression.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
-    let (set, args) = match args.first() {
-        Some(&"-x") => Ok((&mut build.compress_exclude, &args[1..])),
-        Some(_) => Ok((&mut build.compress_include, args)),
-        None => Err(Error::Base("requires 1 or more args, got 0".into())),
-    }?;
+
+    let (set, args) = match args.first().copied() {
+        Some("-x") => (&mut build.compress_exclude, &args[1..]),
+        _ => (&mut build.compress_include, args),
+    };
+
+    if args.is_empty() {
+        return Err(Error::Base("requires 1 or more args, got 0".to_string()));
+    }
 
     set.extend(args.iter().map(|s| s.to_string()));
+
     Ok(ExecStatus::Success)
 }
 
@@ -26,6 +31,8 @@ make_builtin!("docompress", docompress_builtin, run, LONG_DOC, USAGE, [("4..", [
 
 #[cfg(test)]
 mod tests {
+    use crate::macros::assert_err_re;
+
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as docompress;
     use super::*;
@@ -35,6 +42,10 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(docompress, &[0]);
+
+        // missing args
+        let r = docompress(&["-x"]);
+        assert_err_re!(r, "^requires 1 or more args, got 0");
     }
 
     // TODO: run builds with tests and verify file modifications
