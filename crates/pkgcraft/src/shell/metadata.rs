@@ -19,28 +19,30 @@ use crate::Error;
 use super::{get_build_mut, BuildData};
 
 #[derive(AsRefStr, EnumIter, EnumString, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+#[strum(serialize_all = "UPPERCASE")]
+#[allow(non_camel_case_types)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Key {
-    Bdepend,
-    DefinedPhases,
-    Depend,
-    Description,
-    Eapi,
-    Homepage,
-    Idepend,
-    Inherit,
-    Iuse,
-    Keywords,
-    License,
-    Pdepend,
-    Properties,
-    Rdepend,
-    RequiredUse,
-    Restrict,
-    Slot,
-    SrcUri,
+    BDEPEND,
+    DEFINED_PHASES,
+    DEPEND,
+    DESCRIPTION,
+    EAPI,
+    HOMEPAGE,
+    IDEPEND,
+    INHERIT,
+    IUSE,
+    KEYWORDS,
+    LICENSE,
+    PDEPEND,
+    PROPERTIES,
+    RDEPEND,
+    REQUIRED_USE,
+    RESTRICT,
+    SLOT,
+    SRC_URI,
     // last to match serialized data
-    Inherited,
+    INHERITED,
 }
 
 impl Ord for Key {
@@ -58,7 +60,7 @@ impl PartialOrd for Key {
 impl Key {
     pub(crate) fn get(&self, build: &mut BuildData, eapi: &'static Eapi) -> Option<String> {
         match self {
-            Key::DefinedPhases => {
+            Key::DEFINED_PHASES => {
                 let mut phase_names: Vec<_> = eapi
                     .phases()
                     .iter()
@@ -71,7 +73,7 @@ impl Key {
                     Some(phase_names.join(" "))
                 }
             }
-            Key::Inherit => {
+            Key::INHERIT => {
                 let inherit = &build.inherit;
                 if inherit.is_empty() {
                     None
@@ -86,7 +88,7 @@ impl Key {
     /// Convert a given key and value into a metadata entry line.
     fn line<S: std::fmt::Display>(&self, value: S) -> String {
         let var = match self {
-            Key::Inherited => "_eclasses_",
+            Key::INHERITED => "_eclasses_",
             key => key.as_ref(),
         };
 
@@ -133,27 +135,27 @@ impl Metadata {
     fn convert(&mut self, eapi: &'static Eapi, key: Key, val: &str) -> crate::Result<()> {
         use Key::*;
         match key {
-            Description => self.description = val.to_string(),
-            Slot => self.slot = val.to_string(),
-            Depend | Bdepend | Idepend | Rdepend | Pdepend => {
+            DESCRIPTION => self.description = val.to_string(),
+            SLOT => self.slot = val.to_string(),
+            DEPEND | BDEPEND | IDEPEND | RDEPEND | PDEPEND => {
                 if let Some(val) = dep::parse::dependencies(val, eapi)
                     .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
                 {
                     self.deps.insert(key, val);
                 }
             }
-            License => self.license = dep::parse::license(val)?,
-            Properties => self.properties = dep::parse::properties(val)?,
-            RequiredUse => self.required_use = dep::parse::required_use(val, eapi)?,
-            Restrict => self.restrict = dep::parse::restrict(val)?,
-            SrcUri => self.src_uri = dep::parse::src_uri(val, eapi)?,
-            Homepage => self.homepage = split!(val).collect(),
-            DefinedPhases => self.defined_phases = split!(val).sorted().collect(),
-            Keywords => self.keywords = split!(val).collect(),
-            Iuse => self.iuse = split!(val).collect(),
-            Inherit => self.inherit = split!(val).collect(),
-            Inherited => self.inherited = split!(val).collect(),
-            Eapi => (),
+            LICENSE => self.license = dep::parse::license(val)?,
+            PROPERTIES => self.properties = dep::parse::properties(val)?,
+            REQUIRED_USE => self.required_use = dep::parse::required_use(val, eapi)?,
+            RESTRICT => self.restrict = dep::parse::restrict(val)?,
+            SRC_URI => self.src_uri = dep::parse::src_uri(val, eapi)?,
+            HOMEPAGE => self.homepage = split!(val).collect(),
+            DEFINED_PHASES => self.defined_phases = split!(val).sorted().collect(),
+            KEYWORDS => self.keywords = split!(val).collect(),
+            IUSE => self.iuse = split!(val).collect(),
+            INHERIT => self.inherit = split!(val).collect(),
+            INHERITED => self.inherited = split!(val).collect(),
+            EAPI => (),
         }
         Ok(())
     }
@@ -176,7 +178,7 @@ impl Metadata {
             .filter(|(k, _)| eapi.metadata_keys().contains(k));
 
         for (key, val) in iter {
-            if key == Key::Inherited {
+            if key == Key::INHERITED {
                 meta.inherited = val
                     .split_whitespace()
                     .tuples()
@@ -218,18 +220,18 @@ impl Metadata {
         use Key::*;
         let mut data = Key::iter()
             .filter_map(|key| match key {
-                Description => Some(key.line(&meta.description)),
-                Slot => Some(key.line(&meta.slot)),
-                Depend | Bdepend | Idepend | Rdepend | Pdepend => {
+                DESCRIPTION => Some(key.line(&meta.description)),
+                SLOT => Some(key.line(&meta.slot)),
+                DEPEND | BDEPEND | IDEPEND | RDEPEND | PDEPEND => {
                     meta.deps.get(&key).map(|d| key.line(d))
                 }
-                License => meta.license.as_ref().map(|d| key.line(d)),
-                Properties => meta.properties.as_ref().map(|d| key.line(d)),
-                RequiredUse => meta.required_use.as_ref().map(|d| key.line(d)),
-                Restrict => meta.restrict.as_ref().map(|d| key.line(d)),
-                SrcUri => meta.src_uri.as_ref().map(|d| key.line(d)),
-                Homepage => join!(&meta.homepage).map(|s| key.line(s)),
-                DefinedPhases => {
+                LICENSE => meta.license.as_ref().map(|d| key.line(d)),
+                PROPERTIES => meta.properties.as_ref().map(|d| key.line(d)),
+                REQUIRED_USE => meta.required_use.as_ref().map(|d| key.line(d)),
+                RESTRICT => meta.restrict.as_ref().map(|d| key.line(d)),
+                SRC_URI => meta.src_uri.as_ref().map(|d| key.line(d)),
+                HOMEPAGE => join!(&meta.homepage).map(|s| key.line(s)),
+                DEFINED_PHASES => {
                     // PMS specifies if no phase functions are defined, a single hyphen is used.
                     if meta.defined_phases.is_empty() {
                         Some(key.line("-"))
@@ -237,10 +239,10 @@ impl Metadata {
                         Some(key.line(meta.defined_phases.iter().join(" ")))
                     }
                 }
-                Keywords => join!(&meta.keywords).map(|s| key.line(s)),
-                Iuse => join!(&meta.iuse).map(|s| key.line(s)),
-                Inherit => join!(&meta.inherit).map(|s| key.line(s)),
-                Inherited => {
+                KEYWORDS => join!(&meta.keywords).map(|s| key.line(s)),
+                IUSE => join!(&meta.iuse).map(|s| key.line(s)),
+                INHERIT => join!(&meta.inherit).map(|s| key.line(s)),
+                INHERITED => {
                     if meta.inherited.is_empty() {
                         None
                     } else {
@@ -252,7 +254,7 @@ impl Metadata {
                         Some(key.line(data))
                     }
                 }
-                Eapi => Some(key.line(pkg.eapi())),
+                EAPI => Some(key.line(pkg.eapi())),
             })
             .join("\n");
 

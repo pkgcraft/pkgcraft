@@ -480,6 +480,7 @@ static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks::eapi4::HOOKS;
+    use crate::shell::metadata::Key::*;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{eapi5::*, PhaseKind::*};
     use crate::shell::scope::Scopes::*;
@@ -505,21 +506,22 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             Info.op([PkgInfo]),
             NoFetch.op([PkgNofetch.func(Some(pkg_nofetch))]),
         ])
-        .update_dep_keys(&[Key::Depend, Key::Rdepend, Key::Pdepend])
-        .update_incremental_keys(&[Key::Iuse, Key::Depend, Key::Rdepend, Key::Pdepend])
-        .update_mandatory_keys(&[Key::Description, Key::Slot])
+        .update_dep_keys(&[DEPEND, RDEPEND, PDEPEND])
+        .update_incremental_keys(&[IUSE, DEPEND, RDEPEND, PDEPEND, REQUIRED_USE])
+        .update_mandatory_keys(&[DESCRIPTION, SLOT])
         .update_metadata_keys(&[
-            Key::DefinedPhases,
-            Key::Eapi,
-            Key::Homepage,
-            Key::Inherit,
-            Key::Inherited,
-            Key::Iuse,
-            Key::Keywords,
-            Key::License,
-            Key::Properties,
-            Key::Restrict,
-            Key::SrcUri,
+            DEFINED_PHASES,
+            EAPI,
+            HOMEPAGE,
+            INHERIT,
+            INHERITED,
+            IUSE,
+            KEYWORDS,
+            LICENSE,
+            PROPERTIES,
+            REQUIRED_USE,
+            RESTRICT,
+            SRC_URI,
         ])
         .enable_archives(&[
             "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2", "tar.bz",
@@ -558,8 +560,6 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             REPLACING_VERSIONS.scopes([Pkg]),
             REPLACED_BY_VERSION.scopes([PkgPrerm, PkgPostrm]),
         ])
-        .update_incremental_keys(&[Key::RequiredUse])
-        .update_metadata_keys(&[Key::RequiredUse])
         .update_econf(&[
             ("--disable-dependency-tracking", None, None),
             ("--disable-silent-rules", None, None),
@@ -586,14 +586,15 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks::eapi7::HOOKS;
+    use crate::shell::metadata::Key::*;
     use crate::shell::phase::PhaseKind::*;
     use crate::shell::scope::Scopes::*;
     use Feature::*;
 
     Eapi::new("7", Some(&EAPI6))
         .disable_features(&[TrailingSlash])
-        .update_dep_keys(&[Key::Bdepend])
-        .update_incremental_keys(&[Key::Bdepend])
+        .update_dep_keys(&[BDEPEND])
+        .update_incremental_keys(&[BDEPEND])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
         .update_env([
             SYSROOT.scopes([Src, Phase(PkgSetup)]),
@@ -606,12 +607,13 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::metadata::Key::*;
     use Feature::*;
 
     Eapi::new("8", Some(&EAPI7))
         .enable_features(&[ConsistentFileOpts, DosymRelative, SrcUriUnrestrict, UsevTwoArgs])
-        .update_dep_keys(&[Key::Idepend])
-        .update_incremental_keys(&[Key::Idepend, Key::Properties, Key::Restrict])
+        .update_dep_keys(&[IDEPEND])
+        .update_incremental_keys(&[IDEPEND, PROPERTIES, RESTRICT])
         .update_econf(&[
             ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
             ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),

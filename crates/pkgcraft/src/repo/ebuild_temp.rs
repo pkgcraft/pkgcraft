@@ -84,9 +84,9 @@ impl Repo {
 
         // ebuild defaults
         let mut values = indexmap::IndexMap::from([
-            (Eapi, eapi::EAPI_LATEST_OFFICIAL.as_str()),
-            (Slot, "0"),
-            (Description, "stub package description"),
+            (EAPI, eapi::EAPI_LATEST_OFFICIAL.as_str()),
+            (SLOT, "0"),
+            (DESCRIPTION, "stub package description"),
         ]);
 
         // overrides defaults with specified values, removing the defaults for "-"

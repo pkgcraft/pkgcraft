@@ -182,11 +182,11 @@ impl<'a> Pkg<'a> {
 
         keys.into_iter()
             .filter_map(|k| match k {
-                Bdepend => self.bdepend(),
-                Depend => self.depend(),
-                Idepend => self.idepend(),
-                Pdepend => self.pdepend(),
-                Rdepend => self.rdepend(),
+                BDEPEND => self.bdepend(),
+                DEPEND => self.depend(),
+                IDEPEND => self.idepend(),
+                PDEPEND => self.pdepend(),
+                RDEPEND => self.rdepend(),
                 // non-dependency metadata keys are ignored
                 _ => None,
             })
@@ -197,27 +197,27 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's BDEPEND.
     pub fn bdepend(&self) -> Option<&DepSet<Dep>> {
-        self.meta.deps(Key::Bdepend)
+        self.meta.deps(Key::BDEPEND)
     }
 
     /// Return a package's DEPEND.
     pub fn depend(&self) -> Option<&DepSet<Dep>> {
-        self.meta.deps(Key::Depend)
+        self.meta.deps(Key::DEPEND)
     }
 
     /// Return a package's IDEPEND.
     pub fn idepend(&self) -> Option<&DepSet<Dep>> {
-        self.meta.deps(Key::Idepend)
+        self.meta.deps(Key::IDEPEND)
     }
 
     /// Return a package's PDEPEND.
     pub fn pdepend(&self) -> Option<&DepSet<Dep>> {
-        self.meta.deps(Key::Pdepend)
+        self.meta.deps(Key::PDEPEND)
     }
 
     /// Return a package's RDEPEND.
     pub fn rdepend(&self) -> Option<&DepSet<Dep>> {
-        self.meta.deps(Key::Rdepend)
+        self.meta.deps(Key::RDEPEND)
     }
 
     /// Return a package's LICENSE.
