@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Command::new("chown")
         .args(args.iter().map(|s| s.trim_start_matches('/')))
         .current_dir(get_build_mut().destdir())
-        .run()?;
+        .run_with_output()?;
 
     Ok(ExecStatus::Success)
 }
@@ -37,6 +37,12 @@ make_builtin!(
 
 #[cfg(test)]
 mod tests {
+    use crate::command::{commands, run_commands};
+    use crate::config::Config;
+    use crate::macros::assert_err_re;
+    use crate::pkg::BuildablePackage;
+    use crate::shell::{test::FileTree, BuildData};
+
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as fowners;
     use super::*;
@@ -48,5 +54,55 @@ mod tests {
         assert_invalid_args(fowners, &[0, 1]);
     }
 
-    // TODO: add usage tests
+    #[test]
+    fn failure() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let data = indoc::formatdoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing fowners command"
+            SLOT=0
+            src_install() {{
+                fowners nobody:nobody /nonexistent
+            }}
+        "#};
+        let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+        BuildData::from_pkg(&pkg);
+        let _file_tree = FileTree::new();
+        run_commands(|| {
+            let r = pkg.build();
+            assert_err_re!(
+                r,
+                "failed running: chown: cannot access 'nonexistent': No such file or directory$"
+            );
+        })
+    }
+
+    #[test]
+    fn success() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        for eapi in BUILTIN.scope.keys() {
+            let data = indoc::formatdoc! {r#"
+                EAPI={eapi}
+                DESCRIPTION="testing fowners command"
+                SLOT=0
+                src_install() {{
+                    touch file1 file2
+                    doins file1 file2
+                    # absolute paths work
+                    fowners 0:0 /file1
+                    # relative paths work
+                    fowners root:root file2
+                }}
+            "#};
+            let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            BuildData::from_pkg(&pkg);
+            let _file_tree = FileTree::new();
+            // fake running fowners since modifying file ownership requires elevated permissions
+            pkg.build().unwrap();
+            let cmds = commands();
+            assert_eq!(&cmds, &[["chown", "0:0", "file1"], ["chown", "root:root", "file2"]]);
+        }
+    }
 }
