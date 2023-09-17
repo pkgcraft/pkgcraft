@@ -115,6 +115,7 @@ mod ver_test;
 #[derive(Debug)]
 pub(crate) struct Builtin {
     builtin: scallop::builtins::Builtin,
+    deprecated: Option<(&'static Eapi, String)>,
     scope: IndexMap<&'static Eapi, IndexSet<Scope>>,
 }
 
@@ -125,7 +126,11 @@ impl From<&Builtin> for scallop::builtins::Builtin {
 }
 
 impl Builtin {
-    fn new<'a, I, J, S>(builtin: scallop::builtins::Builtin, valid: I) -> Self
+    fn new<'a, I, J, S>(
+        builtin: scallop::builtins::Builtin,
+        valid: I,
+        deprecated: Option<(&'static Eapi, &str)>,
+    ) -> Self
     where
         I: IntoIterator<Item = (&'a str, J)>,
         J: IntoIterator<Item = S>,
@@ -149,7 +154,9 @@ impl Builtin {
                 }
             }
         }
-        Builtin { builtin, scope }
+
+        let deprecated = deprecated.map(|(eapi, msg)| (eapi, msg.to_string()));
+        Builtin { builtin, deprecated, scope }
     }
 
     /// Run a builtin if it's enabled for the current build state.
@@ -157,6 +164,12 @@ impl Builtin {
         let build = get_build_mut();
         let eapi = build.eapi();
         let scope = &build.scope;
+
+        if let Some((bound, msg)) = &self.deprecated {
+            if eapi >= bound {
+                eprintln!("{}: deprecated in EAPI {eapi}: {msg}", self.builtin);
+            }
+        }
 
         match self.scope.get(eapi) {
             Some(s) if s.contains(scope) => self.builtin.run(args),
@@ -391,6 +404,9 @@ pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
 #[macro_export]
 macro_rules! make_builtin {
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr) => {
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None);
+    };
+    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr) => {
         use std::ffi::c_int;
 
         use once_cell::sync::Lazy;
@@ -426,7 +442,7 @@ macro_rules! make_builtin {
                 usage: $usage,
             };
 
-            Builtin::new(builtin, $scope)
+            Builtin::new(builtin, $scope, $deprecated)
         });
     };
 }
