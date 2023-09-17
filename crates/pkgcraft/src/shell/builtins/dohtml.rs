@@ -7,6 +7,7 @@ use scallop::builtins::ExecStatus;
 use scallop::Error;
 use walkdir::DirEntry;
 
+use crate::eapi::EAPI6;
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
 use crate::shell::phase::PhaseKind::SrcInstall;
@@ -157,7 +158,15 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dohtml path/to/html/files";
-make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, [("..7", [SrcInstall])]);
+make_builtin!(
+    "dohtml",
+    dohtml_builtin,
+    run,
+    LONG_DOC,
+    USAGE,
+    [("..7", [SrcInstall])],
+    Some((&EAPI6, "use $HTML_DOCS with einstalldocs"))
+);
 
 #[cfg(test)]
 mod tests {
