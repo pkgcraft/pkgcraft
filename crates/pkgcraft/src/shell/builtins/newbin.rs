@@ -21,9 +21,8 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
-    use crate::config::Config;
     use crate::shell::test::FileTree;
-    use crate::shell::{write_stdin, BuildData};
+    use crate::shell::write_stdin;
 
     use super::super::into::run as into;
     use super::super::{assert_invalid_args, builtin_scope_tests};
@@ -39,11 +38,6 @@ mod tests {
 
     #[test]
     fn creation() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(&raw_pkg);
-
         let file_tree = FileTree::new();
 
         fs::File::create("bin").unwrap();

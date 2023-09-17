@@ -24,10 +24,8 @@ make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstal
 mod tests {
     use std::fs;
 
-    use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
-    use crate::shell::BuildData;
 
     use super::super::exeopts::run as exeopts;
     use super::super::into::run as into;
@@ -50,11 +48,6 @@ mod tests {
 
     #[test]
     fn creation() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        BuildData::from_raw_pkg(&raw_pkg);
-
         let file_tree = FileTree::new();
         let default_mode = 0o100755;
 
