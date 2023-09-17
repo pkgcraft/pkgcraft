@@ -164,10 +164,8 @@ make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, [("6..", [SrcPrepa
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-    use std::fs;
+    use std::{env, fs};
 
-    use indoc::indoc;
     use tempfile::tempdir;
 
     use crate::macros::assert_err_re;
@@ -210,17 +208,17 @@ mod tests {
 
     #[test]
     fn patch_failures() {
-        let file_content: &str = indoc! {"
+        let file_content = indoc::indoc! {"
             1
         "};
-        let bad_content: &str = indoc! {"
+        let bad_content = indoc::indoc! {"
             --- a/file.txt
             +++ a/file.txt
             @@ -1 +1 @@
             -2
             +3
         "};
-        let bad_prefix: &str = indoc! {"
+        let bad_prefix = indoc::indoc! {"
             --- a/b/file.txt
             +++ a/b/file.txt
             @@ -1 +1 @@
@@ -240,17 +238,17 @@ mod tests {
 
     #[test]
     fn file_patch() {
-        let file_content: &str = indoc! {"
+        let file_content = indoc::indoc! {"
             0
         "};
-        let good_content: &str = indoc! {"
+        let good_content = indoc::indoc! {"
             --- a/file.txt
             +++ a/file.txt
             @@ -1 +1 @@
             -0
             +1
         "};
-        let different_prefix: &str = indoc! {"
+        let different_prefix = indoc::indoc! {"
             --- a/b/file.txt
             +++ a/b/file.txt
             @@ -1 +1 @@
@@ -272,17 +270,17 @@ mod tests {
 
     #[test]
     fn dir_patches() {
-        let file_content: &str = indoc! {"
+        let file_content = indoc::indoc! {"
             0
         "};
-        let patch0: &str = indoc! {"
+        let patch0 = indoc::indoc! {"
             --- a/file.txt
             +++ a/file.txt
             @@ -1 +1 @@
             -0
             +1
         "};
-        let patch1: &str = indoc! {"
+        let patch1 = indoc::indoc! {"
             --- a/file.txt
             +++ a/file.txt
             @@ -1 +1 @@
