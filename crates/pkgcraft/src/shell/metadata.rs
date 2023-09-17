@@ -94,7 +94,7 @@ impl Key {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub(crate) struct Metadata {
     description: String,
     slot: String,

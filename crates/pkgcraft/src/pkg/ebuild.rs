@@ -22,7 +22,7 @@ use metadata::{Manifest, ManifestFile, XmlMetadata};
 mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RawPkg<'a> {
     cpv: Cpv,
     repo: &'a Repo,
@@ -110,7 +110,7 @@ impl<'a> Package for RawPkg<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Pkg<'a> {
     cpv: Cpv,
     eapi: &'static Eapi,
