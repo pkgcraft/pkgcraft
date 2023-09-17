@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::IndexSet;
+use indexmap::{Equivalent, IndexSet};
 use itertools::Either;
 use once_cell::sync::Lazy;
 use strum::EnumString;
@@ -112,10 +112,16 @@ impl Hash for Eapi {
     }
 }
 
+impl Equivalent<str> for Eapi {
+    fn equivalent(&self, key: &str) -> bool {
+        self.id == key
+    }
+}
+
 impl Ord for Eapi {
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_index = EAPIS.get_index_of(self.id.as_str()).unwrap();
-        let other_index = EAPIS.get_index_of(other.id.as_str()).unwrap();
+        let self_index = EAPIS.get_index_of(self).unwrap();
+        let other_index = EAPIS.get_index_of(other).unwrap();
         self_index.cmp(&other_index)
     }
 }
@@ -674,7 +680,7 @@ pub fn range(s: &str) -> crate::Result<impl Iterator<Item = &'static Eapi>> {
 
     // convert EAPI identifier to index, "U" being an alias for the first unofficial EAPI
     let eapi_idx = |s: &str| match s {
-        "U" => Ok(EAPIS.get_index_of(EAPIS_UNOFFICIAL[0].as_str()).unwrap()),
+        "U" => Ok(EAPIS.get_index_of(EAPIS_UNOFFICIAL[0]).unwrap()),
         _ => {
             if let Some(idx) = EAPIS.get_index_of(s) {
                 Ok(idx)
@@ -729,7 +735,7 @@ impl Restriction<&'static Eapi> for Restrict {
     fn matches(&self, eapi: &'static Eapi) -> bool {
         use Restrict::*;
         match self {
-            Id(r) => r.matches(eapi.as_str()),
+            Id(r) => r.matches(&eapi.id),
             Has(feature) => eapi.has(*feature),
         }
     }
