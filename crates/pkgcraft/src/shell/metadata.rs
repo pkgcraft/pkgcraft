@@ -194,17 +194,10 @@ impl Metadata {
 
     /// Serialize [`Metadata`] to the given package's metadata/md5-cache file in the related repo.
     pub(crate) fn serialize(pkg: &RawPkg) -> crate::Result<()> {
-        let dir = pkg
-            .repo()
-            .metadata()
-            .cache_path()
-            .join(pkg.cpv().category());
+        // convert raw pkg into metadata via sourcing
+        let meta: Metadata = pkg.try_into()?;
 
-        if !dir.exists() {
-            fs::create_dir_all(&dir)
-                .map_err(|e| Error::IO(format!("failed creating metadata dir: {dir}: {e}")))?;
-        }
-
+        // return the MD5 digest for a known eclass
         let eclass_digest = |name: &str| -> &str {
             pkg.repo()
                 .eclasses()
@@ -212,9 +205,6 @@ impl Metadata {
                 .expect("missing eclass")
                 .digest()
         };
-
-        // convert raw pkg into metadata via sourcing
-        let meta: Metadata = pkg.try_into()?;
 
         // convert metadata fields to metadata lines
         use Key::*;
@@ -261,7 +251,20 @@ impl Metadata {
         // append ebuild hash
         data.push_str(&format!("\n_md5_={}\n", pkg.digest()));
 
-        // write to a temporary file
+        // determine metadata entry directory
+        let dir = pkg
+            .repo()
+            .metadata()
+            .cache_path()
+            .join(pkg.cpv().category());
+
+        // create metadata entry directory
+        if !dir.exists() {
+            fs::create_dir_all(&dir)
+                .map_err(|e| Error::IO(format!("failed creating metadata dir: {dir}: {e}")))?;
+        }
+
+        // write metadata entry to a temporary file
         let pid = process::id();
         let pf = pkg.pf();
         let path = dir.join(format!(".update.{pid}.{pf}"));
