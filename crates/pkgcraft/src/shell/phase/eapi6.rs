@@ -44,17 +44,17 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        let file_content: &str = indoc::indoc! {"
+        let file_content = indoc::indoc! {"
             0
         "};
-        let patch1: &str = indoc::indoc! {"
+        let patch1 = indoc::indoc! {"
             --- a/file.txt
             +++ a/file.txt
             @@ -1 +1 @@
             -0
             +1
         "};
-        let patch2: &str = indoc::indoc! {"
+        let patch2 = indoc::indoc! {"
             --- a/file.txt
             +++ a/file.txt
             @@ -1 +1 @@
