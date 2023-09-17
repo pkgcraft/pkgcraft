@@ -116,7 +116,7 @@ mod tests {
     use scallop::variables::{bind, ScopedVariable, Variables};
     use tempfile::tempdir;
 
-    use crate::command::last_command;
+    use crate::command::commands;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::{assert_err_re, build_from_paths};
     use crate::shell::{BuildData, Scope};
@@ -129,7 +129,7 @@ mod tests {
 
     fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
         econf(args).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         cmd[1..]
             .iter()
             .map(|s| {

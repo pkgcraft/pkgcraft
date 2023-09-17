@@ -47,7 +47,7 @@ mod tests {
     use scallop::variables::bind;
     use tempfile::tempdir;
 
-    use crate::command::last_command;
+    use crate::command::commands;
     use crate::macros::assert_err_re;
 
     use super::super::builtin_scope_tests;
@@ -70,33 +70,33 @@ mod tests {
 
         // default make prog
         emake(&[]).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[0], "make");
 
         // custom args
         let args = ["-C", "build", "install"];
         emake(&args).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[1..], args);
 
         // using $MAKEOPTS settings
         bind("MAKEOPTS", "-j10", None, None).unwrap();
         emake(&[]).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[1..], ["-j10"]);
         bind("MAKEOPTS", "-j20 -l 20", None, None).unwrap();
         emake(&[]).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[1..], ["-j20", "-l", "20"]);
         // args override $MAKEOPTS
         emake(&["-j1"]).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[1..], ["-j20", "-l", "20", "-j1"]);
 
         // custom $MAKE prog
         bind("MAKE", "custom-make", None, None).unwrap();
         emake(&[]).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[0], "custom-make");
     }
 }

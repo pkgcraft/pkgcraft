@@ -95,11 +95,6 @@ thread_local! {
 }
 
 #[cfg(test)]
-pub(crate) fn last_command() -> Option<Vec<String>> {
-    COMMANDS.with(|cmds| cmds.borrow_mut().pop())
-}
-
-#[cfg(test)]
 pub(crate) fn commands() -> Vec<Vec<String>> {
     COMMANDS.with(|cmds| cmds.take())
 }

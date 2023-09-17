@@ -362,7 +362,7 @@ impl Install {
 mod tests {
     use std::fs;
 
-    use crate::command::{last_command, run_commands};
+    use crate::command::{commands, run_commands};
     use crate::macros::assert_err_re;
     use crate::shell::get_build_mut;
     use crate::shell::test::FileTree;
@@ -397,7 +397,7 @@ mod tests {
         let install = get_build_mut().install().dir_options(["-v"]);
 
         install.dirs(["dir"]).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[..3], ["install", "-d", "-v"]);
     }
 
@@ -494,13 +494,13 @@ mod tests {
         // single file
         fs::File::create("file").unwrap();
         install.files(["file"]).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[..3], ["install", "-v", "file"]);
 
         // single file mapping
         fs::File::create("src").unwrap();
         install.files_map([("src", "dest")]).unwrap();
-        let cmd = last_command().unwrap();
+        let cmd = commands().pop().unwrap();
         assert_eq!(cmd[..3], ["install", "-v", "src"]);
     }
 
