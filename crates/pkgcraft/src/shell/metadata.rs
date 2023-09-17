@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::{fs, io, process};
+use std::{fs, io};
 
 use itertools::Itertools;
 use scallop::{functions, variables};
@@ -265,9 +265,8 @@ impl Metadata {
         }
 
         // write metadata entry to a temporary file
-        let pid = process::id();
         let pf = pkg.pf();
-        let path = dir.join(format!(".update.{pid}.{pf}"));
+        let path = dir.join(format!(".{pf}"));
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing metadata: {path}: {e}")))?;
 
