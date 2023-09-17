@@ -14,11 +14,14 @@ const LONG_DOC: &str = "Install header files into /usr/include/.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let (recursive, args) = match args.first() {
-        Some(&"-r") => Ok((true, &args[1..])),
-        Some(_) => Ok((false, args)),
-        None => Err(Error::Base("requires 1 or more args, got 0".into())),
-    }?;
+    let (recursive, args) = match args.first().copied() {
+        Some("-r") => (true, &args[1..]),
+        _ => (false, args),
+    };
+
+    if args.is_empty() {
+        return Err(Error::Base("requires 1 or more args, got 0".to_string()));
+    }
 
     let build = get_build_mut();
     let dest = "/usr/include";
@@ -66,6 +69,10 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(doheader, &[0]);
+
+        // missing args
+        let r = doheader(&["-r"]);
+        assert_err_re!(r, "^requires 1 or more args, got 0");
 
         let _file_tree = FileTree::new();
 
