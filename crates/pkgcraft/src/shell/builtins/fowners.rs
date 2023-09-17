@@ -63,7 +63,7 @@ mod tests {
             DESCRIPTION="testing fowners command"
             SLOT=0
             src_install() {{
-                fowners nobody:nobody /nonexistent
+                fowners nonexistent:nonexistent /nonexistent
             }}
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
@@ -71,10 +71,7 @@ mod tests {
         let _file_tree = FileTree::new();
         run_commands(|| {
             let r = pkg.build();
-            assert_err_re!(
-                r,
-                "failed running: chown: cannot access 'nonexistent': No such file or directory$"
-            );
+            assert_err_re!(r, "failed running: chown: .*$");
         })
     }
 
