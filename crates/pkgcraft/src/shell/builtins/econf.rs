@@ -29,7 +29,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(msg.to_string()));
     }
 
-    // convert args to merge with the default options
+    // convert args to options mapping
     let args: IndexMap<_, _> = args
         .iter()
         .map(|&s| {
@@ -52,7 +52,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let eprefix = variables::required("EPREFIX")?;
     let chost = variables::required("CHOST")?;
 
-    let mut defaults: IndexMap<_, _> = [
+    let mut options: IndexMap<_, _> = [
         ("--prefix", Some(format!("{eprefix}/usr"))),
         ("--mandir", Some(format!("{eprefix}/usr/share/man"))),
         ("--infodir", Some(format!("{eprefix}/usr/share/info"))),
@@ -64,39 +64,42 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     .into_iter()
     .collect();
 
+    // set libdir if unspecified
     if !args.contains_key("--libdir") {
         if let Some(libdir) = get_libdir(None) {
-            let prefix = match args.get("--exec-prefix") {
-                Some(Some(v)) => v.clone(),
-                _ => match args.get("--prefix") {
-                    Some(Some(v)) => v.clone(),
-                    _ => format!("{eprefix}/usr"),
-                },
+            let value = if let Some(Some(prefix)) = args.get("--exec-prefix") {
+                format!("{prefix}/{libdir}")
+            } else if let Some(Some(prefix)) = args.get("--prefix") {
+                format!("{prefix}/{libdir}")
+            } else {
+                format!("{eprefix}/usr/{libdir}")
             };
-            defaults.insert("--libdir", Some(format!("{prefix}/{libdir}")));
+            options.insert("--libdir", Some(value));
         }
     }
 
     for (opt, var) in [("--build", "CBUILD"), ("--target", "CTARGET")] {
         if let Some(val) = variables::optional(var) {
-            defaults.insert(opt, Some(val));
+            options.insert(opt, Some(val));
         }
     }
 
     // add EAPI specific options if found
     for (opt, (markers, val)) in get_build_mut().eapi().econf_options() {
         if !known_opts.is_disjoint(markers) {
-            defaults.insert(opt, val.as_ref().and_then(variables::expand));
+            options.insert(opt, val.as_ref().and_then(variables::expand));
         }
     }
 
-    // merge args over default options and then add them as command args
+    // override default options with args
+    options.extend(args);
+
+    // add options as command args
     let mut econf = Command::new(&configure);
-    defaults.extend(args);
-    for (opt, val) in defaults.iter() {
+    for (opt, val) in options {
         match val {
             None => econf.arg(opt),
-            Some(v) => econf.arg(format!("{opt}={v}")),
+            Some(value) => econf.arg(format!("{opt}={value}")),
         };
     }
 
