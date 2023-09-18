@@ -165,7 +165,7 @@ make_builtin!(
     LONG_DOC,
     USAGE,
     [("..7", [SrcInstall])],
-    Some((&EAPI6, "use $HTML_DOCS with einstalldocs"))
+    Some(&EAPI6)
 );
 
 #[cfg(test)]

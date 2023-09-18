@@ -113,9 +113,9 @@ mod ver_rs;
 mod ver_test;
 
 #[derive(Debug)]
-pub(crate) struct Builtin {
+pub struct Builtin {
     builtin: scallop::builtins::Builtin,
-    deprecated: Option<(&'static Eapi, String)>,
+    deprecated: Option<&'static Eapi>,
     scope: IndexMap<&'static Eapi, IndexSet<Scope>>,
 }
 
@@ -129,7 +129,7 @@ impl Builtin {
     fn new<'a, I, J, S>(
         builtin: scallop::builtins::Builtin,
         valid: I,
-        deprecated: Option<(&'static Eapi, &str)>,
+        deprecated: Option<&'static Eapi>,
     ) -> Self
     where
         I: IntoIterator<Item = (&'a str, J)>,
@@ -155,8 +155,12 @@ impl Builtin {
             }
         }
 
-        let deprecated = deprecated.map(|(eapi, msg)| (eapi, msg.to_string()));
         Builtin { builtin, deprecated, scope }
+    }
+
+    /// Determine if the builtin is deprecated for a given EAPI.
+    pub fn is_deprecated(&self, eapi: &Eapi) -> bool {
+        self.deprecated.as_ref().is_some_and(|e| eapi >= e)
     }
 
     /// Run a builtin if it's enabled for the current build state.
@@ -165,19 +169,8 @@ impl Builtin {
         let eapi = build.eapi();
         let scope = &build.scope;
 
-        // determine deprecation status
-        let deprecated = match &self.deprecated {
-            Some((bound, msg)) if eapi >= bound => Some(msg),
-            _ => None,
-        };
-
         match self.scope.get(eapi) {
-            Some(s) if s.contains(scope) => {
-                if let Some(msg) = deprecated {
-                    eprintln!("{self}: deprecated in EAPI {eapi}: {msg}");
-                }
-                self.builtin.run(args)
-            }
+            Some(s) if s.contains(scope) => self.builtin.run(args),
             Some(_) => Err(Error::Base(format!("{self}: disabled in {scope} scope"))),
             None => Err(Error::Base(format!("{self}: disabled in EAPI {eapi}"))),
         }
