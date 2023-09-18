@@ -65,10 +65,11 @@ impl Install {
         T: Into<String>,
     {
         let options: Vec<_> = options.into_iter().map(|s| s.into()).collect();
-        let mut to_parse = vec!["install"];
-        to_parse.extend(options.iter().map(|s| s.as_str()));
+        let cmd = ["install"]
+            .into_iter()
+            .chain(options.iter().map(|s| s.as_str()));
 
-        match InstallOptions::try_parse_from(&to_parse) {
+        match InstallOptions::try_parse_from(cmd) {
             Ok(opts) => InstallOpts::Internal(opts),
             Err(_) => InstallOpts::Cmd(options),
         }
