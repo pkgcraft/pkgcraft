@@ -1,6 +1,8 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
+use crate::pkg::Package;
+use crate::repo::PkgRepository;
 use crate::shell::{get_build_mut, write_stdout};
 
 use super::{make_builtin, Scopes::Phases};
@@ -16,11 +18,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     // TODO: use the build config's install repo
-    let mut cpvs: Vec<_> = build.repo()?.iter_cpv_restrict(&dep).collect();
-    cpvs.sort();
+    let mut pkgs: Vec<_> = build.repo()?.iter_restrict(&dep).collect();
+    pkgs.sort();
 
-    if let Some(cpv) = cpvs.last() {
-        write_stdout!("{cpv}")?;
+    if let Some(pkg) = pkgs.last() {
+        write_stdout!("{}", pkg.cpv())?;
         Ok(ExecStatus::Success)
     } else {
         write_stdout!("")?;

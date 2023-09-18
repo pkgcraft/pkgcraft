@@ -1,6 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
+use crate::repo::PkgRepository;
 use crate::shell::get_build_mut;
 
 use super::{make_builtin, Scopes::Phases};
@@ -16,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     // TODO: use the build config's install repo
-    if build.repo()?.iter_cpv_restrict(&dep).next().is_some() {
+    if build.repo()?.iter_restrict(&dep).next().is_some() {
         Ok(ExecStatus::Success)
     } else {
         Ok(ExecStatus::Failure(1))
