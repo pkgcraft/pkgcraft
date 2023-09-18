@@ -44,14 +44,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let phases = eapi.phases();
 
     for arg in args {
-        if let Ok(phase) = PhaseKind::from_str(arg) {
-            if phases.contains(&phase) {
-                build.export_functions.insert(phase, eclass.clone());
-            } else {
-                return Err(Error::Base(format!("{phase} phase undefined in EAPI {eapi}")));
-            }
+        let phase =
+            PhaseKind::from_str(arg).map_err(|_| Error::Base(format!("invalid phase: {arg}")))?;
+
+        if phases.contains(&phase) {
+            build.export_functions.insert(phase, eclass.clone());
         } else {
-            return Err(Error::Base(format!("invalid phase: {arg}")));
+            return Err(Error::Base(format!("{phase} phase undefined in EAPI {eapi}")));
         }
     }
 
