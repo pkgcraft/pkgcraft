@@ -293,11 +293,11 @@ mod tests {
             inherit e1
             DESCRIPTION="testing for eclass env transit"
             SLOT=0
-            [[ -z ${ECLASS} ]] || die "\$ECLASS shouldn't be defined"
-            [[ -n ${INHERITED} ]] || die "\$INHERITED should be defined"
         "#};
         let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         raw_pkg.source().unwrap();
+        assert!(optional("ECLASS").is_none(), "$ECLASS shouldn't be defined");
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
     }
 
     #[test]
