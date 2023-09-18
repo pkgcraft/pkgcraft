@@ -468,11 +468,7 @@ macro_rules! make_builtin {
 
             let words = list.into_words(false);
             let args: Vec<_> = words.into_iter().collect();
-
-            let ret = match $func(&args) {
-                Ok(ret) => ret,
-                Err(e) => handle_error($name, e),
-            };
+            let ret = $func(&args).unwrap_or_else(|e| handle_error($name, e));
             i32::from(ret)
         }
 
