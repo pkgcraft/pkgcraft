@@ -40,10 +40,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // DISTDIR while all other types are unprefixed including conditionally supported absolute
     // and relative paths.
     let determine_source = |path: &Utf8Path| -> scallop::Result<Utf8PathBuf> {
-        if path.parent() == Some(Utf8Path::new("")) {
-            Ok(Utf8PathBuf::from(&distdir).join(path))
+        let source = if path.parent() == Some(Utf8Path::new("")) {
+            Utf8PathBuf::from(&distdir).join(path)
         } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
-            Ok(Utf8PathBuf::from(path))
+            Utf8PathBuf::from(path)
         } else {
             let path_kind = if path.is_absolute() {
                 "absolute"
@@ -51,17 +51,19 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 "relative"
             };
             let err = format!("{path_kind} paths not supported in EAPI {eapi}: {path:?}");
-            Err(Error::Base(err))
+            return Err(Error::Base(err));
+        };
+
+        if !source.exists() {
+            return Err(Error::Base(format!("nonexistent archive: {path}")));
         }
+
+        Ok(source)
     };
 
     // unpack all specified archives
     for path in args.iter().map(Utf8Path::new) {
         let source = determine_source(path)?;
-        if !source.exists() {
-            return Err(Error::Base(format!("nonexistent archive: {path}")));
-        }
-
         let (ext, archive) = eapi.archive_from_path(&source)?;
         let base = source.file_name().unwrap();
         let base = &base[0..base.len() - 1 - ext.len()];
