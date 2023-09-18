@@ -1,6 +1,6 @@
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
 
+use camino::{Utf8Path, Utf8PathBuf};
 use regex::Regex;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
@@ -36,14 +36,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .dest("/usr/share/man")?
         .file_options(["-m0644"]);
 
-    let (mut dirs, mut files) = (HashSet::<PathBuf>::new(), Vec::<(&Path, PathBuf)>::new());
+    let mut dirs = HashSet::<Utf8PathBuf>::new();
+    let mut files = Vec::<(&Utf8Path, Utf8PathBuf)>::new();
 
-    for path in args.iter().map(Path::new) {
-        let (mut base, ext) =
-            match (path.file_stem().map(|s| s.to_str()), path.extension().map(|s| s.to_str())) {
-                (Some(Some(base)), Some(Some(ext))) => Ok((base, ext)),
-                _ => Err(Error::Base(format!("invalid file target, use `newman`: {path:?}"))),
-            }?;
+    for path in args.iter().map(Utf8Path::new) {
+        let (mut base, ext) = match (path.file_stem(), path.extension()) {
+            (Some(base), Some(ext)) => (base, ext),
+            _ => return Err(Error::Base(format!("invalid file target, use `newman`: {path}"))),
+        };
 
         if let Some(m) = DETECT_LANG_RE.captures(base) {
             base = m.name("name").unwrap().as_str();
@@ -53,7 +53,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         // construct man page subdirectory
-        let mut mandir = PathBuf::from(lang);
+        let mut mandir = Utf8PathBuf::from(lang);
         mandir.push(format!("man{ext}"));
 
         files.push((path, mandir.join(format!("{base}.{ext}"))));
