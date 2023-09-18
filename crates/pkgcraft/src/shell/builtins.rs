@@ -15,6 +15,7 @@ use super::scope::{Scope, Scopes};
 
 mod _default_phase_func;
 mod _new;
+mod _query_cmd;
 mod _use_conf;
 mod adddeny;
 mod addpredict;

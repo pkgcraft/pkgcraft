@@ -1,29 +1,19 @@
 use scallop::builtins::ExecStatus;
-use scallop::Error;
 
-use crate::pkg::Package;
-use crate::repo::PkgRepository;
-use crate::shell::{get_build_mut, write_stdout};
+use crate::shell::write_stdout;
 
+use super::_query_cmd::query_cmd;
 use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Output the highest matching version of a package dependency is installed.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let build = get_build_mut();
-    // TODO: add options parsing support
-    let dep = match args[..] {
-        [s] => build.eapi().dep(s)?,
-        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
-    };
+    let mut cpvs: Vec<_> = query_cmd(args)?.collect();
+    cpvs.sort();
 
-    // TODO: use the build config's install repo
-    let mut pkgs: Vec<_> = build.repo()?.iter_restrict(&dep).collect();
-    pkgs.sort();
-
-    if let Some(pkg) = pkgs.last() {
-        write_stdout!("{}", pkg.cpv())?;
+    if let Some(cpv) = cpvs.last() {
+        write_stdout!("{cpv}")?;
         Ok(ExecStatus::Success)
     } else {
         write_stdout!("")?;

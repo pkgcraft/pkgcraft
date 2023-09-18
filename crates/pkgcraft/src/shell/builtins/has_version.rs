@@ -1,24 +1,14 @@
 use scallop::builtins::ExecStatus;
-use scallop::Error;
 
-use crate::repo::PkgRepository;
-use crate::shell::get_build_mut;
-
+use super::_query_cmd::query_cmd;
 use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Determine if a package dependency is installed.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let build = get_build_mut();
-    // TODO: add options parsing support
-    let dep = match args[..] {
-        [s] => build.eapi().dep(s)?,
-        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
-    };
-
-    // TODO: use the build config's install repo
-    if build.repo()?.iter_restrict(&dep).next().is_some() {
+    let mut cpvs = query_cmd(args)?;
+    if cpvs.next().is_some() {
         Ok(ExecStatus::Success)
     } else {
         Ok(ExecStatus::Failure(1))
