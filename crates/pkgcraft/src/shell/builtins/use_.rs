@@ -11,18 +11,14 @@ The return values are inverted if the flag name is prefixed with !.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let flag = match args.len() {
-        1 => args[0],
-        n => return Err(Error::Base(format!("requires 1 arg, got {n}"))),
-    };
-
-    let (negated, flag) = match flag.strip_prefix('!') {
-        Some(s) => (true, s),
-        None => (false, flag),
+    let (negated, flag) = match args[..] {
+        [flag] => flag
+            .strip_prefix('!')
+            .map_or_else(|| (false, flag), |s| (true, s)),
+        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
     };
 
     let build = get_build_mut();
-
     if !build.pkg()?.iuse_effective().contains(flag) {
         return Err(Error::Base(format!("USE flag {flag:?} not in IUSE")));
     }
