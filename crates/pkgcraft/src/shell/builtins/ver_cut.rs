@@ -12,11 +12,11 @@ const LONG_DOC: &str = "Output substring from package version string and range a
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pv = get_build_mut().cpv()?.pv();
-    let (range, ver) = match args.len() {
-        1 => Ok((args[0], pv.as_str())),
-        2 => Ok((args[0], args[1])),
-        n => Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
-    }?;
+    let (range, ver) = match args[..] {
+        [range] => (range, pv.as_str()),
+        [range, ver] => (range, ver),
+        _ => return Err(Error::Base(format!("requires 1 or 2 args, got {}", args.len()))),
+    };
 
     let version_parts = parse::version_split(ver)?;
     let len = version_parts.len();

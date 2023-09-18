@@ -11,22 +11,22 @@ const LONG_DOC: &str = "Perform comparisons on package version strings.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pvr = get_build_mut().cpv()?.pvr();
-    let (v1, op, v2) = match args.len() {
-        2 => Ok((pvr.as_str(), args[0], args[1])),
-        3 => Ok((args[0], args[1], args[2])),
-        n => Err(Error::Base(format!("only accepts 2 or 3 args, got {n}"))),
-    }?;
+    let (lhs, op, rhs) = match args[..] {
+        [op, rhs] => (pvr.as_str(), op, rhs),
+        [lhs, op, rhs] => (lhs, op, rhs),
+        _ => return Err(Error::Base(format!("only accepts 2 or 3 args, got {}", args.len()))),
+    };
 
-    let v1 = dep::parse::version(v1)?;
-    let v2 = dep::parse::version(v2)?;
+    let lhs = dep::parse::version(lhs)?;
+    let rhs = dep::parse::version(rhs)?;
 
     let ret = match op {
-        "-eq" => v1 == v2,
-        "-ne" => v1 != v2,
-        "-lt" => v1 < v2,
-        "-gt" => v1 > v2,
-        "-le" => v1 <= v2,
-        "-ge" => v1 >= v2,
+        "-eq" => lhs == rhs,
+        "-ne" => lhs != rhs,
+        "-lt" => lhs < rhs,
+        "-gt" => lhs > rhs,
+        "-le" => lhs <= rhs,
+        "-ge" => lhs >= rhs,
         _ => return Err(Error::Base(format!("invalid operator: {op}"))),
     };
 
