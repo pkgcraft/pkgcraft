@@ -12,6 +12,7 @@ const LONG_DOC: &str = "Output the highest matching version of a package depende
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
+    // TODO: add options parsing support
     let dep = match args[..] {
         [s] => build.eapi().dep(s)?,
         _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
