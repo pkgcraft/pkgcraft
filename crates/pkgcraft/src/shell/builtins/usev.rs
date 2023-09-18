@@ -11,24 +11,17 @@ The same as use, but also prints the flag name if the condition is met.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let (flag, output) = match args.len() {
-        1 => {
-            let output = args[0].strip_prefix('!').unwrap_or(args[0]);
-            Ok((&args[..1], output))
-        }
-        2 => {
-            if get_build_mut().eapi().has(Feature::UsevTwoArgs) {
-                Ok((&args[..1], args[1]))
-            } else {
-                Err(Error::Base("requires 1 arg, got 2".into()))
-            }
-        }
-        n => Err(Error::Base(format!("requires 1 or 2 args, got {n}"))),
-    }?;
+    let eapi = get_build_mut().eapi();
+    let (flag, value) = match args[..] {
+        [flag] => (flag, flag.strip_prefix('!').unwrap_or(flag)),
+        [flag, value] if eapi.has(Feature::UsevTwoArgs) => (flag, value),
+        [_, _] => return Err(Error::Base("requires 1 arg, got 2".into())),
+        _ => return Err(Error::Base(format!("requires 1 or 2 args, got {}", args.len()))),
+    };
 
-    let ret = use_(flag)?;
+    let ret = use_(&[flag])?;
     if bool::from(&ret) {
-        write_stdout!("{output}")?;
+        write_stdout!("{value}")?;
     }
 
     Ok(ret)
