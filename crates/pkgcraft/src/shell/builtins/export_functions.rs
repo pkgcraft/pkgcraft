@@ -1,11 +1,10 @@
 use std::str::FromStr;
 
 use scallop::builtins::ExecStatus;
-use scallop::variables;
-use scallop::Error;
+use scallop::{functions, source, variables, Error};
 
-use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind;
+use crate::shell::{get_build_mut, BuildData};
 
 use super::{make_builtin, Scopes::Eclass};
 
@@ -15,6 +14,20 @@ For example, if ECLASS=base and `EXPORT_FUNCTIONS src_unpack` is called the foll
 function is defined:
 
 src_unpack() { base_src_unpack; }";
+
+/// Create function aliases for EXPORT_FUNCTIONS calls.
+pub(super) fn export_functions(build: &mut BuildData) -> scallop::Result<ExecStatus> {
+    for (phase, eclass) in build.export_functions.drain(..) {
+        let func = format!("{eclass}_{phase}");
+        if functions::find(&func).is_some() {
+            source::string(format!("{phase}() {{ {func} \"$@\"; }}"))?;
+        } else {
+            return Err(Error::Base(format!("{eclass}: undefined phase function: {func}")));
+        }
+    }
+
+    Ok(ExecStatus::Success)
+}
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
