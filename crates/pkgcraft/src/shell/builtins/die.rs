@@ -13,36 +13,32 @@ Displays a failure message provided in an optional argument and then aborts the 
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let args = match args.len() {
-        1 | 2 if args[0] == "-n" => {
-            let eapi = get_build_mut().eapi();
-            if eapi.has(Feature::NonfatalDie) {
-                if NONFATAL.load(Ordering::Relaxed) {
-                    if args.len() == 2 {
-                        write_stderr!("{}\n", args[1])?;
-                    }
-                    return Ok(ExecStatus::Failure(1));
-                } else {
-                    return Err(Error::Base(
-                        "-n option requires running under nonfatal".to_string(),
-                    ));
-                }
-            } else {
-                return Err(Error::Base(format!("-n option not supported in EAPI {eapi}")));
+    let (nonfatal, msg) = match args[..] {
+        [opt, msg] if opt == "-n" => (true, msg),
+        [opt] if opt == "-n" => (true, ""),
+        [msg] => (false, msg),
+        [] => (false, "(no error message)"),
+        _ => return Err(Error::Base(format!("takes up to 1 arg, got {}", args.len()))),
+    };
+
+    let eapi = get_build_mut().eapi();
+    if nonfatal && !eapi.has(Feature::NonfatalDie) {
+        return Err(Error::Base(format!("-n option not supported in EAPI {eapi}")));
+    }
+
+    if nonfatal {
+        if NONFATAL.load(Ordering::Relaxed) {
+            if !msg.is_empty() {
+                write_stderr!("{msg}\n")?;
             }
+            Ok(ExecStatus::Failure(1))
+        } else {
+            Err(Error::Base("-n option requires running under nonfatal".to_string()))
         }
-        0 | 1 => args,
-        n => return Err(Error::Base(format!("takes up to 1 arg, got {n}"))),
-    };
-
-    let msg = if args.is_empty() {
-        "(no error message)"
     } else {
-        args[0]
-    };
-
-    // TODO: add bash backtrace to output
-    Err(Error::Bail(msg.to_string()))
+        // TODO: add bash backtrace to output
+        Err(Error::Bail(msg.to_string()))
+    }
 }
 
 const USAGE: &str = "die \"error message\"";
