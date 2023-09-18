@@ -119,18 +119,17 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     // split args into options and files
-    let mut options = Vec::<&str>::new();
-    let mut files = Vec::<&Utf8Path>::new();
-    for (i, arg) in args.iter().enumerate() {
+    let (mut files, mut options) = (vec![], vec![]);
+    let mut args_iter = args.iter();
+    for arg in args_iter.by_ref() {
         if arg.starts_with('-') {
             if !files.is_empty() {
                 return Err(Error::Base("options must be specified before file arguments".into()));
             } else if *arg == "--" {
-                let paths = &args[i + 1..];
-                files.extend(paths.iter().map(Utf8Path::new));
+                files.extend(args_iter.map(Utf8Path::new));
                 break;
             } else {
-                options.push(arg);
+                options.push(*arg);
             }
         } else {
             files.push(Utf8Path::new(arg));
