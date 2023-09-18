@@ -167,14 +167,14 @@ impl Builtin {
 
         if let Some((bound, msg)) = &self.deprecated {
             if eapi >= bound {
-                eprintln!("{}: deprecated in EAPI {eapi}: {msg}", self.builtin);
+                eprintln!("{self}: deprecated in EAPI {eapi}: {msg}");
             }
         }
 
         match self.scope.get(eapi) {
             Some(s) if s.contains(scope) => self.builtin.run(args),
-            Some(_) => Err(Error::Base(format!("{scope} scope doesn't enable command: {self}"))),
-            None => Err(Error::Base(format!("EAPI={eapi} doesn't enable command: {self}"))),
+            Some(_) => Err(Error::Base(format!("{self}: disabled in {scope} scope"))),
+            None => Err(Error::Base(format!("{self}: disabled in EAPI {eapi}"))),
         }
     }
 }
@@ -491,7 +491,7 @@ macro_rules! builtin_scope_tests {
                             .unwrap_or_default()
                     });
                 for scope in scopes {
-                    let err = format!(" doesn't enable command: {name}");
+                    let err = format!("{name}: disabled in ");
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
                     match scope {
