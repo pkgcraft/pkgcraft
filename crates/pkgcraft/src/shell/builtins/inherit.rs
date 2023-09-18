@@ -98,7 +98,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if orig_scope != Scope::Eclass {
         build.scope = orig_scope;
         // create function aliases for EXPORT_FUNCTIONS calls
-        export_functions(build)?;
+        export_functions(build.export_functions.drain(..))?;
     }
 
     Ok(ExecStatus::Success)

@@ -3,8 +3,8 @@ use std::str::FromStr;
 use scallop::builtins::ExecStatus;
 use scallop::{functions, source, variables, Error};
 
+use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind;
-use crate::shell::{get_build_mut, BuildData};
 
 use super::{make_builtin, Scopes::Eclass};
 
@@ -16,8 +16,11 @@ function is defined:
 src_unpack() { base_src_unpack; }";
 
 /// Create function aliases for EXPORT_FUNCTIONS calls.
-pub(super) fn export_functions(build: &mut BuildData) -> scallop::Result<ExecStatus> {
-    for (phase, eclass) in build.export_functions.drain(..) {
+pub(super) fn export_functions<I>(functions: I) -> scallop::Result<ExecStatus>
+where
+    I: IntoIterator<Item = (PhaseKind, String)>,
+{
+    for (phase, eclass) in functions {
         let func = format!("{eclass}_{phase}");
         if functions::find(&func).is_some() {
             source::string(format!("{phase}() {{ {func} \"$@\"; }}"))?;
