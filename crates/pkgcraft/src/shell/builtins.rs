@@ -423,10 +423,9 @@ macro_rules! make_builtin {
                 .get($name)
                 .unwrap_or_else(|| panic!("unregistered builtin: {}", $name));
 
-            let ret = match builtin.run(&args) {
-                Ok(ret) => ret,
-                Err(e) => handle_error(builtin, e),
-            };
+            let ret = builtin
+                .run(&args)
+                .unwrap_or_else(|e| handle_error(builtin, e));
 
             i32::from(ret)
         }
