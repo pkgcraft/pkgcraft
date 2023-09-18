@@ -1,3 +1,4 @@
+use itertools::Either;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
@@ -18,9 +19,9 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let dest = "/etc/init.d";
     let opts = if build.eapi().has(Feature::ConsistentFileOpts) {
-        vec!["-m0755"]
+        Either::Left(["-m0755"].into_iter())
     } else {
-        build.exeopts.iter().map(|s| s.as_str()).collect()
+        Either::Right(build.exeopts.iter().map(|s| s.as_str()))
     };
     let install = build.install().dest(dest)?.file_options(opts);
     install.files(args)?;

@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use itertools::Either;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
@@ -25,10 +26,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let build = get_build_mut();
     let dest = "/usr/include";
-    let opts: Vec<_> = if build.eapi().has(Feature::ConsistentFileOpts) {
-        vec!["-m0644"]
+    let opts = if build.eapi().has(Feature::ConsistentFileOpts) {
+        Either::Left(["-m0644"].into_iter())
     } else {
-        build.insopts.iter().map(|s| s.as_str()).collect()
+        Either::Right(build.insopts.iter().map(|s| s.as_str()))
     };
     let install = build.install().dest(dest)?.file_options(opts);
 
