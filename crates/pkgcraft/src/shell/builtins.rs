@@ -165,14 +165,19 @@ impl Builtin {
         let eapi = build.eapi();
         let scope = &build.scope;
 
-        if let Some((bound, msg)) = &self.deprecated {
-            if eapi >= bound {
-                eprintln!("{self}: deprecated in EAPI {eapi}: {msg}");
-            }
-        }
+        // determine deprecation status
+        let deprecated = match &self.deprecated {
+            Some((bound, msg)) if eapi >= bound => Some(msg),
+            _ => None,
+        };
 
         match self.scope.get(eapi) {
-            Some(s) if s.contains(scope) => self.builtin.run(args),
+            Some(s) if s.contains(scope) => {
+                if let Some(msg) = deprecated {
+                    eprintln!("{self}: deprecated in EAPI {eapi}: {msg}");
+                }
+                self.builtin.run(args)
+            }
             Some(_) => Err(Error::Base(format!("{self}: disabled in {scope} scope"))),
             None => Err(Error::Base(format!("{self}: disabled in EAPI {eapi}"))),
         }
