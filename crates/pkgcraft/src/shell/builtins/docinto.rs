@@ -11,13 +11,11 @@ Takes exactly one argument and sets the install path for dodoc and other doc-rel
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let path = match args.len() {
-        1 => match args[0] {
-            "/" => Ok(""),
-            s => Ok(s),
-        },
-        n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
-    }?;
+    let path = match args[..] {
+        [s] if s == "/" => "",
+        [s] => s,
+        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
+    };
 
     get_build_mut().docdesttree = path.to_string();
 
