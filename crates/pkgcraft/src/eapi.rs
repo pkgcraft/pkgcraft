@@ -282,10 +282,13 @@ impl Eapi {
     }
 
     /// Enable features during Eapi registration.
-    fn enable_features(mut self, features: &[Feature]) -> Self {
-        for x in features {
-            if !self.features.insert(*x) {
-                panic!("EAPI {self}: enabling set feature: {x:?}");
+    fn enable_features<I>(mut self, features: I) -> Self
+    where
+        I: IntoIterator<Item = Feature>,
+    {
+        for f in features {
+            if !self.features.insert(f) {
+                panic!("EAPI {self}: enabling set feature: {f:?}");
             }
         }
         self.features.sort();
@@ -293,10 +296,13 @@ impl Eapi {
     }
 
     /// Disable inherited features during Eapi registration.
-    fn disable_features(mut self, features: &[Feature]) -> Self {
-        for x in features {
-            if !self.features.remove(x) {
-                panic!("EAPI {self}: disabling unset feature: {x:?}");
+    fn disable_features<I>(mut self, features: I) -> Self
+    where
+        I: IntoIterator<Item = Feature>,
+    {
+        for f in features {
+            if !self.features.remove(&f) {
+                panic!("EAPI {self}: disabling unset feature: {f:?}");
             }
         }
         self.features.sort();
@@ -493,7 +499,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     use Feature::*;
 
     Eapi::new("5", None)
-        .enable_features(&[QueryHostRoot, TrailingSlash])
+        .enable_features([QueryHostRoot, TrailingSlash])
         .update_operations([
             Pretend.op([PkgPretend]),
             Build.op([
@@ -579,7 +585,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     use Feature::*;
 
     Eapi::new("6", Some(&EAPI5))
-        .enable_features(&[NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
+        .enable_features([NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
         .update_phases([SrcPrepare.func(Some(src_prepare)), SrcInstall.func(Some(src_install))])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
@@ -598,8 +604,8 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     use Feature::*;
 
     Eapi::new("7", Some(&EAPI6))
-        .enable_features(&[QueryDeps])
-        .disable_features(&[QueryHostRoot, TrailingSlash])
+        .enable_features([QueryDeps])
+        .disable_features([QueryHostRoot, TrailingSlash])
         .update_dep_keys(&[BDEPEND])
         .update_incremental_keys(&[BDEPEND])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
@@ -618,7 +624,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
     use Feature::*;
 
     Eapi::new("8", Some(&EAPI7))
-        .enable_features(&[ConsistentFileOpts, DosymRelative, SrcUriUnrestrict, UsevTwoArgs])
+        .enable_features([ConsistentFileOpts, DosymRelative, SrcUriUnrestrict, UsevTwoArgs])
         .update_dep_keys(&[IDEPEND])
         .update_incremental_keys(&[IDEPEND, PROPERTIES, RESTRICT])
         .update_econf(&[
@@ -636,7 +642,7 @@ pub static EAPI_LATEST_OFFICIAL: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
 pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
     use Feature::*;
     Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL))
-        .enable_features(&[RepoIds])
+        .enable_features([RepoIds])
         .finalize()
 });
 
