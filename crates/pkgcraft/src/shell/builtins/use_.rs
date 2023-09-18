@@ -11,16 +11,15 @@ The return values are inverted if the flag name is prefixed with !.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let (negated, flag) = match args.len() {
-        1 => {
-            if args[0].starts_with('!') {
-                Ok((true, &args[0][1..]))
-            } else {
-                Ok((false, args[0]))
-            }
-        }
-        n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
-    }?;
+    let flag = match args.len() {
+        1 => args[0],
+        n => return Err(Error::Base(format!("requires 1 arg, got {n}"))),
+    };
+
+    let (negated, flag) = match flag.strip_prefix('!') {
+        Some(s) => (true, s),
+        None => (false, flag),
+    };
 
     let build = get_build_mut();
 
