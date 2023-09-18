@@ -10,19 +10,19 @@ use crate::shell::get_build_mut;
 
 // Underlying implementation for new* builtins.
 pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus> {
-    let (source, dest) = match args.len() {
-        2 => Ok((args[0], Path::new(args[1]))),
-        n => Err(Error::Base(format!("requires 2, got {n}"))),
-    }?;
+    let (source, name) = match args[..] {
+        [source, name] => (source, name),
+        _ => return Err(Error::Base(format!("requires 2 args, got {}", args.len()))),
+    };
 
     // filename can't contain a path separator
-    if dest.parent() != Some(Path::new("")) {
-        return Err(Error::Base(format!("invalid filename: {dest:?}")));
+    if Path::new(name).parent() != Some(Path::new("")) {
+        return Err(Error::Base(format!("invalid filename: {name}")));
     }
 
     // TODO: create tempdir in $T to avoid cross-fs issues as much as possible
     let tmp_dir = tempdir().map_err(|e| Error::Base(format!("failed creating tempdir: {e}")))?;
-    let dest = tmp_dir.path().join(dest);
+    let dest = tmp_dir.path().join(name);
 
     if source == "-" {
         let mut file = File::create(&dest)
@@ -34,7 +34,7 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus>
             .map_err(|e| Error::Base(format!("failed copying file {source:?} to {dest:?}: {e}")))?;
     }
 
-    let path = dest.to_str().unwrap();
+    let path = dest.to_str().expect("invalid unicode path");
     func(&[path])
 }
 
@@ -56,7 +56,7 @@ mod tests {
         // filename contains path separator
         for f in ["bin/pkgcraft", "bin//pkgcraft", "/bin/pkgcraft", "/"] {
             let r = new(&["bin", f], newbin);
-            assert_err_re!(r, format!("^invalid filename: {f:?}$"));
+            assert_err_re!(r, format!("^invalid filename: {f}$"));
         }
     }
 }
