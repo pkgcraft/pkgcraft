@@ -1,5 +1,7 @@
 use scallop::builtins::ExecStatus;
 
+use crate::eapi::EAPI7;
+
 use super::use_::run as use_;
 use super::{make_builtin, Scopes::Phases};
 
@@ -11,7 +13,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "useq flag";
-make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE, [("..8", [Phases])]);
+make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE, [("..8", [Phases])], Some(&EAPI7));
 
 #[cfg(test)]
 mod tests {

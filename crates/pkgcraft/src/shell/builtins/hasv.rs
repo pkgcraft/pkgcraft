@@ -1,5 +1,6 @@
 use scallop::builtins::ExecStatus;
 
+use crate::eapi::EAPI7;
 use crate::shell::write_stdout;
 
 use super::{has::run as has, make_builtin, Scopes::All};
@@ -17,7 +18,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "hasv needle ${haystack}";
-make_builtin!("hasv", hasv_builtin, run, LONG_DOC, USAGE, [("..8", [All])]);
+make_builtin!("hasv", hasv_builtin, run, LONG_DOC, USAGE, [("..8", [All])], Some(&EAPI7));
 
 #[cfg(test)]
 mod tests {
