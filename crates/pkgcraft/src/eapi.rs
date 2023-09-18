@@ -48,6 +48,10 @@ pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
 #[derive(EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Feature {
+    // EAPI 5
+    /// `best_version` and `has_version` support --host-root
+    QueryHostRoot,
+
     // EAPI 6
     /// `die -n` supports nonfatal usage
     NonfatalDie,
@@ -59,6 +63,8 @@ pub enum Feature {
     UnpackCaseInsensitive,
 
     // EAPI 7
+    /// `best_version` and `has_version` support -b/-d/-r options
+    QueryDeps,
     /// path variables ROOT, EROOT, D, and ED end with a trailing slash
     TrailingSlash,
 
@@ -487,7 +493,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     use Feature::*;
 
     Eapi::new("5", None)
-        .enable_features(&[TrailingSlash])
+        .enable_features(&[QueryHostRoot, TrailingSlash])
         .update_operations([
             Pretend.op([PkgPretend]),
             Build.op([
@@ -592,7 +598,8 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     use Feature::*;
 
     Eapi::new("7", Some(&EAPI6))
-        .disable_features(&[TrailingSlash])
+        .enable_features(&[QueryDeps])
+        .disable_features(&[QueryHostRoot, TrailingSlash])
         .update_dep_keys(&[BDEPEND])
         .update_incremental_keys(&[BDEPEND])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
