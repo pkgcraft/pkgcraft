@@ -16,7 +16,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let flag = match args {
         [flag, args @ ..] if args.len() <= 4 => {
             // override default output values with args
-            vals[0..args.len()].clone_from_slice(args);
+            vals[0..args.len()].copy_from_slice(args);
             flag
         }
         _ => return Err(Error::Base(format!("requires 1 to 5 args, got {}", args.len()))),
