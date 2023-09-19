@@ -1,11 +1,12 @@
 use std::fs::File;
-use std::{fs, io, path};
+use std::{fs, io};
 
 use scallop::builtins::{BuiltinFn, ExecStatus};
 use scallop::Error;
 use tempfile::tempdir;
 
 use crate::shell::get_build_mut;
+use crate::utils::is_single_component;
 
 // Underlying implementation for new* builtins.
 pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus> {
@@ -15,7 +16,7 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus>
     };
 
     // filename can't contain a path separator
-    if name.contains(path::is_separator) {
+    if !is_single_component(name) {
         return Err(Error::Base(format!("invalid filename: {name}")));
     }
 

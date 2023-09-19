@@ -1,7 +1,7 @@
 use std::collections::hash_map::DefaultHasher;
 use std::env;
 use std::hash::{Hash, Hasher};
-use std::path::{Component, Path, PathBuf};
+use std::path::{is_separator, Component, Path, PathBuf};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use digest::Digest;
@@ -53,6 +53,11 @@ where
         }
     }
     None
+}
+
+/// Determines if a path is a single component with no separators.
+pub(crate) fn is_single_component<S: AsRef<str>>(path: S) -> bool {
+    !path.as_ref().contains(is_separator)
 }
 
 // Construct a relative path from a base directory to the specified path.

@@ -10,7 +10,7 @@ use walkdir::WalkDir;
 use crate::archive::ArchiveFormat;
 use crate::eapi::Feature;
 use crate::shell::get_build_mut;
-use crate::utils::current_dir;
+use crate::utils::{current_dir, is_single_component};
 
 use super::{make_builtin, Scopes::Phases};
 
@@ -40,7 +40,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // DISTDIR while all other types are unprefixed including conditionally supported absolute
     // and relative paths.
     let determine_source = |path: &Utf8Path| -> scallop::Result<Utf8PathBuf> {
-        let source = if path.parent() == Some(Utf8Path::new("")) {
+        let source = if is_single_component(path) {
             Utf8PathBuf::from(&distdir).join(path)
         } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
             Utf8PathBuf::from(path)
