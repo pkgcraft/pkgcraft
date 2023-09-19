@@ -10,7 +10,7 @@ use nix::unistd::isatty;
 use once_cell::sync::Lazy;
 use scallop::builtins::{ExecStatus, ScopedOptions};
 use scallop::variables::*;
-use scallop::Error;
+use scallop::{functions, Error};
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature};
@@ -441,7 +441,7 @@ impl<'a> BuildData<'a> {
         scallop::shell::restricted(|| value.source_bash())?;
 
         // check for functions that override PMS builtins
-        let all_funcs: IndexSet<_> = scallop::functions::all_visible().into_iter().collect();
+        let all_funcs: IndexSet<_> = functions::all_visible().into_iter().collect();
         if !all_funcs.is_disjoint(eapi.builtins()) {
             let funcs = all_funcs.intersection(eapi.builtins()).join(", ");
             return Err(Error::Base(format!("PMS functionality overridden: {funcs}")));
@@ -569,6 +569,27 @@ mod tests {
                 assert_err_re!(r, "invalid pkg: cat/pkg-1::test: .+: no match: nonexistent\\*$");
             } else {
                 assert!(r.is_ok());
+            }
+        }
+    }
+
+    #[test]
+    fn pms_builtin_overrides() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        for eapi in EAPIS_OFFICIAL.iter() {
+            for builtin in eapi.builtins() {
+                let data = indoc::formatdoc! {r#"
+                    EAPI={eapi}
+                    DESCRIPTION="testing PMS builtin override errors"
+                    SLOT=0
+                    {builtin}() {{ :; }}
+                "#};
+                let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                BuildData::from_raw_pkg(&raw_pkg);
+                let r = raw_pkg.source();
+                assert_err_re!(r, format!("PMS functionality overridden: {builtin}$"));
             }
         }
     }
