@@ -95,12 +95,16 @@ where
     })
 }
 
-pub fn bind_global<S: AsRef<str>>(
-    name: S,
-    value: S,
+pub fn bind_global<S1, S2>(
+    name: S1,
+    value: S2,
     flags: Option<Assign>,
     attrs: Option<Attr>,
-) -> crate::Result<ExecStatus> {
+) -> crate::Result<ExecStatus>
+where
+    S1: AsRef<str>,
+    S2: AsRef<str>,
+{
     let name = CString::new(name.as_ref()).unwrap();
     let value = CString::new(value.as_ref()).unwrap();
     let val = value.as_ptr() as *mut _;
@@ -152,7 +156,7 @@ pub trait Variables: AsRef<str> {
         flags: Option<Assign>,
         attrs: Option<Attr>,
     ) -> crate::Result<ExecStatus> {
-        bind(self.name(), value.as_ref(), flags, attrs)
+        bind(self.name(), value, flags, attrs)
     }
 
     fn bind_global<S: AsRef<str>>(
@@ -161,7 +165,7 @@ pub trait Variables: AsRef<str> {
         flags: Option<Assign>,
         attrs: Option<Attr>,
     ) -> crate::Result<ExecStatus> {
-        bind_global(self.name(), value.as_ref(), flags, attrs)
+        bind_global(self.name(), value, flags, attrs)
     }
 
     fn unbind(&mut self) -> crate::Result<ExecStatus> {
@@ -169,7 +173,7 @@ pub trait Variables: AsRef<str> {
     }
 
     fn append<S: AsRef<str>>(&mut self, s: S) -> crate::Result<ExecStatus> {
-        self.bind(s.as_ref(), Some(Assign::APPEND), None)
+        self.bind(s, Some(Assign::APPEND), None)
     }
 
     fn shell_var(&self) -> Option<&mut bash::ShellVar> {
