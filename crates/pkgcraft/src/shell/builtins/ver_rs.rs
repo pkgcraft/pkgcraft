@@ -11,17 +11,17 @@ const LONG_DOC: &str = "Perform string substitution on package version strings."
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pv = get_build_mut().cpv()?.pv();
     let (ver, args) = match args.len() {
-        n if n < 2 => Err(Error::Base(format!("requires 2 or more args, got {n}"))),
+        n if n < 2 => return Err(Error::Base(format!("requires 2 or more args, got {n}"))),
 
         // even number of args uses $PV
-        n if n % 2 == 0 => Ok((pv.as_str(), args)),
+        n if n % 2 == 0 => (pv.as_str(), args),
 
         // odd number of args uses the last arg as the version
         _ => {
             let idx = args.len() - 1;
-            Ok((args[idx], &args[..idx]))
+            (args[idx], &args[..idx])
         }
-    }?;
+    };
 
     // split version string into separators and components, note that invalid versions
     // like ".1.2.3" are allowed
@@ -34,7 +34,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         let (start, end) = parse::range(range, len / 2)?;
         (start..=end)
             .map(|i| i * 2)
-            .take_while(|i| i < &len)
+            .take_while(|&i| i < len)
             .for_each(|i| {
                 if (i > 0 && i < len - 1) || !version_parts[i].is_empty() {
                     version_parts[i] = sep;
