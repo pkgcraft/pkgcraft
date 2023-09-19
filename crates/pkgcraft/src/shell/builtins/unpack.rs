@@ -32,7 +32,6 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let current_dir = current_dir()?;
-
     let eapi = get_build_mut().eapi();
     let distdir = variables::required("DISTDIR")?;
 
@@ -45,13 +44,12 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
             Utf8PathBuf::from(path)
         } else {
-            let path_kind = if path.is_absolute() {
+            let kind = if path.is_absolute() {
                 "absolute"
             } else {
                 "relative"
             };
-            let err = format!("{path_kind} paths not supported in EAPI {eapi}: {path:?}");
-            return Err(Error::Base(err));
+            return Err(Error::Base(format!("EAPI {eapi}: unsupported {kind} path: {path}")));
         };
 
         if !source.exists() {
@@ -65,7 +63,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     for path in args.iter().map(Utf8Path::new) {
         let source = determine_source(path)?;
         let (ext, archive) = eapi.archive_from_path(&source)?;
-        let base = source.file_name().unwrap();
+        let base = source.file_name().expect("invalid archive file name");
         let base = &base[0..base.len() - 1 - ext.len()];
         let dest = &current_dir.join(base);
         archive.unpack(dest)?;
@@ -173,7 +171,7 @@ mod tests {
             if eapi.has(Feature::UnpackExtendedPath) {
                 result.unwrap();
             } else {
-                assert_err_re!(result, "^absolute paths not supported .*$");
+                assert_err_re!(result, format!("^EAPI {eapi}: unsupported absolute path: .*$"));
             }
 
             // prefixed relative paths work everywhere
@@ -184,7 +182,7 @@ mod tests {
             if eapi.has(Feature::UnpackExtendedPath) {
                 result.unwrap();
             } else {
-                assert_err_re!(result, "^relative paths not supported .*$");
+                assert_err_re!(result, format!("^EAPI {eapi}: unsupported relative path: .*$"));
             }
         }
     }
