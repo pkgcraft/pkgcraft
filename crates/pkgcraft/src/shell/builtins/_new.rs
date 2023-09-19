@@ -1,6 +1,5 @@
 use std::fs::File;
-use std::path::Path;
-use std::{fs, io};
+use std::{fs, io, path};
 
 use scallop::builtins::{BuiltinFn, ExecStatus};
 use scallop::Error;
@@ -16,7 +15,7 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus>
     };
 
     // filename can't contain a path separator
-    if Path::new(name).parent() != Some(Path::new("")) {
+    if name.contains(path::is_separator) {
         return Err(Error::Base(format!("invalid filename: {name}")));
     }
 
@@ -48,13 +47,11 @@ mod tests {
     #[test]
     fn invalid_args() {
         // nonexistent
-        for f in ["pkgcraft", "pkgcraft/"] {
-            let r = new(&["bin", f], newbin);
-            assert_err_re!(r, "^failed copying file \"bin\" .*$");
-        }
+        let r = new(&["bin", "pkgcraft"], newbin);
+        assert_err_re!(r, "^failed copying file \"bin\" .*$");
 
         // filename contains path separator
-        for f in ["bin/pkgcraft", "bin//pkgcraft", "/bin/pkgcraft", "/"] {
+        for f in ["bin/pkgcraft", "bin//pkgcraft", "/bin/pkgcraft", "pkgcraft/", "/"] {
             let r = new(&["bin", f], newbin);
             assert_err_re!(r, format!("^invalid filename: {f}$"));
         }
