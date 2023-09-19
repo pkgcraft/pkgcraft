@@ -168,8 +168,8 @@ pub trait Variables: AsRef<str> {
         unbind(self.name())
     }
 
-    fn append(&mut self, s: &str) -> crate::Result<ExecStatus> {
-        self.bind(s, Some(Assign::APPEND), None)
+    fn append<S: AsRef<str>>(&mut self, s: S) -> crate::Result<ExecStatus> {
+        self.bind(s.as_ref(), Some(Assign::APPEND), None)
     }
 
     fn shell_var(&self) -> Option<&mut bash::ShellVar> {

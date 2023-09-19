@@ -91,7 +91,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             }
         }
 
-        inherited_var.append(&format!(" {eclass}"))?;
+        inherited_var.append(format!(" {eclass}"))?;
     }
 
     // restore the original scope for non-nested contexts
