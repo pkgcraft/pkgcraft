@@ -198,11 +198,12 @@ pub(crate) struct BuildData<'a> {
     exeopts: Vec<String>,
     libopts: Vec<String>,
 
-    compress_include: HashSet<String>,
-    compress_exclude: HashSet<String>,
-    strip_include: HashSet<String>,
-    strip_exclude: HashSet<String>,
+    compress_include: IndexSet<String>,
+    compress_exclude: IndexSet<String>,
+    strip_include: IndexSet<String>,
+    strip_exclude: IndexSet<String>,
 
+    /// EXPORT_FUNCTIONS arguments cache
     export_functions: IndexMap<phase::PhaseKind, String>,
 
     /// set of directly inherited eclasses
