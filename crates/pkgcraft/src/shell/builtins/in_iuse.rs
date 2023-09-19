@@ -10,10 +10,10 @@ Returns success if the USE flag argument is found in IUSE_EFFECTIVE, failure oth
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let flag = match args.len() {
-        1 => Ok(args[0]),
-        n => Err(Error::Base(format!("requires 1 arg, got {n}"))),
-    }?;
+    let flag = match args {
+        [flag] => flag,
+        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
+    };
 
     let pkg = get_build_mut().pkg()?;
     Ok(ExecStatus::from(pkg.iuse_effective().contains(flag)))
