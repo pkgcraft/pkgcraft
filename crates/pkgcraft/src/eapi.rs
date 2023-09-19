@@ -15,6 +15,7 @@ use crate::archive::Archive;
 use crate::dep::Dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
+use crate::shell::builtins::EAPI_BUILTINS;
 use crate::shell::environment::{ScopedVariable, Variable};
 use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
@@ -279,6 +280,13 @@ impl Eapi {
     /// Return the hooks for a given Phase.
     pub(crate) fn hooks(&self) -> &HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>> {
         &self.hooks
+    }
+
+    /// Return all the enabled builtins for an EAPI.
+    pub(crate) fn builtins(&self) -> &IndexSet<String> {
+        EAPI_BUILTINS
+            .get(self)
+            .unwrap_or_else(|| panic!("missing builtins EAPI: {self}"))
     }
 
     /// Enable features during Eapi registration.

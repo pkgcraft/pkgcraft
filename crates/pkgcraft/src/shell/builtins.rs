@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::eapi::{self, Eapi};
+use crate::eapi::{self, Eapi, EAPIS};
 
 use super::get_build_mut;
 use super::scope::{Scope, Scopes};
@@ -164,6 +164,11 @@ impl Builtin {
         self.deprecated.as_ref().is_some_and(|e| eapi >= e)
     }
 
+    /// Determine if the builtin is enabled for a given EAPI.
+    pub fn is_enabled(&self, eapi: &Eapi) -> bool {
+        self.scope.contains_key(eapi)
+    }
+
     /// Run a builtin if it's enabled for the current build state.
     fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
         let build = get_build_mut();
@@ -222,6 +227,7 @@ impl fmt::Display for Builtin {
     }
 }
 
+/// Ordered set of all known builtins.
 pub(crate) static BUILTINS: Lazy<IndexSet<&Builtin>> = Lazy::new(|| {
     [
         &*adddeny::BUILTIN,
@@ -323,6 +329,22 @@ pub(crate) static BUILTINS: Lazy<IndexSet<&Builtin>> = Lazy::new(|| {
     .into_iter()
     .collect()
 });
+
+/// Ordered mapping of EAPIs to builtin names that they enable.
+pub(crate) static EAPI_BUILTINS: Lazy<IndexMap<&'static Eapi, IndexSet<String>>> =
+    Lazy::new(|| {
+        EAPIS
+            .iter()
+            .map(|&e| {
+                let builtins = BUILTINS
+                    .iter()
+                    .filter(|b| b.is_enabled(e))
+                    .map(|b| b.to_string())
+                    .collect();
+                (e, builtins)
+            })
+            .collect()
+    });
 
 /// Controls the status set by the nonfatal builtin.
 static NONFATAL: AtomicBool = AtomicBool::new(false);
