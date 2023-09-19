@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 use crate::bash;
 use crate::builtins::ExecStatus;
@@ -56,6 +56,22 @@ where
     result
 }
 
+/// Return the names of all visible shell functions.
+pub fn all_visible() -> Vec<String> {
+    let mut vals = vec![];
+    let mut i = 0;
+    unsafe {
+        let shell_vars = bash::all_visible_functions();
+        if shell_vars.as_ref().is_some() {
+            while let Some(var) = (*shell_vars.offset(i)).as_ref() {
+                vals.push(CStr::from_ptr(var.name).to_string_lossy().into());
+                i += 1;
+            }
+        }
+    }
+    vals
+}
+
 #[cfg(test)]
 mod tests {
     use crate::builtins::local;
@@ -99,5 +115,12 @@ mod tests {
         })
         .unwrap();
         assert_eq!(optional("VAR").unwrap(), "outer");
+    }
+
+    #[test]
+    fn test_all_visible() {
+        assert!(all_visible().is_empty());
+        source::string("func() { nonexistent_cmd; }").unwrap();
+        assert_eq!(all_visible(), ["func"]);
     }
 }
