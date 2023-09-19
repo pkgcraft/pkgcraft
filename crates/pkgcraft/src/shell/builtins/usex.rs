@@ -10,22 +10,21 @@ Tests if a given USE flag is enabled and outputs a string related to its status.
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let defaults = ["", "yes", "no", "", ""];
-    let (flag, vals) = match args.len() {
-        1 => Ok((&args[..1], defaults)),
-        2..=5 => {
-            // override default values with args
-            let stop = args.len();
-            let mut vals = defaults;
-            vals[1..stop].clone_from_slice(&args[1..stop]);
-            Ok((&args[..1], vals))
-        }
-        n => Err(Error::Base(format!("requires 1 to 5 args, got {n}"))),
-    }?;
+    // default output values
+    let mut vals = ["yes", "no", "", ""];
 
-    match use_(flag)? {
-        ExecStatus::Success => write_stdout!("{}{}", vals[1], vals[3])?,
-        ExecStatus::Failure(_) => write_stdout!("{}{}", vals[2], vals[4])?,
+    let flag = match args {
+        [flag, args @ ..] if args.len() <= 4 => {
+            // override default output values with args
+            vals[0..args.len()].clone_from_slice(args);
+            flag
+        }
+        _ => return Err(Error::Base(format!("requires 1 to 5 args, got {}", args.len()))),
+    };
+
+    match use_(&[flag])? {
+        ExecStatus::Success => write_stdout!("{}{}", vals[0], vals[2])?,
+        ExecStatus::Failure(_) => write_stdout!("{}{}", vals[1], vals[3])?,
     }
 
     Ok(ExecStatus::Success)
