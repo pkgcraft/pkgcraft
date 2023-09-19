@@ -1,22 +1,9 @@
-use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
 
-use crate::shell::phase::PhaseKind::*;
 use crate::shell::BuildData;
 
-use super::Hook;
-
-pub(crate) static HOOKS: Lazy<Vec<Hook>> = Lazy::new(|| {
-    [
-        SrcInstall.pre("docompress", docompress_pre, 0, false),
-        SrcInstall.post("docompress", docompress_post, 0, false),
-    ]
-    .into_iter()
-    .collect()
-});
-
 /// Set docompress include/exclude defaults for supported EAPIs.
-fn docompress_pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
+pub(crate) fn pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     let docompress_include_defaults = ["/usr/share/doc", "/usr/share/info", "/usr/share/man"]
         .into_iter()
         .map(String::from);
@@ -26,7 +13,7 @@ fn docompress_pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-fn docompress_post(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
+pub(crate) fn post(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // TODO: perform docompress operation
     Ok(ExecStatus::Success)
 }

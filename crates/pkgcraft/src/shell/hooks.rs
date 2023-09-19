@@ -8,8 +8,8 @@ use crate::shell::BuildData;
 use super::phase::PhaseKind;
 use super::BuildFn;
 
-pub(crate) mod eapi4;
-pub(crate) mod eapi7;
+pub(crate) mod docompress;
+pub(crate) mod dostrip;
 
 #[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
 pub(crate) enum HookKind {

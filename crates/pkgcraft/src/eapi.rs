@@ -427,7 +427,10 @@ impl Eapi {
     }
 
     /// Update incremental variables during Eapi registration.
-    fn update_hooks(mut self, values: &[Hook]) -> Self {
+    fn update_hooks<I>(mut self, values: I) -> Self
+    where
+        I: IntoIterator<Item = Hook>,
+    {
         for hook in values {
             let hooks = self
                 .hooks
@@ -435,7 +438,7 @@ impl Eapi {
                 .or_insert_with(HashMap::new)
                 .entry(hook.kind)
                 .or_insert_with(IndexSet::new);
-            hooks.insert(hook.clone());
+            hooks.insert(hook);
             hooks.sort();
         }
         self
@@ -491,7 +494,7 @@ static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::Variable::*;
-    use crate::shell::hooks::eapi4::HOOKS;
+    use crate::shell::hooks::*;
     use crate::shell::metadata::Key::*;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{eapi5::*, PhaseKind::*};
@@ -576,7 +579,10 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             ("--disable-dependency-tracking", None, None),
             ("--disable-silent-rules", None, None),
         ])
-        .update_hooks(&HOOKS)
+        .update_hooks([
+            SrcInstall.pre("docompress", docompress::pre),
+            SrcInstall.post("docompress", docompress::post),
+        ])
         .finalize()
 });
 
@@ -597,7 +603,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::environment::Variable::*;
-    use crate::shell::hooks::eapi7::HOOKS;
+    use crate::shell::hooks::*;
     use crate::shell::metadata::Key::*;
     use crate::shell::phase::PhaseKind::*;
     use crate::shell::scope::Scopes::*;
@@ -615,7 +621,10 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
             BROOT.scopes([Src, Phase(PkgSetup)]),
         ])
         .disable_env([PORTDIR, ECLASSDIR, DESTTREE, INSDESTTREE])
-        .update_hooks(&HOOKS)
+        .update_hooks([
+            SrcInstall.pre("dostrip", dostrip::pre),
+            SrcInstall.post("dostrip", dostrip::post),
+        ])
         .finalize()
 });
 

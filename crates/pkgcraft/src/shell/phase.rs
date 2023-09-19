@@ -67,26 +67,26 @@ impl PhaseKind {
     }
 
     /// Create a new pre-phase hook.
-    pub(crate) fn pre(self, name: &str, func: BuildFn, priority: usize, parallel: bool) -> Hook {
+    pub(crate) fn pre(self, name: &str, func: BuildFn) -> Hook {
         Hook {
             phase: self,
             kind: HookKind::Pre,
             name: name.to_string(),
             func,
-            priority,
-            parallel,
+            priority: 0,
+            parallel: false,
         }
     }
 
     /// Create a new post-phase hook.
-    pub(crate) fn post(self, name: &str, func: BuildFn, priority: usize, parallel: bool) -> Hook {
+    pub(crate) fn post(self, name: &str, func: BuildFn) -> Hook {
         Hook {
             phase: self,
             kind: HookKind::Post,
             name: name.to_string(),
             func,
-            priority,
-            parallel,
+            priority: 0,
+            parallel: false,
         }
     }
 }
