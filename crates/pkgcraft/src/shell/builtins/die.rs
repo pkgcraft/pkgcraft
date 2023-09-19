@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::eapi::Feature;
+use crate::eapi::Feature::NonfatalDie;
 use crate::shell::{get_build_mut, write_stderr};
 
 use super::{make_builtin, Scopes::All, NONFATAL};
@@ -13,28 +13,20 @@ Displays a failure message provided in an optional argument and then aborts the 
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let eapi_nonfatal = get_build_mut().eapi().has(NonfatalDie);
     let (nonfatal, msg) = match args[..] {
-        [opt, msg] if opt == "-n" => (true, msg),
-        [opt] if opt == "-n" => (true, ""),
+        [opt, msg] if opt == "-n" && eapi_nonfatal => (true, msg),
+        [opt] if opt == "-n" && eapi_nonfatal => (true, ""),
         [msg] => (false, msg),
         [] => (false, "(no error message)"),
         _ => return Err(Error::Base(format!("takes up to 1 arg, got {}", args.len()))),
     };
 
-    let eapi = get_build_mut().eapi();
-    if nonfatal && !eapi.has(Feature::NonfatalDie) {
-        return Err(Error::Base(format!("-n option not supported in EAPI {eapi}")));
-    }
-
-    if nonfatal {
-        if NONFATAL.load(Ordering::Relaxed) {
-            if !msg.is_empty() {
-                write_stderr!("{msg}\n")?;
-            }
-            Ok(ExecStatus::Failure(1))
-        } else {
-            Err(Error::Base("-n option requires running under nonfatal".to_string()))
+    if nonfatal && NONFATAL.load(Ordering::Relaxed) {
+        if !msg.is_empty() {
+            write_stderr!("{msg}\n")?;
         }
+        Ok(ExecStatus::Failure(1))
     } else {
         // TODO: add bash backtrace to output
         Err(Error::Bail(msg.to_string()))
@@ -135,13 +127,13 @@ mod tests {
 
         // `die -n` only works in supported EAPIs
         let r = source::string("die -n");
-        assert_err_re!(r, r"^die: error: -n option not supported in EAPI 5");
+        assert_err_re!(r, r"^die: error: -n");
 
         build.state = BuildState::Empty(EAPIS_OFFICIAL.last().unwrap());
 
         // `die -n` only works as expected when run with nonfatal
         let r = source::string("die -n message");
-        assert_err_re!(r, r"^die: error: -n option requires running under nonfatal");
+        assert_err_re!(r, r"^die: error: message");
 
         // nonfatal requires `die -n` call
         let r = source::string("nonfatal die && VAR=2");
