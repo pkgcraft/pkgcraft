@@ -440,6 +440,13 @@ impl<'a> BuildData<'a> {
         // run global sourcing in restricted shell mode
         scallop::shell::restricted(|| value.source_bash())?;
 
+        // check for functions that override PMS builtins
+        let all_funcs: IndexSet<_> = scallop::functions::all_visible().into_iter().collect();
+        if !all_funcs.is_disjoint(eapi.builtins()) {
+            let funcs = all_funcs.intersection(eapi.builtins()).join(", ");
+            return Err(Error::Base(format!("PMS functionality overridden: {funcs}")));
+        }
+
         // prepend metadata keys that incrementally accumulate to eclass values
         if !self.inherited.is_empty() {
             for key in eapi.incremental_keys() {
