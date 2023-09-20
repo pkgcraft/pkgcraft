@@ -497,13 +497,11 @@ macro_rules! builtin_scope_tests {
             let mut config = Config::default();
             let t = config.temp_repo("test", 0, None).unwrap();
 
-            let static_scopes: Vec<_> = vec![Global, Eclass];
             for eapi in EAPIS_OFFICIAL.iter() {
-                let phase_scopes: Vec<_> = eapi.phases().iter().map(|p| p.into()).collect();
-                let scopes = static_scopes
-                    .iter()
-                    .chain(phase_scopes.iter())
-                    .filter(|&s| {
+                let scopes = [Global, Eclass]
+                    .into_iter()
+                    .chain(eapi.phases().iter().map(|p| p.into()))
+                    .filter(|s| {
                         !builtin
                             .scope
                             .get(eapi)
@@ -568,7 +566,7 @@ macro_rules! builtin_scope_tests {
                             let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
                             BuildData::from_pkg(&pkg);
                             get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
-                            let phase = eapi.phases().get(phase).unwrap();
+                            let phase = eapi.phases().get(&phase).unwrap();
                             let r = phase.run();
                             // verify function stops at unknown command
                             assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
