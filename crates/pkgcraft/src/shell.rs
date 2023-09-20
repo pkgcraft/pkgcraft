@@ -487,7 +487,7 @@ type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     unsafe { Lazy::force(&STATE) };
     scallop::shell::init(false);
-    let builtins: Vec<_> = BUILTINS.iter().map(|&b| b.into()).collect();
+    let builtins: Vec<_> = BUILTINS.iter().copied().map(Into::into).collect();
     scallop::builtins::register(&builtins);
     // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::enable(&builtins).expect("failed enabling builtins");

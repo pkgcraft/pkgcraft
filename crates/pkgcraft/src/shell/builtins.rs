@@ -500,7 +500,7 @@ macro_rules! builtin_scope_tests {
             for eapi in EAPIS_OFFICIAL.iter() {
                 let scopes = [Global, Eclass]
                     .into_iter()
-                    .chain(eapi.phases().iter().map(|p| p.into()))
+                    .chain(eapi.phases().iter().map(Into::into))
                     .filter(|s| {
                         !builtin
                             .scope

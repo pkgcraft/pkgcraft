@@ -64,7 +64,7 @@ impl Install {
         I: IntoIterator<Item = T>,
         T: Into<String>,
     {
-        let options: Vec<_> = options.into_iter().map(|s| s.into()).collect();
+        let options: Vec<_> = options.into_iter().map(Into::into).collect();
         let cmd = ["install"]
             .into_iter()
             .chain(options.iter().map(|s| s.as_str()));

@@ -49,7 +49,7 @@ impl Restrict {
         match iter {
             None => Self::UseDeps(None),
             Some(i) => {
-                let r = OrderedSetRestrict::Superset(i.into_iter().map(|s| s.into()).collect());
+                let r = OrderedSetRestrict::Superset(i.into_iter().map(Into::into).collect());
                 Self::UseDeps(Some(r))
             }
         }
