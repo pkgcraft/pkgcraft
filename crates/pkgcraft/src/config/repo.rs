@@ -79,7 +79,7 @@ impl Config {
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
 
-        let mut configs = Vec::<(String, RepoConfig)>::new();
+        let mut configs = vec![];
         if config_dir.exists() {
             let entries = fs::read_dir(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
 
@@ -207,7 +207,7 @@ impl Config {
             _ => self.repos.keys().map(|s| s.as_str()).collect(),
         };
 
-        let mut failed = Vec::<(&str, Error)>::new();
+        let mut failed = vec![];
         for name in repos {
             if let Some(repo) = self.repos.get(name) {
                 if let Err(e) = repo.sync() {
@@ -222,7 +222,6 @@ impl Config {
             let errors = failed
                 .iter()
                 .map(|(name, e)| format!("{name}: {e}"))
-                .collect::<Vec<String>>()
                 .join("\n\t");
             Err(Error::Config(format!("failed syncing:\n\t{errors}")))
         }

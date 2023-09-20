@@ -339,7 +339,7 @@ impl Metadata {
     /// See GLEP 72 (https://www.gentoo.org/glep/glep-0072.html).
     pub fn arches_desc(&self) -> &HashMap<ArchStatus, HashSet<String>> {
         self.arches_desc.get_or_init(|| {
-            let mut vals = HashMap::<ArchStatus, HashSet<String>>::new();
+            let mut vals = HashMap::<_, HashSet<_>>::new();
             self.read_path("profiles/arches.desc")
                 .filter_lines()
                 .map(|(i, s)| (i, s.split_whitespace()))
@@ -444,7 +444,7 @@ impl Metadata {
     /// Return the mapping of license groups.
     pub fn license_groups(&self) -> &HashMap<String, HashSet<String>> {
         self.license_groups.get_or_init(|| {
-            let mut alias_map = IndexMap::<String, IndexSet<String>>::new();
+            let mut alias_map = IndexMap::<_, IndexSet<_>>::new();
             let mut group_map: HashMap<_, _> = self.read_path("profiles/license_groups")
                 .filter_lines()
                 .filter_map(|(i, s)| {

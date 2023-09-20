@@ -58,7 +58,7 @@ impl Arcanist for ArcanistService {
         &self,
         _request: Request<StringRequest>,
     ) -> Result<Response<ListResponse>, Status> {
-        let mut repos: Vec<String> = Vec::new();
+        let mut repos = vec![];
         let config = self.config.read().await;
         for (id, repo) in &config.repos {
             repos.push(format!("{id}: {:?}", repo.path()));

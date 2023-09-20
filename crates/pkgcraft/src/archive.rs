@@ -388,7 +388,7 @@ macro_rules! make_archive {
                     Error::InvalidValue(format!("invalid archive: {path}")))?;
                 let filename = filename.to_lowercase();
 
-                let mut possible_exts = Vec::<(&str, &str)>::new();
+                let mut possible_exts = vec![];
                 $(
                     possible_exts.extend($x::EXTS.iter().map(|&s| (s, $x::EXTS[0])));
                 )+

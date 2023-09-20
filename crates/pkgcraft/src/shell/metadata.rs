@@ -404,7 +404,7 @@ impl TryFrom<&RawPkg<'_>> for Metadata {
         }
 
         // required metadata variables
-        let mut missing = Vec::<&str>::new();
+        let mut missing = vec![];
         for key in eapi.mandatory_keys() {
             match key.get(build, eapi) {
                 Some(val) => meta.convert(eapi, *key, &val)?,

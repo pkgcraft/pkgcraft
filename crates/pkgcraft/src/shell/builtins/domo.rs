@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8Path;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
@@ -32,8 +32,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let opts = ["-m0644"];
     let install = build.install().dest(dest)?.file_options(opts);
 
-    let mut dirs = HashSet::<Utf8PathBuf>::new();
-    let mut files = Vec::<(&Utf8Path, Utf8PathBuf)>::new();
+    let mut dirs = HashSet::new();
+    let mut files = vec![];
     let filename = format!("{}.mo", build.pkg()?.cpv().package());
 
     for path in args.iter().map(Utf8Path::new) {

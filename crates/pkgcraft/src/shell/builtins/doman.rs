@@ -36,8 +36,8 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .dest("/usr/share/man")?
         .file_options(["-m0644"]);
 
-    let mut dirs = HashSet::<Utf8PathBuf>::new();
-    let mut files = Vec::<(&Utf8Path, Utf8PathBuf)>::new();
+    let mut dirs = HashSet::new();
+    let mut files = vec![];
 
     for path in args.iter().map(Utf8Path::new) {
         let (mut base, ext) = match (path.file_stem(), path.extension()) {

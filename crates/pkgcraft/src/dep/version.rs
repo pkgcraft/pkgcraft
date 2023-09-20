@@ -137,7 +137,7 @@ impl<'a> ParsedVersion<'a> {
     }
 
     pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
-        let mut numbers = Vec::<(String, u64)>::new();
+        let mut numbers = vec![];
         for s in self.numbers.iter() {
             let num = s
                 .parse()

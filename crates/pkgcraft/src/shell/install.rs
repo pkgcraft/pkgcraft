@@ -326,7 +326,7 @@ impl Install {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        let mut files = Vec::<(PathBuf, PathBuf)>::new();
+        let mut files = vec![];
         for (source, dest) in paths.into_iter() {
             let source = source.as_ref();
             let dest = dest.as_ref();
@@ -335,7 +335,7 @@ impl Install {
                 let source = fs::read_link(source).unwrap();
                 self.link(|p, q| symlink(p, q), source, dest)?;
             } else {
-                files.push((source.into(), self.prefix(dest)));
+                files.push((source.to_path_buf(), self.prefix(dest)));
             }
         }
 

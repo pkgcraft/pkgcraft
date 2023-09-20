@@ -79,7 +79,7 @@ where
 
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
-            let mut pkg_cache = HashMap::<String, (blake3::Hash, Arc<T>)>::new();
+            let mut pkg_cache = HashMap::<_, (_, Arc<T>)>::new();
             loop {
                 match path_rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
