@@ -50,6 +50,7 @@ mod tests {
             r#"
             [[files]]
             path = "/usr/share/doc/pkg-1/newfile"
+            mode = 0o100644
         "#,
         );
 
@@ -61,6 +62,7 @@ mod tests {
             [[files]]
             path = "/usr/share/doc/pkg-1/newfile"
             data = "stdin"
+            mode = 0o100644
         "#,
         );
     }

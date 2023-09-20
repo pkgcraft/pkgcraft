@@ -45,6 +45,7 @@ mod tests {
             r#"
             [[files]]
             path = "/usr/include/pkgcraft.h"
+            mode = 0o100644
         "#,
         );
 
@@ -56,6 +57,7 @@ mod tests {
             [[files]]
             path = "/usr/include/pkgcraft.h"
             data = "pkgcraft"
+            mode = 0o100644
         "#,
         );
     }

@@ -45,6 +45,7 @@ mod tests {
             r#"
             [[files]]
             path = "/etc/conf.d/pkgcraft"
+            mode = 0o100644
         "#,
         );
 
@@ -56,6 +57,7 @@ mod tests {
             [[files]]
             path = "/etc/conf.d/pkgcraft"
             data = "pkgcraft"
+            mode = 0o100644
         "#,
         );
     }

@@ -45,6 +45,7 @@ mod tests {
             r#"
             [[files]]
             path = "/usr/share/man/man1/pkgcraft.1"
+            mode = 0o100644
         "#,
         );
 
@@ -56,6 +57,7 @@ mod tests {
             [[files]]
             path = "/usr/share/man/man1/pkgcraft.1"
             data = "pkgcraft"
+            mode = 0o100644
         "#,
         );
     }

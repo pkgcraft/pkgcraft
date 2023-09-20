@@ -40,31 +40,29 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
-        let default_mode = 0o100755;
-        let custom_mode = 0o100777;
 
         fs::File::create("bin").unwrap();
         newexe(&["bin", "pkgcraft"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/pkgcraft"
-            mode = {default_mode}
-        "#
-        ));
+            mode = 0o100755
+        "#,
+        );
 
         // custom mode and install dir using data from stdin
         write_stdin!("pkgcraft");
         exeinto(&["/opt/bin"]).unwrap();
         exeopts(&["-m0777"]).unwrap();
         newexe(&["-", "pkgcraft"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/opt/bin/pkgcraft"
-            mode = {custom_mode}
+            mode = 0o100777
             data = "pkgcraft"
-        "#
-        ));
+        "#,
+        );
     }
 }
