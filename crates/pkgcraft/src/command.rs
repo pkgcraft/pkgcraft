@@ -44,9 +44,11 @@ pub(crate) trait RunCommand {
 
 impl RunCommand for Command {
     fn to_vec(&self) -> Vec<Cow<str>> {
-        let mut args: Vec<Cow<str>> = vec![self.get_program().to_string_lossy()];
-        args.extend(self.get_args().map(|s| s.to_string_lossy()));
-        args
+        [self.get_program()]
+            .into_iter()
+            .chain(self.get_args())
+            .map(|s| s.to_string_lossy())
+            .collect()
     }
 
     #[cfg(not(test))]
