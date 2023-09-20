@@ -9,9 +9,8 @@ use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::repo::ebuild_temp::Repo as TempRepo;
 use crate::repo::Repo;
-use crate::shell::builtins::{BUILTINS, EAPI_BUILTINS};
 use crate::utils::find_existing_path;
-use crate::{Error, COLLAPSE_LAZY_FIELDS};
+use crate::{shell, Error, COLLAPSE_LAZY_FIELDS};
 pub(crate) use repo::RepoConfig;
 
 mod portage;
@@ -273,9 +272,12 @@ impl Config {
     /// called beforehand, each newly spawned process will reinitialize all lazy fields they
     /// encounter often slowing down runtime considerably.
     pub fn collapse(self) -> Self {
+        // initialize bash
+        Lazy::force(&shell::BASH);
+
         // collapse global builtin sets
-        Lazy::force(&BUILTINS);
-        Lazy::force(&EAPI_BUILTINS);
+        Lazy::force(&shell::builtins::BUILTINS);
+        Lazy::force(&shell::builtins::EAPI_BUILTINS);
 
         // enable global flag
         COLLAPSE_LAZY_FIELDS.store(true, Relaxed);

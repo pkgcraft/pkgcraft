@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use once_cell::sync::Lazy;
 use scallop::builtins::ExecStatus;
 use scallop::functions;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
@@ -13,7 +12,7 @@ use super::environment::Variable::D;
 use super::hooks::{Hook, HookKind};
 use super::scope::Scope;
 use super::utils::makefile_exists;
-use super::{get_build_mut, BuildData, BuildFn, BASH};
+use super::{get_build_mut, BuildData, BuildFn};
 
 pub(crate) mod eapi5;
 pub(crate) mod eapi6;
@@ -150,8 +149,6 @@ impl From<PhaseKind> for Phase {
 impl Phase {
     /// Run the phase operation.
     pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
-        Lazy::force(&BASH);
-
         let build = get_build_mut();
         build.scope = Scope::Phase(self.kind);
 
