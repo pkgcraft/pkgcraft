@@ -25,9 +25,13 @@ bitflags! {
     pub struct Attr: u32 {
         const NONE = 0;
         const ENABLED = bash::BUILTIN_ENABLED;
+        const DELETED = bash::BUILTIN_DELETED;
         const STATIC = bash::STATIC_BUILTIN;
+        const SPECIAL = bash::SPECIAL_BUILTIN;
         const ASSIGNMENT = bash::ASSIGNMENT_BUILTIN;
+        const POSIX = bash::POSIX_BUILTIN;
         const LOCALVAR = bash::LOCALVAR_BUILTIN;
+        const ARRAYREF = bash::ARRAYREF_BUILTIN;
     }
 }
 

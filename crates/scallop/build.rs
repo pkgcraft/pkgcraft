@@ -91,10 +91,8 @@ fn main() {
         .clang_arg(format!("-I{bash_repo_dir}/builtins"))
 
         .header("bash/builtins.h")
-        .allowlist_var("BUILTIN_ENABLED")
-        .allowlist_var("STATIC_BUILTIN")
-        .allowlist_var("ASSIGNMENT_BUILTIN")
-        .allowlist_var("LOCALVAR_BUILTIN")
+        .allowlist_var("BUILTIN_.*")
+        .allowlist_var(".*_BUILTIN")
         .allowlist_var("num_shell_builtins")
         .allowlist_var("shell_builtins")
 
