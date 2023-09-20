@@ -25,25 +25,26 @@ pub(crate) fn pkg_nofetch(build: &mut BuildData) -> scallop::Result<ExecStatus> 
 
 pub(crate) fn src_unpack(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     let args: Vec<_> = build.distfiles.iter().map(|s| s.as_str()).collect();
-    if args.is_empty() {
-        Ok(ExecStatus::Success)
-    } else {
-        unpack(&args)
+    if !args.is_empty() {
+        unpack(&args)?;
     }
+
+    Ok(ExecStatus::Success)
 }
 
 pub(crate) fn src_configure(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     if configure().is_executable() {
-        econf(&[])
-    } else {
-        Ok(ExecStatus::Success)
+        econf(&[])?;
     }
+
+    Ok(ExecStatus::Success)
 }
 
 pub(crate) fn src_compile(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
     if makefile_exists() {
         emake(&[])?;
     }
+
     Ok(ExecStatus::Success)
 }
 
