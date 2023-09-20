@@ -59,10 +59,10 @@ where
 /// Return the names of all visible shell functions.
 pub fn all_visible() -> Vec<String> {
     let mut vals = vec![];
-    let mut i = 0;
     unsafe {
         let shell_vars = bash::all_visible_functions();
-        if shell_vars.as_ref().is_some() {
+        if !shell_vars.is_null() {
+            let mut i = 0;
             while let Some(var) = (*shell_vars.offset(i)).as_ref() {
                 vals.push(CStr::from_ptr(var.name).to_string_lossy().into());
                 i += 1;
