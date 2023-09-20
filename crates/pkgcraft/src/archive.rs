@@ -157,11 +157,11 @@ impl ArchiveFormat for Gz {
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let src =
-            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
+            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest}: {e}")))?;
 
         let mut cmd = Command::new("gzip");
         cmd.arg("-c").stdin(src).stdout(dest);
@@ -171,11 +171,11 @@ impl ArchiveFormat for Gz {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
         let src = &self.path;
         let src = File::open(src)
-            .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed reading archive: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest}: {e}")))?;
 
         let mut cmd = Command::new("gzip");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -194,11 +194,11 @@ impl ArchiveFormat for Bz2 {
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let src =
-            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
+            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest}: {e}")))?;
 
         let mut cmd = Command::new("bzip2");
         cmd.arg("-c").stdin(src).stdout(dest);
@@ -208,11 +208,11 @@ impl ArchiveFormat for Bz2 {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
         let src = &self.path;
         let src = File::open(src)
-            .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed reading archive: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest}: {e}")))?;
 
         let mut cmd = Command::new("bzip2");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -231,11 +231,11 @@ impl ArchiveFormat for Xz {
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
         let src =
-            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src:?}: {e}")))?;
+            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest}: {e}")))?;
 
         let mut cmd = Command::new("xz");
         cmd.arg("-c").stdin(src).stdout(dest);
@@ -245,11 +245,11 @@ impl ArchiveFormat for Xz {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
         let src = &self.path;
         let src = File::open(src)
-            .map_err(|e| Error::IO(format!("failed reading archive: {src:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed reading archive: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest}: {e}")))?;
 
         let mut cmd = Command::new("xz");
         cmd.arg("-d").arg("-c").stdin(src).stdout(dest);
@@ -348,7 +348,7 @@ impl ArchiveFormat for Lzma {
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
         let dest = dest.as_ref();
         let dest = File::create(dest)
-            .map_err(|e| Error::IO(format!("failed creating file: {dest:?}: {e}")))?;
+            .map_err(|e| Error::IO(format!("failed creating file: {dest}: {e}")))?;
 
         let mut cmd = Command::new("lzma");
         cmd.arg("-dc").arg(&self.path).stdout(dest);
@@ -385,7 +385,7 @@ macro_rules! make_archive {
                 let path = path.as_ref();
                 let path = Utf8PathBuf::from(path);
                 let filename = path.file_name().ok_or_else(||
-                    Error::InvalidValue(format!("invalid archive: {path:?}")))?;
+                    Error::InvalidValue(format!("invalid archive: {path}")))?;
                 let filename = filename.to_lowercase();
 
                 let mut possible_exts = Vec::<(&str, &str)>::new();
@@ -405,7 +405,7 @@ macro_rules! make_archive {
 
                 match marker_ext {
                     $(ext if ext == $x::EXTS[0] => Ok(Archive::$x($x { path })),)+
-                    _ => Err(Error::InvalidValue(format!("unknown archive format: {path:?}"))),
+                    _ => Err(Error::InvalidValue(format!("unknown archive format: {path}"))),
                 }
             }
         }
