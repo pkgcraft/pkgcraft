@@ -421,6 +421,7 @@ impl<'a> BuildData<'a> {
     }
 
     fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
+        Lazy::force(&BASH);
         let eapi = self.eapi();
 
         // remove external metadata vars from the environment
