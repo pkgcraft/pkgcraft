@@ -224,13 +224,13 @@ pub fn shell_builtins() -> (HashSet<String>, HashSet<String>) {
 
 /// Register builtins into the internal list for use.
 pub fn register(builtins: &[Builtin]) {
-    unsafe {
-        // convert builtins into pointers
-        let mut builtin_ptrs: Vec<_> = builtins
-            .iter()
-            .map(|b| Box::into_raw(Box::new((*b).into())))
-            .collect();
+    // convert builtins into pointers
+    let mut builtin_ptrs: Vec<_> = builtins
+        .iter()
+        .map(|&b| Box::into_raw(Box::new(b.into())))
+        .collect();
 
+    unsafe {
         // add builtins to bash's internal list
         bash::register_builtins(builtin_ptrs.as_mut_ptr(), builtin_ptrs.len());
 
