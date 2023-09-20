@@ -13,12 +13,14 @@ pub(crate) fn src_prepare(_build: &mut BuildData) -> scallop::Result<ExecStatus>
         if !patches.is_empty() {
             // Note that not allowing options in PATCHES is technically from EAPI 8, but it's
             // backported here for EAPI 6 onwards.
-            let mut args = vec!["--"];
-            // TODO: need to perform word expansion on each string as well
-            args.extend(patches.iter().map(|s| s.as_str()));
+            let args: Vec<_> = ["--"]
+                .into_iter()
+                .chain(patches.iter().map(|s| s.as_str()))
+                .collect();
             eapply(&args)?;
         }
     }
+
     eapply_user(&[])
 }
 
@@ -35,6 +37,7 @@ mod tests {
     use crate::eapi;
     use crate::macros::assert_err_re;
     use crate::pkg::BuildablePackage;
+    use crate::shell::get_build_mut;
     use crate::shell::test::FileTree;
 
     use super::*;
@@ -67,7 +70,7 @@ mod tests {
             for s in ["( -p1 1.patch )", "\"-p1 1.patch\""] {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
-                    DESCRIPTION="PATCHES empty"
+                    DESCRIPTION="no options in PATCHES"
                     SLOT=0
                     PATCHES={s}
                 "#};
@@ -88,18 +91,15 @@ mod tests {
                 let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
                 BuildData::from_pkg(&pkg);
                 let _file_tree = FileTree::new();
-                fs::write("file.txt", file_content).unwrap();
-                fs::write("1.patch", patch1).unwrap();
-                fs::write("2.patch", patch2).unwrap();
                 pkg.build().unwrap();
-                assert_eq!(fs::read_to_string("file.txt").unwrap(), "0\n");
+                assert!(get_build_mut().user_patches_applied);
             }
 
             // PATCHES applied
             for s in ["( 1.patch 2.patch )", "\"1.patch 2.patch\""] {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
-                    DESCRIPTION="PATCHES array"
+                    DESCRIPTION="PATCHES applied"
                     SLOT=0
                     PATCHES={s}
                 "#};
