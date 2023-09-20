@@ -120,8 +120,8 @@ pub struct Builtin {
     scope: IndexMap<&'static Eapi, IndexSet<Scope>>,
 }
 
-impl From<&Builtin> for scallop::builtins::Builtin {
-    fn from(b: &Builtin) -> Self {
+impl From<&&Builtin> for scallop::builtins::Builtin {
+    fn from(b: &&Builtin) -> Self {
         b.builtin
     }
 }

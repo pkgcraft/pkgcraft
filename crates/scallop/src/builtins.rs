@@ -132,6 +132,13 @@ impl From<Builtin> for bash::Builtin {
     }
 }
 
+/// Convert a Builtin to its C equivalent.
+impl From<&Builtin> for bash::Builtin {
+    fn from(builtin: &Builtin) -> bash::Builtin {
+        (*builtin).into()
+    }
+}
+
 // Dynamically-loaded builtins require non-null function pointers since wrapping the function
 // pointer field member in Option<fn> causes bash to segfault.
 #[repr(C)]
@@ -163,9 +170,11 @@ impl From<Builtin> for DynBuiltin {
 }
 
 // Enable or disable a given list of builtins.
-fn toggle_status<S: AsRef<str>>(builtins: &[S], enable: bool) -> crate::Result<Vec<&str>> {
-    let mut unknown = Vec::<&str>::new();
-    let mut toggled = Vec::<&str>::new();
+fn toggle_status<I, S>(builtins: I, enable: bool) -> crate::Result<()>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
     for name in builtins {
         let name = name.as_ref();
         let builtin_name = CString::new(name).unwrap();
@@ -174,7 +183,6 @@ fn toggle_status<S: AsRef<str>>(builtins: &[S], enable: bool) -> crate::Result<V
             Some(b) => {
                 let enabled = (b.flags & Attr::ENABLED.bits() as i32) == 1;
                 if enabled != enable {
-                    toggled.push(name);
                     if enable {
                         b.flags |= Attr::ENABLED.bits() as i32;
                     } else {
@@ -182,25 +190,28 @@ fn toggle_status<S: AsRef<str>>(builtins: &[S], enable: bool) -> crate::Result<V
                     }
                 }
             }
-            None => unknown.push(name),
+            None => return Err(Error::Base(format!("unknown builtin: {name}"))),
         }
     }
 
-    if unknown.is_empty() {
-        Ok(toggled)
-    } else {
-        unknown.sort();
-        Err(Error::Base(format!("unknown builtins: {}", unknown.join(", "))))
-    }
+    Ok(())
 }
 
 /// Disable a given list of builtins by name.
-pub fn disable<S: AsRef<str>>(builtins: &[S]) -> crate::Result<Vec<&str>> {
+pub fn disable<I, S>(builtins: I) -> crate::Result<()>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
     toggle_status(builtins, false)
 }
 
 /// Enable a given list of builtins by name.
-pub fn enable<S: AsRef<str>>(builtins: &[S]) -> crate::Result<Vec<&str>> {
+pub fn enable<I, S>(builtins: I) -> crate::Result<()>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
     toggle_status(builtins, true)
 }
 
@@ -227,11 +238,16 @@ pub fn shell_builtins() -> (HashSet<String>, HashSet<String>) {
 }
 
 /// Register builtins into the internal list for use.
-pub fn register(builtins: &[Builtin]) {
+pub fn register<I, B>(builtins: I)
+where
+    I: IntoIterator<Item = B>,
+    B: Into<Builtin>,
+{
     // convert builtins into pointers
     let mut builtin_ptrs: Vec<_> = builtins
-        .iter()
-        .map(|&b| Box::into_raw(Box::new(b.into())))
+        .into_iter()
+        .map(Into::into)
+        .map(|b| Box::into_raw(Box::new(b.into())))
         .collect();
 
     unsafe {
@@ -255,9 +271,11 @@ pub struct ScopedBuiltins {
 impl ScopedBuiltins {
     pub fn new<S: AsRef<str>>(builtins: (&[S], &[S])) -> crate::Result<Self> {
         let (add, sub) = builtins;
+        enable(add)?;
+        disable(sub)?;
         Ok(ScopedBuiltins {
-            enabled: enable(add)?.into_iter().map(|s| s.into()).collect(),
-            disabled: disable(sub)?.into_iter().map(|s| s.into()).collect(),
+            enabled: add.iter().map(|s| s.as_ref().to_string()).collect(),
+            disabled: sub.iter().map(|s| s.as_ref().to_string()).collect(),
         })
     }
 }
@@ -500,13 +518,13 @@ mod tests {
         assert!(!disabled.contains(builtin));
 
         // disable the builtin
-        disable(&[builtin]).unwrap();
+        disable([builtin]).unwrap();
         let (enabled, disabled) = shell_builtins();
         assert!(!enabled.contains(builtin));
         assert!(disabled.contains(builtin));
 
         // enable the builtin
-        enable(&[builtin]).unwrap();
+        enable([builtin]).unwrap();
         let (enabled, disabled) = shell_builtins();
         assert!(enabled.contains(builtin));
         assert!(!disabled.contains(builtin));

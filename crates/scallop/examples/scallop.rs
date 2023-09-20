@@ -5,7 +5,7 @@ fn main() {
     shell::init(false);
 
     // load and enable builtins
-    let builtins = &[builtins::profile::BUILTIN];
+    let builtins = [builtins::profile::BUILTIN];
     builtins::register(builtins);
     builtins::enable(builtins).expect("failed enabling builtins");
 
