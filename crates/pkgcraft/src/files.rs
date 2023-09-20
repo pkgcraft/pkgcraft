@@ -119,10 +119,10 @@ pub(crate) fn sorted_dir_list_utf8<P: AsRef<Utf8Path>>(
     path: P,
 ) -> crate::Result<Vec<Utf8DirEntry>> {
     let path = path.as_ref();
-    let entries = path
+    let entries: Result<Vec<_>, _> = path
         .read_dir_utf8()
-        .map_err(|e| Error::IO(format!("failed reading dir: {path}: {e}")))?;
-    let entries: Result<Vec<Utf8DirEntry>, _> = entries.collect();
+        .map_err(|e| Error::IO(format!("failed reading dir: {path}: {e}")))?
+        .collect();
     let mut entries: Vec<_> =
         entries.map_err(|e| Error::IO(format!("failed reading dir: {path}: {e}")))?;
     entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
