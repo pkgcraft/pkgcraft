@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn test_filtering() {
         let dep_strs = vec!["cat/pkg", ">=cat/pkg-1", "=cat/pkg-1:2/3::repo"];
-        let deps: Vec<Dep> = dep_strs.iter().map(|s| Dep::from_str(s).unwrap()).collect();
+        let deps: Vec<_> = dep_strs.iter().map(|s| Dep::from_str(s).unwrap()).collect();
 
         let filter = |r: Restrict, deps: Vec<Dep>| -> Vec<String> {
             deps.into_iter()

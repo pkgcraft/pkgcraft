@@ -563,7 +563,7 @@ mod tests {
 
     #[test]
     fn test_cmp() {
-        let op_map: HashMap<&str, Ordering> =
+        let op_map: HashMap<_, _> =
             [("<", Ordering::Less), ("==", Ordering::Equal), (">", Ordering::Greater)]
                 .into_iter()
                 .collect();

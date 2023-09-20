@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn return_status() {
-        let op_map: HashMap<&str, &str> = [
+        let op_map: HashMap<_, _> = [
             ("==", "-eq"),
             ("!=", "-ne"),
             ("<", "-lt"),
@@ -120,7 +120,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test1", 0, None).unwrap();
 
-        let inverted_op_map: HashMap<&str, &str> =
+        let inverted_op_map: HashMap<_, _> =
             [("==", "!="), ("!=", "=="), ("<", ">="), (">", "<="), ("<=", ">"), (">=", "<")]
                 .into_iter()
                 .collect();

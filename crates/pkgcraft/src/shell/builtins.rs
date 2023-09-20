@@ -471,8 +471,8 @@ use make_builtin;
 #[cfg(test)]
 fn assert_invalid_args(func: scallop::builtins::BuiltinFn, nums: &[u32]) {
     for n in nums {
-        let args: Vec<String> = (0..*n).map(|n| n.to_string()).collect();
-        let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+        let args: Vec<_> = (0..*n).map(|n| n.to_string()).collect();
+        let args: Vec<_> = args.iter().map(|s| s.as_str()).collect();
         let re = format!("^.*, got {n}");
         crate::macros::assert_err_re!(func(&args), re);
     }

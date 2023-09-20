@@ -32,7 +32,7 @@ pub fn init(restricted: bool) {
 
 /// Reset the shell back to a pristine state, optionally skipping a list of variables.
 pub fn reset(ignore_vars: &[&str]) {
-    let cached: Vec<(&str, String)> = ignore_vars
+    let cached: Vec<_> = ignore_vars
         .iter()
         .filter_map(|&s| env::var(s).ok().map(|val| (s, val)))
         .collect();
