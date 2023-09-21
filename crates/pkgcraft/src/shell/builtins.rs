@@ -1,16 +1,18 @@
 use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
+use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{cmp, fmt};
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
-use scallop::builtins::{Attr, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use crate::eapi::{self, Eapi, EAPIS};
 
 use super::get_build_mut;
+use super::phase::PhaseKind;
 use super::scope::{Scope, Scopes};
 
 mod _default_phase_func;
@@ -172,7 +174,7 @@ impl Builtin {
 
     /// Determine if the builtin is a phase stub.
     fn is_phase_stub(&self) -> bool {
-        self.builtin.flags & Attr::SPECIAL.bits() != 0
+        PhaseKind::from_str(self.builtin.name).is_ok()
     }
 
     /// Run a builtin if it's enabled for the current build state.
@@ -446,12 +448,12 @@ pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
 #[macro_export]
 macro_rules! make_builtin {
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr) => {
-        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None, 0, BUILTIN);
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None, BUILTIN);
     };
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr) => {
-        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, $deprecated, 0, BUILTIN);
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, $deprecated, BUILTIN);
     };
-    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr, $flags:expr, $builtin:ident) => {
+    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr, $builtin:ident) => {
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> std::ffi::c_int {
             use scallop::traits::IntoWords;
@@ -473,10 +475,11 @@ macro_rules! make_builtin {
 
         pub(super) static $builtin: once_cell::sync::Lazy<$crate::shell::builtins::Builtin> =
             once_cell::sync::Lazy::new(|| {
+                use scallop::builtins::Attr;
                 let builtin = scallop::builtins::Builtin {
                     name: $name,
                     func: $func,
-                    flags: scallop::builtins::Attr::ENABLED.bits() | $flags,
+                    flags: Attr::ENABLED.bits() | Attr::SPECIAL.bits(),
                     cfunc: $func_name,
                     help: $long_doc,
                     usage: $usage,

@@ -1,4 +1,4 @@
-use scallop::builtins::{Attr, ExecStatus};
+use scallop::builtins::ExecStatus;
 use scallop::Error;
 
 use super::{make_builtin, Scopes::All};
@@ -18,7 +18,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_CONFIG_BUILTIN
 );
 
@@ -30,7 +29,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_INFO_BUILTIN
 );
 
@@ -42,7 +40,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_NOFETCH_BUILTIN
 );
 
@@ -54,7 +51,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_POSTINST_BUILTIN
 );
 
@@ -66,7 +62,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_POSTRM_BUILTIN
 );
 
@@ -78,7 +73,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_PREINST_BUILTIN
 );
 
@@ -90,7 +84,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_PRERM_BUILTIN
 );
 
@@ -102,7 +95,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_PRETEND_BUILTIN
 );
 
@@ -114,7 +106,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     PKG_SETUP_BUILTIN
 );
 
@@ -126,7 +117,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     SRC_COMPILE_BUILTIN
 );
 
@@ -138,7 +128,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     SRC_CONFIGURE_BUILTIN
 );
 
@@ -150,7 +139,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     SRC_INSTALL_BUILTIN
 );
 
@@ -162,7 +150,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     SRC_PREPARE_BUILTIN
 );
 
@@ -174,7 +161,6 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     SRC_TEST_BUILTIN
 );
 
@@ -186,6 +172,5 @@ make_builtin!(
     "for internal use only",
     [("..", [All])],
     None,
-    Attr::SPECIAL.bits(),
     SRC_UNPACK_BUILTIN
 );
