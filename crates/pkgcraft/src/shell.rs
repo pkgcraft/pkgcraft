@@ -8,7 +8,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nix::unistd::isatty;
 use once_cell::sync::Lazy;
-use scallop::builtins::{ExecStatus, ScopedOptions};
+use scallop::builtins::{override_funcs, ExecStatus, ScopedOptions};
 use scallop::variables::*;
 use scallop::{functions, Error};
 
@@ -428,6 +428,9 @@ impl<'a> BuildData<'a> {
         for var in eapi.metadata_keys() {
             env::remove_var(var.as_ref());
         }
+
+        // PMS builtins take precedence over functions
+        override_funcs(eapi.builtins(), true)?;
 
         self.scope = Scope::Global;
         self.set_vars()?;

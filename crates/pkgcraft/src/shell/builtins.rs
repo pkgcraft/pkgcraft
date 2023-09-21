@@ -448,12 +448,12 @@ pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
 #[macro_export]
 macro_rules! make_builtin {
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr) => {
-        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None, BUILTIN);
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None, 0, BUILTIN);
     };
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr) => {
-        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, $deprecated, BUILTIN);
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, $deprecated, 0, BUILTIN);
     };
-    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr, $builtin:ident) => {
+    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr, $flags:expr, $builtin:ident) => {
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> std::ffi::c_int {
             use scallop::traits::IntoWords;
@@ -475,11 +475,10 @@ macro_rules! make_builtin {
 
         pub(super) static $builtin: once_cell::sync::Lazy<$crate::shell::builtins::Builtin> =
             once_cell::sync::Lazy::new(|| {
-                use scallop::builtins::Attr;
                 let builtin = scallop::builtins::Builtin {
                     name: $name,
                     func: $func,
-                    flags: Attr::ENABLED.bits() | Attr::SPECIAL.bits(),
+                    flags: scallop::builtins::Attr::ENABLED.bits() | $flags,
                     cfunc: $func_name,
                     help: $long_doc,
                     usage: $usage,
