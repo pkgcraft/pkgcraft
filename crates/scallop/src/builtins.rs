@@ -170,7 +170,35 @@ impl From<Builtin> for DynBuiltin {
     }
 }
 
-// Enable or disable a given list of builtins.
+// Enable or disable function overriding for an iterable of builtins.
+pub fn override_funcs<I, S>(builtins: I, enable: bool) -> crate::Result<()>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    for name in builtins {
+        let name = name.as_ref();
+        let builtin_name = CString::new(name).unwrap();
+        let builtin_ptr = builtin_name.as_ptr() as *mut _;
+        match unsafe { bash::builtin_address_internal(builtin_ptr, 1).as_mut() } {
+            Some(b) => {
+                let special = (b.flags & Attr::SPECIAL.bits() as i32) == 1;
+                if special != enable {
+                    if enable {
+                        b.flags |= Attr::SPECIAL.bits() as i32;
+                    } else {
+                        b.flags &= !Attr::SPECIAL.bits() as i32;
+                    }
+                }
+            }
+            None => return Err(Error::Base(format!("unknown builtin: {name}"))),
+        }
+    }
+
+    Ok(())
+}
+
+// Enable or disable an iterable of builtins.
 fn toggle_status<I, S>(builtins: I, enable: bool) -> crate::Result<()>
 where
     I: IntoIterator<Item = S>,
