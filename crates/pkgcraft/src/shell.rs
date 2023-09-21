@@ -8,12 +8,12 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nix::unistd::isatty;
 use once_cell::sync::Lazy;
-use scallop::builtins::{override_funcs, ExecStatus, ScopedOptions};
+use scallop::builtins::{override_funcs, shopt, ExecStatus};
 use scallop::variables::*;
 use scallop::{functions, Error};
 
 use crate::dep::Cpv;
-use crate::eapi::{Eapi, Feature};
+use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
 use crate::repo::{ebuild, Repository};
@@ -435,9 +435,8 @@ impl<'a> BuildData<'a> {
         self.scope = Scope::Global;
         self.set_vars()?;
 
-        let mut opts = ScopedOptions::default();
-        if eapi.has(Feature::GlobalFailglob) {
-            opts.enable(["failglob"])?;
+        if eapi.has(GlobalFailglob) {
+            shopt::enable(&["failglob"])?;
         }
 
         // run global sourcing in restricted shell mode
@@ -566,7 +565,7 @@ mod tests {
             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
             let r = raw_pkg.source();
-            if eapi.has(Feature::GlobalFailglob) {
+            if eapi.has(GlobalFailglob) {
                 assert_err_re!(r, "invalid pkg: cat/pkg-1::test: .+: no match: nonexistent\\*$");
             } else {
                 assert!(r.is_ok());
