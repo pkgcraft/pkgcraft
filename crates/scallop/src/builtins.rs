@@ -63,6 +63,7 @@ pub mod shopt {
 pub struct Builtin {
     pub name: &'static str,
     pub func: BuiltinFn,
+    pub flags: u32,
     pub cfunc: BuiltinFnPtr,
     pub help: &'static str,
     pub usage: &'static str,
@@ -124,7 +125,7 @@ impl From<Builtin> for bash::Builtin {
         bash::Builtin {
             name,
             function: Some(builtin.cfunc),
-            flags: Attr::STATIC.bits() as i32,
+            flags: (builtin.flags | Attr::STATIC.bits()) as i32,
             long_doc,
             short_doc,
             handle: ptr::null_mut(),
@@ -497,6 +498,7 @@ macro_rules! make_builtin {
         pub static BUILTIN: Builtin = Builtin {
             name: $name,
             func: $func,
+            flags: 0,
             cfunc: $func_name,
             help: $long_doc,
             usage: $usage,

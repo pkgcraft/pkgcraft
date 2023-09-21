@@ -457,6 +457,7 @@ macro_rules! make_builtin {
             let builtin = scallop::builtins::Builtin {
                 name: $name,
                 func: $func,
+                flags: 0,
                 cfunc: $func_name,
                 help: $long_doc,
                 usage: $usage,
