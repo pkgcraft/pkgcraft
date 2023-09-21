@@ -448,12 +448,12 @@ pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
 #[macro_export]
 macro_rules! make_builtin {
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr) => {
-        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None, 0, BUILTIN);
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None, BUILTIN);
     };
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr) => {
-        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, $deprecated, 0, BUILTIN);
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, $deprecated, BUILTIN);
     };
-    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr, $flags:expr, $builtin:ident) => {
+    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr, $builtin:ident) => {
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> std::ffi::c_int {
             use scallop::traits::IntoWords;
@@ -478,7 +478,7 @@ macro_rules! make_builtin {
                 let builtin = scallop::builtins::Builtin {
                     name: $name,
                     func: $func,
-                    flags: scallop::builtins::Attr::ENABLED.bits() | $flags,
+                    flags: scallop::builtins::Attr::ENABLED.bits(),
                     cfunc: $func_name,
                     help: $long_doc,
                     usage: $usage,

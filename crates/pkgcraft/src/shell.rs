@@ -429,8 +429,10 @@ impl<'a> BuildData<'a> {
             env::remove_var(var.as_ref());
         }
 
-        // PMS builtins take precedence over functions
+        // PMS command builtins override functions
         override_funcs(eapi.builtins(), true)?;
+        // PMS phase builtins override functions forcing direct calls to error out
+        override_funcs(eapi.phases(), true)?;
 
         self.scope = Scope::Global;
         self.set_vars()?;
