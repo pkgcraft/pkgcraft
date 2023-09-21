@@ -476,7 +476,7 @@ macro_rules! make_builtin {
                 let builtin = scallop::builtins::Builtin {
                     name: $name,
                     func: $func,
-                    flags: $flags,
+                    flags: scallop::builtins::Attr::ENABLED.bits() | $flags,
                     cfunc: $func_name,
                     help: $long_doc,
                     usage: $usage,
