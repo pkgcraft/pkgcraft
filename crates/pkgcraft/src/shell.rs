@@ -603,9 +603,10 @@ mod tests {
 
         for eapi in EAPIS.iter() {
             for phase in eapi.phases() {
+                // phase scope
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
-                    DESCRIPTION="testing direct phase call errors"
+                    DESCRIPTION="testing direct phase call errors in phase scope"
                     SLOT=0
                     {phase}() {{ :; }}
                     pkg_setup() {{ {phase}; }}
@@ -613,6 +614,19 @@ mod tests {
                 let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
                 BuildData::from_pkg(&pkg);
                 let r = pkg.build();
+                assert_err_re!(r, format!("{phase}: error: direct phase call$"));
+
+                // global scope
+                let data = indoc::formatdoc! {r#"
+                    EAPI={eapi}
+                    DESCRIPTION="testing direct phase call errors in global scope"
+                    SLOT=0
+                    {phase}() {{ :; }}
+                    {phase}
+                "#};
+                let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                BuildData::from_raw_pkg(&raw_pkg);
+                let r = raw_pkg.source();
                 assert_err_re!(r, format!("{phase}: error: direct phase call$"));
             }
         }
