@@ -4,7 +4,7 @@ use itertools::Either;
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::eapi::Feature;
+use crate::eapi::Feature::ConsistentFileOpts;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;
@@ -26,7 +26,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let build = get_build_mut();
     let dest = "/usr/include";
-    let opts = if build.eapi().has(Feature::ConsistentFileOpts) {
+    let opts = if build.eapi().has(ConsistentFileOpts) {
         Either::Left(["-m0644"].into_iter())
     } else {
         Either::Right(build.insopts.iter().map(|s| s.as_str()))
@@ -55,7 +55,7 @@ make_builtin!("doheader", doheader_builtin, run, LONG_DOC, USAGE, [("5..", [SrcI
 mod tests {
     use std::fs;
 
-    use crate::eapi::{Feature, EAPIS_OFFICIAL};
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
@@ -111,7 +111,7 @@ mod tests {
             BuildData::empty(eapi);
             insopts(&["-m0755"]).unwrap();
             doheader(&["-r", "pkgcraft"]).unwrap();
-            let mode = if eapi.has(Feature::ConsistentFileOpts) {
+            let mode = if eapi.has(ConsistentFileOpts) {
                 default_mode
             } else {
                 custom_mode

@@ -24,7 +24,7 @@ mod tests {
     use scallop::source;
     use scallop::variables::{self, *};
 
-    use crate::eapi::{Feature, EAPIS_OFFICIAL};
+    use crate::eapi::{Feature::NonfatalDie, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::shell::BuildData;
 
@@ -41,10 +41,7 @@ mod tests {
 
         assert_invalid_args(assert, &[3]);
 
-        for eapi in EAPIS_OFFICIAL
-            .iter()
-            .filter(|e| !e.has(Feature::NonfatalDie))
-        {
+        for eapi in EAPIS_OFFICIAL.iter().filter(|e| !e.has(NonfatalDie)) {
             BuildData::empty(eapi);
             assert_invalid_args(assert, &[2]);
         }

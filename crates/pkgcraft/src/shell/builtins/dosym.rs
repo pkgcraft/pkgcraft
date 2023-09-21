@@ -63,7 +63,7 @@ make_builtin!("dosym", dosym_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall]
 mod tests {
     use std::fs;
 
-    use crate::eapi::{Feature, EAPIS_OFFICIAL};
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
@@ -78,10 +78,7 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(dosym, &[0, 1, 4]);
 
-        for eapi in EAPIS_OFFICIAL
-            .iter()
-            .filter(|e| !e.has(Feature::DosymRelative))
-        {
+        for eapi in EAPIS_OFFICIAL.iter().filter(|e| !e.has(DosymRelative)) {
             BuildData::empty(eapi);
             assert_invalid_args(dosym, &[3]);
         }

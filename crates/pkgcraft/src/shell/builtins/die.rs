@@ -42,7 +42,7 @@ mod tests {
     use scallop::variables::{self, *};
 
     use crate::config::Config;
-    use crate::eapi::{Feature, EAPI5, EAPIS_OFFICIAL};
+    use crate::eapi::{EAPI5, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkg::BuildablePackage;
     use crate::shell::phase::PhaseKind;
@@ -58,10 +58,7 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(die, &[3]);
 
-        for eapi in EAPIS_OFFICIAL
-            .iter()
-            .filter(|e| !e.has(Feature::NonfatalDie))
-        {
+        for eapi in EAPIS_OFFICIAL.iter().filter(|e| !e.has(NonfatalDie)) {
             BuildData::empty(eapi);
             assert_invalid_args(die, &[2]);
         }

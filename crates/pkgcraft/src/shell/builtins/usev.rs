@@ -1,7 +1,7 @@
 use scallop::builtins::ExecStatus;
 use scallop::Error;
 
-use crate::eapi::Feature;
+use crate::eapi::Feature::UsevTwoArgs;
 use crate::shell::{get_build_mut, write_stdout};
 
 use super::{make_builtin, use_::run as use_, Scopes::Phases};
@@ -14,7 +14,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let eapi = get_build_mut().eapi();
     let (flag, value) = match args[..] {
         [flag] => (flag, flag.strip_prefix('!').unwrap_or(flag)),
-        [flag, value] if eapi.has(Feature::UsevTwoArgs) => (flag, value),
+        [flag, value] if eapi.has(UsevTwoArgs) => (flag, value),
         [_, _] => return Err(Error::Base("requires 1 arg, got 2".into())),
         _ => return Err(Error::Base(format!("requires 1 or 2 args, got {}", args.len()))),
     };
@@ -35,7 +35,7 @@ mod tests {
     use scallop::builtins::ExecStatus;
 
     use crate::config::Config;
-    use crate::eapi::{Feature, EAPIS_OFFICIAL};
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::shell::{assert_stdout, get_build_mut, BuildData};
 
@@ -49,10 +49,7 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(usev, &[0, 3]);
 
-        for eapi in EAPIS_OFFICIAL
-            .iter()
-            .filter(|e| !e.has(Feature::UsevTwoArgs))
-        {
+        for eapi in EAPIS_OFFICIAL.iter().filter(|e| !e.has(UsevTwoArgs)) {
             BuildData::empty(eapi);
             assert_invalid_args(usev, &[2]);
         }
@@ -84,10 +81,7 @@ mod tests {
         }
 
         // check EAPIs that support two arg variant
-        for eapi in EAPIS_OFFICIAL
-            .iter()
-            .filter(|e| e.has(Feature::UsevTwoArgs))
-        {
+        for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(UsevTwoArgs)) {
             let pkg = t
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
@@ -115,10 +109,7 @@ mod tests {
         }
 
         // check EAPIs that support two arg variant
-        for eapi in EAPIS_OFFICIAL
-            .iter()
-            .filter(|e| e.has(Feature::UsevTwoArgs))
-        {
+        for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(UsevTwoArgs)) {
             let pkg = t
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
