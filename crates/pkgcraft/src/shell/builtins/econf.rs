@@ -2,6 +2,7 @@ use std::process::Command;
 
 use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::builtins::ExecStatus;
 use scallop::{variables, Error};

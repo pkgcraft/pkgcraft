@@ -497,9 +497,9 @@ mod tests {
     use scallop::variables;
 
     use crate::config::Config;
-    use crate::eapi::EAPIS_OFFICIAL;
+    use crate::eapi::{EAPIS, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkg::SourceablePackage;
+    use crate::pkg::{BuildablePackage, SourceablePackage};
 
     use super::*;
 
@@ -589,6 +589,28 @@ mod tests {
                 BuildData::from_raw_pkg(&raw_pkg);
                 let r = raw_pkg.source();
                 assert_err_re!(r, format!("PMS functionality overridden: {builtin}$"));
+            }
+        }
+    }
+
+    #[test]
+    fn direct_phase_calls() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        for eapi in EAPIS.iter() {
+            for phase in eapi.phases() {
+                let data = indoc::formatdoc! {r#"
+                    EAPI={eapi}
+                    DESCRIPTION="testing direct phase call errors"
+                    SLOT=0
+                    {phase}() {{ :; }}
+                    pkg_setup() {{ {phase}; }}
+                "#};
+                let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                BuildData::from_pkg(&pkg);
+                let r = pkg.build();
+                assert_err_re!(r, format!("{phase}: error: direct phase call$"));
             }
         }
     }

@@ -5,7 +5,7 @@ use std::{cmp, fmt};
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
-use scallop::builtins::ExecStatus;
+use scallop::builtins::{Attr, ExecStatus};
 use scallop::Error;
 
 use crate::eapi::{self, Eapi, EAPIS};
@@ -15,6 +15,7 @@ use super::scope::{Scope, Scopes};
 
 mod _default_phase_func;
 mod _new;
+mod _phases;
 mod _query_cmd;
 mod _use_conf;
 mod adddeny;
@@ -165,8 +166,13 @@ impl Builtin {
     }
 
     /// Determine if the builtin is enabled for a given EAPI.
-    pub fn is_enabled(&self, eapi: &Eapi) -> bool {
+    fn is_enabled(&self, eapi: &Eapi) -> bool {
         self.scope.contains_key(eapi)
+    }
+
+    /// Determine if the builtin is a phase stub.
+    fn is_phase_stub(&self) -> bool {
+        self.builtin.flags & Attr::SPECIAL.bits() != 0
     }
 
     /// Run a builtin if it's enabled for the current build state.
@@ -325,6 +331,21 @@ pub(crate) static BUILTINS: Lazy<IndexSet<&Builtin>> = Lazy::new(|| {
         &*ver_cut::BUILTIN,
         &*ver_rs::BUILTIN,
         &*ver_test::BUILTIN,
+        &*_phases::PKG_CONFIG_BUILTIN,
+        &*_phases::PKG_INFO_BUILTIN,
+        &*_phases::PKG_NOFETCH_BUILTIN,
+        &*_phases::PKG_POSTINST_BUILTIN,
+        &*_phases::PKG_POSTRM_BUILTIN,
+        &*_phases::PKG_PREINST_BUILTIN,
+        &*_phases::PKG_PRERM_BUILTIN,
+        &*_phases::PKG_PRETEND_BUILTIN,
+        &*_phases::PKG_SETUP_BUILTIN,
+        &*_phases::SRC_COMPILE_BUILTIN,
+        &*_phases::SRC_CONFIGURE_BUILTIN,
+        &*_phases::SRC_INSTALL_BUILTIN,
+        &*_phases::SRC_PREPARE_BUILTIN,
+        &*_phases::SRC_TEST_BUILTIN,
+        &*_phases::SRC_UNPACK_BUILTIN,
     ]
     .into_iter()
     .collect()
@@ -338,7 +359,7 @@ pub(crate) static EAPI_BUILTINS: Lazy<IndexMap<&'static Eapi, IndexSet<String>>>
             .map(|&e| {
                 let builtins = BUILTINS
                     .iter()
-                    .filter(|b| b.is_enabled(e))
+                    .filter(|b| b.is_enabled(e) && !b.is_phase_stub())
                     .map(|b| b.to_string())
                     .collect();
                 (e, builtins)
@@ -425,17 +446,14 @@ pub(crate) fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
 #[macro_export]
 macro_rules! make_builtin {
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr) => {
-        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None);
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, None, 0, BUILTIN);
     };
     ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr) => {
-        use std::ffi::c_int;
-
-        use once_cell::sync::Lazy;
-
-        use $crate::shell::builtins::Builtin;
-
+        make_builtin!($name, $func_name, $func, $long_doc, $usage, $scope, $deprecated, 0, BUILTIN);
+    };
+    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $scope:expr, $deprecated:expr, $flags:expr, $builtin:ident) => {
         #[no_mangle]
-        extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> c_int {
+        extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> std::ffi::c_int {
             use scallop::traits::IntoWords;
 
             use $crate::shell::builtins::{handle_error, BUILTINS};
@@ -453,18 +471,19 @@ macro_rules! make_builtin {
             i32::from(ret)
         }
 
-        pub(super) static BUILTIN: Lazy<Builtin> = Lazy::new(|| {
-            let builtin = scallop::builtins::Builtin {
-                name: $name,
-                func: $func,
-                flags: 0,
-                cfunc: $func_name,
-                help: $long_doc,
-                usage: $usage,
-            };
+        pub(super) static $builtin: once_cell::sync::Lazy<$crate::shell::builtins::Builtin> =
+            once_cell::sync::Lazy::new(|| {
+                let builtin = scallop::builtins::Builtin {
+                    name: $name,
+                    func: $func,
+                    flags: $flags,
+                    cfunc: $func_name,
+                    help: $long_doc,
+                    usage: $usage,
+                };
 
-            Builtin::new(builtin, $scope, $deprecated)
-        });
+                $crate::shell::builtins::Builtin::new(builtin, $scope, $deprecated)
+            });
     };
 }
 use make_builtin;
