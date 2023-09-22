@@ -11,9 +11,8 @@ const LONG_DOC: &str = "Include or exclude paths for compression.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
-
-    let (set, args) = match args.first().copied() {
-        Some("-x") => (&mut build.compress_exclude, &args[1..]),
+    let (set, args) = match args {
+        ["-x", args @ ..] => (&mut build.compress_exclude, args),
         _ => (&mut build.compress_include, args),
     };
 

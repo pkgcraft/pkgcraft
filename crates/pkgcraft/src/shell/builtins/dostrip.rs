@@ -11,9 +11,8 @@ const LONG_DOC: &str = "Include or exclude paths for symbol stripping.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
-
-    let (set, args) = match args.first().copied() {
-        Some("-x") => (&mut build.strip_exclude, &args[1..]),
+    let (set, args) = match args {
+        ["-x", args @ ..] => (&mut build.strip_exclude, args),
         _ => (&mut build.strip_include, args),
     };
 

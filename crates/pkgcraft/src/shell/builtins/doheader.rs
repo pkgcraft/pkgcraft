@@ -15,8 +15,8 @@ const LONG_DOC: &str = "Install header files into /usr/include/.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let (recursive, args) = match args.first().copied() {
-        Some("-r") => (true, &args[1..]),
+    let (recursive, args) = match args {
+        ["-r", args @ ..] => (true, args),
         _ => (false, args),
     };
 
