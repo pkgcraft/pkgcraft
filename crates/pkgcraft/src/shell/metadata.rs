@@ -155,8 +155,16 @@ impl Metadata {
             IUSE => self.iuse = split!(val).collect(),
             INHERIT => self.inherit = split!(val).collect(),
             INHERITED => self.inherited = split!(val).collect(),
-            EAPI => (),
+            EAPI => {
+                let sourced: &Eapi = val.try_into()?;
+                if sourced != eapi {
+                    return Err(Error::InvalidValue(format!(
+                        "mismatched sourced and parsed EAPIs: {sourced} != {eapi}"
+                    )));
+                }
+            }
         }
+
         Ok(())
     }
 
@@ -391,17 +399,6 @@ impl TryFrom<&RawPkg<'_>> for Metadata {
         let eapi = pkg.eapi();
         let build = get_build_mut();
         let mut meta = Self::default();
-
-        // verify sourced EAPI matches parsed EAPI
-        let sourced_eapi: &Eapi = variables::optional("EAPI")
-            .as_deref()
-            .unwrap_or("0")
-            .try_into()?;
-        if sourced_eapi != eapi {
-            return Err(Error::InvalidValue(format!(
-                "mismatched sourced and parsed EAPIs: {sourced_eapi} != {eapi}"
-            )));
-        }
 
         // required metadata variables
         let mut missing = vec![];
