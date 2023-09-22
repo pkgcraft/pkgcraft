@@ -169,11 +169,10 @@ impl Metadata {
     }
 
     /// Deserialize a metadata string into [`Metadata`].
-    pub(crate) fn deserialize(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
+    pub(crate) fn deserialize(data: &str, eapi: &'static Eapi) -> crate::Result<Self> {
         let mut meta = Self::default();
 
-        let iter = s
-            .lines()
+        data.lines()
             .filter_map(|l| {
                 l.split_once('=').map(|(s, v)| match (s, v) {
                     ("_eclasses_", v) => ("INHERITED", v),
@@ -183,19 +182,19 @@ impl Metadata {
                 })
             })
             .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
-            .filter(|(k, _)| eapi.metadata_keys().contains(k));
-
-        for (key, val) in iter {
-            if key == Key::INHERITED {
-                meta.inherited = val
-                    .split_whitespace()
-                    .tuples()
-                    .map(|(name, _chksum)| name.to_string())
-                    .collect();
-            } else {
-                meta.convert(eapi, key, val)?;
-            }
-        }
+            .filter(|(k, _)| eapi.metadata_keys().contains(k))
+            .try_for_each(|(key, val)| {
+                if key == Key::INHERITED {
+                    meta.inherited = val
+                        .split_whitespace()
+                        .tuples()
+                        .map(|(name, _chksum)| name.to_string())
+                        .collect();
+                    Ok(())
+                } else {
+                    meta.convert(eapi, key, val)
+                }
+            })?;
 
         Ok(meta)
     }
