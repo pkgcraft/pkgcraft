@@ -62,9 +62,9 @@ impl Install {
     fn parse_options<I, T>(&self, options: I) -> InstallOpts
     where
         I: IntoIterator<Item = T>,
-        T: Into<String>,
+        T: ToString,
     {
-        let options: Vec<_> = options.into_iter().map(Into::into).collect();
+        let options: Vec<_> = options.into_iter().map(|s| s.to_string()).collect();
         let cmd = ["install"]
             .into_iter()
             .chain(options.iter().map(|s| s.as_str()));
@@ -79,7 +79,7 @@ impl Install {
     pub(super) fn file_options<I, T>(mut self, options: I) -> Self
     where
         I: IntoIterator<Item = T>,
-        T: Into<String>,
+        T: ToString,
     {
         self.file_options = self.parse_options(options);
         self
@@ -89,7 +89,7 @@ impl Install {
     pub(super) fn dir_options<I, T>(mut self, options: I) -> Self
     where
         I: IntoIterator<Item = T>,
-        T: Into<String>,
+        T: ToString,
     {
         self.dir_options = self.parse_options(options);
         self
