@@ -34,7 +34,9 @@ pub(super) fn new(args: &[&str], func: BuiltinFn) -> scallop::Result<ExecStatus>
             .map_err(|e| Error::Base(format!("failed copying file {source:?} to {dest:?}: {e}")))?;
     }
 
-    let path = dest.to_str().expect("invalid unicode path");
+    let path = dest
+        .to_str()
+        .ok_or_else(|| Error::Base(format!("invalid utf8 path: {dest:?}")))?;
     func(&[path])
 }
 
