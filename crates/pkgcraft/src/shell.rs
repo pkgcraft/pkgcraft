@@ -289,8 +289,8 @@ impl<'a> BuildData<'a> {
 
     /// Get the current build phase if it exists.
     fn phase(&self) -> scallop::Result<phase::Phase> {
-        match self.scope {
-            Scope::Phase(k) => Ok(*self.eapi().phases().get(&k).expect("unknown scope phase")),
+        match &self.scope {
+            Scope::Phase(k) => Ok(*self.eapi().phases().get(k).expect("unknown scope phase")),
             scope => Err(Error::Base(format!("phase invalid for scope: {scope}"))),
         }
     }
