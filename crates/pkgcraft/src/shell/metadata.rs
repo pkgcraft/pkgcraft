@@ -392,7 +392,7 @@ impl Metadata {
 impl TryFrom<&RawPkg<'_>> for Metadata {
     type Error = Error;
 
-    fn try_from(pkg: &RawPkg) -> crate::Result<Metadata> {
+    fn try_from(pkg: &RawPkg) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 
