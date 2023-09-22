@@ -28,10 +28,12 @@ const DOCS_DEFAULTS: &[&str] = &[
     "CHANGELOG",
 ];
 
+/// Determine if a given path contains data or is empty.
 fn has_data(recursive: bool, path: &Path) -> bool {
-    match fs::metadata(path) {
-        Ok(m) => m.len() > 0 && (recursive || !m.file_type().is_dir()),
-        _ => false,
+    if let Ok(m) = fs::metadata(path) {
+        m.len() > 0 && (recursive || !m.file_type().is_dir())
+    } else {
+        false
     }
 }
 
@@ -63,17 +65,17 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<P
 /// Install document files defined in a given variable.
 pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
     let (defaults, docdesttree) = match var {
-        "DOCS" => Ok((Some(DOCS_DEFAULTS), "")),
-        "HTML_DOCS" => Ok((None, "html")),
-        _ => Err(Error::Base(format!("unknown variable: {var}"))),
-    }?;
+        "DOCS" => (Some(DOCS_DEFAULTS), ""),
+        "HTML_DOCS" => (None, "html"),
+        _ => return Err(Error::Base(format!("unknown variable: {var}"))),
+    };
 
-    let (recursive, paths) = match var_to_vec(var) {
-        Ok(v) => (true, expand_docs(&v, true)?),
-        _ => match defaults {
-            Some(v) => (false, expand_docs(v, false)?),
-            None => (false, vec![]),
-        },
+    let (recursive, paths) = if let Ok(v) = var_to_vec(var) {
+        (true, expand_docs(&v, true)?)
+    } else if let Some(v) = defaults {
+        (false, expand_docs(v, false)?)
+    } else {
+        (false, vec![])
     };
 
     if !paths.is_empty() {
