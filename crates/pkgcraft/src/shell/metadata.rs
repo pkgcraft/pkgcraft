@@ -400,12 +400,13 @@ impl TryFrom<&RawPkg<'_>> for Metadata {
         let build = get_build_mut();
         let mut meta = Self::default();
 
-        // required metadata variables
+        // pull metadata values from shell variables
         let mut missing = vec![];
-        for key in eapi.mandatory_keys() {
-            match key.get(build, eapi) {
-                Some(val) => meta.convert(eapi, *key, &val)?,
-                None => missing.push(key.as_ref()),
+        for key in eapi.metadata_keys() {
+            if let Some(val) = key.get(build, eapi) {
+                meta.convert(eapi, *key, &val)?;
+            } else if eapi.mandatory_keys().contains(key) {
+                missing.push(key.as_ref());
             }
         }
 
@@ -413,13 +414,6 @@ impl TryFrom<&RawPkg<'_>> for Metadata {
             missing.sort();
             let keys = missing.join(", ");
             return Err(Error::InvalidValue(format!("missing required values: {keys}")));
-        }
-
-        // metadata variables that default to empty
-        for key in eapi.metadata_keys().difference(eapi.mandatory_keys()) {
-            if let Some(val) = key.get(build, eapi) {
-                meta.convert(eapi, *key, &val)?;
-            }
         }
 
         Ok(meta)
