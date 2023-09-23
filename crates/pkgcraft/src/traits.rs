@@ -24,13 +24,13 @@ impl<T: AsRef<str>> FilterLines for T {
 
 /// Support bash sourcing via file paths or directly from string content.
 pub(crate) trait SourceBash {
-    fn source_bash(self) -> scallop::Result<ExecStatus>;
+    fn source_bash(&self) -> scallop::Result<ExecStatus>;
 }
 
 macro_rules! make_source_path_trait {
     ($($x:ty),+) => {$(
         impl SourceBash for $x {
-            fn source_bash(self) -> scallop::Result<ExecStatus> {
+            fn source_bash(&self) -> scallop::Result<ExecStatus> {
                 if !self.exists() {
                     return Err(scallop::Error::Base(format!("nonexistent file: {self}")));
                 }
@@ -43,7 +43,7 @@ macro_rules! make_source_path_trait {
 make_source_path_trait!(&Utf8Path, &Utf8PathBuf);
 
 impl SourceBash for &str {
-    fn source_bash(self) -> scallop::Result<ExecStatus> {
+    fn source_bash(&self) -> scallop::Result<ExecStatus> {
         source::string(self)
     }
 }
