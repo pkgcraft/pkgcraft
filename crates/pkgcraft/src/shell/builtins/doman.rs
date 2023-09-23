@@ -19,21 +19,20 @@ static DETECT_LANG_RE: Lazy<Regex> =
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (args, mut lang) = match args {
-        [s, args @ ..] if s.starts_with("-i18n=") => {
-            let lang = s
-                .strip_prefix("-i18n=")
-                .map(|s| s.trim_matches('"'))
-                .unwrap();
-            (args, Some(lang))
+        [s, files @ ..] => {
+            let lang = s.strip_prefix("-i18n=").map(|s| s.trim_matches('"'));
+            if lang.is_some() {
+                // only the -i18n option was specified
+                if files.is_empty() {
+                    return Err(Error::Base("missing filename target".to_string()));
+                }
+                (files, lang)
+            } else {
+                (args, lang)
+            }
         }
-        [_, ..] => (args, None),
         _ => return Err(Error::Base("requires 1 or more args, got 0".to_string())),
     };
-
-    // only the -i18n option was specified
-    if args.is_empty() {
-        return Err(Error::Base("missing filename target".to_string()));
-    }
 
     let install = get_build_mut()
         .install()
