@@ -1,4 +1,4 @@
-use std::fs;
+use std::{env, fs};
 
 use indexmap::IndexMap;
 use pkgcraft::repo::{ebuild_temp::Repo as TempRepo, Repository};
@@ -48,8 +48,9 @@ fn single() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_raw_pkg("cat/pkg-1", &["EAPI=7"]).unwrap();
 
+    // default target is the current working directory
+    env::set_current_dir(t.path()).unwrap();
     cmd("pk repo metadata")
-        .arg(t.path())
         .assert()
         .stdout("")
         .stderr("")

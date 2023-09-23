@@ -18,7 +18,7 @@ pub struct Command {
 
     // positionals
     /// Target repositories
-    #[arg(value_name = "REPO", required = true)]
+    #[arg(value_name = "REPO", default_value = ".")]
     repos: Vec<String>,
 }
 
