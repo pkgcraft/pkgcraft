@@ -51,10 +51,11 @@ impl<'a> RawPkg<'a> {
     fn parse_eapi(data: &str) -> crate::Result<&'static Eapi> {
         data.filter_lines()
             .next()
-            .and_then(|(_, s)| s.split_once("EAPI="))
-            .map(|(_, s)| match s.split_once('#') {
-                Some((v, _)) => v.trim(),
-                None => s.trim(),
+            .and_then(|(_, s)| s.strip_prefix("EAPI="))
+            .map(|s| {
+                s.split_once('#')
+                    .map(|(v, _)| v.trim())
+                    .unwrap_or_else(|| s.trim())
             })
             .ok_or_else(|| Error::InvalidValue("unsupported EAPI: 0".to_string()))
             .and_then(eapi::parse_value)
