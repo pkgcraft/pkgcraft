@@ -294,16 +294,10 @@ impl Metadata {
         })?;
 
         let pkg = RawPkg::new(cpv.clone(), repo)?;
-
-        // pull ebuild and eclass hash lines which should always be the last two
         let mut iter = data.lines().rev();
-        let (ebuild_hash, eclasses) = match (iter.next(), iter.next()) {
-            (Some(s1), Some(s2)) => (s1, s2),
-            _ => return Err(Error::InvalidValue("missing required metadata".to_string())),
-        };
 
         // verify ebuild hash
-        if let Some(s) = ebuild_hash.strip_prefix("_md5_=") {
+        if let Some(s) = iter.next().and_then(|s| s.strip_prefix("_md5_=")) {
             if s != pkg.digest() {
                 return Err(Error::InvalidValue("mismatched ebuild metadata digest".to_string()));
             }
@@ -312,7 +306,7 @@ impl Metadata {
         }
 
         // verify eclass hashes
-        if let Some(s) = eclasses.strip_prefix("_eclasses_=") {
+        if let Some(s) = iter.next().and_then(|s| s.strip_prefix("_eclasses_=")) {
             if !s.split_whitespace().tuples().all(|(name, digest)| {
                 repo.eclasses()
                     .get(name)
