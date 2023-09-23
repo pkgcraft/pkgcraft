@@ -13,12 +13,12 @@ Displays a failure message provided in an optional argument and then aborts the 
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let eapi_nonfatal = get_build_mut().eapi().has(NonfatalDie);
+    let eapi = get_build_mut().eapi();
     let nonfatal = NONFATAL.load(Ordering::Relaxed);
 
     let (nonfatal, msg) = match args[..] {
-        [opt, msg] if opt == "-n" && eapi_nonfatal => (nonfatal, msg),
-        [opt] if opt == "-n" && eapi_nonfatal => (nonfatal, ""),
+        ["-n", msg] if eapi.has(NonfatalDie) => (nonfatal, msg),
+        ["-n"] if eapi.has(NonfatalDie) => (nonfatal, ""),
         [msg] => (false, msg),
         [] => (false, "(no error message)"),
         _ => return Err(Error::Base(format!("takes up to 1 arg, got {}", args.len()))),
