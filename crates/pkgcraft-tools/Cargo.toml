@@ -20,7 +20,7 @@ bench = false
 flaky = []
 
 [dependencies]
-aho-corasick = "1.1.0"
+aho-corasick = "1.1.1"
 anyhow = "1.0.75"
 camino = "1.1.6"
 clap = { version = "4.4.4", features = ["derive"] }
