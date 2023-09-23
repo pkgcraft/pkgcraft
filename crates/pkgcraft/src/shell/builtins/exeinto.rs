@@ -12,7 +12,7 @@ Takes exactly one argument and sets the install path for doexe and newexe.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let path = match args[..] {
-        [s] if s == "/" => "",
+        ["/"] => "",
         [s] => s,
         _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
     };
