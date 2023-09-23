@@ -523,7 +523,6 @@ mod tests {
                 VAR=2
             "#};
             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
-            BuildData::from_raw_pkg(&raw_pkg);
             let r = raw_pkg.source();
             assert_eq!(variables::optional("VAR").unwrap(), "1");
             assert_err_re!(r, "unknown command: ls");
@@ -547,7 +546,6 @@ mod tests {
             VAR=2
         "#};
         let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
-        BuildData::from_raw_pkg(&raw_pkg);
         let r = raw_pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
@@ -566,7 +564,6 @@ mod tests {
                 DOCS=( nonexistent* )
             "#};
             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
-            BuildData::from_raw_pkg(&raw_pkg);
             let r = raw_pkg.source();
             if eapi.has(GlobalFailglob) {
                 assert_err_re!(r, "invalid pkg: cat/pkg-1::test: .+: no match: nonexistent\\*$");
@@ -590,7 +587,6 @@ mod tests {
                     {builtin}() {{ :; }}
                 "#};
                 let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
-                BuildData::from_raw_pkg(&raw_pkg);
                 let r = raw_pkg.source();
                 assert_err_re!(r, format!("PMS functionality overridden: {builtin}$"));
             }
@@ -626,7 +622,6 @@ mod tests {
                     {phase}
                 "#};
                 let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
-                BuildData::from_raw_pkg(&raw_pkg);
                 let r = raw_pkg.source();
                 assert_err_re!(r, format!("{phase}: error: direct phase call$"));
             }
