@@ -429,9 +429,10 @@ impl<'a> BuildData<'a> {
             env::remove_var(var.as_ref());
         }
 
-        // PMS command builtins override functions
-        override_funcs(eapi.builtins(), true)?;
-        // PMS phase builtins override functions forcing direct calls to error out
+        // builtins override functions
+        let builtins = eapi.builtins();
+        override_funcs(builtins, true)?;
+        // phase builtins override functions forcing direct calls to error out
         override_funcs(eapi.phases(), true)?;
 
         self.scope = Scope::Global;
@@ -444,10 +445,10 @@ impl<'a> BuildData<'a> {
         // run global sourcing in restricted shell mode
         scallop::shell::restricted(|| value.source_bash())?;
 
-        // check for functions that override PMS builtins
+        // check for functions that override builtins
         let all_funcs: IndexSet<_> = functions::all_visible().into_iter().collect();
-        if !all_funcs.is_disjoint(eapi.builtins()) {
-            let funcs = all_funcs.intersection(eapi.builtins()).join(", ");
+        if !all_funcs.is_disjoint(builtins) {
+            let funcs = all_funcs.intersection(builtins).join(", ");
             return Err(Error::Base(format!("PMS functionality overridden: {funcs}")));
         }
 
