@@ -126,6 +126,17 @@ mod tests {
         "#,
         );
 
+        // -i18n option with empty lang
+        for opt in ["-i18n=", "-i18n=\"\""] {
+            doman(&[opt, "pkgcraft.1"]).unwrap();
+            file_tree.assert(
+                r#"
+                [[files]]
+                path = "/usr/share/man/man1/pkgcraft.1"
+            "#,
+            );
+        }
+
         // filename lang detection
         for (file, path) in
             [("pkgcraft.en.1", "en/man1/pkgcraft.1"), ("pkgcraft.en_US.1", "en_US/man1/pkgcraft.1")]
