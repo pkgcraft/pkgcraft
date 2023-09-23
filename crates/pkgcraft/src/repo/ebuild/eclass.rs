@@ -5,7 +5,9 @@ use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::Equivalent;
+use scallop::{builtins::ExecStatus, source};
 
+use crate::traits::SourceBash;
 use crate::utils::digest;
 use crate::Error;
 
@@ -88,5 +90,11 @@ impl Borrow<str> for Eclass {
 impl Equivalent<String> for Eclass {
     fn equivalent(&self, key: &String) -> bool {
         &self.name == key
+    }
+}
+
+impl SourceBash for Eclass {
+    fn source_bash(&self) -> scallop::Result<ExecStatus> {
+        source::file(&self.path)
     }
 }

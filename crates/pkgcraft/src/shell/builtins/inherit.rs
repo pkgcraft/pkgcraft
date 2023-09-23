@@ -1,9 +1,10 @@
 use itertools::{Either, Itertools};
 use scallop::builtins::ExecStatus;
 use scallop::variables::{ScopedVariable, Variable, Variables};
-use scallop::{source, Error};
+use scallop::Error;
 
 use crate::shell::get_build_mut;
+use crate::traits::SourceBash;
 use crate::types::Deque;
 
 use super::export_functions::export_functions;
@@ -66,7 +67,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         // update $ECLASS bash variable
         eclass_var.bind(eclass, None, None)?;
 
-        source::file(eclass.path()).map_err(|e| {
+        eclass.source_bash().map_err(|e| {
             // strip path prefix from bash error
             let s = e.to_string();
             let s = if s.starts_with('/') {
