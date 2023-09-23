@@ -69,7 +69,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::eapi;
-    use crate::pkg::BuildablePackage;
+    use crate::pkg::BuildPackage;
     use crate::shell::test::FileTree;
 
     use super::*;

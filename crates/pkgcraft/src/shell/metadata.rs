@@ -10,7 +10,7 @@ use tracing::warn;
 
 use crate::dep::{self, Cpv, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
-use crate::pkg::SourceablePackage;
+use crate::pkg::SourcePackage;
 use crate::pkg::{ebuild::RawPkg, Package};
 use crate::repo::ebuild::Repo;
 use crate::types::OrderedSet;

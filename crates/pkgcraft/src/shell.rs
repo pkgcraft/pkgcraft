@@ -502,7 +502,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::{EAPIS, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkg::{BuildablePackage, SourceablePackage};
+    use crate::pkg::{BuildPackage, SourcePackage};
 
     use super::*;
 

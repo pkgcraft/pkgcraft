@@ -40,7 +40,7 @@ mod tests {
     use crate::command::run_commands;
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::BuildablePackage;
+    use crate::pkg::BuildPackage;
     use crate::shell::{test::FileTree, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};

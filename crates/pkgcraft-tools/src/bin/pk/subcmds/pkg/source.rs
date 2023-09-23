@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::ebuild::RawPkg;
-use pkgcraft::pkg::SourceablePackage;
+use pkgcraft::pkg::SourcePackage;
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;

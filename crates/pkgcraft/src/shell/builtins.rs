@@ -508,10 +508,9 @@ macro_rules! builtin_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
-            use crate::pkg::SourceablePackage;
+            use crate::pkg::SourcePackage;
             use crate::shell::builtins::BUILTINS;
             use crate::shell::scope::Scope::*;
-            use crate::shell::{get_build_mut, BuildData};
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
@@ -586,8 +585,7 @@ macro_rules! builtin_scope_tests {
                                 }}
                             "#};
                             let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
-                            BuildData::from_pkg(&pkg);
-                            get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
+                            pkg.source().unwrap();
                             let phase = eapi.phases().get(&phase).unwrap();
                             let r = phase.run();
                             // verify function stops at unknown command

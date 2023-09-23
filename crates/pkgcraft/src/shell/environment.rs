@@ -173,8 +173,8 @@ mod tests {
 
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::pkg::{BuildablePackage, SourceablePackage};
-    use crate::shell::{get_build_mut, BuildData};
+    use crate::pkg::{BuildPackage, SourcePackage};
+    use crate::shell::BuildData;
 
     use super::*;
 
@@ -254,8 +254,7 @@ mod tests {
                                 }}
                             "#};
                             let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
-                            BuildData::from_pkg(&pkg);
-                            get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
+                            pkg.source().unwrap();
                             let phase = eapi.phases().get(phase).unwrap();
                             phase.run().unwrap();
 
@@ -345,8 +344,7 @@ mod tests {
                 {phases}
             "#};
             let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
-            BuildData::from_pkg(&pkg);
-            get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
+            pkg.source().unwrap();
             for phase in eapi.phases() {
                 let r = phase.run();
                 assert!(r.is_ok(), "EAPI {eapi}: failed running {phase}: {}", r.unwrap_err());
@@ -392,8 +390,7 @@ mod tests {
                 {phases}
             "#};
             let pkg = t.create_pkg_from_str("cat/pkg-1-r2", &data).unwrap();
-            BuildData::from_pkg(&pkg);
-            get_build_mut().source_ebuild(&pkg.abspath()).unwrap();
+            pkg.source().unwrap();
             for phase in eapi.phases() {
                 let r = phase.run();
                 assert!(r.is_ok(), "EAPI {eapi}: failed running {phase}: {}", r.unwrap_err());

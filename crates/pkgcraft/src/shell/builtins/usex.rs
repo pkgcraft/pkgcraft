@@ -37,7 +37,7 @@ make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, [("5..", [Phases])]);
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::BuildablePackage;
+    use crate::pkg::BuildPackage;
     use crate::shell::{assert_stdout, get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};

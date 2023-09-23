@@ -44,7 +44,7 @@ make_builtin!("keepdir", keepdir_builtin, run, LONG_DOC, USAGE, [("..", [SrcInst
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::pkg::BuildablePackage;
+    use crate::pkg::BuildPackage;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 

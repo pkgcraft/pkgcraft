@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::ebuild::{Pkg, RawPkg};
-use pkgcraft::pkg::BuildablePackage;
+use pkgcraft::pkg::BuildPackage;
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;

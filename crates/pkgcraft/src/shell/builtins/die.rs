@@ -44,7 +44,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::{EAPI5, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkg::BuildablePackage;
+    use crate::pkg::BuildPackage;
     use crate::shell::phase::PhaseKind;
     use crate::shell::{assert_stderr, BuildData, BuildState, Scope};
 

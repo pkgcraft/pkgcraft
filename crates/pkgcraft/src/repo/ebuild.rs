@@ -25,7 +25,7 @@ use crate::files::{
 use crate::macros::build_from_paths;
 use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
 use crate::pkg::ebuild::{Pkg, RawPkg};
-use crate::pkg::SourceablePackage;
+use crate::pkg::PackageMetadata;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};

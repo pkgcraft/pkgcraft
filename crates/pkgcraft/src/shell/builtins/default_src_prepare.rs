@@ -27,7 +27,7 @@ make_builtin!(
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::BuildablePackage;
+    use crate::pkg::BuildPackage;
     use crate::shell::{get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
