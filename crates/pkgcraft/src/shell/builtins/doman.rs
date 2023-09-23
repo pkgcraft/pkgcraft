@@ -24,9 +24,9 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 .strip_prefix("-i18n=")
                 .map(|s| s.trim_matches('"'))
                 .unwrap();
-            (args, lang)
+            (args, Some(lang))
         }
-        [_, ..] => (args, ""),
+        [_, ..] => (args, None),
         _ => return Err(Error::Base("requires 1 or more args, got 0".to_string())),
     };
 
@@ -51,13 +51,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
         if let Some(m) = DETECT_LANG_RE.captures(base) {
             base = m.name("name").unwrap().as_str();
-            if lang.is_empty() {
-                lang = m.name("lang").unwrap().as_str();
+            if lang.is_none() {
+                lang = Some(m.name("lang").unwrap().as_str());
             }
         }
 
         // construct man page subdirectory
-        let mut mandir = Utf8PathBuf::from(lang);
+        let mut mandir = Utf8PathBuf::from(lang.unwrap_or(""));
         mandir.push(format!("man{ext}"));
 
         files.push((path, mandir.join(format!("{base}.{ext}"))));
@@ -157,6 +157,15 @@ mod tests {
             r#"
             [[files]]
             path = "/usr/share/man/zz/man1/pkgcraft.1"
+        "#,
+        );
+
+        // -i18n option with empty lang overrides filename lang
+        doman(&["-i18n=", "pkgcraft.en.1"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/man/man1/pkgcraft.1"
         "#,
         );
     }
