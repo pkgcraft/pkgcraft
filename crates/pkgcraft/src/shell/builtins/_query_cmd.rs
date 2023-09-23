@@ -9,7 +9,7 @@ use crate::shell::get_build_mut;
 /// Underlying query support for has_version and best_version.
 pub(crate) fn query_cmd(args: &[&str]) -> scallop::Result<impl Iterator<Item = Cpv>> {
     let build = get_build_mut();
-    let eapi = get_build_mut().eapi();
+    let eapi = build.eapi();
 
     // TODO: add proper root mapping support
     let (_root, dep) = match args[..] {
