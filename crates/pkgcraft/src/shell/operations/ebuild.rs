@@ -78,6 +78,6 @@ impl<'a> SourcePackage for Pkg<'a> {
 
 impl<'a> PackageMetadata for RawPkg<'a> {
     fn metadata(&self) -> scallop::Result<()> {
-        Ok(Metadata::serialize(self).map_err(|e| self.invalid_pkg_err(e))?)
+        Ok(Metadata::serialize(self)?)
     }
 }
