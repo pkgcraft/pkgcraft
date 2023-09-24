@@ -147,9 +147,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         for patch in patches {
-            match &dir {
-                None => write_stdout!("Applying {patch}...\n")?,
-                _ => write_stdout!("  {patch}...\n")?,
+            if dir.is_some() {
+                write_stdout!("  {patch}...\n")?;
+            } else {
+                write_stdout!("Applying {patch}...\n")?;
             }
             patch.apply(&options)?;
         }
