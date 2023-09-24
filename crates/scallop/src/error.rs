@@ -42,7 +42,9 @@ thread_local! {
     static ERRORS: RefCell<HashMap<usize, Error>> = RefCell::new(Default::default());
 }
 
+/// Reset the cached error support.
 pub(crate) fn reset() {
+    ERRORS.with(|errors| errors.borrow_mut().clear());
     CALL_LEVEL.store(0, Ordering::Relaxed);
 }
 

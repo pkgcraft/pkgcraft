@@ -17,7 +17,7 @@ use crate::{bash, error, Error};
 static PID: AtomicI32 = AtomicI32::new(0);
 // shell name
 static SHELL: OnceLock<CString> = OnceLock::new();
-// shared memory object for proxying subshell errors back to the main shell process
+// shared memory object for proxying errors
 static mut SHM: Lazy<*mut c_char> = Lazy::new(|| {
     let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     shm as *mut c_char
@@ -38,6 +38,7 @@ pub fn init(restricted: bool) {
     SHELL.set(name).expect("failed setting shell name");
 }
 
+/// Return the main shell process identifier.
 fn pid() -> Pid {
     Pid::from_raw(PID.load(Ordering::Relaxed))
 }
@@ -47,7 +48,7 @@ pub(crate) fn fork_init() {
     // store new child pid
     PID.store(getpid().as_raw(), Ordering::Relaxed);
 
-    // use new shared memory object for subshell errors
+    // use new shared memory object for proxying errors
     let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
         *Lazy::get_mut(&mut SHM).unwrap() = shm as *mut c_char;
@@ -104,10 +105,11 @@ pub(crate) fn kill<T: Into<Option<signal::Signal>>>(signal: T) -> crate::Result<
 
 /// Create an error message in shared memory.
 pub(crate) fn set_shm_error(msg: &str) {
+    // convert unicode string into byte string
     let msg = CString::new(msg).unwrap();
     let mut data = msg.into_bytes_with_nul();
 
-    // truncate error message if necessary
+    // truncate error message as necessary
     if data.len() > 4096 {
         data = [&data[..4096], &[b'\0']].concat();
     }
