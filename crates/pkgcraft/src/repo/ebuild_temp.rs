@@ -109,13 +109,17 @@ impl Repo {
     }
 
     /// Create a [`Pkg`] from ebuild field settings.
-    pub fn create_pkg(&self, cpv: &str, data: &[&str]) -> crate::Result<Pkg> {
+    pub fn create_pkg<S: AsRef<str>>(&self, cpv: S, data: &[&str]) -> crate::Result<Pkg> {
         let raw_pkg = self.create_raw_pkg(cpv, data)?;
         raw_pkg.try_into()
     }
 
     /// Create an ebuild file in the repo from raw data.
-    pub fn create_raw_pkg_from_str(&self, cpv: &str, data: &str) -> crate::Result<RawPkg> {
+    pub fn create_raw_pkg_from_str<S: AsRef<str>>(
+        &self,
+        cpv: S,
+        data: &str,
+    ) -> crate::Result<RawPkg> {
         let cpv = Cpv::new(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
@@ -126,7 +130,7 @@ impl Repo {
     }
 
     /// Create a [`Pkg`] from an ebuild using raw data.
-    pub fn create_pkg_from_str(&self, cpv: &str, data: &str) -> crate::Result<Pkg> {
+    pub fn create_pkg_from_str<S: AsRef<str>>(&self, cpv: S, data: &str) -> crate::Result<Pkg> {
         let raw_pkg = self.create_raw_pkg_from_str(cpv, data)?;
         raw_pkg.try_into()
     }
