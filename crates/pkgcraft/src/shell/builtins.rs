@@ -185,8 +185,8 @@ impl Builtin {
 
         match self.scope.get(eapi) {
             Some(s) if s.contains(scope) => self.builtin.run(args),
-            Some(_) => Err(Error::Base(format!("{self}: disabled in {scope} scope"))),
-            None => Err(Error::Base(format!("{self}: disabled in EAPI {eapi}"))),
+            Some(_) => Err(Error::Base(format!("disabled in {scope} scope"))),
+            None => Err(Error::Base(format!("disabled in EAPI {eapi}"))),
         }
     }
 }
@@ -530,7 +530,7 @@ macro_rules! builtin_scope_tests {
                             .unwrap_or_default()
                     });
                 for scope in scopes {
-                    let err = format!("{name}: disabled in ");
+                    let err = format!("{name}: error: disabled in ");
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
                     match scope {
