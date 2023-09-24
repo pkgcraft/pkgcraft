@@ -100,6 +100,7 @@ fn main() {
         .allowlist_function("bash_main")
         .allowlist_function("lib_error_handlers")
         .allowlist_function("lib_init")
+        .allowlist_function("fork_init")
         .allowlist_function("lib_reset")
         .allowlist_function("scallop_toggle_restricted")
         .allowlist_function("set_shell_name")

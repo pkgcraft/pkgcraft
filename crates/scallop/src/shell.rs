@@ -1,4 +1,5 @@
-use std::ffi::{c_char, c_int, CStr, CString};
+use std::ffi::{c_char, c_int, c_void, CStr, CString};
+use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::OnceLock;
 use std::{env, mem, process, ptr};
 
@@ -12,22 +13,46 @@ use crate::builtins::ExecStatus;
 use crate::shm::create_shm;
 use crate::{bash, error, Error};
 
+// main shell process identifier
+static PID: AtomicI32 = AtomicI32::new(0);
+// shell name
+static SHELL: OnceLock<CString> = OnceLock::new();
+// shared memory object for proxying subshell errors back to the main shell process
+static mut SHM: Lazy<*mut c_char> = Lazy::new(|| {
+    let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
+    shm as *mut c_char
+});
+
 /// Initialize the shell for library use.
 pub fn init(restricted: bool) {
-    let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     let name = CString::new("scallop").unwrap();
     unsafe {
-        SHM.set(shm as *mut c_char)
-            .expect("shm already initialized");
         bash::lib_error_handlers(Some(error::bash_error), Some(error::bash_warning_log));
-        bash::lib_init(name.as_ptr() as *mut _, shm, restricted as i32);
+        bash::lib_init(name.as_ptr() as *mut _, *SHM as *mut c_void, restricted as i32);
     }
 
     // force main pid initialization
-    Lazy::force(&PID);
+    PID.store(getpid().as_raw(), Ordering::Relaxed);
 
     // shell name is saved since bash requires a valid pointer to it
     SHELL.set(name).expect("failed setting shell name");
+}
+
+fn pid() -> Pid {
+    Pid::from_raw(PID.load(Ordering::Relaxed))
+}
+
+/// Reinitialize the shell when forking processes.
+pub(crate) fn fork_init() {
+    // store new child pid
+    PID.store(getpid().as_raw(), Ordering::Relaxed);
+
+    // use new shared memory object for subshell errors
+    let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
+    unsafe {
+        *Lazy::get_mut(&mut SHM).unwrap() = shm as *mut c_char;
+        bash::fork_init(shm);
+    }
 }
 
 /// Reset the shell back to a pristine state, optionally skipping a list of variables.
@@ -72,16 +97,10 @@ pub fn interactive() {
     process::exit(ret)
 }
 
-static PID: Lazy<Pid> = Lazy::new(getpid);
-static SHELL: OnceLock<CString> = OnceLock::new();
-
 /// Send a signal to the main bash process.
 pub(crate) fn kill<T: Into<Option<signal::Signal>>>(signal: T) -> crate::Result<()> {
-    signal::kill(*PID, signal.into()).map_err(|e| Error::Base(e.to_string()))
+    signal::kill(pid(), signal.into()).map_err(|e| Error::Base(e.to_string()))
 }
-
-// Shared memory object for proxying subshell errors back to the main shell process.
-static mut SHM: OnceLock<*mut c_char> = OnceLock::new();
 
 /// Create an error message in shared memory.
 pub(crate) fn set_shm_error(msg: &str) {
@@ -95,17 +114,15 @@ pub(crate) fn set_shm_error(msg: &str) {
 
     // write message into shared memory
     unsafe {
-        let dst = *SHM.get().expect("uninitialized shell");
-        ptr::copy_nonoverlapping(data.as_ptr(), dst as *mut u8, data.len());
+        ptr::copy_nonoverlapping(data.as_ptr(), *SHM as *mut u8, data.len());
     }
 }
 
 /// Raise an error from shared memory if one exists.
 pub(crate) fn raise_shm_error() {
     unsafe {
-        let dst = *SHM.get().expect("uninitialized shell");
-        error::bash_error(dst);
-        ptr::write_bytes(dst, b'\0', 4096);
+        error::bash_error(*SHM);
+        ptr::write_bytes(*SHM, b'\0', 4096);
     }
 }
 
@@ -126,7 +143,7 @@ pub fn subshell_level() -> i32 {
 
 /// Returns true if currently operating in the main process.
 pub fn in_main() -> bool {
-    *PID == getpid()
+    pid() == getpid()
 }
 
 /// Returns true if currently operating in restricted mode.

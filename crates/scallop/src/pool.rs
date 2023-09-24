@@ -7,7 +7,7 @@ use nix::unistd::{close, dup2, fork, ForkResult};
 use serde::{Deserialize, Serialize};
 
 use crate::shm::create_shm;
-use crate::{bash, Error};
+use crate::{bash, shell, Error};
 
 /// Redirect stdout and stderr to a given raw file descriptor.
 pub fn redirect_output(fd: RawFd) -> crate::Result<()> {
@@ -100,6 +100,8 @@ impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
+                shell::fork_init();
+
                 if suppress {
                     // suppress stdout and stderr in forked processes
                     suppress_output()?;
@@ -112,6 +114,7 @@ impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
                     match unsafe { fork() } {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
+                            shell::fork_init();
                             // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
                             let r = func(obj);
                             tx.send(r).map_err(|e| {
@@ -180,6 +183,8 @@ where
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
+                shell::fork_init();
+
                 if suppress {
                     // suppress stdout and stderr in forked processes
                     suppress_output()?;
@@ -191,6 +196,7 @@ where
                     match unsafe { fork() } {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
+                            shell::fork_init();
                             // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
                             let r = func(obj);
                             output_tx.send(Msg::Val(r)).map_err(|e| {
@@ -225,6 +231,7 @@ where
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
+                shell::fork_init();
                 // send values to process pool
                 for val in vals {
                     self.input_tx
