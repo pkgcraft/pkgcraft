@@ -1191,7 +1191,7 @@ mod tests {
         let repo = t.repo();
 
         let data = indoc::indoc! {r#"
-            EAPI="8"
+            EAPI=8
             DESCRIPTION="testing metadata generation"
             SLOT=0
         "#};
@@ -1204,9 +1204,40 @@ mod tests {
             DESCRIPTION=testing metadata generation
             EAPI=8
             SLOT=0
-            _md5_=ea4f236b663902c60595f1422d1544f3
+            _md5_=e871bbf49576e8c370c4f69856fca537
         "};
         let path = repo.metadata().cache_path().join("cat/pkg-1");
         assert_eq!(fs::read_to_string(path).unwrap(), metadata);
+    }
+
+    #[traced_test]
+    #[test]
+    fn test_pkg_metadata_regen_errors() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
+
+        // create a large number of packages with a subshelled, invalid scope builtin call
+        for pv in 0..50 {
+            let data = indoc::indoc! {r#"
+                EAPI=8
+                DESCRIPTION="testing metadata generation error handling"
+                SLOT=0
+                VAR=$(einfo msg)
+            "#};
+            t.create_raw_pkg_from_str(format!("cat/pkg-{pv}"), data)
+                .unwrap();
+        }
+
+        // run regen asserting that errors occurred
+        let r = repo.pkg_metadata_regen(None, false, false);
+        assert!(r.is_err());
+
+        // verify all pkgs caused logged errors
+        for pv in 0..50 {
+            assert_logs_re!(format!(
+                "test: invalid pkg: cat/pkg-{pv}::test: einfo: error: disabled in global scope$"
+            ));
+        }
     }
 }
