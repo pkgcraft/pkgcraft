@@ -1,5 +1,4 @@
 use std::ffi::{c_char, c_int, c_void, CStr, CString};
-use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::OnceLock;
 use std::{env, mem, process, ptr};
 
@@ -13,8 +12,6 @@ use crate::builtins::ExecStatus;
 use crate::shm::create_shm;
 use crate::{bash, error, Error};
 
-// main shell process identifier
-static PID: AtomicI32 = AtomicI32::new(0);
 // shell name
 static SHELL: OnceLock<CString> = OnceLock::new();
 // shared memory object for proxying errors
@@ -31,22 +28,19 @@ pub fn init(restricted: bool) {
         bash::lib_init(name.as_ptr() as *mut _, *SHM as *mut c_void, restricted as i32);
     }
 
-    // force main pid initialization
-    PID.store(getpid().as_raw(), Ordering::Relaxed);
-
     // shell name is saved since bash requires a valid pointer to it
     SHELL.set(name).expect("failed setting shell name");
 }
 
 /// Return the main shell process identifier.
 fn pid() -> Pid {
-    Pid::from_raw(PID.load(Ordering::Relaxed))
+    Pid::from_raw(unsafe { bash::SHELL_PID })
 }
 
 /// Reinitialize the shell when forking processes.
 pub(crate) fn fork_init() {
-    // store new child pid
-    PID.store(getpid().as_raw(), Ordering::Relaxed);
+    // update shell pid for child process
+    unsafe { bash::SHELL_PID = getpid().as_raw() };
 
     // use new shared memory object for proxying errors
     let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));

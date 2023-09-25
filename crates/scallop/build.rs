@@ -30,6 +30,7 @@ impl ParseCallbacks for BashCallback {
             "executing_builtin" => Some("BUILTIN_LEVEL".into()),
             "restricted" => Some("RESTRICTED".into()),
             "restricted_shell" => Some("RESTRICTED_SHELL".into()),
+            "shell_pgrp" => Some("SHELL_PID".into()),
             // global constants
             "dist_version" => Some("DIST_VERSION".into()),
             "patch_level" => Some("PATCH_LEVEL".into()),
@@ -161,6 +162,7 @@ fn main() {
 
         .header("bash/jobs.h")
         .allowlist_function("set_sigchld_handler")
+        .allowlist_var("shell_pgrp")
 
         .header("bash/externs.h")
         .allowlist_function("parse_command")
