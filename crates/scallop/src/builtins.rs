@@ -483,9 +483,10 @@ impl From<ExitStatus> for ExecStatus {
 /// Handle builtin errors.
 pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
     // command_not_found_handle builtin messages are unprefixed
+    let lineno = shell::executing_line_number();
     let msg = match cmd.as_ref() {
-        "command_not_found_handle" => err.to_string(),
-        s => format!("{s}: error: {err}"),
+        "command_not_found_handle" => format!("line {lineno}: {err}"),
+        s => format!("line {lineno}: {s}: error: {err}"),
     };
 
     // push error message into shared memory so subshell errors can be captured
