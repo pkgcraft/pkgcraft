@@ -12,7 +12,7 @@ Highly experimental tooling ecosystem for Gentoo comprised of the following:
 
 ## Development
 
-Using `cargo nextest` is required to run tests in separate processes. Running
+Using [cargo nextest][0] is required to run tests in separate processes. Running
 tests via `cargo test` will break due to its threaded approach since much of
 the pkgcraft ecosystem relies on bash which isn't thread-friendly in any
 fashion.
@@ -26,5 +26,6 @@ For bugs or other requests please create an [issue][1].
 For general support or questions use [discussions][2] or the #pkgcraft IRC
 channel on libera.
 
+[0]: <https://nexte.st/>
 [1]: <https://github.com/pkgcraft/pkgcraft/issues>
 [2]: <https://github.com/pkgcraft/pkgcraft/discussions>
