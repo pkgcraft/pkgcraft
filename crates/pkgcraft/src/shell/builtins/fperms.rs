@@ -73,7 +73,7 @@ mod tests {
             let r = pkg.build();
             assert_err_re!(
                 r,
-                "failed running: chmod: cannot access 'nonexistent': No such file or directory$"
+                "line 5: fperms: error: failed running: chmod: cannot access 'nonexistent': No such file or directory$"
             );
         })
     }

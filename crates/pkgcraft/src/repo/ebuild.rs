@@ -1236,7 +1236,7 @@ mod tests {
         // verify all pkgs caused logged errors
         for pv in 0..50 {
             assert_logs_re!(format!(
-                "invalid pkg: cat/pkg-{pv}::test: einfo: error: disabled in global scope$"
+                "invalid pkg: cat/pkg-{pv}::test: line 4: einfo: error: disabled in global scope$"
             ));
         }
     }

@@ -170,7 +170,7 @@ mod tests {
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         let r = inherit(&["e1"]);
-        assert_err_re!(r, r"^failed loading eclass: e1: unknown command: unknown_cmd$");
+        assert_err_re!(r, "^failed loading eclass: e1: line 2: unknown command: unknown_cmd$");
     }
 
     #[test]

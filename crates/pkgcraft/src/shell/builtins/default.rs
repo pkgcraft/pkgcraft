@@ -86,7 +86,7 @@ mod tests {
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
         BuildData::from_pkg(&pkg);
         let result = pkg.build();
-        assert_err_re!(result, "pkg_setup phase has no default$");
+        assert_err_re!(result, "line 6: default: error: pkg_setup phase has no default$");
         // verify custom pkg_setup() stopped on error
         assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
     }

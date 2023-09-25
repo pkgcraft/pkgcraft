@@ -129,7 +129,7 @@ mod tests {
             let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_pkg(&pkg);
             let r = pkg.build();
-            assert_err_re!(r, "usex: error: requires 1 to 5 args, got 0$");
+            assert_err_re!(r, "line 7: usex: error: requires 1 to 5 args, got 0$");
             assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
         }
     }

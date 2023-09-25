@@ -142,7 +142,7 @@ mod tests {
         "#};
         let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         let r = raw_pkg.source();
-        assert_err_re!(r, "invalid phase: invalid_phase$");
+        assert_err_re!(r, "line 2: EXPORT_FUNCTIONS: error: invalid phase: invalid_phase$");
     }
 
     #[test]
@@ -167,6 +167,9 @@ mod tests {
         "#};
         let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         let r = raw_pkg.source();
-        assert_err_re!(r, "e1: undefined phase function: e1_src_configure$");
+        assert_err_re!(
+            r,
+            "line 2: inherit: error: e1: undefined phase function: e1_src_configure$"
+        );
     }
 }

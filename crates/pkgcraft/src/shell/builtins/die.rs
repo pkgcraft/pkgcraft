@@ -71,14 +71,14 @@ mod tests {
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("die && VAR=2");
-        assert_err_re!(r, r"^die: error: \(no error message\)");
+        assert_err_re!(r, r"^line 1: die: error: \(no error message\)$");
 
         // verify bash state
         assert_eq!(variables::optional("VAR").unwrap(), "1");
 
         // verify message output
         let r = source::string("die \"output message\"");
-        assert_err_re!(r, r"^die: error: output message");
+        assert_err_re!(r, "^line 1: die: error: output message$");
     }
 
     #[test]
@@ -87,14 +87,14 @@ mod tests {
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("FOO=$(die); VAR=2");
-        assert_err_re!(r, r"^die: error: \(no error message\)");
+        assert_err_re!(r, r"^line 1: die: error: \(no error message\)$");
 
         // verify bash state
         assert_eq!(variables::optional("VAR").unwrap(), "1");
 
         // verify message output
         let r = source::string("VAR=$(die \"output message\")");
-        assert_err_re!(r, r"^die: error: output message");
+        assert_err_re!(r, "^line 1: die: error: output message$");
 
         // verify failure during build
         let mut config = Config::default();
@@ -112,7 +112,7 @@ mod tests {
             let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_pkg(&pkg);
             let result = pkg.build();
-            assert_err_re!(result, "die: error: subshell$");
+            assert_err_re!(result, "line 5: die: error: subshell$");
         }
     }
 
@@ -126,17 +126,17 @@ mod tests {
 
         // `die -n` only works in supported EAPIs
         let r = source::string("die -n");
-        assert_err_re!(r, r"^die: error: -n");
+        assert_err_re!(r, "^line 1: die: error: -n");
 
         build.state = BuildState::Empty(EAPIS_OFFICIAL.last().unwrap());
 
         // `die -n` only works as expected when run with nonfatal
         let r = source::string("die -n message");
-        assert_err_re!(r, r"^die: error: message");
+        assert_err_re!(r, "^line 1: die: error: message");
 
         // nonfatal requires `die -n` call
         let r = source::string("nonfatal die && VAR=2");
-        assert_err_re!(r, r"^die: error: \(no error message\)");
+        assert_err_re!(r, r"^line 1: die: error: \(no error message\)");
 
         // nonfatal die in main process
         bind("VAR", "1", None, None).unwrap();
