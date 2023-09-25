@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
-use crate::repo::ebuild_temp::Repo as TempRepo;
+use crate::repo::ebuild::temp::Repo as TempRepo;
 use crate::repo::Repo;
 use crate::utils::find_existing_path;
 use crate::{shell, Error, COLLAPSE_LAZY_FIELDS};

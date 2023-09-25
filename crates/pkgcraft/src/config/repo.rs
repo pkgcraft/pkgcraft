@@ -12,7 +12,7 @@ use serde_with::{serde_as, DisplayFromStr};
 use tracing::warn;
 
 use crate::eapi::Eapi;
-use crate::repo::ebuild_temp::Repo as TempRepo;
+use crate::repo::ebuild::temp::Repo as TempRepo;
 use crate::repo::set::RepoSet;
 use crate::repo::{Repo, RepoFormat, Repository};
 use crate::sync::Syncer;

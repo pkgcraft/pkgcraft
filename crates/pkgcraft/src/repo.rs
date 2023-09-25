@@ -14,7 +14,6 @@ use crate::restrict::Restrict as BaseRestrict;
 use crate::Error;
 
 pub mod ebuild;
-pub mod ebuild_temp;
 pub(crate) mod empty;
 pub mod fake;
 pub mod set;
@@ -590,7 +589,7 @@ mod tests {
 
     #[test]
     fn test_traits() {
-        let t = ebuild_temp::Repo::new("test", None, 0, None).unwrap();
+        let t = ebuild::temp::Repo::new("test", None, 0, None).unwrap();
         let e_repo = t.repo;
         let f_repo: Repo = fake::Repo::new("fake", 0).into();
         assert!(e_repo != f_repo);

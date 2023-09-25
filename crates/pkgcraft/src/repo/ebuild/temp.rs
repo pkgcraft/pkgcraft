@@ -8,12 +8,12 @@ use tempfile::TempDir;
 
 use crate::dep::{Cpv, Version};
 use crate::pkg::ebuild::{Pkg, RawPkg};
-use crate::repo::ebuild::Repo as EbuildRepo;
+use crate::repo::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 use crate::restrict::Restrict;
 use crate::shell::metadata::Key;
 use crate::{eapi, Error};
 
-use super::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
+use super::Repo as EbuildRepo;
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]

@@ -1,7 +1,7 @@
 use std::{env, fs};
 
 use indexmap::IndexMap;
-use pkgcraft::repo::{ebuild_temp::Repo as TempRepo, Repository};
+use pkgcraft::repo::{ebuild::temp::Repo as TempRepo, Repository};
 use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;

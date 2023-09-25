@@ -39,6 +39,7 @@ mod cache;
 mod eclass;
 pub use eclass::Eclass;
 mod metadata;
+pub mod temp;
 pub use metadata::Metadata;
 
 // root level directories that aren't categories
@@ -935,10 +936,10 @@ mod tests {
     use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
     use crate::macros::*;
     use crate::pkg::Package;
-    use crate::repo::ebuild_temp::Repo as TempRepo;
     use crate::repo::Contains;
     use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
 
+    use super::temp::Repo as TempRepo;
     use super::*;
 
     #[test]
