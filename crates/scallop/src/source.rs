@@ -26,7 +26,8 @@ bitflags! {
 pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
     let c_str = CString::new(s.as_ref()).unwrap();
     ok_or_error(|| {
-        let ret = unsafe { bash::scallop_evalstring(c_str.as_ptr(), 0) };
+        let flags = Eval::RESET_LINE.bits() as i32;
+        let ret = unsafe { bash::scallop_evalstring(c_str.as_ptr(), flags) };
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -75,13 +76,13 @@ mod tests {
     fn test_source_string_error() {
         // bad bash code raises error
         let err = source::string("local VAR").unwrap_err();
-        assert_eq!(err.to_string(), "local: can only be used in a function");
+        assert_eq!(err.to_string(), "line 1: local: can only be used in a function");
 
         // Sourcing continues when an error occurs because `set -e` isn't enabled, but the error is
         // still raised on completion (unlike bash).
         let err = source::string("local VAR\nVAR=1").unwrap_err();
         assert_eq!(optional("VAR").unwrap(), "1");
-        assert_eq!(err.to_string(), format!("local: can only be used in a function"));
+        assert_eq!(err.to_string(), "line 1: local: can only be used in a function");
     }
 
     #[test]
