@@ -17,6 +17,7 @@ use crate::Error;
 
 use super::{make_pkg_traits, Package};
 
+pub mod configured;
 pub mod metadata;
 use metadata::{Manifest, ManifestFile, XmlMetadata};
 mod restrict;

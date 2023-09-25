@@ -15,6 +15,7 @@ pub mod fake;
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Debug)]
 pub enum Pkg<'a> {
+    Configured(ebuild::configured::Pkg<'a>, &'a Repo),
     Ebuild(ebuild::Pkg<'a>, &'a Repo),
     Fake(fake::Pkg<'a>, &'a Repo),
 }
@@ -141,6 +142,7 @@ impl<'a> Package for Pkg<'a> {
 
     fn cpv(&self) -> &Cpv {
         match self {
+            Self::Configured(pkg, _) => pkg.cpv(),
             Self::Ebuild(pkg, _) => pkg.cpv(),
             Self::Fake(pkg, _) => pkg.cpv(),
         }
@@ -148,6 +150,7 @@ impl<'a> Package for Pkg<'a> {
 
     fn eapi(&self) -> &'static eapi::Eapi {
         match self {
+            Self::Configured(pkg, _) => pkg.eapi(),
             Self::Ebuild(pkg, _) => pkg.eapi(),
             Self::Fake(pkg, _) => pkg.eapi(),
         }
@@ -155,6 +158,7 @@ impl<'a> Package for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         match self {
+            Self::Configured(_, repo) => repo,
             Self::Ebuild(_, repo) => repo,
             Self::Fake(_, repo) => repo,
         }

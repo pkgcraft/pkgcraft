@@ -101,6 +101,7 @@ impl RepoFormat {
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Debug, Clone)]
 pub enum Repo {
+    Configured(Arc<ebuild::configured::Repo>),
     Ebuild(Arc<ebuild::Repo>),
     Fake(Arc<fake::Repo>),
     Unsynced(Arc<empty::Repo>),
@@ -194,6 +195,7 @@ impl Repo {
 
     pub(super) fn repo_config(&self) -> &RepoConfig {
         match self {
+            Self::Configured(repo) => repo.repo_config(),
             Self::Ebuild(repo) => repo.repo_config(),
             Self::Fake(repo) => repo.repo_config(),
             Self::Unsynced(repo) => repo.repo_config(),
@@ -235,6 +237,7 @@ impl<'a> Iterator for Iter<'a> {
 
 #[allow(clippy::large_enum_variant)]
 pub enum IterRestrict<'a> {
+    Configured(ebuild::configured::IterRestrict<'a>, &'a Repo),
     Ebuild(ebuild::IterRestrict<'a>, &'a Repo),
     Fake(fake::IterRestrict<'a>, &'a Repo),
     Empty,
@@ -245,6 +248,7 @@ impl<'a> Iterator for IterRestrict<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
+            Self::Configured(iter, repo) => iter.next().map(|p| Pkg::Configured(p, repo)),
             Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo)),
             Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo)),
             Self::Empty => None,
@@ -370,6 +374,7 @@ impl<'a, T: Repository + PkgRepository> Repository for &'a T {
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Configured(repo) => write!(f, "{repo}"),
             Self::Ebuild(repo) => write!(f, "{repo}"),
             Self::Fake(repo) => write!(f, "{repo}"),
             Self::Unsynced(repo) => write!(f, "{repo}"),
@@ -384,6 +389,7 @@ impl PkgRepository for Repo {
 
     fn categories(&self) -> IndexSet<String> {
         match self {
+            Self::Configured(repo) => repo.categories(),
             Self::Ebuild(repo) => repo.categories(),
             Self::Fake(repo) => repo.categories(),
             Self::Unsynced(repo) => repo.categories(),
@@ -392,6 +398,7 @@ impl PkgRepository for Repo {
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
         match self {
+            Self::Configured(repo) => repo.packages(cat),
             Self::Ebuild(repo) => repo.packages(cat),
             Self::Fake(repo) => repo.packages(cat),
             Self::Unsynced(repo) => repo.packages(cat),
@@ -400,6 +407,7 @@ impl PkgRepository for Repo {
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         match self {
+            Self::Configured(repo) => repo.versions(cat, pkg),
             Self::Ebuild(repo) => repo.versions(cat, pkg),
             Self::Fake(repo) => repo.versions(cat, pkg),
             Self::Unsynced(repo) => repo.versions(cat, pkg),
@@ -408,6 +416,7 @@ impl PkgRepository for Repo {
 
     fn len(&self) -> usize {
         match self {
+            Self::Configured(repo) => repo.len(),
             Self::Ebuild(repo) => repo.len(),
             Self::Fake(repo) => repo.len(),
             Self::Unsynced(repo) => repo.len(),
@@ -420,6 +429,7 @@ impl PkgRepository for Repo {
 
     fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::IterRestrict<'_> {
         match self {
+            Self::Configured(repo) => IterRestrict::Configured(repo.iter_restrict(val), self),
             Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val), self),
             Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val), self),
             _ => IterRestrict::Empty,
@@ -430,6 +440,7 @@ impl PkgRepository for Repo {
 impl Repository for Repo {
     fn format(&self) -> RepoFormat {
         match self {
+            Self::Configured(repo) => repo.format(),
             Self::Ebuild(repo) => repo.format(),
             Self::Fake(repo) => repo.format(),
             Self::Unsynced(repo) => repo.format(),
@@ -438,6 +449,7 @@ impl Repository for Repo {
 
     fn id(&self) -> &str {
         match self {
+            Self::Configured(repo) => repo.id(),
             Self::Ebuild(repo) => repo.id(),
             Self::Fake(repo) => repo.id(),
             Self::Unsynced(repo) => repo.id(),
@@ -446,6 +458,7 @@ impl Repository for Repo {
 
     fn name(&self) -> &str {
         match self {
+            Self::Configured(repo) => repo.name(),
             Self::Ebuild(repo) => repo.name(),
             Self::Fake(repo) => repo.id(),
             Self::Unsynced(repo) => repo.id(),
@@ -454,6 +467,7 @@ impl Repository for Repo {
 
     fn priority(&self) -> i32 {
         match self {
+            Self::Configured(repo) => repo.priority(),
             Self::Ebuild(repo) => repo.priority(),
             Self::Fake(repo) => repo.priority(),
             Self::Unsynced(repo) => repo.priority(),
@@ -462,6 +476,7 @@ impl Repository for Repo {
 
     fn path(&self) -> &Utf8Path {
         match self {
+            Self::Configured(repo) => repo.path(),
             Self::Ebuild(repo) => repo.path(),
             Self::Fake(repo) => repo.path(),
             Self::Unsynced(repo) => repo.path(),
@@ -470,6 +485,7 @@ impl Repository for Repo {
 
     fn sync(&self) -> crate::Result<()> {
         match self {
+            Self::Configured(repo) => repo.sync(),
             Self::Ebuild(repo) => repo.sync(),
             Self::Fake(repo) => repo.sync(),
             Self::Unsynced(repo) => repo.sync(),

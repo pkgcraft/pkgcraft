@@ -14,6 +14,7 @@ pub mod ebuild;
 
 #[repr(C)]
 pub enum PkgFormat {
+    Configured,
     Ebuild,
     Fake,
 }
@@ -21,6 +22,7 @@ pub enum PkgFormat {
 impl From<&Pkg<'_>> for PkgFormat {
     fn from(pkg: &Pkg) -> Self {
         match pkg {
+            Pkg::Configured(_, _) => Self::Configured,
             Pkg::Ebuild(_, _) => Self::Ebuild,
             Pkg::Fake(_, _) => Self::Fake,
         }

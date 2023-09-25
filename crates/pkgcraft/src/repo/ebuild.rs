@@ -36,6 +36,7 @@ use crate::{Error, COLLAPSE_LAZY_FIELDS};
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
 mod cache;
+pub mod configured;
 mod eclass;
 pub use eclass::Eclass;
 mod metadata;
