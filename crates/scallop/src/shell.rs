@@ -1,4 +1,4 @@
-use std::ffi::{c_char, c_int, c_void, CStr, CString};
+use std::ffi::{c_char, c_int, CStr, CString};
 use std::sync::OnceLock;
 use std::{env, mem, process, ptr};
 
@@ -14,18 +14,14 @@ use crate::{bash, error, Error};
 
 // shell name
 static SHELL: OnceLock<CString> = OnceLock::new();
-// shared memory object for proxying errors
-static mut SHM: Lazy<*mut c_char> = Lazy::new(|| {
-    let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
-    shm as *mut c_char
-});
 
 /// Initialize the shell for library use.
 pub fn init(restricted: bool) {
     let name = CString::new("scallop").unwrap();
+    let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
         bash::lib_error_handlers(Some(error::bash_error), Some(error::bash_warning_log));
-        bash::lib_init(name.as_ptr() as *mut _, *SHM as *mut c_void, restricted as i32);
+        bash::lib_init(name.as_ptr() as *mut _, shm, restricted as i32);
     }
 
     // shell name is saved since bash requires a valid pointer to it
@@ -39,14 +35,12 @@ fn pid() -> Pid {
 
 /// Reinitialize the shell when forking processes.
 pub(crate) fn fork_init() {
-    // update shell pid for child process
-    unsafe { bash::SHELL_PID = getpid().as_raw() };
-
     // use new shared memory object for proxying errors
     let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
-        *Lazy::get_mut(&mut SHM).unwrap() = shm as *mut c_char;
-        bash::fork_init(shm);
+        bash::SHM_BUF = shm;
+        // update shell pid for child process
+        bash::SHELL_PID = getpid().as_raw();
     }
 }
 
@@ -110,15 +104,17 @@ pub(crate) fn set_shm_error(msg: &str) {
 
     // write message into shared memory
     unsafe {
-        ptr::copy_nonoverlapping(data.as_ptr(), *SHM as *mut u8, data.len());
+        let shm = bash::SHM_BUF as *mut u8;
+        ptr::copy_nonoverlapping(data.as_ptr(), shm, data.len());
     }
 }
 
 /// Raise an error from shared memory if one exists.
 pub(crate) fn raise_shm_error() {
     unsafe {
-        error::bash_error(*SHM);
-        ptr::write_bytes(*SHM, b'\0', 4096);
+        let shm = bash::SHM_BUF as *mut c_char;
+        error::bash_error(shm);
+        ptr::write_bytes(shm, b'\0', 4096);
     }
 }
 
