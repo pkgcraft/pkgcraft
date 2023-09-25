@@ -180,6 +180,11 @@ pub static BASH_VERSION: Lazy<String> = Lazy::new(|| unsafe {
     format!("{version}.{}", bash::PATCH_LEVEL)
 });
 
+/// Returns the line number of the currently executing command.
+pub fn executing_line_number() -> i32 {
+    unsafe { bash::executing_line_number() }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{functions, source, variables};
