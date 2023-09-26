@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::dep::{Cpv, Intersects};
+use pkgcraft::dep::{Cpv, Flatten, Intersects};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::PkgRepository;
 
@@ -26,7 +26,7 @@ impl Command {
 
         for pkg in repo.iter() {
             cpvs.push(pkg.cpv().clone());
-            for dep in pkg.dependencies(&[]).iter_flatten() {
+            for dep in pkg.dependencies(&[]).into_iter_flatten() {
                 cache.entry(dep.cpn()).or_default().insert(dep.clone());
             }
         }

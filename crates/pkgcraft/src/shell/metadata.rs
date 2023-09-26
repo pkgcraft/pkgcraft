@@ -100,12 +100,12 @@ impl Key {
 pub(crate) struct Metadata {
     description: String,
     slot: String,
-    deps: HashMap<Key, DepSet<Dep>>,
-    license: Option<DepSet<String>>,
-    properties: Option<DepSet<String>>,
-    required_use: Option<DepSet<String>>,
-    restrict: Option<DepSet<String>>,
-    src_uri: Option<DepSet<Uri>>,
+    deps: HashMap<Key, DepSet<String, Dep>>,
+    license: Option<DepSet<String, String>>,
+    properties: Option<DepSet<String, String>>,
+    required_use: Option<DepSet<String, String>>,
+    restrict: Option<DepSet<String, String>>,
+    src_uri: Option<DepSet<String, Uri>>,
     homepage: OrderedSet<String>,
     defined_phases: OrderedSet<String>,
     keywords: OrderedSet<String>,
@@ -333,27 +333,27 @@ impl Metadata {
         s.split_once('/').map(|x| x.1)
     }
 
-    pub(crate) fn deps(&self, key: Key) -> Option<&DepSet<Dep>> {
+    pub(crate) fn deps(&self, key: Key) -> Option<&DepSet<String, Dep>> {
         self.deps.get(&key)
     }
 
-    pub(crate) fn license(&self) -> Option<&DepSet<String>> {
+    pub(crate) fn license(&self) -> Option<&DepSet<String, String>> {
         self.license.as_ref()
     }
 
-    pub(crate) fn properties(&self) -> Option<&DepSet<String>> {
+    pub(crate) fn properties(&self) -> Option<&DepSet<String, String>> {
         self.properties.as_ref()
     }
 
-    pub(crate) fn required_use(&self) -> Option<&DepSet<String>> {
+    pub(crate) fn required_use(&self) -> Option<&DepSet<String, String>> {
         self.required_use.as_ref()
     }
 
-    pub(crate) fn restrict(&self) -> Option<&DepSet<String>> {
+    pub(crate) fn restrict(&self) -> Option<&DepSet<String, String>> {
         self.restrict.as_ref()
     }
 
-    pub(crate) fn src_uri(&self) -> Option<&DepSet<Uri>> {
+    pub(crate) fn src_uri(&self) -> Option<&DepSet<String, Uri>> {
         self.src_uri.as_ref()
     }
 

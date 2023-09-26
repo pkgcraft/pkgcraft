@@ -183,7 +183,7 @@ peg::parser!(grammar depspec() for str {
 
     // Technically PROPERTIES and RESTRICT tokens have no restrictions, but use license
     // restrictions in order to properly parse use restrictions.
-    rule properties_restrict_val() -> DepSpec<String>
+    rule properties_restrict_val() -> DepSpec<String, String>
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
@@ -191,14 +191,14 @@ peg::parser!(grammar depspec() for str {
         ) { DepSpec::Enabled(s.to_string()) }
 
     // licenses must not begin with a hyphen, dot, or plus sign.
-    rule license_val() -> DepSpec<String>
+    rule license_val() -> DepSpec<String, String>
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
         } / expected!("license name")
         ) { DepSpec::Enabled(s.to_string()) }
 
-    rule use_flag_val() -> DepSpec<String>
+    rule use_flag_val() -> DepSpec<String, String>
         = disabled:"!"? s:use_flag() {
             let val = s.to_string();
             if disabled.is_none() {
@@ -208,7 +208,7 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    rule pkg_val(eapi: &'static Eapi) -> DepSpec<Dep>
+    rule pkg_val(eapi: &'static Eapi) -> DepSpec<String, Dep>
         = s:$(quiet!{!")" [^' ']+}) {?
             let dep = match Dep::new(s, eapi) {
                 Ok(x) => x,
@@ -217,7 +217,7 @@ peg::parser!(grammar depspec() for str {
             Ok(DepSpec::Enabled(dep))
         }
 
-    rule uri_val() -> DepSpec<Uri>
+    rule uri_val() -> DepSpec<String, Uri>
         = s:$(quiet!{!")" [^' ']+}) rename:(_ "->" _ s:$([^' ']+) {s})? {?
             let uri = Uri::new(s, rename).map_err(|_| "invalid URI")?;
             Ok(DepSpec::Enabled(uri))
@@ -226,15 +226,15 @@ peg::parser!(grammar depspec() for str {
     rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
         = "(" _ v:expr() ++ " " _ ")" { v }
 
-    rule all_of<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
+    rule all_of<T: Ordered>(expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
         = vals:parens(<expr()>)
         { DepSpec::AllOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule any_of<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
+    rule any_of<T: Ordered>(expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
         = "||" _ vals:parens(<expr()>)
         { DepSpec::AnyOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule use_cond<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
+    rule use_cond<T: Ordered>(expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
         = negate:"!"? u:use_flag() "?" _ vals:parens(<expr()>) {
             let f = match negate {
                 None => DepSpec::UseEnabled,
@@ -243,32 +243,32 @@ peg::parser!(grammar depspec() for str {
             f(u.to_string(), vals.into_iter().map(Box::new).collect())
         }
 
-    rule exactly_one_of<T: Ordered>(expr: rule<DepSpec<T>>) -> DepSpec<T>
+    rule exactly_one_of<T: Ordered>(expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
         = "^^" _ vals:parens(<expr()>)
         { DepSpec::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<DepSpec<T>>) -> DepSpec<T>
+    rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
         = "??" _ vals:parens(<expr()>) {
             DepSpec::AtMostOneOf(vals.into_iter().map(Box::new).collect())
         }
 
-    rule license_dep_restrict() -> DepSpec<String>
+    rule license_dep_restrict() -> DepSpec<String, String>
         = use_cond(<license_dep_restrict()>)
             / any_of(<license_dep_restrict()>)
             / all_of(<license_dep_restrict()>)
             / license_val()
 
-    rule src_uri_dep_restrict(eapi: &'static Eapi) -> DepSpec<Uri>
+    rule src_uri_dep_restrict(eapi: &'static Eapi) -> DepSpec<String, Uri>
         = use_cond(<src_uri_dep_restrict(eapi)>)
             / all_of(<src_uri_dep_restrict(eapi)>)
             / uri_val()
 
-    rule properties_dep_restrict() -> DepSpec<String>
+    rule properties_dep_restrict() -> DepSpec<String, String>
         = use_cond(<properties_dep_restrict()>)
             / all_of(<properties_dep_restrict()>)
             / properties_restrict_val()
 
-    rule required_use_dep_restrict(eapi: &'static Eapi) -> DepSpec<String>
+    rule required_use_dep_restrict(eapi: &'static Eapi) -> DepSpec<String, String>
         = use_cond(<required_use_dep_restrict(eapi)>)
             / any_of(<required_use_dep_restrict(eapi)>)
             / all_of(<required_use_dep_restrict(eapi)>)
@@ -276,33 +276,33 @@ peg::parser!(grammar depspec() for str {
             / at_most_one_of(eapi, <required_use_dep_restrict(eapi)>)
             / use_flag_val()
 
-    rule restrict_dep_restrict() -> DepSpec<String>
+    rule restrict_dep_restrict() -> DepSpec<String, String>
         = use_cond(<restrict_dep_restrict()>)
             / all_of(<restrict_dep_restrict()>)
             / properties_restrict_val()
 
-    rule dependencies_restrict(eapi: &'static Eapi) -> DepSpec<Dep>
+    rule dependencies_restrict(eapi: &'static Eapi) -> DepSpec<String, Dep>
         = use_cond(<dependencies_restrict(eapi)>)
             / any_of(<dependencies_restrict(eapi)>)
             / all_of(<dependencies_restrict(eapi)>)
             / pkg_val(eapi)
 
-    pub(super) rule license() -> DepSet<String>
+    pub(super) rule license() -> DepSet<String, String>
         = v:license_dep_restrict() ++ " " { DepSet::from_iter(v) }
 
-    pub(super) rule src_uri(eapi: &'static Eapi) -> DepSet<Uri>
+    pub(super) rule src_uri(eapi: &'static Eapi) -> DepSet<String, Uri>
         = v:src_uri_dep_restrict(eapi) ++ " " { DepSet::from_iter(v) }
 
-    pub(super) rule properties() -> DepSet<String>
+    pub(super) rule properties() -> DepSet<String, String>
         = v:properties_dep_restrict() ++ " " { DepSet::from_iter(v) }
 
-    pub(super) rule required_use(eapi: &'static Eapi) -> DepSet<String>
+    pub(super) rule required_use(eapi: &'static Eapi) -> DepSet<String, String>
         = v:required_use_dep_restrict(eapi) ++ " " { DepSet::from_iter(v) }
 
-    pub(super) rule restrict() -> DepSet<String>
+    pub(super) rule restrict() -> DepSet<String, String>
         = v:restrict_dep_restrict() ++ " " { DepSet::from_iter(v) }
 
-    pub(super) rule dependencies(eapi: &'static Eapi) -> DepSet<Dep>
+    pub(super) rule dependencies(eapi: &'static Eapi) -> DepSet<String, Dep>
         = v:dependencies_restrict(eapi) ++ " " { DepSet::from_iter(v) }
 });
 
@@ -403,7 +403,7 @@ pub(super) fn cpn(s: &str) -> crate::Result<Dep> {
     dep.into_owned()
 }
 
-pub fn license(s: &str) -> crate::Result<Option<DepSet<String>>> {
+pub fn license(s: &str) -> crate::Result<Option<DepSet<String, String>>> {
     if s.is_empty() {
         Ok(None)
     } else {
@@ -413,7 +413,7 @@ pub fn license(s: &str) -> crate::Result<Option<DepSet<String>>> {
     }
 }
 
-pub fn src_uri(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<Uri>>> {
+pub fn src_uri(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<String, Uri>>> {
     if s.is_empty() {
         Ok(None)
     } else {
@@ -423,7 +423,7 @@ pub fn src_uri(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<Uri>
     }
 }
 
-pub fn properties(s: &str) -> crate::Result<Option<DepSet<String>>> {
+pub fn properties(s: &str) -> crate::Result<Option<DepSet<String, String>>> {
     if s.is_empty() {
         Ok(None)
     } else {
@@ -433,7 +433,7 @@ pub fn properties(s: &str) -> crate::Result<Option<DepSet<String>>> {
     }
 }
 
-pub fn required_use(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<String>>> {
+pub fn required_use(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<String, String>>> {
     if s.is_empty() {
         Ok(None)
     } else {
@@ -443,7 +443,7 @@ pub fn required_use(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet
     }
 }
 
-pub fn restrict(s: &str) -> crate::Result<Option<DepSet<String>>> {
+pub fn restrict(s: &str) -> crate::Result<Option<DepSet<String, String>>> {
     if s.is_empty() {
         Ok(None)
     } else {
@@ -453,7 +453,7 @@ pub fn restrict(s: &str) -> crate::Result<Option<DepSet<String>>> {
     }
 }
 
-pub fn dependencies(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<Dep>>> {
+pub fn dependencies(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<String, Dep>>> {
     if s.is_empty() {
         Ok(None)
     } else {
@@ -646,73 +646,73 @@ mod tests {
         }
     }
 
-    fn vs(val: &str) -> DepSpec<String> {
+    fn vs(val: &str) -> DepSpec<String, String> {
         DepSpec::Enabled(val.to_string())
     }
 
-    fn vd(val: &str) -> DepSpec<String> {
+    fn vd(val: &str) -> DepSpec<String, String> {
         DepSpec::Disabled(val.to_string())
     }
 
-    fn vp(val: &str) -> DepSpec<Dep> {
+    fn vp(val: &str) -> DepSpec<String, Dep> {
         DepSpec::Enabled(Dep::from_str(val).unwrap())
     }
 
-    fn vu(u1: &str, u2: Option<&str>) -> DepSpec<Uri> {
+    fn vu(u1: &str, u2: Option<&str>) -> DepSpec<String, Uri> {
         DepSpec::Enabled(Uri::new(u1, u2).unwrap())
     }
 
-    fn allof<I, T>(val: I) -> DepSpec<T>
+    fn allof<I, T>(val: I) -> DepSpec<String, T>
     where
-        I: IntoIterator<Item = DepSpec<T>>,
+        I: IntoIterator<Item = DepSpec<String, T>>,
         T: Ordered,
     {
         DepSpec::AllOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn anyof<I, T>(val: I) -> DepSpec<T>
+    fn anyof<I, T>(val: I) -> DepSpec<String, T>
     where
-        I: IntoIterator<Item = DepSpec<T>>,
+        I: IntoIterator<Item = DepSpec<String, T>>,
         T: Ordered,
     {
         DepSpec::AnyOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn exactly_one_of<I, T>(val: I) -> DepSpec<T>
+    fn exactly_one_of<I, T>(val: I) -> DepSpec<String, T>
     where
-        I: IntoIterator<Item = DepSpec<T>>,
+        I: IntoIterator<Item = DepSpec<String, T>>,
         T: Ordered,
     {
         DepSpec::ExactlyOneOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn at_most_one_of<I, T>(val: I) -> DepSpec<T>
+    fn at_most_one_of<I, T>(val: I) -> DepSpec<String, T>
     where
-        I: IntoIterator<Item = DepSpec<T>>,
+        I: IntoIterator<Item = DepSpec<String, T>>,
         T: Ordered,
     {
         DepSpec::AtMostOneOf(val.into_iter().map(Box::new).collect())
     }
 
-    fn use_enabled<I, T>(s: &str, val: I) -> DepSpec<T>
+    fn use_enabled<I, T>(s: &str, val: I) -> DepSpec<String, T>
     where
-        I: IntoIterator<Item = DepSpec<T>>,
+        I: IntoIterator<Item = DepSpec<String, T>>,
         T: Ordered,
     {
         DepSpec::UseEnabled(s.to_string(), val.into_iter().map(Box::new).collect())
     }
 
-    fn use_disabled<I, T>(s: &str, val: I) -> DepSpec<T>
+    fn use_disabled<I, T>(s: &str, val: I) -> DepSpec<String, T>
     where
-        I: IntoIterator<Item = DepSpec<T>>,
+        I: IntoIterator<Item = DepSpec<String, T>>,
         T: Ordered,
     {
         DepSpec::UseDisabled(s.to_string(), val.into_iter().map(Box::new).collect())
     }
 
-    fn ds<I, T>(val: I) -> DepSet<T>
+    fn ds<I, T>(val: I) -> DepSet<String, T>
     where
-        I: IntoIterator<Item = DepSpec<T>>,
+        I: IntoIterator<Item = DepSpec<String, T>>,
         T: Ordered,
     {
         DepSet::from_iter(val)

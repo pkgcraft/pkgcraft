@@ -1,5 +1,7 @@
 use std::fmt;
+use std::hash::Hash;
 
+use indexmap::IndexSet;
 use itertools::Itertools;
 
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
@@ -7,6 +9,19 @@ use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
 use crate::Error;
 
 use super::Dep;
+
+pub trait UseFlag:
+    fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + AsRef<str> + Hash + ToString
+{
+}
+impl UseFlag for String {}
+impl UseFlag for &String {}
+
+/// Evaluation support for dependency objects.
+pub trait Evaluate {
+    type Evaluated;
+    fn evaluate(self, options: &IndexSet<String>) -> Self::Evaluated;
+}
 
 /// Flattened iterator support for dependency objects.
 pub trait Flatten {
@@ -20,6 +35,12 @@ pub trait Recursive {
     type Item;
     type IntoIterRecursive: Iterator<Item = Self::Item>;
     fn into_iter_recursive(self) -> Self::IntoIterRecursive;
+}
+
+/// Convert a borrowed type into an owned type.
+pub trait IntoOwned {
+    type Owned;
+    fn into_owned(self) -> Self::Owned;
 }
 
 /// Uri object.
@@ -83,68 +104,159 @@ macro_rules! p {
 
 /// Dependency specification variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DepSpec<T: Ordered> {
+pub enum DepSpec<S: UseFlag, T: Ordered> {
     /// Enabled dependency.
     Enabled(T),
     /// Disabled dependency.
     Disabled(T), // REQUIRED_USE only
     /// All of a given dependency set.
-    AllOf(SortedSet<Box<DepSpec<T>>>),
+    AllOf(SortedSet<Box<DepSpec<S, T>>>),
     /// Any of a given dependency set.
-    AnyOf(OrderedSet<Box<DepSpec<T>>>),
+    AnyOf(OrderedSet<Box<DepSpec<S, T>>>),
     /// Exactly one of a given dependency set (REQUIRED_USE only).
-    ExactlyOneOf(OrderedSet<Box<DepSpec<T>>>),
+    ExactlyOneOf(OrderedSet<Box<DepSpec<S, T>>>),
     /// At most of a given dependency set (REQUIRED_USE only).
-    AtMostOneOf(OrderedSet<Box<DepSpec<T>>>),
+    AtMostOneOf(OrderedSet<Box<DepSpec<S, T>>>),
     /// Conditionally enabled dependency.
-    UseEnabled(String, SortedSet<Box<DepSpec<T>>>),
+    UseEnabled(S, SortedSet<Box<DepSpec<S, T>>>),
     /// Conditionally disabled dependency.
-    UseDisabled(String, SortedSet<Box<DepSpec<T>>>),
+    UseDisabled(S, SortedSet<Box<DepSpec<S, T>>>),
 }
 
-impl<T: Ordered> DepSpec<T> {
-    pub fn iter_flatten(&self) -> IterFlatten<T> {
+macro_rules! box_ref {
+    ($vals:expr) => {
+        $vals
+            .into_iter()
+            .map(|b| Box::new(b.as_ref().as_ref()))
+            .collect()
+    };
+}
+
+impl<'a, T: Ordered> DepSpec<String, T> {
+    pub fn as_ref(&'a self) -> DepSpec<&'a String, &'a T> {
+        use DepSpec::*;
+        match self {
+            Enabled(ref val) => Enabled(val),
+            Disabled(ref val) => Disabled(val),
+            AllOf(ref vals) => AllOf(box_ref!(vals)),
+            AnyOf(ref vals) => AnyOf(box_ref!(vals)),
+            ExactlyOneOf(ref vals) => ExactlyOneOf(box_ref!(vals)),
+            AtMostOneOf(ref vals) => AtMostOneOf(box_ref!(vals)),
+            UseEnabled(u, ref vals) => UseEnabled(u, box_ref!(vals)),
+            UseDisabled(u, ref vals) => UseDisabled(u, box_ref!(vals)),
+        }
+    }
+}
+
+macro_rules! box_owned {
+    ($vals:expr) => {
+        $vals
+            .into_iter()
+            .map(|b| Box::new(b.into_owned()))
+            .collect()
+    };
+}
+
+impl<T: Ordered> IntoOwned for DepSpec<&String, &T> {
+    type Owned = DepSpec<String, T>;
+
+    fn into_owned(self) -> Self::Owned {
+        use DepSpec::*;
+        match self {
+            Enabled(val) => Enabled(val.clone()),
+            Disabled(val) => Disabled(val.clone()),
+            AllOf(vals) => AllOf(box_owned!(vals)),
+            AnyOf(vals) => AnyOf(box_owned!(vals)),
+            ExactlyOneOf(vals) => ExactlyOneOf(box_owned!(vals)),
+            AtMostOneOf(vals) => AtMostOneOf(box_owned!(vals)),
+            UseEnabled(u, vals) => UseEnabled(u.clone(), box_owned!(vals)),
+            UseDisabled(u, vals) => UseDisabled(u.clone(), box_owned!(vals)),
+        }
+    }
+}
+
+macro_rules! box_eval {
+    ($vals:expr, $options:expr) => {
+        $vals
+            .into_iter()
+            .filter_map(|d| d.evaluate($options).map(|d| Box::new(d)))
+            .collect()
+    };
+}
+
+impl<'a, T: Ordered> Evaluate for &'a DepSpec<String, T> {
+    type Evaluated = Option<DepSpec<&'a String, &'a T>>;
+
+    fn evaluate(self, options: &IndexSet<String>) -> Self::Evaluated {
+        use DepSpec::*;
+        match self {
+            Enabled(val) => Some(Enabled(val)),
+            Disabled(val) => Some(Disabled(val)),
+            AllOf(vals) => Some(AllOf(box_eval!(vals, options))),
+            AnyOf(vals) => Some(AnyOf(box_eval!(vals, options))),
+            ExactlyOneOf(vals) => Some(ExactlyOneOf(box_eval!(vals, options))),
+            AtMostOneOf(vals) => Some(AtMostOneOf(box_eval!(vals, options))),
+            UseEnabled(flag, vals) => {
+                if options.contains(flag) {
+                    Some(AllOf(box_eval!(vals, options)))
+                } else {
+                    None
+                }
+            }
+            UseDisabled(flag, vals) => {
+                if !options.contains(flag) {
+                    Some(AllOf(box_eval!(vals, options)))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
+    pub fn iter_flatten(&self) -> IterFlatten<S, T> {
         self.into_iter_flatten()
     }
 }
 
-impl<'a, T: Ordered> Flatten for &'a DepSpec<T> {
+impl<'a, S: UseFlag, T: Ordered> Flatten for &'a DepSpec<S, T> {
     type Item = &'a T;
-    type IntoIterFlatten = IterFlatten<'a, T>;
+    type IntoIterFlatten = IterFlatten<'a, S, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         IterFlatten([self].into_iter().collect())
     }
 }
 
-impl<'a, T: Ordered> Recursive for &'a DepSpec<T> {
-    type Item = &'a DepSpec<T>;
-    type IntoIterRecursive = IterRecursive<'a, T>;
+impl<'a, S: UseFlag, T: Ordered> Recursive for &'a DepSpec<S, T> {
+    type Item = &'a DepSpec<S, T>;
+    type IntoIterRecursive = IterRecursive<'a, S, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IterRecursive([self].into_iter().collect())
     }
 }
 
-impl<T: Ordered> Flatten for DepSpec<T> {
+impl<S: UseFlag, T: Ordered> Flatten for DepSpec<S, T> {
     type Item = T;
-    type IntoIterFlatten = IntoIterFlatten<T>;
+    type IntoIterFlatten = IntoIterFlatten<S, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         IntoIterFlatten([self].into_iter().collect())
     }
 }
 
-impl<T: Ordered> Recursive for DepSpec<T> {
-    type Item = DepSpec<T>;
-    type IntoIterRecursive = IntoIterRecursive<T>;
+impl<S: UseFlag, T: Ordered> Recursive for DepSpec<S, T> {
+    type Item = DepSpec<S, T>;
+    type IntoIterRecursive = IntoIterRecursive<S, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IntoIterRecursive([self].into_iter().collect())
     }
 }
 
-impl<T: fmt::Display + Ordered> fmt::Display for DepSpec<T> {
+impl<S: UseFlag, T: fmt::Display + Ordered> fmt::Display for DepSpec<S, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use DepSpec::*;
         match self {
@@ -162,68 +274,94 @@ impl<T: fmt::Display + Ordered> fmt::Display for DepSpec<T> {
 
 /// Set of dependency objects.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DepSet<T: Ordered>(SortedSet<DepSpec<T>>);
+pub struct DepSet<S: UseFlag, T: Ordered>(SortedSet<DepSpec<S, T>>);
 
-impl<T: Ordered> Default for DepSet<T> {
+impl<S: UseFlag, T: Ordered> Default for DepSet<S, T> {
     fn default() -> Self {
         Self(SortedSet::new())
     }
 }
 
-impl<T: fmt::Display + Ordered> fmt::Display for DepSet<T> {
+impl<S: UseFlag, T: fmt::Display + Ordered> fmt::Display for DepSet<S, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", p!(&self.0))
     }
 }
 
-impl<T: Ordered> FromIterator<DepSpec<T>> for DepSet<T> {
-    fn from_iter<I: IntoIterator<Item = DepSpec<T>>>(iterable: I) -> Self {
+impl<S: UseFlag, T: Ordered> FromIterator<DepSpec<S, T>> for DepSet<S, T> {
+    fn from_iter<I: IntoIterator<Item = DepSpec<S, T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().collect())
     }
 }
 
-impl<T: Ordered> DepSet<T> {
-    pub fn iter(&self) -> Iter<T> {
+impl<'a, T: Ordered + 'a> FromIterator<&'a DepSpec<String, T>> for DepSet<&'a String, &'a T> {
+    fn from_iter<I: IntoIterator<Item = &'a DepSpec<String, T>>>(iterable: I) -> Self {
+        Self(iterable.into_iter().map(|d| d.as_ref()).collect())
+    }
+}
+
+impl<S: UseFlag, T: Ordered> DepSet<S, T> {
+    pub fn iter(&self) -> Iter<S, T> {
         self.into_iter()
     }
 
-    pub fn iter_flatten(&self) -> IterFlatten<T> {
+    pub fn iter_flatten(&self) -> IterFlatten<S, T> {
         self.into_iter_flatten()
     }
 }
 
-#[derive(Debug)]
-pub struct Iter<'a, T: Ordered>(indexmap::set::Iter<'a, DepSpec<T>>);
+impl<'a, T: Ordered> Evaluate for &'a DepSet<String, T> {
+    type Evaluated = DepSet<&'a String, &'a T>;
 
-impl<'a, T: Ordered> IntoIterator for &'a DepSet<T> {
-    type Item = &'a DepSpec<T>;
-    type IntoIter = Iter<'a, T>;
+    fn evaluate(self, options: &IndexSet<String>) -> Self::Evaluated {
+        DepSet(
+            self.into_iter()
+                .filter_map(|d| d.evaluate(options))
+                .collect(),
+        )
+    }
+}
+
+impl<T: Ordered> IntoOwned for DepSet<&String, &T> {
+    type Owned = DepSet<String, T>;
+
+    fn into_owned(self) -> Self::Owned {
+        DepSet(self.into_iter().map(|d| d.into_owned()).collect())
+    }
+}
+
+#[derive(Debug)]
+pub struct Iter<'a, S: UseFlag, T: Ordered>(indexmap::set::Iter<'a, DepSpec<S, T>>);
+
+impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DepSet<S, T> {
+    type Item = &'a DepSpec<S, T>;
+    type IntoIter = Iter<'a, S, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         Iter(self.0.iter())
     }
 }
 
-impl<'a, T: Ordered> Iterator for Iter<'a, T> {
-    type Item = &'a DepSpec<T>;
+impl<'a, S: UseFlag, T: Ordered> Iterator for Iter<'a, S, T> {
+    type Item = &'a DepSpec<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
 }
 
-impl<'a, T: Ordered> Flatten for &'a DepSet<T> {
+impl<'a, S: UseFlag, T: Ordered> Flatten for &'a DepSet<S, T> {
     type Item = &'a T;
-    type IntoIterFlatten = IterFlatten<'a, T>;
+    type IntoIterFlatten = IterFlatten<'a, S, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         IterFlatten(self.0.iter().collect())
     }
 }
 
-impl<'a, T: Ordered> Recursive for &'a DepSet<T> {
-    type Item = &'a DepSpec<T>;
-    type IntoIterRecursive = IterRecursive<'a, T>;
+impl<'a, S: UseFlag, T: Ordered> Recursive for &'a DepSet<S, T> {
+    type Item = &'a DepSpec<S, T>;
+    type IntoIterRecursive = IterRecursive<'a, S, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IterRecursive(self.0.iter().collect())
@@ -231,9 +369,9 @@ impl<'a, T: Ordered> Recursive for &'a DepSet<T> {
 }
 
 #[derive(Debug)]
-pub struct IterFlatten<'a, T: Ordered>(Deque<&'a DepSpec<T>>);
+pub struct IterFlatten<'a, S: UseFlag, T: Ordered>(Deque<&'a DepSpec<S, T>>);
 
-impl<'a, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, T> {
+impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, S, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -254,37 +392,37 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIter<T: Ordered>(indexmap::set::IntoIter<DepSpec<T>>);
+pub struct IntoIter<S: UseFlag, T: Ordered>(indexmap::set::IntoIter<DepSpec<S, T>>);
 
-impl<T: Ordered> IntoIterator for DepSet<T> {
-    type Item = DepSpec<T>;
-    type IntoIter = IntoIter<T>;
+impl<S: UseFlag, T: Ordered> IntoIterator for DepSet<S, T> {
+    type Item = DepSpec<S, T>;
+    type IntoIter = IntoIter<S, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         IntoIter(self.0.into_iter())
     }
 }
 
-impl<T: Ordered> Iterator for IntoIter<T> {
-    type Item = DepSpec<T>;
+impl<S: UseFlag, T: Ordered> Iterator for IntoIter<S, T> {
+    type Item = DepSpec<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
 }
 
-impl<T: Ordered> Flatten for DepSet<T> {
+impl<S: UseFlag, T: Ordered> Flatten for DepSet<S, T> {
     type Item = T;
-    type IntoIterFlatten = IntoIterFlatten<T>;
+    type IntoIterFlatten = IntoIterFlatten<S, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         IntoIterFlatten(self.0.into_iter().collect())
     }
 }
 
-impl<T: Ordered> Recursive for DepSet<T> {
-    type Item = DepSpec<T>;
-    type IntoIterRecursive = IntoIterRecursive<T>;
+impl<S: UseFlag, T: Ordered> Recursive for DepSet<S, T> {
+    type Item = DepSpec<S, T>;
+    type IntoIterRecursive = IntoIterRecursive<S, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IntoIterRecursive(self.0.into_iter().collect())
@@ -292,9 +430,9 @@ impl<T: Ordered> Recursive for DepSet<T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterFlatten<T: Ordered>(Deque<DepSpec<T>>);
+pub struct IntoIterFlatten<S: UseFlag, T: Ordered>(Deque<DepSpec<S, T>>);
 
-impl<T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<T> {
+impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<S, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -315,10 +453,10 @@ impl<T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<T> {
 }
 
 #[derive(Debug)]
-pub struct IterRecursive<'a, T: Ordered>(Deque<&'a DepSpec<T>>);
+pub struct IterRecursive<'a, S: UseFlag, T: Ordered>(Deque<&'a DepSpec<S, T>>);
 
-impl<'a, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, T> {
-    type Item = &'a DepSpec<T>;
+impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, S, T> {
+    type Item = &'a DepSpec<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use DepSpec::*;
@@ -340,10 +478,10 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterRecursive<T: Ordered>(Deque<DepSpec<T>>);
+pub struct IntoIterRecursive<S: UseFlag, T: Ordered>(Deque<DepSpec<S, T>>);
 
-impl<T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<T> {
-    type Item = DepSpec<T>;
+impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
+    type Item = DepSpec<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use DepSpec::*;
@@ -364,16 +502,16 @@ impl<T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<T> {
     }
 }
 
-impl Restriction<&DepSpec<Dep>> for BaseRestrict {
-    fn matches(&self, val: &DepSpec<Dep>) -> bool {
+impl Restriction<&DepSpec<String, Dep>> for BaseRestrict {
+    fn matches(&self, val: &DepSpec<String, Dep>) -> bool {
         crate::restrict::restrict_match! {self, val,
             Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
 
-impl Restriction<&DepSet<Dep>> for BaseRestrict {
-    fn matches(&self, val: &DepSet<Dep>) -> bool {
+impl Restriction<&DepSet<String, Dep>> for BaseRestrict {
+    fn matches(&self, val: &DepSet<String, Dep>) -> bool {
         crate::restrict::restrict_match! {self, val,
             Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }

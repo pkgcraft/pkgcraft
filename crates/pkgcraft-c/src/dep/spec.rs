@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{fmt, ptr};
 
-use pkgcraft::dep::{self, Dep, Flatten, Recursive, Uri};
+use pkgcraft::dep::{self, Dep, Flatten, Recursive, Uri, UseFlag};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::types::Ordered;
 use pkgcraft::utils::hash;
@@ -37,9 +37,9 @@ pub enum DepSetKind {
 /// Opaque wrapper for pkgcraft::dep::DepSet.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DepSetWrapper {
-    Dep(dep::DepSet<Dep>),
-    String(dep::DepSet<String>),
-    Uri(dep::DepSet<Uri>),
+    Dep(dep::DepSet<String, Dep>),
+    String(dep::DepSet<String, String>),
+    Uri(dep::DepSet<String, Uri>),
 }
 
 impl fmt::Display for DepSetWrapper {
@@ -70,7 +70,7 @@ impl Drop for DepSet {
 }
 
 impl DepSet {
-    pub(crate) fn new_dep(d: dep::DepSet<Dep>) -> Self {
+    pub(crate) fn new_dep(d: dep::DepSet<String, Dep>) -> Self {
         Self {
             unit: DepSpecUnit::Dep,
             kind: DepSetKind::Dependencies,
@@ -78,7 +78,7 @@ impl DepSet {
         }
     }
 
-    pub(crate) fn new_string(d: dep::DepSet<String>, kind: DepSetKind) -> Self {
+    pub(crate) fn new_string(d: dep::DepSet<String, String>, kind: DepSetKind) -> Self {
         Self {
             unit: DepSpecUnit::String,
             kind,
@@ -86,7 +86,7 @@ impl DepSet {
         }
     }
 
-    pub(crate) fn new_uri(d: dep::DepSet<Uri>) -> Self {
+    pub(crate) fn new_uri(d: dep::DepSet<String, Uri>) -> Self {
         Self {
             unit: DepSpecUnit::Uri,
             kind: DepSetKind::SrcUri,
@@ -126,9 +126,9 @@ impl fmt::Display for DepSet {
 /// Opaque wrapper for pkgcraft::dep::spec::IntoIter<T>.
 #[derive(Debug)]
 pub enum DepSpecIntoIter {
-    Dep(dep::spec::IntoIter<Dep>),
-    String(dep::spec::IntoIter<String>),
-    Uri(dep::spec::IntoIter<Uri>),
+    Dep(dep::spec::IntoIter<String, Dep>),
+    String(dep::spec::IntoIter<String, String>),
+    Uri(dep::spec::IntoIter<String, Uri>),
 }
 
 impl Iterator for DepSpecIntoIter {
@@ -146,9 +146,9 @@ impl Iterator for DepSpecIntoIter {
 /// Opaque wrapper for pkgcraft::dep::DepSpec.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DepSpecWrapper {
-    Dep(dep::DepSpec<Dep>),
-    String(dep::DepSpec<String>),
-    Uri(dep::DepSpec<Uri>),
+    Dep(dep::DepSpec<String, Dep>),
+    String(dep::DepSpec<String, String>),
+    Uri(dep::DepSpec<String, Uri>),
 }
 
 impl fmt::Display for DepSpecWrapper {
@@ -175,8 +175,8 @@ pub enum DepSpecKind {
     UseDisabled,
 }
 
-impl<T: Ordered> From<&dep::DepSpec<T>> for DepSpecKind {
-    fn from(d: &dep::DepSpec<T>) -> Self {
+impl<S: UseFlag, T: Ordered> From<&dep::DepSpec<S, T>> for DepSpecKind {
+    fn from(d: &dep::DepSpec<S, T>) -> Self {
         use dep::DepSpec::*;
         match d {
             Enabled(_) => Self::Enabled,
@@ -209,7 +209,7 @@ impl Drop for DepSpec {
 }
 
 impl DepSpec {
-    pub(crate) fn new_dep(d: dep::DepSpec<Dep>) -> Self {
+    pub(crate) fn new_dep(d: dep::DepSpec<String, Dep>) -> Self {
         Self {
             unit: DepSpecUnit::Dep,
             kind: DepSpecKind::from(&d),
@@ -217,7 +217,7 @@ impl DepSpec {
         }
     }
 
-    pub(crate) fn new_string(d: dep::DepSpec<String>) -> Self {
+    pub(crate) fn new_string(d: dep::DepSpec<String, String>) -> Self {
         Self {
             unit: DepSpecUnit::String,
             kind: DepSpecKind::from(&d),
@@ -225,7 +225,7 @@ impl DepSpec {
         }
     }
 
-    pub(crate) fn new_uri(d: dep::DepSpec<Uri>) -> Self {
+    pub(crate) fn new_uri(d: dep::DepSpec<String, Uri>) -> Self {
         Self {
             unit: DepSpecUnit::Uri,
             kind: DepSpecKind::from(&d),
@@ -277,9 +277,9 @@ impl fmt::Display for DepSpec {
 /// Opaque wrapper for pkgcraft::dep::spec::IntoIterFlatten<T>.
 #[derive(Debug)]
 pub enum DepSpecIntoIterFlatten {
-    Dep(dep::spec::IntoIterFlatten<Dep>),
-    String(dep::spec::IntoIterFlatten<String>),
-    Uri(dep::spec::IntoIterFlatten<Uri>),
+    Dep(dep::spec::IntoIterFlatten<String, Dep>),
+    String(dep::spec::IntoIterFlatten<String, String>),
+    Uri(dep::spec::IntoIterFlatten<String, Uri>),
 }
 
 impl Iterator for DepSpecIntoIterFlatten {
@@ -303,9 +303,9 @@ impl Iterator for DepSpecIntoIterFlatten {
 /// Opaque wrapper for pkgcraft::dep::spec::IntoIterRecursive<T>.
 #[derive(Debug)]
 pub enum DepSpecIntoIterRecursive {
-    Dep(dep::spec::IntoIterRecursive<Dep>),
-    String(dep::spec::IntoIterRecursive<String>),
-    Uri(dep::spec::IntoIterRecursive<Uri>),
+    Dep(dep::spec::IntoIterRecursive<String, Dep>),
+    String(dep::spec::IntoIterRecursive<String, String>),
+    Uri(dep::spec::IntoIterRecursive<String, Uri>),
 }
 
 impl Iterator for DepSpecIntoIterRecursive {

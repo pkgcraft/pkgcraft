@@ -1,7 +1,8 @@
-use std::sync::atomic::Ordering::Relaxed;
+use std::sync::{atomic::Ordering::Relaxed, Arc};
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
@@ -119,11 +120,23 @@ impl ConfigPath {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct Settings {
+    options: IndexSet<String>,
+}
+
+impl Settings {
+    pub fn options(&self) -> &IndexSet<String> {
+        &self.options
+    }
+}
+
 /// System config
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone)]
 pub struct Config {
     pub path: ConfigPath,
     pub repos: repo::Config,
+    pub settings: Arc<Settings>,
 }
 
 impl Config {
@@ -137,6 +150,7 @@ impl Config {
     pub fn load(&mut self) -> crate::Result<()> {
         if env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
             self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
+            self.settings = Arc::new(Settings::default());
 
             if self.repos.is_empty() {
                 // ignore error for missing portage config

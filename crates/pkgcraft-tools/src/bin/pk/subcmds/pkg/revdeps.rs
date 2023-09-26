@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
-use pkgcraft::dep::{CpvOrDep, Intersects};
+use pkgcraft::dep::{CpvOrDep, Flatten, Intersects};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::PkgRepository;
 
@@ -51,7 +51,7 @@ impl Command {
         // TODO: parallelize while generating metadata on the fly (#121)
         for repo in repos.ebuild() {
             for pkg in repo.iter() {
-                for dep in pkg.dependencies(&[]).iter_flatten() {
+                for dep in pkg.dependencies(&[]).into_iter_flatten() {
                     if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {
                         println!("{pkg}: {dep}");
                     }

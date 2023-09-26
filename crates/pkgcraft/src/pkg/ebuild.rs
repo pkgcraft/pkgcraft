@@ -172,7 +172,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, keys: &[Key]) -> DepSet<Dep> {
+    pub fn dependencies(&self, keys: &[Key]) -> DepSet<&String, &Dep> {
         use Key::*;
 
         // default to all dependency types defined by the package EAPI if no keys are passed
@@ -193,57 +193,57 @@ impl<'a> Pkg<'a> {
                 _ => None,
             })
             .flatten()
-            .cloned()
+            .map(|d| d.as_ref())
             .collect()
     }
 
     /// Return a package's BDEPEND.
-    pub fn bdepend(&self) -> Option<&DepSet<Dep>> {
+    pub fn bdepend(&self) -> Option<&DepSet<String, Dep>> {
         self.meta.deps(Key::BDEPEND)
     }
 
     /// Return a package's DEPEND.
-    pub fn depend(&self) -> Option<&DepSet<Dep>> {
+    pub fn depend(&self) -> Option<&DepSet<String, Dep>> {
         self.meta.deps(Key::DEPEND)
     }
 
     /// Return a package's IDEPEND.
-    pub fn idepend(&self) -> Option<&DepSet<Dep>> {
+    pub fn idepend(&self) -> Option<&DepSet<String, Dep>> {
         self.meta.deps(Key::IDEPEND)
     }
 
     /// Return a package's PDEPEND.
-    pub fn pdepend(&self) -> Option<&DepSet<Dep>> {
+    pub fn pdepend(&self) -> Option<&DepSet<String, Dep>> {
         self.meta.deps(Key::PDEPEND)
     }
 
     /// Return a package's RDEPEND.
-    pub fn rdepend(&self) -> Option<&DepSet<Dep>> {
+    pub fn rdepend(&self) -> Option<&DepSet<String, Dep>> {
         self.meta.deps(Key::RDEPEND)
     }
 
     /// Return a package's LICENSE.
-    pub fn license(&self) -> Option<&DepSet<String>> {
+    pub fn license(&self) -> Option<&DepSet<String, String>> {
         self.meta.license()
     }
 
     /// Return a package's PROPERTIES.
-    pub fn properties(&self) -> Option<&DepSet<String>> {
+    pub fn properties(&self) -> Option<&DepSet<String, String>> {
         self.meta.properties()
     }
 
     /// Return a package's REQUIRED_USE.
-    pub fn required_use(&self) -> Option<&DepSet<String>> {
+    pub fn required_use(&self) -> Option<&DepSet<String, String>> {
         self.meta.required_use()
     }
 
     /// Return a package's RESTRICT.
-    pub fn restrict(&self) -> Option<&DepSet<String>> {
+    pub fn restrict(&self) -> Option<&DepSet<String, String>> {
         self.meta.restrict()
     }
 
     /// Return a package's SRC_URI.
-    pub fn src_uri(&self) -> Option<&DepSet<Uri>> {
+    pub fn src_uri(&self) -> Option<&DepSet<String, Uri>> {
         self.meta.src_uri()
     }
 

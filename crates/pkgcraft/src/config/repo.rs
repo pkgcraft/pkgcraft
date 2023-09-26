@@ -101,7 +101,7 @@ impl Config {
             }
         }
 
-        // load configured repos
+        // load repos
         let mut repos = vec![];
         for (name, c) in configs.into_iter() {
             // ignore unsynced or nonexistent repos
@@ -201,7 +201,7 @@ impl Config {
     pub fn sync<S: AsRef<str>>(&self, repos: Vec<S>) -> crate::Result<()> {
         let repos: Vec<_> = match &repos {
             names if !names.is_empty() => names.iter().map(|s| s.as_ref()).collect(),
-            // sync all configured repos if none were passed
+            // sync all repos if none were passed
             _ => self.repos.keys().map(|s| s.as_str()).collect(),
         };
 
@@ -234,7 +234,7 @@ impl Config {
         }
     }
 
-    /// Get a configured repo.
+    /// Get a repo.
     pub fn get(&self, key: &str) -> Option<&Repo> {
         self.repos.get(key)
     }

@@ -6,5 +6,5 @@ pub mod version;
 
 pub use cpv::{Cpv, CpvOrDep};
 pub use pkg::{Blocker, Dep, Intersects, SlotOperator};
-pub use spec::{DepSet, DepSpec, Flatten, Recursive, Uri};
+pub use spec::{DepSet, DepSpec, Evaluate, Flatten, IntoOwned, Recursive, Uri, UseFlag};
 pub use version::{Operator, Revision, Version};

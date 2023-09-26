@@ -16,7 +16,7 @@ use scallop::pool::PoolSendIter;
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
 
-use crate::config::RepoConfig;
+use crate::config::{RepoConfig, Settings};
 use crate::dep::{self, Cpv, Operator, Version};
 use crate::eapi::Eapi;
 use crate::files::{
@@ -598,6 +598,11 @@ impl Repo {
             None
         }
     }
+
+    /// Return a configured repo.
+    pub fn configured(&self, settings: &Arc<Settings>) -> configured::Repo {
+        configured::Repo::new(&self.arc(), settings)
+    }
 }
 
 impl fmt::Display for Repo {
@@ -934,10 +939,10 @@ mod tests {
     use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
     use crate::macros::*;
     use crate::pkg::Package;
+    use crate::repo::ebuild::temp::Repo as TempRepo;
     use crate::repo::Contains;
     use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
 
-    use super::temp::Repo as TempRepo;
     use super::*;
 
     #[test]

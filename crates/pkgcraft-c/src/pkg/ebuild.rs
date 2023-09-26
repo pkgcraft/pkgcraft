@@ -2,6 +2,7 @@ use std::ffi::{c_char, CString};
 use std::str::FromStr;
 use std::{mem, ptr, slice};
 
+use pkgcraft::dep::IntoOwned;
 use pkgcraft::pkg::ebuild::metadata;
 use pkgcraft::pkg::Pkg;
 use pkgcraft::shell::Key;
@@ -188,7 +189,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
             dep_keys.push(key);
         }
 
-        let deps = pkg.dependencies(&dep_keys);
+        let deps = pkg.dependencies(&dep_keys).into_owned();
         Box::into_raw(Box::new(DepSet::new_dep(deps)))
     }
 }

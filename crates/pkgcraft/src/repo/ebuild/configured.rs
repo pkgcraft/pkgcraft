@@ -4,7 +4,7 @@ use std::sync::Arc;
 use camino::Utf8Path;
 use indexmap::IndexSet;
 
-use crate::config::{Config, RepoConfig};
+use crate::config::{RepoConfig, Settings};
 use crate::dep::Version;
 use crate::pkg::ebuild::configured::Pkg;
 use crate::repo::{make_repo_traits, PkgRepository, RepoFormat, Repository};
@@ -14,13 +14,17 @@ use crate::restrict::{Restrict, Restriction};
 #[derive(Debug)]
 pub struct Repo {
     raw: Arc<super::Repo>,
+    settings: Arc<Settings>,
 }
 
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub fn new(raw: &Arc<super::Repo>, _config: &Config) -> Self {
-        Repo { raw: raw.clone() }
+    pub fn new(raw: &Arc<super::Repo>, settings: &Arc<Settings>) -> Self {
+        Repo {
+            raw: raw.clone(),
+            settings: settings.clone(),
+        }
     }
 
     pub(crate) fn repo_config(&self) -> &RepoConfig {
@@ -115,7 +119,9 @@ impl<'a> Iterator for Iter<'a> {
     type Item = Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|pkg| Pkg::new(self.repo, pkg))
+        self.iter
+            .next()
+            .map(|pkg| Pkg::new(self.repo, self.repo.settings.as_ref(), pkg))
     }
 }
 
@@ -129,5 +135,57 @@ impl<'a> Iterator for IterRestrict<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::Config;
+    use crate::dep::Cpv;
+    use crate::pkg::Package;
+    use crate::restrict::dep::Restrict as DepRestrict;
+
+    use super::*;
+
+    #[test]
+    fn test_iter() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo().configured(&config.settings);
+        t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let mut iter = repo.iter();
+        for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
+            let pkg = iter.next();
+            assert_eq!(pkg.map(|p| format!("{}", p.cpv())), Some(cpv.to_string()));
+        }
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn test_iter_restrict() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo().configured(&config.settings);
+        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat/pkg-2", &[]).unwrap();
+
+        // single match via CPV
+        let cpv = Cpv::new("cat/pkg-1").unwrap();
+        let iter = repo.iter_restrict(&cpv);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, [cpv.to_string()]);
+
+        // single match via package
+        let pkg = repo.iter().next().unwrap();
+        let iter = repo.iter_restrict(&pkg);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, [pkg.cpv().to_string()]);
+
+        // multiple matches
+        let restrict = DepRestrict::package("pkg");
+        let iter = repo.iter_restrict(restrict);
+        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
+        assert_eq!(cpvs, ["cat/pkg-1", "cat/pkg-2"]);
     }
 }
