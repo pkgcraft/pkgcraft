@@ -1,3 +1,14 @@
+# 0.0.12 (2023-09-29)
+
+## Changed
+- `pk dep parse`: convert --eapi value during arg parsing
+- `pk repo metadata`: set default target repo to the current directory
+- `pk repo metadata`: add -n/--no-progress option to disable progress bar (#140)
+
+## Fixed
+- Skip loading system config files during tests.
+- Fix error propagation for utilities running in parallel across process pools.
+
 # 0.0.11 (2023-09-06)
 
 ## Added
