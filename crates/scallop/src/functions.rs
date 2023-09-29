@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::{c_void, CStr, CString};
 
 use crate::bash;
 use crate::builtins::ExecStatus;
@@ -67,6 +67,7 @@ pub fn all_visible() -> Vec<String> {
                 vals.push(CStr::from_ptr(var.name).to_string_lossy().into());
                 i += 1;
             }
+            bash::xfree(shell_vars as *mut c_void);
         }
     }
     vals
