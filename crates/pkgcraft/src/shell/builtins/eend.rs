@@ -9,16 +9,16 @@ const LONG_DOC: &str = "Display information message when starting a process.";
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let (ret, args) = match args {
-        [] => Err(Error::Base("requires 1 or more args, got 0".into())),
+    let (status, args) = match args {
         [n, args @ ..] => match n.parse::<i32>() {
-            Err(_) => Err(Error::Base(format!("invalid return value: {n}"))),
-            Ok(ret) => Ok((ExecStatus::from(ret), args)),
+            Err(_) => return Err(Error::Base(format!("invalid return value: {n}"))),
+            Ok(status) => (status, args),
         },
-    }?;
+        [] => return Err(Error::Base("requires 1 or more args, got 0".to_string())),
+    };
 
     // TODO: support column-based formatting for success/failure indicators
-    if bool::from(&ret) {
+    if status == 0 {
         write_stderr!("[ ok ]\n")?;
     } else {
         if !args.is_empty() {
@@ -28,7 +28,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         write_stderr!("[ !! ]\n")?;
     }
 
-    Ok(ret)
+    Ok(ExecStatus::from(status))
 }
 
 const USAGE: &str = "eend $?";
