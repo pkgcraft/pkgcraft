@@ -192,6 +192,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_restricted() {
+        // shell isn't started in restricted mode
+        assert!(!is_restricted_shell());
+        assert!(!is_restricted());
+
+        // enable restricted shell
+        toggle_restricted(true);
+        assert!(is_restricted());
+
+        // disable restricted shell
+        toggle_restricted(false);
+        assert!(!is_restricted());
+
+        // use restricted scope
+        restricted(|| {
+            assert!(is_restricted());
+            Ok(ExecStatus::Success)
+        })
+        .unwrap();
+        assert!(!is_restricted());
+    }
+
+    #[test]
     fn test_bash_version() {
         // TODO: add simple comparison check with version-compare if upstream merges set opts patch
         assert!(!BASH_VERSION.is_empty());
