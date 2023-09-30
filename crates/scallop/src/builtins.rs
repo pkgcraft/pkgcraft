@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::ffi::{c_char, c_int, CStr, CString};
+use std::ffi::{c_int, CStr, CString};
 use std::hash::{Hash, Hasher};
 use std::process::ExitStatus;
 use std::{fmt, mem, process, ptr};
@@ -137,36 +137,6 @@ impl From<Builtin> for bash::Builtin {
 impl From<&Builtin> for bash::Builtin {
     fn from(builtin: &Builtin) -> bash::Builtin {
         (*builtin).into()
-    }
-}
-
-// Dynamically-loaded builtins require non-null function pointers since wrapping the function
-// pointer field member in Option<fn> causes bash to segfault.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct DynBuiltin {
-    name: *const c_char,
-    function: BuiltinFnPtr,
-    flags: c_int,
-    long_doc: *const *mut c_char,
-    short_doc: *const c_char,
-    handle: *mut c_char,
-}
-
-/// Convert a Builtin to the dynamically-loaded builtin format.
-impl From<Builtin> for DynBuiltin {
-    fn from(b: Builtin) -> Self {
-        // first convert to the Option wrapped variant
-        let b: bash::Builtin = b.into();
-        // then convert to the dynamically-loaded variant
-        DynBuiltin {
-            name: b.name,
-            function: b.function.unwrap(),
-            flags: Attr::ENABLED.bits() as i32,
-            long_doc: b.long_doc,
-            short_doc: b.short_doc,
-            handle: b.handle,
-        }
     }
 }
 
