@@ -40,6 +40,8 @@ make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, [("..7", [SrcInstall
 mod tests {
     use std::fs;
 
+    use scallop::variables::{bind, unbind};
+
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
 
@@ -65,29 +67,43 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
-        let default_mode = 0o100644;
-        let custom_mode = 0o100755;
+
+        // force libdir default
+        bind("ABI", "arch", None, None).unwrap();
+        unbind("LIBDIR_arch").unwrap();
 
         fs::File::create("pkgcraft").unwrap();
         dolib(&["pkgcraft"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/usr/lib/pkgcraft"
-            mode = {default_mode}
-        "#
-        ));
+            mode = 0o100644
+        "#,
+        );
+
+        // force libdir override
+        bind("LIBDIR_arch", "lib64", None, None).unwrap();
+
+        dolib(&["pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/lib64/pkgcraft"
+            mode = 0o100644
+        "#,
+        );
 
         // custom mode and install dir
         into(&["/"]).unwrap();
         libopts(&["-m0755"]).unwrap();
         dolib(&["pkgcraft"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
-            path = "/lib/pkgcraft"
-            mode = {custom_mode}
-        "#
-        ));
+            path = "/lib64/pkgcraft"
+            mode = 0o100755
+        "#,
+        );
     }
 }
