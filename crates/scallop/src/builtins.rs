@@ -531,6 +531,10 @@ mod tests {
         let (enabled, disabled) = shell_builtins();
         assert!(enabled.contains(builtin));
         assert!(!disabled.contains(builtin));
+
+        // unknown builtin
+        assert!(enable(["nonexistent"]).is_err());
+        assert!(disable(["nonexistent"]).is_err());
     }
 
     #[test]
@@ -545,6 +549,9 @@ mod tests {
         override_funcs(["declare"], true).unwrap();
         source::string("declare").unwrap();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
+
+        // unknown builtin
+        assert!(override_funcs(["nonexistent"], true).is_err());
     }
 
     #[test]
