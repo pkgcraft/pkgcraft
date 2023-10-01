@@ -21,7 +21,7 @@ jobs:
       rust-version: ${{ steps.vars.outputs.rust-version }}
     steps:
     - name: Checkout code to determine the minimum supported rust version
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set rust versions to test against
       id: vars
@@ -43,7 +43,7 @@ jobs:
 
     steps:
     - name: Checkout pkgcraft workspace
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
 
