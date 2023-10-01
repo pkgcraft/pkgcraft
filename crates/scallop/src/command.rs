@@ -5,9 +5,8 @@ use std::str::FromStr;
 use bitflags::bitflags;
 use once_cell::sync::Lazy;
 
-use crate::bash;
-use crate::builtins::ExecStatus;
 use crate::error::{ok_or_error, Error};
+use crate::{bash, ExecStatus};
 
 bitflags! {
     /// Flag values used with commands.

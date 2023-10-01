@@ -1,8 +1,7 @@
 use std::sync::atomic::Ordering;
 
-use scallop::builtins::ExecStatus;
 use scallop::command::Command;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use super::{make_builtin, Scopes::All, NONFATAL};
 

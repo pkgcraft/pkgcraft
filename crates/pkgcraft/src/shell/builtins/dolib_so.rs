@@ -1,5 +1,4 @@
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::phase::PhaseKind::SrcInstall;
 

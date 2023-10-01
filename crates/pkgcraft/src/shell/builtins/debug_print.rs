@@ -1,4 +1,4 @@
-use scallop::builtins::ExecStatus;
+use scallop::ExecStatus;
 
 use super::{make_builtin, Scopes::All};
 

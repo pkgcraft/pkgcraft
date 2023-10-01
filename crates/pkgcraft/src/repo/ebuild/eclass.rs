@@ -5,7 +5,7 @@ use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::Equivalent;
-use scallop::{builtins::ExecStatus, source};
+use scallop::{source, ExecStatus};
 
 use crate::traits::SourceBash;
 use crate::utils::digest;

@@ -1,6 +1,5 @@
 use itertools::Either;
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::ConsistentFileOpts;
 use crate::shell::get_build_mut;

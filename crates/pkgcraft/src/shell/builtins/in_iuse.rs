@@ -1,5 +1,4 @@
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
@@ -24,8 +23,6 @@ make_builtin!("in_iuse", in_iuse_builtin, run, LONG_DOC, USAGE, [("6..", [Phases
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins::ExecStatus;
-
     use crate::config::Config;
     use crate::shell::BuildData;
 

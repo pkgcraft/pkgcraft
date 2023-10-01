@@ -1,5 +1,5 @@
-use scallop::builtins::ExecStatus;
 use scallop::variables::PipeStatus;
+use scallop::ExecStatus;
 
 use super::{die::run as die, make_builtin, Scopes::All};
 

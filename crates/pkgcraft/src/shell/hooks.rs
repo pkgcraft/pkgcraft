@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use scallop::builtins::ExecStatus;
+use scallop::ExecStatus;
 
 use crate::macros::cmp_not_equal;
 use crate::shell::BuildData;

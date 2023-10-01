@@ -3,8 +3,7 @@ use std::fs::File;
 use std::process::Command;
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::phase::PhaseKind::SrcPrepare;
 use crate::shell::write_stdout;

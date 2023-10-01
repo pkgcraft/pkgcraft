@@ -1,7 +1,6 @@
 use std::cmp;
 
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::{get_build_mut, write_stdout};
 

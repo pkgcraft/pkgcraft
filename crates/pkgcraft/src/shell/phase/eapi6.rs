@@ -1,5 +1,5 @@
-use scallop::builtins::ExecStatus;
 use scallop::variables::var_to_vec;
+use scallop::ExecStatus;
 
 use crate::shell::builtins::{
     eapply::run as eapply, eapply_user::run as eapply_user, einstalldocs::run as einstalldocs,

@@ -1,8 +1,7 @@
-use crate::bash;
-use crate::builtins::ExecStatus;
 use crate::command::cmd_scope;
 use crate::error::{ok_or_error, Error};
 use crate::traits::*;
+use crate::{bash, ExecStatus};
 
 /// Run the `declare` builtin with the given arguments.
 pub fn declare<I, S>(args: I) -> crate::Result<ExecStatus>

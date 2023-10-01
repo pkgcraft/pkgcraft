@@ -3,8 +3,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 use walkdir::DirEntry;
 
 use crate::eapi::EAPI6;

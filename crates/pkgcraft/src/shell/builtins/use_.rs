@@ -1,5 +1,4 @@
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
@@ -36,8 +35,6 @@ make_builtin!("use", use_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins::ExecStatus;
-
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::shell::{get_build_mut, BuildData};

@@ -2,8 +2,7 @@ use std::os::unix::fs::symlink;
 use std::path::PathBuf;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::DosymRelative;
 use crate::shell::get_build_mut;

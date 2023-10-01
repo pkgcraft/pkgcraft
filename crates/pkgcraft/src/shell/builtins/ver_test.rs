@@ -1,5 +1,4 @@
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::dep;
 use crate::shell::get_build_mut;
@@ -39,8 +38,6 @@ make_builtin!("ver_test", ver_test_builtin, run, LONG_DOC, USAGE, [("7..", [All]
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
-    use scallop::builtins::ExecStatus;
 
     use crate::config::Config;
     use crate::macros::assert_err_re;

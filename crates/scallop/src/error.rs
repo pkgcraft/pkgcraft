@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde::{Deserialize, Serialize};
 
-use crate::builtins::ExecStatus;
+use crate::ExecStatus;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

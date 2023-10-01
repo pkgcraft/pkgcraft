@@ -1,5 +1,5 @@
 use is_executable::IsExecutable;
-use scallop::builtins::ExecStatus;
+use scallop::ExecStatus;
 
 use crate::shell::builtins::{
     econf::run as econf, einstalldocs::install_docs_from, emake::run as emake,

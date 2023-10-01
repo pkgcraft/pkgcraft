@@ -1,8 +1,8 @@
 use std::fs::File;
 use std::{fs, io};
 
-use scallop::builtins::{BuiltinFn, ExecStatus};
-use scallop::Error;
+use scallop::builtins::BuiltinFn;
+use scallop::{Error, ExecStatus};
 use tempfile::tempdir;
 
 use crate::shell::get_build_mut;

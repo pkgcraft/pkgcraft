@@ -1,15 +1,13 @@
 use std::collections::HashSet;
 use std::ffi::{c_int, CStr, CString};
 use std::hash::{Hash, Hasher};
-use std::process::ExitStatus;
 use std::{fmt, mem, process, ptr};
 
 use bitflags::bitflags;
 use nix::sys::signal::Signal;
-use serde::{Deserialize, Serialize};
 
 use crate::macros::*;
-use crate::{bash, shell, Error};
+use crate::{bash, shell, Error, ExecStatus};
 
 mod _bash;
 pub mod profile;
@@ -381,73 +379,6 @@ impl Drop for ScopedOptions {
 /// Returns the count of nested builtins, e.g. `eval echo a` would have it set to 2.
 pub fn builtin_level() -> i32 {
     unsafe { bash::BUILTIN_LEVEL }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
-pub enum ExecStatus {
-    Success,
-    Failure(i32),
-}
-
-impl fmt::Display for ExecStatus {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ret: i32 = (*self).into();
-        write!(f, "{ret}")
-    }
-}
-
-impl From<ExecStatus> for i32 {
-    fn from(exec: ExecStatus) -> i32 {
-        match exec {
-            ExecStatus::Success => bash::EXECUTION_SUCCESS as i32,
-            ExecStatus::Failure(n) => n,
-        }
-    }
-}
-
-impl From<Error> for ExecStatus {
-    fn from(e: Error) -> ExecStatus {
-        match e {
-            Error::Bail(_) => ExecStatus::Failure(bash::EX_LONGJMP as i32),
-            Error::Status(s) => s,
-            _ => ExecStatus::Failure(1),
-        }
-    }
-}
-
-impl From<i32> for ExecStatus {
-    fn from(ret: i32) -> ExecStatus {
-        match ret {
-            0 => ExecStatus::Success,
-            n => ExecStatus::Failure(n),
-        }
-    }
-}
-
-impl From<&ExecStatus> for bool {
-    fn from(exec: &ExecStatus) -> bool {
-        matches!(exec, ExecStatus::Success)
-    }
-}
-
-impl From<bool> for ExecStatus {
-    fn from(value: bool) -> ExecStatus {
-        if value {
-            ExecStatus::Success
-        } else {
-            ExecStatus::Failure(1)
-        }
-    }
-}
-
-impl From<ExitStatus> for ExecStatus {
-    fn from(status: ExitStatus) -> ExecStatus {
-        if status.success() {
-            ExecStatus::Success
-        } else {
-            ExecStatus::Failure(1)
-        }
-    }
 }
 
 /// Handle builtin errors.

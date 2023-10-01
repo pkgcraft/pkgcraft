@@ -1,8 +1,7 @@
 use std::process::Command;
 
-use scallop::builtins::ExecStatus;
 use scallop::variables::{self, string_vec};
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::command::RunCommand;
 use crate::shell::utils::makefile_exists;

@@ -1,4 +1,4 @@
-use scallop::builtins::ExecStatus;
+use scallop::ExecStatus;
 
 use super::_query_cmd::query_cmd;
 use super::{make_builtin, Scopes::Phases};

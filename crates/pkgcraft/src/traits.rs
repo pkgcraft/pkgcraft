@@ -1,6 +1,5 @@
 use camino::{Utf8Path, Utf8PathBuf};
-use scallop::builtins::ExecStatus;
-use scallop::source;
+use scallop::{source, ExecStatus};
 
 /// Iterate over an object's lines, filtering comments starting with '#' and empty lines returning
 /// an enumerated iterator for the remaining content.

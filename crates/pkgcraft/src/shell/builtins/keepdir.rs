@@ -1,7 +1,6 @@
 use std::fs::File;
 
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::pkg::Package;
 use crate::shell::get_build_mut;

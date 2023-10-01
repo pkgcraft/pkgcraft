@@ -4,8 +4,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexSet;
-use scallop::builtins::ExecStatus;
 use scallop::variables::{bind, unbind, Attr};
+use scallop::ExecStatus;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::scope::{Scope, Scopes};

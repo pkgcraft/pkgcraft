@@ -4,8 +4,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use scallop::builtins::ExecStatus;
-use scallop::{variables, Error};
+use scallop::{variables, Error, ExecStatus};
 use walkdir::WalkDir;
 
 use crate::archive::ArchiveFormat;

@@ -1,7 +1,6 @@
 use std::path::Path;
 
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::files::NO_WALKDIR_FILTER;
 use crate::shell::get_build_mut;

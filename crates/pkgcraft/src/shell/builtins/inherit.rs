@@ -1,7 +1,6 @@
 use itertools::{Either, Itertools};
-use scallop::builtins::ExecStatus;
 use scallop::variables::{ScopedVariable, Variable, Variables};
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 use crate::traits::SourceBash;

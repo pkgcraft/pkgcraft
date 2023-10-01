@@ -1,9 +1,8 @@
 use std::ffi::{c_void, CStr, CString};
 
-use crate::bash;
-use crate::builtins::ExecStatus;
 use crate::error::{ok_or_error, Error};
 use crate::macros::*;
+use crate::{bash, ExecStatus};
 
 #[derive(Debug)]
 pub struct Function<'a> {

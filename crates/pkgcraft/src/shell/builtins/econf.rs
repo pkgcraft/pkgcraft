@@ -4,8 +4,7 @@ use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use scallop::builtins::ExecStatus;
-use scallop::{variables, Error};
+use scallop::{variables, Error, ExecStatus};
 
 use crate::command::RunCommand;
 use crate::shell::get_build_mut;

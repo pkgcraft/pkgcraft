@@ -1,7 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::NonfatalDie;
 use crate::shell::{get_build_mut, write_stderr};

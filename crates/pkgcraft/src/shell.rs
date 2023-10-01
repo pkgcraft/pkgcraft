@@ -8,9 +8,9 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nix::unistd::isatty;
 use once_cell::sync::Lazy;
-use scallop::builtins::{override_funcs, shopt, ExecStatus};
+use scallop::builtins::{override_funcs, shopt};
 use scallop::variables::*;
-use scallop::{functions, Error};
+use scallop::{functions, Error, ExecStatus};
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};

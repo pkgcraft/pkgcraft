@@ -1,4 +1,4 @@
-use scallop::builtins::ExecStatus;
+use scallop::ExecStatus;
 
 use super::_use_conf::use_conf;
 use super::{make_builtin, Scopes::Phases};
@@ -16,8 +16,6 @@ make_builtin!("use_enable", use_enable_builtin, run, LONG_DOC, USAGE, [("..", [P
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins::ExecStatus;
-
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;

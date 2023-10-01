@@ -8,9 +8,8 @@ use nix::{
 };
 use once_cell::sync::Lazy;
 
-use crate::builtins::ExecStatus;
 use crate::shm::create_shm;
-use crate::{bash, error, Error};
+use crate::{bash, error, Error, ExecStatus};
 
 // shell name
 static SHELL: OnceLock<CString> = OnceLock::new();

@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 
 use camino::Utf8Path;
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::macros::build_from_paths;
 use crate::pkg::Package;

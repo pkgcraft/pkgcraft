@@ -1,5 +1,4 @@
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::utils::get_libdir;
 use crate::shell::write_stdout;
@@ -25,7 +24,6 @@ make_builtin!("get_libdir", get_libdir_builtin, run, LONG_DOC, USAGE, [("6..", [
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins::ExecStatus;
     use scallop::variables::*;
 
     use crate::shell::assert_stdout;

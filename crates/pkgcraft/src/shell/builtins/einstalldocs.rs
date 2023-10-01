@@ -2,9 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use glob::glob;
-use scallop::builtins::ExecStatus;
 use scallop::variables::var_to_vec;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind::SrcInstall;

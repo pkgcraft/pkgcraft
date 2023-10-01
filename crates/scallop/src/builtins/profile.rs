@@ -1,8 +1,8 @@
 use std::time::{Duration, Instant};
 
-use crate::builtins::{make_builtin, ExecStatus, ScopedOptions};
+use crate::builtins::{make_builtin, ScopedOptions};
 use crate::command::Command;
-use crate::Error;
+use crate::{Error, ExecStatus};
 
 static LONG_DOC: &str = "Profile a given function or command.";
 

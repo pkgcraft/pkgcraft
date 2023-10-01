@@ -3,8 +3,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use scallop::builtins::ExecStatus;
-use scallop::functions;
+use scallop::{functions, ExecStatus};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::builtins::emake::run as emake;

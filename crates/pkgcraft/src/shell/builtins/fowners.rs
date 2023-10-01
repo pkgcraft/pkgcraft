@@ -1,7 +1,6 @@
 use std::process::Command;
 
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::command::RunCommand;
 use crate::shell::get_build_mut;

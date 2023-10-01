@@ -1,6 +1,5 @@
 use nix::unistd::geteuid;
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::macros::build_from_paths;
 use crate::shell::get_build_mut;

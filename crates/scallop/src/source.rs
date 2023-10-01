@@ -2,9 +2,8 @@ use std::ffi::CString;
 
 use bitflags::bitflags;
 
-use crate::bash;
-use crate::builtins::ExecStatus;
 use crate::error::{ok_or_error, Error};
+use crate::{bash, ExecStatus};
 
 bitflags! {
     /// Flag values used with source::string() for altering string evaluation.

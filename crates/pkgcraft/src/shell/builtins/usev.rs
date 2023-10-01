@@ -1,5 +1,4 @@
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::UsevTwoArgs;
 use crate::shell::{get_build_mut, write_stdout};
@@ -32,8 +31,6 @@ make_builtin!("usev", usev_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins::ExecStatus;
-
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;

@@ -11,9 +11,11 @@ pub mod pool;
 pub mod shell;
 pub(crate) mod shm;
 pub mod source;
+pub mod status;
 mod test;
 pub mod traits;
 pub mod utils;
 pub mod variables;
 
 pub use self::error::{Error, Result};
+pub use self::status::ExecStatus;

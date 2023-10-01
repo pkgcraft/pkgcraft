@@ -3,10 +3,9 @@ use std::slice;
 
 use bitflags::bitflags;
 
-use crate::builtins::ExecStatus;
 use crate::error::ok_or_error;
 use crate::traits::*;
-use crate::{bash, Error};
+use crate::{bash, Error, ExecStatus};
 
 bitflags! {
     /// Flags for various attributes a given variable can have.

@@ -6,8 +6,7 @@ use std::{cmp, fmt};
 
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::eapi::{self, Eapi, EAPIS};
 

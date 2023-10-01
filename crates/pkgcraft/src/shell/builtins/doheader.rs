@@ -1,8 +1,7 @@
 use std::path::Path;
 
 use itertools::Either;
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::ConsistentFileOpts;
 use crate::files::NO_WALKDIR_FILTER;

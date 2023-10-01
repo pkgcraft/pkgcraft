@@ -1,5 +1,4 @@
-use scallop::builtins::ExecStatus;
-use scallop::Error;
+use scallop::{Error, ExecStatus};
 
 use crate::shell::{get_build_mut, write_stdout};
 
@@ -52,7 +51,6 @@ make_builtin!("ver_rs", ver_rs_builtin, run, LONG_DOC, USAGE, [("7..", [All])]);
 
 #[cfg(test)]
 mod tests {
-    use scallop::builtins::ExecStatus;
     use scallop::source;
 
     use crate::config::Config;
