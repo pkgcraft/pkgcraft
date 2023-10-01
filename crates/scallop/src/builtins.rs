@@ -508,10 +508,12 @@ pub use make_builtin;
 
 #[cfg(test)]
 mod tests {
+    use crate::{source, variables};
+
     use super::*;
 
     #[test]
-    fn toggle_status() {
+    fn toggle_builtins() {
         // select a builtin to toggle
         let (enabled, disabled) = shell_builtins();
         assert!(!enabled.is_empty());
@@ -529,6 +531,20 @@ mod tests {
         let (enabled, disabled) = shell_builtins();
         assert!(enabled.contains(builtin));
         assert!(!disabled.contains(builtin));
+    }
+
+    #[test]
+    fn test_override_funcs() {
+        // functions override builtins by default
+        source::string("declare() { VAR+=1; }").unwrap();
+        override_funcs(["declare"], false).unwrap();
+        source::string("declare").unwrap();
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
+
+        // builtins marked as special override functions
+        override_funcs(["declare"], true).unwrap();
+        source::string("declare").unwrap();
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
     }
 
     #[test]
