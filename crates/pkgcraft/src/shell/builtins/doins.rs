@@ -82,19 +82,16 @@ mod tests {
     fn creation() {
         let file_tree = FileTree::new();
 
-        let default_mode = 0o100644;
-        let custom_mode = 0o100755;
-
         // simple file
         fs::File::create("file").unwrap();
         doins(&["file"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/file"
-            mode = {default_mode}
-        "#
-        ));
+            mode = 0o100644
+        "#,
+        );
 
         for dir in ["newdir", "/newdir"] {
             // recursive using `insinto` and `insopts`
@@ -103,13 +100,13 @@ mod tests {
             insinto(&[dir]).unwrap();
             insopts(&["-m0755"]).unwrap();
             doins(&["-r", "dir"]).unwrap();
-            file_tree.assert(format!(
+            file_tree.assert(
                 r#"
                 [[files]]
                 path = "/newdir/dir/subdir/file"
-                mode = {custom_mode}
-            "#
-            ));
+                mode = 0o100755
+            "#,
+            );
         }
     }
 }

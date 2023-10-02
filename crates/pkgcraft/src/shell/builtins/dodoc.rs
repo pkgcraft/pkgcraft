@@ -106,18 +106,17 @@ mod tests {
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
-        let default_mode = 0o100644;
 
         // simple file
         fs::File::create("file").unwrap();
         dodoc(&["file"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/doc/pkg-1/file"
-            mode = {default_mode}
-        "#
-        ));
+            mode = 0o100644
+        "#,
+        );
 
         // recursive using `docinto`
         fs::create_dir_all("doc/subdir").unwrap();

@@ -102,18 +102,17 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
-        let default_mode = 0o100644;
 
         // standard file
         fs::File::create("pkgcraft.1").unwrap();
         doman(&["pkgcraft.1"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/man/man1/pkgcraft.1"
-            mode = {default_mode}
-        "#
-        ));
+            mode = 0o100644
+        "#,
+        );
 
         // -i18n option usage
         doman(&["-i18n=en", "pkgcraft.1"]).unwrap();

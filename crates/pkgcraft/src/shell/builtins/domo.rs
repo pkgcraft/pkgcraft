@@ -92,16 +92,15 @@ mod tests {
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
-        let default_mode = 0o100644;
 
         fs::File::create("en.mo").unwrap();
         domo(&["en.mo"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/locale/en/LC_MESSAGES/pkg.mo"
-            mode = {default_mode}
-        "#
-        ));
+            mode = 0o100644
+        "#,
+        );
     }
 }

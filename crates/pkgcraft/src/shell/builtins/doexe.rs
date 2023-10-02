@@ -54,31 +54,29 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
-        let default_mode = 0o100755;
-        let custom_mode = 0o100777;
 
         fs::File::create("pkgcraft").unwrap();
         doexe(&["pkgcraft"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/pkgcraft"
-            mode = {default_mode}
-        "#
-        ));
+            mode = 0o100755
+        "#,
+        );
 
         // custom mode and install dir
         for dir in ["/opt/bin", "opt/bin"] {
             exeinto(&[dir]).unwrap();
             exeopts(&["-m0777"]).unwrap();
             doexe(&["pkgcraft"]).unwrap();
-            file_tree.assert(format!(
+            file_tree.assert(
                 r#"
                 [[files]]
                 path = "/opt/bin/pkgcraft"
-                mode = {custom_mode}
-            "#
-            ));
+                mode = 0o100777
+            "#,
+            );
         }
     }
 }

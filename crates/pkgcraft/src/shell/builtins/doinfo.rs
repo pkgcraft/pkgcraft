@@ -50,16 +50,15 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
-        let default_mode = 0o100644;
 
         fs::File::create("pkgcraft").unwrap();
         doinfo(&["pkgcraft"]).unwrap();
-        file_tree.assert(format!(
+        file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/info/pkgcraft"
-            mode = {default_mode}
-        "#
-        ));
+            mode = 0o100644
+        "#,
+        );
     }
 }

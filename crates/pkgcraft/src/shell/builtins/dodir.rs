@@ -42,7 +42,6 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
-        let default_mode = 0o40755;
 
         for dirs in [
             vec!["dir"],
@@ -59,7 +58,7 @@ mod tests {
                     r#"
                     [[files]]
                     path = "/{path}"
-                    mode = {default_mode}
+                    mode = 0o40755
                 "#
                 ));
             }
@@ -70,8 +69,6 @@ mod tests {
     #[test]
     fn custom_diropts() {
         let file_tree = FileTree::new();
-        let default_mode = 0o40755;
-        let custom_mode = 0o40777;
 
         for dir in ["dir", "/usr/bin"] {
             let path = dir.trim_start_matches('/');
@@ -82,7 +79,7 @@ mod tests {
                 r#"
                 [[files]]
                 path = "/{path}"
-                mode = {default_mode}
+                mode = 0o40755
             "#
             ));
 
@@ -94,7 +91,7 @@ mod tests {
                 r#"
                 [[files]]
                 path = "/{path}"
-                mode = {custom_mode}
+                mode = 0o40777
             "#
             ));
         }

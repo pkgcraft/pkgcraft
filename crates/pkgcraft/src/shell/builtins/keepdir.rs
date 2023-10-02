@@ -62,7 +62,6 @@ mod tests {
     fn creation() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let default_mode = 0o100644;
 
         for dirs in [
             vec!["dir"],
@@ -92,7 +91,7 @@ mod tests {
                     r#"
                     [[files]]
                     path = "/{path}/.keep_cat_pkg_0"
-                    mode = {default_mode}
+                    mode = 0o100644
                     data = ""
                 "#
                 ));
