@@ -11,6 +11,7 @@ pub enum ErrorKind {
     Pkgcraft,
     Config,
     Repo,
+    Pkg,
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +42,7 @@ impl From<pkgcraft::Error> for Error {
         use pkgcraft::Error::*;
         let kind = match &e {
             Config(_) => ErrorKind::Config,
+            InvalidPkg { .. } => ErrorKind::Pkg,
             InvalidRepo { .. } => ErrorKind::Repo,
             RepoInit(_) => ErrorKind::Repo,
             _ => ErrorKind::Pkgcraft,
