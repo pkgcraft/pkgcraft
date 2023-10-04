@@ -43,7 +43,7 @@ mod tests {
     use std::env;
     use std::fs::File;
 
-    use scallop::variables::bind;
+    use scallop::variables::{bind, unbind};
     use tempfile::tempdir;
 
     use crate::command::commands;
@@ -66,6 +66,10 @@ mod tests {
         let makefile = dir.path().join("makefile");
         File::create(makefile).unwrap();
         env::set_current_dir(&dir).unwrap();
+
+        // force make defaults
+        unbind("MAKE").unwrap();
+        unbind("MAKEOPTS").unwrap();
 
         // default make prog
         emake(&[]).unwrap();
