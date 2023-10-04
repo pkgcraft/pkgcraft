@@ -494,6 +494,8 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     scallop::shell::init(false);
     // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::register(&*BUILTINS);
+    // restrict builtin loading and toggling
+    scallop::builtins::disable(["enable"]).expect("failed disabling builtins");
 });
 
 #[cfg(test)]
