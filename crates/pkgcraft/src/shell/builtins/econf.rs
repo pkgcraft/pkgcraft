@@ -169,6 +169,10 @@ mod tests {
         bind("CHOST", "x86_64-pc-linux-gnu", None, None).unwrap();
         bind("PF", "pkg-1", None, None).unwrap();
 
+        // force libdir default
+        bind("ABI", "arch", None, None).unwrap();
+        unbind("LIBDIR_arch").unwrap();
+
         // verify EAPI specific options are added
         for eapi in EAPIS_OFFICIAL.iter() {
             BuildData::empty(eapi);
@@ -186,10 +190,6 @@ mod tests {
             let val = opts.get(opt).unwrap().as_ref().unwrap();
             assert_eq!(val, expected);
         }
-
-        // force libdir default
-        bind("ABI", "arch", None, None).unwrap();
-        unbind("LIBDIR_arch").unwrap();
 
         // --libdir doesn't get passed if related variables are unset
         let opts = get_opts(&[]);
