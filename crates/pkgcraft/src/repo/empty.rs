@@ -4,7 +4,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 
 use crate::config::RepoConfig;
-use crate::dep::Version;
+use crate::dep::{Cpv, Version};
 use crate::pkg::Pkg;
 use crate::restrict::Restrict;
 use crate::Error;
@@ -60,6 +60,7 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type IterCpv<'a> = iter::Empty<Cpv> where Self: 'a;
     type Iter<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
     type IterRestrict<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
 
@@ -77,6 +78,10 @@ impl PkgRepository for Repo {
 
     fn len(&self) -> usize {
         0
+    }
+
+    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+        iter::empty::<Cpv>()
     }
 
     fn iter(&self) -> Self::Iter<'_> {

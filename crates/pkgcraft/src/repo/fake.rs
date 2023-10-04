@@ -119,6 +119,7 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type IterCpv<'a> = IterCpv<'a> where Self: 'a;
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
@@ -144,6 +145,10 @@ impl PkgRepository for Repo {
 
     fn len(&self) -> usize {
         self.cpvs.len()
+    }
+
+    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+        IterCpv { iter: self.cpvs.iter() }
     }
 
     fn iter(&self) -> Self::Iter<'_> {
@@ -189,6 +194,19 @@ impl<'a> IntoIterator for &'a Repo {
             iter: self.cpvs.iter(),
             repo: self,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct IterCpv<'a> {
+    iter: indexmap::set::Iter<'a, Cpv>,
+}
+
+impl<'a> Iterator for IterCpv<'a> {
+    type Item = Cpv;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().cloned()
     }
 }
 

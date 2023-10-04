@@ -203,6 +203,7 @@ impl Repository for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = <EbuildRepo as PkgRepository>::Pkg<'a> where Self: 'a;
+    type IterCpv<'a> = <EbuildRepo as PkgRepository>::IterCpv<'a> where Self: 'a;
     type Iter<'a> = <EbuildRepo as PkgRepository>::Iter<'a> where Self: 'a;
     type IterRestrict<'a> = <EbuildRepo as PkgRepository>::IterRestrict<'a> where Self: 'a;
 
@@ -220,6 +221,10 @@ impl PkgRepository for Repo {
 
     fn len(&self) -> usize {
         self.repo().len()
+    }
+
+    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+        self.repo().iter_cpv()
     }
 
     fn iter(&self) -> Self::Iter<'_> {

@@ -203,6 +203,26 @@ impl Repo {
     }
 }
 
+pub enum IterCpv<'a> {
+    Configured(ebuild::IterCpv<'a>),
+    Ebuild(ebuild::IterCpv<'a>),
+    Fake(fake::IterCpv<'a>),
+    Empty,
+}
+
+impl Iterator for IterCpv<'_> {
+    type Item = Cpv;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Configured(iter) => iter.next(),
+            Self::Ebuild(iter) => iter.next(),
+            Self::Fake(iter) => iter.next(),
+            Self::Empty => None,
+        }
+    }
+}
+
 #[allow(clippy::large_enum_variant)]
 pub enum Iter<'a> {
     Ebuild(ebuild::Iter<'a>, &'a Repo),
@@ -263,6 +283,10 @@ pub trait PkgRepository:
     where
         Self: 'a;
 
+    type IterCpv<'a>: Iterator<Item = Cpv>
+    where
+        Self: 'a;
+
     type Iter<'a>: Iterator<Item = Self::Pkg<'a>>
     where
         Self: 'a;
@@ -283,6 +307,7 @@ pub trait PkgRepository:
         }
         count
     }
+    fn iter_cpv(&self) -> Self::IterCpv<'_>;
     fn iter(&self) -> Self::Iter<'_>;
     fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::IterRestrict<'_>;
 
@@ -309,6 +334,7 @@ where
     T: PkgRepository,
 {
     type Pkg<'b> = T::Pkg<'b> where Self: 'b;
+    type IterCpv<'b> = T::IterCpv<'b> where Self: 'b;
     type Iter<'b> = T::Iter<'b> where Self: 'b;
     type IterRestrict<'b> = T::IterRestrict<'b> where Self: 'b;
 
@@ -323,6 +349,9 @@ where
     }
     fn len(&self) -> usize {
         (*self).len()
+    }
+    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+        (*self).iter_cpv()
     }
     fn iter(&self) -> Self::Iter<'_> {
         (*self).iter()
@@ -384,6 +413,7 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type IterCpv<'a> = IterCpv<'a> where Self: 'a;
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
@@ -423,6 +453,15 @@ impl PkgRepository for Repo {
         }
     }
 
+    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+        match self {
+            Self::Configured(repo) => IterCpv::Ebuild(repo.iter_cpv()),
+            Self::Ebuild(repo) => IterCpv::Ebuild(repo.iter_cpv()),
+            Self::Fake(repo) => IterCpv::Fake(repo.iter_cpv()),
+            Self::Unsynced(_) => IterCpv::Empty,
+        }
+    }
+
     fn iter(&self) -> Self::Iter<'_> {
         self.into_iter()
     }
@@ -432,7 +471,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => IterRestrict::Configured(repo.iter_restrict(val), self),
             Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val), self),
             Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val), self),
-            _ => IterRestrict::Empty,
+            Self::Unsynced(_) => IterRestrict::Empty,
         }
     }
 }

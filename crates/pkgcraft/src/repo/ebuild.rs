@@ -547,11 +547,6 @@ impl Repo {
         }
     }
 
-    /// Return an iterator of Cpvs for the repo.
-    pub fn iter_cpv(&self) -> IterCpv {
-        IterCpv::new(self, None)
-    }
-
     /// Return a filtered iterator of Cpvs for the repo.
     pub fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpvRestrict<'_> {
         let restrict = val.into();
@@ -616,6 +611,7 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type IterCpv<'a> = IterCpv<'a> where Self: 'a;
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
@@ -699,6 +695,10 @@ impl PkgRepository for Repo {
         }
         versions.sort();
         versions
+    }
+
+    fn iter_cpv(&self) -> IterCpv {
+        IterCpv::new(self, None)
     }
 
     fn iter(&self) -> Self::Iter<'_> {

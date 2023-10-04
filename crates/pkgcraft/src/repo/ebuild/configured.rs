@@ -36,6 +36,7 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type IterCpv<'a> = <super::Repo as PkgRepository>::IterCpv<'a> where Self: 'a;
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
 
@@ -53,6 +54,10 @@ impl PkgRepository for Repo {
 
     fn len(&self) -> usize {
         self.raw.len()
+    }
+
+    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+        self.raw.iter_cpv()
     }
 
     fn iter(&self) -> Self::Iter<'_> {

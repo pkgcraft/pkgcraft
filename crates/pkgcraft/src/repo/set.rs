@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use indexmap::IndexSet;
 
-use crate::dep::Version;
+use crate::dep::{Cpv, Version};
 use crate::pkg::Pkg;
 use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -41,6 +41,7 @@ impl RepoSet {
 
 impl PkgRepository for RepoSet {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type IterCpv<'a> = IterCpv where Self: 'a;
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = Iter<'a> where Self: 'a;
 
@@ -68,6 +69,12 @@ impl PkgRepository for RepoSet {
 
     fn len(&self) -> usize {
         self.iter().count()
+    }
+
+    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+        let mut cpvs: IndexSet<_> = self.repos.iter().flat_map(|r| r.iter_cpv()).collect();
+        cpvs.sort();
+        IterCpv(cpvs.into_iter())
     }
 
     fn iter(&self) -> Self::Iter<'_> {
@@ -110,6 +117,16 @@ impl PkgRepository for RepoSet {
 }
 
 make_contains_dep!(RepoSet);
+
+pub struct IterCpv(indexmap::set::IntoIter<Cpv>);
+
+impl Iterator for IterCpv {
+    type Item = Cpv;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
 
 // TODO: Use type alias impl trait support for IntoIterator implementation when stable in order to
 // replace boxed type with a generic type.
