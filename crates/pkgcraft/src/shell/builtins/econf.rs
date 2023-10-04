@@ -116,7 +116,7 @@ mod tests {
     use std::env;
     use std::fs::File;
 
-    use scallop::variables::{bind, ScopedVariable, Variables};
+    use scallop::variables::{bind, unbind, ScopedVariable, Variables};
     use tempfile::tempdir;
 
     use crate::command::commands;
@@ -186,6 +186,10 @@ mod tests {
             let val = opts.get(opt).unwrap().as_ref().unwrap();
             assert_eq!(val, expected);
         }
+
+        // force libdir default
+        bind("ABI", "arch", None, None).unwrap();
+        unbind("LIBDIR_arch").unwrap();
 
         // --libdir doesn't get passed if related variables are unset
         let opts = get_opts(&[]);
