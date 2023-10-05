@@ -349,6 +349,7 @@ mod tests {
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
+        assert!(s.iter_cpv().next().is_none());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
         assert!(!s.contains(&cpv));
@@ -358,6 +359,7 @@ mod tests {
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
+        assert!(s.iter_cpv().next().is_none());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
         assert!(!s.contains(&cpv));
@@ -369,6 +371,7 @@ mod tests {
         assert_ordered_eq(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
         assert_eq!(s.len(), 1);
         assert!(!s.is_empty());
+        assert_ordered_eq(s.iter_cpv(), [cpv.clone()]);
         assert!(s.iter().next().is_some());
         assert!(s.iter_restrict(&cpv).next().is_some());
         assert!(s.contains(&cpv));
@@ -382,6 +385,7 @@ mod tests {
         assert_ordered_eq(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
         assert_eq!(s.len(), 2);
         assert!(s.contains(&cpv));
+        assert_ordered_eq(s.iter_cpv(), [cpv.clone()]);
         assert_eq!(s.iter().count(), 2);
         assert_eq!(s.iter_restrict(&cpv).count(), 2);
         let pkg = s.iter_restrict(&cpv).next().unwrap();
