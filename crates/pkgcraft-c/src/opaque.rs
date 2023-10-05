@@ -8,6 +8,9 @@ pub struct Repo;
 /// Opaque wrapper for pkgcraft::repo::temp::Repo objects.
 pub struct EbuildTempRepo;
 
+/// Opaque wrapper for pkgcraft::repo::IterCpv objects.
+pub struct RepoIterCpv;
+
 /// Opaque wrapper for pkgcraft::repo::Iter objects.
 pub struct RepoIter;
 

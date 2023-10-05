@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::Version;
+use pkgcraft::dep::{Cpv, Version};
 use pkgcraft::pkg::Pkg;
 use pkgcraft::repo::{Contains, PkgRepository, Repo, RepoFormat, Repository};
 use pkgcraft::restrict::Restrict;
@@ -10,7 +10,7 @@ use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::{RepoIter, RepoIterRestrict};
+use crate::types::{RepoIter, RepoIterCpv, RepoIterRestrict};
 use crate::utils::{boxed, str_to_raw};
 
 pub mod ebuild;
@@ -212,6 +212,42 @@ pub unsafe extern "C" fn pkgcraft_repo_contains_path(r: *mut Repo, path: *const 
 pub unsafe extern "C" fn pkgcraft_repo_free(r: *mut Repo) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };
+    }
+}
+
+/// Return a Cpv iterator for a repo.
+///
+/// # Safety
+/// The argument must be a non-null Repo pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_iter_cpv<'a>(r: *mut Repo) -> *mut RepoIterCpv<'a> {
+    let repo = try_ref_from_ptr!(r);
+    Box::into_raw(Box::new(repo.iter_cpv()))
+}
+
+/// Return the next Cpv from a repo Cpv iterator.
+///
+/// Returns NULL when the iterator is empty.
+///
+/// # Safety
+/// The argument must be a non-null RepoIterCpv pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_iter_cpv_next(i: *mut RepoIterCpv) -> *mut Cpv {
+    let iter = try_mut_from_ptr!(i);
+    match iter.next() {
+        Some(p) => Box::into_raw(Box::new(p)),
+        None => ptr::null_mut(),
+    }
+}
+
+/// Free a repo Cpv iterator.
+///
+/// # Safety
+/// The argument must be a non-null RepoIterCpv pointer or NULL.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_iter_cpv_free(i: *mut RepoIterCpv) {
+    if !i.is_null() {
+        unsafe { drop(Box::from_raw(i)) };
     }
 }
 
