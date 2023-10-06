@@ -4,7 +4,6 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 use crate::traits::SourceBash;
-use crate::types::Deque;
 
 use super::export_functions::export_functions;
 use super::Scopes::{Eclass, Global};
@@ -83,11 +82,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         // append metadata keys that incrementally accumulate
         for (key, var) in &incrementals {
             if let Some(data) = var.string_vec() {
-                build
-                    .incrementals
-                    .entry(*key)
-                    .or_insert_with(Deque::new)
-                    .extend(data);
+                build.incrementals.entry(*key).or_default().extend(data);
             }
         }
 

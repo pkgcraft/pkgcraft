@@ -18,7 +18,7 @@ pub async fn run(args: &ArgMatches, client: &mut Client) -> Result<()> {
     let repos: Vec<_> = args
         .get_many::<String>("repos")
         .map(|names| names.map(|s| s.to_string()).collect())
-        .unwrap_or_else(Vec::new);
+        .unwrap_or_default();
 
     let request = tonic::Request::new(ListRequest { data: repos });
     client

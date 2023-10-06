@@ -384,10 +384,7 @@ impl Repo {
             self.masters()
                 .flat_map(|r| r.metadata().license_groups().clone().into_iter())
                 .for_each(|(name, set)| {
-                    group_map
-                        .entry(name)
-                        .or_insert_with(HashSet::new)
-                        .extend(set);
+                    group_map.entry(name).or_default().extend(set);
                 });
             group_map
         })

@@ -455,7 +455,7 @@ impl<'a> BuildData<'a> {
         // prepend metadata keys that incrementally accumulate to eclass values
         if !self.inherited.is_empty() {
             for key in eapi.incremental_keys() {
-                let deque = self.incrementals.entry(*key).or_insert_with(Deque::new);
+                let deque = self.incrementals.entry(*key).or_default();
                 if let Some(data) = string_vec(key) {
                     deque.extend_left(data);
                 }

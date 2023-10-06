@@ -443,9 +443,9 @@ impl Eapi {
             let hooks = self
                 .hooks
                 .entry(hook.phase)
-                .or_insert_with(HashMap::new)
+                .or_default()
                 .entry(hook.kind)
-                .or_insert_with(IndexSet::new);
+                .or_default();
             hooks.insert(hook);
             hooks.sort();
         }
