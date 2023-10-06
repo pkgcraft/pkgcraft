@@ -82,7 +82,7 @@ impl Ord for Revision {
 
 impl PartialOrd for Revision {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.int.partial_cmp(&other.int)
+        Some(self.cmp(other))
     }
 }
 
