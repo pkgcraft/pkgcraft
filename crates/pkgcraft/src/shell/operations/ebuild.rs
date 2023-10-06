@@ -2,6 +2,7 @@ use std::fs;
 use std::os::fd::AsRawFd;
 
 use scallop::pool::redirect_output;
+use scallop::ExecStatus;
 use tempfile::NamedTempFile;
 
 use crate::error::{Error, PackageError};
@@ -57,27 +58,21 @@ impl<'a> BuildPackage for Pkg<'a> {
 }
 
 impl<'a> SourcePackage for RawPkg<'a> {
-    fn source(&self) -> scallop::Result<()> {
+    fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_raw_pkg(self);
-        get_build_mut()
-            .source_ebuild(self.data())
-            .map_err(|e| self.invalid_pkg_err(e))?;
-        Ok(())
+        get_build_mut().source_ebuild(self.data())
     }
 }
 
 impl<'a> SourcePackage for Pkg<'a> {
-    fn source(&self) -> scallop::Result<()> {
+    fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_pkg(self);
-        get_build_mut()
-            .source_ebuild(&self.abspath())
-            .map_err(|e| self.invalid_pkg_err(e))?;
-        Ok(())
+        get_build_mut().source_ebuild(&self.abspath())
     }
 }
 
 impl<'a> PackageMetadata for RawPkg<'a> {
     fn metadata(&self) -> scallop::Result<()> {
-        Ok(Metadata::serialize(self)?)
+        Ok(Metadata::serialize(self).map_err(|e| self.invalid_pkg_err(e))?)
     }
 }

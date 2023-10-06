@@ -1,6 +1,7 @@
 use std::fmt;
 
 use enum_as_inner::EnumAsInner;
+use scallop::ExecStatus;
 
 use crate::dep::{Cpv, Version};
 use crate::eapi::{self, Restrict as EapiRestrict};
@@ -79,7 +80,7 @@ pub trait BuildPackage: Package {
 
 pub trait SourcePackage: Package {
     /// Source a package.
-    fn source(&self) -> scallop::Result<()>;
+    fn source(&self) -> scallop::Result<ExecStatus>;
 }
 
 pub(crate) trait PackageMetadata: Package {

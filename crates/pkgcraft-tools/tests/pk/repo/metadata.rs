@@ -166,7 +166,25 @@ fn pkg_with_invalid_eapi() {
         .arg(t.path())
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/a-1", "failed generating metadata"]))
+        .stderr(lines_contain(["invalid pkg: cat/a-1", "failed generating metadata"]))
+        .failure()
+        .code(2);
+
+    let path = t.repo().metadata().cache_path();
+    assert!(!path.join("cat/a-1").exists());
+    assert!(path.join("cat/b-1").exists());
+}
+
+#[test]
+fn pkg_with_invalid_dep() {
+    let t = TempRepo::new("test", None, 0, None).unwrap();
+    t.create_raw_pkg("cat/a-1", &["DEPEND=cat/pkg[]"]).ok();
+    t.create_raw_pkg("cat/b-1", &["DEPEND=cat/pkg"]).unwrap();
+    cmd("pk repo metadata")
+        .arg(t.path())
+        .assert()
+        .stdout("")
+        .stderr(lines_contain(["invalid pkg: cat/a-1", "failed generating metadata"]))
         .failure()
         .code(2);
 

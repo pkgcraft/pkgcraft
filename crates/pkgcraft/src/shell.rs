@@ -568,7 +568,7 @@ mod tests {
             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
             let r = raw_pkg.source();
             if eapi.has(GlobalFailglob) {
-                assert_err_re!(r, "invalid pkg: cat/pkg-1::test: .+: no match: nonexistent\\*$");
+                assert_err_re!(r, "^line 4: no match: nonexistent\\*$");
             } else {
                 assert!(r.is_ok());
             }
