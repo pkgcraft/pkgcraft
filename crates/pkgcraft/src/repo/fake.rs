@@ -101,9 +101,9 @@ where
             for cpv in &self.cpvs {
                 pkgmap
                     .entry(cpv.category().into())
-                    .or_insert_with(VersionMap::new)
+                    .or_default()
                     .entry(cpv.package().into())
-                    .or_insert_with(IndexSet::new)
+                    .or_default()
                     .insert(cpv.version().clone());
             }
             self.pkgmap = pkgmap;

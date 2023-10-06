@@ -27,10 +27,7 @@ impl Command {
         for pkg in repo.iter() {
             cpvs.push(pkg.cpv().clone());
             for dep in pkg.dependencies(&[]).iter_flatten() {
-                cache
-                    .entry(dep.cpn())
-                    .or_insert_with(HashSet::new)
-                    .insert(dep.clone());
+                cache.entry(dep.cpn()).or_default().insert(dep.clone());
             }
         }
 

@@ -355,9 +355,7 @@ impl Metadata {
                         }
 
                         if let Ok(status) = ArchStatus::from_str(status) {
-                            vals.entry(status)
-                                .or_insert_with(HashSet::new)
-                                .insert(arch.to_string());
+                            vals.entry(status).or_default().insert(arch.to_string());
                         } else {
                             warn!(
                                 "{}::profiles/arches.desc, line {i}: unknown status: {status}",
@@ -450,7 +448,7 @@ impl Metadata {
                 .filter_map(|(i, s)| {
                     let mut vals = s.split_whitespace();
                     if let Some(name) = vals.next() {
-                        let licenses = vals
+                        let licenses: HashSet<_> = vals
                             .filter_map(|s| match s.strip_prefix('@') {
                                 None => {
                                     if self.licenses().contains(s) {
@@ -466,7 +464,7 @@ impl Metadata {
                                 Some(alias) => {
                                     if !alias.is_empty() {
                                         alias_map.entry(name.to_string())
-                                            .or_insert_with(IndexSet::new)
+                                            .or_default()
                                             .insert(alias.to_string());
                                     } else {
                                         warn!(
@@ -511,7 +509,7 @@ impl Metadata {
                     // resolve alias values
                     if let Some(values) = group_map.get(&s).cloned() {
                         group_map.entry(set.clone())
-                            .or_insert_with(HashSet::new)
+                            .or_default()
                             .extend(values);
                     } else {
                         warn!(

@@ -499,7 +499,7 @@ impl CacheData for Manifest {
             manifest
                 .files
                 .entry(kind)
-                .or_insert_with(HashSet::new)
+                .or_default()
                 .insert(ManifestFile::new(kind, name, size, &fields[3..])?);
         }
 

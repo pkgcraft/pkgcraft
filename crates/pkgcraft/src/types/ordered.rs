@@ -264,7 +264,7 @@ impl<K: Ordered, V: Ordered> FromIterator<(K, V)> for OrderedMap<K, OrderedSet<V
     fn from_iter<I: IntoIterator<Item = (K, V)>>(iterable: I) -> Self {
         let mut map = Self::new();
         for (k, v) in iterable {
-            map.entry(k).or_insert_with(OrderedSet::new).insert(v);
+            map.entry(k).or_default().insert(v);
         }
         map
     }
