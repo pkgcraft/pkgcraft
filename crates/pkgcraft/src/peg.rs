@@ -8,7 +8,7 @@ pub(crate) type PegError = ::peg::error::ParseError<::peg::str::LineCol>;
 pub struct Error {
     msg: String,
     src: String,
-    error: Box<PegError>,
+    error: PegError,
 }
 
 impl fmt::Display for Error {
@@ -40,7 +40,7 @@ where
     let error = Error {
         msg: msg.into(),
         src: src.into(),
-        error: Box::new(error),
+        error,
     };
     error::Error::PegParse(error)
 }
