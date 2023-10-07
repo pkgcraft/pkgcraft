@@ -435,7 +435,6 @@ impl<'a> BuildData<'a> {
         // phase builtins override functions forcing direct calls to error out
         override_funcs(eapi.phases(), true)?;
 
-        self.scope = Scope::Global;
         self.set_vars()?;
 
         if eapi.has(GlobalFailglob) {
