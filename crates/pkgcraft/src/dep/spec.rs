@@ -301,6 +301,10 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a DepSpec<String, T>> for DepSet<&'a St
 }
 
 impl<S: UseFlag, T: Ordered> DepSet<S, T> {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn iter(&self) -> Iter<S, T> {
         self.into_iter()
     }
