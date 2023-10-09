@@ -6,6 +6,7 @@ use crate::eapi::Eapi;
 use crate::pkg::{make_pkg_traits, Package};
 use crate::repo::ebuild::configured::Repo;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::shell::metadata::Key;
 
 #[derive(Debug)]
 pub struct Pkg<'a> {
@@ -43,6 +44,13 @@ impl<'a> Pkg<'a> {
             restrict: OnceLock::new(),
             uris: OnceLock::new(),
         }
+    }
+
+    /// Return a package's evaluated dependencies for a given iterable of descriptors.
+    pub fn dependencies(&'a self, keys: &[Key]) -> DepSet<&'a String, &'a Dep> {
+        self.raw
+            .dependencies(keys)
+            .evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated BDEPEND.

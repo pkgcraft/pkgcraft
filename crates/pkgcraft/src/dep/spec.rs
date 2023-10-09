@@ -214,6 +214,37 @@ impl<'a, T: Ordered> Evaluate for &'a DepSpec<String, T> {
     }
 }
 
+// TODO: combine with &DepSpec<String, T> impl using a macro
+impl<'a, T: Ordered> Evaluate for DepSpec<&'a String, &'a T> {
+    type Evaluated = Option<DepSpec<&'a String, &'a T>>;
+
+    fn evaluate(self, options: &IndexSet<String>) -> Self::Evaluated {
+        use DepSpec::*;
+        match self {
+            Enabled(val) => Some(Enabled(val)),
+            Disabled(val) => Some(Disabled(val)),
+            AllOf(vals) => Some(AllOf(box_eval!(vals, options))),
+            AnyOf(vals) => Some(AnyOf(box_eval!(vals, options))),
+            ExactlyOneOf(vals) => Some(ExactlyOneOf(box_eval!(vals, options))),
+            AtMostOneOf(vals) => Some(AtMostOneOf(box_eval!(vals, options))),
+            UseEnabled(flag, vals) => {
+                if options.contains(flag) {
+                    Some(AllOf(box_eval!(vals, options)))
+                } else {
+                    None
+                }
+            }
+            UseDisabled(flag, vals) => {
+                if !options.contains(flag) {
+                    Some(AllOf(box_eval!(vals, options)))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
 impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     pub fn iter_flatten(&self) -> IterFlatten<S, T> {
         self.into_iter_flatten()
@@ -315,6 +346,19 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
 }
 
 impl<'a, T: Ordered> Evaluate for &'a DepSet<String, T> {
+    type Evaluated = DepSet<&'a String, &'a T>;
+
+    fn evaluate(self, options: &IndexSet<String>) -> Self::Evaluated {
+        DepSet(
+            self.into_iter()
+                .filter_map(|d| d.evaluate(options))
+                .collect(),
+        )
+    }
+}
+
+// TODO: combine with &DepSet<String, T> impl using a macro
+impl<'a, T: Ordered> Evaluate for DepSet<&'a String, &'a T> {
     type Evaluated = DepSet<&'a String, &'a T>;
 
     fn evaluate(self, options: &IndexSet<String>) -> Self::Evaluated {
