@@ -426,7 +426,7 @@ mod tests {
     }
 
     #[test]
-    fn test_slot() {
+    fn test_slot_and_subslot() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -444,6 +444,46 @@ mod tests {
         let pkg = t.create_pkg("cat/pkg-3", &["SLOT=1/2"]).unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "2");
+    }
+
+    #[test]
+    fn test_dependencies() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        // none
+        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        assert!(pkg.dependencies(&[]).is_empty());
+        assert!(pkg.dependencies(&[Key::DEPEND]).is_empty());
+
+        // empty
+        let pkg = t.create_pkg("cat/pkg-1", &["DEPEND="]).unwrap();
+        assert!(pkg.dependencies(&[]).is_empty());
+        assert!(pkg.dependencies(&[Key::DEPEND]).is_empty());
+        assert!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).is_empty());
+
+        // single
+        let pkg = t.create_pkg("cat/pkg-1", &["DEPEND=a/b"]).unwrap();
+        assert_eq!(pkg.dependencies(&[]).to_string(), "a/b");
+        assert_eq!(pkg.dependencies(&[Key::DEPEND]).to_string(), "a/b");
+        assert_eq!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(), "a/b");
+
+        // overlapping
+        let pkg = t
+            .create_pkg("cat/pkg-1", &["DEPEND=a/b", "RDEPEND=a/b"])
+            .unwrap();
+        assert_eq!(pkg.dependencies(&[]).to_string(), "a/b");
+        assert_eq!(pkg.dependencies(&[Key::RDEPEND]).to_string(), "a/b");
+        assert_eq!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(), "a/b");
+
+        // multiple
+        let pkg = t
+            .create_pkg("cat/pkg-1", &["DEPEND=a/b", "RDEPEND=c/d"])
+            .unwrap();
+        assert_eq!(pkg.dependencies(&[]).to_string(), "a/b c/d");
+        assert_eq!(pkg.dependencies(&[Key::RDEPEND]).to_string(), "c/d");
+        assert_eq!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(), "a/b c/d");
+        assert_eq!(pkg.dependencies(&[Key::RDEPEND, Key::DEPEND]).to_string(), "c/d a/b");
     }
 
     #[test]
