@@ -162,7 +162,7 @@ impl BitAnd<&Self> for RepoSet {
 
 impl BitAndAssign<&Self> for RepoSet {
     fn bitand_assign(&mut self, other: &Self) {
-        self.repos = OrderedSet(self.repos.bitand(&other.repos));
+        self.repos = OrderedSet::from_iter(self.repos.bitand(&other.repos));
         self.repos.sort();
     }
 }
@@ -178,7 +178,7 @@ impl BitOr<&Self> for RepoSet {
 
 impl BitOrAssign<&Self> for RepoSet {
     fn bitor_assign(&mut self, other: &Self) {
-        self.repos = OrderedSet(self.repos.bitor(&other.repos));
+        self.repos = OrderedSet::from_iter(self.repos.bitor(&other.repos));
         self.repos.sort();
     }
 }
@@ -194,7 +194,7 @@ impl BitXor<&Self> for RepoSet {
 
 impl BitXorAssign<&Self> for RepoSet {
     fn bitxor_assign(&mut self, other: &Self) {
-        self.repos = OrderedSet(self.repos.bitxor(&other.repos));
+        self.repos = OrderedSet::from_iter(self.repos.bitxor(&other.repos));
         self.repos.sort();
     }
 }
@@ -210,7 +210,7 @@ impl Sub<&Self> for RepoSet {
 
 impl SubAssign<&Self> for RepoSet {
     fn sub_assign(&mut self, other: &Self) {
-        self.repos = OrderedSet(self.repos.sub(&other.repos));
+        self.repos = OrderedSet::from_iter(self.repos.sub(&other.repos));
     }
 }
 
@@ -225,7 +225,7 @@ impl BitAnd<&Repo> for RepoSet {
 
 impl BitAndAssign<&Repo> for RepoSet {
     fn bitand_assign(&mut self, other: &Repo) {
-        self.repos = OrderedSet(self.repos.bitand(&IndexSet::from([other.clone()])));
+        self.repos = OrderedSet::from_iter(self.repos.bitand(&IndexSet::from([other.clone()])));
     }
 }
 
@@ -257,7 +257,7 @@ impl BitXor<&Repo> for RepoSet {
 
 impl BitXorAssign<&Repo> for RepoSet {
     fn bitxor_assign(&mut self, other: &Repo) {
-        self.repos = OrderedSet(self.repos.bitxor(&IndexSet::from([other.clone()])));
+        self.repos = OrderedSet::from_iter(self.repos.bitxor(&IndexSet::from([other.clone()])));
         self.repos.sort();
     }
 }

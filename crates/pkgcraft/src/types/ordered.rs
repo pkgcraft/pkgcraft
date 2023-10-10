@@ -18,7 +18,7 @@ pub trait Ordered: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 impl<T> Ordered for T where T: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 
 #[derive(Debug, Clone)]
-pub struct OrderedSet<T: Ordered>(pub(crate) IndexSet<T>);
+pub struct OrderedSet<T: Ordered>(IndexSet<T>);
 
 impl<T: Ordered> Default for OrderedSet<T> {
     fn default() -> Self {
@@ -27,6 +27,7 @@ impl<T: Ordered> Default for OrderedSet<T> {
 }
 
 impl<T: Ordered> OrderedSet<T> {
+    /// Constructs a new, empty OrderedSet<T>.
     pub fn new() -> Self {
         Self(IndexSet::new())
     }
@@ -115,7 +116,7 @@ impl<'de, T: Ordered + Deserialize<'de>> Deserialize<'de> for OrderedSet<T> {
 }
 
 #[derive(Debug, Clone)]
-pub struct SortedSet<T: Ordered>(pub(crate) IndexSet<T>);
+pub struct SortedSet<T: Ordered>(IndexSet<T>);
 
 impl<T: Ordered> Default for SortedSet<T> {
     fn default() -> Self {
@@ -124,6 +125,7 @@ impl<T: Ordered> Default for SortedSet<T> {
 }
 
 impl<T: Ordered> SortedSet<T> {
+    /// Constructs a new, empty SortedSet<T>.
     pub fn new() -> Self {
         Self(IndexSet::new())
     }
