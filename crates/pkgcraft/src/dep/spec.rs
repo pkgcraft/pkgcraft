@@ -246,6 +246,19 @@ impl<'a, T: Ordered> Evaluate for DepSpec<&'a String, &'a T> {
 }
 
 impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
+    pub fn is_empty(&self) -> bool {
+        use DepSpec::*;
+        match self {
+            Enabled(_) | Disabled(_) => false,
+            AllOf(vals) => vals.is_empty(),
+            AnyOf(vals) => vals.is_empty(),
+            ExactlyOneOf(vals) => vals.is_empty(),
+            AtMostOneOf(vals) => vals.is_empty(),
+            UseEnabled(_, vals) => vals.is_empty(),
+            UseDisabled(_, vals) => vals.is_empty(),
+        }
+    }
+
     pub fn iter_flatten(&self) -> IterFlatten<S, T> {
         self.into_iter_flatten()
     }
