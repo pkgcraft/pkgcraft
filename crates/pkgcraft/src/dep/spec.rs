@@ -176,12 +176,20 @@ impl<T: Ordered> IntoOwned for DepSpec<&String, &T> {
 }
 
 macro_rules! box_eval {
-    ($vals:expr, $options:expr) => {
-        $vals
-            .into_iter()
-            .filter_map(|d| d.evaluate($options).map(|d| Box::new(d)))
-            .collect()
-    };
+    ($variant:expr, $vals:expr, $options:expr) => {{
+        let dep = $variant(
+            $vals
+                .into_iter()
+                .filter_map(|d| d.evaluate($options).map(|d| Box::new(d)))
+                .collect(),
+        );
+
+        if dep.is_empty() {
+            None
+        } else {
+            Some(dep)
+        }
+    }};
 }
 
 impl<'a, T: Ordered> Evaluate for &'a DepSpec<String, T> {
@@ -192,20 +200,20 @@ impl<'a, T: Ordered> Evaluate for &'a DepSpec<String, T> {
         match self {
             Enabled(val) => Some(Enabled(val)),
             Disabled(val) => Some(Disabled(val)),
-            AllOf(vals) => Some(AllOf(box_eval!(vals, options))),
-            AnyOf(vals) => Some(AnyOf(box_eval!(vals, options))),
-            ExactlyOneOf(vals) => Some(ExactlyOneOf(box_eval!(vals, options))),
-            AtMostOneOf(vals) => Some(AtMostOneOf(box_eval!(vals, options))),
+            AllOf(vals) => box_eval!(AllOf, vals, options),
+            AnyOf(vals) => box_eval!(AnyOf, vals, options),
+            ExactlyOneOf(vals) => box_eval!(ExactlyOneOf, vals, options),
+            AtMostOneOf(vals) => box_eval!(AtMostOneOf, vals, options),
             UseEnabled(flag, vals) => {
                 if options.contains(flag) {
-                    Some(AllOf(box_eval!(vals, options)))
+                    box_eval!(AllOf, vals, options)
                 } else {
                     None
                 }
             }
             UseDisabled(flag, vals) => {
                 if !options.contains(flag) {
-                    Some(AllOf(box_eval!(vals, options)))
+                    box_eval!(AllOf, vals, options)
                 } else {
                     None
                 }
@@ -223,20 +231,20 @@ impl<'a, T: Ordered> Evaluate for DepSpec<&'a String, &'a T> {
         match self {
             Enabled(val) => Some(Enabled(val)),
             Disabled(val) => Some(Disabled(val)),
-            AllOf(vals) => Some(AllOf(box_eval!(vals, options))),
-            AnyOf(vals) => Some(AnyOf(box_eval!(vals, options))),
-            ExactlyOneOf(vals) => Some(ExactlyOneOf(box_eval!(vals, options))),
-            AtMostOneOf(vals) => Some(AtMostOneOf(box_eval!(vals, options))),
+            AllOf(vals) => box_eval!(AllOf, vals, options),
+            AnyOf(vals) => box_eval!(AnyOf, vals, options),
+            ExactlyOneOf(vals) => box_eval!(ExactlyOneOf, vals, options),
+            AtMostOneOf(vals) => box_eval!(AtMostOneOf, vals, options),
             UseEnabled(flag, vals) => {
                 if options.contains(flag) {
-                    Some(AllOf(box_eval!(vals, options)))
+                    box_eval!(AllOf, vals, options)
                 } else {
                     None
                 }
             }
             UseDisabled(flag, vals) => {
                 if !options.contains(flag) {
-                    Some(AllOf(box_eval!(vals, options)))
+                    box_eval!(AllOf, vals, options)
                 } else {
                     None
                 }
