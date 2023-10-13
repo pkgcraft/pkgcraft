@@ -258,12 +258,12 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
         use DepSpec::*;
         match self {
             Enabled(_) | Disabled(_) => false,
-            AllOf(vals) => vals.is_empty(),
-            AnyOf(vals) => vals.is_empty(),
-            ExactlyOneOf(vals) => vals.is_empty(),
-            AtMostOneOf(vals) => vals.is_empty(),
-            UseEnabled(_, vals) => vals.is_empty(),
-            UseDisabled(_, vals) => vals.is_empty(),
+            AllOf(vals) => vals.iter().all(|d| d.is_empty()),
+            AnyOf(vals) => vals.iter().all(|d| d.is_empty()),
+            ExactlyOneOf(vals) => vals.iter().all(|d| d.is_empty()),
+            AtMostOneOf(vals) => vals.iter().all(|d| d.is_empty()),
+            UseEnabled(_, vals) => vals.iter().all(|d| d.is_empty()),
+            UseDisabled(_, vals) => vals.iter().all(|d| d.is_empty()),
         }
     }
 
