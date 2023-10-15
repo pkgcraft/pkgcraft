@@ -827,7 +827,7 @@ mod tests {
     #[test]
     fn test_required_use() -> crate::Result<()> {
         // invalid
-        for s in ["(", ")", "( )", "( u)", "| ( u )"] {
+        for s in ["(", ")", "( )", "( u)", "| ( u )", "|| ( )", "^^ ( )", "?? ( )"] {
             assert!(required_use(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
         }
 
@@ -878,7 +878,7 @@ mod tests {
     #[test]
     fn test_dependencies() -> crate::Result<()> {
         // invalid
-        for s in ["(", ")", "( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
+        for s in ["(", ")", "( )", "|| ( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
             assert!(dependencies(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
         }
 
