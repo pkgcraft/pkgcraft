@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::{fs, io};
+use std::{fmt, fs, io};
 
 use itertools::Itertools;
 use scallop::{functions, variables};
@@ -86,13 +86,63 @@ impl Key {
     }
 
     /// Convert a given key and value into a metadata entry line.
-    fn line<S: std::fmt::Display>(&self, value: S) -> String {
+    fn line<S: fmt::Display>(&self, value: S) -> String {
         let var = match self {
             Key::INHERITED => "_eclasses_",
             key => key.as_ref(),
         };
 
         format!("{var}={value}")
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct Iuse {
+    full: String,
+    default: Option<bool>,
+}
+
+impl PartialEq<str> for Iuse {
+    fn eq(&self, other: &str) -> bool {
+        self.full == other
+    }
+}
+
+impl PartialEq<Iuse> for str {
+    fn eq(&self, other: &Iuse) -> bool {
+        self == other.full
+    }
+}
+
+impl fmt::Display for Iuse {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.full)
+    }
+}
+
+impl AsRef<str> for Iuse {
+    fn as_ref(&self) -> &str {
+        &self.full
+    }
+}
+
+impl Iuse {
+    pub(crate) fn new(default: Option<char>, flag: &str) -> Self {
+        let (default, full) = match default {
+            None => (None, flag.to_string()),
+            Some('+') => (Some(true), format!("+{flag}")),
+            Some('-') => (Some(false), format!("-{flag}")),
+            _ => panic!("invalid IUSE flag"),
+        };
+        Self { full, default }
+    }
+
+    /// Return an IUSE flag stripping defaults.
+    pub fn flag(&self) -> &str {
+        match self.default {
+            None => &self.full,
+            _ => &self.full[1..],
+        }
     }
 }
 
@@ -109,7 +159,7 @@ pub(crate) struct Metadata {
     homepage: OrderedSet<String>,
     defined_phases: OrderedSet<String>,
     keywords: OrderedSet<String>,
-    iuse: OrderedSet<String>,
+    iuse: OrderedSet<Iuse>,
     inherit: OrderedSet<String>,
     inherited: OrderedSet<String>,
 }
@@ -152,7 +202,13 @@ impl Metadata {
             HOMEPAGE => self.homepage = split!(val).collect(),
             DEFINED_PHASES => self.defined_phases = split!(val).sorted().collect(),
             KEYWORDS => self.keywords = split!(val).collect(),
-            IUSE => self.iuse = split!(val).collect(),
+            IUSE => {
+                self.iuse = {
+                    let iuse: Result<OrderedSet<_>, _> =
+                        val.split_whitespace().map(dep::parse::iuse).collect();
+                    iuse?
+                }
+            }
             INHERIT => self.inherit = split!(val).collect(),
             INHERITED => self.inherited = split!(val).collect(),
             EAPI => {
@@ -369,7 +425,7 @@ impl Metadata {
         &self.keywords
     }
 
-    pub(crate) fn iuse(&self) -> &OrderedSet<String> {
+    pub(crate) fn iuse(&self) -> &OrderedSet<Iuse> {
         &self.iuse
     }
 

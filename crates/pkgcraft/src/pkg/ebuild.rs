@@ -9,7 +9,7 @@ use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
 use crate::eapi::{self, Eapi};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::shell::metadata::{Key, Metadata};
+use crate::shell::metadata::{Iuse, Key, Metadata};
 use crate::traits::FilterLines;
 use crate::types::OrderedSet;
 use crate::utils::digest;
@@ -118,6 +118,7 @@ pub struct Pkg<'a> {
     eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata,
+    iuse_effective: OnceLock<OrderedSet<String>>,
     xml: OnceLock<Arc<XmlMetadata>>,
     manifest: OnceLock<Arc<Manifest>>,
 }
@@ -136,6 +137,7 @@ impl<'a> Pkg<'a> {
             eapi: raw_pkg.eapi,
             repo: raw_pkg.repo,
             meta,
+            iuse_effective: OnceLock::new(),
             xml: OnceLock::new(),
             manifest: OnceLock::new(),
         })
@@ -263,16 +265,19 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's IUSE.
-    pub fn iuse(&self) -> &OrderedSet<String> {
+    pub fn iuse(&self) -> &OrderedSet<Iuse> {
         self.meta.iuse()
     }
 
     /// Return an unconfigured package's IUSE_EFFECTIVE.
-    pub(crate) fn iuse_effective(&self) -> OrderedSet<&str> {
-        self.iuse()
-            .iter()
-            .map(|s| s.trim_start_matches(['+', '-']))
-            .collect()
+    pub(crate) fn iuse_effective(&self) -> &OrderedSet<String> {
+        self.iuse_effective.get_or_init(|| {
+            self.meta
+                .iuse()
+                .iter()
+                .map(|x| x.flag().to_string())
+                .collect()
+        })
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
@@ -641,20 +646,24 @@ mod tests {
         let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
         assert!(pkg.iuse().is_empty());
 
+        // invalid
+        let r = t.create_pkg("cat/pkg-1", &["IUSE=++"]);
+        assert_err_re!(r, r"invalid IUSE: \+\+");
+
         // single line
-        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=a b"]).unwrap();
-        assert_ordered_eq(pkg.iuse(), ["a", "b"]);
+        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=a +b"]).unwrap();
+        assert_ordered_eq(pkg.iuse(), ["a", "+b"]);
 
         // multiple lines
         let val = indoc::indoc! {"
             a
             b
-            c
+            +c
         "};
         let pkg = t
             .create_pkg("cat/pkg-1", &[&format!("IUSE={val}")])
             .unwrap();
-        assert_ordered_eq(pkg.iuse(), ["a", "b", "c"]);
+        assert_ordered_eq(pkg.iuse(), ["a", "b", "+c"]);
 
         // create eclasses
         let eclass = indoc::indoc! {r#"

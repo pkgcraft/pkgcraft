@@ -183,7 +183,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },
-            Iuse(r) => match (r, pkg.iuse()) {
+            Iuse(r) => match (r, pkg.iuse_effective()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },

@@ -15,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     let pkg = get_build_mut().pkg()?;
-    Ok(ExecStatus::from(pkg.iuse_effective().contains(flag)))
+    Ok(ExecStatus::from(pkg.iuse_effective().contains(*flag)))
 }
 
 const USAGE: &str = "in_iuse flag";
