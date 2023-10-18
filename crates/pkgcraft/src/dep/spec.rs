@@ -199,6 +199,10 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     pub fn iter_flatten(&self) -> IterFlatten<S, T> {
         self.into_iter_flatten()
     }
+
+    pub fn iter_recursive(&self) -> IterRecursive<S, T> {
+        self.into_iter_recursive()
+    }
 }
 
 impl<'a, S: UseFlag, T: Ordered> EvaluateIter<'a> for &'a DepSpec<S, T> {
@@ -316,6 +320,10 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
 
     pub fn iter_flatten(&self) -> IterFlatten<S, T> {
         self.into_iter_flatten()
+    }
+
+    pub fn iter_recursive(&self) -> IterRecursive<S, T> {
+        self.into_iter_recursive()
     }
 }
 
