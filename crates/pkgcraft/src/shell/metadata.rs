@@ -127,14 +127,12 @@ impl AsRef<str> for Iuse {
 }
 
 impl Iuse {
-    pub(crate) fn new(default: Option<char>, flag: &str) -> Self {
-        let (default, full) = match default {
-            None => (None, flag.to_string()),
-            Some('+') => (Some(true), format!("+{flag}")),
-            Some('-') => (Some(false), format!("-{flag}")),
-            _ => panic!("invalid IUSE flag"),
-        };
-        Self { full, default }
+    fn new(s: &str) -> crate::Result<Self> {
+        let (default, _flag) = dep::parse::iuse(s)?;
+        Ok(Self {
+            full: s.to_string(),
+            default: default.map(|c| c == '+'),
+        })
     }
 
     /// Return an IUSE flag stripping defaults.
@@ -205,7 +203,7 @@ impl Metadata {
             IUSE => {
                 self.iuse = {
                     let iuse: Result<OrderedSet<_>, _> =
-                        val.split_whitespace().map(dep::parse::iuse).collect();
+                        val.split_whitespace().map(Iuse::new).collect();
                     iuse?
                 }
             }

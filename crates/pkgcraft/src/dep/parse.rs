@@ -8,7 +8,6 @@ use crate::dep::version::{ParsedVersion, Suffix};
 use crate::dep::{Blocker, Cpv, Dep, DepSet, DepSpec, SlotOperator, Uri, Version};
 use crate::eapi::{Eapi, Feature};
 use crate::peg::peg_error;
-use crate::shell::metadata::Iuse;
 use crate::types::Ordered;
 use crate::Error;
 
@@ -111,8 +110,8 @@ peg::parser!(grammar depspec() for str {
         } / expected!("USE flag name")
         ) { s }
 
-    pub(super) rule iuse() -> Iuse
-        = default:(['+' | '-'])? flag:use_flag() { Iuse::new(default, flag) }
+    pub(super) rule iuse() -> (Option<char>, &'input str)
+        = default:(['+' | '-'])? flag:use_flag() { (default, flag) }
 
     rule use_dep() -> &'input str
         = s:$(quiet!{
@@ -349,7 +348,7 @@ pub fn use_flag(s: &str) -> crate::Result<&str> {
     Ok(s)
 }
 
-pub(crate) fn iuse(s: &str) -> crate::Result<Iuse> {
+pub(crate) fn iuse(s: &str) -> crate::Result<(Option<char>, &str)> {
     depspec::iuse(s).map_err(|e| peg_error(format!("invalid IUSE: {s}"), s, e))
 }
 
