@@ -50,8 +50,10 @@ pub enum Key {
 
 impl Key {
     pub(crate) fn get(&self, build: &mut BuildData, eapi: &'static Eapi) -> Option<String> {
+        use Key::*;
         match self {
-            Key::DEFINED_PHASES => {
+            CHKSUM => None,
+            DEFINED_PHASES => {
                 let mut phase_names: Vec<_> = eapi
                     .phases()
                     .iter()
@@ -64,7 +66,7 @@ impl Key {
                     Some(phase_names.join(" "))
                 }
             }
-            Key::INHERIT => {
+            INHERIT => {
                 let inherit = &build.inherit;
                 if inherit.is_empty() {
                     None
