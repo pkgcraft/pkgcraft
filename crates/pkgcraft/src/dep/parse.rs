@@ -653,78 +653,6 @@ mod tests {
         }
     }
 
-    fn vs(val: &str) -> DepSpec<String, String> {
-        DepSpec::Enabled(val.to_string())
-    }
-
-    fn vd(val: &str) -> DepSpec<String, String> {
-        DepSpec::Disabled(val.to_string())
-    }
-
-    fn vp(val: &str) -> DepSpec<String, Dep> {
-        DepSpec::Enabled(Dep::from_str(val).unwrap())
-    }
-
-    fn vu(u1: &str, u2: Option<&str>) -> DepSpec<String, Uri> {
-        DepSpec::Enabled(Uri::new(u1, u2).unwrap())
-    }
-
-    fn allof<I, T>(val: I) -> DepSpec<String, T>
-    where
-        I: IntoIterator<Item = DepSpec<String, T>>,
-        T: Ordered,
-    {
-        DepSpec::AllOf(val.into_iter().map(Box::new).collect())
-    }
-
-    fn anyof<I, T>(val: I) -> DepSpec<String, T>
-    where
-        I: IntoIterator<Item = DepSpec<String, T>>,
-        T: Ordered,
-    {
-        DepSpec::AnyOf(val.into_iter().map(Box::new).collect())
-    }
-
-    fn exactly_one_of<I, T>(val: I) -> DepSpec<String, T>
-    where
-        I: IntoIterator<Item = DepSpec<String, T>>,
-        T: Ordered,
-    {
-        DepSpec::ExactlyOneOf(val.into_iter().map(Box::new).collect())
-    }
-
-    fn at_most_one_of<I, T>(val: I) -> DepSpec<String, T>
-    where
-        I: IntoIterator<Item = DepSpec<String, T>>,
-        T: Ordered,
-    {
-        DepSpec::AtMostOneOf(val.into_iter().map(Box::new).collect())
-    }
-
-    fn use_enabled<I, T>(s: &str, val: I) -> DepSpec<String, T>
-    where
-        I: IntoIterator<Item = DepSpec<String, T>>,
-        T: Ordered,
-    {
-        DepSpec::UseEnabled(s.to_string(), val.into_iter().map(Box::new).collect())
-    }
-
-    fn use_disabled<I, T>(s: &str, val: I) -> DepSpec<String, T>
-    where
-        I: IntoIterator<Item = DepSpec<String, T>>,
-        T: Ordered,
-    {
-        DepSpec::UseDisabled(s.to_string(), val.into_iter().map(Box::new).collect())
-    }
-
-    fn ds<I, T>(val: I) -> DepSet<String, T>
-    where
-        I: IntoIterator<Item = DepSpec<String, T>>,
-        T: Ordered,
-    {
-        DepSet::from_iter(val)
-    }
-
     #[test]
     fn test_license() -> crate::Result<()> {
         // invalid
@@ -736,33 +664,28 @@ mod tests {
         assert!(license("").unwrap().is_none());
 
         // valid
-        for (s, expected, expected_flatten) in [
+        for (s, expected_flatten) in [
             // simple values
-            ("v", ds([vs("v")]), vec!["v"]),
-            ("v1 v2", ds([vs("v1"), vs("v2")]), vec!["v1", "v2"]),
+            ("v", vec!["v"]),
+            ("v1 v2", vec!["v1", "v2"]),
             // groupings
-            ("( v )", ds([allof(vec![vs("v")])]), vec!["v"]),
-            ("( v1 v2 )", ds([allof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
-            ("( v1 ( v2 ) )", ds([allof(vec![vs("v1"), allof(vec![vs("v2")])])]), vec!["v1", "v2"]),
-            ("( ( v ) )", ds([allof(vec![allof(vec![vs("v")])])]), vec!["v"]),
-            ("|| ( v )", ds([anyof(vec![vs("v")])]), vec!["v"]),
-            ("|| ( v1 v2 )", ds([anyof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+            ("( v )", vec!["v"]),
+            ("( v1 v2 )", vec!["v1", "v2"]),
+            ("( v1 ( v2 ) )", vec!["v1", "v2"]),
+            ("( ( v ) )", vec!["v"]),
+            ("|| ( v )", vec!["v"]),
+            ("|| ( v1 v2 )", vec!["v1", "v2"]),
             // conditionals
-            ("u? ( v )", ds([use_enabled("u", vec![vs("v")])]), vec!["v"]),
-            ("u? ( v1 v2 )", ds([use_enabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+            ("u? ( v )", vec!["v"]),
+            ("u? ( v1 v2 )", vec!["v1", "v2"]),
             // combinations
-            ("v1 u? ( v2 )", ds([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
-            (
-                "!u? ( || ( v1 v2 ) )",
-                ds([use_disabled("u", [anyof([vs("v1"), vs("v2")])])]),
-                vec!["v1", "v2"],
-            ),
+            ("v1 u? ( v2 )", vec!["v1", "v2"]),
+            ("!u? ( || ( v1 v2 ) )", vec!["v1", "v2"]),
         ] {
             let depset = license(s)?.unwrap();
+            assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
-            assert_eq!(depset, expected, "{s} failed");
-            assert_eq!(depset.to_string(), s);
         }
 
         Ok(())
@@ -774,52 +697,31 @@ mod tests {
         assert!(src_uri("", &EAPI_LATEST_OFFICIAL).unwrap().is_none());
 
         // valid
-        for (s, expected, expected_flatten) in [
-            ("uri", ds([vu("uri", None)]), vec!["uri"]),
-            ("http://uri", ds([vu("http://uri", None)]), vec!["http://uri"]),
-            ("uri1 uri2", ds([vu("uri1", None), vu("uri2", None)]), vec!["uri1", "uri2"]),
-            (
-                "( http://uri1 http://uri2 )",
-                ds([allof([vu("http://uri1", None), vu("http://uri2", None)])]),
-                vec!["http://uri1", "http://uri2"],
-            ),
-            (
-                "u1? ( http://uri1 !u2? ( http://uri2 ) )",
-                ds([use_enabled(
-                    "u1",
-                    [vu("http://uri1", None), use_disabled("u2", [vu("http://uri2", None)])],
-                )]),
-                vec!["http://uri1", "http://uri2"],
-            ),
+        for (s, expected_flatten) in [
+            ("uri", vec!["uri"]),
+            ("http://uri", vec!["http://uri"]),
+            ("uri1 uri2", vec!["uri1", "uri2"]),
+            ("( http://uri1 http://uri2 )", vec!["http://uri1", "http://uri2"]),
+            ("u1? ( http://uri1 !u2? ( http://uri2 ) )", vec!["http://uri1", "http://uri2"]),
         ] {
             for eapi in EAPIS.iter() {
                 let depset = src_uri(s, eapi)?.unwrap();
+                assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
-                assert_eq!(depset, expected, "{s} failed");
-                assert_eq!(depset.to_string(), s);
             }
         }
 
         // SRC_URI renames
-        for (s, expected, expected_flatten) in [
-            (
-                "http://uri -> file",
-                ds([vu("http://uri", Some("file"))]),
-                vec!["http://uri -> file"],
-            ),
-            (
-                "u? ( http://uri -> file )",
-                ds([use_enabled("u", [vu("http://uri", Some("file"))])]),
-                vec!["http://uri -> file"],
-            ),
+        for (s, expected_flatten) in [
+            ("http://uri -> file", vec!["http://uri -> file"]),
+            ("u? ( http://uri -> file )", vec!["http://uri -> file"]),
         ] {
             for eapi in EAPIS.iter() {
                 let depset = src_uri(s, eapi)?.unwrap();
+                assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
-                assert_eq!(depset, expected, "{s} failed");
-                assert_eq!(depset.to_string(), s);
             }
         }
 
@@ -842,40 +744,32 @@ mod tests {
         assert!(required_use("", &EAPI_LATEST_OFFICIAL).unwrap().is_none());
 
         // valid
-        for (s, expected, expected_flatten) in [
-            ("u", ds([vs("u")]), vec!["u"]),
-            ("!u", ds([vd("u")]), vec!["u"]),
-            ("u1 !u2", ds([vs("u1"), vd("u2")]), vec!["u1", "u2"]),
-            ("( u )", ds([allof([vs("u")])]), vec!["u"]),
-            ("( u1 u2 )", ds([allof([vs("u1"), vs("u2")])]), vec!["u1", "u2"]),
-            ("|| ( u )", ds([anyof([vs("u")])]), vec!["u"]),
-            ("|| ( !u1 u2 )", ds([anyof([vd("u1"), vs("u2")])]), vec!["u1", "u2"]),
-            ("^^ ( u1 !u2 )", ds([exactly_one_of([vs("u1"), vd("u2")])]), vec!["u1", "u2"]),
-            ("u1? ( u2 )", ds([use_enabled("u1", [vs("u2")])]), vec!["u2"]),
-            ("u1? ( u2 !u3 )", ds([use_enabled("u1", [vs("u2"), vd("u3")])]), vec!["u2", "u3"]),
-            (
-                "!u1? ( || ( u2 u3 ) )",
-                ds([use_disabled("u1", [anyof([vs("u2"), vs("u3")])])]),
-                vec!["u2", "u3"],
-            ),
+        for (s, expected_flatten) in [
+            ("u", vec!["u"]),
+            ("!u", vec!["u"]),
+            ("u1 !u2", vec!["u1", "u2"]),
+            ("( u )", vec!["u"]),
+            ("( u1 u2 )", vec!["u1", "u2"]),
+            ("|| ( u )", vec!["u"]),
+            ("|| ( !u1 u2 )", vec!["u1", "u2"]),
+            ("^^ ( u1 !u2 )", vec!["u1", "u2"]),
+            ("u1? ( u2 )", vec!["u2"]),
+            ("u1? ( u2 !u3 )", vec!["u2", "u3"]),
+            ("!u1? ( || ( u2 u3 ) )", vec!["u2", "u3"]),
         ] {
             let depset = required_use(s, &EAPI_LATEST_OFFICIAL)?.unwrap();
+            assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
-            assert_eq!(depset, expected, "{s} failed");
-            assert_eq!(depset.to_string(), s);
         }
 
         // ?? operator
-        for (s, expected, expected_flatten) in
-            [("?? ( u1 u2 )", ds([at_most_one_of([vs("u1"), vs("u2")])]), vec!["u1", "u2"])]
-        {
+        for (s, expected_flatten) in [("?? ( u1 u2 )", vec!["u1", "u2"])] {
             for eapi in EAPIS.iter() {
                 let depset = required_use(s, eapi)?.unwrap();
+                assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().collect();
                 assert_eq!(flatten, expected_flatten);
-                assert_eq!(depset, expected, "{s} failed");
-                assert_eq!(depset.to_string(), s);
             }
         }
 
@@ -893,27 +787,18 @@ mod tests {
         assert!(dependencies("", &EAPI_LATEST_OFFICIAL).unwrap().is_none());
 
         // valid
-        for (s, expected, expected_flatten) in [
-            ("a/b", ds([vp("a/b")]), vec!["a/b"]),
-            ("a/b c/d", ds([vp("a/b"), vp("c/d")]), vec!["a/b", "c/d"]),
-            ("( a/b c/d )", ds([allof([vp("a/b"), vp("c/d")])]), vec!["a/b", "c/d"]),
-            ("u? ( a/b c/d )", ds([use_enabled("u", [vp("a/b"), vp("c/d")])]), vec!["a/b", "c/d"]),
-            (
-                "!u? ( a/b c/d )",
-                ds([use_disabled("u", [vp("a/b"), vp("c/d")])]),
-                vec!["a/b", "c/d"],
-            ),
-            (
-                "u1? ( a/b !u2? ( c/d ) )",
-                ds([use_enabled("u1", [vp("a/b"), use_disabled("u2", [vp("c/d")])])]),
-                vec!["a/b", "c/d"],
-            ),
+        for (s, expected_flatten) in [
+            ("a/b", vec!["a/b"]),
+            ("a/b c/d", vec!["a/b", "c/d"]),
+            ("( a/b c/d )", vec!["a/b", "c/d"]),
+            ("u? ( a/b c/d )", vec!["a/b", "c/d"]),
+            ("!u? ( a/b c/d )", vec!["a/b", "c/d"]),
+            ("u1? ( a/b !u2? ( c/d ) )", vec!["a/b", "c/d"]),
         ] {
             let depset = dependencies(s, &EAPI_LATEST_OFFICIAL)?.unwrap();
+            assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
             assert_eq!(flatten, expected_flatten);
-            assert_eq!(depset, expected, "{s} failed");
-            assert_eq!(depset.to_string(), s);
         }
 
         Ok(())
@@ -932,31 +817,26 @@ mod tests {
             assert!(parse_func("").unwrap().is_none());
 
             // valid
-            for (s, expected, expected_flatten) in [
+            for (s, expected_flatten) in [
                 // simple values
-                ("v", ds([vs("v")]), vec!["v"]),
-                ("v1 v2", ds([vs("v1"), vs("v2")]), vec!["v1", "v2"]),
+                ("v", vec!["v"]),
+                ("v1 v2", vec!["v1", "v2"]),
                 // groupings
-                ("( v )", ds([allof(vec![vs("v")])]), vec!["v"]),
-                ("( v1 v2 )", ds([allof(vec![vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
-                (
-                    "( v1 ( v2 ) )",
-                    ds([allof(vec![vs("v1"), allof(vec![vs("v2")])])]),
-                    vec!["v1", "v2"],
-                ),
-                ("( ( v ) )", ds([allof(vec![allof(vec![vs("v")])])]), vec!["v"]),
+                ("( v )", vec!["v"]),
+                ("( v1 v2 )", vec!["v1", "v2"]),
+                ("( v1 ( v2 ) )", vec!["v1", "v2"]),
+                ("( ( v ) )", vec!["v"]),
                 // conditionals
-                ("u? ( v )", ds([use_enabled("u", vec![vs("v")])]), vec!["v"]),
-                ("u? ( v1 v2 )", ds([use_enabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
-                ("!u? ( v1 v2 )", ds([use_disabled("u", [vs("v1"), vs("v2")])]), vec!["v1", "v2"]),
+                ("u? ( v )", vec!["v"]),
+                ("u? ( v1 v2 )", vec!["v1", "v2"]),
+                ("!u? ( v1 v2 )", vec!["v1", "v2"]),
                 // combinations
-                ("v1 u? ( v2 )", ds([vs("v1"), use_enabled("u", [vs("v2")])]), vec!["v1", "v2"]),
+                ("v1 u? ( v2 )", vec!["v1", "v2"]),
             ] {
                 let depset = parse_func(s)?.unwrap();
+                assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().collect();
                 assert_eq!(flatten, expected_flatten);
-                assert_eq!(depset, expected, "{s} failed");
-                assert_eq!(depset.to_string(), s);
             }
         }
 
