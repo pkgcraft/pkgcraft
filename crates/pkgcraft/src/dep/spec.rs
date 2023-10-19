@@ -592,7 +592,8 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, S, 
 
     fn next(&mut self) -> Option<Self::Item> {
         use DepSpec::*;
-        if let Some(dep) = self.0.pop_front() {
+        let val = self.0.pop_front();
+        if let Some(dep) = val {
             match dep {
                 Enabled(_) | Disabled(_) => (),
                 AllOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
@@ -602,10 +603,9 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, S, 
                 UseEnabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 UseDisabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
             }
-            Some(dep)
-        } else {
-            None
         }
+
+        val
     }
 }
 
@@ -617,8 +617,9 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         use DepSpec::*;
-        if let Some(dep) = self.0.pop_front() {
-            match &dep {
+        let val = self.0.pop_front();
+        if let Some(dep) = &val {
+            match dep {
                 Enabled(_) | Disabled(_) => (),
                 AllOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
@@ -627,10 +628,9 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
                 UseEnabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
                 UseDisabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
             }
-            Some(dep)
-        } else {
-            None
         }
+
+        val
     }
 }
 
