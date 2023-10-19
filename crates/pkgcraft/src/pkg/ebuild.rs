@@ -84,15 +84,29 @@ impl<'a> RawPkg<'a> {
 
     /// Load metadata from cache if valid, otherwise source it from the ebuild.
     fn load_or_source(&self) -> crate::Result<Metadata> {
-        Metadata::load(self.cpv(), self.repo(), true).or_else(|_| self.try_into())
+        Metadata::load(self.cpv(), self.repo(), true)
+            .or_else(|_| self.try_into())
+            .map_err(|e| Error::InvalidPkg {
+                id: self.to_string(),
+                err: e.to_string(),
+            })
     }
 }
 
 impl<'a> TryFrom<RawPkg<'a>> for Pkg<'a> {
     type Error = Error;
 
-    fn try_from(value: RawPkg) -> crate::Result<Pkg> {
-        Pkg::new(value)
+    fn try_from(pkg: RawPkg) -> crate::Result<Pkg> {
+        let meta = pkg.load_or_source()?;
+        Ok(Pkg {
+            cpv: pkg.cpv,
+            eapi: pkg.eapi,
+            repo: pkg.repo,
+            meta,
+            iuse_effective: OnceLock::new(),
+            xml: OnceLock::new(),
+            manifest: OnceLock::new(),
+        })
     }
 }
 
@@ -126,23 +140,6 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(raw_pkg: RawPkg<'a>) -> crate::Result<Self> {
-        let meta = raw_pkg.load_or_source().map_err(|e| Error::InvalidPkg {
-            id: raw_pkg.to_string(),
-            err: e.to_string(),
-        })?;
-
-        Ok(Pkg {
-            cpv: raw_pkg.cpv,
-            eapi: raw_pkg.eapi,
-            repo: raw_pkg.repo,
-            meta,
-            iuse_effective: OnceLock::new(),
-            xml: OnceLock::new(),
-            manifest: OnceLock::new(),
-        })
-    }
-
     /// Return the path of the package's ebuild file path relative to the repository root.
     pub fn relpath(&self) -> Utf8PathBuf {
         self.cpv.relpath()
