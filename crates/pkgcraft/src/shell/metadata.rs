@@ -120,9 +120,10 @@ impl Iuse {
 
     /// Return an IUSE flag stripping defaults.
     pub fn flag(&self) -> &str {
-        match self.default {
-            None => &self.full,
-            _ => &self.full[1..],
+        if self.default.is_none() {
+            &self.full
+        } else {
+            &self.full[1..]
         }
     }
 }
