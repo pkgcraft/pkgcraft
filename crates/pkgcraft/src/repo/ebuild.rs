@@ -510,7 +510,7 @@ impl Repo {
                     .into_par_iter()
                     .filter(|cpv| {
                         pb.inc(1);
-                        MetadataCache::load(cpv, self, false).is_err()
+                        MetadataCache::verify(cpv, self)
                     })
                     .collect();
 

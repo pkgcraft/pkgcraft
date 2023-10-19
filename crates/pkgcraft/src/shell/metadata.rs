@@ -322,19 +322,27 @@ impl Metadata {
             .map_err(|e| Error::IO(format!("failed renaming metadata: {path} -> {new_path}: {e}")))
     }
 
-    /// Validate and deserialize a metadata entry into [`Metadata`].
-    pub(crate) fn load(cpv: &Cpv, repo: &Repo, deserialize: bool) -> crate::Result<Self> {
-        let path = repo.metadata().cache_path().join(cpv.to_string());
+    /// Verify a metadata entry is valid.
+    pub(crate) fn verify(cpv: &Cpv, repo: &Repo) -> bool {
+        if let Ok(pkg) = RawPkg::new(cpv.clone(), repo) {
+            Self::load(&pkg, false).is_err()
+        } else {
+            false
+        }
+    }
+
+    /// Deserialize a metadata entry for a given package into [`Metadata`].
+    pub(crate) fn load(pkg: &RawPkg, deserialize: bool) -> crate::Result<Self> {
+        let eapi = pkg.eapi();
+        let repo = pkg.repo();
+
+        let path = repo.metadata().cache_path().join(pkg.cpv().to_string());
         let data = fs::read_to_string(&path).map_err(|e| {
             if e.kind() != io::ErrorKind::NotFound {
                 warn!("error loading ebuild metadata: {path:?}: {e}");
             }
             Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
         })?;
-
-        let mut meta = Self::default();
-        let pkg = RawPkg::new(cpv.clone(), repo)?;
-        let eapi = pkg.eapi();
 
         let data: HashMap<_, _> = data
             .lines()
@@ -374,6 +382,7 @@ impl Metadata {
         }
 
         // deserialize values into metadata fields
+        let mut meta = Self::default();
         if deserialize {
             for (key, val) in data {
                 if key == Key::INHERITED {
