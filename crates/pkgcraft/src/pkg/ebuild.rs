@@ -29,6 +29,7 @@ pub struct RawPkg<'a> {
     repo: &'a Repo,
     eapi: &'static Eapi,
     data: String,
+    chksum: String,
 }
 
 make_pkg_traits!(RawPkg<'_>);
@@ -45,7 +46,8 @@ impl<'a> RawPkg<'a> {
             err: e.to_string(),
         })?;
 
-        Ok(Self { cpv, repo, eapi, data })
+        let chksum = digest::<md5::Md5>(data.as_bytes());
+        Ok(Self { cpv, repo, eapi, data, chksum })
     }
 
     /// Get the parsed EAPI from the given ebuild data content.
@@ -76,15 +78,13 @@ impl<'a> RawPkg<'a> {
         &self.data
     }
 
-    pub(crate) fn digest(&self) -> String {
-        digest::<md5::Md5>(self.data().as_bytes())
+    pub(crate) fn chksum(&self) -> &str {
+        &self.chksum
     }
 
     /// Load metadata from cache if valid, otherwise source it from the ebuild.
     fn load_or_source(&self) -> crate::Result<Metadata> {
-        Metadata::load(self.cpv(), self.repo())
-            .and_then(|s| Metadata::deserialize(&s, self.eapi()))
-            .or_else(|_| self.try_into())
+        Metadata::load(self.cpv(), self.repo(), true).or_else(|_| self.try_into())
     }
 }
 

@@ -1,11 +1,11 @@
-use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::io::{self, Write};
 use std::str::FromStr;
-use std::{fmt, fs, io};
+use std::{fmt, fs};
 
 use itertools::Itertools;
 use scallop::{functions, variables};
-use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
+use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
 use crate::dep::{self, Cpv, Dep, DepSet, Uri};
@@ -18,7 +18,9 @@ use crate::Error;
 
 use super::{get_build_mut, BuildData};
 
-#[derive(AsRefStr, EnumIter, EnumString, Display, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(
+    AsRefStr, EnumString, Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
 #[strum(serialize_all = "UPPERCASE")]
 #[allow(non_camel_case_types)]
 #[allow(clippy::upper_case_acronyms)]
@@ -41,20 +43,9 @@ pub enum Key {
     RESTRICT,
     SLOT,
     SRC_URI,
-    // last to match serialized data
+    // match ordering of previous implementations (although the cache format is unordered)
     INHERITED,
-}
-
-impl Ord for Key {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for Key {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
+    CHKSUM,
 }
 
 impl Key {
@@ -83,16 +74,6 @@ impl Key {
             }
             key => variables::optional(key).map(|s| s.split_whitespace().join(" ")),
         }
-    }
-
-    /// Convert a given key and value into a metadata entry line.
-    fn line<S: fmt::Display>(&self, value: S) -> String {
-        let var = match self {
-            Key::INHERITED => "_eclasses_",
-            key => key.as_ref(),
-        };
-
-        format!("{var}={value}")
     }
 }
 
@@ -160,6 +141,7 @@ pub(crate) struct Metadata {
     iuse: OrderedSet<Iuse>,
     inherit: OrderedSet<String>,
     inherited: OrderedSet<String>,
+    chksum: String,
 }
 
 macro_rules! split {
@@ -168,21 +150,12 @@ macro_rules! split {
     };
 }
 
-macro_rules! join {
-    ($set:expr) => {{
-        if $set.is_empty() {
-            None
-        } else {
-            Some($set.iter().join(" "))
-        }
-    }};
-}
-
 impl Metadata {
     /// Convert raw metadata key value to stored value.
     fn convert(&mut self, eapi: &'static Eapi, key: Key, val: &str) -> crate::Result<()> {
         use Key::*;
         match key {
+            CHKSUM => self.chksum = val.to_string(),
             DESCRIPTION => self.description = val.to_string(),
             SLOT => self.slot = val.to_string(),
             DEPEND | BDEPEND | IDEPEND | RDEPEND | PDEPEND => {
@@ -222,95 +195,105 @@ impl Metadata {
         Ok(())
     }
 
-    /// Deserialize a metadata string into [`Metadata`].
-    pub(crate) fn deserialize(data: &str, eapi: &'static Eapi) -> crate::Result<Self> {
-        let mut meta = Self::default();
-
-        data.lines()
-            .filter_map(|l| {
-                l.split_once('=').map(|(s, v)| match (s, v) {
-                    ("_eclasses_", v) => ("INHERITED", v),
-                    // single hyphen means no phases are defined as per PMS
-                    ("DEFINED_PHASES", "-") => ("DEFINED_PHASES", ""),
-                    _ => (s, v),
-                })
-            })
-            .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
-            .filter(|(k, _)| eapi.metadata_keys().contains(k))
-            .try_for_each(|(key, val)| {
-                if key == Key::INHERITED {
-                    meta.inherited = val
-                        .split_whitespace()
-                        .tuples()
-                        .map(|(name, _chksum)| name.to_string())
-                        .collect();
-                    Ok(())
-                } else {
-                    meta.convert(eapi, key, val)
-                }
-            })?;
-
-        Ok(meta)
-    }
-
     /// Serialize [`Metadata`] to the given package's metadata/md5-cache file in the related repo.
     pub(crate) fn serialize(pkg: &RawPkg) -> crate::Result<()> {
         // convert raw pkg into metadata via sourcing
         let meta: Metadata = pkg.try_into()?;
+        let eapi = pkg.eapi();
 
-        // return the MD5 digest for a known eclass
-        let eclass_digest = |name: &str| -> &str {
+        // return the MD5 checksum for a known eclass
+        let eclass_chksum = |name: &str| -> &str {
             pkg.repo()
                 .eclasses()
                 .get(name)
                 .expect("missing eclass")
-                .digest()
+                .chksum()
         };
 
         // convert metadata fields to metadata lines
         use Key::*;
-        let mut data = Key::iter()
-            .filter_map(|key| match key {
-                DESCRIPTION => Some(key.line(&meta.description)),
-                SLOT => Some(key.line(&meta.slot)),
+        let mut data = vec![];
+        for key in eapi.metadata_keys() {
+            match key {
+                CHKSUM => writeln!(&mut data, "_md5_={}", pkg.chksum())?,
+                DESCRIPTION => writeln!(&mut data, "{key}={}", meta.description)?,
+                SLOT => writeln!(&mut data, "{key}={}", meta.slot)?,
                 DEPEND | BDEPEND | IDEPEND | RDEPEND | PDEPEND => {
-                    meta.deps.get(&key).map(|d| key.line(d))
+                    if let Some(val) = meta.deps.get(key) {
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
                 }
-                LICENSE => meta.license.as_ref().map(|d| key.line(d)),
-                PROPERTIES => meta.properties.as_ref().map(|d| key.line(d)),
-                REQUIRED_USE => meta.required_use.as_ref().map(|d| key.line(d)),
-                RESTRICT => meta.restrict.as_ref().map(|d| key.line(d)),
-                SRC_URI => meta.src_uri.as_ref().map(|d| key.line(d)),
-                HOMEPAGE => join!(&meta.homepage).map(|s| key.line(s)),
+                LICENSE => {
+                    if let Some(val) = &meta.license {
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
+                PROPERTIES => {
+                    if let Some(val) = &meta.properties {
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
+                REQUIRED_USE => {
+                    if let Some(val) = &meta.required_use {
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
+                RESTRICT => {
+                    if let Some(val) = &meta.restrict {
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
+                SRC_URI => {
+                    if let Some(val) = &meta.src_uri {
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
+                HOMEPAGE => {
+                    if !meta.homepage.is_empty() {
+                        let val = meta.homepage.iter().join(" ");
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
                 DEFINED_PHASES => {
                     // PMS specifies if no phase functions are defined, a single hyphen is used.
                     if meta.defined_phases.is_empty() {
-                        Some(key.line("-"))
+                        writeln!(&mut data, "{key}=-")?;
                     } else {
-                        Some(key.line(meta.defined_phases.iter().join(" ")))
+                        let val = meta.defined_phases.iter().join(" ");
+                        writeln!(&mut data, "{key}={val}")?;
                     }
                 }
-                KEYWORDS => join!(&meta.keywords).map(|s| key.line(s)),
-                IUSE => join!(&meta.iuse).map(|s| key.line(s)),
-                INHERIT => join!(&meta.inherit).map(|s| key.line(s)),
+                KEYWORDS => {
+                    if !meta.keywords().is_empty() {
+                        let val = meta.keywords.iter().join(" ");
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
+                IUSE => {
+                    if !meta.iuse().is_empty() {
+                        let val = meta.iuse.iter().join(" ");
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
+                INHERIT => {
+                    if !meta.inherit().is_empty() {
+                        let val = meta.inherit.iter().join(" ");
+                        writeln!(&mut data, "{key}={val}")?;
+                    }
+                }
                 INHERITED => {
-                    if meta.inherited.is_empty() {
-                        None
-                    } else {
-                        let data = meta
+                    if !meta.inherited.is_empty() {
+                        let val = meta
                             .inherited
                             .iter()
-                            .flat_map(|s| [s.as_str(), eclass_digest(s)])
+                            .flat_map(|s| [s.as_str(), eclass_chksum(s)])
                             .join("\t");
-                        Some(key.line(data))
+                        writeln!(&mut data, "_eclasses_={val}")?;
                     }
                 }
-                EAPI => Some(key.line(pkg.eapi())),
-            })
-            .join("\n");
-
-        // append ebuild hash
-        data.push_str(&format!("\n_md5_={}\n", pkg.digest()));
+                EAPI => writeln!(&mut data, "{key}={eapi}")?,
+            }
+        }
 
         // determine metadata entry directory
         let dir = pkg
@@ -337,8 +320,8 @@ impl Metadata {
             .map_err(|e| Error::IO(format!("failed renaming metadata: {path} -> {new_path}: {e}")))
     }
 
-    /// Load valid metadata entry from cache.
-    pub(crate) fn load(cpv: &Cpv, repo: &Repo) -> crate::Result<String> {
+    /// Validate and deserialize a metadata entry into [`Metadata`].
+    pub(crate) fn load(cpv: &Cpv, repo: &Repo, deserialize: bool) -> crate::Result<Self> {
         let path = repo.metadata().cache_path().join(cpv.to_string());
         let data = fs::read_to_string(&path).map_err(|e| {
             if e.kind() != io::ErrorKind::NotFound {
@@ -347,30 +330,63 @@ impl Metadata {
             Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
         })?;
 
+        let mut meta = Self::default();
         let pkg = RawPkg::new(cpv.clone(), repo)?;
-        let mut iter = data.lines().rev();
+        let eapi = pkg.eapi();
+
+        let data: HashMap<_, _> = data
+            .lines()
+            .filter_map(|l| {
+                l.split_once('=').map(|(s, v)| match (s, v) {
+                    ("_eclasses_", v) => ("INHERITED", v),
+                    ("_md5_", v) => ("CHKSUM", v),
+                    // single hyphen means no phases are defined as per PMS
+                    ("DEFINED_PHASES", "-") => ("DEFINED_PHASES", ""),
+                    _ => (s, v),
+                })
+            })
+            .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
+            .filter(|(k, _)| eapi.metadata_keys().contains(k))
+            .collect();
 
         // verify ebuild hash
-        if let Some(s) = iter.next().and_then(|s| s.strip_prefix("_md5_=")) {
-            if s != pkg.digest() {
-                return Err(Error::InvalidValue("mismatched ebuild metadata digest".to_string()));
+        if let Some(val) = data.get(&Key::CHKSUM) {
+            if *val != pkg.chksum() {
+                return Err(Error::InvalidValue("mismatched ebuild checksum".to_string()));
             }
         } else {
-            return Err(Error::InvalidValue("missing ebuild metadata digest".to_string()));
+            return Err(Error::InvalidValue("missing ebuild checksum".to_string()));
         }
 
         // verify eclass hashes
-        if let Some(s) = iter.next().and_then(|s| s.strip_prefix("_eclasses_=")) {
-            if !s.split_whitespace().tuples().all(|(name, digest)| {
-                repo.eclasses()
+        if let Some(val) = data.get(&Key::INHERITED) {
+            for (name, chksum) in val.split_whitespace().tuples() {
+                if !repo
+                    .eclasses()
                     .get(name)
-                    .map_or(false, |e| e.digest() == digest)
-            }) {
-                return Err(Error::InvalidValue("mismatched eclass metadata digest".to_string()));
+                    .map_or(false, |e| e.chksum() == chksum)
+                {
+                    return Err(Error::InvalidValue("mismatched eclass checksum".to_string()));
+                }
             }
         }
 
-        Ok(data)
+        // deserialize values into metadata fields
+        if deserialize {
+            for (key, val) in data {
+                if key == Key::INHERITED {
+                    meta.inherited = val
+                        .split_whitespace()
+                        .tuples()
+                        .map(|(name, _chksum)| name.to_string())
+                        .collect();
+                } else {
+                    meta.convert(eapi, key, val)?;
+                }
+            }
+        }
+
+        Ok(meta)
     }
 
     pub(crate) fn description(&self) -> &str {

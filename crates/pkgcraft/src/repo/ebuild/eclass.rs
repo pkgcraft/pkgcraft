@@ -15,7 +15,7 @@ use crate::Error;
 pub struct Eclass {
     name: String,
     path: Utf8PathBuf,
-    digest: String,
+    chksum: String,
 }
 
 impl Eclass {
@@ -27,7 +27,7 @@ impl Eclass {
             Ok(Self {
                 name: name.to_string(),
                 path: path.to_path_buf(),
-                digest: digest::<md5::Md5>(&data),
+                chksum: digest::<md5::Md5>(&data),
             })
         } else {
             Err(Error::InvalidValue(format!("invalid eclass: {path}")))
@@ -38,8 +38,8 @@ impl Eclass {
         &self.path
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn chksum(&self) -> &str {
+        &self.chksum
     }
 }
 

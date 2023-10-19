@@ -1,4 +1,5 @@
 use std::convert::Infallible;
+use std::io;
 
 use crate::peg;
 use crate::pkg::Package;
@@ -46,6 +47,12 @@ pub enum Error {
 impl From<Error> for scallop::Error {
     fn from(e: Error) -> Self {
         scallop::Error::Base(e.to_string())
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Self {
+        Error::IO(format!("{e}: {}", e.kind()))
     }
 }
 

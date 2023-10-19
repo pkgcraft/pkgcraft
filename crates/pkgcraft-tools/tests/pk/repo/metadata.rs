@@ -2,7 +2,7 @@ use std::{env, fs};
 
 use indexmap::IndexMap;
 use pkgcraft::repo::{ebuild::temp::Repo as TempRepo, Repository};
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
 use walkdir::WalkDir;
@@ -247,5 +247,7 @@ fn data_content() {
 
     // verify new data matches original
     let new: IndexMap<_, _> = metadata_content();
-    assert_eq!(&expected, &new);
+    for (cpv, data) in new {
+        assert_unordered_eq(expected.get(&cpv).unwrap().lines(), data.lines());
+    }
 }

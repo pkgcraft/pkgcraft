@@ -533,6 +533,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
         .update_incremental_keys(&[IUSE, DEPEND, RDEPEND, PDEPEND, REQUIRED_USE])
         .update_mandatory_keys(&[DESCRIPTION, EAPI, SLOT])
         .update_metadata_keys(&[
+            CHKSUM,
             DEFINED_PHASES,
             HOMEPAGE,
             INHERIT,

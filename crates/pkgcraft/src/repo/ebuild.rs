@@ -510,7 +510,7 @@ impl Repo {
                     .into_par_iter()
                     .filter(|cpv| {
                         pb.inc(1);
-                        MetadataCache::load(cpv, self).is_err()
+                        MetadataCache::load(cpv, self, false).is_err()
                     })
                     .collect();
 
@@ -1211,7 +1211,7 @@ mod tests {
             _md5_=e871bbf49576e8c370c4f69856fca537
         "};
         let path = repo.metadata().cache_path().join("cat/pkg-1");
-        assert_eq!(fs::read_to_string(path).unwrap(), metadata);
+        assert_unordered_eq(fs::read_to_string(path).unwrap().lines(), metadata.lines());
     }
 
     #[traced_test]
