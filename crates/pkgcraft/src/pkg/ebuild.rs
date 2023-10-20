@@ -188,7 +188,7 @@ impl<'a> Pkg<'a> {
                 IDEPEND => self.idepend(),
                 PDEPEND => self.pdepend(),
                 RDEPEND => self.rdepend(),
-                // non-dependency metadata keys are ignored
+                // non-dependency keys are ignored
                 _ => None,
             })
             .flatten()
@@ -457,6 +457,8 @@ mod tests {
         let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
         assert!(pkg.dependencies(&[]).is_empty());
         assert!(pkg.dependencies(&[Key::DEPEND]).is_empty());
+        // non-dependency keys are ignored
+        assert!(pkg.dependencies(&[Key::LICENSE]).is_empty());
 
         // empty
         let pkg = t.create_pkg("cat/pkg-1", &["DEPEND="]).unwrap();
@@ -486,6 +488,8 @@ mod tests {
         assert_eq!(pkg.dependencies(&[Key::RDEPEND]).to_string(), "c/d");
         assert_eq!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(), "a/b c/d");
         assert_eq!(pkg.dependencies(&[Key::RDEPEND, Key::DEPEND]).to_string(), "c/d a/b");
+        // non-dependency keys are ignored
+        assert!(pkg.dependencies(&[Key::LICENSE]).is_empty());
     }
 
     #[test]
