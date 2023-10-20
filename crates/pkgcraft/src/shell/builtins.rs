@@ -171,8 +171,8 @@ impl Builtin {
         self.scope.contains_key(eapi)
     }
 
-    /// Determine if the builtin is allowed to be overridden with a function.
-    fn is_overridable(&self) -> bool {
+    /// Determine if the builtin is a phase stub.
+    fn is_phase(&self) -> bool {
         PhaseKind::from_str(self.builtin.name).is_ok()
     }
 
@@ -360,7 +360,7 @@ pub(crate) static EAPI_BUILTINS: Lazy<IndexMap<&'static Eapi, IndexSet<String>>>
             .map(|&e| {
                 let builtins = BUILTINS
                     .iter()
-                    .filter(|b| b.is_enabled(e) && !b.is_overridable())
+                    .filter(|b| b.is_enabled(e) && !b.is_phase())
                     .map(|b| b.to_string())
                     .collect();
                 (e, builtins)
