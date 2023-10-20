@@ -77,7 +77,7 @@ impl FromStr for Syncer {
         ];
 
         let mut syncer: Option<Syncer> = None;
-        for func in prioritized_syncers.iter() {
+        for func in prioritized_syncers {
             if let Ok(sync) = func(s) {
                 syncer = Some(sync);
                 break;

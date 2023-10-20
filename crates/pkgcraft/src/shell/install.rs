@@ -175,7 +175,7 @@ impl Install {
         I: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        for p in paths.into_iter() {
+        for p in paths {
             let path = self.prefix(p);
             fs::create_dir_all(&path)
                 .map_err(|e| Error::Base(format!("failed creating dir: {path:?}: {e}")))?;
@@ -210,7 +210,7 @@ impl Install {
         P: AsRef<Path>,
         F: Fn(&DirEntry) -> bool,
     {
-        for dir in dirs.into_iter() {
+        for dir in dirs {
             let dir = dir.as_ref();
             // Determine whether to skip the base directory, path.components() can't be used
             // because it normalizes all occurrences of '.' away.
@@ -223,11 +223,11 @@ impl Install {
             // optionally apply directory filtering
             let entries = WalkDir::new(dir).min_depth(depth);
             let entries = match predicate.as_ref() {
-                None => Either::Left(entries),
+                None => Either::Left(entries.into_iter()),
                 Some(func) => Either::Right(entries.into_iter().filter_entry(func)),
             };
 
-            for entry in entries.into_iter() {
+            for entry in entries {
                 let entry =
                     entry.map_err(|e| Error::Base(format!("error walking {dir:?}: {e}")))?;
                 let path = entry.path();
@@ -289,7 +289,7 @@ impl Install {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        for (source, dest) in paths.into_iter() {
+        for (source, dest) in paths {
             let source = source.as_ref();
             let dest = self.prefix(dest.as_ref());
             let meta = fs::metadata(source)
@@ -327,7 +327,7 @@ impl Install {
         Q: AsRef<Path>,
     {
         let mut files = vec![];
-        for (source, dest) in paths.into_iter() {
+        for (source, dest) in paths {
             let source = source.as_ref();
             let dest = dest.as_ref();
             if source.is_symlink() {

@@ -107,7 +107,7 @@ impl Arcanist for ArcanistService {
     ) -> Result<Response<Self::SearchPackagesStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
         tokio::spawn(async move {
-            for pkg in request.into_inner().data.iter() {
+            for pkg in request.into_inner().data {
                 tx.send(Ok(StringResponse { data: pkg.to_string() }))
                     .await
                     .unwrap();

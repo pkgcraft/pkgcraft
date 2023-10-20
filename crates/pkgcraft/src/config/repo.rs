@@ -103,7 +103,7 @@ impl Config {
 
         // load repos
         let mut repos = vec![];
-        for (name, c) in configs.into_iter() {
+        for (name, c) in configs {
             // ignore unsynced or nonexistent repos
             match c
                 .format

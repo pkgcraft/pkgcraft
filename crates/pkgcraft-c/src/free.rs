@@ -19,7 +19,7 @@ pub unsafe extern "C" fn pkgcraft_str_free(s: *mut c_char) {
 pub unsafe extern "C" fn pkgcraft_str_array_free(strs: *mut *mut c_char, len: usize) {
     if !strs.is_null() {
         unsafe {
-            for s in Vec::from_raw_parts(strs, len, len).into_iter() {
+            for s in Vec::from_raw_parts(strs, len, len) {
                 drop(CString::from_raw(s));
             }
         }

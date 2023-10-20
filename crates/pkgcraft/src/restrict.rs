@@ -45,7 +45,7 @@ macro_rules! restrict_match {
             Self::Xor(vals) => {
                 let mut curr: Option<bool>;
                 let mut prev: Option<bool> = None;
-                for r in vals.iter() {
+                for r in vals {
                     curr = Some(r.matches($obj));
                     if prev.is_some() && curr != prev {
                         return true;
