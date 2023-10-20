@@ -52,6 +52,7 @@ jobs:
       id: rust
       with:
         toolchain: ${{ matrix.rust-version }}
+        components: llvm-tools-preview
 
     - name: Restore cache
       uses: actions/cache/restore@v3
@@ -70,11 +71,19 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
+
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
 
     - name: Build and run tests
-      run: cargo nextest run --color always --all-features --tests
+      run: cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: lcov.info
 
     - name: Remove old caches
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
