@@ -1233,7 +1233,12 @@ mod tests {
     fn test_categories_xml() {
         let repo = TEST_DATA.ebuild_repo("xml").unwrap();
         assert_eq!(repo.categories_xml().get("good").unwrap(), "good");
+        // categories with invalid XML data don't have entries
         assert!(repo.categories_xml().get("bad").is_none());
+        // categories without XML data don't have entries
+        assert!(repo.categories_xml().get("pkg").is_none());
+        // nonexistent categories don't have entries
+        assert!(repo.categories_xml().get("nonexistent").is_none());
     }
 
     #[test]
