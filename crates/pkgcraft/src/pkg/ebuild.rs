@@ -340,7 +340,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::metadata::Checksum;
     use crate::repo::PkgRepository;
-    use crate::test::{assert_ordered_eq, assert_unordered_eq};
+    use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -780,7 +780,7 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
 
         // none
-        let pkg = t.create_pkg("noxml/pkg-1", &[]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
         assert!(pkg.xml().maintainers().is_empty());
 
         // single
@@ -838,7 +838,7 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
 
         // none
-        let pkg = t.create_pkg("noxml/pkg-1", &[]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
         assert!(pkg.xml().upstream().is_none());
 
         // single
@@ -891,7 +891,7 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
 
         // none
-        let pkg = t.create_pkg("noxml/pkg-1", &[]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
         assert!(pkg.xml().local_use().is_empty());
 
         // single
@@ -943,7 +943,7 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
 
         // none
-        let pkg = t.create_pkg("noxml/pkg-1", &[]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
         assert!(pkg.xml().long_description().is_none());
 
         // empty

@@ -9,8 +9,9 @@ use serde_with::{serde_as, DisplayFromStr};
 use walkdir::WalkDir;
 
 use crate::config::Config;
-use crate::dep::{Blocker, Revision, SlotOperator, Version};
+use crate::dep::{Blocker, Dep, Revision, SlotOperator, Version};
 use crate::macros::build_from_paths;
+use crate::repo::PkgRepository;
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -153,6 +154,12 @@ impl TestData {
             .repos
             .get(name)
             .and_then(|r| r.as_ebuild().map(|r| r.as_ref()))
+    }
+
+    pub fn ebuild_pkg<'a>(&'a self, s: &str) -> Option<crate::pkg::ebuild::Pkg<'a>> {
+        let dep: Dep = s.parse().expect("invalid dep");
+        self.ebuild_repo(dep.repo().expect("dep missing repo id"))
+            .and_then(|r| r.iter_restrict(&dep).next())
     }
 }
 
