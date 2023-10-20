@@ -12,6 +12,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
+use roxmltree::Document;
 use scallop::pool::PoolSendIter;
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
@@ -165,6 +166,7 @@ pub struct Repo {
     eclasses: OnceLock<IndexSet<Eclass>>,
     xml_cache: OnceLock<Cache<XmlMetadata>>,
     manifest_cache: OnceLock<Cache<Manifest>>,
+    categories_xml: OnceLock<IndexMap<String, String>>,
 }
 
 impl fmt::Debug for Repo {
@@ -321,6 +323,45 @@ impl Repo {
                 }
             })
             .collect()
+    }
+
+    /// Return the mapping of repo categories to their descriptions.
+    pub fn categories_xml(&self) -> &IndexMap<String, String> {
+        // parse a category's metadata.xml data
+        let parse_xml = |data: &str| -> crate::Result<Option<String>> {
+            Document::parse(data)
+                .map_err(|e| Error::InvalidValue(format!("failed parsing category xml: {e}")))
+                .map(|doc| {
+                    doc.root_element().children().find_map(|node| {
+                        let lang = node.attribute("lang").unwrap_or("en");
+                        if node.tag_name().name() == "longdescription" && lang == "en" {
+                            node.text().map(|s| s.split_whitespace().join(" "))
+                        } else {
+                            None
+                        }
+                    })
+                })
+        };
+
+        self.categories_xml.get_or_init(|| {
+            self.categories()
+                .iter()
+                .filter_map(|cat| {
+                    let path = build_from_paths!(self.path(), cat, "metadata.xml");
+                    let desc = fs::read_to_string(&path)
+                        .map_err(|e| Error::IO(format!("failed reading category xml: {e}")))
+                        .and_then(|s| parse_xml(&s));
+                    match desc {
+                        Ok(Some(desc)) => Some((cat.to_string(), desc)),
+                        Ok(_) => None,
+                        Err(e) => {
+                            warn!("{}: {path}: {e}", self.id());
+                            None
+                        }
+                    }
+                })
+                .collect()
+        })
     }
 
     /// Convert a relative ebuild file repo path into a CPV.
@@ -1186,6 +1227,13 @@ mod tests {
         assert_unordered_eq(repo.licenses(), ["a"]);
         let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
         assert_unordered_eq(repo.licenses(), ["a", "b"]);
+    }
+
+    #[test]
+    fn test_categories_xml() {
+        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+        assert_eq!(repo.categories_xml().get("good").unwrap(), "good");
+        assert!(repo.categories_xml().get("bad").is_none());
     }
 
     #[test]
