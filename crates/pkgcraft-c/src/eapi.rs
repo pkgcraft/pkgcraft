@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
-use std::str::FromStr;
 
 use pkgcraft::eapi::{self, Eapi};
 use pkgcraft::utils::hash;
@@ -49,7 +48,7 @@ pub unsafe extern "C" fn pkgcraft_eapis_official(len: *mut usize) -> *mut *const
 pub unsafe extern "C" fn pkgcraft_eapi_from_str(s: *const c_char) -> *const Eapi {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        unwrap_or_panic!(<&Eapi>::from_str(s))
+        unwrap_or_panic!(s.parse::<&Eapi>())
     }
 }
 
@@ -61,10 +60,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_from_str(s: *const c_char) -> *const Eapi
 pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) -> bool {
     let eapi = try_ref_from_ptr!(eapi);
     let s = try_str_from_ptr!(s);
-    match eapi::Feature::from_str(s) {
-        Ok(feature) => eapi.has(feature),
-        _ => false,
-    }
+    s.parse().map(|f| eapi.has(f)).unwrap_or_default()
 }
 
 /// Return an EAPI's identifier.

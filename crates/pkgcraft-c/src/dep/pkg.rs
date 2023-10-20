@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
-use std::str::FromStr;
 
 use pkgcraft::dep::{Blocker, Cpv, Dep, Intersects, SlotOperator, Version};
 use pkgcraft::eapi::Eapi;
@@ -52,7 +51,7 @@ pub unsafe extern "C" fn pkgcraft_dep_new_cpn(s: *const c_char) -> *mut Dep {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_blocker_from_str(s: *const c_char) -> Blocker {
     let s = try_str_from_ptr!(s);
-    Blocker::from_str(s).unwrap_or_default()
+    s.parse().unwrap_or_default()
 }
 
 /// Return the string for a Blocker.
@@ -68,7 +67,7 @@ pub extern "C" fn pkgcraft_dep_blocker_str(b: Blocker) -> *mut c_char {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_slot_op_from_str(s: *const c_char) -> SlotOperator {
     let s = try_str_from_ptr!(s);
-    SlotOperator::from_str(s).unwrap_or_default()
+    s.parse().unwrap_or_default()
 }
 
 /// Return the string for a SlotOperator.

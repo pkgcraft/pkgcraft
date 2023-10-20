@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use scallop::{functions, source, variables, Error, ExecStatus};
 
 use crate::shell::get_build_mut;
@@ -43,9 +41,9 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let phases = eapi.phases();
 
     for arg in args {
-        let phase =
-            PhaseKind::from_str(arg).map_err(|_| Error::Base(format!("invalid phase: {arg}")))?;
-
+        let phase = arg
+            .parse()
+            .map_err(|_| Error::Base(format!("invalid phase: {arg}")))?;
         if phases.contains(&phase) {
             build.export_functions.insert(phase, eclass.clone());
         } else {

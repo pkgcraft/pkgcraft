@@ -9,7 +9,7 @@ use flate2::read::GzDecoder;
 use futures::StreamExt;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use reqwest::header::{HeaderMap, HeaderValue, ETAG};
+use reqwest::header::{HeaderMap, ETAG};
 use serde::{Deserialize, Serialize};
 use tar::Archive;
 use tempfile::Builder;
@@ -47,7 +47,7 @@ impl Syncable for Repo {
         let etag_path = path.join(".etag");
         let mut req_headers = HeaderMap::new();
         if let Ok(previous_etag) = fs::read_to_string(&etag_path) {
-            if let Ok(value) = HeaderValue::from_str(&previous_etag) {
+            if let Ok(value) = previous_etag.parse() {
                 req_headers.insert("If-None-Match", value);
             }
         }

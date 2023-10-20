@@ -144,7 +144,7 @@ impl TryFrom<&str> for &'static Eapi {
     type Error = Error;
 
     fn try_from(value: &str) -> crate::Result<&'static Eapi> {
-        <&Eapi>::from_str(value)
+        value.parse()
     }
 }
 
@@ -152,7 +152,7 @@ impl TryFrom<Option<&str>> for &'static Eapi {
     type Error = Error;
 
     fn try_from(value: Option<&str>) -> crate::Result<&'static Eapi> {
-        value.map_or(Ok(Default::default()), <&Eapi>::from_str)
+        value.map_or_else(|| Ok(Default::default()), |s| s.parse())
     }
 }
 
@@ -169,7 +169,7 @@ impl TryFrom<&Utf8Path> for &'static Eapi {
 
     fn try_from(value: &Utf8Path) -> crate::Result<&'static Eapi> {
         match fs::read_to_string(value) {
-            Ok(s) => <&Eapi>::from_str(s.trim_end()),
+            Ok(s) => s.trim_end().parse(),
             Err(e) if e.kind() == io::ErrorKind::NotFound => {
                 Err(Error::InvalidValue("unsupported EAPI: 0".to_string()))
             }

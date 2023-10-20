@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::str::FromStr;
 
 use camino::Utf8Path;
 use itertools::Itertools;
@@ -120,9 +119,9 @@ impl TryFrom<Node<'_, '_>> for Maintainer {
         }
 
         let maint_type = node.attribute("type").unwrap_or_default();
-        maintainer.maint_type = MaintainerType::from_str(maint_type).unwrap_or_default();
+        maintainer.maint_type = maint_type.parse().unwrap_or_default();
         let proxied = node.attribute("proxied").unwrap_or_default();
-        maintainer.proxied = Proxied::from_str(proxied).unwrap_or_default();
+        maintainer.proxied = proxied.parse().unwrap_or_default();
 
         if maintainer.email.is_empty() {
             return Err(Error::InvalidValue("maintainer missing required email".to_string()));
@@ -220,7 +219,7 @@ impl TryFrom<Node<'_, '_>> for Upstream {
                 "maintainer" => {
                     let mut m = UpstreamMaintainer::default();
                     let status = u_child.attribute("status").unwrap_or_default();
-                    m.status = MaintainerStatus::from_str(status).unwrap_or_default();
+                    m.status = status.parse().unwrap_or_default();
                     for m_child in u_child.children() {
                         match m_child.tag_name().name() {
                             "name" => m.name = string_or_empty(m_child.text()),
@@ -367,7 +366,8 @@ pub struct Checksum {
 
 impl Checksum {
     pub(super) fn new(kind: &str, value: &str) -> crate::Result<Self> {
-        let kind = HashType::from_str(kind)
+        let kind = kind
+            .parse()
             .map_err(|_| Error::InvalidValue(format!("unknown checksum kind: {kind}")))?;
         Ok(Checksum { kind, value: value.to_string() })
     }
@@ -483,24 +483,29 @@ impl CacheData for Manifest {
             let fields: Vec<_> = line.split_whitespace().collect();
 
             // verify manifest tokens include at least one checksum
-            if fields.len() < 5 || (fields.len() % 2 == 0) {
-                return Err(Error::InvalidValue(format!(
-                    "line {}, invalid number of manifest tokens",
-                    i + 1,
-                )));
-            }
+            let (mtype, name, size, files) = match &fields[..] {
+                [mtype, name, size, files @ ..] if !files.is_empty() && files.len() % 2 == 0 => {
+                    (mtype, name, size, files)
+                }
+                _ => {
+                    return Err(Error::InvalidValue(format!(
+                        "line {}, invalid number of manifest tokens",
+                        i + 1,
+                    )));
+                }
+            };
 
-            let kind = ManifestType::from_str(fields[0])
-                .map_err(|e| Error::InvalidValue(e.to_string()))?;
-            let name = &fields[1];
-            let size = fields[2]
+            let kind = mtype
+                .parse()
+                .map_err(|_| Error::InvalidValue(format!("invalid manifest type: {mtype}")))?;
+            let size = size
                 .parse()
                 .map_err(|e| Error::InvalidValue(format!("line {}, invalid size: {e}", i + 1)))?;
             manifest
                 .files
                 .entry(kind)
                 .or_default()
-                .insert(ManifestFile::new(kind, name, size, &fields[3..])?);
+                .insert(ManifestFile::new(kind, name, size, files)?);
         }
 
         if manifest.is_empty() {

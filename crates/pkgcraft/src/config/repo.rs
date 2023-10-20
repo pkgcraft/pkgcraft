@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use std::str::FromStr;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
@@ -138,7 +137,7 @@ impl Config {
         let config = RepoConfig {
             location: self.repo_dir.join(name),
             priority,
-            sync: Some(Syncer::from_str(uri)?),
+            sync: Some(uri.parse()?),
             ..Default::default()
         };
         config.sync()?;

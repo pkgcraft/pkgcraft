@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn test_filtering() {
         let dep_strs = vec!["cat/pkg", ">=cat/pkg-1", "=cat/pkg-1:2/3::repo"];
-        let deps: Vec<_> = dep_strs.iter().map(|s| Dep::from_str(s).unwrap()).collect();
+        let deps: Vec<_> = dep_strs.iter().map(|s| s.parse().unwrap()).collect();
 
         let filter = |r: Restrict, deps: Vec<Dep>| -> Vec<String> {
             deps.into_iter()
@@ -109,8 +109,8 @@ mod tests {
         let r = Restrict::Dep(dep::Restrict::Version(None));
         assert_eq!(filter(r, deps.clone()), ["cat/pkg"]);
 
-        let cpv = Dep::from_str("=cat/pkg-1").unwrap();
-        let r = Restrict::from(&cpv);
+        let dep = Dep::from_str("=cat/pkg-1").unwrap();
+        let r = Restrict::from(&dep);
         assert_eq!(filter(r, deps.clone()), [">=cat/pkg-1", "=cat/pkg-1:2/3::repo"]);
 
         let r = Restrict::True;

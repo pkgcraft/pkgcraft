@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
-use std::str::FromStr;
 
 use pkgcraft::dep::{Intersects, Operator, Version};
 use pkgcraft::utils::hash;
@@ -51,7 +50,7 @@ pub unsafe extern "C" fn pkgcraft_version_base(v: *mut Version) -> *mut c_char {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_op_from_str(s: *const c_char) -> Operator {
     let s = try_str_from_ptr!(s);
-    Operator::from_str(s).unwrap_or_default()
+    s.parse().unwrap_or_default()
 }
 
 /// Return the string for an Operator.

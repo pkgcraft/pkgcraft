@@ -1,5 +1,4 @@
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use clap::Args;
 use pkgcraft::dep::{CpvOrDep, Intersects};
@@ -12,8 +11,8 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let obj1 = CpvOrDep::from_str(&self.dep1)?;
-        let obj2 = CpvOrDep::from_str(&self.dep2)?;
+        let obj1: CpvOrDep = self.dep1.parse()?;
+        let obj2: CpvOrDep = self.dep2.parse()?;
         Ok(ExitCode::from(!obj1.intersects(&obj2) as u8))
     }
 }

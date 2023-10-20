@@ -1,11 +1,9 @@
 use std::ffi::{c_char, CString};
-use std::str::FromStr;
 use std::{mem, ptr, slice};
 
 use pkgcraft::dep::IntoOwned;
 use pkgcraft::pkg::ebuild::metadata;
 use pkgcraft::pkg::Pkg;
-use pkgcraft::shell::Key;
 
 use crate::dep::spec::{DepSet, DepSetKind};
 use crate::error::Error;
@@ -184,7 +182,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
         for s in keys {
             let s = try_str_from_ptr!(s).to_uppercase();
             let key = unwrap_or_panic!(
-                Key::from_str(&s).map_err(|_| Error::new(format!("invalid dep key: {s}")))
+                s.parse().map_err(|_| Error::new(format!("invalid dep key: {s}")))
             );
             dep_keys.push(key);
         }

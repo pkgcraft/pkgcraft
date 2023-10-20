@@ -1,6 +1,5 @@
 use std::mem;
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use anyhow::{anyhow, bail};
 use clap::Args;
@@ -26,8 +25,8 @@ impl Command {
                 .split_whitespace()
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
-            let d1 = Dep::from_str(s1)?;
-            let d2 = Dep::from_str(s2)?;
+            let d1: Dep = s1.parse()?;
+            let d2: Dep = s2.parse()?;
             let result = match op {
                 "<" => d1 < d2,
                 "<=" => d1 <= d2,

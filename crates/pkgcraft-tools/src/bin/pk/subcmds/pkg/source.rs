@@ -56,7 +56,7 @@ impl FromStr for Bound {
             }
         };
 
-        let val = humantime::Duration::from_str(val)?;
+        let val: humantime::Duration = val.parse()?;
         Ok(bound(val.into()))
     }
 }

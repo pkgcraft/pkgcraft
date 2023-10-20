@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::io::{self, Write};
-use std::str::FromStr;
 use std::{fmt, fs};
 
 use itertools::Itertools;
@@ -356,7 +355,7 @@ impl Metadata {
                     _ => (s, v),
                 })
             })
-            .filter_map(|(k, v)| Key::from_str(k).ok().map(|k| (k, v)))
+            .filter_map(|(k, v)| k.parse().ok().map(|k| (k, v)))
             .filter(|(k, _)| eapi.metadata_keys().contains(k))
             .collect();
 

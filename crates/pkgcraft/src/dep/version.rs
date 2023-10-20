@@ -146,7 +146,7 @@ impl<'a> ParsedVersion<'a> {
             numbers,
             letter: self.letter,
             suffixes: self.suffixes,
-            revision: Revision::from_str(self.revision.unwrap_or_default())?,
+            revision: self.revision.unwrap_or_default().parse()?,
         })
     }
 }

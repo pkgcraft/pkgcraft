@@ -22,7 +22,8 @@ pub trait FormatString {
             // strip match wrappers and convert to Key variant
             let mat_type = &mat_str[0..1];
             let key_str = &mat_str[1..mat_str.len() - 1];
-            let key = Self::FormatKey::from_str(key_str)
+            let key: Self::FormatKey = key_str
+                .parse()
                 .unwrap_or_else(|_| panic!("invalid pattern: {key_str}"));
 
             // replace match with the related value

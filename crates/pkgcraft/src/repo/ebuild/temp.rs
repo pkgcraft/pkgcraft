@@ -1,5 +1,4 @@
 use std::io::Write;
-use std::str::FromStr;
 use std::{env, fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -92,7 +91,8 @@ impl Repo {
         // overrides defaults with specified values, removing the defaults for "-"
         for s in data {
             let (key, val) = s.split_once('=').unwrap_or((s, ""));
-            let key = Key::from_str(key)
+            let key = key
+                .parse()
                 .map_err(|_| Error::InvalidValue(format!("invalid metadata key: {key}")))?;
             match val {
                 "" => values.remove(&key),

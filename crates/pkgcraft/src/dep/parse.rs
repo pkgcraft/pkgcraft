@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use cached::{proc_macro::cached, SizedCache};
 
 use crate::dep::cpv::ParsedCpv;
@@ -84,7 +82,7 @@ peg::parser!(grammar depspec() for str {
 
     rule slot_str() -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
         = s:$("*" / "=") {?
-            let op = SlotOperator::from_str(s).map_err(|_| "invalid slot operator")?;
+            let op = s.parse().map_err(|_| "invalid slot operator")?;
             Ok((None, None, Some(op)))
         } / slot:slot() op:$("=")? {?
             Ok((Some(slot.0), slot.1, op.map(|_| SlotOperator::Equal)))
@@ -100,7 +98,7 @@ peg::parser!(grammar depspec() for str {
 
     rule blocker() -> Blocker
         = s:$("!" "!"?) {?
-            Blocker::from_str(s).map_err(|_| "invalid blocker")
+            s.parse().map_err(|_| "invalid blocker")
         }
 
     pub(super) rule use_flag() -> &'input str

@@ -29,7 +29,7 @@ pub struct Command {
 
 impl Command {
     pub fn new<S: AsRef<str>>(s: S, flags: Option<Flags>) -> crate::Result<Self> {
-        let cmd = Command::from_str(s.as_ref())?;
+        let cmd: Self = s.as_ref().parse()?;
         if let Some(flags) = flags {
             unsafe { (*cmd.ptr).flags |= flags.bits() as i32 };
         }

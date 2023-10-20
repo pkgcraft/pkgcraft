@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
@@ -39,11 +38,11 @@ impl Command {
         };
 
         // convert targets to Cpv or Dep objects
-        let targets: Result<Vec<_>, _> = self
+        let targets: Result<Vec<CpvOrDep>, _> = self
             .targets
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| CpvOrDep::from_str(&s))
+            .map(|s| s.parse())
             .collect();
         let targets = targets?;
 

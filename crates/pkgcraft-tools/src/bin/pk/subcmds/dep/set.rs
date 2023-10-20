@@ -1,6 +1,5 @@
 use std::io::{self, Write};
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use clap::Args;
 use indexmap::IndexSet;
@@ -15,11 +14,11 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let deps: Result<IndexSet<_>, _> = self
+        let deps: Result<IndexSet<Dep>, _> = self
             .vals
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| Dep::from_str(&s))
+            .map(|s| s.parse())
             .collect();
 
         let mut handle = io::stdout().lock();

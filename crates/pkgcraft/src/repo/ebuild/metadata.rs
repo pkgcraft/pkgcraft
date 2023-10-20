@@ -71,10 +71,10 @@ pub struct Config {
 }
 
 macro_rules! ordered_set {
-    ($ini:expr, $key:expr, $type:ident) => {
+    ($ini:expr, $key:expr) => {
         $ini.iter($key)
             .map(|s| {
-                $type::from_str(s)
+                s.parse()
                     .map_err(|_| Error::InvalidValue(format!("unsupported {}: {s}", $key)))
             })
             .collect::<crate::Result<OrderedSet<_>>>()
@@ -87,12 +87,12 @@ impl Config {
         let ini = Ini::load(&path)?;
 
         Ok(Self {
-            cache_formats: ordered_set!(ini, "cache-formats", CacheFormat)?,
-            manifest_hashes: ordered_set!(ini, "manifest-hashes", HashType)?,
-            manifest_required_hashes: ordered_set!(ini, "manifest-required-hashes", HashType)?,
-            masters: ordered_set!(ini, "masters", String)?,
-            properties_allowed: ordered_set!(ini, "properties-allowed", String)?,
-            restrict_allowed: ordered_set!(ini, "restrict-allowed", String)?,
+            cache_formats: ordered_set!(ini, "cache-formats")?,
+            manifest_hashes: ordered_set!(ini, "manifest-hashes")?,
+            manifest_required_hashes: ordered_set!(ini, "manifest-required-hashes")?,
+            masters: ordered_set!(ini, "masters")?,
+            properties_allowed: ordered_set!(ini, "properties-allowed")?,
+            restrict_allowed: ordered_set!(ini, "restrict-allowed")?,
         })
     }
 
@@ -174,8 +174,8 @@ impl FromStr for PkgUpdate {
                 let d2 = Dep::new_cpn(s2)?;
                 Ok(Self::Move(d1, d2))
             }
-            ["slotmove", spec, s1, s2] => {
-                let dep = Dep::from_str(spec)?;
+            ["slotmove", dep, s1, s2] => {
+                let dep = dep.parse()?;
                 let s1 = parse::slot(s1)?;
                 let s2 = parse::slot(s2)?;
                 Ok(Self::SlotMove(dep, s1.to_string(), s2.to_string()))
@@ -354,7 +354,7 @@ impl Metadata {
                             return;
                         }
 
-                        if let Ok(status) = ArchStatus::from_str(status) {
+                        if let Ok(status) = status.parse() {
                             vals.entry(status).or_default().insert(arch.to_string());
                         } else {
                             warn!(
@@ -593,7 +593,7 @@ impl Metadata {
                     // the specification doesn't allow them.
                     s.filter_lines()
                         .filter_map(|(i, line)| {
-                            PkgUpdate::from_str(line)
+                            line.parse()
                                 .map_err(|err| {
                                     warn!("{}::profiles/updates/{file}, line {i}: {err}", self.id)
                                 })
@@ -611,7 +611,7 @@ impl Metadata {
             self.read_path("profiles/use.desc")
                 .filter_lines()
                 .filter_map(|(i, s)| {
-                    UseDesc::from_str(s)
+                    s.parse()
                         .map_err(|e| {
                             warn!("{}::profiles/use.desc, line {i}: invalid format: {e}", self.id);
                         })
@@ -639,7 +639,7 @@ impl Metadata {
                     let vals = s
                         .filter_lines()
                         .filter_map(|(i, line)| {
-                            UseDesc::from_str(line)
+                            line.parse()
                                 .map_err(|err| {
                                     warn!("{}::profiles/desc/{file}, line {i}: {err}", self.id)
                                 })
@@ -660,7 +660,7 @@ impl Metadata {
                 .split_once(':')
                 .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
             let dep = Dep::new_cpn(cpn)?;
-            Ok((dep.to_string(), UseDesc::from_str(use_desc)?))
+            Ok((dep.to_string(), use_desc.parse()?))
         };
 
         self.use_local_desc.get_or_init(|| {
