@@ -174,7 +174,7 @@ mod tests {
         unbind("LIBDIR_arch").unwrap();
 
         // verify EAPI specific options are added
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             BuildData::empty(eapi);
             if !eapi.econf_options().is_empty() {
                 let opts = get_opts(&[]);

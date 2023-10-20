@@ -61,7 +61,7 @@ mod tests {
         }
 
         // check EAPIs that support three arg variant
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             let pkg = t
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
@@ -92,7 +92,7 @@ mod tests {
         }
 
         // check EAPIs that support three arg variant
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             let pkg = t
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();

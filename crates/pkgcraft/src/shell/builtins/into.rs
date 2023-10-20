@@ -52,7 +52,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             let raw_pkg = t
                 .create_raw_pkg("cat/pkg-1", &[&format!("EAPI={eapi}")])
                 .unwrap();

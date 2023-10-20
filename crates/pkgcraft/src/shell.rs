@@ -513,7 +513,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             // external commands are denied via restricted shell setting PATH=/dev/null
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
@@ -557,7 +557,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
                 DESCRIPTION="testing global failglob support"
@@ -579,7 +579,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             for builtin in eapi.builtins() {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
@@ -599,7 +599,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        for eapi in EAPIS.iter() {
+        for eapi in &*EAPIS {
             for phase in eapi.phases() {
                 // phase scope
                 let data = indoc::formatdoc! {r#"

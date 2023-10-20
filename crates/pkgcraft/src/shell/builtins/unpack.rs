@@ -155,7 +155,7 @@ mod tests {
         let abs_path = prefix.join("distdir/a.tar.gz");
         fs::File::create(&abs_path).unwrap();
 
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             BuildData::empty(eapi);
 
             // case insensitive support

@@ -106,7 +106,7 @@ mod tests {
         // recursive
         fs::create_dir_all("pkgcraft").unwrap();
         fs::File::create("pkgcraft/pkgcraft.h").unwrap();
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             BuildData::empty(eapi);
             insopts(&["-m0755"]).unwrap();
             doheader(&["-r", "pkgcraft"]).unwrap();

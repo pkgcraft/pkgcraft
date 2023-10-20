@@ -517,7 +517,7 @@ macro_rules! builtin_scope_tests {
             let mut config = Config::default();
             let t = config.temp_repo("test", 0, None).unwrap();
 
-            for eapi in EAPIS_OFFICIAL.iter() {
+            for eapi in &*EAPIS_OFFICIAL {
                 let scopes = [Global, Eclass]
                     .into_iter()
                     .chain(eapi.phases().iter().map(Into::into))

@@ -98,7 +98,7 @@ mod tests {
         // verify failure during build
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
                 DESCRIPTION="subshell die"

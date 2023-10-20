@@ -75,7 +75,7 @@ mod tests {
         ));
 
         // verify exeopts are respected depending on EAPI
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             BuildData::empty(eapi);
             exeopts(&["-m0777"]).unwrap();
             doinitd(&["pkgcraft"]).unwrap();

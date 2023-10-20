@@ -186,7 +186,7 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
         let all_scopes: IndexSet<_> = Scopes::All.into_iter().collect();
 
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             for var in Variable::iter() {
                 for scope in &all_scopes {
                     match scope {
@@ -322,7 +322,7 @@ mod tests {
     fn vars_ebuild_phase() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             // generate phase tests
             let phases = eapi.phases()
                 .iter()
@@ -356,7 +356,7 @@ mod tests {
     fn vars_pkg() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             // generate phase tests
             let phases = eapi
                 .phases()

@@ -40,7 +40,7 @@ impl Command {
                 }
             } else if !eapis.is_empty() {
                 writeln!(handle, "{repo}")?;
-                for eapi in EAPIS.iter() {
+                for eapi in &*EAPIS {
                     if let Some(cpvs) = eapis.get(eapi) {
                         writeln!(handle, "  EAPI {eapi}: {} pkgs", cpvs.len())?;
                     }

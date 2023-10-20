@@ -483,7 +483,7 @@ mod tests {
     fn test_parse() {
         // invalid deps
         for s in &TEST_DATA.dep_toml.invalid {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let result = dep(s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
@@ -521,7 +521,7 @@ mod tests {
     fn test_parse_slots() {
         // good deps
         for slot in ["0", "a", "_", "_a", "99", "aBc", "a+b_c.d-e"] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let s = format!("cat/pkg:{slot}");
                 let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -545,7 +545,7 @@ mod tests {
             ("!!cat/pkg", Some(Blocker::Strong)),
             ("!!<cat/pkg-1", Some(Blocker::Strong)),
         ] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let result = dep(s, eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI {eapi}: {}", result.err().unwrap());
                 let d = result.unwrap();
@@ -559,7 +559,7 @@ mod tests {
     fn test_parse_use_deps() {
         // good deps
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -575,7 +575,7 @@ mod tests {
     fn test_parse_use_dep_defaults() {
         // good deps
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let s = format!("cat/pkg[{use_deps}]");
                 let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -597,7 +597,7 @@ mod tests {
             ("_/_", Some("_"), Some("_"), None),
             ("0/a.b+c-d_e", Some("0"), Some("a.b+c-d_e"), None),
         ] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -621,7 +621,7 @@ mod tests {
             ("0/1=", Some("0"), Some("1"), Some(SlotOperator::Equal)),
             ("a/b=", Some("a"), Some("b"), Some(SlotOperator::Equal)),
         ] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let s = format!("cat/pkg:{slot_str}");
                 let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
@@ -641,7 +641,7 @@ mod tests {
             let s = format!("cat/pkg::{repo}");
 
             // repo ids aren't supported in official EAPIs
-            for eapi in EAPIS_OFFICIAL.iter() {
+            for eapi in &*EAPIS_OFFICIAL {
                 assert!(dep(&s, eapi).is_err(), "{s:?} didn't fail");
             }
 
@@ -704,7 +704,7 @@ mod tests {
             ("( http://uri1 http://uri2 )", vec!["http://uri1", "http://uri2"]),
             ("u1? ( http://uri1 !u2? ( http://uri2 ) )", vec!["http://uri1", "http://uri2"]),
         ] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let depset = src_uri(s, eapi)?.unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
@@ -717,7 +717,7 @@ mod tests {
             ("http://uri -> file", vec!["http://uri -> file"]),
             ("u? ( http://uri -> file )", vec!["http://uri -> file"]),
         ] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let depset = src_uri(s, eapi)?.unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
@@ -765,7 +765,7 @@ mod tests {
 
         // ?? operator
         for (s, expected_flatten) in [("?? ( u1 u2 )", vec!["u1", "u2"])] {
-            for eapi in EAPIS.iter() {
+            for eapi in &*EAPIS {
                 let depset = required_use(s, eapi)?.unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().collect();

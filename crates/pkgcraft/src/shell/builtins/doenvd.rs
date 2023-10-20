@@ -75,7 +75,7 @@ mod tests {
         ));
 
         // verify insopts are respected depending on EAPI
-        for eapi in EAPIS_OFFICIAL.iter() {
+        for eapi in &*EAPIS_OFFICIAL {
             BuildData::empty(eapi);
             insopts(&["-m0755"]).unwrap();
             doenvd(&["pkgcraft"]).unwrap();
