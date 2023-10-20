@@ -132,7 +132,7 @@ impl<'a> ParsedVersion<'a> {
 
     pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
         let mut numbers = vec![];
-        for s in self.numbers.iter() {
+        for s in &self.numbers {
             let num = s
                 .parse()
                 .map_err(|e| Error::Overflow(format!("invalid version: {e}: {s}")))?;
@@ -254,7 +254,7 @@ impl Version {
 impl Intersects<Version> for Version {
     fn intersects(&self, other: &Version) -> bool {
         use Operator::*;
-        match (self.op(), other.op()) {
+        match (self.op, other.op) {
             // intersects if both are unbounded in the same direction
             (Some(Less), Some(Less)) | (Some(LessOrEqual), Some(LessOrEqual)) => true,
             (Some(Less), Some(LessOrEqual)) | (Some(LessOrEqual), Some(Less)) => true,
@@ -334,7 +334,7 @@ impl fmt::Display for Version {
         use Operator::*;
 
         let s = self.as_str();
-        match self.op() {
+        match self.op {
             None => write!(f, "{}", s),
             Some(Less) => write!(f, "<{}", s),
             Some(LessOrEqual) => write!(f, "<={}", s),
