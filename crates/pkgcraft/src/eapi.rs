@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::{Equivalent, IndexSet};
+use indexmap::IndexSet;
 use itertools::Either;
 use once_cell::sync::Lazy;
 use strum::EnumString;
@@ -116,12 +116,6 @@ impl PartialEq for Eapi {
 impl Hash for Eapi {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
-    }
-}
-
-impl Equivalent<str> for Eapi {
-    fn equivalent(&self, key: &str) -> bool {
-        self.id == key
     }
 }
 
