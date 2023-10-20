@@ -20,5 +20,5 @@ capi = []
 
 [dependencies]
 pkgcraft = { path = "../pkgcraft", version = "0.0.12" }
-tracing = "0.1.39"
+tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }

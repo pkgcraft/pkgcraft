@@ -32,8 +32,8 @@ libc = "0.2.149"
 nix = { version = "0.27.1", features = ["fs", "mman", "process", "signal"] }
 once_cell = "1.18.0"
 serde = { version = "1.0.189", features = ["derive"] }
-thiserror = "1.0.49"
-tracing = "0.1.39"
+thiserror = "1.0.50"
+tracing = "0.1.40"
 
 [build-dependencies]
 autotools = "0.2.6"
