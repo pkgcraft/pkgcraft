@@ -780,6 +780,10 @@ mod tests {
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().maintainers().is_empty());
 
+        // invalid
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-1::xml").unwrap();
+        assert!(pkg.xml().maintainers().is_empty());
+
         // single
         let pkg = TEST_DATA.ebuild_pkg("=pkg/single-1::xml").unwrap();
         let m = pkg.xml().maintainers();
@@ -801,6 +805,10 @@ mod tests {
     fn test_upstream() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
+        assert!(pkg.xml().upstream().is_none());
+
+        // invalid
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-1::xml").unwrap();
         assert!(pkg.xml().upstream().is_none());
 
         // single
@@ -826,6 +834,10 @@ mod tests {
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().local_use().is_empty());
 
+        // invalid
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-1::xml").unwrap();
+        assert!(pkg.xml().local_use().is_empty());
+
         // single
         let pkg = TEST_DATA.ebuild_pkg("=pkg/single-1::xml").unwrap();
         assert_eq!(pkg.xml().local_use().len(), 1);
@@ -847,6 +859,10 @@ mod tests {
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().long_description().is_none());
 
+        // invalid
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-1::xml").unwrap();
+        assert!(pkg.xml().long_description().is_none());
+
         // empty
         let pkg1 = t.create_pkg("empty/pkg-1", &[]).unwrap();
         let data = indoc::indoc! {r#"
@@ -859,21 +875,6 @@ mod tests {
         let pkg2 = t.create_pkg("empty/pkg-2", &[]).unwrap();
         for pkg in [pkg1, pkg2] {
             assert_eq!(pkg.xml().long_description().unwrap(), "");
-        }
-
-        // invalid XML
-        let pkg1 = t.create_pkg("invalid/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <pkgmetadata>
-                <longdescription>
-                    long description
-                </longdescription>
-            </pkg>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("invalid/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            assert!(pkg.xml().long_description().is_none());
         }
 
         // single
