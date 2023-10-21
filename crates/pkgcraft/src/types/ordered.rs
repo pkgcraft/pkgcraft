@@ -8,7 +8,9 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-use std::ops::{Deref, DerefMut};
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Sub, SubAssign,
+};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -212,6 +214,72 @@ impl<'de, T: Ordered + Deserialize<'de>> Deserialize<'de> for SortedSet<T> {
         Ok(vals.into_iter().collect())
     }
 }
+
+macro_rules! make_set_traits {
+    ($($x:ty),+) => {$(
+        impl<T: Ordered> BitAnd<&Self> for $x {
+            type Output = Self;
+
+            fn bitand(mut self, other: &Self) -> Self::Output {
+                self &= other;
+                self
+            }
+        }
+
+        impl<T: Ordered> BitAndAssign<&Self> for $x {
+            fn bitand_assign(&mut self, other: &Self) {
+                self.0 = &self.0 & &other.0;
+            }
+        }
+
+        impl<T: Ordered> BitOr<&Self> for $x {
+            type Output = Self;
+
+            fn bitor(mut self, other: &Self) -> Self::Output {
+                self |= other;
+                self
+            }
+        }
+
+        impl<T: Ordered> BitOrAssign<&Self> for $x {
+            fn bitor_assign(&mut self, other: &Self) {
+                self.0 = &self.0 | &other.0;
+            }
+        }
+
+        impl<T: Ordered> BitXor<&Self> for $x {
+            type Output = Self;
+
+            fn bitxor(mut self, other: &Self) -> Self::Output {
+                self ^= other;
+                self
+            }
+        }
+
+        impl<T: Ordered> BitXorAssign<&Self> for $x {
+            fn bitxor_assign(&mut self, other: &Self) {
+                self.0 = &self.0 ^ &other.0;
+            }
+        }
+
+        impl<T: Ordered> Sub<&Self> for $x {
+            type Output = Self;
+
+            fn sub(mut self, other: &Self) -> Self::Output {
+                self -= other;
+                self
+            }
+        }
+
+        impl<T: Ordered> SubAssign<&Self> for $x {
+            fn sub_assign(&mut self, other: &Self) {
+                self.0 = &self.0 - &other.0;
+            }
+        }
+    )+};
+}
+use make_set_traits;
+make_set_traits!(OrderedSet<T>, SortedSet<T>);
 
 #[derive(Debug, Clone)]
 pub struct OrderedMap<K: Ordered, V: Ordered>(pub(crate) IndexMap<K, V>);
