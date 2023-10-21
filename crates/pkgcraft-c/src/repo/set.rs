@@ -10,16 +10,8 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
-use crate::types::RepoSetIter;
+use crate::types::{RepoSetIter, SetOp};
 use crate::utils::{boxed, str_to_raw};
-
-#[repr(C)]
-pub enum RepoSetOp {
-    And,
-    Or,
-    Xor,
-    Sub,
-}
 
 /// Create a repo set.
 ///
@@ -198,11 +190,11 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter_free(i: *mut RepoSetIter) {
 /// The arguments must be non-null RepoSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_set(
-    op: RepoSetOp,
+    op: SetOp,
     s1: *mut RepoSet,
     s2: *mut RepoSet,
 ) {
-    use RepoSetOp::*;
+    use SetOp::*;
     let s1 = try_mut_from_ptr!(s1);
     let s2 = try_ref_from_ptr!(s2);
     match op {
@@ -219,11 +211,11 @@ pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_set(
 /// The arguments must be non-null RepoSet and Repo pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_repo(
-    op: RepoSetOp,
+    op: SetOp,
     s: *mut RepoSet,
     r: *mut Repo,
 ) {
-    use RepoSetOp::*;
+    use SetOp::*;
     let s = try_mut_from_ptr!(s);
     let r = try_ref_from_ptr!(r);
     match op {
@@ -240,11 +232,11 @@ pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_repo(
 /// The arguments must be non-null RepoSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_op_set(
-    op: RepoSetOp,
+    op: SetOp,
     s1: *mut RepoSet,
     s2: *mut RepoSet,
 ) -> *mut RepoSet {
-    use RepoSetOp::*;
+    use SetOp::*;
     let s1 = try_mut_from_ptr!(s1);
     let s2 = try_ref_from_ptr!(s2);
     let set = match op {
@@ -262,11 +254,11 @@ pub unsafe extern "C" fn pkgcraft_repo_set_op_set(
 /// The arguments must be non-null RepoSet and Repo pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_op_repo(
-    op: RepoSetOp,
+    op: SetOp,
     s: *mut RepoSet,
     r: *mut Repo,
 ) -> *mut RepoSet {
-    use RepoSetOp::*;
+    use SetOp::*;
     let s = try_mut_from_ptr!(s);
     let r = try_ref_from_ptr!(r);
     let set = match op {
