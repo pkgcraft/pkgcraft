@@ -11,7 +11,7 @@ use crate::Error;
 use super::Dep;
 
 pub trait UseFlag:
-    fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + AsRef<str> + Hash + ToString
+    fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash
 {
 }
 impl UseFlag for String {}
@@ -21,10 +21,7 @@ impl UseFlag for &String {}
 pub trait Evaluate<'a> {
     type Evaluated;
     fn evaluate(self, options: &'a IndexSet<String>) -> Self::Evaluated;
-}
 
-/// Evaluated iterator support for dependency objects.
-pub trait EvaluateIter<'a> {
     type Item;
     type IntoIterEvaluate: Iterator<Item = Self::Item>;
     fn into_iter_evaluate(self, options: &'a IndexSet<String>) -> Self::IntoIterEvaluate;
@@ -205,10 +202,14 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> EvaluateIter<'a> for &'a DepSpec<S, T> {
-    type Item = DepSpec<&'a String, &'a T>;
-    type IntoIterEvaluate = IterEvaluate<'a, S, T>;
+impl<'a, T: Ordered> Evaluate<'a> for &'a DepSpec<String, T> {
+    type Evaluated = DepSet<&'a String, &'a T>;
+    fn evaluate(self, options: &'a IndexSet<String>) -> Self::Evaluated {
+        DepSet(self.into_iter_evaluate(options).collect())
+    }
 
+    type Item = DepSpec<&'a String, &'a T>;
+    type IntoIterEvaluate = IterEvaluate<'a, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<String>) -> Self::IntoIterEvaluate {
         IterEvaluate {
             q: [self].into_iter().collect(),
@@ -217,10 +218,14 @@ impl<'a, S: UseFlag, T: Ordered> EvaluateIter<'a> for &'a DepSpec<S, T> {
     }
 }
 
-impl<'a, T: Ordered> EvaluateIter<'a> for DepSpec<&'a String, &'a T> {
+impl<'a, T: Ordered> Evaluate<'a> for DepSpec<&'a String, &'a T> {
+    type Evaluated = DepSet<&'a String, &'a T>;
+    fn evaluate(self, options: &'a IndexSet<String>) -> Self::Evaluated {
+        DepSet(self.into_iter_evaluate(options).collect())
+    }
+
     type Item = DepSpec<&'a String, &'a T>;
     type IntoIterEvaluate = IntoIterEvaluate<'a, T>;
-
     fn into_iter_evaluate(self, options: &'a IndexSet<String>) -> Self::IntoIterEvaluate {
         IntoIterEvaluate {
             q: [self].into_iter().collect(),
@@ -329,18 +334,33 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
 
 impl<'a, T: Ordered> Evaluate<'a> for &'a DepSet<String, T> {
     type Evaluated = DepSet<&'a String, &'a T>;
-
     fn evaluate(self, options: &'a IndexSet<String>) -> Self::Evaluated {
         DepSet(self.into_iter_evaluate(options).collect())
     }
+
+    type Item = DepSpec<&'a String, &'a T>;
+    type IntoIterEvaluate = IterEvaluate<'a, T>;
+    fn into_iter_evaluate(self, options: &'a IndexSet<String>) -> Self::IntoIterEvaluate {
+        IterEvaluate {
+            q: self.0.iter().collect(),
+            options,
+        }
+    }
 }
 
-// TODO: combine with &DepSet<String, T> impl using a macro
 impl<'a, T: Ordered> Evaluate<'a> for DepSet<&'a String, &'a T> {
     type Evaluated = DepSet<&'a String, &'a T>;
-
     fn evaluate(self, options: &'a IndexSet<String>) -> Self::Evaluated {
         DepSet(self.into_iter_evaluate(options).collect())
+    }
+
+    type Item = DepSpec<&'a String, &'a T>;
+    type IntoIterEvaluate = IntoIterEvaluate<'a, T>;
+    fn into_iter_evaluate(self, options: &'a IndexSet<String>) -> Self::IntoIterEvaluate {
+        IntoIterEvaluate {
+            q: self.0.into_iter().collect(),
+            options,
+        }
     }
 }
 
@@ -369,30 +389,6 @@ impl<'a, S: UseFlag, T: Ordered> Iterator for Iter<'a, S, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
-    }
-}
-
-impl<'a, S: UseFlag, T: Ordered> EvaluateIter<'a> for &'a DepSet<S, T> {
-    type Item = DepSpec<&'a String, &'a T>;
-    type IntoIterEvaluate = IterEvaluate<'a, S, T>;
-
-    fn into_iter_evaluate(self, options: &'a IndexSet<String>) -> Self::IntoIterEvaluate {
-        IterEvaluate {
-            q: self.0.iter().collect(),
-            options,
-        }
-    }
-}
-
-impl<'a, T: Ordered> EvaluateIter<'a> for DepSet<&'a String, &'a T> {
-    type Item = DepSpec<&'a String, &'a T>;
-    type IntoIterEvaluate = IntoIterEvaluate<'a, T>;
-
-    fn into_iter_evaluate(self, options: &'a IndexSet<String>) -> Self::IntoIterEvaluate {
-        IntoIterEvaluate {
-            q: self.0.into_iter().collect(),
-            options,
-        }
     }
 }
 
@@ -431,12 +427,12 @@ macro_rules! iter_eval {
 }
 
 #[derive(Debug)]
-pub struct IterEvaluate<'a, S: UseFlag, T: Ordered> {
-    q: Deque<&'a DepSpec<S, T>>,
+pub struct IterEvaluate<'a, T: Ordered> {
+    q: Deque<&'a DepSpec<String, T>>,
     options: &'a IndexSet<String>,
 }
 
-impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterEvaluate<'a, S, T> {
+impl<'a, T: fmt::Debug + Ordered> Iterator for IterEvaluate<'a, T> {
     type Item = DepSpec<&'a String, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -450,12 +446,12 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterEvaluate<'a, S, T
                 ExactlyOneOf(vals) => iter_eval!(ExactlyOneOf, vals, self.options),
                 AtMostOneOf(vals) => iter_eval!(AtMostOneOf, vals, self.options),
                 UseEnabled(flag, vals) => {
-                    if self.options.contains(flag.as_ref()) {
+                    if self.options.contains(flag) {
                         self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
                     }
                 }
                 UseDisabled(flag, vals) => {
-                    if !self.options.contains(flag.as_ref()) {
+                    if !self.options.contains(flag) {
                         self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
                     }
                 }
