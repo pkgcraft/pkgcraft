@@ -311,7 +311,7 @@ impl<S: UseFlag, T: Ordered> Default for DepSet<S, T> {
 
 impl<S: UseFlag, T: fmt::Display + Ordered> fmt::Display for DepSet<S, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", p!(&self.0))
+        write!(f, "{}", p!(self))
     }
 }
 
