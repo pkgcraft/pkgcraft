@@ -777,7 +777,7 @@ mod tests {
     #[test]
     fn test_maintainers() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().maintainers().is_empty());
 
         // single
@@ -800,7 +800,7 @@ mod tests {
     #[test]
     fn test_upstream() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().upstream().is_none());
 
         // single
@@ -823,7 +823,7 @@ mod tests {
     #[test]
     fn test_local_use() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().local_use().is_empty());
 
         // single
@@ -844,7 +844,7 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
 
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().long_description().is_none());
 
         // empty
