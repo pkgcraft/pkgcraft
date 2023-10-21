@@ -428,18 +428,18 @@ pub unsafe extern "C" fn pkgcraft_dep_set_license(s: *const c_char) -> *mut DepS
     }
 }
 
-/// Evaluate a depset.
+/// Evaluate a DepSet.
 ///
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
     d: *mut DepSet,
-    opts: *mut *mut c_char,
+    options: *mut *mut c_char,
     len: usize,
 ) -> *mut DepSet {
     let deps = try_ref_from_ptr!(d);
-    let options = unsafe { slice::from_raw_parts(opts, len) };
+    let options = unsafe { slice::from_raw_parts(options, len) };
     let options = options.iter().map(|p| try_str_from_ptr!(p)).collect();
 
     use DepSetWrapper::*;
@@ -456,6 +456,21 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
     };
 
     Box::into_raw(Box::new(dep))
+}
+
+/// Determine if a DepSet is empty.
+///
+/// # Safety
+/// The argument must be a non-null DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_is_empty(d: *mut DepSet) -> bool {
+    let deps = try_ref_from_ptr!(d);
+
+    match deps.deref() {
+        DepSetWrapper::Dep(d) => d.is_empty(),
+        DepSetWrapper::String(d) => d.is_empty(),
+        DepSetWrapper::Uri(d) => d.is_empty(),
+    }
 }
 
 /// Return the formatted string for a DepSet object.
