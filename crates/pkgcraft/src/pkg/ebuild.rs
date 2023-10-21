@@ -776,165 +776,66 @@ mod tests {
 
     #[test]
     fn test_maintainers() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
         assert!(pkg.xml().maintainers().is_empty());
 
         // single
-        let pkg1 = t.create_pkg("cat1/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <maintainer type="person">
-                    <email>a.person@email.com</email>
-                    <name>A Person</name>
-                </maintainer>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("cat1/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            let m = pkg.xml().maintainers();
-            assert_eq!(m.len(), 1);
-            assert_eq!(m[0].email(), "a.person@email.com");
-            assert_eq!(m[0].name(), Some("A Person"));
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-1::xml").unwrap();
+        let m = pkg.xml().maintainers();
+        assert_eq!(m.len(), 1);
+        assert_eq!(m[0].email(), "a.person@email.com");
+        assert_eq!(m[0].name(), Some("A Person"));
 
         // multiple
-        let pkg1 = t.create_pkg("cat2/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <maintainer type="person">
-                    <email>a.person@email.com</email>
-                    <name>A Person</name>
-                </maintainer>
-                <maintainer type="person">
-                    <email>b.person@email.com</email>
-                    <name>B Person</name>
-                </maintainer>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("cat2/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            let m = pkg.xml().maintainers();
-            assert_eq!(m.len(), 2);
-            assert_eq!(m[0].email(), "a.person@email.com");
-            assert_eq!(m[0].name(), Some("A Person"));
-            assert_eq!(m[1].email(), "b.person@email.com");
-            assert_eq!(m[1].name(), Some("B Person"));
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-1::xml").unwrap();
+        let m = pkg.xml().maintainers();
+        assert_eq!(m.len(), 2);
+        assert_eq!(m[0].email(), "a.person@email.com");
+        assert_eq!(m[0].name(), Some("A Person"));
+        assert_eq!(m[1].email(), "b.person@email.com");
+        assert_eq!(m[1].name(), Some("B Person"));
     }
 
     #[test]
     fn test_upstream() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
         assert!(pkg.xml().upstream().is_none());
 
         // single
-        let pkg1 = t.create_pkg("cat1/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <upstream>
-                    <remote-id type="github">pkgcraft/pkgcraft</remote-id>
-                </upstream>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("cat1/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            let m = pkg.xml().upstream().unwrap().remote_ids();
-            assert_eq!(m.len(), 1);
-            assert_eq!(m[0].site(), "github");
-            assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-1::xml").unwrap();
+        let m = pkg.xml().upstream().unwrap().remote_ids();
+        assert_eq!(m.len(), 1);
+        assert_eq!(m[0].site(), "github");
+        assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
 
         // multiple
-        let pkg1 = t.create_pkg("cat2/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <upstream>
-                    <remote-id type="github">pkgcraft/pkgcraft</remote-id>
-                    <remote-id type="pypi">pkgcraft</remote-id>
-                </upstream>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("cat2/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            let m = pkg.xml().upstream().unwrap().remote_ids();
-            assert_eq!(m.len(), 2);
-            assert_eq!(m[0].site(), "github");
-            assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
-            assert_eq!(m[1].site(), "pypi");
-            assert_eq!(m[1].name(), "pkgcraft");
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-1::xml").unwrap();
+        let m = pkg.xml().upstream().unwrap().remote_ids();
+        assert_eq!(m.len(), 2);
+        assert_eq!(m[0].site(), "github");
+        assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
+        assert_eq!(m[1].site(), "pypi");
+        assert_eq!(m[1].name(), "pkgcraft");
     }
 
     #[test]
     fn test_local_use() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/noxml-1::xml").unwrap();
         assert!(pkg.xml().local_use().is_empty());
 
         // single
-        let pkg1 = t.create_pkg("cat1/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <use>
-                    <flag name="flag">flag desc</flag>
-                </use>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("cat1/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            assert_eq!(pkg.xml().local_use().len(), 1);
-            assert_eq!(pkg.xml().local_use().get("flag").unwrap(), "flag desc");
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-1::xml").unwrap();
+        assert_eq!(pkg.xml().local_use().len(), 1);
+        assert_eq!(pkg.xml().local_use().get("flag").unwrap(), "flag desc");
 
         // multiple
-        let pkg1 = t.create_pkg("cat2/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <use lang="en">
-                    <flag name="flag1">flag1 desc</flag>
-                    <flag name="flag2">flag2 desc</flag>
-                </use>
-                <use lang="zx">
-                    <flag name="flag1">flag1 desc</flag>
-                    <flag name="flag2">flag2 desc</flag>
-                </use>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("cat2/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            assert_eq!(pkg.xml().local_use().len(), 2);
-            assert_eq!(pkg.xml().local_use().get("flag1").unwrap(), "flag1 desc");
-            assert_eq!(pkg.xml().local_use().get("flag2").unwrap(), "flag2 desc");
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-1::xml").unwrap();
+        assert_eq!(pkg.xml().local_use().len(), 2);
+        assert_eq!(pkg.xml().local_use().get("flag1").unwrap(), "flag1 desc");
+        assert_eq!(pkg.xml().local_use().get("flag2").unwrap(), "flag2 desc");
     }
 
     #[test]
