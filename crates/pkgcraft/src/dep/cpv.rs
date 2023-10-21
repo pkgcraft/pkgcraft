@@ -29,6 +29,15 @@ impl FromStr for CpvOrDep {
     }
 }
 
+impl fmt::Display for CpvOrDep {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Cpv(val) => write!(f, "{val}"),
+            Self::Dep(val) => write!(f, "{val}"),
+        }
+    }
+}
+
 impl Intersects<CpvOrDep> for CpvOrDep {
     fn intersects(&self, other: &CpvOrDep) -> bool {
         use CpvOrDep::*;
