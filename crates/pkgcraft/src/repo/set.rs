@@ -154,7 +154,7 @@ impl<'a> Iterator for Iter<'a> {
 impl BitAnd<&Self> for RepoSet {
     type Output = Self;
 
-    fn bitand(mut self, other: &Self) -> Self {
+    fn bitand(mut self, other: &Self) -> Self::Output {
         self &= other;
         self
     }
@@ -162,15 +162,14 @@ impl BitAnd<&Self> for RepoSet {
 
 impl BitAndAssign<&Self> for RepoSet {
     fn bitand_assign(&mut self, other: &Self) {
-        self.repos = OrderedSet::from_iter(self.repos.bitand(&other.repos));
-        self.repos.sort();
+        self.repos &= &other.repos;
     }
 }
 
 impl BitOr<&Self> for RepoSet {
     type Output = Self;
 
-    fn bitor(mut self, other: &Self) -> Self {
+    fn bitor(mut self, other: &Self) -> Self::Output {
         self |= other;
         self
     }
@@ -178,7 +177,7 @@ impl BitOr<&Self> for RepoSet {
 
 impl BitOrAssign<&Self> for RepoSet {
     fn bitor_assign(&mut self, other: &Self) {
-        self.repos = OrderedSet::from_iter(self.repos.bitor(&other.repos));
+        self.repos |= &other.repos;
         self.repos.sort();
     }
 }
@@ -186,7 +185,7 @@ impl BitOrAssign<&Self> for RepoSet {
 impl BitXor<&Self> for RepoSet {
     type Output = Self;
 
-    fn bitxor(mut self, other: &Self) -> Self {
+    fn bitxor(mut self, other: &Self) -> Self::Output {
         self ^= other;
         self
     }
@@ -194,7 +193,7 @@ impl BitXor<&Self> for RepoSet {
 
 impl BitXorAssign<&Self> for RepoSet {
     fn bitxor_assign(&mut self, other: &Self) {
-        self.repos = OrderedSet::from_iter(self.repos.bitxor(&other.repos));
+        self.repos ^= &other.repos;
         self.repos.sort();
     }
 }
@@ -202,7 +201,7 @@ impl BitXorAssign<&Self> for RepoSet {
 impl Sub<&Self> for RepoSet {
     type Output = Self;
 
-    fn sub(mut self, other: &Self) -> Self {
+    fn sub(mut self, other: &Self) -> Self::Output {
         self -= other;
         self
     }
@@ -210,14 +209,14 @@ impl Sub<&Self> for RepoSet {
 
 impl SubAssign<&Self> for RepoSet {
     fn sub_assign(&mut self, other: &Self) {
-        self.repos = OrderedSet::from_iter(self.repos.sub(&other.repos));
+        self.repos -= &other.repos;
     }
 }
 
 impl BitAnd<&Repo> for RepoSet {
     type Output = Self;
 
-    fn bitand(mut self, other: &Repo) -> Self {
+    fn bitand(mut self, other: &Repo) -> Self::Output {
         self &= other;
         self
     }
@@ -225,14 +224,15 @@ impl BitAnd<&Repo> for RepoSet {
 
 impl BitAndAssign<&Repo> for RepoSet {
     fn bitand_assign(&mut self, other: &Repo) {
-        self.repos = OrderedSet::from_iter(self.repos.bitand(&IndexSet::from([other.clone()])));
+        let set = [other.clone()].into_iter().collect();
+        self.repos &= &set;
     }
 }
 
 impl BitOr<&Repo> for RepoSet {
     type Output = Self;
 
-    fn bitor(mut self, other: &Repo) -> Self {
+    fn bitor(mut self, other: &Repo) -> Self::Output {
         self |= other;
         self
     }
@@ -240,16 +240,16 @@ impl BitOr<&Repo> for RepoSet {
 
 impl BitOrAssign<&Repo> for RepoSet {
     fn bitor_assign(&mut self, other: &Repo) {
-        if self.repos.insert(other.clone()) {
-            self.repos.sort();
-        }
+        let set = [other.clone()].into_iter().collect();
+        self.repos |= &set;
+        self.repos.sort();
     }
 }
 
 impl BitXor<&Repo> for RepoSet {
     type Output = Self;
 
-    fn bitxor(mut self, other: &Repo) -> Self {
+    fn bitxor(mut self, other: &Repo) -> Self::Output {
         self ^= other;
         self
     }
@@ -257,7 +257,8 @@ impl BitXor<&Repo> for RepoSet {
 
 impl BitXorAssign<&Repo> for RepoSet {
     fn bitxor_assign(&mut self, other: &Repo) {
-        self.repos = OrderedSet::from_iter(self.repos.bitxor(&IndexSet::from([other.clone()])));
+        let set = [other.clone()].into_iter().collect();
+        self.repos ^= &set;
         self.repos.sort();
     }
 }
@@ -265,7 +266,7 @@ impl BitXorAssign<&Repo> for RepoSet {
 impl Sub<&Repo> for RepoSet {
     type Output = Self;
 
-    fn sub(mut self, other: &Repo) -> Self {
+    fn sub(mut self, other: &Repo) -> Self::Output {
         self -= other;
         self
     }
@@ -273,9 +274,8 @@ impl Sub<&Repo> for RepoSet {
 
 impl SubAssign<&Repo> for RepoSet {
     fn sub_assign(&mut self, other: &Repo) {
-        if self.repos.remove(other) {
-            self.repos.sort();
-        }
+        let set = [other.clone()].into_iter().collect();
+        self.repos -= &set;
     }
 }
 
