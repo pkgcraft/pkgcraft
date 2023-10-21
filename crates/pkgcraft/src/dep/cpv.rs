@@ -207,7 +207,7 @@ impl TryFrom<&str> for Cpv {
     type Error = Error;
 
     fn try_from(value: &str) -> crate::Result<Cpv> {
-        Cpv::from_str(value)
+        value.parse()
     }
 }
 

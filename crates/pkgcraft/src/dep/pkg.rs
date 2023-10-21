@@ -425,14 +425,14 @@ mod tests {
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
-            let dep = Dep::from_str(s).unwrap();
+            let dep: Dep = s.parse().unwrap();
             assert_eq!(dep.to_string(), s);
         }
 
         // Package dependencies with certain use flag patterns aren't returned 1 to 1 since use
         // flags are sorted into an ordered set for equivalency purposes.
         for (s, expected) in [("cat/pkg[u,u]", "cat/pkg[u]"), ("cat/pkg[b,a]", "cat/pkg[a,b]")] {
-            let dep = Dep::from_str(s).unwrap();
+            let dep: Dep = s.parse().unwrap();
             assert_eq!(dep.to_string(), expected);
         }
     }
@@ -449,7 +449,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
             (">cat/pkg-4-r1:0=", "cat/pkg"),
         ] {
-            let dep = Dep::from_str(s).unwrap();
+            let dep: Dep = s.parse().unwrap();
             assert_eq!(dep.cpn(), key);
         }
     }
@@ -466,7 +466,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(">=2-r3")),
             (">cat/pkg-4-r1:0=", Some(">4-r1")),
         ] {
-            let dep = Dep::from_str(s).unwrap();
+            let dep: Dep = s.parse().unwrap();
             let version = version.map(|s| parse::version_with_op(s).unwrap());
             assert_eq!(dep.version(), version.as_ref());
         }
@@ -474,7 +474,7 @@ mod tests {
 
     #[test]
     fn test_revision() {
-        for (s, revision) in [
+        for (s, rev_str) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", None),
             ("=cat/pkg-4-r0", Some("0")),
@@ -482,9 +482,9 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some("3")),
             (">cat/pkg-4-r1:0=", Some("1")),
         ] {
-            let dep = Dep::from_str(s).unwrap();
-            let revision = revision.map(|s| Revision::from_str(s).unwrap());
-            assert_eq!(dep.revision(), revision.as_ref(), "{s} failed");
+            let dep: Dep = s.parse().unwrap();
+            let rev = rev_str.map(|s| s.parse().unwrap());
+            assert_eq!(dep.revision(), rev.as_ref(), "{s} failed");
         }
     }
 
@@ -500,7 +500,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(Operator::GreaterOrEqual)),
             (">cat/pkg-4-r1:0=", Some(Operator::Greater)),
         ] {
-            let dep = Dep::from_str(s).unwrap();
+            let dep: Dep = s.parse().unwrap();
             assert_eq!(dep.op(), op);
         }
     }
@@ -517,7 +517,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
             (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
         ] {
-            let dep = Dep::from_str(s).unwrap();
+            let dep: Dep = s.parse().unwrap();
             assert_eq!(dep.cpv(), cpv);
         }
     }
@@ -530,20 +530,20 @@ mod tests {
                 .collect();
 
         for (expr, (s1, op, s2)) in TEST_DATA.dep_toml.compares() {
-            let a1 = Dep::from_str(s1).unwrap();
-            let a2 = Dep::from_str(s2).unwrap();
+            let dep1: Dep = s1.parse().unwrap();
+            let dep2: Dep = s2.parse().unwrap();
             if op == "!=" {
-                assert_ne!(a1, a2, "failed comparing {expr}");
-                assert_ne!(a2, a1, "failed comparing {expr}");
+                assert_ne!(dep1, dep2, "failed comparing {expr}");
+                assert_ne!(dep2, dep1, "failed comparing {expr}");
             } else {
                 let op = op_map[op];
-                assert_eq!(a1.cmp(&a2), op, "failed comparing {expr}");
-                assert_eq!(a2.cmp(&a1), op.reverse(), "failed comparing {expr}");
+                assert_eq!(dep1.cmp(&dep2), op, "failed comparing {expr}");
+                assert_eq!(dep2.cmp(&dep1), op.reverse(), "failed comparing {expr}");
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)
                 if op == Ordering::Equal {
-                    assert_eq!(hash(a1), hash(a2), "failed hash {expr}");
+                    assert_eq!(hash(dep1), hash(dep2), "failed hash {expr}");
                 }
             }
         }
@@ -552,44 +552,54 @@ mod tests {
     #[test]
     fn test_intersects() {
         // inject version intersects data from version.toml into Dep objects
-        let a = Dep::from_str("a/b").unwrap();
+        let dep = Dep::from_str("a/b").unwrap();
         for d in &TEST_DATA.version_toml.intersects {
             // test intersections between all pairs of distinct values
-            for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
-                let (mut a1, mut a2) = (a.clone(), a.clone());
-                a1.version = Some(Version::new(vals[0]).unwrap());
-                a2.version = Some(Version::new(vals[1]).unwrap());
-                let (s1, s2) = (&a1.to_string(), &a2.to_string());
+            let permutations = d
+                .vals
+                .iter()
+                .map(|s| s.as_str())
+                .permutations(2)
+                .map(|val| val.into_iter().collect_tuple().unwrap());
+            for (s1, s2) in permutations {
+                let (mut dep1, mut dep2) = (dep.clone(), dep.clone());
+                dep1.version = Some(s1.parse().unwrap());
+                dep2.version = Some(s2.parse().unwrap());
 
-                // objects intersect themselves
-                assert!(a1.intersects(&a1), "{s1} doesn't intersect {s1}");
-                assert!(a2.intersects(&a2), "{s2} doesn't intersect {s2}");
+                // self intersection
+                assert!(dep1.intersects(&dep1), "{dep1} doesn't intersect itself");
+                assert!(dep2.intersects(&dep2), "{dep2} doesn't intersect itself");
 
                 // intersects depending on status
                 if d.status {
-                    assert!(a1.intersects(&a2), "{s1} doesn't intersect {s2}");
+                    assert!(dep1.intersects(&dep2), "{dep1} doesn't intersect {dep2}");
                 } else {
-                    assert!(!a1.intersects(&a2), "{s1} intersects {s2}");
+                    assert!(!dep1.intersects(&dep2), "{dep1} intersects {dep2}");
                 }
             }
         }
 
         for d in &TEST_DATA.dep_toml.intersects {
             // test intersections between all pairs of distinct values
-            for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
-                let (s1, s2) = (vals[0], vals[1]);
-                let (obj1, obj2) =
-                    (CpvOrDep::from_str(s1).unwrap(), CpvOrDep::from_str(s2).unwrap());
+            let permutations = d
+                .vals
+                .iter()
+                .map(|s| s.as_str())
+                .permutations(2)
+                .map(|val| val.into_iter().collect_tuple().unwrap());
+            for (s1, s2) in permutations {
+                let obj1: CpvOrDep = s1.parse().unwrap();
+                let obj2: CpvOrDep = s2.parse().unwrap();
 
-                // objects intersect themselves
-                assert!(obj1.intersects(&obj1), "{s1} doesn't intersect {s1}");
-                assert!(obj2.intersects(&obj2), "{s2} doesn't intersect {s2}");
+                // self intersection
+                assert!(obj1.intersects(&obj1), "{obj1} doesn't intersect {obj1}");
+                assert!(obj2.intersects(&obj2), "{obj2} doesn't intersect {obj2}");
 
                 // intersects depending on status
                 if d.status {
-                    assert!(obj1.intersects(&obj2), "{s1} doesn't intersect {s2}");
+                    assert!(obj1.intersects(&obj2), "{obj1} doesn't intersect {obj2}");
                 } else {
-                    assert!(!obj1.intersects(&obj2), "{s1} intersects {s2}");
+                    assert!(!obj1.intersects(&obj2), "{obj1} intersects {obj2}");
                 }
             }
         }
@@ -598,12 +608,8 @@ mod tests {
     #[test]
     fn test_sorting() {
         for d in &TEST_DATA.dep_toml.sorting {
-            let mut reversed: Vec<_> = d
-                .sorted
-                .iter()
-                .map(|s| Dep::from_str(s).unwrap())
-                .rev()
-                .collect();
+            let mut reversed: Vec<Dep> =
+                d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
             reversed.sort();
             let mut sorted: Vec<_> = reversed.iter().map(|x| x.to_string()).collect();
             if d.equal {
@@ -617,10 +623,10 @@ mod tests {
     #[test]
     fn test_hashing() {
         for d in &TEST_DATA.version_toml.hashing {
-            let set: HashSet<_> = d
+            let set: HashSet<Dep> = d
                 .versions
                 .iter()
-                .map(|s| Dep::from_str(&format!("=cat/pkg-{s}")).unwrap())
+                .map(|s| format!("=cat/pkg-{s}").parse().unwrap())
                 .collect();
             if d.equal {
                 assert_eq!(set.len(), 1, "failed hashing deps: {set:?}");

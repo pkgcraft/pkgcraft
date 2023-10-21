@@ -541,11 +541,9 @@ mod tests {
             (format!("1-r{u64_max}"), format!("1-r{}", u64_max + 1)),
         ] {
             // at bounds limit
-            let v1 = Version::from_str(&s1);
-            assert!(v1.is_ok());
+            assert!(s1.parse::<Version>().is_ok());
             // above bounds limit
-            let v2 = Version::from_str(&s2);
-            assert!(v2.is_err());
+            assert!(s2.parse::<Version>().is_err());
         }
     }
 
@@ -556,9 +554,9 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        for (expr, (v1, op, v2)) in TEST_DATA.version_toml.compares() {
-            let v1 = Version::from_str(v1).unwrap();
-            let v2 = Version::from_str(v2).unwrap();
+        for (expr, (s1, op, s2)) in TEST_DATA.version_toml.compares() {
+            let v1: Version = s1.parse().unwrap();
+            let v2: Version = s2.parse().unwrap();
             if op == "!=" {
                 assert_ne!(v1, v2, "failed comparing {expr}");
                 assert_ne!(v2, v1, "failed comparing {expr}");
@@ -580,11 +578,17 @@ mod tests {
     fn test_intersects() {
         for d in &TEST_DATA.version_toml.intersects {
             // test intersections between all pairs of distinct values
-            for vals in d.vals.iter().map(|s| s.as_str()).permutations(2) {
-                let v1 = Version::new(vals[0]).unwrap();
-                let v2 = Version::new(vals[1]).unwrap();
+            let permutations = d
+                .vals
+                .iter()
+                .map(|s| s.as_str())
+                .permutations(2)
+                .map(|val| val.into_iter().collect_tuple().unwrap());
+            for (s1, s2) in permutations {
+                let v1: Version = s1.parse().unwrap();
+                let v2: Version = s2.parse().unwrap();
 
-                // elements intersect themselves
+                // self intersection
                 assert!(v1.intersects(&v1), "{v1} doesn't intersect {v2}");
                 assert!(v2.intersects(&v2), "{v2} doesn't intersect {v2}");
 
@@ -601,12 +605,8 @@ mod tests {
     #[test]
     fn test_sorting() {
         for d in &TEST_DATA.version_toml.sorting {
-            let mut reversed: Vec<_> = d
-                .sorted
-                .iter()
-                .map(|s| Version::from_str(s).unwrap())
-                .rev()
-                .collect();
+            let mut reversed: Vec<Version> =
+                d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
             reversed.sort();
             let mut sorted: Vec<_> = reversed.iter().map(|x| x.to_string()).collect();
             if d.equal {
@@ -620,11 +620,7 @@ mod tests {
     #[test]
     fn test_hashing() {
         for d in &TEST_DATA.version_toml.hashing {
-            let set: HashSet<_> = d
-                .versions
-                .iter()
-                .map(|s| Version::from_str(s).unwrap())
-                .collect();
+            let set: HashSet<Version> = d.versions.iter().map(|s| s.parse().unwrap()).collect();
             if d.equal {
                 assert_eq!(set.len(), 1, "failed hashing versions: {set:?}");
             } else {
