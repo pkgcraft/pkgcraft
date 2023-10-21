@@ -53,12 +53,23 @@ impl fmt::Display for DepSetWrapper {
 }
 
 /// C-compatible wrapper for pkgcraft::dep::DepSet.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub struct DepSet {
     unit: DepSpecUnit,
     kind: DepSetKind,
     dep: *mut DepSetWrapper,
+}
+
+impl Clone for DepSet {
+    fn clone(&self) -> Self {
+        let dep = try_ref_from_ptr!(self.dep);
+        Self {
+            unit: self.unit,
+            kind: self.kind,
+            dep: Box::into_raw(Box::new(dep.clone())),
+        }
+    }
 }
 
 impl Drop for DepSet {
