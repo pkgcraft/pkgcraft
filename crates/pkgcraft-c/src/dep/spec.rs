@@ -2,9 +2,9 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int, c_void};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::{fmt, ptr};
+use std::{fmt, ptr, slice};
 
-use pkgcraft::dep::{self, Dep, Flatten, Recursive, Uri, UseFlag};
+use pkgcraft::dep::{self, Dep, Evaluate, Flatten, IntoOwned, Recursive, Uri, UseFlag};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::types::Ordered;
 use pkgcraft::utils::hash;
@@ -14,7 +14,7 @@ use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 
 /// DepSpec unit variants.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum DepSpecUnit {
     Dep,
@@ -23,7 +23,7 @@ pub enum DepSpecUnit {
 }
 
 /// DepSet variants.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum DepSetKind {
     Dependencies,
@@ -123,7 +123,7 @@ impl fmt::Display for DepSet {
     }
 }
 
-/// Opaque wrapper for pkgcraft::dep::spec::IntoIter<T>.
+/// Opaque wrapper for pkgcraft::dep::spec::IntoIter<String, T>.
 #[derive(Debug)]
 pub enum DepSpecIntoIter {
     Dep(dep::spec::IntoIter<String, Dep>),
@@ -274,7 +274,7 @@ impl fmt::Display for DepSpec {
     }
 }
 
-/// Opaque wrapper for pkgcraft::dep::spec::IntoIterFlatten<T>.
+/// Opaque wrapper for pkgcraft::dep::spec::IntoIterFlatten<String, T>.
 #[derive(Debug)]
 pub enum DepSpecIntoIterFlatten {
     Dep(dep::spec::IntoIterFlatten<String, Dep>),
@@ -300,7 +300,7 @@ impl Iterator for DepSpecIntoIterFlatten {
     }
 }
 
-/// Opaque wrapper for pkgcraft::dep::spec::IntoIterRecursive<T>.
+/// Opaque wrapper for pkgcraft::dep::spec::IntoIterRecursive<String, T>.
 #[derive(Debug)]
 pub enum DepSpecIntoIterRecursive {
     Dep(dep::spec::IntoIterRecursive<String, Dep>),
@@ -426,6 +426,36 @@ pub unsafe extern "C" fn pkgcraft_dep_set_license(s: *const c_char) -> *mut DepS
         let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::License);
         Box::into_raw(Box::new(dep))
     }
+}
+
+/// Evaluate a depset.
+///
+/// # Safety
+/// The argument must be a non-null DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
+    d: *mut DepSet,
+    opts: *mut *mut c_char,
+    len: usize,
+) -> *mut DepSet {
+    let deps = try_ref_from_ptr!(d);
+    let options = unsafe { slice::from_raw_parts(opts, len) };
+    let options = options.iter().map(|p| try_str_from_ptr!(p)).collect();
+
+    use DepSetWrapper::*;
+    let evaluated = match deps.deref() {
+        Dep(d) => Dep(d.evaluate(&options).into_owned()),
+        String(d) => String(d.evaluate(&options).into_owned()),
+        Uri(d) => Uri(d.evaluate(&options).into_owned()),
+    };
+
+    let dep = DepSet {
+        unit: deps.unit,
+        kind: deps.kind,
+        dep: Box::into_raw(Box::new(evaluated)),
+    };
+
+    Box::into_raw(Box::new(dep))
 }
 
 /// Return the formatted string for a DepSet object.
