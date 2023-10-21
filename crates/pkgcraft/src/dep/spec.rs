@@ -296,9 +296,16 @@ impl<S: UseFlag, T: fmt::Display + Ordered> fmt::Display for DepSpec<S, T> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DepSet<S: UseFlag, T: Ordered>(SortedSet<DepSpec<S, T>>);
 
+impl<S: UseFlag, T: Ordered> DepSet<S, T> {
+    /// Construct a new, empty `DepSet<S, T>`.
+    pub fn new() -> Self {
+        Self(SortedSet::new())
+    }
+}
+
 impl<S: UseFlag, T: Ordered> Default for DepSet<S, T> {
     fn default() -> Self {
-        Self(SortedSet::new())
+        Self::new()
     }
 }
 
