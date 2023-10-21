@@ -323,7 +323,7 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a DepSpec<String, T>> for DepSet<&'a St
 impl<S: UseFlag, T: Ordered> BitAnd<&Self> for DepSet<S, T> {
     type Output = Self;
 
-    fn bitand(mut self, other: &Self) -> Self {
+    fn bitand(mut self, other: &Self) -> Self::Output {
         self &= other;
         self
     }
@@ -338,7 +338,7 @@ impl<S: UseFlag, T: Ordered> BitAndAssign<&Self> for DepSet<S, T> {
 impl<S: UseFlag, T: Ordered> BitOr<&Self> for DepSet<S, T> {
     type Output = Self;
 
-    fn bitor(mut self, other: &Self) -> Self {
+    fn bitor(mut self, other: &Self) -> Self::Output {
         self |= other;
         self
     }
@@ -353,7 +353,7 @@ impl<S: UseFlag, T: Ordered> BitOrAssign<&Self> for DepSet<S, T> {
 impl<S: UseFlag, T: Ordered> BitXor<&Self> for DepSet<S, T> {
     type Output = Self;
 
-    fn bitxor(mut self, other: &Self) -> Self {
+    fn bitxor(mut self, other: &Self) -> Self::Output {
         self ^= other;
         self
     }
@@ -368,7 +368,7 @@ impl<S: UseFlag, T: Ordered> BitXorAssign<&Self> for DepSet<S, T> {
 impl<S: UseFlag, T: Ordered> Sub<&Self> for DepSet<S, T> {
     type Output = Self;
 
-    fn sub(mut self, other: &Self) -> Self {
+    fn sub(mut self, other: &Self) -> Self::Output {
         self -= other;
         self
     }

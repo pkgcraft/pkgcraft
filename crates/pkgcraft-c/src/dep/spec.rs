@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int, c_void};
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Sub, SubAssign,
+};
 use std::{fmt, ptr, slice};
 
 use pkgcraft::dep::{self, Dep, Evaluate, Flatten, IntoOwned, Recursive, Uri, UseFlag};
@@ -12,6 +14,7 @@ use pkgcraft::utils::hash;
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
+use crate::types::SetOp;
 
 /// DepSpec unit variants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -128,9 +131,103 @@ impl Deref for DepSet {
     }
 }
 
+impl DerefMut for DepSet {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        try_mut_from_ptr!(self.dep)
+    }
+}
+
 impl fmt::Display for DepSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.deref())
+    }
+}
+
+impl BitAnd<&DepSet> for &DepSet {
+    type Output = DepSet;
+
+    fn bitand(self, other: &DepSet) -> Self::Output {
+        let mut dep = self.clone();
+        dep &= other;
+        dep
+    }
+}
+
+impl BitAndAssign<&DepSet> for DepSet {
+    fn bitand_assign(&mut self, other: &DepSet) {
+        use DepSetWrapper::*;
+        match (self.deref_mut(), other.deref()) {
+            (Dep(d1), Dep(d2)) => *d1 &= d2,
+            (String(d1), String(d2)) => *d1 &= d2,
+            (Uri(d1), Uri(d2)) => *d1 &= d2,
+            _ => panic!("invalid depset combination"),
+        }
+    }
+}
+
+impl BitOr<&DepSet> for &DepSet {
+    type Output = DepSet;
+
+    fn bitor(self, other: &DepSet) -> Self::Output {
+        let mut dep = self.clone();
+        dep |= other;
+        dep
+    }
+}
+
+impl BitOrAssign<&DepSet> for DepSet {
+    fn bitor_assign(&mut self, other: &DepSet) {
+        use DepSetWrapper::*;
+        match (self.deref_mut(), other.deref()) {
+            (Dep(d1), Dep(d2)) => *d1 |= d2,
+            (String(d1), String(d2)) => *d1 |= d2,
+            (Uri(d1), Uri(d2)) => *d1 |= d2,
+            _ => panic!("invalid depset combination"),
+        }
+    }
+}
+
+impl BitXor<&DepSet> for &DepSet {
+    type Output = DepSet;
+
+    fn bitxor(self, other: &DepSet) -> Self::Output {
+        let mut dep = self.clone();
+        dep ^= other;
+        dep
+    }
+}
+
+impl BitXorAssign<&DepSet> for DepSet {
+    fn bitxor_assign(&mut self, other: &DepSet) {
+        use DepSetWrapper::*;
+        match (self.deref_mut(), other.deref()) {
+            (Dep(d1), Dep(d2)) => *d1 ^= d2,
+            (String(d1), String(d2)) => *d1 ^= d2,
+            (Uri(d1), Uri(d2)) => *d1 ^= d2,
+            _ => panic!("invalid depset combination"),
+        }
+    }
+}
+
+impl Sub<&DepSet> for &DepSet {
+    type Output = DepSet;
+
+    fn sub(self, other: &DepSet) -> Self::Output {
+        let mut dep = self.clone();
+        dep -= other;
+        dep
+    }
+}
+
+impl SubAssign<&DepSet> for DepSet {
+    fn sub_assign(&mut self, other: &DepSet) {
+        use DepSetWrapper::*;
+        match (self.deref_mut(), other.deref()) {
+            (Dep(d1), Dep(d2)) => *d1 -= d2,
+            (String(d1), String(d2)) => *d1 -= d2,
+            (Uri(d1), Uri(d2)) => *d1 -= d2,
+            _ => panic!("invalid depset combination"),
+        }
     }
 }
 
@@ -482,6 +579,49 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_empty(d: *mut DepSet) -> bool {
         DepSetWrapper::String(d) => d.is_empty(),
         DepSetWrapper::Uri(d) => d.is_empty(),
     }
+}
+
+/// Perform a set operation on two DepSets, assigning to the first.
+///
+/// # Safety
+/// The arguments must be non-null DepSet pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_assign_op_set(
+    op: SetOp,
+    d1: *mut DepSet,
+    d2: *mut DepSet,
+) {
+    use SetOp::*;
+    let d1 = try_mut_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
+    match op {
+        And => *d1 &= d2,
+        Or => *d1 |= d2,
+        Xor => *d1 ^= d2,
+        Sub => *d1 -= d2,
+    }
+}
+
+/// Perform a set operation on two DepSets, creating a new set.
+///
+/// # Safety
+/// The arguments must be non-null DepSet pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_op_set(
+    op: SetOp,
+    d1: *mut DepSet,
+    d2: *mut DepSet,
+) -> *mut DepSet {
+    use SetOp::*;
+    let d1 = try_ref_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
+    let set = match op {
+        And => d1 & d2,
+        Or => d1 | d2,
+        Xor => d1 ^ d2,
+        Sub => d1 - d2,
+    };
+    Box::into_raw(Box::new(set))
 }
 
 /// Return the formatted string for a DepSet object.
