@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::fmt;
 use std::hash::Hash;
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -316,6 +317,66 @@ impl<S: UseFlag, T: Ordered> FromIterator<DepSpec<S, T>> for DepSet<S, T> {
 impl<'a, T: Ordered + 'a> FromIterator<&'a DepSpec<String, T>> for DepSet<&'a String, &'a T> {
     fn from_iter<I: IntoIterator<Item = &'a DepSpec<String, T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().map(|d| d.as_ref()).collect())
+    }
+}
+
+impl<S: UseFlag, T: Ordered> BitAnd<&Self> for DepSet<S, T> {
+    type Output = Self;
+
+    fn bitand(mut self, other: &Self) -> Self {
+        self &= other;
+        self
+    }
+}
+
+impl<S: UseFlag, T: Ordered> BitAndAssign<&Self> for DepSet<S, T> {
+    fn bitand_assign(&mut self, other: &Self) {
+        self.0 &= &other.0;
+    }
+}
+
+impl<S: UseFlag, T: Ordered> BitOr<&Self> for DepSet<S, T> {
+    type Output = Self;
+
+    fn bitor(mut self, other: &Self) -> Self {
+        self |= other;
+        self
+    }
+}
+
+impl<S: UseFlag, T: Ordered> BitOrAssign<&Self> for DepSet<S, T> {
+    fn bitor_assign(&mut self, other: &Self) {
+        self.0 |= &other.0;
+    }
+}
+
+impl<S: UseFlag, T: Ordered> BitXor<&Self> for DepSet<S, T> {
+    type Output = Self;
+
+    fn bitxor(mut self, other: &Self) -> Self {
+        self ^= other;
+        self
+    }
+}
+
+impl<S: UseFlag, T: Ordered> BitXorAssign<&Self> for DepSet<S, T> {
+    fn bitxor_assign(&mut self, other: &Self) {
+        self.0 ^= &other.0;
+    }
+}
+
+impl<S: UseFlag, T: Ordered> Sub<&Self> for DepSet<S, T> {
+    type Output = Self;
+
+    fn sub(mut self, other: &Self) -> Self {
+        self -= other;
+        self
+    }
+}
+
+impl<S: UseFlag, T: Ordered> SubAssign<&Self> for DepSet<S, T> {
+    fn sub_assign(&mut self, other: &Self) {
+        self.0 -= &other.0;
     }
 }
 
