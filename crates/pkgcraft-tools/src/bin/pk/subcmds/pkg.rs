@@ -38,7 +38,7 @@ fn target_restriction(
                 let repo = config.add_nested_repo_path(path.as_str(), 0, path, true)?;
                 if let Some(r) = repo.as_ebuild() {
                     let restrict = r.restrict_from_path(path).unwrap();
-                    return Ok((RepoSet::new([&repo]), restrict));
+                    return Ok((RepoSet::from_iter([&repo]), restrict));
                 } else {
                     anyhow::bail!("non-ebuild repo: {repo}")
                 }

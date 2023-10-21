@@ -17,25 +17,36 @@ use super::{make_contains_dep, PkgRepository, Repo, Repository};
 
 /// Ordered set of repos
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RepoSet {
-    repos: OrderedSet<Repo>,
-}
+pub struct RepoSet(OrderedSet<Repo>);
 
 impl RepoSet {
-    pub fn new<'a, I: IntoIterator<Item = &'a Repo>>(repos: I) -> Self {
-        let mut repos: OrderedSet<_> = repos.into_iter().cloned().collect();
-        repos.sort();
-        Self { repos }
+    /// Construct a new, empty `RepoSet`.
+    pub fn new() -> Self {
+        Self(OrderedSet::new())
     }
 
     /// Return the ordered set of all repos in the set.
     pub fn repos(&self) -> &OrderedSet<Repo> {
-        &self.repos
+        &self.0
     }
 
     /// Iterate over all ebuild repos in the set.
     pub fn ebuild(&self) -> impl Iterator<Item = &Arc<EbuildRepo>> {
-        self.repos.iter().filter_map(|r| r.as_ebuild())
+        self.0.iter().filter_map(|r| r.as_ebuild())
+    }
+}
+
+impl Default for RepoSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<R: Into<Repo>> FromIterator<R> for RepoSet {
+    fn from_iter<I: IntoIterator<Item = R>>(iterable: I) -> Self {
+        let mut repos: OrderedSet<_> = iterable.into_iter().map(Into::into).collect();
+        repos.sort();
+        Self(repos)
     }
 }
 
@@ -46,23 +57,19 @@ impl PkgRepository for RepoSet {
     type IterRestrict<'a> = Iter<'a> where Self: 'a;
 
     fn categories(&self) -> IndexSet<String> {
-        let mut cats: IndexSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
+        let mut cats: IndexSet<_> = self.0.iter().flat_map(|r| r.categories()).collect();
         cats.sort();
         cats
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
-        let mut pkgs: IndexSet<_> = self.repos.iter().flat_map(|r| r.packages(cat)).collect();
+        let mut pkgs: IndexSet<_> = self.0.iter().flat_map(|r| r.packages(cat)).collect();
         pkgs.sort();
         pkgs
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
-        let mut versions: IndexSet<_> = self
-            .repos
-            .iter()
-            .flat_map(|r| r.versions(cat, pkg))
-            .collect();
+        let mut versions: IndexSet<_> = self.0.iter().flat_map(|r| r.versions(cat, pkg)).collect();
         versions.sort();
         versions
     }
@@ -72,7 +79,7 @@ impl PkgRepository for RepoSet {
     }
 
     fn iter_cpv(&self) -> Self::IterCpv<'_> {
-        let mut cpvs: IndexSet<_> = self.repos.iter().flat_map(|r| r.iter_cpv()).collect();
+        let mut cpvs: IndexSet<_> = self.0.iter().flat_map(|r| r.iter_cpv()).collect();
         cpvs.sort();
         IterCpv(cpvs.into_iter())
     }
@@ -108,7 +115,7 @@ impl PkgRepository for RepoSet {
         };
 
         Iter(Box::new(
-            self.repos
+            self.0
                 .iter()
                 .filter(move |r| repo_restrict.matches(r.id()))
                 .flat_map(move |r| r.iter_restrict(restrict.clone())),
@@ -139,7 +146,7 @@ impl<'a> IntoIterator for &'a RepoSet {
     type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter(Box::new(self.repos.iter().flat_map(|r| r.into_iter())))
+        Iter(Box::new(self.0.iter().flat_map(|r| r.into_iter())))
     }
 }
 
@@ -162,7 +169,7 @@ impl BitAnd<&Self> for RepoSet {
 
 impl BitAndAssign<&Self> for RepoSet {
     fn bitand_assign(&mut self, other: &Self) {
-        self.repos &= &other.repos;
+        self.0 &= &other.0;
     }
 }
 
@@ -177,8 +184,8 @@ impl BitOr<&Self> for RepoSet {
 
 impl BitOrAssign<&Self> for RepoSet {
     fn bitor_assign(&mut self, other: &Self) {
-        self.repos |= &other.repos;
-        self.repos.sort();
+        self.0 |= &other.0;
+        self.0.sort();
     }
 }
 
@@ -193,8 +200,8 @@ impl BitXor<&Self> for RepoSet {
 
 impl BitXorAssign<&Self> for RepoSet {
     fn bitxor_assign(&mut self, other: &Self) {
-        self.repos ^= &other.repos;
-        self.repos.sort();
+        self.0 ^= &other.0;
+        self.0.sort();
     }
 }
 
@@ -209,7 +216,7 @@ impl Sub<&Self> for RepoSet {
 
 impl SubAssign<&Self> for RepoSet {
     fn sub_assign(&mut self, other: &Self) {
-        self.repos -= &other.repos;
+        self.0 -= &other.0;
     }
 }
 
@@ -225,7 +232,7 @@ impl BitAnd<&Repo> for RepoSet {
 impl BitAndAssign<&Repo> for RepoSet {
     fn bitand_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
-        self.repos &= &set;
+        self.0 &= &set;
     }
 }
 
@@ -241,8 +248,8 @@ impl BitOr<&Repo> for RepoSet {
 impl BitOrAssign<&Repo> for RepoSet {
     fn bitor_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
-        self.repos |= &set;
-        self.repos.sort();
+        self.0 |= &set;
+        self.0.sort();
     }
 }
 
@@ -258,8 +265,8 @@ impl BitXor<&Repo> for RepoSet {
 impl BitXorAssign<&Repo> for RepoSet {
     fn bitxor_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
-        self.repos ^= &set;
-        self.repos.sort();
+        self.0 ^= &set;
+        self.0.sort();
     }
 }
 
@@ -275,7 +282,7 @@ impl Sub<&Repo> for RepoSet {
 impl SubAssign<&Repo> for RepoSet {
     fn sub_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
-        self.repos -= &set;
+        self.0 -= &set;
     }
 }
 
@@ -292,24 +299,24 @@ mod tests {
 
     #[test]
     fn test_cmp_traits() {
-        let s1 = RepoSet::new([]);
-        let s2 = RepoSet::new([]);
+        let s1 = RepoSet::new();
+        let s2 = RepoSet::new();
         assert_eq!(s1, s2);
         assert_eq!(hash(s1), hash(s2));
 
         // different parameter order are still sorted lexically by repo id
         let r1: Repo = fake::Repo::new("r1", 0).into();
         let r2: Repo = fake::Repo::new("r2", 0).into();
-        let s1 = RepoSet::new([&r1, &r2]);
-        let s2 = RepoSet::new([&r2, &r1]);
+        let s1 = RepoSet::from_iter([&r1, &r2]);
+        let s2 = RepoSet::from_iter([&r2, &r1]);
         assert_eq!(s1, s2);
         assert_eq!(hash(s1), hash(s2));
 
         // higher priority repos come before lower priority ones
         let r1: Repo = fake::Repo::new("r1", -1).into();
         let r2: Repo = fake::Repo::new("r2", 0).into();
-        let s1 = RepoSet::new([&r1]);
-        let s2 = RepoSet::new([&r2]);
+        let s1 = RepoSet::from_iter([&r1]);
+        let s2 = RepoSet::from_iter([&r2]);
         assert!(s2 < s1);
         assert_ne!(s1, s2);
         assert_ne!(hash(s1), hash(s2));
@@ -317,21 +324,21 @@ mod tests {
 
     #[test]
     fn test_repos() {
-        let s = RepoSet::new([]);
+        let s = RepoSet::new();
         assert!(s.repos().is_empty());
 
         let r1: Repo = fake::Repo::new("r1", 0).into();
         let r2: Repo = fake::Repo::new("r2", 0).into();
-        let s = RepoSet::new([&r1, &r2]);
+        let s = RepoSet::from_iter([&r1, &r2]);
         assert_ordered_eq(s.repos(), [&r1, &r2]);
         // different parameter order are still sorted lexically by repo id
-        let s = RepoSet::new([&r2, &r1]);
+        let s = RepoSet::from_iter([&r2, &r1]);
         assert_ordered_eq(s.repos(), [&r1, &r2]);
 
         // higher priority repos come before lower priority ones
         let r1: Repo = fake::Repo::new("r1", -1).into();
         let r2: Repo = fake::Repo::new("r2", 0).into();
-        let s = RepoSet::new([&r1, &r2]);
+        let s = RepoSet::from_iter([&r1, &r2]);
         assert_ordered_eq(s.repos(), [&r2, &r1]);
     }
 
@@ -345,7 +352,7 @@ mod tests {
         let cpv = Cpv::new("cat/pkg-1").unwrap();
 
         // empty repo set
-        let s = RepoSet::new([]);
+        let s = RepoSet::new();
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
@@ -355,7 +362,7 @@ mod tests {
         assert!(!s.contains(&cpv));
 
         // repo set with no pkgs
-        let s = RepoSet::new([&t.repo, &f_repo]);
+        let s = RepoSet::from_iter([&t.repo, &f_repo]);
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
@@ -379,7 +386,7 @@ mod tests {
         // multiple pkgs of different types
         let fake_repo = fake::Repo::new("fake", 0).pkgs(["cat/pkg-1"]);
         let f_repo: Repo = fake_repo.into();
-        let s = RepoSet::new([&t.repo, &f_repo]);
+        let s = RepoSet::from_iter([&t.repo, &f_repo]);
         assert_ordered_eq(s.categories(), ["cat"]);
         assert_ordered_eq(s.packages("cat"), ["pkg"]);
         assert_ordered_eq(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
@@ -395,7 +402,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bit_ops() {
+    fn test_set_ops() {
         let cpv1 = Cpv::new("cat/pkg-1").unwrap();
         let cpv2 = Cpv::new("cat/pkg-2").unwrap();
         let cpv3 = Cpv::new("cat/pkg-3").unwrap();
@@ -405,30 +412,30 @@ mod tests {
         let r3: Repo = fake::Repo::new("3", 0).pkgs([&cpv3]).into();
         let r4: Repo = fake::Repo::new("4", 0).pkgs([&cpv4]).into();
 
-        let mut s = RepoSet::new([]);
+        let mut s = RepoSet::new();
         assert!(!s.contains(&cpv1));
 
         // combine repo set and repo
         s |= &r1;
         assert!(s.contains(&cpv1));
         // combine repo set and repo set
-        s |= &RepoSet::new([&r2]);
+        s |= &RepoSet::from_iter([&r2]);
         assert!(s.contains(&cpv2));
         // combine repo set and repo
         let s = s | &r3;
         assert!(s.contains(&cpv3));
         // combine repo set and repo set
-        let s = s | &RepoSet::new([&r4]);
+        let s = s | &RepoSet::from_iter([&r4]);
         assert!(s.contains(&cpv4));
 
         // subtract repo set and repo set
-        let s = s - &RepoSet::new([&r4]);
+        let s = s - &RepoSet::from_iter([&r4]);
         assert!(!s.contains(&cpv4));
         // subtract repo set and repo
         let mut s = s - &r3;
         assert!(!s.contains(&cpv3));
         // subtract repo set and repo set
-        s -= &RepoSet::new([&r2]);
+        s -= &RepoSet::from_iter([&r2]);
         assert!(!s.contains(&cpv2));
         // subtract repo set and repo
         s -= &r1;

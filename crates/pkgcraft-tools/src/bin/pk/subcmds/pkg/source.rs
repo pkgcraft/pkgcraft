@@ -220,7 +220,7 @@ impl Command {
             } else {
                 anyhow::bail!("unknown repo: {repo}")
             }?;
-            RepoSet::new([&repo])
+            RepoSet::from_iter([&repo])
         } else {
             config.repos.set(Repos::Ebuild)
         };

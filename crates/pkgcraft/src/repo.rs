@@ -107,6 +107,12 @@ pub enum Repo {
     Unsynced(Arc<empty::Repo>),
 }
 
+impl From<&Repo> for Repo {
+    fn from(repo: &Repo) -> Self {
+        repo.clone()
+    }
+}
+
 impl From<ebuild::Repo> for Repo {
     fn from(repo: ebuild::Repo) -> Self {
         Self::Ebuild(Arc::new(repo))

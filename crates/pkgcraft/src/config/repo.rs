@@ -228,8 +228,8 @@ impl Config {
     pub fn set(&self, kind: Repos) -> RepoSet {
         let repos = self.repos.values();
         match kind {
-            Repos::All => RepoSet::new(repos),
-            Repos::Ebuild => RepoSet::new(repos.filter(|r| matches!(r, Repo::Ebuild(_)))),
+            Repos::All => repos.collect(),
+            Repos::Ebuild => repos.filter(|r| matches!(r, Repo::Ebuild(_))).collect(),
         }
     }
 

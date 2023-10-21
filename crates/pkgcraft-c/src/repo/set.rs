@@ -21,7 +21,7 @@ use crate::utils::{boxed, str_to_raw};
 pub unsafe extern "C" fn pkgcraft_repo_set_new(repos: *mut *mut Repo, len: usize) -> *mut RepoSet {
     let repos = unsafe { slice::from_raw_parts(repos, len) };
     let repos = repos.iter().map(|r| try_ref_from_ptr!(r));
-    Box::into_raw(Box::new(RepoSet::new(repos)))
+    Box::into_raw(Box::new(repos.collect()))
 }
 
 /// Return a repo set's categories.
