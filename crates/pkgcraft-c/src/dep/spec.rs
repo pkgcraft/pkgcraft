@@ -847,6 +847,24 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpe
     }
 }
 
+/// Determine if a DepSpec contains a given DepSpec.
+///
+/// # Safety
+/// The arguments must be non-null DepSpec pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_contains(d1: *mut DepSpec, d2: *mut DepSpec) -> bool {
+    let d1 = try_ref_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
+
+    use DepSpecWrapper::*;
+    match (d1.deref(), d2.deref()) {
+        (Dep(d1), Dep(d2)) => d1.contains(d2),
+        (String(d1), String(d2)) => d1.contains(d2),
+        (Uri(d1), Uri(d2)) => d1.contains(d2),
+        _ => false,
+    }
+}
+
 /// Return the hash value for a DepSpec.
 ///
 /// # Safety

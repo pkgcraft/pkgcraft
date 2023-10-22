@@ -239,6 +239,21 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     }
 }
 
+impl<S: UseFlag, T: Ordered> Contains<&DepSpec<S, T>> for DepSpec<S, T> {
+    fn contains(&self, dep: &DepSpec<S, T>) -> bool {
+        use DepSpec::*;
+        match self {
+            Enabled(_) | Disabled(_) => false,
+            AllOf(vals) => vals.contains(dep),
+            AnyOf(vals) => vals.contains(dep),
+            ExactlyOneOf(vals) => vals.contains(dep),
+            AtMostOneOf(vals) => vals.contains(dep),
+            UseEnabled(_, vals) => vals.contains(dep),
+            UseDisabled(_, vals) => vals.contains(dep),
+        }
+    }
+}
+
 impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DepSpec<S, T> {
     type Item = &'a DepSpec<S, T>;
     type IntoIter = Iter<'a, S, T>;
