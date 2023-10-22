@@ -33,6 +33,16 @@ pub trait Evaluate<'a, S: Enabled + 'a> {
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate;
 }
 
+/// Forced evaluation support for dependency objects.
+pub trait EvaluateForce {
+    type Evaluated;
+    fn evaluate_force(self, force: bool) -> Self::Evaluated;
+
+    type Item;
+    type IntoIterEvaluateForce: Iterator<Item = Self::Item>;
+    fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce;
+}
+
 /// Flattened iterator support for dependency objects.
 pub trait Flatten {
     type Item;
@@ -224,6 +234,22 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSpec<String, T>
     }
 }
 
+impl<'a, T: Ordered> EvaluateForce for &'a DepSpec<String, T> {
+    type Evaluated = DepSet<&'a String, &'a T>;
+    fn evaluate_force(self, force: bool) -> Self::Evaluated {
+        self.into_iter_evaluate_force(force).collect()
+    }
+
+    type Item = DepSpec<&'a String, &'a T>;
+    type IntoIterEvaluateForce = IterEvaluateForce<'a, T>;
+    fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
+        IterEvaluateForce {
+            q: [self].into_iter().collect(),
+            force,
+        }
+    }
+}
+
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DepSpec<&'a String, &'a T> {
     type Evaluated = DepSet<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
@@ -236,6 +262,22 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DepSpec<&'a String, &'
         IntoIterEvaluate {
             q: [self].into_iter().collect(),
             options,
+        }
+    }
+}
+
+impl<'a, T: Ordered> EvaluateForce for DepSpec<&'a String, &'a T> {
+    type Evaluated = DepSet<&'a String, &'a T>;
+    fn evaluate_force(self, force: bool) -> Self::Evaluated {
+        self.into_iter_evaluate_force(force).collect()
+    }
+
+    type Item = DepSpec<&'a String, &'a T>;
+    type IntoIterEvaluateForce = IntoIterEvaluateForce<'a, T>;
+    fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
+        IntoIterEvaluateForce {
+            q: [self].into_iter().collect(),
+            force,
         }
     }
 }
@@ -421,6 +463,22 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSet<String, T> 
     }
 }
 
+impl<'a, T: Ordered> EvaluateForce for &'a DepSet<String, T> {
+    type Evaluated = DepSet<&'a String, &'a T>;
+    fn evaluate_force(self, force: bool) -> Self::Evaluated {
+        self.into_iter_evaluate_force(force).collect()
+    }
+
+    type Item = DepSpec<&'a String, &'a T>;
+    type IntoIterEvaluateForce = IterEvaluateForce<'a, T>;
+    fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
+        IterEvaluateForce {
+            q: self.0.iter().collect(),
+            force,
+        }
+    }
+}
+
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DepSet<&'a String, &'a T> {
     type Evaluated = DepSet<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
@@ -433,6 +491,22 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DepSet<&'a String, &'a
         IntoIterEvaluate {
             q: self.0.into_iter().collect(),
             options,
+        }
+    }
+}
+
+impl<'a, T: Ordered> EvaluateForce for DepSet<&'a String, &'a T> {
+    type Evaluated = DepSet<&'a String, &'a T>;
+    fn evaluate_force(self, force: bool) -> Self::Evaluated {
+        self.into_iter_evaluate_force(force).collect()
+    }
+
+    type Item = DepSpec<&'a String, &'a T>;
+    type IntoIterEvaluateForce = IntoIterEvaluateForce<'a, T>;
+    fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
+        IntoIterEvaluateForce {
+            q: self.0.into_iter().collect(),
+            force,
         }
     }
 }
@@ -534,6 +608,57 @@ impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IterEvaluate<'a, S, T
     }
 }
 
+macro_rules! iter_eval_force {
+    ($variant:expr, $vals:expr, $force:expr) => {{
+        let dep = $variant(
+            $vals
+                .into_iter()
+                .flat_map(|d| d.into_iter_evaluate_force($force))
+                .map(|d| Box::new(d))
+                .collect(),
+        );
+
+        if !dep.is_empty() {
+            return Some(dep);
+        }
+    }};
+}
+
+#[derive(Debug)]
+pub struct IterEvaluateForce<'a, T: Ordered> {
+    q: Deque<&'a DepSpec<String, T>>,
+    force: bool,
+}
+
+impl<'a, T: fmt::Debug + Ordered> Iterator for IterEvaluateForce<'a, T> {
+    type Item = DepSpec<&'a String, &'a T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use DepSpec::*;
+        while let Some(dep) = self.q.pop_front() {
+            match dep {
+                Enabled(val) => return Some(Enabled(val)),
+                Disabled(val) => return Some(Disabled(val)),
+                AllOf(vals) => iter_eval_force!(AllOf, vals, self.force),
+                AnyOf(vals) => iter_eval_force!(AnyOf, vals, self.force),
+                ExactlyOneOf(vals) => iter_eval_force!(ExactlyOneOf, vals, self.force),
+                AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
+                UseEnabled(_, vals) => {
+                    if self.force {
+                        self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
+                    }
+                }
+                UseDisabled(_, vals) => {
+                    if self.force {
+                        self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
 #[derive(Debug)]
 pub struct IterFlatten<'a, S: UseFlag, T: Ordered>(Deque<&'a DepSpec<S, T>>);
 
@@ -621,6 +746,41 @@ impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluate<'a, 
                 }
                 UseDisabled(flag, vals) => {
                     if !self.options.contains(flag.as_str()) {
+                        self.q.extend_left(vals.into_iter().map(|x| *x));
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
+#[derive(Debug)]
+pub struct IntoIterEvaluateForce<'a, T: Ordered> {
+    q: Deque<DepSpec<&'a String, &'a T>>,
+    force: bool,
+}
+
+impl<'a, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
+    type Item = DepSpec<&'a String, &'a T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use DepSpec::*;
+        while let Some(dep) = self.q.pop_front() {
+            match dep {
+                Enabled(val) => return Some(Enabled(val)),
+                Disabled(val) => return Some(Disabled(val)),
+                AllOf(vals) => iter_eval_force!(AllOf, vals, self.force),
+                AnyOf(vals) => iter_eval_force!(AnyOf, vals, self.force),
+                ExactlyOneOf(vals) => iter_eval_force!(ExactlyOneOf, vals, self.force),
+                AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
+                UseEnabled(_, vals) => {
+                    if self.force {
+                        self.q.extend_left(vals.into_iter().map(|x| *x));
+                    }
+                }
+                UseDisabled(_, vals) => {
+                    if self.force {
                         self.q.extend_left(vals.into_iter().map(|x| *x));
                     }
                 }
