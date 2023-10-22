@@ -211,7 +211,7 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSpec<String, T> {
     type Evaluated = DepSet<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
-        DepSet(self.into_iter_evaluate(options).collect())
+        self.into_iter_evaluate(options).collect()
     }
 
     type Item = DepSpec<&'a String, &'a T>;
@@ -227,7 +227,7 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSpec<String, T>
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DepSpec<&'a String, &'a T> {
     type Evaluated = DepSet<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
-        DepSet(self.into_iter_evaluate(options).collect())
+        self.into_iter_evaluate(options).collect()
     }
 
     type Item = DepSpec<&'a String, &'a T>;
@@ -408,7 +408,7 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSet<String, T> {
     type Evaluated = DepSet<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
-        DepSet(self.into_iter_evaluate(options).collect())
+        self.into_iter_evaluate(options).collect()
     }
 
     type Item = DepSpec<&'a String, &'a T>;
@@ -424,7 +424,7 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSet<String, T> 
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DepSet<&'a String, &'a T> {
     type Evaluated = DepSet<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
-        DepSet(self.into_iter_evaluate(options).collect())
+        self.into_iter_evaluate(options).collect()
     }
 
     type Item = DepSpec<&'a String, &'a T>;
@@ -441,7 +441,7 @@ impl<T: Ordered> IntoOwned for DepSet<&String, &T> {
     type Owned = DepSet<String, T>;
 
     fn into_owned(self) -> Self::Owned {
-        DepSet(self.into_iter().map(|d| d.into_owned()).collect())
+        self.into_iter().map(|d| d.into_owned()).collect()
     }
 }
 
