@@ -1,6 +1,11 @@
 use camino::{Utf8Path, Utf8PathBuf};
 use scallop::{source, ExecStatus};
 
+/// Return true if a container type contains a given object, otherwise false.
+pub trait Contains<T> {
+    fn contains(&self, obj: T) -> bool;
+}
+
 /// Iterate over an object's lines, filtering comments starting with '#' and empty lines returning
 /// an enumerated iterator for the remaining content.
 pub trait FilterLines {

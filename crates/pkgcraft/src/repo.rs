@@ -11,6 +11,7 @@ use crate::config::RepoConfig;
 use crate::dep::{Cpv, Dep, Version};
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict as BaseRestrict;
+use crate::traits::Contains;
 use crate::Error;
 
 pub mod ebuild;
@@ -593,20 +594,15 @@ macro_rules! make_repo_traits {
 }
 use make_repo_traits;
 
-/// A repo contains a given object.
-pub trait Contains<T> {
-    fn contains(&self, obj: T) -> bool;
-}
-
 macro_rules! make_contains_dep {
     ($x:ty) => {
-        impl $crate::repo::Contains<&crate::dep::Cpv> for $x {
+        impl $crate::traits::Contains<&crate::dep::Cpv> for $x {
             fn contains(&self, cpv: &crate::dep::Cpv) -> bool {
                 self.iter_restrict(cpv).next().is_some()
             }
         }
 
-        impl $crate::repo::Contains<&crate::dep::Dep> for $x {
+        impl $crate::traits::Contains<&crate::dep::Dep> for $x {
             fn contains(&self, dep: &crate::dep::Dep) -> bool {
                 self.iter_restrict(dep).next().is_some()
             }

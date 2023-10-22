@@ -10,6 +10,7 @@ use pkgcraft::dep::{
     self, Dep, Evaluate, EvaluateForce, Flatten, IntoOwned, Recursive, Uri, UseFlag,
 };
 use pkgcraft::eapi::Eapi;
+use pkgcraft::traits::Contains;
 use pkgcraft::types::Ordered;
 use pkgcraft::utils::hash;
 
@@ -678,6 +679,23 @@ pub unsafe extern "C" fn pkgcraft_dep_set_eq(d1: *mut DepSet, d2: *mut DepSet) -
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
     d1.eq(d2)
+}
+
+/// Determine if a DepSet contains a given DepSpec.
+///
+/// # Safety
+/// The arguments must be non-null DepSet and DepSpec pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_contains(s: *mut DepSet, d: *mut DepSpec) -> bool {
+    let s = try_ref_from_ptr!(s);
+    let d = try_ref_from_ptr!(d);
+
+    match (s.deref(), d.deref()) {
+        (DepSetWrapper::Dep(s), DepSpecWrapper::Dep(d)) => s.contains(d),
+        (DepSetWrapper::String(s), DepSpecWrapper::String(d)) => s.contains(d),
+        (DepSetWrapper::Uri(s), DepSpecWrapper::Uri(d)) => s.contains(d),
+        _ => false,
+    }
 }
 
 /// Return the hash value for a DepSet.

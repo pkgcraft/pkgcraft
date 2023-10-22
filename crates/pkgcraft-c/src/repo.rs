@@ -4,8 +4,9 @@ use std::ptr;
 
 use pkgcraft::dep::{Cpv, Version};
 use pkgcraft::pkg::Pkg;
-use pkgcraft::repo::{Contains, PkgRepository, Repo, RepoFormat, Repository};
+use pkgcraft::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use pkgcraft::restrict::Restrict;
+use pkgcraft::traits::Contains;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;

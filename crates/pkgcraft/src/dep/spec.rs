@@ -7,6 +7,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::traits::Contains;
 use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
 use crate::Error;
 
@@ -503,6 +504,12 @@ impl<S: UseFlag, T: Ordered> Sub<&Self> for DepSet<S, T> {
 impl<S: UseFlag, T: Ordered> SubAssign<&Self> for DepSet<S, T> {
     fn sub_assign(&mut self, other: &Self) {
         self.0 -= &other.0;
+    }
+}
+
+impl<S: UseFlag, T: Ordered> Contains<&DepSpec<S, T>> for DepSet<S, T> {
+    fn contains(&self, dep: &DepSpec<S, T>) -> bool {
+        self.0.contains(dep)
     }
 }
 
