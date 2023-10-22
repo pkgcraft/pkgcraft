@@ -153,6 +153,7 @@ macro_rules! box_ref {
 }
 
 impl<'a, T: Ordered> DepSpec<String, T> {
+    /// Converts from `&DepSpec<String, T>` to `DepSpec<&String, &T>`.
     pub fn as_ref(&'a self) -> DepSpec<&'a String, &'a T> {
         use DepSpec::*;
         match self {
@@ -164,6 +165,21 @@ impl<'a, T: Ordered> DepSpec<String, T> {
             AtMostOneOf(ref vals) => AtMostOneOf(box_ref!(vals)),
             UseEnabled(u, ref vals) => UseEnabled(u, box_ref!(vals)),
             UseDisabled(u, ref vals) => UseDisabled(u, box_ref!(vals)),
+        }
+    }
+
+    /// Return the number of `DepSpec` objects a `DepSpec` contains.
+    pub fn len(&self) -> usize {
+        use DepSpec::*;
+        match self {
+            Enabled(_) => 1,
+            Disabled(_) => 1,
+            AllOf(vals) => vals.len(),
+            AnyOf(vals) => vals.len(),
+            ExactlyOneOf(vals) => vals.len(),
+            AtMostOneOf(vals) => vals.len(),
+            UseEnabled(_, vals) => vals.len(),
+            UseDisabled(_, vals) => vals.len(),
         }
     }
 }

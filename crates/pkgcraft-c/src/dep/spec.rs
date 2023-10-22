@@ -697,10 +697,11 @@ pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_len(d: *mut DepSet) -> usize {
     let deps = try_ref_from_ptr!(d);
+    use DepSetWrapper::*;
     match deps.deref() {
-        DepSetWrapper::Dep(d) => d.len(),
-        DepSetWrapper::String(d) => d.len(),
-        DepSetWrapper::Uri(d) => d.len(),
+        Dep(d) => d.len(),
+        String(d) => d.len(),
+        Uri(d) => d.len(),
     }
 }
 
@@ -836,6 +837,21 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpe
 pub unsafe extern "C" fn pkgcraft_dep_spec_hash(d: *mut DepSpec) -> u64 {
     let deps = try_ref_from_ptr!(d);
     hash(deps)
+}
+
+/// Return a DepSpec's length.
+///
+/// # Safety
+/// The argument must be a non-null DepSpec pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_len(d: *mut DepSpec) -> usize {
+    let deps = try_ref_from_ptr!(d);
+    use DepSpecWrapper::*;
+    match deps.deref() {
+        Dep(d) => d.len(),
+        String(d) => d.len(),
+        Uri(d) => d.len(),
+    }
 }
 
 /// Free a DepSpec object.
