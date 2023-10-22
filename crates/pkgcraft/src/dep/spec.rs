@@ -343,6 +343,27 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
     pub fn new() -> Self {
         Self(SortedSet::new())
     }
+
+    /// Return the number of `DepSpec` objects a `DepSet` contains.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.into_iter().all(|d| d.is_empty())
+    }
+
+    pub fn iter(&self) -> Iter<S, T> {
+        self.into_iter()
+    }
+
+    pub fn iter_flatten(&self) -> IterFlatten<S, T> {
+        self.into_iter_flatten()
+    }
+
+    pub fn iter_recursive(&self) -> IterRecursive<S, T> {
+        self.into_iter_recursive()
+    }
 }
 
 impl<S: UseFlag, T: Ordered> Default for DepSet<S, T> {
@@ -426,24 +447,6 @@ impl<S: UseFlag, T: Ordered> Sub<&Self> for DepSet<S, T> {
 impl<S: UseFlag, T: Ordered> SubAssign<&Self> for DepSet<S, T> {
     fn sub_assign(&mut self, other: &Self) {
         self.0 -= &other.0;
-    }
-}
-
-impl<S: UseFlag, T: Ordered> DepSet<S, T> {
-    pub fn is_empty(&self) -> bool {
-        self.into_iter().all(|d| d.is_empty())
-    }
-
-    pub fn iter(&self) -> Iter<S, T> {
-        self.into_iter()
-    }
-
-    pub fn iter_flatten(&self) -> IterFlatten<S, T> {
-        self.into_iter_flatten()
-    }
-
-    pub fn iter_recursive(&self) -> IterRecursive<S, T> {
-        self.into_iter_recursive()
     }
 }
 

@@ -690,6 +690,20 @@ pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
     hash(deps)
 }
 
+/// Return a DepSet's length.
+///
+/// # Safety
+/// The argument must be a non-null DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_len(d: *mut DepSet) -> usize {
+    let deps = try_ref_from_ptr!(d);
+    match deps.deref() {
+        DepSetWrapper::Dep(d) => d.len(),
+        DepSetWrapper::String(d) => d.len(),
+        DepSetWrapper::Uri(d) => d.len(),
+    }
+}
+
 /// Return an iterator for a depset.
 ///
 /// # Safety
