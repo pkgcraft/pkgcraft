@@ -167,21 +167,6 @@ impl<'a, T: Ordered> DepSpec<String, T> {
             UseDisabled(u, ref vals) => UseDisabled(u, box_ref!(vals)),
         }
     }
-
-    /// Return the number of `DepSpec` objects a `DepSpec` contains.
-    pub fn len(&self) -> usize {
-        use DepSpec::*;
-        match self {
-            Enabled(_) => 1,
-            Disabled(_) => 1,
-            AllOf(vals) => vals.len(),
-            AnyOf(vals) => vals.len(),
-            ExactlyOneOf(vals) => vals.len(),
-            AtMostOneOf(vals) => vals.len(),
-            UseEnabled(_, vals) => vals.len(),
-            UseDisabled(_, vals) => vals.len(),
-        }
-    }
 }
 
 macro_rules! box_owned {
@@ -223,6 +208,25 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
             UseEnabled(_, vals) => vals.iter().all(|d| d.is_empty()),
             UseDisabled(_, vals) => vals.iter().all(|d| d.is_empty()),
         }
+    }
+
+    /// Return the number of `DepSpec` objects a `DepSpec` contains.
+    pub fn len(&self) -> usize {
+        use DepSpec::*;
+        match self {
+            Enabled(_) => 1,
+            Disabled(_) => 1,
+            AllOf(vals) => vals.len(),
+            AnyOf(vals) => vals.len(),
+            ExactlyOneOf(vals) => vals.len(),
+            AtMostOneOf(vals) => vals.len(),
+            UseEnabled(_, vals) => vals.len(),
+            UseDisabled(_, vals) => vals.len(),
+        }
+    }
+
+    pub fn iter(&self) -> Iter<S, T> {
+        self.into_iter()
     }
 
     pub fn iter_flatten(&self) -> IterFlatten<S, T> {
