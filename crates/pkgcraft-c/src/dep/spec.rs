@@ -6,7 +6,9 @@ use std::ops::{
 };
 use std::{fmt, ptr, slice};
 
-use pkgcraft::dep::{self, Dep, Evaluate, Flatten, IntoOwned, Recursive, Uri, UseFlag};
+use pkgcraft::dep::{
+    self, Dep, Evaluate, EvaluateForce, Flatten, IntoOwned, Recursive, Uri, UseFlag,
+};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::types::Ordered;
 use pkgcraft::utils::hash;
@@ -555,6 +557,33 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
         Dep(d) => Dep(d.evaluate(&options).into_owned()),
         String(d) => String(d.evaluate(&options).into_owned()),
         Uri(d) => Uri(d.evaluate(&options).into_owned()),
+    };
+
+    let dep = DepSet {
+        unit: deps.unit,
+        kind: deps.kind,
+        dep: Box::into_raw(Box::new(evaluated)),
+    };
+
+    Box::into_raw(Box::new(dep))
+}
+
+/// Forcibly evaluate a DepSet.
+///
+/// # Safety
+/// The argument must be a non-null DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_evaluate_force(
+    d: *mut DepSet,
+    force: bool,
+) -> *mut DepSet {
+    let deps = try_ref_from_ptr!(d);
+
+    use DepSetWrapper::*;
+    let evaluated = match deps.deref() {
+        Dep(d) => Dep(d.evaluate_force(force).into_owned()),
+        String(d) => String(d.evaluate_force(force).into_owned()),
+        Uri(d) => Uri(d.evaluate_force(force).into_owned()),
     };
 
     let dep = DepSet {
