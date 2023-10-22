@@ -739,25 +739,30 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate(
     d: *mut DepSpec,
     options: *mut *mut c_char,
     len: usize,
-) -> *mut DepSpec {
+    deps_len: *mut usize,
+) -> *mut *mut DepSpec {
     let dep = try_ref_from_ptr!(d);
     let options = unsafe { slice::from_raw_parts(options, len) };
     let options = options.iter().map(|p| try_str_from_ptr!(p)).collect();
 
     use DepSpecWrapper::*;
-    let evaluated = match dep.deref() {
-        Dep(d) => Dep(d.evaluate(&options).into_owned()),
-        String(d) => String(d.evaluate(&options).into_owned()),
-        Uri(d) => Uri(d.evaluate(&options).into_owned()),
-    };
-
-    let dep = DepSpec {
-        unit: dep.unit,
-        kind: dep.kind,
-        dep: Box::into_raw(Box::new(evaluated)),
-    };
-
-    Box::into_raw(Box::new(dep))
+    match dep.deref() {
+        Dep(d) => {
+            iter_to_array!(d.evaluate(&options).into_iter(), deps_len, |d| {
+                Box::into_raw(Box::new(DepSpec::new_dep(d.into_owned())))
+            })
+        }
+        String(d) => {
+            iter_to_array!(d.evaluate(&options).into_iter(), deps_len, |d| {
+                Box::into_raw(Box::new(DepSpec::new_string(d.into_owned())))
+            })
+        }
+        Uri(d) => {
+            iter_to_array!(d.evaluate(&options).into_iter(), deps_len, |d| {
+                Box::into_raw(Box::new(DepSpec::new_uri(d.into_owned())))
+            })
+        }
+    }
 }
 
 /// Forcibly evaluate a DepSpec.
@@ -768,23 +773,28 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate(
 pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate_force(
     d: *mut DepSpec,
     force: bool,
-) -> *mut DepSpec {
+    deps_len: *mut usize,
+) -> *mut *mut DepSpec {
     let dep = try_ref_from_ptr!(d);
 
     use DepSpecWrapper::*;
-    let evaluated = match dep.deref() {
-        Dep(d) => Dep(d.evaluate_force(force).into_owned()),
-        String(d) => String(d.evaluate_force(force).into_owned()),
-        Uri(d) => Uri(d.evaluate_force(force).into_owned()),
-    };
-
-    let dep = DepSpec {
-        unit: dep.unit,
-        kind: dep.kind,
-        dep: Box::into_raw(Box::new(evaluated)),
-    };
-
-    Box::into_raw(Box::new(dep))
+    match dep.deref() {
+        Dep(d) => {
+            iter_to_array!(d.evaluate_force(force).into_iter(), deps_len, |d| {
+                Box::into_raw(Box::new(DepSpec::new_dep(d.into_owned())))
+            })
+        }
+        String(d) => {
+            iter_to_array!(d.evaluate_force(force).into_iter(), deps_len, |d| {
+                Box::into_raw(Box::new(DepSpec::new_string(d.into_owned())))
+            })
+        }
+        Uri(d) => {
+            iter_to_array!(d.evaluate_force(force).into_iter(), deps_len, |d| {
+                Box::into_raw(Box::new(DepSpec::new_uri(d.into_owned())))
+            })
+        }
+    }
 }
 
 /// Compare two DepSpecs returning -1, 0, or 1 if the first is less than, equal to, or greater
