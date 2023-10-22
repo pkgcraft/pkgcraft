@@ -218,6 +218,18 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     }
 }
 
+impl<S: UseFlag, T: Ordered> FromIterator<DepSpec<S, T>> for DepSpec<S, T> {
+    fn from_iter<I: IntoIterator<Item = DepSpec<S, T>>>(iterable: I) -> Self {
+        Self::AllOf(iterable.into_iter().map(Box::new).collect())
+    }
+}
+
+impl<'a, T: Ordered + 'a> FromIterator<&'a DepSpec<String, T>> for DepSpec<&'a String, &'a T> {
+    fn from_iter<I: IntoIterator<Item = &'a DepSpec<String, T>>>(iterable: I) -> Self {
+        Self::AllOf(iterable.into_iter().map(|d| Box::new(d.as_ref())).collect())
+    }
+}
+
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSpec<String, T> {
     type Evaluated = DepSet<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
