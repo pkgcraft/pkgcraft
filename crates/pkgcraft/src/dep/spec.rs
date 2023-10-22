@@ -239,8 +239,8 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Contains<&DepSpec<S, T>> for DepSpec<S, T> {
-    fn contains(&self, dep: &DepSpec<S, T>) -> bool {
+impl<S: UseFlag, T: Ordered> Contains<&Self> for DepSpec<S, T> {
+    fn contains(&self, dep: &Self) -> bool {
         use DepSpec::*;
         match self {
             Enabled(_) | Disabled(_) => false,
