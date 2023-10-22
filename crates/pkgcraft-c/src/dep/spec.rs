@@ -705,7 +705,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_len(d: *mut DepSet) -> usize {
     }
 }
 
-/// Return an iterator for a depset.
+/// Return an iterator for a DepSet.
 ///
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
@@ -720,7 +720,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepS
     Box::into_raw(Box::new(iter))
 }
 
-/// Return the next object from a depset iterator.
+/// Return the next object from a DepSet iterator.
 ///
 /// Returns NULL when the iterator is empty.
 ///
@@ -734,7 +734,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next(i: *mut DepSpecIntoIter
         .unwrap_or(ptr::null_mut())
 }
 
-/// Free a depset iterator.
+/// Free a DepSet iterator.
 ///
 /// # Safety
 /// The argument must be a non-null DepSpecIntoIter pointer or NULL.
@@ -873,6 +873,21 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_free(r: *mut DepSpec) {
 pub unsafe extern "C" fn pkgcraft_dep_spec_str(d: *mut DepSpec) -> *mut c_char {
     let deps = try_ref_from_ptr!(d);
     try_ptr_from_str!(deps.to_string())
+}
+
+/// Return an iterator for a DepSpec.
+///
+/// # Safety
+/// The argument must be a non-null DepSpec pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter(d: *mut DepSpec) -> *mut DepSpecIntoIter {
+    let deps = try_ref_from_ptr!(d);
+    let iter = match deps.deref().clone() {
+        DepSpecWrapper::Dep(d) => DepSpecIntoIter::Dep(d.into_iter()),
+        DepSpecWrapper::String(d) => DepSpecIntoIter::String(d.into_iter()),
+        DepSpecWrapper::Uri(d) => DepSpecIntoIter::Uri(d.into_iter()),
+    };
+    Box::into_raw(Box::new(iter))
 }
 
 /// Return a flattened iterator for a DepSpec.

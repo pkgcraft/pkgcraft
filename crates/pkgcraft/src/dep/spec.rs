@@ -234,6 +234,24 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     }
 }
 
+impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DepSpec<S, T> {
+    type Item = &'a DepSpec<S, T>;
+    type IntoIter = Iter<'a, S, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        use DepSpec::*;
+        match self {
+            Enabled(_) | Disabled(_) => [].into_iter().collect(),
+            AllOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
+            AnyOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
+            ExactlyOneOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
+            AtMostOneOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
+            UseEnabled(_, vals) => vals.iter().map(AsRef::as_ref).collect(),
+            UseDisabled(_, vals) => vals.iter().map(AsRef::as_ref).collect(),
+        }
+    }
+}
+
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSpec<String, T> {
     type Evaluated = SortedSet<DepSpec<&'a String, &'a T>>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
@@ -294,6 +312,24 @@ impl<'a, T: Ordered> EvaluateForce for DepSpec<&'a String, &'a T> {
         IntoIterEvaluateForce {
             q: [self].into_iter().collect(),
             force,
+        }
+    }
+}
+
+impl<S: UseFlag, T: Ordered> IntoIterator for DepSpec<S, T> {
+    type Item = DepSpec<S, T>;
+    type IntoIter = IntoIter<S, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        use DepSpec::*;
+        match self {
+            Enabled(_) | Disabled(_) => [].into_iter().collect(),
+            AllOf(vals) => vals.into_iter().map(|x| *x).collect(),
+            AnyOf(vals) => vals.into_iter().map(|x| *x).collect(),
+            ExactlyOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
+            AtMostOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
+            UseEnabled(_, vals) => vals.into_iter().map(|x| *x).collect(),
+            UseDisabled(_, vals) => vals.into_iter().map(|x| *x).collect(),
         }
     }
 }
@@ -539,14 +575,11 @@ impl<T: Ordered> IntoOwned for DepSet<&String, &T> {
 }
 
 #[derive(Debug)]
-pub struct Iter<'a, S: UseFlag, T: Ordered>(indexmap::set::Iter<'a, DepSpec<S, T>>);
+pub struct Iter<'a, S: UseFlag, T: Ordered>(Deque<&'a DepSpec<S, T>>);
 
-impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DepSet<S, T> {
-    type Item = &'a DepSpec<S, T>;
-    type IntoIter = Iter<'a, S, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        Iter(self.0.iter())
+impl<'a, S: UseFlag, T: Ordered> FromIterator<&'a DepSpec<S, T>> for Iter<'a, S, T> {
+    fn from_iter<I: IntoIterator<Item = &'a DepSpec<S, T>>>(iterable: I) -> Self {
+        Self(iterable.into_iter().collect())
     }
 }
 
@@ -554,7 +587,16 @@ impl<'a, S: UseFlag, T: Ordered> Iterator for Iter<'a, S, T> {
     type Item = &'a DepSpec<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        self.0.pop_front()
+    }
+}
+
+impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DepSet<S, T> {
+    type Item = &'a DepSpec<S, T>;
+    type IntoIter = Iter<'a, S, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter().collect()
     }
 }
 
@@ -702,14 +744,11 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, S, T>
 }
 
 #[derive(Debug)]
-pub struct IntoIter<S: UseFlag, T: Ordered>(indexmap::set::IntoIter<DepSpec<S, T>>);
+pub struct IntoIter<S: UseFlag, T: Ordered>(Deque<DepSpec<S, T>>);
 
-impl<S: UseFlag, T: Ordered> IntoIterator for DepSet<S, T> {
-    type Item = DepSpec<S, T>;
-    type IntoIter = IntoIter<S, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        IntoIter(self.0.into_iter())
+impl<S: UseFlag, T: Ordered> FromIterator<DepSpec<S, T>> for IntoIter<S, T> {
+    fn from_iter<I: IntoIterator<Item = DepSpec<S, T>>>(iterable: I) -> Self {
+        Self(iterable.into_iter().collect())
     }
 }
 
@@ -717,7 +756,16 @@ impl<S: UseFlag, T: Ordered> Iterator for IntoIter<S, T> {
     type Item = DepSpec<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        self.0.pop_front()
+    }
+}
+
+impl<S: UseFlag, T: Ordered> IntoIterator for DepSet<S, T> {
+    type Item = DepSpec<S, T>;
+    type IntoIter = IntoIter<S, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter().collect()
     }
 }
 
