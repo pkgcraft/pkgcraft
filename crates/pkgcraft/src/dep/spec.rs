@@ -231,7 +231,7 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a DepSpec<String, T>> for DepSpec<&'a S
 }
 
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSpec<String, T> {
-    type Evaluated = DepSet<&'a String, &'a T>;
+    type Evaluated = DepSpec<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
@@ -247,7 +247,7 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DepSpec<String, T>
 }
 
 impl<'a, T: Ordered> EvaluateForce for &'a DepSpec<String, T> {
-    type Evaluated = DepSet<&'a String, &'a T>;
+    type Evaluated = DepSpec<&'a String, &'a T>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
@@ -263,7 +263,7 @@ impl<'a, T: Ordered> EvaluateForce for &'a DepSpec<String, T> {
 }
 
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DepSpec<&'a String, &'a T> {
-    type Evaluated = DepSet<&'a String, &'a T>;
+    type Evaluated = DepSpec<&'a String, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
@@ -279,7 +279,7 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DepSpec<&'a String, &'
 }
 
 impl<'a, T: Ordered> EvaluateForce for DepSpec<&'a String, &'a T> {
-    type Evaluated = DepSet<&'a String, &'a T>;
+    type Evaluated = DepSpec<&'a String, &'a T>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
