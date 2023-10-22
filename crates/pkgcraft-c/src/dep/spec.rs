@@ -272,7 +272,7 @@ impl fmt::Display for DepSpecWrapper {
 }
 
 /// DepSpec variants.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum DepSpecKind {
     Enabled,
@@ -375,6 +375,12 @@ impl Deref for DepSpec {
 
     fn deref(&self) -> &Self::Target {
         try_ref_from_ptr!(self.dep)
+    }
+}
+
+impl DerefMut for DepSpec {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        try_mut_from_ptr!(self.dep)
     }
 }
 
@@ -548,20 +554,20 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
     options: *mut *mut c_char,
     len: usize,
 ) -> *mut DepSet {
-    let deps = try_ref_from_ptr!(d);
+    let dep = try_ref_from_ptr!(d);
     let options = unsafe { slice::from_raw_parts(options, len) };
     let options = options.iter().map(|p| try_str_from_ptr!(p)).collect();
 
     use DepSetWrapper::*;
-    let evaluated = match deps.deref() {
+    let evaluated = match dep.deref() {
         Dep(d) => Dep(d.evaluate(&options).into_owned()),
         String(d) => String(d.evaluate(&options).into_owned()),
         Uri(d) => Uri(d.evaluate(&options).into_owned()),
     };
 
     let dep = DepSet {
-        unit: deps.unit,
-        kind: deps.kind,
+        unit: dep.unit,
+        kind: dep.kind,
         dep: Box::into_raw(Box::new(evaluated)),
     };
 
@@ -577,18 +583,18 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate_force(
     d: *mut DepSet,
     force: bool,
 ) -> *mut DepSet {
-    let deps = try_ref_from_ptr!(d);
+    let dep = try_ref_from_ptr!(d);
 
     use DepSetWrapper::*;
-    let evaluated = match deps.deref() {
+    let evaluated = match dep.deref() {
         Dep(d) => Dep(d.evaluate_force(force).into_owned()),
         String(d) => String(d.evaluate_force(force).into_owned()),
         Uri(d) => Uri(d.evaluate_force(force).into_owned()),
     };
 
     let dep = DepSet {
-        unit: deps.unit,
-        kind: deps.kind,
+        unit: dep.unit,
+        kind: dep.kind,
         dep: Box::into_raw(Box::new(evaluated)),
     };
 
@@ -722,6 +728,63 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_free(i: *mut DepSpecIntoIter
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
+}
+
+/// Evaluate a DepSpec.
+///
+/// # Safety
+/// The argument must be a non-null DepSpec pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate(
+    d: *mut DepSpec,
+    options: *mut *mut c_char,
+    len: usize,
+) -> *mut DepSpec {
+    let dep = try_ref_from_ptr!(d);
+    let options = unsafe { slice::from_raw_parts(options, len) };
+    let options = options.iter().map(|p| try_str_from_ptr!(p)).collect();
+
+    use DepSpecWrapper::*;
+    let evaluated = match dep.deref() {
+        Dep(d) => Dep(d.evaluate(&options).into_owned()),
+        String(d) => String(d.evaluate(&options).into_owned()),
+        Uri(d) => Uri(d.evaluate(&options).into_owned()),
+    };
+
+    let dep = DepSpec {
+        unit: dep.unit,
+        kind: dep.kind,
+        dep: Box::into_raw(Box::new(evaluated)),
+    };
+
+    Box::into_raw(Box::new(dep))
+}
+
+/// Forcibly evaluate a DepSpec.
+///
+/// # Safety
+/// The argument must be a non-null DepSpec pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate_force(
+    d: *mut DepSpec,
+    force: bool,
+) -> *mut DepSpec {
+    let dep = try_ref_from_ptr!(d);
+
+    use DepSpecWrapper::*;
+    let evaluated = match dep.deref() {
+        Dep(d) => Dep(d.evaluate_force(force).into_owned()),
+        String(d) => String(d.evaluate_force(force).into_owned()),
+        Uri(d) => Uri(d.evaluate_force(force).into_owned()),
+    };
+
+    let dep = DepSpec {
+        unit: dep.unit,
+        kind: dep.kind,
+        dep: Box::into_raw(Box::new(evaluated)),
+    };
+
+    Box::into_raw(Box::new(dep))
 }
 
 /// Compare two DepSpecs returning -1, 0, or 1 if the first is less than, equal to, or greater
