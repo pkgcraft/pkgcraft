@@ -9,16 +9,14 @@ use walkdir::{DirEntry, WalkDir};
 use crate::Error;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Group {
-    inner: unistd::Group,
-}
+pub(crate) struct Group(unistd::Group);
 
 impl FromStr for Group {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
         match unistd::Group::from_name(s) {
-            Ok(Some(val)) => Ok(Group { inner: val }),
+            Ok(Some(val)) => Ok(Group(val)),
             Ok(None) => Err(Error::InvalidValue(format!("unknown group: {s}"))),
             Err(_) => Err(Error::InvalidValue(format!("invalid group: {s}"))),
         }
@@ -29,20 +27,18 @@ impl Deref for Group {
     type Target = unistd::Group;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.0
     }
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct User {
-    inner: unistd::User,
-}
+pub(crate) struct User(unistd::User);
 
 impl Deref for User {
     type Target = unistd::User;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.0
     }
 }
 
@@ -51,7 +47,7 @@ impl FromStr for User {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         match unistd::User::from_name(s) {
-            Ok(Some(val)) => Ok(User { inner: val }),
+            Ok(Some(val)) => Ok(User(val)),
             Ok(None) => Err(Error::InvalidValue(format!("unknown user: {s}"))),
             Err(_) => Err(Error::InvalidValue(format!("invalid user: {s}"))),
         }
@@ -59,15 +55,13 @@ impl FromStr for User {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Mode {
-    inner: stat::Mode,
-}
+pub(crate) struct Mode(stat::Mode);
 
 impl Deref for Mode {
     type Target = stat::Mode;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.0
     }
 }
 
@@ -80,7 +74,7 @@ impl FromStr for Mode {
             .map_err(|_| Error::InvalidValue(format!("invalid mode: {s}")))?;
         let mode = stat::Mode::from_bits(mode)
             .ok_or_else(|| Error::InvalidValue(format!("invalid mode: {s}")))?;
-        Ok(Mode { inner: mode })
+        Ok(Mode(mode))
     }
 }
 
