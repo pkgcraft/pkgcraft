@@ -161,17 +161,17 @@ impl Metadata {
             DESCRIPTION => self.description = val.to_string(),
             SLOT => self.slot = val.to_string(),
             DEPEND | BDEPEND | IDEPEND | RDEPEND | PDEPEND => {
-                if let Some(val) = dep::parse::dependencies(val, eapi)
+                if let Some(val) = dep::parse::dependencies_dep_set(val, eapi)
                     .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
                 {
                     self.deps.insert(key, val);
                 }
             }
-            LICENSE => self.license = dep::parse::license(val)?,
-            PROPERTIES => self.properties = dep::parse::properties(val)?,
-            REQUIRED_USE => self.required_use = dep::parse::required_use(val, eapi)?,
-            RESTRICT => self.restrict = dep::parse::restrict(val)?,
-            SRC_URI => self.src_uri = dep::parse::src_uri(val, eapi)?,
+            LICENSE => self.license = dep::parse::license_dep_set(val)?,
+            PROPERTIES => self.properties = dep::parse::properties_dep_set(val)?,
+            REQUIRED_USE => self.required_use = dep::parse::required_use_dep_set(val, eapi)?,
+            RESTRICT => self.restrict = dep::parse::restrict_dep_set(val)?,
+            SRC_URI => self.src_uri = dep::parse::src_uri_dep_set(val, eapi)?,
             HOMEPAGE => self.homepage = split!(val).collect(),
             DEFINED_PHASES => self.defined_phases = split!(val).sorted().collect(),
             KEYWORDS => self.keywords = split!(val).collect(),

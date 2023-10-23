@@ -425,26 +425,6 @@ impl Iterator for DepSpecIntoIterRecursive {
     }
 }
 
-/// Parse a string into a Dependencies DepSet.
-///
-/// Returns NULL on error.
-///
-/// # Safety
-/// The argument should be a UTF-8 string.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_dependencies(
-    s: *const c_char,
-    eapi: *const Eapi,
-) -> *mut DepSet {
-    ffi_catch_panic! {
-        let s = try_str_from_ptr!(s);
-        let eapi = eapi_or_default!(eapi);
-        let opt_dep = unwrap_or_panic!(dep::parse::dependencies(s, eapi));
-        let dep = DepSet::new_dep(opt_dep.unwrap_or_default());
-        Box::into_raw(Box::new(dep))
-    }
-}
-
 /// Create a DepSet from an array of DepSpec objects.
 ///
 /// Returns NULL on error.
@@ -487,6 +467,45 @@ pub unsafe extern "C" fn pkgcraft_dep_set_from_iter(
     }
 }
 
+/// Parse a string into a Dependencies DepSet.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_dependencies(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *mut DepSet {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapi = eapi_or_default!(eapi);
+        let opt_dep = unwrap_or_panic!(dep::parse::dependencies_dep_set(s, eapi));
+        let dep = DepSet::new_dep(opt_dep.unwrap_or_default());
+        Box::into_raw(Box::new(dep))
+    }
+}
+
+/// Parse a string into a Dependencies DepSpec.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_dependencies(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *mut DepSpec {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapi = eapi_or_default!(eapi);
+        let dep = unwrap_or_panic!(dep::parse::dependencies_dep_spec(s, eapi));
+        Box::into_raw(Box::new(DepSpec::new_dep(dep)))
+    }
+}
+
 /// Parse a string into a Restrict DepSet.
 ///
 /// Returns NULL on error.
@@ -497,9 +516,24 @@ pub unsafe extern "C" fn pkgcraft_dep_set_from_iter(
 pub unsafe extern "C" fn pkgcraft_dep_set_restrict(s: *const c_char) -> *mut DepSet {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let opt_dep = unwrap_or_panic!(dep::parse::restrict(s));
+        let opt_dep = unwrap_or_panic!(dep::parse::restrict_dep_set(s));
         let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::Restrict);
         Box::into_raw(Box::new(dep))
+    }
+}
+
+/// Parse a string into a Restrict DepSpec.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_restrict(s: *const c_char) -> *mut DepSpec {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let dep = unwrap_or_panic!(dep::parse::restrict_dep_spec(s));
+        Box::into_raw(Box::new(DepSpec::new_string(dep, DepSetKind::Restrict)))
     }
 }
 
@@ -517,9 +551,28 @@ pub unsafe extern "C" fn pkgcraft_dep_set_required_use(
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
         let eapi = eapi_or_default!(eapi);
-        let opt_dep = unwrap_or_panic!(dep::parse::required_use(s, eapi));
+        let opt_dep = unwrap_or_panic!(dep::parse::required_use_dep_set(s, eapi));
         let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::RequiredUse);
         Box::into_raw(Box::new(dep))
+    }
+}
+
+/// Parse a string into a RequiredUse DepSpec.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_required_use(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *mut DepSpec {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapi = eapi_or_default!(eapi);
+        let dep = unwrap_or_panic!(dep::parse::required_use_dep_spec(s, eapi));
+        Box::into_raw(Box::new(DepSpec::new_string(dep, DepSetKind::RequiredUse)))
     }
 }
 
@@ -533,9 +586,24 @@ pub unsafe extern "C" fn pkgcraft_dep_set_required_use(
 pub unsafe extern "C" fn pkgcraft_dep_set_properties(s: *const c_char) -> *mut DepSet {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let opt_dep = unwrap_or_panic!(dep::parse::properties(s));
+        let opt_dep = unwrap_or_panic!(dep::parse::properties_dep_set(s));
         let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::Properties);
         Box::into_raw(Box::new(dep))
+    }
+}
+
+/// Parse a string into a Properties DepSpec.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_properties(s: *const c_char) -> *mut DepSpec {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let dep = unwrap_or_panic!(dep::parse::properties_dep_spec(s));
+        Box::into_raw(Box::new(DepSpec::new_string(dep, DepSetKind::Properties)))
     }
 }
 
@@ -553,9 +621,28 @@ pub unsafe extern "C" fn pkgcraft_dep_set_src_uri(
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
         let eapi = eapi_or_default!(eapi);
-        let opt_dep = unwrap_or_panic!(dep::parse::src_uri(s, eapi));
+        let opt_dep = unwrap_or_panic!(dep::parse::src_uri_dep_set(s, eapi));
         let dep = DepSet::new_uri(opt_dep.unwrap_or_default());
         Box::into_raw(Box::new(dep))
+    }
+}
+
+/// Parse a string into a SrcUri DepSpec.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_src_uri(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *mut DepSpec {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let eapi = eapi_or_default!(eapi);
+        let dep = unwrap_or_panic!(dep::parse::src_uri_dep_spec(s, eapi));
+        Box::into_raw(Box::new(DepSpec::new_uri(dep)))
     }
 }
 
@@ -569,9 +656,24 @@ pub unsafe extern "C" fn pkgcraft_dep_set_src_uri(
 pub unsafe extern "C" fn pkgcraft_dep_set_license(s: *const c_char) -> *mut DepSet {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let opt_dep = unwrap_or_panic!(dep::parse::license(s));
+        let opt_dep = unwrap_or_panic!(dep::parse::license_dep_set(s));
         let dep = DepSet::new_string(opt_dep.unwrap_or_default(), DepSetKind::License);
         Box::into_raw(Box::new(dep))
+    }
+}
+
+/// Parse a string into a License DepSpec.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_license(s: *const c_char) -> *mut DepSpec {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let dep = unwrap_or_panic!(dep::parse::license_dep_spec(s));
+        Box::into_raw(Box::new(DepSpec::new_string(dep, DepSetKind::License)))
     }
 }
 

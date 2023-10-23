@@ -128,15 +128,15 @@ macro_rules! p {
 pub enum DepSpec<S: UseFlag, T: Ordered> {
     /// Enabled dependency.
     Enabled(T),
-    /// Disabled dependency.
-    Disabled(T), // REQUIRED_USE only
+    /// Disabled dependency (REQUIRED_USE only).
+    Disabled(T),
     /// All of a given dependency set.
     AllOf(SortedSet<Box<DepSpec<S, T>>>),
     /// Any of a given dependency set.
     AnyOf(OrderedSet<Box<DepSpec<S, T>>>),
     /// Exactly one of a given dependency set (REQUIRED_USE only).
     ExactlyOneOf(OrderedSet<Box<DepSpec<S, T>>>),
-    /// At most of a given dependency set (REQUIRED_USE only).
+    /// At most one of a given dependency set (REQUIRED_USE only).
     AtMostOneOf(OrderedSet<Box<DepSpec<S, T>>>),
     /// Conditionally enabled dependency.
     UseEnabled(S, SortedSet<Box<DepSpec<S, T>>>),
