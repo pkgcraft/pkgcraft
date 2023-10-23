@@ -15,20 +15,22 @@ use pkgcraft::types::Ordered;
 use pkgcraft::utils::hash;
 
 use crate::eapi::eapi_or_default;
+use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 use crate::types::SetOp;
 
 /// DepSet variants.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(C)]
 pub enum DepSetKind {
+    #[default]
     Dependencies,
+    SrcUri,
     License,
     Properties,
     RequiredUse,
     Restrict,
-    SrcUri,
 }
 
 /// Opaque wrapper for pkgcraft::dep::DepSet.
@@ -439,6 +441,48 @@ pub unsafe extern "C" fn pkgcraft_dep_set_dependencies(
         let eapi = eapi_or_default!(eapi);
         let opt_dep = unwrap_or_panic!(dep::parse::dependencies(s, eapi));
         let dep = DepSet::new_dep(opt_dep.unwrap_or_default());
+        Box::into_raw(Box::new(dep))
+    }
+}
+
+/// Create a DepSet from an array of DepSpec objects.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be an array of similarly-typed DepSpec objects.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_from_iter(
+    deps: *mut *mut DepSpec,
+    len: usize,
+    kind: DepSetKind,
+) -> *mut DepSet {
+    ffi_catch_panic! {
+        let deps = unsafe { slice::from_raw_parts(deps, len) };
+        let deps = deps.iter().map(|p| try_ref_from_ptr!(p));
+        let (mut deps_dep, mut deps_string, mut deps_uri) = (vec![], vec![], vec![]);
+
+        for d in deps {
+            if d.set != kind {
+                set_error_and_panic!(
+                    Error::new(format!("DepSpec kind {:?} doesn't match: {kind:?}", d.set))
+                );
+            }
+
+            match d.deref() {
+                DepSpecWrapper::Dep(d) => deps_dep.push(d.clone()),
+                DepSpecWrapper::String(d) => deps_string.push(d.clone()),
+                DepSpecWrapper::Uri(d) => deps_uri.push(d.clone()),
+            }
+        }
+
+        use DepSetKind::*;
+        let dep = match kind {
+            Dependencies => DepSet::new_dep(deps_dep.into_iter().collect()),
+            SrcUri => DepSet::new_uri(deps_uri.into_iter().collect()),
+            _ => DepSet::new_string(deps_string.into_iter().collect(), kind),
+        };
+
         Box::into_raw(Box::new(dep))
     }
 }
