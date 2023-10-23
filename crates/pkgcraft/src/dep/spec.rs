@@ -17,12 +17,13 @@ pub trait UseFlag:
     fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash
 {
 }
-impl UseFlag for String {}
-impl UseFlag for &String {}
+impl<T> UseFlag for T where
+    T: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash
+{
+}
 
 pub trait Enabled: Hash + Borrow<str> + PartialEq + Eq {}
-impl Enabled for String {}
-impl Enabled for &str {}
+impl<T> Enabled for T where T: Hash + Borrow<str> + PartialEq + Eq {}
 
 /// Evaluation support for dependency objects.
 pub trait Evaluate<'a, S: Enabled + 'a> {
