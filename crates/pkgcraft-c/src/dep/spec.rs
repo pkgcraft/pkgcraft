@@ -7,7 +7,7 @@ use std::ops::{
 use std::{fmt, ptr, slice};
 
 use pkgcraft::dep::{
-    self, Dep, Evaluate, EvaluateForce, Flatten, IntoOwned, Recursive, Uri, UseFlag,
+    self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, IntoOwned, Recursive, Uri, UseFlag,
 };
 use pkgcraft::eapi::Eapi;
 use pkgcraft::traits::Contains;
@@ -421,6 +421,26 @@ impl Iterator for DepSpecIntoIterRecursive {
             Self::Dep(_, iter) => iter.next().map(DepSpec::new_dep),
             Self::String(set, iter) => iter.next().map(|d| DepSpec::new_string(d, *set)),
             Self::Uri(_, iter) => iter.next().map(DepSpec::new_uri),
+        }
+    }
+}
+
+/// Opaque wrapper for pkgcraft::dep::spec::IntoIterConditionals<String, T>.
+#[derive(Debug)]
+pub enum DepSpecIntoIterConditionals {
+    Dep(dep::spec::IntoIterConditionals<String, Dep>),
+    String(dep::spec::IntoIterConditionals<String, String>),
+    Uri(dep::spec::IntoIterConditionals<String, Uri>),
+}
+
+impl Iterator for DepSpecIntoIterConditionals {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Dep(iter) => iter.next(),
+            Self::String(iter) => iter.next(),
+            Self::Uri(iter) => iter.next(),
         }
     }
 }
@@ -1056,7 +1076,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter(d: *mut DepSpec) -> *mut De
     Box::into_raw(Box::new(iter))
 }
 
-/// Return a flattened iterator for a DepSpec.
+/// Return a flatten iterator for a DepSpec.
 ///
 /// # Safety
 /// The argument must be a non-null DepSpec pointer.
@@ -1073,7 +1093,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_flatten(
     Box::into_raw(Box::new(iter))
 }
 
-/// Return a flattened iterator for a DepSet.
+/// Return a flatten iterator for a DepSet.
 ///
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
@@ -1090,7 +1110,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
     Box::into_raw(Box::new(iter))
 }
 
-/// Return the next object from a flattened depset iterator.
+/// Return the next object from a flatten iterator.
 ///
 /// Returns NULL when the iterator is empty.
 ///
@@ -1104,7 +1124,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_next(
     iter.next().unwrap_or(ptr::null_mut())
 }
 
-/// Free a flattened depset iterator.
+/// Free a flatten iterator.
 ///
 /// # Safety
 /// The argument must be a non-null DepSpecIntoIterFlatten pointer or NULL.
@@ -1153,7 +1173,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
     Box::into_raw(Box::new(iter))
 }
 
-/// Return the next object from a recursive depset iterator.
+/// Return the next object from a recursive iterator.
 ///
 /// Returns NULL when the iterator is empty.
 ///
@@ -1169,13 +1189,78 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_next(
         .unwrap_or(ptr::null_mut())
 }
 
-/// Free a recursive depset iterator.
+/// Free a recursive iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIterFlatten pointer or NULL.
+/// The argument must be a non-null DepSpecIntoIterRecursive pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_free(
     i: *mut DepSpecIntoIterRecursive,
+) {
+    if !i.is_null() {
+        unsafe { drop(Box::from_raw(i)) };
+    }
+}
+
+/// Return a conditionals iterator for a DepSpec.
+///
+/// # Safety
+/// The argument must be a non-null DepSpec pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_conditionals(
+    d: *mut DepSpec,
+) -> *mut DepSpecIntoIterConditionals {
+    let dep = try_ref_from_ptr!(d);
+    let iter = match dep.deref().clone() {
+        DepSpecWrapper::Dep(d) => DepSpecIntoIterConditionals::Dep(d.into_iter_conditionals()),
+        DepSpecWrapper::String(d) => {
+            DepSpecIntoIterConditionals::String(d.into_iter_conditionals())
+        }
+        DepSpecWrapper::Uri(d) => DepSpecIntoIterConditionals::Uri(d.into_iter_conditionals()),
+    };
+    Box::into_raw(Box::new(iter))
+}
+
+/// Return a conditionals iterator for a DepSet.
+///
+/// # Safety
+/// The argument must be a non-null DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals(
+    d: *mut DepSet,
+) -> *mut DepSpecIntoIterConditionals {
+    let deps = try_ref_from_ptr!(d);
+    let iter = match deps.deref().clone() {
+        DepSetWrapper::Dep(d) => DepSpecIntoIterConditionals::Dep(d.into_iter_conditionals()),
+        DepSetWrapper::String(d) => DepSpecIntoIterConditionals::String(d.into_iter_conditionals()),
+        DepSetWrapper::Uri(d) => DepSpecIntoIterConditionals::Uri(d.into_iter_conditionals()),
+    };
+    Box::into_raw(Box::new(iter))
+}
+
+/// Return the next object from a conditionals iterator.
+///
+/// Returns NULL when the iterator is empty.
+///
+/// # Safety
+/// The argument must be a non-null DepSpecIntoIterConditionals pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals_next(
+    i: *mut DepSpecIntoIterConditionals,
+) -> *mut c_char {
+    let iter = try_mut_from_ptr!(i);
+    iter.next()
+        .map(|s| try_ptr_from_str!(s))
+        .unwrap_or(ptr::null_mut())
+}
+
+/// Free a conditionals iterator.
+///
+/// # Safety
+/// The argument must be a non-null DepSpecIntoIterConditionals pointer or NULL.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals_free(
+    i: *mut DepSpecIntoIterConditionals,
 ) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };

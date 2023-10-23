@@ -59,6 +59,13 @@ pub trait Recursive {
     fn into_iter_recursive(self) -> Self::IntoIterRecursive;
 }
 
+/// Conditional iterator support for dependency objects.
+pub trait Conditionals {
+    type Item;
+    type IntoIterConditionals: Iterator<Item = Self::Item>;
+    fn into_iter_conditionals(self) -> Self::IntoIterConditionals;
+}
+
 /// Convert a borrowed type into an owned type.
 pub trait IntoOwned {
     type Owned;
@@ -238,6 +245,10 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     pub fn iter_recursive(&self) -> IterRecursive<S, T> {
         self.into_iter_recursive()
     }
+
+    pub fn iter_conditionals(&self) -> IterConditionals<S, T> {
+        self.into_iter_conditionals()
+    }
 }
 
 impl<S: UseFlag, T: Ordered> Contains<&Self> for DepSpec<S, T> {
@@ -373,6 +384,15 @@ impl<'a, S: UseFlag, T: Ordered> Recursive for &'a DepSpec<S, T> {
     }
 }
 
+impl<'a, S: UseFlag, T: Ordered> Conditionals for &'a DepSpec<S, T> {
+    type Item = &'a S;
+    type IntoIterConditionals = IterConditionals<'a, S, T>;
+
+    fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
+        IterConditionals([self].into_iter().collect())
+    }
+}
+
 impl<S: UseFlag, T: Ordered> Flatten for DepSpec<S, T> {
     type Item = T;
     type IntoIterFlatten = IntoIterFlatten<S, T>;
@@ -388,6 +408,15 @@ impl<S: UseFlag, T: Ordered> Recursive for DepSpec<S, T> {
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IntoIterRecursive([self].into_iter().collect())
+    }
+}
+
+impl<S: UseFlag, T: Ordered> Conditionals for DepSpec<S, T> {
+    type Item = S;
+    type IntoIterConditionals = IntoIterConditionals<S, T>;
+
+    fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
+        IntoIterConditionals([self].into_iter().collect())
     }
 }
 
@@ -436,6 +465,10 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
 
     pub fn iter_recursive(&self) -> IterRecursive<S, T> {
         self.into_iter_recursive()
+    }
+
+    pub fn iter_conditionals(&self) -> IterConditionals<S, T> {
+        self.into_iter_conditionals()
     }
 }
 
@@ -645,6 +678,15 @@ impl<'a, S: UseFlag, T: Ordered> Recursive for &'a DepSet<S, T> {
     }
 }
 
+impl<'a, S: UseFlag, T: Ordered> Conditionals for &'a DepSet<S, T> {
+    type Item = &'a S;
+    type IntoIterConditionals = IterConditionals<'a, S, T>;
+
+    fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
+        IterConditionals(self.0.iter().collect())
+    }
+}
+
 macro_rules! iter_eval {
     ($variant:expr, $vals:expr, $options:expr) => {{
         let dep = $variant(
@@ -814,6 +856,15 @@ impl<S: UseFlag, T: Ordered> Recursive for DepSet<S, T> {
     }
 }
 
+impl<S: UseFlag, T: Ordered> Conditionals for DepSet<S, T> {
+    type Item = S;
+    type IntoIterConditionals = IntoIterConditionals<S, T>;
+
+    fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
+        IntoIterConditionals(self.0.into_iter().collect())
+    }
+}
+
 #[derive(Debug)]
 pub struct IntoIterEvaluate<'a, S: Enabled, T: Ordered> {
     q: Deque<DepSpec<&'a String, &'a T>>,
@@ -954,6 +1005,64 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
         }
 
         val
+    }
+}
+
+#[derive(Debug)]
+pub struct IterConditionals<'a, S: UseFlag, T: Ordered>(Deque<&'a DepSpec<S, T>>);
+
+impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, S, T> {
+    type Item = &'a S;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use DepSpec::*;
+        while let Some(dep) = self.0.pop_front() {
+            match dep {
+                Enabled(_) | Disabled(_) => (),
+                AllOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                UseEnabled(flag, vals) => {
+                    self.0.extend_left(vals.iter().map(AsRef::as_ref));
+                    return Some(flag);
+                }
+                UseDisabled(flag, vals) => {
+                    self.0.extend_left(vals.iter().map(AsRef::as_ref));
+                    return Some(flag);
+                }
+            }
+        }
+        None
+    }
+}
+
+#[derive(Debug)]
+pub struct IntoIterConditionals<S: UseFlag, T: Ordered>(Deque<DepSpec<S, T>>);
+
+impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterConditionals<S, T> {
+    type Item = S;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use DepSpec::*;
+        while let Some(dep) = self.0.pop_front() {
+            match dep {
+                Enabled(_) | Disabled(_) => (),
+                AllOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                UseEnabled(flag, vals) => {
+                    self.0.extend_left(vals.into_iter().map(|x| *x));
+                    return Some(flag);
+                }
+                UseDisabled(flag, vals) => {
+                    self.0.extend_left(vals.into_iter().map(|x| *x));
+                    return Some(flag);
+                }
+            }
+        }
+        None
     }
 }
 
