@@ -19,15 +19,6 @@ use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 use crate::types::SetOp;
 
-/// DepSpec unit variants.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(C)]
-pub enum DepSpecUnit {
-    Dep,
-    String,
-    Uri,
-}
-
 /// DepSet variants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
@@ -62,8 +53,7 @@ impl fmt::Display for DepSetWrapper {
 #[derive(Debug)]
 #[repr(C)]
 pub struct DepSet {
-    unit: DepSpecUnit,
-    kind: DepSetKind,
+    set: DepSetKind,
     dep: *mut DepSetWrapper,
 }
 
@@ -71,8 +61,7 @@ impl Clone for DepSet {
     fn clone(&self) -> Self {
         let dep = try_ref_from_ptr!(self.dep);
         Self {
-            unit: self.unit,
-            kind: self.kind,
+            set: self.set,
             dep: Box::into_raw(Box::new(dep.clone())),
         }
     }
@@ -89,24 +78,21 @@ impl Drop for DepSet {
 impl DepSet {
     pub(crate) fn new_dep(d: dep::DepSet<String, Dep>) -> Self {
         Self {
-            unit: DepSpecUnit::Dep,
-            kind: DepSetKind::Dependencies,
+            set: DepSetKind::Dependencies,
             dep: Box::into_raw(Box::new(DepSetWrapper::Dep(d))),
         }
     }
 
-    pub(crate) fn new_string(d: dep::DepSet<String, String>, kind: DepSetKind) -> Self {
+    pub(crate) fn new_string(d: dep::DepSet<String, String>, set: DepSetKind) -> Self {
         Self {
-            unit: DepSpecUnit::String,
-            kind,
+            set,
             dep: Box::into_raw(Box::new(DepSetWrapper::String(d))),
         }
     }
 
     pub(crate) fn new_uri(d: dep::DepSet<String, Uri>) -> Self {
         Self {
-            unit: DepSpecUnit::Uri,
-            kind: DepSetKind::SrcUri,
+            set: DepSetKind::SrcUri,
             dep: Box::into_raw(Box::new(DepSetWrapper::Uri(d))),
         }
     }
@@ -237,9 +223,9 @@ impl SubAssign<&DepSet> for DepSet {
 /// Opaque wrapper for pkgcraft::dep::spec::IntoIter<String, T>.
 #[derive(Debug)]
 pub enum DepSpecIntoIter {
-    Dep(dep::spec::IntoIter<String, Dep>),
-    String(dep::spec::IntoIter<String, String>),
-    Uri(dep::spec::IntoIter<String, Uri>),
+    Dep(DepSetKind, dep::spec::IntoIter<String, Dep>),
+    String(DepSetKind, dep::spec::IntoIter<String, String>),
+    Uri(DepSetKind, dep::spec::IntoIter<String, Uri>),
 }
 
 impl Iterator for DepSpecIntoIter {
@@ -247,9 +233,9 @@ impl Iterator for DepSpecIntoIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Dep(iter) => iter.next().map(DepSpec::new_dep),
-            Self::String(iter) => iter.next().map(DepSpec::new_string),
-            Self::Uri(iter) => iter.next().map(DepSpec::new_uri),
+            Self::Dep(_, iter) => iter.next().map(DepSpec::new_dep),
+            Self::String(set, iter) => iter.next().map(|d| DepSpec::new_string(d, *set)),
+            Self::Uri(_, iter) => iter.next().map(DepSpec::new_uri),
         }
     }
 }
@@ -306,7 +292,7 @@ impl<S: UseFlag, T: Ordered> From<&dep::DepSpec<S, T>> for DepSpecKind {
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct DepSpec {
-    unit: DepSpecUnit,
+    set: DepSetKind,
     kind: DepSpecKind,
     dep: *mut DepSpecWrapper,
 }
@@ -322,15 +308,15 @@ impl Drop for DepSpec {
 impl DepSpec {
     pub(crate) fn new_dep(d: dep::DepSpec<String, Dep>) -> Self {
         Self {
-            unit: DepSpecUnit::Dep,
+            set: DepSetKind::Dependencies,
             kind: DepSpecKind::from(&d),
             dep: Box::into_raw(Box::new(DepSpecWrapper::Dep(d))),
         }
     }
 
-    pub(crate) fn new_string(d: dep::DepSpec<String, String>) -> Self {
+    pub(crate) fn new_string(d: dep::DepSpec<String, String>, set: DepSetKind) -> Self {
         Self {
-            unit: DepSpecUnit::String,
+            set,
             kind: DepSpecKind::from(&d),
             dep: Box::into_raw(Box::new(DepSpecWrapper::String(d))),
         }
@@ -338,7 +324,7 @@ impl DepSpec {
 
     pub(crate) fn new_uri(d: dep::DepSpec<String, Uri>) -> Self {
         Self {
-            unit: DepSpecUnit::Uri,
+            set: DepSetKind::SrcUri,
             kind: DepSpecKind::from(&d),
             dep: Box::into_raw(Box::new(DepSpecWrapper::Uri(d))),
         }
@@ -420,9 +406,9 @@ impl Iterator for DepSpecIntoIterFlatten {
 /// Opaque wrapper for pkgcraft::dep::spec::IntoIterRecursive<String, T>.
 #[derive(Debug)]
 pub enum DepSpecIntoIterRecursive {
-    Dep(dep::spec::IntoIterRecursive<String, Dep>),
-    String(dep::spec::IntoIterRecursive<String, String>),
-    Uri(dep::spec::IntoIterRecursive<String, Uri>),
+    Dep(DepSetKind, dep::spec::IntoIterRecursive<String, Dep>),
+    String(DepSetKind, dep::spec::IntoIterRecursive<String, String>),
+    Uri(DepSetKind, dep::spec::IntoIterRecursive<String, Uri>),
 }
 
 impl Iterator for DepSpecIntoIterRecursive {
@@ -430,9 +416,9 @@ impl Iterator for DepSpecIntoIterRecursive {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Dep(iter) => iter.next().map(DepSpec::new_dep),
-            Self::String(iter) => iter.next().map(DepSpec::new_string),
-            Self::Uri(iter) => iter.next().map(DepSpec::new_uri),
+            Self::Dep(_, iter) => iter.next().map(DepSpec::new_dep),
+            Self::String(set, iter) => iter.next().map(|d| DepSpec::new_string(d, *set)),
+            Self::Uri(_, iter) => iter.next().map(DepSpec::new_uri),
         }
     }
 }
@@ -567,8 +553,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
     };
 
     let dep = DepSet {
-        unit: dep.unit,
-        kind: dep.kind,
+        set: dep.set,
         dep: Box::into_raw(Box::new(evaluated)),
     };
 
@@ -594,8 +579,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate_force(
     };
 
     let dep = DepSet {
-        unit: dep.unit,
-        kind: dep.kind,
+        set: dep.set,
         dep: Box::into_raw(Box::new(evaluated)),
     };
 
@@ -731,9 +715,9 @@ pub unsafe extern "C" fn pkgcraft_dep_set_len(d: *mut DepSet) -> usize {
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepSpecIntoIter {
     let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
-        DepSetWrapper::Dep(d) => DepSpecIntoIter::Dep(d.into_iter()),
-        DepSetWrapper::String(d) => DepSpecIntoIter::String(d.into_iter()),
-        DepSetWrapper::Uri(d) => DepSpecIntoIter::Uri(d.into_iter()),
+        DepSetWrapper::Dep(d) => DepSpecIntoIter::Dep(deps.set, d.into_iter()),
+        DepSetWrapper::String(d) => DepSpecIntoIter::String(deps.set, d.into_iter()),
+        DepSetWrapper::Uri(d) => DepSpecIntoIter::Uri(deps.set, d.into_iter()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -787,7 +771,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate(
         }
         String(d) => {
             iter_to_array!(d.evaluate(&options).into_iter(), deps_len, |d| {
-                Box::into_raw(Box::new(DepSpec::new_string(d.into_owned())))
+                Box::into_raw(Box::new(DepSpec::new_string(d.into_owned(), dep.set)))
             })
         }
         Uri(d) => {
@@ -819,7 +803,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate_force(
         }
         String(d) => {
             iter_to_array!(d.evaluate_force(force).into_iter(), deps_len, |d| {
-                Box::into_raw(Box::new(DepSpec::new_string(d.into_owned())))
+                Box::into_raw(Box::new(DepSpec::new_string(d.into_owned(), dep.set)))
             })
         }
         Uri(d) => {
@@ -919,9 +903,9 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_str(d: *mut DepSpec) -> *mut c_char {
 pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter(d: *mut DepSpec) -> *mut DepSpecIntoIter {
     let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
-        DepSpecWrapper::Dep(d) => DepSpecIntoIter::Dep(d.into_iter()),
-        DepSpecWrapper::String(d) => DepSpecIntoIter::String(d.into_iter()),
-        DepSpecWrapper::Uri(d) => DepSpecIntoIter::Uri(d.into_iter()),
+        DepSpecWrapper::Dep(d) => DepSpecIntoIter::Dep(deps.set, d.into_iter()),
+        DepSpecWrapper::String(d) => DepSpecIntoIter::String(deps.set, d.into_iter()),
+        DepSpecWrapper::Uri(d) => DepSpecIntoIter::Uri(deps.set, d.into_iter()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -995,9 +979,11 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_recursive(
 ) -> *mut DepSpecIntoIterRecursive {
     let dep = try_ref_from_ptr!(d);
     let iter = match dep.deref().clone() {
-        DepSpecWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
-        DepSpecWrapper::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
-        DepSpecWrapper::Uri(d) => DepSpecIntoIterRecursive::Uri(d.into_iter_recursive()),
+        DepSpecWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(dep.set, d.into_iter_recursive()),
+        DepSpecWrapper::String(d) => {
+            DepSpecIntoIterRecursive::String(dep.set, d.into_iter_recursive())
+        }
+        DepSpecWrapper::Uri(d) => DepSpecIntoIterRecursive::Uri(dep.set, d.into_iter_recursive()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -1012,9 +998,11 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
 ) -> *mut DepSpecIntoIterRecursive {
     let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
-        DepSetWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(d.into_iter_recursive()),
-        DepSetWrapper::String(d) => DepSpecIntoIterRecursive::String(d.into_iter_recursive()),
-        DepSetWrapper::Uri(d) => DepSpecIntoIterRecursive::Uri(d.into_iter_recursive()),
+        DepSetWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(deps.set, d.into_iter_recursive()),
+        DepSetWrapper::String(d) => {
+            DepSpecIntoIterRecursive::String(deps.set, d.into_iter_recursive())
+        }
+        DepSetWrapper::Uri(d) => DepSpecIntoIterRecursive::Uri(deps.set, d.into_iter_recursive()),
     };
     Box::into_raw(Box::new(iter))
 }
