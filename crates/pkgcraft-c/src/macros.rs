@@ -39,8 +39,7 @@ macro_rules! try_ref_from_ptr {
             Some(c) => c,
             None => {
                 let e = $crate::error::Error::new("unexpected NULL reference");
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
+                $crate::macros::set_error_and_panic!(e);
             }
         }
     };
@@ -54,8 +53,7 @@ macro_rules! try_mut_from_ptr {
             Some(c) => c,
             None => {
                 let e = $crate::error::Error::new("unexpected NULL reference");
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
+                $crate::macros::set_error_and_panic!(e);
             }
         }
     };
@@ -68,10 +66,7 @@ macro_rules! try_str_from_ptr {
         let p = $crate::macros::try_ref_from_ptr!($var);
         match unsafe { std::ffi::CStr::from_ptr(p).to_str() } {
             Ok(s) => s,
-            Err(e) => {
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
-            }
+            Err(e) => $crate::macros::set_error_and_panic!(e),
         }
     }};
 }
@@ -84,10 +79,7 @@ macro_rules! try_opt_str_from_ptr {
             $var.as_ref()
                 .map(|p| match std::ffi::CStr::from_ptr(p).to_str() {
                     Ok(s) => s,
-                    Err(e) => {
-                        $crate::error::update_last_error(e.clone());
-                        panic!("{e}")
-                    }
+                    Err(e) => $crate::macros::set_error_and_panic!(e),
                 })
         }
     }};
@@ -99,10 +91,7 @@ macro_rules! try_ptr_from_str {
     ( $s:expr ) => {{
         match std::ffi::CString::new($s) {
             Ok(s) => s.into_raw(),
-            Err(e) => {
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
-            }
+            Err(e) => $crate::macros::set_error_and_panic!(e),
         }
     }};
 }
@@ -113,11 +102,17 @@ macro_rules! unwrap_or_panic {
     ( $e:expr ) => {
         match $e {
             Ok(x) => x,
-            Err(e) => {
-                $crate::error::update_last_error(e.clone());
-                panic!("{e}")
-            }
+            Err(e) => $crate::macros::set_error_and_panic!(e),
         }
     };
 }
 pub(crate) use unwrap_or_panic;
+
+/// Register a given error and then panic.
+macro_rules! set_error_and_panic {
+    ( $e:expr ) => {{
+        $crate::error::update_last_error($e.clone());
+        panic!("{}", $e)
+    }};
+}
+pub(crate) use set_error_and_panic;
