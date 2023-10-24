@@ -451,8 +451,20 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
         self.0.len()
     }
 
+    pub fn is_disjoint(&self, other: &Self) -> bool {
+        self.0.is_disjoint(&other.0)
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    pub fn is_subset(&self, other: &Self) -> bool {
+        self.0.is_subset(&other.0)
+    }
+
+    pub fn is_superset(&self, other: &Self) -> bool {
+        self.0.is_superset(&other.0)
     }
 
     pub fn iter(&self) -> Iter<S, T> {

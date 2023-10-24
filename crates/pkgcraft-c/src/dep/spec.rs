@@ -752,7 +752,25 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate_force(
     Box::into_raw(Box::new(dep))
 }
 
-/// Determine if a DepSet is empty.
+/// Returns true if two DepSets have no elements in common.
+///
+/// # Safety
+/// The arguments must be a non-null DepSet pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_is_disjoint(d1: *mut DepSet, d2: *mut DepSet) -> bool {
+    let d1 = try_ref_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
+
+    use DepSetWrapper::*;
+    match (d1.deref(), d2.deref()) {
+        (Dep(d1), Dep(d2)) => d1.is_disjoint(d2),
+        (String(d1), String(d2)) => d1.is_disjoint(d2),
+        (Uri(d1), Uri(d2)) => d1.is_disjoint(d2),
+        _ => false,
+    }
+}
+
+/// Returns true if a DepSet is empty.
 ///
 /// # Safety
 /// The argument must be a non-null DepSet pointer.
@@ -764,6 +782,24 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_empty(d: *mut DepSet) -> bool {
         DepSetWrapper::Dep(d) => d.is_empty(),
         DepSetWrapper::String(d) => d.is_empty(),
         DepSetWrapper::Uri(d) => d.is_empty(),
+    }
+}
+
+/// Returns true if all the elements of the first DepSet are contained in the second.
+///
+/// # Safety
+/// The arguments must be a non-null DepSet pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_is_subset(d1: *mut DepSet, d2: *mut DepSet) -> bool {
+    let d1 = try_ref_from_ptr!(d1);
+    let d2 = try_ref_from_ptr!(d2);
+
+    use DepSetWrapper::*;
+    match (d1.deref(), d2.deref()) {
+        (Dep(d1), Dep(d2)) => d1.is_subset(d2),
+        (String(d1), String(d2)) => d1.is_subset(d2),
+        (Uri(d1), Uri(d2)) => d1.is_subset(d2),
+        _ => false,
     }
 }
 
