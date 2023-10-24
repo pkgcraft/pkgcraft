@@ -1,0 +1,4 @@
+include Cargo.toml pyproject.toml README.md
+recursive-include src *
+recursive-include benches *
+recursive-include tests *

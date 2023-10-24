@@ -1,0 +1,20 @@
+[package]
+name = "pkgcraft-python"
+version = "0.0.1"
+description = "Python bindings for pkgcraft"
+authors = ["Tim Harder <radhermit@gmail.com>"]
+homepage = "https://github.com/pkgcraft/pkgcraft-python"
+repository = "https://github.com/pkgcraft/pkgcraft-python"
+readme = "README.md"
+license = "MIT"
+edition = "2021"
+rust-version = "1.70"
+autotests = false
+
+[lib]
+name = "pkgcraft"
+crate-type = ["cdylib"]
+
+[dependencies]
+pkgcraft = { path = "../pkgcraft", version = "0.0.12" }
+pyo3 = { version = "0.20", features = ["extension-module"] }
