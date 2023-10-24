@@ -773,12 +773,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterEvaluateForce<'a, T> {
                 AnyOf(vals) => iter_eval_force!(AnyOf, vals, self.force),
                 ExactlyOneOf(vals) => iter_eval_force!(ExactlyOneOf, vals, self.force),
                 AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
-                UseEnabled(_, vals) => {
-                    if self.force {
-                        self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
-                    }
-                }
-                UseDisabled(_, vals) => {
+                UseEnabled(_, vals) | UseDisabled(_, vals) => {
                     if self.force {
                         self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
                     }
@@ -919,12 +914,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
                 AnyOf(vals) => iter_eval_force!(AnyOf, vals, self.force),
                 ExactlyOneOf(vals) => iter_eval_force!(ExactlyOneOf, vals, self.force),
                 AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
-                UseEnabled(_, vals) => {
-                    if self.force {
-                        self.q.extend_left(vals.into_iter().map(|x| *x));
-                    }
-                }
-                UseDisabled(_, vals) => {
+                UseEnabled(_, vals) | UseDisabled(_, vals) => {
                     if self.force {
                         self.q.extend_left(vals.into_iter().map(|x| *x));
                     }
@@ -1023,11 +1013,7 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, 
                 AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseEnabled(flag, vals) => {
-                    self.0.extend_left(vals.iter().map(AsRef::as_ref));
-                    return Some(flag);
-                }
-                UseDisabled(flag, vals) => {
+                UseEnabled(flag, vals) | UseDisabled(flag, vals) => {
                     self.0.extend_left(vals.iter().map(AsRef::as_ref));
                     return Some(flag);
                 }
@@ -1052,11 +1038,7 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterConditionals<S, T
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                UseEnabled(flag, vals) => {
-                    self.0.extend_left(vals.into_iter().map(|x| *x));
-                    return Some(flag);
-                }
-                UseDisabled(flag, vals) => {
+                UseEnabled(flag, vals) | UseDisabled(flag, vals) => {
                     self.0.extend_left(vals.into_iter().map(|x| *x));
                     return Some(flag);
                 }
