@@ -33,7 +33,7 @@ impl Pkg {
 
     #[getter]
     fn cpv(&self) -> Cpv {
-        Cpv(self.0.cpv().clone())
+        self.0.cpv().clone().into()
     }
 
     #[getter]
