@@ -188,16 +188,16 @@ pub enum Operator {
 }
 
 impl Operator {
-    fn intersects(&self, left: &Version, right: &Version) -> bool {
+    fn intersects(&self, lhs: &Version, rhs: &Version) -> bool {
         use Operator::*;
         match self {
-            Less => NonOpVersion(right) < NonOpVersion(left),
-            LessOrEqual => NonOpVersion(right) <= NonOpVersion(left),
-            Equal => NonOpVersion(right) == NonOpVersion(left),
-            EqualGlob => right.as_str().starts_with(left.as_str()),
-            Approximate => NonRevisionVersion(right) == NonRevisionVersion(left),
-            GreaterOrEqual => NonOpVersion(right) >= NonOpVersion(left),
-            Greater => NonOpVersion(right) > NonOpVersion(left),
+            Less => NonOpVersion(rhs) < NonOpVersion(lhs),
+            LessOrEqual => NonOpVersion(rhs) <= NonOpVersion(lhs),
+            Equal => NonOpVersion(rhs) == NonOpVersion(lhs),
+            EqualGlob => rhs.as_str().starts_with(lhs.as_str()),
+            Approximate => NonRevisionVersion(rhs) == NonRevisionVersion(lhs),
+            GreaterOrEqual => NonOpVersion(rhs) >= NonOpVersion(lhs),
+            Greater => NonOpVersion(rhs) > NonOpVersion(lhs),
             NONE => panic!("Operator::NONE is only valid as a C bindings fallback"),
         }
     }
@@ -277,13 +277,11 @@ impl Intersects<Version> for Version {
             (Some(EqualGlob), Some(Approximate)) => other.as_str().starts_with(self.base()),
             (Some(Approximate), Some(EqualGlob)) => self.as_str().starts_with(other.base()),
 
-            (Some(left_op), Some(right_op)) => {
+            (Some(lhs), Some(rhs)) => {
                 // remaining cases must have one op that is unbounded
-                let (ranged, ranged_op, other, other_op) = match left_op {
-                    Less | LessOrEqual | Greater | GreaterOrEqual => {
-                        (self, left_op, other, right_op)
-                    }
-                    _ => (other, right_op, self, left_op),
+                let (ranged, ranged_op, other, other_op) = match lhs {
+                    Less | LessOrEqual | Greater | GreaterOrEqual => (self, lhs, other, rhs),
+                    _ => (other, rhs, self, lhs),
                 };
 
                 match other_op {
