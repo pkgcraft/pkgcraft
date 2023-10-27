@@ -6,7 +6,7 @@ use crate::repo::RepoFormat;
 
 mod peg;
 
-pub(crate) use peg::peg_error;
+pub(crate) use self::peg::peg_error;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
