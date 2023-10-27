@@ -5,8 +5,6 @@ use crate::peg;
 use crate::pkg::Package;
 use crate::repo::RepoFormat;
 
-/// A `Result` alias where the `Err` case is `pkgcraft::Error`.
-pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
