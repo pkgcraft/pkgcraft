@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::peg::peg_error;
+use crate::error::peg_error;
 use crate::pkg::ebuild::{MaintainerRestrict, Restrict as EbuildRestrict};
 
 use crate::restrict::dep::Restrict as DepRestrict;

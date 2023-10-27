@@ -1,6 +1,6 @@
 use crate::dep::version::{ParsedVersion, Suffix};
 use crate::dep::Blocker;
-use crate::peg::peg_error;
+use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restrict as BaseRestrict;

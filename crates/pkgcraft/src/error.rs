@@ -1,10 +1,12 @@
 use std::convert::Infallible;
 use std::io;
 
-use crate::peg;
 use crate::pkg::Package;
 use crate::repo::RepoFormat;
 
+mod peg;
+
+pub(crate) use peg::peg_error;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {

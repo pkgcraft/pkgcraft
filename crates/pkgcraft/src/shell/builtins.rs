@@ -412,7 +412,7 @@ peg::parser! {
 
 // provide public parsing functionality while converting error types
 mod parse {
-    use crate::peg::peg_error;
+    use crate::error::peg_error;
     use crate::Error;
 
     use super::cmd;

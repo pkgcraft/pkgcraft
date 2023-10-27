@@ -1,8 +1,6 @@
 use std::fmt;
 
-use crate::error;
-
-pub(crate) type PegError = ::peg::error::ParseError<::peg::str::LineCol>;
+type PegError = ::peg::error::ParseError<::peg::str::LineCol>;
 
 #[derive(Debug, Clone)]
 pub struct Error {
@@ -32,7 +30,7 @@ impl fmt::Display for Error {
 }
 
 /// Convert a PEG parsing error to an internal pkgcraft error type.
-pub fn peg_error<S1, S2>(msg: S1, src: S2, error: PegError) -> error::Error
+pub(crate) fn peg_error<S1, S2>(msg: S1, src: S2, error: PegError) -> super::Error
 where
     S1: Into<String>,
     S2: Into<String>,
@@ -42,5 +40,5 @@ where
         src: src.into(),
         error,
     };
-    error::Error::PegParse(error)
+    super::Error::PegParse(error)
 }

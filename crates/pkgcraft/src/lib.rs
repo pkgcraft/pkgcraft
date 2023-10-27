@@ -10,7 +10,6 @@ pub mod eapi;
 mod error;
 pub(crate) mod files;
 pub mod macros;
-pub mod peg;
 pub mod pkg;
 pub mod repo;
 pub mod restrict;
