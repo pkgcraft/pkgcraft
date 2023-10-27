@@ -29,6 +29,22 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
     }
 }
 
+/// Confirm a string is a valid package dependency.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The eapi argument may be NULL to use the default EAPI.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi) -> *const c_char {
+    ffi_catch_panic! {
+        let val = try_str_from_ptr!(s);
+        let eapi = eapi_or_default!(eapi);
+        unwrap_or_panic!(Dep::valid(val, eapi));
+        s
+    }
+}
+
 /// Parse a string into an unversioned package dependency.
 ///
 /// Returns NULL on error.

@@ -1,27 +1,9 @@
 use std::ffi::c_char;
 
-use pkgcraft::dep::{parse, Cpv, Dep, Version};
-use pkgcraft::eapi::Eapi;
+use pkgcraft::dep::{parse, Cpv, Version};
 
-use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-
-/// Parse a package dependency.
-///
-/// Returns NULL on error.
-///
-/// # Safety
-/// The eapi argument may be NULL to use the default EAPI.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_parse_dep(s: *const c_char, eapi: *const Eapi) -> *const c_char {
-    ffi_catch_panic! {
-        let val = try_str_from_ptr!(s);
-        let eapi = eapi_or_default!(eapi);
-        unwrap_or_panic!(Dep::valid(val, eapi));
-        s
-    }
-}
 
 /// Parse a package category.
 ///
