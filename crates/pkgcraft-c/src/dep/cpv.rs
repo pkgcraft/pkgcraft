@@ -24,6 +24,21 @@ pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Cpv {
     }
 }
 
+/// Determine if a string is a valid package Cpv.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should point to a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_cpv_valid(s: *const c_char) -> *const c_char {
+    ffi_catch_panic! {
+        let val = try_str_from_ptr!(s);
+        unwrap_or_panic!(Cpv::valid(val));
+        s
+    }
+}
+
 /// Compare two Cpvs returning -1, 0, or 1 if the first is less than, equal to, or
 /// greater than the second, respectively.
 ///

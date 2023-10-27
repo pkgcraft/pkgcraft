@@ -29,7 +29,7 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
     }
 }
 
-/// Confirm a string is a valid package dependency.
+/// Determine if a string is a valid package dependency.
 ///
 /// Returns NULL on error.
 ///

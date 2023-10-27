@@ -23,7 +23,7 @@ pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut Version 
     }
 }
 
-/// Confirm a string is a valid package version.
+/// Determine if a string is a valid package version.
 ///
 /// Returns NULL on error.
 ///
