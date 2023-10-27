@@ -47,7 +47,6 @@ pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
 
 /// Features that relate to differentiation between EAPIs as specified by PMS.
 #[derive(EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-#[strum(serialize_all = "snake_case")]
 pub enum Feature {
     // EAPI 5
     /// `best_version` and `has_version` support --host-root
