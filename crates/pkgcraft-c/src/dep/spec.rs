@@ -652,7 +652,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_disjoint(d1: *mut DepSet, d2: *mut 
         (Dep(d1), Dep(d2)) => d1.is_disjoint(d2),
         (String(d1), String(d2)) => d1.is_disjoint(d2),
         (Uri(d1), Uri(d2)) => d1.is_disjoint(d2),
-        _ => false,
+        _ => true,
     }
 }
 
