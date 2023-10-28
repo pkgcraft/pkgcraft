@@ -151,7 +151,12 @@ impl BitAndAssign<&DepSet> for DepSet {
             (Dep(d1), Dep(d2)) => *d1 &= d2,
             (String(d1), String(d2)) => *d1 &= d2,
             (Uri(d1), Uri(d2)) => *d1 &= d2,
-            _ => panic!("invalid depset combination"),
+            _ => {
+                set_error_and_panic!(Error::new(format!(
+                    "DepSet kind {:?} doesn't match: {:?}",
+                    self.set, other.set
+                )));
+            }
         }
     }
 }
@@ -173,7 +178,12 @@ impl BitOrAssign<&DepSet> for DepSet {
             (Dep(d1), Dep(d2)) => *d1 |= d2,
             (String(d1), String(d2)) => *d1 |= d2,
             (Uri(d1), Uri(d2)) => *d1 |= d2,
-            _ => panic!("invalid depset combination"),
+            _ => {
+                set_error_and_panic!(Error::new(format!(
+                    "DepSet kind {:?} doesn't match: {:?}",
+                    self.set, other.set
+                )));
+            }
         }
     }
 }
@@ -195,7 +205,12 @@ impl BitXorAssign<&DepSet> for DepSet {
             (Dep(d1), Dep(d2)) => *d1 ^= d2,
             (String(d1), String(d2)) => *d1 ^= d2,
             (Uri(d1), Uri(d2)) => *d1 ^= d2,
-            _ => panic!("invalid depset combination"),
+            _ => {
+                set_error_and_panic!(Error::new(format!(
+                    "DepSet kind {:?} doesn't match: {:?}",
+                    self.set, other.set
+                )));
+            }
         }
     }
 }
@@ -217,7 +232,12 @@ impl SubAssign<&DepSet> for DepSet {
             (Dep(d1), Dep(d2)) => *d1 -= d2,
             (String(d1), String(d2)) => *d1 -= d2,
             (Uri(d1), Uri(d2)) => *d1 -= d2,
-            _ => panic!("invalid depset combination"),
+            _ => {
+                set_error_and_panic!(Error::new(format!(
+                    "DepSet kind {:?} doesn't match: {:?}",
+                    self.set, other.set
+                )));
+            }
         }
     }
 }
@@ -691,6 +711,8 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_subset(d1: *mut DepSet, d2: *mut De
 
 /// Perform a set operation on two DepSets, assigning to the first.
 ///
+/// Returns NULL on error.
+///
 /// # Safety
 /// The arguments must be non-null DepSet pointers.
 #[no_mangle]
@@ -698,19 +720,24 @@ pub unsafe extern "C" fn pkgcraft_dep_set_assign_op_set(
     op: SetOp,
     d1: *mut DepSet,
     d2: *mut DepSet,
-) {
-    use SetOp::*;
-    let d1 = try_mut_from_ptr!(d1);
-    let d2 = try_ref_from_ptr!(d2);
-    match op {
-        And => *d1 &= d2,
-        Or => *d1 |= d2,
-        Xor => *d1 ^= d2,
-        Sub => *d1 -= d2,
+) -> *mut DepSet {
+    ffi_catch_panic! {
+        use SetOp::*;
+        let dep1 = try_mut_from_ptr!(d1);
+        let dep2 = try_ref_from_ptr!(d2);
+        match op {
+            And => *dep1 &= dep2,
+            Or => *dep1 |= dep2,
+            Xor => *dep1 ^= dep2,
+            Sub => *dep1 -= dep2,
+        }
+        d1
     }
 }
 
 /// Perform a set operation on two DepSets, creating a new set.
+///
+/// Returns NULL on error.
 ///
 /// # Safety
 /// The arguments must be non-null DepSet pointers.
@@ -720,16 +747,18 @@ pub unsafe extern "C" fn pkgcraft_dep_set_op_set(
     d1: *mut DepSet,
     d2: *mut DepSet,
 ) -> *mut DepSet {
-    use SetOp::*;
-    let d1 = try_ref_from_ptr!(d1);
-    let d2 = try_ref_from_ptr!(d2);
-    let set = match op {
-        And => d1 & d2,
-        Or => d1 | d2,
-        Xor => d1 ^ d2,
-        Sub => d1 - d2,
-    };
-    Box::into_raw(Box::new(set))
+    ffi_catch_panic! {
+        use SetOp::*;
+        let d1 = try_ref_from_ptr!(d1);
+        let d2 = try_ref_from_ptr!(d2);
+        let set = match op {
+            And => d1 & d2,
+            Or => d1 | d2,
+            Xor => d1 ^ d2,
+            Sub => d1 - d2,
+        };
+        Box::into_raw(Box::new(set))
+    }
 }
 
 /// Return the formatted string for a DepSet object.
