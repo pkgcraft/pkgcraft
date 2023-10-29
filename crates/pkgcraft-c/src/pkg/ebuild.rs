@@ -194,152 +194,112 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
 
 /// Return a package's DEPEND.
 ///
-/// Returns NULL on nonexistence.
-///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.depend() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.depend().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_dep(dep)))
 }
 
 /// Return a package's BDEPEND.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.bdepend() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.bdepend().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_dep(dep)))
 }
 
 /// Return a package's IDEPEND.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.idepend() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.idepend().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_dep(dep)))
 }
 
 /// Return a package's PDEPEND.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.pdepend() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.pdepend().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_dep(dep)))
 }
 
 /// Return a package's RDEPEND.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.rdepend() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_dep(d.clone()))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.rdepend().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_dep(dep)))
 }
 
 /// Return a package's LICENSE.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.license() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::License))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.license().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_string(dep, DepSetKind::License)))
 }
 
 /// Return a package's PROPERTIES.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.properties() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::Properties))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.properties().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_string(dep, DepSetKind::Properties)))
 }
 
 /// Return a package's REQUIRED_USE.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.required_use() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::RequiredUse))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.required_use().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_string(dep, DepSetKind::RequiredUse)))
 }
 
 /// Return a package's RESTRICT.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.restrict() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_string(d.clone(), DepSetKind::Restrict))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.restrict().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_string(dep, DepSetKind::Restrict)))
 }
 
 /// Return a package's SRC_URI.
-///
-/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_src_uri(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    match pkg.src_uri() {
-        Some(d) => Box::into_raw(Box::new(DepSet::new_uri(d.clone()))),
-        None => ptr::null_mut(),
-    }
+    let dep = pkg.src_uri().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(DepSet::new_uri(dep)))
 }
 
 /// Return a package's homepage.
