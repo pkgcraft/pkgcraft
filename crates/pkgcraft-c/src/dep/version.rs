@@ -2,11 +2,74 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::{Intersects, Operator, Version};
+use pkgcraft::dep::{Intersects, Operator, Revision, Version};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
+
+/// Parse a string into a revision.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should be a valid UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_revision_new(s: *const c_char) -> *mut Revision {
+    ffi_catch_panic! {
+        let s = try_str_from_ptr!(s);
+        let rev = unwrap_or_panic!(s.parse::<Revision>());
+        Box::into_raw(Box::new(rev))
+    }
+}
+
+/// Compare two revisions returning -1, 0, or 1 if the first is less than, equal to, or greater
+/// than the second, respectively.
+///
+/// # Safety
+/// The revision arguments should be non-null Revision pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_revision_cmp(r1: *mut Revision, r2: *mut Revision) -> c_int {
+    let r1 = try_ref_from_ptr!(r1);
+    let r2 = try_ref_from_ptr!(r2);
+
+    match r1.cmp(r2) {
+        Ordering::Less => -1,
+        Ordering::Equal => 0,
+        Ordering::Greater => 1,
+    }
+}
+
+/// Return the hash value for a revision.
+///
+/// # Safety
+/// The revision argument should be a non-null Revision pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_revision_hash(r: *mut Revision) -> u64 {
+    let rev = try_ref_from_ptr!(r);
+    hash(rev)
+}
+
+/// Return a revision's string value.
+///
+/// # Safety
+/// The revision argument should be a non-null Revision pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_revision_str(r: *mut Revision) -> *mut c_char {
+    let rev = try_ref_from_ptr!(r);
+    try_ptr_from_str!(rev.as_str())
+}
+
+/// Free a revision.
+///
+/// # Safety
+/// The revision argument should be a non-null Revision pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_revision_free(r: *mut Revision) {
+    if !r.is_null() {
+        let _ = unsafe { Box::from_raw(r) };
+    }
+}
 
 /// Parse a string into a version.
 ///
@@ -74,8 +137,8 @@ pub extern "C" fn pkgcraft_version_op_str(op: Operator) -> *mut c_char {
     try_ptr_from_str!(op.as_ref())
 }
 
-/// Compare two versions returning -1, 0, or 1 if the first version is less than, equal to, or greater
-/// than the second version, respectively.
+/// Compare two versions returning -1, 0, or 1 if the first is less than, equal to, or greater than
+/// the second, respectively.
 ///
 /// # Safety
 /// The version arguments should be non-null Version pointers.
