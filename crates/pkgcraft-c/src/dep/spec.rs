@@ -373,7 +373,7 @@ impl PartialOrd for DepSpec {
 
 impl PartialEq for DepSpec {
     fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
+        self.deref().eq(other.deref())
     }
 }
 
