@@ -108,21 +108,6 @@ pub unsafe extern "C" fn pkgcraft_cpv_version(c: *mut Cpv) -> *mut Version {
     Box::into_raw(Box::new(cpv.version().clone()))
 }
 
-/// Get the revision of a Cpv object.
-///
-/// Returns NULL on nonexistence.
-///
-/// # Safety
-/// The argument must be a non-null Cpv pointer.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_cpv_revision(c: *mut Cpv) -> *mut c_char {
-    let cpv = try_ref_from_ptr!(c);
-    match cpv.revision() {
-        Some(r) => try_ptr_from_str!(r.as_str()),
-        None => ptr::null_mut(),
-    }
-}
-
 /// Get the package and revision of a Cpv object.
 ///
 /// # Safety

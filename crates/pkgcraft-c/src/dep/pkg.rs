@@ -180,22 +180,6 @@ pub unsafe extern "C" fn pkgcraft_dep_version(d: *mut Dep) -> *mut Version {
     }
 }
 
-/// Get the revision of a package dependency.
-/// For example, the package dependency "=cat/pkg-1-r2" returns "2".
-///
-/// Returns NULL on nonexistence.
-///
-/// # Safety
-/// The argument must be a non-null Dep pointer.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_revision(d: *mut Dep) -> *mut c_char {
-    let dep = try_ref_from_ptr!(d);
-    match dep.revision() {
-        Some(r) => try_ptr_from_str!(r.as_str()),
-        None => ptr::null_mut(),
-    }
-}
-
 /// Get the slot of a package dependency.
 /// For example, the package dependency "=cat/pkg-1-r2:3" returns "3".
 ///
