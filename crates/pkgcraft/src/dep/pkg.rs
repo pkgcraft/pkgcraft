@@ -88,13 +88,13 @@ impl ParsedDep<'_> {
 pub struct Dep {
     category: String,
     package: String,
-    blocker: Option<Blocker>,
-    version: Option<Version>,
+    pub blocker: Option<Blocker>,
+    pub version: Option<Version>,
     slot: Option<String>,
     subslot: Option<String>,
     slot_op: Option<SlotOperator>,
-    use_deps: Option<OrderedSet<String>>,
-    repo: Option<String>,
+    pub use_deps: Option<OrderedSet<String>>,
+    pub repo: Option<String>,
 }
 
 impl PartialEq for Dep {
@@ -125,16 +125,6 @@ type DepKey<'a> = (
 );
 
 impl Dep {
-    /// Verify a string represents a valid package dependency.
-    pub fn valid<T>(s: &str, eapi: T) -> crate::Result<()>
-    where
-        T: TryInto<&'static Eapi>,
-        Error: From<<T as TryInto<&'static Eapi>>::Error>,
-    {
-        parse::dep_str(s, eapi.try_into()?)?;
-        Ok(())
-    }
-
     /// Create a new Dep from a given string.
     pub fn new<T>(s: &str, eapi: T) -> crate::Result<Self>
     where
@@ -147,6 +137,16 @@ impl Dep {
     /// Create a new unversioned Dep from a given string.
     pub fn new_cpn(s: &str) -> crate::Result<Self> {
         parse::cpn(s)
+    }
+
+    /// Verify a string represents a valid package dependency.
+    pub fn valid<T>(s: &str, eapi: T) -> crate::Result<()>
+    where
+        T: TryInto<&'static Eapi>,
+        Error: From<<T as TryInto<&'static Eapi>>::Error>,
+    {
+        parse::dep_str(s, eapi.try_into()?)?;
+        Ok(())
     }
 
     /// Return a package dependency's category.
