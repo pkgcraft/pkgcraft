@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
-use std::ptr;
 
 use pkgcraft::dep::{Intersects, Operator, Revision, Version};
 use pkgcraft::utils::hash;
@@ -172,12 +171,10 @@ pub unsafe extern "C" fn pkgcraft_version_intersects(v1: *mut Version, v2: *mut 
 /// # Safety
 /// The version argument should be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut Version) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut Version) -> *mut Revision {
     let ver = try_ref_from_ptr!(v);
-    match ver.revision() {
-        Some(r) => try_ptr_from_str!(r.as_str()),
-        None => ptr::null_mut(),
-    }
+    let rev = ver.revision().cloned().unwrap_or_else(Default::default);
+    Box::into_raw(Box::new(rev))
 }
 
 /// Return a version's string value without operator.
