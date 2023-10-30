@@ -45,6 +45,22 @@ pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi)
     }
 }
 
+/// Return a given package dependency without USE dependencies.
+///
+/// # Safety
+/// The argument must be a non-null Dep pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_no_use_deps(d: *mut Dep) -> *mut Dep {
+    let dep = try_ref_from_ptr!(d);
+    if dep.use_deps().is_none() {
+        d
+    } else {
+        let mut dep = dep.clone();
+        dep.use_deps = None;
+        Box::into_raw(Box::new(dep))
+    }
+}
+
 /// Parse a string into an unversioned package dependency.
 ///
 /// Returns NULL on error.
