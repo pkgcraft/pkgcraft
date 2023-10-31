@@ -1905,6 +1905,7 @@ version = "0.0.12"
 dependencies = [
  "assert_cmd",
  "async-trait",
+ "bitflags 2.4.1",
  "blake2",
  "blake3",
  "cached",

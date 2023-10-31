@@ -1,15 +1,14 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
-use std::{ptr, slice};
+use std::ptr;
 
-use pkgcraft::dep::{Blocker, Cpv, Dep, Intersects, SlotOperator, Version};
+use pkgcraft::dep::{Blocker, Cpv, Dep, DepFields, Intersects, SlotOperator, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
 
 use crate::eapi::eapi_or_default;
-use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 use crate::utils::str_to_raw;
@@ -47,29 +46,16 @@ pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi)
     }
 }
 
-/// Return a given package dependency without the named fields.
+/// Return a given package dependency without the specified fields.
 ///
 /// # Safety
-/// The argument must be a non-null Dep pointer and valid field names.
+/// The arguments must be a non-null Dep pointer and a fields bitflag.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_without(
-    d: *mut Dep,
-    names: *mut *mut c_char,
-    len: usize,
-) -> *mut Dep {
+pub unsafe extern "C" fn pkgcraft_dep_without(d: *mut Dep, fields: u32) -> *mut Dep {
     ffi_catch_panic! {
         let dep = try_ref_from_ptr!(d);
-        let mut fields = vec![];
-        for ptr in unsafe { slice::from_raw_parts(names, len) } {
-            let s = try_str_from_ptr!(*ptr);
-            let field = unwrap_or_panic!(
-                s.parse().map_err(|_| Error::new(format!("invalid field: {s}")))
-            );
-            fields.push(field);
-        }
-
-        let dep = unwrap_or_panic!(dep.without(&fields));
-        if let Cow::Owned(d) = dep {
+        let fields = DepFields::from_bits_truncate(fields);
+        if let Cow::Owned(d) = dep.without(fields) {
             Box::into_raw(Box::new(d))
         } else {
             d

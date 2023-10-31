@@ -5,6 +5,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use bitflags::bitflags;
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
@@ -43,16 +44,39 @@ pub enum SlotOperator {
 }
 
 #[repr(C)]
-#[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
-#[strum(serialize_all = "snake_case")]
-pub enum OptionalDepField {
-    Blocker,
-    Version,
-    Slot,
-    Subslot,
-    SlotOp,
-    UseDeps,
-    Repo,
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
+pub struct DepFields(u32);
+
+bitflags! {
+    impl DepFields: u32 {
+        const Blocker = 1;
+        const Version = 1 << 1;
+        const Slot = 1 << 2;
+        const Subslot = 1 << 3;
+        const SlotOp = 1 << 4;
+        const UseDeps = 1 << 5;
+        const Repo = 1 << 6;
+    }
+}
+
+impl fmt::Debug for DepFields {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        bitflags::parser::to_writer(self, f)
+    }
+}
+
+impl fmt::Display for DepFields {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        bitflags::parser::to_writer(self, f)
+    }
+}
+
+impl FromStr for DepFields {
+    type Err = bitflags::parser::ParseError;
+
+    fn from_str(flags: &str) -> Result<Self, Self::Err> {
+        bitflags::parser::from_str(flags)
+    }
 }
 
 /// Parsed package dep from borrowed input string.
@@ -154,56 +178,56 @@ impl Dep {
     }
 
     /// Potentially create a new Dep dropping the given fields if they exist.
-    pub fn without(&self, fields: &[OptionalDepField]) -> crate::Result<Cow<'_, Self>> {
+    pub fn without(&self, fields: DepFields) -> Cow<'_, Self> {
         let mut dep = Cow::Borrowed(self);
-        use OptionalDepField::*;
-        for field in fields {
+        for field in fields.iter() {
             match field {
-                Blocker => {
+                DepFields::Blocker => {
                     if self.blocker.is_some() {
                         dep.to_mut().blocker = None;
                     }
                 }
-                Version => {
+                DepFields::Version => {
                     if self.version.is_some() {
                         dep.to_mut().version = None;
                     }
                 }
-                Slot => {
+                DepFields::Slot => {
                     if self.slot.is_some() {
                         dep.to_mut().slot = None;
                     }
-                }
-                Subslot => {
                     if self.subslot.is_some() {
                         dep.to_mut().subslot = None;
                     }
-                }
-                SlotOp => {
                     if self.slot_op.is_some() {
                         dep.to_mut().slot_op = None;
                     }
                 }
-                UseDeps => {
+                DepFields::Subslot => {
+                    if self.subslot.is_some() {
+                        dep.to_mut().subslot = None;
+                    }
+                }
+                DepFields::SlotOp => {
+                    if self.slot_op.is_some() {
+                        dep.to_mut().slot_op = None;
+                    }
+                }
+                DepFields::UseDeps => {
                     if self.use_deps.is_some() {
                         dep.to_mut().use_deps = None;
                     }
                 }
-                Repo => {
+                DepFields::Repo => {
                     if self.repo.is_some() {
                         dep.to_mut().repo = None;
                     }
                 }
+                _ => (),
             }
         }
 
-        let d = dep.as_ref();
-        match (d.slot(), d.subslot(), d.slot_op()) {
-            (None, Some(_), None) | (None, Some(_), Some(_)) => {
-                Err(Error::InvalidValue("invalid slot fields".to_string()))
-            }
-            _ => Ok(dep),
-        }
+        dep
     }
 
     /// Verify a string represents a valid package dependency.
@@ -669,6 +693,35 @@ mod tests {
                     assert!(!obj1.intersects(&obj2), "{obj1} intersects {obj2}");
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_without() {
+        let dep = Dep::from_str("!!>=cat/pkg-1.2-r3:4/5=[a,b]::repo").unwrap();
+
+        for (fields, expected) in [
+            (DepFields::Blocker, ">=cat/pkg-1.2-r3:4/5=[a,b]::repo"),
+            (DepFields::Slot, "!!>=cat/pkg-1.2-r3[a,b]::repo"),
+            (DepFields::Subslot, "!!>=cat/pkg-1.2-r3:4=[a,b]::repo"),
+            (DepFields::SlotOp, "!!>=cat/pkg-1.2-r3:4/5[a,b]::repo"),
+            (DepFields::Version, "!!cat/pkg:4/5=[a,b]::repo"),
+            (DepFields::UseDeps, "!!>=cat/pkg-1.2-r3:4/5=::repo"),
+            (DepFields::Repo, "!!>=cat/pkg-1.2-r3:4/5=[a,b]"),
+            (DepFields::all(), "cat/pkg"),
+        ] {
+            let d = dep.without(fields);
+            let s = d.to_string();
+            assert_eq!(&s, expected);
+            assert_eq!(d.as_ref(), &Dep::from_str(&s).unwrap())
+        }
+
+        // verify all combinations of dep fields create valid deps
+        for vals in DepFields::all().iter().powerset() {
+            let val = vals.into_iter().fold(DepFields::empty(), |acc, e| acc | e);
+            let d = dep.without(val);
+            let s = d.to_string();
+            assert_eq!(d.as_ref(), &Dep::from_str(&s).unwrap())
         }
     }
 
