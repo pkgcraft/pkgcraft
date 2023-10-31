@@ -48,6 +48,9 @@ pub enum SlotOperator {
 pub enum OptionalDepField {
     Blocker,
     Version,
+    Slot,
+    Subslot,
+    SlotOp,
     UseDeps,
     Repo,
 }
@@ -151,34 +154,56 @@ impl Dep {
     }
 
     /// Potentially create a new Dep dropping the given fields if they exist.
-    pub fn without(&self, fields: &[OptionalDepField]) -> Cow<'_, Self> {
-        let mut d = Cow::Borrowed(self);
+    pub fn without(&self, fields: &[OptionalDepField]) -> crate::Result<Cow<'_, Self>> {
+        let mut dep = Cow::Borrowed(self);
         use OptionalDepField::*;
         for field in fields {
             match field {
                 Blocker => {
                     if self.blocker.is_some() {
-                        d.to_mut().blocker = None;
+                        dep.to_mut().blocker = None;
                     }
                 }
                 Version => {
                     if self.version.is_some() {
-                        d.to_mut().version = None;
+                        dep.to_mut().version = None;
+                    }
+                }
+                Slot => {
+                    if self.slot.is_some() {
+                        dep.to_mut().slot = None;
+                    }
+                }
+                Subslot => {
+                    if self.subslot.is_some() {
+                        dep.to_mut().subslot = None;
+                    }
+                }
+                SlotOp => {
+                    if self.slot_op.is_some() {
+                        dep.to_mut().slot_op = None;
                     }
                 }
                 UseDeps => {
                     if self.use_deps.is_some() {
-                        d.to_mut().use_deps = None;
+                        dep.to_mut().use_deps = None;
                     }
                 }
                 Repo => {
                     if self.repo.is_some() {
-                        d.to_mut().repo = None;
+                        dep.to_mut().repo = None;
                     }
                 }
             }
         }
-        d
+
+        let d = dep.as_ref();
+        match (d.slot(), d.subslot(), d.slot_op()) {
+            (None, Some(_), None) | (None, Some(_), Some(_)) => {
+                Err(Error::InvalidValue("invalid slot fields".to_string()))
+            }
+            _ => Ok(dep),
+        }
     }
 
     /// Verify a string represents a valid package dependency.

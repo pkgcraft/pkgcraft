@@ -68,7 +68,8 @@ pub unsafe extern "C" fn pkgcraft_dep_without(
             fields.push(field);
         }
 
-        if let Cow::Owned(d) = dep.without(&fields) {
+        let dep = unwrap_or_panic!(dep.without(&fields));
+        if let Cow::Owned(d) = dep {
             Box::into_raw(Box::new(d))
         } else {
             d
