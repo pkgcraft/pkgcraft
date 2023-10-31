@@ -5,7 +5,7 @@ resolver = "2"
 [workspace.package]
 authors = ["Tim Harder <radhermit@gmail.com>"]
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.71"
 
 [profile.release-strip]
 inherits = "release"
