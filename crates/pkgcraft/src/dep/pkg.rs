@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
@@ -39,6 +40,16 @@ pub enum SlotOperator {
     Equal,
     #[strum(serialize = "*")]
     Star,
+}
+
+#[repr(C)]
+#[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "snake_case")]
+pub enum OptionalDepField {
+    Blocker,
+    Version,
+    UseDeps,
+    Repo,
 }
 
 /// Parsed package dep from borrowed input string.
@@ -88,13 +99,13 @@ impl ParsedDep<'_> {
 pub struct Dep {
     category: String,
     package: String,
-    pub blocker: Option<Blocker>,
-    pub version: Option<Version>,
+    blocker: Option<Blocker>,
+    version: Option<Version>,
     slot: Option<String>,
     subslot: Option<String>,
     slot_op: Option<SlotOperator>,
-    pub use_deps: Option<OrderedSet<String>>,
-    pub repo: Option<String>,
+    use_deps: Option<OrderedSet<String>>,
+    repo: Option<String>,
 }
 
 impl PartialEq for Dep {
@@ -137,6 +148,37 @@ impl Dep {
     /// Create a new unversioned Dep from a given string.
     pub fn new_cpn(s: &str) -> crate::Result<Self> {
         parse::cpn(s)
+    }
+
+    /// Potentially create a new Dep dropping the given fields if they exist.
+    pub fn without(&self, fields: &[OptionalDepField]) -> Cow<'_, Self> {
+        let mut d = Cow::Borrowed(self);
+        use OptionalDepField::*;
+        for field in fields {
+            match field {
+                Blocker => {
+                    if self.blocker.is_some() {
+                        d.to_mut().blocker = None;
+                    }
+                }
+                Version => {
+                    if self.version.is_some() {
+                        d.to_mut().version = None;
+                    }
+                }
+                UseDeps => {
+                    if self.use_deps.is_some() {
+                        d.to_mut().use_deps = None;
+                    }
+                }
+                Repo => {
+                    if self.repo.is_some() {
+                        d.to_mut().repo = None;
+                    }
+                }
+            }
+        }
+        d
     }
 
     /// Verify a string represents a valid package dependency.
