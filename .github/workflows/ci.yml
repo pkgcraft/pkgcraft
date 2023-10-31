@@ -72,13 +72,19 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install cargo-llvm-cov
+      if: ${{ matrix.rust-version == 'stable' }}
       uses: taiki-e/install-action@cargo-llvm-cov
 
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
 
     - name: Build and run tests
-      run: cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
+      run: |
+        if [[ ${{ matrix.rust-version }} == 'stable' ]]; then
+          cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
+        else
+          cargo nextest run --all-features --workspace --tests
+        fi
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
