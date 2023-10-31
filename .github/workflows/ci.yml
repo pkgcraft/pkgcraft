@@ -87,6 +87,7 @@ jobs:
         fi
 
     - name: Upload coverage to Codecov
+      if: ${{ matrix.rust-version == 'stable' }}
       uses: codecov/codecov-action@v3
       with:
         files: lcov.info
