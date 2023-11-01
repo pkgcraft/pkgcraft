@@ -391,31 +391,27 @@ fn ver_cmp(v1: &Version, v2: &Version, cmp_revs: bool, cmp_ops: bool) -> Orderin
         // dotted components were equal so compare letter suffixes
         cmp_not_equal!(&v1.letter, &v2.letter);
 
-        for (s1, s2) in zip(&v1.suffixes, &v2.suffixes) {
-            // if suffixes differ, use them for comparison
-            cmp_not_equal!(s1, s2);
-        }
-
-        // If one version has more suffixes, use the last suffix to determine ordering.
-        match v1.suffixes.cmp(&v2.suffixes) {
-            Ordering::Equal => (),
-            Ordering::Greater => match v1.suffixes.last() {
-                Some(Suffix::P(_)) => return Ordering::Greater,
-                _ => return Ordering::Less,
-            },
-            Ordering::Less => match v2.suffixes.last() {
-                Some(Suffix::P(_)) => return Ordering::Less,
-                _ => return Ordering::Greater,
-            },
+        // compare suffixes
+        let mut s1_iter = v1.suffixes.iter();
+        let mut s2_iter = v2.suffixes.iter();
+        loop {
+            match (s1_iter.next(), s2_iter.next()) {
+                (Some(s1), Some(s2)) => cmp_not_equal!(s1, s2),
+                (Some(Suffix::P(_)), None) => return Ordering::Greater,
+                (Some(_), None) => return Ordering::Less,
+                (None, Some(Suffix::P(_))) => return Ordering::Less,
+                (None, Some(_)) => return Ordering::Greater,
+                (None, None) => break,
+            }
         }
     }
 
-    // compare the revisions
+    // compare revisions
     if cmp_revs {
         cmp_not_equal!(&v1.revision, &v2.revision);
     }
 
-    // compare the operators
+    // compare operators
     if cmp_ops {
         cmp_not_equal!(&v1.op, &v2.op);
     }
