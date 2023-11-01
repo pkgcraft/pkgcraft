@@ -432,7 +432,7 @@ fn ver_cmp<V: AsRef<Version>>(v1: V, v2: V, cmp_revs: bool, cmp_ops: bool) -> Or
 }
 
 impl Ord for Version {
-    fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         ver_cmp(self, other, true, true)
     }
 }
@@ -470,7 +470,7 @@ impl PartialEq for NonRevisionVersion<'_> {
 impl Eq for NonRevisionVersion<'_> {}
 
 impl Ord for NonRevisionVersion<'_> {
-    fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         ver_cmp(self, other, false, false)
     }
 }
@@ -500,7 +500,7 @@ impl PartialEq for NonOpVersion<'_> {
 impl Eq for NonOpVersion<'_> {}
 
 impl Ord for NonOpVersion<'_> {
-    fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         ver_cmp(self, other, true, false)
     }
 }
