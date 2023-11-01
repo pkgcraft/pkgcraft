@@ -321,12 +321,6 @@ impl Intersects<Version> for Version {
     }
 }
 
-impl AsRef<Version> for Version {
-    fn as_ref(&self) -> &Version {
-        self
-    }
-}
-
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Operator::*;
@@ -370,9 +364,7 @@ impl Hash for Version {
     }
 }
 
-fn ver_cmp<V: AsRef<Version>>(v1: V, v2: V, cmp_revs: bool, cmp_ops: bool) -> Ordering {
-    let (v1, v2) = (v1.as_ref(), v2.as_ref());
-
+fn ver_cmp(v1: &Version, v2: &Version, cmp_revs: bool, cmp_ops: bool) -> Ordering {
     if v1.base() != v2.base() {
         // compare major versions
         cmp_not_equal!(&v1.numbers[0].1, &v2.numbers[0].1);
@@ -455,12 +447,6 @@ impl FromStr for Version {
 #[derive(Debug)]
 struct NonRevisionVersion<'a>(&'a Version);
 
-impl AsRef<Version> for NonRevisionVersion<'_> {
-    fn as_ref(&self) -> &Version {
-        self.0
-    }
-}
-
 impl PartialEq for NonRevisionVersion<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
@@ -471,7 +457,7 @@ impl Eq for NonRevisionVersion<'_> {}
 
 impl Ord for NonRevisionVersion<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
-        ver_cmp(self, other, false, false)
+        ver_cmp(self.0, other.0, false, false)
     }
 }
 
@@ -485,12 +471,6 @@ impl PartialOrd for NonRevisionVersion<'_> {
 #[derive(Debug)]
 struct NonOpVersion<'a>(&'a Version);
 
-impl AsRef<Version> for NonOpVersion<'_> {
-    fn as_ref(&self) -> &Version {
-        self.0
-    }
-}
-
 impl PartialEq for NonOpVersion<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
@@ -501,7 +481,7 @@ impl Eq for NonOpVersion<'_> {}
 
 impl Ord for NonOpVersion<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
-        ver_cmp(self, other, true, false)
+        ver_cmp(self.0, other.0, true, false)
     }
 }
 
