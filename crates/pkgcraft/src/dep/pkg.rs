@@ -267,57 +267,56 @@ impl Dep {
 
     /// Return a package dependency's revision.
     pub fn revision(&self) -> Option<&Revision> {
-        self.version.as_ref().and_then(|v| v.revision())
+        self.version().and_then(|v| v.revision())
     }
 
     /// Return a package dependency's version operator.
     pub fn op(&self) -> Option<Operator> {
-        self.version.as_ref().and_then(|v| v.op())
+        self.version().and_then(|v| v.op())
     }
 
     /// Return the package name and version.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg-1".
     pub fn p(&self) -> String {
-        match &self.version {
-            Some(ver) => format!("{}-{}", self.package(), ver.base()),
-            None => self.package().to_string(),
+        if let Some(ver) = &self.version {
+            format!("{}-{}", self.package(), ver.base())
+        } else {
+            self.package().to_string()
         }
     }
 
     /// Return the package name, version, and revision.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg-1-r2".
     pub fn pf(&self) -> String {
-        match &self.version {
-            Some(_) => format!("{}-{}", self.package(), self.pvr()),
-            None => self.package().to_string(),
+        if self.version.is_some() {
+            format!("{}-{}", self.package(), self.pvr())
+        } else {
+            self.package().to_string()
         }
     }
 
     /// Return the package dependency's revision.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "r2".
     pub fn pr(&self) -> String {
-        match &self.version {
-            Some(ver) => format!("r{}", ver.revision().map(|r| r.as_str()).unwrap_or("0")),
-            None => String::default(),
-        }
+        self.version()
+            .map(|v| format!("r{}", v.revision().map(|r| r.as_str()).unwrap_or("0")))
+            .unwrap_or_default()
     }
 
     /// Return the package dependency's version.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "1".
     pub fn pv(&self) -> String {
-        match &self.version {
-            Some(ver) => ver.base().to_string(),
-            None => String::default(),
-        }
+        self.version()
+            .map(|v| v.base().to_string())
+            .unwrap_or_default()
     }
 
     /// Return the package dependency's version and revision.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "1-r2".
     pub fn pvr(&self) -> String {
-        match &self.version {
-            Some(ver) => ver.as_str().to_string(),
-            None => String::default(),
-        }
+        self.version()
+            .map(|v| v.as_str().to_string())
+            .unwrap_or_default()
     }
 
     /// Return the package dependency's category and package.
@@ -329,9 +328,10 @@ impl Dep {
     /// Return the package dependency's category, package, version, and revision.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
     pub fn cpv(&self) -> String {
-        match &self.version {
-            Some(ver) => format!("{}/{}-{}", self.category, self.package, ver.as_str()),
-            None => self.cpn(),
+        if let Some(ver) = &self.version {
+            format!("{}/{}-{}", self.category, self.package, ver.as_str())
+        } else {
+            self.cpn()
         }
     }
 
@@ -381,7 +381,7 @@ impl fmt::Display for Dep {
         // append version operator with cpv
         let cpv = self.cpv();
         use Operator::*;
-        match self.version.as_ref().and_then(|v| v.op()) {
+        match self.version().and_then(|v| v.op()) {
             None => write!(f, "{cpv}")?,
             Some(Less) => write!(f, "<{cpv}")?,
             Some(LessOrEqual) => write!(f, "<={cpv}")?,
@@ -447,11 +447,9 @@ impl Intersects<Cpv> for Dep {
     fn intersects(&self, other: &Cpv) -> bool {
         bool_not_equal!(&self.category(), &other.category());
         bool_not_equal!(&self.package(), &other.package());
-
-        match self.version() {
-            Some(ver) => ver.intersects(other.version()),
-            None => true,
-        }
+        self.version()
+            .map(|v| v.intersects(other.version()))
+            .unwrap_or(true)
     }
 }
 
@@ -482,9 +480,10 @@ impl Intersects<Dep> for Dep {
             bool_not_equal!(x, y);
         }
 
-        match (self.version(), other.version()) {
-            (Some(x), Some(y)) => x.intersects(y),
-            (None, _) | (_, None) => true,
+        if let (Some(x), Some(y)) = (self.version(), other.version()) {
+            x.intersects(y)
+        } else {
+            true
         }
     }
 }
