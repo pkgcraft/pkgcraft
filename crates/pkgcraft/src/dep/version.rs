@@ -452,7 +452,7 @@ impl FromStr for Version {
 }
 
 /// Version wrapper that ignores revisions and operators during comparisons.
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 struct NonRevisionVersion<'a>(&'a Version);
 
 impl AsRef<Version> for NonRevisionVersion<'_> {
@@ -467,6 +467,8 @@ impl PartialEq for NonRevisionVersion<'_> {
     }
 }
 
+impl Eq for NonRevisionVersion<'_> {}
+
 impl Ord for NonRevisionVersion<'_> {
     fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
         ver_cmp(self, other, false, false)
@@ -480,7 +482,7 @@ impl PartialOrd for NonRevisionVersion<'_> {
 }
 
 /// Version wrapper that ignores operators during comparisons.
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 struct NonOpVersion<'a>(&'a Version);
 
 impl AsRef<Version> for NonOpVersion<'_> {
@@ -494,6 +496,8 @@ impl PartialEq for NonOpVersion<'_> {
         self.cmp(other) == Ordering::Equal
     }
 }
+
+impl Eq for NonOpVersion<'_> {}
 
 impl Ord for NonOpVersion<'_> {
     fn cmp<'a>(&'a self, other: &'a Self) -> Ordering {
