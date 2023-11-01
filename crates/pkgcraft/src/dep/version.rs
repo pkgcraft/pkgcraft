@@ -380,7 +380,7 @@ fn ver_cmp(v1: &Version, v2: &Version, cmp_revs: bool, cmp_ops: bool) -> Orderin
                     cmp_not_equal!(s1.trim_end_matches('0'), s2.trim_end_matches('0'))
                 }
                 // compare as integers
-                (Some((_, n1)), Some((_, n2))) => cmp_not_equal!(&n1, &n2),
+                (Some((_, n1)), Some((_, n2))) => cmp_not_equal!(n1, n2),
                 (Some(_), None) => return Ordering::Greater,
                 (None, Some(_)) => return Ordering::Less,
                 (None, None) => break,
