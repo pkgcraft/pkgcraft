@@ -623,17 +623,17 @@ mod tests {
             let dep1: Dep = s1.parse().unwrap();
             let dep2: Dep = s2.parse().unwrap();
             if op == "!=" {
-                assert_ne!(dep1, dep2, "failed comparing {expr}");
-                assert_ne!(dep2, dep1, "failed comparing {expr}");
+                assert_ne!(dep1, dep2, "failed comparing: {expr}");
+                assert_ne!(dep2, dep1, "failed comparing: {expr}");
             } else {
                 let op = op_map[op];
-                assert_eq!(dep1.cmp(&dep2), op, "failed comparing {expr}");
-                assert_eq!(dep2.cmp(&dep1), op.reverse(), "failed comparing {expr}");
+                assert_eq!(dep1.cmp(&dep2), op, "failed comparing: {expr}");
+                assert_eq!(dep2.cmp(&dep1), op.reverse(), "failed comparing inverted: {expr}");
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)
                 if op == Ordering::Equal {
-                    assert_eq!(hash(dep1), hash(dep2), "failed hash {expr}");
+                    assert_eq!(hash(dep1), hash(dep2), "failed hash: {expr}");
                 }
             }
         }
