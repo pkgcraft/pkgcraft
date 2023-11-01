@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
-use std::iter::zip;
 use std::str::FromStr;
 use std::{fmt, str};
 
@@ -369,33 +368,33 @@ fn ver_cmp(v1: &Version, v2: &Version, cmp_revs: bool, cmp_ops: bool) -> Orderin
         // compare major versions
         cmp_not_equal!(&v1.numbers[0].1, &v2.numbers[0].1);
 
-        // iterate through the remaining version components
-        for ((s1, n1), (s2, n2)) in zip(&v1.numbers[1..], &v2.numbers[1..]) {
-            // if string is lexically equal, it is numerically equal too
-            if s1 == s2 {
-                continue;
-            }
-
-            // If one of the components starts with a "0" then they are compared as strings
-            // with trailing 0's stripped, otherwise they are compared as integers.
-            if s1.starts_with('0') || s2.starts_with('0') {
-                cmp_not_equal!(s1.trim_end_matches('0'), s2.trim_end_matches('0'));
-            } else {
-                cmp_not_equal!(&n1, &n2);
+        // compare remaining version components
+        let mut v1_numbers = v1.numbers[1..].iter();
+        let mut v2_numbers = v2.numbers[1..].iter();
+        loop {
+            match (v1_numbers.next(), v2_numbers.next()) {
+                // lexical equality implies numerical equality
+                (Some((s1, _)), Some((s2, _))) if s1 == s2 => continue,
+                // compare as strings if a component starts with "0"
+                (Some((s1, _)), Some((s2, _))) if s1.starts_with('0') || s2.starts_with('0') => {
+                    cmp_not_equal!(s1.trim_end_matches('0'), s2.trim_end_matches('0'))
+                }
+                // compare as integers
+                (Some((_, n1)), Some((_, n2))) => cmp_not_equal!(&n1, &n2),
+                (Some(_), None) => return Ordering::Greater,
+                (None, Some(_)) => return Ordering::Less,
+                (None, None) => break,
             }
         }
 
-        // compare the number of version components
-        cmp_not_equal!(&v1.numbers.len(), &v2.numbers.len());
-
-        // dotted components were equal so compare letter suffixes
+        // compare letter suffixes
         cmp_not_equal!(&v1.letter, &v2.letter);
 
         // compare suffixes
-        let mut s1_iter = v1.suffixes.iter();
-        let mut s2_iter = v2.suffixes.iter();
+        let mut v1_suffixes = v1.suffixes.iter();
+        let mut v2_suffixes = v2.suffixes.iter();
         loop {
-            match (s1_iter.next(), s2_iter.next()) {
+            match (v1_suffixes.next(), v2_suffixes.next()) {
                 (Some(s1), Some(s2)) => cmp_not_equal!(s1, s2),
                 (Some(Suffix::P(_)), None) => return Ordering::Greater,
                 (Some(_), None) => return Ordering::Less,
