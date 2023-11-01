@@ -49,17 +49,15 @@ pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi)
 /// Return a given package dependency without the specified fields.
 ///
 /// # Safety
-/// The arguments must be a non-null Dep pointer and a fields bitflag.
+/// The arguments must be a non-null Dep pointer and a DepFields bitflag.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_without(d: *mut Dep, fields: u32) -> *mut Dep {
-    ffi_catch_panic! {
-        let dep = try_ref_from_ptr!(d);
-        let fields = DepFields::from_bits_truncate(fields);
-        if let Cow::Owned(d) = dep.without(fields) {
-            Box::into_raw(Box::new(d))
-        } else {
-            d
-        }
+    let dep = try_ref_from_ptr!(d);
+    let fields = DepFields::from_bits_truncate(fields);
+    if let Cow::Owned(d) = dep.without(fields) {
+        Box::into_raw(Box::new(d))
+    } else {
+        d
     }
 }
 
