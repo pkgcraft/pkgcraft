@@ -504,6 +504,13 @@ mod tests {
     }
 
     #[test]
+    fn test_valid() {
+        assert!(Version::valid("2").is_ok());
+        assert!(Version::valid(">=2").is_err());
+        assert!(Version::valid("1-a").is_err());
+    }
+
+    #[test]
     fn test_overflow_version() {
         let u64_max: u128 = u64::MAX as u128;
 
