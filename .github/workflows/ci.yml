@@ -135,6 +135,9 @@ jobs:
     continue-on-error: true
 
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Download artifacts
       uses: actions/download-artifact@v3
 
