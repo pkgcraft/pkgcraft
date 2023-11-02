@@ -86,11 +86,13 @@ jobs:
           cargo nextest run --all-features --workspace --tests
         fi
 
-    - name: Upload coverage to Codecov
+    - name: Upload build artifacts
       if: ${{ matrix.rust-version == 'stable' }}
-      uses: codecov/codecov-action@v3
+      uses: actions/upload-artifact@v3
       with:
-        files: lcov.info
+        name: lcov.info
+        path: lcov.info
+        if-no-files-found: error
 
     - name: Remove old caches
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
@@ -126,3 +128,18 @@ jobs:
           ~/.cargo/git/db
           target
         key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+  coverage:
+    needs: test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: lcov.info
+        fail_ci_if_error: true
