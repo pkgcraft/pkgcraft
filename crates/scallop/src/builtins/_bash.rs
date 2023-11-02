@@ -107,6 +107,7 @@ mod tests {
 
     #[test]
     fn test_local() {
+        // verify local function variable scope
         bind("VAR", "outer", None, None).unwrap();
         bash_func("func_name", || {
             let result = local(["VAR=inner"]);
@@ -115,5 +116,8 @@ mod tests {
         })
         .unwrap();
         assert_eq!(optional("VAR").unwrap(), "outer");
+
+        // local doesn't work in global scope
+        assert!(local(["VAR=inner"]).is_err());
     }
 }
