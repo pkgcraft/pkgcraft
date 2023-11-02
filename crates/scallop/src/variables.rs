@@ -119,7 +119,7 @@ where
     })
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Variable {
     name: String,
 }
@@ -207,7 +207,7 @@ impl Variables for Variable {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ScopedVariable {
     var: Variable,
     orig: Option<String>,
