@@ -111,17 +111,15 @@ impl<'a> ParsedVersion<'a> {
         glob: Option<&'a str>,
     ) -> Result<Self, &'static str> {
         use Operator::*;
-        let op = match (op, glob) {
-            ("<", None) => Ok(Less),
-            ("<=", None) => Ok(LessOrEqual),
-            ("=", None) => Ok(Equal),
-            ("=", Some(_)) => Ok(EqualGlob),
-            ("~", None) => match self.revision {
-                None => Ok(Approximate),
-                Some(_) => Err("~ version operator can't be used with a revision"),
-            },
-            (">=", None) => Ok(GreaterOrEqual),
-            (">", None) => Ok(Greater),
+        let op = match (op, glob, self.revision) {
+            ("<", None, _) => Ok(Less),
+            ("<=", None, _) => Ok(LessOrEqual),
+            ("=", None, _) => Ok(Equal),
+            ("=", Some(_), _) => Ok(EqualGlob),
+            ("~", None, None) => Ok(Approximate),
+            ("~", None, Some(_)) => Err("~ version operator can't be used with a revision"),
+            (">=", None, _) => Ok(GreaterOrEqual),
+            (">", None, _) => Ok(Greater),
             _ => Err("invalid version operator"),
         }?;
 
