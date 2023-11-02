@@ -1,8 +1,10 @@
 use itertools::Itertools;
 use pkgcraft::test::{cmd, TEST_DATA};
 
+use crate::predicates::lines_contain;
+
 #[test]
-fn args() {
+fn stdin() {
     let exprs = TEST_DATA.dep_toml.compares().map(|(s, _)| s).join("\n");
     cmd("pk dep compare -")
         .write_stdin(exprs)
@@ -18,4 +20,32 @@ fn args() {
         .write_stdin(exprs)
         .assert()
         .success();
+}
+
+#[test]
+fn args() {
+    // invalid expression
+    cmd("pk dep compare")
+        .arg("cat/pkg<cat/pkg")
+        .assert()
+        .stdout("")
+        .stderr(lines_contain(["invalid comparison format: cat/pkg<cat/pkg"]))
+        .failure()
+        .code(2);
+
+    // invalid operator
+    cmd("pk dep compare")
+        .arg("cat/pkg ~= cat/pkg")
+        .assert()
+        .stdout("")
+        .stderr(lines_contain(["invalid operator: ~="]))
+        .failure()
+        .code(2);
+
+    // false expression
+    cmd("pk dep compare")
+        .arg("cat/pkg > cat/pkg")
+        .assert()
+        .failure()
+        .code(1);
 }
