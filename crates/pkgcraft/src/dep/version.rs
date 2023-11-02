@@ -442,23 +442,11 @@ struct NonRevisionVersion<'a>(&'a Version);
 
 impl PartialEq for NonRevisionVersion<'_> {
     fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
+        ver_cmp(self.0, other.0, false, false) == Ordering::Equal
     }
 }
 
 impl Eq for NonRevisionVersion<'_> {}
-
-impl Ord for NonRevisionVersion<'_> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        ver_cmp(self.0, other.0, false, false)
-    }
-}
-
-impl PartialOrd for NonRevisionVersion<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
 
 /// Version wrapper that ignores operators during comparisons.
 #[derive(Debug)]
