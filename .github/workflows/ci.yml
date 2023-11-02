@@ -90,7 +90,7 @@ jobs:
       if: ${{ matrix.rust-version == 'stable' }}
       uses: actions/upload-artifact@v3
       with:
-        name: lcov.info
+        name: coverage
         path: lcov.info
         if-no-files-found: error
 
