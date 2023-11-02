@@ -412,10 +412,16 @@ mod tests {
     fn test_readonly_var() {
         bind("VAR", "1", None, Some(Attr::READONLY)).unwrap();
         assert_eq!(optional("VAR").unwrap(), "1");
+
+        // binding fails
         let err = bind("VAR", "1", None, None).unwrap_err();
         assert_eq!(err.to_string(), "VAR: readonly variable");
+
+        // checked unbind fails
         let err = unbind_check("VAR").unwrap_err();
         assert_eq!(err.to_string(), "VAR: cannot unset: readonly variable");
+
+        // forced unbind succeeds
         assert!(unbind("VAR").is_ok());
     }
 
@@ -424,16 +430,33 @@ mod tests {
         let mut var = Variable::new("VAR");
         assert_eq!(var.as_ref(), "VAR");
         assert_eq!(var.optional(), None);
+        assert!(var.required().is_err());
+        assert!(!var.is_readonly());
+
         var.bind("", None, None).unwrap();
         assert_eq!(var.optional().unwrap(), "");
+        assert_eq!(var.required().unwrap(), "");
+
         var.bind("1", None, None).unwrap();
         assert_eq!(var.optional().unwrap(), "1");
+        assert_eq!(var.required().unwrap(), "1");
+
         var.append("2").unwrap();
         assert_eq!(var.optional().unwrap(), "12");
+        assert_eq!(var.required().unwrap(), "12");
+
         var.append(" 3").unwrap();
         assert_eq!(var.optional().unwrap(), "12 3");
+        assert_eq!(var.required().unwrap(), "12 3");
+
+        var.bind("", None, Some(Attr::READONLY)).unwrap();
+        assert_eq!(var.optional().unwrap(), "");
+        assert_eq!(var.required().unwrap(), "");
+        assert!(var.is_readonly());
+
         var.unbind().unwrap();
         assert_eq!(var.optional(), None);
+        assert!(var.required().is_err());
     }
 
     #[test]
