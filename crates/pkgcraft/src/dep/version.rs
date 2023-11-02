@@ -487,13 +487,16 @@ mod tests {
     fn test_new() {
         assert!(Version::new("2").is_ok());
         assert!(Version::new(">=2").is_ok());
+        assert!(Version::new("1a-1").is_err());
+        assert!(Version::new("~2-r1").is_err());
     }
 
     #[test]
     fn test_valid() {
         assert!(Version::valid("2").is_ok());
         assert!(Version::valid(">=2").is_err());
-        assert!(Version::valid("1-a").is_err());
+        assert!(Version::valid("1a-1").is_err());
+        assert!(Version::valid("~2-r1").is_err());
     }
 
     #[test]

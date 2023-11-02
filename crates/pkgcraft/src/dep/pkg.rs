@@ -493,10 +493,31 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use crate::dep::CpvOrDep;
+    use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::test::TEST_DATA;
     use crate::utils::hash;
 
     use super::*;
+
+    #[test]
+    fn test_new() {
+        let none: Option<&Eapi> = None;
+        assert!(Dep::new("cat/pkg", none).is_ok());
+        assert!(Dep::new("=cat/pkg-1a-1", *EAPI_LATEST_OFFICIAL).is_err());
+        assert!(Dep::new(">=cat/pkg", *EAPI_LATEST_OFFICIAL).is_err());
+        assert!(Dep::new("cat/pkg::repo", *EAPI_LATEST_OFFICIAL).is_err());
+        assert!(Dep::new("cat/pkg::repo", *EAPI_LATEST).is_ok());
+    }
+
+    #[test]
+    fn test_valid() {
+        let none: Option<&Eapi> = None;
+        assert!(Dep::valid("cat/pkg", none).is_ok());
+        assert!(Dep::valid("=cat/pkg-1a-1", *EAPI_LATEST_OFFICIAL).is_err());
+        assert!(Dep::valid(">=cat/pkg", *EAPI_LATEST_OFFICIAL).is_err());
+        assert!(Dep::valid("cat/pkg::repo", *EAPI_LATEST_OFFICIAL).is_err());
+        assert!(Dep::valid("cat/pkg::repo", *EAPI_LATEST).is_ok());
+    }
 
     #[test]
     fn test_to_string() {
