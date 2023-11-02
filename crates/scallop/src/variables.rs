@@ -422,6 +422,7 @@ mod tests {
     #[test]
     fn test_variable() {
         let mut var = Variable::new("VAR");
+        assert_eq!(var.as_ref(), "VAR");
         assert_eq!(var.optional(), None);
         var.bind("", None, None).unwrap();
         assert_eq!(var.optional().unwrap(), "");
@@ -451,6 +452,7 @@ mod tests {
         assert_eq!(optional("VAR").unwrap(), "outer");
         {
             let mut var = ScopedVariable::new("VAR");
+            assert_eq!(var.as_ref(), "VAR");
             var.bind("inner", None, None).unwrap();
             assert_eq!(var.optional().unwrap(), "inner");
         }
