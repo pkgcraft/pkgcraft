@@ -238,4 +238,24 @@ mod tests {
         assert!(Cpv::valid("cat/pkg").is_err());
         assert!(Cpv::valid(">=cat/pkg-1").is_err());
     }
+
+    #[test]
+    fn test_cpv_or_dep() {
+        let cpv = Cpv::from_str("cat/pkg-1").unwrap();
+        let dep = Dep::from_str(">=cat/pkg-1").unwrap();
+
+        // valid
+        for s in ["cat/pkg", "cat/pkg-1", ">=cat/pkg-1"] {
+            let cpv_or_dep: CpvOrDep = s.parse().unwrap();
+            assert_eq!(cpv_or_dep.to_string(), s);
+            // intersects
+            assert!(cpv_or_dep.intersects(&cpv));
+            assert!(cpv_or_dep.intersects(&dep));
+            assert!(cpv_or_dep.intersects(&cpv_or_dep));
+        }
+
+        // invalid
+        assert!(CpvOrDep::from_str("cat/pkg-1a-1").is_err());
+        assert!(CpvOrDep::from_str("cat").is_err());
+    }
 }
