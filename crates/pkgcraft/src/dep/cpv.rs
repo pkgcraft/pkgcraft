@@ -218,3 +218,24 @@ impl TryFrom<&Cpv> for Cpv {
         Ok(value.clone())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        assert!(Cpv::new("cat/pkg-1").is_ok());
+        assert!(Cpv::new("cat/pkg-1a-1").is_err());
+        assert!(Cpv::new("cat/pkg").is_err());
+        assert!(Cpv::new(">=cat/pkg-1").is_err());
+    }
+
+    #[test]
+    fn test_valid() {
+        assert!(Cpv::valid("cat/pkg-1").is_ok());
+        assert!(Cpv::valid("cat/pkg-1a-1").is_err());
+        assert!(Cpv::valid("cat/pkg").is_err());
+        assert!(Cpv::valid(">=cat/pkg-1").is_err());
+    }
+}
