@@ -509,48 +509,9 @@ pub fn dependencies_dep_spec(s: &str, eapi: &'static Eapi) -> crate::Result<DepS
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
-
     use crate::eapi::{self, EAPIS, EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL};
-    use crate::test::TEST_DATA;
 
     use super::*;
-
-    #[test]
-    fn test_parse() {
-        // invalid
-        for s in &TEST_DATA.dep_toml.invalid {
-            for eapi in &*EAPIS {
-                let result = dep(s, eapi);
-                assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
-            }
-        }
-
-        // valid
-        for e in &TEST_DATA.dep_toml.valid {
-            let s = e.dep.as_str();
-            let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
-            for eapi in &passing_eapis {
-                let result = dep(s, eapi);
-                assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
-                let d = result.unwrap();
-                assert_eq!(d.category(), e.category, "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.package(), e.package, "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.blocker(), e.blocker, "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.version(), e.version.as_ref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.revision(), e.revision.as_ref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.slot(), e.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.subslot(), e.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.slot_op(), e.slot_op, "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.use_deps(), e.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
-                assert_eq!(d.to_string(), s, "{s:?} failed for EAPI={eapi}");
-            }
-            for eapi in EAPIS.difference(&passing_eapis) {
-                let result = dep(s, eapi);
-                assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
-            }
-        }
-    }
 
     #[test]
     fn test_parse_slots() {

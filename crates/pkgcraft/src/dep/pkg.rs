@@ -492,31 +492,55 @@ impl Intersects<Dep> for Dep {
 mod tests {
     use std::collections::{HashMap, HashSet};
 
+    use indexmap::IndexSet;
+
     use crate::dep::CpvOrDep;
-    use crate::eapi::EAPI_LATEST_OFFICIAL;
+    use crate::eapi::{self, EAPIS};
     use crate::test::TEST_DATA;
     use crate::utils::hash;
 
     use super::*;
 
     #[test]
-    fn test_new() {
-        let none: Option<&Eapi> = None;
-        assert!(Dep::new("cat/pkg", none).is_ok());
-        assert!(Dep::new("=cat/pkg-1a-1", *EAPI_LATEST_OFFICIAL).is_err());
-        assert!(Dep::new(">=cat/pkg", *EAPI_LATEST_OFFICIAL).is_err());
-        assert!(Dep::new("cat/pkg::repo", *EAPI_LATEST_OFFICIAL).is_err());
-        assert!(Dep::new("cat/pkg::repo", *EAPI_LATEST).is_ok());
-    }
+    fn test_new_and_valid() {
+        // invalid
+        for s in &TEST_DATA.dep_toml.invalid {
+            for eapi in &*EAPIS {
+                let result = Dep::valid(s, *eapi);
+                assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
+                let result = Dep::new(s, *eapi);
+                assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
+            }
+        }
 
-    #[test]
-    fn test_valid() {
-        let none: Option<&Eapi> = None;
-        assert!(Dep::valid("cat/pkg", none).is_ok());
-        assert!(Dep::valid("=cat/pkg-1a-1", *EAPI_LATEST_OFFICIAL).is_err());
-        assert!(Dep::valid(">=cat/pkg", *EAPI_LATEST_OFFICIAL).is_err());
-        assert!(Dep::valid("cat/pkg::repo", *EAPI_LATEST_OFFICIAL).is_err());
-        assert!(Dep::valid("cat/pkg::repo", *EAPI_LATEST).is_ok());
+        // valid
+        for e in &TEST_DATA.dep_toml.valid {
+            let s = e.dep.as_str();
+            let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
+            for eapi in &passing_eapis {
+                let result = Dep::valid(s, *eapi);
+                assert!(result.is_ok(), "{s:?} isn't valid for EAPI={eapi}");
+                let result = Dep::new(s, *eapi);
+                assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
+                let d = result.unwrap();
+                assert_eq!(d.category(), e.category, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.package(), e.package, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.blocker(), e.blocker, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.version(), e.version.as_ref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.revision(), e.revision.as_ref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.slot(), e.slot.as_deref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.subslot(), e.subslot.as_deref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.slot_op(), e.slot_op, "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.use_deps(), e.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
+                assert_eq!(d.to_string(), s, "{s:?} failed for EAPI={eapi}");
+            }
+            for eapi in EAPIS.difference(&passing_eapis) {
+                let result = Dep::valid(s, *eapi);
+                assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
+                let result = Dep::new(s, *eapi);
+                assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
+            }
+        }
     }
 
     #[test]
