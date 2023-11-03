@@ -691,7 +691,7 @@ mod tests {
     }
 
     #[test]
-    fn test_license() -> crate::Result<()> {
+    fn test_license() {
         // invalid
         for s in ["(", ")", "( )", "( l1)", "| ( l1 )", "!use ( l1 )"] {
             assert!(license_dep_set(s).is_err(), "{s:?} didn't fail");
@@ -719,17 +719,15 @@ mod tests {
             ("v1 u? ( v2 )", vec!["v1", "v2"]),
             ("!u? ( || ( v1 v2 ) )", vec!["v1", "v2"]),
         ] {
-            let depset = license_dep_set(s)?.unwrap();
+            let depset = license_dep_set(s).unwrap().unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
         }
-
-        Ok(())
     }
 
     #[test]
-    fn test_src_uri() -> crate::Result<()> {
+    fn test_src_uri() {
         // empty string
         assert!(src_uri_dep_set("", &EAPI_LATEST_OFFICIAL)
             .unwrap()
@@ -744,7 +742,7 @@ mod tests {
             ("u1? ( http://uri1 !u2? ( http://uri2 ) )", vec!["http://uri1", "http://uri2"]),
         ] {
             for eapi in &*EAPIS {
-                let depset = src_uri_dep_set(s, eapi)?.unwrap();
+                let depset = src_uri_dep_set(s, eapi).unwrap().unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
@@ -757,7 +755,7 @@ mod tests {
             ("u? ( http://uri -> file )", vec!["http://uri -> file"]),
         ] {
             for eapi in &*EAPIS {
-                let depset = src_uri_dep_set(s, eapi)?.unwrap();
+                let depset = src_uri_dep_set(s, eapi).unwrap().unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
@@ -768,12 +766,10 @@ mod tests {
             let r = src_uri_dep_set(s, &EAPI_LATEST_OFFICIAL);
             assert!(r.is_err(), "{s:?} didn't fail");
         }
-
-        Ok(())
     }
 
     #[test]
-    fn test_required_use() -> crate::Result<()> {
+    fn test_required_use() {
         // invalid
         for s in ["(", ")", "( )", "( u)", "| ( u )", "|| ( )", "^^ ( )", "?? ( )"] {
             assert!(required_use_dep_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
@@ -798,7 +794,9 @@ mod tests {
             ("u1? ( u2 !u3 )", vec!["u2", "u3"]),
             ("!u1? ( || ( u2 u3 ) )", vec!["u2", "u3"]),
         ] {
-            let depset = required_use_dep_set(s, &EAPI_LATEST_OFFICIAL)?.unwrap();
+            let depset = required_use_dep_set(s, &EAPI_LATEST_OFFICIAL)
+                .unwrap()
+                .unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
@@ -807,18 +805,16 @@ mod tests {
         // ?? operator
         for (s, expected_flatten) in [("?? ( u1 u2 )", vec!["u1", "u2"])] {
             for eapi in &*EAPIS {
-                let depset = required_use_dep_set(s, eapi)?.unwrap();
+                let depset = required_use_dep_set(s, eapi).unwrap().unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().collect();
                 assert_eq!(flatten, expected_flatten);
             }
         }
-
-        Ok(())
     }
 
     #[test]
-    fn test_dependencies() -> crate::Result<()> {
+    fn test_dependencies() {
         // invalid
         for s in ["(", ")", "( )", "|| ( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
             assert!(dependencies_dep_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
@@ -838,17 +834,17 @@ mod tests {
             ("!u? ( a/b c/d )", vec!["a/b", "c/d"]),
             ("u1? ( a/b !u2? ( c/d ) )", vec!["a/b", "c/d"]),
         ] {
-            let depset = dependencies_dep_set(s, &EAPI_LATEST_OFFICIAL)?.unwrap();
+            let depset = dependencies_dep_set(s, &EAPI_LATEST_OFFICIAL)
+                .unwrap()
+                .unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
             assert_eq!(flatten, expected_flatten);
         }
-
-        Ok(())
     }
 
     #[test]
-    fn test_properties_restrict() -> crate::Result<()> {
+    fn test_properties_restrict() {
         for parse_func in [properties_dep_set, restrict_dep_set] {
             // invalid
             for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"]
@@ -876,13 +872,11 @@ mod tests {
                 // combinations
                 ("v1 u? ( v2 )", vec!["v1", "v2"]),
             ] {
-                let depset = parse_func(s)?.unwrap();
+                let depset = parse_func(s).unwrap().unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().collect();
                 assert_eq!(flatten, expected_flatten);
             }
         }
-
-        Ok(())
     }
 }
