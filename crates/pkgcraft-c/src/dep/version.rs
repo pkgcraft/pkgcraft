@@ -57,7 +57,7 @@ pub unsafe extern "C" fn pkgcraft_revision_hash(r: *mut Revision) -> u64 {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_revision_str(r: *mut Revision) -> *mut c_char {
     let rev = try_ref_from_ptr!(r);
-    try_ptr_from_str!(rev.as_str())
+    try_ptr_from_str!(rev.as_ref())
 }
 
 /// Free a revision.

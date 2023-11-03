@@ -141,7 +141,7 @@ impl Cpv {
 
     /// Return the revision.
     pub fn pr(&self) -> String {
-        format!("r{}", self.revision().map(|r| r.as_str()).unwrap_or("0"))
+        format!("r{}", self.revision().map(|r| r.as_ref()).unwrap_or("0"))
     }
 
     /// Return the version.

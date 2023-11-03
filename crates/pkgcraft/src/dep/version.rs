@@ -43,8 +43,8 @@ impl FromStr for Revision {
     }
 }
 
-impl Revision {
-    pub fn as_str(&self) -> &str {
+impl AsRef<str> for Revision {
+    fn as_ref(&self) -> &str {
         self.value.as_deref().unwrap_or_default()
     }
 }
@@ -86,7 +86,7 @@ impl PartialOrd for Revision {
 
 impl fmt::Display for Revision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        write!(f, "{}", self.as_ref())
     }
 }
 
@@ -299,7 +299,7 @@ impl Intersects<Version> for Version {
                     // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
                     // exist and glob matches ranged version
                     EqualGlob if matches!(ranged_op, Less | LessOrEqual) => {
-                        match other.revision().map(|r| r.as_str()) {
+                        match other.revision().map(|r| r.as_ref()) {
                             None | Some("0") => ranged.as_str().starts_with(other.as_str()),
                             _ => false,
                         }

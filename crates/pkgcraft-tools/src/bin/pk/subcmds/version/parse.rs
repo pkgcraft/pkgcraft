@@ -37,7 +37,7 @@ impl EnumVariable for Key {
             VER => obj.as_str().to_string(),
             REV => obj
                 .revision()
-                .map(|r| r.as_str())
+                .map(|r| r.as_ref())
                 .unwrap_or_default()
                 .to_string(),
         }
