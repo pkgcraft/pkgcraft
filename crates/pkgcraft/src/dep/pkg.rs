@@ -95,13 +95,13 @@ pub(crate) struct ParsedDep<'a> {
 }
 
 impl ParsedDep<'_> {
-    pub(crate) fn into_owned(self) -> crate::Result<Dep> {
+    pub(crate) fn into_owned(self) -> Dep {
         let version = match (self.version, self.version_str) {
-            (Some(v), Some(vs)) => Some(v.into_owned(vs)?),
+            (Some(v), Some(vs)) => Some(v.into_owned(vs)),
             _ => None,
         };
 
-        Ok(Dep {
+        Dep {
             category: self.category.to_string(),
             package: self.package.to_string(),
             blocker: self.blocker,
@@ -117,7 +117,7 @@ impl ParsedDep<'_> {
                 set
             }),
             repo: self.repo.map(|s| s.to_string()),
-        })
+        }
     }
 }
 

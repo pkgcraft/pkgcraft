@@ -47,17 +47,31 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule version() -> ParsedVersion<'input>
         = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
                 suffixes:version_suffix()*
-                end_base:position!() revision:revision()? end:position!() {
-            ParsedVersion {
+                end_base:position!() revision:revision()? end:position!() {?
+            let numbers: Result<Vec<_>, _> = numbers
+                .into_iter()
+                .map(|s| {
+                    s
+                    .parse()
+                    .map_err(|e| "version integer overflow")
+                    .map(|n| (s, n))
+                })
+                .collect();
+
+            let revision = revision.map(|s| {
+                s.parse().map_err(|e| "revision integer overflow").map(|n| (s, n))
+            });
+
+            Ok(ParsedVersion {
                 start,
                 end,
                 base_end: end_base-start,
                 op: None,
-                numbers,
+                numbers: numbers?,
                 letter,
                 suffixes,
-                revision,
-            }
+                revision: revision.transpose()?,
+            })
         }
 
     pub(super) rule version_with_op() -> ParsedVersion<'input>
@@ -142,7 +156,7 @@ peg::parser!(grammar depspec() for str {
             if eapi.has(Feature::RepoIds) {
                 Ok(repo)
             } else {
-                Err("repo deps aren't supported in EAPIs")
+                Err("repo deps aren't supported in official EAPIs")
             }
         }
 
@@ -327,13 +341,15 @@ pub(super) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
     convert = r#"{ s.to_string() }"#
 )]
 pub fn version(s: &str) -> crate::Result<Version> {
-    version_str(s)?.into_owned(s)
+    Ok(version_str(s)?.into_owned(s))
+}
+
+pub(super) fn version_with_op_str(s: &str) -> crate::Result<ParsedVersion> {
+    depspec::version_with_op(s).map_err(|e| peg_error(format!("invalid version: {s}"), s, e))
 }
 
 pub fn version_with_op(s: &str) -> crate::Result<Version> {
-    let ver = depspec::version_with_op(s)
-        .map_err(|e| peg_error(format!("invalid version: {s}"), s, e))?;
-    ver.into_owned(s)
+    Ok(version_with_op_str(s)?.into_owned(s))
 }
 
 pub fn slot(s: &str) -> crate::Result<&str> {
@@ -362,7 +378,7 @@ pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedCpv> {
 pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
     let mut cpv = cpv_str(s)?;
     cpv.version_str = s;
-    cpv.into_owned()
+    Ok(cpv.into_owned())
 }
 
 pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedDep<'a>> {
@@ -399,13 +415,13 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
 )]
 pub(super) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
     let dep = dep_str(s, eapi)?;
-    dep.into_owned()
+    Ok(dep.into_owned())
 }
 
 pub(super) fn cpn(s: &str) -> crate::Result<Dep> {
     let dep =
         depspec::cpn(s).map_err(|e| peg_error(format!("invalid unversioned dep: {s}"), s, e))?;
-    dep.into_owned()
+    Ok(dep.into_owned())
 }
 
 pub fn license_dep_set(s: &str) -> crate::Result<Option<DepSet<String, String>>> {

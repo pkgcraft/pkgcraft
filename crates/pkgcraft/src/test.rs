@@ -106,6 +106,8 @@ pub struct Hashing {
 
 #[derive(Debug, Deserialize)]
 pub struct VersionToml {
+    pub valid: Vec<String>,
+    pub invalid: Vec<String>,
     compares: Vec<String>,
     pub intersects: Vec<Intersects>,
     pub sorting: Vec<Sorted>,

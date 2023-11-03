@@ -71,7 +71,7 @@ mod tests {
         let (vb, vo) = (format!("{u64_max}"), format!("{}", u64_max + 1));
         for args in [&[&vb, "-eq", &vo], &[&vo, "-eq", &vb]] {
             let r = ver_test(args);
-            assert_err_re!(r, format!("^invalid version: .*: {vo}$"));
+            assert_err_re!(r, format!("invalid version: {vo}"));
         }
     }
 

@@ -41,17 +41,31 @@ peg::parser!(grammar restrict() for str {
     rule version() -> ParsedVersion<'input>
         = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
                 suffixes:version_suffix()*
-                end_base:position!() revision:revision()? end:position!() {
-            ParsedVersion {
+                end_base:position!() revision:revision()? end:position!() {?
+            let numbers: Result<Vec<_>, _> = numbers
+                .into_iter()
+                .map(|s| {
+                    s
+                    .parse()
+                    .map_err(|e| "version integer overflow")
+                    .map(|n| (s, n))
+                })
+                .collect();
+
+            let revision = revision.map(|s| {
+                s.parse().map_err(|e| "revision integer overflow").map(|n| (s, n))
+            });
+
+            Ok(ParsedVersion {
                 start,
                 end,
                 base_end: end_base-start,
                 op: None,
-                numbers,
+                numbers: numbers?,
                 letter,
                 suffixes,
-                revision,
-            }
+                revision: revision.transpose()?,
+            })
         }
 
     rule revision() -> &'input str
@@ -213,8 +227,7 @@ pub(crate) fn restricts(s: &str) -> crate::Result<Vec<DepRestrict>> {
         restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
 
     if let Some(v) = ver {
-        let v = v.into_owned(s)?;
-        restricts.push(DepRestrict::Version(Some(v)));
+        restricts.push(DepRestrict::Version(Some(v.into_owned(s))));
     }
 
     Ok(restricts)

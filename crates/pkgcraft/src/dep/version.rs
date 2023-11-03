@@ -96,10 +96,10 @@ pub(crate) struct ParsedVersion<'a> {
     pub(crate) end: usize,
     pub(crate) base_end: usize,
     pub(crate) op: Option<Operator>,
-    pub(crate) numbers: Vec<&'a str>,
+    pub(crate) numbers: Vec<(&'a str, u64)>,
     pub(crate) letter: Option<char>,
     pub(crate) suffixes: Vec<Suffix>,
-    pub(crate) revision: Option<&'a str>,
+    pub(crate) revision: Option<(&'a str, u64)>,
 }
 
 impl<'a> ParsedVersion<'a> {
@@ -126,24 +126,30 @@ impl<'a> ParsedVersion<'a> {
         Ok(self)
     }
 
-    pub(crate) fn into_owned(self, input: &str) -> crate::Result<Version> {
-        let mut numbers = vec![];
-        for s in &self.numbers {
-            let num = s
-                .parse()
-                .map_err(|e| Error::Overflow(format!("invalid version: {e}: {s}")))?;
-            numbers.push((s.to_string(), num));
-        }
+    pub(crate) fn into_owned(self, input: &str) -> Version {
+        let numbers = self
+            .numbers
+            .into_iter()
+            .map(|(s, n)| (s.to_string(), n))
+            .collect();
 
-        Ok(Version {
+        let revision = self
+            .revision
+            .map(|(s, n)| Revision {
+                value: Some(s.to_string()),
+                int: n,
+            })
+            .unwrap_or_default();
+
+        Version {
             full: input[self.start..self.end].to_string(),
             base_end: self.base_end,
             op: self.op,
             numbers,
             letter: self.letter,
             suffixes: self.suffixes,
-            revision: self.revision.unwrap_or_default().parse()?,
-        })
+            revision,
+        }
     }
 }
 
@@ -213,16 +219,13 @@ pub struct Version {
 impl Version {
     /// Verify a string represents a valid version.
     pub fn valid(s: &str) -> crate::Result<()> {
-        parse::version_str(s)?;
+        parse::version_str(s).or_else(|_| parse::version_with_op_str(s))?;
         Ok(())
     }
 
     /// Create a new Version from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
-        parse::version(s).or_else(|e| match e {
-            Error::Overflow(_) => Err(e),
-            _ => parse::version_with_op(s),
-        })
+        parse::version(s).or_else(|_| parse::version_with_op(s))
     }
 
     /// Return a version's string value without operator.
@@ -483,39 +486,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new() {
-        assert!(Version::new("2").is_ok());
-        assert!(Version::new(">=2").is_ok());
-        assert!(Version::new("1a-1").is_err());
-        assert!(Version::new("~2-r1").is_err());
-    }
+    fn test_new_and_valid() {
+        // invalid
+        for s in &TEST_DATA.version_toml.invalid {
+            let result = Version::valid(s);
+            assert!(result.is_err(), "{s:?} is valid");
+            let result = Version::new(s);
+            assert!(result.is_err(), "{s:?} didn't fail");
+        }
 
-    #[test]
-    fn test_valid() {
-        assert!(Version::valid("2").is_ok());
-        assert!(Version::valid(">=2").is_err());
-        assert!(Version::valid("1a-1").is_err());
-        assert!(Version::valid("~2-r1").is_err());
-    }
-
-    #[test]
-    fn test_overflow_version() {
-        let u64_max: u128 = u64::MAX as u128;
-
-        for (s1, s2) in [
-            // major version
-            (format!("{u64_max}"), format!("{}", u64_max + 1)),
-            // minor version
-            (format!("1.{u64_max}"), format!("1.{}", u64_max + 1)),
-            // suffix version
-            (format!("1_p{u64_max}"), format!("1_p{}", u64_max + 1)),
-            // revision
-            (format!("1-r{u64_max}"), format!("1-r{}", u64_max + 1)),
-        ] {
-            // at bounds limit
-            assert!(s1.parse::<Version>().is_ok());
-            // above bounds limit
-            assert!(s2.parse::<Version>().is_err());
+        // valid
+        for s in &TEST_DATA.version_toml.valid {
+            let result = Version::valid(s);
+            assert!(result.is_ok(), "{s:?} is invalid");
+            let result = Version::new(s);
+            assert!(result.is_ok(), "{s:?} failed");
         }
     }
 

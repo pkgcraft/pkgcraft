@@ -80,12 +80,12 @@ pub(crate) struct ParsedCpv<'a> {
 }
 
 impl ParsedCpv<'_> {
-    pub(crate) fn into_owned(self) -> crate::Result<Cpv> {
-        Ok(Cpv {
+    pub(crate) fn into_owned(self) -> Cpv {
+        Cpv {
             category: self.category.to_string(),
             package: self.package.to_string(),
-            version: self.version.into_owned(self.version_str)?,
-        })
+            version: self.version.into_owned(self.version_str),
+        }
     }
 }
 
