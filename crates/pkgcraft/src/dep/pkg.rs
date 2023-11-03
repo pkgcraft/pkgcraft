@@ -223,7 +223,7 @@ impl Dep {
                         dep.to_mut().repo = None;
                     }
                 }
-                _ => (),
+                field => panic!("unhandled DepFields value: {field:?}"),
             }
         }
 
