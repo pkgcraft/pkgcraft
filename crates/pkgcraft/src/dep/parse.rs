@@ -518,7 +518,7 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        // invalid deps
+        // invalid
         for s in &TEST_DATA.dep_toml.invalid {
             for eapi in &*EAPIS {
                 let result = dep(s, eapi);
@@ -526,11 +526,10 @@ mod tests {
             }
         }
 
-        // valid deps
+        // valid
         for e in &TEST_DATA.dep_toml.valid {
             let s = e.dep.as_str();
             let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
-            // verify parse successes
             for eapi in &passing_eapis {
                 let result = dep(s, eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
@@ -546,7 +545,6 @@ mod tests {
                 assert_eq!(d.use_deps(), e.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(d.to_string(), s, "{s:?} failed for EAPI={eapi}");
             }
-            // verify parse failures
             for eapi in EAPIS.difference(&passing_eapis) {
                 let result = dep(s, eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
@@ -556,7 +554,6 @@ mod tests {
 
     #[test]
     fn test_parse_slots() {
-        // good deps
         for slot in ["0", "a", "_", "_a", "99", "aBc", "a+b_c.d-e"] {
             for eapi in &*EAPIS {
                 let s = format!("cat/pkg:{slot}");
@@ -571,11 +568,9 @@ mod tests {
 
     #[test]
     fn test_parse_blockers() {
-        // non-blocker
         let d = dep("cat/pkg", &eapi::EAPI_LATEST_OFFICIAL).unwrap();
         assert!(d.blocker().is_none());
 
-        // good deps
         for (s, blocker) in [
             ("!cat/pkg", Some(Blocker::Weak)),
             ("!cat/pkg:0", Some(Blocker::Weak)),
@@ -594,7 +589,6 @@ mod tests {
 
     #[test]
     fn test_parse_use_deps() {
-        // good deps
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
             for eapi in &*EAPIS {
                 let s = format!("cat/pkg[{use_deps}]");
@@ -610,7 +604,6 @@ mod tests {
 
     #[test]
     fn test_parse_use_dep_defaults() {
-        // good deps
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
             for eapi in &*EAPIS {
                 let s = format!("cat/pkg[{use_deps}]");
@@ -626,7 +619,6 @@ mod tests {
 
     #[test]
     fn test_parse_subslots() {
-        // good deps
         for (slot_str, slot, subslot, slot_op) in [
             ("0/1", Some("0"), Some("1"), None),
             ("a/b", Some("a"), Some("b"), None),
@@ -649,7 +641,6 @@ mod tests {
 
     #[test]
     fn test_parse_slot_ops() {
-        // good deps
         for (slot_str, slot, subslot, slot_op) in [
             ("*", None, None, Some(SlotOperator::Star)),
             ("=", None, None, Some(SlotOperator::Equal)),
@@ -673,7 +664,6 @@ mod tests {
 
     #[test]
     fn test_parse_repos() {
-        // repo deps
         for repo in ["_", "a", "repo", "repo_a", "repo-a"] {
             let s = format!("cat/pkg::{repo}");
 
@@ -695,6 +685,7 @@ mod tests {
         // invalid
         for s in ["(", ")", "( )", "( l1)", "| ( l1 )", "!use ( l1 )"] {
             assert!(license_dep_set(s).is_err(), "{s:?} didn't fail");
+            assert!(license_dep_spec(s).is_err(), "{s:?} didn't fail");
         }
 
         // empty string
@@ -773,6 +764,7 @@ mod tests {
         // invalid
         for s in ["(", ")", "( )", "( u)", "| ( u )", "|| ( )", "^^ ( )", "?? ( )"] {
             assert!(required_use_dep_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
+            assert!(required_use_dep_spec(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
         }
 
         // empty string
@@ -818,6 +810,7 @@ mod tests {
         // invalid
         for s in ["(", ")", "( )", "|| ( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
             assert!(dependencies_dep_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
+            assert!(dependencies_dep_spec(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
         }
 
         // empty string
@@ -844,39 +837,72 @@ mod tests {
     }
 
     #[test]
-    fn test_properties_restrict() {
-        for parse_func in [properties_dep_set, restrict_dep_set] {
-            // invalid
-            for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"]
-            {
-                assert!(parse_func(s).is_err(), "{s:?} didn't fail");
-            }
+    fn test_properties() {
+        // invalid
+        for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"] {
+            assert!(properties_dep_set(s).is_err(), "{s:?} didn't fail");
+            assert!(properties_dep_spec(s).is_err(), "{s:?} didn't fail");
+        }
 
-            // empty string
-            assert!(parse_func("").unwrap().is_none());
+        // empty string
+        assert!(properties_dep_set("").unwrap().is_none());
 
-            // valid
-            for (s, expected_flatten) in [
-                // simple values
-                ("v", vec!["v"]),
-                ("v1 v2", vec!["v1", "v2"]),
-                // groupings
-                ("( v )", vec!["v"]),
-                ("( v1 v2 )", vec!["v1", "v2"]),
-                ("( v1 ( v2 ) )", vec!["v1", "v2"]),
-                ("( ( v ) )", vec!["v"]),
-                // conditionals
-                ("u? ( v )", vec!["v"]),
-                ("u? ( v1 v2 )", vec!["v1", "v2"]),
-                ("!u? ( v1 v2 )", vec!["v1", "v2"]),
-                // combinations
-                ("v1 u? ( v2 )", vec!["v1", "v2"]),
-            ] {
-                let depset = parse_func(s).unwrap().unwrap();
-                assert_eq!(depset.to_string(), s);
-                let flatten: Vec<_> = depset.iter_flatten().collect();
-                assert_eq!(flatten, expected_flatten);
-            }
+        // valid
+        for (s, expected_flatten) in [
+            // simple values
+            ("v", vec!["v"]),
+            ("v1 v2", vec!["v1", "v2"]),
+            // groupings
+            ("( v )", vec!["v"]),
+            ("( v1 v2 )", vec!["v1", "v2"]),
+            ("( v1 ( v2 ) )", vec!["v1", "v2"]),
+            ("( ( v ) )", vec!["v"]),
+            // conditionals
+            ("u? ( v )", vec!["v"]),
+            ("u? ( v1 v2 )", vec!["v1", "v2"]),
+            ("!u? ( v1 v2 )", vec!["v1", "v2"]),
+            // combinations
+            ("v1 u? ( v2 )", vec!["v1", "v2"]),
+        ] {
+            let depset = properties_dep_set(s).unwrap().unwrap();
+            assert_eq!(depset.to_string(), s);
+            let flatten: Vec<_> = depset.iter_flatten().collect();
+            assert_eq!(flatten, expected_flatten);
+        }
+    }
+
+    #[test]
+    fn test_restrict() {
+        // invalid
+        for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"] {
+            assert!(restrict_dep_set(s).is_err(), "{s:?} didn't fail");
+            assert!(restrict_dep_spec(s).is_err(), "{s:?} didn't fail");
+        }
+
+        // empty string
+        assert!(restrict_dep_set("").unwrap().is_none());
+
+        // valid
+        for (s, expected_flatten) in [
+            // simple values
+            ("v", vec!["v"]),
+            ("v1 v2", vec!["v1", "v2"]),
+            // groupings
+            ("( v )", vec!["v"]),
+            ("( v1 v2 )", vec!["v1", "v2"]),
+            ("( v1 ( v2 ) )", vec!["v1", "v2"]),
+            ("( ( v ) )", vec!["v"]),
+            // conditionals
+            ("u? ( v )", vec!["v"]),
+            ("u? ( v1 v2 )", vec!["v1", "v2"]),
+            ("!u? ( v1 v2 )", vec!["v1", "v2"]),
+            // combinations
+            ("v1 u? ( v2 )", vec!["v1", "v2"]),
+        ] {
+            let depset = restrict_dep_set(s).unwrap().unwrap();
+            assert_eq!(depset.to_string(), s);
+            let flatten: Vec<_> = depset.iter_flatten().collect();
+            assert_eq!(flatten, expected_flatten);
         }
     }
 }
