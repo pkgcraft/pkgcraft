@@ -33,12 +33,11 @@ impl FromStr for Revision {
         if s.is_empty() {
             Ok(Revision::default())
         } else {
-            let int = s
-                .parse()
-                .map_err(|e| Error::Overflow(format!("invalid revision: {e}: {s}")))?;
             Ok(Revision {
                 value: Some(s.to_string()),
-                int,
+                int: s
+                    .parse()
+                    .map_err(|e| Error::Overflow(format!("invalid revision: {e}: {s}")))?,
             })
         }
     }
