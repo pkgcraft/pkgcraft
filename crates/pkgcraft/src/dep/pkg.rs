@@ -180,7 +180,7 @@ impl Dep {
     /// Potentially create a new Dep dropping the given fields if they exist.
     pub fn without(&self, fields: DepFields) -> Cow<'_, Self> {
         let mut dep = Cow::Borrowed(self);
-        for field in fields.iter() {
+        for field in fields {
             match field {
                 DepFields::Blocker => {
                     if self.blocker.is_some() {
@@ -733,7 +733,7 @@ mod tests {
             let d = dep.without(fields);
             let s = d.to_string();
             assert_eq!(&s, expected);
-            assert_eq!(d.as_ref(), &Dep::from_str(&s).unwrap())
+            assert_eq!(d.as_ref(), &Dep::from_str(&s).unwrap());
         }
 
         // verify all combinations of dep fields create valid deps
@@ -741,7 +741,7 @@ mod tests {
             let val = vals.into_iter().fold(DepFields::empty(), |acc, e| acc | e);
             let d = dep.without(val);
             let s = d.to_string();
-            assert_eq!(d.as_ref(), &Dep::from_str(&s).unwrap())
+            assert_eq!(d.as_ref(), &Dep::from_str(&s).unwrap());
         }
     }
 
