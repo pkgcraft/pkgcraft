@@ -19,26 +19,22 @@ use super::{parse, Cpv};
 
 #[repr(C)]
 #[derive(
-    AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr, Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 pub enum Blocker {
-    #[default]
-    NONE,
     #[strum(serialize = "!!")]
-    Strong,
+    Strong = 1,
     #[strum(serialize = "!")]
     Weak,
 }
 
 #[repr(C)]
 #[derive(
-    AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr, Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 pub enum SlotOperator {
-    #[default]
-    NONE,
     #[strum(serialize = "=")]
-    Equal,
+    Equal = 1,
     #[strum(serialize = "*")]
     Star,
 }
