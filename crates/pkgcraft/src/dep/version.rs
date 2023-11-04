@@ -159,7 +159,6 @@ impl<'a> ParsedVersion<'a> {
     Display,
     EnumString,
     Debug,
-    Default,
     Serialize,
     Deserialize,
     PartialEq,
@@ -171,10 +170,8 @@ impl<'a> ParsedVersion<'a> {
     Clone,
 )]
 pub enum Operator {
-    #[default]
-    NONE,
     #[strum(serialize = "<")]
-    Less,
+    Less = 1,
     #[strum(serialize = "<=")]
     LessOrEqual,
     #[strum(serialize = "=")]
@@ -200,7 +197,6 @@ impl Operator {
             Approximate => NonRevisionVersion(rhs) == NonRevisionVersion(lhs),
             GreaterOrEqual => NonOpVersion(rhs) >= NonOpVersion(lhs),
             Greater => NonOpVersion(rhs) > NonOpVersion(lhs),
-            NONE => panic!("Operator::NONE is only valid as a C bindings fallback"),
         }
     }
 }
@@ -314,9 +310,6 @@ impl Intersects<Version> for Version {
             (Some(EqualGlob), Some(Approximate)) => other.as_str().starts_with(self.base()),
             (Some(Approximate), Some(EqualGlob)) => self.as_str().starts_with(other.base()),
 
-            // invalid op for intersects()
-            (Some(NONE), _) | (_, Some(NONE)) => panic!("NONE is a C bindings fallback"),
-
             // remaining cases must have one op that is unbounded
             (Some(lhs @ unbounded!()), Some(rhs)) => ranged!(self, lhs, other, rhs),
             (Some(lhs), Some(rhs @ unbounded!())) => ranged!(other, rhs, self, lhs),
@@ -338,7 +331,6 @@ impl fmt::Display for Version {
             Some(Approximate) => write!(f, "~{}", s),
             Some(GreaterOrEqual) => write!(f, ">={}", s),
             Some(Greater) => write!(f, ">{}", s),
-            Some(NONE) => panic!("Operator::NONE is only valid as a C bindings fallback"),
         }
     }
 }

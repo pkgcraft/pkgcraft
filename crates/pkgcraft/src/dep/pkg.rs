@@ -390,7 +390,6 @@ impl fmt::Display for Dep {
             Some(Approximate) => write!(f, "~{cpv}")?,
             Some(GreaterOrEqual) => write!(f, ">={cpv}")?,
             Some(Greater) => write!(f, ">{cpv}")?,
-            Some(NONE) => panic!("Operator::NONE is only valid as a C bindings fallback"),
         }
 
         // append slot data
