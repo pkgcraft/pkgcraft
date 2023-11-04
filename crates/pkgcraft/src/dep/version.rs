@@ -259,31 +259,29 @@ macro_rules! unbounded {
 // handle remaining ranged intersections
 macro_rules! ranged {
     ($ranged:expr, $ranged_op:expr, $other:expr, $other_op:expr) => {
-        match $other_op {
+        match ($ranged_op, $other_op) {
             // '~' or '=*' -- intersects if range matches
-            Approximate | EqualGlob if $ranged_op.intersects($ranged, $other) => true,
+            (op, Approximate | EqualGlob) if op.intersects($ranged, $other) => true,
 
             // remaining '~' -- intersects if ranged is '>' or '>=' on other's version with
             // a nonzero revision, e.g. >1-r1 intersects with ~1
-            Approximate => {
+            (_, Approximate) => {
                 let greater = matches!($ranged_op, Greater | GreaterOrEqual);
                 greater && $other_op.intersects($other, $ranged)
             }
 
             // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
             // exist and glob matches ranged version
-            EqualGlob if matches!($ranged_op, Less | LessOrEqual) => {
-                match $other.revision().map(|r| r.as_ref()) {
-                    None | Some("0") => $ranged.as_str().starts_with($other.as_str()),
-                    _ => false,
-                }
-            }
+            (Less | LessOrEqual, EqualGlob) => match $other.revision().map(|r| r.as_ref()) {
+                None | Some("0") => $ranged.as_str().starts_with($other.as_str()),
+                _ => false,
+            },
 
             // remaining '=*' -- intersects if glob matches ranged version
-            EqualGlob => $ranged.as_str().starts_with($other.as_str()),
+            (_, EqualGlob) => $ranged.as_str().starts_with($other.as_str()),
 
             // remaining variants should never occur
-            op => unreachable!("{op:?} operator should be previously handled"),
+            (_, op) => unreachable!("{op:?} operator should be previously handled"),
         }
     };
 }
