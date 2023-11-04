@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use criterion::Criterion;
 
-use pkgcraft::dep::Version;
+use pkgcraft::dep::{Intersects, Version};
 
 pub fn bench_pkg_versions(c: &mut Criterion) {
     c.bench_function("version-parse", |b| b.iter(|| Version::from_str("1.2.3_alpha4-r5")));
@@ -17,6 +17,12 @@ pub fn bench_pkg_versions(c: &mut Criterion) {
         let v1 = Version::from_str("1.2.3a_beta4-r4").unwrap();
         let v2 = Version::from_str("1.2.3a_beta5-r5").unwrap();
         b.iter(|| v1 < v2);
+    });
+
+    c.bench_function("version-intersects", |b| {
+        let v1 = Version::from_str(">=1.2.3").unwrap();
+        let v2 = Version::from_str("=1.2*").unwrap();
+        b.iter(|| v1.intersects(&v2));
     });
 
     c.bench_function("version-cmp-sort-simple", |b| {
