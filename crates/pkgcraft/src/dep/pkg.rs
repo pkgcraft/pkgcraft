@@ -39,19 +39,31 @@ pub enum SlotOperator {
     Star,
 }
 
+#[repr(u32)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
+pub enum DepField {
+    Blocker = 1,
+    Version = 1 << 1,
+    Slot = 1 << 2,
+    Subslot = 1 << 3,
+    SlotOp = 1 << 4,
+    UseDeps = 1 << 5,
+    Repo = 1 << 6,
+}
+
 #[repr(C)]
 #[derive(PartialEq, Eq, Hash, Copy, Clone)]
 pub struct DepFields(u32);
 
 bitflags! {
     impl DepFields: u32 {
-        const Blocker = 1;
-        const Version = 1 << 1;
-        const Slot = 1 << 2;
-        const Subslot = 1 << 3;
-        const SlotOp = 1 << 4;
-        const UseDeps = 1 << 5;
-        const Repo = 1 << 6;
+        const Blocker = DepField::Blocker as u32;
+        const Version = DepField::Version as u32;
+        const Slot = DepField::Slot as u32;
+        const Subslot = DepField::Subslot as u32;
+        const SlotOp = DepField::SlotOp as u32;
+        const UseDeps = DepField::UseDeps as u32;
+        const Repo = DepField::Repo as u32;
     }
 }
 
@@ -176,7 +188,7 @@ impl Dep {
     /// Potentially create a new Dep dropping the given fields if they exist.
     pub fn without(&self, fields: DepFields) -> Cow<'_, Self> {
         let mut dep = Cow::Borrowed(self);
-        for field in fields {
+        for (_name, field) in fields.iter_names() {
             match field {
                 DepFields::Blocker => {
                     if self.blocker.is_some() {

@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::{Blocker, Cpv, Dep, DepFields, Intersects, SlotOperator, Version};
+use pkgcraft::dep::{Blocker, Cpv, Dep, DepField, DepFields, Intersects, SlotOperator, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
@@ -51,9 +51,9 @@ pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi)
 /// # Safety
 /// The arguments must be a non-null Dep pointer and a DepFields bitflag.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_without(d: *mut Dep, fields: u32) -> *mut Dep {
+pub unsafe extern "C" fn pkgcraft_dep_without(d: *mut Dep, fields: DepField) -> *mut Dep {
     let dep = try_ref_from_ptr!(d);
-    let fields = DepFields::from_bits_truncate(fields);
+    let fields = DepFields::from_bits_truncate(fields as u32);
     if let Cow::Owned(d) = dep.without(fields) {
         Box::into_raw(Box::new(d))
     } else {
