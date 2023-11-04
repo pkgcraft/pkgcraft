@@ -249,6 +249,45 @@ impl Version {
     }
 }
 
+// unbounded operators
+macro_rules! unbounded {
+    () => {
+        Operator::Less | Operator::LessOrEqual | Operator::Greater | Operator::GreaterOrEqual
+    };
+}
+
+// handle remaining ranged intersections
+macro_rules! ranged {
+    ($ranged:expr, $ranged_op:expr, $other:expr, $other_op:expr) => {
+        match $other_op {
+            // '~' or '=*' -- intersects if range matches
+            Approximate | EqualGlob if $ranged_op.intersects($ranged, $other) => true,
+
+            // remaining '~' -- intersects if ranged is '>' or '>=' on other's version with
+            // a nonzero revision, e.g. >1-r1 intersects with ~1
+            Approximate => {
+                let greater = matches!($ranged_op, Greater | GreaterOrEqual);
+                greater && $other_op.intersects($other, $ranged)
+            }
+
+            // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
+            // exist and glob matches ranged version
+            EqualGlob if matches!($ranged_op, Less | LessOrEqual) => {
+                match $other.revision().map(|r| r.as_ref()) {
+                    None | Some("0") => $ranged.as_str().starts_with($other.as_str()),
+                    _ => false,
+                }
+            }
+
+            // remaining '=*' -- intersects if glob matches ranged version
+            EqualGlob => $ranged.as_str().starts_with($other.as_str()),
+
+            // remaining variants should never occur
+            op => unreachable!("{op:?} operator should be previously handled"),
+        }
+    };
+}
+
 /// Determine if two versions intersect.
 impl Intersects<Version> for Version {
     fn intersects(&self, other: &Version) -> bool {
@@ -257,6 +296,11 @@ impl Intersects<Version> for Version {
             // intersects if both are unbounded in the same direction
             (Some(Less | LessOrEqual), Some(Less | LessOrEqual)) => true,
             (Some(Greater | GreaterOrEqual), Some(Greater | GreaterOrEqual)) => true,
+
+            // unbounded in opposite directions -- intersects if both match
+            (Some(lhs @ unbounded!()), Some(rhs @ unbounded!())) => {
+                lhs.intersects(self, other) && rhs.intersects(other, self)
+            }
 
             // both non-op or '~' -- intersects if equal
             (None, None) | (Some(Approximate), Some(Approximate)) => self == other,
@@ -274,46 +318,12 @@ impl Intersects<Version> for Version {
             (Some(EqualGlob), Some(Approximate)) => other.as_str().starts_with(self.base()),
             (Some(Approximate), Some(EqualGlob)) => self.as_str().starts_with(other.base()),
 
-            (Some(lhs), Some(rhs)) => {
-                // remaining cases must have one op that is unbounded
-                let (ranged, ranged_op, other, other_op) = match lhs {
-                    Less | LessOrEqual | Greater | GreaterOrEqual => (self, lhs, other, rhs),
-                    _ => (other, rhs, self, lhs),
-                };
+            // invalid op for intersects()
+            (Some(NONE), _) | (_, Some(NONE)) => panic!("NONE is a C bindings fallback"),
 
-                match other_op {
-                    // unbounded in opposite directions -- intersects if both match
-                    Less | LessOrEqual | Greater | GreaterOrEqual => {
-                        other_op.intersects(other, ranged) && ranged_op.intersects(ranged, other)
-                    }
-
-                    // '~' or '=*' -- intersects if range matches
-                    Approximate | EqualGlob if ranged_op.intersects(ranged, other) => true,
-
-                    // remaining '~' -- intersects if ranged is '>' or '>=' on other's version with
-                    // a nonzero revision, e.g. >1-r1 intersects with ~1
-                    Approximate => {
-                        let greater = matches!(ranged_op, Greater | GreaterOrEqual);
-                        greater && other_op.intersects(other, ranged)
-                    }
-
-                    // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
-                    // exist and glob matches ranged version
-                    EqualGlob if matches!(ranged_op, Less | LessOrEqual) => {
-                        match other.revision().map(|r| r.as_ref()) {
-                            None | Some("0") => ranged.as_str().starts_with(other.as_str()),
-                            _ => false,
-                        }
-                    }
-
-                    // remaining '=*' -- intersects if glob matches ranged version
-                    EqualGlob => ranged.as_str().starts_with(other.as_str()),
-
-                    // remaining variants that should never occur
-                    Equal => unreachable!("Operator::Equal should be previously handled"),
-                    NONE => panic!("Operator::NONE is only valid as a C bindings fallback"),
-                }
-            }
+            // remaining cases must have one op that is unbounded
+            (Some(lhs @ unbounded!()), Some(rhs)) => ranged!(self, lhs, other, rhs),
+            (Some(lhs), Some(rhs @ unbounded!())) => ranged!(other, rhs, self, lhs),
         }
     }
 }
