@@ -255,17 +255,15 @@ impl Intersects<Version> for Version {
         use Operator::*;
         match (self.op, other.op) {
             // intersects if both are unbounded in the same direction
-            (Some(Less), Some(Less)) | (Some(LessOrEqual), Some(LessOrEqual)) => true,
-            (Some(Less), Some(LessOrEqual)) | (Some(LessOrEqual), Some(Less)) => true,
-            (Some(Greater), Some(Greater)) | (Some(GreaterOrEqual), Some(GreaterOrEqual)) => true,
-            (Some(Greater), Some(GreaterOrEqual)) | (Some(GreaterOrEqual), Some(Greater)) => true,
+            (Some(Less | LessOrEqual), Some(Less | LessOrEqual)) => true,
+            (Some(Greater | GreaterOrEqual), Some(Greater | GreaterOrEqual)) => true,
 
             // both non-op or '~' -- intersects if equal
             (None, None) | (Some(Approximate), Some(Approximate)) => self == other,
 
             // either non-op or '=' -- intersects if the other matches it
-            (Some(op), None) | (Some(op), Some(Equal)) => op.intersects(self, other),
-            (None, Some(op)) | (Some(Equal), Some(op)) => op.intersects(other, self),
+            (Some(op), None | Some(Equal)) => op.intersects(self, other),
+            (None | Some(Equal), Some(op)) => op.intersects(other, self),
 
             // both '=*' -- intersects if either glob matches
             (Some(op @ EqualGlob), Some(EqualGlob)) => {
