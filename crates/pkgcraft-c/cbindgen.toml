@@ -13,3 +13,6 @@ sort_by = "Name"
 [parse]
 parse_deps = true
 include = ["pkgcraft"]
+
+[export]
+include = ["DepField"]
