@@ -176,11 +176,10 @@ impl Metadata {
             DEFINED_PHASES => self.defined_phases = split!(val).sorted().collect(),
             KEYWORDS => self.keywords = split!(val).collect(),
             IUSE => {
-                self.iuse = {
-                    let iuse: Result<OrderedSet<_>, _> =
-                        val.split_whitespace().map(Iuse::new).collect();
-                    iuse?
-                }
+                self.iuse = val
+                    .split_whitespace()
+                    .map(Iuse::new)
+                    .collect::<crate::Result<OrderedSet<_>>>()?
             }
             INHERIT => self.inherit = split!(val).collect(),
             INHERITED => self.inherited = split!(val).collect(),
