@@ -76,14 +76,16 @@ pub unsafe extern "C" fn pkgcraft_dep_new_cpn(s: *const c_char) -> *mut Dep {
     }
 }
 
-/// Parse a string into a Blocker.
+/// Parse a string into a Blocker's raw value.
+///
+/// Returns a value of 0 for nonexistence.
 ///
 /// # Safety
 /// The argument must be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_blocker_from_str(s: *const c_char) -> Blocker {
+pub unsafe extern "C" fn pkgcraft_dep_blocker_from_str(s: *const c_char) -> u32 {
     let s = try_str_from_ptr!(s);
-    s.parse().unwrap_or_default()
+    s.parse::<Blocker>().map(|x| x as u32).unwrap_or_default()
 }
 
 /// Return the string for a Blocker.
@@ -92,14 +94,18 @@ pub extern "C" fn pkgcraft_dep_blocker_str(b: Blocker) -> *mut c_char {
     try_ptr_from_str!(b.as_ref())
 }
 
-/// Parse a string into a SlotOperator.
+/// Parse a string into a SlotOperator's raw value.
+///
+/// Returns a value of 0 for nonexistence.
 ///
 /// # Safety
 /// The argument must be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_slot_op_from_str(s: *const c_char) -> SlotOperator {
+pub unsafe extern "C" fn pkgcraft_dep_slot_op_from_str(s: *const c_char) -> u32 {
     let s = try_str_from_ptr!(s);
-    s.parse().unwrap_or_default()
+    s.parse::<SlotOperator>()
+        .map(|x| x as u32)
+        .unwrap_or_default()
 }
 
 /// Return the string for a SlotOperator.
@@ -169,15 +175,17 @@ pub unsafe extern "C" fn pkgcraft_dep_package(d: *mut Dep) -> *mut c_char {
     try_ptr_from_str!(dep.package())
 }
 
-/// Get the blocker of a package dependency.
+/// Get a package dependency's raw blocker value.
 /// For example, the package dependency "!cat/pkg" has a weak blocker.
+///
+/// Returns a value of 0 for nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_blocker(d: *mut Dep) -> Blocker {
+pub unsafe extern "C" fn pkgcraft_dep_blocker(d: *mut Dep) -> u32 {
     let dep = try_ref_from_ptr!(d);
-    dep.blocker().unwrap_or_default()
+    dep.blocker().map(|x| x as u32).unwrap_or_default()
 }
 
 /// Get the version of a package dependency.
@@ -228,15 +236,17 @@ pub unsafe extern "C" fn pkgcraft_dep_subslot(d: *mut Dep) -> *mut c_char {
     }
 }
 
-/// Get the slot operator of a package dependency.
+/// Get a package dependency's raw slot operator value.
 /// For example, the package dependency "=cat/pkg-1-r2:0=" has an equal slot operator.
+///
+/// Returns a value of 0 for nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_slot_op(d: *mut Dep) -> SlotOperator {
+pub unsafe extern "C" fn pkgcraft_dep_slot_op(d: *mut Dep) -> u32 {
     let dep = try_ref_from_ptr!(d);
-    dep.slot_op().unwrap_or_default()
+    dep.slot_op().map(|x| x as u32).unwrap_or_default()
 }
 
 /// Get the USE dependencies of a package dependency.

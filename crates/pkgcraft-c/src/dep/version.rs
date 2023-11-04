@@ -110,7 +110,7 @@ pub unsafe extern "C" fn pkgcraft_version_valid(s: *const c_char) -> *const c_ch
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> u32 {
     let ver = try_ref_from_ptr!(v);
-    ver.op().map(|op| op as u32).unwrap_or_default()
+    ver.op().map(|x| x as u32).unwrap_or_default()
 }
 
 /// Return a version's base, e.g. the version "1-r2" has a base of "1".
@@ -132,9 +132,7 @@ pub unsafe extern "C" fn pkgcraft_version_base(v: *mut Version) -> *mut c_char {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_version_op_from_str(s: *const c_char) -> u32 {
     let s = try_str_from_ptr!(s);
-    s.parse::<Operator>()
-        .map(|op| op as u32)
-        .unwrap_or_default()
+    s.parse::<Operator>().map(|x| x as u32).unwrap_or_default()
 }
 
 /// Return the string for an Operator.
