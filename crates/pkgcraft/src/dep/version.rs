@@ -265,10 +265,8 @@ macro_rules! ranged {
 
             // remaining '~' -- intersects if ranged is '>' or '>=' on other's version with
             // a nonzero revision, e.g. >1-r1 intersects with ~1
-            (_, Approximate) => {
-                let greater = matches!($ranged_op, Greater | GreaterOrEqual);
-                greater && $other_op.intersects($other, $ranged)
-            }
+            (Greater | GreaterOrEqual, Approximate) => $other_op.intersects($other, $ranged),
+            (_, Approximate) => false,
 
             // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
             // exist and glob matches ranged version
