@@ -786,6 +786,38 @@ pub unsafe extern "C" fn pkgcraft_dep_set_replace_index(
     dep.map(boxed).unwrap_or(ptr::null_mut())
 }
 
+/// Replace a DepSpec with another DepSpec in a DepSet, returning the replaced value.
+///
+/// Returns NULL on nonexistence or if the DepSet already contains the given DepSpec.
+///
+/// # Safety
+/// The arguments must be non-null DepSet and DepSpec pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_replace(
+    d: *mut DepSet,
+    key: *const DepSpec,
+    value: *mut DepSpec,
+) -> *mut DepSpec {
+    let set = try_mut_from_ptr!(d);
+    let key = try_ref_from_ptr!(key);
+    let value = try_ref_from_ptr!(value);
+
+    let dep = match (set.deref_mut(), key.deref(), value.deref()) {
+        (DepSetWrapper::Dep(deps), DepSpecWrapper::Dep(k), DepSpecWrapper::Dep(v)) => {
+            deps.replace(k, v.clone()).map(DepSpec::new_dep)
+        }
+        (DepSetWrapper::String(deps), DepSpecWrapper::String(k), DepSpecWrapper::String(v)) => deps
+            .replace(k, v.clone())
+            .map(|d| DepSpec::new_string(d, set.set)),
+        (DepSetWrapper::Uri(deps), DepSpecWrapper::Uri(k), DepSpecWrapper::Uri(v)) => {
+            deps.replace(k, v.clone()).map(DepSpec::new_uri)
+        }
+        _ => panic!("invalid DepSet and DepSpec type combination"),
+    };
+
+    dep.map(boxed).unwrap_or(ptr::null_mut())
+}
+
 /// Perform a set operation on two DepSets, assigning to the first.
 ///
 /// Returns NULL on error.
