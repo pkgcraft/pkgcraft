@@ -709,6 +709,39 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_subset(d1: *mut DepSet, d2: *mut De
     }
 }
 
+/// Returns the DepSpec element for a given index.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument must be a non-null DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_get_index(d: *mut DepSet, index: usize) -> *mut DepSpec {
+    ffi_catch_panic! {
+        let d = try_ref_from_ptr!(d);
+        let err = || Error::new(format!("failed getting DepSet index: {index}"));
+        use DepSetWrapper::*;
+        let dep = match d.deref() {
+            Dep(deps) => {
+                deps.get_index(index)
+                    .ok_or_else(err)
+                    .map(|dep| DepSpec::new_dep(dep.clone()))
+            }
+            String(deps) => {
+                deps.get_index(index)
+                    .ok_or_else(err)
+                    .map(|dep| DepSpec::new_string(dep.clone(), d.set))
+            }
+            Uri(deps) => {
+                deps.get_index(index)
+                    .ok_or_else(err)
+                    .map(|dep| DepSpec::new_uri(dep.clone()))
+            }
+        };
+        Box::into_raw(Box::new(unwrap_or_panic!(dep)))
+    }
+}
+
 /// Perform a set operation on two DepSets, assigning to the first.
 ///
 /// Returns NULL on error.

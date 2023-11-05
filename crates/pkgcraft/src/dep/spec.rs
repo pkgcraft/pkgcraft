@@ -446,6 +446,11 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
         Self(SortedSet::new())
     }
 
+    /// Return the `DepSpec` for a given index.
+    pub fn get_index(&self, index: usize) -> Option<&DepSpec<S, T>> {
+        self.0.get_index(index)
+    }
+
     /// Return the number of `DepSpec` objects a `DepSet` contains.
     pub fn len(&self) -> usize {
         self.0.len()
