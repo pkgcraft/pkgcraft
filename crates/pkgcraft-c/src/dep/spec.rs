@@ -263,6 +263,16 @@ impl Iterator for DepSpecIntoIter {
     }
 }
 
+impl DoubleEndedIterator for DepSpecIntoIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Dep(_, iter) => iter.next_back().map(DepSpec::new_dep),
+            Self::String(set, iter) => iter.next_back().map(|d| DepSpec::new_string(d, *set)),
+            Self::Uri(_, iter) => iter.next_back().map(DepSpec::new_uri),
+        }
+    }
+}
+
 /// Opaque wrapper for pkgcraft::dep::DepSpec.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DepSpecWrapper {
@@ -916,6 +926,20 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepS
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next(i: *mut DepSpecIntoIter) -> *mut DepSpec {
     let iter = try_mut_from_ptr!(i);
     iter.next().map(boxed).unwrap_or(ptr::null_mut())
+}
+
+/// Return the next object from the end of a DepSet iterator.
+///
+/// Returns NULL when the iterator is empty.
+///
+/// # Safety
+/// The argument must be a non-null DepSpecIntoIter pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next_back(
+    i: *mut DepSpecIntoIter,
+) -> *mut DepSpec {
+    let iter = try_mut_from_ptr!(i);
+    iter.next_back().map(boxed).unwrap_or(ptr::null_mut())
 }
 
 /// Free a DepSet iterator.
