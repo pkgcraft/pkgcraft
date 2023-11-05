@@ -663,6 +663,12 @@ impl<'a, S: UseFlag, T: Ordered> Iterator for Iter<'a, S, T> {
     }
 }
 
+impl<'a, S: UseFlag, T: Ordered> DoubleEndedIterator for Iter<'a, S, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.pop_back()
+    }
+}
+
 impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DepSet<S, T> {
     type Item = &'a DepSpec<S, T>;
     type IntoIter = Iter<'a, S, T>;
@@ -833,6 +839,12 @@ impl<S: UseFlag, T: Ordered> Iterator for IntoIter<S, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front()
+    }
+}
+
+impl<S: UseFlag, T: Ordered> DoubleEndedIterator for IntoIter<S, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.pop_back()
     }
 }
 
