@@ -451,6 +451,17 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
         self.0.get_index(index)
     }
 
+    /// Replace a `DepSpec` with another `DepSpec`, returning the replaced value.
+    pub fn replace(&mut self, key: &DepSpec<S, T>, value: DepSpec<S, T>) -> Option<DepSpec<S, T>> {
+        if let Some(i) = self.0.get_index_of(key) {
+            if self.0.insert(value) {
+                return self.0.swap_remove_index(i);
+            }
+        }
+
+        None
+    }
+
     /// Replace a `DepSpec` for a given index in a `DepSet`, returning the replaced value.
     ///
     /// This removes the element at the given index if its replacement value already exists,
