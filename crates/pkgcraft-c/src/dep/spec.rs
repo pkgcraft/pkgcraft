@@ -755,6 +755,45 @@ pub unsafe extern "C" fn pkgcraft_dep_set_get_index(d: *mut DepSet, index: usize
     }
 }
 
+/// Insert a DepSpec into a DepSet.
+///
+/// Returns false if an equivalent value already exists, otherwise true.
+///
+/// # Safety
+/// The arguments must be non-null DepSet and DepSpec pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_insert(d: *mut DepSet, value: *mut DepSpec) -> bool {
+    let set = try_mut_from_ptr!(d);
+    let spec = try_ref_from_ptr!(value);
+
+    match (set.deref_mut(), spec.deref().clone()) {
+        (DepSetWrapper::Dep(deps), DepSpecWrapper::Dep(dep)) => deps.insert(dep),
+        (DepSetWrapper::String(deps), DepSpecWrapper::String(dep)) => deps.insert(dep),
+        (DepSetWrapper::Uri(deps), DepSpecWrapper::Uri(dep)) => deps.insert(dep),
+        _ => panic!("invalid DepSet and DepSpec type combination"),
+    }
+}
+
+/// Remove the last value from a DepSet.
+///
+/// Returns NULL on nonexistence.
+///
+/// # Safety
+/// The argument must be a non-null DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_pop(d: *mut DepSet) -> *mut DepSpec {
+    let set = try_mut_from_ptr!(d);
+
+    use DepSetWrapper::*;
+    let dep = match set.deref_mut() {
+        Dep(deps) => deps.pop().map(DepSpec::new_dep),
+        String(deps) => deps.pop().map(|d| DepSpec::new_string(d, set.set)),
+        Uri(deps) => deps.pop().map(DepSpec::new_uri),
+    };
+
+    dep.map(boxed).unwrap_or(ptr::null_mut())
+}
+
 /// Replace a DepSpec for a given index in a DepSet, returning the replaced value.
 ///
 /// Returns NULL on index nonexistence or if the DepSet already contains the given DepSpec.

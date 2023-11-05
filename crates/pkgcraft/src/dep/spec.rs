@@ -451,6 +451,16 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
         self.0.get_index(index)
     }
 
+    /// Insert a `DepSpec` into the `DepSet`.
+    pub fn insert(&mut self, value: DepSpec<S, T>) -> bool {
+        self.0.insert(value)
+    }
+
+    /// Remove the last value.
+    pub fn pop(&mut self) -> Option<DepSpec<S, T>> {
+        self.0.pop()
+    }
+
     /// Replace a `DepSpec` with another `DepSpec`, returning the replaced value.
     ///
     /// This removes the given element if its replacement value already exists, preserving the
