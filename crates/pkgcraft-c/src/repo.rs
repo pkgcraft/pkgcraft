@@ -235,10 +235,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_cpv<'a>(r: *mut Repo) -> *mut RepoIt
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_iter_cpv_next(i: *mut RepoIterCpv) -> *mut Cpv {
     let iter = try_mut_from_ptr!(i);
-    match iter.next() {
-        Some(p) => Box::into_raw(Box::new(p)),
-        None => ptr::null_mut(),
-    }
+    iter.next().map(boxed).unwrap_or(ptr::null_mut())
 }
 
 /// Free a repo Cpv iterator.
@@ -271,10 +268,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter<'a>(r: *mut Repo) -> *mut RepoIter<'
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_iter_next(i: *mut RepoIter) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
-    match iter.next() {
-        Some(p) => Box::into_raw(Box::new(p)),
-        None => ptr::null_mut(),
-    }
+    iter.next().map(boxed).unwrap_or(ptr::null_mut())
 }
 
 /// Free a repo iterator.
@@ -312,10 +306,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_restrict<'a>(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_iter_restrict_next(i: *mut RepoIterRestrict) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
-    match iter.next() {
-        Some(p) => Box::into_raw(Box::new(p)),
-        None => ptr::null_mut(),
-    }
+    iter.next().map(boxed).unwrap_or(ptr::null_mut())
 }
 
 /// Free a repo restriction iterator.

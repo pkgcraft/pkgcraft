@@ -167,10 +167,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter<'a>(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_next(i: *mut RepoSetIter) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
-    match iter.next() {
-        Some(p) => Box::into_raw(Box::new(p)),
-        None => ptr::null_mut(),
-    }
+    iter.next().map(boxed).unwrap_or(ptr::null_mut())
 }
 
 /// Free a repo set iterator.

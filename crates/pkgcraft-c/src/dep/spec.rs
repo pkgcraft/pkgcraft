@@ -19,6 +19,7 @@ use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 use crate::types::SetOp;
+use crate::utils::boxed;
 
 /// DepSet variants.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
@@ -772,8 +773,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_replace_index(
         _ => panic!("invalid DepSet and DepSpec type combination"),
     };
 
-    dep.map(|x| Box::into_raw(Box::new(x)))
-        .unwrap_or(ptr::null_mut())
+    dep.map(boxed).unwrap_or(ptr::null_mut())
 }
 
 /// Perform a set operation on two DepSets, assigning to the first.
@@ -915,9 +915,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepS
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next(i: *mut DepSpecIntoIter) -> *mut DepSpec {
     let iter = try_mut_from_ptr!(i);
-    iter.next()
-        .map(|x| Box::into_raw(Box::new(x)))
-        .unwrap_or(ptr::null_mut())
+    iter.next().map(boxed).unwrap_or(ptr::null_mut())
 }
 
 /// Free a DepSet iterator.
@@ -1202,9 +1200,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_next(
     i: *mut DepSpecIntoIterRecursive,
 ) -> *mut DepSpec {
     let iter = try_mut_from_ptr!(i);
-    iter.next()
-        .map(|x| Box::into_raw(Box::new(x)))
-        .unwrap_or(ptr::null_mut())
+    iter.next().map(boxed).unwrap_or(ptr::null_mut())
 }
 
 /// Free a recursive iterator.
