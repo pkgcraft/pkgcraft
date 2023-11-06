@@ -44,7 +44,7 @@ pub fn bench_pkg_deps(c: &mut Criterion) {
     });
 
     c.bench_function("dep-valid", |b| {
-        b.iter(|| Dep::valid(">=cat/pkg-1-r2:3/4=[a,b,c]", None))
+        b.iter(|| Dep::valid(">=cat/pkg-1.2.3-r4:5/6=[a,b,c]", None))
     });
 
     c.bench_function("dep-cmp-sort", |b| {
