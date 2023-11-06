@@ -239,12 +239,8 @@ impl Dep {
     }
 
     /// Verify a string represents a valid package dependency.
-    pub fn valid<T>(s: &str, eapi: T) -> crate::Result<()>
-    where
-        T: TryInto<&'static Eapi>,
-        Error: From<<T as TryInto<&'static Eapi>>::Error>,
-    {
-        parse::dep_str(s, eapi.try_into()?)?;
+    pub fn valid(s: &str, eapi: Option<&'static Eapi>) -> crate::Result<()> {
+        parse::dep_str(s, eapi.unwrap_or_default())?;
         Ok(())
     }
 
@@ -513,7 +509,7 @@ mod tests {
         // invalid
         for s in &TEST_DATA.dep_toml.invalid {
             for eapi in &*EAPIS {
-                let result = Dep::valid(s, *eapi);
+                let result = Dep::valid(s, Some(*eapi));
                 assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
                 let result = Dep::new(s, *eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
@@ -525,7 +521,7 @@ mod tests {
             let s = e.dep.as_str();
             let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
             for eapi in &passing_eapis {
-                let result = Dep::valid(s, *eapi);
+                let result = Dep::valid(s, Some(*eapi));
                 assert!(result.is_ok(), "{s:?} isn't valid for EAPI={eapi}");
                 let result = Dep::new(s, *eapi);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
@@ -542,7 +538,7 @@ mod tests {
                 assert_eq!(d.to_string(), s, "{s:?} failed for EAPI={eapi}");
             }
             for eapi in EAPIS.difference(&passing_eapis) {
-                let result = Dep::valid(s, *eapi);
+                let result = Dep::valid(s, Some(*eapi));
                 assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
                 let result = Dep::new(s, *eapi);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
