@@ -81,7 +81,7 @@ impl FormatString for Command {
 impl Command {
     fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
         let dep = match self.eapi {
-            Some(eapi) => Dep::new(s, eapi),
+            Some(eapi) => eapi.dep(s),
             None => s.parse(),
         }?;
 
