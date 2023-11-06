@@ -225,7 +225,7 @@ peg::parser!(grammar depspec() for str {
 
     rule dependencies_val(eapi: &'static Eapi) -> DepSpec<String, Dep>
         = s:$(quiet!{!")" [^' ']+}) {?
-            let dep = match Dep::new(s, eapi) {
+            let dep = match eapi.dep(s) {
                 Ok(x) => x,
                 Err(e) => return Err("failed parsing dep"),
             };
@@ -413,7 +413,7 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
-pub(super) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
+pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
     let dep = dep_str(s, eapi)?;
     Ok(dep.into_owned())
 }

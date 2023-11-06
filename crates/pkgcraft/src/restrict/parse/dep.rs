@@ -245,8 +245,6 @@ pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use crate::dep::Dep;
     use crate::restrict::Restriction;
 
@@ -274,7 +272,7 @@ mod tests {
             "cat/pkg::repo",
             "cat/pkg::repo-ed",
         ];
-        let deps: Vec<_> = dep_strs.iter().map(|s| Dep::from_str(s).unwrap()).collect();
+        let deps: Vec<_> = dep_strs.iter().map(|s| Dep::new(s).unwrap()).collect();
 
         let filter = |r: BaseRestrict, deps: &[Dep]| -> Vec<String> {
             deps.iter()

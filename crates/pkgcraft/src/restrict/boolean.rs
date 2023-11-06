@@ -135,15 +135,13 @@ pub(crate) use restrict_ops_boolean;
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use crate::dep::Dep;
     use crate::restrict::dep::Restrict as DepRestrict;
     use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
     #[test]
     fn test_and_restrict() {
-        let d = Dep::from_str("cat/pkg").unwrap();
+        let d = Dep::new("cat/pkg").unwrap();
         let cat = DepRestrict::category("cat");
         let pkg = DepRestrict::package("pkg");
         let r = BaseRestrict::and([cat, pkg]);
@@ -156,8 +154,8 @@ mod tests {
         assert!(!(r.matches(&d)));
 
         // matching against two deps
-        let d1 = Dep::from_str("cat/pkg1").unwrap();
-        let d2 = Dep::from_str("cat/pkg2").unwrap();
+        let d1 = Dep::new("cat/pkg1").unwrap();
+        let d2 = Dep::new("cat/pkg2").unwrap();
         let r = BaseRestrict::and([&d1, &d2]);
         assert!(!(r.matches(&d1)));
         assert!(!(r.matches(&d2)));
@@ -165,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_or_restrict() {
-        let d = Dep::from_str("cat/pkg").unwrap();
+        let d = Dep::new("cat/pkg").unwrap();
         let cat = DepRestrict::category("cat");
         let pkg = DepRestrict::package("pkg");
         let r = BaseRestrict::or([cat, pkg]);
@@ -178,8 +176,8 @@ mod tests {
         assert!(r.matches(&d));
 
         // matching against two deps
-        let d1 = Dep::from_str("cat/pkg1").unwrap();
-        let d2 = Dep::from_str("cat/pkg2").unwrap();
+        let d1 = Dep::new("cat/pkg1").unwrap();
+        let d2 = Dep::new("cat/pkg2").unwrap();
         let r = BaseRestrict::or([&d1, &d2]);
         assert!(r.matches(&d1));
         assert!(r.matches(&d2));
@@ -187,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_xor_restrict() {
-        let d = Dep::from_str("cat/pkg").unwrap();
+        let d = Dep::new("cat/pkg").unwrap();
 
         let cat = DepRestrict::category("cat");
         let pkg = DepRestrict::package("pkg");
@@ -217,9 +215,9 @@ mod tests {
         let r = BaseRestrict::xor([cat, pkg, nover]);
         assert!(r.matches(&d));
 
-        let d1 = Dep::from_str("cat/pkg1").unwrap();
-        let d2 = Dep::from_str("cat/pkg2").unwrap();
-        let d3 = Dep::from_str("cat/pkg3").unwrap();
+        let d1 = Dep::new("cat/pkg1").unwrap();
+        let d2 = Dep::new("cat/pkg2").unwrap();
+        let d3 = Dep::new("cat/pkg3").unwrap();
 
         // two non-matches
         let r = BaseRestrict::xor([&d1, &d2]);
@@ -232,7 +230,7 @@ mod tests {
 
     #[test]
     fn test_not_restrict() {
-        let d = Dep::from_str("cat/pkg").unwrap();
+        let d = Dep::new("cat/pkg").unwrap();
         let r: BaseRestrict = DepRestrict::category("cat1").into();
 
         // restrict doesn't match

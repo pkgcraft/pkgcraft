@@ -971,7 +971,6 @@ impl<'a> Iterator for IterRawRestrict<'a> {
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::str::FromStr;
 
     use tracing_test::traced_test;
 
@@ -1137,9 +1136,9 @@ mod tests {
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let d = Dep::from_str("cat/pkg").unwrap();
+        let d = Dep::new("cat/pkg").unwrap();
         assert!(repo.contains(&d));
-        let d = Dep::from_str("cat/pkg-a").unwrap();
+        let d = Dep::new("cat/pkg-a").unwrap();
         assert!(!repo.contains(&d));
     }
 

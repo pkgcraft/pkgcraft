@@ -117,8 +117,6 @@ impl Repository for Repo {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use crate::dep::{Cpv, Dep};
     use crate::repo::Contains;
 
@@ -136,7 +134,7 @@ mod tests {
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let a = Dep::from_str("cat/pkg").unwrap();
+        let a = Dep::new("cat/pkg").unwrap();
         assert!(!repo.contains(&a));
     }
 

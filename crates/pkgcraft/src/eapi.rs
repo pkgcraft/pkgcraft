@@ -12,7 +12,7 @@ use once_cell::sync::Lazy;
 use strum::EnumString;
 
 use crate::archive::Archive;
-use crate::dep::Dep;
+use crate::dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
 use crate::shell::builtins::EAPI_BUILTINS;
@@ -197,8 +197,8 @@ impl Eapi {
     }
 
     /// Parse a package dependency using a specific EAPI.
-    pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<Dep> {
-        Dep::new(s.as_ref(), self)
+    pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<dep::Dep> {
+        dep::parse::dep(s.as_ref(), self)
     }
 
     /// Return the ordered set of phases for a given operation.

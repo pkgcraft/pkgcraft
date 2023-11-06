@@ -9,7 +9,7 @@ use bitflags::bitflags;
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::eapi::{Eapi, EAPI_LATEST};
+use crate::eapi::Eapi;
 use crate::macros::bool_not_equal;
 use crate::types::OrderedSet;
 use crate::Error;
@@ -171,13 +171,9 @@ type DepKey<'a> = (
 );
 
 impl Dep {
-    /// Create a new Dep from a given string.
-    pub fn new<T>(s: &str, eapi: T) -> crate::Result<Self>
-    where
-        T: TryInto<&'static Eapi>,
-        Error: From<<T as TryInto<&'static Eapi>>::Error>,
-    {
-        parse::dep(s, eapi.try_into()?)
+    /// Create a new Dep from a given string using the default EAPI.
+    pub fn new(s: &str) -> crate::Result<Self> {
+        parse::dep(s, Default::default())
     }
 
     /// Create a new unversioned Dep from a given string.
@@ -436,7 +432,7 @@ impl FromStr for Dep {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        parse::dep(s, &EAPI_LATEST)
+        Dep::new(s)
     }
 }
 
@@ -511,7 +507,7 @@ mod tests {
             for eapi in &*EAPIS {
                 let result = Dep::valid(s, Some(*eapi));
                 assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
-                let result = Dep::new(s, *eapi);
+                let result = eapi.dep(s);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
@@ -523,7 +519,7 @@ mod tests {
             for eapi in &passing_eapis {
                 let result = Dep::valid(s, Some(*eapi));
                 assert!(result.is_ok(), "{s:?} isn't valid for EAPI={eapi}");
-                let result = Dep::new(s, *eapi);
+                let result = eapi.dep(s);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
                 let d = result.unwrap();
                 assert_eq!(d.category(), e.category, "{s:?} failed for EAPI={eapi}");
@@ -540,7 +536,7 @@ mod tests {
             for eapi in EAPIS.difference(&passing_eapis) {
                 let result = Dep::valid(s, Some(*eapi));
                 assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
-                let result = Dep::new(s, *eapi);
+                let result = eapi.dep(s);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
@@ -690,7 +686,7 @@ mod tests {
     #[test]
     fn test_intersects() {
         // inject version intersects data from version.toml into Dep objects
-        let dep = Dep::from_str("a/b").unwrap();
+        let dep = Dep::new("a/b").unwrap();
         for d in &TEST_DATA.version_toml.intersects {
             // test intersections between all pairs of distinct values
             let permutations = d
@@ -745,7 +741,7 @@ mod tests {
 
     #[test]
     fn test_without() {
-        let dep = Dep::from_str("!!>=cat/pkg-1.2-r3:4/5=[a,b]::repo").unwrap();
+        let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=[a,b]::repo").unwrap();
 
         for (fields, expected) in [
             (DepFields::Blocker, ">=cat/pkg-1.2-r3:4/5=[a,b]::repo"),
@@ -760,7 +756,7 @@ mod tests {
             let d = dep.without(fields);
             let s = d.to_string();
             assert_eq!(&s, expected);
-            assert_eq!(d.as_ref(), &Dep::from_str(&s).unwrap());
+            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
 
         // verify all combinations of dep fields create valid deps
@@ -768,7 +764,7 @@ mod tests {
             let val = vals.into_iter().fold(DepFields::empty(), |acc, e| acc | e);
             let d = dep.without(val);
             let s = d.to_string();
-            assert_eq!(d.as_ref(), &Dep::from_str(&s).unwrap());
+            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
     }
 

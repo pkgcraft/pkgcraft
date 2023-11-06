@@ -25,7 +25,7 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
         let eapi = eapi_or_default!(eapi);
-        let dep = unwrap_or_panic!(Dep::new(s, eapi));
+        let dep = unwrap_or_panic!(eapi.dep(s));
         Box::into_raw(Box::new(dep))
     }
 }

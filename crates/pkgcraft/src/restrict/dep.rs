@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::dep::{Blocker, Cpv, Dep, Intersects, Version};
 
 use super::set::OrderedSetRestrict;
@@ -29,8 +27,7 @@ impl Restrict {
     }
 
     pub fn version(s: &str) -> crate::Result<Self> {
-        let v = Version::from_str(s)?;
-        Ok(Self::Version(Some(v)))
+        Ok(Self::Version(Some(s.parse()?)))
     }
 
     pub fn slot(o: Option<&str>) -> Self {
@@ -189,10 +186,10 @@ mod tests {
 
     #[test]
     fn test_restrict_methods() {
-        let unversioned = Dep::from_str("cat/pkg").unwrap();
-        let blocker = Dep::from_str("!cat/pkg").unwrap();
+        let unversioned = Dep::new("cat/pkg").unwrap();
+        let blocker = Dep::new("!cat/pkg").unwrap();
         let cpv = Cpv::new("cat/pkg-1").unwrap();
-        let full = Dep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+        let full = Dep::new("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // category
         let r = Restrict::category("cat");
@@ -295,9 +292,9 @@ mod tests {
 
     #[test]
     fn test_restrict_conversion() {
-        let unversioned = Dep::from_str("cat/pkg").unwrap();
+        let unversioned = Dep::new("cat/pkg").unwrap();
         let cpv = Cpv::new("cat/pkg-1").unwrap();
-        let full = Dep::from_str("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+        let full = Dep::new("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
 
         // unversioned restriction
         let r = BaseRestrict::from(&unversioned);
@@ -320,13 +317,13 @@ mod tests {
 
     #[test]
     fn test_restrict_versions() {
-        let lt = Dep::from_str("<cat/pkg-1-r1").unwrap();
-        let le = Dep::from_str("<=cat/pkg-1-r1").unwrap();
-        let eq = Dep::from_str("=cat/pkg-1-r1").unwrap();
-        let eq_glob = Dep::from_str("=cat/pkg-1*").unwrap();
-        let approx = Dep::from_str("~cat/pkg-1").unwrap();
-        let ge = Dep::from_str(">=cat/pkg-1-r1").unwrap();
-        let gt = Dep::from_str(">cat/pkg-1-r1").unwrap();
+        let lt = Dep::new("<cat/pkg-1-r1").unwrap();
+        let le = Dep::new("<=cat/pkg-1-r1").unwrap();
+        let eq = Dep::new("=cat/pkg-1-r1").unwrap();
+        let eq_glob = Dep::new("=cat/pkg-1*").unwrap();
+        let approx = Dep::new("~cat/pkg-1").unwrap();
+        let ge = Dep::new(">=cat/pkg-1-r1").unwrap();
+        let gt = Dep::new(">cat/pkg-1-r1").unwrap();
 
         let lt_cpv = Cpv::new("cat/pkg-0").unwrap();
         let gt_cpv = Cpv::new("cat/pkg-2").unwrap();

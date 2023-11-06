@@ -240,8 +240,6 @@ impl<'a> Iterator for IterRestrict<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use crate::dep::Dep;
     use crate::pkg::Package;
     use crate::repo::Contains;
@@ -333,9 +331,9 @@ mod tests {
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let a = Dep::from_str("cat/pkg").unwrap();
+        let a = Dep::new("cat/pkg").unwrap();
         assert!(repo.contains(&a));
-        let a = Dep::from_str("cat/pkg-a").unwrap();
+        let a = Dep::new("cat/pkg-a").unwrap();
         assert!(!repo.contains(&a));
     }
 

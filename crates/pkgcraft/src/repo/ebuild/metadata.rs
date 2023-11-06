@@ -996,7 +996,7 @@ mod tests {
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_deprecated(),
-            [&Dep::from_str("cat/pkg-a").unwrap(), &Dep::from_str("another/pkg").unwrap()],
+            [&Dep::new("cat/pkg-a").unwrap(), &Dep::new("another/pkg").unwrap()],
         );
         assert_logs_re!(".+, line 8: .* invalid dep: cat/pkg-1$");
 
@@ -1013,7 +1013,7 @@ mod tests {
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_deprecated(),
-            [&Dep::from_str("cat/slotted:0").unwrap(), &Dep::from_str("cat/subslot:0/1").unwrap()],
+            [&Dep::new("cat/slotted:0").unwrap(), &Dep::new("cat/subslot:0/1").unwrap()],
         );
     }
 
@@ -1047,7 +1047,7 @@ mod tests {
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_mask(),
-            [&Dep::from_str("cat/pkg-a").unwrap(), &Dep::from_str("another/pkg").unwrap()],
+            [&Dep::new("cat/pkg-a").unwrap(), &Dep::new("another/pkg").unwrap()],
         );
         assert_logs_re!(".+, line 8: .* invalid dep: cat/pkg-1$");
 
@@ -1064,7 +1064,7 @@ mod tests {
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_mask(),
-            [&Dep::from_str("cat/slotted:0").unwrap(), &Dep::from_str("cat/subslot:0/1").unwrap()],
+            [&Dep::new("cat/slotted:0").unwrap(), &Dep::new("cat/subslot:0/1").unwrap()],
         );
     }
 
