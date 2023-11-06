@@ -1,3 +1,8 @@
+# 0.0.13 (2023-11-06)
+
+## Fixed
+- `pk repo metadata`: use proper package prefixes for failure messages
+
 # 0.0.12 (2023-09-29)
 
 ## Changed
