@@ -9,9 +9,7 @@ pub fn bench_pkg_deps(c: &mut Criterion) {
 
     c.bench_function("dep-parse-versioned", |b| b.iter(|| Dep::new(">=cat/pkg-4-r1")));
 
-    c.bench_function("dep-parse-versioned-slotdep", |b| {
-        b.iter(|| Dep::new(">=cat/pkg-4-r1:0="))
-    });
+    c.bench_function("dep-parse-versioned-slotdep", |b| b.iter(|| Dep::new(">=cat/pkg-4-r1:0=")));
 
     c.bench_function("dep-parse-usedeps", |b| {
         b.iter(|| Dep::new(">=cat/pkg-4-r1:0=[a,b=,!c=,d?,!e?,-f]"))
