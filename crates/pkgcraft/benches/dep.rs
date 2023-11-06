@@ -43,6 +43,10 @@ pub fn bench_pkg_deps(c: &mut Criterion) {
         b.iter(|| d1 > d2);
     });
 
+    c.bench_function("dep-valid", |b| {
+        b.iter(|| Dep::valid(">=cat/pkg-1-r2:3/4=[a,b,c]", None))
+    });
+
     c.bench_function("dep-cmp-sort", |b| {
         let mut deps: Vec<_> = (0..100)
             .rev()
