@@ -44,10 +44,10 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build
-      run: cargo criterion --no-run
+      run: cargo criterion --no-run -p pkgcraft
 
     - name: Benchmark
-      run: cargo criterion --color always --output-format quiet
+      run: cargo criterion -p pkgcraft --color always --output-format quiet
 
     - name: Remove old caches
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
