@@ -1,6 +1,6 @@
 [package]
 name = "pkgcraft-tools"
-version = "0.0.12"
+version = "0.0.13"
 description = "pkgcraft-based tools for Gentoo"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools"
@@ -29,8 +29,8 @@ humantime = "2.1.0"
 indexmap = { version = "2.1.0", features = ["serde"] }
 itertools = "0.11.0"
 num_cpus = "1.16.0"
-pkgcraft = { path = "../pkgcraft", version = "0.0.12" }
-scallop = { path = "../scallop", version = "0.0.11" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.13" }
+scallop = { path = "../scallop", version = "0.0.12" }
 strum = { version = "0.25.0", features = ["derive"] }
 tracing = "0.1.40"
 tracing-log = "0.2.0"
