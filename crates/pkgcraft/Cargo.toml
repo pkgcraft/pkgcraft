@@ -27,7 +27,7 @@ async-trait = "0.1.74"
 bitflags = "2.4.1"
 blake2 = "0.10.6"
 blake3 = { version = "1.5.0", features = ["traits-preview"] }
-cached = "0.46.0"
+cached = "0.46.1"
 camino = { version = "1.1.6", features = ["serde1"] }
 chic = "1.2.2"
 clap = { version = "4.4.7", features = ["derive"] }
@@ -40,7 +40,7 @@ futures = "0.3.29"
 git2 = { version = "0.18.1", optional = true }
 glob = "0.3.1"
 hex = "0.4.3"
-indexmap = { version = "2.0.2", features = ["rayon", "serde"] }
+indexmap = { version = "2.1.0", features = ["rayon", "serde"] }
 indicatif = "0.17.7"
 indoc = "2.0.4"
 is_executable = "1.0.1"

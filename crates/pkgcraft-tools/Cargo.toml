@@ -26,7 +26,7 @@ camino = "1.1.6"
 clap = { version = "4.4.7", features = ["derive"] }
 clap-verbosity-flag = "2.1.0"
 humantime = "2.1.0"
-indexmap = { version = "2.0.2", features = ["serde"] }
+indexmap = { version = "2.1.0", features = ["serde"] }
 itertools = "0.11.0"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.12" }
