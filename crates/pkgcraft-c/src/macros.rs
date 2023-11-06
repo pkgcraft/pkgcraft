@@ -32,6 +32,14 @@ macro_rules! iter_to_array {
 }
 pub(crate) use iter_to_array;
 
+/// Convert a given pointer into an Option<&T>.
+macro_rules! option_from_ptr {
+    ( $var:expr ) => {
+        unsafe { $var.as_ref() }
+    };
+}
+pub(crate) use option_from_ptr;
+
 /// Convert a given pointer into a &T.
 macro_rules! try_ref_from_ptr {
     ( $var:expr ) => {
