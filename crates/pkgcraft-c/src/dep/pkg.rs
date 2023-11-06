@@ -40,7 +40,7 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
 pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
-        let eapi = eapi_or_default!(eapi);
+        let eapi = option_from_ptr!(eapi);
         unwrap_or_panic!(Dep::valid(val, eapi));
         s
     }
