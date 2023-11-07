@@ -120,6 +120,44 @@ mod tests {
     }
 
     #[test]
+    fn test_nested() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        // create eclasses
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            inherit e2
+
+            e1_src_compile() {
+                VAR=1
+            }
+
+            EXPORT_FUNCTIONS src_compile
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+        "#};
+        t.create_eclass("e2", eclass).unwrap();
+
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            inherit e1
+            DESCRIPTION="testing EXPORT_FUNCTIONS support"
+            SLOT=0
+        "#};
+        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        raw_pkg.source().unwrap();
+        // execute eclass-defined function
+        let mut func = functions::find("src_compile").unwrap();
+        // verify the function runs
+        assert!(optional("VAR").is_none());
+        func.execute(&[]).unwrap();
+        assert_eq!(optional("VAR").unwrap(), "1");
+    }
+
+    #[test]
     fn test_override() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
