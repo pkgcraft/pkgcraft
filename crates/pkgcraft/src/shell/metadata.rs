@@ -343,7 +343,7 @@ impl Metadata {
             Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
         })?;
 
-        let data: HashMap<_, _> = data
+        let mut data: HashMap<_, _> = data
             .lines()
             .filter_map(|l| {
                 l.split_once('=').map(|(s, v)| match (s, v) {
@@ -367,8 +367,10 @@ impl Metadata {
             return Err(Error::InvalidValue("missing ebuild checksum".to_string()));
         }
 
+        let mut meta = Self::default();
+
         // verify eclass hashes
-        if let Some(val) = data.get(&Key::INHERITED) {
+        if let Some(val) = data.remove(&Key::INHERITED) {
             for (name, chksum) in val.split_whitespace().tuples() {
                 if !repo
                     .eclasses()
@@ -377,22 +379,17 @@ impl Metadata {
                 {
                     return Err(Error::InvalidValue("mismatched eclass checksum".to_string()));
                 }
+
+                if deserialize {
+                    meta.inherited.insert(name.to_string());
+                }
             }
         }
 
         // deserialize values into metadata fields
-        let mut meta = Self::default();
         if deserialize {
             for (key, val) in data {
-                if key == Key::INHERITED {
-                    meta.inherited = val
-                        .split_whitespace()
-                        .tuples()
-                        .map(|(name, _chksum)| name.to_string())
-                        .collect();
-                } else {
-                    meta.convert(eapi, key, val)?;
-                }
+                meta.convert(eapi, key, val)?;
             }
         }
 
