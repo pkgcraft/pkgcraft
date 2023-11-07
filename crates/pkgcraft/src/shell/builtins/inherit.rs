@@ -1,4 +1,3 @@
-use itertools::{Either, Itertools};
 use scallop::variables::{ScopedVariable, Variable, Variables};
 use scallop::{Error, ExecStatus};
 
@@ -18,6 +17,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
+
+    // track build scope
+    let orig_scope = build.scope;
+    if orig_scope != Scope::Eclass {
+        build.scope = Scope::Eclass;
+    }
+
     // force incrementals to be restored between nested inherits
     let incrementals: Vec<(_, _)> = build
         .eapi()
@@ -26,31 +32,20 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .map(|k| (*k, ScopedVariable::new(k)))
         .collect();
 
-    // map eclass args into known and unknown groups
     let repo_eclasses = get_build_mut().repo()?.eclasses();
-    let (eclasses, unknown): (Vec<_>, Vec<_>) =
-        args.iter().partition_map(|&s| match repo_eclasses.get(s) {
-            Some(v) => Either::Left(v),
-            None => Either::Right(s),
-        });
-
-    // verify all eclass args are viable
-    if !unknown.is_empty() {
-        let s = unknown.join(", ");
-        return Err(Error::Base(format!("unknown eclasses: {s}")));
-    }
-
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
-    let orig_scope = build.scope;
 
-    // track direct inherits
-    if orig_scope != Scope::Eclass {
-        build.inherit.extend(&eclasses);
-        build.scope = Scope::Eclass;
-    }
+    for name in args {
+        let eclass = repo_eclasses
+            .get(*name)
+            .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
-    for eclass in eclasses {
+        // track direct inherits
+        if orig_scope != Scope::Eclass {
+            build.inherit.insert(eclass);
+        }
+
         // skip previous and nested inherits
         if build.inherited.contains(eclass) {
             continue;
@@ -128,13 +123,13 @@ mod tests {
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         let r = inherit(&["nonexistent"]);
-        assert_err_re!(r, r"^unknown eclasses: nonexistent");
+        assert_err_re!(r, r"^unknown eclass: nonexistent");
 
         // multiple
         let r = inherit(&["e1", "e2"]);
-        assert_err_re!(r, r"^unknown eclasses: e1, e2");
+        assert_err_re!(r, r"^unknown eclass: e1");
 
-        // multiple with known and unknown
+        // multiple with existing and nonexistent
         let t = config.temp_repo("test2", 0, None).unwrap();
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
@@ -142,8 +137,8 @@ mod tests {
             # stub eclass
         "#};
         t.create_eclass("e1", eclass).unwrap();
-        let r = inherit(&["unknown1", "e1", "unknown2"]);
-        assert_err_re!(r, r"^unknown eclasses: unknown1, unknown2");
+        let r = inherit(&["e1", "e2"]);
+        assert_err_re!(r, r"^unknown eclass: e2");
     }
 
     #[test]
