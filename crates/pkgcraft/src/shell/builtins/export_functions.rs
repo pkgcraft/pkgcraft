@@ -1,9 +1,10 @@
 use scallop::{functions, source, variables, Error, ExecStatus};
 
+use crate::repo::ebuild::Eclass;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind;
 
-use super::{make_builtin, Scopes::Eclass};
+use super::{make_builtin, Scopes};
 
 const LONG_DOC: &str = "\
 Export stub functions that call the eclass's functions, thereby making them default.
@@ -13,9 +14,9 @@ function is defined:
 src_unpack() { base_src_unpack; }";
 
 /// Create function aliases for EXPORT_FUNCTIONS calls.
-pub(super) fn export_functions<I>(functions: I) -> scallop::Result<ExecStatus>
+pub(super) fn export_functions<'a, I>(functions: I) -> scallop::Result<ExecStatus>
 where
-    I: IntoIterator<Item = (PhaseKind, String)>,
+    I: IntoIterator<Item = (PhaseKind, &'a Eclass)>,
 {
     for (phase, eclass) in functions {
         let func = format!("{eclass}_{phase}");
@@ -35,8 +36,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    let eclass = variables::required("ECLASS")?;
     let build = get_build_mut();
+    let eclass = variables::required("ECLASS")?;
+    let eclass = build
+        .repo()?
+        .eclasses()
+        .get(&eclass)
+        .expect("unknown eclass");
     let eapi = build.eapi();
     let phases = eapi.phases();
 
@@ -45,7 +51,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             .parse()
             .map_err(|_| Error::Base(format!("invalid phase: {arg}")))?;
         if phases.contains(&phase) {
-            build.export_functions.insert(phase, eclass.clone());
+            build.export_functions.insert(phase, eclass);
         } else {
             return Err(Error::Base(format!("{phase} phase undefined in EAPI {eapi}")));
         }
@@ -61,7 +67,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    [("..", [Eclass])]
+    [("..", [Scopes::Eclass])]
 );
 
 #[cfg(test)]

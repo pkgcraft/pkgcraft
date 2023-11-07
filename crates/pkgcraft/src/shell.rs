@@ -16,6 +16,7 @@ use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
+use crate::repo::ebuild::Eclass;
 use crate::repo::Repository;
 use crate::test::TESTING;
 use crate::traits::SourceBash;
@@ -204,12 +205,12 @@ pub(crate) struct BuildData<'a> {
     strip_exclude: IndexSet<String>,
 
     /// EXPORT_FUNCTIONS arguments cache
-    export_functions: IndexMap<phase::PhaseKind, String>,
+    export_functions: IndexMap<phase::PhaseKind, &'a Eclass>,
 
     /// set of directly inherited eclasses
-    inherit: IndexSet<&'a crate::repo::ebuild::Eclass>,
+    inherit: IndexSet<&'a Eclass>,
     /// complete set of inherited eclasses
-    inherited: IndexSet<&'a crate::repo::ebuild::Eclass>,
+    inherited: IndexSet<&'a Eclass>,
     /// incremental metadata fields
     incrementals: HashMap<Key, Deque<String>>,
 }
