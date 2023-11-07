@@ -32,7 +32,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkg::BuildPackage;
-    use crate::shell::{get_build_mut, BuildData};
+    use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as default;

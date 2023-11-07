@@ -37,7 +37,7 @@ make_builtin!("use", use_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::shell::{get_build_mut, BuildData};
+    use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::run as use_;
