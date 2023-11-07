@@ -171,7 +171,7 @@ impl Phase {
         if let Some(mut func) = functions::find(self) {
             func.execute(&[])?;
         } else {
-            self.default(build)?;
+            self.default()?;
         }
 
         // run user-defined post-phase hooks
@@ -199,9 +199,9 @@ impl Phase {
     }
 
     /// Run the default phase function.
-    pub(crate) fn default(&self, build: &mut BuildData) -> scallop::Result<ExecStatus> {
+    pub(crate) fn default(&self) -> scallop::Result<ExecStatus> {
         match self.func {
-            Some(func) => func(build),
+            Some(func) => func(get_build_mut()),
             None => Ok(ExecStatus::Success),
         }
     }
