@@ -41,14 +41,14 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             continue;
         }
 
+        // track direct inherits
+        if !build.scope.is_eclass() {
+            build.inherit.insert(eclass);
+        }
+
         // track build scope
         let prev_scope = build.scope;
         build.scope = Scope::Eclass(Some(eclass));
-
-        // track direct inherits
-        if !prev_scope.is_eclass() {
-            build.inherit.insert(eclass);
-        }
 
         // update $ECLASS bash variable
         eclass_var.bind(eclass, None, None)?;
