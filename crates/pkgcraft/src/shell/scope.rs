@@ -30,7 +30,8 @@ impl<T: Borrow<Phase>> From<T> for Scope {
 impl AsRef<str> for Scope {
     fn as_ref(&self) -> &str {
         match self {
-            Self::Eclass(_) => "eclass",
+            Self::Eclass(Some(eclass)) => eclass.as_ref(),
+            Self::Eclass(None) => "eclass",
             Self::Global => "global",
             Self::Phase(p) => p.as_ref(),
         }
