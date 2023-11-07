@@ -26,13 +26,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .map(|k| (*k, ScopedVariable::new(k)))
         .collect();
 
+    // map eclass args into known and unknown groups
     let repo_eclasses = get_build_mut().repo()?.eclasses();
-    let (eclasses, unknown): (Vec<_>, Vec<_>) = args
-        .iter()
-        // skip eclasses that have already been inherited
-        .filter(|&s| !build.inherited.contains(*s))
-        // map eclass args into known and unknown groups
-        .partition_map(|&s| match repo_eclasses.get(s) {
+    let (eclasses, unknown): (Vec<_>, Vec<_>) =
+        args.iter().partition_map(|&s| match repo_eclasses.get(s) {
             Some(v) => Either::Left(v),
             None => Either::Right(s),
         });
@@ -54,7 +51,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     for eclass in eclasses {
-        // skip inherits that occurred in nested calls
+        // skip previous and nested inherits
         if build.inherited.contains(eclass) {
             continue;
         }
