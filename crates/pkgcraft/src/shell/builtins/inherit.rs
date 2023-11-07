@@ -41,18 +41,16 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             .get(*name)
             .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
+        // track all inherits
+        if !build.inherited.insert(eclass) {
+            // skip previous and nested inherits
+            continue;
+        }
+
         // track direct inherits
         if orig_scope != Scope::Eclass {
             build.inherit.insert(eclass);
         }
-
-        // skip previous and nested inherits
-        if build.inherited.contains(eclass) {
-            continue;
-        }
-
-        // mark as inherited before sourcing so nested, re-inherits can be skipped
-        build.inherited.insert(eclass);
 
         // update $ECLASS bash variable
         eclass_var.bind(eclass, None, None)?;
