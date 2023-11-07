@@ -810,15 +810,15 @@ pub unsafe extern "C" fn pkgcraft_dep_set_replace_index(
     let spec = try_ref_from_ptr!(value);
 
     let dep = match (set.deref_mut(), spec.deref()) {
-        (DepSetWrapper::Dep(deps), DepSpecWrapper::Dep(dep)) => {
-            deps.replace_index(index, dep.clone()).map(DepSpec::new_dep)
-        }
+        (DepSetWrapper::Dep(deps), DepSpecWrapper::Dep(dep)) => deps
+            .shift_replace_index(index, dep.clone())
+            .map(DepSpec::new_dep),
         (DepSetWrapper::String(deps), DepSpecWrapper::String(dep)) => deps
-            .replace_index(index, dep.clone())
+            .shift_replace_index(index, dep.clone())
             .map(|d| DepSpec::new_string(d, set.set)),
-        (DepSetWrapper::Uri(deps), DepSpecWrapper::Uri(dep)) => {
-            deps.replace_index(index, dep.clone()).map(DepSpec::new_uri)
-        }
+        (DepSetWrapper::Uri(deps), DepSpecWrapper::Uri(dep)) => deps
+            .shift_replace_index(index, dep.clone())
+            .map(DepSpec::new_uri),
         _ => panic!("invalid DepSet and DepSpec type combination"),
     };
 
@@ -843,13 +843,13 @@ pub unsafe extern "C" fn pkgcraft_dep_set_replace(
 
     let dep = match (set.deref_mut(), key.deref(), value.deref()) {
         (DepSetWrapper::Dep(deps), DepSpecWrapper::Dep(k), DepSpecWrapper::Dep(v)) => {
-            deps.replace(k, v.clone()).map(DepSpec::new_dep)
+            deps.shift_replace(k, v.clone()).map(DepSpec::new_dep)
         }
         (DepSetWrapper::String(deps), DepSpecWrapper::String(k), DepSpecWrapper::String(v)) => deps
-            .replace(k, v.clone())
+            .shift_replace(k, v.clone())
             .map(|d| DepSpec::new_string(d, set.set)),
         (DepSetWrapper::Uri(deps), DepSpecWrapper::Uri(k), DepSpecWrapper::Uri(v)) => {
-            deps.replace(k, v.clone()).map(DepSpec::new_uri)
+            deps.shift_replace(k, v.clone()).map(DepSpec::new_uri)
         }
         _ => panic!("invalid DepSet and DepSpec type combination"),
     };

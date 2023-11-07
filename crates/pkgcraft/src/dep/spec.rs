@@ -463,23 +463,69 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
 
     /// Replace a `DepSpec` with another `DepSpec`, returning the replaced value.
     ///
-    /// This removes the given element if its replacement value already exists, preserving the
-    /// DepSet order.
-    pub fn replace(&mut self, key: &DepSpec<S, T>, value: DepSpec<S, T>) -> Option<DepSpec<S, T>> {
+    /// This removes the given element if its replacement value already exists by shifting all of
+    /// the elements that follow it, preserving their relative order. **This perturbs the index of
+    /// all of those elements!**
+    pub fn shift_replace(
+        &mut self,
+        key: &DepSpec<S, T>,
+        value: DepSpec<S, T>,
+    ) -> Option<DepSpec<S, T>> {
         self.0
             .get_index_of(key)
-            .and_then(|i| self.replace_index(i, value))
+            .and_then(|i| self.shift_replace_index(i, value))
+    }
+
+    /// Replace a `DepSpec` with another `DepSpec`, returning the replaced value.
+    ///
+    /// This removes the given element if its replacement value already exists by swapping it with
+    /// the last element of the set and popping it off. **This perturbs the position of what used
+    /// to be the last element!**
+    pub fn swap_replace(
+        &mut self,
+        key: &DepSpec<S, T>,
+        value: DepSpec<S, T>,
+    ) -> Option<DepSpec<S, T>> {
+        self.0
+            .get_index_of(key)
+            .and_then(|i| self.swap_replace_index(i, value))
     }
 
     /// Replace a `DepSpec` for a given index in a `DepSet`, returning the replaced value.
     ///
-    /// This removes the element at the given index if its replacement value already exists,
-    /// preserving the DepSet order.
-    pub fn replace_index(&mut self, index: usize, value: DepSpec<S, T>) -> Option<DepSpec<S, T>> {
+    /// This removes the element at the given index if its replacement value already exists by
+    /// shifting all of the elements that follow it, preserving their relative order. **This
+    /// perturbs the index of all of those elements!**
+    pub fn shift_replace_index(
+        &mut self,
+        index: usize,
+        value: DepSpec<S, T>,
+    ) -> Option<DepSpec<S, T>> {
         if index < self.0.len() {
             match self.0.insert_full(value) {
                 (_, true) => return self.0.swap_remove_index(index),
                 (idx, false) if idx != index => return self.0.shift_remove_index(index),
+                _ => (),
+            }
+        }
+
+        None
+    }
+
+    /// Replace a `DepSpec` for a given index in a `DepSet`, returning the replaced value.
+    ///
+    /// This removes the element at the given index if its replacement value already exists by
+    /// swapping it with the last element of the set and popping it off. **This perturbs the
+    /// position of what used to be the last element!**
+    pub fn swap_replace_index(
+        &mut self,
+        index: usize,
+        value: DepSpec<S, T>,
+    ) -> Option<DepSpec<S, T>> {
+        if index < self.0.len() {
+            match self.0.insert_full(value) {
+                (_, true) => return self.0.swap_remove_index(index),
+                (idx, false) if idx != index => return self.0.swap_remove_index(index),
                 _ => (),
             }
         }
