@@ -307,8 +307,17 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let mut var = Variable::new("VAR");
+
+        // verify previous inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1", "e2"]).unwrap();
-        assert_eq!(optional("VAR").unwrap(), "e1 e2");
+        assert_eq!(var.optional().unwrap(), "e1 e2");
+
+        // verify nested inherits are skipped
+        BuildData::from_raw_pkg(&raw_pkg);
+        var.unbind().unwrap();
+        inherit(&["e2", "e1"]).unwrap();
+        assert_eq!(var.optional().unwrap(), "e1 e2");
     }
 }
