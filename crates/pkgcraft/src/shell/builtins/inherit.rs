@@ -5,8 +5,8 @@ use crate::shell::get_build_mut;
 use crate::traits::SourceBash;
 
 use super::export_functions::export_functions;
+use super::make_builtin;
 use super::Scopes::{Eclass, Global};
-use super::{make_builtin, Scope};
 
 const LONG_DOC: &str = "Sources the given list of eclasses.";
 
@@ -47,7 +47,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         // track build scope
-        let _scope = build.scoped(Scope::Eclass(Some(eclass)));
+        let _scope = build.inherit(eclass);
 
         // update $ECLASS bash variable
         eclass_var.bind(eclass, None, None)?;

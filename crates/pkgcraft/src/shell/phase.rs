@@ -9,7 +9,6 @@ use strum::{AsRefStr, Display, EnumIter, EnumString};
 use super::builtins::emake::run as emake;
 use super::environment::Variable::D;
 use super::hooks::{Hook, HookKind};
-use super::scope::Scope;
 use super::utils::makefile_exists;
 use super::{get_build_mut, BuildData, BuildFn};
 
@@ -149,7 +148,7 @@ impl Phase {
     /// Run the phase operation.
     pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
         let build = get_build_mut();
-        let _scope = build.scoped(Scope::Phase(self.kind));
+        let _scope = build.run(self.kind);
 
         // initialize phase scope variables
         build.set_vars()?;

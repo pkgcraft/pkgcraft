@@ -297,11 +297,19 @@ impl<'a> BuildData<'a> {
         }
     }
 
-    /// Change the current build scope to a temporary value, reverting to the previous when a drop
-    /// scope is encountered.
-    fn scoped(&mut self, scope: Scope) -> Scoped {
+    /// Change the current build scope to a temporary eclass scope, reverting to the previous value
+    /// when a drop scope is encountered.
+    fn inherit(&mut self, eclass: &'static Eclass) -> Scoped {
         let scoped = Scoped(self.scope);
-        self.scope = scope;
+        self.scope = Scope::Eclass(Some(eclass));
+        scoped
+    }
+
+    /// Change the current build scope to a temporary phase scope, reverting to the previous value
+    /// when a drop scope is encountered.
+    fn run(&mut self, kind: phase::PhaseKind) -> Scoped {
+        let scoped = Scoped(self.scope);
+        self.scope = Scope::Phase(kind);
         scoped
     }
 
