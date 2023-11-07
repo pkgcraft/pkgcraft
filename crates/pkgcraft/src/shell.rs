@@ -170,6 +170,15 @@ impl Default for BuildState<'_> {
     }
 }
 
+#[derive(Debug)]
+struct Scoped(Scope);
+
+impl Drop for Scoped {
+    fn drop(&mut self) {
+        get_build_mut().scope = self.0;
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct BuildData<'a> {
     state: BuildState<'a>,
@@ -286,6 +295,14 @@ impl<'a> BuildData<'a> {
             BuildState::Build(pkg) => Ok(pkg),
             _ => Err(Error::Base(format!("pkg invalid for scope: {}", self.scope))),
         }
+    }
+
+    /// Change the current build scope to a temporary value, reverting to the previous when a drop
+    /// scope is encountered.
+    fn scoped(&mut self, scope: Scope) -> Scoped {
+        let scoped = Scoped(self.scope);
+        self.scope = scope;
+        scoped
     }
 
     /// Get the current build phase if it exists.

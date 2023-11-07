@@ -149,7 +149,7 @@ impl Phase {
     /// Run the phase operation.
     pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
         let build = get_build_mut();
-        build.scope = Scope::Phase(self.kind);
+        let _scope = build.scoped(Scope::Phase(self.kind));
 
         // initialize phase scope variables
         build.set_vars()?;

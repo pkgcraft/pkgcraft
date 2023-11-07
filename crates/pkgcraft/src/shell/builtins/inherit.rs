@@ -47,8 +47,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         // track build scope
-        let prev_scope = build.scope;
-        build.scope = Scope::Eclass(Some(eclass));
+        let _scope = build.scoped(Scope::Eclass(Some(eclass)));
 
         // update $ECLASS bash variable
         eclass_var.bind(eclass, None, None)?;
@@ -75,7 +74,6 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         inherited_var.append(format!(" {eclass}"))?;
-        build.scope = prev_scope;
     }
 
     // create function aliases for EXPORT_FUNCTIONS calls
