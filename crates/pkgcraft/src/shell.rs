@@ -262,7 +262,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current CPV if it exists.
-    fn cpv(&self) -> scallop::Result<&Cpv> {
+    fn cpv(&self) -> scallop::Result<&'a Cpv> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(pkg.cpv()),
             BuildState::Build(pkg) => Ok(pkg.cpv()),
@@ -271,7 +271,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current repo if it exists.
-    fn repo(&self) -> scallop::Result<&crate::repo::ebuild::Repo> {
+    fn repo(&self) -> scallop::Result<&'a crate::repo::ebuild::Repo> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(pkg.repo()),
             BuildState::Build(pkg) => Ok(pkg.repo()),
@@ -280,7 +280,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current package being built if it exists.
-    fn pkg(&self) -> scallop::Result<&crate::pkg::ebuild::Pkg> {
+    fn pkg(&self) -> scallop::Result<&'a crate::pkg::ebuild::Pkg> {
         match &self.state {
             BuildState::Build(pkg) => Ok(pkg),
             _ => Err(Error::Base(format!("pkg invalid for scope: {}", self.scope))),

@@ -32,7 +32,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .map(|k| (*k, ScopedVariable::new(k)))
         .collect();
 
-    let repo_eclasses = get_build_mut().repo()?.eclasses();
+    let repo_eclasses = build.repo()?.eclasses();
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
 
