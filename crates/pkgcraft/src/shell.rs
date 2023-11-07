@@ -16,7 +16,7 @@ use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
-use crate::repo::{ebuild, Repository};
+use crate::repo::Repository;
 use crate::test::TESTING;
 use crate::traits::SourceBash;
 use crate::types::Deque;
@@ -207,9 +207,9 @@ pub(crate) struct BuildData<'a> {
     export_functions: IndexMap<phase::PhaseKind, String>,
 
     /// set of directly inherited eclasses
-    inherit: IndexSet<String>,
+    inherit: IndexSet<&'a crate::repo::ebuild::Eclass>,
     /// complete set of inherited eclasses
-    inherited: IndexSet<String>,
+    inherited: IndexSet<&'a crate::repo::ebuild::Eclass>,
     /// incremental metadata fields
     incrementals: HashMap<Key, Deque<String>>,
 }
@@ -271,7 +271,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current repo if it exists.
-    fn repo(&self) -> scallop::Result<&ebuild::Repo> {
+    fn repo(&self) -> scallop::Result<&crate::repo::ebuild::Repo> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(pkg.repo()),
             BuildState::Build(pkg) => Ok(pkg.repo()),

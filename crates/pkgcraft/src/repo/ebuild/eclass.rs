@@ -4,7 +4,6 @@ use std::hash::{Hash, Hasher};
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use indexmap::Equivalent;
 use scallop::{source, ExecStatus};
 
 use crate::traits::SourceBash;
@@ -87,9 +86,9 @@ impl Borrow<str> for Eclass {
     }
 }
 
-impl Equivalent<String> for Eclass {
-    fn equivalent(&self, key: &String) -> bool {
-        &self.name == key
+impl Borrow<str> for &Eclass {
+    fn borrow(&self) -> &str {
+        &self.name
     }
 }
 

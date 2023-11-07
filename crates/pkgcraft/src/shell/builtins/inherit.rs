@@ -49,7 +49,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // track direct inherits
     if orig_scope != Scope::Eclass {
-        build.inherit.extend(eclasses.iter().map(|s| s.to_string()));
+        build.inherit.extend(&eclasses);
         build.scope = Scope::Eclass;
     }
 
@@ -60,7 +60,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         // mark as inherited before sourcing so nested, re-inherits can be skipped
-        build.inherited.insert(eclass.to_string());
+        build.inherited.insert(eclass);
 
         // update $ECLASS bash variable
         eclass_var.bind(eclass, None, None)?;
