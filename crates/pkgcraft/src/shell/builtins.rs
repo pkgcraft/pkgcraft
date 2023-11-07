@@ -181,9 +181,12 @@ impl Builtin {
         let build = get_build_mut();
         let eapi = build.eapi();
         let scope = &build.scope;
+        let allowed = |scopes: &IndexSet<Scope>| -> bool {
+            scopes.contains(scope) || (scope.is_eclass() && scopes.contains(&Scope::Eclass(None)))
+        };
 
         match self.scope.get(eapi) {
-            Some(s) if s.contains(scope) => self.builtin.run(args),
+            Some(scopes) if allowed(scopes) => self.builtin.run(args),
             Some(_) => Err(Error::Base(format!("disabled in {scope} scope"))),
             None => Err(Error::Base(format!("disabled in EAPI {eapi}"))),
         }
@@ -518,7 +521,7 @@ macro_rules! builtin_scope_tests {
             let t = config.temp_repo("test", 0, None).unwrap();
 
             for eapi in &*EAPIS_OFFICIAL {
-                let scopes = [Global, Eclass]
+                let scopes = [Global, Eclass(None)]
                     .into_iter()
                     .chain(eapi.phases().iter().map(Into::into))
                     .filter(|s| {
@@ -533,7 +536,7 @@ macro_rules! builtin_scope_tests {
                     let info = format!("EAPI={eapi}, scope: {scope}");
 
                     match scope {
-                        Eclass => {
+                        Eclass(_) => {
                             // create eclass
                             let eclass = indoc::formatdoc! {r#"
                                 # stub eclass

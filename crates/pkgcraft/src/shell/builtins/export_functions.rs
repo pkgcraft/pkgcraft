@@ -1,10 +1,9 @@
-use scallop::{functions, source, variables, Error, ExecStatus};
+use scallop::{functions, source, Error, ExecStatus};
 
-use crate::repo::ebuild::Eclass;
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind;
 
-use super::{make_builtin, Scopes};
+use super::{make_builtin, Scope, Scopes::Eclass};
 
 const LONG_DOC: &str = "\
 Export stub functions that call the eclass's functions, thereby making them default.
@@ -14,9 +13,10 @@ function is defined:
 src_unpack() { base_src_unpack; }";
 
 /// Create function aliases for EXPORT_FUNCTIONS calls.
-pub(super) fn export_functions<'a, I>(functions: I) -> scallop::Result<ExecStatus>
+pub(super) fn export_functions<I, T>(functions: I) -> scallop::Result<ExecStatus>
 where
-    I: IntoIterator<Item = (PhaseKind, &'a Eclass)>,
+    I: IntoIterator<Item = (PhaseKind, T)>,
+    T: std::fmt::Display,
 {
     for (phase, eclass) in functions {
         let func = format!("{eclass}_{phase}");
@@ -37,12 +37,9 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let eclass = variables::required("ECLASS")?;
-    let eclass = build
-        .repo()?
-        .eclasses()
-        .get(&eclass)
-        .expect("unknown eclass");
+    let Scope::Eclass(Some(eclass)) = build.scope else {
+        panic!("not allowed in non-eclass scope");
+    };
     let eapi = build.eapi();
     let phases = eapi.phases();
 
@@ -67,7 +64,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    [("..", [Scopes::Eclass])]
+    [("..", [Eclass])]
 );
 
 #[cfg(test)]

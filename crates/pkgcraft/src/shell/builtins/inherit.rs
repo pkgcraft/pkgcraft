@@ -20,9 +20,6 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // track build scope
     let orig_scope = build.scope;
-    if orig_scope != Scope::Eclass {
-        build.scope = Scope::Eclass;
-    }
 
     // force incrementals to be restored between nested inherits
     let incrementals: Vec<(_, _)> = build
@@ -47,8 +44,10 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             continue;
         }
 
+        build.scope = Scope::Eclass(Some(eclass));
+
         // track direct inherits
-        if orig_scope != Scope::Eclass {
+        if !orig_scope.is_eclass() {
             build.inherit.insert(eclass);
         }
 
@@ -80,7 +79,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     // restore the original scope for non-nested contexts
-    if orig_scope != Scope::Eclass {
+    if !orig_scope.is_eclass() {
         build.scope = orig_scope;
         // create function aliases for EXPORT_FUNCTIONS calls
         export_functions(build.export_functions.drain(..))?;

@@ -86,12 +86,6 @@ impl Borrow<str> for Eclass {
     }
 }
 
-impl Borrow<String> for Eclass {
-    fn borrow(&self) -> &String {
-        &self.name
-    }
-}
-
 impl SourceBash for Eclass {
     fn source_bash(&self) -> scallop::Result<ExecStatus> {
         source::file(&self.path)
