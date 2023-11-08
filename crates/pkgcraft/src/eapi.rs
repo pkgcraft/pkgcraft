@@ -186,6 +186,14 @@ impl Eapi {
         eapi
     }
 
+    /// Verify a string represents a valid EAPI.
+    pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
+        let s = s.as_ref();
+        parse::eapi_str(s)
+            .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))?;
+        Ok(())
+    }
+
     /// Return the EAPI's identifier.
     pub fn as_str(&self) -> &str {
         &self.id
@@ -772,6 +780,14 @@ mod tests {
     use crate::test::assert_ordered_eq;
 
     use super::*;
+
+    #[test]
+    fn test_valid() {
+        assert!(Eapi::valid("1.2.3").is_ok());
+        assert!(Eapi::valid("_").is_ok());
+        assert!(Eapi::valid("+5").is_err());
+        assert!(Eapi::valid(".1").is_err());
+    }
 
     #[test]
     fn test_from_str() {
