@@ -83,7 +83,7 @@ impl Repo {
 
         // ebuild defaults
         let mut values = indexmap::IndexMap::from([
-            (EAPI, eapi::EAPI_LATEST_OFFICIAL.as_str()),
+            (EAPI, eapi::EAPI_LATEST_OFFICIAL.as_ref()),
             (SLOT, "0"),
             (DESCRIPTION, "stub package description"),
         ]);

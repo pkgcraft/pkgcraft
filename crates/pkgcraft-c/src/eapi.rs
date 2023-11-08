@@ -70,7 +70,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) 
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char {
     let eapi = try_ref_from_ptr!(eapi);
-    try_ptr_from_str!(eapi.as_str())
+    try_ptr_from_str!(eapi.as_ref())
 }
 
 /// Compare two Eapi objects chronologically returning -1, 0, or 1 if the first is less than, equal

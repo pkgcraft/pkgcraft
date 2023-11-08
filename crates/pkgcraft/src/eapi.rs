@@ -189,14 +189,8 @@ impl Eapi {
     /// Verify a string represents a valid EAPI.
     pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
         let s = s.as_ref();
-        parse::eapi_str(s)
-            .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))?;
+        parse::eapi_str(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))?;
         Ok(())
-    }
-
-    /// Return the EAPI's identifier.
-    pub fn as_str(&self) -> &str {
-        &self.id
     }
 
     /// Check if an EAPI has a given feature.
@@ -458,6 +452,12 @@ impl Eapi {
         self.phases = self.operations.iter().flatten().copied().collect();
         self.phases.sort();
         self
+    }
+}
+
+impl AsRef<str> for Eapi {
+    fn as_ref(&self) -> &str {
+        &self.id
     }
 }
 
