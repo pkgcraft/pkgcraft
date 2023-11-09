@@ -485,7 +485,7 @@ impl FromStr for &'static Eapi {
     fn from_str(s: &str) -> crate::Result<Self> {
         if let Some(eapi) = EAPIS.get(s) {
             Ok(eapi)
-        } else if parse::eapi_str(s).is_ok() {
+        } else if Eapi::valid(s).is_ok() {
             Err(Error::InvalidValue(format!("unsupported EAPI: {s}")))
         } else {
             Err(Error::InvalidValue(format!("invalid EAPI: {s}")))
