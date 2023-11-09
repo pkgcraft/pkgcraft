@@ -1,9 +1,7 @@
 use scallop::ExecStatus;
 
-use crate::eapi::EAPI7;
-
+use super::make_builtin;
 use super::use_::run as use_;
-use super::{make_builtin, Scopes::Phases};
 
 const LONG_DOC: &str = "Deprecated synonym for use.";
 
@@ -13,7 +11,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "useq flag";
-make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE, [("..8", [Phases])], Some(&EAPI7));
+make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

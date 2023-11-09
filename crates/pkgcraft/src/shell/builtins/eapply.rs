@@ -5,7 +5,6 @@ use std::process::Command;
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use scallop::{Error, ExecStatus};
 
-use crate::shell::phase::PhaseKind::SrcPrepare;
 use crate::shell::write_stdout;
 
 use super::make_builtin;
@@ -159,7 +158,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eapply file.patch";
-make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, [("6..", [SrcPrepare])]);
+make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

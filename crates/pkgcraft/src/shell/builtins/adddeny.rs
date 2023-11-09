@@ -1,6 +1,6 @@
 use scallop::ExecStatus;
 
-use super::{make_builtin, Scopes::Phases};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Add a directory to the sandbox deny list.";
 
@@ -11,7 +11,7 @@ pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "adddeny /path/to/deny";
-make_builtin!("adddeny", adddeny_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
+make_builtin!("adddeny", adddeny_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

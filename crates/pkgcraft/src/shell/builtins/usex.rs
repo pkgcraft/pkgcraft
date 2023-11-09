@@ -2,7 +2,7 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::write_stdout;
 
-use super::{make_builtin, use_::run as use_, Scopes::Phases};
+use super::{make_builtin, use_::run as use_};
 
 const LONG_DOC: &str = "\
 Tests if a given USE flag is enabled and outputs a string related to its status.";
@@ -30,11 +30,12 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "usex flag";
-make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, [("5..", [Phases])]);
+make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkg::BuildPackage;
     use crate::shell::{assert_stdout, get_build_mut, BuildData};
@@ -95,7 +96,7 @@ mod tests {
     fn subshell() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        for eapi in BUILTIN.scope.keys() {
+        for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
                 DESCRIPTION="subshell usex success"

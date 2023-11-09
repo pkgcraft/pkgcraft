@@ -7,7 +7,6 @@ use crate::macros::build_from_paths;
 use crate::pkg::Package;
 use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::make_builtin;
 
@@ -51,7 +50,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "domo path/to/mo/file";
-make_builtin!("domo", domo_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
+make_builtin!("domo", domo_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

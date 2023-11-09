@@ -1,6 +1,6 @@
 use scallop::{Error, ExecStatus};
 
-use super::{make_builtin, Scopes::All};
+use super::make_builtin;
 
 static LONG_DOC: &str = "Error out on direct phase function calls";
 
@@ -15,8 +15,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_CONFIG_BUILTIN
 );
 
@@ -26,8 +24,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_INFO_BUILTIN
 );
 
@@ -37,8 +33,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_NOFETCH_BUILTIN
 );
 
@@ -48,8 +42,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_POSTINST_BUILTIN
 );
 
@@ -59,8 +51,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_POSTRM_BUILTIN
 );
 
@@ -70,8 +60,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_PREINST_BUILTIN
 );
 
@@ -81,8 +69,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_PRERM_BUILTIN
 );
 
@@ -92,8 +78,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_PRETEND_BUILTIN
 );
 
@@ -103,8 +87,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     PKG_SETUP_BUILTIN
 );
 
@@ -114,8 +96,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     SRC_COMPILE_BUILTIN
 );
 
@@ -125,8 +105,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     SRC_CONFIGURE_BUILTIN
 );
 
@@ -136,8 +114,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     SRC_INSTALL_BUILTIN
 );
 
@@ -147,8 +123,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     SRC_PREPARE_BUILTIN
 );
 
@@ -158,8 +132,6 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     SRC_TEST_BUILTIN
 );
 
@@ -169,7 +141,5 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])],
-    None,
     SRC_UNPACK_BUILTIN
 );

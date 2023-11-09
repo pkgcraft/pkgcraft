@@ -4,7 +4,6 @@ use scallop::{Error, ExecStatus};
 
 use crate::command::RunCommand;
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::{PkgPostinst, PkgPreinst, SrcInstall};
 
 use super::make_builtin;
 
@@ -25,19 +24,13 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "fowners user:group /path/to/file";
-make_builtin!(
-    "fowners",
-    fowners_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    [("..", [SrcInstall, PkgPreinst, PkgPostinst])]
-);
+make_builtin!("fowners", fowners_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {
     use crate::command::{commands, run_commands};
     use crate::config::Config;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
     use crate::pkg::BuildPackage;
     use crate::shell::{test::FileTree, BuildData};
@@ -78,7 +71,7 @@ mod tests {
     fn success() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        for eapi in BUILTIN.scope.keys() {
+        for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
                 DESCRIPTION="testing fowners command"

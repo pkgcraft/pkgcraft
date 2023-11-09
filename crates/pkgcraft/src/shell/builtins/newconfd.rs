@@ -1,7 +1,5 @@
 use scallop::ExecStatus;
 
-use crate::shell::phase::PhaseKind::SrcInstall;
-
 use super::_new::new;
 use super::doconfd::run as doconfd;
 use super::make_builtin;
@@ -14,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newconfd path/to/config/file new_filename";
-make_builtin!("newconfd", newconfd_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
+make_builtin!("newconfd", newconfd_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

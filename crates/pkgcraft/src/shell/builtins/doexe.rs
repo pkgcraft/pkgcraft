@@ -1,7 +1,6 @@
 use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::make_builtin;
 
@@ -23,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doexe path/to/executable";
-make_builtin!("doexe", doexe_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
+make_builtin!("doexe", doexe_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

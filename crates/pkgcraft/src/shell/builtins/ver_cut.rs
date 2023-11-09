@@ -4,7 +4,7 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::{get_build_mut, write_stdout};
 
-use super::{make_builtin, parse, Scopes::All};
+use super::{make_builtin, parse};
 
 const LONG_DOC: &str = "Output substring from package version string and range arguments.";
 
@@ -33,7 +33,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ver_cut 1-2 - 1.2.3";
-make_builtin!("ver_cut", ver_cut_builtin, run, LONG_DOC, USAGE, [("7..", [All])]);
+make_builtin!("ver_cut", ver_cut_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

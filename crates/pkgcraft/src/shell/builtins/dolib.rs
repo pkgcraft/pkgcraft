@@ -3,7 +3,6 @@ use scallop::{Error, ExecStatus};
 
 use crate::macros::build_from_paths;
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::SrcInstall;
 use crate::shell::utils::get_libdir;
 
 use super::make_builtin;
@@ -34,7 +33,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dolib path/to/lib";
-make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, [("..7", [SrcInstall])]);
+make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

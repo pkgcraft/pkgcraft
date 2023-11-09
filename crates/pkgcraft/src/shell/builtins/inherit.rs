@@ -6,7 +6,6 @@ use crate::traits::SourceBash;
 
 use super::export_functions::export_functions;
 use super::make_builtin;
-use super::Scopes::{Eclass, Global};
 
 const LONG_DOC: &str = "Sources the given list of eclasses.";
 
@@ -85,7 +84,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "inherit eclass1 eclass2";
-make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, [("..", [Global, Eclass])]);
+make_builtin!("inherit", inherit_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

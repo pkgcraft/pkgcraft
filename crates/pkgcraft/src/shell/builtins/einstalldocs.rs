@@ -6,7 +6,6 @@ use scallop::variables::var_to_vec;
 use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::{dodoc::install_docs, make_builtin};
 
@@ -107,7 +106,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "einstalldocs";
-make_builtin!("einstalldocs", einstalldocs_builtin, run, LONG_DOC, USAGE, [("6..", [SrcInstall])]);
+make_builtin!("einstalldocs", einstalldocs_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

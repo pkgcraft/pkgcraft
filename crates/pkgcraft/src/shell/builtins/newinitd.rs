@@ -1,7 +1,5 @@
 use scallop::ExecStatus;
 
-use crate::shell::phase::PhaseKind::SrcInstall;
-
 use super::_new::new;
 use super::doinitd::run as doinitd;
 use super::make_builtin;
@@ -14,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newinitd path/to/init/file new_filename";
-make_builtin!("newinitd", newinitd_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
+make_builtin!("newinitd", newinitd_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

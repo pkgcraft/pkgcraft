@@ -1,7 +1,5 @@
 use scallop::{Error, ExecStatus};
 
-use crate::shell::phase::PhaseKind::SrcInstall;
-
 use super::dobin::install_bin;
 use super::make_builtin;
 
@@ -17,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dosbin /path/to/executable";
-make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
+make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

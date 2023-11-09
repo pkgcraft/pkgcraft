@@ -3,7 +3,7 @@ use scallop::ExecStatus;
 use crate::shell::write_stdout;
 
 use super::_query_cmd::query_cmd;
-use super::{make_builtin, Scopes::Phases};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Output the highest matching version of a package dependency is installed.";
 
@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "best_version cat/pkg";
-make_builtin!("best_version", best_version_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
+make_builtin!("best_version", best_version_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

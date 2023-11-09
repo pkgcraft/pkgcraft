@@ -1,9 +1,8 @@
 use scallop::ExecStatus;
 
-use crate::eapi::EAPI7;
 use crate::shell::write_stdout;
 
-use super::{has::run as has, make_builtin, Scopes::All};
+use super::{has::run as has, make_builtin};
 
 const LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 
@@ -18,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "hasv needle ${haystack}";
-make_builtin!("hasv", hasv_builtin, run, LONG_DOC, USAGE, [("..8", [All])], Some(&EAPI7));
+make_builtin!("hasv", hasv_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

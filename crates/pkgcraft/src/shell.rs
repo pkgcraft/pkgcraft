@@ -456,8 +456,7 @@ impl<'a> BuildData<'a> {
         }
 
         // builtins override functions
-        let builtins = eapi.builtins();
-        override_funcs(builtins, true)?;
+        override_funcs(eapi.builtins().keys(), true)?;
         // phase builtins override functions forcing direct calls to error out
         override_funcs(eapi.phases(), true)?;
 
@@ -471,10 +470,13 @@ impl<'a> BuildData<'a> {
         scallop::shell::restricted(|| value.source_bash())?;
 
         // check for functions that override builtins
-        let all_funcs: IndexSet<_> = functions::all_visible().into_iter().collect();
-        if !all_funcs.is_disjoint(builtins) {
-            let funcs = all_funcs.intersection(builtins).join(", ");
-            return Err(Error::Base(format!("PMS functionality overridden: {funcs}")));
+        let overridden: Vec<_> = functions::all_visible()
+            .into_iter()
+            .filter(|s| eapi.builtins().contains_key(s))
+            .collect();
+        if !overridden.is_empty() {
+            let funcs = overridden.join(", ");
+            return Err(Error::Base(format!("EAPI {eapi} functionality overridden: {funcs}")));
         }
 
         // prepend metadata keys that incrementally accumulate to eclass values
@@ -606,16 +608,16 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
-            for builtin in eapi.builtins() {
+            for builtin in eapi.builtins().keys() {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
-                    DESCRIPTION="testing PMS builtin override errors"
+                    DESCRIPTION="testing builtin override errors"
                     SLOT=0
                     {builtin}() {{ :; }}
                 "#};
                 let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                 let r = raw_pkg.source();
-                assert_err_re!(r, format!("PMS functionality overridden: {builtin}$"));
+                assert_err_re!(r, format!("EAPI {eapi} functionality overridden: {builtin}$"));
             }
         }
     }

@@ -1,7 +1,5 @@
 use scallop::ExecStatus;
 
-use crate::shell::phase::PhaseKind::PkgNofetch;
-
 use super::_default_phase_func::default_phase_func;
 use super::make_builtin;
 
@@ -14,14 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "default_pkg_nofetch";
-make_builtin!(
-    "default_pkg_nofetch",
-    default_pkg_nofetch_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    [("2..", [PkgNofetch])]
-);
+make_builtin!("default_pkg_nofetch", default_pkg_nofetch_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

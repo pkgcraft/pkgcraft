@@ -1,7 +1,6 @@
 use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::make_builtin;
 
@@ -25,7 +24,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dostrip /path/to/strip";
-make_builtin!("dostrip", dostrip_builtin, run, LONG_DOC, USAGE, [("7..", [SrcInstall])]);
+make_builtin!("dostrip", dostrip_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

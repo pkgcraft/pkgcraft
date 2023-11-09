@@ -1,7 +1,5 @@
 use scallop::ExecStatus;
 
-use crate::shell::phase::PhaseKind::SrcCompile;
-
 use super::_default_phase_func::default_phase_func;
 use super::make_builtin;
 
@@ -14,14 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "default_src_compile";
-make_builtin!(
-    "default_src_compile",
-    default_src_compile_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    [("2..", [SrcCompile])]
-);
+make_builtin!("default_src_compile", default_src_compile_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

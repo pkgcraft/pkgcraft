@@ -5,7 +5,7 @@ use scallop::{Error, ExecStatus};
 use crate::eapi::Feature::NonfatalDie;
 use crate::shell::{get_build_mut, write_stderr};
 
-use super::{make_builtin, Scopes::All, NONFATAL};
+use super::{make_builtin, NONFATAL};
 
 const LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
@@ -35,7 +35,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "die \"error message\"";
-make_builtin!("die", die_builtin, run, LONG_DOC, USAGE, [("..", [All])]);
+make_builtin!("die", die_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

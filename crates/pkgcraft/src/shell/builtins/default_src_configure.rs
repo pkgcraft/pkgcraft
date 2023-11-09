@@ -1,7 +1,5 @@
 use scallop::ExecStatus;
 
-use crate::shell::phase::PhaseKind::SrcConfigure;
-
 use super::_default_phase_func::default_phase_func;
 use super::make_builtin;
 
@@ -20,7 +18,7 @@ make_builtin!(
     run,
     LONG_DOC,
     USAGE,
-    [("2..", [SrcConfigure])]
+    BUILTIN
 );
 
 #[cfg(test)]

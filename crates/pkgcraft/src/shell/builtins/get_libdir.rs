@@ -3,7 +3,7 @@ use scallop::{Error, ExecStatus};
 use crate::shell::utils::get_libdir;
 use crate::shell::write_stdout;
 
-use super::{make_builtin, Scopes::All};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Output the libdir name.";
 
@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "get_libdir";
-make_builtin!("get_libdir", get_libdir_builtin, run, LONG_DOC, USAGE, [("6..", [All])]);
+make_builtin!("get_libdir", get_libdir_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

@@ -1,7 +1,7 @@
 use scallop::variables::PipeStatus;
 use scallop::ExecStatus;
 
-use super::{die::run as die, make_builtin, Scopes::All};
+use super::{die::run as die, make_builtin};
 
 const LONG_DOC: &str = "\
 Calls `die` with passed arguments if any process in the most recently-executed foreground pipeline
@@ -17,7 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "assert \"error message\"";
-make_builtin!("assert", assert_builtin, run, LONG_DOC, USAGE, [("..", [All])]);
+make_builtin!("assert", assert_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

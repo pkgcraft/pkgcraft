@@ -3,7 +3,7 @@ use scallop::{functions, source, Error, ExecStatus};
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind;
 
-use super::{make_builtin, Scope, Scopes::Eclass};
+use super::{make_builtin, Scope};
 
 const LONG_DOC: &str = "\
 Export stub functions that call the eclass's functions, thereby making them default.
@@ -58,14 +58,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "EXPORT_FUNCTIONS src_configure src_compile";
-make_builtin!(
-    "EXPORT_FUNCTIONS",
-    export_functions_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    [("..", [Eclass])]
-);
+make_builtin!("EXPORT_FUNCTIONS", export_functions_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

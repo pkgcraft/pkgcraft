@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use scallop::command::Command;
 use scallop::{Error, ExecStatus};
 
-use super::{make_builtin, Scopes::All, NONFATAL};
+use super::{make_builtin, NONFATAL};
 
 const LONG_DOC: &str = "\
 Takes one or more arguments and executes them as a command, preserving the exit status. If this
@@ -29,7 +29,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "nonfatal cmd arg1 arg2";
-make_builtin!("nonfatal", nonfatal_builtin, run, LONG_DOC, USAGE, [("4..", [All])]);
+make_builtin!("nonfatal", nonfatal_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

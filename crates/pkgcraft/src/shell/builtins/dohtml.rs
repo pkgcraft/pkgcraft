@@ -6,10 +6,8 @@ use clap::Parser;
 use scallop::{Error, ExecStatus};
 use walkdir::DirEntry;
 
-use crate::eapi::EAPI6;
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
-use crate::shell::phase::PhaseKind::SrcInstall;
 use crate::shell::{get_build_mut, write_stderr};
 
 use super::make_builtin;
@@ -157,15 +155,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dohtml path/to/html/files";
-make_builtin!(
-    "dohtml",
-    dohtml_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    [("..7", [SrcInstall])],
-    Some(&EAPI6)
-);
+make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

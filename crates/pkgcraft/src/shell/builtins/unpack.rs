@@ -12,7 +12,7 @@ use crate::eapi::Feature;
 use crate::shell::get_build_mut;
 use crate::utils::{current_dir, is_single_component};
 
-use super::{make_builtin, Scopes::Phases};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Unpacks one or more source archives, in order, into the current directory.";
@@ -109,7 +109,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "unpack file.tar.gz";
-make_builtin!("unpack", unpack_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
+make_builtin!("unpack", unpack_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

@@ -1,7 +1,5 @@
 use scallop::ExecStatus;
 
-use crate::shell::phase::PhaseKind::SrcInstall;
-
 use super::_new::new;
 use super::dolib_so::run as dolib_so;
 use super::make_builtin;
@@ -14,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newlib.so path/to/lib.so new_filename";
-make_builtin!("newlib.so", newlib_so_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
+make_builtin!("newlib.so", newlib_so_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

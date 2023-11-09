@@ -289,10 +289,6 @@ impl Config {
         // initialize bash
         Lazy::force(&shell::BASH);
 
-        // collapse global builtin sets
-        Lazy::force(&shell::builtins::BUILTINS);
-        Lazy::force(&shell::builtins::EAPI_BUILTINS);
-
         // enable global flag
         COLLAPSE_LAZY_FIELDS.store(true, Relaxed);
 

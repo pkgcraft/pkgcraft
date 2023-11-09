@@ -8,7 +8,6 @@ use scallop::{variables, Error, ExecStatus};
 
 use crate::command::RunCommand;
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::SrcConfigure;
 use crate::shell::utils::{configure, get_libdir};
 use crate::shell::write_stdout;
 
@@ -109,7 +108,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "econf --enable-feature";
-make_builtin!("econf", econf_builtin, run, LONG_DOC, USAGE, [("2..", [SrcConfigure])]);
+make_builtin!("econf", econf_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {
@@ -122,6 +121,7 @@ mod tests {
     use crate::command::commands;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::{assert_err_re, build_from_paths};
+    use crate::shell::phase::PhaseKind::SrcConfigure;
     use crate::shell::{BuildData, Scope};
 
     use super::super::builtin_scope_tests;

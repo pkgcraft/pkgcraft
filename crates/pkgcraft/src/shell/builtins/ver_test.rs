@@ -3,7 +3,7 @@ use scallop::{Error, ExecStatus};
 use crate::dep;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, Scopes::All};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
@@ -33,7 +33,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ver_test 1 -lt 2-r1";
-make_builtin!("ver_test", ver_test_builtin, run, LONG_DOC, USAGE, [("7..", [All])]);
+make_builtin!("ver_test", ver_test_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

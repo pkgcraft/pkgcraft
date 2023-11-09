@@ -1,7 +1,7 @@
 use scallop::ExecStatus;
 
 use super::_query_cmd::query_cmd;
-use super::{make_builtin, Scopes::Phases};
+use super::make_builtin;
 
 const LONG_DOC: &str = "Determine if a package dependency is installed.";
 
@@ -16,7 +16,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "has_version 'cat/pkg[use]'";
-make_builtin!("has_version", has_version_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
+make_builtin!("has_version", has_version_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

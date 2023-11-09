@@ -1,7 +1,7 @@
 use scallop::{Error, ExecStatus};
 
 use super::debug_print::run as debug_print;
-use super::{make_builtin, Scopes::All};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Calls debug-print with `now in section $*`.";
@@ -17,14 +17,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "debug-print-section arg1 arg2";
-make_builtin!(
-    "debug-print-section",
-    debug_print_section_builtin,
-    run,
-    LONG_DOC,
-    USAGE,
-    [("..", [All])]
-);
+make_builtin!("debug-print-section", debug_print_section_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

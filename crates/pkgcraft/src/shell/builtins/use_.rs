@@ -2,7 +2,7 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, Scopes::Phases};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Returns success if the USE flag argument is enabled, failure otherwise.
@@ -31,7 +31,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "use flag";
-make_builtin!("use", use_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
+make_builtin!("use", use_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

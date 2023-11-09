@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Either;
 use once_cell::sync::Lazy;
 use strum::EnumString;
@@ -15,12 +15,12 @@ use crate::archive::Archive;
 use crate::dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
-use crate::shell::builtins::EAPI_BUILTINS;
 use crate::shell::environment::{ScopedVariable, Variable};
 use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::{Phase, PhaseKind};
+use crate::shell::scope::{Scope, Scopes};
 use crate::Error;
 
 peg::parser!(grammar parse() for str {
@@ -101,6 +101,7 @@ pub struct Eapi {
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
     env: IndexSet<ScopedVariable>,
+    builtins: IndexMap<String, IndexSet<Scope>>,
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
@@ -272,16 +273,36 @@ impl Eapi {
         &self.env
     }
 
+    /// Return all the enabled builtins for an EAPI.
+    pub(crate) fn builtins(&self) -> &IndexMap<String, IndexSet<Scope>> {
+        &self.builtins
+    }
+
     /// Return the hooks for a given Phase.
     pub(crate) fn hooks(&self) -> &HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>> {
         &self.hooks
     }
 
-    /// Return all the enabled builtins for an EAPI.
-    pub(crate) fn builtins(&self) -> &IndexSet<String> {
-        EAPI_BUILTINS
-            .get(self)
-            .unwrap_or_else(|| panic!("missing builtins EAPI: {self}"))
+    /// Enable builtins during Eapi registration.
+    fn update_builtins(mut self, builtins: &[(&str, &[Scopes])]) -> Self {
+        for (b, scopes) in builtins {
+            let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
+            scopes.sort();
+            self.builtins.insert(b.to_string(), scopes);
+        }
+        self.builtins.sort_keys();
+        self
+    }
+
+    /// Disable inherited builtins during Eapi registration.
+    fn disable_builtins(mut self, builtins: &[&str]) -> Self {
+        for b in builtins {
+            if self.builtins.remove(*b).is_none() {
+                panic!("EAPI {self}: disabling unset builtin: {b}");
+            }
+        }
+        self.builtins.sort_keys();
+        self
     }
 
     /// Enable features during Eapi registration.
@@ -512,6 +533,93 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
 
     Eapi::new("5", None)
         .enable_features([QueryHostRoot, TrailingSlash])
+        .update_builtins(&[
+            ("adddeny", &[Phases]),
+            ("addpredict", &[Phases]),
+            ("addread", &[Phases]),
+            ("addwrite", &[Phases]),
+            ("assert", &[All]),
+            ("best_version", &[Phases]),
+            ("command_not_found_handle", &[All]),
+            ("debug-print-function", &[All]),
+            ("debug-print", &[All]),
+            ("debug-print-section", &[All]),
+            ("default", &[Phases]),
+            ("default_pkg_nofetch", &[Phase(PkgNofetch)]),
+            ("default_src_compile", &[Phase(SrcCompile)]),
+            ("default_src_configure", &[Phase(SrcConfigure)]),
+            ("default_src_install", &[Phase(SrcInstall)]),
+            ("default_src_prepare", &[Phase(SrcPrepare)]),
+            ("default_src_test", &[Phase(SrcTest)]),
+            ("default_src_unpack", &[Phase(SrcUnpack)]),
+            ("die", &[All]),
+            ("diropts", &[Phase(SrcInstall)]),
+            ("dobin", &[Phase(SrcInstall)]),
+            ("docinto", &[Phase(SrcInstall)]),
+            ("docompress", &[Phase(SrcInstall)]),
+            ("doconfd", &[Phase(SrcInstall)]),
+            ("dodir", &[Phase(SrcInstall)]),
+            ("dodoc", &[Phase(SrcInstall)]),
+            ("doenvd", &[Phase(SrcInstall)]),
+            ("doexe", &[Phase(SrcInstall)]),
+            ("doheader", &[Phase(SrcInstall)]),
+            ("dohtml", &[Phase(SrcInstall)]),
+            ("doinfo", &[Phase(SrcInstall)]),
+            ("doinitd", &[Phase(SrcInstall)]),
+            ("doins", &[Phase(SrcInstall)]),
+            ("dolib.a", &[Phase(SrcInstall)]),
+            ("dolib", &[Phase(SrcInstall)]),
+            ("dolib.so", &[Phase(SrcInstall)]),
+            ("doman", &[Phase(SrcInstall)]),
+            ("domo", &[Phase(SrcInstall)]),
+            ("dosbin", &[Phase(SrcInstall)]),
+            ("dosym", &[Phase(SrcInstall)]),
+            ("ebegin", &[Phases]),
+            ("econf", &[Phase(SrcConfigure)]),
+            ("eend", &[Phases]),
+            ("eerror", &[Phases]),
+            ("einfon", &[Phases]),
+            ("einfo", &[Phases]),
+            ("einstall", &[Phase(SrcInstall)]),
+            ("elog", &[Phases]),
+            ("emake", &[Phases]),
+            ("ewarn", &[Phases]),
+            ("exeinto", &[Phase(SrcInstall)]),
+            ("exeopts", &[Phase(SrcInstall)]),
+            ("EXPORT_FUNCTIONS", &[Eclass]),
+            ("fowners", &[Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
+            ("fperms", &[Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
+            ("hasq", &[All]),
+            ("has", &[All]),
+            ("has_version", &[Phases]),
+            ("hasv", &[All]),
+            ("inherit", &[Global, Eclass]),
+            ("insinto", &[Phase(SrcInstall)]),
+            ("insopts", &[Phase(SrcInstall)]),
+            ("into", &[Phase(SrcInstall)]),
+            ("keepdir", &[Phase(SrcInstall)]),
+            ("libopts", &[Phase(SrcInstall)]),
+            ("newbin", &[Phase(SrcInstall)]),
+            ("newconfd", &[Phase(SrcInstall)]),
+            ("newdoc", &[Phase(SrcInstall)]),
+            ("newenvd", &[Phase(SrcInstall)]),
+            ("newexe", &[Phase(SrcInstall)]),
+            ("newheader", &[Phase(SrcInstall)]),
+            ("newinitd", &[Phase(SrcInstall)]),
+            ("newins", &[Phase(SrcInstall)]),
+            ("newlib.a", &[Phase(SrcInstall)]),
+            ("newlib.so", &[Phase(SrcInstall)]),
+            ("newman", &[Phase(SrcInstall)]),
+            ("newsbin", &[Phase(SrcInstall)]),
+            ("nonfatal", &[All]),
+            ("unpack", &[Phases]),
+            ("use_enable", &[Phases]),
+            ("useq", &[Phases]),
+            ("use", &[Phases]),
+            ("usev", &[Phases]),
+            ("use_with", &[Phases]),
+            ("usex", &[Phases]),
+        ])
         .update_operations([
             Pretend.op([PkgPretend]),
             Build.op([
@@ -597,10 +705,19 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     use crate::shell::phase::{eapi6::*, PhaseKind::*};
+    use crate::shell::scope::Scopes::*;
     use Feature::*;
 
     Eapi::new("6", Some(&EAPI5))
         .enable_features([NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
+        .update_builtins(&[
+            ("eapply", &[Phase(SrcPrepare)]),
+            ("eapply_user", &[Phase(SrcPrepare)]),
+            ("einstalldocs", &[Phase(SrcInstall)]),
+            ("get_libdir", &[All]),
+            ("in_iuse", &[Phases]),
+        ])
+        .disable_builtins(&["einstall"])
         .update_phases([SrcPrepare.func(Some(src_prepare)), SrcInstall.func(Some(src_install))])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
@@ -621,6 +738,14 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("7", Some(&EAPI6))
         .enable_features([QueryDeps])
         .disable_features([QueryHostRoot, TrailingSlash])
+        .update_builtins(&[
+            ("eqawarn", &[Phases]),
+            ("dostrip", &[Phase(SrcInstall)]),
+            ("ver_cut", &[All]),
+            ("ver_rs", &[All]),
+            ("ver_test", &[All]),
+        ])
+        .disable_builtins(&["dohtml", "dolib", "libopts"])
         .update_dep_keys(&[BDEPEND])
         .update_incremental_keys(&[BDEPEND])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
@@ -643,6 +768,7 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
 
     Eapi::new("8", Some(&EAPI7))
         .enable_features([ConsistentFileOpts, DosymRelative, SrcUriUnrestrict, UsevTwoArgs])
+        .disable_builtins(&["hasq", "hasv", "useq"])
         .update_dep_keys(&[IDEPEND])
         .update_incremental_keys(&[IDEPEND, PROPERTIES, RESTRICT])
         .update_econf(&[

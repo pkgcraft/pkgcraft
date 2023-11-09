@@ -1,6 +1,6 @@
 use scallop::{Error, ExecStatus};
 
-use super::{make_builtin, Scopes::All};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Returns success if the first argument is found in subsequent arguments, failure otherwise.";
@@ -15,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "has needle ${haystack}";
-make_builtin!("has", has_builtin, run, LONG_DOC, USAGE, [("..", [All])]);
+make_builtin!("has", has_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

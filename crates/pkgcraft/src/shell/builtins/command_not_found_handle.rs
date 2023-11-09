@@ -1,6 +1,6 @@
 use scallop::{Error, ExecStatus};
 
-use super::{make_builtin, Scopes::All};
+use super::make_builtin;
 
 static LONG_DOC: &str = "\
 Executed when the search for a command is unsuccessful.
@@ -20,7 +20,7 @@ make_builtin!(
     run,
     LONG_DOC,
     "for internal use only",
-    [("..", [All])]
+    BUILTIN
 );
 
 #[cfg(test)]

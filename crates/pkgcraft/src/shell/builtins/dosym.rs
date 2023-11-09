@@ -6,7 +6,6 @@ use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::DosymRelative;
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::SrcInstall;
 use crate::utils::relpath;
 
 use super::make_builtin;
@@ -54,7 +53,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dosym path/to/source /path/to/target";
-make_builtin!("dosym", dosym_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
+make_builtin!("dosym", dosym_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

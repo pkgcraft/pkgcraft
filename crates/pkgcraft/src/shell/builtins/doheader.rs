@@ -6,7 +6,6 @@ use scallop::{Error, ExecStatus};
 use crate::eapi::Feature::ConsistentFileOpts;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind::SrcInstall;
 
 use super::make_builtin;
 
@@ -48,7 +47,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doheader path/to/header.h";
-make_builtin!("doheader", doheader_builtin, run, LONG_DOC, USAGE, [("5..", [SrcInstall])]);
+make_builtin!("doheader", doheader_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

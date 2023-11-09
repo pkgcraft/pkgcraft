@@ -1,10 +1,8 @@
-use crate::eapi::EAPI7;
-
-use super::{has::run as has, make_builtin, Scopes::All};
+use super::{has::run as has, make_builtin};
 
 const LONG_DOC: &str = "Deprecated synonym for has.";
 const USAGE: &str = "hasq needle ${haystack}";
-make_builtin!("hasq", hasq_builtin, has, LONG_DOC, USAGE, [("..8", [All])], Some(&EAPI7));
+make_builtin!("hasq", hasq_builtin, has, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

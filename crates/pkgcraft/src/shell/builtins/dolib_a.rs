@@ -1,7 +1,5 @@
 use scallop::{Error, ExecStatus};
 
-use crate::shell::phase::PhaseKind::SrcInstall;
-
 use super::dolib::install_lib;
 use super::make_builtin;
 
@@ -17,7 +15,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dolib.a path/to/lib.a";
-make_builtin!("dolib.a", dolib_a_builtin, run, LONG_DOC, USAGE, [("..", [SrcInstall])]);
+make_builtin!("dolib.a", dolib_a_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {

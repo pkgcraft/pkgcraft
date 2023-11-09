@@ -1,7 +1,7 @@
 use scallop::ExecStatus;
 
 use super::_use_conf::use_conf;
-use super::{make_builtin, Scopes::Phases};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Returns --with-${opt} and --without-${opt} configure flags based on a given USE flag.";
@@ -12,7 +12,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "use_with flag";
-make_builtin!("use_with", use_with_builtin, run, LONG_DOC, USAGE, [("..", [Phases])]);
+make_builtin!("use_with", use_with_builtin, run, LONG_DOC, USAGE, BUILTIN);
 
 #[cfg(test)]
 mod tests {
