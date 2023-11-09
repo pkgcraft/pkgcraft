@@ -1,7 +1,8 @@
+use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::ffi::{c_int, CStr, CString};
 use std::hash::{Hash, Hasher};
-use std::{fmt, mem, process, ptr};
+use std::{cmp, fmt, mem, process, ptr};
 
 use bitflags::bitflags;
 use nix::sys::signal::Signal;
@@ -93,9 +94,39 @@ impl Hash for Builtin {
     }
 }
 
+impl Ord for Builtin {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.name.cmp(other.name)
+    }
+}
+
+impl PartialOrd for Builtin {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl AsRef<str> for Builtin {
     fn as_ref(&self) -> &str {
         self.name
+    }
+}
+
+impl Borrow<str> for Builtin {
+    fn borrow(&self) -> &str {
+        self.name
+    }
+}
+
+impl Borrow<str> for &Builtin {
+    fn borrow(&self) -> &str {
+        self.name
+    }
+}
+
+impl From<&Builtin> for Builtin {
+    fn from(b: &Builtin) -> Self {
+        *b
     }
 }
 
