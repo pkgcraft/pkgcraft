@@ -190,7 +190,7 @@ where
                     }
                 }
             }
-            None => return Err(Error::Base(format!("unknown builtin: {name}"))),
+            None => return Err(Error::Base(format!("failed overriding unknown builtin: {name}"))),
         }
     }
 
