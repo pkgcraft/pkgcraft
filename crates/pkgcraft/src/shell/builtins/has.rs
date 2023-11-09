@@ -7,12 +7,11 @@ Returns success if the first argument is found in subsequent arguments, failure 
 
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let found = match args {
-        [needle, haystack @ ..] => haystack.contains(needle),
-        _ => return Err(Error::Base("requires 1 or more args, got 0".into())),
-    };
-
-    Ok(ExecStatus::from(found))
+    if let [needle, haystack @ ..] = args {
+        Ok(ExecStatus::from(haystack.contains(needle)))
+    } else {
+        Err(Error::Base("requires 1 or more args, got 0".to_string()))
+    }
 }
 
 const USAGE: &str = "has needle ${haystack}";
