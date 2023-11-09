@@ -6,23 +6,22 @@ use std::str::FromStr;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use itertools::Either;
 use once_cell::sync::Lazy;
-use scallop::builtins::Builtin;
 use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
-use crate::shell::builtins::BUILTINS;
+use crate::shell::builtins::Builtin;
 use crate::shell::environment::{ScopedVariable, Variable};
 use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::{Phase, PhaseKind};
-use crate::shell::scope::{Scope, Scopes};
+use crate::shell::scope::Scopes;
 use crate::Error;
 
 peg::parser!(grammar parse() for str {
@@ -103,7 +102,7 @@ pub struct Eapi {
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
     env: IndexSet<ScopedVariable>,
-    builtins: IndexMap<&'static Builtin, IndexSet<Scope>>,
+    builtins: IndexSet<Builtin>,
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
@@ -276,7 +275,7 @@ impl Eapi {
     }
 
     /// Return all the enabled builtins for an EAPI.
-    pub(crate) fn builtins(&self) -> &IndexMap<&'static Builtin, IndexSet<Scope>> {
+    pub(crate) fn builtins(&self) -> &IndexSet<Builtin> {
         &self.builtins
     }
 
@@ -287,26 +286,22 @@ impl Eapi {
 
     /// Enable builtins during Eapi registration.
     fn update_builtins(mut self, builtins: &[(&str, &[Scopes])]) -> Self {
-        for (b, scopes) in builtins {
-            let builtin = BUILTINS
-                .get(*b)
-                .unwrap_or_else(|| panic!("EAPI: {self}: unknown builtin: {b}"));
-            let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
-            scopes.sort();
-            self.builtins.insert(builtin, scopes);
+        for (cmd, scopes) in builtins {
+            let builtin = Builtin::new(cmd, scopes).unwrap_or_else(|e| panic!("EAPI {self}: {e}"));
+            self.builtins.insert(builtin);
         }
-        self.builtins.sort_keys();
+        self.builtins.sort();
         self
     }
 
     /// Disable inherited builtins during Eapi registration.
     fn disable_builtins(mut self, builtins: &[&str]) -> Self {
         for b in builtins {
-            if self.builtins.remove(*b).is_none() {
+            if !self.builtins.remove(*b) {
                 panic!("EAPI {self}: disabling unset builtin: {b}");
             }
         }
-        self.builtins.sort_keys();
+        self.builtins.sort();
         self
     }
 
@@ -475,8 +470,18 @@ impl Eapi {
 
     /// Finalize remaining fields that depend on previous fields.
     fn finalize(mut self) -> Self {
+        // update phases
         self.phases = self.operations.iter().flatten().copied().collect();
         self.phases.sort();
+
+        // inject phase stub builtins that force direct calls to error out
+        for phase in &self.phases {
+            let builtin = Builtin::new(phase.as_ref(), &[Scopes::All])
+                .unwrap_or_else(|e| panic!("EAPI {self}: {e}"));
+            self.builtins.insert(builtin);
+        }
+        self.builtins.sort();
+
         self
     }
 }

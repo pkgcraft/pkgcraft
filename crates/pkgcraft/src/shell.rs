@@ -449,6 +449,8 @@ impl<'a> BuildData<'a> {
     fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
         Lazy::force(&BASH);
         let eapi = self.eapi();
+        let builtins = eapi.builtins();
+        let phases = eapi.phases();
 
         // remove external metadata vars from the environment
         for var in eapi.metadata_keys() {
@@ -456,9 +458,9 @@ impl<'a> BuildData<'a> {
         }
 
         // builtins override functions
-        override_funcs(eapi.builtins().keys(), true)?;
+        override_funcs(builtins, true)?;
         // phase builtins override functions forcing direct calls to error out
-        override_funcs(eapi.phases(), true)?;
+        override_funcs(phases, true)?;
 
         self.set_vars()?;
 
@@ -472,7 +474,12 @@ impl<'a> BuildData<'a> {
         // check for functions that override builtins
         let overridden: Vec<_> = functions::all_visible()
             .into_iter()
-            .filter(|s| eapi.builtins().contains_key(s.as_str()))
+            .filter(|s| {
+                builtins
+                    .get(s.as_str())
+                    .map(|b| !b.is_phase())
+                    .unwrap_or_default()
+            })
             .collect();
         if !overridden.is_empty() {
             let funcs = overridden.join(", ");
@@ -603,12 +610,12 @@ mod tests {
     }
 
     #[test]
-    fn pms_builtin_overrides() {
+    fn builtin_overrides() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
-            for builtin in eapi.builtins().keys() {
+            for builtin in eapi.builtins().iter().filter(|b| !b.is_phase()) {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
                     DESCRIPTION="testing builtin override errors"

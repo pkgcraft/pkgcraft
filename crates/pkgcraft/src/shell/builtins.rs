@@ -1,14 +1,17 @@
+use std::borrow::Borrow;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::{cmp, fmt};
 
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
-use scallop::builtins::{handle_error, Builtin};
-use scallop::{Error, ExecStatus};
+use scallop::builtins::handle_error;
+use scallop::ExecStatus;
 
 use super::get_build_mut;
 use super::phase::PhaseKind;
-use super::scope::Scope;
+use super::scope::{Scope, Scopes};
 
 mod _default_phase_func;
 mod _new;
@@ -111,8 +114,91 @@ mod ver_cut;
 mod ver_rs;
 mod ver_test;
 
+#[derive(Debug, Clone)]
+pub(crate) struct Builtin {
+    builtin: &'static scallop::builtins::Builtin,
+    scopes: IndexSet<Scope>,
+}
+
+impl PartialEq for Builtin {
+    fn eq(&self, other: &Self) -> bool {
+        self.builtin == other.builtin
+    }
+}
+
+impl Eq for Builtin {}
+
+impl Hash for Builtin {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.builtin.hash(state);
+    }
+}
+
+impl Ord for Builtin {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.builtin.cmp(other.builtin)
+    }
+}
+
+impl PartialOrd for Builtin {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Borrow<str> for Builtin {
+    fn borrow(&self) -> &str {
+        self.builtin.borrow()
+    }
+}
+
+impl Borrow<str> for &Builtin {
+    fn borrow(&self) -> &str {
+        self.builtin.borrow()
+    }
+}
+
+impl AsRef<str> for Builtin {
+    fn as_ref(&self) -> &str {
+        self.builtin.as_ref()
+    }
+}
+
+impl fmt::Display for Builtin {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.builtin)
+    }
+}
+
+impl Builtin {
+    pub(crate) fn new(cmd: &str, scopes: &[Scopes]) -> crate::Result<Self> {
+        if let Some(builtin) = BUILTINS.get(cmd) {
+            let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
+            scopes.sort();
+            Ok(Self { builtin, scopes })
+        } else {
+            Err(crate::Error::InvalidValue(format!("unknown builtin: {cmd}")))
+        }
+    }
+
+    /// Determine if the builtin is allowed in a given `Scope`.
+    pub(crate) fn is_allowed(&self, scope: &Scope) -> bool {
+        self.scopes.contains(scope)
+            || (scope.is_eclass() && self.scopes.contains(&Scope::Eclass(None)))
+    }
+
+    /// Determine if the builtin is a phase stub.
+    pub(crate) fn is_phase(&self) -> bool {
+        PhaseKind::from_str(self.as_ref()).is_ok()
+    }
+
+    pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
+        self.builtin.run(args)
+    }
+}
+
 /// Ordered set of all known builtins.
-pub(crate) static BUILTINS: Lazy<IndexSet<Builtin>> = Lazy::new(|| {
+pub(crate) static BUILTINS: Lazy<IndexSet<scallop::builtins::Builtin>> = Lazy::new(|| {
     [
         adddeny::BUILTIN,
         addpredict::BUILTIN,
@@ -294,26 +380,19 @@ mod parse {
     }
 }
 
-/// Run a builtin handling errors.
-pub(crate) fn run(cmd: &str, args: &[&str]) -> ExecStatus {
+/// Run a builtin given its command name.
+fn run(cmd: &str, args: &[&str]) -> ExecStatus {
+    use scallop::Error;
+
     let build = get_build_mut();
     let eapi = build.eapi();
     let scope = &build.scope;
-    let allowed = |scopes: &IndexSet<Scope>| -> bool {
-        scopes.contains(scope) || (scope.is_eclass() && scopes.contains(&Scope::Eclass(None)))
-    };
 
     // run a builtin if it's enabled for the current build state
-    let result = match eapi.builtins().get_key_value(cmd) {
-        Some((builtin, scopes)) if allowed(scopes) => builtin.run(args),
+    let result = match eapi.builtins().get(cmd) {
+        Some(builtin) if builtin.is_allowed(scope) => builtin.run(args),
         Some(_) => Err(Error::Base(format!("disabled in {scope} scope"))),
-        None => {
-            if PhaseKind::from_str(cmd).is_ok() {
-                Err(Error::Base("direct phase call".to_string()))
-            } else {
-                Err(Error::Base(format!("disabled in EAPI {eapi}")))
-            }
-        }
+        None => Err(Error::Base(format!("disabled in EAPI {eapi}"))),
     };
 
     // handle errors, bailing out when running normally
@@ -330,14 +409,13 @@ macro_rules! make_builtin {
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> std::ffi::c_int {
             use scallop::traits::IntoWords;
-
             let words = list.into_words(false);
             let args: Vec<_> = words.into_iter().collect();
             let status = $crate::shell::builtins::run($name, &args);
             i32::from(status)
         }
 
-        pub(crate) static $builtin: scallop::builtins::Builtin = scallop::builtins::Builtin {
+        pub(super) static $builtin: scallop::builtins::Builtin = scallop::builtins::Builtin {
             name: $name,
             func: $func,
             flags: scallop::builtins::Attr::ENABLED.bits(),
@@ -383,7 +461,7 @@ macro_rules! builtin_scope_tests {
                         !eapi
                             .builtins()
                             .get(name)
-                            .map(|set| set.contains(s))
+                            .map(|b| b.is_allowed(s))
                             .unwrap_or_default()
                     });
                 for scope in scopes {
