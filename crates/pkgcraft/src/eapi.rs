@@ -859,6 +859,11 @@ mod tests {
             assert!(r.is_err(), "range didn't fail: {s}");
         }
 
+        // removed EAPIs
+        assert!(range("2..3").unwrap().next().is_none());
+        assert!(range("..5").unwrap().next().is_none());
+
+        // existing EAPIs
         assert_ordered_eq(range("..").unwrap(), EAPIS.iter().copied());
         assert_ordered_eq(range("..U").unwrap(), EAPIS_OFFICIAL.iter().copied());
         assert_ordered_eq(range("U..").unwrap(), EAPIS_UNOFFICIAL.iter().copied());
