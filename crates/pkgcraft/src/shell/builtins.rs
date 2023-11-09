@@ -296,9 +296,6 @@ mod parse {
 
 /// Run a builtin handling errors.
 pub(crate) fn run(cmd: &str, args: &[&str]) -> ExecStatus {
-    let builtin = BUILTINS
-        .get(cmd)
-        .unwrap_or_else(|| panic!("unregistered builtin: {cmd}"));
     let build = get_build_mut();
     let eapi = build.eapi();
     let scope = &build.scope;
@@ -307,11 +304,16 @@ pub(crate) fn run(cmd: &str, args: &[&str]) -> ExecStatus {
     };
 
     // run a builtin if it's enabled for the current build state
-    let result = match eapi.builtins().get(cmd) {
-        Some(scopes) if allowed(scopes) => builtin.run(args),
+    let result = match eapi.builtins().get_key_value(cmd) {
+        Some((builtin, scopes)) if allowed(scopes) => builtin.run(args),
         Some(_) => Err(Error::Base(format!("disabled in {scope} scope"))),
-        None if PhaseKind::from_str(cmd).is_ok() => builtin.run(args),
-        None => Err(Error::Base(format!("disabled in EAPI {eapi}"))),
+        None => {
+            if PhaseKind::from_str(cmd).is_ok() {
+                Err(Error::Base("direct phase call".to_string()))
+            } else {
+                Err(Error::Base(format!("disabled in EAPI {eapi}")))
+            }
+        }
     };
 
     // handle errors, bailing out when running normally

@@ -472,7 +472,7 @@ impl<'a> BuildData<'a> {
         // check for functions that override builtins
         let overridden: Vec<_> = functions::all_visible()
             .into_iter()
-            .filter(|s| eapi.builtins().contains_key(s))
+            .filter(|s| eapi.builtins().contains_key(s.as_str()))
             .collect();
         if !overridden.is_empty() {
             let funcs = overridden.join(", ");
