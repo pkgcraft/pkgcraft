@@ -1,6 +1,5 @@
 use scallop::{Error, ExecStatus};
 
-use crate::shell::builtins::BUILTINS;
 use crate::shell::get_build_mut;
 
 use super::make_builtin;
@@ -17,8 +16,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let phase = build.phase()?;
     let default_phase = format!("default_{phase}");
 
-    if let Some(builtin) = BUILTINS.get(default_phase.as_str()) {
-        builtin.run(&[])
+    if let Some(builtin) = build.eapi().builtins().get(default_phase.as_str()) {
+        builtin(&[])
     } else {
         Err(Error::Base(format!("{phase} phase has no default")))
     }

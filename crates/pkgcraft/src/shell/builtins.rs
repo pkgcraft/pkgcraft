@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{cmp, fmt};
@@ -280,6 +281,16 @@ impl AsRef<str> for Builtin {
 impl fmt::Display for Builtin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.builtin)
+    }
+}
+
+// TODO: replace with callable trait implementation if it's ever stabilized
+// https://github.com/rust-lang/rust/issues/29625
+impl Deref for Builtin {
+    type Target = scallop::builtins::BuiltinFn;
+
+    fn deref(&self) -> &Self::Target {
+        &self.builtin.func
     }
 }
 
