@@ -171,9 +171,12 @@ impl fmt::Display for Builtin {
 }
 
 impl Builtin {
-    pub(crate) fn new(cmd: &str, scopes: &[Scopes]) -> crate::Result<Self> {
+    pub(crate) fn new<I>(cmd: &str, scopes: I) -> crate::Result<Self>
+    where
+        I: IntoIterator<Item = Scopes>,
+    {
         if let Some(builtin) = BUILTINS.get(cmd) {
-            let mut scopes: IndexSet<_> = scopes.iter().flatten().collect();
+            let mut scopes: IndexSet<_> = scopes.into_iter().flatten().collect();
             scopes.sort();
             Ok(Self { builtin, scopes })
         } else {
