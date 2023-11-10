@@ -294,9 +294,12 @@ impl Eapi {
     }
 
     /// Disable inherited builtins during Eapi registration.
-    fn disable_builtins(mut self, builtins: &[&str]) -> Self {
+    fn disable_builtins<I>(mut self, builtins: I) -> Self
+    where
+        I: IntoIterator<Item = scallop::builtins::Builtin>,
+    {
         for b in builtins {
-            if !self.builtins.remove(*b) {
+            if !self.builtins.remove(&b) {
                 panic!("EAPI {self}: disabling unset builtin: {b}");
             }
         }
@@ -735,7 +738,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             Builtin::new(get_libdir, [All]),
             Builtin::new(in_iuse, [Phases]),
         ])
-        .disable_builtins(&["einstall"])
+        .disable_builtins([einstall])
         .update_phases([SrcPrepare.func(Some(src_prepare)), SrcInstall.func(Some(src_install))])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
@@ -764,7 +767,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
             Builtin::new(ver_rs, [All]),
             Builtin::new(ver_test, [All]),
         ])
-        .disable_builtins(&["dohtml", "dolib", "libopts"])
+        .disable_builtins([dohtml, dolib, libopts])
         .update_dep_keys(&[BDEPEND])
         .update_incremental_keys(&[BDEPEND])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
@@ -782,12 +785,13 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::builtins::*;
     use crate::shell::metadata::Key::*;
     use Feature::*;
 
     Eapi::new("8", Some(&EAPI7))
         .enable_features([ConsistentFileOpts, DosymRelative, SrcUriUnrestrict, UsevTwoArgs])
-        .disable_builtins(&["hasq", "hasv", "useq"])
+        .disable_builtins([hasq, hasv, useq])
         .update_dep_keys(&[IDEPEND])
         .update_incremental_keys(&[IDEPEND, PROPERTIES, RESTRICT])
         .update_econf(&[

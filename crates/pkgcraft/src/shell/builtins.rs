@@ -260,6 +260,12 @@ impl PartialOrd for Builtin {
     }
 }
 
+impl Borrow<scallop::builtins::Builtin> for Builtin {
+    fn borrow(&self) -> &scallop::builtins::Builtin {
+        &self.builtin
+    }
+}
+
 impl Borrow<str> for Builtin {
     fn borrow(&self) -> &str {
         self.builtin.borrow()
