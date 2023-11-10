@@ -473,15 +473,6 @@ impl Eapi {
         // update phases
         self.phases = self.operations.iter().flatten().copied().collect();
         self.phases.sort();
-
-        // inject phase stub builtins that force direct calls to error out
-        for phase in &self.phases {
-            let builtin = Builtin::new(phase.as_ref(), &[Scopes::All])
-                .unwrap_or_else(|e| panic!("EAPI {self}: {e}"));
-            self.builtins.insert(builtin);
-        }
-        self.builtins.sort();
-
         self
     }
 }
@@ -629,6 +620,22 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             ("usev", &[Phases]),
             ("use_with", &[Phases]),
             ("usex", &[Phases]),
+            // phase stubs that force direct calls to error out
+            ("pkg_config", &[All]),
+            ("pkg_info", &[All]),
+            ("pkg_nofetch", &[All]),
+            ("pkg_postinst", &[All]),
+            ("pkg_postrm", &[All]),
+            ("pkg_preinst", &[All]),
+            ("pkg_prerm", &[All]),
+            ("pkg_pretend", &[All]),
+            ("pkg_setup", &[All]),
+            ("src_compile", &[All]),
+            ("src_configure", &[All]),
+            ("src_install", &[All]),
+            ("src_prepare", &[All]),
+            ("src_test", &[All]),
+            ("src_unpack", &[All]),
         ])
         .update_operations([
             Pretend.op([PkgPretend]),
