@@ -183,6 +183,9 @@ impl Drop for Scoped {
 pub(crate) struct BuildData<'a> {
     state: BuildState<'a>,
 
+    /// nonfatal status set by the related builtin
+    nonfatal: bool,
+
     stdin: Stdin,
     stdout: Stdout,
     stderr: Stderr,

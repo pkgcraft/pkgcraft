@@ -1,23 +1,21 @@
-use std::sync::atomic::Ordering;
-
 use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::NonfatalDie;
 use crate::shell::{get_build_mut, write_stderr};
 
-use super::{make_builtin, NONFATAL};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let eapi = get_build_mut().eapi();
-    let nonfatal = NONFATAL.load(Ordering::Relaxed);
+    let build = get_build_mut();
+    let supported = build.eapi().has(NonfatalDie);
 
     let (nonfatal, msg) = match args[..] {
-        ["-n", msg] if eapi.has(NonfatalDie) => (nonfatal, msg),
-        ["-n"] if eapi.has(NonfatalDie) => (nonfatal, ""),
+        ["-n", msg] if supported => (build.nonfatal, msg),
+        ["-n"] if supported => (build.nonfatal, ""),
         [msg] => (false, msg),
         [] => (false, "(no error message)"),
         _ => return Err(Error::Base(format!("takes up to 1 arg, got {}", args.len()))),

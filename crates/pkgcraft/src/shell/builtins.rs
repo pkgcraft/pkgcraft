@@ -2,7 +2,6 @@ use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::{cmp, fmt};
 
 use indexmap::IndexSet;
@@ -445,9 +444,6 @@ pub(crate) static BUILTINS: Lazy<IndexSet<scallop::builtins::Builtin>> = Lazy::n
     .collect()
 });
 
-/// Controls the status set by the nonfatal builtin.
-static NONFATAL: AtomicBool = AtomicBool::new(false);
-
 peg::parser! {
     grammar cmd() for str {
         rule version_separator() -> &'input str
@@ -527,7 +523,7 @@ fn run(cmd: &str, args: &[&str]) -> ExecStatus {
 
     // handle errors, bailing out when running normally
     result.unwrap_or_else(|e| match e {
-        Error::Base(s) if !NONFATAL.load(Ordering::Relaxed) => handle_error(cmd, Error::Bail(s)),
+        Error::Base(s) if !build.nonfatal => handle_error(cmd, Error::Bail(s)),
         _ => handle_error(cmd, e),
     })
 }

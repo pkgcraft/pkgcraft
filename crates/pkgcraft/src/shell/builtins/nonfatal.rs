@@ -1,9 +1,9 @@
-use std::sync::atomic::Ordering;
-
 use scallop::command::Command;
 use scallop::{Error, ExecStatus};
 
-use super::{make_builtin, NONFATAL};
+use crate::shell::get_build_mut;
+
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Takes one or more arguments and executes them as a command, preserving the exit status. If this
@@ -16,15 +16,20 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    NONFATAL.store(true, Ordering::Relaxed);
+    // enable nonfatal status
+    let build = get_build_mut();
+    build.nonfatal = true;
+
+    // run the specified command
     let cmd = Command::new(args.join(" "), None)?;
     let status = match cmd.execute() {
         Ok(s) => s,
         Err(Error::Status(s)) => s,
         _ => ExecStatus::Failure(1),
     };
-    NONFATAL.store(false, Ordering::Relaxed);
 
+    // disable nonfatal status
+    build.nonfatal = false;
     Ok(status)
 }
 
