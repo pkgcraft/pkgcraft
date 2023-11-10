@@ -24,7 +24,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "default";
-make_builtin!("default", default_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("default", default_builtin);
 
 #[cfg(test)]
 mod tests {

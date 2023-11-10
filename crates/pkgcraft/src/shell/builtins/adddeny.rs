@@ -11,7 +11,7 @@ fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "adddeny /path/to/deny";
-make_builtin!("adddeny", adddeny_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("adddeny", adddeny_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -28,7 +28,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doinitd path/to/init/file";
-make_builtin!("doinitd", doinitd_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("doinitd", doinitd_builtin);
 
 #[cfg(test)]
 mod tests {

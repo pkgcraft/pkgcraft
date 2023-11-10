@@ -11,7 +11,7 @@ fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "addpredict /proc";
-make_builtin!("addpredict", addpredict_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("addpredict", addpredict_builtin);
 
 #[cfg(test)]
 mod tests {

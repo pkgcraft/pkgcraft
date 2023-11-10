@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newexe path/to/executable new_filename";
-make_builtin!("newexe", newexe_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("newexe", newexe_builtin);
 
 #[cfg(test)]
 mod tests {

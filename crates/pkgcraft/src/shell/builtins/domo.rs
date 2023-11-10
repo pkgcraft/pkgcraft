@@ -50,7 +50,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "domo path/to/mo/file";
-make_builtin!("domo", domo_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("domo", domo_builtin);
 
 #[cfg(test)]
 mod tests {

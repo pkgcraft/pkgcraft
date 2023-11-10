@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "einfon \"message\"";
-make_builtin!("einfon", einfon_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("einfon", einfon_builtin);
 
 #[cfg(test)]
 mod tests {

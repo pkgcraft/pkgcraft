@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "diropts -m0750";
-make_builtin!("diropts", diropts_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("diropts", diropts_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "libopts -m0644";
-make_builtin!("libopts", libopts_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("libopts", libopts_builtin);
 
 #[cfg(test)]
 mod tests {

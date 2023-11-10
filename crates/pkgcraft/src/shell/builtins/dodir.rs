@@ -20,7 +20,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dodir path/to/dir";
-make_builtin!("dodir", dodir_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("dodir", dodir_builtin);
 
 #[cfg(test)]
 mod tests {

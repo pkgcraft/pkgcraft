@@ -155,7 +155,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dohtml path/to/html/files";
-make_builtin!("dohtml", dohtml_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("dohtml", dohtml_builtin);
 
 #[cfg(test)]
 mod tests {

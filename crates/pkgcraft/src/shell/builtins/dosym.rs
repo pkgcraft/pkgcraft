@@ -53,7 +53,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dosym path/to/source /path/to/target";
-make_builtin!("dosym", dosym_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("dosym", dosym_builtin);
 
 #[cfg(test)]
 mod tests {

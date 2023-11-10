@@ -47,7 +47,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doheader path/to/header.h";
-make_builtin!("doheader", doheader_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("doheader", doheader_builtin);
 
 #[cfg(test)]
 mod tests {

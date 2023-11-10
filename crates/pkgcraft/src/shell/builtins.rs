@@ -535,7 +535,10 @@ fn run(cmd: &str, args: &[&str]) -> ExecStatus {
 /// Create C compatible builtin function wrapper converting between rust and C types.
 #[macro_export]
 macro_rules! make_builtin {
-    ($name:expr, $func_name:ident, $func:expr, $long_doc:expr, $usage:expr, $builtin:ident) => {
+    ($name:expr, $func_name:ident) => {
+        make_builtin!($name, $func_name, BUILTIN);
+    };
+    ($name:expr, $func_name:ident, $builtin:ident) => {
         #[no_mangle]
         extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> std::ffi::c_int {
             use scallop::traits::IntoWords;
@@ -547,11 +550,11 @@ macro_rules! make_builtin {
 
         pub(crate) static $builtin: scallop::builtins::Builtin = scallop::builtins::Builtin {
             name: $name,
-            func: $func,
+            func: run,
             flags: scallop::builtins::Attr::ENABLED.bits(),
             cfunc: $func_name,
-            help: $long_doc,
-            usage: $usage,
+            help: LONG_DOC,
+            usage: USAGE,
         };
     };
 }

@@ -31,7 +31,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eend $?";
-make_builtin!("eend", eend_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("eend", eend_builtin);
 
 #[cfg(test)]
 mod tests {

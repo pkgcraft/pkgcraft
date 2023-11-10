@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newins path/to/file new_filename";
-make_builtin!("newins", newins_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("newins", newins_builtin);
 
 #[cfg(test)]
 mod tests {

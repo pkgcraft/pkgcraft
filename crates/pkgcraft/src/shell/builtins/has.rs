@@ -15,7 +15,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "has needle ${haystack}";
-make_builtin!("has", has_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("has", has_builtin);
 
 #[cfg(test)]
 mod tests {

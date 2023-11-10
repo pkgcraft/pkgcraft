@@ -31,7 +31,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dobin path/to/executable";
-make_builtin!("dobin", dobin_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("dobin", dobin_builtin);
 
 #[cfg(test)]
 mod tests {

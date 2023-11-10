@@ -158,7 +158,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eapply file.patch";
-make_builtin!("eapply", eapply_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("eapply", eapply_builtin);
 
 #[cfg(test)]
 mod tests {

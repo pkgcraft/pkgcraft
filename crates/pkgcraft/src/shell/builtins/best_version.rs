@@ -22,7 +22,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "best_version cat/pkg";
-make_builtin!("best_version", best_version_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("best_version", best_version_builtin);
 
 #[cfg(test)]
 mod tests {

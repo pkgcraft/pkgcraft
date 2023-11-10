@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ebegin \"message\"";
-make_builtin!("ebegin", ebegin_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("ebegin", ebegin_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eqawarn \"message\"";
-make_builtin!("eqawarn", eqawarn_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("eqawarn", eqawarn_builtin);
 
 #[cfg(test)]
 mod tests {

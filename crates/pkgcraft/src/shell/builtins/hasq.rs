@@ -10,7 +10,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "hasq needle ${haystack}";
-make_builtin!("hasq", hasq_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("hasq", hasq_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -28,7 +28,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doconfd path/to/config/file";
-make_builtin!("doconfd", doconfd_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("doconfd", doconfd_builtin);
 
 #[cfg(test)]
 mod tests {

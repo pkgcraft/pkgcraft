@@ -55,7 +55,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dodoc doc_file";
-make_builtin!("dodoc", dodoc_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("dodoc", dodoc_builtin);
 
 #[cfg(test)]
 mod tests {

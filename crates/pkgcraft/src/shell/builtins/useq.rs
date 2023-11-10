@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "useq flag";
-make_builtin!("useq", useq_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("useq", useq_builtin);
 
 #[cfg(test)]
 mod tests {

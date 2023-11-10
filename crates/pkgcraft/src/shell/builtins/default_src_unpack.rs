@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "default_src_unpack";
-make_builtin!("default_src_unpack", default_src_unpack_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("default_src_unpack", default_src_unpack_builtin);
 
 #[cfg(test)]
 mod tests {

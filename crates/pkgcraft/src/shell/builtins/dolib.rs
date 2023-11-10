@@ -33,7 +33,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dolib path/to/lib";
-make_builtin!("dolib", dolib_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("dolib", dolib_builtin);
 
 #[cfg(test)]
 mod tests {

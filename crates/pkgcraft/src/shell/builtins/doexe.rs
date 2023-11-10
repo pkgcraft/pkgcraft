@@ -22,7 +22,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doexe path/to/executable";
-make_builtin!("doexe", doexe_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("doexe", doexe_builtin);
 
 #[cfg(test)]
 mod tests {

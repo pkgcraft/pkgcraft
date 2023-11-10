@@ -20,7 +20,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doinfo path/to/info/file";
-make_builtin!("doinfo", doinfo_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("doinfo", doinfo_builtin);
 
 #[cfg(test)]
 mod tests {

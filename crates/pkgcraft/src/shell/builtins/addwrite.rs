@@ -11,7 +11,7 @@ fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "addwrite /dev";
-make_builtin!("addwrite", addwrite_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("addwrite", addwrite_builtin);
 
 #[cfg(test)]
 mod tests {

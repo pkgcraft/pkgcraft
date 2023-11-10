@@ -58,7 +58,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "EXPORT_FUNCTIONS src_configure src_compile";
-make_builtin!("EXPORT_FUNCTIONS", export_functions_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("EXPORT_FUNCTIONS", export_functions_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -24,7 +24,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "insinto /install/path";
-make_builtin!("insinto", insinto_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("insinto", insinto_builtin);
 
 #[cfg(test)]
 mod tests {

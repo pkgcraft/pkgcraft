@@ -15,7 +15,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dosbin /path/to/executable";
-make_builtin!("dosbin", dosbin_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("dosbin", dosbin_builtin);
 
 #[cfg(test)]
 mod tests {

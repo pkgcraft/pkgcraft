@@ -27,7 +27,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "usev flag";
-make_builtin!("usev", usev_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("usev", usev_builtin);
 
 #[cfg(test)]
 mod tests {

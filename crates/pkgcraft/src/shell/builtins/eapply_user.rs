@@ -27,7 +27,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "eapply_user";
-make_builtin!("eapply_user", eapply_user_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("eapply_user", eapply_user_builtin);
 
 #[cfg(test)]
 mod tests {

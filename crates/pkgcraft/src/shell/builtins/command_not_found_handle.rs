@@ -14,14 +14,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Err(Error::Base(format!("unknown command: {}", args[0])))
 }
 
-make_builtin!(
-    "command_not_found_handle",
-    command_not_found_handle_builtin,
-    run,
-    LONG_DOC,
-    "for internal use only",
-    BUILTIN
-);
+const USAGE: &str = "for internal use only";
+make_builtin!("command_not_found_handle", command_not_found_handle_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "default_pkg_nofetch";
-make_builtin!("default_pkg_nofetch", default_pkg_nofetch_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("default_pkg_nofetch", default_pkg_nofetch_builtin);
 
 #[cfg(test)]
 mod tests {

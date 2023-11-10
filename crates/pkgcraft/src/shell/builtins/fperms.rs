@@ -24,7 +24,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "fperms mode /path/to/file";
-make_builtin!("fperms", fperms_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("fperms", fperms_builtin);
 
 #[cfg(test)]
 mod tests {

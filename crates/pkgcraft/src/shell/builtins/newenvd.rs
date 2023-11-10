@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newenvd path/to/env_file new_filename";
-make_builtin!("newenvd", newenvd_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("newenvd", newenvd_builtin);
 
 #[cfg(test)]
 mod tests {

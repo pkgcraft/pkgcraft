@@ -30,7 +30,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "usex flag";
-make_builtin!("usex", usex_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("usex", usex_builtin);
 
 #[cfg(test)]
 mod tests {

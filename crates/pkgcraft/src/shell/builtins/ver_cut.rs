@@ -33,7 +33,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ver_cut 1-2 - 1.2.3";
-make_builtin!("ver_cut", ver_cut_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("ver_cut", ver_cut_builtin);
 
 #[cfg(test)]
 mod tests {

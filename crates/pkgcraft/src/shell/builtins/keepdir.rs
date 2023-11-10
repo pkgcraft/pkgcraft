@@ -37,7 +37,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "keepdir path/to/kept/dir";
-make_builtin!("keepdir", keepdir_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("keepdir", keepdir_builtin);
 
 #[cfg(test)]
 mod tests {

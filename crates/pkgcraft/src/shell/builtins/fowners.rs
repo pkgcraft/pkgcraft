@@ -24,7 +24,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "fowners user:group /path/to/file";
-make_builtin!("fowners", fowners_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("fowners", fowners_builtin);
 
 #[cfg(test)]
 mod tests {

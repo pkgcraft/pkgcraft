@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "insopts -m0644";
-make_builtin!("insopts", insopts_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("insopts", insopts_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -21,7 +21,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "docinto /install/path";
-make_builtin!("docinto", docinto_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("docinto", docinto_builtin);
 
 #[cfg(test)]
 mod tests {

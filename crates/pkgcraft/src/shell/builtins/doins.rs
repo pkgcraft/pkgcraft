@@ -40,7 +40,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doins path/to/file";
-make_builtin!("doins", doins_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("doins", doins_builtin);
 
 #[cfg(test)]
 mod tests {

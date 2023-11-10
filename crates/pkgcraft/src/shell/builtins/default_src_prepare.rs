@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "default_src_prepare";
-make_builtin!("default_src_prepare", default_src_prepare_builtin, run, LONG_DOC, USAGE, BUILTIN);
+make_builtin!("default_src_prepare", default_src_prepare_builtin);
 
 #[cfg(test)]
 mod tests {
