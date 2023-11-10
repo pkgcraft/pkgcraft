@@ -2,6 +2,7 @@ use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::ffi::{c_int, CStr, CString};
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::{cmp, fmt, mem, process, ptr};
 
 use bitflags::bitflags;
@@ -127,6 +128,16 @@ impl Borrow<str> for &Builtin {
 impl From<&Builtin> for Builtin {
     fn from(b: &Builtin) -> Self {
         *b
+    }
+}
+
+// TODO: replace with callable trait implementation if it's ever stabilized
+// https://github.com/rust-lang/rust/issues/29625
+impl Deref for Builtin {
+    type Target = BuiltinFn;
+
+    fn deref(&self) -> &Self::Target {
+        &self.func
     }
 }
 
