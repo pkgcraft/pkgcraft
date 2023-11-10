@@ -27,8 +27,7 @@ mod tests {
 
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests, doexe};
-    use super::BUILTIN as exeopts;
+    use super::super::{assert_invalid_args, builtin_scope_tests, doexe, exeopts};
     use super::*;
 
     builtin_scope_tests!(USAGE);

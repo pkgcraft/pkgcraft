@@ -32,8 +32,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests, dodoc};
-    use super::BUILTIN as docinto;
+    use super::super::{assert_invalid_args, builtin_scope_tests, docinto, dodoc};
     use super::*;
 
     builtin_scope_tests!(USAGE);

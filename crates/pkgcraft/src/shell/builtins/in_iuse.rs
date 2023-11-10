@@ -26,8 +26,7 @@ mod tests {
     use crate::config::Config;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as in_iuse;
+    use super::super::{assert_invalid_args, builtin_scope_tests, in_iuse};
     use super::*;
 
     builtin_scope_tests!(USAGE);

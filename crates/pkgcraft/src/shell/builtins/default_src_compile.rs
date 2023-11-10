@@ -16,8 +16,7 @@ make_builtin!("default_src_compile", default_src_compile_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as default_src_compile;
+    use super::super::{assert_invalid_args, builtin_scope_tests, default_src_compile};
     use super::*;
 
     builtin_scope_tests!(USAGE);

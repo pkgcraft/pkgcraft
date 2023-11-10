@@ -25,8 +25,7 @@ make_builtin!("einfon", einfon_builtin);
 mod tests {
     use crate::shell::assert_stderr;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as einfon;
+    use super::super::{assert_invalid_args, builtin_scope_tests, einfon};
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -27,8 +27,7 @@ make_builtin!("elog", elog_builtin);
 mod tests {
     use crate::shell::assert_stderr;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as elog;
+    use super::super::{assert_invalid_args, builtin_scope_tests, elog};
     use super::*;
 
     builtin_scope_tests!(USAGE);

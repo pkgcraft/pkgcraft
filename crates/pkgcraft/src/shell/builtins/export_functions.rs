@@ -69,8 +69,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::SourcePackage;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as export_functions;
+    use super::super::{assert_invalid_args, builtin_scope_tests, export_functions};
     use super::*;
 
     builtin_scope_tests!(USAGE);

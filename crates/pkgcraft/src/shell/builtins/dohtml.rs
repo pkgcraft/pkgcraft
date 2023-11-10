@@ -166,8 +166,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::{assert_stderr, BuildData};
 
-    use super::super::{assert_invalid_args, builtin_scope_tests, docinto};
-    use super::BUILTIN as dohtml;
+    use super::super::{assert_invalid_args, builtin_scope_tests, docinto, dohtml};
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -40,8 +40,7 @@ mod tests {
     use crate::pkg::BuildPackage;
     use crate::shell::{assert_stdout, get_build_mut, BuildData};
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as usex;
+    use super::super::{assert_invalid_args, builtin_scope_tests, usex};
     use super::*;
 
     builtin_scope_tests!(USAGE);

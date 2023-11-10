@@ -33,8 +33,7 @@ mod tests {
     use crate::pkg::BuildPackage;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as default;
+    use super::super::{assert_invalid_args, builtin_scope_tests, default};
     use super::*;
 
     builtin_scope_tests!(USAGE);

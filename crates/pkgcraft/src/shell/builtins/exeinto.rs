@@ -25,8 +25,7 @@ make_builtin!("exeinto", exeinto_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as exeinto;
+    use super::super::{assert_invalid_args, builtin_scope_tests, exeinto};
     use super::*;
 
     builtin_scope_tests!(USAGE);

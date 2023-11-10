@@ -21,8 +21,7 @@ make_builtin!("debug-print-section", debug_print_section_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as debug_print_section;
+    use super::super::{assert_invalid_args, builtin_scope_tests, debug_print_section};
     use super::*;
 
     builtin_scope_tests!(USAGE);

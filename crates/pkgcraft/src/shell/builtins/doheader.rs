@@ -58,8 +58,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests, insopts};
-    use super::BUILTIN as doheader;
+    use super::super::{assert_invalid_args, builtin_scope_tests, doheader, insopts};
     use super::*;
 
     builtin_scope_tests!(USAGE);

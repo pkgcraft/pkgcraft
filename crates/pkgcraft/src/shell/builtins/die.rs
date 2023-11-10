@@ -49,8 +49,7 @@ mod tests {
     use crate::shell::phase::PhaseKind;
     use crate::shell::{assert_stderr, BuildData, BuildState, Scope};
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as die;
+    use super::super::{assert_invalid_args, builtin_scope_tests, die};
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -21,8 +21,7 @@ mod tests {
     use crate::pkg::BuildPackage;
     use crate::shell::{get_build_mut, BuildData};
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as default_src_prepare;
+    use super::super::{assert_invalid_args, builtin_scope_tests, default_src_prepare};
     use super::*;
 
     builtin_scope_tests!(USAGE);

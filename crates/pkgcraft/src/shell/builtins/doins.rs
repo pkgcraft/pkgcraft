@@ -49,8 +49,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests, insinto, insopts};
-    use super::BUILTIN as doins;
+    use super::super::{assert_invalid_args, builtin_scope_tests, doins, insinto, insopts};
     use super::*;
 
     builtin_scope_tests!(USAGE);

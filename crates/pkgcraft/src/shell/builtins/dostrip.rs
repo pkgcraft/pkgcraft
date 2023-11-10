@@ -30,8 +30,7 @@ make_builtin!("dostrip", dostrip_builtin);
 mod tests {
     use crate::macros::assert_err_re;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as dostrip;
+    use super::super::{assert_invalid_args, builtin_scope_tests, dostrip};
     use super::*;
 
     builtin_scope_tests!(USAGE);

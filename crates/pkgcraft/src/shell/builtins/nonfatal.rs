@@ -33,8 +33,7 @@ make_builtin!("nonfatal", nonfatal_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as nonfatal;
+    use super::super::{assert_invalid_args, builtin_scope_tests, nonfatal};
     use super::*;
 
     builtin_scope_tests!(USAGE);

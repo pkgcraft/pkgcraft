@@ -126,9 +126,8 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
+    use super::super::{assert_invalid_args, builtin_scope_tests, unpack};
     use super::*;
-    use super::{BUILTIN as unpack, DIR_MODE, FILE_MODE};
 
     builtin_scope_tests!(USAGE);
 

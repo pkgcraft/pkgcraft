@@ -49,8 +49,7 @@ mod tests {
     use crate::command::commands;
     use crate::macros::assert_err_re;
 
-    use super::super::builtin_scope_tests;
-    use super::BUILTIN as emake;
+    use super::super::{builtin_scope_tests, emake};
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -25,8 +25,7 @@ make_builtin!("ebegin", ebegin_builtin);
 mod tests {
     use crate::shell::assert_stderr;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as ebegin;
+    use super::super::{assert_invalid_args, builtin_scope_tests, ebegin};
     use super::*;
 
     builtin_scope_tests!(USAGE);

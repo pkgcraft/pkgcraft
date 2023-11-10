@@ -25,8 +25,7 @@ make_builtin!("diropts", diropts_builtin);
 mod tests {
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests, dodir};
-    use super::BUILTIN as diropts;
+    use super::super::{assert_invalid_args, builtin_scope_tests, diropts, dodir};
     use super::*;
 
     builtin_scope_tests!(USAGE);

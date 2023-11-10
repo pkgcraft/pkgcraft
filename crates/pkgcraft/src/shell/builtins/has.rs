@@ -19,8 +19,7 @@ make_builtin!("has", has_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as has;
+    use super::super::{assert_invalid_args, builtin_scope_tests, has};
     use super::*;
 
     builtin_scope_tests!(USAGE);

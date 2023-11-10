@@ -23,8 +23,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::{write_stdin, BuildData};
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as newdoc;
+    use super::super::{assert_invalid_args, builtin_scope_tests, newdoc};
     use super::*;
 
     builtin_scope_tests!(USAGE);

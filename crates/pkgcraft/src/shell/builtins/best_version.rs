@@ -26,8 +26,7 @@ make_builtin!("best_version", best_version_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as best_version;
+    use super::super::{assert_invalid_args, best_version, builtin_scope_tests};
     use super::*;
 
     builtin_scope_tests!(USAGE);

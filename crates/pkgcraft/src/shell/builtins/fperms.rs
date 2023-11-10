@@ -35,8 +35,7 @@ mod tests {
     use crate::pkg::BuildPackage;
     use crate::shell::{test::FileTree, BuildData};
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as fperms;
+    use super::super::{assert_invalid_args, builtin_scope_tests, fperms};
     use super::*;
 
     builtin_scope_tests!(USAGE);

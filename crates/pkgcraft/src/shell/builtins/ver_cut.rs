@@ -43,8 +43,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::shell::{assert_stdout, BuildData};
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as ver_cut;
+    use super::super::{assert_invalid_args, builtin_scope_tests, ver_cut};
     use super::*;
 
     builtin_scope_tests!(USAGE);

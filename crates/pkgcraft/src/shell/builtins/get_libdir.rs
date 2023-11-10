@@ -28,8 +28,7 @@ mod tests {
 
     use crate::shell::assert_stdout;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as get_libdir;
+    use super::super::{assert_invalid_args, builtin_scope_tests, get_libdir};
     use super::*;
 
     builtin_scope_tests!(USAGE);

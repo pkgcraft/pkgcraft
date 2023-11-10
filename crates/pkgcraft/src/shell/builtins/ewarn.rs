@@ -25,8 +25,7 @@ make_builtin!("ewarn", ewarn_builtin);
 mod tests {
     use crate::shell::assert_stderr;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as ewarn;
+    use super::super::{assert_invalid_args, builtin_scope_tests, ewarn};
     use super::*;
 
     builtin_scope_tests!(USAGE);

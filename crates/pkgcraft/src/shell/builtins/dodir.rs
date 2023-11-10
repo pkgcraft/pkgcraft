@@ -26,8 +26,7 @@ make_builtin!("dodir", dodir_builtin);
 mod tests {
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests, diropts};
-    use super::BUILTIN as dodir;
+    use super::super::{assert_invalid_args, builtin_scope_tests, diropts, dodir};
     use super::*;
 
     builtin_scope_tests!(USAGE);

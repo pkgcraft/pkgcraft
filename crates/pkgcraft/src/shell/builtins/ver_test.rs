@@ -44,8 +44,7 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::TEST_DATA;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as ver_test;
+    use super::super::{assert_invalid_args, builtin_scope_tests, ver_test};
     use super::*;
 
     builtin_scope_tests!(USAGE);

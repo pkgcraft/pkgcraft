@@ -38,8 +38,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::shell::assert_stderr;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as eend;
+    use super::super::{assert_invalid_args, builtin_scope_tests, eend};
     use super::*;
 
     builtin_scope_tests!(USAGE);

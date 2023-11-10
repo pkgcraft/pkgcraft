@@ -22,8 +22,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::write_stdin;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as newenvd;
+    use super::super::{assert_invalid_args, builtin_scope_tests, newenvd};
     use super::*;
 
     builtin_scope_tests!(USAGE);

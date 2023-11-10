@@ -25,8 +25,7 @@ make_builtin!("einfo", einfo_builtin);
 mod tests {
     use crate::shell::assert_stderr;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as einfo;
+    use super::super::{assert_invalid_args, builtin_scope_tests, einfo};
     use super::*;
 
     builtin_scope_tests!(USAGE);

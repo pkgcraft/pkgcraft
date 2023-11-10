@@ -124,8 +124,7 @@ mod tests {
     use crate::shell::phase::PhaseKind::SrcConfigure;
     use crate::shell::{BuildData, Scope};
 
-    use super::super::builtin_scope_tests;
-    use super::BUILTIN as econf;
+    use super::super::{builtin_scope_tests, econf};
     use super::*;
 
     builtin_scope_tests!(USAGE);

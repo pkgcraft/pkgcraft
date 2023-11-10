@@ -95,8 +95,7 @@ mod tests {
     use crate::pkg::SourcePackage;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as inherit;
+    use super::super::{assert_invalid_args, builtin_scope_tests, inherit};
     use super::*;
 
     builtin_scope_tests!(USAGE);

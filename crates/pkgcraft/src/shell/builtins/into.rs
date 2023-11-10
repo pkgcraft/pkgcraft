@@ -35,8 +35,7 @@ mod tests {
     use crate::shell::phase::PhaseKind;
     use crate::shell::{BuildData, Scope};
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as into;
+    use super::super::{assert_invalid_args, builtin_scope_tests, into};
     use super::*;
 
     builtin_scope_tests!(USAGE);

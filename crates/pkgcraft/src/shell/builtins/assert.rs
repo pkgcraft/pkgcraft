@@ -28,8 +28,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::BUILTIN as assert;
+    use super::super::{assert, assert_invalid_args, builtin_scope_tests};
     use super::*;
 
     builtin_scope_tests!(USAGE);
