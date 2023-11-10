@@ -93,7 +93,7 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
@@ -118,7 +118,7 @@ mod tests {
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as einstalldocs;
+    use super::BUILTIN as einstalldocs;
     use super::*;
 
     builtin_scope_tests!(USAGE);

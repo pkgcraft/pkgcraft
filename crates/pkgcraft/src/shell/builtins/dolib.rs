@@ -24,7 +24,7 @@ pub(super) fn install_lib(args: &[&str], opts: Option<&[&str]>) -> scallop::Resu
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -44,10 +44,8 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
 
-    use super::super::into::run as into;
-    use super::super::libopts::run as libopts;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as dolib;
+    use super::super::{assert_invalid_args, builtin_scope_tests, into, libopts};
+    use super::BUILTIN as dolib;
     use super::*;
 
     builtin_scope_tests!(USAGE);

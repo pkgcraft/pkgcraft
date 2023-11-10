@@ -8,7 +8,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Calls the default_* function for the current phase.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
@@ -35,7 +35,7 @@ mod tests {
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as default;
+    use super::BUILTIN as default;
     use super::*;
 
     builtin_scope_tests!(USAGE);

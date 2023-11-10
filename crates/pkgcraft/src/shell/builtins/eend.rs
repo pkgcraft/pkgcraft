@@ -7,7 +7,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Display information message when starting a process.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (status, args) = match args {
         [n, args @ ..] => match n.parse::<i32>() {
             Err(_) => return Err(Error::Base(format!("invalid return value: {n}"))),
@@ -39,7 +39,7 @@ mod tests {
     use crate::shell::assert_stderr;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as eend;
+    use super::BUILTIN as eend;
     use super::*;
 
     builtin_scope_tests!(USAGE);

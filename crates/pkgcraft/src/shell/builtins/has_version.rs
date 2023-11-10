@@ -6,7 +6,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Determine if a package dependency is installed.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let mut cpvs = query_cmd(args)?;
     if cpvs.next().is_some() {
         Ok(ExecStatus::Success)
@@ -21,7 +21,7 @@ make_builtin!("has_version", has_version_builtin, run, LONG_DOC, USAGE, BUILTIN)
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as has_version;
+    use super::BUILTIN as has_version;
     use super::*;
 
     builtin_scope_tests!(USAGE);

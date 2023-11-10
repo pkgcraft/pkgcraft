@@ -7,7 +7,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install GNU info files into /usr/share/info/.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -30,7 +30,7 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as doinfo;
+    use super::BUILTIN as doinfo;
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -8,7 +8,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Output the libdir name.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !args.is_empty() {
         return Err(Error::Base(format!("takes no args, got {}", args.len())));
     }
@@ -29,7 +29,7 @@ mod tests {
     use crate::shell::assert_stdout;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as get_libdir;
+    use super::BUILTIN as get_libdir;
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -15,7 +15,7 @@ static DETECT_LANG_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(?P<name>\w+)\.(?P<lang>[a-z]{2}(_[A-Z]{2})?)$").unwrap());
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (args, mut lang) = match args {
         [s, files @ ..] => {
             let lang = s.strip_prefix("-i18n=").map(|s| s.trim_matches('"'));
@@ -78,7 +78,7 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as doman;
+    use super::BUILTIN as doman;
     use super::*;
 
     builtin_scope_tests!(USAGE);

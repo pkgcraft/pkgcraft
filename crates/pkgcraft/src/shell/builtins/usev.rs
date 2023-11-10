@@ -3,13 +3,13 @@ use scallop::{Error, ExecStatus};
 use crate::eapi::Feature::UsevTwoArgs;
 use crate::shell::{get_build_mut, write_stdout};
 
-use super::{make_builtin, use_::run as use_};
+use super::{make_builtin, use_};
 
 const LONG_DOC: &str = "\
 The same as use, but also prints the flag name if the condition is met.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let eapi = get_build_mut().eapi();
     let (flag, value) = match args[..] {
         [flag] => (flag, flag.strip_prefix('!').unwrap_or(flag)),
@@ -37,7 +37,7 @@ mod tests {
     use crate::shell::{assert_stdout, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as usev;
+    use super::BUILTIN as usev;
     use super::*;
 
     builtin_scope_tests!(USAGE);

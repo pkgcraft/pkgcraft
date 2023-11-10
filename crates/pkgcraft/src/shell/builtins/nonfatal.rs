@@ -11,7 +11,7 @@ results in a command being called that would normally abort the build process du
 instead a non-zero exit status shall be returned.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -34,7 +34,7 @@ make_builtin!("nonfatal", nonfatal_builtin, run, LONG_DOC, USAGE, BUILTIN);
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as nonfatal;
+    use super::BUILTIN as nonfatal;
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -10,7 +10,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Sources the given list of eclasses.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -96,7 +96,7 @@ mod tests {
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as inherit;
+    use super::BUILTIN as inherit;
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -41,7 +41,7 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (recursive, args) = match args {
         ["-r", args @ ..] => (true, args),
         _ => (false, args),
@@ -66,9 +66,8 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
-    use super::super::docinto::run as docinto;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as dodoc;
+    use super::super::{assert_invalid_args, builtin_scope_tests, docinto};
+    use super::BUILTIN as dodoc;
     use super::*;
 
     builtin_scope_tests!(USAGE);

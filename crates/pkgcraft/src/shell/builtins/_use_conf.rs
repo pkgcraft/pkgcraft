@@ -2,7 +2,7 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::write_stdout;
 
-use super::use_::run as use_;
+use super::use_;
 
 // Underlying implementation for use_with and use_enable.
 pub(super) fn use_conf(

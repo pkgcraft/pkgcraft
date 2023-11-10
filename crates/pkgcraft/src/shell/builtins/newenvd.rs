@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doenvd::run as doenvd;
+use super::doenvd;
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doenvd)
 }
 
@@ -23,7 +23,7 @@ mod tests {
     use crate::shell::write_stdin;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as newenvd;
+    use super::BUILTIN as newenvd;
     use super::*;
 
     builtin_scope_tests!(USAGE);

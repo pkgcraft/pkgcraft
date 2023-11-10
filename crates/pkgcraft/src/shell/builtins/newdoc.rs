@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::dodoc::run as dodoc;
+use super::dodoc;
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed documentation files.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dodoc)
 }
 
@@ -24,7 +24,7 @@ mod tests {
     use crate::shell::{write_stdin, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as newdoc;
+    use super::BUILTIN as newdoc;
     use super::*;
 
     builtin_scope_tests!(USAGE);

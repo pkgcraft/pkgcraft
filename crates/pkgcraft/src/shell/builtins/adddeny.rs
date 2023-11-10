@@ -5,7 +5,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Add a directory to the sandbox deny list.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
     // TODO: fill out this stub
     Ok(ExecStatus::Success)
 }

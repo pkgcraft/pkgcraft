@@ -8,7 +8,7 @@ const LONG_DOC: &str = "\
 Takes exactly one argument and sets the install path for doexe and newexe.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let path = match args[..] {
         ["/"] => "",
         [s] => s,
@@ -26,7 +26,7 @@ make_builtin!("exeinto", exeinto_builtin, run, LONG_DOC, USAGE, BUILTIN);
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as exeinto;
+    use super::BUILTIN as exeinto;
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -9,7 +9,7 @@ Returns success if the USE flag argument is enabled, failure otherwise.
 The return values are inverted if the flag name is prefixed with !.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (negated, flag) = match args[..] {
         [flag] => flag
             .strip_prefix('!')
@@ -40,7 +40,7 @@ mod tests {
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as use_;
+    use super::BUILTIN as use_;
     use super::*;
 
     builtin_scope_tests!(USAGE);

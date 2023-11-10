@@ -9,7 +9,7 @@ use super::{make_builtin, parse};
 const LONG_DOC: &str = "Output substring from package version string and range arguments.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pv = get_build_mut().cpv()?.pv();
     let (range, ver) = match args[..] {
         [range] => (range, pv.as_str()),
@@ -44,7 +44,7 @@ mod tests {
     use crate::shell::{assert_stdout, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as ver_cut;
+    use super::BUILTIN as ver_cut;
     use super::*;
 
     builtin_scope_tests!(USAGE);

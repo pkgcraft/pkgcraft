@@ -7,7 +7,7 @@ const LONG_DOC: &str = "\
 Runs the default src_compile implementation for a package's EAPI.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     default_phase_func(args)
 }
 
@@ -17,7 +17,7 @@ make_builtin!("default_src_compile", default_src_compile_builtin, run, LONG_DOC,
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as default_src_compile;
+    use super::BUILTIN as default_src_compile;
     use super::*;
 
     builtin_scope_tests!(USAGE);

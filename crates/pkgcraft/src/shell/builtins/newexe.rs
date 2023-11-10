@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doexe::run as doexe;
+use super::doexe;
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doexe)
 }
 
@@ -22,10 +22,8 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::write_stdin;
 
-    use super::super::exeinto::run as exeinto;
-    use super::super::exeopts::run as exeopts;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as newexe;
+    use super::super::{assert_invalid_args, builtin_scope_tests, exeinto, exeopts};
+    use super::BUILTIN as newexe;
     use super::*;
 
     builtin_scope_tests!(USAGE);

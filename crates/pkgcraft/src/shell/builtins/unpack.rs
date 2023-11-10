@@ -26,7 +26,7 @@ static DIR_MODE: Lazy<Mode> =
     Lazy::new(|| *FILE_MODE | Mode::S_IXUSR | Mode::S_IXGRP | Mode::S_IXOTH);
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -128,7 +128,7 @@ mod tests {
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
     use super::*;
-    use super::{run as unpack, DIR_MODE, FILE_MODE};
+    use super::{BUILTIN as unpack, DIR_MODE, FILE_MODE};
 
     builtin_scope_tests!(USAGE);
 

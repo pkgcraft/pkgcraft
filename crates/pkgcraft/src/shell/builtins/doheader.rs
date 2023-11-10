@@ -12,7 +12,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install header files into /usr/include/.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (recursive, args) = match args {
         ["-r", args @ ..] => (true, args),
         _ => (false, args),
@@ -58,9 +58,8 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
-    use super::super::insopts::run as insopts;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as doheader;
+    use super::super::{assert_invalid_args, builtin_scope_tests, insopts};
+    use super::BUILTIN as doheader;
     use super::*;
 
     builtin_scope_tests!(USAGE);

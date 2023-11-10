@@ -10,7 +10,7 @@ instead.
 ";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Err(Error::Base(format!("unknown command: {}", args[0])))
 }
 

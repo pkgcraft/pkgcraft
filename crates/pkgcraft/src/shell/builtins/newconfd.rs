@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doconfd::run as doconfd;
+use super::doconfd;
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed config files into /etc/conf.d/.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doconfd)
 }
 
@@ -23,7 +23,7 @@ mod tests {
     use crate::shell::write_stdin;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as newconfd;
+    use super::BUILTIN as newconfd;
     use super::*;
 
     builtin_scope_tests!(USAGE);

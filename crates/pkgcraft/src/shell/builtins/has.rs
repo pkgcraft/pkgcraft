@@ -6,7 +6,7 @@ const LONG_DOC: &str = "\
 Returns success if the first argument is found in subsequent arguments, failure otherwise.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if let [needle, haystack @ ..] = args {
         Ok(ExecStatus::from(haystack.contains(needle)))
     } else {
@@ -20,7 +20,7 @@ make_builtin!("has", has_builtin, run, LONG_DOC, USAGE, BUILTIN);
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as has;
+    use super::BUILTIN as has;
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -7,7 +7,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install executables.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -31,10 +31,8 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
 
-    use super::super::exeinto::run as exeinto;
-    use super::super::exeopts::run as exeopts;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as doexe;
+    use super::super::{assert_invalid_args, builtin_scope_tests, exeinto, exeopts};
+    use super::BUILTIN as doexe;
     use super::*;
 
     builtin_scope_tests!(USAGE);

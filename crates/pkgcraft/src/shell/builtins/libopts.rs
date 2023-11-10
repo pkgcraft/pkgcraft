@@ -8,7 +8,7 @@ const LONG_DOC: &str = "\
 Sets the options for installing libraries via `dolib` and similar commands.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -27,9 +27,8 @@ mod tests {
 
     use crate::shell::test::FileTree;
 
-    use super::super::dolib::run as dolib;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as libopts;
+    use super::super::{assert_invalid_args, builtin_scope_tests, dolib};
+    use super::BUILTIN as libopts;
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -2,13 +2,13 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::write_stdout;
 
-use super::{make_builtin, use_::run as use_};
+use super::{make_builtin, use_};
 
 const LONG_DOC: &str = "\
 Tests if a given USE flag is enabled and outputs a string related to its status.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // default output values
     let mut vals = ["yes", "no", "", ""];
 
@@ -41,7 +41,7 @@ mod tests {
     use crate::shell::{assert_stdout, get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as usex;
+    use super::BUILTIN as usex;
     use super::*;
 
     builtin_scope_tests!(USAGE);

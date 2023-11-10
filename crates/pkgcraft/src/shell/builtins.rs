@@ -103,7 +103,7 @@ mod newlib_so;
 mod newman;
 mod newsbin;
 mod nonfatal;
-pub(super) mod unpack;
+mod unpack;
 mod use_;
 mod use_enable;
 mod use_with;
@@ -114,9 +114,122 @@ mod ver_cut;
 mod ver_rs;
 mod ver_test;
 
+// export builtins for internal use
+pub(crate) use adddeny::BUILTIN as adddeny;
+pub(crate) use addpredict::BUILTIN as addpredict;
+pub(crate) use addread::BUILTIN as addread;
+pub(crate) use addwrite::BUILTIN as addwrite;
+pub(crate) use assert::BUILTIN as assert;
+pub(crate) use best_version::BUILTIN as best_version;
+pub(crate) use command_not_found_handle::BUILTIN as command_not_found_handle;
+pub(crate) use debug_print::BUILTIN as debug_print;
+pub(crate) use debug_print_function::BUILTIN as debug_print_function;
+pub(crate) use debug_print_section::BUILTIN as debug_print_section;
+pub(crate) use default::BUILTIN as default;
+pub(crate) use default_pkg_nofetch::BUILTIN as default_pkg_nofetch;
+pub(crate) use default_src_compile::BUILTIN as default_src_compile;
+pub(crate) use default_src_configure::BUILTIN as default_src_configure;
+pub(crate) use default_src_install::BUILTIN as default_src_install;
+pub(crate) use default_src_prepare::BUILTIN as default_src_prepare;
+pub(crate) use default_src_test::BUILTIN as default_src_test;
+pub(crate) use default_src_unpack::BUILTIN as default_src_unpack;
+pub(crate) use die::BUILTIN as die;
+pub(crate) use diropts::BUILTIN as diropts;
+pub(crate) use dobin::BUILTIN as dobin;
+pub(crate) use docinto::BUILTIN as docinto;
+pub(crate) use docompress::BUILTIN as docompress;
+pub(crate) use doconfd::BUILTIN as doconfd;
+pub(crate) use dodir::BUILTIN as dodir;
+pub(crate) use dodoc::BUILTIN as dodoc;
+pub(crate) use doenvd::BUILTIN as doenvd;
+pub(crate) use doexe::BUILTIN as doexe;
+pub(crate) use doheader::BUILTIN as doheader;
+pub(crate) use dohtml::BUILTIN as dohtml;
+pub(crate) use doinfo::BUILTIN as doinfo;
+pub(crate) use doinitd::BUILTIN as doinitd;
+pub(crate) use doins::BUILTIN as doins;
+pub(crate) use dolib::BUILTIN as dolib;
+pub(crate) use dolib_a::BUILTIN as dolib_a;
+pub(crate) use dolib_so::BUILTIN as dolib_so;
+pub(crate) use doman::BUILTIN as doman;
+pub(crate) use domo::BUILTIN as domo;
+pub(crate) use dosbin::BUILTIN as dosbin;
+pub(crate) use dostrip::BUILTIN as dostrip;
+pub(crate) use dosym::BUILTIN as dosym;
+pub(crate) use eapply::BUILTIN as eapply;
+pub(crate) use eapply_user::BUILTIN as eapply_user;
+pub(crate) use ebegin::BUILTIN as ebegin;
+pub(crate) use econf::BUILTIN as econf;
+pub(crate) use eend::BUILTIN as eend;
+pub(crate) use eerror::BUILTIN as eerror;
+pub(crate) use einfo::BUILTIN as einfo;
+pub(crate) use einfon::BUILTIN as einfon;
+pub(crate) use einstall::BUILTIN as einstall;
+pub(crate) use einstalldocs::BUILTIN as einstalldocs;
+pub(crate) use elog::BUILTIN as elog;
+pub(crate) use emake::BUILTIN as emake;
+pub(crate) use eqawarn::BUILTIN as eqawarn;
+pub(crate) use ewarn::BUILTIN as ewarn;
+pub(crate) use exeinto::BUILTIN as exeinto;
+pub(crate) use exeopts::BUILTIN as exeopts;
+pub(crate) use export_functions::BUILTIN as export_functions;
+pub(crate) use fowners::BUILTIN as fowners;
+pub(crate) use fperms::BUILTIN as fperms;
+pub(crate) use get_libdir::BUILTIN as get_libdir;
+pub(crate) use has::BUILTIN as has;
+pub(crate) use has_version::BUILTIN as has_version;
+pub(crate) use hasq::BUILTIN as hasq;
+pub(crate) use hasv::BUILTIN as hasv;
+pub(crate) use in_iuse::BUILTIN as in_iuse;
+pub(crate) use inherit::BUILTIN as inherit;
+pub(crate) use insinto::BUILTIN as insinto;
+pub(crate) use insopts::BUILTIN as insopts;
+pub(crate) use into::BUILTIN as into;
+pub(crate) use keepdir::BUILTIN as keepdir;
+pub(crate) use libopts::BUILTIN as libopts;
+pub(crate) use newbin::BUILTIN as newbin;
+pub(crate) use newconfd::BUILTIN as newconfd;
+pub(crate) use newdoc::BUILTIN as newdoc;
+pub(crate) use newenvd::BUILTIN as newenvd;
+pub(crate) use newexe::BUILTIN as newexe;
+pub(crate) use newheader::BUILTIN as newheader;
+pub(crate) use newinitd::BUILTIN as newinitd;
+pub(crate) use newins::BUILTIN as newins;
+pub(crate) use newlib_a::BUILTIN as newlib_a;
+pub(crate) use newlib_so::BUILTIN as newlib_so;
+pub(crate) use newman::BUILTIN as newman;
+pub(crate) use newsbin::BUILTIN as newsbin;
+pub(crate) use nonfatal::BUILTIN as nonfatal;
+pub(crate) use unpack::BUILTIN as unpack;
+pub(crate) use use_::BUILTIN as use_;
+pub(crate) use use_enable::BUILTIN as use_enable;
+pub(crate) use use_with::BUILTIN as use_with;
+pub(crate) use useq::BUILTIN as useq;
+pub(crate) use usev::BUILTIN as usev;
+pub(crate) use usex::BUILTIN as usex;
+pub(crate) use ver_cut::BUILTIN as ver_cut;
+pub(crate) use ver_rs::BUILTIN as ver_rs;
+pub(crate) use ver_test::BUILTIN as ver_test;
+// phase stubs
+pub(crate) use _phases::PKG_CONFIG_BUILTIN as pkg_config_builtin;
+pub(crate) use _phases::PKG_INFO_BUILTIN as pkg_info_builtin;
+pub(crate) use _phases::PKG_NOFETCH_BUILTIN as pkg_nofetch_builtin;
+pub(crate) use _phases::PKG_POSTINST_BUILTIN as pkg_postinst_builtin;
+pub(crate) use _phases::PKG_POSTRM_BUILTIN as pkg_postrm_builtin;
+pub(crate) use _phases::PKG_PREINST_BUILTIN as pkg_preinst_builtin;
+pub(crate) use _phases::PKG_PRERM_BUILTIN as pkg_prerm_builtin;
+pub(crate) use _phases::PKG_PRETEND_BUILTIN as pkg_pretend_builtin;
+pub(crate) use _phases::PKG_SETUP_BUILTIN as pkg_setup_builtin;
+pub(crate) use _phases::SRC_COMPILE_BUILTIN as src_compile_builtin;
+pub(crate) use _phases::SRC_CONFIGURE_BUILTIN as src_configure_builtin;
+pub(crate) use _phases::SRC_INSTALL_BUILTIN as src_install_builtin;
+pub(crate) use _phases::SRC_PREPARE_BUILTIN as src_prepare_builtin;
+pub(crate) use _phases::SRC_TEST_BUILTIN as src_test_builtin;
+pub(crate) use _phases::SRC_UNPACK_BUILTIN as src_unpack_builtin;
+
 #[derive(Debug, Clone)]
 pub(crate) struct Builtin {
-    builtin: &'static scallop::builtins::Builtin,
+    builtin: scallop::builtins::Builtin,
     scopes: IndexSet<Scope>,
 }
 
@@ -136,7 +249,7 @@ impl Hash for Builtin {
 
 impl Ord for Builtin {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.builtin.cmp(other.builtin)
+        self.builtin.cmp(&other.builtin)
     }
 }
 
@@ -171,17 +284,13 @@ impl fmt::Display for Builtin {
 }
 
 impl Builtin {
-    pub(crate) fn new<I>(cmd: &str, scopes: I) -> crate::Result<Self>
+    pub(crate) fn new<I>(builtin: scallop::builtins::Builtin, scopes: I) -> Self
     where
         I: IntoIterator<Item = Scopes>,
     {
-        if let Some(builtin) = BUILTINS.get(cmd) {
-            let mut scopes: IndexSet<_> = scopes.into_iter().flatten().collect();
-            scopes.sort();
-            Ok(Self { builtin, scopes })
-        } else {
-            Err(crate::Error::InvalidValue(format!("unknown builtin: {cmd}")))
-        }
+        let mut scopes: IndexSet<_> = scopes.into_iter().flatten().collect();
+        scopes.sort();
+        Self { builtin, scopes }
     }
 
     /// Determine if the builtin is allowed in a given `Scope`.
@@ -203,116 +312,117 @@ impl Builtin {
 /// Ordered set of all known builtins.
 pub(crate) static BUILTINS: Lazy<IndexSet<scallop::builtins::Builtin>> = Lazy::new(|| {
     [
-        adddeny::BUILTIN,
-        addpredict::BUILTIN,
-        addread::BUILTIN,
-        addwrite::BUILTIN,
-        assert::BUILTIN,
-        best_version::BUILTIN,
-        command_not_found_handle::BUILTIN,
-        debug_print::BUILTIN,
-        debug_print_function::BUILTIN,
-        debug_print_section::BUILTIN,
-        default::BUILTIN,
-        default_pkg_nofetch::BUILTIN,
-        default_src_compile::BUILTIN,
-        default_src_configure::BUILTIN,
-        default_src_install::BUILTIN,
-        default_src_prepare::BUILTIN,
-        default_src_test::BUILTIN,
-        default_src_unpack::BUILTIN,
-        die::BUILTIN,
-        diropts::BUILTIN,
-        dobin::BUILTIN,
-        docinto::BUILTIN,
-        docompress::BUILTIN,
-        doconfd::BUILTIN,
-        dodir::BUILTIN,
-        dodoc::BUILTIN,
-        doenvd::BUILTIN,
-        doexe::BUILTIN,
-        doheader::BUILTIN,
-        dohtml::BUILTIN,
-        doinfo::BUILTIN,
-        doinitd::BUILTIN,
-        doins::BUILTIN,
-        dolib::BUILTIN,
-        dolib_a::BUILTIN,
-        dolib_so::BUILTIN,
-        doman::BUILTIN,
-        domo::BUILTIN,
-        dosbin::BUILTIN,
-        dostrip::BUILTIN,
-        dosym::BUILTIN,
-        eapply::BUILTIN,
-        eapply_user::BUILTIN,
-        ebegin::BUILTIN,
-        econf::BUILTIN,
-        eend::BUILTIN,
-        eerror::BUILTIN,
-        einfo::BUILTIN,
-        einfon::BUILTIN,
-        einstall::BUILTIN,
-        einstalldocs::BUILTIN,
-        elog::BUILTIN,
-        emake::BUILTIN,
-        eqawarn::BUILTIN,
-        ewarn::BUILTIN,
-        exeinto::BUILTIN,
-        exeopts::BUILTIN,
-        export_functions::BUILTIN,
-        fowners::BUILTIN,
-        fperms::BUILTIN,
-        get_libdir::BUILTIN,
-        has::BUILTIN,
-        has_version::BUILTIN,
-        hasq::BUILTIN,
-        hasv::BUILTIN,
-        in_iuse::BUILTIN,
-        inherit::BUILTIN,
-        insinto::BUILTIN,
-        insopts::BUILTIN,
-        into::BUILTIN,
-        keepdir::BUILTIN,
-        libopts::BUILTIN,
-        newbin::BUILTIN,
-        newconfd::BUILTIN,
-        newdoc::BUILTIN,
-        newenvd::BUILTIN,
-        newexe::BUILTIN,
-        newheader::BUILTIN,
-        newinitd::BUILTIN,
-        newins::BUILTIN,
-        newlib_a::BUILTIN,
-        newlib_so::BUILTIN,
-        newman::BUILTIN,
-        newsbin::BUILTIN,
-        nonfatal::BUILTIN,
-        unpack::BUILTIN,
-        use_::BUILTIN,
-        use_enable::BUILTIN,
-        use_with::BUILTIN,
-        useq::BUILTIN,
-        usev::BUILTIN,
-        usex::BUILTIN,
-        ver_cut::BUILTIN,
-        ver_rs::BUILTIN,
-        ver_test::BUILTIN,
-        _phases::PKG_CONFIG_BUILTIN,
-        _phases::PKG_INFO_BUILTIN,
-        _phases::PKG_NOFETCH_BUILTIN,
-        _phases::PKG_POSTINST_BUILTIN,
-        _phases::PKG_POSTRM_BUILTIN,
-        _phases::PKG_PREINST_BUILTIN,
-        _phases::PKG_PRERM_BUILTIN,
-        _phases::PKG_PRETEND_BUILTIN,
-        _phases::PKG_SETUP_BUILTIN,
-        _phases::SRC_COMPILE_BUILTIN,
-        _phases::SRC_CONFIGURE_BUILTIN,
-        _phases::SRC_INSTALL_BUILTIN,
-        _phases::SRC_PREPARE_BUILTIN,
-        _phases::SRC_TEST_BUILTIN,
-        _phases::SRC_UNPACK_BUILTIN,
+        adddeny,
+        addpredict,
+        addread,
+        addwrite,
+        assert,
+        best_version,
+        command_not_found_handle,
+        debug_print,
+        debug_print_function,
+        debug_print_section,
+        default,
+        default_pkg_nofetch,
+        default_src_compile,
+        default_src_configure,
+        default_src_install,
+        default_src_prepare,
+        default_src_test,
+        default_src_unpack,
+        die,
+        diropts,
+        dobin,
+        docinto,
+        docompress,
+        doconfd,
+        dodir,
+        dodoc,
+        doenvd,
+        doexe,
+        doheader,
+        dohtml,
+        doinfo,
+        doinitd,
+        doins,
+        dolib,
+        dolib_a,
+        dolib_so,
+        doman,
+        domo,
+        dosbin,
+        dostrip,
+        dosym,
+        eapply,
+        eapply_user,
+        ebegin,
+        econf,
+        eend,
+        eerror,
+        einfo,
+        einfon,
+        einstall,
+        einstalldocs,
+        elog,
+        emake,
+        eqawarn,
+        ewarn,
+        exeinto,
+        exeopts,
+        export_functions,
+        fowners,
+        fperms,
+        get_libdir,
+        has,
+        has_version,
+        hasq,
+        hasv,
+        in_iuse,
+        inherit,
+        insinto,
+        insopts,
+        into,
+        keepdir,
+        libopts,
+        newbin,
+        newconfd,
+        newdoc,
+        newenvd,
+        newexe,
+        newheader,
+        newinitd,
+        newins,
+        newlib_a,
+        newlib_so,
+        newman,
+        newsbin,
+        nonfatal,
+        unpack,
+        use_,
+        use_enable,
+        use_with,
+        useq,
+        usev,
+        usex,
+        ver_cut,
+        ver_rs,
+        ver_test,
+        // phase stubs
+        pkg_config_builtin,
+        pkg_info_builtin,
+        pkg_nofetch_builtin,
+        pkg_postinst_builtin,
+        pkg_postrm_builtin,
+        pkg_preinst_builtin,
+        pkg_prerm_builtin,
+        pkg_pretend_builtin,
+        pkg_setup_builtin,
+        src_compile_builtin,
+        src_configure_builtin,
+        src_install_builtin,
+        src_prepare_builtin,
+        src_test_builtin,
+        src_unpack_builtin,
     ]
     .into_iter()
     .collect()
@@ -418,7 +528,7 @@ macro_rules! make_builtin {
             i32::from(status)
         }
 
-        pub(super) static $builtin: scallop::builtins::Builtin = scallop::builtins::Builtin {
+        pub(crate) static $builtin: scallop::builtins::Builtin = scallop::builtins::Builtin {
             name: $name,
             func: $func,
             flags: scallop::builtins::Attr::ENABLED.bits(),
@@ -431,12 +541,12 @@ macro_rules! make_builtin {
 use make_builtin;
 
 #[cfg(test)]
-fn assert_invalid_args(func: scallop::builtins::BuiltinFn, nums: &[u32]) {
+fn assert_invalid_args(builtin: scallop::builtins::Builtin, nums: &[u32]) {
     for n in nums {
         let args: Vec<_> = (0..*n).map(|n| n.to_string()).collect();
         let args: Vec<_> = args.iter().map(|s| s.as_str()).collect();
         let re = format!("^.*, got {n}");
-        crate::macros::assert_err_re!(func(&args), re);
+        crate::macros::assert_err_re!(builtin(&args), re);
     }
 }
 

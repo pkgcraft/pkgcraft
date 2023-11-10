@@ -12,7 +12,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Run the make command for a package.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if !makefile_exists() {
         return Err(Error::Base("nonexistent makefile".to_string()));
     }
@@ -50,7 +50,7 @@ mod tests {
     use crate::macros::assert_err_re;
 
     use super::super::builtin_scope_tests;
-    use super::run as emake;
+    use super::BUILTIN as emake;
     use super::*;
 
     builtin_scope_tests!(USAGE);

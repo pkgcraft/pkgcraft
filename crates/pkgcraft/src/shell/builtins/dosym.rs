@@ -31,7 +31,7 @@ fn convert_target<P: AsRef<Utf8Path>>(target: P, name: P) -> scallop::Result<Pat
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let eapi = get_build_mut().eapi();
     let (target, name) = match args[..] {
         ["-r", target, name] if eapi.has(DosymRelative) => (convert_target(target, name)?, name),
@@ -65,7 +65,7 @@ mod tests {
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as dosym;
+    use super::BUILTIN as dosym;
     use super::*;
 
     builtin_scope_tests!(USAGE);

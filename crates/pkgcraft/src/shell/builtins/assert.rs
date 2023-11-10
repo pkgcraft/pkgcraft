@@ -1,14 +1,14 @@
 use scallop::variables::PipeStatus;
 use scallop::ExecStatus;
 
-use super::{die::run as die, make_builtin};
+use super::{die, make_builtin};
 
 const LONG_DOC: &str = "\
 Calls `die` with passed arguments if any process in the most recently-executed foreground pipeline
 exited with an error status.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if PipeStatus::get().failed() {
         die(args)
     } else {
@@ -29,7 +29,7 @@ mod tests {
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as assert;
+    use super::BUILTIN as assert;
     use super::*;
 
     builtin_scope_tests!(USAGE);

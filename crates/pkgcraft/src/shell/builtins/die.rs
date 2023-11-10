@@ -11,7 +11,7 @@ const LONG_DOC: &str = "\
 Displays a failure message provided in an optional argument and then aborts the build process.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let eapi = get_build_mut().eapi();
     let nonfatal = NONFATAL.load(Ordering::Relaxed);
 
@@ -50,7 +50,7 @@ mod tests {
     use crate::shell::{assert_stderr, BuildData, BuildState, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as die;
+    use super::BUILTIN as die;
     use super::*;
 
     builtin_scope_tests!(USAGE);

@@ -2,12 +2,12 @@ use scallop::ExecStatus;
 
 use crate::shell::write_stdout;
 
-use super::{has::run as has, make_builtin};
+use super::{has, make_builtin};
 
 const LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let ret = has(args)?;
     if bool::from(&ret) {
         write_stdout!("{}", args[0])?;
@@ -22,7 +22,7 @@ make_builtin!("hasv", hasv_builtin, run, LONG_DOC, USAGE, BUILTIN);
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as hasv;
+    use super::BUILTIN as hasv;
     use super::*;
 
     builtin_scope_tests!(USAGE);

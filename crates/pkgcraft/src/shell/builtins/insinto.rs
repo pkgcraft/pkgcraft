@@ -9,7 +9,7 @@ const LONG_DOC: &str = "\
 Takes exactly one argument and sets the value of INSDESTTREE.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let path = match args[..] {
         ["/"] => "",
         [s] => s,
@@ -36,7 +36,7 @@ mod tests {
     use crate::shell::{BuildData, Scope};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as insinto;
+    use super::BUILTIN as insinto;
     use super::*;
 
     builtin_scope_tests!(USAGE);

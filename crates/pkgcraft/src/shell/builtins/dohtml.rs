@@ -69,7 +69,7 @@ impl fmt::Display for Options {
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let opts = Options::try_parse_from([&["dohtml"], args].concat())
         .map_err(|e| Error::Base(format!("invalid args: {e}")))?;
 
@@ -166,9 +166,8 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::{assert_stderr, BuildData};
 
-    use super::super::docinto::run as docinto;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as dohtml;
+    use super::super::{assert_invalid_args, builtin_scope_tests, docinto};
+    use super::BUILTIN as dohtml;
     use super::*;
 
     builtin_scope_tests!(USAGE);

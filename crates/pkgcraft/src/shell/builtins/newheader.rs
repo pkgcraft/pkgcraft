@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doheader::run as doheader;
+use super::doheader;
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed header files into /usr/include/.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doheader)
 }
 
@@ -23,7 +23,7 @@ mod tests {
     use crate::shell::write_stdin;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as newheader;
+    use super::BUILTIN as newheader;
     use super::*;
 
     builtin_scope_tests!(USAGE);

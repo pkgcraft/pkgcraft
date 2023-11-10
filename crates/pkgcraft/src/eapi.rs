@@ -286,12 +286,9 @@ impl Eapi {
     /// Enable builtins during Eapi registration.
     fn update_builtins<I>(mut self, builtins: I) -> Self
     where
-        I: IntoIterator<Item = crate::Result<Builtin>>,
+        I: IntoIterator<Item = Builtin>,
     {
-        for b in builtins {
-            self.builtins
-                .insert(b.unwrap_or_else(|e| panic!("EAPI {self}: {e}")));
-        }
+        self.builtins.extend(builtins);
         self.builtins.sort();
         self
     }
@@ -526,6 +523,7 @@ static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::builtins::*;
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks::*;
     use crate::shell::metadata::Key::*;
@@ -537,107 +535,107 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("5", None)
         .enable_features([QueryHostRoot, TrailingSlash])
         .update_builtins([
-            Builtin::new("EXPORT_FUNCTIONS", [Eclass]),
-            Builtin::new("adddeny", [Phases]),
-            Builtin::new("addpredict", [Phases]),
-            Builtin::new("addread", [Phases]),
-            Builtin::new("addwrite", [Phases]),
-            Builtin::new("assert", [All]),
-            Builtin::new("best_version", [Phases]),
-            Builtin::new("command_not_found_handle", [All]),
-            Builtin::new("debug-print", [All]),
-            Builtin::new("debug-print-function", [All]),
-            Builtin::new("debug-print-section", [All]),
-            Builtin::new("default", [Phases]),
-            Builtin::new("default_pkg_nofetch", [Phase(PkgNofetch)]),
-            Builtin::new("default_src_compile", [Phase(SrcCompile)]),
-            Builtin::new("default_src_configure", [Phase(SrcConfigure)]),
-            Builtin::new("default_src_install", [Phase(SrcInstall)]),
-            Builtin::new("default_src_prepare", [Phase(SrcPrepare)]),
-            Builtin::new("default_src_test", [Phase(SrcTest)]),
-            Builtin::new("default_src_unpack", [Phase(SrcUnpack)]),
-            Builtin::new("die", [All]),
-            Builtin::new("diropts", [Phase(SrcInstall)]),
-            Builtin::new("dobin", [Phase(SrcInstall)]),
-            Builtin::new("docinto", [Phase(SrcInstall)]),
-            Builtin::new("docompress", [Phase(SrcInstall)]),
-            Builtin::new("doconfd", [Phase(SrcInstall)]),
-            Builtin::new("dodir", [Phase(SrcInstall)]),
-            Builtin::new("dodoc", [Phase(SrcInstall)]),
-            Builtin::new("doenvd", [Phase(SrcInstall)]),
-            Builtin::new("doexe", [Phase(SrcInstall)]),
-            Builtin::new("doheader", [Phase(SrcInstall)]),
-            Builtin::new("dohtml", [Phase(SrcInstall)]),
-            Builtin::new("doinfo", [Phase(SrcInstall)]),
-            Builtin::new("doinitd", [Phase(SrcInstall)]),
-            Builtin::new("doins", [Phase(SrcInstall)]),
-            Builtin::new("dolib", [Phase(SrcInstall)]),
-            Builtin::new("dolib.a", [Phase(SrcInstall)]),
-            Builtin::new("dolib.so", [Phase(SrcInstall)]),
-            Builtin::new("doman", [Phase(SrcInstall)]),
-            Builtin::new("domo", [Phase(SrcInstall)]),
-            Builtin::new("dosbin", [Phase(SrcInstall)]),
-            Builtin::new("dosym", [Phase(SrcInstall)]),
-            Builtin::new("ebegin", [Phases]),
-            Builtin::new("econf", [Phase(SrcConfigure)]),
-            Builtin::new("eend", [Phases]),
-            Builtin::new("eerror", [Phases]),
-            Builtin::new("einfo", [Phases]),
-            Builtin::new("einfon", [Phases]),
-            Builtin::new("einstall", [Phase(SrcInstall)]),
-            Builtin::new("elog", [Phases]),
-            Builtin::new("emake", [Phases]),
-            Builtin::new("ewarn", [Phases]),
-            Builtin::new("exeinto", [Phase(SrcInstall)]),
-            Builtin::new("exeopts", [Phase(SrcInstall)]),
-            Builtin::new("fowners", [Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
-            Builtin::new("fperms", [Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
-            Builtin::new("has", [All]),
-            Builtin::new("has_version", [Phases]),
-            Builtin::new("hasq", [All]),
-            Builtin::new("hasv", [All]),
-            Builtin::new("inherit", [Global, Eclass]),
-            Builtin::new("insinto", [Phase(SrcInstall)]),
-            Builtin::new("insopts", [Phase(SrcInstall)]),
-            Builtin::new("into", [Phase(SrcInstall)]),
-            Builtin::new("keepdir", [Phase(SrcInstall)]),
-            Builtin::new("libopts", [Phase(SrcInstall)]),
-            Builtin::new("newbin", [Phase(SrcInstall)]),
-            Builtin::new("newconfd", [Phase(SrcInstall)]),
-            Builtin::new("newdoc", [Phase(SrcInstall)]),
-            Builtin::new("newenvd", [Phase(SrcInstall)]),
-            Builtin::new("newexe", [Phase(SrcInstall)]),
-            Builtin::new("newheader", [Phase(SrcInstall)]),
-            Builtin::new("newinitd", [Phase(SrcInstall)]),
-            Builtin::new("newins", [Phase(SrcInstall)]),
-            Builtin::new("newlib.a", [Phase(SrcInstall)]),
-            Builtin::new("newlib.so", [Phase(SrcInstall)]),
-            Builtin::new("newman", [Phase(SrcInstall)]),
-            Builtin::new("newsbin", [Phase(SrcInstall)]),
-            Builtin::new("nonfatal", [All]),
-            Builtin::new("unpack", [Phases]),
-            Builtin::new("use", [Phases]),
-            Builtin::new("use_enable", [Phases]),
-            Builtin::new("use_with", [Phases]),
-            Builtin::new("useq", [Phases]),
-            Builtin::new("usev", [Phases]),
-            Builtin::new("usex", [Phases]),
+            Builtin::new(adddeny, [Phases]),
+            Builtin::new(addpredict, [Phases]),
+            Builtin::new(addread, [Phases]),
+            Builtin::new(addwrite, [Phases]),
+            Builtin::new(assert, [All]),
+            Builtin::new(best_version, [Phases]),
+            Builtin::new(command_not_found_handle, [All]),
+            Builtin::new(debug_print, [All]),
+            Builtin::new(debug_print_function, [All]),
+            Builtin::new(debug_print_section, [All]),
+            Builtin::new(default, [Phases]),
+            Builtin::new(default_pkg_nofetch, [Phase(PkgNofetch)]),
+            Builtin::new(default_src_compile, [Phase(SrcCompile)]),
+            Builtin::new(default_src_configure, [Phase(SrcConfigure)]),
+            Builtin::new(default_src_install, [Phase(SrcInstall)]),
+            Builtin::new(default_src_prepare, [Phase(SrcPrepare)]),
+            Builtin::new(default_src_test, [Phase(SrcTest)]),
+            Builtin::new(default_src_unpack, [Phase(SrcUnpack)]),
+            Builtin::new(die, [All]),
+            Builtin::new(diropts, [Phase(SrcInstall)]),
+            Builtin::new(dobin, [Phase(SrcInstall)]),
+            Builtin::new(docinto, [Phase(SrcInstall)]),
+            Builtin::new(docompress, [Phase(SrcInstall)]),
+            Builtin::new(doconfd, [Phase(SrcInstall)]),
+            Builtin::new(dodir, [Phase(SrcInstall)]),
+            Builtin::new(dodoc, [Phase(SrcInstall)]),
+            Builtin::new(doenvd, [Phase(SrcInstall)]),
+            Builtin::new(doexe, [Phase(SrcInstall)]),
+            Builtin::new(doheader, [Phase(SrcInstall)]),
+            Builtin::new(dohtml, [Phase(SrcInstall)]),
+            Builtin::new(doinfo, [Phase(SrcInstall)]),
+            Builtin::new(doinitd, [Phase(SrcInstall)]),
+            Builtin::new(doins, [Phase(SrcInstall)]),
+            Builtin::new(dolib, [Phase(SrcInstall)]),
+            Builtin::new(dolib_a, [Phase(SrcInstall)]),
+            Builtin::new(dolib_so, [Phase(SrcInstall)]),
+            Builtin::new(doman, [Phase(SrcInstall)]),
+            Builtin::new(domo, [Phase(SrcInstall)]),
+            Builtin::new(dosbin, [Phase(SrcInstall)]),
+            Builtin::new(dosym, [Phase(SrcInstall)]),
+            Builtin::new(ebegin, [Phases]),
+            Builtin::new(econf, [Phase(SrcConfigure)]),
+            Builtin::new(eend, [Phases]),
+            Builtin::new(eerror, [Phases]),
+            Builtin::new(einfo, [Phases]),
+            Builtin::new(einfon, [Phases]),
+            Builtin::new(einstall, [Phase(SrcInstall)]),
+            Builtin::new(elog, [Phases]),
+            Builtin::new(emake, [Phases]),
+            Builtin::new(ewarn, [Phases]),
+            Builtin::new(exeinto, [Phase(SrcInstall)]),
+            Builtin::new(exeopts, [Phase(SrcInstall)]),
+            Builtin::new(export_functions, [Eclass]),
+            Builtin::new(fowners, [Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
+            Builtin::new(fperms, [Phase(SrcInstall), Phase(PkgPreinst), Phase(PkgPostinst)]),
+            Builtin::new(has, [All]),
+            Builtin::new(has_version, [Phases]),
+            Builtin::new(hasq, [All]),
+            Builtin::new(hasv, [All]),
+            Builtin::new(inherit, [Global, Eclass]),
+            Builtin::new(insinto, [Phase(SrcInstall)]),
+            Builtin::new(insopts, [Phase(SrcInstall)]),
+            Builtin::new(into, [Phase(SrcInstall)]),
+            Builtin::new(keepdir, [Phase(SrcInstall)]),
+            Builtin::new(libopts, [Phase(SrcInstall)]),
+            Builtin::new(newbin, [Phase(SrcInstall)]),
+            Builtin::new(newconfd, [Phase(SrcInstall)]),
+            Builtin::new(newdoc, [Phase(SrcInstall)]),
+            Builtin::new(newenvd, [Phase(SrcInstall)]),
+            Builtin::new(newexe, [Phase(SrcInstall)]),
+            Builtin::new(newheader, [Phase(SrcInstall)]),
+            Builtin::new(newinitd, [Phase(SrcInstall)]),
+            Builtin::new(newins, [Phase(SrcInstall)]),
+            Builtin::new(newlib_a, [Phase(SrcInstall)]),
+            Builtin::new(newlib_so, [Phase(SrcInstall)]),
+            Builtin::new(newman, [Phase(SrcInstall)]),
+            Builtin::new(newsbin, [Phase(SrcInstall)]),
+            Builtin::new(nonfatal, [All]),
+            Builtin::new(unpack, [Phases]),
+            Builtin::new(use_, [Phases]),
+            Builtin::new(use_enable, [Phases]),
+            Builtin::new(use_with, [Phases]),
+            Builtin::new(useq, [Phases]),
+            Builtin::new(usev, [Phases]),
+            Builtin::new(usex, [Phases]),
             // phase stubs that force direct calls to error out
-            Builtin::new("pkg_config", [All]),
-            Builtin::new("pkg_info", [All]),
-            Builtin::new("pkg_nofetch", [All]),
-            Builtin::new("pkg_postinst", [All]),
-            Builtin::new("pkg_postrm", [All]),
-            Builtin::new("pkg_preinst", [All]),
-            Builtin::new("pkg_prerm", [All]),
-            Builtin::new("pkg_pretend", [All]),
-            Builtin::new("pkg_setup", [All]),
-            Builtin::new("src_compile", [All]),
-            Builtin::new("src_configure", [All]),
-            Builtin::new("src_install", [All]),
-            Builtin::new("src_prepare", [All]),
-            Builtin::new("src_test", [All]),
-            Builtin::new("src_unpack", [All]),
+            Builtin::new(pkg_config_builtin, [All]),
+            Builtin::new(pkg_info_builtin, [All]),
+            Builtin::new(pkg_nofetch_builtin, [All]),
+            Builtin::new(pkg_postinst_builtin, [All]),
+            Builtin::new(pkg_postrm_builtin, [All]),
+            Builtin::new(pkg_preinst_builtin, [All]),
+            Builtin::new(pkg_prerm_builtin, [All]),
+            Builtin::new(pkg_pretend_builtin, [All]),
+            Builtin::new(pkg_setup_builtin, [All]),
+            Builtin::new(src_compile_builtin, [All]),
+            Builtin::new(src_configure_builtin, [All]),
+            Builtin::new(src_install_builtin, [All]),
+            Builtin::new(src_prepare_builtin, [All]),
+            Builtin::new(src_test_builtin, [All]),
+            Builtin::new(src_unpack_builtin, [All]),
         ])
         .update_operations([
             Pretend.op([PkgPretend]),
@@ -723,6 +721,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::builtins::*;
     use crate::shell::phase::{eapi6::*, PhaseKind::*};
     use crate::shell::scope::Scopes::*;
     use Feature::*;
@@ -730,11 +729,11 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
     Eapi::new("6", Some(&EAPI5))
         .enable_features([NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
         .update_builtins([
-            Builtin::new("eapply", [Phase(SrcPrepare)]),
-            Builtin::new("eapply_user", [Phase(SrcPrepare)]),
-            Builtin::new("einstalldocs", [Phase(SrcInstall)]),
-            Builtin::new("get_libdir", [All]),
-            Builtin::new("in_iuse", [Phases]),
+            Builtin::new(eapply, [Phase(SrcPrepare)]),
+            Builtin::new(eapply_user, [Phase(SrcPrepare)]),
+            Builtin::new(einstalldocs, [Phase(SrcInstall)]),
+            Builtin::new(get_libdir, [All]),
+            Builtin::new(in_iuse, [Phases]),
         ])
         .disable_builtins(&["einstall"])
         .update_phases([SrcPrepare.func(Some(src_prepare)), SrcInstall.func(Some(src_install))])
@@ -747,6 +746,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
+    use crate::shell::builtins::*;
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks::*;
     use crate::shell::metadata::Key::*;
@@ -758,11 +758,11 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
         .enable_features([QueryDeps])
         .disable_features([QueryHostRoot, TrailingSlash])
         .update_builtins([
-            Builtin::new("dostrip", [Phase(SrcInstall)]),
-            Builtin::new("eqawarn", [Phases]),
-            Builtin::new("ver_cut", [All]),
-            Builtin::new("ver_rs", [All]),
-            Builtin::new("ver_test", [All]),
+            Builtin::new(dostrip, [Phase(SrcInstall)]),
+            Builtin::new(eqawarn, [Phases]),
+            Builtin::new(ver_cut, [All]),
+            Builtin::new(ver_rs, [All]),
+            Builtin::new(ver_test, [All]),
         ])
         .disable_builtins(&["dohtml", "dolib", "libopts"])
         .update_dep_keys(&[BDEPEND])

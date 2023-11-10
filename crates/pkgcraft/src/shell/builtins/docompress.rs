@@ -7,7 +7,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Include or exclude paths for compression.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let (set, args) = match args {
         ["-x", args @ ..] => (&mut build.compress_exclude, args),
@@ -30,8 +30,7 @@ make_builtin!("docompress", docompress_builtin, run, LONG_DOC, USAGE, BUILTIN);
 mod tests {
     use crate::macros::assert_err_re;
 
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as docompress;
+    use super::super::{assert_invalid_args, builtin_scope_tests, docompress};
     use super::*;
 
     builtin_scope_tests!(USAGE);

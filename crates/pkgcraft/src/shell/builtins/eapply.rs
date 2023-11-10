@@ -111,7 +111,7 @@ impl<'a> Iterator for FindPatches<'a> {
 }
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -169,7 +169,7 @@ mod tests {
     use crate::macros::assert_err_re;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as eapply;
+    use super::BUILTIN as eapply;
     use super::*;
 
     builtin_scope_tests!(USAGE);

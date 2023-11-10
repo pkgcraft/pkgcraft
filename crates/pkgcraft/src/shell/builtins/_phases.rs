@@ -5,7 +5,7 @@ use super::make_builtin;
 static LONG_DOC: &str = "Error out on direct phase function calls";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
     Err(Error::Base("direct phase call".to_string()))
 }
 

@@ -8,7 +8,7 @@ const LONG_DOC: &str = "\
 Takes exactly one argument and sets the install path for dodoc and other doc-related commands.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let path = match args[..] {
         ["/"] => "",
         [s] => s,
@@ -32,9 +32,8 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
-    use super::super::dodoc::run as dodoc;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as docinto;
+    use super::super::{assert_invalid_args, builtin_scope_tests, dodoc};
+    use super::BUILTIN as docinto;
     use super::*;
 
     builtin_scope_tests!(USAGE);

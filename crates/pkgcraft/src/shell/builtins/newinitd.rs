@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doinitd::run as doinitd;
+use super::doinitd;
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed init scripts into /etc/init.d/.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doinitd)
 }
 
@@ -23,7 +23,7 @@ mod tests {
     use crate::shell::write_stdin;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as newinitd;
+    use super::BUILTIN as newinitd;
     use super::*;
 
     builtin_scope_tests!(USAGE);

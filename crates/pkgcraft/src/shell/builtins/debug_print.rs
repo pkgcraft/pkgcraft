@@ -7,7 +7,7 @@ If in a special debug mode, the arguments should be outputted or recorded using 
 logging.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
     // TODO: fill out this stub
     Ok(ExecStatus::Success)
 }

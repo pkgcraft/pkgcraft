@@ -1,13 +1,13 @@
 use scallop::{Error, ExecStatus};
 
-use super::debug_print::run as debug_print;
+use super::debug_print;
 use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Calls debug-print with `now in section $*`.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -22,7 +22,7 @@ make_builtin!("debug-print-section", debug_print_section_builtin, run, LONG_DOC,
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as debug_print_section;
+    use super::BUILTIN as debug_print_section;
     use super::*;
 
     builtin_scope_tests!(USAGE);

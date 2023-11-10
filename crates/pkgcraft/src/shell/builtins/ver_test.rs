@@ -8,7 +8,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pvr = get_build_mut().cpv()?.pvr();
     let (lhs, op, rhs) = match args[..] {
         [op, rhs] => (pvr.as_str(), op, rhs),
@@ -45,7 +45,7 @@ mod tests {
     use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as ver_test;
+    use super::BUILTIN as ver_test;
     use super::*;
 
     builtin_scope_tests!(USAGE);

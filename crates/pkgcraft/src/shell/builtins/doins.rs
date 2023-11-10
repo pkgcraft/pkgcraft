@@ -10,7 +10,7 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install files into INSDESTREE.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (recursive, args) = match args {
         ["-r", args @ ..] => (true, args),
         _ => (false, args),
@@ -49,10 +49,8 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
 
-    use super::super::insinto::run as insinto;
-    use super::super::insopts::run as insopts;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as doins;
+    use super::super::{assert_invalid_args, builtin_scope_tests, insinto, insopts};
+    use super::BUILTIN as doins;
     use super::*;
 
     builtin_scope_tests!(USAGE);

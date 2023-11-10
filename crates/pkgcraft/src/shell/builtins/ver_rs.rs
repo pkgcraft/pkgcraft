@@ -7,7 +7,7 @@ use super::{make_builtin, parse};
 const LONG_DOC: &str = "Perform string substitution on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pv = get_build_mut().cpv()?.pv();
     let (ver, args) = match args.len() {
         n if n < 2 => return Err(Error::Base(format!("requires 2 or more args, got {n}"))),
@@ -58,7 +58,7 @@ mod tests {
     use crate::shell::{assert_stdout, BuildData};
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as ver_rs;
+    use super::BUILTIN as ver_rs;
     use super::*;
 
     builtin_scope_tests!(USAGE);

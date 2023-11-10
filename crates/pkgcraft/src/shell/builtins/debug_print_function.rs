@@ -1,6 +1,6 @@
 use scallop::{Error, ExecStatus};
 
-use super::debug_print::run as debug_print;
+use super::debug_print;
 use super::make_builtin;
 
 const LONG_DOC: &str = "\
@@ -8,7 +8,7 @@ Calls debug-print with `$1: entering function` as the first argument and the rem
 additional arguments.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -24,7 +24,7 @@ make_builtin!("debug-print-function", debug_print_function_builtin, run, LONG_DO
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as debug_print_function;
+    use super::BUILTIN as debug_print_function;
     use super::*;
 
     builtin_scope_tests!(USAGE);

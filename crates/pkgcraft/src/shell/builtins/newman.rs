@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doman::run as doman;
+use super::doman;
 use super::make_builtin;
 
 const LONG_DOC: &str = "Install renamed man pages into /usr/share/man.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doman)
 }
 
@@ -23,7 +23,7 @@ mod tests {
     use crate::shell::write_stdin;
 
     use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as newman;
+    use super::BUILTIN as newman;
     use super::*;
 
     builtin_scope_tests!(USAGE);

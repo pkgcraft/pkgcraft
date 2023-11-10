@@ -17,7 +17,7 @@ static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\
 const LONG_DOC: &str = "Run a package's configure script.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let configure = configure();
     if !configure.is_executable() {
         let msg = if configure.exists() {
@@ -125,7 +125,7 @@ mod tests {
     use crate::shell::{BuildData, Scope};
 
     use super::super::builtin_scope_tests;
-    use super::run as econf;
+    use super::BUILTIN as econf;
     use super::*;
 
     builtin_scope_tests!(USAGE);

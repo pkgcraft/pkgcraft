@@ -8,7 +8,7 @@ const LONG_DOC: &str = "\
 Sets the options for installing files via `doins` and similar commands.";
 
 #[doc = stringify!(LONG_DOC)]
-pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -27,9 +27,8 @@ mod tests {
 
     use crate::shell::test::FileTree;
 
-    use super::super::doins::run as doins;
-    use super::super::{assert_invalid_args, builtin_scope_tests};
-    use super::run as insopts;
+    use super::super::{assert_invalid_args, builtin_scope_tests, doins};
+    use super::BUILTIN as insopts;
     use super::*;
 
     builtin_scope_tests!(USAGE);
