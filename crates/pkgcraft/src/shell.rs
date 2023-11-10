@@ -191,8 +191,8 @@ pub(crate) struct BuildData<'a> {
     env: HashMap<Variable, String>,
 
     // TODO: proxy these fields via borrowed package reference
-    distfiles: Vec<String>,
-    user_patches: Vec<String>,
+    distfiles: IndexSet<String>,
+    user_patches: IndexSet<String>,
     use_: HashSet<String>,
 
     scope: Scope,
@@ -203,10 +203,10 @@ pub(crate) struct BuildData<'a> {
     exedesttree: String,
     insdesttree: String,
 
-    insopts: Vec<String>,
-    diropts: Vec<String>,
-    exeopts: Vec<String>,
-    libopts: Vec<String>,
+    insopts: IndexSet<String>,
+    diropts: IndexSet<String>,
+    exeopts: IndexSet<String>,
+    libopts: IndexSet<String>,
 
     compress_include: IndexSet<String>,
     compress_exclude: IndexSet<String>,
@@ -227,10 +227,10 @@ pub(crate) struct BuildData<'a> {
 impl<'a> BuildData<'a> {
     fn new() -> Self {
         Self {
-            insopts: vec!["-m0644".to_string()],
-            libopts: vec!["-m0644".to_string()],
-            diropts: vec!["-m0755".to_string()],
-            exeopts: vec!["-m0755".to_string()],
+            insopts: ["-m0644".to_string()].into_iter().collect(),
+            libopts: ["-m0644".to_string()].into_iter().collect(),
+            diropts: ["-m0755".to_string()].into_iter().collect(),
+            exeopts: ["-m0755".to_string()].into_iter().collect(),
             desttree: "/usr".into(),
             ..Default::default()
         }
