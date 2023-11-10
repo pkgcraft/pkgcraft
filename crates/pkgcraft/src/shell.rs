@@ -449,8 +449,6 @@ impl<'a> BuildData<'a> {
     fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
         Lazy::force(&BASH);
         let eapi = self.eapi();
-        let builtins = eapi.builtins();
-        let phases = eapi.phases();
 
         // remove external metadata vars from the environment
         for var in eapi.metadata_keys() {
@@ -458,9 +456,9 @@ impl<'a> BuildData<'a> {
         }
 
         // builtins override functions
-        override_funcs(builtins, true)?;
+        override_funcs(eapi.builtins(), true)?;
         // phase builtins override functions forcing direct calls to error out
-        override_funcs(phases, true)?;
+        override_funcs(eapi.phases(), true)?;
 
         self.set_vars()?;
 
@@ -472,19 +470,17 @@ impl<'a> BuildData<'a> {
         scallop::shell::restricted(|| value.source_bash())?;
 
         // check for functions that override builtins
-        let overridden: Vec<_> = functions::all_visible()
+        functions::all_visible()
             .into_iter()
             .filter(|s| {
-                builtins
+                eapi.builtins()
                     .get(s.as_str())
                     .map(|b| !b.is_phase())
                     .unwrap_or_default()
             })
-            .collect();
-        if !overridden.is_empty() {
-            let funcs = overridden.join(", ");
-            return Err(Error::Base(format!("EAPI {eapi} functionality overridden: {funcs}")));
-        }
+            .try_for_each(|func| {
+                Err(Error::Base(format!("EAPI {eapi} functionality overridden: {func}")))
+            })?;
 
         // prepend metadata keys that incrementally accumulate to eclass values
         if !self.inherited.is_empty() {
