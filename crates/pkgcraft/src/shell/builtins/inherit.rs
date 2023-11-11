@@ -107,7 +107,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nonexistent() {
+    fn nonexistent() {
         let mut config = Config::default();
         let t = config.temp_repo("test1", 0, None).unwrap();
 
@@ -134,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    fn test_source_failure() {
+    fn source_failure() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -152,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single() {
+    fn single() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -170,7 +170,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple() {
+    fn multiple() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -195,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_single() {
+    fn nested_single() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -219,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_multiple() {
+    fn nested_multiple() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -249,7 +249,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pkg_env() {
+    fn pkg_env() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -273,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn test_skip_reinherits() {
+    fn skip_reinherits() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
