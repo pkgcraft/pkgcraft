@@ -68,12 +68,10 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
         _ => return Err(Error::Base(format!("unknown variable: {var}"))),
     };
 
-    let (recursive, paths) = if let Ok(v) = var_to_vec(var) {
-        (true, expand_docs(&v, true)?)
-    } else if let Some(v) = defaults {
-        (false, expand_docs(v, false)?)
-    } else {
-        (false, vec![])
+    let (recursive, paths) = match (var_to_vec(var), defaults) {
+        (Ok(v), _) => (true, expand_docs(&v, true)?),
+        (_, Some(v)) => (false, expand_docs(v, false)?),
+        _ => (false, vec![]),
     };
 
     if !paths.is_empty() {
