@@ -323,11 +323,9 @@ impl Metadata {
 
     /// Verify a metadata entry is valid.
     pub(crate) fn verify(cpv: &Cpv, repo: &Repo) -> bool {
-        if let Ok(pkg) = RawPkg::new(cpv.clone(), repo) {
-            Self::load(&pkg, false).is_err()
-        } else {
-            false
-        }
+        RawPkg::new(cpv.clone(), repo)
+            .map(|p| Self::load(&p, false).is_err())
+            .unwrap_or_default()
     }
 
     /// Deserialize a metadata entry for a given package into [`Metadata`].
