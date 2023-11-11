@@ -41,13 +41,12 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         panic!("not allowed in non-eclass scope");
     };
     let eapi = build.eapi();
-    let phases = eapi.phases();
 
     for arg in args {
         let phase = arg
             .parse()
             .map_err(|_| Error::Base(format!("invalid phase: {arg}")))?;
-        if phases.contains(&phase) {
+        if eapi.phases().contains(&phase) {
             build.export_functions.insert(phase, eclass);
         } else {
             return Err(Error::Base(format!("{phase} phase undefined in EAPI {eapi}")));
@@ -80,7 +79,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single() {
+    fn single() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -112,7 +111,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested() {
+    fn nested() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -150,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_override() {
+    fn overridden() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
