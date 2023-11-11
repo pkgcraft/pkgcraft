@@ -5,8 +5,6 @@ use glob::glob;
 use scallop::variables::var_to_vec;
 use scallop::{Error, ExecStatus};
 
-use crate::shell::get_build_mut;
-
 use super::{dodoc::install_docs, make_builtin};
 
 const LONG_DOC: &str = "\
@@ -62,7 +60,7 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<P
 
 /// Install document files defined in a given variable.
 pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
-    let (defaults, docdesttree) = match var {
+    let (defaults, destination) = match var {
         "DOCS" => (Some(DOCS_DEFAULTS), ""),
         "HTML_DOCS" => (None, "html"),
         _ => return Err(Error::Base(format!("unknown variable: {var}"))),
@@ -75,16 +73,7 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
     };
 
     if !paths.is_empty() {
-        let build = get_build_mut();
-
-        // save original docdesttree value and use custom value
-        let orig_docdestree = build.docdesttree.clone();
-        build.docdesttree = String::from(docdesttree);
-
-        install_docs(recursive, &paths)?;
-
-        // restore original docdesttree value
-        build.docdesttree = orig_docdestree;
+        install_docs(recursive, &paths, destination)?;
     }
 
     Ok(ExecStatus::Success)

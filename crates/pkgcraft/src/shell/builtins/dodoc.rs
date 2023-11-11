@@ -15,12 +15,13 @@ const LONG_DOC: &str = "Install documentation files.";
 pub(crate) fn install_docs<P: AsRef<Path>>(
     recursive: bool,
     paths: &[P],
+    destination: &str,
 ) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let dest = build_from_paths!(
         "/usr/share/doc",
         build.pkg()?.cpv().pf(),
-        build.docdesttree.trim_start_matches('/')
+        destination.trim_start_matches('/')
     );
     let install = build.install().dest(dest)?;
 
@@ -51,7 +52,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".to_string()));
     }
 
-    install_docs(recursive, args)
+    let build = get_build_mut();
+    install_docs(recursive, args, &build.docdesttree)
 }
 
 const USAGE: &str = "dodoc doc_file";
