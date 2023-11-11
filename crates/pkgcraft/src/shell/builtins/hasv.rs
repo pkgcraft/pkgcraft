@@ -21,6 +21,8 @@ make_builtin!("hasv", hasv_builtin);
 
 #[cfg(test)]
 mod tests {
+    use crate::shell::assert_stdout;
+
     use super::super::{assert_invalid_args, builtin_scope_tests, hasv};
     use super::*;
 
@@ -29,5 +31,18 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_args(hasv, &[0]);
+    }
+
+    #[test]
+    fn contains() {
+        // no haystack
+        assert_eq!(hasv(&["1"]).unwrap(), ExecStatus::Failure(1));
+        // single element
+        assert_eq!(hasv(&["1", "1"]).unwrap(), ExecStatus::Success);
+        assert_stdout!("1");
+        // multiple elements
+        assert_eq!(hasv(&["5", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Success);
+        assert_stdout!("5");
+        assert_eq!(hasv(&["6", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Failure(1));
     }
 }
