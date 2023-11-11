@@ -34,8 +34,9 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             .get(*name)
             .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
-        // skip previous inherits
-        if build.inherited.contains(eclass) {
+        // track all inherits
+        if !build.inherited.insert(eclass) {
+            // skip previous and nested inherits
             continue;
         }
 
@@ -47,8 +48,9 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         // track build scope
         let _scope = build.inherit(eclass);
 
-        // update $ECLASS bash variable
+        // update $ECLASS and $INHERITED variables
         eclass_var.bind(eclass, None, None)?;
+        inherited_var.append(format!(" {eclass}"))?;
 
         eclass.source_bash().map_err(|e| {
             // strip path prefix from bash error
@@ -70,10 +72,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 build.incrementals.entry(*key).or_default().extend(data);
             }
         }
-
-        // track all inherits
-        build.inherited.insert(eclass);
-        inherited_var.append(format!(" {eclass}"))?;
     }
 
     // create function aliases for EXPORT_FUNCTIONS calls
@@ -192,7 +190,7 @@ mod tests {
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1"]).unwrap();
-        assert_eq!(string_vec("INHERITED").unwrap(), ["e2", "e1"]);
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
 
     #[test]
@@ -216,7 +214,7 @@ mod tests {
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e2"]).unwrap();
-        assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e2", "e1"]);
     }
 
     #[test]
@@ -246,7 +244,7 @@ mod tests {
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e3"]).unwrap();
-        assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2", "e3"]);
+        assert_eq!(string_vec("INHERITED").unwrap(), ["e3", "e2", "e1"]);
     }
 
     #[test]
@@ -281,7 +279,14 @@ mod tests {
         // create eclasses
         let eclass = indoc::indoc! {r#"
             # stub eclass
-            VAR+="e1 "
+            inherit e2
+            VAR+="e0"
+        "#};
+        t.create_eclass("e0", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            inherit e0
+            VAR+="e1"
         "#};
         t.create_eclass("e1", eclass).unwrap();
         let eclass = indoc::indoc! {r#"
@@ -297,13 +302,13 @@ mod tests {
         // verify previous inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1", "e2"]).unwrap();
-        assert_eq!(var.optional().unwrap(), "e1 e2");
+        assert_eq!(var.optional().unwrap(), "e2e0e1");
 
         // verify nested inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         var.unbind().unwrap();
         inherit(&["e2", "e1"]).unwrap();
-        assert_eq!(var.optional().unwrap(), "e1 e2");
+        assert_eq!(var.optional().unwrap(), "e0e1e2");
     }
 
     #[test]
@@ -315,7 +320,7 @@ mod tests {
         inherit(&["b", "c"]).unwrap();
         let build = get_build_mut();
         assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["b", "c"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["a", "b", "c"]);
-        assert_eq!(string_vec("INHERITED").unwrap(), ["a", "b", "c"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["b", "a", "c"]);
+        assert_eq!(string_vec("INHERITED").unwrap(), ["b", "a", "c"]);
     }
 }

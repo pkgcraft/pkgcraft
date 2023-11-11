@@ -739,47 +739,47 @@ mod tests {
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
-            # eclass1
+            # e1
         "#};
-        t.create_eclass("eclass1", eclass).unwrap();
+        t.create_eclass("e1", eclass).unwrap();
         let eclass = indoc::indoc! {r#"
-            # eclass2
-            inherit eclass1
+            # e2
+            inherit e1
         "#};
-        t.create_eclass("eclass2", eclass).unwrap();
+        t.create_eclass("e2", eclass).unwrap();
 
         // single inherit
         let data = indoc::indoc! {r#"
             EAPI=8
-            inherit eclass1
+            inherit e1
             DESCRIPTION="testing inherits"
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), ["eclass1"]);
-        assert_ordered_eq(pkg.inherited(), ["eclass1"]);
+        assert_ordered_eq(pkg.inherit(), ["e1"]);
+        assert_ordered_eq(pkg.inherited(), ["e1"]);
 
         // eclass with indirect inherit
         let data = indoc::indoc! {r#"
             EAPI=8
-            inherit eclass2
+            inherit e2
             DESCRIPTION="testing inherits"
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), ["eclass2"]);
-        assert_ordered_eq(pkg.inherited(), ["eclass1", "eclass2"]);
+        assert_ordered_eq(pkg.inherit(), ["e2"]);
+        assert_ordered_eq(pkg.inherited(), ["e2", "e1"]);
 
         // multiple inherits
         let data = indoc::indoc! {r#"
             EAPI=8
-            inherit eclass1 eclass2
+            inherit e1 e2
             DESCRIPTION="testing inherits"
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), ["eclass1", "eclass2"]);
-        assert_ordered_eq(pkg.inherited(), ["eclass1", "eclass2"]);
+        assert_ordered_eq(pkg.inherit(), ["e1", "e2"]);
+        assert_ordered_eq(pkg.inherited(), ["e1", "e2"]);
     }
 
     #[test]
