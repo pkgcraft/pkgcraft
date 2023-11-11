@@ -67,14 +67,32 @@ impl Key {
                 }
             }
             INHERIT => {
-                let inherit = &build.inherit;
-                if inherit.is_empty() {
+                let eclasses = &build.inherit;
+                if eclasses.is_empty() {
                     None
                 } else {
-                    Some(inherit.iter().join(" "))
+                    Some(eclasses.iter().join(" "))
                 }
             }
-            key => variables::optional(key).map(|s| s.split_whitespace().join(" ")),
+            INHERITED => {
+                let eclasses = &build.inherited;
+                if eclasses.is_empty() {
+                    None
+                } else {
+                    Some(eclasses.iter().join(" "))
+                }
+            }
+            key => {
+                if let Some(vals) = build.incrementals.get(key) {
+                    if vals.is_empty() {
+                        None
+                    } else {
+                        Some(vals.iter().join(" "))
+                    }
+                } else {
+                    variables::optional(key).map(|s| s.split_whitespace().join(" "))
+                }
+            }
         }
     }
 }
