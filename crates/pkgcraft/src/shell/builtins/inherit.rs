@@ -95,6 +95,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::SourcePackage;
     use crate::shell::BuildData;
+    use crate::test::{assert_ordered_eq, TEST_DATA};
 
     use super::super::{assert_invalid_args, builtin_scope_tests, inherit};
     use super::*;
@@ -303,5 +304,18 @@ mod tests {
         var.unbind().unwrap();
         inherit(&["e2", "e1"]).unwrap();
         assert_eq!(var.optional().unwrap(), "e1 e2");
+    }
+
+    #[test]
+    fn overlay() {
+        let raw_pkg = TEST_DATA
+            .ebuild_raw_pkg("=cat/pkg-1::dependent-secondary")
+            .unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+        inherit(&["b", "c"]).unwrap();
+        let build = get_build_mut();
+        assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["b", "c"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["a", "b", "c"]);
+        assert_eq!(string_vec("INHERITED").unwrap(), ["a", "b", "c"]);
     }
 }
