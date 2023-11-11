@@ -9,6 +9,7 @@ use tracing::warn;
 
 use crate::dep::{self, Cpv, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
+use crate::files::atomic_write_file;
 use crate::pkg::SourcePackage;
 use crate::pkg::{ebuild::RawPkg, Package};
 use crate::repo::ebuild::Repo;
@@ -309,16 +310,11 @@ impl Metadata {
                 .map_err(|e| Error::IO(format!("failed creating metadata dir: {dir}: {e}")))?;
         }
 
-        // write metadata entry to a temporary file
+        // atomically create metadata file
         let pf = pkg.pf();
         let path = dir.join(format!(".{pf}"));
-        fs::write(&path, data)
-            .map_err(|e| Error::IO(format!("failed writing metadata: {path}: {e}")))?;
-
-        // atomically move it into place
         let new_path = dir.join(pf);
-        fs::rename(&path, &new_path)
-            .map_err(|e| Error::IO(format!("failed renaming metadata: {path} -> {new_path}: {e}")))
+        atomic_write_file(&path, data, &new_path)
     }
 
     /// Verify a metadata entry is valid.

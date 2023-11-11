@@ -1,3 +1,4 @@
+use std::fs;
 use std::ops::Deref;
 use std::path::Path;
 use std::str::FromStr;
@@ -141,4 +142,16 @@ pub(crate) fn has_ext_utf8(entry: &Utf8DirEntry, ext: &str) -> bool {
         .extension()
         .map(|s| s == ext)
         .unwrap_or_default()
+}
+
+/// Create a file atomically by writing to a temporary path and then renaming it.
+pub(crate) fn atomic_write_file<C: AsRef<[u8]>>(
+    path: &Utf8Path,
+    data: C,
+    new_path: &Utf8Path,
+) -> crate::Result<()> {
+    fs::write(path, data).map_err(|e| Error::IO(format!("failed writing data: {path}: {e}")))?;
+    fs::rename(path, new_path)
+        .map_err(|e| Error::IO(format!("failed renaming file: {path} -> {new_path}: {e}")))?;
+    Ok(())
 }
