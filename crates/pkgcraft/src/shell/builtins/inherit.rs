@@ -16,6 +16,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
+    let eclasses = build.repo()?.eclasses();
 
     // force incrementals to be restored between nested inherits
     let incrementals: Vec<(_, _)> = build
@@ -25,18 +26,16 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .map(|k| (*k, ScopedVariable::new(k)))
         .collect();
 
-    let repo_eclasses = build.repo()?.eclasses();
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
 
     for name in args {
-        let eclass = repo_eclasses
+        let eclass = eclasses
             .get(*name)
             .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
-        // track all inherits
-        if !build.inherited.insert(eclass) {
-            // skip previous and nested inherits
+        // skip previous inherits
+        if build.inherited.contains(eclass) {
             continue;
         }
 
@@ -72,6 +71,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             }
         }
 
+        // track all inherits
+        build.inherited.insert(eclass);
         inherited_var.append(format!(" {eclass}"))?;
     }
 
