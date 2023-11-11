@@ -14,8 +14,24 @@ make_builtin!("hasq", hasq_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::builtin_scope_tests;
+    use super::super::{assert_invalid_args, builtin_scope_tests, hasq};
     use super::*;
 
     builtin_scope_tests!(USAGE);
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(hasq, &[0]);
+    }
+
+    #[test]
+    fn contains() {
+        // no haystack
+        assert_eq!(hasq(&["1"]).unwrap(), ExecStatus::Failure(1));
+        // single element
+        assert_eq!(hasq(&["1", "1"]).unwrap(), ExecStatus::Success);
+        // multiple elements
+        assert_eq!(hasq(&["5", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Success);
+        assert_eq!(hasq(&["6", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Failure(1));
+    }
 }
