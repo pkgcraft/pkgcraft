@@ -65,20 +65,23 @@ impl<'a> RawPkg<'a> {
             .and_then(TryInto::try_into)
     }
 
-    /// Return the path of the package's ebuild file path relative to the repository root.
+    /// Return the path of the package's ebuild relative to the repository root.
     pub fn relpath(&self) -> Utf8PathBuf {
         self.cpv.relpath()
     }
 
+    /// Return the absolute path of the package's ebuild.
     pub fn abspath(&self) -> Utf8PathBuf {
         self.repo.path().join(self.relpath())
     }
 
+    /// Return the package's ebuild as a string.
     pub fn data(&self) -> &str {
         &self.data
     }
 
-    pub(crate) fn chksum(&self) -> &str {
+    /// Return the checksum of the package.
+    pub fn chksum(&self) -> &str {
         &self.chksum
     }
 
@@ -285,6 +288,11 @@ impl<'a> Pkg<'a> {
     /// Return the ordered set of inherited eclasses for a package.
     pub fn inherited(&self) -> &OrderedSet<String> {
         self.meta.inherited()
+    }
+
+    /// Return the checksum for a package.
+    pub fn chksum(&self) -> &str {
+        self.meta.chksum()
     }
 
     /// Return a package's XML metadata.

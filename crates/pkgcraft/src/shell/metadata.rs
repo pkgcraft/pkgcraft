@@ -457,6 +457,10 @@ impl Metadata {
     pub(crate) fn inherited(&self) -> &OrderedSet<String> {
         &self.inherited
     }
+
+    pub(crate) fn chksum(&self) -> &str {
+        &self.chksum
+    }
 }
 
 impl TryFrom<&RawPkg<'_>> for Metadata {
