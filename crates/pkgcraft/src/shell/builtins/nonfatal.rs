@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn invalid_builtin_scope() {
-        let status = nonfatal(&["ewarn", "message"]).unwrap();
+        let status = nonfatal(&["best_version", "cat/pkg"]).unwrap();
         assert!(i32::from(status) != 0);
     }
 }

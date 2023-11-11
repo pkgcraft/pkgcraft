@@ -1279,7 +1279,7 @@ mod tests {
                 EAPI=8
                 DESCRIPTION="testing metadata generation error handling"
                 SLOT=0
-                VAR=$(einfo msg)
+                VAR=$(best_version cat/pkg)
             "#};
             t.create_raw_pkg_from_str(format!("cat/pkg-{pv}"), data)
                 .unwrap();
@@ -1292,7 +1292,7 @@ mod tests {
         // verify all pkgs caused logged errors
         for pv in 0..50 {
             assert_logs_re!(format!(
-                "invalid pkg: cat/pkg-{pv}::test: line 4: einfo: error: disabled in global scope$"
+                "invalid pkg: cat/pkg-{pv}::test: line 4: best_version: error: disabled in global scope$"
             ));
         }
     }
