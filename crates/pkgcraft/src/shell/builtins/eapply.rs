@@ -64,15 +64,7 @@ fn is_patch(entry: &Utf8DirEntry) -> bool {
     }
 }
 
-struct FindPatches<'a> {
-    paths: std::slice::Iter<'a, &'a Utf8Path>,
-}
-
-impl<'a> FindPatches<'a> {
-    fn new(paths: &'a [&'a Utf8Path]) -> Self {
-        FindPatches { paths: paths.iter() }
-    }
-}
+struct FindPatches<'a>(std::slice::Iter<'a, &'a Utf8Path>);
 
 /// Return all the patches for a given path.
 fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec<PatchFile>)> {
@@ -106,7 +98,7 @@ impl<'a> Iterator for FindPatches<'a> {
     type Item = scallop::Result<(Option<&'a Utf8Path>, Vec<PatchFile>)>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.paths.next().map(|p| patches_from_path(p))
+        self.0.next().map(|p| patches_from_path(p))
     }
 }
 
@@ -138,7 +130,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("no patches specified".to_string()));
     }
 
-    for patches in FindPatches::new(&files) {
+    for patches in FindPatches(files.iter()) {
         let (dir, patches) = patches?;
         if let Some(path) = &dir {
             write_stdout!("Applying patches from {path}\n")?;
