@@ -15,8 +15,47 @@ make_builtin!("useq", useq_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::builtin_scope_tests;
+    use crate::config::Config;
+    use crate::macros::assert_err_re;
+    use crate::shell::{get_build_mut, BuildData};
+
+    use super::super::{assert_invalid_args, builtin_scope_tests, useq};
     use super::*;
 
     builtin_scope_tests!(USAGE);
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(useq, &[0, 2]);
+    }
+
+    #[test]
+    fn empty_iuse_effective() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_pkg(&pkg);
+
+        assert_err_re!(useq(&["use"]), "^.* not in IUSE$");
+    }
+
+    #[test]
+    fn enabled_and_disabled() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
+        BuildData::from_pkg(&pkg);
+
+        // disabled
+        assert_eq!(useq(&["use"]).unwrap(), ExecStatus::Failure(1));
+        // inverted check
+        assert_eq!(useq(&["!use"]).unwrap(), ExecStatus::Success);
+
+        // enabled
+        get_build_mut().use_.insert("use".to_string());
+        // use flag is enabled
+        assert_eq!(useq(&["use"]).unwrap(), ExecStatus::Success);
+        // inverted check
+        assert_eq!(useq(&["!use"]).unwrap(), ExecStatus::Failure(1));
+    }
 }
