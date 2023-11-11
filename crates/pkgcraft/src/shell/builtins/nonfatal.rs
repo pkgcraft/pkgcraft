@@ -38,6 +38,9 @@ make_builtin!("nonfatal", nonfatal_builtin);
 
 #[cfg(test)]
 mod tests {
+    use crate::config::Config;
+    use crate::shell::{assert_stderr, assert_stdout, BuildData};
+
     use super::super::{assert_invalid_args, builtin_scope_tests, nonfatal};
     use super::*;
 
@@ -49,7 +52,19 @@ mod tests {
     }
 
     #[test]
-    fn exit_status() {
+    fn success() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_raw_pkg(&raw_pkg);
+
+        let status = nonfatal(&["ver_cut", "2-3", "1.2.3"]).unwrap();
+        assert_stdout!("2.3");
+        assert!(i32::from(status) == 0);
+    }
+
+    #[test]
+    fn nonexistent_cmd() {
         let status = nonfatal(&["nonexistent_cmd"]).unwrap();
         assert!(i32::from(status) != 0);
     }
@@ -57,6 +72,7 @@ mod tests {
     #[test]
     fn die() {
         let status = nonfatal(&["die", "-n", "message"]).unwrap();
+        assert_stderr!("message\n");
         assert!(i32::from(status) != 0);
     }
 
