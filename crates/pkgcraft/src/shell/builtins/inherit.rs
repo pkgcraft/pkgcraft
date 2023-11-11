@@ -295,6 +295,12 @@ mod tests {
             VAR+="e2"
         "#};
         t.create_eclass("e2", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            inherit r
+            VAR+="r"
+        "#};
+        t.create_eclass("r", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         let mut var = Variable::new("VAR");
@@ -309,6 +315,12 @@ mod tests {
         var.unbind().unwrap();
         inherit(&["e2", "e1"]).unwrap();
         assert_eq!(var.optional().unwrap(), "e0e1e2");
+
+        // verify recursive inherits are skipped
+        BuildData::from_raw_pkg(&raw_pkg);
+        var.unbind().unwrap();
+        inherit(&["r"]).unwrap();
+        assert_eq!(var.optional().unwrap(), "r");
     }
 
     #[test]
