@@ -461,8 +461,10 @@ macro_rules! make_builtin {
             use $crate::builtins::handle_error;
             use $crate::traits::IntoWords;
 
-            let words = list.into_words(false);
-            let args: Vec<_> = words.into_iter().collect();
+            let words = &list.to_words();
+            let args: Vec<_> = words
+                .try_into()
+                .unwrap_or_else(|e| panic!("non-unicode args: {e}"));
             let ret = $func(&args).unwrap_or_else(|e| handle_error($name, e));
             i32::from(ret)
         }

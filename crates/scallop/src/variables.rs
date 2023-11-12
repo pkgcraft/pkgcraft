@@ -276,10 +276,9 @@ pub fn string_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
     unsafe {
         bash::get_string_value(var_name.as_ptr()).as_mut().map(|s| {
             bash::list_string(s, bash::IFS, 1)
-                .into_words(true)
-                .into_iter()
-                .map(|s| s.to_string())
-                .collect()
+                .into_words()
+                .try_into()
+                .unwrap()
         })
     }
 }

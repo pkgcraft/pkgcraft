@@ -5,19 +5,38 @@ use crate::bash;
 
 pub struct Words {
     words: *mut bash::WordList,
-    drop: bool,
+    owned: bool,
+}
+
+impl<'a> TryFrom<&'a Words> for Vec<&'a str> {
+    type Error = std::str::Utf8Error;
+
+    fn try_from(words: &'a Words) -> Result<Self, Self::Error> {
+        words.into_iter().map(|cstr| cstr.to_str()).collect()
+    }
+}
+
+impl TryFrom<Words> for Vec<String> {
+    type Error = std::str::Utf8Error;
+
+    fn try_from(words: Words) -> Result<Self, Self::Error> {
+        words
+            .into_iter()
+            .map(|cstr| cstr.to_str().map(|s| s.to_string()))
+            .collect()
+    }
 }
 
 impl Drop for Words {
     fn drop(&mut self) {
-        if self.drop {
+        if self.owned {
             unsafe { bash::dispose_words(self.words) };
         }
     }
 }
 
 impl<'a> IntoIterator for &'a Words {
-    type Item = &'a str;
+    type Item = &'a CStr;
     type IntoIter = WordsIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -32,26 +51,31 @@ pub struct WordsIter<'a> {
 }
 
 impl<'a> Iterator for WordsIter<'a> {
-    type Item = &'a str;
+    type Item = &'a CStr;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.words.map(|w| unsafe {
             self.words = w.next.as_ref();
             let word = (*w.word).word;
-            CStr::from_ptr(word).to_str().unwrap()
+            CStr::from_ptr(word)
         })
     }
 }
 
 /// Support conversion from a given object into a [`Words`].
 pub trait IntoWords {
-    /// Convert a given object into a [`Words`].
-    fn into_words(self, drop: bool) -> Words;
+    /// Convert an owned bash word list into a [`Words`] that frees the word list on drop.
+    fn into_words(self) -> Words;
+    /// Convert a borrowed bash word list into a [`Words`].
+    fn to_words(self) -> Words;
 }
 
 impl IntoWords for *mut bash::WordList {
-    fn into_words(self, drop: bool) -> Words {
-        Words { words: self, drop }
+    fn into_words(self) -> Words {
+        Words { words: self, owned: true }
+    }
+    fn to_words(self) -> Words {
+        Words { words: self, owned: false }
     }
 }
 
@@ -64,7 +88,7 @@ impl<S: AsRef<str>> FromIterator<S> for Words {
         let mut ptrs: Vec<_> = strs.iter().map(|s| s.as_ptr() as *mut c_char).collect();
         ptrs.push(ptr::null_mut());
         let words = unsafe { bash::strvec_to_word_list(ptrs.as_mut_ptr(), 1, 0) };
-        Words { words, drop: true }
+        Words { words, owned: true }
     }
 }
 
