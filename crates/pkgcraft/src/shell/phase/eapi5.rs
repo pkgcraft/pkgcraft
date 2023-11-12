@@ -1,7 +1,7 @@
 use is_executable::IsExecutable;
 use scallop::ExecStatus;
 
-use crate::shell::builtins::{econf, einstalldocs::install_docs_from, emake, unpack};
+use crate::shell::commands::{econf, einstalldocs::install_docs_from, emake, unpack};
 use crate::shell::utils::{configure, makefile_exists};
 use crate::shell::{write_stderr, BuildData};
 

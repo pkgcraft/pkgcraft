@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 use scallop::{functions, ExecStatus};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
-use super::builtins::emake;
+use super::commands::emake;
 use super::environment::Variable::D;
 use super::hooks::{Hook, HookKind};
 use super::utils::makefile_exists;

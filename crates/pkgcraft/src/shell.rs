@@ -22,7 +22,7 @@ use crate::test::TESTING;
 use crate::traits::SourceBash;
 use crate::types::Deque;
 
-pub mod builtins;
+pub mod commands;
 pub(crate) mod environment;
 pub(crate) mod hooks;
 mod install;
@@ -34,7 +34,6 @@ pub(crate) mod test;
 mod unescape;
 mod utils;
 
-use builtins::BUILTINS;
 use environment::Variable;
 use scope::Scope;
 
@@ -458,9 +457,9 @@ impl<'a> BuildData<'a> {
             env::remove_var(var.as_ref());
         }
 
-        // builtins override functions
-        override_funcs(eapi.builtins(), true)?;
-        // phase builtins override functions forcing direct calls to error out
+        // commands override functions
+        override_funcs(eapi.commands(), true)?;
+        // phase stubs override functions forcing direct calls to error out
         override_funcs(eapi.phases(), true)?;
 
         self.set_vars()?;
@@ -472,11 +471,11 @@ impl<'a> BuildData<'a> {
         // run global sourcing in restricted shell mode
         scallop::shell::restricted(|| value.source_bash())?;
 
-        // check for functions that override builtins
+        // check for functions that override commands
         functions::all_visible()
             .into_iter()
             .filter(|s| {
-                eapi.builtins()
+                eapi.commands()
                     .get(s.as_str())
                     .map(|b| !b.is_phase())
                     .unwrap_or_default()
@@ -526,7 +525,7 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     unsafe { Lazy::force(&STATE) };
     scallop::shell::init(false);
     // all builtins are enabled by default, access is restricted at runtime based on scope
-    scallop::builtins::register(&*BUILTINS);
+    scallop::builtins::register(&*commands::BUILTINS);
     // restrict builtin loading and toggling
     scallop::builtins::disable(["enable"]).expect("failed disabling builtins");
 });
@@ -609,21 +608,21 @@ mod tests {
     }
 
     #[test]
-    fn builtin_overrides() {
+    fn cmd_overrides() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
-            for builtin in eapi.builtins().iter().filter(|b| !b.is_phase()) {
+            for cmd in eapi.commands().iter().filter(|b| !b.is_phase()) {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
-                    DESCRIPTION="testing builtin override errors"
+                    DESCRIPTION="testing command override errors"
                     SLOT=0
-                    {builtin}() {{ :; }}
+                    {cmd}() {{ :; }}
                 "#};
                 let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                 let r = raw_pkg.source();
-                assert_err_re!(r, format!("EAPI {eapi} functionality overridden: {builtin}$"));
+                assert_err_re!(r, format!("EAPI {eapi} functionality overridden: {cmd}$"));
             }
         }
     }

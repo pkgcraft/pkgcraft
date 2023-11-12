@@ -1,7 +1,7 @@
 use scallop::variables::var_to_vec;
 use scallop::ExecStatus;
 
-use crate::shell::builtins::{eapply, eapply_user, einstalldocs};
+use crate::shell::commands::{eapply, eapply_user, einstalldocs};
 use crate::shell::BuildData;
 
 use super::emake_install;

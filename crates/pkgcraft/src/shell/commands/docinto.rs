@@ -1,0 +1,64 @@
+use scallop::{Error, ExecStatus};
+
+use crate::shell::get_build_mut;
+
+use super::make_builtin;
+
+const LONG_DOC: &str = "\
+Takes exactly one argument and sets the install path for dodoc and other doc-related commands.";
+
+#[doc = stringify!(LONG_DOC)]
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let path = match args[..] {
+        ["/"] => "",
+        [s] => s,
+        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
+    };
+
+    get_build_mut().docdesttree = path.to_string();
+
+    Ok(ExecStatus::Success)
+}
+
+const USAGE: &str = "docinto /install/path";
+make_builtin!("docinto", docinto_builtin);
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use crate::config::Config;
+    use crate::macros::assert_err_re;
+    use crate::shell::test::FileTree;
+    use crate::shell::BuildData;
+
+    use super::super::{assert_invalid_args, cmd_scope_tests, docinto, dodoc};
+    use super::*;
+
+    cmd_scope_tests!(USAGE);
+
+    #[test]
+    fn invalid_args() {
+        assert_invalid_args(docinto, &[0, 2]);
+    }
+
+    #[test]
+    fn creation() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        BuildData::from_pkg(&pkg);
+
+        let file_tree = FileTree::new();
+        fs::File::create("file").unwrap();
+
+        docinto(&["examples"]).unwrap();
+        dodoc(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkg-1/examples/file"
+        "#,
+        );
+    }
+}
