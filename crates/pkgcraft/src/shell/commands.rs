@@ -300,13 +300,14 @@ impl Deref for Command {
 }
 
 impl Command {
-    pub(crate) fn new<I>(builtin: Builtin, scopes: I) -> Self
+    pub(crate) fn new<I, S>(builtin: Builtin, scopes: I) -> Self
     where
-        I: IntoIterator<Item = Scopes>,
+        I: IntoIterator<Item = S>,
+        S: Into<Scopes>,
     {
         Self {
             builtin,
-            scopes: scopes.into_iter().flatten().collect(),
+            scopes: scopes.into_iter().flat_map(Into::into).collect(),
         }
     }
 
