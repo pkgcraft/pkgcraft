@@ -506,9 +506,9 @@ mod parse {
     }
 }
 
-/// Run a builtin given its command name.
-fn run(cmd: &str, args: &[&str]) -> ExecStatus {
-    use scallop::Error;
+/// Run a builtin given its command name and argument list from bash.
+fn run(cmd: &str, args: *mut scallop::bash::WordList) -> ExecStatus {
+    use scallop::{traits::IntoWords, Error};
 
     let build = get_build_mut();
     let eapi = build.eapi();
@@ -516,7 +516,11 @@ fn run(cmd: &str, args: &[&str]) -> ExecStatus {
 
     // run a builtin if it's enabled for the current build state
     let result = match eapi.builtins().get(cmd) {
-        Some(builtin) if builtin.is_allowed(scope) => builtin.run(args),
+        Some(builtin) if builtin.is_allowed(scope) => {
+            let args = args.into_words(false);
+            let args: Vec<_> = args.into_iter().collect();
+            builtin.run(&args)
+        }
         Some(_) => Err(Error::Base(format!("disabled in {scope} scope"))),
         None => Err(Error::Base(format!("disabled in EAPI {eapi}"))),
     };
@@ -536,12 +540,8 @@ macro_rules! make_builtin {
     };
     ($name:expr, $func_name:ident, $builtin:ident) => {
         #[no_mangle]
-        extern "C" fn $func_name(list: *mut scallop::bash::WordList) -> std::ffi::c_int {
-            use scallop::traits::IntoWords;
-            let words = list.into_words(false);
-            let args: Vec<_> = words.into_iter().collect();
-            let status = $crate::shell::builtins::run($name, &args);
-            i32::from(status)
+        extern "C" fn $func_name(args: *mut scallop::bash::WordList) -> std::ffi::c_int {
+            i32::from($crate::shell::builtins::run($name, args))
         }
 
         pub(crate) static $builtin: scallop::builtins::Builtin = scallop::builtins::Builtin {
