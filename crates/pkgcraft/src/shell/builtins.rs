@@ -517,8 +517,8 @@ fn run(cmd: &str, args: *mut scallop::bash::WordList) -> ExecStatus {
     // run a builtin if it's enabled for the current build state
     let result = match eapi.builtins().get(cmd) {
         Some(builtin) if builtin.is_allowed(scope) => {
-            let args = &args.to_words();
-            let args: Result<Vec<_>, _> = args.try_into();
+            let args = args.to_words();
+            let args: Result<Vec<_>, _> = args.into_iter().collect();
             match args {
                 Ok(args) => builtin.run(&args),
                 Err(e) => Err(Error::Base(format!("non-unicode args: {e}"))),

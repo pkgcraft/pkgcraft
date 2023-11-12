@@ -12,7 +12,7 @@ impl<'a> TryFrom<&'a Words> for Vec<&'a str> {
     type Error = std::str::Utf8Error;
 
     fn try_from(words: &'a Words) -> Result<Self, Self::Error> {
-        words.into_iter().map(|cstr| cstr.to_str()).collect()
+        words.into_iter().collect()
     }
 }
 
@@ -22,7 +22,7 @@ impl TryFrom<Words> for Vec<String> {
     fn try_from(words: Words) -> Result<Self, Self::Error> {
         words
             .into_iter()
-            .map(|cstr| cstr.to_str().map(|s| s.to_string()))
+            .map(|r| r.map(|s| s.to_string()))
             .collect()
     }
 }
@@ -36,7 +36,7 @@ impl Drop for Words {
 }
 
 impl<'a> IntoIterator for &'a Words {
-    type Item = &'a CStr;
+    type Item = Result<&'a str, std::str::Utf8Error>;
     type IntoIter = WordsIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -51,13 +51,13 @@ pub struct WordsIter<'a> {
 }
 
 impl<'a> Iterator for WordsIter<'a> {
-    type Item = &'a CStr;
+    type Item = Result<&'a str, std::str::Utf8Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.words.map(|w| unsafe {
             self.words = w.next.as_ref();
             let word = (*w.word).word;
-            CStr::from_ptr(word)
+            CStr::from_ptr(word).to_str()
         })
     }
 }
