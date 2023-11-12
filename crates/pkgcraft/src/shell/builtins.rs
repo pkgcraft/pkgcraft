@@ -319,10 +319,6 @@ impl Builtin {
     pub(crate) fn is_phase(&self) -> bool {
         PhaseKind::from_str(self.as_ref()).is_ok()
     }
-
-    pub(crate) fn run(&self, args: &[&str]) -> scallop::Result<ExecStatus> {
-        self.builtin.run(args)
-    }
 }
 
 /// Ordered set of all known builtins.
@@ -520,7 +516,7 @@ fn run(cmd: &str, args: *mut scallop::bash::WordList) -> ExecStatus {
             let args = args.to_words();
             let args: Result<Vec<_>, _> = args.into_iter().collect();
             match args {
-                Ok(args) => builtin.run(&args),
+                Ok(args) => builtin(&args),
                 Err(e) => Err(Error::Base(format!("non-unicode args: {e}"))),
             }
         }
