@@ -1,5 +1,4 @@
 use std::borrow::Borrow;
-use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexSet;
@@ -22,18 +21,6 @@ pub(crate) enum OperationKind {
     NoFetch,
 }
 
-impl Ord for OperationKind {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for OperationKind {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl OperationKind {
     /// Create an operation.
     pub(crate) fn op<I, P>(self, phases: I) -> Operation
@@ -52,18 +39,6 @@ impl OperationKind {
 pub(crate) struct Operation {
     kind: OperationKind,
     pub(crate) phases: IndexSet<Phase>,
-}
-
-impl Ord for Operation {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.kind.cmp(&other.kind)
-    }
-}
-
-impl PartialOrd for Operation {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 impl PartialEq for Operation {

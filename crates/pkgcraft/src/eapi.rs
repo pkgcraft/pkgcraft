@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::{fmt, fs, io};
@@ -92,7 +92,7 @@ pub struct Eapi {
     id: String,
     parent: Option<&'static Self>,
     features: IndexSet<Feature>,
-    operations: IndexSet<Operation>,
+    operations: HashSet<Operation>,
     phases: IndexSet<Phase>,
     dep_keys: IndexSet<Key>,
     incremental_keys: IndexSet<Key>,
@@ -343,7 +343,6 @@ impl Eapi {
         for op in operations {
             self.operations.replace(op);
         }
-        self.operations.sort();
         self
     }
 
