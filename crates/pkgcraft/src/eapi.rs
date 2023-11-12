@@ -101,7 +101,7 @@ pub struct Eapi {
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
     env: IndexSet<ScopedVariable>,
-    commands: IndexSet<Command>,
+    commands: HashSet<Command>,
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
@@ -274,7 +274,7 @@ impl Eapi {
     }
 
     /// Return all the enabled commands for an EAPI.
-    pub(crate) fn commands(&self) -> &IndexSet<Command> {
+    pub(crate) fn commands(&self) -> &HashSet<Command> {
         &self.commands
     }
 
@@ -289,7 +289,6 @@ impl Eapi {
         I: IntoIterator<Item = Command>,
     {
         self.commands.extend(commands);
-        self.commands.sort();
         self
     }
 
@@ -303,7 +302,6 @@ impl Eapi {
                 panic!("EAPI {self}: disabling unset builtin: {b}");
             }
         }
-        self.commands.sort();
         self
     }
 
