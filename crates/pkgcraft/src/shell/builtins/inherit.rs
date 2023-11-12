@@ -34,15 +34,15 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             .get(*name)
             .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
+        // track direct inherits
+        if !build.scope.is_eclass() {
+            build.inherit.insert(eclass);
+        }
+
         // track all inherits
         if !build.inherited.insert(eclass) {
             // skip previous and nested inherits
             continue;
-        }
-
-        // track direct inherits
-        if !build.scope.is_eclass() {
-            build.inherit.insert(eclass);
         }
 
         // track build scope
@@ -163,8 +163,11 @@ mod tests {
         t.create_eclass("e1", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1"]).unwrap();
+        assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["e1"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["e1"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
     }
 
@@ -188,8 +191,11 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1"]).unwrap();
+        assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["e1"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["e1", "e2"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
 
@@ -212,8 +218,11 @@ mod tests {
         t.create_eclass("e2", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e2"]).unwrap();
+        assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["e2"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["e2", "e1"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["e2", "e1"]);
     }
 
@@ -242,8 +251,11 @@ mod tests {
         t.create_eclass("e3", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e3"]).unwrap();
+        assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["e3"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["e3", "e2", "e1"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["e3", "e2", "e1"]);
     }
 
@@ -272,7 +284,7 @@ mod tests {
     }
 
     #[test]
-    fn skip_reinherits() {
+    fn cyclic() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -303,23 +315,30 @@ mod tests {
         t.create_eclass("r", eclass).unwrap();
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let build = get_build_mut();
         let mut var = Variable::new("VAR");
 
         // verify previous inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1", "e2"]).unwrap();
+        assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["e1", "e2"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["e1", "e0", "e2"]);
         assert_eq!(var.optional().unwrap(), "e2e0e1");
 
         // verify nested inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         var.unbind().unwrap();
         inherit(&["e2", "e1"]).unwrap();
+        assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["e2", "e1"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["e2", "e1", "e0"]);
         assert_eq!(var.optional().unwrap(), "e0e1e2");
 
         // verify recursive inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         var.unbind().unwrap();
         inherit(&["r"]).unwrap();
+        assert_ordered_eq(build.inherit.iter().map(|e| e.as_ref()), ["r"]);
+        assert_ordered_eq(build.inherited.iter().map(|e| e.as_ref()), ["r"]);
         assert_eq!(var.optional().unwrap(), "r");
     }
 
