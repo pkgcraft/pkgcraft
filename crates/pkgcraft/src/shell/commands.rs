@@ -501,7 +501,7 @@ mod parse {
     }
 }
 
-/// Run a builtin given its command name and argument list from bash.
+/// Run a command given its name and argument list from bash.
 fn run(name: &str, args: *mut scallop::bash::WordList) -> scallop::ExecStatus {
     use scallop::builtins::handle_error;
     use scallop::{traits::IntoWords, Error};
@@ -531,7 +531,7 @@ fn run(name: &str, args: *mut scallop::bash::WordList) -> scallop::ExecStatus {
     })
 }
 
-/// Create C compatible builtin function wrapper converting between rust and C types.
+/// Create a static [`Builtin`] object for registry in bash.
 #[macro_export]
 macro_rules! make_builtin {
     ($name:expr, $func_name:ident) => {
