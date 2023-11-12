@@ -1,5 +1,4 @@
 use std::borrow::Borrow;
-use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -45,18 +44,6 @@ pub(crate) enum PhaseKind {
     SrcUnpack,
 }
 
-impl Ord for PhaseKind {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for PhaseKind {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl PhaseKind {
     /// Create a phase function that runs an optional, internal function by default.
     pub(crate) fn func(self, func: Option<BuildFn>) -> Phase {
@@ -88,7 +75,7 @@ impl PhaseKind {
     }
 }
 
-#[derive(Copy, Clone, PartialOrd, Ord)]
+#[derive(Copy, Clone)]
 pub(crate) struct Phase {
     kind: PhaseKind,
     func: Option<BuildFn>,
