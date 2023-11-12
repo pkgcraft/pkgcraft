@@ -7,7 +7,7 @@ use crate::repo::ebuild::Eclass;
 
 use super::phase::{Phase, PhaseKind};
 
-#[derive(Debug, Default, PartialEq, Eq, Hash, Ord, PartialOrd, Copy, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub(crate) enum Scope {
     #[default]
     Global,
