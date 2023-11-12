@@ -573,93 +573,111 @@ macro_rules! cmd_scope_tests {
     ($cmd:expr) => {
         #[test]
         fn cmd_scope() {
+            use std::collections::HashSet;
+
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
             use crate::pkg::SourcePackage;
-            use crate::shell::scope::Scope::*;
+            use crate::shell::scope::{Scope::*, Scopes};
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
             let mut config = Config::default();
             let t = config.temp_repo("test", 0, None).unwrap();
+            let all_scopes: HashSet<_> = Scopes::All.into_iter().collect();
 
             for eapi in &*EAPIS_OFFICIAL {
-                let scopes = [Global, Eclass(None)]
-                    .into_iter()
-                    .chain(eapi.phases().iter().map(Into::into))
-                    .filter(|s| {
-                        !eapi
-                            .commands()
-                            .get(name)
-                            .map(|b| b.is_allowed(s))
-                            .unwrap_or_default()
-                    });
-                for scope in scopes {
-                    let err = format!("{name}: error: disabled in ");
-                    let info = format!("EAPI={eapi}, scope: {scope}");
-
-                    match scope {
-                        Eclass(_) => {
-                            // create eclass
-                            let eclass = indoc::formatdoc! {r#"
-                                # stub eclass
-                                VAR=1
-                                {cmd}
-                                VAR=2
-                            "#};
-                            t.create_eclass("e1", &eclass).unwrap();
-                            let data = indoc::formatdoc! {r#"
-                                EAPI={eapi}
-                                inherit e1
-                                DESCRIPTION="testing builtin eclass scope failures"
-                                SLOT=0
-                            "#};
-                            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
-                            let r = raw_pkg.source();
-                            // verify sourcing stops at unknown command
-                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
-                            // verify error output
-                            assert_err_re!(r, err, &info);
-                        }
-                        Global => {
-                            let data = indoc::formatdoc! {r#"
-                                EAPI={eapi}
-                                DESCRIPTION="testing builtin global scope failures"
-                                SLOT=0
-                                LICENSE="MIT"
-                                VAR=1
-                                {cmd}
-                                VAR=2
-                            "#};
-                            let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
-                            let r = raw_pkg.source();
-                            // verify sourcing stops at unknown command
-                            assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
-                            // verify error output
-                            assert_err_re!(r, err, &info);
-                        }
-                        Phase(phase) => {
-                            let data = indoc::formatdoc! {r#"
-                                EAPI={eapi}
-                                DESCRIPTION="testing builtin phase scope failures"
-                                SLOT=0
-                                VAR=1
-                                {phase}() {{
+                if let Some(cmd) = eapi.commands().get(name) {
+                    for scope in all_scopes.difference(&cmd.scopes) {
+                        let info = format!("EAPI={eapi}, scope: {scope}");
+                        match scope {
+                            Eclass(_) => {
+                                // create eclass
+                                let eclass = indoc::formatdoc! {r#"
+                                    # stub eclass
+                                    VAR=1
                                     {cmd}
                                     VAR=2
-                                }}
-                            "#};
-                            let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
-                            pkg.source().unwrap();
-                            let phase = eapi.phases().get(&phase).unwrap();
-                            let r = phase.run();
-                            // verify function stops at unknown command
-                            assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
-                            // verify error output
-                            assert_err_re!(r, err, &info);
+                                "#};
+                                t.create_eclass("e1", &eclass).unwrap();
+                                let data = indoc::formatdoc! {r#"
+                                    EAPI={eapi}
+                                    inherit e1
+                                    DESCRIPTION="testing eclass scope failures"
+                                    SLOT=0
+                                "#};
+                                let raw_pkg =
+                                    t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                                let r = raw_pkg.source();
+                                // verify sourcing stops at unknown command
+                                assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                                // verify error output
+                                let err = format!("{name}: error: disabled in eclass scope");
+                                assert_err_re!(r, err, &info);
+                            }
+                            Global => {
+                                let data = indoc::formatdoc! {r#"
+                                    EAPI={eapi}
+                                    DESCRIPTION="testing global scope failures"
+                                    SLOT=0
+                                    LICENSE="MIT"
+                                    VAR=1
+                                    {cmd}
+                                    VAR=2
+                                "#};
+                                let raw_pkg =
+                                    t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                                let r = raw_pkg.source();
+                                // verify sourcing stops at unknown command
+                                assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                                // verify error output
+                                let err = format!("{name}: error: disabled in global scope");
+                                assert_err_re!(r, err, &info);
+                            }
+                            Phase(phase) => {
+                                let data = indoc::formatdoc! {r#"
+                                    EAPI={eapi}
+                                    DESCRIPTION="testing phase scope failures"
+                                    SLOT=0
+                                    VAR=1
+                                    {phase}() {{
+                                        {cmd}
+                                        VAR=2
+                                    }}
+                                "#};
+                                let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                                pkg.source().unwrap();
+                                let phase = eapi.phases().get(phase).unwrap();
+                                let r = phase.run();
+                                // verify function stops at unknown command
+                                assert_eq!(
+                                    scallop::variables::optional("VAR").as_deref(),
+                                    Some("1")
+                                );
+                                // verify error output
+                                let err = format!("{name}: error: disabled in {phase} scope");
+                                assert_err_re!(r, err, &info);
+                            }
                         }
                     }
+                } else {
+                    let data = indoc::formatdoc! {r#"
+                        EAPI={eapi}
+                        DESCRIPTION="testing command disabled in EAPI failures"
+                        SLOT=0
+                        LICENSE="MIT"
+                        VAR=1
+                        {cmd}
+                        VAR=2
+                    "#};
+                    let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                    let r = raw_pkg.source();
+                    // verify sourcing stops at unknown command
+                    assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
+                    // verify error output
+                    let err = format!("{name}: error: disabled in EAPI {eapi}");
+                    assert_err_re!(r, err);
                 }
             }
         }
