@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
@@ -229,7 +230,7 @@ pub(crate) use _phases::SRC_UNPACK_BUILTIN as src_unpack_builtin;
 #[derive(Debug, Clone)]
 pub(crate) struct Command {
     builtin: Builtin,
-    scopes: IndexSet<Scope>,
+    scopes: HashSet<Scope>,
 }
 
 impl PartialEq for Command {
@@ -303,9 +304,10 @@ impl Command {
     where
         I: IntoIterator<Item = Scopes>,
     {
-        let mut scopes: IndexSet<_> = scopes.into_iter().flatten().collect();
-        scopes.sort();
-        Self { builtin, scopes }
+        Self {
+            builtin,
+            scopes: scopes.into_iter().flatten().collect(),
+        }
     }
 
     /// Determine if the builtin is allowed in a given `Scope`.

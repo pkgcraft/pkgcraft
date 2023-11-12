@@ -1,9 +1,9 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use indexmap::IndexSet;
 use scallop::variables::{bind, unbind, Attr};
 use scallop::ExecStatus;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
@@ -71,16 +71,17 @@ impl Variable {
         I: IntoIterator<Item = S>,
         S: Into<Scopes>,
     {
-        let mut scopes: IndexSet<_> = scopes.into_iter().flat_map(Into::into).collect();
-        scopes.sort();
-        ScopedVariable { var: self, scopes }
+        ScopedVariable {
+            var: self,
+            scopes: scopes.into_iter().flat_map(Into::into).collect(),
+        }
     }
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct ScopedVariable {
     var: Variable,
-    scopes: IndexSet<Scope>,
+    scopes: HashSet<Scope>,
 }
 
 impl Ord for ScopedVariable {
@@ -134,7 +135,7 @@ impl From<&ScopedVariable> for Variable {
 }
 
 impl ScopedVariable {
-    pub(crate) fn scopes(&self) -> &IndexSet<Scope> {
+    pub(crate) fn scopes(&self) -> &HashSet<Scope> {
         &self.scopes
     }
 
@@ -184,7 +185,7 @@ mod tests {
 
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let all_scopes: IndexSet<_> = Scopes::All.into_iter().collect();
+        let all_scopes: Vec<_> = Scopes::All.into_iter().collect();
 
         for eapi in &*EAPIS_OFFICIAL {
             for var in Variable::iter() {
