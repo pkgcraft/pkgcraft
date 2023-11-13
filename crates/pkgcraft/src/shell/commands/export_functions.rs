@@ -3,7 +3,7 @@ use scallop::{functions, source, Error, ExecStatus};
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind;
 
-use super::{make_builtin, Scope};
+use super::make_builtin;
 
 const LONG_DOC: &str = "\
 Export stub functions that call the eclass's functions, thereby making them default.
@@ -37,9 +37,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let Scope::Eclass(Some(eclass)) = build.scope else {
-        panic!("not allowed in non-eclass scope");
-    };
+    let eclass = build.eclass()?;
     let eapi = build.eapi();
 
     for arg in args {

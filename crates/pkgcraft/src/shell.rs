@@ -323,6 +323,14 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    /// Get the current eclass if it exists.
+    fn eclass(&self) -> scallop::Result<&'a Eclass> {
+        match &self.scope {
+            Scope::Eclass(Some(e)) => Ok(e),
+            scope => Err(Error::Base(format!("eclass invalid for scope: {scope}"))),
+        }
+    }
+
     /// Get the value for a given build variable from the build state.
     fn get_var(&self, var: Variable) -> scallop::Result<String> {
         use Variable::*;
