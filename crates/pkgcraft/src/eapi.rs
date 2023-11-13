@@ -100,7 +100,7 @@ pub struct Eapi {
     metadata_keys: IndexSet<Key>,
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
-    env: IndexSet<ScopedVariable>,
+    env: HashSet<ScopedVariable>,
     commands: HashSet<Command>,
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
@@ -268,8 +268,8 @@ impl Eapi {
         &self.econf_options
     }
 
-    /// Return the ordered set of all environment variables.
-    pub(crate) fn env(&self) -> &IndexSet<ScopedVariable> {
+    /// Return the set of all environment variables.
+    pub(crate) fn env(&self) -> &HashSet<ScopedVariable> {
         &self.env
     }
 
@@ -433,7 +433,6 @@ impl Eapi {
         for var in variables {
             self.env.replace(var);
         }
-        self.env.sort();
         self
     }
 
