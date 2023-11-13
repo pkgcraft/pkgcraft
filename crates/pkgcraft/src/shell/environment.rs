@@ -66,12 +66,12 @@ impl PartialOrd for Variable {
 }
 
 impl Variable {
-    pub(crate) fn scopes<I, S>(self, scopes: I) -> ScopedVariable
+    pub(crate) fn scopes<I, S>(self, scopes: I) -> BuildVariable
     where
         I: IntoIterator<Item = S>,
         S: Into<Scopes>,
     {
-        ScopedVariable {
+        BuildVariable {
             var: self,
             scopes: scopes.into_iter().flat_map(Into::into).collect(),
             exported: false,
@@ -80,63 +80,63 @@ impl Variable {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct ScopedVariable {
+pub(crate) struct BuildVariable {
     var: Variable,
     scopes: HashSet<Scope>,
     exported: bool,
 }
 
-impl Ord for ScopedVariable {
+impl Ord for BuildVariable {
     fn cmp(&self, other: &Self) -> Ordering {
         self.var.cmp(&other.var)
     }
 }
 
-impl PartialOrd for ScopedVariable {
+impl PartialOrd for BuildVariable {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for ScopedVariable {
+impl PartialEq for BuildVariable {
     fn eq(&self, other: &Self) -> bool {
         self.var == other.var
     }
 }
 
-impl Eq for ScopedVariable {}
+impl Eq for BuildVariable {}
 
-impl Hash for ScopedVariable {
+impl Hash for BuildVariable {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.var.hash(state);
     }
 }
 
-impl fmt::Display for ScopedVariable {
+impl fmt::Display for BuildVariable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.var)
     }
 }
 
-impl Borrow<Variable> for ScopedVariable {
+impl Borrow<Variable> for BuildVariable {
     fn borrow(&self) -> &Variable {
         &self.var
     }
 }
 
-impl AsRef<str> for ScopedVariable {
+impl AsRef<str> for BuildVariable {
     fn as_ref(&self) -> &str {
         self.var.as_ref()
     }
 }
 
-impl From<&ScopedVariable> for Variable {
-    fn from(value: &ScopedVariable) -> Self {
+impl From<&BuildVariable> for Variable {
+    fn from(value: &BuildVariable) -> Self {
         value.var
     }
 }
 
-impl ScopedVariable {
+impl BuildVariable {
     /// Enable the variable to be externally exported.
     pub(crate) fn exported(mut self) -> Self {
         self.exported = true;

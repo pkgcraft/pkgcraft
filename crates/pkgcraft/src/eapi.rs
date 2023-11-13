@@ -16,7 +16,7 @@ use crate::dep;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
 use crate::shell::commands::Command;
-use crate::shell::environment::{ScopedVariable, Variable};
+use crate::shell::environment::{BuildVariable, Variable};
 use crate::shell::hooks::{Hook, HookKind};
 use crate::shell::metadata::Key;
 use crate::shell::operations::{Operation, OperationKind};
@@ -100,7 +100,7 @@ pub struct Eapi {
     metadata_keys: IndexSet<Key>,
     econf_options: EapiEconfOptions,
     archives: IndexSet<String>,
-    env: HashSet<ScopedVariable>,
+    env: HashSet<BuildVariable>,
     commands: HashSet<Command>,
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
@@ -269,7 +269,7 @@ impl Eapi {
     }
 
     /// Return the set of all environment variables.
-    pub(crate) fn env(&self) -> &HashSet<ScopedVariable> {
+    pub(crate) fn env(&self) -> &HashSet<BuildVariable> {
         &self.env
     }
 
@@ -429,7 +429,7 @@ impl Eapi {
     }
 
     /// Enable support for build variables during Eapi registration.
-    fn update_env<I: IntoIterator<Item = ScopedVariable>>(mut self, variables: I) -> Self {
+    fn update_env<I: IntoIterator<Item = BuildVariable>>(mut self, variables: I) -> Self {
         for var in variables {
             self.env.replace(var);
         }
@@ -446,7 +446,7 @@ impl Eapi {
         self
     }
 
-    /// Update incremental variables during Eapi registration.
+    /// Update hooks during Eapi registration.
     fn update_hooks<I>(mut self, values: I) -> Self
     where
         I: IntoIterator<Item = Hook>,
