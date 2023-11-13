@@ -6,8 +6,7 @@ use std::time::{Duration, Instant};
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
-use pkgcraft::pkg::ebuild::RawPkg;
-use pkgcraft::pkg::SourcePackage;
+use pkgcraft::pkg::{ebuild, SourcePackage};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
@@ -100,10 +99,10 @@ macro_rules! micros {
 /// Run package sourcing benchmarks for a given duration per package.
 fn benchmark<'a, I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = RawPkg<'a>>,
+    I: Iterator<Item = ebuild::raw::Pkg<'a>>,
 {
     let mut failed = false;
-    let func = |pkg: RawPkg| -> scallop::Result<(String, Vec<Duration>)> {
+    let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<(String, Vec<Duration>)> {
         let mut data = vec![];
         let mut elapsed = Duration::new(0, 0);
         while elapsed < duration {
@@ -167,10 +166,10 @@ where
 /// Run package sourcing a single time per package.
 fn source<'a, I>(jobs: usize, pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = RawPkg<'a>>,
+    I: Iterator<Item = ebuild::raw::Pkg<'a>>,
 {
     let mut failed = false;
-    let func = |pkg: RawPkg| -> scallop::Result<(String, Duration)> {
+    let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<(String, Duration)> {
         let start = Instant::now();
         pkg.source()?;
         let elapsed = micros!(start.elapsed());

@@ -159,7 +159,7 @@ use assert_stderr;
 #[derive(Debug)]
 pub(crate) enum BuildState<'a> {
     Empty(&'static Eapi),
-    Metadata(&'a crate::pkg::ebuild::RawPkg<'a>),
+    Metadata(&'a crate::pkg::ebuild::raw::Pkg<'a>),
     Build(&'a crate::pkg::ebuild::Pkg<'a>),
 }
 
@@ -243,7 +243,7 @@ impl<'a> BuildData<'a> {
         get_build_mut().state = BuildState::Empty(eapi);
     }
 
-    pub(crate) fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::RawPkg<'a>) {
+    pub(crate) fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::raw::Pkg<'a>) {
         // TODO: remove this hack once BuildData is reworked
         let p = unsafe { mem::transmute(pkg) };
         let data = BuildData {

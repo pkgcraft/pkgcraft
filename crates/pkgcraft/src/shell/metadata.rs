@@ -11,7 +11,7 @@ use crate::dep::{self, Cpv, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::files::atomic_write_file;
 use crate::pkg::SourcePackage;
-use crate::pkg::{ebuild::RawPkg, Package};
+use crate::pkg::{ebuild::raw::Pkg, Package};
 use crate::repo::ebuild::Repo;
 use crate::types::OrderedSet;
 use crate::Error;
@@ -216,7 +216,7 @@ impl Metadata {
     }
 
     /// Serialize [`Metadata`] to the given package's metadata/md5-cache file in the related repo.
-    pub(crate) fn serialize(pkg: &RawPkg) -> crate::Result<()> {
+    pub(crate) fn serialize(pkg: &Pkg) -> crate::Result<()> {
         // convert raw pkg into metadata via sourcing
         let meta: Metadata = pkg.try_into()?;
         let eapi = pkg.eapi();
@@ -337,13 +337,13 @@ impl Metadata {
 
     /// Verify a metadata entry is valid.
     pub(crate) fn verify(cpv: &Cpv, repo: &Repo) -> bool {
-        RawPkg::new(cpv.clone(), repo)
+        Pkg::new(cpv.clone(), repo)
             .map(|p| Self::load(&p, false).is_err())
             .unwrap_or_default()
     }
 
     /// Deserialize a metadata entry for a given package into [`Metadata`].
-    pub(crate) fn load(pkg: &RawPkg, deserialize: bool) -> crate::Result<Self> {
+    pub(crate) fn load(pkg: &Pkg, deserialize: bool) -> crate::Result<Self> {
         let eapi = pkg.eapi();
         let repo = pkg.repo();
 
@@ -475,10 +475,10 @@ impl Metadata {
     }
 }
 
-impl TryFrom<&RawPkg<'_>> for Metadata {
+impl TryFrom<&Pkg<'_>> for Metadata {
     type Error = Error;
 
-    fn try_from(pkg: &RawPkg) -> crate::Result<Self> {
+    fn try_from(pkg: &Pkg) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 

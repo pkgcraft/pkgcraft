@@ -4,8 +4,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
-use pkgcraft::pkg::ebuild::{Pkg, RawPkg};
-use pkgcraft::pkg::BuildPackage;
+use pkgcraft::pkg::{ebuild, BuildPackage};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
@@ -48,8 +47,8 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        let func = |raw_pkg: RawPkg| -> scallop::Result<()> {
-            let pkg: Pkg = raw_pkg.try_into()?;
+        let func = |raw_pkg: ebuild::raw::Pkg| -> scallop::Result<()> {
+            let pkg: ebuild::Pkg = raw_pkg.try_into()?;
             pkg.pretend()
         };
 

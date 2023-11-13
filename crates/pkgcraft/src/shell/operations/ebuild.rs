@@ -6,14 +6,13 @@ use scallop::ExecStatus;
 use tempfile::NamedTempFile;
 
 use crate::error::{Error, PackageError};
-use crate::pkg::ebuild::{Pkg, RawPkg};
-use crate::pkg::{BuildPackage, Package, PackageMetadata, SourcePackage};
+use crate::pkg::{ebuild, BuildPackage, Package, PackageMetadata, SourcePackage};
 use crate::shell::metadata::Metadata;
 use crate::shell::{get_build_mut, BuildData};
 
 use super::OperationKind::{Build, Pretend};
 
-impl<'a> BuildPackage for Pkg<'a> {
+impl<'a> BuildPackage for ebuild::Pkg<'a> {
     fn build(&self) -> scallop::Result<()> {
         get_build_mut()
             .source_ebuild(&self.abspath())
@@ -57,21 +56,21 @@ impl<'a> BuildPackage for Pkg<'a> {
     }
 }
 
-impl<'a> SourcePackage for RawPkg<'a> {
+impl<'a> SourcePackage for ebuild::raw::Pkg<'a> {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_raw_pkg(self);
         get_build_mut().source_ebuild(self.data())
     }
 }
 
-impl<'a> SourcePackage for Pkg<'a> {
+impl<'a> SourcePackage for ebuild::Pkg<'a> {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_pkg(self);
         get_build_mut().source_ebuild(&self.abspath())
     }
 }
 
-impl<'a> PackageMetadata for RawPkg<'a> {
+impl<'a> PackageMetadata for ebuild::raw::Pkg<'a> {
     fn metadata(&self) -> scallop::Result<()> {
         Ok(Metadata::serialize(self).map_err(|e| self.invalid_pkg_err(e))?)
     }

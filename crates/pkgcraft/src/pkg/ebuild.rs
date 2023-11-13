@@ -7,12 +7,10 @@ use itertools::Either;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
-use crate::eapi::{self, Eapi};
+use crate::eapi::Eapi;
 use crate::repo::{ebuild::Repo, Repository};
 use crate::shell::metadata::{Iuse, Key, Metadata};
-use crate::traits::FilterLines;
 use crate::types::OrderedSet;
-use crate::utils::digest;
 use crate::Error;
 
 use super::{make_pkg_traits, Package};
@@ -20,114 +18,9 @@ use super::{make_pkg_traits, Package};
 pub mod configured;
 pub mod metadata;
 use metadata::{Manifest, ManifestFile, XmlMetadata};
+pub mod raw;
 mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
-
-#[derive(Debug)]
-pub struct RawPkg<'a> {
-    cpv: Cpv,
-    repo: &'a Repo,
-    eapi: &'static Eapi,
-    data: String,
-    chksum: String,
-}
-
-make_pkg_traits!(RawPkg<'_>);
-
-impl<'a> RawPkg<'a> {
-    pub(crate) fn new(cpv: Cpv, repo: &'a Repo) -> crate::Result<Self> {
-        let relpath = cpv.relpath();
-        let data = fs::read_to_string(repo.path().join(&relpath)).map_err(|e| {
-            Error::IO(format!("{}: failed reading ebuild: {relpath}: {e}", repo.id()))
-        })?;
-
-        let eapi = Self::parse_eapi(&data).map_err(|e| Error::InvalidPkg {
-            id: format!("{cpv}::{repo}"),
-            err: e.to_string(),
-        })?;
-
-        let chksum = digest::<md5::Md5>(data.as_bytes());
-        Ok(Self { cpv, repo, eapi, data, chksum })
-    }
-
-    /// Get the parsed EAPI from the given ebuild data content.
-    fn parse_eapi(data: &str) -> crate::Result<&'static Eapi> {
-        data.filter_lines()
-            .next()
-            .and_then(|(_, s)| s.strip_prefix("EAPI="))
-            .map(|s| {
-                s.split_once('#')
-                    .map(|(v, _)| v.trim())
-                    .unwrap_or_else(|| s.trim())
-            })
-            .ok_or_else(|| Error::InvalidValue("unsupported EAPI: 0".to_string()))
-            .and_then(eapi::parse_value)
-            .and_then(TryInto::try_into)
-    }
-
-    /// Return the path of the package's ebuild relative to the repository root.
-    pub fn relpath(&self) -> Utf8PathBuf {
-        self.cpv.relpath()
-    }
-
-    /// Return the absolute path of the package's ebuild.
-    pub fn abspath(&self) -> Utf8PathBuf {
-        self.repo.path().join(self.relpath())
-    }
-
-    /// Return the package's ebuild as a string.
-    pub fn data(&self) -> &str {
-        &self.data
-    }
-
-    /// Return the checksum of the package.
-    pub fn chksum(&self) -> &str {
-        &self.chksum
-    }
-
-    /// Load metadata from cache if valid, otherwise source it from the ebuild.
-    fn load_or_source(&self) -> crate::Result<Metadata> {
-        Metadata::load(self, true)
-            .or_else(|_| self.try_into())
-            .map_err(|e| Error::InvalidPkg {
-                id: self.to_string(),
-                err: e.to_string(),
-            })
-    }
-}
-
-impl<'a> TryFrom<RawPkg<'a>> for Pkg<'a> {
-    type Error = Error;
-
-    fn try_from(pkg: RawPkg) -> crate::Result<Pkg> {
-        let meta = pkg.load_or_source()?;
-        Ok(Pkg {
-            cpv: pkg.cpv,
-            eapi: pkg.eapi,
-            repo: pkg.repo,
-            meta,
-            iuse_effective: OnceLock::new(),
-            xml: OnceLock::new(),
-            manifest: OnceLock::new(),
-        })
-    }
-}
-
-impl<'a> Package for RawPkg<'a> {
-    type Repo = &'a Repo;
-
-    fn cpv(&self) -> &Cpv {
-        &self.cpv
-    }
-
-    fn eapi(&self) -> &'static Eapi {
-        self.eapi
-    }
-
-    fn repo(&self) -> Self::Repo {
-        self.repo
-    }
-}
 
 #[derive(Debug)]
 pub struct Pkg<'a> {
@@ -141,6 +34,23 @@ pub struct Pkg<'a> {
 }
 
 make_pkg_traits!(Pkg<'_>);
+
+impl<'a> TryFrom<raw::Pkg<'a>> for Pkg<'a> {
+    type Error = Error;
+
+    fn try_from(pkg: raw::Pkg) -> crate::Result<Pkg> {
+        let meta = pkg.load_or_source()?;
+        Ok(Pkg {
+            cpv: pkg.cpv,
+            eapi: pkg.eapi,
+            repo: pkg.repo,
+            meta,
+            iuse_effective: OnceLock::new(),
+            xml: OnceLock::new(),
+            manifest: OnceLock::new(),
+        })
+    }
+}
 
 impl<'a> Pkg<'a> {
     /// Return the path of the package's ebuild file path relative to the repository root.
@@ -345,6 +255,7 @@ impl<'a> Package for Pkg<'a> {
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
+    use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::metadata::Checksum;
     use crate::repo::PkgRepository;
@@ -362,13 +273,13 @@ mod tests {
         assert_err_re!(r, r"unsupported EAPI: unknown");
 
         // quoted and commented
-        let data = indoc::indoc! {r#"
+        let data = indoc::formatdoc! {r#"
             EAPI="8" # comment
             DESCRIPTION="testing EAPI"
             SLOT=0
         "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_eq!(pkg.eapi(), &*eapi::EAPI8);
+        let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+        assert_eq!(pkg.eapi(), &*EAPI8);
 
         // invalid with unquoted self reference
         let data = indoc::indoc! {r#"
@@ -423,8 +334,8 @@ mod tests {
         let pkg2 = iter.next().unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
-        assert_eq!(pkg1.eapi(), *eapi::EAPI_LATEST_OFFICIAL);
-        assert_eq!(pkg2.eapi(), &*eapi::EAPI8);
+        assert_eq!(pkg1.eapi(), *EAPI_LATEST_OFFICIAL);
+        assert_eq!(pkg1.eapi(), &*EAPI8);
         assert_eq!(pkg1.cpv(), &Cpv::new("cat/pkg-1").unwrap());
         assert_eq!(pkg2.cpv(), &Cpv::new("cat/pkg-2").unwrap());
 

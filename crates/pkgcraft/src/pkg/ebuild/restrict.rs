@@ -1,4 +1,4 @@
-use crate::pkg::{self, Package};
+use crate::pkg::{self, ebuild, Package};
 use crate::repo::Repository;
 use crate::restrict::boolean::*;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -9,7 +9,6 @@ use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
 use super::metadata::Maintainer;
-use super::{Pkg, RawPkg};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {
@@ -44,8 +43,8 @@ impl From<Restrict> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a RawPkg<'a>> for BaseRestrict {
-    fn matches(&self, pkg: &'a RawPkg<'a>) -> bool {
+impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for BaseRestrict {
+    fn matches(&self, pkg: &'a ebuild::raw::Pkg<'a>) -> bool {
         crate::restrict::restrict_match! {self, pkg,
             Self::Dep(r) => r.matches(pkg),
             Self::Pkg(r) => r.matches(pkg),
@@ -53,8 +52,8 @@ impl<'a> Restriction<&'a RawPkg<'a>> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a RawPkg<'a>> for DepRestrict {
-    fn matches(&self, pkg: &'a RawPkg<'a>) -> bool {
+impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for DepRestrict {
+    fn matches(&self, pkg: &'a ebuild::raw::Pkg<'a>) -> bool {
         use DepRestrict::*;
         match self {
             Repo(Some(r)) => r.matches(pkg.repo().id()),
@@ -63,8 +62,8 @@ impl<'a> Restriction<&'a RawPkg<'a>> for DepRestrict {
     }
 }
 
-impl<'a> Restriction<&'a RawPkg<'a>> for pkg::Restrict {
-    fn matches(&self, pkg: &'a RawPkg<'a>) -> bool {
+impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for pkg::Restrict {
+    fn matches(&self, pkg: &'a ebuild::raw::Pkg<'a>) -> bool {
         use pkg::Restrict::*;
         match self {
             Repo(r) => r.matches(pkg.repo().id()),
@@ -73,8 +72,8 @@ impl<'a> Restriction<&'a RawPkg<'a>> for pkg::Restrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for BaseRestrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl<'a> Restriction<&'a ebuild::Pkg<'a>> for BaseRestrict {
+    fn matches(&self, pkg: &'a ebuild::Pkg<'a>) -> bool {
         crate::restrict::restrict_match! {self, pkg,
             Self::Dep(r) => r.matches(pkg),
             Self::Pkg(r) => r.matches(pkg),
@@ -82,8 +81,8 @@ impl<'a> Restriction<&'a Pkg<'a>> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for DepRestrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl<'a> Restriction<&'a ebuild::Pkg<'a>> for DepRestrict {
+    fn matches(&self, pkg: &'a ebuild::Pkg<'a>) -> bool {
         use DepRestrict::*;
         match self {
             Slot(Some(r)) => r.matches(pkg.slot()),
@@ -94,8 +93,8 @@ impl<'a> Restriction<&'a Pkg<'a>> for DepRestrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl<'a> Restriction<&'a ebuild::Pkg<'a>> for pkg::Restrict {
+    fn matches(&self, pkg: &'a ebuild::Pkg<'a>) -> bool {
         use pkg::Restrict::*;
         match self {
             Ebuild(r) => r.matches(pkg),
@@ -105,8 +104,8 @@ impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl<'a> Restriction<&'a ebuild::Pkg<'a>> for Restrict {
+    fn matches(&self, pkg: &'a ebuild::Pkg<'a>) -> bool {
         use self::Restrict::*;
         match self {
             Ebuild(r) => match pkg.ebuild() {

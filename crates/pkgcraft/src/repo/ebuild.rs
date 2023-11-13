@@ -24,8 +24,10 @@ use crate::files::{
     has_ext, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list, sorted_dir_list_utf8,
 };
 use crate::macros::build_from_paths;
-use crate::pkg::ebuild::metadata::{Manifest, XmlMetadata};
-use crate::pkg::ebuild::{Pkg, RawPkg};
+use crate::pkg::ebuild::{
+    self,
+    metadata::{Manifest, XmlMetadata},
+};
 use crate::pkg::PackageMetadata;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -493,7 +495,7 @@ impl Repo {
     ) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
-            let pkg = RawPkg::new(cpv, self)?;
+            let pkg = ebuild::raw::Pkg::new(cpv, self)?;
             pkg.metadata()
         };
         let pool = PoolSendIter::new(bounded_jobs(jobs), func, true)?;
@@ -653,7 +655,7 @@ impl fmt::Display for Repo {
 }
 
 impl PkgRepository for Repo {
-    type Pkg<'a> = Pkg<'a> where Self: 'a;
+    type Pkg<'a> = ebuild::Pkg<'a> where Self: 'a;
     type IterCpv<'a> = IterCpv<'a> where Self: 'a;
     type Iter<'a> = Iter<'a> where Self: 'a;
     type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
@@ -788,7 +790,7 @@ fn is_ebuild(e: &DirEntry) -> bool {
 }
 
 impl<'a> IntoIterator for &'a Repo {
-    type Item = Pkg<'a>;
+    type Item = ebuild::Pkg<'a>;
     type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -809,7 +811,7 @@ impl<'a> Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = Pkg<'a>;
+    type Item = ebuild::Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         for raw_pkg in &mut self.iter {
@@ -835,11 +837,11 @@ impl<'a> IterRaw<'a> {
 }
 
 impl<'a> Iterator for IterRaw<'a> {
-    type Item = RawPkg<'a>;
+    type Item = ebuild::raw::Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         for cpv in &mut self.iter {
-            match RawPkg::new(cpv, self.repo) {
+            match ebuild::raw::Pkg::new(cpv, self.repo) {
                 Ok(pkg) => return Some(pkg),
                 Err(e) => warn!("{}: {e}", self.repo.id()),
             }
@@ -935,7 +937,7 @@ pub struct IterRestrict<'a> {
 }
 
 impl<'a> Iterator for IterRestrict<'a> {
-    type Item = Pkg<'a>;
+    type Item = ebuild::Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
@@ -961,7 +963,7 @@ pub struct IterRawRestrict<'a> {
 }
 
 impl<'a> Iterator for IterRawRestrict<'a> {
-    type Item = RawPkg<'a>;
+    type Item = ebuild::raw::Pkg<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
