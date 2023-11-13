@@ -479,6 +479,18 @@ impl<'a> BuildData<'a> {
         // run global sourcing in restricted shell mode
         scallop::shell::restricted(|| value.source_bash())?;
 
+        // create function aliases for EXPORT_FUNCTIONS calls
+        for (phase, eclass) in &self.export_functions {
+            let func = format!("{eclass}_{phase}");
+            if functions::find(&func).is_some() {
+                scallop::source::string(format!("{phase}() {{ {func} \"$@\"; }}"))?;
+            } else {
+                return Err(Error::Base(format!(
+                    "{eclass}.eclass: undefined phase function: {func}"
+                )));
+            }
+        }
+
         // check for functions that override commands
         functions::all_visible()
             .into_iter()

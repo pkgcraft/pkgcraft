@@ -4,7 +4,6 @@ use scallop::{Error, ExecStatus};
 use crate::shell::get_build_mut;
 use crate::traits::SourceBash;
 
-use super::export_functions::export_functions;
 use super::make_builtin;
 
 const LONG_DOC: &str = "Sources the given list of eclasses.";
@@ -72,11 +71,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 build.incrementals.entry(*key).or_default().extend(data);
             }
         }
-    }
-
-    // create function aliases for EXPORT_FUNCTIONS calls
-    if !build.scope.is_eclass() {
-        export_functions(build.export_functions.drain(..))?;
     }
 
     Ok(ExecStatus::Success)

@@ -1,7 +1,6 @@
-use scallop::{functions, source, Error, ExecStatus};
+use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
-use crate::shell::phase::PhaseKind;
 
 use super::make_builtin;
 
@@ -11,24 +10,6 @@ For example, if ECLASS=base and `EXPORT_FUNCTIONS src_unpack` is called the foll
 function is defined:
 
 src_unpack() { base_src_unpack; }";
-
-/// Create function aliases for EXPORT_FUNCTIONS calls.
-pub(super) fn export_functions<I, T>(functions: I) -> scallop::Result<ExecStatus>
-where
-    I: IntoIterator<Item = (PhaseKind, T)>,
-    T: std::fmt::Display,
-{
-    for (phase, eclass) in functions {
-        let func = format!("{eclass}_{phase}");
-        if functions::find(&func).is_some() {
-            source::string(format!("{phase}() {{ {func} \"$@\"; }}"))?;
-        } else {
-            return Err(Error::Base(format!("{eclass}: undefined phase function: {func}")));
-        }
-    }
-
-    Ok(ExecStatus::Success)
-}
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
@@ -235,9 +216,6 @@ mod tests {
         "#};
         let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         let r = raw_pkg.source();
-        assert_err_re!(
-            r,
-            "line 2: inherit: error: e1: undefined phase function: e1_src_configure$"
-        );
+        assert_err_re!(r, "e1.eclass: undefined phase function: e1_src_configure$");
     }
 }
