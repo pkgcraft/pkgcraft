@@ -74,6 +74,7 @@ impl Variable {
         ScopedVariable {
             var: self,
             scopes: scopes.into_iter().flat_map(Into::into).collect(),
+            exported: false,
         }
     }
 }
@@ -82,6 +83,7 @@ impl Variable {
 pub(crate) struct ScopedVariable {
     var: Variable,
     scopes: HashSet<Scope>,
+    exported: bool,
 }
 
 impl Ord for ScopedVariable {
@@ -135,14 +137,15 @@ impl From<&ScopedVariable> for Variable {
 }
 
 impl ScopedVariable {
-    pub(crate) fn scopes(&self) -> &HashSet<Scope> {
-        &self.scopes
+    /// Enable the variable to be externally exported.
+    pub(crate) fn exported(mut self) -> Self {
+        self.exported = true;
+        self
     }
 
-    /// Externally exported to the package build environment.
-    pub(crate) fn is_exported(&self) -> bool {
-        use Variable::*;
-        matches!(self.var, HOME | TMPDIR)
+    /// Return the valid scopes for a variable.
+    pub(crate) fn scopes(&self) -> &HashSet<Scope> {
+        &self.scopes
     }
 
     /// Variable value does not vary between phases.
@@ -152,7 +155,7 @@ impl ScopedVariable {
     }
 
     pub(crate) fn bind(&self, value: &str) -> scallop::Result<ExecStatus> {
-        let attrs = if self.is_exported() {
+        let attrs = if self.exported {
             Some(Attr::EXPORTED)
         } else {
             None
@@ -224,8 +227,7 @@ mod tests {
                                 ""
                             };
 
-                            let external = if eapi.env().get(&var).is_some_and(|v| v.is_exported())
-                            {
+                            let external = if eapi.env().get(&var).is_some_and(|v| v.exported) {
                                 "yes"
                             } else {
                                 ""
