@@ -116,7 +116,7 @@ impl Config {
         let mut config = Self {
             config_dir,
             repo_dir,
-            repos: Default::default(),
+            ..Default::default()
         };
 
         // finalize, sort, and add repos to the config
