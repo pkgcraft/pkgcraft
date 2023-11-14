@@ -358,6 +358,7 @@ impl<'a> BuildData<'a> {
             SYSROOT => Ok("".to_string()),
             ESYSROOT => Ok("".to_string()),
             BROOT => Ok("".to_string()),
+            EPREFIX => Ok("".to_string()),
 
             // TODO: pull these values from the config
             T => {
@@ -369,6 +370,11 @@ impl<'a> BuildData<'a> {
             }
             TMPDIR => self.get_var(T),
             HOME => self.get_var(T),
+            WORKDIR => self.get_var(T),
+            DISTDIR => self.get_var(T),
+            ED => self.get_var(T),
+            D => self.get_var(T),
+            S => self.get_var(T),
 
             DESTTREE => Ok(self.desttree.clone()),
             INSDESTTREE => Ok(self.insdesttree.clone()),
@@ -378,11 +384,9 @@ impl<'a> BuildData<'a> {
             // TODO: alter for build vs install pkg state variants
             REPLACING_VERSIONS => Ok("".to_string()),
             REPLACED_BY_VERSION => Ok("".to_string()),
-
-            // TODO: Implement the remaining variable values which will probably require reworking
-            // BuildData into operation specific types since not all variables are exported in all
-            // situations, e.g. source builds vs binary pkg merging.
-            _ => Ok("TODO".to_string()),
+            MERGE_TYPE => Ok("source".to_string()),
+            A => Ok("".to_string()),
+            USE => Ok("".to_string()),
         }
     }
 
