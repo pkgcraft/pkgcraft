@@ -8,11 +8,7 @@ const LONG_DOC: &str = "Determine if a package dependency is installed.";
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let mut cpvs = query_cmd(args)?;
-    if cpvs.next().is_some() {
-        Ok(ExecStatus::Success)
-    } else {
-        Ok(ExecStatus::Failure(1))
-    }
+    Ok(cpvs.next().is_some().into())
 }
 
 const USAGE: &str = "has_version 'cat/pkg[use]'";
