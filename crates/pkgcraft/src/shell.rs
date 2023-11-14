@@ -412,7 +412,8 @@ impl<'a> BuildData<'a> {
                 } else {
                     let val = self.get_var(var.into())?;
                     var.bind(&val)?;
-                    if var.is_static() {
+                    // cache static values when not generating metadata
+                    if !matches!(self.state, BuildState::Metadata(_)) && var.is_static() {
                         self.env.insert(var.into(), val);
                     }
                 }
