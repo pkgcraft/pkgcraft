@@ -26,15 +26,10 @@ make_builtin!("best_version", best_version_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, best_version, cmd_scope_tests};
+    use super::super::cmd_scope_tests;
     use super::*;
 
     cmd_scope_tests!(USAGE);
-
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(best_version, &[0]);
-    }
 
     // TODO: add usage tests
 }

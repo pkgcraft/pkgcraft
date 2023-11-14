@@ -16,15 +16,10 @@ make_builtin!("has_version", has_version_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, cmd_scope_tests, has_version};
+    use super::super::cmd_scope_tests;
     use super::*;
 
     cmd_scope_tests!(USAGE);
-
-    #[test]
-    fn invalid_args() {
-        assert_invalid_args(has_version, &[0]);
-    }
 
     // TODO: add usage tests
 }

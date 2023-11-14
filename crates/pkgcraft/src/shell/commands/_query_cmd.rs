@@ -18,8 +18,7 @@ pub(crate) fn query_cmd(args: &[&str]) -> scallop::Result<impl Iterator<Item = C
         ["-b", s] if eapi.has(QueryDeps) => ("/", s),
         ["-d", s] if eapi.has(QueryDeps) => ("/", s),
         ["-r", s] if eapi.has(QueryDeps) => ("/", s),
-        [opt, _] => return Err(Error::Base(format!("{opt} unsupported in EAPI {eapi}"))),
-        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
+        _ => return Err(Error::Base("invalid args, see PMS for details".to_string())),
     };
 
     let dep = eapi.dep(dep)?;
