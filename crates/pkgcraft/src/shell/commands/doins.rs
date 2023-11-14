@@ -3,11 +3,12 @@ use std::path::Path;
 use scallop::{Error, ExecStatus};
 
 use crate::files::NO_WALKDIR_FILTER;
+use crate::shell::environment::Variable::INSDESTTREE;
 use crate::shell::get_build_mut;
 
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install files into INSDESTREE.";
+const LONG_DOC: &str = "Install files into INSDESTTREE.";
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
@@ -21,7 +22,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let dest = &build.insdesttree;
+    let dest = build.env(INSDESTTREE)?;
     let opts = &build.insopts;
     let install = build.install().dest(dest)?.file_options(opts);
 

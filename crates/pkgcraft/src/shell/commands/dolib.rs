@@ -2,6 +2,7 @@ use itertools::Either;
 use scallop::{Error, ExecStatus};
 
 use crate::macros::build_from_paths;
+use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 use crate::shell::utils::get_libdir;
 
@@ -12,7 +13,7 @@ const LONG_DOC: &str = "Install libraries.";
 pub(super) fn install_lib(args: &[&str], opts: Option<&[&str]>) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let libdir = get_libdir(Some("lib")).unwrap();
-    let dest = build_from_paths!(&build.desttree, &libdir);
+    let dest = build_from_paths!(build.env(DESTTREE)?, &libdir);
     let options = match opts {
         Some(vals) => Either::Left(vals.iter().copied()),
         None => Either::Right(build.libopts.iter().map(|s| s.as_str())),

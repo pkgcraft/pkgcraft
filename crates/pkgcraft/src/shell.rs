@@ -189,7 +189,7 @@ pub(crate) struct BuildData<'a> {
     stdout: Stdout,
     stderr: Stderr,
 
-    // cache of generated environment variable values
+    // cache of variable values
     env: HashMap<Variable, String>,
 
     // TODO: proxy these fields via borrowed package reference
@@ -199,11 +199,6 @@ pub(crate) struct BuildData<'a> {
 
     scope: Scope,
     user_patches_applied: bool,
-
-    desttree: String,
-    docdesttree: String,
-    exedesttree: String,
-    insdesttree: String,
 
     insopts: IndexSet<String>,
     diropts: IndexSet<String>,
@@ -228,12 +223,18 @@ pub(crate) struct BuildData<'a> {
 
 impl<'a> BuildData<'a> {
     fn new() -> Self {
+        use Variable::*;
+        let env = [(DESTTREE, "/usr"), (INSDESTTREE, ""), (DOCDESTTREE, ""), (EXEDESTTREE, "")]
+            .into_iter()
+            .map(|(v, s)| (v, s.to_string()))
+            .collect();
+
         Self {
             insopts: ["-m0644".to_string()].into_iter().collect(),
             libopts: ["-m0644".to_string()].into_iter().collect(),
             diropts: ["-m0755".to_string()].into_iter().collect(),
             exeopts: ["-m0755".to_string()].into_iter().collect(),
-            desttree: "/usr".into(),
+            env,
             ..Default::default()
         }
     }
@@ -331,6 +332,17 @@ impl<'a> BuildData<'a> {
         }
     }
 
+    /// Get the cached value for a given build variable from the build state.
+    fn env<V>(&self, var: V) -> scallop::Result<&str>
+    where
+        V: Borrow<Variable> + std::fmt::Display,
+    {
+        self.env
+            .get(var.borrow())
+            .map(|s| s.as_str())
+            .ok_or_else(|| Error::Base(format!("{var} unset")))
+    }
+
     /// Get the value for a given build variable from the build state.
     fn get_var(&self, var: Variable) -> scallop::Result<String> {
         use Variable::*;
@@ -376,8 +388,9 @@ impl<'a> BuildData<'a> {
             D => self.get_var(T),
             S => self.get_var(T),
 
-            DESTTREE => Ok(self.desttree.clone()),
-            INSDESTTREE => Ok(self.insdesttree.clone()),
+            DESTTREE => Ok("/usr".to_string()),
+            INSDESTTREE | DOCDESTTREE | EXEDESTTREE => Ok("".to_string()),
+
             EBUILD_PHASE => self.phase().map(|p| p.short_name().to_string()),
             EBUILD_PHASE_FUNC => self.phase().map(|p| p.to_string()),
 
@@ -393,7 +406,7 @@ impl<'a> BuildData<'a> {
     /// Cache and set build environment variables for the current EAPI and scope.
     fn set_vars(&mut self) -> scallop::Result<()> {
         for var in self.eapi().env() {
-            if var.scopes().contains(&self.scope) {
+            if var.exported(self.scope) {
                 if let Some(val) = self.env.get(var.borrow()) {
                     var.bind(val)?;
                 } else {
@@ -409,12 +422,11 @@ impl<'a> BuildData<'a> {
         Ok(())
     }
 
-    fn override_var(&self, var: Variable, val: &str) -> scallop::Result<()> {
+    fn override_var(&mut self, var: Variable, val: &str) -> scallop::Result<()> {
         if let Some(var) = self.eapi().env().get(&var) {
-            if var.scopes().contains(&self.scope) {
+            self.env.insert(var.into(), val.to_string());
+            if var.exported(self.scope) {
                 var.bind(val)?;
-            } else {
-                panic!("invalid scope {} for variable: {var}", self.scope);
             }
         }
         Ok(())

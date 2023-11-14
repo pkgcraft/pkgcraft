@@ -429,9 +429,13 @@ impl Eapi {
     }
 
     /// Enable support for build variables during Eapi registration.
-    fn update_env<I: IntoIterator<Item = BuildVariable>>(mut self, variables: I) -> Self {
+    fn update_env<I, V>(mut self, variables: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<BuildVariable>,
+    {
         for var in variables {
-            self.env.replace(var);
+            self.env.replace(var.into());
         }
         self
     }
@@ -673,37 +677,39 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             "deb", "lzma", "tar.lzma", "tar.xz", "xz",
         ])
         .update_env([
-            P.scopes([All]),
-            PF.scopes([All]),
-            PN.scopes([All]),
-            CATEGORY.scopes([All]),
-            PV.scopes([All]),
-            PR.scopes([All]),
-            PVR.scopes([All]),
-            A.scopes([Src, Phase(PkgNofetch)]),
-            FILESDIR.scopes([Src, Global]),
-            DISTDIR.scopes([Src, Global]),
-            WORKDIR.scopes([Src, Global]),
-            S.scopes([Src]),
-            PORTDIR.scopes([Src]),
-            ECLASSDIR.scopes([Src]),
-            ROOT.scopes([Pkg]),
-            T.scopes([All]),
-            TMPDIR.scopes([All]).exported(),
-            HOME.scopes([All]).exported(),
-            D.scopes([SrcInstall, PkgPreinst, PkgPostinst]),
-            DESTTREE.scopes([SrcInstall]),
-            INSDESTTREE.scopes([SrcInstall]),
-            USE.scopes([All]),
-            EBUILD_PHASE.scopes([Phases]),
-            EBUILD_PHASE_FUNC.scopes([Phases]),
-            EPREFIX.scopes([Global]),
-            ED.scopes([SrcInstall, PkgPreinst, PkgPostinst]),
-            EROOT.scopes([Pkg]),
-            MERGE_TYPE.scopes([Pkg]),
-            REPLACING_VERSIONS.scopes([Pkg]),
-            REPLACED_BY_VERSION.scopes([PkgPrerm, PkgPostrm]),
+            P.internal([All]),
+            PF.internal([All]),
+            PN.internal([All]),
+            CATEGORY.internal([All]),
+            PV.internal([All]),
+            PR.internal([All]),
+            PVR.internal([All]),
+            A.internal([Src, Phase(PkgNofetch)]),
+            FILESDIR.internal([Src, Global]),
+            DISTDIR.internal([Src, Global]),
+            WORKDIR.internal([Src, Global]),
+            S.internal([Src]),
+            PORTDIR.internal([Src]),
+            ECLASSDIR.internal([Src]),
+            ROOT.internal([Pkg]),
+            T.internal([All]),
+            TMPDIR.internal([All]).external(),
+            HOME.internal([All]).external(),
+            D.internal([SrcInstall, PkgPreinst, PkgPostinst]),
+            DESTTREE.internal([SrcInstall]),
+            INSDESTTREE.internal([SrcInstall]),
+            USE.internal([All]),
+            EBUILD_PHASE.internal([Phases]),
+            EBUILD_PHASE_FUNC.internal([Phases]),
+            EPREFIX.internal([Global]),
+            ED.internal([SrcInstall, PkgPreinst, PkgPostinst]),
+            EROOT.internal([Pkg]),
+            MERGE_TYPE.internal([Pkg]),
+            REPLACING_VERSIONS.internal([Pkg]),
+            REPLACED_BY_VERSION.internal([PkgPrerm, PkgPostrm]),
         ])
+        // unexported, internal variables
+        .update_env([DOCDESTTREE, EXEDESTTREE])
         .update_econf(&[
             ("--disable-dependency-tracking", None, None),
             ("--disable-silent-rules", None, None),
@@ -764,11 +770,14 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
         .update_incremental_keys(&[BDEPEND])
         .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
         .update_env([
-            SYSROOT.scopes([Src, Phase(PkgSetup)]),
-            ESYSROOT.scopes([Src, Phase(PkgSetup)]),
-            BROOT.scopes([Src, Phase(PkgSetup)]),
+            SYSROOT.internal([Src, Phase(PkgSetup)]),
+            ESYSROOT.internal([Src, Phase(PkgSetup)]),
+            BROOT.internal([Src, Phase(PkgSetup)]),
         ])
-        .disable_env([PORTDIR, ECLASSDIR, DESTTREE, INSDESTTREE])
+        // unexported, internal variables
+        .update_env([DESTTREE, INSDESTTREE])
+        // entirely removed
+        .disable_env([PORTDIR, ECLASSDIR])
         .update_hooks([
             SrcInstall.pre("dostrip", dostrip::pre),
             SrcInstall.post("dostrip", dostrip::post),

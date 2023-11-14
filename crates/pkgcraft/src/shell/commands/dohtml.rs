@@ -8,6 +8,7 @@ use walkdir::DirEntry;
 
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
+use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::{get_build_mut, write_stderr};
 
 use super::make_builtin;
@@ -125,7 +126,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     let build = get_build_mut();
-    let subdir = match build.docdesttree.as_str() {
+    let subdir = match build.env(DOCDESTTREE)? {
         "" => "html",
         val => val,
     };

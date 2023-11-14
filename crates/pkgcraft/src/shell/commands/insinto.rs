@@ -17,7 +17,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     let build = get_build_mut();
-    build.insdesttree = path.to_string();
     build.override_var(INSDESTTREE, path)?;
 
     Ok(ExecStatus::Success)
@@ -58,11 +57,12 @@ mod tests {
             let build = get_build_mut();
             build.scope = Scope::Phase(PhaseKind::SrcInstall);
             insinto(&["/test/path"]).unwrap();
-            assert_eq!(build.insdesttree, "/test/path");
+            assert_eq!(build.env(INSDESTTREE).unwrap(), "/test/path");
 
             // verify conditional EAPI environment export
+            let build_var = eapi.env().get(&INSDESTTREE).unwrap();
             let env_val = variables::optional("INSDESTTREE");
-            if eapi.env().contains(&INSDESTTREE) {
+            if build_var.exported(build.scope) {
                 assert_eq!(env_val.unwrap(), "/test/path");
             } else {
                 assert!(env_val.is_none());

@@ -5,6 +5,7 @@ use scallop::{Error, ExecStatus};
 use crate::files::NO_WALKDIR_FILTER;
 use crate::macros::build_from_paths;
 use crate::pkg::Package;
+use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::get_build_mut;
 
 use super::make_builtin;
@@ -53,7 +54,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    install_docs(recursive, args, &build.docdesttree)
+    let dest = build.env(DOCDESTTREE)?;
+    install_docs(recursive, args, dest)
 }
 
 const USAGE: &str = "dodoc doc_file";

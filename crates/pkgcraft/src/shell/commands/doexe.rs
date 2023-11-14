@@ -1,5 +1,6 @@
 use scallop::{Error, ExecStatus};
 
+use crate::shell::environment::Variable::EXEDESTTREE;
 use crate::shell::get_build_mut;
 
 use super::make_builtin;
@@ -13,7 +14,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let dest = &build.exedesttree;
+    let dest = build.env(EXEDESTTREE)?;
     let opts = &build.exeopts;
     let install = build.install().dest(dest)?.file_options(opts);
     install.files(args)?;

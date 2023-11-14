@@ -2,6 +2,7 @@ use nix::unistd::geteuid;
 use scallop::{Error, ExecStatus};
 
 use crate::macros::build_from_paths;
+use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 
 use super::make_builtin;
@@ -9,7 +10,8 @@ use super::make_builtin;
 const LONG_DOC: &str = "Install executables into DESTTREE/bin.";
 
 pub(super) fn install_bin(args: &[&str], dest: &str) -> scallop::Result<ExecStatus> {
-    let dest = build_from_paths!(&get_build_mut().desttree, dest);
+    let build = get_build_mut();
+    let dest = build_from_paths!(build.env(DESTTREE)?, dest);
     let opts: &[&str] = if geteuid().is_root() {
         &["-m0755", "-o", "root", "-g", "root"]
     } else {

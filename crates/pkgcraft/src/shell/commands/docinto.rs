@@ -1,5 +1,6 @@
 use scallop::{Error, ExecStatus};
 
+use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::get_build_mut;
 
 use super::make_builtin;
@@ -15,7 +16,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
     };
 
-    get_build_mut().docdesttree = path.to_string();
+    let build = get_build_mut();
+    build.override_var(DOCDESTTREE, path)?;
 
     Ok(ExecStatus::Success)
 }

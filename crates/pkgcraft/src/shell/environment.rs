@@ -51,6 +51,10 @@ pub(crate) enum Variable {
     MERGE_TYPE,
     REPLACING_VERSIONS,
     REPLACED_BY_VERSION,
+
+    // internal only
+    DOCDESTTREE,
+    EXEDESTTREE,
 }
 
 impl Ord for Variable {
@@ -66,7 +70,7 @@ impl PartialOrd for Variable {
 }
 
 impl Variable {
-    pub(crate) fn scopes<I, S>(self, scopes: I) -> BuildVariable
+    pub(crate) fn internal<I, S>(self, scopes: I) -> BuildVariable
     where
         I: IntoIterator<Item = S>,
         S: Into<Scopes>,
@@ -74,7 +78,7 @@ impl Variable {
         BuildVariable {
             var: self,
             scopes: scopes.into_iter().flat_map(Into::into).collect(),
-            exported: false,
+            external: false,
         }
     }
 }
@@ -83,7 +87,7 @@ impl Variable {
 pub(crate) struct BuildVariable {
     var: Variable,
     scopes: HashSet<Scope>,
-    exported: bool,
+    external: bool,
 }
 
 impl Ord for BuildVariable {
@@ -136,16 +140,26 @@ impl From<&BuildVariable> for Variable {
     }
 }
 
+impl From<Variable> for BuildVariable {
+    fn from(value: Variable) -> Self {
+        BuildVariable {
+            var: value,
+            scopes: Default::default(),
+            external: false,
+        }
+    }
+}
+
 impl BuildVariable {
-    /// Enable the variable to be externally exported.
-    pub(crate) fn exported(mut self) -> Self {
-        self.exported = true;
+    /// Enable externally exporting the variable.
+    pub(crate) fn external(mut self) -> Self {
+        self.external = true;
         self
     }
 
-    /// Return the valid scopes for a variable.
-    pub(crate) fn scopes(&self) -> &HashSet<Scope> {
-        &self.scopes
+    /// Determine if the variable is exported to a given scope.
+    pub(crate) fn exported<S: Borrow<Scope>>(&self, scope: S) -> bool {
+        self.scopes.contains(scope.borrow())
     }
 
     /// Variable value does not vary between phases.
@@ -155,7 +169,7 @@ impl BuildVariable {
     }
 
     pub(crate) fn bind(&self, value: &str) -> scallop::Result<ExecStatus> {
-        let attrs = if self.exported {
+        let attrs = if self.external {
             Some(Attr::EXPORTED)
         } else {
             None
@@ -202,11 +216,7 @@ mod tests {
                             "#};
                             let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                             raw_pkg.source().unwrap();
-                            if eapi
-                                .env()
-                                .get(&var)
-                                .is_some_and(|v| v.scopes().contains(scope))
-                            {
+                            if eapi.env().get(&var).is_some_and(|v| v.exported(scope)) {
                                 assert!(
                                     variables::optional(var).is_some(),
                                     "EAPI {eapi}: ${var} not set globally"
@@ -219,15 +229,17 @@ mod tests {
                             }
                         }
                         Phase(phase) if eapi.phases().contains(phase) => {
-                            let exported = if eapi.env().get(&var).is_some_and(|v| {
-                                v.scopes().contains(scope) || v.scopes().contains(&Global)
-                            }) {
+                            let internal = if eapi
+                                .env()
+                                .get(&var)
+                                .is_some_and(|v| v.exported(scope) || v.exported(Global))
+                            {
                                 "yes"
                             } else {
                                 ""
                             };
 
-                            let external = if eapi.env().get(&var).is_some_and(|v| v.exported) {
+                            let external = if eapi.env().get(&var).is_some_and(|v| v.external) {
                                 "yes"
                             } else {
                                 ""
@@ -239,18 +251,18 @@ mod tests {
                                 SLOT=0
                                 {phase}() {{
                                     # verify internal export
-                                    if [[ -n "{exported}" ]]; then
-                                        [[ -v {var} ]] || die "EAPI {eapi}: \${var} not exported in {phase}"
+                                    if [[ -n "{internal}" ]]; then
+                                        [[ -v {var} ]] || die "EAPI {eapi}: \${var} not internally exported in {phase}"
                                     else
-                                        [[ -v {var} ]] && die "EAPI {eapi}: \${var} shouldn't be exported in {phase}"
+                                        [[ -v {var} ]] && die "EAPI {eapi}: \${var} shouldn't be internally exported in {phase}"
                                     fi
 
                                     # verify external export
                                     var={var}
                                     if [[ -n "{external}" ]]; then
-                                        [[ "${{!var@a}}" == *x* ]] || die "EAPI {eapi}: \${var} should be exported externally"
+                                        [[ "${{!var@a}}" == *x* ]] || die "EAPI {eapi}: \${var} should be externally exported"
                                     else
-                                        [[ "${{!var@a}}" == *x* ]] && die "EAPI {eapi}: \${var} shouldn't be exported externally"
+                                        [[ "${{!var@a}}" == *x* ]] && die "EAPI {eapi}: \${var} shouldn't be externally exported"
                                     fi
 
                                     :
@@ -263,11 +275,7 @@ mod tests {
 
                             BuildData::from_pkg(&pkg);
                             pkg.build().unwrap();
-                            if !eapi
-                                .env()
-                                .get(&var)
-                                .is_some_and(|v| v.scopes().contains(&Global))
-                            {
+                            if !eapi.env().get(&var).is_some_and(|v| v.exported(Global)) {
                                 assert!(
                                     variables::optional(var).is_none(),
                                     "EAPI {eapi}: ${var} is leaking into global scope"

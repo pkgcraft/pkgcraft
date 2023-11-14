@@ -4,11 +4,12 @@ use camino::{Utf8Path, Utf8PathBuf};
 use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use scallop::{variables, Error, ExecStatus};
+use scallop::{Error, ExecStatus};
 use walkdir::WalkDir;
 
 use crate::archive::ArchiveFormat;
 use crate::eapi::Feature;
+use crate::shell::environment::Variable::DISTDIR;
 use crate::shell::get_build_mut;
 use crate::utils::{current_dir, is_single_component};
 
@@ -31,9 +32,10 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
+    let build = get_build_mut();
     let current_dir = current_dir()?;
-    let eapi = get_build_mut().eapi();
-    let distdir = variables::required("DISTDIR")?;
+    let eapi = build.eapi();
+    let distdir = build.env(DISTDIR)?;
 
     // Determine the source for a given archive target. Basic filenames are prefixed with
     // DISTDIR while all other types are unprefixed including conditionally supported absolute
@@ -117,7 +119,6 @@ mod tests {
     use std::{env, fs};
 
     use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode};
-    use scallop::variables::bind;
     use tempfile::tempdir;
 
     use crate::archive::{Archive, ArchiveFormat};
@@ -138,18 +139,22 @@ mod tests {
 
     #[test]
     fn nonexistent() {
-        bind("DISTDIR", "dist", None, None).unwrap();
+        let build = get_build_mut();
+        build.env.insert(DISTDIR, "dist".to_string());
         assert_err_re!(unpack(&["a.tar.gz"]), "^nonexistent archive: .*$");
     }
 
     #[test]
     fn eapi_features() {
+        let build = get_build_mut();
         let tmp_dir = tempdir().unwrap();
         let prefix = tmp_dir.path();
         let distdir = prefix.join("distdir");
         fs::create_dir(&distdir).unwrap();
         env::set_current_dir(prefix).unwrap();
-        bind("DISTDIR", distdir.to_str().unwrap(), None, None).unwrap();
+        build
+            .env
+            .insert(DISTDIR, distdir.to_str().unwrap().to_string());
         fs::File::create("distdir/a.TAR.GZ").unwrap();
         let abs_path = prefix.join("distdir/a.tar.gz");
         fs::File::create(&abs_path).unwrap();
@@ -189,13 +194,16 @@ mod tests {
     #[test]
     #[cfg_attr(target_os = "macos", ignore)] // TODO: switch to builtin support?
     fn archives() {
+        let build = get_build_mut();
         let tmp_dir = tempdir().unwrap();
         let prefix = tmp_dir.path();
         let datadir = prefix.join("data");
         let distdir = prefix.join("distdir");
         fs::create_dir(&distdir).unwrap();
         env::set_current_dir(prefix).unwrap();
-        bind("DISTDIR", distdir.to_str().unwrap(), None, None).unwrap();
+        build
+            .env
+            .insert(DISTDIR, distdir.to_str().unwrap().to_string());
 
         // create archive source
         let dir = datadir.join("dir");
