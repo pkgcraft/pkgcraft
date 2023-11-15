@@ -258,7 +258,6 @@ impl<'a> RepoPackage for Pkg<'a> {
 }
 
 impl<'a> EbuildPackage for Pkg<'a> {
-    /// Return an unconfigured package's IUSE_EFFECTIVE.
     fn iuse_effective(&self) -> &OrderedSet<String> {
         self.iuse_effective.get_or_init(|| {
             self.meta
@@ -269,7 +268,6 @@ impl<'a> EbuildPackage for Pkg<'a> {
         })
     }
 
-    /// Return a package's slot.
     fn slot(&self) -> &str {
         self.meta.slot()
     }

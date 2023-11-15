@@ -7,6 +7,9 @@ use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::configured::Repo;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::shell::metadata::Key;
+use crate::types::OrderedSet;
+
+use super::EbuildPackage;
 
 #[derive(Debug)]
 pub struct Pkg<'a> {
@@ -23,6 +26,7 @@ pub struct Pkg<'a> {
     required_use: OnceLock<Option<DepSet<&'a String, &'a String>>>,
     restrict: OnceLock<Option<DepSet<&'a String, &'a String>>>,
     uris: OnceLock<Option<DepSet<&'a String, &'a Uri>>>,
+    iuse_effective: OnceLock<OrderedSet<String>>,
 }
 
 make_pkg_traits!(Pkg<'_>);
@@ -43,6 +47,7 @@ impl<'a> Pkg<'a> {
             required_use: OnceLock::new(),
             restrict: OnceLock::new(),
             uris: OnceLock::new(),
+            iuse_effective: OnceLock::new(),
         }
     }
 
@@ -179,6 +184,18 @@ impl<'a> RepoPackage for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         self.repo
+    }
+}
+
+impl<'a> EbuildPackage for Pkg<'a> {
+    // TODO: combine this with profile and config settings
+    fn iuse_effective(&self) -> &OrderedSet<String> {
+        self.iuse_effective
+            .get_or_init(|| self.raw.iuse_effective().clone())
+    }
+
+    fn slot(&self) -> &str {
+        self.raw.meta.slot()
     }
 }
 
