@@ -4,7 +4,7 @@ use camino::Utf8PathBuf;
 
 use crate::dep::Cpv;
 use crate::eapi::{self, Eapi};
-use crate::pkg::{make_pkg_traits, Package};
+use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::{ebuild::Repo, Repository};
 use crate::shell::metadata::Metadata;
 use crate::traits::FilterLines;
@@ -85,15 +85,17 @@ impl<'a> Pkg<'a> {
 }
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = &'a Repo;
+    fn eapi(&self) -> &'static Eapi {
+        self.eapi
+    }
 
     fn cpv(&self) -> &Cpv {
         &self.cpv
     }
+}
 
-    fn eapi(&self) -> &'static Eapi {
-        self.eapi
-    }
+impl<'a> RepoPackage for Pkg<'a> {
+    type Repo = &'a Repo;
 
     fn repo(&self) -> Self::Repo {
         self.repo

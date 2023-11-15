@@ -10,7 +10,7 @@ use tracing::warn;
 use crate::dep::{self, Cpv, Dep, DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::files::atomic_write_file;
-use crate::pkg::{ebuild::raw::Pkg, Package, Source};
+use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
 use crate::repo::ebuild::Repo;
 use crate::types::OrderedSet;
 use crate::Error;

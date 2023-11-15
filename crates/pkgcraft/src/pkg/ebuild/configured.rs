@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 use crate::config::Settings;
 use crate::dep::{Cpv, Dep, DepSet, Evaluate, Uri};
 use crate::eapi::Eapi;
-use crate::pkg::{make_pkg_traits, Package};
+use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::configured::Repo;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::shell::metadata::Key;
@@ -165,15 +165,17 @@ impl<'a> Pkg<'a> {
 }
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = &'a Repo;
+    fn eapi(&self) -> &'static Eapi {
+        self.raw.eapi()
+    }
 
     fn cpv(&self) -> &Cpv {
         self.raw.cpv()
     }
+}
 
-    fn eapi(&self) -> &'static Eapi {
-        self.raw.eapi()
-    }
+impl<'a> RepoPackage for Pkg<'a> {
+    type Repo = &'a Repo;
 
     fn repo(&self) -> Self::Repo {
         self.repo

@@ -1,4 +1,5 @@
-use crate::pkg::{self, ebuild, Package};
+use crate::pkg::ebuild::{self, EbuildPackage};
+use crate::pkg::{self, Package, RepoPackage};
 use crate::repo::Repository;
 use crate::restrict::boolean::*;
 use crate::restrict::dep::Restrict as DepRestrict;

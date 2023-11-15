@@ -13,7 +13,7 @@ use crate::shell::metadata::{Iuse, Key, Metadata};
 use crate::types::OrderedSet;
 use crate::Error;
 
-use super::{make_pkg_traits, Package};
+use super::{make_pkg_traits, Package, RepoPackage};
 
 pub mod configured;
 pub mod metadata;
@@ -21,6 +21,25 @@ use metadata::{Manifest, ManifestFile, XmlMetadata};
 pub mod raw;
 mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
+
+pub trait EbuildPackage: Package {
+    /// Return a package's set of effective USE choices.
+    fn iuse_effective(&self) -> &OrderedSet<String>;
+    /// Return a package's slot.
+    fn slot(&self) -> &str;
+}
+
+impl<T> EbuildPackage for &T
+where
+    T: EbuildPackage,
+{
+    fn iuse_effective(&self) -> &OrderedSet<String> {
+        (*self).iuse_effective()
+    }
+    fn slot(&self) -> &str {
+        (*self).slot()
+    }
+}
 
 #[derive(Debug)]
 pub struct Pkg<'a> {
@@ -71,11 +90,6 @@ impl<'a> Pkg<'a> {
     /// Return a package's description.
     pub fn description(&self) -> &str {
         self.meta.description()
-    }
-
-    /// Return a package's slot.
-    pub fn slot(&self) -> &str {
-        self.meta.slot()
     }
 
     /// Return a package's subslot.
@@ -179,17 +193,6 @@ impl<'a> Pkg<'a> {
         self.meta.iuse()
     }
 
-    /// Return an unconfigured package's IUSE_EFFECTIVE.
-    pub(crate) fn iuse_effective(&self) -> &OrderedSet<String> {
-        self.iuse_effective.get_or_init(|| {
-            self.meta
-                .iuse()
-                .iter()
-                .map(|x| x.flag().to_string())
-                .collect()
-        })
-    }
-
     /// Return the ordered set of directly inherited eclasses for a package.
     pub fn inherit(&self) -> &OrderedSet<String> {
         self.meta.inherit()
@@ -237,18 +240,38 @@ impl<'a> Pkg<'a> {
 }
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = &'a Repo;
-
-    fn cpv(&self) -> &Cpv {
-        &self.cpv
-    }
-
     fn eapi(&self) -> &'static Eapi {
         self.eapi
     }
 
+    fn cpv(&self) -> &Cpv {
+        &self.cpv
+    }
+}
+
+impl<'a> RepoPackage for Pkg<'a> {
+    type Repo = &'a Repo;
+
     fn repo(&self) -> Self::Repo {
         self.repo
+    }
+}
+
+impl<'a> EbuildPackage for Pkg<'a> {
+    /// Return an unconfigured package's IUSE_EFFECTIVE.
+    fn iuse_effective(&self) -> &OrderedSet<String> {
+        self.iuse_effective.get_or_init(|| {
+            self.meta
+                .iuse()
+                .iter()
+                .map(|x| x.flag().to_string())
+                .collect()
+        })
+    }
+
+    /// Return a package's slot.
+    fn slot(&self) -> &str {
+        self.meta.slot()
     }
 }
 

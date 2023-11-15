@@ -3,7 +3,7 @@ use std::ffi::{c_char, c_int};
 
 use pkgcraft::dep::{Cpv, Version};
 use pkgcraft::eapi::Eapi;
-use pkgcraft::pkg::{Package, Pkg};
+use pkgcraft::pkg::{Package, Pkg, RepoPackage};
 use pkgcraft::repo::Repo;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;

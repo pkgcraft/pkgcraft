@@ -2,7 +2,7 @@ use std::ffi::{c_char, CString};
 use std::{mem, ptr, slice};
 
 use pkgcraft::dep::IntoOwned;
-use pkgcraft::pkg::ebuild::metadata;
+use pkgcraft::pkg::ebuild::{metadata, EbuildPackage};
 use pkgcraft::pkg::Pkg;
 
 use crate::dep::spec::{DepSet, DepSetKind};

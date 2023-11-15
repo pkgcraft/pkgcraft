@@ -290,7 +290,7 @@ impl SubAssign<&Repo> for RepoSet {
 mod tests {
     use crate::config::Config;
     use crate::dep::Cpv;
-    use crate::pkg::Package;
+    use crate::pkg::RepoPackage;
     use crate::repo::{fake, Contains, Repository};
     use crate::test::assert_ordered_eq;
     use crate::utils::hash;

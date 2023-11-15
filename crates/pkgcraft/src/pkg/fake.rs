@@ -5,7 +5,7 @@ use crate::repo::{fake::Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
-use super::{make_pkg_traits, Package};
+use super::{make_pkg_traits, Package, RepoPackage};
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
@@ -22,15 +22,17 @@ impl<'a> Pkg<'a> {
 }
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = &'a Repo;
+    fn eapi(&self) -> &'static Eapi {
+        &EAPI_LATEST_OFFICIAL
+    }
 
     fn cpv(&self) -> &Cpv {
         &self.cpv
     }
+}
 
-    fn eapi(&self) -> &'static Eapi {
-        &EAPI_LATEST_OFFICIAL
-    }
+impl<'a> RepoPackage for Pkg<'a> {
+    type Repo = &'a Repo;
 
     fn repo(&self) -> Self::Repo {
         self.repo

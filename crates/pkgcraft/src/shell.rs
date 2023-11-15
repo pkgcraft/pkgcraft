@@ -16,14 +16,13 @@ use scallop::{functions, Error, ExecStatus};
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_from_paths;
-use crate::pkg::Package;
+use crate::pkg::{ebuild::EbuildPackage, Package, RepoPackage};
 use crate::repo::ebuild::Eclass;
 use crate::repo::Repository;
 use crate::restrict::Restrict;
 use crate::test::TESTING;
 use crate::traits::SourceBash;
 use crate::types::Deque;
-use crate::types::OrderedSet;
 
 pub mod commands;
 pub(crate) mod environment;
@@ -281,7 +280,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current CPV if it exists.
-    fn cpv(&self) -> scallop::Result<&'a Cpv> {
+    fn cpv(&'a self) -> scallop::Result<&'a Cpv> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(pkg.cpv()),
             BuildState::Build(pkg) => Ok(pkg.cpv()),
@@ -309,18 +308,18 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current ebuild package being built if it exists.
-    fn ebuild_pkg(&self) -> scallop::Result<&'a crate::pkg::ebuild::Pkg<'a>> {
+    fn ebuild_pkg(&'a self) -> scallop::Result<Box<dyn EbuildPackage + 'a>> {
         match &self.state {
-            BuildState::Build(pkg) => Ok(pkg),
+            BuildState::Build(pkg) => Ok(Box::new(pkg)),
             _ => Err(Error::Base(format!("ebuild pkg invalid for scope: {}", self.scope))),
         }
     }
 
     /// Get the current package being manipulated if it exists.
-    fn pkg(&self) -> scallop::Result<Pkg<'a>> {
+    fn pkg(&'a self) -> scallop::Result<Box<dyn Package + 'a>> {
         match &self.state {
-            BuildState::Build(pkg) => Ok(Pkg::Ebuild(pkg)),
-            BuildState::Merge => Ok(Pkg::Binary),
+            BuildState::Metadata(pkg) => Ok(Box::new(pkg)),
+            BuildState::Build(pkg) => Ok(Box::new(pkg)),
             _ => Err(Error::Base(format!("pkg invalid for scope: {}", self.scope))),
         }
     }
@@ -591,38 +590,6 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     // restrict builtin loading and toggling
     scallop::builtins::disable(["enable"]).expect("failed disabling builtins");
 });
-
-/// Package wrapper for commands supporting both source and binary operations.
-#[derive(Debug)]
-enum Pkg<'a> {
-    Ebuild(&'a crate::pkg::ebuild::Pkg<'a>),
-    Binary,
-}
-
-impl Pkg<'_> {
-    fn cpv(&self) -> &Cpv {
-        match self {
-            Self::Ebuild(pkg) => pkg.cpv(),
-            Self::Binary => todo!(),
-        }
-    }
-
-    fn iuse_effective(&self) -> &OrderedSet<String> {
-        match self {
-            Self::Ebuild(pkg) => pkg.iuse_effective(),
-            Self::Binary => todo!(),
-        }
-    }
-}
-
-impl std::fmt::Display for Pkg<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::Ebuild(pkg) => write!(f, "{pkg}"),
-            Self::Binary => todo!(),
-        }
-    }
-}
 
 /// Repo wrapper for commands supporting both source and binary operations.
 #[derive(Debug)]

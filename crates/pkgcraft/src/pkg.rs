@@ -23,14 +23,9 @@ pub enum Pkg<'a> {
 
 make_pkg_traits!(Pkg<'_>);
 
-pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord {
-    type Repo: Repository;
-
+pub trait Package: fmt::Debug + fmt::Display {
     /// Return a package's EAPI.
     fn eapi(&self) -> &'static eapi::Eapi;
-
-    /// Return a package's repo.
-    fn repo(&self) -> Self::Repo;
 
     /// Return a package's CPV.
     fn cpv(&self) -> &Cpv;
@@ -69,6 +64,13 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     fn cpn(&self) -> String {
         self.cpv().cpn()
     }
+}
+
+pub trait RepoPackage: Package + PartialEq + Eq + PartialOrd + Ord {
+    type Repo: Repository;
+
+    /// Return a package's repo.
+    fn repo(&self) -> Self::Repo;
 }
 
 pub(crate) trait Build: Package {
@@ -142,16 +144,6 @@ macro_rules! make_pkg_traits {
 use make_pkg_traits;
 
 impl<'a> Package for Pkg<'a> {
-    type Repo = &'a Repo;
-
-    fn cpv(&self) -> &Cpv {
-        match self {
-            Self::Configured(pkg, _) => pkg.cpv(),
-            Self::Ebuild(pkg, _) => pkg.cpv(),
-            Self::Fake(pkg, _) => pkg.cpv(),
-        }
-    }
-
     fn eapi(&self) -> &'static eapi::Eapi {
         match self {
             Self::Configured(pkg, _) => pkg.eapi(),
@@ -160,12 +152,47 @@ impl<'a> Package for Pkg<'a> {
         }
     }
 
+    fn cpv(&self) -> &Cpv {
+        match self {
+            Self::Configured(pkg, _) => pkg.cpv(),
+            Self::Ebuild(pkg, _) => pkg.cpv(),
+            Self::Fake(pkg, _) => pkg.cpv(),
+        }
+    }
+}
+
+impl<'a> RepoPackage for Pkg<'a> {
+    type Repo = &'a Repo;
+
     fn repo(&self) -> Self::Repo {
         match self {
             Self::Configured(_, repo) => repo,
             Self::Ebuild(_, repo) => repo,
             Self::Fake(_, repo) => repo,
         }
+    }
+}
+
+impl<T> Package for &T
+where
+    T: Package,
+{
+    fn eapi(&self) -> &'static eapi::Eapi {
+        (*self).eapi()
+    }
+    fn cpv(&self) -> &Cpv {
+        (*self).cpv()
+    }
+}
+
+impl<T> RepoPackage for &T
+where
+    T: RepoPackage,
+{
+    type Repo = T::Repo;
+
+    fn repo(&self) -> Self::Repo {
+        (*self).repo()
     }
 }
 
