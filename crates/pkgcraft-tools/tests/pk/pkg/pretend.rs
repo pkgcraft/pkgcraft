@@ -138,7 +138,7 @@ fn path_targets() {
 }
 
 #[test]
-fn knave() {
+fn output() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_raw_pkg_from_str("cat/none-1", NO_PKG_PRETEND)
         .unwrap();
