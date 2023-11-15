@@ -6,28 +6,30 @@ use scallop::ExecStatus;
 use tempfile::NamedTempFile;
 
 use crate::error::{Error, PackageError};
-use crate::pkg::{ebuild, BuildPackage, Package, PackageMetadata, SourcePackage};
+use crate::pkg::{ebuild, Build, Package, Pretend, Regen, Source};
 use crate::shell::metadata::Metadata;
 use crate::shell::{get_build_mut, BuildData};
 
-use super::OperationKind::{Build, Pretend};
+use super::OperationKind;
 
-impl<'a> BuildPackage for ebuild::Pkg<'a> {
+impl<'a> Build for ebuild::Pkg<'a> {
     fn build(&self) -> scallop::Result<()> {
         get_build_mut()
             .source_ebuild(&self.abspath())
             .map_err(|e| self.invalid_pkg_err(e))?;
 
-        for phase in self.eapi().operation(Build)? {
+        for phase in self.eapi().operation(OperationKind::Build)? {
             phase.run().map_err(|e| self.pkg_err(e))?;
         }
 
         Ok(())
     }
+}
 
+impl<'a> Pretend for ebuild::Pkg<'a> {
     fn pretend(&self) -> scallop::Result<()> {
         // ignore packages lacking pkg_pretend() support
-        if let Ok(phases) = self.eapi().operation(Pretend) {
+        if let Ok(phases) = self.eapi().operation(OperationKind::Pretend) {
             self.source()?;
 
             // redirect pkg_pretend() output to a temporary file
@@ -56,22 +58,22 @@ impl<'a> BuildPackage for ebuild::Pkg<'a> {
     }
 }
 
-impl<'a> SourcePackage for ebuild::raw::Pkg<'a> {
+impl<'a> Source for ebuild::raw::Pkg<'a> {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_raw_pkg(self);
         get_build_mut().source_ebuild(self.data())
     }
 }
 
-impl<'a> SourcePackage for ebuild::Pkg<'a> {
+impl<'a> Source for ebuild::Pkg<'a> {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_pkg(self);
         get_build_mut().source_ebuild(&self.abspath())
     }
 }
 
-impl<'a> PackageMetadata for ebuild::raw::Pkg<'a> {
-    fn metadata(&self) -> scallop::Result<()> {
+impl<'a> Regen for ebuild::raw::Pkg<'a> {
+    fn regen(&self) -> scallop::Result<()> {
         Ok(Metadata::serialize(self).map_err(|e| self.invalid_pkg_err(e))?)
     }
 }

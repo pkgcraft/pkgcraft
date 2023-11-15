@@ -45,7 +45,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::SourcePackage;
+    use crate::pkg::Source;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, export_functions};
     use super::*;

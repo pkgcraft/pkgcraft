@@ -28,7 +28,7 @@ use crate::pkg::ebuild::{
     self,
     metadata::{Manifest, XmlMetadata},
 };
-use crate::pkg::PackageMetadata;
+use crate::pkg::Regen;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -496,7 +496,7 @@ impl Repo {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = ebuild::raw::Pkg::new(cpv, self)?;
-            pkg.metadata()
+            pkg.regen()
         };
         let pool = PoolSendIter::new(bounded_jobs(jobs), func, true)?;
 

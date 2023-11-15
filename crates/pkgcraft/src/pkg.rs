@@ -71,21 +71,24 @@ pub trait Package: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord
     }
 }
 
-pub trait BuildPackage: Package {
+pub(crate) trait Build: Package {
     /// Run the build operations for a package.
     fn build(&self) -> scallop::Result<()>;
+}
+
+pub trait Pretend: Package {
     /// Run the pkg_pretend operation for a package.
     fn pretend(&self) -> scallop::Result<()>;
 }
 
-pub trait SourcePackage: Package {
+pub trait Source: Package {
     /// Source a package.
     fn source(&self) -> scallop::Result<ExecStatus>;
 }
 
-pub(crate) trait PackageMetadata: Package {
+pub(crate) trait Regen: Package {
     /// Generate metadata for a package.
-    fn metadata(&self) -> scallop::Result<()>;
+    fn regen(&self) -> scallop::Result<()>;
 }
 
 macro_rules! make_pkg_traits {

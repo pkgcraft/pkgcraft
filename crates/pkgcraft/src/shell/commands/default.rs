@@ -30,7 +30,7 @@ make_builtin!("default", default_builtin);
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::BuildPackage;
+    use crate::pkg::Build;
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, default};

@@ -578,7 +578,7 @@ macro_rules! cmd_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::macros::assert_err_re;
-            use crate::pkg::SourcePackage;
+            use crate::pkg::Source;
             use crate::shell::scope::{Scope::*, Scopes};
 
             let cmd = $cmd;

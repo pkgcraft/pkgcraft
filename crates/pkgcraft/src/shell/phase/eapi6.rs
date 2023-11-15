@@ -34,7 +34,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi;
     use crate::macros::assert_err_re;
-    use crate::pkg::BuildPackage;
+    use crate::pkg::Build;
     use crate::shell::get_build_mut;
     use crate::shell::test::FileTree;
 

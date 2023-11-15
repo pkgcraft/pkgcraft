@@ -37,7 +37,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::macros::assert_err_re;
-    use crate::pkg::BuildPackage;
+    use crate::pkg::Build;
     use crate::shell::{assert_stdout, get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, cmd_scope_tests, usex};

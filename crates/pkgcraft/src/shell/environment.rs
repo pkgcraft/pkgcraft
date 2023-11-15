@@ -191,7 +191,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::pkg::{BuildPackage, SourcePackage};
+    use crate::pkg::{Build, Source};
     use crate::shell::BuildData;
 
     use super::*;

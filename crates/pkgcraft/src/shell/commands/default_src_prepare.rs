@@ -18,7 +18,7 @@ make_builtin!("default_src_prepare", default_src_prepare_builtin);
 mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::BuildPackage;
+    use crate::pkg::Build;
     use crate::shell::{get_build_mut, BuildData};
 
     use super::super::{assert_invalid_args, cmd_scope_tests, default_src_prepare};

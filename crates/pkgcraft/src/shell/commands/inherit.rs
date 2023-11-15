@@ -85,7 +85,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::SourcePackage;
+    use crate::pkg::Source;
     use crate::shell::BuildData;
     use crate::test::{assert_ordered_eq, TEST_DATA};
 
