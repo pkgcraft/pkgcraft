@@ -522,13 +522,15 @@ impl<'a> BuildData<'a> {
 
         // create function aliases for EXPORT_FUNCTIONS calls
         for (phase, eclass) in &self.export_functions {
-            let func = format!("{eclass}_{phase}");
-            if functions::find(&func).is_some() {
-                scallop::source::string(format!("{phase}() {{ {func} \"$@\"; }}"))?;
-            } else {
-                return Err(Error::Base(format!(
-                    "{eclass}.eclass: undefined phase function: {func}"
-                )));
+            if functions::find(phase).is_none() {
+                let func = format!("{eclass}_{phase}");
+                if functions::find(&func).is_some() {
+                    scallop::source::string(format!("{phase}() {{ {func} \"$@\"; }}"))?;
+                } else {
+                    return Err(Error::Base(format!(
+                        "{eclass}.eclass: undefined phase function: {func}"
+                    )));
+                }
             }
         }
 
