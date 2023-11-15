@@ -355,7 +355,9 @@ impl Eapi {
             .into_iter()
             .map(|mut op| {
                 for phase in &phases {
-                    op.phases.replace(*phase);
+                    if op.phases.contains(phase) {
+                        op.phases.replace(*phase);
+                    }
                 }
                 op
             })
