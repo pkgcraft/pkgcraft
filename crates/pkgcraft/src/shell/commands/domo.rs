@@ -4,7 +4,6 @@ use camino::Utf8Path;
 use scallop::{Error, ExecStatus};
 
 use crate::macros::build_from_paths;
-use crate::pkg::Package;
 use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 

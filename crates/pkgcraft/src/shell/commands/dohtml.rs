@@ -7,7 +7,6 @@ use scallop::{Error, ExecStatus};
 use walkdir::DirEntry;
 
 use crate::macros::build_from_paths;
-use crate::pkg::Package;
 use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::{get_build_mut, write_stderr};
 

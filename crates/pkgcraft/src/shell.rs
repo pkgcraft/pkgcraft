@@ -21,6 +21,7 @@ use crate::repo::Repository;
 use crate::test::TESTING;
 use crate::traits::SourceBash;
 use crate::types::Deque;
+use crate::types::OrderedSet;
 
 pub mod commands;
 pub(crate) mod environment;
@@ -156,11 +157,13 @@ macro_rules! assert_stderr {
 #[cfg(test)]
 use assert_stderr;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum BuildState<'a> {
     Empty(&'static Eapi),
     Metadata(&'a crate::pkg::ebuild::raw::Pkg<'a>),
     Build(&'a crate::pkg::ebuild::Pkg<'a>),
+    Merge,
 }
 
 impl Default for BuildState<'_> {
@@ -271,6 +274,7 @@ impl<'a> BuildData<'a> {
             Empty(eapi) => eapi,
             Metadata(pkg) => pkg.eapi(),
             Build(pkg) => pkg.eapi(),
+            Merge => todo!(),
         }
     }
 
@@ -292,10 +296,19 @@ impl<'a> BuildData<'a> {
         }
     }
 
-    /// Get the current package being built if it exists.
-    fn pkg(&self) -> scallop::Result<&'a crate::pkg::ebuild::Pkg> {
+    /// Get the current ebuild package being built if it exists.
+    fn ebuild_pkg(&self) -> scallop::Result<&'a crate::pkg::ebuild::Pkg<'a>> {
         match &self.state {
             BuildState::Build(pkg) => Ok(pkg),
+            _ => Err(Error::Base(format!("ebuild pkg invalid for scope: {}", self.scope))),
+        }
+    }
+
+    /// Get the current package being manipulated if it exists.
+    fn pkg(&self) -> scallop::Result<Pkg<'a>> {
+        match &self.state {
+            BuildState::Build(pkg) => Ok(Pkg::Ebuild(pkg)),
+            BuildState::Merge => Ok(Pkg::Binary),
             _ => Err(Error::Base(format!("pkg invalid for scope: {}", self.scope))),
         }
     }
@@ -566,6 +579,38 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     // restrict builtin loading and toggling
     scallop::builtins::disable(["enable"]).expect("failed disabling builtins");
 });
+
+/// Package wrapper type for shell commands supporting both source and binary packages.
+#[derive(Debug)]
+enum Pkg<'a> {
+    Ebuild(&'a crate::pkg::ebuild::Pkg<'a>),
+    Binary,
+}
+
+impl Pkg<'_> {
+    fn cpv(&self) -> &Cpv {
+        match self {
+            Self::Ebuild(pkg) => pkg.cpv(),
+            _ => todo!(),
+        }
+    }
+
+    fn iuse_effective(&self) -> &OrderedSet<String> {
+        match self {
+            Self::Ebuild(pkg) => pkg.iuse_effective(),
+            _ => todo!(),
+        }
+    }
+}
+
+impl std::fmt::Display for Pkg<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Ebuild(pkg) => write!(f, "{pkg}"),
+            _ => todo!(),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
