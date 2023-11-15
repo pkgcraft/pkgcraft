@@ -25,7 +25,7 @@ const SUCCESS_WITH_OUTPUT: &str = indoc::indoc! {r#"
     SLOT=0
 
     pkg_pretend() {
-        echo running
+        echo output123
     }
 "#};
 
@@ -45,7 +45,7 @@ const FAILURE_WITH_OUTPUT: &str = indoc::indoc! {r#"
     SLOT=0
 
     pkg_pretend() {
-        echo running
+        echo output123
         return 1
     }
 "#};
@@ -90,7 +90,7 @@ fn pkg_target_from_stdin() {
         .write_stdin("cat/dep")
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/dep-1", "running"]))
+        .stderr(lines_contain(["cat/dep-1", "output123"]))
         .success();
 }
 
@@ -109,7 +109,7 @@ fn path_targets() {
         .arg(t.path())
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat1/a-1", "cat1/b-1", "cat2/c-1", "running"]))
+        .stderr(lines_contain(["cat1/a-1", "cat1/b-1", "cat2/c-1", "output123"]))
         .success();
 
     // category path
@@ -117,7 +117,7 @@ fn path_targets() {
         .arg(t.path().join("cat1"))
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat1/a-1", "cat1/b-1", "running"]))
+        .stderr(lines_contain(["cat1/a-1", "cat1/b-1", "output123"]))
         .success();
 
     // package path
@@ -125,7 +125,7 @@ fn path_targets() {
         .arg(t.path().join("cat2/c"))
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat2/c-1", "running"]))
+        .stderr(lines_contain(["cat2/c-1", "output123"]))
         .success();
 
     // default current working dir
@@ -133,12 +133,12 @@ fn path_targets() {
     cmd("pk pkg pretend")
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat2/c-1", "running"]))
+        .stderr(lines_contain(["cat2/c-1", "output123"]))
         .success();
 }
 
 #[test]
-fn output() {
+fn knave() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_raw_pkg_from_str("cat/none-1", NO_PKG_PRETEND)
         .unwrap();
@@ -170,7 +170,7 @@ fn output() {
         .arg(t.path().join("cat/success-with-output"))
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/success-with-output-1", "running"]))
+        .stderr(lines_contain(["cat/success-with-output-1", "output123"]))
         .success();
 
     // pkg_pretend() failure with no output
@@ -182,12 +182,12 @@ fn output() {
         .failure()
         .code(1);
 
-    // pkg_pretend() failure with output
+    // pkg_pretend() failure with with output
     cmd("pk pkg pretend")
         .arg(t.path().join("cat/failure-with-output"))
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/failure-with-output-1", "running"]))
+        .stderr(lines_contain(["cat/failure-with-output-1", "output123"]))
         .failure()
         .code(1);
 }
