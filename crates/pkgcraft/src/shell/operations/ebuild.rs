@@ -44,7 +44,7 @@ impl<'a> Pretend for ebuild::Pkg<'a> {
         self.source()?;
 
         let Some(mut func) = functions::find(phase) else {
-            return Err(Error::Base(format!("{self}: pkg_pretend() phase missing")));
+            return Err(Error::Base(format!("{self}: {phase} phase missing")));
         };
 
         let build = get_build_mut();
