@@ -15,7 +15,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let eclasses = build.repo()?.eclasses();
+    let eclasses = build.ebuild_repo()?.eclasses();
 
     // force incrementals to be restored between nested inherits
     let incrementals: Vec<(_, _)> = build

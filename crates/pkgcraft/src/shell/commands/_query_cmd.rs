@@ -2,12 +2,10 @@ use scallop::Error;
 
 use crate::dep::Cpv;
 use crate::eapi::Feature::{QueryDeps, QueryHostRoot};
-use crate::pkg::Package;
-use crate::repo::PkgRepository;
 use crate::shell::get_build_mut;
 
 /// Underlying query support for has_version and best_version.
-pub(crate) fn query_cmd(args: &[&str]) -> scallop::Result<impl Iterator<Item = Cpv>> {
+pub(crate) fn query_cmd(args: &[&str]) -> scallop::Result<Vec<Cpv>> {
     let build = get_build_mut();
     let eapi = build.eapi();
 
@@ -24,5 +22,5 @@ pub(crate) fn query_cmd(args: &[&str]) -> scallop::Result<impl Iterator<Item = C
     let dep = eapi.dep(dep)?;
 
     // TODO: pull the install repo related to the root setting
-    Ok(build.repo()?.iter_restrict(&dep).map(|p| p.cpv().clone()))
+    Ok(build.repo()?.iter_cpv_restrict(&dep).collect())
 }

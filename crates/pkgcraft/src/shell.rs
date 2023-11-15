@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::{self, Read, Write};
 use std::{env, mem};
 
+use camino::Utf8Path;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nix::unistd::isatty;
@@ -18,6 +19,7 @@ use crate::macros::build_from_paths;
 use crate::pkg::Package;
 use crate::repo::ebuild::Eclass;
 use crate::repo::Repository;
+use crate::restrict::Restrict;
 use crate::test::TESTING;
 use crate::traits::SourceBash;
 use crate::types::Deque;
@@ -287,11 +289,21 @@ impl<'a> BuildData<'a> {
         }
     }
 
-    /// Get the current repo if it exists.
-    fn repo(&self) -> scallop::Result<&'a crate::repo::ebuild::Repo> {
+    /// Get the current ebuild repo if it exists.
+    fn ebuild_repo(&self) -> scallop::Result<&'a crate::repo::ebuild::Repo> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(pkg.repo()),
             BuildState::Build(pkg) => Ok(pkg.repo()),
+            _ => Err(Error::Base(format!("ebuild repo invalid for scope: {}", self.scope))),
+        }
+    }
+
+    /// Get the current repo if it exists.
+    fn repo(&self) -> scallop::Result<Repo<'a>> {
+        match &self.state {
+            BuildState::Metadata(pkg) => Ok(Repo::Ebuild(pkg.repo())),
+            BuildState::Build(pkg) => Ok(Repo::Ebuild(pkg.repo())),
+            BuildState::Merge => Ok(Repo::Binary),
             _ => Err(Error::Base(format!("repo invalid for scope: {}", self.scope))),
         }
     }
@@ -580,7 +592,7 @@ pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
     scallop::builtins::disable(["enable"]).expect("failed disabling builtins");
 });
 
-/// Package wrapper type for shell commands supporting both source and binary packages.
+/// Package wrapper for commands supporting both source and binary operations.
 #[derive(Debug)]
 enum Pkg<'a> {
     Ebuild(&'a crate::pkg::ebuild::Pkg<'a>),
@@ -591,14 +603,14 @@ impl Pkg<'_> {
     fn cpv(&self) -> &Cpv {
         match self {
             Self::Ebuild(pkg) => pkg.cpv(),
-            _ => todo!(),
+            Self::Binary => todo!(),
         }
     }
 
     fn iuse_effective(&self) -> &OrderedSet<String> {
         match self {
             Self::Ebuild(pkg) => pkg.iuse_effective(),
-            _ => todo!(),
+            Self::Binary => todo!(),
         }
     }
 }
@@ -607,7 +619,30 @@ impl std::fmt::Display for Pkg<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::Ebuild(pkg) => write!(f, "{pkg}"),
-            _ => todo!(),
+            Self::Binary => todo!(),
+        }
+    }
+}
+
+/// Repo wrapper for commands supporting both source and binary operations.
+#[derive(Debug)]
+enum Repo<'a> {
+    Ebuild(&'a crate::repo::ebuild::Repo),
+    Binary,
+}
+
+impl Repo<'_> {
+    fn path(&self) -> &Utf8Path {
+        match self {
+            Self::Ebuild(repo) => repo.path(),
+            Self::Binary => todo!(),
+        }
+    }
+
+    fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Cpv> + '_ {
+        match self {
+            Self::Ebuild(repo) => repo.iter_cpv_restrict(val),
+            Self::Binary => todo!(),
         }
     }
 }
