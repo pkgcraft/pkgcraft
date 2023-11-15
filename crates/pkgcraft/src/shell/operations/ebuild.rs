@@ -2,10 +2,10 @@ use std::fs;
 use std::os::fd::AsRawFd;
 
 use scallop::pool::redirect_output;
-use scallop::ExecStatus;
+use scallop::{Error, ExecStatus};
 use tempfile::NamedTempFile;
 
-use crate::error::{Error, PackageError};
+use crate::error::PackageError;
 use crate::pkg::{ebuild, Build, Package, Pretend, Regen, Source};
 use crate::shell::metadata::Metadata;
 use crate::shell::{get_build_mut, BuildData};
@@ -27,34 +27,31 @@ impl<'a> Build for ebuild::Pkg<'a> {
 }
 
 impl<'a> Pretend for ebuild::Pkg<'a> {
-    fn pretend(&self) -> scallop::Result<()> {
-        // ignore packages lacking pkg_pretend() support
-        if let Ok(phases) = self.eapi().operation(OperationKind::Pretend) {
+    fn pretend(&self) -> scallop::Result<Option<String>> {
+        // ignore packages with EAPIs lacking pkg_pretend() support
+        if let Ok(op) = self.eapi().operation(OperationKind::Pretend) {
+            let phase = op.phases[0];
             self.source()?;
 
             // redirect pkg_pretend() output to a temporary file
             let file = NamedTempFile::new()?;
             redirect_output(file.as_raw_fd())?;
 
-            for phase in phases {
-                phase.run().map_err(|e| {
-                    // get redirected output
-                    let output = fs::read_to_string(file.path()).unwrap_or_default();
-                    let output = output.trim();
-
-                    // determine error string
-                    let err = if output.is_empty() {
-                        e.to_string()
-                    } else {
-                        format!("{e}\n{output}")
-                    };
-
-                    Error::Pkg { id: self.to_string(), err }
-                })?;
+            let result = phase.run();
+            let output = fs::read_to_string(file.path()).unwrap_or_default();
+            let output = output.trim();
+            if let Err(e) = result {
+                if output.is_empty() {
+                    return Err(Error::Base(format!("{self}: {e}")));
+                } else {
+                    return Err(Error::Base(format!("{self}: {e}\n{output}")));
+                }
+            } else if !output.is_empty() {
+                return Ok(Some(format!("{self}\n{output}")));
             }
         }
 
-        Ok(())
+        Ok(None)
     }
 }
 

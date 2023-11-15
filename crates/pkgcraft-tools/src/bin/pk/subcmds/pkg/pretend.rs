@@ -47,7 +47,7 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        let func = |raw_pkg: ebuild::raw::Pkg| -> scallop::Result<()> {
+        let func = |raw_pkg: ebuild::raw::Pkg| -> scallop::Result<Option<String>> {
             let pkg: ebuild::Pkg = raw_pkg.try_into()?;
             pkg.pretend()
         };
@@ -64,10 +64,14 @@ impl Command {
 
             // run pkg_pretend across selected pkgs
             let mut handle = io::stderr().lock();
-            for r in PoolIter::new(jobs, pkgs, func, true)? {
-                if let Err(e) = r {
-                    status = ExitCode::FAILURE;
-                    writeln!(handle, "{e}")?;
+            for result in PoolIter::new(jobs, pkgs, func, true)? {
+                match result {
+                    Err(e) => {
+                        status = ExitCode::FAILURE;
+                        writeln!(handle, "{e}")?;
+                    }
+                    Ok(Some(s)) => writeln!(handle, "{s}")?,
+                    Ok(None) => (),
                 }
             }
         }

@@ -78,7 +78,7 @@ pub(crate) trait Build: Package {
 
 pub trait Pretend: Package {
     /// Run the pkg_pretend operation for a package.
-    fn pretend(&self) -> scallop::Result<()>;
+    fn pretend(&self) -> scallop::Result<Option<String>>;
 }
 
 pub trait Source: Package {
