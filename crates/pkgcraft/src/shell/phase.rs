@@ -87,9 +87,15 @@ impl fmt::Debug for Phase {
     }
 }
 
-impl<T: Borrow<Phase>> From<T> for PhaseKind {
-    fn from(phase: T) -> PhaseKind {
-        phase.borrow().kind
+impl From<&Phase> for PhaseKind {
+    fn from(phase: &Phase) -> PhaseKind {
+        phase.kind
+    }
+}
+
+impl From<Phase> for PhaseKind {
+    fn from(phase: Phase) -> PhaseKind {
+        phase.kind
     }
 }
 
