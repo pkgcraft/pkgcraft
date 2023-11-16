@@ -14,8 +14,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let build = get_build_mut();
     let opts = &build.diropts;
-    let install = build.install().dir_options(opts);
-    install.dirs(args)?;
+    build.install().dir_options(opts).dirs(args)?;
     Ok(ExecStatus::Success)
 }
 

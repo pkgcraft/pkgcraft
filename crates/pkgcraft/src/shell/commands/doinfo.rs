@@ -12,10 +12,10 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
+    let build = get_build_mut();
     let dest = "/usr/share/info";
     let opts = ["-m0644"];
-    let install = get_build_mut().install().dest(dest)?.file_options(opts);
-    install.files(args)?;
+    build.install().dest(dest)?.file_options(opts).files(args)?;
     Ok(ExecStatus::Success)
 }
 

@@ -21,9 +21,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     } else {
         Either::Right(build.exeopts.iter().map(|s| s.as_str()))
     };
-    let install = build.install().dest(dest)?.file_options(opts);
-    install.files(args)?;
-
+    build.install().dest(dest)?.file_options(opts).files(args)?;
     Ok(ExecStatus::Success)
 }
 

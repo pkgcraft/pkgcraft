@@ -16,9 +16,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let dest = build.env(EXEDESTTREE)?;
     let opts = &build.exeopts;
-    let install = build.install().dest(dest)?.file_options(opts);
-    install.files(args)?;
-
+    build.install().dest(dest)?.file_options(opts).files(args)?;
     Ok(ExecStatus::Success)
 }
 

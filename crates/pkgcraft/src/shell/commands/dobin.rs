@@ -17,9 +17,7 @@ pub(super) fn install_bin(args: &[&str], dest: &str) -> scallop::Result<ExecStat
     } else {
         &["-m0755"]
     };
-    let install = get_build_mut().install().dest(dest)?.file_options(opts);
-
-    install.files(args)?;
+    build.install().dest(dest)?.file_options(opts).files(args)?;
     Ok(ExecStatus::Success)
 }
 

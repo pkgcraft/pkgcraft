@@ -18,9 +18,11 @@ pub(super) fn install_lib(args: &[&str], opts: Option<&[&str]>) -> scallop::Resu
         Some(vals) => Either::Left(vals.iter().copied()),
         None => Either::Right(build.libopts.iter().map(|s| s.as_str())),
     };
-    let install = build.install().dest(dest)?.file_options(options);
-    install.files(args)?;
-
+    build
+        .install()
+        .dest(dest)?
+        .file_options(options)
+        .files(args)?;
     Ok(ExecStatus::Success)
 }
 
