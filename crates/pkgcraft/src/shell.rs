@@ -214,8 +214,8 @@ pub(crate) struct BuildData<'a> {
     strip_include: IndexSet<String>,
     strip_exclude: IndexSet<String>,
 
-    /// EXPORT_FUNCTIONS arguments cache
-    export_functions: IndexMap<phase::PhaseKind, &'a Eclass>,
+    /// phases defined by eclasses
+    eclass_phases: IndexMap<phase::PhaseKind, &'a Eclass>,
 
     /// set of directly inherited eclasses
     inherit: IndexSet<&'a Eclass>,
@@ -520,8 +520,8 @@ impl<'a> BuildData<'a> {
         // run global sourcing in restricted shell mode
         scallop::shell::restricted(|| value.source_bash())?;
 
-        // create function aliases for EXPORT_FUNCTIONS calls
-        for (phase, eclass) in &self.export_functions {
+        // create function aliases for eclass phases
+        for (phase, eclass) in &self.eclass_phases {
             if functions::find(phase).is_none() {
                 let func = format!("{eclass}_{phase}");
                 if functions::find(&func).is_some() {
