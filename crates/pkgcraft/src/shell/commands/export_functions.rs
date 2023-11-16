@@ -40,12 +40,12 @@ make_builtin!("EXPORT_FUNCTIONS", export_functions_builtin);
 
 #[cfg(test)]
 mod tests {
-    use scallop::functions;
     use scallop::variables::optional;
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
-    use crate::pkg::Source;
+    use crate::pkg::{Build, Source};
+    use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, export_functions};
     use super::*;
@@ -79,13 +79,11 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
-        raw_pkg.source().unwrap();
-        // execute eclass-defined function
-        let mut func = functions::find("src_compile").unwrap();
+        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
         // verify the function runs
         assert!(optional("VAR").is_none());
-        func.execute(&[]).unwrap();
+        BuildData::from_pkg(&pkg);
+        pkg.build().unwrap();
         assert_eq!(optional("VAR").unwrap(), "1");
     }
 
@@ -117,13 +115,11 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
-        raw_pkg.source().unwrap();
-        // execute eclass-defined function
-        let mut func = functions::find("src_compile").unwrap();
+        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        BuildData::from_pkg(&pkg);
         // verify the function runs
         assert!(optional("VAR").is_none());
-        func.execute(&[]).unwrap();
+        pkg.build().unwrap();
         assert_eq!(optional("VAR").unwrap(), "1");
     }
 
@@ -158,13 +154,11 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
-        raw_pkg.source().unwrap();
-        // execute eclass-defined function
-        let mut func = functions::find("src_compile").unwrap();
+        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        BuildData::from_pkg(&pkg);
         // verify the function runs
         assert!(optional("VAR").is_none());
-        func.execute(&[]).unwrap();
+        pkg.build().unwrap();
         assert_eq!(optional("VAR").unwrap(), "1");
     }
 
