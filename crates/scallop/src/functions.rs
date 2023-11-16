@@ -6,14 +6,21 @@ use crate::{bash, ExecStatus};
 
 #[derive(Debug)]
 pub struct Function<'a> {
-    name: String,
     func: &'a mut bash::ShellVar,
 }
 
 impl Function<'_> {
+    pub fn name(&self) -> &str {
+        unsafe {
+            CStr::from_ptr(self.func.name)
+                .to_str()
+                .expect("invalid function name")
+        }
+    }
+
     /// Execute a given shell function.
     pub fn execute(&mut self, args: &[&str]) -> crate::Result<ExecStatus> {
-        let args = [&[self.name.as_str()], args].concat();
+        let args = [&[self.name()], args].concat();
         let mut args = iter_to_array!(args.iter(), str_to_raw);
         ok_or_error(|| {
             let ret = unsafe {
@@ -25,7 +32,8 @@ impl Function<'_> {
             } else {
                 Err(Error::Base(format!(
                     "failed running function: {}: exit status {}",
-                    &self.name, ret
+                    self.name(),
+                    ret
                 )))
             }
         })
@@ -34,13 +42,9 @@ impl Function<'_> {
 
 /// Find a given shell function.
 pub fn find<'a, S: AsRef<str>>(name: S) -> Option<Function<'a>> {
-    let name = name.as_ref();
-    let func_name = CString::new(name).unwrap();
+    let func_name = CString::new(name.as_ref()).expect("invalid function name");
     let func = unsafe { bash::find_function(func_name.as_ptr()).as_mut() };
-    func.map(|f| Function {
-        name: name.to_string(),
-        func: f,
-    })
+    func.map(|f| Function { func: f })
 }
 
 /// Run a function in bash function scope.
@@ -48,7 +52,7 @@ pub fn bash_func<F>(name: &str, func: F) -> crate::Result<ExecStatus>
 where
     F: FnOnce() -> crate::Result<ExecStatus>,
 {
-    let func_name = CString::new(name).unwrap();
+    let func_name = CString::new(name).expect("invalid function name");
     unsafe { bash::push_context(func_name.as_ptr() as *mut _, 0, bash::TEMPORARY_ENV) };
     let result = func();
     unsafe { bash::pop_context() };
@@ -84,7 +88,8 @@ mod tests {
     fn find_function() {
         assert!(find("func").is_none());
         source::string("func() { :; }").unwrap();
-        assert!(find("func").is_some());
+        let func = find("func").unwrap();
+        assert_eq!(func.name(), "func");
     }
 
     #[test]
