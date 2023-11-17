@@ -95,3 +95,37 @@ impl<'a> Regen for ebuild::raw::Pkg<'a> {
         Ok(Metadata::serialize(self).map_err(|e| self.invalid_pkg_err(e))?)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test::TEST_DATA;
+
+    use super::*;
+
+    #[test]
+    fn pretend() {
+        // no pkg_pretend phase exists
+        let pkg = TEST_DATA.ebuild_pkg("pkg-pretend/none::phases").unwrap();
+        assert!(pkg.pretend().is_ok());
+
+        // success
+        let pkg = TEST_DATA.ebuild_pkg("pkg-pretend/success::phases").unwrap();
+        assert!(pkg.pretend().is_ok());
+
+        // success with output
+        let pkg = TEST_DATA
+            .ebuild_pkg("pkg-pretend/success-with-output::phases")
+            .unwrap();
+        assert!(pkg.pretend().is_ok());
+
+        // failure
+        let pkg = TEST_DATA.ebuild_pkg("pkg-pretend/failure::phases").unwrap();
+        assert!(pkg.pretend().is_err());
+
+        // failure with output
+        let pkg = TEST_DATA
+            .ebuild_pkg("pkg-pretend/failure-with-output::phases")
+            .unwrap();
+        assert!(pkg.pretend().is_err());
+    }
+}
