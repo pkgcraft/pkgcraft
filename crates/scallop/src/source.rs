@@ -118,9 +118,9 @@ mod tests {
 
         // Sourcing continues when an error occurs because `set -e` isn't enabled, but the error is
         // still raised on completion (unlike bash).
-        writeln!(file, "VAR=1").unwrap();
+        writeln!(file, "VAR=0").unwrap();
         let err = source::file(&path).unwrap_err();
-        assert_eq!(optional("VAR").unwrap(), "1");
+        assert_eq!(optional("VAR").unwrap(), "0");
         assert_eq!(
             err.to_string(),
             format!("{path}: line 1: local: can only be used in a function")
@@ -132,12 +132,12 @@ mod tests {
         let file1_path = file1.path().to_str().unwrap().to_string();
         let file2_path = file2.path().to_str().unwrap().to_string();
         writeln!(file1, "source {:?}", file2_path).unwrap();
-        writeln!(file2, "local VAR\nVAR=2").unwrap();
+        writeln!(file2, "VAR=1\nlocal VAR\nVAR=2").unwrap();
         let err = source::file(file1_path).unwrap_err();
         assert_eq!(optional("VAR").unwrap(), "2");
         assert_eq!(
             err.to_string(),
-            format!("{file2_path}: line 1: local: can only be used in a function")
+            format!("{file2_path}: line 2: local: can only be used in a function")
         );
     }
 
@@ -157,10 +157,15 @@ mod tests {
         // nested source with `set -e`
         let mut file1 = NamedTempFile::new().unwrap();
         let mut file2 = NamedTempFile::new().unwrap();
-        let path = file1.path().to_str().unwrap().to_string();
-        writeln!(file1, "source {:?}", file2.path()).unwrap();
-        writeln!(file2, "local VAR\nVAR=2").unwrap();
-        assert!(source::file(path).is_err());
-        assert_eq!(optional("VAR"), None);
+        let file1_path = file1.path().to_str().unwrap().to_string();
+        let file2_path = file2.path().to_str().unwrap().to_string();
+        writeln!(file1, "source {file2_path}").unwrap();
+        writeln!(file2, "VAR=1\nlocal VAR\nVAR=2").unwrap();
+        let err = source::file(file1_path).unwrap_err();
+        assert_eq!(optional("VAR").unwrap(), "1");
+        assert_eq!(
+            err.to_string(),
+            format!("{file2_path}: line 2: local: can only be used in a function")
+        );
     }
 }
