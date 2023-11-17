@@ -1,23 +1,11 @@
 use std::env;
 
 use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
-use pkgcraft::test::cmd;
+use pkgcraft::repo::Repository;
+use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::str::contains;
 
 use crate::predicates::lines_contain;
-
-const NO_PKG_PRETEND: &str = indoc::indoc! {r#"
-    EAPI=8
-    DESCRIPTION="ebuild without pkg_pretend"
-    SLOT=0
-"#};
-
-const SUCCESS: &str = indoc::indoc! {r#"
-    EAPI=8
-    DESCRIPTION="ebuild with pkg_pretend success"
-    SLOT=0
-    pkg_pretend() { :; }
-"#};
 
 const SUCCESS_WITH_OUTPUT: &str = indoc::indoc! {r#"
     EAPI=8
@@ -26,27 +14,6 @@ const SUCCESS_WITH_OUTPUT: &str = indoc::indoc! {r#"
 
     pkg_pretend() {
         echo output123
-    }
-"#};
-
-const FAILURE: &str = indoc::indoc! {r#"
-    EAPI=8
-    DESCRIPTION="ebuild with pkg_pretend failure"
-    SLOT=0
-
-    pkg_pretend() {
-        return 1
-    }
-"#};
-
-const FAILURE_WITH_OUTPUT: &str = indoc::indoc! {r#"
-    EAPI=8
-    DESCRIPTION="ebuild with pkg_pretend failure and output"
-    SLOT=0
-
-    pkg_pretend() {
-        echo output123
-        return 1
     }
 "#};
 
@@ -83,14 +50,12 @@ fn no_pkgs() {
 
 #[test]
 fn pkg_target_from_stdin() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg_from_str("cat/dep-1", SUCCESS_WITH_OUTPUT)
-        .unwrap();
-    cmd(format!("pk pkg pretend -r {} -", t.path()))
-        .write_stdin("cat/dep")
+    let repo = TEST_DATA.ebuild_repo("phases").unwrap();
+    cmd(format!("pk pkg pretend -r {} -", repo.path()))
+        .write_stdin("pkg-pretend/success-with-output")
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/dep-1", "output123"]))
+        .stderr(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
         .success();
 }
 
@@ -139,19 +104,11 @@ fn path_targets() {
 
 #[test]
 fn output() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg_from_str("cat/none-1", NO_PKG_PRETEND)
-        .unwrap();
-    t.create_raw_pkg_from_str("cat/success-1", SUCCESS).unwrap();
-    t.create_raw_pkg_from_str("cat/success-with-output-1", SUCCESS_WITH_OUTPUT)
-        .unwrap();
-    t.create_raw_pkg_from_str("cat/failure-1", FAILURE).unwrap();
-    t.create_raw_pkg_from_str("cat/failure-with-output-1", FAILURE_WITH_OUTPUT)
-        .unwrap();
+    let repo = TEST_DATA.ebuild_repo("phases").unwrap();
 
     // package lacking pkg_pretend() phase
     cmd("pk pkg pretend")
-        .arg(t.path().join("cat/none"))
+        .arg(repo.path().join("pkg-pretend/none"))
         .assert()
         .stdout("")
         .stderr("")
@@ -159,7 +116,7 @@ fn output() {
 
     // pkg_pretend() success with no output
     cmd("pk pkg pretend")
-        .arg(t.path().join("cat/success"))
+        .arg(repo.path().join("pkg-pretend/success"))
         .assert()
         .stdout("")
         .stderr("")
@@ -167,27 +124,27 @@ fn output() {
 
     // pkg_pretend() success with output
     cmd("pk pkg pretend")
-        .arg(t.path().join("cat/success-with-output"))
+        .arg(repo.path().join("pkg-pretend/success-with-output"))
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/success-with-output-1", "output123"]))
+        .stderr(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
         .success();
 
     // pkg_pretend() failure with no output
     cmd("pk pkg pretend")
-        .arg(t.path().join("cat/failure"))
+        .arg(repo.path().join("pkg-pretend/failure"))
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/failure-1"]))
+        .stderr(lines_contain(["pkg-pretend/failure-1"]))
         .failure()
         .code(1);
 
     // pkg_pretend() failure with with output
     cmd("pk pkg pretend")
-        .arg(t.path().join("cat/failure-with-output"))
+        .arg(repo.path().join("pkg-pretend/failure-with-output"))
         .assert()
         .stdout("")
-        .stderr(lines_contain(["cat/failure-with-output-1", "output123"]))
+        .stderr(lines_contain(["pkg-pretend/failure-with-output-1", "output123"]))
         .failure()
         .code(1);
 }
