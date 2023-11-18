@@ -104,3 +104,54 @@ where
     unsafe { bash::CURRENT_COMMAND = ptr::null_mut() };
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::variables::optional;
+
+    use super::*;
+
+    #[test]
+    fn new_and_execute() {
+        let cmd = Command::new("VAR=0", None).unwrap();
+        cmd.execute().unwrap();
+        assert_eq!(optional("VAR").unwrap(), "0");
+
+        let cmd = Command::new("VAR=1", Some(Flags::WANT_SUBSHELL)).unwrap();
+        cmd.execute().unwrap();
+        assert_eq!(optional("VAR").unwrap(), "0");
+
+        let cmd = Command::new("VAR=1", Some(Flags::FORCE_SUBSHELL)).unwrap();
+        cmd.execute().unwrap();
+        assert_eq!(optional("VAR").unwrap(), "0");
+
+        let cmd = Command::new("VAR=1", Some(Flags::INVERT_RETURN)).unwrap();
+        assert!(cmd.execute().is_err());
+        assert_eq!(optional("VAR").unwrap(), "1");
+    }
+
+    #[test]
+    fn parse() {
+        // invalid
+        assert!(Command::from_str("|| {").is_err());
+
+        // valid
+        let s = "VAR=1";
+        let cmd: Command = s.parse().unwrap();
+        cmd.execute().unwrap();
+        assert_eq!(optional("VAR").unwrap(), "1");
+    }
+
+    #[test]
+    fn cmd_scope_and_current() {
+        // no command running
+        assert!(current().is_none());
+
+        // fake a command
+        cmd_scope("test", || {
+            assert_eq!(current().unwrap(), "test");
+            Ok(ExecStatus::Success)
+        })
+        .unwrap();
+    }
+}
