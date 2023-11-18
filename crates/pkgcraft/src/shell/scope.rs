@@ -6,6 +6,7 @@ use crate::repo::ebuild::Eclass;
 
 use super::phase::PhaseKind;
 
+/// Marker used to denote valid or current build state scope.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub(crate) enum Scope {
     #[default]
@@ -36,7 +37,7 @@ impl fmt::Display for Scope {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+/// Multi-scope type for EAPI registration.
 pub(crate) enum Scopes {
     All,
     Eclass,
