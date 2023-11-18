@@ -1,11 +1,10 @@
-use std::borrow::Borrow;
 use std::fmt;
 
 use strum::IntoEnumIterator;
 
 use crate::repo::ebuild::Eclass;
 
-use super::phase::{Phase, PhaseKind};
+use super::phase::PhaseKind;
 
 #[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub(crate) enum Scope {
@@ -18,12 +17,6 @@ pub(crate) enum Scope {
 impl Scope {
     pub(crate) fn is_eclass(&self) -> bool {
         matches!(self, Self::Eclass(_))
-    }
-}
-
-impl<T: Borrow<Phase>> From<T> for Scope {
-    fn from(phase: T) -> Self {
-        Scope::Phase(phase.borrow().into())
     }
 }
 
