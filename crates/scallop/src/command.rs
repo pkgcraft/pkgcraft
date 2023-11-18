@@ -37,7 +37,7 @@ impl Command {
     }
 
     pub fn execute(&self) -> crate::Result<ExecStatus> {
-        ok_or_error(|| match unsafe { bash::execute_command(self.ptr) } {
+        ok_or_error(|| match unsafe { bash::scallop_execute_command(self.ptr) } {
             0 => Ok(ExecStatus::Success),
             n => Err(Error::Status(ExecStatus::Failure(n))),
         })
@@ -128,6 +128,9 @@ mod tests {
         let cmd = Command::new("VAR=1", Some(Flags::INVERT_RETURN)).unwrap();
         assert!(cmd.execute().is_err());
         assert_eq!(optional("VAR").unwrap(), "1");
+
+        let cmd = Command::new("exit 1", None).unwrap();
+        assert!(cmd.execute().is_err());
     }
 
     #[test]
