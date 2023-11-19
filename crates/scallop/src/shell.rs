@@ -2,14 +2,11 @@ use std::ffi::{c_char, c_int, CStr, CString};
 use std::sync::OnceLock;
 use std::{env, mem, process, ptr};
 
-use nix::{
-    sys::signal,
-    unistd::{getpid, Pid},
-};
+use nix::unistd::{getpid, Pid};
 use once_cell::sync::Lazy;
 
 use crate::shm::create_shm;
-use crate::{bash, error, Error, ExecStatus};
+use crate::{bash, error, ExecStatus};
 
 // shell name
 static SHELL: OnceLock<CString> = OnceLock::new();
@@ -83,11 +80,6 @@ pub fn interactive() {
         ret = bash::bash_main(argc, argv, env);
     }
     process::exit(ret)
-}
-
-/// Send a signal to the main bash process.
-pub(crate) fn kill<T: Into<Option<signal::Signal>>>(signal: T) -> crate::Result<()> {
-    signal::kill(pid(), signal.into()).map_err(|e| Error::Base(e.to_string()))
 }
 
 /// Create an error message in shared memory.

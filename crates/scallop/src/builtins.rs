@@ -6,7 +6,6 @@ use std::ops::Deref;
 use std::{cmp, fmt, mem, process, ptr};
 
 use bitflags::bitflags;
-use nix::sys::signal::Signal;
 
 use crate::macros::*;
 use crate::{bash, shell, Error, ExecStatus};
@@ -438,10 +437,8 @@ pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
     if matches!(err, Error::Bail(_)) {
         // TODO: send SIGTERM to background jobs (use jobs builtin)?
         if !shell::in_main() {
-            // interrupt the main shell process
-            shell::kill(Signal::SIGUSR1).ok();
-            // terminate the child process
-            process::exit(2);
+            // exit subshell with status causing the main process to longjmp to the entry point
+            process::exit(bash::EX_LONGJMPSUB as i32);
         }
     }
 

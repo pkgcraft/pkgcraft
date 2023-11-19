@@ -113,6 +113,7 @@ fn main() {
         .allowlist_var("EXECUTION_FAILURE")
         .allowlist_var("EXECUTION_SUCCESS")
         .allowlist_var("EX_LONGJMP")
+        .allowlist_var("EX_LONGJMPSUB")
 
         .header("bash/builtins/common.h")
         .allowlist_function("scallop_evalstring")
