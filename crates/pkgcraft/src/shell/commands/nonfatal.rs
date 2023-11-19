@@ -64,6 +64,16 @@ mod tests {
     }
 
     #[test]
+    fn exit() {
+        // nonfatal exits are caught but the return value isn't respected
+        let status = nonfatal(&["exit"]).unwrap();
+        assert!(i32::from(status) == 1);
+
+        let status = nonfatal(&["exit 2"]).unwrap();
+        assert!(i32::from(status) == 1);
+    }
+
+    #[test]
     fn nonexistent_cmd() {
         let status = nonfatal(&["nonexistent_cmd"]).unwrap();
         assert!(i32::from(status) != 0);
