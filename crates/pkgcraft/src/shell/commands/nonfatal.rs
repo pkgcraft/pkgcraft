@@ -64,7 +64,6 @@ mod tests {
 
     #[test]
     fn exit() {
-        // nonfatal exits are caught but the return value isn't respected
         let status = nonfatal(&["exit"]).unwrap();
         assert_eq!(status, ExecStatus::Success);
 
