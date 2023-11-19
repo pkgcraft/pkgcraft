@@ -1,4 +1,4 @@
-use scallop::command::Command;
+use scallop::command::{Command, Flags};
 use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
@@ -21,7 +21,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     build.nonfatal = true;
 
     // run the specified command
-    let cmd = Command::new(args.join(" "), None)?;
+    let cmd = Command::new(args.join(" "), Some(Flags::FORCE_SUBSHELL))?;
     let status = match cmd.execute() {
         Ok(s) => s,
         Err(Error::Status(s)) => s,
@@ -39,7 +39,7 @@ make_builtin!("nonfatal", nonfatal_builtin);
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::shell::{assert_stderr, assert_stdout, BuildData};
+    use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, nonfatal};
     use super::*;
@@ -59,36 +59,34 @@ mod tests {
         BuildData::from_raw_pkg(&raw_pkg);
 
         let status = nonfatal(&["ver_cut", "2-3", "1.2.3"]).unwrap();
-        assert_stdout!("2.3");
-        assert!(i32::from(status) == 0);
+        assert_eq!(status, ExecStatus::Success);
     }
 
     #[test]
     fn exit() {
         // nonfatal exits are caught but the return value isn't respected
         let status = nonfatal(&["exit"]).unwrap();
-        assert!(i32::from(status) == 1);
+        assert_eq!(status, ExecStatus::Success);
 
         let status = nonfatal(&["exit 2"]).unwrap();
-        assert!(i32::from(status) == 1);
+        assert_eq!(status, ExecStatus::Failure(2));
     }
 
     #[test]
     fn nonexistent_cmd() {
         let status = nonfatal(&["nonexistent_cmd"]).unwrap();
-        assert!(i32::from(status) != 0);
+        assert_eq!(status, ExecStatus::Failure(1));
     }
 
     #[test]
     fn die() {
         let status = nonfatal(&["die", "-n", "message"]).unwrap();
-        assert_stderr!("message\n");
-        assert!(i32::from(status) != 0);
+        assert_eq!(status, ExecStatus::Failure(1));
     }
 
     #[test]
     fn invalid_builtin_scope() {
         let status = nonfatal(&["best_version", "cat/pkg"]).unwrap();
-        assert!(i32::from(status) != 0);
+        assert_eq!(status, ExecStatus::Failure(1));
     }
 }

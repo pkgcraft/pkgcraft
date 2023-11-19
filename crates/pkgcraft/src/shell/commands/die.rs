@@ -45,7 +45,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::Build;
     use crate::shell::phase::PhaseKind;
-    use crate::shell::{assert_stderr, BuildData, BuildState, Scope};
+    use crate::shell::{BuildData, BuildState, Scope};
 
     use super::super::{assert_invalid_args, cmd_scope_tests, die};
     use super::*;
@@ -132,14 +132,11 @@ mod tests {
 
         // nonfatal requires `die -n` call
         let r = source::string("nonfatal die && VAR=2");
-        assert!(r.is_err());
-        // TODO: determine if nonfatal-run commands should pass error messages back
-        //assert_err_re!(r, r"^line 1: die: error: \(no error message\)");
+        assert_err_re!(r, r"^line 1: die: error: \(no error message\)");
 
         // nonfatal die in main process
         bind("VAR", "1", None, None).unwrap();
         source::string("nonfatal die -n message; VAR=2").unwrap();
-        assert_stderr!("message\n");
         assert_eq!(variables::optional("VAR").unwrap(), "2");
 
         // nonfatal die in subshell without message
