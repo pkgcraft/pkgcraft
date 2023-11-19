@@ -436,7 +436,7 @@ pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
 
     // exit subshell with status causing the main process to longjmp to the entry point
     if matches!(err, Error::Bail(_)) && !shell::in_main() {
-        process::exit(bash::EX_LONGJMPSUB as i32);
+        process::exit(bash::EX_LONGJMP as i32);
     }
 
     ExecStatus::from(err)
