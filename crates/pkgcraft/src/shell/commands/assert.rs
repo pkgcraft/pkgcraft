@@ -26,7 +26,9 @@ mod tests {
 
     use crate::eapi::{Feature::NonfatalDie, EAPIS_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::shell::BuildData;
+    use crate::shell::phase::PhaseKind;
+    use crate::shell::scope::Scope;
+    use crate::shell::{get_build_mut, BuildData};
 
     use super::super::{assert, assert_invalid_args, cmd_scope_tests};
     use super::*;
@@ -48,6 +50,9 @@ mod tests {
 
     #[test]
     fn success() {
+        let build = get_build_mut();
+        build.scope = Scope::Phase(PhaseKind::SrcInstall);
+
         // unset PIPESTATUS
         source::string("assert").unwrap();
 
@@ -57,6 +62,8 @@ mod tests {
 
     #[test]
     fn main() {
+        let build = get_build_mut();
+        build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("true | false | true; assert && VAR=2");
@@ -73,6 +80,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_os = "macos", ignore)] // TODO: debug bash failures
     fn subshell() {
+        let build = get_build_mut();
+        build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("FOO=$(true | false; assert); VAR=2");
@@ -88,6 +97,9 @@ mod tests {
 
     #[test]
     fn nonfatal() {
+        let build = get_build_mut();
+        build.scope = Scope::Phase(PhaseKind::SrcInstall);
+
         // nonfatal requires `die -n` call
         let r = source::string("true | false; nonfatal assert");
         assert_err_re!(r, r"^line 1: assert: error: \(no error message\)");

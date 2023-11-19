@@ -64,6 +64,8 @@ mod tests {
 
     #[test]
     fn main() {
+        let build = get_build_mut();
+        build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("die && VAR=2");
@@ -80,6 +82,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_os = "macos", ignore)] // TODO: debug bash failures
     fn subshell() {
+        let build = get_build_mut();
+        build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("FOO=$(die); VAR=2");
@@ -114,11 +118,10 @@ mod tests {
 
     #[test]
     fn nonfatal() {
-        bind("VAR", "1", None, None).unwrap();
-
         let build = get_build_mut();
         build.scope = Scope::Phase(PhaseKind::SrcInstall);
         build.state = BuildState::Empty(&EAPI5);
+        bind("VAR", "1", None, None).unwrap();
 
         // `die -n` only works in supported EAPIs
         let r = source::string("die -n");
