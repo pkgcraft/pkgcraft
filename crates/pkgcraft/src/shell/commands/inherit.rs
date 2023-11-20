@@ -254,6 +254,36 @@ mod tests {
     }
 
     #[test]
+    fn nested_errors() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        // create eclasses
+        let eclass = indoc::indoc! {r#"
+            die "${ECLASS} failed"
+        "#};
+        t.create_eclass("e1", eclass).unwrap();
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+            inherit e1
+        "#};
+        t.create_eclass("e2", eclass).unwrap();
+
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            inherit e2
+            DESCRIPTION="testing for nested eclass errors"
+            SLOT=0
+        "#};
+        let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        let r = raw_pkg.source();
+        assert_err_re!(
+            r,
+            r"^line 2: inherit: error: failed loading eclass: e2: line 2: inherit: error: failed loading eclass: e1: line 1: die: error: e1 failed$"
+        );
+    }
+
+    #[test]
     fn pkg_env() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
