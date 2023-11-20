@@ -432,11 +432,15 @@ pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
     };
 
     // push error message into shared memory so subshell errors can be captured
-    shell::set_shm_error(&msg);
+    if matches!(err, Error::Bail(_)) {
+        shell::set_shm_error(&format!("scallop-bail: {msg}"));
 
-    // exit subshell with status causing the main process to longjmp to the entry point
-    if matches!(err, Error::Bail(_)) && !shell::in_main() {
-        process::exit(bash::EX_LONGJMP as i32);
+        // exit subshell with status causing the main process to longjmp to the entry point
+        if !shell::in_main() {
+            process::exit(bash::EX_LONGJMP as i32);
+        }
+    } else {
+        shell::set_shm_error(&msg);
     }
 
     ExecStatus::from(err)

@@ -22,15 +22,15 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // run the specified command
     let cmd = Command::new(args.join(" "), Some(Flags::FORCE_SUBSHELL))?;
-    let status = match cmd.execute() {
-        Ok(s) => s,
-        Err(Error::Status(s)) => s,
-        _ => ExecStatus::Failure(1),
+    let result = match cmd.execute() {
+        r @ (Ok(_) | Err(Error::Bail(_))) => r,
+        Err(Error::Status(s)) => Ok(s),
+        _ => Ok(ExecStatus::Failure(1)),
     };
 
     // disable nonfatal status
     build.nonfatal = false;
-    Ok(status)
+    result
 }
 
 const USAGE: &str = "nonfatal cmd arg1 arg2";

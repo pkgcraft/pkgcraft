@@ -31,6 +31,7 @@ impl ParseCallbacks for BashCallback {
             "restricted" => Some("RESTRICTED".into()),
             "restricted_shell" => Some("RESTRICTED_SHELL".into()),
             "shell_pgrp" => Some("SHELL_PID".into()),
+            "top_level" => Some("TOP_LEVEL".into()),
             // global constants
             "dist_version" => Some("DIST_VERSION".into()),
             "patch_level" => Some("PATCH_LEVEL".into()),
@@ -90,6 +91,9 @@ fn main() {
         .clang_arg(format!("-I{bash_repo_dir}"))
         .clang_arg(format!("-I{bash_repo_dir}/include"))
         .clang_arg(format!("-I{bash_repo_dir}/builtins"))
+
+        .header("bash/bashjmp.h")
+        .allowlist_var("top_level")
 
         .header("bash/builtins.h")
         .allowlist_var("BUILTIN_.*")

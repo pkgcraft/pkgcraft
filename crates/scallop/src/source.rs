@@ -3,6 +3,7 @@ use std::ffi::CString;
 use bitflags::bitflags;
 
 use crate::error::{ok_or_error, Error};
+use crate::shell::track_top_level;
 use crate::{bash, ExecStatus};
 
 bitflags! {
@@ -26,7 +27,7 @@ pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
     let c_str = CString::new(s.as_ref()).unwrap();
     ok_or_error(|| {
         let flags = Eval::RESET_LINE.bits() as i32;
-        let ret = unsafe { bash::scallop_evalstring(c_str.as_ptr(), flags) };
+        let ret = track_top_level(|| unsafe { bash::scallop_evalstring(c_str.as_ptr(), flags) });
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -39,7 +40,7 @@ pub fn file<S: AsRef<str>>(path: S) -> crate::Result<ExecStatus> {
     let path = path.as_ref();
     let c_str = CString::new(path).unwrap();
     ok_or_error(|| {
-        let ret = unsafe { bash::scallop_source_file(c_str.as_ptr()) };
+        let ret = track_top_level(|| unsafe { bash::scallop_source_file(c_str.as_ptr()) });
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {

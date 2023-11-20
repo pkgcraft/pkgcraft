@@ -74,7 +74,11 @@ pub(crate) extern "C" fn bash_error(msg: *mut c_char) {
     if !msg.is_empty() {
         let level = CALL_LEVEL.load(Ordering::Relaxed);
         ERRORS.with(|errors| {
-            let e = Error::Base(msg.to_string());
+            let e = if let Some(msg) = msg.strip_prefix("scallop-bail: ") {
+                Error::Bail(msg.to_string())
+            } else {
+                Error::Base(msg.to_string())
+            };
             errors.borrow_mut().insert(level, e);
         });
     }
