@@ -2,7 +2,6 @@ use std::ffi::{c_void, CStr, CString};
 
 use crate::error::{ok_or_error, Error};
 use crate::macros::*;
-use crate::shell::track_top_level;
 use crate::{bash, ExecStatus};
 
 #[derive(Debug)]
@@ -24,10 +23,10 @@ impl Function<'_> {
         let args = [&[self.name()], args].concat();
         let mut args = iter_to_array!(args.iter(), str_to_raw);
         ok_or_error(|| {
-            let ret = track_top_level(|| unsafe {
+            let ret = unsafe {
                 let words = bash::strvec_to_word_list(args.as_mut_ptr(), 0, 0);
                 bash::scallop_execute_shell_function(self.func, words)
-            });
+            };
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {

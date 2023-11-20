@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::ffi::{c_char, c_int, CStr, CString};
 use std::sync::OnceLock;
 use std::{env, mem, process, ptr};
@@ -164,30 +163,6 @@ where
     }
 
     result
-}
-
-thread_local! {
-    static JMP_BUFFERS: RefCell<Vec<bash::jmp_buf>> = RefCell::new(Default::default());
-}
-
-/// Execute a bash function, tracking and restoring the top level jump buffer used for error
-/// handling. This supports rewinding up the call stack for nested builtin calls stemming from an
-/// original source or execution call allowing for error messages with full context.
-pub(crate) fn track_top_level<F>(func: F) -> c_int
-where
-    F: FnOnce() -> c_int,
-{
-    JMP_BUFFERS.with(|buffers| unsafe {
-        // save current top level jump buffer
-        buffers.borrow_mut().push(bash::TOP_LEVEL);
-        // run the bash function
-        let result = func();
-        // restore previous top level jump buffer
-        if let Some(buf) = buffers.borrow_mut().pop() {
-            bash::TOP_LEVEL = buf;
-        }
-        result
-    })
 }
 
 /// Version string related to the bundled bash release.

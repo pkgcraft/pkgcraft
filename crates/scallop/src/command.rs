@@ -6,7 +6,6 @@ use bitflags::bitflags;
 use once_cell::sync::Lazy;
 
 use crate::error::{ok_or_error, Error};
-use crate::shell::track_top_level;
 use crate::{bash, ExecStatus};
 
 bitflags! {
@@ -38,11 +37,9 @@ impl Command {
     }
 
     pub fn execute(&self) -> crate::Result<ExecStatus> {
-        ok_or_error(|| {
-            match track_top_level(|| unsafe { bash::scallop_execute_command(self.ptr) }) {
-                0 => Ok(ExecStatus::Success),
-                n => Err(Error::Status(ExecStatus::Failure(n))),
-            }
+        ok_or_error(|| match unsafe { bash::scallop_execute_command(self.ptr) } {
+            0 => Ok(ExecStatus::Success),
+            n => Err(Error::Status(ExecStatus::Failure(n))),
         })
     }
 }
