@@ -138,10 +138,8 @@ fn main() {
         .allowlist_var("this_command_name")
         .allowlist_var("subshell_level")
         .allowlist_var("executing_builtin")
-        .allowlist_function("execute_command")
         .allowlist_function("executing_line_number")
         .allowlist_function("scallop_execute_command")
-        .allowlist_function("execute_shell_function")
         .allowlist_function("scallop_execute_shell_function")
 
         .header("bash/variables.h")
