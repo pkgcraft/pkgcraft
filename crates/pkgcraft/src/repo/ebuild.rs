@@ -469,7 +469,12 @@ impl Repo {
                     }
                 },
                 Err(e) => {
-                    warn!("{}: failed walking repo: {e}", self.id());
+                    if e.io_error()
+                        .map(|e| e.kind() != io::ErrorKind::NotFound)
+                        .unwrap_or(true)
+                    {
+                        warn!("{}: failed walking repo: {e}", self.id());
+                    }
                     None
                 }
             }
