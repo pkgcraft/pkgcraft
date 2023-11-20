@@ -20,6 +20,10 @@ pub struct Command {
     #[arg(short, long)]
     no_progress: bool,
 
+    /// Allow output to stderr and stdout (suppressed by default)
+    #[arg(short, long)]
+    output: bool,
+
     // positionals
     /// Target repositories
     #[arg(value_name = "REPO", default_value = ".")]
@@ -29,9 +33,9 @@ pub struct Command {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // run metadata regeneration displaying a progress bar if stdout is a terminal
-        let progress = stdout().is_terminal() && !self.no_progress;
+        let progress = stdout().is_terminal() && !self.no_progress && !self.output;
         for repo in target_ebuild_repos(config, &self.repos)? {
-            repo.pkg_metadata_regen(self.jobs, self.force, progress)?;
+            repo.pkg_metadata_regen(self.jobs, self.force, progress, !self.output)?;
         }
 
         Ok(ExitCode::SUCCESS)

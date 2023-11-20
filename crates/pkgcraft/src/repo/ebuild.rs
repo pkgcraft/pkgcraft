@@ -492,13 +492,14 @@ impl Repo {
         jobs: Option<usize>,
         force: bool,
         progress: bool,
+        suppress: bool,
     ) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| {
             let pkg = ebuild::raw::Pkg::new(cpv, self)?;
             pkg.regen()
         };
-        let pool = PoolSendIter::new(bounded_jobs(jobs), func, true)?;
+        let pool = PoolSendIter::new(bounded_jobs(jobs), func, suppress)?;
 
         // use progress bar to show completion progress if enabled
         let pb = if progress {
@@ -1255,7 +1256,8 @@ mod tests {
         "#};
         t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
 
-        repo.pkg_metadata_regen(Some(1), false, false).unwrap();
+        repo.pkg_metadata_regen(Some(1), false, false, true)
+            .unwrap();
 
         let metadata = indoc::indoc! {r"
             DEFINED_PHASES=-
@@ -1288,7 +1290,7 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = repo.pkg_metadata_regen(None, false, false);
+        let r = repo.pkg_metadata_regen(None, false, false, true);
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors
