@@ -54,10 +54,10 @@ mod tests {
         build.scope = Scope::Phase(PhaseKind::SrcInstall);
 
         // unset PIPESTATUS
-        source::string("assert").unwrap();
+        assert!(source::string("assert").is_ok());
 
         // successful pipeline
-        source::string("true | true; assert").unwrap();
+        assert!(source::string("true | true; assert").is_ok());
     }
 
     #[test]
@@ -84,15 +84,23 @@ mod tests {
         build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("FOO=$(true | false; assert); VAR=2");
-        assert_err_re!(r, r"^line 1: assert: error: \(no error message\)");
-
-        // verify bash state
+        // forced subshell
+        let r = source::string("(true | false; assert msg); VAR=2");
+        assert_err_re!(r, "^line 1: assert: error: msg$");
         assert_eq!(variables::optional("VAR").unwrap(), "1");
 
-        // verify message output
-        let r = source::string("VAR=$(true | false; assert \"output message\")");
-        assert_err_re!(r, "^line 1: assert: error: output message");
+        // command substitution
+        let r = source::string("VAR=$(true | false; assert msg); VAR=2");
+        assert_err_re!(r, "^line 1: assert: error: msg$");
+
+        // process substitution
+        let r = source::string("echo >$(true | false; assert msg); VAR=2");
+        assert_err_re!(r, "^line 1: assert: error: msg$");
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
+
+        // no message
+        let r = source::string("VAR=$(true | false; assert)");
+        assert_err_re!(r, r"^line 1: assert: error: \(no error message\)$");
     }
 
     #[test]

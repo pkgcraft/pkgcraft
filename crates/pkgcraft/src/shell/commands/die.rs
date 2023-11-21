@@ -86,15 +86,24 @@ mod tests {
         build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
 
-        let r = source::string("FOO=$(die); VAR=2");
-        assert_err_re!(r, r"^line 1: die: error: \(no error message\)$");
-
-        // verify bash state
+        // forced subshell
+        let r = source::string("(die msg); VAR=2");
+        assert_err_re!(r, "^line 1: die: error: msg$");
         assert_eq!(variables::optional("VAR").unwrap(), "1");
 
-        // verify message output
-        let r = source::string("VAR=$(die \"output message\")");
-        assert_err_re!(r, "^line 1: die: error: output message$");
+        // command substitution
+        let r = source::string("VAR=$(die msg); VAR=2");
+        assert_err_re!(r, "^line 1: die: error: msg$");
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
+
+        // process substitution
+        let r = source::string("echo >$(die msg); VAR=2");
+        assert_err_re!(r, "^line 1: die: error: msg$");
+        assert_eq!(variables::optional("VAR").unwrap(), "1");
+
+        // no message
+        let r = source::string("VAR=$(die)");
+        assert_err_re!(r, r"^line 1: die: error: \(no error message\)$");
 
         // verify failure during build
         let mut config = Config::default();
