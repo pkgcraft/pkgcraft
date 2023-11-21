@@ -80,7 +80,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_os = "macos", ignore)] // TODO: debug bash failures
     fn subshell() {
         let build = get_build_mut();
         build.scope = Scope::Phase(PhaseKind::SrcInstall);
