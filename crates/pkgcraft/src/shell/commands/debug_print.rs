@@ -1,4 +1,5 @@
 use scallop::ExecStatus;
+use tracing::debug;
 
 use super::make_builtin;
 
@@ -7,8 +8,8 @@ If in a special debug mode, the arguments should be outputted or recorded using 
 logging.";
 
 #[doc = stringify!(LONG_DOC)]
-fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
-    // TODO: fill out this stub
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    debug!("{}", args.join(" "));
     Ok(ExecStatus::Success)
 }
 
