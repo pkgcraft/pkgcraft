@@ -6,6 +6,7 @@ use camino::Utf8Path;
 use enum_as_inner::EnumAsInner;
 use indexmap::{IndexMap, IndexSet};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
+use tracing::debug;
 
 use crate::config::RepoConfig;
 use crate::dep::{Cpv, Dep, Version};
@@ -152,7 +153,7 @@ impl Repo {
 
         for format in RepoFormat::iter() {
             match format.load_from_path(id, priority, path, finalize) {
-                Err(e @ Error::NotARepo { .. }) => tracing::debug!("{e}"),
+                Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(e) => return Err(e),
                 result => return result,
             }
@@ -178,7 +179,7 @@ impl Repo {
 
         for format in RepoFormat::iter() {
             match format.load_from_nested_path(id, priority, path, finalize) {
-                Err(e @ Error::NotARepo { .. }) => tracing::debug!("{e}"),
+                Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(e) => return Err(e),
                 result => return result,
             }
