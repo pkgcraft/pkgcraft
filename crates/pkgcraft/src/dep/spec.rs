@@ -2,6 +2,7 @@ use std::borrow::Borrow;
 use std::fmt;
 use std::hash::Hash;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
+use std::str::FromStr;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -254,6 +255,15 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
 impl<S: UseFlag, T: Ordered> From<T> for DepSpec<S, T> {
     fn from(obj: T) -> Self {
         DepSpec::Enabled(obj)
+    }
+}
+
+impl FromStr for DepSpec<String, Dep> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let eapi = Default::default();
+        super::parse::dependencies_dep_spec(s, eapi)
     }
 }
 
@@ -604,6 +614,15 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a DepSpec<String, T>> for DepSet<&'a St
 impl<S: UseFlag, T: Ordered> FromIterator<T> for DepSet<S, T> {
     fn from_iter<I: IntoIterator<Item = T>>(iterable: I) -> Self {
         Self(iterable.into_iter().map(|x| DepSpec::Enabled(x)).collect())
+    }
+}
+
+impl FromStr for DepSet<String, Dep> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let eapi = Default::default();
+        super::parse::dependencies_dep_set(s, eapi)
     }
 }
 
