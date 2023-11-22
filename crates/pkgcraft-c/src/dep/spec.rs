@@ -624,8 +624,8 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_parse(
 pub unsafe extern "C" fn pkgcraft_dep_spec_from_dep(d: *mut Dep) -> *mut DepSpec {
     ffi_catch_panic! {
         let dep = try_ref_from_ptr!(d);
-        let spec = dep::DepSpec::Enabled(dep.clone());
-        Box::into_raw(Box::new(DepSpec::new_dep(spec)))
+        let spec = DepSpec::new_dep(dep.clone().into());
+        Box::into_raw(Box::new(spec))
     }
 }
 

@@ -251,6 +251,12 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
     }
 }
 
+impl<S: UseFlag, T: Ordered> From<T> for DepSpec<S, T> {
+    fn from(obj: T) -> Self {
+        DepSpec::Enabled(obj)
+    }
+}
+
 impl<S: UseFlag, T: Ordered> Contains<&Self> for DepSpec<S, T> {
     fn contains(&self, dep: &Self) -> bool {
         use DepSpec::*;
