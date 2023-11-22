@@ -632,7 +632,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_from_dep(d: *mut Dep) -> *mut DepSpec
 /// Evaluate a DepSet.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
     d: *mut DepSet,
@@ -661,7 +661,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
 /// Forcibly evaluate a DepSet.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_evaluate_force(
     d: *mut DepSet,
@@ -687,7 +687,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate_force(
 /// Returns true if two DepSets have no elements in common.
 ///
 /// # Safety
-/// The arguments must be a non-null DepSet pointers.
+/// The arguments must be a valid DepSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_is_disjoint(d1: *mut DepSet, d2: *mut DepSet) -> bool {
     let d1 = try_ref_from_ptr!(d1);
@@ -705,7 +705,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_disjoint(d1: *mut DepSet, d2: *mut 
 /// Returns true if a DepSet is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_is_empty(d: *mut DepSet) -> bool {
     let deps = try_ref_from_ptr!(d);
@@ -720,7 +720,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_empty(d: *mut DepSet) -> bool {
 /// Returns true if all the elements of the first DepSet are contained in the second.
 ///
 /// # Safety
-/// The arguments must be a non-null DepSet pointers.
+/// The arguments must be a valid DepSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_is_subset(d1: *mut DepSet, d2: *mut DepSet) -> bool {
     let d1 = try_ref_from_ptr!(d1);
@@ -740,7 +740,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_subset(d1: *mut DepSet, d2: *mut De
 /// Returns NULL on index nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_get_index(d: *mut DepSet, index: usize) -> *mut DepSpec {
     ffi_catch_panic! {
@@ -775,7 +775,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_get_index(d: *mut DepSet, index: usize
 /// Returns false if an equivalent value already exists, otherwise true.
 ///
 /// # Safety
-/// The arguments must be non-null DepSet and DepSpec pointers.
+/// The arguments must be valid DepSet and DepSpec pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_insert(d: *mut DepSet, value: *mut DepSpec) -> bool {
     let set = try_mut_from_ptr!(d);
@@ -794,7 +794,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_insert(d: *mut DepSet, value: *mut Dep
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_pop(d: *mut DepSet) -> *mut DepSpec {
     let set = try_mut_from_ptr!(d);
@@ -814,7 +814,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_pop(d: *mut DepSet) -> *mut DepSpec {
 /// Returns NULL on index nonexistence or if the DepSet already contains the given DepSpec.
 ///
 /// # Safety
-/// The arguments must be non-null DepSet and DepSpec pointers.
+/// The arguments must be valid DepSet and DepSpec pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_replace_index(
     d: *mut DepSet,
@@ -845,7 +845,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_replace_index(
 /// Returns NULL on nonexistence or if the DepSet already contains the given DepSpec.
 ///
 /// # Safety
-/// The arguments must be non-null DepSet and DepSpec pointers.
+/// The arguments must be valid DepSet and DepSpec pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_replace(
     d: *mut DepSet,
@@ -877,7 +877,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_replace(
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The arguments must be non-null DepSet pointers.
+/// The arguments must be valid DepSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_assign_op_set(
     op: SetOp,
@@ -903,7 +903,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_assign_op_set(
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The arguments must be non-null DepSet pointers.
+/// The arguments must be valid DepSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_op_set(
     op: SetOp,
@@ -927,7 +927,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_op_set(
 /// Return the formatted string for a DepSet object.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_str(d: *mut DepSet) -> *mut c_char {
     let deps = try_ref_from_ptr!(d);
@@ -937,7 +937,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_str(d: *mut DepSet) -> *mut c_char {
 /// Determine if two DepSets are equal.
 ///
 /// # Safety
-/// The arguments must be non-null DepSet pointers.
+/// The arguments must be valid DepSet pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_eq(d1: *mut DepSet, d2: *mut DepSet) -> bool {
     let d1 = try_ref_from_ptr!(d1);
@@ -948,7 +948,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_eq(d1: *mut DepSet, d2: *mut DepSet) -
 /// Determine if a DepSet contains a given DepSpec.
 ///
 /// # Safety
-/// The arguments must be non-null DepSet and DepSpec pointers.
+/// The arguments must be valid DepSet and DepSpec pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_contains(s: *mut DepSet, d: *mut DepSpec) -> bool {
     let s = try_ref_from_ptr!(s);
@@ -965,7 +965,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_contains(s: *mut DepSet, d: *mut DepSp
 /// Return the hash value for a DepSet.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
     let deps = try_ref_from_ptr!(d);
@@ -975,7 +975,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
 /// Return a DepSet's length.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_len(d: *mut DepSet) -> usize {
     let deps = try_ref_from_ptr!(d);
@@ -990,7 +990,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_len(d: *mut DepSet) -> usize {
 /// Return an iterator for a DepSet.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepSpecIntoIter {
     let deps = try_ref_from_ptr!(d);
@@ -1007,7 +1007,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepS
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIter pointer.
+/// The argument must be a valid DepSpecIntoIter pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next(i: *mut DepSpecIntoIter) -> *mut DepSpec {
     let iter = try_mut_from_ptr!(i);
@@ -1019,7 +1019,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next(i: *mut DepSpecIntoIter
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIter pointer.
+/// The argument must be a valid DepSpecIntoIter pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next_back(
     i: *mut DepSpecIntoIter,
@@ -1031,7 +1031,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next_back(
 /// Free a DepSet iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIter pointer or NULL.
+/// The argument must be a valid DepSpecIntoIter pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_free(i: *mut DepSpecIntoIter) {
     if !i.is_null() {
@@ -1042,7 +1042,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_free(i: *mut DepSpecIntoIter
 /// Evaluate a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate(
     d: *mut DepSpec,
@@ -1077,7 +1077,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate(
 /// Forcibly evaluate a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate_force(
     d: *mut DepSpec,
@@ -1110,7 +1110,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate_force(
 /// than the second, respectively.
 ///
 /// # Safety
-/// The arguments must be non-null DepSpec pointers.
+/// The arguments must be valid DepSpec pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpec) -> c_int {
     let d1 = try_ref_from_ptr!(d1);
@@ -1126,7 +1126,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpe
 /// Determine if a DepSpec contains a given DepSpec.
 ///
 /// # Safety
-/// The arguments must be non-null DepSpec pointers.
+/// The arguments must be valid DepSpec pointers.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_contains(d1: *mut DepSpec, d2: *mut DepSpec) -> bool {
     let d1 = try_ref_from_ptr!(d1);
@@ -1144,7 +1144,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_contains(d1: *mut DepSpec, d2: *mut D
 /// Return the hash value for a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_hash(d: *mut DepSpec) -> u64 {
     let deps = try_ref_from_ptr!(d);
@@ -1154,7 +1154,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_hash(d: *mut DepSpec) -> u64 {
 /// Return a DepSpec's length.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_len(d: *mut DepSpec) -> usize {
     let deps = try_ref_from_ptr!(d);
@@ -1180,7 +1180,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_free(r: *mut DepSpec) {
 /// Return the formatted string for a DepSpec object.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_str(d: *mut DepSpec) -> *mut c_char {
     let deps = try_ref_from_ptr!(d);
@@ -1190,7 +1190,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_str(d: *mut DepSpec) -> *mut c_char {
 /// Return an iterator for a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter(d: *mut DepSpec) -> *mut DepSpecIntoIter {
     let deps = try_ref_from_ptr!(d);
@@ -1205,7 +1205,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter(d: *mut DepSpec) -> *mut De
 /// Return a flatten iterator for a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_flatten(
     d: *mut DepSpec,
@@ -1222,7 +1222,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_flatten(
 /// Return a flatten iterator for a DepSet.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
     d: *mut DepSet,
@@ -1241,7 +1241,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIterFlatten pointer.
+/// The argument must be a valid DepSpecIntoIterFlatten pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_next(
     i: *mut DepSpecIntoIterFlatten,
@@ -1253,7 +1253,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_next(
 /// Free a flatten iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIterFlatten pointer or NULL.
+/// The argument must be a valid DepSpecIntoIterFlatten pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_free(i: *mut DepSpecIntoIterFlatten) {
     if !i.is_null() {
@@ -1264,7 +1264,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_free(i: *mut DepSpec
 /// Return a recursive iterator for a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_recursive(
     d: *mut DepSpec,
@@ -1283,7 +1283,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_recursive(
 /// Return a recursive iterator for a DepSet.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
     d: *mut DepSet,
@@ -1304,7 +1304,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIterRecursive pointer.
+/// The argument must be a valid DepSpecIntoIterRecursive pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_next(
     i: *mut DepSpecIntoIterRecursive,
@@ -1316,7 +1316,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_next(
 /// Free a recursive iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIterRecursive pointer or NULL.
+/// The argument must be a valid DepSpecIntoIterRecursive pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_free(
     i: *mut DepSpecIntoIterRecursive,
@@ -1329,7 +1329,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_free(
 /// Return a conditionals iterator for a DepSpec.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpec pointer.
+/// The argument must be a valid DepSpec pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_conditionals(
     d: *mut DepSpec,
@@ -1348,7 +1348,7 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_conditionals(
 /// Return a conditionals iterator for a DepSet.
 ///
 /// # Safety
-/// The argument must be a non-null DepSet pointer.
+/// The argument must be a valid DepSet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals(
     d: *mut DepSet,
@@ -1367,7 +1367,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIterConditionals pointer.
+/// The argument must be a valid DepSpecIntoIterConditionals pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals_next(
     i: *mut DepSpecIntoIterConditionals,
@@ -1381,7 +1381,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals_next(
 /// Free a conditionals iterator.
 ///
 /// # Safety
-/// The argument must be a non-null DepSpecIntoIterConditionals pointer or NULL.
+/// The argument must be a valid DepSpecIntoIterConditionals pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals_free(
     i: *mut DepSpecIntoIterConditionals,
@@ -1435,7 +1435,7 @@ pub unsafe extern "C" fn pkgcraft_uri_str(u: *mut Uri) -> *mut c_char {
 /// Free a Uri object.
 ///
 /// # Safety
-/// The argument must be a non-null Uri pointer or NULL.
+/// The argument must be a valid Uri pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_uri_free(u: *mut Uri) {
     if !u.is_null() {
