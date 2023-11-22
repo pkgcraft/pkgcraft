@@ -950,7 +950,10 @@ pub unsafe extern "C" fn pkgcraft_dep_set_eq(d1: *mut DepSet, d2: *mut DepSet) -
 /// # Safety
 /// The arguments must be valid DepSet and DepSpec pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_contains(s: *mut DepSet, d: *mut DepSpec) -> bool {
+pub unsafe extern "C" fn pkgcraft_dep_set_contains_dep_spec(
+    s: *mut DepSet,
+    d: *mut DepSpec,
+) -> bool {
     let s = try_ref_from_ptr!(s);
     let d = try_ref_from_ptr!(d);
 
@@ -1128,7 +1131,10 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpe
 /// # Safety
 /// The arguments must be valid DepSpec pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_contains(d1: *mut DepSpec, d2: *mut DepSpec) -> bool {
+pub unsafe extern "C" fn pkgcraft_dep_spec_contains_dep_spec(
+    d1: *mut DepSpec,
+    d2: *mut DepSpec,
+) -> bool {
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
 
