@@ -18,7 +18,7 @@ use crate::panic::ffi_catch_panic;
 pub unsafe extern "C" fn pkgcraft_revision_new(s: *const c_char) -> *mut Revision {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let rev = unwrap_or_panic!(s.parse::<Revision>());
+        let rev = unwrap_or_panic!(Revision::new(s));
         Box::into_raw(Box::new(rev))
     }
 }

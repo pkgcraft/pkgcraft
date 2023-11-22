@@ -26,20 +26,29 @@ pub struct Revision {
     int: u64,
 }
 
-impl FromStr for Revision {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        if s.is_empty() {
-            Ok(Revision::default())
+impl Revision {
+    /// Create a new Revision from a given string.
+    pub fn new(s: &str) -> crate::Result<Self> {
+        let rev = if s.is_empty() {
+            Self::default()
         } else {
-            Ok(Revision {
+            Self {
                 value: Some(s.to_string()),
                 int: s
                     .parse()
                     .map_err(|e| Error::Overflow(format!("invalid revision: {e}: {s}")))?,
-            })
-        }
+            }
+        };
+
+        Ok(rev)
+    }
+}
+
+impl FromStr for Revision {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        Self::new(s)
     }
 }
 
