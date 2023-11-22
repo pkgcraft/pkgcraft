@@ -1225,18 +1225,23 @@ mod tests {
     #[test]
     fn dep_spec_contains() {
         let dep = Dep::new("cat/pkg").unwrap();
-        for s in ["cat/pkg", "( cat/pkg )", "u? ( cat/pkg )"] {
-            let spec: DepSpec<String, Dep> = s.parse().unwrap();
-            assert!(spec.contains(&dep));
+        let spec = DepSpec::from_str("cat/pkg").unwrap();
+        for s in ["( cat/pkg )", "u? ( cat/pkg )"] {
+            let d: DepSpec<String, Dep> = s.parse().unwrap();
+            assert!(d.contains(&dep), "{d} doesn't contain {dep}");
+            assert!(!d.contains(&d), "{d} contains itself");
+            assert!(d.contains(&spec), "{d} doesn't contain {spec}");
         }
     }
 
     #[test]
     fn dep_set_contains() {
         let dep = Dep::new("cat/pkg").unwrap();
-        for s in ["cat/pkg", "( cat/pkg )", "u? ( cat/pkg )", "a/b cat/pkg"] {
+        let spec = DepSpec::from_str("cat/pkg").unwrap();
+        for s in ["cat/pkg", "a/b cat/pkg"] {
             let set: DepSet<String, Dep> = s.parse().unwrap();
-            assert!(set.contains(&dep));
+            assert!(set.contains(&dep), "{set} doesn't contain {dep}");
+            assert!(set.contains(&spec), "{set} doesn't contain {spec}");
         }
     }
 }
