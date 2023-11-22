@@ -64,20 +64,38 @@ impl PartialEq for Revision {
     }
 }
 
+impl PartialEq<u64> for Revision {
+    fn eq(&self, other: &u64) -> bool {
+        &self.int == other
+    }
+}
+
+impl PartialEq<&str> for Revision {
+    fn eq(&self, other: &&str) -> bool {
+        match &self.value {
+            Some(s) => s == other,
+            None => other.is_empty(),
+        }
+    }
+}
+
+impl PartialEq<Revision> for u64 {
+    fn eq(&self, other: &Revision) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<Revision> for &str {
+    fn eq(&self, other: &Revision) -> bool {
+        other == self
+    }
+}
+
 impl Eq for Revision {}
 
 impl Hash for Revision {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.int.hash(state);
-    }
-}
-
-impl PartialEq<str> for Revision {
-    fn eq(&self, other: &str) -> bool {
-        match &self.value {
-            Some(s) => s == other,
-            None => "0" == other,
-        }
     }
 }
 
@@ -491,7 +509,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_and_valid() {
+    fn ver_new_and_valid() {
         // invalid
         for s in &TEST_DATA.version_toml.invalid {
             let result = Version::valid(s);
@@ -510,7 +528,42 @@ mod tests {
     }
 
     #[test]
-    fn test_cmp() {
+    fn rev_new_and_parse() {
+        // invalid
+        for s in ["a", "a1", "1.1", ".1"] {
+            assert!(s.parse::<Revision>().is_err());
+            assert!(Revision::new(s).is_err());
+        }
+
+        // empty
+        let rev = Revision::new("").unwrap();
+        assert_eq!(rev, 0);
+        assert_eq!(0, rev);
+        assert_eq!(rev, "");
+        assert_eq!("", rev);
+        assert_eq!(rev, Revision::default());
+        assert_eq!(rev.to_string(), "");
+
+        // simple integer
+        let rev1 = Revision::new("1").unwrap();
+        assert_eq!(rev1, 1);
+        assert_eq!(1, rev1);
+        assert_eq!(rev1, "1");
+        assert_eq!("1", rev1);
+        assert_eq!(rev1.to_string(), "1");
+
+        // zero prefixes are technically allowed
+        let rev2 = Revision::new("01").unwrap();
+        assert_eq!(rev2, 1);
+        assert_eq!(1, rev2);
+        assert_eq!(rev2, "01");
+        assert_eq!("01", rev2);
+        assert_eq!(rev2.to_string(), "01");
+        assert_eq!(rev1, rev2);
+    }
+
+    #[test]
+    fn ver_compare() {
         let op_map: HashMap<_, _> =
             [("<", Ordering::Less), ("==", Ordering::Equal), (">", Ordering::Greater)]
                 .into_iter()
@@ -537,7 +590,7 @@ mod tests {
     }
 
     #[test]
-    fn test_intersects() {
+    fn ver_intersects() {
         for d in &TEST_DATA.version_toml.intersects {
             // test intersections between all pairs of distinct values
             let permutations = d
@@ -565,7 +618,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sorting() {
+    fn ver_sorting() {
         for d in &TEST_DATA.version_toml.sorting {
             let mut reversed: Vec<Version> =
                 d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
@@ -580,7 +633,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hashing() {
+    fn ver_hashing() {
         for d in &TEST_DATA.version_toml.hashing {
             let set: HashSet<Version> = d.versions.iter().map(|s| s.parse().unwrap()).collect();
             if d.equal {
