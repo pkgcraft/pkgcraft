@@ -462,7 +462,6 @@ impl FromStr for Version {
 }
 
 /// Version wrapper that ignores revisions and operators during comparisons.
-#[derive(Debug)]
 struct NonRevisionVersion<'a>(&'a Version);
 
 impl PartialEq for NonRevisionVersion<'_> {
@@ -474,7 +473,6 @@ impl PartialEq for NonRevisionVersion<'_> {
 impl Eq for NonRevisionVersion<'_> {}
 
 /// Version wrapper that ignores operators during comparisons.
-#[derive(Debug)]
 struct NonOpVersion<'a>(&'a Version);
 
 impl PartialEq for NonOpVersion<'_> {
