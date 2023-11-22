@@ -282,6 +282,12 @@ impl<S: UseFlag, T: Ordered> Contains<&Self> for DepSpec<S, T> {
     }
 }
 
+impl<S: UseFlag, T: Ordered> Contains<&T> for DepSpec<S, T> {
+    fn contains(&self, obj: &T) -> bool {
+        self.iter_flatten().any(|x| x == obj)
+    }
+}
+
 impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DepSpec<S, T> {
     type Item = &'a DepSpec<S, T>;
     type IntoIter = Iter<'a, S, T>;
@@ -689,6 +695,12 @@ impl<S: UseFlag, T: Ordered> SubAssign<&Self> for DepSet<S, T> {
 impl<S: UseFlag, T: Ordered> Contains<&DepSpec<S, T>> for DepSet<S, T> {
     fn contains(&self, dep: &DepSpec<S, T>) -> bool {
         self.0.contains(dep)
+    }
+}
+
+impl<S: UseFlag, T: Ordered> Contains<&T> for DepSet<S, T> {
+    fn contains(&self, obj: &T) -> bool {
+        self.iter_flatten().any(|x| x == obj)
     }
 }
 
@@ -1202,6 +1214,29 @@ impl Restriction<&DepSet<String, Dep>> for BaseRestrict {
     fn matches(&self, val: &DepSet<String, Dep>) -> bool {
         crate::restrict::restrict_match! {self, val,
             Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dep_spec_contains() {
+        let dep = Dep::new("cat/pkg").unwrap();
+        for s in ["cat/pkg", "( cat/pkg )", "u? ( cat/pkg )"] {
+            let spec: DepSpec<String, Dep> = s.parse().unwrap();
+            assert!(spec.contains(&dep));
+        }
+    }
+
+    #[test]
+    fn dep_set_contains() {
+        let dep = Dep::new("cat/pkg").unwrap();
+        for s in ["cat/pkg", "( cat/pkg )", "u? ( cat/pkg )", "a/b cat/pkg"] {
+            let set: DepSet<String, Dep> = s.parse().unwrap();
+            assert!(set.contains(&dep));
         }
     }
 }
