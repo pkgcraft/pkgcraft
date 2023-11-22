@@ -199,8 +199,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.depend().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_dep(dep)))
+    let set = DepSet::new_dep(pkg.depend().clone());
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's BDEPEND.
@@ -210,8 +210,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet 
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.bdepend().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_dep(dep)))
+    let set = DepSet::new_dep(pkg.bdepend().clone());
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's IDEPEND.
@@ -221,8 +221,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.idepend().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_dep(dep)))
+    let set = DepSet::new_dep(pkg.idepend().clone());
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's PDEPEND.
@@ -232,8 +232,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.pdepend().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_dep(dep)))
+    let set = DepSet::new_dep(pkg.pdepend().clone());
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's RDEPEND.
@@ -243,8 +243,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.rdepend().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_dep(dep)))
+    let set = DepSet::new_dep(pkg.rdepend().clone());
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's LICENSE.
@@ -254,8 +254,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.license().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_string(dep, DepSetKind::License)))
+    let set = DepSet::new_string(pkg.license().clone(), DepSetKind::License);
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's PROPERTIES.
@@ -265,8 +265,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.properties().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_string(dep, DepSetKind::Properties)))
+    let set = DepSet::new_string(pkg.properties().clone(), DepSetKind::Properties);
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's REQUIRED_USE.
@@ -276,8 +276,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut Dep
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.required_use().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_string(dep, DepSetKind::RequiredUse)))
+    let set = DepSet::new_string(pkg.required_use().clone(), DepSetKind::RequiredUse);
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's RESTRICT.
@@ -287,8 +287,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut D
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.restrict().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_string(dep, DepSetKind::Restrict)))
+    let set = DepSet::new_string(pkg.restrict().clone(), DepSetKind::Restrict);
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's SRC_URI.
@@ -298,8 +298,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSe
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_src_uri(p: *mut Pkg) -> *mut DepSet {
     let pkg = try_pkg_from_ptr!(p);
-    let dep = pkg.src_uri().cloned().unwrap_or_else(Default::default);
-    Box::into_raw(Box::new(DepSet::new_uri(dep)))
+    let set = DepSet::new_uri(pkg.src_uri().clone());
+    Box::into_raw(Box::new(set))
 }
 
 /// Return a package's homepage.

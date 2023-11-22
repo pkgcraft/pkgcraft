@@ -22,9 +22,7 @@ pub fn bench_depsets(c: &mut Criterion) {
 
     c.bench_function("depset-restrict-dep", |b| {
         let r = Restrict::from(&Dep::from_str("c/p5").unwrap());
-        let depset = dep::parse::dependencies_dep_set(deps, &EAPI_LATEST_OFFICIAL)
-            .unwrap()
-            .unwrap();
+        let depset = dep::parse::dependencies_dep_set(deps, &EAPI_LATEST_OFFICIAL).unwrap();
         b.iter(|| assert!(r.matches(&depset)));
     });
 }

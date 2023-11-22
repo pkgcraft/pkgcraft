@@ -538,27 +538,27 @@ pub unsafe extern "C" fn pkgcraft_dep_set_parse(
         let depset = match kind {
             Dependencies => {
                 let opt_dep = unwrap_or_panic!(dep::parse::dependencies_dep_set(s, eapi));
-                DepSet::new_dep(opt_dep.unwrap_or_default())
+                DepSet::new_dep(opt_dep)
             },
             SrcUri => {
                 let opt_dep = unwrap_or_panic!(dep::parse::src_uri_dep_set(s, eapi));
-                DepSet::new_uri(opt_dep.unwrap_or_default())
+                DepSet::new_uri(opt_dep)
             },
             License => {
                 let opt_dep = unwrap_or_panic!(dep::parse::license_dep_set(s));
-                DepSet::new_string(opt_dep.unwrap_or_default(), kind)
+                DepSet::new_string(opt_dep, kind)
             },
             Properties => {
                 let opt_dep = unwrap_or_panic!(dep::parse::properties_dep_set(s));
-                DepSet::new_string(opt_dep.unwrap_or_default(), kind)
+                DepSet::new_string(opt_dep, kind)
             },
             RequiredUse => {
                 let opt_dep = unwrap_or_panic!(dep::parse::required_use_dep_set(s, eapi));
-                DepSet::new_string(opt_dep.unwrap_or_default(), kind)
+                DepSet::new_string(opt_dep, kind)
             },
             Restrict => {
                 let opt_dep = unwrap_or_panic!(dep::parse::restrict_dep_set(s));
-                DepSet::new_string(opt_dep.unwrap_or_default(), kind)
+                DepSet::new_string(opt_dep, kind)
             },
         };
 

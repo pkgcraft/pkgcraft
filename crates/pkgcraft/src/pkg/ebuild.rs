@@ -110,11 +110,11 @@ impl<'a> Pkg<'a> {
 
         keys.into_iter()
             .filter_map(|k| match k {
-                BDEPEND => self.bdepend(),
-                DEPEND => self.depend(),
-                IDEPEND => self.idepend(),
-                PDEPEND => self.pdepend(),
-                RDEPEND => self.rdepend(),
+                BDEPEND => Some(self.bdepend()),
+                DEPEND => Some(self.depend()),
+                IDEPEND => Some(self.idepend()),
+                PDEPEND => Some(self.pdepend()),
+                RDEPEND => Some(self.rdepend()),
                 // non-dependency keys are ignored
                 _ => None,
             })
@@ -124,52 +124,52 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's BDEPEND.
-    pub fn bdepend(&self) -> Option<&DepSet<String, Dep>> {
-        self.meta.deps(Key::BDEPEND)
+    pub fn bdepend(&self) -> &DepSet<String, Dep> {
+        self.meta.bdepend()
     }
 
     /// Return a package's DEPEND.
-    pub fn depend(&self) -> Option<&DepSet<String, Dep>> {
-        self.meta.deps(Key::DEPEND)
+    pub fn depend(&self) -> &DepSet<String, Dep> {
+        self.meta.depend()
     }
 
     /// Return a package's IDEPEND.
-    pub fn idepend(&self) -> Option<&DepSet<String, Dep>> {
-        self.meta.deps(Key::IDEPEND)
+    pub fn idepend(&self) -> &DepSet<String, Dep> {
+        self.meta.idepend()
     }
 
     /// Return a package's PDEPEND.
-    pub fn pdepend(&self) -> Option<&DepSet<String, Dep>> {
-        self.meta.deps(Key::PDEPEND)
+    pub fn pdepend(&self) -> &DepSet<String, Dep> {
+        self.meta.pdepend()
     }
 
     /// Return a package's RDEPEND.
-    pub fn rdepend(&self) -> Option<&DepSet<String, Dep>> {
-        self.meta.deps(Key::RDEPEND)
+    pub fn rdepend(&self) -> &DepSet<String, Dep> {
+        self.meta.rdepend()
     }
 
     /// Return a package's LICENSE.
-    pub fn license(&self) -> Option<&DepSet<String, String>> {
+    pub fn license(&self) -> &DepSet<String, String> {
         self.meta.license()
     }
 
     /// Return a package's PROPERTIES.
-    pub fn properties(&self) -> Option<&DepSet<String, String>> {
+    pub fn properties(&self) -> &DepSet<String, String> {
         self.meta.properties()
     }
 
     /// Return a package's REQUIRED_USE.
-    pub fn required_use(&self) -> Option<&DepSet<String, String>> {
+    pub fn required_use(&self) -> &DepSet<String, String> {
         self.meta.required_use()
     }
 
     /// Return a package's RESTRICT.
-    pub fn restrict(&self) -> Option<&DepSet<String, String>> {
+    pub fn restrict(&self) -> &DepSet<String, String> {
         self.meta.restrict()
     }
 
     /// Return a package's SRC_URI.
-    pub fn src_uri(&self) -> Option<&DepSet<String, Uri>> {
+    pub fn src_uri(&self) -> &DepSet<String, Uri> {
         self.meta.src_uri()
     }
 
@@ -227,8 +227,9 @@ impl<'a> Pkg<'a> {
         // pull filenames from flattened SRC_URI
         let files: HashSet<_> = self
             .src_uri()
-            .map(|d| d.iter_flatten().map(|u| u.filename()).collect())
-            .unwrap_or_default();
+            .iter_flatten()
+            .map(|u| u.filename())
+            .collect();
 
         // filter distfiles to be package version specific
         self.manifest()

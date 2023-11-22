@@ -303,22 +303,22 @@ peg::parser!(grammar depspec() for str {
             / dependencies_val(eapi)
 
     pub(super) rule license_dep_set() -> DepSet<String, String>
-        = v:license_dep_spec() ++ " " { DepSet::from_iter(v) }
+        = v:license_dep_spec() ** " " { DepSet::from_iter(v) }
 
     pub(super) rule src_uri_dep_set(eapi: &'static Eapi) -> DepSet<String, Uri>
-        = v:src_uri_dep_spec(eapi) ++ " " { DepSet::from_iter(v) }
+        = v:src_uri_dep_spec(eapi) ** " " { DepSet::from_iter(v) }
 
     pub(super) rule properties_dep_set() -> DepSet<String, String>
-        = v:properties_dep_spec() ++ " " { DepSet::from_iter(v) }
+        = v:properties_dep_spec() ** " " { DepSet::from_iter(v) }
 
     pub(super) rule required_use_dep_set(eapi: &'static Eapi) -> DepSet<String, String>
-        = v:required_use_dep_spec(eapi) ++ " " { DepSet::from_iter(v) }
+        = v:required_use_dep_spec(eapi) ** " " { DepSet::from_iter(v) }
 
     pub(super) rule restrict_dep_set() -> DepSet<String, String>
-        = v:restrict_dep_spec() ++ " " { DepSet::from_iter(v) }
+        = v:restrict_dep_spec() ** " " { DepSet::from_iter(v) }
 
     pub(super) rule dependencies_dep_set(eapi: &'static Eapi) -> DepSet<String, Dep>
-        = v:dependencies_dep_spec(eapi) ++ " " { DepSet::from_iter(v) }
+        = v:dependencies_dep_spec(eapi) ** " " { DepSet::from_iter(v) }
 });
 
 pub fn category(s: &str) -> crate::Result<&str> {
@@ -424,14 +424,8 @@ pub(super) fn cpn(s: &str) -> crate::Result<Dep> {
     Ok(dep.into_owned())
 }
 
-pub fn license_dep_set(s: &str) -> crate::Result<Option<DepSet<String, String>>> {
-    if s.is_empty() {
-        Ok(None)
-    } else {
-        depspec::license_dep_set(s)
-            .map(Some)
-            .map_err(|e| peg_error(format!("invalid LICENSE: {s:?}"), s, e))
-    }
+pub fn license_dep_set(s: &str) -> crate::Result<DepSet<String, String>> {
+    depspec::license_dep_set(s).map_err(|e| peg_error(format!("invalid LICENSE: {s:?}"), s, e))
 }
 
 pub fn license_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
@@ -439,14 +433,9 @@ pub fn license_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
         .map_err(|e| peg_error(format!("invalid LICENSE DepSpec: {s:?}"), s, e))
 }
 
-pub fn src_uri_dep_set(s: &str, eapi: &'static Eapi) -> crate::Result<Option<DepSet<String, Uri>>> {
-    if s.is_empty() {
-        Ok(None)
-    } else {
-        depspec::src_uri_dep_set(s, eapi)
-            .map(Some)
-            .map_err(|e| peg_error(format!("invalid SRC_URI: {s:?}"), s, e))
-    }
+pub fn src_uri_dep_set(s: &str, eapi: &'static Eapi) -> crate::Result<DepSet<String, Uri>> {
+    depspec::src_uri_dep_set(s, eapi)
+        .map_err(|e| peg_error(format!("invalid SRC_URI: {s:?}"), s, e))
 }
 
 pub fn src_uri_dep_spec(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec<String, Uri>> {
@@ -454,14 +443,9 @@ pub fn src_uri_dep_spec(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec<S
         .map_err(|e| peg_error(format!("invalid SRC_URI DepSpec: {s:?}"), s, e))
 }
 
-pub fn properties_dep_set(s: &str) -> crate::Result<Option<DepSet<String, String>>> {
-    if s.is_empty() {
-        Ok(None)
-    } else {
-        depspec::properties_dep_set(s)
-            .map(Some)
-            .map_err(|e| peg_error(format!("invalid PROPERTIES: {s:?}"), s, e))
-    }
+pub fn properties_dep_set(s: &str) -> crate::Result<DepSet<String, String>> {
+    depspec::properties_dep_set(s)
+        .map_err(|e| peg_error(format!("invalid PROPERTIES: {s:?}"), s, e))
 }
 
 pub fn properties_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
@@ -469,17 +453,9 @@ pub fn properties_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
         .map_err(|e| peg_error(format!("invalid PROPERTIES DepSpec: {s:?}"), s, e))
 }
 
-pub fn required_use_dep_set(
-    s: &str,
-    eapi: &'static Eapi,
-) -> crate::Result<Option<DepSet<String, String>>> {
-    if s.is_empty() {
-        Ok(None)
-    } else {
-        depspec::required_use_dep_set(s, eapi)
-            .map(Some)
-            .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e))
-    }
+pub fn required_use_dep_set(s: &str, eapi: &'static Eapi) -> crate::Result<DepSet<String, String>> {
+    depspec::required_use_dep_set(s, eapi)
+        .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e))
 }
 
 pub fn required_use_dep_spec(
@@ -490,14 +466,8 @@ pub fn required_use_dep_spec(
         .map_err(|e| peg_error(format!("invalid REQUIRED_USE DepSpec: {s:?}"), s, e))
 }
 
-pub fn restrict_dep_set(s: &str) -> crate::Result<Option<DepSet<String, String>>> {
-    if s.is_empty() {
-        Ok(None)
-    } else {
-        depspec::restrict_dep_set(s)
-            .map(Some)
-            .map_err(|e| peg_error(format!("invalid RESTRICT: {s:?}"), s, e))
-    }
+pub fn restrict_dep_set(s: &str) -> crate::Result<DepSet<String, String>> {
+    depspec::restrict_dep_set(s).map_err(|e| peg_error(format!("invalid RESTRICT: {s:?}"), s, e))
 }
 
 pub fn restrict_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
@@ -505,17 +475,9 @@ pub fn restrict_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
         .map_err(|e| peg_error(format!("invalid RESTRICT DepSpec: {s:?}"), s, e))
 }
 
-pub fn dependencies_dep_set(
-    s: &str,
-    eapi: &'static Eapi,
-) -> crate::Result<Option<DepSet<String, Dep>>> {
-    if s.is_empty() {
-        Ok(None)
-    } else {
-        depspec::dependencies_dep_set(s, eapi)
-            .map(Some)
-            .map_err(|e| peg_error(format!("invalid dependency: {s:?}"), s, e))
-    }
+pub fn dependencies_dep_set(s: &str, eapi: &'static Eapi) -> crate::Result<DepSet<String, Dep>> {
+    depspec::dependencies_dep_set(s, eapi)
+        .map_err(|e| peg_error(format!("invalid dependency: {s:?}"), s, e))
 }
 
 pub fn dependencies_dep_spec(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec<String, Dep>> {
@@ -666,7 +628,7 @@ mod tests {
         }
 
         // empty string
-        assert!(license_dep_set("").unwrap().is_none());
+        assert!(license_dep_set("").unwrap().is_empty());
 
         // valid
         for (s, expected_flatten) in [
@@ -687,7 +649,7 @@ mod tests {
             ("v1 u? ( v2 )", vec!["v1", "v2"]),
             ("!u? ( || ( v1 v2 ) )", vec!["v1", "v2"]),
         ] {
-            let depset = license_dep_set(s).unwrap().unwrap();
+            let depset = license_dep_set(s).unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
@@ -699,7 +661,7 @@ mod tests {
         // empty string
         assert!(src_uri_dep_set("", &EAPI_LATEST_OFFICIAL)
             .unwrap()
-            .is_none());
+            .is_empty());
 
         // valid
         for (s, expected_flatten) in [
@@ -710,7 +672,7 @@ mod tests {
             ("u1? ( http://uri1 !u2? ( http://uri2 ) )", vec!["http://uri1", "http://uri2"]),
         ] {
             for eapi in &*EAPIS {
-                let depset = src_uri_dep_set(s, eapi).unwrap().unwrap();
+                let depset = src_uri_dep_set(s, eapi).unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
@@ -723,7 +685,7 @@ mod tests {
             ("u? ( http://uri -> file )", vec!["http://uri -> file"]),
         ] {
             for eapi in &*EAPIS {
-                let depset = src_uri_dep_set(s, eapi).unwrap().unwrap();
+                let depset = src_uri_dep_set(s, eapi).unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
                 assert_eq!(flatten, expected_flatten);
@@ -747,7 +709,7 @@ mod tests {
         // empty string
         assert!(required_use_dep_set("", &EAPI_LATEST_OFFICIAL)
             .unwrap()
-            .is_none());
+            .is_empty());
 
         // valid
         for (s, expected_flatten) in [
@@ -763,9 +725,7 @@ mod tests {
             ("u1? ( u2 !u3 )", vec!["u2", "u3"]),
             ("!u1? ( || ( u2 u3 ) )", vec!["u2", "u3"]),
         ] {
-            let depset = required_use_dep_set(s, &EAPI_LATEST_OFFICIAL)
-                .unwrap()
-                .unwrap();
+            let depset = required_use_dep_set(s, &EAPI_LATEST_OFFICIAL).unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
@@ -774,7 +734,7 @@ mod tests {
         // ?? operator
         for (s, expected_flatten) in [("?? ( u1 u2 )", vec!["u1", "u2"])] {
             for eapi in &*EAPIS {
-                let depset = required_use_dep_set(s, eapi).unwrap().unwrap();
+                let depset = required_use_dep_set(s, eapi).unwrap();
                 assert_eq!(depset.to_string(), s);
                 let flatten: Vec<_> = depset.iter_flatten().collect();
                 assert_eq!(flatten, expected_flatten);
@@ -793,7 +753,7 @@ mod tests {
         // empty string
         assert!(dependencies_dep_set("", &EAPI_LATEST_OFFICIAL)
             .unwrap()
-            .is_none());
+            .is_empty());
 
         // valid
         for (s, expected_flatten) in [
@@ -804,9 +764,7 @@ mod tests {
             ("!u? ( a/b c/d )", vec!["a/b", "c/d"]),
             ("u1? ( a/b !u2? ( c/d ) )", vec!["a/b", "c/d"]),
         ] {
-            let depset = dependencies_dep_set(s, &EAPI_LATEST_OFFICIAL)
-                .unwrap()
-                .unwrap();
+            let depset = dependencies_dep_set(s, &EAPI_LATEST_OFFICIAL).unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
             assert_eq!(flatten, expected_flatten);
@@ -822,7 +780,7 @@ mod tests {
         }
 
         // empty string
-        assert!(properties_dep_set("").unwrap().is_none());
+        assert!(properties_dep_set("").unwrap().is_empty());
 
         // valid
         for (s, expected_flatten) in [
@@ -841,7 +799,7 @@ mod tests {
             // combinations
             ("v1 u? ( v2 )", vec!["v1", "v2"]),
         ] {
-            let depset = properties_dep_set(s).unwrap().unwrap();
+            let depset = properties_dep_set(s).unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
@@ -857,7 +815,7 @@ mod tests {
         }
 
         // empty string
-        assert!(restrict_dep_set("").unwrap().is_none());
+        assert!(restrict_dep_set("").unwrap().is_empty());
 
         // valid
         for (s, expected_flatten) in [
@@ -876,7 +834,7 @@ mod tests {
             // combinations
             ("v1 u? ( v2 )", vec!["v1", "v2"]),
         ] {
-            let depset = restrict_dep_set(s).unwrap().unwrap();
+            let depset = restrict_dep_set(s).unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);

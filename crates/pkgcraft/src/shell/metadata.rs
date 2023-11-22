@@ -149,12 +149,16 @@ impl Iuse {
 pub(crate) struct Metadata {
     description: String,
     slot: String,
-    deps: HashMap<Key, DepSet<String, Dep>>,
-    license: Option<DepSet<String, String>>,
-    properties: Option<DepSet<String, String>>,
-    required_use: Option<DepSet<String, String>>,
-    restrict: Option<DepSet<String, String>>,
-    src_uri: Option<DepSet<String, Uri>>,
+    bdepend: DepSet<String, Dep>,
+    depend: DepSet<String, Dep>,
+    idepend: DepSet<String, Dep>,
+    pdepend: DepSet<String, Dep>,
+    rdepend: DepSet<String, Dep>,
+    license: DepSet<String, String>,
+    properties: DepSet<String, String>,
+    required_use: DepSet<String, String>,
+    restrict: DepSet<String, String>,
+    src_uri: DepSet<String, Uri>,
     homepage: OrderedSet<String>,
     defined_phases: OrderedSet<String>,
     keywords: OrderedSet<String>,
@@ -178,13 +182,11 @@ impl Metadata {
             CHKSUM => self.chksum = val.to_string(),
             DESCRIPTION => self.description = val.to_string(),
             SLOT => self.slot = val.to_string(),
-            DEPEND | BDEPEND | IDEPEND | RDEPEND | PDEPEND => {
-                if let Some(val) = dep::parse::dependencies_dep_set(val, eapi)
-                    .map_err(|e| Error::InvalidValue(format!("invalid {key}: {e}")))?
-                {
-                    self.deps.insert(key, val);
-                }
-            }
+            BDEPEND => self.bdepend = dep::parse::dependencies_dep_set(val, eapi)?,
+            DEPEND => self.depend = dep::parse::dependencies_dep_set(val, eapi)?,
+            IDEPEND => self.idepend = dep::parse::dependencies_dep_set(val, eapi)?,
+            PDEPEND => self.pdepend = dep::parse::dependencies_dep_set(val, eapi)?,
+            RDEPEND => self.rdepend = dep::parse::dependencies_dep_set(val, eapi)?,
             LICENSE => self.license = dep::parse::license_dep_set(val)?,
             PROPERTIES => self.properties = dep::parse::properties_dep_set(val)?,
             REQUIRED_USE => self.required_use = dep::parse::required_use_dep_set(val, eapi)?,
@@ -237,34 +239,54 @@ impl Metadata {
                 CHKSUM => writeln!(&mut data, "_md5_={}", pkg.chksum())?,
                 DESCRIPTION => writeln!(&mut data, "{key}={}", meta.description)?,
                 SLOT => writeln!(&mut data, "{key}={}", meta.slot)?,
-                DEPEND | BDEPEND | IDEPEND | RDEPEND | PDEPEND => {
-                    if let Some(val) = meta.deps.get(key) {
-                        writeln!(&mut data, "{key}={val}")?;
+                BDEPEND => {
+                    if !meta.bdepend.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.bdepend)?;
+                    }
+                }
+                DEPEND => {
+                    if !meta.depend.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.depend)?;
+                    }
+                }
+                IDEPEND => {
+                    if !meta.idepend.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.idepend)?;
+                    }
+                }
+                PDEPEND => {
+                    if !meta.pdepend.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.pdepend)?;
+                    }
+                }
+                RDEPEND => {
+                    if !meta.rdepend.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.rdepend)?;
                     }
                 }
                 LICENSE => {
-                    if let Some(val) = &meta.license {
-                        writeln!(&mut data, "{key}={val}")?;
+                    if !meta.license.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.license)?;
                     }
                 }
                 PROPERTIES => {
-                    if let Some(val) = &meta.properties {
-                        writeln!(&mut data, "{key}={val}")?;
+                    if !meta.properties.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.properties)?;
                     }
                 }
                 REQUIRED_USE => {
-                    if let Some(val) = &meta.required_use {
-                        writeln!(&mut data, "{key}={val}")?;
+                    if !meta.required_use.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.required_use)?;
                     }
                 }
                 RESTRICT => {
-                    if let Some(val) = &meta.restrict {
-                        writeln!(&mut data, "{key}={val}")?;
+                    if !meta.restrict.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.restrict)?;
                     }
                 }
                 SRC_URI => {
-                    if let Some(val) = &meta.src_uri {
-                        writeln!(&mut data, "{key}={val}")?;
+                    if !meta.src_uri.is_empty() {
+                        writeln!(&mut data, "{key}={}", meta.src_uri)?;
                     }
                 }
                 HOMEPAGE => {
@@ -421,28 +443,44 @@ impl Metadata {
         s.split_once('/').map(|x| x.1)
     }
 
-    pub(crate) fn deps(&self, key: Key) -> Option<&DepSet<String, Dep>> {
-        self.deps.get(&key)
+    pub(crate) fn bdepend(&self) -> &DepSet<String, Dep> {
+        &self.bdepend
     }
 
-    pub(crate) fn license(&self) -> Option<&DepSet<String, String>> {
-        self.license.as_ref()
+    pub(crate) fn depend(&self) -> &DepSet<String, Dep> {
+        &self.depend
     }
 
-    pub(crate) fn properties(&self) -> Option<&DepSet<String, String>> {
-        self.properties.as_ref()
+    pub(crate) fn idepend(&self) -> &DepSet<String, Dep> {
+        &self.idepend
     }
 
-    pub(crate) fn required_use(&self) -> Option<&DepSet<String, String>> {
-        self.required_use.as_ref()
+    pub(crate) fn pdepend(&self) -> &DepSet<String, Dep> {
+        &self.pdepend
     }
 
-    pub(crate) fn restrict(&self) -> Option<&DepSet<String, String>> {
-        self.restrict.as_ref()
+    pub(crate) fn rdepend(&self) -> &DepSet<String, Dep> {
+        &self.rdepend
     }
 
-    pub(crate) fn src_uri(&self) -> Option<&DepSet<String, Uri>> {
-        self.src_uri.as_ref()
+    pub(crate) fn license(&self) -> &DepSet<String, String> {
+        &self.license
+    }
+
+    pub(crate) fn properties(&self) -> &DepSet<String, String> {
+        &self.properties
+    }
+
+    pub(crate) fn required_use(&self) -> &DepSet<String, String> {
+        &self.required_use
+    }
+
+    pub(crate) fn restrict(&self) -> &DepSet<String, String> {
+        &self.restrict
+    }
+
+    pub(crate) fn src_uri(&self) -> &DepSet<String, Uri> {
+        &self.src_uri
     }
 
     pub(crate) fn homepage(&self) -> &OrderedSet<String> {
