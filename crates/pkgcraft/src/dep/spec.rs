@@ -595,6 +595,12 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a DepSpec<String, T>> for DepSet<&'a St
     }
 }
 
+impl<S: UseFlag, T: Ordered> FromIterator<T> for DepSet<S, T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iterable: I) -> Self {
+        Self(iterable.into_iter().map(|x| DepSpec::Enabled(x)).collect())
+    }
+}
+
 impl<S: UseFlag, T: Ordered> BitAnd<&Self> for DepSet<S, T> {
     type Output = Self;
 
