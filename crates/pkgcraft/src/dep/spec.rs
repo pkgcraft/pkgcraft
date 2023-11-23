@@ -483,6 +483,11 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
         self.0.pop()
     }
 
+    /// Sort a `DepSet`.
+    pub fn sort(&mut self) {
+        self.0.sort()
+    }
+
     /// Replace a `DepSpec` with another `DepSpec`, returning the replaced value.
     ///
     /// This removes the given element if its replacement value already exists by shifting all of

@@ -770,6 +770,22 @@ pub unsafe extern "C" fn pkgcraft_dep_set_get_index(d: *mut DepSet, index: usize
     }
 }
 
+/// Sort a DepSet.
+///
+/// # Safety
+/// The argument must be a valid DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_sort(d: *mut DepSet) {
+    let set = try_mut_from_ptr!(d);
+
+    use DepSetWrapper::*;
+    match set.deref_mut() {
+        Dep(deps) => deps.sort(),
+        String(deps) => deps.sort(),
+        Uri(deps) => deps.sort(),
+    }
+}
+
 /// Insert a DepSpec into a DepSet.
 ///
 /// Returns false if an equivalent value already exists, otherwise true.
