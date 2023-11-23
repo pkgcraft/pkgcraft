@@ -627,7 +627,7 @@ mod tests {
             assert!(license_dep_spec(s).is_err(), "{s:?} didn't fail");
         }
 
-        // empty string
+        // empty set
         assert!(license_dep_set("").unwrap().is_empty());
 
         // valid
@@ -658,7 +658,13 @@ mod tests {
 
     #[test]
     fn test_src_uri() {
-        // empty string
+        // invalid
+        for s in ["http://", "https://a/uri/with/no/filename/"] {
+            assert!(src_uri_dep_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
+            assert!(src_uri_dep_spec(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
+        }
+
+        // empty set
         assert!(src_uri_dep_set("", &EAPI_LATEST_OFFICIAL)
             .unwrap()
             .is_empty());
@@ -679,7 +685,7 @@ mod tests {
             }
         }
 
-        // SRC_URI renames
+        // renames
         for (s, expected_flatten) in [
             ("http://uri -> file", vec!["http://uri -> file"]),
             ("u? ( http://uri -> file )", vec!["http://uri -> file"]),
@@ -691,11 +697,6 @@ mod tests {
                 assert_eq!(flatten, expected_flatten);
             }
         }
-
-        for s in ["https://", "https://web/site/root.com/"] {
-            let r = src_uri_dep_set(s, &EAPI_LATEST_OFFICIAL);
-            assert!(r.is_err(), "{s:?} didn't fail");
-        }
     }
 
     #[test]
@@ -706,7 +707,7 @@ mod tests {
             assert!(required_use_dep_spec(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
         }
 
-        // empty string
+        // empty set
         assert!(required_use_dep_set("", &EAPI_LATEST_OFFICIAL)
             .unwrap()
             .is_empty());
@@ -750,7 +751,7 @@ mod tests {
             assert!(dependencies_dep_spec(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
         }
 
-        // empty string
+        // empty set
         assert!(dependencies_dep_set("", &EAPI_LATEST_OFFICIAL)
             .unwrap()
             .is_empty());
@@ -779,7 +780,7 @@ mod tests {
             assert!(properties_dep_spec(s).is_err(), "{s:?} didn't fail");
         }
 
-        // empty string
+        // empty set
         assert!(properties_dep_set("").unwrap().is_empty());
 
         // valid
@@ -814,7 +815,7 @@ mod tests {
             assert!(restrict_dep_spec(s).is_err(), "{s:?} didn't fail");
         }
 
-        // empty string
+        // empty set
         assert!(restrict_dep_set("").unwrap().is_empty());
 
         // valid
