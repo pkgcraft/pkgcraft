@@ -511,7 +511,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_and_valid() {
+    fn new_and_valid() {
         // invalid
         for s in &TEST_DATA.dep_toml.invalid {
             for eapi in &*EAPIS {
@@ -553,7 +553,7 @@ mod tests {
     }
 
     #[test]
-    fn test_to_string() {
+    fn to_string() {
         for s in [
             "cat/pkg",
             "<cat/pkg-4",
@@ -582,7 +582,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cpn() {
+    fn cpn() {
         for (s, key) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg"),
@@ -599,7 +599,7 @@ mod tests {
     }
 
     #[test]
-    fn test_version() {
+    fn version() {
         for (s, version) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", Some("<4")),
@@ -617,7 +617,7 @@ mod tests {
     }
 
     #[test]
-    fn test_revision() {
+    fn revision() {
         for (s, rev_str) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", None),
@@ -633,7 +633,7 @@ mod tests {
     }
 
     #[test]
-    fn test_op() {
+    fn op() {
         for (s, op) in [
             ("cat/pkg", None),
             ("<cat/pkg-4", Some(Operator::Less)),
@@ -650,7 +650,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cpv() {
+    fn cpv() {
         for (s, cpv) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg-4"),
@@ -667,7 +667,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cmp() {
+    fn cmp() {
         let op_map: HashMap<_, _> =
             [("<", Ordering::Less), ("==", Ordering::Equal), (">", Ordering::Greater)]
                 .into_iter()
@@ -694,7 +694,7 @@ mod tests {
     }
 
     #[test]
-    fn test_intersects() {
+    fn intersects() {
         // inject version intersects data from version.toml into Dep objects
         let dep = Dep::new("a/b").unwrap();
         for d in &TEST_DATA.version_toml.intersects {
@@ -750,7 +750,7 @@ mod tests {
     }
 
     #[test]
-    fn test_without() {
+    fn without() {
         let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]").unwrap();
 
         for (fields, expected) in [
@@ -794,7 +794,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sorting() {
+    fn sorting() {
         for d in &TEST_DATA.dep_toml.sorting {
             let mut reversed: Vec<Dep> =
                 d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
@@ -809,7 +809,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hashing() {
+    fn hashing() {
         for d in &TEST_DATA.version_toml.hashing {
             let set: HashSet<Dep> = d
                 .versions
