@@ -505,9 +505,9 @@ impl<S: UseFlag, T: Ordered> DepSet<S, T> {
         self.0.pop()
     }
 
-    /// Sort a `DepSet`.
+    /// Recursively sort a `DepSet`.
     pub fn sort(&mut self) {
-        self.0.sort()
+        self.0 = sort_set!(self.0).collect();
     }
 
     /// Replace a `DepSpec` with another `DepSpec`, returning the replaced value.

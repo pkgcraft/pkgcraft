@@ -770,7 +770,7 @@ pub unsafe extern "C" fn pkgcraft_dep_set_get_index(d: *mut DepSet, index: usize
     }
 }
 
-/// Sort a DepSet.
+/// Recursively sort a DepSet.
 ///
 /// # Safety
 /// The argument must be a valid DepSet pointer.
