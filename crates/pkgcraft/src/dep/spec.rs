@@ -188,6 +188,17 @@ macro_rules! box_owned {
     };
 }
 
+/// Recursively sort a set with sortable elements into an iterator.
+// TODO: replace with in-place mutation when IndexSet supports IndexMut and/or iter_mut()
+macro_rules! sort_set {
+    ($vals:expr) => {
+        itertools::sorted($vals.clone().into_iter().map(|mut d| {
+            d.sort();
+            d
+        }))
+    };
+}
+
 impl<T: Ordered> IntoOwned for DepSpec<&String, &T> {
     type Owned = DepSpec<String, T>;
 
@@ -249,6 +260,17 @@ impl<S: UseFlag, T: Ordered> DepSpec<S, T> {
 
     pub fn iter_conditionals(&self) -> IterConditionals<S, T> {
         self.into_iter_conditionals()
+    }
+
+    /// Recursively sort a `DepSpec`.
+    pub fn sort(&mut self) {
+        use DepSpec::*;
+        match self {
+            AllOf(vals) => *vals = sort_set!(vals).collect(),
+            UseEnabled(_, vals) => *vals = sort_set!(vals).collect(),
+            UseDisabled(_, vals) => *vals = sort_set!(vals).collect(),
+            _ => (),
+        }
     }
 }
 
