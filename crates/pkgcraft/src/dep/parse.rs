@@ -492,7 +492,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_slots() {
+    fn slots() {
         for slot in ["0", "a", "_", "_a", "99", "aBc", "a+b_c.d-e"] {
             for eapi in &*EAPIS {
                 let s = format!("cat/pkg:{slot}");
@@ -506,7 +506,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_blockers() {
+    fn blockers() {
         let d = dep("cat/pkg", &eapi::EAPI_LATEST_OFFICIAL).unwrap();
         assert!(d.blocker().is_none());
 
@@ -527,7 +527,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_use_deps() {
+    fn use_deps() {
         for use_deps in ["a", "!a?", "a,b", "-a,-b", "a?,b?", "a,b=,!c=,d?,!e?,-f"] {
             for eapi in &*EAPIS {
                 let s = format!("cat/pkg[{use_deps}]");
@@ -542,7 +542,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_use_dep_defaults() {
+    fn use_dep_defaults() {
         for use_deps in ["a(+)", "-a(-)", "a(+)?,!b(-)?", "a(-)=,!b(+)="] {
             for eapi in &*EAPIS {
                 let s = format!("cat/pkg[{use_deps}]");
@@ -557,7 +557,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_subslots() {
+    fn subslots() {
         for (slot_str, slot, subslot, slot_op) in [
             ("0/1", Some("0"), Some("1"), None),
             ("a/b", Some("a"), Some("b"), None),
@@ -579,7 +579,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_slot_ops() {
+    fn slot_ops() {
         for (slot_str, slot, subslot, slot_op) in [
             ("*", None, None, Some(SlotOperator::Star)),
             ("=", None, None, Some(SlotOperator::Equal)),
@@ -602,7 +602,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_repos() {
+    fn repos() {
         for repo in ["_", "a", "repo", "repo_a", "repo-a"] {
             let s = format!("cat/pkg::{repo}");
 
@@ -620,7 +620,7 @@ mod tests {
     }
 
     #[test]
-    fn test_license() {
+    fn license() {
         // invalid
         for s in ["(", ")", "( )", "( l1)", "| ( l1 )", "!use ( l1 )"] {
             assert!(license_dep_set(s).is_err(), "{s:?} didn't fail");
@@ -657,7 +657,7 @@ mod tests {
     }
 
     #[test]
-    fn test_src_uri() {
+    fn src_uri() {
         // invalid
         for s in ["http://", "https://a/uri/with/no/filename/"] {
             assert!(src_uri_dep_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
@@ -700,7 +700,7 @@ mod tests {
     }
 
     #[test]
-    fn test_required_use() {
+    fn required_use() {
         // invalid
         for s in ["(", ")", "( )", "( u)", "| ( u )", "|| ( )", "^^ ( )", "?? ( )"] {
             assert!(required_use_dep_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
@@ -744,7 +744,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dependencies() {
+    fn dependencies() {
         // invalid
         for s in ["(", ")", "( )", "|| ( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
             assert!(dependencies_dep_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
@@ -773,7 +773,7 @@ mod tests {
     }
 
     #[test]
-    fn test_properties() {
+    fn properties() {
         // invalid
         for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"] {
             assert!(properties_dep_set(s).is_err(), "{s:?} didn't fail");
@@ -808,7 +808,7 @@ mod tests {
     }
 
     #[test]
-    fn test_restrict() {
+    fn restrict() {
         // invalid
         for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"] {
             assert!(restrict_dep_set(s).is_err(), "{s:?} didn't fail");
