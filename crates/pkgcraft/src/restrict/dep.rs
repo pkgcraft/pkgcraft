@@ -189,7 +189,7 @@ mod tests {
         let unversioned = Dep::new("cat/pkg").unwrap();
         let blocker = Dep::new("!cat/pkg").unwrap();
         let cpv = Cpv::new("cat/pkg-1").unwrap();
-        let full = Dep::new("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+        let full = Dep::new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
 
         // category
         let r = Restrict::category("cat");
@@ -294,7 +294,7 @@ mod tests {
     fn test_restrict_conversion() {
         let unversioned = Dep::new("cat/pkg").unwrap();
         let cpv = Cpv::new("cat/pkg-1").unwrap();
-        let full = Dep::new("=cat/pkg-1:2/3[u1,u2]::repo").unwrap();
+        let full = Dep::new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
 
         // unversioned restriction
         let r = BaseRestrict::from(&unversioned);

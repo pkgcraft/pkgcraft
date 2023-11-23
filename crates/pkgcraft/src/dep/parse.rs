@@ -181,7 +181,7 @@ peg::parser!(grammar depspec() for str {
 
     pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
         = blocker:blocker()? dep:$([^':' | '[']+) slot_dep:slot_dep()?
-                use_deps:use_deps()? repo:repo_dep(eapi)? {
+                repo:repo_dep(eapi)? use_deps:use_deps()? {
             let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
             (dep, ParsedDep {
                 blocker,

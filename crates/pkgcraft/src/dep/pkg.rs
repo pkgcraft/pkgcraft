@@ -412,14 +412,14 @@ impl fmt::Display for Dep {
             _ => (),
         }
 
-        // append use deps
-        if let Some(x) = &self.use_deps {
-            write!(f, "[{}]", x.iter().join(","))?;
-        }
-
         // append repo
         if let Some(repo) = &self.repo {
             write!(f, "::{repo}")?;
+        }
+
+        // append use deps
+        if let Some(x) = &self.use_deps {
+            write!(f, "[{}]", x.iter().join(","))?;
         }
 
         Ok(())
@@ -565,7 +565,7 @@ mod tests {
             ">=cat/pkg-r1-2-r3",
             ">cat/pkg-4-r1:0=",
             ">cat/pkg-4-r1:0/2=[use]",
-            ">cat/pkg-4-r1:0/2=[use]::repo",
+            ">cat/pkg-4-r1:0/2=::repo[use]",
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
@@ -751,14 +751,14 @@ mod tests {
 
     #[test]
     fn test_without() {
-        let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=[a,b]::repo").unwrap();
+        let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]").unwrap();
 
         for (fields, expected) in [
-            (DepFields::Blocker, ">=cat/pkg-1.2-r3:4/5=[a,b]::repo"),
-            (DepFields::Slot, "!!>=cat/pkg-1.2-r3[a,b]::repo"),
-            (DepFields::Subslot, "!!>=cat/pkg-1.2-r3:4=[a,b]::repo"),
-            (DepFields::SlotOp, "!!>=cat/pkg-1.2-r3:4/5[a,b]::repo"),
-            (DepFields::Version, "!!cat/pkg:4/5=[a,b]::repo"),
+            (DepFields::Blocker, ">=cat/pkg-1.2-r3:4/5=::repo[a,b]"),
+            (DepFields::Slot, "!!>=cat/pkg-1.2-r3::repo[a,b]"),
+            (DepFields::Subslot, "!!>=cat/pkg-1.2-r3:4=::repo[a,b]"),
+            (DepFields::SlotOp, "!!>=cat/pkg-1.2-r3:4/5::repo[a,b]"),
+            (DepFields::Version, "!!cat/pkg:4/5=::repo[a,b]"),
             (DepFields::UseDeps, "!!>=cat/pkg-1.2-r3:4/5=::repo"),
             (DepFields::Repo, "!!>=cat/pkg-1.2-r3:4/5=[a,b]"),
             (DepFields::all(), "cat/pkg"),
