@@ -786,6 +786,16 @@ pub unsafe extern "C" fn pkgcraft_dep_set_sort(d: *mut DepSet) {
     }
 }
 
+/// Clone a DepSet.
+///
+/// # Safety
+/// The argument must be a valid DepSet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_clone(d: *mut DepSet) -> *mut DepSet {
+    let set = try_ref_from_ptr!(d);
+    Box::into_raw(Box::new(set.clone()))
+}
+
 /// Insert a DepSpec into a DepSet.
 ///
 /// Returns false if an equivalent value already exists, otherwise true.
