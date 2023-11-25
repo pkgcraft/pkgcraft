@@ -385,7 +385,8 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
     let (dep_s, mut dep) = depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))?;
     match depspec::cpv_with_op(dep_s) {
         Ok((op, cpv_s, glob)) => {
-            let cpv = depspec::cpv(cpv_s).map_err(|e| peg_error("invalid dep", cpv_s, e))?;
+            let cpv = depspec::cpv(cpv_s)
+                .map_err(|_| Error::InvalidValue(format!("parsing failure: invalid dep: {s}")))?;
             dep.category = cpv.category;
             dep.package = cpv.package;
             dep.version = Some(
@@ -396,7 +397,8 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
             dep.version_str = Some(cpv_s);
         }
         _ => {
-            let d = depspec::cpn(dep_s).map_err(|e| peg_error("invalid dep", dep_s, e))?;
+            let d = depspec::cpn(dep_s)
+                .map_err(|_| Error::InvalidValue(format!("parsing failure: invalid dep: {s}")))?;
             dep.category = d.category;
             dep.package = d.package;
         }
