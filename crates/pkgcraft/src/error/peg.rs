@@ -11,8 +11,8 @@ pub struct Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let err = if self.src.is_empty() {
-            format!("{}: empty string", self.msg)
+        if self.src.is_empty() {
+            write!(f, "empty string")
         } else {
             let chic_error = chic::Error::new(format!("parsing failure: {}", self.msg)).error(
                 self.error.location.line,
@@ -23,9 +23,9 @@ impl fmt::Display for Error {
             );
             let s = chic_error.to_string();
             // don't prefix error messages
-            s.strip_prefix("error: ").unwrap_or(&s).to_string()
-        };
-        write!(f, "{err}")
+            let s = s.strip_prefix("error: ").unwrap_or(&s);
+            write!(f, "{s}")
+        }
     }
 }
 
