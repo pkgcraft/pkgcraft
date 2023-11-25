@@ -322,17 +322,17 @@ peg::parser!(grammar depspec() for str {
 });
 
 pub fn category(s: &str) -> crate::Result<&str> {
-    depspec::category(s).map_err(|e| peg_error(format!("invalid category name: {s}"), s, e))?;
+    depspec::category(s).map_err(|e| peg_error("invalid category name", s, e))?;
     Ok(s)
 }
 
 pub fn package(s: &str) -> crate::Result<&str> {
-    depspec::package(s).map_err(|e| peg_error(format!("invalid package name: {s}"), s, e))?;
+    depspec::package(s).map_err(|e| peg_error("invalid package name", s, e))?;
     Ok(s)
 }
 
 pub(super) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
-    depspec::version(s).map_err(|e| peg_error(format!("invalid version: {s}"), s, e))
+    depspec::version(s).map_err(|e| peg_error("invalid version", s, e))
 }
 
 #[cached(
@@ -345,7 +345,7 @@ pub fn version(s: &str) -> crate::Result<Version> {
 }
 
 pub(super) fn version_with_op_str(s: &str) -> crate::Result<ParsedVersion> {
-    depspec::version_with_op(s).map_err(|e| peg_error(format!("invalid version: {s}"), s, e))
+    depspec::version_with_op(s).map_err(|e| peg_error("invalid version", s, e))
 }
 
 pub fn version_with_op(s: &str) -> crate::Result<Version> {
@@ -353,26 +353,26 @@ pub fn version_with_op(s: &str) -> crate::Result<Version> {
 }
 
 pub fn slot(s: &str) -> crate::Result<&str> {
-    depspec::slot_name(s).map_err(|e| peg_error(format!("invalid slot: {s}"), s, e))?;
+    depspec::slot_name(s).map_err(|e| peg_error("invalid slot", s, e))?;
     Ok(s)
 }
 
 pub fn use_flag(s: &str) -> crate::Result<&str> {
-    depspec::use_flag(s).map_err(|e| peg_error(format!("invalid USE flag: {s}"), s, e))?;
+    depspec::use_flag(s).map_err(|e| peg_error("invalid USE flag", s, e))?;
     Ok(s)
 }
 
 pub(crate) fn iuse(s: &str) -> crate::Result<(Option<char>, &str)> {
-    depspec::iuse(s).map_err(|e| peg_error(format!("invalid IUSE: {s}"), s, e))
+    depspec::iuse(s).map_err(|e| peg_error("invalid IUSE", s, e))
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {
-    depspec::repo(s).map_err(|e| peg_error(format!("invalid repo name: {s}"), s, e))?;
+    depspec::repo(s).map_err(|e| peg_error("invalid repo name", s, e))?;
     Ok(s)
 }
 
 pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedCpv> {
-    depspec::cpv(s).map_err(|e| peg_error(format!("invalid cpv: {s}"), s, e))
+    depspec::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
 }
 
 pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
@@ -382,12 +382,10 @@ pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
 }
 
 pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedDep<'a>> {
-    let (dep_s, mut dep) =
-        depspec::dep(s, eapi).map_err(|e| peg_error(format!("invalid dep: {s}"), s, e))?;
+    let (dep_s, mut dep) = depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))?;
     match depspec::cpv_with_op(dep_s) {
         Ok((op, cpv_s, glob)) => {
-            let cpv = depspec::cpv(cpv_s)
-                .map_err(|e| peg_error(format!("invalid dep: {s}"), cpv_s, e))?;
+            let cpv = depspec::cpv(cpv_s).map_err(|e| peg_error("invalid dep", cpv_s, e))?;
             dep.category = cpv.category;
             dep.package = cpv.package;
             dep.version = Some(
@@ -398,8 +396,7 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
             dep.version_str = Some(cpv_s);
         }
         _ => {
-            let d = depspec::cpn(dep_s)
-                .map_err(|e| peg_error(format!("invalid dep: {s}"), dep_s, e))?;
+            let d = depspec::cpn(dep_s).map_err(|e| peg_error("invalid dep", dep_s, e))?;
             dep.category = d.category;
             dep.package = d.package;
         }
@@ -419,43 +416,36 @@ pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
 }
 
 pub(super) fn cpn(s: &str) -> crate::Result<Dep> {
-    let dep =
-        depspec::cpn(s).map_err(|e| peg_error(format!("invalid unversioned dep: {s}"), s, e))?;
+    let dep = depspec::cpn(s).map_err(|e| peg_error("invalid unversioned dep", s, e))?;
     Ok(dep.into_owned())
 }
 
 pub fn license_dep_set(s: &str) -> crate::Result<DepSet<String, String>> {
-    depspec::license_dep_set(s).map_err(|e| peg_error(format!("invalid LICENSE: {s:?}"), s, e))
+    depspec::license_dep_set(s).map_err(|e| peg_error("invalid LICENSE", s, e))
 }
 
 pub fn license_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
-    depspec::license_dep_spec(s)
-        .map_err(|e| peg_error(format!("invalid LICENSE DepSpec: {s:?}"), s, e))
+    depspec::license_dep_spec(s).map_err(|e| peg_error("invalid LICENSE DepSpec", s, e))
 }
 
 pub fn src_uri_dep_set(s: &str, eapi: &'static Eapi) -> crate::Result<DepSet<String, Uri>> {
-    depspec::src_uri_dep_set(s, eapi)
-        .map_err(|e| peg_error(format!("invalid SRC_URI: {s:?}"), s, e))
+    depspec::src_uri_dep_set(s, eapi).map_err(|e| peg_error("invalid SRC_URI", s, e))
 }
 
 pub fn src_uri_dep_spec(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec<String, Uri>> {
-    depspec::src_uri_dep_spec(s, eapi)
-        .map_err(|e| peg_error(format!("invalid SRC_URI DepSpec: {s:?}"), s, e))
+    depspec::src_uri_dep_spec(s, eapi).map_err(|e| peg_error("invalid SRC_URI DepSpec", s, e))
 }
 
 pub fn properties_dep_set(s: &str) -> crate::Result<DepSet<String, String>> {
-    depspec::properties_dep_set(s)
-        .map_err(|e| peg_error(format!("invalid PROPERTIES: {s:?}"), s, e))
+    depspec::properties_dep_set(s).map_err(|e| peg_error("invalid PROPERTIES", s, e))
 }
 
 pub fn properties_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
-    depspec::properties_dep_spec(s)
-        .map_err(|e| peg_error(format!("invalid PROPERTIES DepSpec: {s:?}"), s, e))
+    depspec::properties_dep_spec(s).map_err(|e| peg_error("invalid PROPERTIES DepSpec", s, e))
 }
 
 pub fn required_use_dep_set(s: &str, eapi: &'static Eapi) -> crate::Result<DepSet<String, String>> {
-    depspec::required_use_dep_set(s, eapi)
-        .map_err(|e| peg_error(format!("invalid REQUIRED_USE: {s:?}"), s, e))
+    depspec::required_use_dep_set(s, eapi).map_err(|e| peg_error("invalid REQUIRED_USE", s, e))
 }
 
 pub fn required_use_dep_spec(
@@ -463,26 +453,24 @@ pub fn required_use_dep_spec(
     eapi: &'static Eapi,
 ) -> crate::Result<DepSpec<String, String>> {
     depspec::required_use_dep_spec(s, eapi)
-        .map_err(|e| peg_error(format!("invalid REQUIRED_USE DepSpec: {s:?}"), s, e))
+        .map_err(|e| peg_error("invalid REQUIRED_USE DepSpec", s, e))
 }
 
 pub fn restrict_dep_set(s: &str) -> crate::Result<DepSet<String, String>> {
-    depspec::restrict_dep_set(s).map_err(|e| peg_error(format!("invalid RESTRICT: {s:?}"), s, e))
+    depspec::restrict_dep_set(s).map_err(|e| peg_error("invalid RESTRICT", s, e))
 }
 
 pub fn restrict_dep_spec(s: &str) -> crate::Result<DepSpec<String, String>> {
-    depspec::restrict_dep_spec(s)
-        .map_err(|e| peg_error(format!("invalid RESTRICT DepSpec: {s:?}"), s, e))
+    depspec::restrict_dep_spec(s).map_err(|e| peg_error("invalid RESTRICT DepSpec", s, e))
 }
 
 pub fn dependencies_dep_set(s: &str, eapi: &'static Eapi) -> crate::Result<DepSet<String, Dep>> {
-    depspec::dependencies_dep_set(s, eapi)
-        .map_err(|e| peg_error(format!("invalid dependency: {s:?}"), s, e))
+    depspec::dependencies_dep_set(s, eapi).map_err(|e| peg_error("invalid dependency", s, e))
 }
 
 pub fn dependencies_dep_spec(s: &str, eapi: &'static Eapi) -> crate::Result<DepSpec<String, Dep>> {
     depspec::dependencies_dep_spec(s, eapi)
-        .map_err(|e| peg_error(format!("invalid dependency DepSpec: {s:?}"), s, e))
+        .map_err(|e| peg_error("invalid dependency DepSpec", s, e))
 }
 
 #[cfg(test)]

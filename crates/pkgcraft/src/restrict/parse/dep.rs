@@ -224,7 +224,7 @@ peg::parser!(grammar restrict() for str {
 /// Convert a globbed dep string into a Vector of dep restrictions.
 pub(crate) fn restricts(s: &str) -> crate::Result<Vec<DepRestrict>> {
     let (mut restricts, ver) =
-        restrict::dep(s).map_err(|e| peg_error(format!("invalid dep restriction: {s:?}"), s, e))?;
+        restrict::dep(s).map_err(|e| peg_error("invalid dep restriction", s, e))?;
 
     if let Some(v) = ver {
         restricts.push(DepRestrict::Version(Some(v.into_owned(s))));

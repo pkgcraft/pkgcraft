@@ -12,7 +12,7 @@ pub struct Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.src.is_empty() {
-            write!(f, "empty string")
+            write!(f, "{}: empty string", self.msg)
         } else {
             let chic_error = chic::Error::new(format!("parsing failure: {}", self.msg)).error(
                 self.error.location.line,
@@ -30,14 +30,16 @@ impl fmt::Display for Error {
 }
 
 /// Convert a PEG parsing error to an internal pkgcraft error type.
-pub(crate) fn peg_error<S1, S2>(msg: S1, src: S2, error: PegError) -> super::Error
-where
-    S1: Into<String>,
-    S2: Into<String>,
-{
+pub(crate) fn peg_error(msg: &str, src: &str, error: PegError) -> super::Error {
+    let msg = if src.is_empty() {
+        msg.into()
+    } else {
+        format!("{msg}: {src}")
+    };
+
     let error = Error {
-        msg: msg.into(),
-        src: src.into(),
+        msg,
+        src: src.to_string(),
         error,
     };
     super::Error::PegParse(error)

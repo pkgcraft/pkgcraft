@@ -373,5 +373,5 @@ peg::parser!(grammar restrict() for str {
 
 /// Convert a package query string into a Restriction.
 pub fn pkg(s: &str) -> crate::Result<BaseRestrict> {
-    restrict::query(s).map_err(|e| peg_error(format!("invalid package query: {s:?}"), s, e))
+    restrict::query(s).map_err(|e| peg_error("invalid package query", s, e))
 }

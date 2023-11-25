@@ -489,12 +489,11 @@ mod parse {
     use super::cmd;
 
     pub(super) fn version_split(s: &str) -> crate::Result<Vec<&str>> {
-        cmd::version_split(s).map_err(|e| peg_error(format!("invalid version string: {s}"), s, e))
+        cmd::version_split(s).map_err(|e| peg_error("invalid version string", s, e))
     }
 
     pub(super) fn range(s: &str, max: usize) -> crate::Result<(usize, usize)> {
-        let (start, end) =
-            cmd::range(s, max).map_err(|e| peg_error(format!("invalid range: {s}"), s, e))?;
+        let (start, end) = cmd::range(s, max).map_err(|e| peg_error("invalid range", s, e))?;
         if end < start {
             return Err(Error::InvalidValue(format!(
                 "start of range ({start}) is greater than end ({end})",
