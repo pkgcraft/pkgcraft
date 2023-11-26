@@ -1,6 +1,7 @@
 use std::ffi::c_char;
 use std::sync::Arc;
 
+use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
 use pkgcraft::repo::ebuild::Repo as EbuildRepo;
 use pkgcraft::repo::Repo;
@@ -13,11 +14,23 @@ use crate::utils::str_to_raw;
 macro_rules! try_repo_from_ptr {
     ( $var:expr ) => {{
         let repo = $crate::macros::try_ref_from_ptr!($var);
-        match repo.as_ebuild() {
-            Some(r) => r,
-            None => panic!("invalid repo type: {repo:?}"),
+        match repo {
+            Repo::Ebuild(r) => r.as_ref(),
+            Repo::Configured(r) => r.as_ref().into(),
+            _ => panic!("invalid repo type: {repo:?}"),
         }
     }};
+}
+
+/// Return a configured repo using the given config.
+///
+/// # Safety
+/// The arguments must be valid Repo and Config pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_configure(r: *mut Repo, c: *mut Config) -> *mut Repo {
+    let repo = try_repo_from_ptr!(r);
+    let config = try_ref_from_ptr!(c);
+    Box::into_raw(Box::new(repo.configure(config).into()))
 }
 
 /// Return an ebuild repo's metadata arches.

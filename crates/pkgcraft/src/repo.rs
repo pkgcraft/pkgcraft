@@ -27,6 +27,7 @@ pub mod set;
 pub enum RepoFormat {
     #[default]
     Ebuild,
+    Configured,
     Fake,
     Empty,
 }
@@ -56,6 +57,7 @@ impl RepoFormat {
             Self::Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
             Self::Fake => fake::Repo::from_path(id, priority, path)?.into(),
             Self::Empty => empty::Repo::from_path(id, priority, path)?.into(),
+            _ => return Err(Error::ConfiguredRepo(id.to_string())),
         };
 
         // try to finalize as a stand-alone repo
@@ -86,9 +88,8 @@ impl RepoFormat {
         let mut path = abspath.as_path();
         while let Some(parent) = path.parent() {
             match self.load_from_path(path, priority, path, finalize) {
-                Ok(repo) => return Ok(repo),
                 Err(Error::NotARepo { .. }) => path = parent,
-                Err(e) => return Err(e),
+                result => return result,
             }
         }
 
@@ -118,6 +119,12 @@ impl From<&Repo> for Repo {
 impl From<ebuild::Repo> for Repo {
     fn from(repo: ebuild::Repo) -> Self {
         Self::Ebuild(Arc::new(repo))
+    }
+}
+
+impl From<ebuild::configured::Repo> for Repo {
+    fn from(repo: ebuild::configured::Repo) -> Self {
+        Self::Configured(Arc::new(repo))
     }
 }
 
@@ -154,6 +161,7 @@ impl Repo {
         for format in RepoFormat::iter() {
             match format.load_from_path(id, priority, path, finalize) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
+                Err(Error::ConfiguredRepo(_)) => (),
                 Err(e) => return Err(e),
                 result => return result,
             }
@@ -180,6 +188,7 @@ impl Repo {
         for format in RepoFormat::iter() {
             match format.load_from_nested_path(id, priority, path, finalize) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
+                Err(Error::ConfiguredRepo(_)) => (),
                 Err(e) => return Err(e),
                 result => return result,
             }
