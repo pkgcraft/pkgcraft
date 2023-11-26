@@ -230,6 +230,7 @@ impl Config {
         match kind {
             Repos::All => repos.collect(),
             Repos::Ebuild => repos.filter(|r| matches!(r, Repo::Ebuild(_))).collect(),
+            Repos::Configured => repos.filter(|r| matches!(r, Repo::Configured(_))).collect(),
         }
     }
 

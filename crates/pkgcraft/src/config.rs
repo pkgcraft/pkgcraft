@@ -25,6 +25,7 @@ const PORTAGE_CONFIG_PATHS: &[&str] = &["/etc/portage", "/usr/share/portage/conf
 pub enum Repos {
     All,
     Ebuild,
+    Configured,
 }
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
