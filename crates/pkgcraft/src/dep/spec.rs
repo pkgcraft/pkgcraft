@@ -1262,6 +1262,19 @@ mod tests {
     }
 
     #[test]
+    fn dep_spec_sort() {
+        for (s, expected) in [
+            ("( c/d a/b )", "( a/b c/d )"),
+            ("u? ( c/d a/b )", "u? ( a/b c/d )"),
+            ("!u? ( c/d a/b )", "!u? ( a/b c/d )"),
+        ] {
+            let mut spec: DepSpec<String, Dep> = s.parse().unwrap();
+            spec.sort();
+            assert_eq!(spec.to_string(), expected);
+        }
+    }
+
+    #[test]
     fn dep_set_contains() {
         let dep = Dep::new("cat/pkg").unwrap();
         let spec = DepSpec::from_str("cat/pkg").unwrap();
@@ -1269,6 +1282,19 @@ mod tests {
             let set: DepSet<String, Dep> = s.parse().unwrap();
             assert!(set.contains(&dep), "{set} doesn't contain {dep}");
             assert!(set.contains(&spec), "{set} doesn't contain {spec}");
+        }
+    }
+
+    #[test]
+    fn dep_set_sort() {
+        for (s, expected) in [
+            ("c/d a/b", "a/b c/d"),
+            ("u? ( c/d a/b ) z/z", "z/z u? ( a/b c/d )"),
+            ("!u? ( c/d a/b ) z/z", "z/z !u? ( a/b c/d )"),
+        ] {
+            let mut set: DepSet<String, Dep> = s.parse().unwrap();
+            set.sort();
+            assert_eq!(set.to_string(), expected);
         }
     }
 }
