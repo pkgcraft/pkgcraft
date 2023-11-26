@@ -101,9 +101,10 @@ impl Drop for Upstream {
 macro_rules! try_pkg_from_ptr {
     ( $var:expr ) => {{
         let pkg = $crate::macros::try_ref_from_ptr!($var);
-        match pkg.as_ebuild() {
-            Some((p, _)) => p,
-            None => panic!("invalid pkg type: {pkg:?}"),
+        match pkg {
+            Pkg::Ebuild(p, _) => p,
+            Pkg::Configured(p, _) => p.into(),
+            _ => panic!("invalid pkg type: {pkg:?}"),
         }
     }};
 }

@@ -29,6 +29,12 @@ pub struct Pkg<'a> {
     iuse_effective: OnceLock<OrderedSet<String>>,
 }
 
+impl<'a> From<&'a Pkg<'a>> for &'a super::Pkg<'a> {
+    fn from(pkg: &'a Pkg<'a>) -> Self {
+        &pkg.raw
+    }
+}
+
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {

@@ -243,6 +243,7 @@ impl Iterator for IterCpv<'_> {
 #[allow(clippy::large_enum_variant)]
 pub enum Iter<'a> {
     Ebuild(ebuild::Iter<'a>, &'a Repo),
+    Configured(ebuild::configured::Iter<'a>, &'a Repo),
     Fake(fake::Iter<'a>, &'a Repo),
     Empty,
 }
@@ -254,8 +255,9 @@ impl<'a> IntoIterator for &'a Repo {
     fn into_iter(self) -> Self::IntoIter {
         match self {
             Repo::Ebuild(repo) => Iter::Ebuild(repo.into_iter(), self),
+            Repo::Configured(repo) => Iter::Configured(repo.into_iter(), self),
             Repo::Fake(repo) => Iter::Fake(repo.into_iter(), self),
-            _ => Iter::Empty,
+            Repo::Unsynced(_) => Iter::Empty,
         }
     }
 }
@@ -266,6 +268,7 @@ impl<'a> Iterator for Iter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo)),
+            Self::Configured(iter, repo) => iter.next().map(|p| Pkg::Configured(p, repo)),
             Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo)),
             Self::Empty => None,
         }
