@@ -26,11 +26,8 @@ impl<'a> From<&'a Repo> for &'a super::Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub(super) fn new(raw: Arc<super::Repo>, settings: &Arc<Settings>) -> Self {
-        Repo {
-            raw,
-            settings: settings.clone(),
-        }
+    pub(super) fn new(raw: Arc<super::Repo>, settings: Arc<Settings>) -> Self {
+        Repo { raw, settings }
     }
 
     pub(crate) fn repo_config(&self) -> &RepoConfig {

@@ -2,9 +2,10 @@ use std::cmp::Ordering;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
@@ -69,10 +70,16 @@ pub struct Config {
     repo_dir: Utf8PathBuf,
     #[serde(skip)]
     repos: IndexMap<String, Repo>,
+    #[serde(skip)]
+    configured: IndexSet<Repo>,
 }
 
 impl Config {
-    pub(super) fn new(config_dir: &Utf8Path, db_dir: &Utf8Path) -> crate::Result<Self> {
+    pub(super) fn new(
+        config_dir: &Utf8Path,
+        db_dir: &Utf8Path,
+        settings: &Arc<super::Settings>,
+    ) -> crate::Result<Self> {
         let config_dir = config_dir.join("repos");
         let repo_dir = db_dir.join("repos");
 
@@ -120,7 +127,7 @@ impl Config {
         };
 
         // finalize, sort, and add repos to the config
-        config.extend(&repos, false)?;
+        config.extend(&repos, settings, false)?;
         Ok(config)
     }
 
@@ -230,7 +237,7 @@ impl Config {
         match kind {
             Repos::All => repos.collect(),
             Repos::Ebuild => repos.filter(|r| matches!(r, Repo::Ebuild(_))).collect(),
-            Repos::Configured => repos.filter(|r| matches!(r, Repo::Configured(_))).collect(),
+            Repos::Configured => self.configured.iter().collect(),
         }
     }
 
@@ -248,6 +255,7 @@ impl Config {
     pub(super) fn extend<'a, I: IntoIterator<Item = &'a Repo>>(
         &mut self,
         repos: I,
+        settings: &Arc<super::Settings>,
         external: bool,
     ) -> crate::Result<()> {
         // check for existing repos since duplicate repo names aren't allowed
@@ -286,6 +294,10 @@ impl Config {
                 // revert to previous repos
                 self.repos = orig_repos;
                 return Err(e);
+            } else if let Repo::Ebuild(r) = repo {
+                // create configured ebuild repos
+                let configured = r.configure(settings.clone());
+                self.configured.insert(configured.into());
             }
         }
 

@@ -17,7 +17,7 @@ use scallop::pool::PoolSendIter;
 use tracing::{error, warn};
 use walkdir::{DirEntry, WalkDir};
 
-use crate::config::{Config, RepoConfig};
+use crate::config::{RepoConfig, Settings};
 use crate::dep::{self, Cpv, Operator, Version};
 use crate::eapi::Eapi;
 use crate::files::{
@@ -648,9 +648,9 @@ impl Repo {
         }
     }
 
-    /// Return a configured repo using the given [`Config`].
-    pub fn configure(&self, config: &Config) -> configured::Repo {
-        configured::Repo::new(self.arc(), &config.settings)
+    /// Return a configured repo using the given config settings.
+    pub fn configure<T: Into<Arc<Settings>>>(&self, settings: T) -> configured::Repo {
+        configured::Repo::new(self.arc(), settings.into())
     }
 }
 

@@ -140,6 +140,12 @@ pub struct Config {
     pub settings: Arc<Settings>,
 }
 
+impl From<&Config> for Arc<Settings> {
+    fn from(config: &Config) -> Self {
+        config.settings.clone()
+    }
+}
+
 impl Config {
     pub fn new(name: &str, prefix: &str) -> Self {
         let path = ConfigPath::new(name, prefix);
@@ -150,7 +156,7 @@ impl Config {
     /// file loading is skipped if the environment variable PKGCRAFT_NO_CONFIG is defined.
     pub fn load(&mut self) -> crate::Result<()> {
         if env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
-            self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
+            self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
             self.settings = Arc::new(Settings::default());
 
             if self.repos.is_empty() {
@@ -168,7 +174,7 @@ impl Config {
     /// Load config files from a given path.
     pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
         if self.path.config.exists() {
-            self.repos = repo::Config::new(&self.path.config, &self.path.db)?;
+            self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
         } else {
             self.load_portage_conf(Some(path))?;
         }
@@ -203,7 +209,7 @@ impl Config {
         let repos = portage::load_repos_conf(repos_conf)?;
         if !repos.is_empty() {
             // add repos to config
-            self.repos.extend(&repos, false)?;
+            self.repos.extend(&repos, &self.settings, false)?;
         }
 
         Ok(())
@@ -254,7 +260,7 @@ impl Config {
 
     /// Add a repo to the config.
     pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<()> {
-        self.repos.extend([repo], external)
+        self.repos.extend([repo], &self.settings, external)
     }
 
     /// Create a new repo.
