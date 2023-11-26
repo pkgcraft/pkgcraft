@@ -650,7 +650,7 @@ impl Repo {
 
     /// Return a configured repo using the given [`Config`].
     pub fn configure(&self, config: &Config) -> configured::Repo {
-        configured::Repo::new(self.arc(), config)
+        configured::Repo::new(self.arc(), &config.settings)
     }
 }
 

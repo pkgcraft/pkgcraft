@@ -4,7 +4,7 @@ use std::sync::Arc;
 use camino::Utf8Path;
 use indexmap::IndexSet;
 
-use crate::config::{Config, RepoConfig, Settings};
+use crate::config::{RepoConfig, Settings};
 use crate::dep::Version;
 use crate::pkg::ebuild::configured::Pkg;
 use crate::repo::{make_repo_traits, PkgRepository, RepoFormat, Repository};
@@ -26,10 +26,10 @@ impl<'a> From<&'a Repo> for &'a super::Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
-    pub(super) fn new(raw: Arc<super::Repo>, config: &Config) -> Self {
+    pub(super) fn new(raw: Arc<super::Repo>, settings: &Arc<Settings>) -> Self {
         Repo {
             raw,
-            settings: config.settings.clone(),
+            settings: settings.clone(),
         }
     }
 
