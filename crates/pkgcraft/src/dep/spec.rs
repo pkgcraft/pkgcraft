@@ -12,7 +12,7 @@ use crate::traits::Contains;
 use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
 use crate::Error;
 
-use super::Dep;
+use super::{parse, Dep};
 
 pub trait UseFlag:
     fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash
@@ -285,7 +285,7 @@ impl FromStr for DepSpec<String, Dep> {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         let eapi = Default::default();
-        super::parse::dependencies_dep_spec(s, eapi)
+        parse::dependencies_dep_spec(s, eapi)
     }
 }
 
@@ -655,7 +655,7 @@ impl FromStr for DepSet<String, Dep> {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         let eapi = Default::default();
-        super::parse::dependencies_dep_set(s, eapi)
+        parse::dependencies_dep_set(s, eapi)
     }
 }
 
@@ -1263,12 +1263,33 @@ mod tests {
 
     #[test]
     fn dep_spec_sort() {
+        // dependencies
         for (s, expected) in [
+            ("a/b", "a/b"),
             ("( c/d a/b )", "( a/b c/d )"),
+            ("|| ( c/d a/b )", "|| ( c/d a/b )"),
             ("u? ( c/d a/b )", "u? ( a/b c/d )"),
             ("!u? ( c/d a/b )", "!u? ( a/b c/d )"),
         ] {
             let mut spec: DepSpec<String, Dep> = s.parse().unwrap();
+            spec.sort();
+            assert_eq!(spec.to_string(), expected);
+        }
+
+        // REQUIRED_USE
+        let eapi = Default::default();
+        for (s, expected) in [
+            ("a", "a"),
+            ("!a", "!a"),
+            ("( b a )", "( a b )"),
+            ("( b !a )", "( b !a )"),
+            ("|| ( b a )", "|| ( b a )"),
+            ("^^ ( b a )", "^^ ( b a )"),
+            ("?? ( b a )", "?? ( b a )"),
+            ("u? ( b a )", "u? ( a b )"),
+            ("!u? ( b a )", "!u? ( a b )"),
+        ] {
+            let mut spec = parse::required_use_dep_spec(s, eapi).unwrap();
             spec.sort();
             assert_eq!(spec.to_string(), expected);
         }
@@ -1287,12 +1308,33 @@ mod tests {
 
     #[test]
     fn dep_set_sort() {
+        // dependencies
         for (s, expected) in [
             ("c/d a/b", "a/b c/d"),
+            ("( c/d a/b ) z/z", "z/z ( a/b c/d )"),
+            ("|| ( c/d a/b ) z/z", "z/z || ( c/d a/b )"),
             ("u? ( c/d a/b ) z/z", "z/z u? ( a/b c/d )"),
             ("!u? ( c/d a/b ) z/z", "z/z !u? ( a/b c/d )"),
         ] {
             let mut set: DepSet<String, Dep> = s.parse().unwrap();
+            set.sort();
+            assert_eq!(set.to_string(), expected);
+        }
+
+        // REQUIRED_USE
+        let eapi = Default::default();
+        for (s, expected) in [
+            ("b a", "a b"),
+            ("b !a", "b !a"),
+            ("( b a ) z", "z ( a b )"),
+            ("( b !a ) z", "z ( b !a )"),
+            ("|| ( b a ) z", "z || ( b a )"),
+            ("^^ ( b a ) z", "z ^^ ( b a )"),
+            ("?? ( b a ) z", "z ?? ( b a )"),
+            ("u? ( b a ) z", "z u? ( a b )"),
+            ("!u? ( b a ) z", "z !u? ( a b )"),
+        ] {
+            let mut set = parse::required_use_dep_set(s, eapi).unwrap();
             set.sort();
             assert_eq!(set.to_string(), expected);
         }
