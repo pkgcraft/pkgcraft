@@ -302,17 +302,15 @@ impl Config {
             }
         }
 
-        self.sort();
+        // sort raw and configured repos
+        self.repos.sort_by(|_, r1, _, r2| r1.cmp(r2));
+        self.configured.sort();
+
         Ok(())
     }
 
     pub fn iter(&self) -> ReposIter<'_> {
         self.into_iter()
-    }
-
-    /// Sort repos by priority then by name.
-    fn sort(&mut self) {
-        self.repos.sort_by(|_k1, v1, _k2, v2| v1.cmp(v2));
     }
 }
 
