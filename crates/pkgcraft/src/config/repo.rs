@@ -281,10 +281,11 @@ impl Config {
             return Err(Error::Config(format!("can't override existing repos: {existing}")));
         }
 
-        // copy original repos so it can be reverted to if an error occurs
+        // copy original repos so they can be reverted to if an error occurs during finalization
         let orig_repos = self.repos.clone();
+        let orig_configured = self.configured.clone();
 
-        // add repos to config
+        // add repos to config so finalization works for overlays
         self.repos
             .extend(repos.iter().map(|(s, r)| (s.to_string(), (*r).clone())));
 
@@ -292,6 +293,7 @@ impl Config {
             // finalize repos, reverting to the previous set if errors occur
             if let Err(e) = repo.finalize(&self.repos) {
                 self.repos = orig_repos;
+                self.configured = orig_configured;
                 return Err(e);
             }
 
