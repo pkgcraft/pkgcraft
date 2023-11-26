@@ -288,14 +288,15 @@ impl Config {
         self.repos
             .extend(repos.iter().map(|(s, r)| (s.to_string(), (*r).clone())));
 
-        // verify new repos
         for (_, repo) in &repos {
+            // finalize repos, reverting to the previous set if errors occur
             if let Err(e) = repo.finalize(&self.repos) {
-                // revert to previous repos
                 self.repos = orig_repos;
                 return Err(e);
-            } else if let Repo::Ebuild(r) = repo {
-                // create configured ebuild repos
+            }
+
+            // create configured ebuild repos
+            if let Repo::Ebuild(r) = repo {
                 let configured = r.configure(settings.clone());
                 self.configured.insert(configured.into());
             }
