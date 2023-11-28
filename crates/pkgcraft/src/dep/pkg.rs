@@ -40,7 +40,7 @@ pub enum SlotOperator {
 }
 
 #[repr(u32)]
-#[derive(PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum DepField {
     Blocker = 1,
     Version = 1 << 1,
@@ -234,14 +234,46 @@ impl Dep {
         dep
     }
 
-    /// Potentially create a new Dep with a given repo name.
-    pub fn with_repo(&self, s: &str) -> crate::Result<Cow<'_, Self>> {
+    /// Potentially create a new Dep, mutating the given fields and values.
+    pub fn with<I, S>(&self, values: I) -> crate::Result<Cow<'_, Self>>
+    where
+        I: IntoIterator<Item = (DepField, S)>,
+        S: AsRef<str>,
+    {
         let mut dep = Cow::Borrowed(self);
-        let repo = parse::repo(s)?;
-        if !self.repo().map(|r| r == repo).unwrap_or_default() {
-            dep.to_mut().repo = Some(repo.to_string());
+        for (field, s) in values {
+            let s = s.as_ref();
+            match field {
+                DepField::Blocker => {
+                    let val: Blocker = s
+                        .parse()
+                        .map_err(|_| Error::InvalidValue(format!("invalid blocker: {s}")))?;
+                    if !dep.blocker.as_ref().map(|v| v == &val).unwrap_or_default() {
+                        dep.to_mut().blocker = Some(val);
+                    }
+                }
+                DepField::Version => {
+                    let val = parse::version_with_op(s)?;
+                    if !dep.version.as_ref().map(|v| v == &val).unwrap_or_default() {
+                        dep.to_mut().version = Some(val);
+                    }
+                }
+                DepField::Repo => {
+                    let val = parse::repo(s)?;
+                    if !dep.repo.as_ref().map(|v| v == val).unwrap_or_default() {
+                        dep.to_mut().repo = Some(val.to_string());
+                    }
+                }
+                field => return Err(Error::InvalidValue(format!("unhandled field: {field:?}"))),
+            }
         }
+
         Ok(dep)
+    }
+
+    /// Potentially create a new Dep with a given repo name.
+    pub fn with_repo<S: AsRef<str>>(&self, s: S) -> crate::Result<Cow<'_, Self>> {
+        self.with([(DepField::Repo, s)])
     }
 
     /// Verify a string represents a valid package dependency.
