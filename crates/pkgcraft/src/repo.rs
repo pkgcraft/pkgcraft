@@ -22,7 +22,9 @@ pub mod set;
 
 /// Supported repo formats
 #[repr(C)]
-#[derive(EnumIter, EnumString, Display, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(
+    EnumIter, EnumString, Display, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
 #[strum(serialize_all = "snake_case")]
 pub enum RepoFormat {
     #[default]
@@ -556,7 +558,7 @@ macro_rules! make_repo_traits {
     ($($x:ty),+) => {$(
         impl PartialEq for $x {
             fn eq(&self, other: &Self) -> bool {
-                self.id() == other.id()
+                self.id() == other.id() && self.format() == other.format()
             }
         }
 
@@ -565,6 +567,7 @@ macro_rules! make_repo_traits {
         impl std::hash::Hash for $x {
             fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
                 self.id().hash(state);
+                self.format().hash(state);
             }
         }
 
@@ -584,7 +587,10 @@ macro_rules! make_repo_traits {
                 match self.priority().cmp(&other.priority()) {
                     Less => Greater,
                     Greater => Less,
-                    Equal => self.id().cmp(other.id()),
+                    Equal => {
+                        $crate::macros::cmp_not_equal!(self.id(), other.id());
+                        self.format().cmp(&other.format())
+                    }
                 }
             }
         }
