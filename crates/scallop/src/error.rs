@@ -63,7 +63,7 @@ pub(crate) fn ok_or_error<F: FnOnce() -> Result<ExecStatus>>(func: F) -> Result<
 }
 
 /// Wrapper to convert bash errors into native errors.
-pub(crate) fn bash_error(msg: *mut c_char, status: u32) {
+pub(crate) fn bash_error(msg: *mut c_char, status: u8) {
     let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
 
     // Strip the shell name prefix that bash adds -- can't easily do this in bash since the same
@@ -73,7 +73,7 @@ pub(crate) fn bash_error(msg: *mut c_char, status: u32) {
     if !msg.is_empty() {
         let level = CALL_LEVEL.load(Ordering::Relaxed);
         ERRORS.with(|errors| {
-            let e = if status == bash::EX_LONGJMP {
+            let e = if status == bash::EX_LONGJMP as u8 {
                 Error::Bail(msg.to_string())
             } else {
                 Error::Base(msg.to_string())

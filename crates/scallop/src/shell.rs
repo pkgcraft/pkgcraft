@@ -114,7 +114,7 @@ pub(crate) fn raise_shm_error() {
         let status = *(bash::SHM_BUF as *mut u8).offset(4095);
         if status != 0 {
             let shm = bash::SHM_BUF as *mut c_char;
-            error::bash_error(shm, status.into());
+            error::bash_error(shm, status);
             // reset status indicator
             ptr::write_bytes(shm.offset(4095), 0, 1);
         }
