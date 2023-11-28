@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde::{Deserialize, Serialize};
 
-use crate::ExecStatus;
+use crate::{bash, ExecStatus};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -63,7 +63,7 @@ pub(crate) fn ok_or_error<F: FnOnce() -> Result<ExecStatus>>(func: F) -> Result<
 }
 
 /// Wrapper to convert bash errors into native errors.
-pub(crate) fn bash_error(msg: *mut c_char, bail: bool) {
+pub(crate) fn bash_error(msg: *mut c_char, status: u32) {
     let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
 
     // Strip the shell name prefix that bash adds -- can't easily do this in bash since the same
@@ -73,7 +73,7 @@ pub(crate) fn bash_error(msg: *mut c_char, bail: bool) {
     if !msg.is_empty() {
         let level = CALL_LEVEL.load(Ordering::Relaxed);
         ERRORS.with(|errors| {
-            let e = if bail {
+            let e = if status == bash::EX_LONGJMP {
                 Error::Bail(msg.to_string())
             } else {
                 Error::Base(msg.to_string())

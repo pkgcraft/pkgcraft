@@ -27,7 +27,7 @@ pub fn init(restricted: bool) {
 /// Bash callback to convert bash errors into native errors.
 #[no_mangle]
 extern "C" fn bash_error(msg: *mut c_char) {
-    error::bash_error(msg, false)
+    error::bash_error(msg, 1)
 }
 
 /// Return the main shell process identifier.
@@ -94,7 +94,7 @@ pub(crate) fn set_shm_error(msg: &str, bail: bool) {
     let data = CString::new(msg).unwrap().into_bytes_with_nul();
 
     // determine error status
-    let status = if bail { 2 } else { 1 };
+    let status = if bail { bash::EX_LONGJMP as u8 } else { 1 };
 
     // write to shared memory
     unsafe {
@@ -114,7 +114,7 @@ pub(crate) fn raise_shm_error() {
         let status = *(bash::SHM_BUF as *mut u8).offset(4095);
         if status != 0 {
             let shm = bash::SHM_BUF as *mut c_char;
-            error::bash_error(shm, status == 2);
+            error::bash_error(shm, status.into());
             // reset status indicator
             ptr::write_bytes(shm.offset(4095), 0, 1);
         }
