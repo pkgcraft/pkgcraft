@@ -16,12 +16,18 @@ pub fn init(restricted: bool) {
     let name = CString::new("scallop").unwrap();
     let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
-        bash::lib_error_handlers(Some(error::bash_error), Some(error::bash_warning_log));
+        bash::lib_error_handlers(Some(bash_error), Some(error::bash_warning_log));
         bash::lib_init(name.as_ptr() as *mut _, shm, restricted as i32);
     }
 
     // shell name is saved since bash requires a valid pointer to it
     SHELL.set(name).expect("failed setting shell name");
+}
+
+/// Bash callback to convert bash errors into native errors.
+#[no_mangle]
+extern "C" fn bash_error(msg: *mut c_char) {
+    error::bash_error(msg, false)
 }
 
 /// Return the main shell process identifier.
@@ -83,29 +89,35 @@ pub fn interactive() {
 }
 
 /// Create an error message in shared memory.
-pub(crate) fn set_shm_error(msg: &str) {
+pub(crate) fn set_shm_error(msg: &str, bail: bool) {
     // convert unicode string into byte string
-    let msg = CString::new(msg).unwrap();
-    let mut data = msg.into_bytes_with_nul();
+    let data = CString::new(msg).unwrap().into_bytes_with_nul();
 
-    // truncate error message as necessary
-    if data.len() > 4096 {
-        data = [&data[..4096], &[b'\0']].concat();
-    }
+    // determine error status
+    let status = if bail { 2 } else { 1 };
 
-    // write message into shared memory
+    // write to shared memory
     unsafe {
         let shm = bash::SHM_BUF as *mut u8;
+        // write message into shared memory
         ptr::copy_nonoverlapping(data.as_ptr(), shm, data.len());
+        // truncate message
+        ptr::write_bytes(shm.offset(4094), b'\0', 1);
+        // write status indicator
+        ptr::write_bytes(shm.offset(4095), status, 1);
     }
 }
 
 /// Raise an error from shared memory if one exists.
 pub(crate) fn raise_shm_error() {
     unsafe {
-        let shm = bash::SHM_BUF as *mut c_char;
-        error::bash_error(shm);
-        ptr::write_bytes(shm, b'\0', 4096);
+        let status = *(bash::SHM_BUF as *mut u8).offset(4095);
+        if status != 0 {
+            let shm = bash::SHM_BUF as *mut c_char;
+            error::bash_error(shm, status == 2);
+            // reset status indicator
+            ptr::write_bytes(shm.offset(4095), 0, 1);
+        }
     }
 }
 

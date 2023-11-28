@@ -63,8 +63,7 @@ pub(crate) fn ok_or_error<F: FnOnce() -> Result<ExecStatus>>(func: F) -> Result<
 }
 
 /// Wrapper to convert bash errors into native errors.
-#[no_mangle]
-pub(crate) extern "C" fn bash_error(msg: *mut c_char) {
+pub(crate) fn bash_error(msg: *mut c_char, bail: bool) {
     let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
 
     // Strip the shell name prefix that bash adds -- can't easily do this in bash since the same
@@ -74,7 +73,7 @@ pub(crate) extern "C" fn bash_error(msg: *mut c_char) {
     if !msg.is_empty() {
         let level = CALL_LEVEL.load(Ordering::Relaxed);
         ERRORS.with(|errors| {
-            let e = if let Some(msg) = msg.strip_prefix("scallop-bail: ") {
+            let e = if bail {
                 Error::Bail(msg.to_string())
             } else {
                 Error::Base(msg.to_string())
