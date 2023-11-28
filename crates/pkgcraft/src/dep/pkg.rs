@@ -258,12 +258,23 @@ impl Dep {
                         dep.to_mut().version = Some(val);
                     }
                 }
+                DepField::UseDeps => {
+                    let val = parse::use_deps(s)?
+                        .into_iter()
+                        .map(|s| s.to_string())
+                        .collect();
+                    if !dep.use_deps.as_ref().map(|v| v == &val).unwrap_or_default() {
+                        dep.to_mut().use_deps = Some(val);
+                    }
+                }
                 DepField::Repo => {
                     let val = parse::repo(s)?;
                     if !dep.repo.as_ref().map(|v| v == val).unwrap_or_default() {
                         dep.to_mut().repo = Some(val.to_string());
                     }
                 }
+                // TODO: add support for slot-based attributes which will require exposing the
+                // related parsing functionality
                 field => return Err(Error::InvalidValue(format!("unhandled field: {field:?}"))),
             }
         }

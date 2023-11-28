@@ -133,7 +133,7 @@ peg::parser!(grammar depspec() for str {
         } / expected!("use dep")
         ) { s }
 
-    rule use_deps() -> Vec<&'input str>
+    pub(super) rule use_deps() -> Vec<&'input str>
         = "[" use_deps:use_dep() ++ "," "]" {
             use_deps
         }
@@ -355,6 +355,10 @@ pub fn version_with_op(s: &str) -> crate::Result<Version> {
 pub fn slot(s: &str) -> crate::Result<&str> {
     depspec::slot_name(s).map_err(|e| peg_error("invalid slot", s, e))?;
     Ok(s)
+}
+
+pub(super) fn use_deps(s: &str) -> crate::Result<Vec<&str>> {
+    depspec::use_deps(s).map_err(|e| peg_error("invalid use deps", s, e))
 }
 
 pub fn use_flag(s: &str) -> crate::Result<&str> {
