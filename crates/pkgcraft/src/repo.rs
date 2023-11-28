@@ -1,5 +1,5 @@
 use std::fmt;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use camino::Utf8Path;
@@ -145,6 +145,38 @@ impl From<fake::Repo> for Repo {
 impl From<empty::Repo> for Repo {
     fn from(repo: empty::Repo) -> Self {
         Self::Unsynced(Arc::new(repo))
+    }
+}
+
+impl PartialEq for Repo {
+    fn eq(&self, other: &Self) -> bool {
+        use Repo::*;
+        match (self, other) {
+            (Ebuild(r1), Ebuild(r2)) => r1.eq(r2),
+            (Configured(r1), Configured(r2)) => r1.eq(r2),
+            (Fake(r1), Fake(r2)) => r1.eq(r2),
+            (Unsynced(r1), Unsynced(r2)) => r1.eq(r2),
+            // list unmatched formats for compile failure visibility when adding types
+            (Ebuild(_), _) => false,
+            (Configured(_), _) => false,
+            (Fake(_), _) => false,
+            (Unsynced(_), _) => false,
+        }
+    }
+}
+
+impl Eq for Repo {}
+
+impl Hash for Repo {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.format().hash(state);
+        use Repo::*;
+        match self {
+            Ebuild(r) => r.hash(state),
+            Configured(r) => r.hash(state),
+            Fake(r) => r.hash(state),
+            Unsynced(r) => r.hash(state),
+        }
     }
 }
 
@@ -556,21 +588,6 @@ impl Repository for Repo {
 
 macro_rules! make_repo_traits {
     ($($x:ty),+) => {$(
-        impl PartialEq for $x {
-            fn eq(&self, other: &Self) -> bool {
-                self.id() == other.id() && self.format() == other.format()
-            }
-        }
-
-        impl Eq for $x {}
-
-        impl std::hash::Hash for $x {
-            fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-                self.id().hash(state);
-                self.format().hash(state);
-            }
-        }
-
         impl PartialOrd for $x {
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
                 Some(self.cmp(other))
@@ -675,8 +692,8 @@ mod tests {
         assert_eq!(repos.len(), 2);
 
         let f_repo: Repo = fake::Repo::new("test", 0).into();
-        assert!(e_repo == f_repo);
+        assert!(e_repo != f_repo);
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
-        assert_eq!(repos.len(), 1);
+        assert_eq!(repos.len(), 2);
     }
 }

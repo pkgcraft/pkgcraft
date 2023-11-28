@@ -1,4 +1,5 @@
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use camino::Utf8Path;
@@ -20,6 +21,20 @@ pub struct Repo {
 impl<'a> From<&'a Repo> for &'a super::Repo {
     fn from(repo: &'a Repo) -> Self {
         repo.raw.as_ref()
+    }
+}
+
+impl PartialEq for Repo {
+    fn eq(&self, other: &Self) -> bool {
+        self.path() == other.path()
+    }
+}
+
+impl Eq for Repo {}
+
+impl Hash for Repo {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.path().hash(state);
     }
 }
 

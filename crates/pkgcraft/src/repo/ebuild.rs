@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::path::Path;
 use std::sync::atomic::Ordering::Relaxed;
@@ -178,6 +179,20 @@ impl fmt::Debug for Repo {
             .field("repo_config", &self.repo_config())
             .field("name", &self.name())
             .finish()
+    }
+}
+
+impl PartialEq for Repo {
+    fn eq(&self, other: &Self) -> bool {
+        self.path() == other.path()
+    }
+}
+
+impl Eq for Repo {}
+
+impl Hash for Repo {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.path().hash(state);
     }
 }
 

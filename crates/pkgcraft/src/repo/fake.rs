@@ -1,5 +1,5 @@
-use std::fmt;
-use std::fs;
+use std::hash::{Hash, Hasher};
+use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
@@ -9,6 +9,7 @@ use crate::config::RepoConfig;
 use crate::dep::{Cpv, Version};
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
+use crate::types::OrderedSet;
 use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
@@ -21,7 +22,22 @@ pub struct Repo {
     id: String,
     repo_config: RepoConfig,
     pkgmap: PkgMap,
-    cpvs: IndexSet<Cpv>,
+    cpvs: OrderedSet<Cpv>,
+}
+
+impl PartialEq for Repo {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.cpvs == other.cpvs
+    }
+}
+
+impl Eq for Repo {}
+
+impl Hash for Repo {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.cpvs.hash(state);
+    }
 }
 
 make_repo_traits!(Repo);

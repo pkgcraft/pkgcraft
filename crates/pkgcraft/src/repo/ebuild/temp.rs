@@ -1,3 +1,4 @@
+use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::{env, fmt, fs};
 
@@ -20,6 +21,20 @@ pub struct Repo {
     tempdir: TempDir,
     path: Utf8PathBuf,
     pub(crate) repo: BaseRepo,
+}
+
+impl PartialEq for Repo {
+    fn eq(&self, other: &Self) -> bool {
+        self.path == other.path
+    }
+}
+
+impl Eq for Repo {}
+
+impl Hash for Repo {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.path.hash(state);
+    }
 }
 
 make_repo_traits!(Repo);

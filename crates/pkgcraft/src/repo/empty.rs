@@ -1,3 +1,4 @@
+use std::hash::{Hash, Hasher};
 use std::{fmt, iter};
 
 use camino::Utf8Path;
@@ -15,6 +16,20 @@ use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 pub struct Repo {
     id: String,
     repo_config: RepoConfig,
+}
+
+impl PartialEq for Repo {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for Repo {}
+
+impl Hash for Repo {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
 }
 
 make_repo_traits!(Repo);
