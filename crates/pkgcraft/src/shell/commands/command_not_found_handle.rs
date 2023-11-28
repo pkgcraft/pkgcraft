@@ -23,9 +23,6 @@ mod tests {
     use scallop::variables::{bind, optional};
 
     use crate::macros::assert_err_re;
-    use crate::shell::get_build_mut;
-    use crate::shell::phase::PhaseKind;
-    use crate::shell::scope::Scope;
 
     #[test]
     fn fatal() {
@@ -48,8 +45,6 @@ mod tests {
 
     #[test]
     fn nonfatal() {
-        let build = get_build_mut();
-        build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
         source::string("nonfatal nonexistent; VAR=2").unwrap();
         assert_eq!(optional("VAR").unwrap(), "2");

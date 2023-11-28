@@ -64,8 +64,6 @@ mod tests {
 
     #[test]
     fn main() {
-        let build = get_build_mut();
-        build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("die && VAR=2");
@@ -81,8 +79,6 @@ mod tests {
 
     #[test]
     fn subshell() {
-        let build = get_build_mut();
-        build.scope = Scope::Phase(PhaseKind::SrcInstall);
         bind("VAR", "1", None, None).unwrap();
 
         // forced subshell
