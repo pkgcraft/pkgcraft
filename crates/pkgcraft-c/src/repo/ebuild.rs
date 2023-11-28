@@ -59,6 +59,19 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_categories(
     iter_to_array!(repo.metadata().categories().iter(), len, str_to_raw)
 }
 
+/// Return an ebuild repo's metadata licenses.
+///
+/// # Safety
+/// The argument must be a non-null Repo pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_licenses(
+    r: *mut Repo,
+    len: *mut usize,
+) -> *mut *mut c_char {
+    let repo = try_repo_from_ptr!(r);
+    iter_to_array!(repo.metadata().licenses().iter(), len, str_to_raw)
+}
+
 /// Return an ebuild repo's EAPI.
 ///
 /// # Safety
@@ -82,6 +95,19 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
     iter_to_array!(repo.masters(), len, |r: Arc<EbuildRepo>| {
         Box::into_raw(Box::new(Repo::Ebuild(r)))
     })
+}
+
+/// Return an ebuild repo's inherited licenses.
+///
+/// # Safety
+/// The argument must be a non-null Repo pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_licenses(
+    r: *mut Repo,
+    len: *mut usize,
+) -> *mut *mut c_char {
+    let repo = try_repo_from_ptr!(r);
+    iter_to_array!(repo.licenses().iter(), len, str_to_raw)
 }
 
 /// Regenerate an ebuild repo's package metadata cache.
