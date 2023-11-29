@@ -145,11 +145,13 @@ impl Dep {
     }
 
     /// Potentially create a new Dep, removing the given fields.
-    pub fn without<I>(&self, values: I) -> crate::Result<Cow<'_, Self>>
+    pub fn without<I>(&self, values: I) -> Cow<'_, Self>
     where
         I: IntoIterator<Item = DepField>,
     {
+        // only removing fields shouldn't cause errors, panic if it does
         self.modify(values.into_iter().map(|v| (v, None)))
+            .unwrap_or_else(|e| panic!("{e}"))
     }
 
     /// Potentially create a new Dep, modifying the given fields and values.
@@ -787,21 +789,21 @@ mod tests {
             (DepField::UseDeps, "!!>=cat/pkg-1.2-r3:4/5=::repo"),
             (DepField::Repo, "!!>=cat/pkg-1.2-r3:4/5=[a,b]"),
         ] {
-            let d = dep.without([field]).unwrap();
+            let d = dep.without([field]);
             let s = d.to_string();
             assert_eq!(&s, expected);
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
 
         // remove all fields
-        let d = dep.without(DepField::iter()).unwrap();
+        let d = dep.without(DepField::iter());
         let s = d.to_string();
         assert_eq!(&s, "cat/pkg");
         assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
 
         // verify all combinations of dep fields create valid deps
         for vals in DepField::iter().powerset() {
-            let d = dep.without(vals).unwrap();
+            let d = dep.without(vals);
             let s = d.to_string();
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
