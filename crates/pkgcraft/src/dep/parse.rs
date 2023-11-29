@@ -94,7 +94,7 @@ peg::parser!(grammar depspec() for str {
     rule slot_dep() -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
         = ":" slot_parts:slot_str() { slot_parts }
 
-    rule slot_str() -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
+    pub(super) rule slot_str() -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
         = s:$("*" / "=") {?
             let op = s.parse().map_err(|_| "invalid slot operator")?;
             Ok((None, None, Some(op)))
@@ -359,6 +359,12 @@ pub fn slot(s: &str) -> crate::Result<&str> {
 
 pub(super) fn use_deps(s: &str) -> crate::Result<Vec<&str>> {
     depspec::use_deps(s).map_err(|e| peg_error("invalid use deps", s, e))
+}
+
+pub(super) fn slot_str(
+    s: &str,
+) -> crate::Result<(Option<&str>, Option<&str>, Option<SlotOperator>)> {
+    depspec::slot_str(s).map_err(|e| peg_error("invalid slot", s, e))
 }
 
 pub fn use_flag(s: &str) -> crate::Result<&str> {

@@ -258,6 +258,43 @@ impl Dep {
                         dep.to_mut().version = Some(val);
                     }
                 }
+                DepField::Slot => {
+                    let (slot, subslot, slot_op) = parse::slot_str(s)?;
+                    if let Some(val) = slot {
+                        if !dep.slot.as_ref().map(|v| v == val).unwrap_or_default() {
+                            dep.to_mut().slot = Some(val.to_string());
+                        }
+                    }
+                    if let Some(val) = subslot {
+                        if !dep.subslot.as_ref().map(|v| v == val).unwrap_or_default() {
+                            dep.to_mut().subslot = Some(val.to_string());
+                        }
+                    }
+                    if let Some(val) = slot_op {
+                        if !dep.slot_op.as_ref().map(|v| v == &val).unwrap_or_default() {
+                            dep.to_mut().slot_op = Some(val);
+                        }
+                    }
+                }
+                DepField::Subslot => {
+                    let val = parse::slot(s)?;
+                    if dep.slot.is_none() {
+                        return Err(Error::InvalidValue(format!(
+                            "invalid subslot with missing slot value: {val}"
+                        )));
+                    };
+                    if !dep.subslot.as_ref().map(|v| v == val).unwrap_or_default() {
+                        dep.to_mut().subslot = Some(val.to_string());
+                    }
+                }
+                DepField::SlotOp => {
+                    let val: SlotOperator = s
+                        .parse()
+                        .map_err(|_| Error::InvalidValue(format!("invalid slot operator: {s}")))?;
+                    if !dep.slot_op.as_ref().map(|v| v == &val).unwrap_or_default() {
+                        dep.to_mut().slot_op = Some(val);
+                    }
+                }
                 DepField::UseDeps => {
                     let val = parse::use_deps(s)?
                         .into_iter()
@@ -273,9 +310,6 @@ impl Dep {
                         dep.to_mut().repo = Some(val.to_string());
                     }
                 }
-                // TODO: add support for slot-based attributes which will require exposing the
-                // related parsing functionality
-                field => return Err(Error::InvalidValue(format!("unhandled field: {field:?}"))),
             }
         }
 
