@@ -9,6 +9,7 @@ on:
       - "crates/pkgcraft-c/**"
       - ".github/workflows/pkgcraft-c.yml"
       - "!crates/*/benches/**"
+      - "!crates/*/tests/**"
       - "!**/README.md"
   workflow_dispatch:
 
