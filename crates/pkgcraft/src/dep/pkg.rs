@@ -192,6 +192,26 @@ impl Hash for Dep {
     }
 }
 
+impl Ord for Dep {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.key().cmp(&other.key())
+    }
+}
+
+impl PartialOrd for Dep {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl FromStr for Dep {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        Dep::new(s)
+    }
+}
+
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
 type DepKey<'a> = (
     &'a str,                        // category
@@ -539,26 +559,6 @@ impl fmt::Display for Dep {
         }
 
         Ok(())
-    }
-}
-
-impl Ord for Dep {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.key().cmp(&other.key())
-    }
-}
-
-impl PartialOrd for Dep {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl FromStr for Dep {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        Dep::new(s)
     }
 }
 
