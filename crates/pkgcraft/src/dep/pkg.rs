@@ -42,12 +42,12 @@ pub enum SlotOperator {
 #[derive(EnumIter, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum DepField {
     Blocker = 1,
-    Version = 1 << 1,
-    Slot = 1 << 2,
-    Subslot = 1 << 3,
-    SlotOp = 1 << 4,
-    UseDeps = 1 << 5,
-    Repo = 1 << 6,
+    Version,
+    Slot,
+    Subslot,
+    SlotOp,
+    UseDeps,
+    Repo,
 }
 
 /// Parsed package dep from borrowed input string.
