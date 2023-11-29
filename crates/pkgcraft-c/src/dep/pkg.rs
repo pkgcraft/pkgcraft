@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
-use std::ptr;
+use std::{ptr, slice};
 
-use pkgcraft::dep::{Blocker, Cpv, Dep, DepFields, Intersects, SlotOperator, Version};
+use pkgcraft::dep::{Blocker, Cpv, Dep, DepField, DepFields, Intersects, SlotOperator, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
@@ -46,7 +46,7 @@ pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi)
     }
 }
 
-/// Return a given package dependency without the specified fields.
+/// Return a package dependency without the specified fields.
 ///
 /// # Safety
 /// The arguments must be a non-null Dep pointer and a DepFields bitflag.
@@ -61,7 +61,7 @@ pub unsafe extern "C" fn pkgcraft_dep_without(d: *mut Dep, fields: u32) -> *mut 
     }
 }
 
-/// Return a given package dependency with the specified repo name.
+/// Return a package dependency with the specified repo name.
 ///
 /// Returns NULL on error.
 ///
@@ -73,6 +73,35 @@ pub unsafe extern "C" fn pkgcraft_dep_with_repo(d: *mut Dep, repo: *const c_char
         let dep = try_ref_from_ptr!(d);
         let repo = try_str_from_ptr!(repo);
         if let Cow::Owned(d) = unwrap_or_panic!(dep.with_repo(repo)) {
+            Box::into_raw(Box::new(d))
+        } else {
+            d
+        }
+    }
+}
+
+/// Return a package dependency modifying the specified fields with corresponding values.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The fields and values arguments must be equal length arrays of DepFields with
+/// corresponding string values.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_with(
+    d: *mut Dep,
+    fields: *mut DepField,
+    values: *mut *mut c_char,
+    len: usize,
+) -> *mut Dep {
+    ffi_catch_panic! {
+        let dep = try_ref_from_ptr!(d);
+        let fields = unsafe { slice::from_raw_parts(fields, len) };
+        let values = unsafe { slice::from_raw_parts(values, len) };
+        let iterable = fields.iter().zip(values.iter())
+            .map(|(f, s)| (*f, try_str_from_ptr!(s)));
+
+        if let Cow::Owned(d) = unwrap_or_panic!(dep.with(iterable)) {
             Box::into_raw(Box::new(d))
         } else {
             d
