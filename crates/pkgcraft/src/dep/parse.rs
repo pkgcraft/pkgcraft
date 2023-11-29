@@ -125,7 +125,7 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule iuse() -> (Option<char>, &'input str)
         = default:(['+' | '-'])? flag:use_flag() { (default, flag) }
 
-    rule use_dep() -> &'input str
+    pub(super) rule use_dep() -> &'input str
         = s:$(quiet!{
             (use_flag() use_dep_default()? ['=' | '?']?) /
             ("-" use_flag() use_dep_default()?) /
@@ -133,7 +133,7 @@ peg::parser!(grammar depspec() for str {
         } / expected!("use dep")
         ) { s }
 
-    pub(super) rule use_deps() -> Vec<&'input str>
+    rule use_deps() -> Vec<&'input str>
         = "[" use_deps:use_dep() ++ "," "]" {
             use_deps
         }
@@ -358,7 +358,9 @@ pub fn slot(s: &str) -> crate::Result<&str> {
 }
 
 pub(super) fn use_deps(s: &str) -> crate::Result<Vec<&str>> {
-    depspec::use_deps(s).map_err(|e| peg_error("invalid use deps", s, e))
+    s.split(',')
+        .map(|s| depspec::use_dep(s).map_err(|e| peg_error("invalid use dep", s, e)))
+        .collect()
 }
 
 pub(super) fn slot_str(
