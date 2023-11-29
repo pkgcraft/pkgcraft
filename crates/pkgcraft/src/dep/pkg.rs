@@ -316,11 +316,6 @@ impl Dep {
         Ok(dep)
     }
 
-    /// Potentially create a new Dep with a given repo name.
-    pub fn with_repo<S: AsRef<str>>(&self, s: S) -> crate::Result<Cow<'_, Self>> {
-        self.with([(DepField::Repo, s)])
-    }
-
     /// Verify a string represents a valid package dependency.
     pub fn valid(s: &str, eapi: Option<&'static Eapi>) -> crate::Result<()> {
         parse::dep_str(s, eapi.unwrap_or_default())?;
@@ -853,21 +848,6 @@ mod tests {
             let s = d.to_string();
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
-    }
-
-    #[test]
-    fn with_repo() {
-        let dep = Dep::new("cat/pkg").unwrap();
-        assert!(dep.repo().is_none());
-
-        // invalid
-        assert!(dep.with_repo("+repo").is_err());
-
-        // valid
-        let dep1 = dep.with_repo("repo").unwrap();
-        assert_eq!(dep1.repo().unwrap(), "repo");
-        let dep2 = dep1.with_repo("repo").unwrap();
-        assert_eq!(dep2.repo().unwrap(), "repo");
     }
 
     #[test]

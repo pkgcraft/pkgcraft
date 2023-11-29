@@ -61,25 +61,6 @@ pub unsafe extern "C" fn pkgcraft_dep_without(d: *mut Dep, fields: u32) -> *mut 
     }
 }
 
-/// Return a package dependency with the specified repo name.
-///
-/// Returns NULL on error.
-///
-/// # Safety
-/// The arguments must be a non-null Dep pointer and valid repo name.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_with_repo(d: *mut Dep, repo: *const c_char) -> *mut Dep {
-    ffi_catch_panic! {
-        let dep = try_ref_from_ptr!(d);
-        let repo = try_str_from_ptr!(repo);
-        if let Cow::Owned(d) = unwrap_or_panic!(dep.with_repo(repo)) {
-            Box::into_raw(Box::new(d))
-        } else {
-            d
-        }
-    }
-}
-
 /// Return a package dependency modifying the specified fields with corresponding values.
 ///
 /// Returns NULL on error.
