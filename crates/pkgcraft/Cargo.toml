@@ -29,7 +29,7 @@ blake3 = { version = "1.5.0", features = ["traits-preview"] }
 cached = "0.46.1"
 camino = { version = "1.1.6", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.4.8", features = ["derive"] }
+clap = { version = "4.4.10", features = ["derive"] }
 crossbeam-channel = "0.5.8"
 digest = "0.10.7"
 enum-as-inner = "0.6.0"
@@ -55,7 +55,7 @@ reqwest = { version = "0.11.22", default-features = false, features = ["rustls-t
 roxmltree = "0.18.1"
 rust-ini = "0.20.0"
 scallop = { path = "../scallop", version = "0.0.12" }
-serde = { version = "1.0.192", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive"] }
 serde_with = { version = "3.4.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.8"
 strum = { version = "0.25.0", features = ["derive"] }
