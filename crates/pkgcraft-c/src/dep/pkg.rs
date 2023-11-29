@@ -46,7 +46,9 @@ pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi)
     }
 }
 
-/// Return a package dependency without the specified fields
+/// Return a package dependency without the specified fields.
+///
+/// Returns NULL on error.
 ///
 /// # Safety
 /// The arguments must a valid Dep pointer and DepField values.
@@ -59,8 +61,9 @@ pub unsafe extern "C" fn pkgcraft_dep_without(
     ffi_catch_panic! {
         let dep = try_ref_from_ptr!(d);
         let fields = unsafe { slice::from_raw_parts(fields, len) };
+        let dep = dep.without(fields.iter().copied());
 
-        if let Cow::Owned(d) = dep.without(fields.iter().copied()) {
+        if let Cow::Owned(d) = unwrap_or_panic!(dep) {
             Box::into_raw(Box::new(d))
         } else {
             d

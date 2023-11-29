@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use itertools::Itertools;
-use strum::{AsRefStr, Display, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
 use crate::macros::bool_not_equal;
@@ -39,15 +39,25 @@ pub enum SlotOperator {
 }
 
 #[repr(u32)]
-#[derive(EnumIter, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum DepField {
-    Blocker = 1,
+    Category = 1,
+    Package,
+    Blocker,
     Version,
     Slot,
     Subslot,
     SlotOp,
     UseDeps,
     Repo,
+}
+
+impl DepField {
+    /// Return an iterator consisting of all optional dep fields.
+    pub fn optional() -> impl Iterator<Item = Self> {
+        use DepField::*;
+        [Blocker, Version, Slot, Subslot, SlotOp, UseDeps, Repo].into_iter()
+    }
 }
 
 /// Parsed package dep from borrowed input string.
@@ -145,13 +155,11 @@ impl Dep {
     }
 
     /// Potentially create a new Dep, removing the given fields.
-    pub fn without<I>(&self, values: I) -> Cow<'_, Self>
+    pub fn without<I>(&self, values: I) -> crate::Result<Cow<'_, Self>>
     where
         I: IntoIterator<Item = DepField>,
     {
-        // only removing fields shouldn't cause errors, panic if it does
         self.modify(values.into_iter().map(|v| (v, None)))
-            .unwrap_or_else(|e| panic!("{e}"))
     }
 
     /// Potentially create a new Dep, modifying the given fields and values.
@@ -162,6 +170,26 @@ impl Dep {
         let mut dep = Cow::Borrowed(self);
         for (field, s) in values {
             match field {
+                DepField::Category => {
+                    if let Some(s) = s {
+                        let val = parse::category(s)?;
+                        if dep.category != val {
+                            dep.to_mut().category = val.to_string();
+                        }
+                    } else {
+                        return Err(Error::InvalidValue("category cannot be unset".to_string()));
+                    }
+                }
+                DepField::Package => {
+                    if let Some(s) = s {
+                        let val = parse::package(s)?;
+                        if dep.package != val {
+                            dep.to_mut().package = val.to_string();
+                        }
+                    } else {
+                        return Err(Error::InvalidValue("package cannot be unset".to_string()));
+                    }
+                }
                 DepField::Blocker => {
                     if let Some(s) = s {
                         let val: Blocker = s
@@ -528,7 +556,6 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use indexmap::IndexSet;
-    use strum::IntoEnumIterator;
 
     use crate::dep::CpvOrDep;
     use crate::eapi::{self, EAPIS};
@@ -789,21 +816,21 @@ mod tests {
             (DepField::UseDeps, "!!>=cat/pkg-1.2-r3:4/5=::repo"),
             (DepField::Repo, "!!>=cat/pkg-1.2-r3:4/5=[a,b]"),
         ] {
-            let d = dep.without([field]);
+            let d = dep.without([field]).unwrap();
             let s = d.to_string();
             assert_eq!(&s, expected);
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
 
         // remove all fields
-        let d = dep.without(DepField::iter());
+        let d = dep.without(DepField::optional()).unwrap();
         let s = d.to_string();
         assert_eq!(&s, "cat/pkg");
         assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
 
         // verify all combinations of dep fields create valid deps
-        for vals in DepField::iter().powerset() {
-            let d = dep.without(vals);
+        for vals in DepField::optional().powerset() {
+            let d = dep.without(vals).unwrap();
             let s = d.to_string();
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }

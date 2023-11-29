@@ -1,5 +1,4 @@
 use criterion::Criterion;
-use strum::IntoEnumIterator;
 
 use pkgcraft::dep::{Dep, DepField};
 
@@ -64,6 +63,6 @@ pub fn bench_pkg_deps(c: &mut Criterion) {
 
     c.bench_function("dep-without-all", |b| {
         let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]").unwrap();
-        b.iter(|| dep.without(DepField::iter()));
+        b.iter(|| dep.without(DepField::optional()));
     });
 }
