@@ -14,7 +14,7 @@ use crate::types::OrderedSet;
 use crate::Error;
 
 use super::version::{Operator, ParsedVersion, Revision, Version};
-use super::{parse, Cpv};
+use super::{parse, Cpv, UseFlag};
 
 #[repr(C)]
 #[derive(
@@ -71,7 +71,7 @@ pub(crate) struct ParsedDep<'a> {
     pub(crate) slot: Option<&'a str>,
     pub(crate) subslot: Option<&'a str>,
     pub(crate) slot_op: Option<SlotOperator>,
-    pub(crate) use_deps: Option<Vec<&'a str>>,
+    pub(crate) use_deps: Option<Vec<UseDep<&'a str>>>,
     pub(crate) repo: Option<&'a str>,
 }
 
@@ -99,6 +99,68 @@ impl ParsedDep<'_> {
             }),
             repo: self.repo.map(|s| s.to_string()),
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum UseDepKind {
+    Enabled,             // cat/pkg[opt]
+    Disabled,            // cat/pkg[-opt]
+    Equal,               // cat/pkg[opt=]
+    NotEqual,            // cat/pkg[!opt=]
+    EnabledConditional,  // cat/pkg[opt?]
+    DisabledConditional, // cat/pkg[!opt?]
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum UseDepDefault {
+    Enabled,  // cat/pkg[opt(+)]
+    Disabled, // cat/pkg[opt(-)]
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct UseDep<S: UseFlag> {
+    pub(crate) kind: UseDepKind,
+    pub(crate) flag: S,
+    pub(crate) default: Option<UseDepDefault>,
+}
+
+impl<S: UseFlag> Ord for UseDep<S> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.flag.cmp(&other.flag)
+    }
+}
+
+impl<S: UseFlag> PartialOrd for UseDep<S> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<S: UseFlag> fmt::Display for UseDep<S> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let default = match &self.default {
+            Some(UseDepDefault::Enabled) => "(+)",
+            Some(UseDepDefault::Disabled) => "(-)",
+            None => "",
+        };
+
+        let flag = self.flag();
+        match &self.kind {
+            UseDepKind::Enabled => write!(f, "{flag}{default}"),
+            UseDepKind::Disabled => write!(f, "-{flag}{default}"),
+            UseDepKind::Equal => write!(f, "{flag}{default}="),
+            UseDepKind::NotEqual => write!(f, "!{flag}{default}="),
+            UseDepKind::EnabledConditional => write!(f, "{flag}{default}?"),
+            UseDepKind::DisabledConditional => write!(f, "!{flag}{default}?"),
+        }
+    }
+}
+
+impl<S: UseFlag> UseDep<S> {
+    /// Return the flag value for the USE dependency.
+    pub fn flag(&self) -> &str {
+        self.flag.as_ref()
     }
 }
 

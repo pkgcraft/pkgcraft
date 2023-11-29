@@ -15,11 +15,11 @@ use crate::Error;
 use super::{parse, Dep};
 
 pub trait UseFlag:
-    fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash
+    fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash + AsRef<str>
 {
 }
 impl<T> UseFlag for T where
-    T: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash
+    T: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash + AsRef<str>
 {
 }
 

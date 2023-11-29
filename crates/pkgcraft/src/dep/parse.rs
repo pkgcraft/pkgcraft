@@ -3,7 +3,10 @@ use cached::{proc_macro::cached, SizedCache};
 use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::ParsedDep;
 use crate::dep::version::{ParsedVersion, Suffix};
-use crate::dep::{Blocker, Cpv, Dep, DepSet, DepSpec, SlotOperator, Uri, Version};
+use crate::dep::{
+    Blocker, Cpv, Dep, DepSet, DepSpec, SlotOperator, Uri, UseDep, UseDepDefault, UseDepKind,
+    Version,
+};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
 use crate::types::Ordered;
@@ -125,23 +128,34 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule iuse() -> (Option<char>, &'input str)
         = default:(['+' | '-'])? flag:use_flag() { (default, flag) }
 
-    pub(super) rule use_dep() -> &'input str
-        = s:$(quiet!{
-            (use_flag() use_dep_default()? ['=' | '?']?) /
-            ("-" use_flag() use_dep_default()?) /
-            ("!" use_flag() use_dep_default()? ['=' | '?'])
+    pub(super) rule use_dep() -> UseDep<&'input str>
+        = flag:use_flag() default:use_dep_default()? kind:$(['=' | '?'])? {
+            let kind = match kind {
+                Some("=") => UseDepKind::Equal,
+                Some("?") => UseDepKind::EnabledConditional,
+                None => UseDepKind::Enabled,
+                _ => panic!("invalid use dep kind"),
+            };
+            UseDep { kind, flag, default }
+        } / "-" flag:use_flag() default:use_dep_default()? {
+            UseDep { kind: UseDepKind::Disabled, flag, default }
+        } / "!" flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
+            let kind = match kind {
+                "=" => UseDepKind::NotEqual,
+                "?" => UseDepKind::DisabledConditional,
+                _ => panic!("invalid use dep kind"),
+            };
+            UseDep { kind, flag, default }
         } / expected!("use dep")
-        ) { s }
 
-    rule use_deps() -> Vec<&'input str>
+    rule use_deps() -> Vec<UseDep<&'input str>>
         = "[" use_deps:use_dep() ++ "," "]" {
             use_deps
         }
 
-    rule use_dep_default() -> &'input str
-        = s:$("(+)" / "(-)") {
-            s
-        }
+    rule use_dep_default() -> UseDepDefault
+        = "(+)" { UseDepDefault::Enabled }
+        / "(-)" { UseDepDefault::Disabled }
 
     // repo must not begin with a hyphen and must also be a valid package name
     pub(super) rule repo() -> &'input str
@@ -357,7 +371,7 @@ pub fn slot(s: &str) -> crate::Result<&str> {
     Ok(s)
 }
 
-pub(super) fn use_deps(s: &str) -> crate::Result<Vec<&str>> {
+pub(super) fn use_deps(s: &str) -> crate::Result<Vec<UseDep<&str>>> {
     s.split(',')
         .map(|s| depspec::use_dep(s).map_err(|e| peg_error("invalid use dep", s, e)))
         .collect()

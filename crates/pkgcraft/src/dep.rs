@@ -5,7 +5,9 @@ pub mod spec;
 pub mod version;
 
 pub use cpv::{Cpv, CpvOrDep};
-pub use pkg::{Blocker, Dep, DepField, Intersects, SlotOperator};
+pub use pkg::{
+    Blocker, Dep, DepField, Intersects, SlotOperator, UseDep, UseDepDefault, UseDepKind,
+};
 pub use spec::{
     Conditionals, DepSet, DepSpec, Evaluate, EvaluateForce, Flatten, IntoOwned, Recursive, Uri,
     UseFlag,
