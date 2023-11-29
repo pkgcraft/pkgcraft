@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::{ptr, slice};
 
-use pkgcraft::dep::{Blocker, Cpv, Dep, DepField, DepFields, Intersects, SlotOperator, Version};
+use pkgcraft::dep::{Blocker, Cpv, Dep, DepField, Intersects, SlotOperator, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
@@ -46,22 +46,33 @@ pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi)
     }
 }
 
-/// Return a package dependency without the specified fields.
+/// Return a package dependency without the specified fields
+///
+/// Returns NULL on error.
 ///
 /// # Safety
-/// The arguments must be a non-null Dep pointer and a DepFields bitflag.
+/// The arguments must a valid Dep pointer and DepField values.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_without(d: *mut Dep, fields: u32) -> *mut Dep {
-    let dep = try_ref_from_ptr!(d);
-    let fields = DepFields::from_bits_truncate(fields);
-    if let Cow::Owned(d) = dep.without(fields) {
-        Box::into_raw(Box::new(d))
-    } else {
-        d
+pub unsafe extern "C" fn pkgcraft_dep_without(
+    d: *mut Dep,
+    fields: *mut DepField,
+    len: usize,
+) -> *mut Dep {
+    ffi_catch_panic! {
+        let dep = try_ref_from_ptr!(d);
+        let fields = unsafe { slice::from_raw_parts(fields, len) };
+        let fields = fields.iter().copied();
+
+        if let Cow::Owned(d) = unwrap_or_panic!(dep.without(fields)) {
+            Box::into_raw(Box::new(d))
+        } else {
+            d
+        }
     }
 }
 
-/// Return a package dependency modifying the specified fields with corresponding values.
+/// Return a package dependency modifying the specified fields with corresponding string values.
+/// Use null pointers for string values to unset a given field.
 ///
 /// Returns NULL on error.
 ///
@@ -69,7 +80,7 @@ pub unsafe extern "C" fn pkgcraft_dep_without(d: *mut Dep, fields: u32) -> *mut 
 /// The fields and values arguments must be equal length arrays of DepFields with
 /// corresponding string values.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_with(
+pub unsafe extern "C" fn pkgcraft_dep_modify(
     d: *mut Dep,
     fields: *mut DepField,
     values: *mut *mut c_char,
@@ -80,9 +91,9 @@ pub unsafe extern "C" fn pkgcraft_dep_with(
         let fields = unsafe { slice::from_raw_parts(fields, len) };
         let values = unsafe { slice::from_raw_parts(values, len) };
         let iterable = fields.iter().zip(values.iter())
-            .map(|(f, s)| (*f, try_str_from_ptr!(s)));
+            .map(|(f, p)| (*f, option_from_ptr!(p).map(|_| try_str_from_ptr!(p))));
 
-        if let Cow::Owned(d) = unwrap_or_panic!(dep.with(iterable)) {
+        if let Cow::Owned(d) = unwrap_or_panic!(dep.modify(iterable)) {
             Box::into_raw(Box::new(d))
         } else {
             d

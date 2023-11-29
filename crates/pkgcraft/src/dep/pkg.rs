@@ -5,9 +5,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
-use bitflags::bitflags;
 use itertools::Itertools;
-use strum::{AsRefStr, Display, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::eapi::Eapi;
 use crate::macros::bool_not_equal;
@@ -40,7 +39,7 @@ pub enum SlotOperator {
 }
 
 #[repr(u32)]
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(EnumIter, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum DepField {
     Blocker = 1,
     Version = 1 << 1,
@@ -49,42 +48,6 @@ pub enum DepField {
     SlotOp = 1 << 4,
     UseDeps = 1 << 5,
     Repo = 1 << 6,
-}
-
-#[repr(C)]
-#[derive(PartialEq, Eq, Hash, Copy, Clone)]
-pub struct DepFields(u32);
-
-bitflags! {
-    impl DepFields: u32 {
-        const Blocker = DepField::Blocker as u32;
-        const Version = DepField::Version as u32;
-        const Slot = DepField::Slot as u32;
-        const Subslot = DepField::Subslot as u32;
-        const SlotOp = DepField::SlotOp as u32;
-        const UseDeps = DepField::UseDeps as u32;
-        const Repo = DepField::Repo as u32;
-    }
-}
-
-impl fmt::Debug for DepFields {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        bitflags::parser::to_writer(self, f)
-    }
-}
-
-impl fmt::Display for DepFields {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        bitflags::parser::to_writer(self, f)
-    }
-}
-
-impl FromStr for DepFields {
-    type Err = bitflags::parser::ParseError;
-
-    fn from_str(flags: &str) -> Result<Self, Self::Err> {
-        bitflags::parser::from_str(flags)
-    }
 }
 
 /// Parsed package dep from borrowed input string.
@@ -181,133 +144,122 @@ impl Dep {
         parse::cpn(s)
     }
 
-    /// Potentially create a new Dep dropping the given fields if they exist.
-    pub fn without(&self, fields: DepFields) -> Cow<'_, Self> {
-        let mut dep = Cow::Borrowed(self);
-        for (_name, field) in fields.iter_names() {
-            match field {
-                DepFields::Blocker => {
-                    if self.blocker.is_some() {
-                        dep.to_mut().blocker = None;
-                    }
-                }
-                DepFields::Version => {
-                    if self.version.is_some() {
-                        dep.to_mut().version = None;
-                    }
-                }
-                DepFields::Slot => {
-                    if self.slot.is_some() {
-                        dep.to_mut().slot = None;
-                    }
-                    if self.subslot.is_some() {
-                        dep.to_mut().subslot = None;
-                    }
-                    if self.slot_op.is_some() {
-                        dep.to_mut().slot_op = None;
-                    }
-                }
-                DepFields::Subslot => {
-                    if self.subslot.is_some() {
-                        dep.to_mut().subslot = None;
-                    }
-                }
-                DepFields::SlotOp => {
-                    if self.slot_op.is_some() {
-                        dep.to_mut().slot_op = None;
-                    }
-                }
-                DepFields::UseDeps => {
-                    if self.use_deps.is_some() {
-                        dep.to_mut().use_deps = None;
-                    }
-                }
-                DepFields::Repo => {
-                    if self.repo.is_some() {
-                        dep.to_mut().repo = None;
-                    }
-                }
-                field => panic!("unhandled DepFields value: {field:?}"),
-            }
-        }
-
-        dep
+    /// Potentially create a new Dep, removing the given fields.
+    pub fn without<I>(&self, values: I) -> crate::Result<Cow<'_, Self>>
+    where
+        I: IntoIterator<Item = DepField>,
+    {
+        self.modify(values.into_iter().map(|v| (v, None)))
     }
 
-    /// Potentially create a new Dep, mutating the given fields and values.
-    pub fn with<I, S>(&self, values: I) -> crate::Result<Cow<'_, Self>>
+    /// Potentially create a new Dep, modifying the given fields and values.
+    pub fn modify<'a, I>(&self, values: I) -> crate::Result<Cow<'_, Self>>
     where
-        I: IntoIterator<Item = (DepField, S)>,
-        S: AsRef<str>,
+        I: IntoIterator<Item = (DepField, Option<&'a str>)>,
     {
         let mut dep = Cow::Borrowed(self);
         for (field, s) in values {
-            let s = s.as_ref();
             match field {
                 DepField::Blocker => {
-                    let val: Blocker = s
-                        .parse()
-                        .map_err(|_| Error::InvalidValue(format!("invalid blocker: {s}")))?;
-                    if !dep.blocker.as_ref().map(|v| v == &val).unwrap_or_default() {
-                        dep.to_mut().blocker = Some(val);
+                    if let Some(s) = s {
+                        let val: Blocker = s
+                            .parse()
+                            .map_err(|_| Error::InvalidValue(format!("invalid blocker: {s}")))?;
+                        if !dep.blocker.as_ref().map(|v| v == &val).unwrap_or_default() {
+                            dep.to_mut().blocker = Some(val);
+                        }
+                    } else if self.blocker.is_some() {
+                        dep.to_mut().blocker = None;
                     }
                 }
                 DepField::Version => {
-                    let val = parse::version_with_op(s)?;
-                    if !dep.version.as_ref().map(|v| v == &val).unwrap_or_default() {
-                        dep.to_mut().version = Some(val);
+                    if let Some(s) = s {
+                        let val = parse::version_with_op(s)?;
+                        if !dep.version.as_ref().map(|v| v == &val).unwrap_or_default() {
+                            dep.to_mut().version = Some(val);
+                        }
+                    } else if self.version.is_some() {
+                        dep.to_mut().version = None;
                     }
                 }
                 DepField::Slot => {
-                    let (slot, subslot, slot_op) = parse::slot_str(s)?;
-                    if let Some(val) = slot {
-                        if !dep.slot.as_ref().map(|v| v == val).unwrap_or_default() {
-                            dep.to_mut().slot = Some(val.to_string());
+                    if let Some(s) = s {
+                        let (slot, subslot, slot_op) = parse::slot_str(s)?;
+                        if let Some(val) = slot {
+                            if !dep.slot.as_ref().map(|v| v == val).unwrap_or_default() {
+                                dep.to_mut().slot = Some(val.to_string());
+                            }
                         }
-                    }
-                    if let Some(val) = subslot {
-                        if !dep.subslot.as_ref().map(|v| v == val).unwrap_or_default() {
-                            dep.to_mut().subslot = Some(val.to_string());
+                        if let Some(val) = subslot {
+                            if !dep.subslot.as_ref().map(|v| v == val).unwrap_or_default() {
+                                dep.to_mut().subslot = Some(val.to_string());
+                            }
                         }
-                    }
-                    if let Some(val) = slot_op {
-                        if !dep.slot_op.as_ref().map(|v| v == &val).unwrap_or_default() {
-                            dep.to_mut().slot_op = Some(val);
+                        if let Some(val) = slot_op {
+                            if !dep.slot_op.as_ref().map(|v| v == &val).unwrap_or_default() {
+                                dep.to_mut().slot_op = Some(val);
+                            }
+                        }
+                    } else {
+                        if self.slot.is_some() {
+                            dep.to_mut().slot = None;
+                        }
+                        if self.subslot.is_some() {
+                            dep.to_mut().subslot = None;
+                        }
+                        if self.slot_op.is_some() {
+                            dep.to_mut().slot_op = None;
                         }
                     }
                 }
                 DepField::Subslot => {
-                    let val = parse::slot(s)?;
-                    if dep.slot.is_none() {
-                        return Err(Error::InvalidValue(format!(
-                            "invalid subslot with missing slot value: {val}"
-                        )));
-                    };
-                    if !dep.subslot.as_ref().map(|v| v == val).unwrap_or_default() {
-                        dep.to_mut().subslot = Some(val.to_string());
+                    if let Some(s) = s {
+                        let val = parse::slot(s)?;
+                        if dep.slot.is_none() {
+                            return Err(Error::InvalidValue(format!(
+                                "invalid subslot with missing slot value: {val}"
+                            )));
+                        };
+                        if !dep.subslot.as_ref().map(|v| v == val).unwrap_or_default() {
+                            dep.to_mut().subslot = Some(val.to_string());
+                        }
+                    } else if self.subslot.is_some() {
+                        dep.to_mut().subslot = None;
                     }
                 }
                 DepField::SlotOp => {
-                    let val: SlotOperator = s
-                        .parse()
-                        .map_err(|_| Error::InvalidValue(format!("invalid slot operator: {s}")))?;
-                    if !dep.slot_op.as_ref().map(|v| v == &val).unwrap_or_default() {
-                        dep.to_mut().slot_op = Some(val);
+                    if let Some(s) = s {
+                        let val: SlotOperator = s.parse().map_err(|_| {
+                            Error::InvalidValue(format!("invalid slot operator: {s}"))
+                        })?;
+                        if !dep.slot_op.as_ref().map(|v| v == &val).unwrap_or_default() {
+                            dep.to_mut().slot_op = Some(val);
+                        }
+                    } else if self.slot_op.is_some() {
+                        dep.to_mut().slot_op = None;
                     }
                 }
                 DepField::UseDeps => {
-                    let val = parse::use_deps(s)?
-                        .into_iter()
-                        .map(|s| s.to_string())
-                        .collect();
-                    if !dep.use_deps.as_ref().map(|v| v == &val).unwrap_or_default() {
-                        dep.to_mut().use_deps = Some(val);
+                    if let Some(s) = s {
+                        let val = parse::use_deps(s)?
+                            .into_iter()
+                            .map(|s| s.to_string())
+                            .collect();
+                        if !dep.use_deps.as_ref().map(|v| v == &val).unwrap_or_default() {
+                            dep.to_mut().use_deps = Some(val);
+                        }
+                    } else if self.use_deps.is_some() {
+                        dep.to_mut().use_deps = None;
                     }
                 }
                 DepField::Repo => {
-                    let val = parse::repo(s)?;
-                    if !dep.repo.as_ref().map(|v| v == val).unwrap_or_default() {
-                        dep.to_mut().repo = Some(val.to_string());
+                    if let Some(s) = s {
+                        let val = parse::repo(s)?;
+                        if !dep.repo.as_ref().map(|v| v == val).unwrap_or_default() {
+                            dep.to_mut().repo = Some(val.to_string());
+                        }
+                    } else if self.repo.is_some() {
+                        dep.to_mut().repo = None;
                     }
                 }
             }
@@ -574,6 +526,7 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use indexmap::IndexSet;
+    use strum::IntoEnumIterator;
 
     use crate::dep::CpvOrDep;
     use crate::eapi::{self, EAPIS};
@@ -825,26 +778,30 @@ mod tests {
     fn without() {
         let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]").unwrap();
 
-        for (fields, expected) in [
-            (DepFields::Blocker, ">=cat/pkg-1.2-r3:4/5=::repo[a,b]"),
-            (DepFields::Slot, "!!>=cat/pkg-1.2-r3::repo[a,b]"),
-            (DepFields::Subslot, "!!>=cat/pkg-1.2-r3:4=::repo[a,b]"),
-            (DepFields::SlotOp, "!!>=cat/pkg-1.2-r3:4/5::repo[a,b]"),
-            (DepFields::Version, "!!cat/pkg:4/5=::repo[a,b]"),
-            (DepFields::UseDeps, "!!>=cat/pkg-1.2-r3:4/5=::repo"),
-            (DepFields::Repo, "!!>=cat/pkg-1.2-r3:4/5=[a,b]"),
-            (DepFields::all(), "cat/pkg"),
+        for (field, expected) in [
+            (DepField::Blocker, ">=cat/pkg-1.2-r3:4/5=::repo[a,b]"),
+            (DepField::Slot, "!!>=cat/pkg-1.2-r3::repo[a,b]"),
+            (DepField::Subslot, "!!>=cat/pkg-1.2-r3:4=::repo[a,b]"),
+            (DepField::SlotOp, "!!>=cat/pkg-1.2-r3:4/5::repo[a,b]"),
+            (DepField::Version, "!!cat/pkg:4/5=::repo[a,b]"),
+            (DepField::UseDeps, "!!>=cat/pkg-1.2-r3:4/5=::repo"),
+            (DepField::Repo, "!!>=cat/pkg-1.2-r3:4/5=[a,b]"),
         ] {
-            let d = dep.without(fields);
+            let d = dep.without([field]).unwrap();
             let s = d.to_string();
             assert_eq!(&s, expected);
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
 
+        // remove all fields
+        let d = dep.without(DepField::iter()).unwrap();
+        let s = d.to_string();
+        assert_eq!(&s, "cat/pkg");
+        assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+
         // verify all combinations of dep fields create valid deps
-        for vals in DepFields::all().iter().powerset() {
-            let val = vals.into_iter().fold(DepFields::empty(), |acc, e| acc | e);
-            let d = dep.without(val);
+        for vals in DepField::iter().powerset() {
+            let d = dep.without(vals).unwrap();
             let s = d.to_string();
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }

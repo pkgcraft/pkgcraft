@@ -1,6 +1,7 @@
 use criterion::Criterion;
+use strum::IntoEnumIterator;
 
-use pkgcraft::dep::{Dep, DepFields};
+use pkgcraft::dep::{Dep, DepField};
 
 pub fn bench_pkg_deps(c: &mut Criterion) {
     c.bench_function("dep-parse-unversioned", |b| b.iter(|| Dep::new("cat/pkg")));
@@ -53,21 +54,16 @@ pub fn bench_pkg_deps(c: &mut Criterion) {
 
     c.bench_function("dep-without-owned", |b| {
         let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=[a,b]::repo").unwrap();
-        b.iter(|| dep.without(DepFields::UseDeps));
+        b.iter(|| dep.without([DepField::UseDeps]));
     });
 
     c.bench_function("dep-without-borrowed", |b| {
         let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=[a,b]").unwrap();
-        b.iter(|| dep.without(DepFields::Repo));
+        b.iter(|| dep.without([DepField::Repo]));
     });
 
     c.bench_function("dep-without-all", |b| {
         let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=[a,b]::repo").unwrap();
-        b.iter(|| dep.without(DepFields::all()));
-    });
-
-    c.bench_function("dep-without-empty", |b| {
-        let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=[a,b]").unwrap();
-        b.iter(|| dep.without(DepFields::empty()));
+        b.iter(|| dep.without(DepField::iter()));
     });
 }

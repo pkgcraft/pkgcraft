@@ -24,7 +24,6 @@ https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
 
 [dependencies]
 async-trait = "0.1.74"
-bitflags = "2.4.1"
 blake2 = "0.10.6"
 blake3 = { version = "1.5.0", features = ["traits-preview"] }
 cached = "0.46.1"
