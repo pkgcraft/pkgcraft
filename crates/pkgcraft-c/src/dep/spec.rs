@@ -476,6 +476,22 @@ impl Iterator for DepSpecIntoIterConditionals {
     }
 }
 
+/// Create a new, empty DepSet.
+///
+/// # Safety
+/// The argument must be a valid DepSetKind.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_set_new(kind: DepSetKind) -> *mut DepSet {
+    use DepSetKind::*;
+    let set = match kind {
+        Dependencies => DepSet::new_dep(Default::default()),
+        SrcUri => DepSet::new_uri(Default::default()),
+        _ => DepSet::new_string(Default::default(), kind),
+    };
+
+    Box::into_raw(Box::new(set))
+}
+
 /// Create a DepSet from an array of DepSpec objects.
 ///
 /// Returns NULL on error.
