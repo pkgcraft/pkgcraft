@@ -71,6 +71,34 @@ pub unsafe extern "C" fn pkgcraft_dep_without(
     }
 }
 
+/// Return a package dependency without optional fields.
+///
+/// # Safety
+/// The argument must a valid Dep pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_unversioned(d: *mut Dep) -> *mut Dep {
+    let dep = try_ref_from_ptr!(d);
+    if let Cow::Owned(d) = dep.unversioned() {
+        Box::into_raw(Box::new(d))
+    } else {
+        d
+    }
+}
+
+/// Return a package dependency without optional fields except version.
+///
+/// # Safety
+/// The argument must a valid Dep pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_versioned(d: *mut Dep) -> *mut Dep {
+    let dep = try_ref_from_ptr!(d);
+    if let Cow::Owned(d) = dep.versioned() {
+        Box::into_raw(Box::new(d))
+    } else {
+        d
+    }
+}
+
 /// Return a package dependency modifying the specified fields with corresponding string values.
 /// Use null pointers for string values to unset a given field.
 ///
