@@ -237,11 +237,40 @@ impl Dep {
     }
 
     /// Potentially create a new Dep, removing the given fields.
-    pub fn without<I>(&self, values: I) -> crate::Result<Cow<'_, Self>>
+    pub fn without<I>(&self, fields: I) -> crate::Result<Cow<'_, Self>>
     where
         I: IntoIterator<Item = DepField>,
     {
-        self.modify(values.into_iter().map(|v| (v, None)))
+        self.modify(fields.into_iter().map(|f| (f, None)))
+    }
+
+    /// Potentially create a new Dep, unsetting all optional fields.
+    pub fn unversioned(&self) -> Cow<'_, Self> {
+        self.modify(DepField::optional().map(|f| (f, None)))
+            .unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    /// Potentially create a new Dep, unsetting all optional fields except version and setting the
+    /// version operator to '='. If the Dep is unversioned a borrowed reference is returned.
+    pub fn versioned(&self) -> Cow<'_, Self> {
+        let mut dep = self
+            .modify(
+                DepField::optional()
+                    .filter(|f| f != &DepField::Version)
+                    .map(|f| (f, None)),
+            )
+            .unwrap_or_else(|e| panic!("{e}"));
+
+        // set the version operator to '=' if necessary
+        if let Some(op) = dep.version().and_then(|v| v.op()) {
+            if op != Operator::Equal {
+                if let Some(ver) = dep.to_mut().version.as_mut() {
+                    ver.op = Some(Operator::Equal);
+                }
+            }
+        }
+
+        dep
     }
 
     /// Potentially create a new Dep, modifying the given fields and values.

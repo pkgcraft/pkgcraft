@@ -232,7 +232,7 @@ impl Operator {
 pub struct Version {
     full: String,
     base_end: usize,
-    op: Option<Operator>,
+    pub(super) op: Option<Operator>,
     numbers: Vec<(String, u64)>,
     letter: Option<char>,
     suffixes: Vec<Suffix>,
