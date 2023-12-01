@@ -193,6 +193,19 @@ impl PartialEq<Slot<String>> for Slot<&str> {
     }
 }
 
+impl<T: fmt::Display> fmt::Display for Slot<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match (&self.slot, &self.subslot, &self.op) {
+            (Some(slot), Some(subslot), Some(op)) => write!(f, "{slot}/{subslot}{op}"),
+            (Some(slot), Some(subslot), None) => write!(f, "{slot}/{subslot}"),
+            (Some(slot), None, Some(op)) => write!(f, "{slot}{op}"),
+            (Some(x), None, None) => write!(f, "{x}"),
+            (None, None, Some(x)) => write!(f, "{x}"),
+            _ => Ok(()),
+        }
+    }
+}
+
 /// Package dependency.
 #[derive(Debug, Clone)]
 pub struct Dep {
@@ -547,14 +560,9 @@ impl fmt::Display for Dep {
             Some(Greater) => write!(f, ">{cpv}")?,
         }
 
-        // append slot data
-        match (self.slot(), self.subslot(), self.slot_op()) {
-            (Some(slot), Some(subslot), Some(op)) => write!(f, ":{slot}/{subslot}{op}")?,
-            (Some(slot), Some(subslot), None) => write!(f, ":{slot}/{subslot}")?,
-            (Some(slot), None, Some(op)) => write!(f, ":{slot}{op}")?,
-            (Some(x), None, None) => write!(f, ":{x}")?,
-            (None, None, Some(x)) => write!(f, ":{x}")?,
-            _ => (),
+        // append slot
+        if let Some(slot) = &self.slot {
+            write!(f, ":{slot}")?;
         }
 
         // append repo
