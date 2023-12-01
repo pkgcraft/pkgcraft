@@ -206,6 +206,21 @@ impl<T: fmt::Display> fmt::Display for Slot<T> {
     }
 }
 
+impl Slot<String> {
+    /// Create a new Slot from a given string.
+    pub fn new(s: &str) -> crate::Result<Self> {
+        parse::slot_str(s).map(|x| x.into_owned())
+    }
+}
+
+impl FromStr for Slot<String> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        Slot::new(s)
+    }
+}
+
 /// Package dependency.
 #[derive(Debug, Clone)]
 pub struct Dep {
@@ -365,9 +380,9 @@ impl Dep {
                 }
                 DepField::Slot => {
                     if let Some(s) = s {
-                        let val = parse::slot_str(s)?;
+                        let val: Slot<String> = s.parse()?;
                         if !dep.slot.as_ref().map(|v| v == &val).unwrap_or_default() {
-                            dep.to_mut().slot = Some(val.into_owned());
+                            dep.to_mut().slot = Some(val);
                         }
                     } else if self.slot.is_some() {
                         dep.to_mut().slot = None;
