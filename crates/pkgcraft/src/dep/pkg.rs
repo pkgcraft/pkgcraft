@@ -9,7 +9,7 @@ use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
-use crate::macros::bool_not_equal;
+use crate::macros::{bool_not_equal, cmp_not_equal};
 use crate::traits::IntoOwned;
 use crate::types::OrderedSet;
 use crate::Error;
@@ -176,6 +176,20 @@ impl IntoOwned for Slot<&str> {
             subslot: self.subslot.map(|s| s.to_string()),
             op: self.op,
         }
+    }
+}
+
+impl<T: PartialEq + Eq + Ord> Ord for Slot<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        cmp_not_equal!(&self.slot, &other.slot);
+        cmp_not_equal!(&self.subslot, &other.subslot);
+        self.op.cmp(&other.op)
+    }
+}
+
+impl<T: PartialEq + Eq + Ord> PartialOrd for Slot<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
