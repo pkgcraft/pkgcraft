@@ -906,6 +906,28 @@ mod tests {
     }
 
     #[test]
+    fn modify() {
+        let dep = Dep::new("!!>=cat/pkg-1.2-r3:4::repo[a,b]").unwrap();
+
+        for (field, val, expected) in [
+            (DepField::Blocker, "!", "!>=cat/pkg-1.2-r3:4::repo[a,b]"),
+            (DepField::Slot, "1", "!!>=cat/pkg-1.2-r3:1::repo[a,b]"),
+            (DepField::Slot, "1/2", "!!>=cat/pkg-1.2-r3:1/2::repo[a,b]"),
+            (DepField::Slot, "1/2=", "!!>=cat/pkg-1.2-r3:1/2=::repo[a,b]"),
+            (DepField::Slot, "*", "!!>=cat/pkg-1.2-r3:*::repo[a,b]"),
+            (DepField::Slot, "=", "!!>=cat/pkg-1.2-r3:=::repo[a,b]"),
+            (DepField::Version, "<0", "!!<cat/pkg-0:4::repo[a,b]"),
+            (DepField::UseDeps, "x,y,z", "!!>=cat/pkg-1.2-r3:4::repo[x,y,z]"),
+            (DepField::Repo, "test", "!!>=cat/pkg-1.2-r3:4::test[a,b]"),
+        ] {
+            let d = dep.modify([(field, Some(val))]).unwrap();
+            let s = d.to_string();
+            assert_eq!(&s, expected);
+            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+        }
+    }
+
+    #[test]
     fn sorting() {
         for d in &TEST_DATA.dep_toml.sorting {
             let mut reversed: Vec<Dep> =
