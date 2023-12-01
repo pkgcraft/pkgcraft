@@ -287,9 +287,7 @@ type DepKey<'a> = (
     &'a str,                        // package
     Option<&'a Version>,            // version
     Option<Blocker>,                // blocker
-    Option<&'a str>,                // slot
-    Option<&'a str>,                // subslot
-    Option<SlotOperator>,           // slot operator
+    Option<&'a Slot<String>>,       // slot
     Option<&'a OrderedSet<String>>, // use deps
     Option<&'a str>,                // repo
 );
@@ -559,9 +557,7 @@ impl Dep {
             self.package(),
             self.version(),
             self.blocker(),
-            self.slot(),
-            self.subslot(),
-            self.slot_op(),
+            self.slot.as_ref(),
             self.use_deps(),
             self.repo(),
         )
