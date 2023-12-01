@@ -1004,6 +1004,15 @@ mod tests {
             let s = d.to_string();
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
+
+        // invalid values
+        assert!(dep.modify([(DepField::Category, Some("+"))]).is_err());
+        assert!(dep.modify([(DepField::Package, Some("+"))]).is_err());
+        assert!(dep.modify([(DepField::Blocker, Some("+"))]).is_err());
+        assert!(dep.modify([(DepField::Slot, Some("+"))]).is_err());
+        assert!(dep.modify([(DepField::Version, Some("+"))]).is_err());
+        assert!(dep.modify([(DepField::UseDeps, Some("+"))]).is_err());
+        assert!(dep.modify([(DepField::Repo, Some("+"))]).is_err());
     }
 
     #[test]
