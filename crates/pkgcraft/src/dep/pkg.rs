@@ -936,6 +936,10 @@ mod tests {
             let s = d.to_string();
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
+
+        // no changes returns a borrowed dep
+        let dep = Dep::new("cat/pkg").unwrap();
+        matches!(dep.without([DepField::Version]).unwrap(), Cow::Borrowed(_));
     }
 
     #[test]
@@ -1013,6 +1017,11 @@ mod tests {
         assert!(dep.modify([(DepField::Version, Some("+"))]).is_err());
         assert!(dep.modify([(DepField::UseDeps, Some("+"))]).is_err());
         assert!(dep.modify([(DepField::Repo, Some("+"))]).is_err());
+
+        // no changes returns a borrowed dep
+        let dep = Dep::new("cat/pkg").unwrap();
+        matches!(dep.modify([(DepField::Category, Some("cat"))]).unwrap(), Cow::Borrowed(_));
+        matches!(dep.modify([(DepField::Version, None)]).unwrap(), Cow::Borrowed(_));
     }
 
     #[test]
