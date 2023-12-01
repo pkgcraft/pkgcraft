@@ -942,7 +942,10 @@ mod tests {
     fn modify() {
         let dep = Dep::new("!!>=cat/pkg-1.2-r3:4::repo[a,b]").unwrap();
 
+        // modify single fields
         for (field, val, expected) in [
+            (DepField::Category, "a", "!!>=a/pkg-1.2-r3:4::repo[a,b]"),
+            (DepField::Package, "b", "!!>=cat/b-1.2-r3:4::repo[a,b]"),
             (DepField::Blocker, "!", "!>=cat/pkg-1.2-r3:4::repo[a,b]"),
             (DepField::Slot, "1", "!!>=cat/pkg-1.2-r3:1::repo[a,b]"),
             (DepField::Slot, "1/2", "!!>=cat/pkg-1.2-r3:1/2::repo[a,b]"),
@@ -956,6 +959,49 @@ mod tests {
             let d = dep.modify([(field, Some(val))]).unwrap();
             let s = d.to_string();
             assert_eq!(&s, expected);
+            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+        }
+
+        // remove all optional fields
+        let d = dep.modify(DepField::optional().map(|f| (f, None))).unwrap();
+        assert_eq!(d.to_string(), "cat/pkg");
+
+        // multiple modifications
+        let d = dep
+            .modify([(DepField::Repo, None), (DepField::Version, Some("~5"))])
+            .unwrap();
+        assert_eq!(d.to_string(), "!!~cat/pkg-5:4[a,b]");
+
+        // multiple modifications to the same field
+        let d = dep
+            .modify([(DepField::Repo, None), (DepField::Repo, Some("r2"))])
+            .unwrap();
+        assert_eq!(d.to_string(), "!!>=cat/pkg-1.2-r3:4::r2[a,b]");
+
+        // removing non-optional fields fails
+        assert!(dep.modify([(DepField::Category, None)]).is_err());
+        assert!(dep.modify([(DepField::Package, None)]).is_err());
+
+        // verify all combinations of dep field modifications create valid deps
+        let fields = [
+            (DepField::Category, Some("a")),
+            (DepField::Package, Some("b")),
+            (DepField::Blocker, Some("!")),
+            (DepField::Slot, Some("1/2=")),
+            (DepField::Version, Some("<0")),
+            (DepField::UseDeps, Some("x,y,z")),
+            (DepField::Repo, Some("test")),
+        ];
+        for vals in fields.into_iter().powerset() {
+            let d = dep.modify(vals).unwrap();
+            let s = d.to_string();
+            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+        }
+
+        // verify all combinations of removing optional dep fields create valid deps
+        for vals in DepField::optional().powerset() {
+            let d = dep.modify(vals.into_iter().map(|f| (f, None))).unwrap();
+            let s = d.to_string();
             assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
         }
     }
