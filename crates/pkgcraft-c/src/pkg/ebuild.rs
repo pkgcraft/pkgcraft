@@ -1,9 +1,9 @@
 use std::ffi::{c_char, CString};
 use std::{mem, ptr, slice};
 
-use pkgcraft::dep::IntoOwned;
 use pkgcraft::pkg::ebuild::{metadata, EbuildPackage};
 use pkgcraft::pkg::Pkg;
+use pkgcraft::traits::IntoOwned;
 
 use crate::dep::spec::{DepSet, DepSetKind};
 use crate::error::Error;

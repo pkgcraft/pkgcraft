@@ -8,7 +8,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
-use crate::traits::Contains;
+use crate::traits::{Contains, IntoOwned};
 use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
 use crate::Error;
 
@@ -65,12 +65,6 @@ pub trait Conditionals {
     type Item;
     type IntoIterConditionals: Iterator<Item = Self::Item>;
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals;
-}
-
-/// Convert a borrowed type into an owned type.
-pub trait IntoOwned {
-    type Owned;
-    fn into_owned(self) -> Self::Owned;
 }
 
 /// Uri object.

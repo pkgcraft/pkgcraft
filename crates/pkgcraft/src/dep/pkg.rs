@@ -10,6 +10,7 @@ use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
 use crate::macros::bool_not_equal;
+use crate::traits::IntoOwned;
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -46,8 +47,6 @@ pub enum DepField {
     Blocker,
     Version,
     Slot,
-    Subslot,
-    SlotOp,
     UseDeps,
     Repo,
 }
@@ -56,7 +55,7 @@ impl DepField {
     /// Return an iterator consisting of all optional dep fields.
     pub fn optional() -> impl Iterator<Item = Self> {
         use DepField::*;
-        [Blocker, Version, Slot, Subslot, SlotOp, UseDeps, Repo].into_iter()
+        [Blocker, Version, Slot, UseDeps, Repo].into_iter()
     }
 }
 
@@ -68,9 +67,7 @@ pub(crate) struct ParsedDep<'a> {
     pub(crate) blocker: Option<Blocker>,
     pub(crate) version: Option<ParsedVersion<'a>>,
     pub(crate) version_str: Option<&'a str>,
-    pub(crate) slot: Option<&'a str>,
-    pub(crate) subslot: Option<&'a str>,
-    pub(crate) slot_op: Option<SlotOperator>,
+    pub(crate) slot: Option<Slot<&'a str>>,
     pub(crate) use_deps: Option<Vec<UseDep<&'a str>>>,
     pub(crate) repo: Option<&'a str>,
 }
@@ -87,9 +84,7 @@ impl ParsedDep<'_> {
             package: self.package.to_string(),
             blocker: self.blocker,
             version,
-            slot: self.slot.map(|s| s.to_string()),
-            subslot: self.subslot.map(|s| s.to_string()),
-            slot_op: self.slot_op,
+            slot: self.slot.map(|s| s.into_owned()),
             use_deps: self.use_deps.map(|u| {
                 // sort use deps by the first letter or number
                 let mut set = OrderedSet::from_iter(u.iter().map(|s| s.to_string()));
@@ -164,6 +159,40 @@ impl<S: UseFlag> UseDep<S> {
     }
 }
 
+/// Package slot.
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct Slot<T> {
+    pub(crate) slot: Option<T>,
+    pub(crate) subslot: Option<T>,
+    pub(crate) op: Option<SlotOperator>,
+}
+
+impl IntoOwned for Slot<&str> {
+    type Owned = Slot<String>;
+
+    fn into_owned(self) -> Self::Owned {
+        Slot {
+            slot: self.slot.map(|s| s.to_string()),
+            subslot: self.subslot.map(|s| s.to_string()),
+            op: self.op,
+        }
+    }
+}
+
+impl PartialEq<Slot<&str>> for Slot<String> {
+    fn eq(&self, other: &Slot<&str>) -> bool {
+        self.slot.as_deref() == other.slot
+            && self.subslot.as_deref() == other.subslot
+            && self.op == other.op
+    }
+}
+
+impl PartialEq<Slot<String>> for Slot<&str> {
+    fn eq(&self, other: &Slot<String>) -> bool {
+        other == self
+    }
+}
+
 /// Package dependency.
 #[derive(Debug, Clone)]
 pub struct Dep {
@@ -171,9 +200,7 @@ pub struct Dep {
     package: String,
     blocker: Option<Blocker>,
     version: Option<Version>,
-    slot: Option<String>,
-    subslot: Option<String>,
-    slot_op: Option<SlotOperator>,
+    slot: Option<Slot<String>>,
     use_deps: Option<OrderedSet<String>>,
     repo: Option<String>,
 }
@@ -325,59 +352,12 @@ impl Dep {
                 }
                 DepField::Slot => {
                     if let Some(s) = s {
-                        let (slot, subslot, slot_op) = parse::slot_str(s)?;
-                        if let Some(val) = slot {
-                            if !dep.slot.as_ref().map(|v| v == val).unwrap_or_default() {
-                                dep.to_mut().slot = Some(val.to_string());
-                            }
+                        let val = parse::slot_str(s)?;
+                        if !dep.slot.as_ref().map(|v| v == &val).unwrap_or_default() {
+                            dep.to_mut().slot = Some(val.into_owned());
                         }
-                        if let Some(val) = subslot {
-                            if !dep.subslot.as_ref().map(|v| v == val).unwrap_or_default() {
-                                dep.to_mut().subslot = Some(val.to_string());
-                            }
-                        }
-                        if let Some(val) = slot_op {
-                            if !dep.slot_op.as_ref().map(|v| v == &val).unwrap_or_default() {
-                                dep.to_mut().slot_op = Some(val);
-                            }
-                        }
-                    } else {
-                        if self.slot.is_some() {
-                            dep.to_mut().slot = None;
-                        }
-                        if self.subslot.is_some() {
-                            dep.to_mut().subslot = None;
-                        }
-                        if self.slot_op.is_some() {
-                            dep.to_mut().slot_op = None;
-                        }
-                    }
-                }
-                DepField::Subslot => {
-                    if let Some(s) = s {
-                        let val = parse::slot(s)?;
-                        if dep.slot.is_none() {
-                            return Err(Error::InvalidValue(format!(
-                                "invalid subslot with missing slot value: {val}"
-                            )));
-                        };
-                        if !dep.subslot.as_ref().map(|v| v == val).unwrap_or_default() {
-                            dep.to_mut().subslot = Some(val.to_string());
-                        }
-                    } else if self.subslot.is_some() {
-                        dep.to_mut().subslot = None;
-                    }
-                }
-                DepField::SlotOp => {
-                    if let Some(s) = s {
-                        let val: SlotOperator = s.parse().map_err(|_| {
-                            Error::InvalidValue(format!("invalid slot operator: {s}"))
-                        })?;
-                        if !dep.slot_op.as_ref().map(|v| v == &val).unwrap_or_default() {
-                            dep.to_mut().slot_op = Some(val);
-                        }
-                    } else if self.slot_op.is_some() {
-                        dep.to_mut().slot_op = None;
+                    } else if self.slot.is_some() {
+                        dep.to_mut().slot = None;
                     }
                 }
                 DepField::UseDeps => {
@@ -512,17 +492,17 @@ impl Dep {
 
     /// Return a package dependency's slot.
     pub fn slot(&self) -> Option<&str> {
-        self.slot.as_deref()
+        self.slot.as_ref().and_then(|s| s.slot.as_deref())
     }
 
     /// Return a package dependency's subslot.
     pub fn subslot(&self) -> Option<&str> {
-        self.subslot.as_deref()
+        self.slot.as_ref().and_then(|s| s.subslot.as_deref())
     }
 
     /// Return a package dependency's slot operator.
     pub fn slot_op(&self) -> Option<SlotOperator> {
-        self.slot_op
+        self.slot.as_ref().and_then(|s| s.op)
     }
 
     /// Return a package dependency's repository.
@@ -901,8 +881,6 @@ mod tests {
         for (field, expected) in [
             (DepField::Blocker, ">=cat/pkg-1.2-r3:4/5=::repo[a,b]"),
             (DepField::Slot, "!!>=cat/pkg-1.2-r3::repo[a,b]"),
-            (DepField::Subslot, "!!>=cat/pkg-1.2-r3:4=::repo[a,b]"),
-            (DepField::SlotOp, "!!>=cat/pkg-1.2-r3:4/5::repo[a,b]"),
             (DepField::Version, "!!cat/pkg:4/5=::repo[a,b]"),
             (DepField::UseDeps, "!!>=cat/pkg-1.2-r3:4/5=::repo"),
             (DepField::Repo, "!!>=cat/pkg-1.2-r3:4/5=[a,b]"),

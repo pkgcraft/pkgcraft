@@ -6,6 +6,12 @@ pub trait Contains<T> {
     fn contains(&self, obj: T) -> bool;
 }
 
+/// Convert a borrowed type into an owned type.
+pub trait IntoOwned {
+    type Owned;
+    fn into_owned(self) -> Self::Owned;
+}
+
 /// Iterate over an object's lines, filtering comments starting with '#' and empty lines returning
 /// an enumerated iterator for the remaining content.
 pub trait FilterLines {

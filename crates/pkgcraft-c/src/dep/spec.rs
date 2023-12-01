@@ -7,10 +7,10 @@ use std::ops::{
 use std::{fmt, ptr, slice};
 
 use pkgcraft::dep::{
-    self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, IntoOwned, Recursive, Uri, UseFlag,
+    self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, Recursive, Uri, UseFlag,
 };
 use pkgcraft::eapi::Eapi;
-use pkgcraft::traits::Contains;
+use pkgcraft::traits::{Contains, IntoOwned};
 use pkgcraft::types::Ordered;
 use pkgcraft::utils::hash;
 

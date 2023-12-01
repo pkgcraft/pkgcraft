@@ -4,7 +4,7 @@ use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::ParsedDep;
 use crate::dep::version::{ParsedVersion, Suffix};
 use crate::dep::{
-    Blocker, Cpv, Dep, DepSet, DepSpec, SlotOperator, Uri, UseDep, UseDepDefault, UseDepKind,
+    Blocker, Cpv, Dep, DepSet, DepSpec, Slot, SlotOperator, Uri, UseDep, UseDepDefault, UseDepKind,
     Version,
 };
 use crate::eapi::{Eapi, Feature};
@@ -94,20 +94,16 @@ peg::parser!(grammar depspec() for str {
         } / expected!("slot name")
         ) { s }
 
-    rule slot_dep() -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
-        = ":" slot_parts:slot_str() { slot_parts }
+    rule slot() -> Slot<&'input str>
+        = ":" slot:slot_str() { slot }
 
-    pub(super) rule slot_str() -> (Option<&'input str>, Option<&'input str>, Option<SlotOperator>)
+    pub(super) rule slot_str() -> Slot<&'input str>
         = s:$("*" / "=") {?
             let op = s.parse().map_err(|_| "invalid slot operator")?;
-            Ok((None, None, Some(op)))
-        } / slot:slot() op:$("=")? {?
-            Ok((Some(slot.0), slot.1, op.map(|_| SlotOperator::Equal)))
-        }
-
-    rule slot() -> (&'input str, Option<&'input str>)
-        = slot:slot_name() subslot:subslot()? {
-            (slot, subslot)
+            Ok(Slot { slot: None, subslot: None, op: Some(op) })
+        } / slot:slot_name() subslot:subslot()? op:$("=")? {?
+            let op = op.map(|_| SlotOperator::Equal);
+            Ok(Slot { slot: Some(slot), subslot, op })
         }
 
     rule subslot() -> &'input str
@@ -194,14 +190,11 @@ peg::parser!(grammar depspec() for str {
         }
 
     pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
-        = blocker:blocker()? dep:$([^':' | '[']+) slot_dep:slot_dep()?
+        = blocker:blocker()? dep:$([^':' | '[']+) slot:slot()?
                 repo:repo_dep(eapi)? use_deps:use_deps()? {
-            let (slot, subslot, slot_op) = slot_dep.unwrap_or_default();
             (dep, ParsedDep {
                 blocker,
                 slot,
-                subslot,
-                slot_op,
                 use_deps,
                 repo,
                 ..Default::default()
@@ -377,9 +370,7 @@ pub(super) fn use_deps(s: &str) -> crate::Result<Vec<UseDep<&str>>> {
         .collect()
 }
 
-pub(super) fn slot_str(
-    s: &str,
-) -> crate::Result<(Option<&str>, Option<&str>, Option<SlotOperator>)> {
+pub(super) fn slot_str(s: &str) -> crate::Result<Slot<&str>> {
     depspec::slot_str(s).map_err(|e| peg_error("invalid slot", s, e))
 }
 
