@@ -15,12 +15,25 @@ use crate::panic::ffi_catch_panic;
 use crate::utils::{boxed, obj_to_str};
 
 /// Opaque wrapper for pkgcraft::dep::UseDep.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UseDep(dep::UseDep<String>);
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UseDepWrapper(dep::UseDep<String>);
+
+/// C-compatible wrapper for pkgcraft::dep::DepSpec.
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct UseDep {
+    kind: dep::UseDepKind,
+    missing: *mut dep::UseDepDefault,
+    dep: *mut UseDepWrapper,
+}
 
 impl From<dep::UseDep<String>> for UseDep {
     fn from(u: dep::UseDep<String>) -> Self {
-        UseDep(u)
+        UseDep {
+            kind: u.kind(),
+            missing: u.default().map(boxed).unwrap_or(ptr::null_mut()),
+            dep: Box::into_raw(Box::new(UseDepWrapper(u))),
+        }
     }
 }
 
@@ -28,7 +41,19 @@ impl Deref for UseDep {
     type Target = dep::UseDep<String>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        let wrapper = try_ref_from_ptr!(self.dep);
+        &wrapper.0
+    }
+}
+
+impl Drop for UseDep {
+    fn drop(&mut self) {
+        unsafe {
+            drop(Box::from_raw(self.dep));
+            if !self.missing.is_null() {
+                drop(Box::from_raw(self.missing));
+            }
+        }
     }
 }
 
@@ -402,7 +427,7 @@ pub unsafe extern "C" fn pkgcraft_use_dep_cmp(u1: *mut UseDep, u2: *mut UseDep) 
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_use_dep_hash(u: *mut UseDep) -> u64 {
     let use_dep = try_ref_from_ptr!(u);
-    hash(use_dep)
+    hash(use_dep.deref())
 }
 
 /// Return the string for a package USE dependency.
