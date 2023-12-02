@@ -4,8 +4,8 @@ use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::ParsedDep;
 use crate::dep::version::{ParsedVersion, Suffix};
 use crate::dep::{
-    Blocker, Cpv, Dep, DepSet, DepSpec, Slot, SlotOperator, Uri, UseDep, UseDepDefault, UseDepKind,
-    Version,
+    Blocker, Cpv, Dep, DepSet, DepSpec, Slot, SlotDep, SlotOperator, Uri, UseDep, UseDepDefault,
+    UseDepKind, Version,
 };
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
@@ -94,20 +94,20 @@ peg::parser!(grammar depspec() for str {
         } / expected!("slot name")
         ) { s }
 
-    rule slot() -> Slot<&'input str>
-        = ":" slot:slot_str() { slot }
+    pub(super) rule slot() -> Slot<&'input str>
+        = name:$(slot_name() ("/" slot_name())?)
+        { Slot { name } }
 
-    pub(super) rule slot_str() -> Slot<&'input str>
-        = s:$("*" / "=") {?
-            let op = s.parse().map_err(|_| "invalid slot operator")?;
-            Ok(Slot { slot: None, subslot: None, op: Some(op) })
-        } / slot:slot_name() subslot:subslot()? op:$("=")? {?
+    pub(super) rule slot_dep() -> SlotDep<&'input str>
+        = "=" { SlotDep { slot: None, op: Some(SlotOperator::Equal) } }
+        / "*" { SlotDep { slot: None, op: Some(SlotOperator::Star) } }
+        / slot:slot() op:$("=")? {?
             let op = op.map(|_| SlotOperator::Equal);
-            Ok(Slot { slot: Some(slot), subslot, op })
+            Ok(SlotDep { slot: Some(slot), op })
         }
 
-    rule subslot() -> &'input str
-        = "/" s:slot_name() { s }
+    rule slot_dep_str() -> SlotDep<&'input str>
+        = ":" slot_dep:slot_dep() { slot_dep }
 
     rule blocker() -> Blocker
         = s:$("!" "!"?) {?
@@ -190,7 +190,7 @@ peg::parser!(grammar depspec() for str {
         }
 
     pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
-        = blocker:blocker()? dep:$([^':' | '[']+) slot:slot()?
+        = blocker:blocker()? dep:$([^':' | '[']+) slot:slot_dep_str()?
                 repo:repo_dep(eapi)? use_deps:use_deps()? {
             (dep, ParsedDep {
                 blocker,
@@ -359,17 +359,16 @@ pub fn version_with_op(s: &str) -> crate::Result<Version> {
     Ok(version_with_op_str(s)?.into_owned(s))
 }
 
-pub fn slot(s: &str) -> crate::Result<&str> {
-    depspec::slot_name(s).map_err(|e| peg_error("invalid slot", s, e))?;
-    Ok(s)
+pub fn slot(s: &str) -> crate::Result<Slot<&str>> {
+    depspec::slot(s).map_err(|e| peg_error("invalid slot", s, e))
 }
 
 pub(super) fn use_dep(s: &str) -> crate::Result<UseDep<&str>> {
     depspec::use_dep(s).map_err(|e| peg_error("invalid use dep", s, e))
 }
 
-pub(super) fn slot_str(s: &str) -> crate::Result<Slot<&str>> {
-    depspec::slot_str(s).map_err(|e| peg_error("invalid slot", s, e))
+pub(super) fn slot_dep(s: &str) -> crate::Result<SlotDep<&str>> {
+    depspec::slot_dep(s).map_err(|e| peg_error("invalid slot", s, e))
 }
 
 pub fn use_flag(s: &str) -> crate::Result<&str> {

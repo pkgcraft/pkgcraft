@@ -151,7 +151,7 @@ impl<'a> EbuildPackage for Pkg<'a> {
     }
 
     fn slot(&self) -> &str {
-        self.raw.meta.slot()
+        self.raw.slot()
     }
 }
 

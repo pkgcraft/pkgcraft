@@ -68,7 +68,7 @@ pub(crate) struct ParsedDep<'a> {
     pub(crate) blocker: Option<Blocker>,
     pub(crate) version: Option<ParsedVersion<'a>>,
     pub(crate) version_str: Option<&'a str>,
-    pub(crate) slot: Option<Slot<&'a str>>,
+    pub(crate) slot: Option<SlotDep<&'a str>>,
     pub(crate) use_deps: Option<Vec<UseDep<&'a str>>>,
     pub(crate) repo: Option<&'a str>,
 }
@@ -94,6 +94,7 @@ impl ParsedDep<'_> {
     }
 }
 
+/// Package USE dependency type.
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum UseDepKind {
@@ -105,6 +106,7 @@ pub enum UseDepKind {
     DisabledConditional, // cat/pkg[!opt?]
 }
 
+/// Package USE dependency default when missing.
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum UseDepDefault {
@@ -112,6 +114,7 @@ pub enum UseDepDefault {
     Disabled, // cat/pkg[opt(-)]
 }
 
+/// Package USE dependency.
 #[derive(DeserializeFromStr, SerializeDisplay, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct UseDep<S: UseFlag> {
     pub(crate) kind: UseDepKind,
@@ -206,44 +209,45 @@ impl UseDep<String> {
 }
 
 /// Package slot.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Slot<T> {
-    pub(crate) slot: Option<T>,
-    pub(crate) subslot: Option<T>,
-    pub(crate) op: Option<SlotOperator>,
+    pub(crate) name: T,
+}
+
+impl Default for Slot<String> {
+    fn default() -> Self {
+        Self { name: "0".to_string() }
+    }
 }
 
 impl IntoOwned for Slot<&str> {
     type Owned = Slot<String>;
 
     fn into_owned(self) -> Self::Owned {
-        Slot {
-            slot: self.slot.map(|s| s.to_string()),
-            subslot: self.subslot.map(|s| s.to_string()),
-            op: self.op,
-        }
+        Slot { name: self.name.to_string() }
     }
 }
 
-impl<T: PartialEq + Eq + Ord> Ord for Slot<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(&self.slot, &other.slot);
-        cmp_not_equal!(&self.subslot, &other.subslot);
-        self.op.cmp(&other.op)
+impl Slot<String> {
+    pub fn slot(&self) -> &str {
+        let s = self.name.as_str();
+        s.split_once('/').map_or(s, |x| x.0)
+    }
+
+    pub fn subslot(&self) -> Option<&str> {
+        self.name.split_once('/').map(|x| x.1)
     }
 }
 
-impl<T: PartialEq + Eq + Ord> PartialOrd for Slot<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+impl Slot<String> {
+    fn as_ref(&self) -> Slot<&str> {
+        Slot { name: &self.name }
     }
 }
 
 impl PartialEq<Slot<&str>> for Slot<String> {
     fn eq(&self, other: &Slot<&str>) -> bool {
-        self.slot.as_deref() == other.slot
-            && self.subslot.as_deref() == other.subslot
-            && self.op == other.op
+        self.name == other.name
     }
 }
 
@@ -253,31 +257,91 @@ impl PartialEq<Slot<String>> for Slot<&str> {
     }
 }
 
+impl PartialEq<str> for Slot<String> {
+    fn eq(&self, other: &str) -> bool {
+        self.name == other
+    }
+}
+
+impl PartialEq<Slot<String>> for &str {
+    fn eq(&self, other: &Slot<String>) -> bool {
+        other == *self
+    }
+}
+
 impl<T: fmt::Display> fmt::Display for Slot<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match (&self.slot, &self.subslot, &self.op) {
-            (Some(slot), Some(subslot), Some(op)) => write!(f, "{slot}/{subslot}{op}"),
-            (Some(slot), Some(subslot), None) => write!(f, "{slot}/{subslot}"),
-            (Some(slot), None, Some(op)) => write!(f, "{slot}{op}"),
-            (Some(x), None, None) => write!(f, "{x}"),
-            (None, None, Some(x)) => write!(f, "{x}"),
-            _ => Ok(()),
+        write!(f, "{}", self.name)
+    }
+}
+
+/// Package slot dependency.
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct SlotDep<T> {
+    pub(crate) slot: Option<Slot<T>>,
+    pub(crate) op: Option<SlotOperator>,
+}
+
+impl IntoOwned for SlotDep<&str> {
+    type Owned = SlotDep<String>;
+
+    fn into_owned(self) -> Self::Owned {
+        SlotDep {
+            slot: self.slot.map(|s| s.into_owned()),
+            op: self.op,
         }
     }
 }
 
-impl Slot<String> {
-    /// Create a new Slot from a given string.
-    pub fn new(s: &str) -> crate::Result<Self> {
-        parse::slot_str(s).map(|x| x.into_owned())
+impl<T: PartialEq + Eq + Ord> Ord for SlotDep<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        cmp_not_equal!(&self.slot, &other.slot);
+        self.op.cmp(&other.op)
     }
 }
 
-impl FromStr for Slot<String> {
+impl<T: PartialEq + Eq + Ord> PartialOrd for SlotDep<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq<SlotDep<&str>> for SlotDep<String> {
+    fn eq(&self, other: &SlotDep<&str>) -> bool {
+        self.slot.as_ref().map(|v| v.as_ref()) == other.slot && self.op == other.op
+    }
+}
+
+impl PartialEq<SlotDep<String>> for SlotDep<&str> {
+    fn eq(&self, other: &SlotDep<String>) -> bool {
+        other == self
+    }
+}
+
+impl<T: fmt::Display> fmt::Display for SlotDep<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match (&self.slot, &self.op) {
+            (Some(slot), Some(op)) => write!(f, "{slot}{op}")?,
+            (Some(slot), None) => write!(f, "{slot}")?,
+            (None, Some(op)) => write!(f, "{op}")?,
+            (None, None) => (),
+        }
+        Ok(())
+    }
+}
+
+impl SlotDep<String> {
+    /// Create a new SlotDep from a given string.
+    pub fn new(s: &str) -> crate::Result<Self> {
+        parse::slot_dep(s).map(|x| x.into_owned())
+    }
+}
+
+impl FromStr for SlotDep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Slot::new(s)
+        SlotDep::new(s)
     }
 }
 
@@ -288,7 +352,7 @@ pub struct Dep {
     package: String,
     blocker: Option<Blocker>,
     version: Option<Version>,
-    slot: Option<Slot<String>>,
+    slot: Option<SlotDep<String>>,
     use_deps: Option<SortedSet<UseDep<String>>>,
     repo: Option<String>,
 }
@@ -333,7 +397,7 @@ type DepKey<'a> = (
     &'a str,                               // package
     Option<&'a Version>,                   // version
     Option<Blocker>,                       // blocker
-    Option<&'a Slot<String>>,              // slot
+    Option<&'a SlotDep<String>>,           // slot
     Option<&'a SortedSet<UseDep<String>>>, // use deps
     Option<&'a str>,                       // repo
 );
@@ -438,7 +502,7 @@ impl Dep {
                 }
                 DepField::Slot => {
                     if let Some(s) = s {
-                        let val: Slot<String> = s.parse()?;
+                        let val: SlotDep<String> = s.parse()?;
                         if !dep.slot.as_ref().map(|v| v == &val).unwrap_or_default() {
                             dep.to_mut().slot = Some(val);
                         }
@@ -575,12 +639,18 @@ impl Dep {
 
     /// Return a package dependency's slot.
     pub fn slot(&self) -> Option<&str> {
-        self.slot.as_ref().and_then(|s| s.slot.as_deref())
+        self.slot
+            .as_ref()
+            .and_then(|s| s.slot.as_ref())
+            .map(|s| s.slot())
     }
 
     /// Return a package dependency's subslot.
     pub fn subslot(&self) -> Option<&str> {
-        self.slot.as_ref().and_then(|s| s.subslot.as_deref())
+        self.slot
+            .as_ref()
+            .and_then(|s| s.slot.as_ref())
+            .and_then(|s| s.subslot())
     }
 
     /// Return a package dependency's slot operator.

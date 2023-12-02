@@ -94,7 +94,7 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
-        self.meta.subslot().unwrap_or_else(|| self.slot())
+        self.meta.slot().subslot().unwrap_or_else(|| self.slot())
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
@@ -270,7 +270,7 @@ impl<'a> EbuildPackage for Pkg<'a> {
     }
 
     fn slot(&self) -> &str {
-        self.meta.slot()
+        self.meta.slot().slot()
     }
 }
 

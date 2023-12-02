@@ -116,7 +116,7 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for Restrict {
             Description(r) => r.matches(pkg.description()),
             Slot(r) => r.matches(pkg.slot()),
             Subslot(r) => r.matches(pkg.subslot()),
-            RawSubslot(r) => match (r, pkg.meta.subslot()) {
+            RawSubslot(r) => match (r, pkg.meta.slot().subslot()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,

@@ -7,11 +7,12 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
-use crate::dep::{self, Cpv, Dep, DepSet, Uri};
+use crate::dep::{self, Cpv, Dep, DepSet, Slot, Uri};
 use crate::eapi::Eapi;
 use crate::files::atomic_write_file;
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
 use crate::repo::ebuild::Repo;
+use crate::traits::IntoOwned;
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -96,6 +97,7 @@ impl Key {
     }
 }
 
+/// Package IUSE.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Iuse {
     full: String,
@@ -148,7 +150,7 @@ impl Iuse {
 #[derive(Debug, Default)]
 pub(crate) struct Metadata {
     description: String,
-    slot: String,
+    slot: Slot<String>,
     bdepend: DepSet<String, Dep>,
     depend: DepSet<String, Dep>,
     idepend: DepSet<String, Dep>,
@@ -181,7 +183,7 @@ impl Metadata {
         match key {
             CHKSUM => self.chksum = val.to_string(),
             DESCRIPTION => self.description = val.to_string(),
-            SLOT => self.slot = val.to_string(),
+            SLOT => self.slot = dep::parse::slot(val)?.into_owned(),
             BDEPEND => self.bdepend = dep::parse::dependencies_dep_set(val, eapi)?,
             DEPEND => self.depend = dep::parse::dependencies_dep_set(val, eapi)?,
             IDEPEND => self.idepend = dep::parse::dependencies_dep_set(val, eapi)?,
@@ -433,14 +435,8 @@ impl Metadata {
         &self.description
     }
 
-    pub(crate) fn slot(&self) -> &str {
-        let s = self.slot.as_str();
-        s.split_once('/').map_or(s, |x| x.0)
-    }
-
-    pub(crate) fn subslot(&self) -> Option<&str> {
-        let s = self.slot.as_str();
-        s.split_once('/').map(|x| x.1)
+    pub(crate) fn slot(&self) -> &Slot<String> {
+        &self.slot
     }
 
     pub(crate) fn bdepend(&self) -> &DepSet<String, Dep> {
