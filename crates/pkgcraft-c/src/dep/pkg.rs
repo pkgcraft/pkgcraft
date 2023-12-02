@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
-use std::ffi::{c_char, c_int};
+use std::ffi::{c_char, c_int, CString};
 use std::ops::Deref;
 use std::{ptr, slice};
 
@@ -23,6 +23,7 @@ pub struct UseDepWrapper(dep::UseDep<String>);
 #[repr(C)]
 pub struct UseDep {
     kind: dep::UseDepKind,
+    flag: *mut c_char,
     missing: *mut dep::UseDepDefault,
     dep: *mut UseDepWrapper,
 }
@@ -31,8 +32,9 @@ impl From<dep::UseDep<String>> for UseDep {
     fn from(u: dep::UseDep<String>) -> Self {
         UseDep {
             kind: u.kind(),
+            flag: try_ptr_from_str!(u.flag()),
             missing: u.default().map(boxed).unwrap_or(ptr::null_mut()),
-            dep: Box::into_raw(Box::new(UseDepWrapper(u))),
+            dep: boxed(UseDepWrapper(u)),
         }
     }
 }
@@ -49,10 +51,11 @@ impl Deref for UseDep {
 impl Drop for UseDep {
     fn drop(&mut self) {
         unsafe {
-            drop(Box::from_raw(self.dep));
+            drop(CString::from_raw(self.flag));
             if !self.missing.is_null() {
                 drop(Box::from_raw(self.missing));
             }
+            drop(Box::from_raw(self.dep));
         }
     }
 }
@@ -391,16 +394,6 @@ pub unsafe extern "C" fn pkgcraft_use_dep_new(s: *const c_char) -> *mut UseDep {
         let use_dep = unwrap_or_panic!(dep::UseDep::new(s).map(|u| u.into()));
         Box::into_raw(Box::new(use_dep))
     }
-}
-
-/// Get the flag of a package USE dependency.
-///
-/// # Safety
-/// The argument must be a non-null UseDep pointer.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_use_dep_flag(u: *mut UseDep) -> *mut c_char {
-    let use_dep = try_ref_from_ptr!(u);
-    try_ptr_from_str!(use_dep.flag())
 }
 
 /// Compare two package USE dependencies returning -1, 0, or 1 if the first is less than, equal to,
