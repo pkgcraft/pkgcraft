@@ -1,6 +1,6 @@
-use crate::dep::{Blocker, Cpv, Dep, Intersects, Version};
+use crate::dep::{Blocker, Cpv, Dep, Intersects, UseDep, Version};
+use crate::types::SortedSet;
 
-use super::set::OrderedSetRestrict;
 use super::str::Restrict as StrRestrict;
 use super::{Restrict as BaseRestrict, Restriction};
 
@@ -13,7 +13,7 @@ pub enum Restrict {
     VersionStr(StrRestrict),
     Slot(Option<StrRestrict>),
     Subslot(Option<StrRestrict>),
-    UseDeps(Option<OrderedSetRestrict<String, StrRestrict>>),
+    UseDeps(Option<SortedSet<UseDep<String>>>),
     Repo(Option<StrRestrict>),
 }
 
@@ -38,18 +38,8 @@ impl Restrict {
         Self::Subslot(o.map(StrRestrict::equal))
     }
 
-    pub fn use_deps<I, S>(iter: Option<I>) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        match iter {
-            None => Self::UseDeps(None),
-            Some(i) => {
-                let r = OrderedSetRestrict::Superset(i.into_iter().map(Into::into).collect());
-                Self::UseDeps(Some(r))
-            }
-        }
+    pub fn use_deps(s: &str) -> crate::Result<Self> {
+        Ok(Self::UseDeps(Some(s.parse()?)))
     }
 
     pub fn repo(o: Option<&str>) -> Self {
@@ -102,8 +92,8 @@ impl Restriction<&Dep> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            UseDeps(r) => match (r, dep.use_deps()) {
-                (Some(r), Some(vals)) => r.matches(vals),
+            UseDeps(u) => match (u, dep.use_deps()) {
+                (Some(u), Some(use_deps)) => u.is_subset(use_deps),
                 (None, None) => true,
                 _ => false,
             },
@@ -169,7 +159,7 @@ impl From<&Dep> for BaseRestrict {
         }
 
         if let Some(u) = dep.use_deps() {
-            restricts.push(Restrict::use_deps(Some(u)));
+            restricts.push(Restrict::UseDeps(Some(u.clone())));
         }
 
         if let Some(s) = dep.repo() {
@@ -260,15 +250,15 @@ mod tests {
         assert!(r.matches(&full));
 
         // no use deps specified
-        let r = Restrict::use_deps(None::<&[String]>);
+        let r = Restrict::UseDeps(None);
         assert!(r.matches(&unversioned));
         assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // use deps specified
-        for u in [vec!["u1"], vec!["u1", "u2"]] {
-            let r = Restrict::use_deps(Some(u));
+        for s in ["u1", "u1,u2"] {
+            let r = Restrict::use_deps(s).unwrap();
             assert!(!r.matches(&unversioned));
             assert!(!r.matches(&blocker));
             assert!(!r.matches(&cpv));

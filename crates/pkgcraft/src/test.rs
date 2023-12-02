@@ -9,10 +9,10 @@ use serde_with::{serde_as, DisplayFromStr};
 use walkdir::WalkDir;
 
 use crate::config::Config;
-use crate::dep::{Blocker, Dep, Revision, SlotOperator, Version};
+use crate::dep::{Blocker, Dep, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_from_paths;
 use crate::repo::PkgRepository;
-use crate::types::OrderedSet;
+use crate::types::SortedSet;
 use crate::Error;
 
 /// Flag denoting a test suite, either internally or externally, is running.
@@ -62,7 +62,7 @@ pub struct ValidDep {
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub slot_op: Option<SlotOperator>,
     #[serde(rename = "use")]
-    pub use_deps: Option<OrderedSet<String>>,
+    pub use_deps: Option<SortedSet<UseDep<String>>>,
 }
 
 #[derive(Debug, Deserialize)]

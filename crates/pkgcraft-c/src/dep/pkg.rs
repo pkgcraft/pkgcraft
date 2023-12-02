@@ -11,7 +11,7 @@ use pkgcraft::utils::hash;
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::utils::str_to_raw;
+use crate::utils::obj_to_raw;
 
 /// Parse a string into a package dependency using a specific EAPI. Pass NULL for the eapi argument
 /// in order to parse using the latest EAPI with extensions (e.g. support for repo deps).
@@ -329,7 +329,7 @@ pub unsafe extern "C" fn pkgcraft_dep_use_deps(d: *mut Dep, len: *mut usize) -> 
     // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
     let dep = try_ref_from_ptr!(d);
     match dep.use_deps() {
-        Some(use_deps) => iter_to_array!(use_deps.iter(), len, str_to_raw),
+        Some(use_deps) => iter_to_array!(use_deps.iter(), len, obj_to_raw),
         None => ptr::null_mut(),
     }
 }

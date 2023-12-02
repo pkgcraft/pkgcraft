@@ -124,6 +124,10 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule iuse() -> (Option<char>, &'input str)
         = default:(['+' | '-'])? flag:use_flag() { (default, flag) }
 
+    rule use_dep_default() -> UseDepDefault
+        = "(+)" { UseDepDefault::Enabled }
+        / "(-)" { UseDepDefault::Disabled }
+
     pub(super) rule use_dep() -> UseDep<&'input str>
         = flag:use_flag() default:use_dep_default()? kind:$(['=' | '?'])? {
             let kind = match kind {
@@ -148,10 +152,6 @@ peg::parser!(grammar depspec() for str {
         = "[" use_deps:use_dep() ++ "," "]" {
             use_deps
         }
-
-    rule use_dep_default() -> UseDepDefault
-        = "(+)" { UseDepDefault::Enabled }
-        / "(-)" { UseDepDefault::Disabled }
 
     // repo must not begin with a hyphen and must also be a valid package name
     pub(super) rule repo() -> &'input str
@@ -364,10 +364,8 @@ pub fn slot(s: &str) -> crate::Result<&str> {
     Ok(s)
 }
 
-pub(super) fn use_deps(s: &str) -> crate::Result<Vec<UseDep<&str>>> {
-    s.split(',')
-        .map(|s| depspec::use_dep(s).map_err(|e| peg_error("invalid use dep", s, e)))
-        .collect()
+pub(super) fn use_dep(s: &str) -> crate::Result<UseDep<&str>> {
+    depspec::use_dep(s).map_err(|e| peg_error("invalid use dep", s, e))
 }
 
 pub(super) fn slot_str(s: &str) -> crate::Result<Slot<&str>> {
@@ -541,7 +539,7 @@ mod tests {
                 let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
                 let d = result.unwrap();
-                let expected = use_deps.split(',').map(|s| s.to_string()).collect();
+                let expected = use_deps.parse().unwrap();
                 assert_eq!(d.use_deps(), Some(&expected));
                 assert_eq!(d.to_string(), s);
             }
@@ -556,7 +554,7 @@ mod tests {
                 let result = dep(&s, eapi);
                 assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
                 let d = result.unwrap();
-                let expected = use_deps.split(',').map(|s| s.to_string()).collect();
+                let expected = use_deps.parse().unwrap();
                 assert_eq!(d.use_deps(), Some(&expected));
                 assert_eq!(d.to_string(), s);
             }

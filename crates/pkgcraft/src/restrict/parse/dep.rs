@@ -1,9 +1,10 @@
 use crate::dep::version::{ParsedVersion, Suffix};
-use crate::dep::Blocker;
+use crate::dep::{Blocker, UseDep, UseDepDefault, UseDepKind};
 use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restrict as BaseRestrict;
+use crate::traits::IntoOwned;
 
 // Convert globbed string to regex restriction, escaping all meta characters except '*'.
 fn str_to_regex_restrict(s: &str) -> Result<StrRestrict, &'static str> {
@@ -153,27 +154,42 @@ peg::parser!(grammar restrict() for str {
             (['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*'] / ("-" !version()))*})
         { s }
 
-    rule useflag() -> &'input str
+    rule use_flag() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '@' | '-']*
-        } / expected!("useflag name")
+        } / expected!("USE flag name")
         ) { s }
 
-    rule use_dep() -> &'input str
-        = s:$(quiet!{
-            (useflag() use_dep_default()? ['=' | '?']?) /
-            ("-" useflag() use_dep_default()?) /
-            ("!" useflag() use_dep_default()? ['=' | '?'])
+    rule use_dep_default() -> UseDepDefault
+        = "(+)" { UseDepDefault::Enabled }
+        / "(-)" { UseDepDefault::Disabled }
+
+    pub(super) rule use_dep() -> UseDep<&'input str>
+        = flag:use_flag() default:use_dep_default()? kind:$(['=' | '?'])? {
+            let kind = match kind {
+                Some("=") => UseDepKind::Equal,
+                Some("?") => UseDepKind::EnabledConditional,
+                None => UseDepKind::Enabled,
+                _ => panic!("invalid use dep kind"),
+            };
+            UseDep { kind, flag, default }
+        } / "-" flag:use_flag() default:use_dep_default()? {
+            UseDep { kind: UseDepKind::Disabled, flag, default }
+        } / "!" flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
+            let kind = match kind {
+                "=" => UseDepKind::NotEqual,
+                "?" => UseDepKind::DisabledConditional,
+                _ => panic!("invalid use dep kind"),
+            };
+            UseDep { kind, flag, default }
         } / expected!("use dep")
-        ) { s }
-
-    rule use_dep_default() -> &'input str
-        = s:$("(+)" / "(-)") { s }
 
     rule use_restricts() -> DepRestrict
-        = "[" use_deps:use_dep() ++ "," "]"
-        { DepRestrict::use_deps(Some(use_deps)) }
+        = "[" u:use_dep() ++ "," "]" {
+            let use_deps = u.into_iter().map(|u| u.into_owned()).collect();
+            DepRestrict::UseDeps(Some(use_deps))
+        }
 
     rule repo_restrict() -> DepRestrict
         = "::" s:repo_glob() {?

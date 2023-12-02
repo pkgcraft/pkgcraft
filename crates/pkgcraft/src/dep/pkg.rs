@@ -1,17 +1,18 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use itertools::Itertools;
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
 use crate::macros::{bool_not_equal, cmp_not_equal};
 use crate::traits::IntoOwned;
-use crate::types::OrderedSet;
+use crate::types::SortedSet;
 use crate::Error;
 
 use super::version::{Operator, ParsedVersion, Revision, Version};
@@ -85,13 +86,9 @@ impl ParsedDep<'_> {
             blocker: self.blocker,
             version,
             slot: self.slot.map(|s| s.into_owned()),
-            use_deps: self.use_deps.map(|u| {
-                // sort use deps by the first letter or number
-                let mut set = OrderedSet::from_iter(u.iter().map(|s| s.to_string()));
-                let f = |c: &char| c >= &'0';
-                set.sort_by(|u1, u2| u1.chars().find(f).cmp(&u2.chars().find(f)));
-                set
-            }),
+            use_deps: self
+                .use_deps
+                .map(|u| SortedSet::from_iter(u.into_iter().map(|u| u.into_owned()))),
             repo: self.repo.map(|s| s.to_string()),
         }
     }
@@ -113,11 +110,23 @@ pub enum UseDepDefault {
     Disabled, // cat/pkg[opt(-)]
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(DeserializeFromStr, SerializeDisplay, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct UseDep<S: UseFlag> {
     pub(crate) kind: UseDepKind,
     pub(crate) flag: S,
     pub(crate) default: Option<UseDepDefault>,
+}
+
+impl IntoOwned for UseDep<&str> {
+    type Owned = UseDep<String>;
+
+    fn into_owned(self) -> Self::Owned {
+        UseDep {
+            kind: self.kind,
+            flag: self.flag.to_string(),
+            default: self.default,
+        }
+    }
 }
 
 impl<S: UseFlag> Ord for UseDep<S> {
@@ -152,10 +161,35 @@ impl<S: UseFlag> fmt::Display for UseDep<S> {
     }
 }
 
+impl FromStr for UseDep<String> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        UseDep::new(s)
+    }
+}
+
+impl FromStr for SortedSet<UseDep<String>> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        s.split(',')
+            .map(|s| parse::use_dep(s).map(|u| u.into_owned()))
+            .collect()
+    }
+}
+
 impl<S: UseFlag> UseDep<S> {
     /// Return the flag value for the USE dependency.
     pub fn flag(&self) -> &str {
         self.flag.as_ref()
+    }
+}
+
+impl UseDep<String> {
+    /// Create a new UseDep from a given string.
+    pub fn new(s: &str) -> crate::Result<Self> {
+        parse::use_dep(s).map(|x| x.into_owned())
     }
 }
 
@@ -243,7 +277,7 @@ pub struct Dep {
     blocker: Option<Blocker>,
     version: Option<Version>,
     slot: Option<Slot<String>>,
-    use_deps: Option<OrderedSet<String>>,
+    use_deps: Option<SortedSet<UseDep<String>>>,
     repo: Option<String>,
 }
 
@@ -283,13 +317,13 @@ impl FromStr for Dep {
 
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
 type DepKey<'a> = (
-    &'a str,                        // category
-    &'a str,                        // package
-    Option<&'a Version>,            // version
-    Option<Blocker>,                // blocker
-    Option<&'a Slot<String>>,       // slot
-    Option<&'a OrderedSet<String>>, // use deps
-    Option<&'a str>,                // repo
+    &'a str,                               // category
+    &'a str,                               // package
+    Option<&'a Version>,                   // version
+    Option<Blocker>,                       // blocker
+    Option<&'a Slot<String>>,              // slot
+    Option<&'a SortedSet<UseDep<String>>>, // use deps
+    Option<&'a str>,                       // repo
 );
 
 impl Dep {
@@ -402,10 +436,7 @@ impl Dep {
                 }
                 DepField::UseDeps => {
                     if let Some(s) = s {
-                        let val = parse::use_deps(s)?
-                            .into_iter()
-                            .map(|s| s.to_string())
-                            .collect();
+                        let val = s.parse()?;
                         if !dep.use_deps.as_ref().map(|v| v == &val).unwrap_or_default() {
                             dep.to_mut().use_deps = Some(val);
                         }
@@ -451,7 +482,7 @@ impl Dep {
     }
 
     /// Return a package dependency's USE flag dependencies.
-    pub fn use_deps(&self) -> Option<&OrderedSet<String>> {
+    pub fn use_deps(&self) -> Option<&SortedSet<UseDep<String>>> {
         self.use_deps.as_ref()
     }
 
@@ -635,9 +666,12 @@ impl Intersects<Dep> for Dep {
         }
 
         if let (Some(x), Some(y)) = (self.use_deps(), other.use_deps()) {
-            let flags: HashSet<_> = x.symmetric_difference(y).map(|s| s.as_str()).collect();
-            for f in &flags {
-                if f.starts_with('-') && flags.contains(&f[1..]) {
+            let mut use_map = HashMap::<_, HashSet<_>>::new();
+            for u in x.symmetric_difference(y) {
+                use_map.entry(&u.flag).or_default().insert(&u.kind);
+            }
+            for kinds in use_map.values() {
+                if kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled) {
                     return false;
                 }
             }
@@ -657,8 +691,6 @@ impl Intersects<Dep> for Dep {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, HashSet};
-
     use indexmap::IndexSet;
 
     use crate::dep::CpvOrDep;
@@ -729,13 +761,6 @@ mod tests {
         ] {
             let dep: Dep = s.parse().unwrap();
             assert_eq!(dep.to_string(), s);
-        }
-
-        // Package dependencies with certain use flag patterns aren't returned 1 to 1 since use
-        // flags are sorted into an ordered set for equivalency purposes.
-        for (s, expected) in [("cat/pkg[u,u]", "cat/pkg[u]"), ("cat/pkg[b,a]", "cat/pkg[a,b]")] {
-            let dep: Dep = s.parse().unwrap();
-            assert_eq!(dep.to_string(), expected);
         }
     }
 
