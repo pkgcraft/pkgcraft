@@ -94,6 +94,7 @@ impl ParsedDep<'_> {
     }
 }
 
+#[repr(C)]
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum UseDepKind {
     Enabled,             // cat/pkg[opt]
@@ -104,6 +105,7 @@ pub enum UseDepKind {
     DisabledConditional, // cat/pkg[!opt?]
 }
 
+#[repr(C)]
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum UseDepDefault {
     Enabled,  // cat/pkg[opt(+)]
@@ -180,9 +182,19 @@ impl FromStr for SortedSet<UseDep<String>> {
 }
 
 impl<S: UseFlag> UseDep<S> {
+    /// Return the USE dependency type.
+    pub fn kind(&self) -> UseDepKind {
+        self.kind
+    }
+
     /// Return the flag value for the USE dependency.
     pub fn flag(&self) -> &str {
         self.flag.as_ref()
+    }
+
+    /// Return the USE dependency default.
+    pub fn default(&self) -> Option<UseDepDefault> {
+        self.default
     }
 }
 
