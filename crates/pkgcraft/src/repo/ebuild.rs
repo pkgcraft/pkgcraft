@@ -1213,7 +1213,7 @@ mod tests {
         for (data, err) in [
             ("EAPI=-1", "invalid EAPI: \"-1\""),
             ("EAPI=a", "unsupported EAPI: a"),
-            ("SLOT=", "missing required values: SLOT"),
+            ("SLOT=", "missing required value: SLOT"),
         ] {
             let mut config = Config::default();
             let t = config.temp_repo("test", 0, None).unwrap();

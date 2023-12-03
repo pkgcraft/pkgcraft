@@ -49,55 +49,6 @@ pub enum Key {
     CHKSUM,
 }
 
-impl Key {
-    pub(crate) fn get(&self, build: &mut BuildData, eapi: &'static Eapi) -> Option<String> {
-        use Key::*;
-        match self {
-            CHKSUM => None,
-            DEFINED_PHASES => {
-                let mut phase_names: Vec<_> = eapi
-                    .phases()
-                    .iter()
-                    .filter_map(|p| functions::find(p).map(|_| p.short_name()))
-                    .collect();
-                if phase_names.is_empty() {
-                    None
-                } else {
-                    phase_names.sort_unstable();
-                    Some(phase_names.join(" "))
-                }
-            }
-            INHERIT => {
-                let eclasses = &build.inherit;
-                if eclasses.is_empty() {
-                    None
-                } else {
-                    Some(eclasses.iter().join(" "))
-                }
-            }
-            INHERITED => {
-                let eclasses = &build.inherited;
-                if eclasses.is_empty() {
-                    None
-                } else {
-                    Some(eclasses.iter().join(" "))
-                }
-            }
-            key => {
-                if let Some(vals) = build.incrementals.get(key) {
-                    if vals.is_empty() {
-                        None
-                    } else {
-                        Some(vals.iter().join(" "))
-                    }
-                } else {
-                    variables::optional(key).map(|s| s.split_whitespace().join(" "))
-                }
-            }
-        }
-    }
-}
-
 /// Package IUSE.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Iuse<S> {
@@ -221,9 +172,74 @@ pub(crate) struct Metadata {
     chksum: String,
 }
 
+macro_rules! required {
+    ($eapi:expr, $key:expr) => {
+        if $eapi.mandatory_keys().contains($key) {
+            return Err(Error::InvalidValue(format!("missing required value: {}", $key)));
+        }
+    };
+}
+
 impl Metadata {
-    /// Convert raw metadata key value to stored value.
-    fn convert(&mut self, eapi: &'static Eapi, key: Key, val: &str) -> crate::Result<()> {
+    /// Populate a metadata field value using the current build state.
+    fn populate(
+        &mut self,
+        build: &mut BuildData,
+        key: &Key,
+        eapi: &'static Eapi,
+    ) -> crate::Result<()> {
+        use Key::*;
+        match key {
+            CHKSUM => required!(eapi, key),
+            DEFINED_PHASES => {
+                let phase_names: OrderedSet<_> = eapi
+                    .phases()
+                    .iter()
+                    .filter_map(|p| functions::find(p).map(|_| p.short_name().to_string()))
+                    .sorted()
+                    .collect();
+                if phase_names.is_empty() {
+                    required!(eapi, key);
+                } else {
+                    self.defined_phases = phase_names;
+                }
+            }
+            INHERIT => {
+                let eclasses = &build.inherit;
+                if eclasses.is_empty() {
+                    required!(eapi, key);
+                } else {
+                    self.inherit = eclasses.iter().map(|x| x.to_string()).collect();
+                }
+            }
+            INHERITED => {
+                let eclasses = &build.inherited;
+                if eclasses.is_empty() {
+                    required!(eapi, key);
+                } else {
+                    self.inherited = eclasses.iter().map(|x| x.to_string()).collect();
+                }
+            }
+            key => {
+                if let Some(vals) = build.incrementals.get(key) {
+                    if vals.is_empty() {
+                        required!(eapi, key);
+                    } else {
+                        self.deserialize(eapi, key, &vals.iter().join(" "))?;
+                    }
+                } else if let Some(s) = variables::optional(key) {
+                    self.deserialize(eapi, key, &s)?;
+                } else {
+                    required!(eapi, key);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Deserialize a metadata string value to its field value.
+    fn deserialize(&mut self, eapi: &'static Eapi, key: &Key, val: &str) -> crate::Result<()> {
         use Key::*;
         match key {
             CHKSUM => self.chksum = val.to_string(),
@@ -476,7 +492,7 @@ impl Metadata {
         // deserialize values into metadata fields
         if deserialize {
             for (key, val) in data {
-                meta.convert(eapi, key, val)?;
+                meta.deserialize(eapi, &key, val)?;
             }
         }
 
@@ -571,20 +587,9 @@ impl TryFrom<&Pkg<'_>> for Metadata {
         let build = get_build_mut();
         let mut meta = Self::default();
 
-        // pull metadata values from shell variables
-        let mut missing = vec![];
+        // pull metadata values from build state
         for key in eapi.metadata_keys() {
-            if let Some(val) = key.get(build, eapi) {
-                meta.convert(eapi, *key, &val)?;
-            } else if eapi.mandatory_keys().contains(key) {
-                missing.push(key.as_ref());
-            }
-        }
-
-        if !missing.is_empty() {
-            missing.sort();
-            let keys = missing.join(", ");
-            return Err(Error::InvalidValue(format!("missing required values: {keys}")));
+            meta.populate(build, key, eapi)?;
         }
 
         Ok(meta)
