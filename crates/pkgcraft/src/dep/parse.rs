@@ -9,7 +9,7 @@ use crate::dep::{
 };
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
-use crate::shell::metadata::{Keyword, KeywordStatus};
+use crate::shell::metadata::{Iuse, Keyword, KeywordStatus};
 use crate::types::Ordered;
 use crate::Error;
 
@@ -137,8 +137,10 @@ peg::parser!(grammar depspec() for str {
         } / expected!("USE flag name")
         ) { s }
 
-    pub(super) rule iuse() -> (Option<char>, &'input str)
-        = default:(['+' | '-'])? flag:use_flag() { (default, flag) }
+    pub(super) rule iuse() -> Iuse<&'input str>
+        = flag:use_flag() { Iuse { flag, default: None } }
+        / "+" flag:use_flag() { Iuse { flag, default: Some(true) } }
+        / "-" flag:use_flag() { Iuse { flag, default: Some(false) } }
 
     rule use_dep_default() -> UseDepDefault
         = "(+)" { UseDepDefault::Enabled }
@@ -389,7 +391,7 @@ pub fn use_flag(s: &str) -> crate::Result<&str> {
     depspec::use_flag(s).map_err(|e| peg_error("invalid USE flag", s, e))
 }
 
-pub(crate) fn iuse(s: &str) -> crate::Result<(Option<char>, &str)> {
+pub(crate) fn iuse(s: &str) -> crate::Result<Iuse<&str>> {
     depspec::iuse(s).map_err(|e| peg_error("invalid IUSE", s, e))
 }
 

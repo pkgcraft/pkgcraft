@@ -352,7 +352,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_iuse(
     len: *mut usize,
 ) -> *mut *mut c_char {
     let pkg = try_pkg_from_ptr!(p);
-    iter_to_array!(pkg.iuse().iter(), len, str_to_raw)
+    iter_to_array!(pkg.iuse().iter(), len, obj_to_str)
 }
 
 /// Return a package's directly inherited eclasses.

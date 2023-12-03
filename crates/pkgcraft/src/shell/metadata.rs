@@ -100,51 +100,41 @@ impl Key {
 
 /// Package IUSE.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Iuse {
-    full: String,
-    default: Option<bool>,
+pub struct Iuse<S> {
+    pub(crate) flag: S,
+    pub(crate) default: Option<bool>,
 }
 
-impl PartialEq<str> for Iuse {
-    fn eq(&self, other: &str) -> bool {
-        self.full == other
+impl IntoOwned for Iuse<&str> {
+    type Owned = Iuse<String>;
+
+    fn into_owned(self) -> Self::Owned {
+        Iuse {
+            flag: self.flag.to_string(),
+            default: self.default,
+        }
     }
 }
 
-impl PartialEq<Iuse> for str {
-    fn eq(&self, other: &Iuse) -> bool {
-        self == other.full
-    }
-}
-
-impl fmt::Display for Iuse {
+impl<S: fmt::Display> fmt::Display for Iuse<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.full)
+        let flag = &self.flag;
+        match &self.default {
+            Some(true) => write!(f, "+{flag}"),
+            Some(false) => write!(f, "-{flag}"),
+            None => write!(f, "{flag}"),
+        }
     }
 }
 
-impl AsRef<str> for Iuse {
-    fn as_ref(&self) -> &str {
-        &self.full
-    }
-}
-
-impl Iuse {
+impl Iuse<String> {
     fn new(s: &str) -> crate::Result<Self> {
-        let (default, _flag) = dep::parse::iuse(s)?;
-        Ok(Self {
-            full: s.to_string(),
-            default: default.map(|c| c == '+'),
-        })
+        dep::parse::iuse(s).map(|v| v.into_owned())
     }
 
     /// Return an IUSE flag stripping defaults.
     pub fn flag(&self) -> &str {
-        if self.default.is_none() {
-            &self.full
-        } else {
-            &self.full[1..]
-        }
+        &self.flag
     }
 }
 
@@ -175,7 +165,7 @@ impl IntoOwned for Keyword<&str> {
 
 impl Keyword<String> {
     fn new(s: &str) -> crate::Result<Self> {
-        dep::parse::keyword(s).map(|k| k.into_owned())
+        dep::parse::keyword(s).map(|v| v.into_owned())
     }
 
     /// Return the architecture for a keyword without its status.
@@ -225,7 +215,7 @@ pub(crate) struct Metadata {
     homepage: OrderedSet<String>,
     defined_phases: OrderedSet<String>,
     keywords: OrderedSet<Keyword<String>>,
-    iuse: OrderedSet<Iuse>,
+    iuse: OrderedSet<Iuse<String>>,
     inherit: OrderedSet<String>,
     inherited: OrderedSet<String>,
     chksum: String,
@@ -553,7 +543,7 @@ impl Metadata {
         &self.keywords
     }
 
-    pub(crate) fn iuse(&self) -> &OrderedSet<Iuse> {
+    pub(crate) fn iuse(&self) -> &OrderedSet<Iuse<String>> {
         &self.iuse
     }
 

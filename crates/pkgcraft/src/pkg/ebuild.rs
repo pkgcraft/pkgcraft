@@ -189,7 +189,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's IUSE.
-    pub fn iuse(&self) -> &OrderedSet<Iuse> {
+    pub fn iuse(&self) -> &OrderedSet<Iuse<String>> {
         self.meta.iuse()
     }
 
@@ -594,7 +594,7 @@ mod tests {
 
         // single line
         let pkg = t.create_pkg("cat/pkg-1", &["IUSE=a +b"]).unwrap();
-        assert_ordered_eq(pkg.iuse(), ["a", "+b"]);
+        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b"]);
 
         // multiple lines
         let val = indoc::indoc! {"
@@ -605,7 +605,7 @@ mod tests {
         let pkg = t
             .create_pkg("cat/pkg-1", &[&format!("IUSE={val}")])
             .unwrap();
-        assert_ordered_eq(pkg.iuse(), ["a", "b", "+c"]);
+        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "b", "+c"]);
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -625,7 +625,7 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.iuse(), ["use1"]);
+        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["use1"]);
 
         // inherited from multiple eclasses
         let data = indoc::indoc! {r#"
@@ -635,7 +635,7 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.iuse(), ["use1", "use2"]);
+        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["use1", "use2"]);
 
         // accumulated from single eclass
         let data = indoc::indoc! {r#"
@@ -646,7 +646,7 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.iuse(), ["a", "use1"]);
+        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "use1"]);
 
         // accumulated from multiple eclasses
         let data = indoc::indoc! {r#"
@@ -657,7 +657,7 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.iuse(), ["a", "use1", "use2"]);
+        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "use1", "use2"]);
     }
 
     #[test]
