@@ -240,7 +240,7 @@ impl Metadata {
         match key {
             CHKSUM => self.chksum = val.to_string(),
             DESCRIPTION => self.description = val.to_string(),
-            SLOT => self.slot = dep::parse::slot(val)?.into_owned(),
+            SLOT => self.slot = Slot::new(val)?,
             BDEPEND => self.bdepend = dep::parse::dependencies_dep_set(val, eapi)?,
             DEPEND => self.depend = dep::parse::dependencies_dep_set(val, eapi)?,
             IDEPEND => self.idepend = dep::parse::dependencies_dep_set(val, eapi)?,

@@ -229,11 +229,18 @@ impl IntoOwned for Slot<&str> {
 }
 
 impl Slot<String> {
+    /// Create a new Slot from a given string.
+    pub fn new(s: &str) -> crate::Result<Self> {
+        parse::slot(s).into_owned()
+    }
+
+    /// Return the main slot value.
     pub fn slot(&self) -> &str {
         let s = self.name.as_str();
         s.split_once('/').map_or(s, |x| x.0)
     }
 
+    /// Return the subslot value if it exists.
     pub fn subslot(&self) -> Option<&str> {
         self.name.split_once('/').map(|x| x.1)
     }
