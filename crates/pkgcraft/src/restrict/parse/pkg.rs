@@ -56,7 +56,6 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
         "src_uri" => SrcUri(None),
         "homepage" => Homepage(None),
         "defined_phases" => DefinedPhases(None),
-        "keywords" => Keywords(None),
         "iuse" => Iuse(None),
         "inherited" => Inherited(None),
         "inherit" => Inherit(None),
@@ -96,7 +95,6 @@ peg::parser!(grammar restrict() for str {
             / "src_uri"
             / "homepage"
             / "defined_phases"
-            / "keywords"
             / "iuse"
             / "inherited"
             / "inherit"
@@ -262,7 +260,6 @@ peg::parser!(grammar restrict() for str {
         = attr:$((
                 "homepage"
                 / "defined_phases"
-                / "keywords"
                 / "iuse"
                 / "inherited"
                 / "inherit"
@@ -271,7 +268,6 @@ peg::parser!(grammar restrict() for str {
             use EbuildRestrict::*;
             let func = match attr {
                 "homepage" => Homepage,
-                "keywords" => Keywords,
                 "iuse" => Iuse,
                 "inherited" => Inherited,
                 "inherit" => Inherit,
