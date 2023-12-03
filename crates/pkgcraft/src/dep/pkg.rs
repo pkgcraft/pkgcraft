@@ -210,8 +210,8 @@ impl UseDep<String> {
 
 /// Package slot.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Slot<T> {
-    pub(crate) name: T,
+pub struct Slot<S> {
+    pub(crate) name: S,
 }
 
 impl Default for Slot<String> {
@@ -269,7 +269,7 @@ impl PartialEq<Slot<String>> for &str {
     }
 }
 
-impl<T: fmt::Display> fmt::Display for Slot<T> {
+impl<S: fmt::Display> fmt::Display for Slot<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
     }
@@ -277,8 +277,8 @@ impl<T: fmt::Display> fmt::Display for Slot<T> {
 
 /// Package slot dependency.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct SlotDep<T> {
-    pub(crate) slot: Option<Slot<T>>,
+pub struct SlotDep<S> {
+    pub(crate) slot: Option<Slot<S>>,
     pub(crate) op: Option<SlotOperator>,
 }
 
@@ -293,14 +293,14 @@ impl IntoOwned for SlotDep<&str> {
     }
 }
 
-impl<T: PartialEq + Eq + Ord> Ord for SlotDep<T> {
+impl<S: PartialEq + Eq + Ord> Ord for SlotDep<S> {
     fn cmp(&self, other: &Self) -> Ordering {
         cmp_not_equal!(&self.slot, &other.slot);
         self.op.cmp(&other.op)
     }
 }
 
-impl<T: PartialEq + Eq + Ord> PartialOrd for SlotDep<T> {
+impl<S: PartialEq + Eq + Ord> PartialOrd for SlotDep<S> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
@@ -318,7 +318,7 @@ impl PartialEq<SlotDep<String>> for SlotDep<&str> {
     }
 }
 
-impl<T: fmt::Display> fmt::Display for SlotDep<T> {
+impl<S: fmt::Display> fmt::Display for SlotDep<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match (&self.slot, &self.op) {
             (Some(slot), Some(op)) => write!(f, "{slot}{op}")?,
