@@ -227,21 +227,22 @@ peg::parser!(grammar depspec() for str {
             })
         }
 
-    rule _ = [' ']
+    rule _ = quiet!{[^ ' ' | '\n' | '\t']+}
+    rule __ = quiet!{[' ' | '\n' | '\t']+}
 
     rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
-        = "(" _ v:expr() ++ " " _ ")" { v }
+        = "(" __ v:expr() ++ __ __ ")" { v }
 
     rule all_of<T: Ordered>(expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
         = vals:parens(<expr()>)
         { DepSpec::AllOf(vals.into_iter().map(Box::new).collect()) }
 
     rule any_of<T: Ordered>(expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
-        = "||" _ vals:parens(<expr()>)
+        = "||" __ vals:parens(<expr()>)
         { DepSpec::AnyOf(vals.into_iter().map(Box::new).collect()) }
 
     rule use_cond<T: Ordered>(expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
-        = negate:"!"? u:use_flag() "?" _ vals:parens(<expr()>) {
+        = negate:"!"? u:use_flag() "?" __ vals:parens(<expr()>) {
             let f = match negate {
                 None => DepSpec::UseEnabled,
                 Some(_) => DepSpec::UseDisabled,
@@ -250,11 +251,11 @@ peg::parser!(grammar depspec() for str {
         }
 
     rule exactly_one_of<T: Ordered>(expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
-        = "^^" _ vals:parens(<expr()>)
+        = "^^" __ vals:parens(<expr()>)
         { DepSpec::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
 
     rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<DepSpec<String, T>>) -> DepSpec<String, T>
-        = "??" _ vals:parens(<expr()>) {
+        = "??" __ vals:parens(<expr()>) {
             DepSpec::AtMostOneOf(vals.into_iter().map(Box::new).collect())
         }
 
@@ -267,7 +268,7 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule src_uri_dep_spec(eapi: &'static Eapi) -> DepSpec<String, Uri>
         = use_cond(<src_uri_dep_spec(eapi)>)
             / all_of(<src_uri_dep_spec(eapi)>)
-            / s:$(quiet!{!")" [^' ']+}) rename:(_ "->" _ s:$([^' ']+) {s})? {?
+            / s:$(quiet!{!")" _+}) rename:(__ "->" __ s:$(_+) {s})? {?
                 let uri = Uri::new(s, rename).map_err(|_| "invalid URI")?;
                 Ok(DepSpec::Enabled(uri))
             }
@@ -299,7 +300,7 @@ peg::parser!(grammar depspec() for str {
         = use_cond(<dependencies_dep_spec(eapi)>)
             / any_of(<dependencies_dep_spec(eapi)>)
             / all_of(<dependencies_dep_spec(eapi)>)
-            / s:$(quiet!{!")" [^' ']+}) {?
+            / s:$(quiet!{!")" _+}) {?
                 let dep = match eapi.dep(s) {
                     Ok(x) => x,
                     Err(e) => return Err("failed parsing dep"),
@@ -308,22 +309,22 @@ peg::parser!(grammar depspec() for str {
             }
 
     pub(super) rule license_dep_set() -> DepSet<String, String>
-        = v:license_dep_spec() ** " " { DepSet::from_iter(v) }
+        = v:license_dep_spec() ** __ { DepSet::from_iter(v) }
 
     pub(super) rule src_uri_dep_set(eapi: &'static Eapi) -> DepSet<String, Uri>
-        = v:src_uri_dep_spec(eapi) ** " " { DepSet::from_iter(v) }
+        = v:src_uri_dep_spec(eapi) ** __ { DepSet::from_iter(v) }
 
     pub(super) rule properties_dep_set() -> DepSet<String, String>
-        = v:properties_dep_spec() ** " " { DepSet::from_iter(v) }
+        = v:properties_dep_spec() ** __ { DepSet::from_iter(v) }
 
     pub(super) rule required_use_dep_set(eapi: &'static Eapi) -> DepSet<String, String>
-        = v:required_use_dep_spec(eapi) ** " " { DepSet::from_iter(v) }
+        = v:required_use_dep_spec(eapi) ** __ { DepSet::from_iter(v) }
 
     pub(super) rule restrict_dep_set() -> DepSet<String, String>
-        = v:restrict_dep_spec() ** " " { DepSet::from_iter(v) }
+        = v:restrict_dep_spec() ** __ { DepSet::from_iter(v) }
 
     pub(super) rule dependencies_dep_set(eapi: &'static Eapi) -> DepSet<String, Dep>
-        = v:dependencies_dep_spec(eapi) ** " " { DepSet::from_iter(v) }
+        = v:dependencies_dep_spec(eapi) ** __ { DepSet::from_iter(v) }
 });
 
 pub fn category(s: &str) -> crate::Result<&str> {
