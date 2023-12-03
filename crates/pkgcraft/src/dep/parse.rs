@@ -117,9 +117,9 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule slot_dep() -> SlotDep<&'input str>
         = "=" { SlotDep { slot: None, op: Some(SlotOperator::Equal) } }
         / "*" { SlotDep { slot: None, op: Some(SlotOperator::Star) } }
-        / slot:slot() op:$("=")? {?
+        / slot:slot() op:$("=")? {
             let op = op.map(|_| SlotOperator::Equal);
-            Ok(SlotDep { slot: Some(slot), op })
+            SlotDep { slot: Some(slot), op }
         }
 
     rule slot_dep_str() -> SlotDep<&'input str>
