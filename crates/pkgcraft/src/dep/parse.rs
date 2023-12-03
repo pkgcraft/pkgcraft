@@ -221,47 +221,12 @@ peg::parser!(grammar depspec() for str {
 
     rule _ = [' ']
 
-    // Technically PROPERTIES and RESTRICT tokens have no restrictions, but use license
-    // restrictions in order to properly parse use restrictions.
-    rule properties_restrict_val() -> DepSpec<String, String>
+    // License names must not begin with a hyphen, dot, or plus sign.
+    rule license_name(err: &'static str) -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!("string value")
-        ) { DepSpec::Enabled(s.to_string()) }
-
-    // licenses must not begin with a hyphen, dot, or plus sign.
-    rule license_val() -> DepSpec<String, String>
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!("license name")
-        ) { DepSpec::Enabled(s.to_string()) }
-
-    rule use_flag_val() -> DepSpec<String, String>
-        = disabled:"!"? s:use_flag() {
-            let val = s.to_string();
-            if disabled.is_none() {
-                DepSpec::Enabled(val)
-            } else {
-                DepSpec::Disabled(val)
-            }
-        }
-
-    rule dependencies_val(eapi: &'static Eapi) -> DepSpec<String, Dep>
-        = s:$(quiet!{!")" [^' ']+}) {?
-            let dep = match eapi.dep(s) {
-                Ok(x) => x,
-                Err(e) => return Err("failed parsing dep"),
-            };
-            Ok(DepSpec::Enabled(dep))
-        }
-
-    rule uri_val() -> DepSpec<String, Uri>
-        = s:$(quiet!{!")" [^' ']+}) rename:(_ "->" _ s:$([^' ']+) {s})? {?
-            let uri = Uri::new(s, rename).map_err(|_| "invalid URI")?;
-            Ok(DepSpec::Enabled(uri))
-        }
+        } / expected!(err)) { s }
 
     rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
         = "(" _ v:expr() ++ " " _ ")" { v }
@@ -296,17 +261,22 @@ peg::parser!(grammar depspec() for str {
         = use_cond(<license_dep_spec()>)
             / any_of(<license_dep_spec()>)
             / all_of(<license_dep_spec()>)
-            / license_val()
+            / s:license_name("license name") { DepSpec::Enabled(s.to_string()) }
 
     pub(super) rule src_uri_dep_spec(eapi: &'static Eapi) -> DepSpec<String, Uri>
         = use_cond(<src_uri_dep_spec(eapi)>)
             / all_of(<src_uri_dep_spec(eapi)>)
-            / uri_val()
+            / s:$(quiet!{!")" [^' ']+}) rename:(_ "->" _ s:$([^' ']+) {s})? {?
+                let uri = Uri::new(s, rename).map_err(|_| "invalid URI")?;
+                Ok(DepSpec::Enabled(uri))
+            }
 
+    // Technically RESTRICT tokens have no restrictions, but license
+    // restrictions are currently used in order to properly parse use restrictions.
     pub(super) rule properties_dep_spec() -> DepSpec<String, String>
         = use_cond(<properties_dep_spec()>)
             / all_of(<properties_dep_spec()>)
-            / properties_restrict_val()
+            / s:license_name("properties name") { DepSpec::Enabled(s.to_string()) }
 
     pub(super) rule required_use_dep_spec(eapi: &'static Eapi) -> DepSpec<String, String>
         = use_cond(<required_use_dep_spec(eapi)>)
@@ -314,18 +284,27 @@ peg::parser!(grammar depspec() for str {
             / all_of(<required_use_dep_spec(eapi)>)
             / exactly_one_of(<required_use_dep_spec(eapi)>)
             / at_most_one_of(eapi, <required_use_dep_spec(eapi)>)
-            / use_flag_val()
+            / "!" s:use_flag() { DepSpec::Disabled(s.to_string()) }
+            / s:use_flag() { DepSpec::Enabled(s.to_string()) }
 
+    // Technically RESTRICT tokens have no restrictions, but license
+    // restrictions are currently used in order to properly parse use restrictions.
     pub(super) rule restrict_dep_spec() -> DepSpec<String, String>
         = use_cond(<restrict_dep_spec()>)
             / all_of(<restrict_dep_spec()>)
-            / properties_restrict_val()
+            / s:license_name("restrict name") { DepSpec::Enabled(s.to_string()) }
 
     pub(super) rule dependencies_dep_spec(eapi: &'static Eapi) -> DepSpec<String, Dep>
         = use_cond(<dependencies_dep_spec(eapi)>)
             / any_of(<dependencies_dep_spec(eapi)>)
             / all_of(<dependencies_dep_spec(eapi)>)
-            / dependencies_val(eapi)
+            / s:$(quiet!{!")" [^' ']+}) {?
+                let dep = match eapi.dep(s) {
+                    Ok(x) => x,
+                    Err(e) => return Err("failed parsing dep"),
+                };
+                Ok(DepSpec::Enabled(dep))
+            }
 
     pub(super) rule license_dep_set() -> DepSet<String, String>
         = v:license_dep_spec() ** " " { DepSet::from_iter(v) }
