@@ -129,7 +129,7 @@ impl<S: fmt::Display> fmt::Display for Iuse<S> {
 
 impl Iuse<String> {
     fn new(s: &str) -> crate::Result<Self> {
-        dep::parse::iuse(s).map(|v| v.into_owned())
+        dep::parse::iuse(s).into_owned()
     }
 
     /// Return an IUSE flag stripping defaults.
@@ -165,7 +165,7 @@ impl IntoOwned for Keyword<&str> {
 
 impl Keyword<String> {
     fn new(s: &str) -> crate::Result<Self> {
-        dep::parse::keyword(s).map(|v| v.into_owned())
+        dep::parse::keyword(s).into_owned()
     }
 
     /// Return the architecture for a keyword without its status.

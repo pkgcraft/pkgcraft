@@ -85,7 +85,7 @@ impl ParsedDep<'_> {
             package: self.package.to_string(),
             blocker: self.blocker,
             version,
-            slot: self.slot.map(|s| s.into_owned()),
+            slot: self.slot.into_owned(),
             use_deps: self
                 .use_deps
                 .map(|u| SortedSet::from_iter(u.into_iter().map(|u| u.into_owned()))),
@@ -204,7 +204,7 @@ impl<S: UseFlag> UseDep<S> {
 impl UseDep<String> {
     /// Create a new UseDep from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
-        parse::use_dep(s).map(|x| x.into_owned())
+        parse::use_dep(s).into_owned()
     }
 }
 
@@ -287,7 +287,7 @@ impl IntoOwned for SlotDep<&str> {
 
     fn into_owned(self) -> Self::Owned {
         SlotDep {
-            slot: self.slot.map(|s| s.into_owned()),
+            slot: self.slot.into_owned(),
             op: self.op,
         }
     }
@@ -333,7 +333,7 @@ impl<S: fmt::Display> fmt::Display for SlotDep<S> {
 impl SlotDep<String> {
     /// Create a new SlotDep from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
-        parse::slot_dep(s).map(|x| x.into_owned())
+        parse::slot_dep(s).into_owned()
     }
 }
 

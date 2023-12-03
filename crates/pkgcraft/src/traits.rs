@@ -12,6 +12,22 @@ pub trait IntoOwned {
     fn into_owned(self) -> Self::Owned;
 }
 
+impl<T: IntoOwned> IntoOwned for Option<T> {
+    type Owned = Option<T::Owned>;
+
+    fn into_owned(self) -> Self::Owned {
+        self.map(|x| x.into_owned())
+    }
+}
+
+impl<T: IntoOwned> IntoOwned for crate::Result<T> {
+    type Owned = crate::Result<T::Owned>;
+
+    fn into_owned(self) -> Self::Owned {
+        self.map(|x| x.into_owned())
+    }
+}
+
 /// Iterate over an object's lines, filtering comments starting with '#' and empty lines returning
 /// an enumerated iterator for the remaining content.
 pub trait FilterLines {
