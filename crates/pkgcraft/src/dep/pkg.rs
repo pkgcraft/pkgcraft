@@ -179,7 +179,7 @@ impl FromStr for SortedSet<UseDep<String>> {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         s.split(',')
-            .map(|s| parse::use_dep(s).map(|u| u.into_owned()))
+            .map(|s| parse::use_dep(s).into_owned())
             .collect()
     }
 }
