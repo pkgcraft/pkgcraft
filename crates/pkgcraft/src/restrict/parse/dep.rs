@@ -25,6 +25,12 @@ peg::parser!(grammar restrict() for str {
             (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '*'] / ("-" !version()))*})
         { s }
 
+    rule number() -> u64
+        = s:$(['0'..='9']+) {? s.parse().map_err(|_| "integer overflow") }
+
+    rule str_number() -> (&'input str, u64)
+        = s:$(['0'..='9']+) {? Ok((s, s.parse().map_err(|_| "integer overflow")?)) }
+
     rule suffix() -> SuffixKind
         = "alpha" { SuffixKind::Alpha }
         / "beta" { SuffixKind::Beta }
@@ -33,45 +39,29 @@ peg::parser!(grammar restrict() for str {
         / "p" { SuffixKind::P }
 
     rule version_suffix() -> Suffix
-        = "_" kind:suffix() ver:$(['0'..='9']+)? {?
-            let num = ver.map(|s| s.parse().map_err(|_| "version suffix integer overflow"));
-            let version = num.transpose()?;
-            Ok(Suffix { kind, version })
-        }
+        = "_" kind:suffix() version:number()? { Suffix { kind, version } }
 
-    rule version() -> ParsedVersion<'input>
-        = start:position!() numbers:$(['0'..='9']+) ++ "." letter:['a'..='z']?
+    // TODO: figure out how to return string slice instead of positions
+    // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
+    pub(super) rule version() -> ParsedVersion<'input>
+        = start:position!() numbers:str_number() ++ "." letter:['a'..='z']?
                 suffixes:version_suffix()*
-                end_base:position!() revision:revision()? end:position!() {?
-            let numbers: Result<Vec<_>, _> = numbers
-                .into_iter()
-                .map(|s| {
-                    s
-                    .parse()
-                    .map_err(|e| "version integer overflow")
-                    .map(|n| (s, n))
-                })
-                .collect();
-
-            let revision = revision.map(|s| {
-                s.parse().map_err(|e| "revision integer overflow").map(|n| (s, n))
-            });
-
-            Ok(ParsedVersion {
+                end_base:position!() revision:revision()? end:position!() {
+            ParsedVersion {
                 start,
                 end,
                 base_end: end_base-start,
                 op: None,
-                numbers: numbers?,
+                numbers,
                 letter,
                 suffixes,
-                revision: revision.transpose()?,
-            })
+                revision,
+            }
         }
 
-    rule revision() -> &'input str
-        = "-r" s:$(quiet!{['0'..='9']+} / expected!("revision"))
-        { s }
+    rule revision() -> (&'input str, u64)
+        = "-r" rev:str_number() { rev }
+        / expected!("revision")
 
     rule cp_restricts() -> Vec<DepRestrict>
         = cat:category() pkg:(quiet!{"/"} s:package() { s }) {?
