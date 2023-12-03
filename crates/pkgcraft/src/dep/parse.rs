@@ -2,7 +2,7 @@ use cached::{proc_macro::cached, SizedCache};
 
 use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::ParsedDep;
-use crate::dep::version::{ParsedVersion, Suffix};
+use crate::dep::version::{ParsedVersion, Suffix, SuffixKind};
 use crate::dep::{
     Blocker, Cpv, Dep, DepSet, DepSpec, Slot, SlotDep, SlotOperator, Uri, UseDep, UseDepDefault,
     UseDepKind, Version,
@@ -47,18 +47,18 @@ peg::parser!(grammar depspec() for str {
         } / expected!("package name"))
         { s }
 
+    rule suffix() -> SuffixKind
+        = "alpha" { SuffixKind::Alpha }
+        / "beta" { SuffixKind::Beta }
+        / "pre" { SuffixKind::Pre }
+        / "rc" { SuffixKind::Rc }
+        / "p" { SuffixKind::P }
+
     rule version_suffix() -> Suffix
-        = "_" suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
+        = "_" kind:suffix() ver:$(['0'..='9']+)? {?
             let num = ver.map(|s| s.parse().map_err(|_| "version suffix integer overflow"));
-            let suffix = match suffix {
-                "alpha" => Suffix::Alpha,
-                "beta" => Suffix::Beta,
-                "pre" => Suffix::Pre,
-                "rc" => Suffix::Rc,
-                "p" => Suffix::P,
-                _ => panic!("invalid suffix"),
-            };
-            Ok(suffix(num.transpose()?))
+            let version = num.transpose()?;
+            Ok(Suffix { kind, version })
         }
 
     // TODO: figure out how to return string slice instead of positions

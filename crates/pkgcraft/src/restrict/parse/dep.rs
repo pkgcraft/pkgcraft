@@ -1,4 +1,4 @@
-use crate::dep::version::{ParsedVersion, Suffix};
+use crate::dep::version::{ParsedVersion, Suffix, SuffixKind};
 use crate::dep::{Blocker, UseDep, UseDepDefault, UseDepKind};
 use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -25,18 +25,18 @@ peg::parser!(grammar restrict() for str {
             (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '*'] / ("-" !version()))*})
         { s }
 
+    rule suffix() -> SuffixKind
+        = "alpha" { SuffixKind::Alpha }
+        / "beta" { SuffixKind::Beta }
+        / "pre" { SuffixKind::Pre }
+        / "rc" { SuffixKind::Rc }
+        / "p" { SuffixKind::P }
+
     rule version_suffix() -> Suffix
-        = "_" suffix:$("alpha" / "beta" / "pre" / "rc" / "p") ver:$(['0'..='9']+)? {?
+        = "_" kind:suffix() ver:$(['0'..='9']+)? {?
             let num = ver.map(|s| s.parse().map_err(|_| "version suffix integer overflow"));
-            let suffix = match suffix {
-                "alpha" => Suffix::Alpha,
-                "beta" => Suffix::Beta,
-                "pre" => Suffix::Pre,
-                "rc" => Suffix::Rc,
-                "p" => Suffix::P,
-                _ => panic!("invalid suffix"),
-            };
-            Ok(suffix(num.transpose()?))
+            let version = num.transpose()?;
+            Ok(Suffix { kind, version })
         }
 
     rule version() -> ParsedVersion<'input>

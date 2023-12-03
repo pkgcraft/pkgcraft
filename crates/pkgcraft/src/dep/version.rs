@@ -12,12 +12,18 @@ use crate::Error;
 use super::{parse, Intersects};
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) enum Suffix {
-    Alpha(Option<u64>),
-    Beta(Option<u64>),
-    Pre(Option<u64>),
-    Rc(Option<u64>),
-    P(Option<u64>),
+pub(crate) enum SuffixKind {
+    Alpha,
+    Beta,
+    Pre,
+    Rc,
+    P,
+}
+
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct Suffix {
+    pub(crate) kind: SuffixKind,
+    pub(crate) version: Option<u64>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -419,9 +425,9 @@ fn ver_cmp(v1: &Version, v2: &Version, cmp_revs: bool, cmp_ops: bool) -> Orderin
         loop {
             match (v1_suffixes.next(), v2_suffixes.next()) {
                 (Some(s1), Some(s2)) => cmp_not_equal!(s1, s2),
-                (Some(Suffix::P(_)), None) => return Ordering::Greater,
+                (Some(Suffix { kind: SuffixKind::P, .. }), None) => return Ordering::Greater,
                 (Some(_), None) => return Ordering::Less,
-                (None, Some(Suffix::P(_))) => return Ordering::Less,
+                (None, Some(Suffix { kind: SuffixKind::P, .. })) => return Ordering::Less,
                 (None, Some(_)) => return Ordering::Greater,
                 (None, None) => break,
             }
