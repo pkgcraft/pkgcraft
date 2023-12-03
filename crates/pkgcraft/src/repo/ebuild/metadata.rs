@@ -401,7 +401,7 @@ impl Metadata {
                         .filter_map(|entry| match Eclass::new(entry.path()) {
                             Ok(eclass) => Some(eclass),
                             Err(e) => {
-                                warn!("{}: {e}", self.id);
+                                error!("{}: {e}", self.id);
                                 None
                             }
                         })

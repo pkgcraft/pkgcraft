@@ -29,6 +29,26 @@ peg::parser!(grammar depspec() for str {
         / "-" arch:keyword_name() { Keyword { status: KeywordStatus::Disabled, arch } }
         / "-*" { Keyword { status: KeywordStatus::Disabled, arch: "*" } }
 
+    // License names must not begin with a hyphen, dot, or plus sign.
+    pub(super) rule license_name(err: &'static str) -> &'input str
+        = s:$(quiet!{
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
+        } / expected!(err)) { s }
+
+    // Eclass names must not begin with a hyphen or dot and cannot be named "default".
+    pub(super) rule eclass_name() -> &'input str
+        = s:$(quiet!{
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '-']*
+        } / expected!("eclass name")) {?
+            if s == "default" {
+                Err("eclass cannot be named: default")
+            } else {
+                Ok(s)
+            }
+        }
+
     // Categories must not begin with a hyphen, dot, or plus sign.
     pub(super) rule category() -> &'input str
         = s:$(quiet!{
@@ -209,13 +229,6 @@ peg::parser!(grammar depspec() for str {
 
     rule _ = [' ']
 
-    // License names must not begin with a hyphen, dot, or plus sign.
-    rule license_name(err: &'static str) -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!(err)) { s }
-
     rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
         = "(" _ v:expr() ++ " " _ ")" { v }
 
@@ -340,6 +353,10 @@ pub(super) fn version_with_op_str(s: &str) -> crate::Result<ParsedVersion> {
 
 pub fn version_with_op(s: &str) -> crate::Result<Version> {
     Ok(version_with_op_str(s)?.into_owned(s))
+}
+
+pub fn eclass_name(s: &str) -> crate::Result<&str> {
+    depspec::eclass_name(s).map_err(|e| peg_error("invalid eclass name", s, e))
 }
 
 pub fn slot(s: &str) -> crate::Result<Slot<&str>> {

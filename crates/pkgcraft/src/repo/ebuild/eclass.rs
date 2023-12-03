@@ -6,6 +6,7 @@ use std::{fmt, fs};
 use camino::{Utf8Path, Utf8PathBuf};
 use scallop::{source, ExecStatus};
 
+use crate::dep::parse;
 use crate::traits::SourceBash;
 use crate::utils::digest;
 use crate::Error;
@@ -24,7 +25,7 @@ impl Eclass {
                 .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;
 
             Ok(Self {
-                name: name.to_string(),
+                name: parse::eclass_name(name)?.to_string(),
                 path: path.to_path_buf(),
                 chksum: digest::<md5::Md5>(&data),
             })
