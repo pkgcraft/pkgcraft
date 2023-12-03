@@ -244,9 +244,8 @@ impl Slot<String> {
     pub fn subslot(&self) -> Option<&str> {
         self.name.split_once('/').map(|x| x.1)
     }
-}
 
-impl Slot<String> {
+    /// Return the Slot using borrowed values.
     fn as_ref(&self) -> Slot<&str> {
         Slot { name: &self.name }
     }
