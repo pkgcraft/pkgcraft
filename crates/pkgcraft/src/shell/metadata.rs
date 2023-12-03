@@ -491,6 +491,11 @@ impl Metadata {
 
         // deserialize values into metadata fields
         if deserialize {
+            for key in eapi.mandatory_keys() {
+                if !data.contains_key(key) {
+                    return Err(Error::InvalidValue(format!("missing required value: {key}")));
+                }
+            }
             for (key, val) in data {
                 meta.deserialize(eapi, &key, val)?;
             }
