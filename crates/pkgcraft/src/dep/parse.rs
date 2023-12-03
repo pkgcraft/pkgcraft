@@ -345,13 +345,11 @@ peg::parser!(grammar depspec() for str {
 });
 
 pub fn category(s: &str) -> crate::Result<&str> {
-    depspec::category(s).map_err(|e| peg_error("invalid category name", s, e))?;
-    Ok(s)
+    depspec::category(s).map_err(|e| peg_error("invalid category name", s, e))
 }
 
 pub fn package(s: &str) -> crate::Result<&str> {
-    depspec::package(s).map_err(|e| peg_error("invalid package name", s, e))?;
-    Ok(s)
+    depspec::package(s).map_err(|e| peg_error("invalid package name", s, e))
 }
 
 pub(super) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
@@ -388,8 +386,7 @@ pub(super) fn slot_dep(s: &str) -> crate::Result<SlotDep<&str>> {
 }
 
 pub fn use_flag(s: &str) -> crate::Result<&str> {
-    depspec::use_flag(s).map_err(|e| peg_error("invalid USE flag", s, e))?;
-    Ok(s)
+    depspec::use_flag(s).map_err(|e| peg_error("invalid USE flag", s, e))
 }
 
 pub(crate) fn iuse(s: &str) -> crate::Result<(Option<char>, &str)> {
@@ -401,8 +398,7 @@ pub(crate) fn keyword(s: &str) -> crate::Result<Keyword<&str>> {
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {
-    depspec::repo(s).map_err(|e| peg_error("invalid repo name", s, e))?;
-    Ok(s)
+    depspec::repo(s).map_err(|e| peg_error("invalid repo name", s, e))
 }
 
 pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedCpv> {
