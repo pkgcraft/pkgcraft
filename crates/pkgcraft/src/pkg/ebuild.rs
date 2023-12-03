@@ -9,7 +9,7 @@ use crate::dep::{Cpv, Dep};
 use crate::dep::{DepSet, Uri};
 use crate::eapi::Eapi;
 use crate::repo::{ebuild::Repo, Repository};
-use crate::shell::metadata::{Iuse, Key, Metadata};
+use crate::shell::metadata::{Iuse, Key, Keyword, Metadata};
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -184,7 +184,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's keywords.
-    pub fn keywords(&self) -> &OrderedSet<String> {
+    pub fn keywords(&self) -> &OrderedSet<Keyword<String>> {
         self.meta.keywords()
     }
 
@@ -565,7 +565,7 @@ mod tests {
 
         // single line
         let pkg = t.create_pkg("cat/pkg-1", &["KEYWORDS=a b"]).unwrap();
-        assert_ordered_eq(pkg.keywords(), ["a", "b"]);
+        assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["a", "b"]);
 
         // multiple lines
         let val = indoc::indoc! {"
@@ -576,7 +576,7 @@ mod tests {
         let pkg = t
             .create_pkg("cat/pkg-1", &[&format!("KEYWORDS={val}")])
             .unwrap();
-        assert_ordered_eq(pkg.keywords(), ["a", "b", "c"]);
+        assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["a", "b", "c"]);
     }
 
     #[test]

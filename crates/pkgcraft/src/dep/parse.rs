@@ -9,10 +9,26 @@ use crate::dep::{
 };
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
+use crate::shell::metadata::{Keyword, KeywordStatus};
 use crate::types::Ordered;
 use crate::Error;
 
 peg::parser!(grammar depspec() for str {
+    // Keywords must not begin with a hyphen.
+    rule keyword_name() -> &'input str
+        = s:$(quiet!{
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-']*
+        } / expected!("keyword name"))
+        { s }
+
+    // The "-*" keyword is allowed in KEYWORDS for package metadata.
+    pub(super) rule keyword() -> Keyword<&'input str>
+        = arch:keyword_name() { Keyword { status: KeywordStatus::Stable, arch } }
+        / "~" arch:keyword_name() { Keyword { status: KeywordStatus::Unstable, arch } }
+        / "-" arch:keyword_name() { Keyword { status: KeywordStatus::Disabled, arch } }
+        / "-*" { Keyword { status: KeywordStatus::Disabled, arch: "*" } }
+
     // Categories must not begin with a hyphen, dot, or plus sign.
     pub(super) rule category() -> &'input str
         = s:$(quiet!{
@@ -378,6 +394,10 @@ pub fn use_flag(s: &str) -> crate::Result<&str> {
 
 pub(crate) fn iuse(s: &str) -> crate::Result<(Option<char>, &str)> {
     depspec::iuse(s).map_err(|e| peg_error("invalid IUSE", s, e))
+}
+
+pub(crate) fn keyword(s: &str) -> crate::Result<Keyword<&str>> {
+    depspec::keyword(s).map_err(|e| peg_error("invalid KEYWORD", s, e))
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {

@@ -9,7 +9,7 @@ use crate::dep::spec::{DepSet, DepSetKind};
 use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::utils::str_to_raw;
+use crate::utils::{obj_to_str, str_to_raw};
 
 /// Wrapper for package maintainers.
 #[repr(C)]
@@ -339,7 +339,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_keywords(
     len: *mut usize,
 ) -> *mut *mut c_char {
     let pkg = try_pkg_from_ptr!(p);
-    iter_to_array!(pkg.keywords().iter(), len, str_to_raw)
+    iter_to_array!(pkg.keywords().iter(), len, obj_to_str)
 }
 
 /// Return a package's iuse.

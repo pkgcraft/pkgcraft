@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::{self, Write};
+use std::str::FromStr;
 use std::{fmt, fs};
 
 use itertools::Itertools;
@@ -147,6 +148,66 @@ impl Iuse {
     }
 }
 
+/// Package keyword type.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+pub enum KeywordStatus {
+    Disabled, // -arch
+    Unstable, // ~arch
+    Stable,   // arch
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct Keyword<S> {
+    pub(crate) status: KeywordStatus,
+    pub(crate) arch: S,
+}
+
+impl IntoOwned for Keyword<&str> {
+    type Owned = Keyword<String>;
+
+    fn into_owned(self) -> Self::Owned {
+        Keyword {
+            status: self.status,
+            arch: self.arch.to_string(),
+        }
+    }
+}
+
+impl Keyword<String> {
+    fn new(s: &str) -> crate::Result<Self> {
+        dep::parse::keyword(s).map(|k| k.into_owned())
+    }
+
+    /// Return the architecture for a keyword without its status.
+    pub fn arch(&self) -> &str {
+        &self.arch
+    }
+
+    /// Return the keyword status.
+    pub fn status(&self) -> KeywordStatus {
+        self.status
+    }
+}
+
+impl FromStr for Keyword<String> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        Keyword::new(s)
+    }
+}
+
+impl<S: fmt::Display> fmt::Display for Keyword<S> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let arch = &self.arch;
+        match &self.status {
+            KeywordStatus::Stable => write!(f, "{arch}"),
+            KeywordStatus::Unstable => write!(f, "~{arch}"),
+            KeywordStatus::Disabled => write!(f, "-{arch}"),
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct Metadata {
     description: String,
@@ -163,17 +224,11 @@ pub(crate) struct Metadata {
     src_uri: DepSet<String, Uri>,
     homepage: OrderedSet<String>,
     defined_phases: OrderedSet<String>,
-    keywords: OrderedSet<String>,
+    keywords: OrderedSet<Keyword<String>>,
     iuse: OrderedSet<Iuse>,
     inherit: OrderedSet<String>,
     inherited: OrderedSet<String>,
     chksum: String,
-}
-
-macro_rules! split {
-    ($s:expr) => {
-        $s.split_whitespace().map(String::from)
-    };
 }
 
 impl Metadata {
@@ -194,17 +249,24 @@ impl Metadata {
             REQUIRED_USE => self.required_use = dep::parse::required_use_dep_set(val, eapi)?,
             RESTRICT => self.restrict = dep::parse::restrict_dep_set(val)?,
             SRC_URI => self.src_uri = dep::parse::src_uri_dep_set(val, eapi)?,
-            HOMEPAGE => self.homepage = split!(val).collect(),
-            DEFINED_PHASES => self.defined_phases = split!(val).sorted().collect(),
-            KEYWORDS => self.keywords = split!(val).collect(),
+            HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
+            DEFINED_PHASES => {
+                self.defined_phases = val.split_whitespace().map(String::from).sorted().collect()
+            }
+            KEYWORDS => {
+                self.keywords = val
+                    .split_whitespace()
+                    .map(Keyword::new)
+                    .collect::<crate::Result<OrderedSet<_>>>()?
+            }
             IUSE => {
                 self.iuse = val
                     .split_whitespace()
                     .map(Iuse::new)
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
-            INHERIT => self.inherit = split!(val).collect(),
-            INHERITED => self.inherited = split!(val).collect(),
+            INHERIT => self.inherit = val.split_whitespace().map(String::from).collect(),
+            INHERITED => self.inherited = val.split_whitespace().map(String::from).collect(),
             EAPI => {
                 let sourced: &Eapi = val.try_into()?;
                 if sourced != eapi {
@@ -487,7 +549,7 @@ impl Metadata {
         &self.defined_phases
     }
 
-    pub(crate) fn keywords(&self) -> &OrderedSet<String> {
+    pub(crate) fn keywords(&self) -> &OrderedSet<Keyword<String>> {
         &self.keywords
     }
 
