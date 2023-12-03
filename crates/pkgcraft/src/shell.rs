@@ -547,14 +547,18 @@ impl<'a> BuildData<'a> {
                 Err(Error::Base(format!("EAPI {eapi} functionality overridden: {func}")))
             })?;
 
-        // prepend metadata keys that incrementally accumulate to eclass values
-        if !self.inherited.is_empty() {
-            for key in eapi.incremental_keys() {
-                let deque = self.incrementals.entry(*key).or_default();
-                if let Some(data) = string_vec(key) {
-                    deque.extend_left(data);
-                }
-                // export the incrementally accumulated value
+        // handle incremental metadata
+        for key in eapi.incremental_keys() {
+            let deque = self.incrementals.entry(*key).or_default();
+            let export = !deque.is_empty();
+
+            // prepend metadata keys that incrementally accumulate to any inherited values
+            if let Some(data) = string_vec(key) {
+                deque.extend_left(data);
+            }
+
+            // re-export the incrementally accumulated value if modified by inherits
+            if export {
                 bind(key, deque.iter().join(" "), None, None)?;
             }
         }
