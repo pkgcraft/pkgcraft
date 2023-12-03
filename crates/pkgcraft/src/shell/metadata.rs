@@ -221,13 +221,9 @@ impl Metadata {
                 }
             }
             key => {
-                if let Some(vals) = build.incrementals.get(key) {
-                    if vals.is_empty() {
-                        required!(eapi, key);
-                    } else {
-                        self.deserialize(eapi, key, &vals.iter().join(" "))?;
-                    }
-                } else if let Some(s) = variables::optional(key) {
+                // TODO: create DepSets for incrementals directly from build state
+                if let Some(val) = variables::optional(key) {
+                    let s = val.split_whitespace().join(" ");
                     self.deserialize(eapi, key, &s)?;
                 } else {
                     required!(eapi, key);
