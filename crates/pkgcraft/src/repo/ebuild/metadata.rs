@@ -425,7 +425,13 @@ impl Metadata {
                 Ok(entries) => {
                     let mut vals: IndexSet<_> = entries
                         .filter_map(|e| e.ok())
-                        .map(|e| e.file_name().to_string())
+                        .filter_map(|e| match parse::license_name(e.file_name()) {
+                            Ok(s) => Some(s.to_string()),
+                            Err(e) => {
+                                error!("{}: {e}", self.id);
+                                None
+                            }
+                        })
                         .collect();
                     vals.sort();
                     vals

@@ -355,6 +355,10 @@ pub fn version_with_op(s: &str) -> crate::Result<Version> {
     Ok(version_with_op_str(s)?.into_owned(s))
 }
 
+pub fn license_name(s: &str) -> crate::Result<&str> {
+    depspec::license_name(s, "license name").map_err(|e| peg_error("invalid license name", s, e))
+}
+
 pub fn eclass_name(s: &str) -> crate::Result<&str> {
     depspec::eclass_name(s).map_err(|e| peg_error("invalid eclass name", s, e))
 }
