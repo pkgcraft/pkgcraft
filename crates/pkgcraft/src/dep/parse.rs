@@ -349,7 +349,7 @@ pub(super) fn version_with_op_str(s: &str) -> crate::Result<ParsedVersion> {
 }
 
 pub fn version_with_op(s: &str) -> crate::Result<Version> {
-    Ok(version_with_op_str(s)?.into_owned())
+    version_with_op_str(s).into_owned()
 }
 
 pub fn license_name(s: &str) -> crate::Result<&str> {
@@ -427,8 +427,7 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
-    let dep = dep_str(s, eapi)?;
-    Ok(dep.into_owned())
+    dep_str(s, eapi).into_owned()
 }
 
 pub(super) fn cpn(s: &str) -> crate::Result<Dep> {
