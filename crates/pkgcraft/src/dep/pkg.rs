@@ -101,7 +101,7 @@ impl IntoOwned for ParsedDep<'_> {
             slot: self.slot.into_owned(),
             use_deps: self
                 .use_deps
-                .map(|u| SortedSet::from_iter(u.into_iter().map(|u| u.into_owned()))),
+                .map(|u| u.into_iter().map(|u| u.into_owned()).collect()),
             repo: self.repo.map(|s| s.to_string()),
         }
     }
