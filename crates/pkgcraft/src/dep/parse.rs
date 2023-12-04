@@ -63,15 +63,6 @@ peg::parser!(grammar depspec() for str {
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] /
-                ("-" !(version() ("-" version())? ![_])))*
-        } / expected!("package name"))
-        { s }
-
-    // Package name for dep targets with additional negative lookahead version terminators.
-    rule dep_package() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] /
                 ("-" !(version() ("-" version())? (__ / "*" / ":" / "[" / ![_]))))*
         } / expected!("package name"))
         { s }
@@ -194,9 +185,7 @@ peg::parser!(grammar depspec() for str {
         } / expected!("use dep")
 
     rule use_deps() -> Vec<UseDep<&'input str>>
-        = "[" use_deps:use_dep() ++ "," "]" {
-            use_deps
-        }
+        = "[" use_deps:use_dep() ++ "," "]" { use_deps }
 
     // repo must not begin with a hyphen and must also be a valid package name
     pub(super) rule repo() -> &'input str
@@ -216,36 +205,22 @@ peg::parser!(grammar depspec() for str {
         }
 
     pub(super) rule cpv() -> ParsedCpv<'input>
-        = category:category() "/" package:package() "-" version:version() {
-            ParsedCpv {
-                category,
-                package,
-                version,
-            }
-        }
-
-    rule dep_cpv() -> ParsedCpv<'input>
-        = category:category() "/" package:dep_package() "-" version:version() {
-            ParsedCpv {
-                category,
-                package,
-                version,
-            }
-        }
+        = category:category() "/" package:package() "-" version:version()
+        { ParsedCpv { category, package, version } }
 
     rule dep_pkg() -> ParsedDep<'input>
         = dep:cpn() { dep }
-        / "<=" cpv:dep_cpv() { cpv.with_op(Operator::LessOrEqual) }
-        / "<" cpv:dep_cpv() { cpv.with_op(Operator::Less) }
-        / ">=" cpv:dep_cpv() { cpv.with_op(Operator::GreaterOrEqual) }
-        / ">" cpv:dep_cpv() { cpv.with_op(Operator::Greater) }
-        / "=" cpv:dep_cpv() glob:$("*")? {
+        / "<=" cpv:cpv() { cpv.with_op(Operator::LessOrEqual) }
+        / "<" cpv:cpv() { cpv.with_op(Operator::Less) }
+        / ">=" cpv:cpv() { cpv.with_op(Operator::GreaterOrEqual) }
+        / ">" cpv:cpv() { cpv.with_op(Operator::Greater) }
+        / "=" cpv:cpv() glob:$("*")? {
             if glob.is_none() {
                 cpv.with_op(Operator::Equal)
             } else {
                 cpv.with_op(Operator::EqualGlob)
             }
-        } / "~" cpv:dep_cpv() {?
+        } / "~" cpv:cpv() {?
             if cpv.version.revision.is_some() {
                 Err("~ operator can't be used with a revision")
             } else {
