@@ -457,16 +457,20 @@ impl Metadata {
             .filter(|(k, _)| eapi.metadata_keys().contains(k))
             .collect();
 
+        let mut meta = Self::default();
+
         // verify ebuild hash
-        if let Some(val) = data.get(&Key::CHKSUM) {
-            if *val != pkg.chksum() {
+        if let Some(val) = data.remove(&Key::CHKSUM) {
+            if val != pkg.chksum() {
                 return Err(Error::InvalidValue("mismatched ebuild checksum".to_string()));
+            }
+
+            if deserialize {
+                meta.chksum = val.to_string();
             }
         } else {
             return Err(Error::InvalidValue("missing ebuild checksum".to_string()));
         }
-
-        let mut meta = Self::default();
 
         // verify eclass hashes
         if let Some(val) = data.remove(&Key::INHERITED) {
