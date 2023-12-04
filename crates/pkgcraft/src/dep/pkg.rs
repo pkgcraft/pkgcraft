@@ -427,7 +427,7 @@ impl Dep {
 
     /// Create a new unversioned Dep from a given string.
     pub fn new_cpn(s: &str) -> crate::Result<Self> {
-        parse::cpn(s)
+        parse::cpn(s).into_owned()
     }
 
     /// Potentially create a new Dep, removing the given fields.

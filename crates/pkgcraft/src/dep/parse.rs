@@ -450,9 +450,8 @@ pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
     dep_str(s, eapi).into_owned()
 }
 
-pub(super) fn cpn(s: &str) -> crate::Result<Dep> {
-    let dep = depspec::cpn(s).map_err(|e| peg_error("invalid unversioned dep", s, e))?;
-    Ok(dep.into_owned())
+pub(super) fn cpn(s: &str) -> crate::Result<ParsedDep> {
+    depspec::cpn(s).map_err(|e| peg_error("invalid unversioned dep", s, e))
 }
 
 pub fn license_dep_set(s: &str) -> crate::Result<DepSet<String, String>> {
