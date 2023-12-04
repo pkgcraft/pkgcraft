@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, Display, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::cmp_not_equal;
 use crate::traits::IntoOwned;
@@ -276,6 +276,7 @@ impl IntoOwned for ParsedVersion<'_> {
     AsRefStr,
     Display,
     EnumString,
+    EnumIter,
     Debug,
     Serialize,
     Deserialize,
@@ -331,13 +332,21 @@ pub struct Version {
 impl Version {
     /// Verify a string represents a valid version.
     pub fn valid(s: &str) -> crate::Result<()> {
-        parse::version_str(s).or_else(|_| parse::version_with_op_str(s))?;
+        if s.starts_with(|c| Operator::iter().any(|op| op.as_ref().starts_with(c))) {
+            parse::version_with_op_str(s)?;
+        } else {
+            parse::version_str(s)?;
+        }
         Ok(())
     }
 
     /// Create a new Version from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
-        parse::version(s).or_else(|_| parse::version_with_op(s))
+        if s.starts_with(|c| Operator::iter().any(|op| op.as_ref().starts_with(c))) {
+            parse::version_with_op(s)
+        } else {
+            parse::version(s)
+        }
     }
 
     /// Return a version's operator, if one exists.
