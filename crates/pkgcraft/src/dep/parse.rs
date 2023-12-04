@@ -118,7 +118,6 @@ peg::parser!(grammar depspec() for str {
 
     rule revision() -> ParsedNumber<'input>
         = "-r" rev:number() { rev }
-        / expected!("revision")
 
     // Slot names must not begin with a hyphen, dot, or plus sign.
     pub(super) rule slot_name() -> &'input str
