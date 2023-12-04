@@ -72,7 +72,7 @@ peg::parser!(grammar depspec() for str {
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] /
-                ("-" !(version() ("-" version())? ("*" / ":" / "[" / ![_]))))*
+                ("-" !(version() ("-" version())? (__ / "*" / ":" / "[" / ![_]))))*
         } / expected!("package name"))
         { s }
 
