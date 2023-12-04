@@ -328,7 +328,7 @@ impl Operator {
             Less => NonOpVersion(rhs) < NonOpVersion(lhs),
             LessOrEqual => NonOpVersion(rhs) <= NonOpVersion(lhs),
             Equal => NonOpVersion(rhs) == NonOpVersion(lhs),
-            EqualGlob => NonOpVersion(rhs).starts_with(&NonOpVersion(lhs)),
+            EqualGlob => rhs.starts_with(lhs),
             Approximate => NonRevisionVersion(rhs) == NonRevisionVersion(lhs),
             GreaterOrEqual => NonOpVersion(rhs) >= NonOpVersion(lhs),
             Greater => NonOpVersion(rhs) > NonOpVersion(lhs),
@@ -380,6 +380,87 @@ impl Version {
     pub fn base(&self) -> String {
         NonRevisionVersion(self).to_string()
     }
+
+    /// Determine if a Version starts with another Version, disregarding the operator.
+    fn starts_with(&self, other: &Self) -> bool {
+        // flag denoting the lhs has more components than the rhs
+        let mut unmatched = false;
+
+        // compare components
+        let mut v1_numbers = self.numbers.iter();
+        let mut v2_numbers = other.numbers.iter();
+        loop {
+            match (v1_numbers.next(), v2_numbers.next()) {
+                (Some(n1), Some(n2)) => {
+                    if !n1.raw.starts_with(&n2.raw) {
+                        return false;
+                    }
+                }
+                (None, Some(_)) => return false,
+                (Some(_), None) => {
+                    unmatched = true;
+                    break;
+                }
+                (None, None) => break,
+            }
+        }
+
+        // compare letters
+        match (&self.letter, &other.letter) {
+            (_, Some(_)) if unmatched => return false,
+            (Some(c1), Some(c2)) => {
+                if c1 != c2 {
+                    return false;
+                }
+            }
+            (None, Some(_)) => return false,
+            (Some(_), None) => unmatched = true,
+            (None, None) => (),
+        }
+
+        // compare suffixes
+        let mut v1_suffixes = self.suffixes.iter();
+        let mut v2_suffixes = other.suffixes.iter();
+        loop {
+            match (v1_suffixes.next(), v2_suffixes.next()) {
+                (_, Some(_)) if unmatched => return false,
+                (Some(s1), Some(s2)) => {
+                    if s1.kind != s2.kind {
+                        return false;
+                    }
+
+                    // compare suffix versions
+                    match (&s1.version, &s2.version) {
+                        (_, Some(_)) if unmatched => return false,
+                        (Some(v1), Some(v2)) => {
+                            if !v1.raw.starts_with(&v2.raw) {
+                                return false;
+                            }
+                        }
+                        (None, Some(_)) => return false,
+                        (Some(_), None) => {
+                            unmatched = true;
+                            break;
+                        }
+                        (None, None) => (),
+                    }
+                }
+                (None, Some(_)) => return false,
+                (Some(_), None) => {
+                    unmatched = true;
+                    break;
+                }
+                (None, None) => break,
+            }
+        }
+
+        // compare revisions
+        match (self.revision().map(|r| r.as_ref()), other.revision().map(|r| r.as_ref())) {
+            (Some(r1), Some(r2)) if unmatched || !r1.starts_with(r2) => false,
+            (None, Some(_)) => false,
+            _ => true,
+        }
+    }
 }
 
 // unbounded operators
@@ -404,12 +485,12 @@ macro_rules! ranged {
             // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
             // exist and glob matches ranged version
             (Less | LessOrEqual, EqualGlob) => match $other.revision().map(|r| r.as_ref()) {
-                None | Some("0") => NonOpVersion($ranged).starts_with(&NonOpVersion($other)),
+                None | Some("0") => $ranged.starts_with($other),
                 _ => false,
             },
 
             // remaining '=*' -- intersects if glob matches ranged version
-            (_, EqualGlob) => NonOpVersion($ranged).starts_with(&NonOpVersion($other)),
+            (_, EqualGlob) => $ranged.starts_with($other),
 
             // remaining variants should never occur
             (_, op) => unreachable!("{op:?} operator should be previously handled"),
@@ -444,12 +525,8 @@ impl Intersects<Version> for Version {
             }
 
             // '=*' and '~' -- intersects if glob matches unrevisioned version
-            (Some(EqualGlob), Some(Approximate)) => {
-                NonOpVersion(other).starts_with(&NonOpVersion(self))
-            }
-            (Some(Approximate), Some(EqualGlob)) => {
-                NonOpVersion(self).starts_with(&NonOpVersion(other))
-            }
+            (Some(EqualGlob), Some(Approximate)) => other.starts_with(self),
+            (Some(Approximate), Some(EqualGlob)) => self.starts_with(other),
 
             // remaining cases must have one op that is unbounded
             (Some(lhs @ unbounded!()), Some(rhs)) => ranged!(self, lhs, other, rhs),
@@ -614,88 +691,6 @@ impl fmt::Display for NonRevisionVersion<'_> {
 
 /// Version wrapper that ignores operators during comparisons.
 struct NonOpVersion<'a>(&'a Version);
-
-impl NonOpVersion<'_> {
-    fn starts_with(&self, other: &Self) -> bool {
-        // flag denoting the lhs has more components than the rhs
-        let mut unmatched = false;
-
-        // compare components
-        let mut v1_numbers = self.0.numbers.iter();
-        let mut v2_numbers = other.0.numbers.iter();
-        loop {
-            match (v1_numbers.next(), v2_numbers.next()) {
-                (Some(n1), Some(n2)) => {
-                    if !n1.raw.starts_with(&n2.raw) {
-                        return false;
-                    }
-                }
-                (None, Some(_)) => return false,
-                (Some(_), None) => {
-                    unmatched = true;
-                    break;
-                }
-                (None, None) => break,
-            }
-        }
-
-        // compare letters
-        match (&self.0.letter, &other.0.letter) {
-            (_, Some(_)) if unmatched => return false,
-            (Some(c1), Some(c2)) => {
-                if c1 != c2 {
-                    return false;
-                }
-            }
-            (None, Some(_)) => return false,
-            (Some(_), None) => unmatched = true,
-            (None, None) => (),
-        }
-
-        // compare suffixes
-        let mut v1_suffixes = self.0.suffixes.iter();
-        let mut v2_suffixes = other.0.suffixes.iter();
-        loop {
-            match (v1_suffixes.next(), v2_suffixes.next()) {
-                (_, Some(_)) if unmatched => return false,
-                (Some(s1), Some(s2)) => {
-                    if s1.kind != s2.kind {
-                        return false;
-                    }
-
-                    // compare suffix versions
-                    match (&s1.version, &s2.version) {
-                        (_, Some(_)) if unmatched => return false,
-                        (Some(v1), Some(v2)) => {
-                            if !v1.raw.starts_with(&v2.raw) {
-                                return false;
-                            }
-                        }
-                        (None, Some(_)) => return false,
-                        (Some(_), None) => {
-                            unmatched = true;
-                            break;
-                        }
-                        (None, None) => (),
-                    }
-                }
-                (None, Some(_)) => return false,
-                (Some(_), None) => {
-                    unmatched = true;
-                    break;
-                }
-                (None, None) => break,
-            }
-        }
-
-        // compare revisions
-        match (self.0.revision().map(|r| r.as_ref()), other.0.revision().map(|r| r.as_ref())) {
-            (Some(r1), Some(r2)) if unmatched || !r1.starts_with(r2) => false,
-            (None, Some(_)) => false,
-            _ => true,
-        }
-    }
-}
 
 impl PartialEq for NonOpVersion<'_> {
     fn eq(&self, other: &Self) -> bool {
