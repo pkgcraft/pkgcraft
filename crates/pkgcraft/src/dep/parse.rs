@@ -337,13 +337,7 @@ peg::parser!(grammar depspec() for str {
         = use_cond(<dependencies_dep_spec(eapi)>)
             / any_of(<dependencies_dep_spec(eapi)>)
             / all_of(<dependencies_dep_spec(eapi)>)
-            / s:$(quiet!{!")" _+}) {?
-                let dep = match eapi.dep(s) {
-                    Ok(x) => x,
-                    Err(e) => return Err("failed parsing dep"),
-                };
-                Ok(DepSpec::Enabled(dep))
-            }
+            / dep:dep(eapi) { DepSpec::Enabled(dep.into_owned()) }
 
     pub(super) rule license_dep_set() -> DepSet<String, String>
         = v:license_dep_spec() ** __ { DepSet::from_iter(v) }
