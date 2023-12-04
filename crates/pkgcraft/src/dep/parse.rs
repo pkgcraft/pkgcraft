@@ -2,7 +2,7 @@ use cached::{proc_macro::cached, SizedCache};
 
 use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::ParsedDep;
-use crate::dep::version::{ParsedVersion, Suffix, SuffixKind};
+use crate::dep::version::{ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
 use crate::dep::{
     Blocker, Cpv, Dep, DepSet, DepSpec, Slot, SlotDep, SlotOperator, Uri, UseDep, UseDepDefault,
     UseDepKind, Version,
@@ -10,6 +10,7 @@ use crate::dep::{
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
 use crate::shell::metadata::{Iuse, Keyword, KeywordStatus};
+use crate::traits::IntoOwned;
 use crate::types::Ordered;
 use crate::Error;
 
@@ -67,11 +68,11 @@ peg::parser!(grammar depspec() for str {
         } / expected!("package name"))
         { s }
 
-    rule number() -> u64
-        = s:$(['0'..='9']+) {? s.parse().map_err(|_| "integer overflow") }
-
-    rule str_number() -> (&'input str, u64)
-        = s:$(['0'..='9']+) {? Ok((s, s.parse().map_err(|_| "integer overflow")?)) }
+    rule number() -> ParsedNumber<'input>
+        = s:$(['0'..='9']+) {?
+            let value = s.parse().map_err(|_| "integer overflow")?;
+            Ok(ParsedNumber { raw: s, value })
+        }
 
     rule suffix() -> SuffixKind
         = "alpha" { SuffixKind::Alpha }
@@ -80,19 +81,15 @@ peg::parser!(grammar depspec() for str {
         / "rc" { SuffixKind::Rc }
         / "p" { SuffixKind::P }
 
-    rule version_suffix() -> Suffix
-        = "_" kind:suffix() version:number()? { Suffix { kind, version } }
+    rule version_suffix() -> ParsedSuffix<'input>
+        = "_" kind:suffix() version:number()? { ParsedSuffix { kind, version } }
 
     // TODO: figure out how to return string slice instead of positions
     // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
     pub(super) rule version() -> ParsedVersion<'input>
-        = start:position!() numbers:str_number() ++ "." letter:['a'..='z']?
-                suffixes:version_suffix()*
-                end_base:position!() revision:revision()? end:position!() {
+        = numbers:number() ++ "." letter:['a'..='z']?
+                suffixes:version_suffix()* revision:revision()? {
             ParsedVersion {
-                start,
-                end,
-                base_end: end_base-start,
                 op: None,
                 numbers,
                 letter,
@@ -106,8 +103,8 @@ peg::parser!(grammar depspec() for str {
             v.with_op(op, glob)
         }
 
-    rule revision() -> (&'input str, u64)
-        = "-r" rev:str_number() { rev }
+    rule revision() -> ParsedNumber<'input>
+        = "-r" rev:number() { rev }
         / expected!("revision")
 
     // Slot names must not begin with a hyphen, dot, or plus sign.
@@ -202,7 +199,6 @@ peg::parser!(grammar depspec() for str {
                 category,
                 package,
                 version,
-                version_str: "",
             }
         }
 
@@ -345,7 +341,7 @@ pub(super) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
     convert = r#"{ s.to_string() }"#
 )]
 pub fn version(s: &str) -> crate::Result<Version> {
-    Ok(version_str(s)?.into_owned(s))
+    version_str(s).into_owned()
 }
 
 pub(super) fn version_with_op_str(s: &str) -> crate::Result<ParsedVersion> {
@@ -353,7 +349,7 @@ pub(super) fn version_with_op_str(s: &str) -> crate::Result<ParsedVersion> {
 }
 
 pub fn version_with_op(s: &str) -> crate::Result<Version> {
-    Ok(version_with_op_str(s)?.into_owned(s))
+    Ok(version_with_op_str(s)?.into_owned())
 }
 
 pub fn license_name(s: &str) -> crate::Result<&str> {
@@ -397,9 +393,7 @@ pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedCpv> {
 }
 
 pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
-    let mut cpv = cpv_str(s)?;
-    cpv.version_str = s;
-    Ok(cpv.into_owned())
+    cpv_str(s).into_owned()
 }
 
 pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedDep<'a>> {
@@ -415,7 +409,6 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Pars
                     .with_op(op, glob)
                     .map_err(|e| Error::InvalidValue(format!("invalid dep: {s}: {e}")))?,
             );
-            dep.version_str = Some(cpv_s);
         }
         _ => {
             let d = depspec::cpn(dep_s)

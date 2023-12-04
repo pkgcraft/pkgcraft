@@ -5,6 +5,7 @@ use std::str::FromStr;
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
+use crate::traits::IntoOwned;
 use crate::Error;
 
 use super::version::{ParsedVersion, Revision, Version};
@@ -76,15 +77,16 @@ pub(crate) struct ParsedCpv<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
     pub(crate) version: ParsedVersion<'a>,
-    pub(crate) version_str: &'a str,
 }
 
-impl ParsedCpv<'_> {
-    pub(crate) fn into_owned(self) -> Cpv {
+impl IntoOwned for ParsedCpv<'_> {
+    type Owned = Cpv;
+
+    fn into_owned(self) -> Self::Owned {
         Cpv {
             category: self.category.to_string(),
             package: self.package.to_string(),
-            version: self.version.into_owned(self.version_str),
+            version: self.version.into_owned(),
         }
     }
 }
@@ -151,7 +153,7 @@ impl Cpv {
 
     /// Return the version and revision.
     pub fn pvr(&self) -> String {
-        self.version.as_str().to_string()
+        self.version.to_string()
     }
 
     /// Return the category and package.
@@ -185,7 +187,7 @@ impl TryFrom<(&str, &str, &str)> for Cpv {
 
 impl fmt::Display for Cpv {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}-{}", self.category, self.package, self.version.as_str())
+        write!(f, "{}/{}-{}", self.category, self.package, self.version)
     }
 }
 

@@ -67,7 +67,6 @@ pub(crate) struct ParsedDep<'a> {
     pub(crate) package: &'a str,
     pub(crate) blocker: Option<Blocker>,
     pub(crate) version: Option<ParsedVersion<'a>>,
-    pub(crate) version_str: Option<&'a str>,
     pub(crate) slot: Option<SlotDep<&'a str>>,
     pub(crate) use_deps: Option<Vec<UseDep<&'a str>>>,
     pub(crate) repo: Option<&'a str>,
@@ -75,16 +74,11 @@ pub(crate) struct ParsedDep<'a> {
 
 impl ParsedDep<'_> {
     pub(crate) fn into_owned(self) -> Dep {
-        let version = match (self.version, self.version_str) {
-            (Some(v), Some(vs)) => Some(v.into_owned(vs)),
-            _ => None,
-        };
-
         Dep {
             category: self.category.to_string(),
             package: self.package.to_string(),
             blocker: self.blocker,
-            version,
+            version: self.version.into_owned(),
             slot: self.slot.into_owned(),
             use_deps: self
                 .use_deps
@@ -620,9 +614,7 @@ impl Dep {
     /// Return the package dependency's version and revision.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "1-r2".
     pub fn pvr(&self) -> String {
-        self.version()
-            .map(|v| v.as_str().to_string())
-            .unwrap_or_default()
+        self.version().map(|v| v.without_op()).unwrap_or_default()
     }
 
     /// Return the package dependency's category and package.
@@ -635,7 +627,7 @@ impl Dep {
     /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
     pub fn cpv(&self) -> String {
         if let Some(ver) = &self.version {
-            format!("{}/{}-{}", self.category, self.package, ver.as_str())
+            format!("{}/{}-{}", self.category, self.package, ver.without_op())
         } else {
             self.cpn()
         }

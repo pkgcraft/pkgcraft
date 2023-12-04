@@ -162,7 +162,6 @@ peg::parser!(grammar restrict() for str {
         = attr:$((
                 "category"
                 / "package"
-                / "version"
             )) op:string_ops() s:quoted_string()
         {?
             use DepRestrict::*;
@@ -170,7 +169,6 @@ peg::parser!(grammar restrict() for str {
             match attr {
                 "category" => Ok(Category(r).into()),
                 "package" => Ok(Package(r).into()),
-                "version" => Ok(VersionStr(r).into()),
                 _ => panic!("unknown dep attribute: {attr}"),
             }
         }

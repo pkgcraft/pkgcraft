@@ -1,4 +1,4 @@
-use crate::dep::version::{ParsedVersion, Suffix, SuffixKind};
+use crate::dep::version::{ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
 use crate::dep::{Blocker, UseDep, UseDepDefault, UseDepKind};
 use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -25,11 +25,11 @@ peg::parser!(grammar restrict() for str {
             (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '*'] / ("-" !version()))*})
         { s }
 
-    rule number() -> u64
-        = s:$(['0'..='9']+) {? s.parse().map_err(|_| "integer overflow") }
-
-    rule str_number() -> (&'input str, u64)
-        = s:$(['0'..='9']+) {? Ok((s, s.parse().map_err(|_| "integer overflow")?)) }
+    rule number() -> ParsedNumber<'input>
+        = s:$(['0'..='9']+) {?
+            let value = s.parse().map_err(|_| "integer overflow")?;
+            Ok(ParsedNumber { raw: s, value })
+        }
 
     rule suffix() -> SuffixKind
         = "alpha" { SuffixKind::Alpha }
@@ -38,19 +38,15 @@ peg::parser!(grammar restrict() for str {
         / "rc" { SuffixKind::Rc }
         / "p" { SuffixKind::P }
 
-    rule version_suffix() -> Suffix
-        = "_" kind:suffix() version:number()? { Suffix { kind, version } }
+    rule version_suffix() -> ParsedSuffix<'input>
+        = "_" kind:suffix() version:number()? { ParsedSuffix { kind, version } }
 
     // TODO: figure out how to return string slice instead of positions
     // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
     pub(super) rule version() -> ParsedVersion<'input>
-        = start:position!() numbers:str_number() ++ "." letter:['a'..='z']?
-                suffixes:version_suffix()*
-                end_base:position!() revision:revision()? end:position!() {
+        = numbers:number() ++ "." letter:['a'..='z']?
+                suffixes:version_suffix()* revision:revision()? {
             ParsedVersion {
-                start,
-                end,
-                base_end: end_base-start,
                 op: None,
                 numbers,
                 letter,
@@ -59,8 +55,8 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule revision() -> (&'input str, u64)
-        = "-r" rev:str_number() { rev }
+    rule revision() -> ParsedNumber<'input>
+        = "-r" rev:number() { rev }
         / expected!("revision")
 
     rule cp_restricts() -> Vec<DepRestrict>
@@ -233,7 +229,7 @@ pub(crate) fn restricts(s: &str) -> crate::Result<Vec<DepRestrict>> {
         restrict::dep(s).map_err(|e| peg_error("invalid dep restriction", s, e))?;
 
     if let Some(v) = ver {
-        restricts.push(DepRestrict::Version(Some(v.into_owned(s))));
+        restricts.push(DepRestrict::Version(Some(v.into_owned())));
     }
 
     Ok(restricts)

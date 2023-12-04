@@ -10,7 +10,6 @@ pub enum Restrict {
     Package(StrRestrict),
     Blocker(Option<Blocker>),
     Version(Option<Version>),
-    VersionStr(StrRestrict),
     Slot(Option<StrRestrict>),
     Subslot(Option<StrRestrict>),
     UseDeps(Option<SortedSet<UseDep<String>>>),
@@ -54,7 +53,6 @@ impl Restriction<&Cpv> for Restrict {
             Category(r) => r.matches(cpv.category()),
             Package(r) => r.matches(cpv.package()),
             Version(Some(v)) => v.intersects(cpv.version()),
-            VersionStr(r) => r.matches(cpv.version().as_str()),
             Blocker(None) => true,
             Slot(None) => true,
             Subslot(None) => true,
@@ -81,7 +79,6 @@ impl Restriction<&Dep> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            VersionStr(r) => r.matches(dep.version().map_or_else(|| "", |v| v.as_str())),
             Slot(r) => match (r, dep.slot()) {
                 (Some(r), Some(slot)) => r.matches(slot),
                 (None, None) => true,

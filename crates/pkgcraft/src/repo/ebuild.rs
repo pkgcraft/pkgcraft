@@ -902,7 +902,7 @@ impl<'a> IterCpv<'a> {
                         pkg_restricts.push(r.clone());
                         if let Some(v) = x {
                             if v.op().is_none() || v.op() == Some(Operator::Equal) {
-                                ver = Some(v.as_str().to_string());
+                                ver = Some(v.without_op());
                             }
                         }
                     }

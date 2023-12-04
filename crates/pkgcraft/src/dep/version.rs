@@ -1,52 +1,183 @@
 use std::cmp::Ordering;
+use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
+use std::str;
 use std::str::FromStr;
-use std::{fmt, str};
 
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumString};
 
 use crate::macros::cmp_not_equal;
+use crate::traits::IntoOwned;
 use crate::Error;
 
 use super::{parse, Intersects};
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) enum SuffixKind {
-    Alpha,
-    Beta,
-    Pre,
-    Rc,
-    P,
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct ParsedNumber<'a> {
+    pub(crate) raw: &'a str,
+    pub(crate) value: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct Suffix {
-    pub(crate) kind: SuffixKind,
-    pub(crate) version: Option<u64>,
+impl IntoOwned for ParsedNumber<'_> {
+    type Owned = Number;
+
+    fn into_owned(self) -> Self::Owned {
+        Number {
+            raw: self.raw.to_string(),
+            value: self.value,
+        }
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
-pub struct Revision {
-    value: Option<String>,
-    int: u64,
+pub(crate) struct Number {
+    raw: String,
+    value: u64,
 }
+
+impl AsRef<str> for Number {
+    fn as_ref(&self) -> &str {
+        &self.raw
+    }
+}
+
+impl PartialEq for Number {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl Eq for Number {}
+
+impl PartialEq<u64> for Number {
+    fn eq(&self, other: &u64) -> bool {
+        &self.value == other
+    }
+}
+
+impl PartialEq<str> for Number {
+    fn eq(&self, other: &str) -> bool {
+        self.raw == other
+    }
+}
+
+impl PartialEq<&str> for Number {
+    fn eq(&self, other: &&str) -> bool {
+        self.raw == *other
+    }
+}
+
+impl PartialEq<Number> for u64 {
+    fn eq(&self, other: &Number) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<Number> for str {
+    fn eq(&self, other: &Number) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<Number> for &str {
+    fn eq(&self, other: &Number) -> bool {
+        other == *self
+    }
+}
+
+impl Hash for Number {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
+    }
+}
+
+impl Ord for Number {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.value.cmp(&other.value)
+    }
+}
+
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl FromStr for Number {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let value = s
+            .parse()
+            .map_err(|e| Error::Overflow(format!("invalid number: {e}: {s}")))?;
+        Ok(Self { raw: s.to_string(), value })
+    }
+}
+
+impl fmt::Display for Number {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_ref())
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct Revision(Number);
 
 impl Revision {
     /// Create a new Revision from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
-        let rev = if s.is_empty() {
-            Self::default()
+        if s.is_empty() {
+            Ok(Self::default())
         } else {
-            Self {
-                value: Some(s.to_string()),
-                int: s
-                    .parse()
-                    .map_err(|e| Error::Overflow(format!("invalid revision: {e}: {s}")))?,
-            }
-        };
+            let value = s
+                .parse()
+                .map_err(|e| Error::Overflow(format!("invalid revision: {e}: {s}")))?;
+            Ok(Self(Number { raw: s.to_string(), value }))
+        }
+    }
+}
 
-        Ok(rev)
+impl AsRef<str> for Revision {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+impl PartialEq<u64> for Revision {
+    fn eq(&self, other: &u64) -> bool {
+        &self.0.value == other
+    }
+}
+
+impl PartialEq<str> for Revision {
+    fn eq(&self, other: &str) -> bool {
+        self.0.raw == other
+    }
+}
+
+impl PartialEq<&str> for Revision {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.raw == *other
+    }
+}
+
+impl PartialEq<Revision> for u64 {
+    fn eq(&self, other: &Revision) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<Revision> for str {
+    fn eq(&self, other: &Revision) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<Revision> for &str {
+    fn eq(&self, other: &Revision) -> bool {
+        other == *self
     }
 }
 
@@ -58,81 +189,64 @@ impl FromStr for Revision {
     }
 }
 
-impl AsRef<str> for Revision {
-    fn as_ref(&self) -> &str {
-        self.value.as_deref().unwrap_or_default()
+impl fmt::Display for Revision {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
-impl PartialEq for Revision {
-    fn eq(&self, other: &Self) -> bool {
-        self.int == other.int
-    }
+#[derive(
+    Debug, Display, Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
+#[strum(serialize_all = "snake_case")]
+pub(crate) enum SuffixKind {
+    Alpha,
+    Beta,
+    Pre,
+    Rc,
+    P,
 }
 
-impl PartialEq<u64> for Revision {
-    fn eq(&self, other: &u64) -> bool {
-        &self.int == other
-    }
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct ParsedSuffix<'a> {
+    pub(crate) kind: SuffixKind,
+    pub(crate) version: Option<ParsedNumber<'a>>,
 }
 
-impl PartialEq<&str> for Revision {
-    fn eq(&self, other: &&str) -> bool {
-        match &self.value {
-            Some(s) => s == other,
-            None => other.is_empty(),
+impl IntoOwned for ParsedSuffix<'_> {
+    type Owned = Suffix;
+
+    fn into_owned(self) -> Self::Owned {
+        Suffix {
+            kind: self.kind,
+            version: self.version.into_owned(),
         }
     }
 }
 
-impl PartialEq<Revision> for u64 {
-    fn eq(&self, other: &Revision) -> bool {
-        other == self
-    }
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub(crate) struct Suffix {
+    pub(crate) kind: SuffixKind,
+    pub(crate) version: Option<Number>,
 }
 
-impl PartialEq<Revision> for &str {
-    fn eq(&self, other: &Revision) -> bool {
-        other == self
-    }
-}
-
-impl Eq for Revision {}
-
-impl Hash for Revision {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.int.hash(state);
-    }
-}
-
-impl Ord for Revision {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.int.cmp(&other.int)
-    }
-}
-
-impl PartialOrd for Revision {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl fmt::Display for Revision {
+impl fmt::Display for Suffix {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_ref())
+        write!(f, "{}", self.kind)?;
+        if let Some(ver) = self.version.as_ref() {
+            write!(f, "{ver}")?;
+        }
+        Ok(())
     }
 }
 
 #[derive(Debug)]
 pub(crate) struct ParsedVersion<'a> {
-    pub(crate) start: usize,
-    pub(crate) end: usize,
-    pub(crate) base_end: usize,
     pub(crate) op: Option<Operator>,
-    pub(crate) numbers: Vec<(&'a str, u64)>,
+    pub(crate) numbers: Vec<ParsedNumber<'a>>,
     pub(crate) letter: Option<char>,
-    pub(crate) suffixes: Vec<Suffix>,
-    pub(crate) revision: Option<(&'a str, u64)>,
+    pub(crate) suffixes: Vec<ParsedSuffix<'a>>,
+    pub(crate) revision: Option<ParsedNumber<'a>>,
 }
 
 impl<'a> ParsedVersion<'a> {
@@ -143,7 +257,7 @@ impl<'a> ParsedVersion<'a> {
         glob: Option<&'a str>,
     ) -> Result<Self, &'static str> {
         use Operator::*;
-        let op = match (op, glob, self.revision) {
+        let op = match (op, glob, &self.revision) {
             ("<", None, _) => Ok(Less),
             ("<=", None, _) => Ok(LessOrEqual),
             ("=", None, _) => Ok(Equal),
@@ -158,30 +272,18 @@ impl<'a> ParsedVersion<'a> {
         self.op = Some(op);
         Ok(self)
     }
+}
 
-    pub(crate) fn into_owned(self, input: &str) -> Version {
-        let numbers = self
-            .numbers
-            .into_iter()
-            .map(|(s, n)| (s.to_string(), n))
-            .collect();
+impl IntoOwned for ParsedVersion<'_> {
+    type Owned = Version;
 
-        let revision = self
-            .revision
-            .map(|(s, n)| Revision {
-                value: Some(s.to_string()),
-                int: n,
-            })
-            .unwrap_or_default();
-
+    fn into_owned(self) -> Self::Owned {
         Version {
-            full: input[self.start..self.end].to_string(),
-            base_end: self.base_end,
             op: self.op,
-            numbers,
+            numbers: self.numbers.into_iter().map(|x| x.into_owned()).collect(),
             letter: self.letter,
-            suffixes: self.suffixes,
-            revision,
+            suffixes: self.suffixes.into_iter().map(|x| x.into_owned()).collect(),
+            revision: Revision(self.revision.into_owned().unwrap_or_default()),
         }
     }
 }
@@ -226,7 +328,7 @@ impl Operator {
             Less => NonOpVersion(rhs) < NonOpVersion(lhs),
             LessOrEqual => NonOpVersion(rhs) <= NonOpVersion(lhs),
             Equal => NonOpVersion(rhs) == NonOpVersion(lhs),
-            EqualGlob => rhs.as_str().starts_with(lhs.as_str()),
+            EqualGlob => NonOpVersion(rhs).starts_with(&NonOpVersion(lhs)),
             Approximate => NonRevisionVersion(rhs) == NonRevisionVersion(lhs),
             GreaterOrEqual => NonOpVersion(rhs) >= NonOpVersion(lhs),
             Greater => NonOpVersion(rhs) > NonOpVersion(lhs),
@@ -236,10 +338,8 @@ impl Operator {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Version {
-    full: String,
-    base_end: usize,
     pub(super) op: Option<Operator>,
-    numbers: Vec<(String, u64)>,
+    numbers: Vec<Number>,
     letter: Option<char>,
     suffixes: Vec<Suffix>,
     revision: Revision,
@@ -257,24 +357,28 @@ impl Version {
         parse::version(s).or_else(|_| parse::version_with_op(s))
     }
 
-    /// Return a version's string value without operator.
-    pub fn as_str(&self) -> &str {
-        &self.full
-    }
-
     /// Return a version's operator, if one exists.
     pub fn op(&self) -> Option<Operator> {
         self.op
     }
 
-    /// Return a version's base -- all components except the revision.
-    pub fn base(&self) -> &str {
-        &self.full[0..self.base_end]
-    }
-
     /// Return a version's revision.
     pub fn revision(&self) -> Option<&Revision> {
-        self.revision.value.as_ref().map(|_| &self.revision)
+        if self.revision.0.raw.is_empty() {
+            None
+        } else {
+            Some(&self.revision)
+        }
+    }
+
+    /// Return a version's string value without operator.
+    pub fn without_op(&self) -> String {
+        NonOpVersion(self).to_string()
+    }
+
+    /// Return a version's string value without operator or revision.
+    pub fn base(&self) -> String {
+        NonRevisionVersion(self).to_string()
     }
 }
 
@@ -300,12 +404,12 @@ macro_rules! ranged {
             // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
             // exist and glob matches ranged version
             (Less | LessOrEqual, EqualGlob) => match $other.revision().map(|r| r.as_ref()) {
-                None | Some("0") => $ranged.as_str().starts_with($other.as_str()),
+                None | Some("0") => NonOpVersion($ranged).starts_with(&NonOpVersion($other)),
                 _ => false,
             },
 
             // remaining '=*' -- intersects if glob matches ranged version
-            (_, EqualGlob) => $ranged.as_str().starts_with($other.as_str()),
+            (_, EqualGlob) => NonOpVersion($ranged).starts_with(&NonOpVersion($other)),
 
             // remaining variants should never occur
             (_, op) => unreachable!("{op:?} operator should be previously handled"),
@@ -340,8 +444,12 @@ impl Intersects<Version> for Version {
             }
 
             // '=*' and '~' -- intersects if glob matches unrevisioned version
-            (Some(EqualGlob), Some(Approximate)) => other.as_str().starts_with(self.base()),
-            (Some(Approximate), Some(EqualGlob)) => self.as_str().starts_with(other.base()),
+            (Some(EqualGlob), Some(Approximate)) => {
+                NonOpVersion(other).starts_with(&NonOpVersion(self))
+            }
+            (Some(Approximate), Some(EqualGlob)) => {
+                NonOpVersion(self).starts_with(&NonOpVersion(other))
+            }
 
             // remaining cases must have one op that is unbounded
             (Some(lhs @ unbounded!()), Some(rhs)) => ranged!(self, lhs, other, rhs),
@@ -352,20 +460,44 @@ impl Intersects<Version> for Version {
 
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Operator::*;
+        ver_str(f, self, true, true)
+    }
+}
 
-        let s = self.as_str();
-        match self.op {
-            None => write!(f, "{}", s),
-            Some(Less) => write!(f, "<{}", s),
-            Some(LessOrEqual) => write!(f, "<={}", s),
-            Some(Equal) => write!(f, "={}", s),
-            Some(EqualGlob) => write!(f, "={}*", s),
-            Some(Approximate) => write!(f, "~{}", s),
-            Some(GreaterOrEqual) => write!(f, ">={}", s),
-            Some(Greater) => write!(f, ">{}", s),
+fn ver_str(f: &mut fmt::Formatter, v: &Version, rev: bool, op: bool) -> fmt::Result {
+    let mut s = String::new();
+
+    write!(s, "{}", v.numbers.iter().join("."))?;
+    if let Some(c) = &v.letter {
+        write!(s, "{c}")?;
+    }
+
+    for suffix in &v.suffixes {
+        write!(s, "_{suffix}")?;
+    }
+
+    if rev {
+        if let Some(rev) = v.revision() {
+            write!(s, "-r{rev}")?;
         }
     }
+
+    if op {
+        match &v.op {
+            None => write!(f, "{s}")?,
+            Some(Operator::Less) => write!(f, "<{s}")?,
+            Some(Operator::LessOrEqual) => write!(f, "<={s}")?,
+            Some(Operator::Equal) => write!(f, "={s}")?,
+            Some(Operator::EqualGlob) => write!(f, "={s}*")?,
+            Some(Operator::Approximate) => write!(f, "~{s}")?,
+            Some(Operator::GreaterOrEqual) => write!(f, ">={s}")?,
+            Some(Operator::Greater) => write!(f, ">{s}")?,
+        }
+    } else {
+        write!(f, "{s}")?;
+    }
+
+    Ok(())
 }
 
 impl PartialEq for Version {
@@ -378,12 +510,12 @@ impl Eq for Version {}
 
 impl Hash for Version {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.numbers[0].1.hash(state);
-        for (v1, n1) in &self.numbers[1..] {
-            if v1.starts_with('0') {
-                v1.trim_end_matches('0').hash(state);
+        self.numbers[0].hash(state);
+        for n in &self.numbers[1..] {
+            if n.raw.starts_with('0') {
+                n.raw.trim_end_matches('0').hash(state);
             } else {
-                n1.hash(state);
+                n.value.hash(state);
             }
         }
         self.letter.hash(state);
@@ -392,55 +524,51 @@ impl Hash for Version {
     }
 }
 
-fn ver_cmp(v1: &Version, v2: &Version, cmp_revs: bool, cmp_ops: bool) -> Ordering {
-    if v1.base() != v2.base() {
-        // compare major versions
-        cmp_not_equal!(&v1.numbers[0].1, &v2.numbers[0].1);
+fn ver_cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
+    // compare major versions
+    cmp_not_equal!(&v1.numbers[0], &v2.numbers[0]);
 
-        // compare remaining version components
-        let mut v1_numbers = v1.numbers[1..].iter();
-        let mut v2_numbers = v2.numbers[1..].iter();
-        loop {
-            match (v1_numbers.next(), v2_numbers.next()) {
-                // lexical equality implies numerical equality
-                (Some((s1, _)), Some((s2, _))) if s1 == s2 => continue,
-                // compare as strings if a component starts with "0"
-                (Some((s1, _)), Some((s2, _))) if s1.starts_with('0') || s2.starts_with('0') => {
-                    cmp_not_equal!(s1.trim_end_matches('0'), s2.trim_end_matches('0'))
-                }
-                // compare as integers
-                (Some((_, n1)), Some((_, n2))) => cmp_not_equal!(n1, n2),
-                (Some(_), None) => return Ordering::Greater,
-                (None, Some(_)) => return Ordering::Less,
-                (None, None) => break,
+    // compare remaining version components
+    let mut v1_numbers = v1.numbers[1..].iter();
+    let mut v2_numbers = v2.numbers[1..].iter();
+    loop {
+        match (v1_numbers.next(), v2_numbers.next()) {
+            // compare as strings if a component starts with "0"
+            (Some(n1), Some(n2)) if n1.raw.starts_with('0') || n2.raw.starts_with('0') => {
+                cmp_not_equal!(n1.raw.trim_end_matches('0'), n2.raw.trim_end_matches('0'))
             }
+            // compare as integers
+            (Some(n1), Some(n2)) => cmp_not_equal!(n1, n2),
+            (Some(_), None) => return Ordering::Greater,
+            (None, Some(_)) => return Ordering::Less,
+            (None, None) => break,
         }
+    }
 
-        // compare letter suffixes
-        cmp_not_equal!(&v1.letter, &v2.letter);
+    // compare letter suffixes
+    cmp_not_equal!(&v1.letter, &v2.letter);
 
-        // compare suffixes
-        let mut v1_suffixes = v1.suffixes.iter();
-        let mut v2_suffixes = v2.suffixes.iter();
-        loop {
-            match (v1_suffixes.next(), v2_suffixes.next()) {
-                (Some(s1), Some(s2)) => cmp_not_equal!(s1, s2),
-                (Some(Suffix { kind: SuffixKind::P, .. }), None) => return Ordering::Greater,
-                (Some(_), None) => return Ordering::Less,
-                (None, Some(Suffix { kind: SuffixKind::P, .. })) => return Ordering::Less,
-                (None, Some(_)) => return Ordering::Greater,
-                (None, None) => break,
-            }
+    // compare suffixes
+    let mut v1_suffixes = v1.suffixes.iter();
+    let mut v2_suffixes = v2.suffixes.iter();
+    loop {
+        match (v1_suffixes.next(), v2_suffixes.next()) {
+            (Some(s1), Some(s2)) => cmp_not_equal!(s1, s2),
+            (Some(Suffix { kind: SuffixKind::P, .. }), None) => return Ordering::Greater,
+            (Some(_), None) => return Ordering::Less,
+            (None, Some(Suffix { kind: SuffixKind::P, .. })) => return Ordering::Less,
+            (None, Some(_)) => return Ordering::Greater,
+            (None, None) => break,
         }
     }
 
     // compare revisions
-    if cmp_revs {
+    if rev {
         cmp_not_equal!(&v1.revision, &v2.revision);
     }
 
     // compare operators
-    if cmp_ops {
+    if op {
         cmp_not_equal!(&v1.op, &v2.op);
     }
 
@@ -478,8 +606,96 @@ impl PartialEq for NonRevisionVersion<'_> {
 
 impl Eq for NonRevisionVersion<'_> {}
 
+impl fmt::Display for NonRevisionVersion<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        ver_str(f, self.0, false, false)
+    }
+}
+
 /// Version wrapper that ignores operators during comparisons.
 struct NonOpVersion<'a>(&'a Version);
+
+impl NonOpVersion<'_> {
+    fn starts_with(&self, other: &Self) -> bool {
+        // flag denoting the lhs has more components than the rhs
+        let mut unmatched = false;
+
+        // compare components
+        let mut v1_numbers = self.0.numbers.iter();
+        let mut v2_numbers = other.0.numbers.iter();
+        loop {
+            match (v1_numbers.next(), v2_numbers.next()) {
+                (Some(n1), Some(n2)) => {
+                    if !n1.raw.starts_with(&n2.raw) {
+                        return false;
+                    }
+                }
+                (None, Some(_)) => return false,
+                (Some(_), None) => {
+                    unmatched = true;
+                    break;
+                }
+                (None, None) => break,
+            }
+        }
+
+        // compare letters
+        match (&self.0.letter, &other.0.letter) {
+            (_, Some(_)) if unmatched => return false,
+            (Some(c1), Some(c2)) => {
+                if c1 != c2 {
+                    return false;
+                }
+            }
+            (None, Some(_)) => return false,
+            (Some(_), None) => unmatched = true,
+            (None, None) => (),
+        }
+
+        // compare suffixes
+        let mut v1_suffixes = self.0.suffixes.iter();
+        let mut v2_suffixes = other.0.suffixes.iter();
+        loop {
+            match (v1_suffixes.next(), v2_suffixes.next()) {
+                (_, Some(_)) if unmatched => return false,
+                (Some(s1), Some(s2)) => {
+                    if s1.kind != s2.kind {
+                        return false;
+                    }
+
+                    // compare suffix versions
+                    match (&s1.version, &s2.version) {
+                        (_, Some(_)) if unmatched => return false,
+                        (Some(v1), Some(v2)) => {
+                            if !v1.raw.starts_with(&v2.raw) {
+                                return false;
+                            }
+                        }
+                        (None, Some(_)) => return false,
+                        (Some(_), None) => {
+                            unmatched = true;
+                            break;
+                        }
+                        (None, None) => (),
+                    }
+                }
+                (None, Some(_)) => return false,
+                (Some(_), None) => {
+                    unmatched = true;
+                    break;
+                }
+                (None, None) => break,
+            }
+        }
+
+        // compare revisions
+        match (self.0.revision().map(|r| r.as_ref()), other.0.revision().map(|r| r.as_ref())) {
+            (Some(r1), Some(r2)) if unmatched || !r1.starts_with(r2) => false,
+            (None, Some(_)) => false,
+            _ => true,
+        }
+    }
+}
 
 impl PartialEq for NonOpVersion<'_> {
     fn eq(&self, other: &Self) -> bool {
@@ -498,6 +714,12 @@ impl Ord for NonOpVersion<'_> {
 impl PartialOrd for NonOpVersion<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl fmt::Display for NonOpVersion<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        ver_str(f, self.0, true, false)
     }
 }
 

@@ -34,7 +34,7 @@ impl EnumVariable for Key {
         use Key::*;
         match self {
             OP => obj.op().map(|x| x.to_string()).unwrap_or_default(),
-            VER => obj.as_str().to_string(),
+            VER => obj.without_op(),
             REV => obj
                 .revision()
                 .map(|r| r.as_ref())
