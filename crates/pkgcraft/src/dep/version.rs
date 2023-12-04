@@ -322,7 +322,7 @@ impl Operator {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Version {
-    pub(super) op: Option<Operator>,
+    op: Option<Operator>,
     numbers: Vec<Number>,
     letter: Option<char>,
     suffixes: Vec<Suffix>,
@@ -347,6 +347,11 @@ impl Version {
         } else {
             parse::version(s)
         }
+    }
+
+    /// Modify the version's operator.
+    pub(crate) fn with_op(&mut self, op: Operator) {
+        self.op = Some(op);
     }
 
     /// Return a version's operator, if one exists.
