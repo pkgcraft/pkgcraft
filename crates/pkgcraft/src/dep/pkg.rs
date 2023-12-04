@@ -1132,18 +1132,20 @@ mod tests {
         }
 
         // invalid values
-        assert!(dep.modify([(DepField::Category, Some("+"))]).is_err());
-        assert!(dep.modify([(DepField::Package, Some("+"))]).is_err());
-        assert!(dep.modify([(DepField::Blocker, Some("+"))]).is_err());
-        assert!(dep.modify([(DepField::Slot, Some("+"))]).is_err());
-        assert!(dep.modify([(DepField::Version, Some("+"))]).is_err());
-        assert!(dep.modify([(DepField::UseDeps, Some("+"))]).is_err());
-        assert!(dep.modify([(DepField::Repo, Some("+"))]).is_err());
+        assert!(dep.modify([(DepField::Category, Some("-cat"))]).is_err());
+        assert!(dep.modify([(DepField::Package, Some("pkg-1a-1"))]).is_err());
+        assert!(dep.modify([(DepField::Blocker, Some("!!!"))]).is_err());
+        assert!(dep.modify([(DepField::Slot, Some(":1"))]).is_err());
+        assert!(dep.modify([(DepField::Version, Some("1"))]).is_err());
+        assert!(dep.modify([(DepField::UseDeps, Some("+u1,u2"))]).is_err());
+        assert!(dep.modify([(DepField::Repo, Some("pkg-1a-1"))]).is_err());
 
         // no changes returns a borrowed dep
         let dep = Dep::new("cat/pkg").unwrap();
-        matches!(dep.modify([(DepField::Category, Some("cat"))]).unwrap(), Cow::Borrowed(_));
-        matches!(dep.modify([(DepField::Version, None)]).unwrap(), Cow::Borrowed(_));
+        let d = dep.modify([(DepField::Category, Some("cat"))]).unwrap();
+        assert!(matches!(d, Cow::Borrowed(_)));
+        let d = dep.modify([(DepField::Version, None)]).unwrap();
+        assert!(matches!(d, Cow::Borrowed(_)));
     }
 
     #[test]
