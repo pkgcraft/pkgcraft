@@ -72,8 +72,10 @@ pub(crate) struct ParsedDep<'a> {
     pub(crate) repo: Option<&'a str>,
 }
 
-impl ParsedDep<'_> {
-    pub(crate) fn into_owned(self) -> Dep {
+impl IntoOwned for ParsedDep<'_> {
+    type Owned = Dep;
+
+    fn into_owned(self) -> Self::Owned {
         Dep {
             category: self.category.to_string(),
             package: self.package.to_string(),
