@@ -8,8 +8,9 @@ use serde::{Deserialize, Serialize};
 use crate::traits::IntoOwned;
 use crate::Error;
 
-use super::version::{ParsedVersion, Revision, Version};
-use super::{parse, Dep, Intersects};
+use super::pkg::{Dep, ParsedDep};
+use super::version::{Operator, ParsedVersion, Revision, Version};
+use super::{parse, Intersects};
 
 pub enum CpvOrDep {
     Cpv(Cpv),
@@ -77,6 +78,18 @@ pub(crate) struct ParsedCpv<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
     pub(crate) version: ParsedVersion<'a>,
+}
+
+impl<'a> ParsedCpv<'a> {
+    // Used by the parser to convert ParsedCpv to ParsedDep with a version operator.
+    pub(crate) fn with_op(self, op: Operator) -> ParsedDep<'a> {
+        ParsedDep {
+            category: self.category,
+            package: self.package,
+            version: Some(self.version.with_op(op)),
+            ..Default::default()
+        }
+    }
 }
 
 impl IntoOwned for ParsedCpv<'_> {

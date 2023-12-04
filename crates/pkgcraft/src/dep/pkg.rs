@@ -72,6 +72,23 @@ pub(crate) struct ParsedDep<'a> {
     pub(crate) repo: Option<&'a str>,
 }
 
+impl<'a> ParsedDep<'a> {
+    /// Used by the parser to inject attributes.
+    pub(crate) fn with(
+        mut self,
+        blocker: Option<Blocker>,
+        slot: Option<SlotDep<&'a str>>,
+        use_deps: Option<Vec<UseDep<&'a str>>>,
+        repo: Option<&'a str>,
+    ) -> ParsedDep<'a> {
+        self.blocker = blocker;
+        self.slot = slot;
+        self.use_deps = use_deps;
+        self.repo = repo;
+        self
+    }
+}
+
 impl IntoOwned for ParsedDep<'_> {
     type Owned = Dep;
 

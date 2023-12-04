@@ -250,27 +250,10 @@ pub(crate) struct ParsedVersion<'a> {
 }
 
 impl<'a> ParsedVersion<'a> {
-    // Used by the parser to inject the version operator value.
-    pub(crate) fn with_op(
-        mut self,
-        op: &'a str,
-        glob: Option<&'a str>,
-    ) -> Result<Self, &'static str> {
-        use Operator::*;
-        let op = match (op, glob, &self.revision) {
-            ("<", None, _) => Ok(Less),
-            ("<=", None, _) => Ok(LessOrEqual),
-            ("=", None, _) => Ok(Equal),
-            ("=", Some(_), _) => Ok(EqualGlob),
-            ("~", None, None) => Ok(Approximate),
-            ("~", None, Some(_)) => Err("~ version operator can't be used with a revision"),
-            (">=", None, _) => Ok(GreaterOrEqual),
-            (">", None, _) => Ok(Greater),
-            _ => Err("invalid version operator"),
-        }?;
-
+    /// Used by the parser to inject the version operator.
+    pub(crate) fn with_op(mut self, op: Operator) -> Self {
         self.op = Some(op);
-        Ok(self)
+        self
     }
 }
 

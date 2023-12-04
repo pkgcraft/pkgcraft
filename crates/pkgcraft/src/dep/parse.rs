@@ -4,15 +4,14 @@ use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::ParsedDep;
 use crate::dep::version::{ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
 use crate::dep::{
-    Blocker, Cpv, Dep, DepSet, DepSpec, Slot, SlotDep, SlotOperator, Uri, UseDep, UseDepDefault,
-    UseDepKind, Version,
+    Blocker, Cpv, Dep, DepSet, DepSpec, Operator, Slot, SlotDep, SlotOperator, Uri, UseDep,
+    UseDepDefault, UseDepKind, Version,
 };
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
 use crate::shell::metadata::{Iuse, Keyword, KeywordStatus};
 use crate::traits::IntoOwned;
 use crate::types::Ordered;
-use crate::Error;
 
 peg::parser!(grammar depspec() for str {
     // Keywords must not begin with a hyphen.
@@ -68,6 +67,15 @@ peg::parser!(grammar depspec() for str {
         } / expected!("package name"))
         { s }
 
+    // Package name for dep targets with additional negative lookahead version terminators.
+    rule dep_package() -> &'input str
+        = s:$(quiet!{
+            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
+            (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] /
+                ("-" !(version() ("-" version())? ("*" / ":" / "[" / ![_]))))*
+        } / expected!("package name"))
+        { s }
+
     rule number() -> ParsedNumber<'input>
         = s:$(['0'..='9']+) {?
             let value = s.parse().map_err(|_| "integer overflow")?;
@@ -99,8 +107,22 @@ peg::parser!(grammar depspec() for str {
         }
 
     pub(super) rule version_with_op() -> ParsedVersion<'input>
-        = op:$(("<" "="?) / "=" / "~" / (">" "="?)) v:version() glob:$("*")? {?
-            v.with_op(op, glob)
+        = "<=" v:version() { v.with_op(Operator::LessOrEqual) }
+        / "<" v:version() { v.with_op(Operator::Less) }
+        / ">=" v:version() { v.with_op(Operator::GreaterOrEqual) }
+        / ">" v:version() { v.with_op(Operator::Greater) }
+        / "=" v:version() glob:$("*")? {
+            if glob.is_none() {
+                v.with_op(Operator::Equal)
+            } else {
+                v.with_op(Operator::EqualGlob)
+            }
+        } / "~" v:version() {?
+            if v.revision.is_some() {
+                Err("~ version operator can't be used with a revision")
+            } else {
+                Ok(v.with_op(Operator::Approximate))
+            }
         }
 
     rule revision() -> ParsedNumber<'input>
@@ -202,25 +224,44 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    pub(super) rule cpv_with_op() -> (&'input str, &'input str, Option<&'input str>)
-        = op:$(("<" "="?) / "=" / "~" / (">" "="?)) cpv:$([^'*']+) glob:$("*")?
-        { (op, cpv, glob) }
+    rule dep_cpv() -> ParsedCpv<'input>
+        = category:category() "/" package:dep_package() "-" version:version() {
+            ParsedCpv {
+                category,
+                package,
+                version,
+            }
+        }
+
+    rule dep_pkg() -> ParsedDep<'input>
+        = dep:cpn() { dep }
+        / "<=" cpv:dep_cpv() { cpv.with_op(Operator::LessOrEqual) }
+        / "<" cpv:dep_cpv() { cpv.with_op(Operator::Less) }
+        / ">=" cpv:dep_cpv() { cpv.with_op(Operator::GreaterOrEqual) }
+        / ">" cpv:dep_cpv() { cpv.with_op(Operator::Greater) }
+        / "=" cpv:dep_cpv() glob:$("*")? {
+            if glob.is_none() {
+                cpv.with_op(Operator::Equal)
+            } else {
+                cpv.with_op(Operator::EqualGlob)
+            }
+        } / "~" cpv:dep_cpv() {?
+            if cpv.version.revision.is_some() {
+                Err("~ operator can't be used with a revision")
+            } else {
+                Ok(cpv.with_op(Operator::Approximate))
+            }
+        }
 
     pub(super) rule cpn() -> ParsedDep<'input>
         = category:category() "/" package:package() {
             ParsedDep { category, package, ..Default::default() }
         }
 
-    pub(super) rule dep(eapi: &'static Eapi) -> (&'input str, ParsedDep<'input>)
-        = blocker:blocker()? dep:$([^':' | '[']+) slot:slot_dep_str()?
+    pub(super) rule dep(eapi: &'static Eapi) -> ParsedDep<'input>
+        = blocker:blocker()? dep:dep_pkg() slot:slot_dep_str()?
                 repo:repo_dep(eapi)? use_deps:use_deps()? {
-            (dep, ParsedDep {
-                blocker,
-                slot,
-                use_deps,
-                repo,
-                ..Default::default()
-            })
+            dep.with(blocker, slot, use_deps, repo)
         }
 
     rule _ = quiet!{[^ ' ' | '\n' | '\t']+}
@@ -397,28 +438,7 @@ pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
 }
 
 pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedDep<'a>> {
-    let (dep_s, mut dep) = depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))?;
-    match depspec::cpv_with_op(dep_s) {
-        Ok((op, cpv_s, glob)) => {
-            let cpv = depspec::cpv(cpv_s)
-                .map_err(|_| Error::InvalidValue(format!("parsing failure: invalid dep: {s}")))?;
-            dep.category = cpv.category;
-            dep.package = cpv.package;
-            dep.version = Some(
-                cpv.version
-                    .with_op(op, glob)
-                    .map_err(|e| Error::InvalidValue(format!("invalid dep: {s}: {e}")))?,
-            );
-        }
-        _ => {
-            let d = depspec::cpn(dep_s)
-                .map_err(|_| Error::InvalidValue(format!("parsing failure: invalid dep: {s}")))?;
-            dep.category = d.category;
-            dep.package = d.package;
-        }
-    }
-
-    Ok(dep)
+    depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))
 }
 
 #[cached(
