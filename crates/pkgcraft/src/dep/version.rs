@@ -131,10 +131,7 @@ impl Revision {
         if s.is_empty() {
             Ok(Self::default())
         } else {
-            let value = s
-                .parse()
-                .map_err(|e| Error::Overflow(format!("invalid revision: {e}: {s}")))?;
-            Ok(Self(Number { raw: s.to_string(), value }))
+            Ok(Self(s.parse()?))
         }
     }
 }
