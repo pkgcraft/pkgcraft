@@ -211,21 +211,21 @@ pub(crate) use ver_cut::BUILTIN as ver_cut;
 pub(crate) use ver_rs::BUILTIN as ver_rs;
 pub(crate) use ver_test::BUILTIN as ver_test;
 // phase stubs
-pub(crate) use _phases::PKG_CONFIG_BUILTIN as pkg_config_builtin;
-pub(crate) use _phases::PKG_INFO_BUILTIN as pkg_info_builtin;
-pub(crate) use _phases::PKG_NOFETCH_BUILTIN as pkg_nofetch_builtin;
-pub(crate) use _phases::PKG_POSTINST_BUILTIN as pkg_postinst_builtin;
-pub(crate) use _phases::PKG_POSTRM_BUILTIN as pkg_postrm_builtin;
-pub(crate) use _phases::PKG_PREINST_BUILTIN as pkg_preinst_builtin;
-pub(crate) use _phases::PKG_PRERM_BUILTIN as pkg_prerm_builtin;
-pub(crate) use _phases::PKG_PRETEND_BUILTIN as pkg_pretend_builtin;
-pub(crate) use _phases::PKG_SETUP_BUILTIN as pkg_setup_builtin;
-pub(crate) use _phases::SRC_COMPILE_BUILTIN as src_compile_builtin;
-pub(crate) use _phases::SRC_CONFIGURE_BUILTIN as src_configure_builtin;
-pub(crate) use _phases::SRC_INSTALL_BUILTIN as src_install_builtin;
-pub(crate) use _phases::SRC_PREPARE_BUILTIN as src_prepare_builtin;
-pub(crate) use _phases::SRC_TEST_BUILTIN as src_test_builtin;
-pub(crate) use _phases::SRC_UNPACK_BUILTIN as src_unpack_builtin;
+pub(crate) use _phases::PKG_CONFIG as pkg_config_stub;
+pub(crate) use _phases::PKG_INFO as pkg_info_stub;
+pub(crate) use _phases::PKG_NOFETCH as pkg_nofetch_stub;
+pub(crate) use _phases::PKG_POSTINST as pkg_postinst_stub;
+pub(crate) use _phases::PKG_POSTRM as pkg_postrm_stub;
+pub(crate) use _phases::PKG_PREINST as pkg_preinst_stub;
+pub(crate) use _phases::PKG_PRERM as pkg_prerm_stub;
+pub(crate) use _phases::PKG_PRETEND as pkg_pretend_stub;
+pub(crate) use _phases::PKG_SETUP as pkg_setup_stub;
+pub(crate) use _phases::SRC_COMPILE as src_compile_stub;
+pub(crate) use _phases::SRC_CONFIGURE as src_configure_stub;
+pub(crate) use _phases::SRC_INSTALL as src_install_stub;
+pub(crate) use _phases::SRC_PREPARE as src_prepare_stub;
+pub(crate) use _phases::SRC_TEST as src_test_stub;
+pub(crate) use _phases::SRC_UNPACK as src_unpack_stub;
 
 #[derive(Debug, Clone)]
 pub struct Command {
@@ -422,21 +422,21 @@ pub(crate) static BUILTINS: Lazy<IndexSet<Builtin>> = Lazy::new(|| {
         ver_rs,
         ver_test,
         // phase stubs
-        pkg_config_builtin,
-        pkg_info_builtin,
-        pkg_nofetch_builtin,
-        pkg_postinst_builtin,
-        pkg_postrm_builtin,
-        pkg_preinst_builtin,
-        pkg_prerm_builtin,
-        pkg_pretend_builtin,
-        pkg_setup_builtin,
-        src_compile_builtin,
-        src_configure_builtin,
-        src_install_builtin,
-        src_prepare_builtin,
-        src_test_builtin,
-        src_unpack_builtin,
+        pkg_config_stub,
+        pkg_info_stub,
+        pkg_nofetch_stub,
+        pkg_postinst_stub,
+        pkg_postrm_stub,
+        pkg_preinst_stub,
+        pkg_prerm_stub,
+        pkg_pretend_stub,
+        pkg_setup_stub,
+        src_compile_stub,
+        src_configure_stub,
+        src_install_stub,
+        src_prepare_stub,
+        src_test_stub,
+        src_unpack_stub,
     ]
     .into_iter()
     .collect()
