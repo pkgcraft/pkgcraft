@@ -115,12 +115,12 @@ pub struct Cpv {
 impl Cpv {
     /// Create a new Cpv from a given string (e.g. cat/pkg-1).
     pub fn new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        parse::cpv(s.as_ref())
+        parse::cpv(s.as_ref()).into_owned()
     }
 
     /// Verify a string represents a valid CPV.
     pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
-        parse::cpv_str(s.as_ref())?;
+        parse::cpv(s.as_ref())?;
         Ok(())
     }
 
@@ -184,7 +184,7 @@ impl FromStr for Cpv {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        parse::cpv(s)
+        Cpv::new(s)
     }
 }
 
@@ -194,7 +194,7 @@ impl TryFrom<(&str, &str, &str)> for Cpv {
 
     fn try_from(vals: (&str, &str, &str)) -> Result<Self, Self::Error> {
         let (cat, pn, ver) = vals;
-        parse::cpv(&format!("{cat}/{pn}-{ver}"))
+        Cpv::new(format!("{cat}/{pn}-{ver}"))
     }
 }
 

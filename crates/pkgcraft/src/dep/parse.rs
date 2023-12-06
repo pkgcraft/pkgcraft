@@ -4,7 +4,7 @@ use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::ParsedDep;
 use crate::dep::version::{ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
 use crate::dep::{
-    Blocker, Cpv, Dep, DepSet, DepSpec, Operator, Slot, SlotDep, SlotOperator, Uri, UseDep,
+    Blocker, Dep, DepSet, DepSpec, Operator, Slot, SlotDep, SlotOperator, Uri, UseDep,
     UseDepDefault, UseDepKind, Version,
 };
 use crate::eapi::{Eapi, Feature};
@@ -393,12 +393,9 @@ pub fn repo(s: &str) -> crate::Result<&str> {
     depspec::repo(s).map_err(|e| peg_error("invalid repo name", s, e))
 }
 
-pub(super) fn cpv_str(s: &str) -> crate::Result<ParsedCpv> {
+/// Parse a string into a [`ParsedCpv`].
+pub(super) fn cpv(s: &str) -> crate::Result<ParsedCpv> {
     depspec::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
-}
-
-pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
-    cpv_str(s).into_owned()
 }
 
 pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedDep<'a>> {
