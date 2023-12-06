@@ -228,7 +228,7 @@ pub(crate) use _phases::SRC_TEST_BUILTIN as src_test_builtin;
 pub(crate) use _phases::SRC_UNPACK_BUILTIN as src_unpack_builtin;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Command {
+pub struct Command {
     builtin: Builtin,
     scopes: HashSet<Scope>,
 }
@@ -311,14 +311,14 @@ impl Command {
         }
     }
 
-    /// Determine if the builtin is allowed in a given `Scope`.
+    /// Determine if the command is allowed in a given `Scope`.
     pub(crate) fn is_allowed(&self, scope: &Scope) -> bool {
         self.scopes.contains(scope)
             || (scope.is_eclass() && self.scopes.contains(&Scope::Eclass(None)))
     }
 
-    /// Determine if the builtin is a phase stub.
-    pub(crate) fn is_phase(&self) -> bool {
+    /// Determine if the command is a phase stub.
+    pub fn is_phase(&self) -> bool {
         PhaseKind::from_str(self.as_ref()).is_ok()
     }
 }

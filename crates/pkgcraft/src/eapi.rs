@@ -274,7 +274,7 @@ impl Eapi {
     }
 
     /// Return all the enabled commands for an EAPI.
-    pub(crate) fn commands(&self) -> &HashSet<Command> {
+    pub fn commands(&self) -> &HashSet<Command> {
         &self.commands
     }
 
