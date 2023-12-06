@@ -5,12 +5,12 @@ use pkgcraft::dep::parse;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 
-/// Parse a package category.
+/// Verify a package category name is valid.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The argument should point to a UTF-8 string.
+/// The argument be a valid UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_parse_category(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
@@ -20,12 +20,12 @@ pub unsafe extern "C" fn pkgcraft_parse_category(s: *const c_char) -> *const c_c
     }
 }
 
-/// Parse a package name.
+/// Verify a package name is valid.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The argument should point to a UTF-8 string.
+/// The argument be a valid UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_parse_package(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
@@ -35,17 +35,32 @@ pub unsafe extern "C" fn pkgcraft_parse_package(s: *const c_char) -> *const c_ch
     }
 }
 
-/// Parse a package repo.
+/// Verify a repository name is valid.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The argument should point to a UTF-8 string.
+/// The argument be a valid UTF-8 string.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_parse_repo(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
         unwrap_or_panic!(parse::repo(val));
+        s
+    }
+}
+
+/// Verify a package USE flag name is valid.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument be a valid UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_parse_use_flag(s: *const c_char) -> *const c_char {
+    ffi_catch_panic! {
+        let val = try_str_from_ptr!(s);
+        unwrap_or_panic!(parse::use_flag(val));
         s
     }
 }
