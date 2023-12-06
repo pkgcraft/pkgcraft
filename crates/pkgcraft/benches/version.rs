@@ -1,6 +1,7 @@
 use criterion::Criterion;
 
-use pkgcraft::dep::{Intersects, Version};
+use pkgcraft::dep::Version;
+use pkgcraft::traits::Intersects;
 
 pub fn bench_pkg_versions(c: &mut Criterion) {
     c.bench_function("version-parse", |b| b.iter(|| Version::new("1.2.3_alpha4-r5")));

@@ -2,8 +2,9 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::{Cpv, Dep, Intersects, Version};
+use pkgcraft::dep::{Cpv, Dep, Version};
 use pkgcraft::restrict::{Restrict, Restriction};
+use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;

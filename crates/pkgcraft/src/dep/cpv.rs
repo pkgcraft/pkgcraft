@@ -5,12 +5,12 @@ use std::str::FromStr;
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
-use crate::traits::IntoOwned;
+use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
+use super::parse;
 use super::pkg::{Dep, ParsedDep};
 use super::version::{Operator, ParsedVersion, Revision, Version};
-use super::{parse, Intersects};
 
 pub enum CpvOrDep {
     Cpv(Cpv),

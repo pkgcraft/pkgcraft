@@ -3,9 +3,10 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
-use pkgcraft::dep::{CpvOrDep, Flatten, Intersects};
+use pkgcraft::dep::{CpvOrDep, Flatten};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::PkgRepository;
+use pkgcraft::traits::Intersects;
 
 use crate::args::StdinOrArgs;
 

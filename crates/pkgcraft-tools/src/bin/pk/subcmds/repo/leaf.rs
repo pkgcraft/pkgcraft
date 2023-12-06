@@ -4,9 +4,10 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::dep::{Cpv, Flatten, Intersects};
+use pkgcraft::dep::{Cpv, Flatten};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::PkgRepository;
+use pkgcraft::traits::Intersects;
 
 use crate::args::target_ebuild_repo;
 

@@ -4,9 +4,10 @@ use std::ffi::{c_char, c_int, CString};
 use std::ops::Deref;
 use std::{ptr, slice};
 
-use pkgcraft::dep::{self, Blocker, Cpv, Dep, DepField, Intersects, SlotOperator, Version};
+use pkgcraft::dep::{self, Blocker, Cpv, Dep, DepField, SlotOperator, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::restrict::{Restrict, Restriction};
+use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
 use crate::eapi::eapi_or_default;

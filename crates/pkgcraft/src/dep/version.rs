@@ -9,10 +9,10 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::cmp_not_equal;
-use crate::traits::IntoOwned;
+use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
-use super::{parse, Intersects};
+use super::parse;
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ParsedNumber<'a> {

@@ -11,7 +11,7 @@ use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
 use crate::macros::{bool_not_equal, cmp_not_equal};
-use crate::traits::IntoOwned;
+use crate::traits::{Intersects, IntoOwned};
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -730,11 +730,6 @@ impl fmt::Display for Dep {
 
         Ok(())
     }
-}
-
-/// Determine if two objects intersect.
-pub trait Intersects<T> {
-    fn intersects(&self, obj: &T) -> bool;
 }
 
 /// Determine if a package dependency intersects with a Cpv.

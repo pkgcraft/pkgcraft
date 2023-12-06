@@ -2,7 +2,8 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::{Intersects, Operator, Revision, Version};
+use pkgcraft::dep::{Operator, Revision, Version};
+use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;

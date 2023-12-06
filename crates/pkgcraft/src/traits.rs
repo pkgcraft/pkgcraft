@@ -6,6 +6,11 @@ pub trait Contains<T> {
     fn contains(&self, obj: T) -> bool;
 }
 
+/// Determine if two objects intersect.
+pub trait Intersects<T> {
+    fn intersects(&self, obj: &T) -> bool;
+}
+
 /// Convert a borrowed type into an owned type.
 pub trait IntoOwned {
     type Owned;

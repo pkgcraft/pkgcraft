@@ -1,4 +1,5 @@
-use crate::dep::{Blocker, Cpv, Dep, Intersects, UseDep, Version};
+use crate::dep::{Blocker, Cpv, Dep, UseDep, Version};
+use crate::traits::Intersects;
 use crate::types::SortedSet;
 
 use super::str::Restrict as StrRestrict;

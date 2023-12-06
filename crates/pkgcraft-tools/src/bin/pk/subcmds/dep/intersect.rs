@@ -1,7 +1,8 @@
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::dep::{CpvOrDep, Intersects};
+use pkgcraft::dep::CpvOrDep;
+use pkgcraft::traits::Intersects;
 
 #[derive(Debug, Args)]
 pub struct Command {
