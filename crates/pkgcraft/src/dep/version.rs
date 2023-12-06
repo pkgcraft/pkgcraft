@@ -425,17 +425,13 @@ impl Version {
 
                     // compare suffix versions
                     match (&s1.version, &s2.version) {
-                        (_, Some(_)) if unmatched => return false,
                         (Some(v1), Some(v2)) => {
                             if !v1.raw.starts_with(&v2.raw) {
                                 return false;
                             }
                         }
                         (None, Some(_)) => return false,
-                        (Some(_), None) => {
-                            unmatched = true;
-                            break;
-                        }
+                        (Some(_), None) => unmatched = true,
                         (None, None) => (),
                     }
                 }
