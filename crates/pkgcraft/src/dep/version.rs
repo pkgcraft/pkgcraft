@@ -739,6 +739,17 @@ mod tests {
             assert!(result.is_ok(), "{s:?} is invalid");
             let result = Version::new(s);
             assert!(result.is_ok(), "{s:?} failed");
+            assert_eq!(result.unwrap().to_string(), s.as_str());
+        }
+    }
+
+    #[test]
+    fn ver_op() {
+        let mut ver = Version::new("1").unwrap();
+        assert!(ver.op().is_none());
+        for op in Operator::iter() {
+            ver.with_op(op);
+            assert_eq!(ver.op(), Some(op));
         }
     }
 
