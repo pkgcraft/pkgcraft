@@ -5,7 +5,7 @@ use crate::dep::pkg::ParsedDep;
 use crate::dep::version::{ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
 use crate::dep::{
     Blocker, Dep, DepSet, DepSpec, Operator, Slot, SlotDep, SlotOperator, Uri, UseDep,
-    UseDepDefault, UseDepKind, Version,
+    UseDepDefault, UseDepKind,
 };
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
@@ -336,25 +336,12 @@ pub fn package(s: &str) -> crate::Result<&str> {
     depspec::package(s).map_err(|e| peg_error("invalid package name", s, e))
 }
 
-pub(super) fn version_str(s: &str) -> crate::Result<ParsedVersion> {
+pub(super) fn version(s: &str) -> crate::Result<ParsedVersion> {
     depspec::version(s).map_err(|e| peg_error("invalid version", s, e))
 }
 
-#[cached(
-    type = "SizedCache<String, crate::Result<Version>>",
-    create = "{ SizedCache::with_size(1000) }",
-    convert = r#"{ s.to_string() }"#
-)]
-pub fn version(s: &str) -> crate::Result<Version> {
-    version_str(s).into_owned()
-}
-
-pub(super) fn version_with_op_str(s: &str) -> crate::Result<ParsedVersion> {
+pub(super) fn version_with_op(s: &str) -> crate::Result<ParsedVersion> {
     depspec::version_with_op(s).map_err(|e| peg_error("invalid version", s, e))
-}
-
-pub fn version_with_op(s: &str) -> crate::Result<Version> {
-    version_with_op_str(s).into_owned()
 }
 
 pub fn license_name(s: &str) -> crate::Result<&str> {

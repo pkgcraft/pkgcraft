@@ -1,6 +1,6 @@
 use scallop::{Error, ExecStatus};
 
-use crate::dep;
+use crate::dep::Version;
 use crate::shell::get_build_mut;
 
 use super::make_builtin;
@@ -16,8 +16,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         _ => return Err(Error::Base(format!("only accepts 2 or 3 args, got {}", args.len()))),
     };
 
-    let lhs = dep::parse::version(lhs)?;
-    let rhs = dep::parse::version(rhs)?;
+    let lhs = Version::new_without_op(lhs)?;
+    let rhs = Version::new_without_op(rhs)?;
 
     let ret = match op {
         "-eq" => lhs == rhs,

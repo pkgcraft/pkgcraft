@@ -509,7 +509,7 @@ impl Dep {
                 }
                 DepField::Version => {
                     if let Some(s) = s {
-                        let val = parse::version_with_op(s)?;
+                        let val = parse::version_with_op(s).into_owned()?;
                         if !dep.version.as_ref().map(|v| v == &val).unwrap_or_default() {
                             dep.to_mut().version = Some(val);
                         }
@@ -891,7 +891,7 @@ mod tests {
             (">cat/pkg-4-r1:0=", Some(">4-r1")),
         ] {
             let dep: Dep = s.parse().unwrap();
-            let version = version.map(|s| parse::version_with_op(s).unwrap());
+            let version = version.map(|s| parse::version_with_op(s).into_owned().unwrap());
             assert_eq!(dep.version(), version.as_ref());
         }
     }

@@ -330,20 +330,30 @@ impl Version {
     /// Verify a string represents a valid version.
     pub fn valid(s: &str) -> crate::Result<()> {
         if s.starts_with(|c| Operator::iter().any(|op| op.as_ref().starts_with(c))) {
-            parse::version_with_op_str(s)?;
+            parse::version_with_op(s)?;
         } else {
-            parse::version_str(s)?;
+            parse::version(s)?;
         }
         Ok(())
     }
 
-    /// Create a new Version from a given string.
+    /// Create a new [`Version`] from a given string with or without an [`Operator`].
     pub fn new(s: &str) -> crate::Result<Self> {
         if s.starts_with(|c| Operator::iter().any(|op| op.as_ref().starts_with(c))) {
-            parse::version_with_op(s)
+            parse::version_with_op(s).into_owned()
         } else {
-            parse::version(s)
+            parse::version(s).into_owned()
         }
+    }
+
+    /// Create a new [`Version`] with an [`Operator`].
+    pub fn new_with_op(s: &str) -> crate::Result<Self> {
+        parse::version_with_op(s).into_owned()
+    }
+
+    /// Create a new [`Version`] without an [`Operator`].
+    pub fn new_without_op(s: &str) -> crate::Result<Self> {
+        parse::version(s).into_owned()
     }
 
     /// Modify the version's operator.
@@ -737,6 +747,12 @@ mod tests {
             assert!(result.is_ok(), "{s:?} failed");
             assert_eq!(result.unwrap().to_string(), s.as_str());
         }
+
+        // creation forcing with and without operators
+        assert!(Version::new_with_op(">1").is_ok());
+        assert!(Version::new_with_op("1").is_err());
+        assert!(Version::new_without_op(">1").is_err());
+        assert!(Version::new_without_op("1").is_ok());
     }
 
     #[test]
