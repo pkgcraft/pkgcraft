@@ -102,7 +102,7 @@ pub(crate) fn set_shm_error(msg: &str, bail: bool) {
         // write message into shared memory
         ptr::copy_nonoverlapping(data.as_ptr(), shm, data.len());
         // truncate message
-        ptr::write_bytes(shm.offset(4094), b'\0', 1);
+        ptr::write_bytes(shm.offset(4094), 0, 1);
         // write status indicator
         ptr::write_bytes(shm.offset(4095), status, 1);
     }
