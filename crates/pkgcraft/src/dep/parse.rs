@@ -310,22 +310,22 @@ peg::parser!(grammar depspec() for str {
         / dep:dep(eapi) { DepSpec::Enabled(dep.into_owned()) }
 
     pub(super) rule license_dep_set() -> DepSet<String, String>
-        = v:license_dep_spec() ** __ { DepSet::from_iter(v) }
+        = v:license_dep_spec() ** __ { v.into_iter().collect() }
 
     pub(super) rule src_uri_dep_set(eapi: &'static Eapi) -> DepSet<String, Uri>
-        = v:src_uri_dep_spec(eapi) ** __ { DepSet::from_iter(v) }
+        = v:src_uri_dep_spec(eapi) ** __ { v.into_iter().collect() }
 
     pub(super) rule properties_dep_set() -> DepSet<String, String>
-        = v:properties_dep_spec() ** __ { DepSet::from_iter(v) }
+        = v:properties_dep_spec() ** __ { v.into_iter().collect() }
 
     pub(super) rule required_use_dep_set(eapi: &'static Eapi) -> DepSet<String, String>
-        = v:required_use_dep_spec(eapi) ** __ { DepSet::from_iter(v) }
+        = v:required_use_dep_spec(eapi) ** __ { v.into_iter().collect() }
 
     pub(super) rule restrict_dep_set() -> DepSet<String, String>
-        = v:restrict_dep_spec() ** __ { DepSet::from_iter(v) }
+        = v:restrict_dep_spec() ** __ { v.into_iter().collect() }
 
     pub(super) rule dependencies_dep_set(eapi: &'static Eapi) -> DepSet<String, Dep>
-        = v:dependencies_dep_spec(eapi) ** __ { DepSet::from_iter(v) }
+        = v:dependencies_dep_spec(eapi) ** __ { v.into_iter().collect() }
 });
 
 pub fn category(s: &str) -> crate::Result<&str> {
