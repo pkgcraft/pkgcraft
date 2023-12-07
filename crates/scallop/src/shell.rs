@@ -111,12 +111,13 @@ pub(crate) fn set_shm_error(msg: &str, bail: bool) {
 /// Raise an error from shared memory if one exists.
 pub(crate) fn raise_shm_error() {
     unsafe {
-        let status = *(bash::SHM_BUF as *mut u8).offset(4095);
-        if status != 0 {
-            let shm = bash::SHM_BUF as *mut c_char;
-            error::bash_error(shm, status);
-            // reset status indicator
-            ptr::write_bytes(shm.offset(4095), 0, 1);
+        let shm = bash::SHM_BUF as *mut u8;
+        if *shm != 0 {
+            let msg = bash::SHM_BUF as *mut c_char;
+            let status = *shm.offset(4095);
+            error::bash_error(msg, status);
+            // reset message
+            ptr::write_bytes(shm, 0, 1);
         }
     }
 }
