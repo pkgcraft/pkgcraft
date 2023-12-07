@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::ffi::{c_char, c_int, CStr, CString};
 use std::sync::OnceLock;
 use std::{env, mem, process, ptr};
@@ -92,6 +93,7 @@ pub fn interactive() {
 pub(crate) fn set_shm_error(msg: &str, bail: bool) {
     // convert unicode string into byte string
     let data = CString::new(msg).unwrap().into_bytes_with_nul();
+    let len = min(data.len(), 4096);
 
     // determine error status
     let status = if bail { bash::EX_LONGJMP as u8 } else { 1 };
@@ -100,7 +102,7 @@ pub(crate) fn set_shm_error(msg: &str, bail: bool) {
     unsafe {
         let shm = bash::SHM_BUF as *mut u8;
         // write message into shared memory
-        ptr::copy_nonoverlapping(data.as_ptr(), shm, data.len());
+        ptr::copy_nonoverlapping(data.as_ptr(), shm, len);
         // truncate message
         ptr::write_bytes(shm.offset(4094), 0, 1);
         // write status indicator
