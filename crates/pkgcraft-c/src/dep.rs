@@ -1180,6 +1180,27 @@ pub unsafe extern "C" fn pkgcraft_dependency_evaluate_force(
     }
 }
 
+/// Return the conditional UseDep for a Dependency.
+///
+/// Returns NULL if the Dependency variant isn't conditional.
+///
+/// # Safety
+/// The argument must be a valid Dependency pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dependency_conditional(d: *mut Dependency) -> *mut pkg::UseDep {
+    let d = try_ref_from_ptr!(d);
+
+    use DependencyWrapper::*;
+    let use_dep = match d.deref() {
+        Dep(dep::Dependency::UseConditional(u, _)) => Some(u.clone().into()),
+        String(dep::Dependency::UseConditional(u, _)) => Some(u.clone().into()),
+        Uri(dep::Dependency::UseConditional(u, _)) => Some(u.clone().into()),
+        _ => None,
+    };
+
+    use_dep.map(boxed).unwrap_or(ptr::null_mut())
+}
+
 /// Compare two Dependencys returning -1, 0, or 1 if the first is less than, equal to, or greater
 /// than the second, respectively.
 ///
