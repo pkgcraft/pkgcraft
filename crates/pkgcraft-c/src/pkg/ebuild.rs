@@ -5,7 +5,7 @@ use pkgcraft::pkg::ebuild::{metadata, EbuildPackage};
 use pkgcraft::pkg::Pkg;
 use pkgcraft::traits::IntoOwned;
 
-use crate::dep::spec::{DepSet, DepSetKind};
+use crate::dep::{DepSet, DepSetKind};
 use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
