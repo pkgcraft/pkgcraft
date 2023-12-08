@@ -102,7 +102,7 @@ peg::parser!(grammar depspec() for str {
         / "<" v:version() { v.with_op(Operator::Less) }
         / ">=" v:version() { v.with_op(Operator::GreaterOrEqual) }
         / ">" v:version() { v.with_op(Operator::Greater) }
-        / "=" v:version() glob:$("*")? {
+        / "=" v:version() glob:"*"? {
             if glob.is_none() {
                 v.with_op(Operator::Equal)
             } else {
