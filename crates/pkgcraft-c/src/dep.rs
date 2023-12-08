@@ -640,17 +640,13 @@ pub unsafe extern "C" fn pkgcraft_dependency_parse(
 
 /// Create a Dependency from a Dep.
 ///
-/// Returns NULL on error.
-///
 /// # Safety
 /// The argument must be valid Dep pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dependency_from_dep(d: *mut Dep) -> *mut Dependency {
-    ffi_catch_panic! {
-        let dep = try_ref_from_ptr!(d);
-        let spec = Dependency::new_dep(dep.clone().into());
-        Box::into_raw(Box::new(spec))
-    }
+    let d = try_ref_from_ptr!(d);
+    let dep = Dependency::new_dep(dep::Dependency::Enabled(d.clone()));
+    Box::into_raw(Box::new(dep))
 }
 
 /// Evaluate a DependencySet.

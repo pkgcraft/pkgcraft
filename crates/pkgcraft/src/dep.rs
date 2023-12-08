@@ -219,12 +219,6 @@ impl<S: UseFlag, T: Ordered> Dependency<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> From<T> for Dependency<S, T> {
-    fn from(obj: T) -> Self {
-        Dependency::Enabled(obj)
-    }
-}
-
 impl FromStr for Dependency<String, Dep> {
     type Err = Error;
 
@@ -584,17 +578,6 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<String, T>>
 {
     fn from_iter<I: IntoIterator<Item = &'a Dependency<String, T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().map(|d| d.as_ref()).collect())
-    }
-}
-
-impl<S: UseFlag, T: Ordered> FromIterator<T> for DependencySet<S, T> {
-    fn from_iter<I: IntoIterator<Item = T>>(iterable: I) -> Self {
-        Self(
-            iterable
-                .into_iter()
-                .map(|x| Dependency::Enabled(x))
-                .collect(),
-        )
     }
 }
 
