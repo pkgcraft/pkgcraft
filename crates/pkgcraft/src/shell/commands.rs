@@ -463,19 +463,20 @@ peg::parser! {
 
         // Parse ranges for ver_rs and ver_cut.
         pub(super) rule range(max: usize) -> (usize, usize)
-            = start_s:$(['0'..='9']+) "-" end_s:$(['0'..='9']+) {?
-                match (start_s.parse(), end_s.parse()) {
-                    (Ok(start), Ok(end)) => Ok((start, end)),
-                    _ => Err("range value overflow"),
+            = start:$(['0'..='9']+) "-" end:$(['0'..='9']+) {?
+                if let (Ok(start), Ok(end)) = (start.parse(), end.parse()) {
+                    Ok((start, end))
+                } else {
+                    Err("range value overflow")
                 }
-            } / start_s:$(['0'..='9']+) "-" {?
-                match start_s.parse() {
+            } / start:$(['0'..='9']+) "-" {?
+                match start.parse() {
                     Ok(start) if start <= max => Ok((start, max)),
                     Ok(start) => Ok((start, start)),
                     _ => Err("range value overflow"),
                 }
-            } / start_s:$(['0'..='9']+) {?
-                let start = start_s.parse().map_err(|_| "range value overflow")?;
+            } / start:$(['0'..='9']+) {?
+                let start = start.parse().map_err(|_| "range value overflow")?;
                 Ok((start, start))
             }
     }
