@@ -16,13 +16,13 @@ pub mod cpv;
 pub mod parse;
 pub mod pkg;
 pub mod uri;
+pub mod use_dep;
 pub mod version;
 
 pub use cpv::{Cpv, CpvOrDep};
-pub use pkg::{
-    Blocker, Dep, DepField, Slot, SlotDep, SlotOperator, UseDep, UseDepDefault, UseDepKind,
-};
+pub use pkg::{Blocker, Dep, DepField, Slot, SlotDep, SlotOperator};
 pub use uri::Uri;
+pub use use_dep::{UseDep, UseDepDefault, UseDepKind};
 pub use version::{Operator, Revision, Version};
 
 pub trait UseFlag:

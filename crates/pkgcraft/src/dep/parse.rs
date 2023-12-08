@@ -1,12 +1,11 @@
 use cached::{proc_macro::cached, SizedCache};
 
 use crate::dep::cpv::ParsedCpv;
-use crate::dep::pkg::ParsedDep;
-use crate::dep::version::{ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
-use crate::dep::{
-    Blocker, Dep, Dependency, DependencySet, Operator, Slot, SlotDep, SlotOperator, Uri, UseDep,
-    UseDepDefault, UseDepKind,
-};
+use crate::dep::pkg::{Blocker, Dep, ParsedDep, Slot, SlotDep, SlotOperator};
+use crate::dep::uri::Uri;
+use crate::dep::use_dep::{UseDep, UseDepDefault, UseDepKind};
+use crate::dep::version::{Operator, ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
+use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
 use crate::shell::metadata::{Iuse, Keyword, KeywordStatus};
