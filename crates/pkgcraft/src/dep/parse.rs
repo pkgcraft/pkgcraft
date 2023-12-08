@@ -253,10 +253,16 @@ peg::parser!(grammar depspec() for str {
         { Dependency::AnyOf(vals.into_iter().map(Box::new).collect()) }
 
     rule use_cond<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
-        = "!" u:use_flag() "?" __ vals:parens(<expr()>)
-        { Dependency::UseDisabled(u.to_string(), vals.into_iter().map(Box::new).collect()) }
-        / u:use_flag() "?" __ vals:parens(<expr()>)
-        { Dependency::UseEnabled(u.to_string(), vals.into_iter().map(Box::new).collect()) }
+        = disabled:"!"? flag:use_flag() "?" __ vals:parens(<expr()>) {
+            let kind = if disabled.is_none() {
+                UseDepKind::EnabledConditional
+            } else {
+                UseDepKind::DisabledConditional
+            };
+            let use_dep = UseDep { kind, flag: flag.to_string(), default: None };
+            let deps = vals.into_iter().map(Box::new).collect();
+            Dependency::UseConditional(use_dep, deps)
+        }
 
     rule exactly_one_of<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
         = "^^" __ vals:parens(<expr()>)

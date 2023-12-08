@@ -99,10 +99,8 @@ pub enum Dependency<S: UseFlag, T: Ordered> {
     ExactlyOneOf(OrderedSet<Box<Dependency<S, T>>>),
     /// At most one of a given dependency set (REQUIRED_USE only).
     AtMostOneOf(OrderedSet<Box<Dependency<S, T>>>),
-    /// Conditionally enabled dependency.
-    UseEnabled(S, SortedSet<Box<Dependency<S, T>>>),
-    /// Conditionally disabled dependency.
-    UseDisabled(S, SortedSet<Box<Dependency<S, T>>>),
+    /// USE conditional dependency.
+    UseConditional(UseDep<S>, SortedSet<Box<Dependency<S, T>>>),
 }
 
 macro_rules! box_ref {
@@ -115,8 +113,8 @@ macro_rules! box_ref {
 }
 
 impl<'a, T: Ordered> Dependency<String, T> {
-    /// Converts from `&Dependency<String, T>` to `Dependency<&String, &T>`.
-    pub fn as_ref(&'a self) -> Dependency<&'a String, &'a T> {
+    /// Converts a Dependency from an external reference to internal references.
+    pub fn as_ref(&'a self) -> Dependency<&'a str, &'a T> {
         use Dependency::*;
         match self {
             Enabled(ref val) => Enabled(val),
@@ -125,8 +123,7 @@ impl<'a, T: Ordered> Dependency<String, T> {
             AnyOf(ref vals) => AnyOf(box_ref!(vals)),
             ExactlyOneOf(ref vals) => ExactlyOneOf(box_ref!(vals)),
             AtMostOneOf(ref vals) => AtMostOneOf(box_ref!(vals)),
-            UseEnabled(u, ref vals) => UseEnabled(u, box_ref!(vals)),
-            UseDisabled(u, ref vals) => UseDisabled(u, box_ref!(vals)),
+            UseConditional(u, ref vals) => UseConditional(u.as_ref(), box_ref!(vals)),
         }
     }
 }
@@ -151,7 +148,7 @@ macro_rules! sort_set {
     };
 }
 
-impl<T: Ordered> IntoOwned for Dependency<&String, &T> {
+impl<T: Ordered> IntoOwned for Dependency<&str, &T> {
     type Owned = Dependency<String, T>;
 
     fn into_owned(self) -> Self::Owned {
@@ -163,8 +160,7 @@ impl<T: Ordered> IntoOwned for Dependency<&String, &T> {
             AnyOf(vals) => AnyOf(box_owned!(vals)),
             ExactlyOneOf(vals) => ExactlyOneOf(box_owned!(vals)),
             AtMostOneOf(vals) => AtMostOneOf(box_owned!(vals)),
-            UseEnabled(u, vals) => UseEnabled(u.clone(), box_owned!(vals)),
-            UseDisabled(u, vals) => UseDisabled(u.clone(), box_owned!(vals)),
+            UseConditional(u, vals) => UseConditional(u.into_owned(), box_owned!(vals)),
         }
     }
 }
@@ -178,8 +174,7 @@ impl<S: UseFlag, T: Ordered> Dependency<S, T> {
             AnyOf(vals) => vals.is_empty(),
             ExactlyOneOf(vals) => vals.is_empty(),
             AtMostOneOf(vals) => vals.is_empty(),
-            UseEnabled(_, vals) => vals.is_empty(),
-            UseDisabled(_, vals) => vals.is_empty(),
+            UseConditional(_, vals) => vals.is_empty(),
         }
     }
 
@@ -193,8 +188,7 @@ impl<S: UseFlag, T: Ordered> Dependency<S, T> {
             AnyOf(vals) => vals.len(),
             ExactlyOneOf(vals) => vals.len(),
             AtMostOneOf(vals) => vals.len(),
-            UseEnabled(_, vals) => vals.len(),
-            UseDisabled(_, vals) => vals.len(),
+            UseConditional(_, vals) => vals.len(),
         }
     }
 
@@ -219,8 +213,7 @@ impl<S: UseFlag, T: Ordered> Dependency<S, T> {
         use Dependency::*;
         match self {
             AllOf(vals) => *vals = sort_set!(vals).collect(),
-            UseEnabled(_, vals) => *vals = sort_set!(vals).collect(),
-            UseDisabled(_, vals) => *vals = sort_set!(vals).collect(),
+            UseConditional(_, vals) => *vals = sort_set!(vals).collect(),
             _ => (),
         }
     }
@@ -250,8 +243,7 @@ impl<S: UseFlag, T: Ordered> Contains<&Self> for Dependency<S, T> {
             AnyOf(vals) => vals.contains(dep),
             ExactlyOneOf(vals) => vals.contains(dep),
             AtMostOneOf(vals) => vals.contains(dep),
-            UseEnabled(_, vals) => vals.contains(dep),
-            UseDisabled(_, vals) => vals.contains(dep),
+            UseConditional(_, vals) => vals.contains(dep),
         }
     }
 }
@@ -274,19 +266,18 @@ impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a Dependency<S, T> {
             AnyOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
             ExactlyOneOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
             AtMostOneOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
-            UseEnabled(_, vals) => vals.iter().map(AsRef::as_ref).collect(),
-            UseDisabled(_, vals) => vals.iter().map(AsRef::as_ref).collect(),
+            UseConditional(_, vals) => vals.iter().map(AsRef::as_ref).collect(),
         }
     }
 }
 
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a Dependency<String, T> {
-    type Evaluated = SortedSet<Dependency<&'a String, &'a T>>;
+    type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
 
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
     type IntoIterEvaluate = IterEvaluate<'a, S, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate {
         IterEvaluate {
@@ -297,12 +288,12 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a Dependency<String,
 }
 
 impl<'a, T: Ordered> EvaluateForce for &'a Dependency<String, T> {
-    type Evaluated = SortedSet<Dependency<&'a String, &'a T>>;
+    type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
 
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
     type IntoIterEvaluateForce = IterEvaluateForce<'a, T>;
     fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
         IterEvaluateForce {
@@ -312,13 +303,13 @@ impl<'a, T: Ordered> EvaluateForce for &'a Dependency<String, T> {
     }
 }
 
-impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for Dependency<&'a String, &'a T> {
-    type Evaluated = SortedSet<Dependency<&'a String, &'a T>>;
+impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for Dependency<&'a str, &'a T> {
+    type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
 
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
     type IntoIterEvaluate = IntoIterEvaluate<'a, S, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate {
         IntoIterEvaluate {
@@ -328,13 +319,13 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for Dependency<&'a String,
     }
 }
 
-impl<'a, T: Ordered> EvaluateForce for Dependency<&'a String, &'a T> {
-    type Evaluated = SortedSet<Dependency<&'a String, &'a T>>;
+impl<'a, T: Ordered> EvaluateForce for Dependency<&'a str, &'a T> {
+    type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
 
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
     type IntoIterEvaluateForce = IntoIterEvaluateForce<'a, T>;
     fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
         IntoIterEvaluateForce {
@@ -356,8 +347,7 @@ impl<S: UseFlag, T: Ordered> IntoIterator for Dependency<S, T> {
             AnyOf(vals) => vals.into_iter().map(|x| *x).collect(),
             ExactlyOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
             AtMostOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            UseEnabled(_, vals) => vals.into_iter().map(|x| *x).collect(),
-            UseDisabled(_, vals) => vals.into_iter().map(|x| *x).collect(),
+            UseConditional(_, vals) => vals.into_iter().map(|x| *x).collect(),
         }
     }
 }
@@ -381,7 +371,7 @@ impl<'a, S: UseFlag, T: Ordered> Recursive for &'a Dependency<S, T> {
 }
 
 impl<'a, S: UseFlag, T: Ordered> Conditionals for &'a Dependency<S, T> {
-    type Item = &'a S;
+    type Item = &'a UseDep<S>;
     type IntoIterConditionals = IterConditionals<'a, S, T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
@@ -408,7 +398,7 @@ impl<S: UseFlag, T: Ordered> Recursive for Dependency<S, T> {
 }
 
 impl<S: UseFlag, T: Ordered> Conditionals for Dependency<S, T> {
-    type Item = S;
+    type Item = UseDep<S>;
     type IntoIterConditionals = IntoIterConditionals<S, T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
@@ -426,8 +416,7 @@ impl<S: UseFlag, T: fmt::Display + Ordered> fmt::Display for Dependency<S, T> {
             AnyOf(vals) => write!(f, "|| ( {} )", p!(vals)),
             ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p!(vals)),
             AtMostOneOf(vals) => write!(f, "?? ( {} )", p!(vals)),
-            UseEnabled(s, vals) => write!(f, "{s}? ( {} )", p!(vals)),
-            UseDisabled(s, vals) => write!(f, "!{s}? ( {} )", p!(vals)),
+            UseConditional(u, vals) => write!(f, "{u} ( {} )", p!(vals)),
         }
     }
 }
@@ -591,7 +580,7 @@ impl<S: UseFlag, T: Ordered> FromIterator<Dependency<S, T>> for DependencySet<S,
 }
 
 impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<String, T>>
-    for DependencySet<&'a String, &'a T>
+    for DependencySet<&'a str, &'a T>
 {
     fn from_iter<I: IntoIterator<Item = &'a Dependency<String, T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().map(|d| d.as_ref()).collect())
@@ -691,12 +680,12 @@ impl<S: UseFlag, T: Ordered> Contains<&T> for DependencySet<S, T> {
 }
 
 impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DependencySet<String, T> {
-    type Evaluated = DependencySet<&'a String, &'a T>;
+    type Evaluated = DependencySet<&'a str, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
 
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
     type IntoIterEvaluate = IterEvaluate<'a, S, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate {
         IterEvaluate {
@@ -707,12 +696,12 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DependencySet<Stri
 }
 
 impl<'a, T: Ordered> EvaluateForce for &'a DependencySet<String, T> {
-    type Evaluated = DependencySet<&'a String, &'a T>;
+    type Evaluated = DependencySet<&'a str, &'a T>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
 
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
     type IntoIterEvaluateForce = IterEvaluateForce<'a, T>;
     fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
         IterEvaluateForce {
@@ -722,13 +711,13 @@ impl<'a, T: Ordered> EvaluateForce for &'a DependencySet<String, T> {
     }
 }
 
-impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DependencySet<&'a String, &'a T> {
-    type Evaluated = DependencySet<&'a String, &'a T>;
+impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DependencySet<&'a str, &'a T> {
+    type Evaluated = DependencySet<&'a str, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
 
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
     type IntoIterEvaluate = IntoIterEvaluate<'a, S, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate {
         IntoIterEvaluate {
@@ -738,13 +727,13 @@ impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DependencySet<&'a Stri
     }
 }
 
-impl<'a, T: Ordered> EvaluateForce for DependencySet<&'a String, &'a T> {
-    type Evaluated = DependencySet<&'a String, &'a T>;
+impl<'a, T: Ordered> EvaluateForce for DependencySet<&'a str, &'a T> {
+    type Evaluated = DependencySet<&'a str, &'a T>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
 
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
     type IntoIterEvaluateForce = IntoIterEvaluateForce<'a, T>;
     fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
         IntoIterEvaluateForce {
@@ -754,7 +743,7 @@ impl<'a, T: Ordered> EvaluateForce for DependencySet<&'a String, &'a T> {
     }
 }
 
-impl<T: Ordered> IntoOwned for DependencySet<&String, &T> {
+impl<T: Ordered> IntoOwned for DependencySet<&str, &T> {
     type Owned = DependencySet<String, T>;
 
     fn into_owned(self) -> Self::Owned {
@@ -813,7 +802,7 @@ impl<'a, S: UseFlag, T: Ordered> Recursive for &'a DependencySet<S, T> {
 }
 
 impl<'a, S: UseFlag, T: Ordered> Conditionals for &'a DependencySet<S, T> {
-    type Item = &'a S;
+    type Item = &'a UseDep<S>;
     type IntoIterConditionals = IterConditionals<'a, S, T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
@@ -844,7 +833,7 @@ pub struct IterEvaluate<'a, S: Enabled, T: Ordered> {
 }
 
 impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IterEvaluate<'a, S, T> {
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -856,13 +845,8 @@ impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IterEvaluate<'a, S, T
                 AnyOf(vals) => iter_eval!(AnyOf, vals, self.options),
                 ExactlyOneOf(vals) => iter_eval!(ExactlyOneOf, vals, self.options),
                 AtMostOneOf(vals) => iter_eval!(AtMostOneOf, vals, self.options),
-                UseEnabled(flag, vals) => {
-                    if self.options.contains(flag.as_str()) {
-                        self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
-                    }
-                }
-                UseDisabled(flag, vals) => {
-                    if !self.options.contains(flag.as_str()) {
+                UseConditional(u, vals) => {
+                    if u.matches(self.options) {
                         self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
                     }
                 }
@@ -895,7 +879,7 @@ pub struct IterEvaluateForce<'a, T: Ordered> {
 }
 
 impl<'a, T: fmt::Debug + Ordered> Iterator for IterEvaluateForce<'a, T> {
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -907,7 +891,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterEvaluateForce<'a, T> {
                 AnyOf(vals) => iter_eval_force!(AnyOf, vals, self.force),
                 ExactlyOneOf(vals) => iter_eval_force!(ExactlyOneOf, vals, self.force),
                 AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
-                UseEnabled(_, vals) | UseDisabled(_, vals) => {
+                UseConditional(_, vals) => {
                     if self.force {
                         self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
                     }
@@ -933,8 +917,7 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, S, T>
                 AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseEnabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseDisabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                UseConditional(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
             }
         }
         None
@@ -992,7 +975,7 @@ impl<S: UseFlag, T: Ordered> Recursive for DependencySet<S, T> {
 }
 
 impl<S: UseFlag, T: Ordered> Conditionals for DependencySet<S, T> {
-    type Item = S;
+    type Item = UseDep<S>;
     type IntoIterConditionals = IntoIterConditionals<S, T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
@@ -1002,12 +985,12 @@ impl<S: UseFlag, T: Ordered> Conditionals for DependencySet<S, T> {
 
 #[derive(Debug)]
 pub struct IntoIterEvaluate<'a, S: Enabled, T: Ordered> {
-    q: Deque<Dependency<&'a String, &'a T>>,
+    q: Deque<Dependency<&'a str, &'a T>>,
     options: &'a IndexSet<S>,
 }
 
 impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1019,13 +1002,8 @@ impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluate<'a, 
                 AnyOf(vals) => iter_eval!(AnyOf, vals, self.options),
                 ExactlyOneOf(vals) => iter_eval!(ExactlyOneOf, vals, self.options),
                 AtMostOneOf(vals) => iter_eval!(AtMostOneOf, vals, self.options),
-                UseEnabled(flag, vals) => {
-                    if self.options.contains(flag.as_str()) {
-                        self.q.extend_left(vals.into_iter().map(|x| *x));
-                    }
-                }
-                UseDisabled(flag, vals) => {
-                    if !self.options.contains(flag.as_str()) {
+                UseConditional(u, vals) => {
+                    if u.matches(self.options) {
                         self.q.extend_left(vals.into_iter().map(|x| *x));
                     }
                 }
@@ -1037,12 +1015,12 @@ impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluate<'a, 
 
 #[derive(Debug)]
 pub struct IntoIterEvaluateForce<'a, T: Ordered> {
-    q: Deque<Dependency<&'a String, &'a T>>,
+    q: Deque<Dependency<&'a str, &'a T>>,
     force: bool,
 }
 
 impl<'a, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
-    type Item = Dependency<&'a String, &'a T>;
+    type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1054,7 +1032,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
                 AnyOf(vals) => iter_eval_force!(AnyOf, vals, self.force),
                 ExactlyOneOf(vals) => iter_eval_force!(ExactlyOneOf, vals, self.force),
                 AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
-                UseEnabled(_, vals) | UseDisabled(_, vals) => {
+                UseConditional(_, vals) => {
                     if self.force {
                         self.q.extend_left(vals.into_iter().map(|x| *x));
                     }
@@ -1080,8 +1058,7 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<S, T> {
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                UseEnabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                UseDisabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                UseConditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
             }
         }
         None
@@ -1104,8 +1081,7 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, S, 
                 AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseEnabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseDisabled(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                UseConditional(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
             }
         }
 
@@ -1129,8 +1105,7 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
-                UseEnabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
-                UseDisabled(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
+                UseConditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
             }
         }
 
@@ -1142,7 +1117,7 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
 pub struct IterConditionals<'a, S: UseFlag, T: Ordered>(Deque<&'a Dependency<S, T>>);
 
 impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, S, T> {
-    type Item = &'a S;
+    type Item = &'a UseDep<S>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1153,9 +1128,9 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, 
                 AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseEnabled(flag, vals) | UseDisabled(flag, vals) => {
+                UseConditional(u, vals) => {
                     self.0.extend_left(vals.iter().map(AsRef::as_ref));
-                    return Some(flag);
+                    return Some(u);
                 }
             }
         }
@@ -1167,7 +1142,7 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, 
 pub struct IntoIterConditionals<S: UseFlag, T: Ordered>(Deque<Dependency<S, T>>);
 
 impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterConditionals<S, T> {
-    type Item = S;
+    type Item = UseDep<S>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1178,9 +1153,9 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterConditionals<S, T
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                UseEnabled(flag, vals) | UseDisabled(flag, vals) => {
+                UseConditional(u, vals) => {
                     self.0.extend_left(vals.into_iter().map(|x| *x));
-                    return Some(flag);
+                    return Some(u);
                 }
             }
         }

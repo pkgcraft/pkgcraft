@@ -309,8 +309,7 @@ pub enum DependencyKind {
     AnyOf,
     ExactlyOneOf,
     AtMostOneOf,
-    UseEnabled,
-    UseDisabled,
+    UseConditional,
 }
 
 impl<S: UseFlag, T: Ordered> From<&dep::Dependency<S, T>> for DependencyKind {
@@ -323,8 +322,7 @@ impl<S: UseFlag, T: Ordered> From<&dep::Dependency<S, T>> for DependencyKind {
             AnyOf(_) => Self::AnyOf,
             ExactlyOneOf(_) => Self::ExactlyOneOf,
             AtMostOneOf(_) => Self::AtMostOneOf,
-            UseEnabled(_, _) => Self::UseEnabled,
-            UseDisabled(_, _) => Self::UseDisabled,
+            UseConditional(_, _) => Self::UseConditional,
         }
     }
 }
@@ -473,7 +471,7 @@ pub enum DependencyIntoIterConditionals {
 }
 
 impl Iterator for DependencyIntoIterConditionals {
-    type Item = String;
+    type Item = dep::UseDep<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -1479,10 +1477,10 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals_next(
     i: *mut DependencyIntoIterConditionals,
-) -> *mut c_char {
+) -> *mut pkg::UseDep {
     let iter = try_mut_from_ptr!(i);
     iter.next()
-        .map(|s| try_ptr_from_str!(s))
+        .map(|x| boxed(x.into()))
         .unwrap_or(ptr::null_mut())
 }
 

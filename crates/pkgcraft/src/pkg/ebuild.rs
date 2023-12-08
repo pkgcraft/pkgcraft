@@ -98,7 +98,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&String, &Dep> {
+    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&str, &Dep> {
         use Key::*;
 
         // default to all dependency types defined by the package EAPI if no keys are passed

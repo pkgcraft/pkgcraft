@@ -5,6 +5,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use indexmap::IndexSet;
 use itertools::Itertools;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumString};
@@ -16,7 +17,7 @@ use crate::types::SortedSet;
 use crate::Error;
 
 use super::version::{Operator, ParsedVersion, Revision, Version};
-use super::{parse, Cpv, UseFlag};
+use super::{parse, Cpv, Enabled, UseFlag};
 
 #[repr(C)]
 #[derive(
@@ -210,12 +211,31 @@ impl<S: UseFlag> UseDep<S> {
     pub fn default(&self) -> Option<UseDepDefault> {
         self.default
     }
+
+    /// Determine if a USE dependency matches a set of enabled flags.
+    pub(crate) fn matches<F: Enabled>(&self, options: &IndexSet<F>) -> bool {
+        use UseDepKind::*;
+        match &self.kind {
+            EnabledConditional => options.contains(self.flag()),
+            DisabledConditional => !options.contains(self.flag()),
+            _ => todo!(),
+        }
+    }
 }
 
 impl UseDep<String> {
     /// Create a new UseDep from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
         parse::use_dep(s).into_owned()
+    }
+
+    /// Return the UseDep using internal references.
+    pub(crate) fn as_ref(&self) -> UseDep<&str> {
+        UseDep {
+            kind: self.kind,
+            flag: &self.flag,
+            default: self.default,
+        }
     }
 }
 
@@ -256,7 +276,7 @@ impl Slot<String> {
         self.name.split_once('/').map(|x| x.1)
     }
 
-    /// Return the Slot using borrowed values.
+    /// Return the Slot using internal references.
     fn as_ref(&self) -> Slot<&str> {
         Slot { name: &self.name }
     }
@@ -783,8 +803,6 @@ impl Intersects<Dep> for Dep {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
-
     use crate::dep::CpvOrDep;
     use crate::eapi::{self, EAPIS};
     use crate::test::TEST_DATA;
