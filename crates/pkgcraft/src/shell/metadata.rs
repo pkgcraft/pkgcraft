@@ -221,8 +221,10 @@ impl Metadata {
                 }
             }
             key => {
-                // TODO: create dependency sets for incrementals directly from build state
-                if let Some(val) = variables::optional(key) {
+                if let Some(val) = build.incrementals.get(key) {
+                    let s = val.iter().join(" ");
+                    self.deserialize(eapi, key, &s)?;
+                } else if let Some(val) = variables::optional(key) {
                     let s = val.split_whitespace().join(" ");
                     self.deserialize(eapi, key, &s)?;
                 } else {
