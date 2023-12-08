@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 use itertools::Either;
 
 use crate::dep::{Cpv, Dep};
-use crate::dep::{DepSet, Uri};
+use crate::dep::{DependencySet, Uri};
 use crate::eapi::Eapi;
 use crate::repo::{ebuild::Repo, Repository};
 use crate::shell::metadata::{Iuse, Key, Keyword, Metadata};
@@ -98,7 +98,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, keys: &[Key]) -> DepSet<&String, &Dep> {
+    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&String, &Dep> {
         use Key::*;
 
         // default to all dependency types defined by the package EAPI if no keys are passed
@@ -124,52 +124,52 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's BDEPEND.
-    pub fn bdepend(&self) -> &DepSet<String, Dep> {
+    pub fn bdepend(&self) -> &DependencySet<String, Dep> {
         self.meta.bdepend()
     }
 
     /// Return a package's DEPEND.
-    pub fn depend(&self) -> &DepSet<String, Dep> {
+    pub fn depend(&self) -> &DependencySet<String, Dep> {
         self.meta.depend()
     }
 
     /// Return a package's IDEPEND.
-    pub fn idepend(&self) -> &DepSet<String, Dep> {
+    pub fn idepend(&self) -> &DependencySet<String, Dep> {
         self.meta.idepend()
     }
 
     /// Return a package's PDEPEND.
-    pub fn pdepend(&self) -> &DepSet<String, Dep> {
+    pub fn pdepend(&self) -> &DependencySet<String, Dep> {
         self.meta.pdepend()
     }
 
     /// Return a package's RDEPEND.
-    pub fn rdepend(&self) -> &DepSet<String, Dep> {
+    pub fn rdepend(&self) -> &DependencySet<String, Dep> {
         self.meta.rdepend()
     }
 
     /// Return a package's LICENSE.
-    pub fn license(&self) -> &DepSet<String, String> {
+    pub fn license(&self) -> &DependencySet<String, String> {
         self.meta.license()
     }
 
     /// Return a package's PROPERTIES.
-    pub fn properties(&self) -> &DepSet<String, String> {
+    pub fn properties(&self) -> &DependencySet<String, String> {
         self.meta.properties()
     }
 
     /// Return a package's REQUIRED_USE.
-    pub fn required_use(&self) -> &DepSet<String, String> {
+    pub fn required_use(&self) -> &DependencySet<String, String> {
         self.meta.required_use()
     }
 
     /// Return a package's RESTRICT.
-    pub fn restrict(&self) -> &DepSet<String, String> {
+    pub fn restrict(&self) -> &DependencySet<String, String> {
         self.meta.restrict()
     }
 
     /// Return a package's SRC_URI.
-    pub fn src_uri(&self) -> &DepSet<String, Uri> {
+    pub fn src_uri(&self) -> &DependencySet<String, Uri> {
         self.meta.src_uri()
     }
 

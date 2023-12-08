@@ -8,7 +8,7 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
-use crate::dep::{self, Cpv, Dep, DepSet, Slot, Uri};
+use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
 use crate::files::atomic_write_file;
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
@@ -153,16 +153,16 @@ impl<S: fmt::Display> fmt::Display for Keyword<S> {
 pub(crate) struct Metadata {
     description: String,
     slot: Slot<String>,
-    bdepend: DepSet<String, Dep>,
-    depend: DepSet<String, Dep>,
-    idepend: DepSet<String, Dep>,
-    pdepend: DepSet<String, Dep>,
-    rdepend: DepSet<String, Dep>,
-    license: DepSet<String, String>,
-    properties: DepSet<String, String>,
-    required_use: DepSet<String, String>,
-    restrict: DepSet<String, String>,
-    src_uri: DepSet<String, Uri>,
+    bdepend: DependencySet<String, Dep>,
+    depend: DependencySet<String, Dep>,
+    idepend: DependencySet<String, Dep>,
+    pdepend: DependencySet<String, Dep>,
+    rdepend: DependencySet<String, Dep>,
+    license: DependencySet<String, String>,
+    properties: DependencySet<String, String>,
+    required_use: DependencySet<String, String>,
+    restrict: DependencySet<String, String>,
+    src_uri: DependencySet<String, Uri>,
     homepage: OrderedSet<String>,
     defined_phases: OrderedSet<String>,
     keywords: OrderedSet<Keyword<String>>,
@@ -221,7 +221,7 @@ impl Metadata {
                 }
             }
             key => {
-                // TODO: create DepSets for incrementals directly from build state
+                // TODO: create dependency sets for incrementals directly from build state
                 if let Some(val) = variables::optional(key) {
                     let s = val.split_whitespace().join(" ");
                     self.deserialize(eapi, key, &s)?;
@@ -241,16 +241,16 @@ impl Metadata {
             CHKSUM => self.chksum = val.to_string(),
             DESCRIPTION => self.description = val.to_string(),
             SLOT => self.slot = Slot::new(val)?,
-            BDEPEND => self.bdepend = dep::parse::dependencies_dep_set(val, eapi)?,
-            DEPEND => self.depend = dep::parse::dependencies_dep_set(val, eapi)?,
-            IDEPEND => self.idepend = dep::parse::dependencies_dep_set(val, eapi)?,
-            PDEPEND => self.pdepend = dep::parse::dependencies_dep_set(val, eapi)?,
-            RDEPEND => self.rdepend = dep::parse::dependencies_dep_set(val, eapi)?,
-            LICENSE => self.license = dep::parse::license_dep_set(val)?,
-            PROPERTIES => self.properties = dep::parse::properties_dep_set(val)?,
-            REQUIRED_USE => self.required_use = dep::parse::required_use_dep_set(val, eapi)?,
-            RESTRICT => self.restrict = dep::parse::restrict_dep_set(val)?,
-            SRC_URI => self.src_uri = dep::parse::src_uri_dep_set(val, eapi)?,
+            BDEPEND => self.bdepend = dep::parse::package_dependency_set(val, eapi)?,
+            DEPEND => self.depend = dep::parse::package_dependency_set(val, eapi)?,
+            IDEPEND => self.idepend = dep::parse::package_dependency_set(val, eapi)?,
+            PDEPEND => self.pdepend = dep::parse::package_dependency_set(val, eapi)?,
+            RDEPEND => self.rdepend = dep::parse::package_dependency_set(val, eapi)?,
+            LICENSE => self.license = dep::parse::license_dependency_set(val)?,
+            PROPERTIES => self.properties = dep::parse::properties_dependency_set(val)?,
+            REQUIRED_USE => self.required_use = dep::parse::required_use_dependency_set(val, eapi)?,
+            RESTRICT => self.restrict = dep::parse::restrict_dependency_set(val)?,
+            SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val, eapi)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
             DEFINED_PHASES => {
                 self.defined_phases = val.split_whitespace().map(String::from).sorted().collect()
@@ -512,43 +512,43 @@ impl Metadata {
         &self.slot
     }
 
-    pub(crate) fn bdepend(&self) -> &DepSet<String, Dep> {
+    pub(crate) fn bdepend(&self) -> &DependencySet<String, Dep> {
         &self.bdepend
     }
 
-    pub(crate) fn depend(&self) -> &DepSet<String, Dep> {
+    pub(crate) fn depend(&self) -> &DependencySet<String, Dep> {
         &self.depend
     }
 
-    pub(crate) fn idepend(&self) -> &DepSet<String, Dep> {
+    pub(crate) fn idepend(&self) -> &DependencySet<String, Dep> {
         &self.idepend
     }
 
-    pub(crate) fn pdepend(&self) -> &DepSet<String, Dep> {
+    pub(crate) fn pdepend(&self) -> &DependencySet<String, Dep> {
         &self.pdepend
     }
 
-    pub(crate) fn rdepend(&self) -> &DepSet<String, Dep> {
+    pub(crate) fn rdepend(&self) -> &DependencySet<String, Dep> {
         &self.rdepend
     }
 
-    pub(crate) fn license(&self) -> &DepSet<String, String> {
+    pub(crate) fn license(&self) -> &DependencySet<String, String> {
         &self.license
     }
 
-    pub(crate) fn properties(&self) -> &DepSet<String, String> {
+    pub(crate) fn properties(&self) -> &DependencySet<String, String> {
         &self.properties
     }
 
-    pub(crate) fn required_use(&self) -> &DepSet<String, String> {
+    pub(crate) fn required_use(&self) -> &DependencySet<String, String> {
         &self.required_use
     }
 
-    pub(crate) fn restrict(&self) -> &DepSet<String, String> {
+    pub(crate) fn restrict(&self) -> &DependencySet<String, String> {
         &self.restrict
     }
 
-    pub(crate) fn src_uri(&self) -> &DepSet<String, Uri> {
+    pub(crate) fn src_uri(&self) -> &DependencySet<String, Uri> {
         &self.src_uri
     }
 

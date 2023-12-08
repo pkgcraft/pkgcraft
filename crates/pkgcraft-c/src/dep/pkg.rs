@@ -19,7 +19,7 @@ use crate::utils::{boxed, obj_to_str};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UseDepWrapper(dep::UseDep<String>);
 
-/// C-compatible wrapper for pkgcraft::dep::DepSpec.
+/// C-compatible wrapper for pkgcraft::dep::UseDep.
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct UseDep {

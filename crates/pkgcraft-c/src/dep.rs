@@ -26,12 +26,12 @@ pub mod pkg;
 pub mod uri;
 pub mod version;
 
-/// DepSet variants.
+/// DependencySet variants.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(C)]
-pub enum DepSetKind {
+pub enum DependencySetKind {
     #[default]
-    Dependencies,
+    Package,
     SrcUri,
     License,
     Properties,
@@ -39,15 +39,15 @@ pub enum DepSetKind {
     Restrict,
 }
 
-/// Opaque wrapper for pkgcraft::dep::DepSet.
+/// Opaque wrapper for pkgcraft::dep::DependencySet.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DepSetWrapper {
-    Dep(dep::DepSet<String, Dep>),
-    String(dep::DepSet<String, String>),
-    Uri(dep::DepSet<String, Uri>),
+pub enum DependencySetWrapper {
+    Dep(dep::DependencySet<String, Dep>),
+    String(dep::DependencySet<String, String>),
+    Uri(dep::DependencySet<String, Uri>),
 }
 
-impl fmt::Display for DepSetWrapper {
+impl fmt::Display for DependencySetWrapper {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Dep(d) => write!(f, "{d}"),
@@ -57,15 +57,15 @@ impl fmt::Display for DepSetWrapper {
     }
 }
 
-/// C-compatible wrapper for pkgcraft::dep::DepSet.
+/// C-compatible wrapper for pkgcraft::dep::DependencySet.
 #[derive(Debug)]
 #[repr(C)]
-pub struct DepSet {
-    set: DepSetKind,
-    dep: *mut DepSetWrapper,
+pub struct DependencySet {
+    set: DependencySetKind,
+    dep: *mut DependencySetWrapper,
 }
 
-impl Clone for DepSet {
+impl Clone for DependencySet {
     fn clone(&self) -> Self {
         let dep = try_ref_from_ptr!(self.dep);
         Self {
@@ -75,7 +75,7 @@ impl Clone for DepSet {
     }
 }
 
-impl Drop for DepSet {
+impl Drop for DependencySet {
     fn drop(&mut self) {
         unsafe {
             drop(Box::from_raw(self.dep));
@@ -83,83 +83,86 @@ impl Drop for DepSet {
     }
 }
 
-impl DepSet {
-    pub(crate) fn new_dep(d: dep::DepSet<String, Dep>) -> Self {
+impl DependencySet {
+    pub(crate) fn new_dep(d: dep::DependencySet<String, Dep>) -> Self {
         Self {
-            set: DepSetKind::Dependencies,
-            dep: Box::into_raw(Box::new(DepSetWrapper::Dep(d))),
+            set: DependencySetKind::Package,
+            dep: Box::into_raw(Box::new(DependencySetWrapper::Dep(d))),
         }
     }
 
-    pub(crate) fn new_string(d: dep::DepSet<String, String>, set: DepSetKind) -> Self {
+    pub(crate) fn new_string(
+        d: dep::DependencySet<String, String>,
+        set: DependencySetKind,
+    ) -> Self {
         Self {
             set,
-            dep: Box::into_raw(Box::new(DepSetWrapper::String(d))),
+            dep: Box::into_raw(Box::new(DependencySetWrapper::String(d))),
         }
     }
 
-    pub(crate) fn new_uri(d: dep::DepSet<String, Uri>) -> Self {
+    pub(crate) fn new_uri(d: dep::DependencySet<String, Uri>) -> Self {
         Self {
-            set: DepSetKind::SrcUri,
-            dep: Box::into_raw(Box::new(DepSetWrapper::Uri(d))),
+            set: DependencySetKind::SrcUri,
+            dep: Box::into_raw(Box::new(DependencySetWrapper::Uri(d))),
         }
     }
 }
 
-impl Hash for DepSet {
+impl Hash for DependencySet {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.deref().hash(state)
     }
 }
 
-impl PartialEq for DepSet {
+impl PartialEq for DependencySet {
     fn eq(&self, other: &Self) -> bool {
         self.deref().eq(other.deref())
     }
 }
 
-impl Eq for DepSet {}
+impl Eq for DependencySet {}
 
-impl Deref for DepSet {
-    type Target = DepSetWrapper;
+impl Deref for DependencySet {
+    type Target = DependencySetWrapper;
 
     fn deref(&self) -> &Self::Target {
         try_ref_from_ptr!(self.dep)
     }
 }
 
-impl DerefMut for DepSet {
+impl DerefMut for DependencySet {
     fn deref_mut(&mut self) -> &mut Self::Target {
         try_mut_from_ptr!(self.dep)
     }
 }
 
-impl fmt::Display for DepSet {
+impl fmt::Display for DependencySet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.deref())
     }
 }
 
-impl BitAnd<&DepSet> for &DepSet {
-    type Output = DepSet;
+impl BitAnd<&DependencySet> for &DependencySet {
+    type Output = DependencySet;
 
-    fn bitand(self, other: &DepSet) -> Self::Output {
+    fn bitand(self, other: &DependencySet) -> Self::Output {
         let mut dep = self.clone();
         dep &= other;
         dep
     }
 }
 
-impl BitAndAssign<&DepSet> for DepSet {
-    fn bitand_assign(&mut self, other: &DepSet) {
-        use DepSetWrapper::*;
+impl BitAndAssign<&DependencySet> for DependencySet {
+    fn bitand_assign(&mut self, other: &DependencySet) {
+        use DependencySetWrapper::*;
         match (self.deref_mut(), other.deref()) {
             (Dep(d1), Dep(d2)) => *d1 &= d2,
             (String(d1), String(d2)) => *d1 &= d2,
             (Uri(d1), Uri(d2)) => *d1 &= d2,
             _ => {
                 set_error_and_panic!(Error::new(format!(
-                    "DepSet kind {:?} doesn't match: {:?}",
+                    "DependencySet kind {:?} doesn't match: {:?}",
                     self.set, other.set
                 )));
             }
@@ -167,26 +170,26 @@ impl BitAndAssign<&DepSet> for DepSet {
     }
 }
 
-impl BitOr<&DepSet> for &DepSet {
-    type Output = DepSet;
+impl BitOr<&DependencySet> for &DependencySet {
+    type Output = DependencySet;
 
-    fn bitor(self, other: &DepSet) -> Self::Output {
+    fn bitor(self, other: &DependencySet) -> Self::Output {
         let mut dep = self.clone();
         dep |= other;
         dep
     }
 }
 
-impl BitOrAssign<&DepSet> for DepSet {
-    fn bitor_assign(&mut self, other: &DepSet) {
-        use DepSetWrapper::*;
+impl BitOrAssign<&DependencySet> for DependencySet {
+    fn bitor_assign(&mut self, other: &DependencySet) {
+        use DependencySetWrapper::*;
         match (self.deref_mut(), other.deref()) {
             (Dep(d1), Dep(d2)) => *d1 |= d2,
             (String(d1), String(d2)) => *d1 |= d2,
             (Uri(d1), Uri(d2)) => *d1 |= d2,
             _ => {
                 set_error_and_panic!(Error::new(format!(
-                    "DepSet kind {:?} doesn't match: {:?}",
+                    "DependencySet kind {:?} doesn't match: {:?}",
                     self.set, other.set
                 )));
             }
@@ -194,26 +197,26 @@ impl BitOrAssign<&DepSet> for DepSet {
     }
 }
 
-impl BitXor<&DepSet> for &DepSet {
-    type Output = DepSet;
+impl BitXor<&DependencySet> for &DependencySet {
+    type Output = DependencySet;
 
-    fn bitxor(self, other: &DepSet) -> Self::Output {
+    fn bitxor(self, other: &DependencySet) -> Self::Output {
         let mut dep = self.clone();
         dep ^= other;
         dep
     }
 }
 
-impl BitXorAssign<&DepSet> for DepSet {
-    fn bitxor_assign(&mut self, other: &DepSet) {
-        use DepSetWrapper::*;
+impl BitXorAssign<&DependencySet> for DependencySet {
+    fn bitxor_assign(&mut self, other: &DependencySet) {
+        use DependencySetWrapper::*;
         match (self.deref_mut(), other.deref()) {
             (Dep(d1), Dep(d2)) => *d1 ^= d2,
             (String(d1), String(d2)) => *d1 ^= d2,
             (Uri(d1), Uri(d2)) => *d1 ^= d2,
             _ => {
                 set_error_and_panic!(Error::new(format!(
-                    "DepSet kind {:?} doesn't match: {:?}",
+                    "DependencySet kind {:?} doesn't match: {:?}",
                     self.set, other.set
                 )));
             }
@@ -221,26 +224,26 @@ impl BitXorAssign<&DepSet> for DepSet {
     }
 }
 
-impl Sub<&DepSet> for &DepSet {
-    type Output = DepSet;
+impl Sub<&DependencySet> for &DependencySet {
+    type Output = DependencySet;
 
-    fn sub(self, other: &DepSet) -> Self::Output {
+    fn sub(self, other: &DependencySet) -> Self::Output {
         let mut dep = self.clone();
         dep -= other;
         dep
     }
 }
 
-impl SubAssign<&DepSet> for DepSet {
-    fn sub_assign(&mut self, other: &DepSet) {
-        use DepSetWrapper::*;
+impl SubAssign<&DependencySet> for DependencySet {
+    fn sub_assign(&mut self, other: &DependencySet) {
+        use DependencySetWrapper::*;
         match (self.deref_mut(), other.deref()) {
             (Dep(d1), Dep(d2)) => *d1 -= d2,
             (String(d1), String(d2)) => *d1 -= d2,
             (Uri(d1), Uri(d2)) => *d1 -= d2,
             _ => {
                 set_error_and_panic!(Error::new(format!(
-                    "DepSet kind {:?} doesn't match: {:?}",
+                    "DependencySet kind {:?} doesn't match: {:?}",
                     self.set, other.set
                 )));
             }
@@ -250,43 +253,43 @@ impl SubAssign<&DepSet> for DepSet {
 
 /// Opaque wrapper for pkgcraft::dep::spec::IntoIter<String, T>.
 #[derive(Debug)]
-pub enum DepSpecIntoIter {
-    Dep(DepSetKind, dep::IntoIter<String, Dep>),
-    String(DepSetKind, dep::IntoIter<String, String>),
-    Uri(DepSetKind, dep::IntoIter<String, Uri>),
+pub enum DependencyIntoIter {
+    Dep(DependencySetKind, dep::IntoIter<String, Dep>),
+    String(DependencySetKind, dep::IntoIter<String, String>),
+    Uri(DependencySetKind, dep::IntoIter<String, Uri>),
 }
 
-impl Iterator for DepSpecIntoIter {
-    type Item = DepSpec;
+impl Iterator for DependencyIntoIter {
+    type Item = Dependency;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Dep(_, iter) => iter.next().map(DepSpec::new_dep),
-            Self::String(set, iter) => iter.next().map(|d| DepSpec::new_string(d, *set)),
-            Self::Uri(_, iter) => iter.next().map(DepSpec::new_uri),
+            Self::Dep(_, iter) => iter.next().map(Dependency::new_dep),
+            Self::String(set, iter) => iter.next().map(|d| Dependency::new_string(d, *set)),
+            Self::Uri(_, iter) => iter.next().map(Dependency::new_uri),
         }
     }
 }
 
-impl DoubleEndedIterator for DepSpecIntoIter {
+impl DoubleEndedIterator for DependencyIntoIter {
     fn next_back(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Dep(_, iter) => iter.next_back().map(DepSpec::new_dep),
-            Self::String(set, iter) => iter.next_back().map(|d| DepSpec::new_string(d, *set)),
-            Self::Uri(_, iter) => iter.next_back().map(DepSpec::new_uri),
+            Self::Dep(_, iter) => iter.next_back().map(Dependency::new_dep),
+            Self::String(set, iter) => iter.next_back().map(|d| Dependency::new_string(d, *set)),
+            Self::Uri(_, iter) => iter.next_back().map(Dependency::new_uri),
         }
     }
 }
 
-/// Opaque wrapper for pkgcraft::dep::DepSpec.
+/// Opaque wrapper for pkgcraft::dep::Dependency.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DepSpecWrapper {
-    Dep(dep::DepSpec<String, Dep>),
-    String(dep::DepSpec<String, String>),
-    Uri(dep::DepSpec<String, Uri>),
+pub enum DependencyWrapper {
+    Dep(dep::Dependency<String, Dep>),
+    String(dep::Dependency<String, String>),
+    Uri(dep::Dependency<String, Uri>),
 }
 
-impl fmt::Display for DepSpecWrapper {
+impl fmt::Display for DependencyWrapper {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Dep(d) => write!(f, "{d}"),
@@ -296,10 +299,10 @@ impl fmt::Display for DepSpecWrapper {
     }
 }
 
-/// DepSpec variants.
+/// Dependency variants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
-pub enum DepSpecKind {
+pub enum DependencyKind {
     Enabled,
     Disabled,
     AllOf,
@@ -310,9 +313,9 @@ pub enum DepSpecKind {
     UseDisabled,
 }
 
-impl<S: UseFlag, T: Ordered> From<&dep::DepSpec<S, T>> for DepSpecKind {
-    fn from(d: &dep::DepSpec<S, T>) -> Self {
-        use dep::DepSpec::*;
+impl<S: UseFlag, T: Ordered> From<&dep::Dependency<S, T>> for DependencyKind {
+    fn from(d: &dep::Dependency<S, T>) -> Self {
+        use dep::Dependency::*;
         match d {
             Enabled(_) => Self::Enabled,
             Disabled(_) => Self::Disabled,
@@ -326,16 +329,16 @@ impl<S: UseFlag, T: Ordered> From<&dep::DepSpec<S, T>> for DepSpecKind {
     }
 }
 
-/// C-compatible wrapper for pkgcraft::dep::DepSpec.
+/// C-compatible wrapper for pkgcraft::dep::Dependency.
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct DepSpec {
-    set: DepSetKind,
-    kind: DepSpecKind,
-    dep: *mut DepSpecWrapper,
+pub struct Dependency {
+    set: DependencySetKind,
+    kind: DependencyKind,
+    dep: *mut DependencyWrapper,
 }
 
-impl Drop for DepSpec {
+impl Drop for Dependency {
     fn drop(&mut self) {
         unsafe {
             drop(Box::from_raw(self.dep));
@@ -343,73 +346,73 @@ impl Drop for DepSpec {
     }
 }
 
-impl DepSpec {
-    pub(crate) fn new_dep(d: dep::DepSpec<String, Dep>) -> Self {
+impl Dependency {
+    pub(crate) fn new_dep(d: dep::Dependency<String, Dep>) -> Self {
         Self {
-            set: DepSetKind::Dependencies,
-            kind: DepSpecKind::from(&d),
-            dep: Box::into_raw(Box::new(DepSpecWrapper::Dep(d))),
+            set: DependencySetKind::Package,
+            kind: DependencyKind::from(&d),
+            dep: Box::into_raw(Box::new(DependencyWrapper::Dep(d))),
         }
     }
 
-    pub(crate) fn new_string(d: dep::DepSpec<String, String>, set: DepSetKind) -> Self {
+    pub(crate) fn new_string(d: dep::Dependency<String, String>, set: DependencySetKind) -> Self {
         Self {
             set,
-            kind: DepSpecKind::from(&d),
-            dep: Box::into_raw(Box::new(DepSpecWrapper::String(d))),
+            kind: DependencyKind::from(&d),
+            dep: Box::into_raw(Box::new(DependencyWrapper::String(d))),
         }
     }
 
-    pub(crate) fn new_uri(d: dep::DepSpec<String, Uri>) -> Self {
+    pub(crate) fn new_uri(d: dep::Dependency<String, Uri>) -> Self {
         Self {
-            set: DepSetKind::SrcUri,
-            kind: DepSpecKind::from(&d),
-            dep: Box::into_raw(Box::new(DepSpecWrapper::Uri(d))),
+            set: DependencySetKind::SrcUri,
+            kind: DependencyKind::from(&d),
+            dep: Box::into_raw(Box::new(DependencyWrapper::Uri(d))),
         }
     }
 }
 
-impl Hash for DepSpec {
+impl Hash for Dependency {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.deref().hash(state)
     }
 }
 
-impl Ord for DepSpec {
+impl Ord for Dependency {
     fn cmp(&self, other: &Self) -> Ordering {
         self.deref().cmp(other.deref())
     }
 }
 
-impl PartialOrd for DepSpec {
+impl PartialOrd for Dependency {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for DepSpec {
+impl PartialEq for Dependency {
     fn eq(&self, other: &Self) -> bool {
         self.deref().eq(other.deref())
     }
 }
 
-impl Eq for DepSpec {}
+impl Eq for Dependency {}
 
-impl Deref for DepSpec {
-    type Target = DepSpecWrapper;
+impl Deref for Dependency {
+    type Target = DependencyWrapper;
 
     fn deref(&self) -> &Self::Target {
         try_ref_from_ptr!(self.dep)
     }
 }
 
-impl DerefMut for DepSpec {
+impl DerefMut for Dependency {
     fn deref_mut(&mut self) -> &mut Self::Target {
         try_mut_from_ptr!(self.dep)
     }
 }
 
-impl fmt::Display for DepSpec {
+impl fmt::Display for Dependency {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.deref())
     }
@@ -417,13 +420,13 @@ impl fmt::Display for DepSpec {
 
 /// Opaque wrapper for pkgcraft::dep::IntoIterFlatten<String, T>.
 #[derive(Debug)]
-pub enum DepSpecIntoIterFlatten {
+pub enum DependencyIntoIterFlatten {
     Dep(dep::IntoIterFlatten<String, Dep>),
     String(dep::IntoIterFlatten<String, String>),
     Uri(dep::IntoIterFlatten<String, Uri>),
 }
 
-impl Iterator for DepSpecIntoIterFlatten {
+impl Iterator for DependencyIntoIterFlatten {
     type Item = *mut c_void;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -443,33 +446,33 @@ impl Iterator for DepSpecIntoIterFlatten {
 
 /// Opaque wrapper for pkgcraft::dep::IntoIterRecursive<String, T>.
 #[derive(Debug)]
-pub enum DepSpecIntoIterRecursive {
-    Dep(DepSetKind, dep::IntoIterRecursive<String, Dep>),
-    String(DepSetKind, dep::IntoIterRecursive<String, String>),
-    Uri(DepSetKind, dep::IntoIterRecursive<String, Uri>),
+pub enum DependencyIntoIterRecursive {
+    Dep(DependencySetKind, dep::IntoIterRecursive<String, Dep>),
+    String(DependencySetKind, dep::IntoIterRecursive<String, String>),
+    Uri(DependencySetKind, dep::IntoIterRecursive<String, Uri>),
 }
 
-impl Iterator for DepSpecIntoIterRecursive {
-    type Item = DepSpec;
+impl Iterator for DependencyIntoIterRecursive {
+    type Item = Dependency;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Dep(_, iter) => iter.next().map(DepSpec::new_dep),
-            Self::String(set, iter) => iter.next().map(|d| DepSpec::new_string(d, *set)),
-            Self::Uri(_, iter) => iter.next().map(DepSpec::new_uri),
+            Self::Dep(_, iter) => iter.next().map(Dependency::new_dep),
+            Self::String(set, iter) => iter.next().map(|d| Dependency::new_string(d, *set)),
+            Self::Uri(_, iter) => iter.next().map(Dependency::new_uri),
         }
     }
 }
 
 /// Opaque wrapper for pkgcraft::dep::IntoIterConditionals<String, T>.
 #[derive(Debug)]
-pub enum DepSpecIntoIterConditionals {
+pub enum DependencyIntoIterConditionals {
     Dep(dep::IntoIterConditionals<String, Dep>),
     String(dep::IntoIterConditionals<String, String>),
     Uri(dep::IntoIterConditionals<String, Uri>),
 }
 
-impl Iterator for DepSpecIntoIterConditionals {
+impl Iterator for DependencyIntoIterConditionals {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -481,34 +484,36 @@ impl Iterator for DepSpecIntoIterConditionals {
     }
 }
 
-/// Create a new, empty DepSet.
+/// Create a new, empty DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSetKind.
+/// The argument must be a valid DependencySetKind.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_new(kind: DepSetKind) -> *mut DepSet {
-    use DepSetKind::*;
+pub unsafe extern "C" fn pkgcraft_dependency_set_new(
+    kind: DependencySetKind,
+) -> *mut DependencySet {
+    use DependencySetKind::*;
     let set = match kind {
-        Dependencies => DepSet::new_dep(Default::default()),
-        SrcUri => DepSet::new_uri(Default::default()),
-        _ => DepSet::new_string(Default::default(), kind),
+        Package => DependencySet::new_dep(Default::default()),
+        SrcUri => DependencySet::new_uri(Default::default()),
+        _ => DependencySet::new_string(Default::default(), kind),
     };
 
     Box::into_raw(Box::new(set))
 }
 
-/// Create a DepSet from an array of DepSpec objects.
+/// Create a DependencySet from an array of Dependency objects.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The argument should be an array of similarly-typed DepSpec objects.
+/// The argument should be an array of similarly-typed Dependency objects.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_from_iter(
-    deps: *mut *mut DepSpec,
+pub unsafe extern "C" fn pkgcraft_dependency_set_from_iter(
+    deps: *mut *mut Dependency,
     len: usize,
-    kind: DepSetKind,
-) -> *mut DepSet {
+    kind: DependencySetKind,
+) -> *mut DependencySet {
     ffi_catch_panic! {
         let deps = unsafe { slice::from_raw_parts(deps, len) };
         let deps = deps.iter().map(|p| try_ref_from_ptr!(p));
@@ -517,69 +522,69 @@ pub unsafe extern "C" fn pkgcraft_dep_set_from_iter(
         for d in deps {
             if d.set != kind {
                 set_error_and_panic!(
-                    Error::new(format!("DepSpec kind {:?} doesn't match: {kind:?}", d.set))
+                    Error::new(format!("Dependency kind {:?} doesn't match: {kind:?}", d.set))
                 );
             }
 
             match d.deref() {
-                DepSpecWrapper::Dep(d) => deps_dep.push(d.clone()),
-                DepSpecWrapper::String(d) => deps_string.push(d.clone()),
-                DepSpecWrapper::Uri(d) => deps_uri.push(d.clone()),
+                DependencyWrapper::Dep(d) => deps_dep.push(d.clone()),
+                DependencyWrapper::String(d) => deps_string.push(d.clone()),
+                DependencyWrapper::Uri(d) => deps_uri.push(d.clone()),
             }
         }
 
-        use DepSetKind::*;
+        use DependencySetKind::*;
         let dep = match kind {
-            Dependencies => DepSet::new_dep(deps_dep.into_iter().collect()),
-            SrcUri => DepSet::new_uri(deps_uri.into_iter().collect()),
-            _ => DepSet::new_string(deps_string.into_iter().collect(), kind),
+            Package => DependencySet::new_dep(deps_dep.into_iter().collect()),
+            SrcUri => DependencySet::new_uri(deps_uri.into_iter().collect()),
+            _ => DependencySet::new_string(deps_string.into_iter().collect(), kind),
         };
 
         Box::into_raw(Box::new(dep))
     }
 }
 
-/// Parse a string into a specified DepSet type.
+/// Parse a string into a specified DependencySet type.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_parse(
+pub unsafe extern "C" fn pkgcraft_dependency_set_parse(
     s: *const c_char,
     eapi: *const Eapi,
-    kind: DepSetKind,
-) -> *mut DepSet {
+    kind: DependencySetKind,
+) -> *mut DependencySet {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
         let eapi = eapi_or_default!(eapi);
 
-        use DepSetKind::*;
+        use DependencySetKind::*;
         let depset = match kind {
-            Dependencies => {
-                let opt_dep = unwrap_or_panic!(dep::parse::dependencies_dep_set(s, eapi));
-                DepSet::new_dep(opt_dep)
+            Package => {
+                let opt_dep = unwrap_or_panic!(dep::parse::package_dependency_set(s, eapi));
+                DependencySet::new_dep(opt_dep)
             },
             SrcUri => {
-                let opt_dep = unwrap_or_panic!(dep::parse::src_uri_dep_set(s, eapi));
-                DepSet::new_uri(opt_dep)
+                let opt_dep = unwrap_or_panic!(dep::parse::src_uri_dependency_set(s, eapi));
+                DependencySet::new_uri(opt_dep)
             },
             License => {
-                let opt_dep = unwrap_or_panic!(dep::parse::license_dep_set(s));
-                DepSet::new_string(opt_dep, kind)
+                let opt_dep = unwrap_or_panic!(dep::parse::license_dependency_set(s));
+                DependencySet::new_string(opt_dep, kind)
             },
             Properties => {
-                let opt_dep = unwrap_or_panic!(dep::parse::properties_dep_set(s));
-                DepSet::new_string(opt_dep, kind)
+                let opt_dep = unwrap_or_panic!(dep::parse::properties_dependency_set(s));
+                DependencySet::new_string(opt_dep, kind)
             },
             RequiredUse => {
-                let opt_dep = unwrap_or_panic!(dep::parse::required_use_dep_set(s, eapi));
-                DepSet::new_string(opt_dep, kind)
+                let opt_dep = unwrap_or_panic!(dep::parse::required_use_dependency_set(s, eapi));
+                DependencySet::new_string(opt_dep, kind)
             },
             Restrict => {
-                let opt_dep = unwrap_or_panic!(dep::parse::restrict_dep_set(s));
-                DepSet::new_string(opt_dep, kind)
+                let opt_dep = unwrap_or_panic!(dep::parse::restrict_dependency_set(s));
+                DependencySet::new_string(opt_dep, kind)
             },
         };
 
@@ -587,47 +592,47 @@ pub unsafe extern "C" fn pkgcraft_dep_set_parse(
     }
 }
 
-/// Parse a string into a specified DepSpec type.
+/// Parse a string into a specified Dependency type.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
 /// The argument should be a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_parse(
+pub unsafe extern "C" fn pkgcraft_dependency_parse(
     s: *const c_char,
     eapi: *const Eapi,
-    kind: DepSetKind,
-) -> *mut DepSpec {
+    kind: DependencySetKind,
+) -> *mut Dependency {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
         let eapi = eapi_or_default!(eapi);
 
-        use DepSetKind::*;
+        use DependencySetKind::*;
         let dep = match kind {
-            Dependencies => {
-                let dep = unwrap_or_panic!(dep::parse::dependencies_dep_spec(s, eapi));
-                DepSpec::new_dep(dep)
+            Package => {
+                let dep = unwrap_or_panic!(dep::parse::package_dependency(s, eapi));
+                Dependency::new_dep(dep)
             },
             SrcUri => {
-                let dep = unwrap_or_panic!(dep::parse::src_uri_dep_spec(s, eapi));
-                DepSpec::new_uri(dep)
+                let dep = unwrap_or_panic!(dep::parse::src_uri_dependency(s, eapi));
+                Dependency::new_uri(dep)
             },
             License => {
-                let dep = unwrap_or_panic!(dep::parse::license_dep_spec(s));
-                DepSpec::new_string(dep, kind)
+                let dep = unwrap_or_panic!(dep::parse::license_dependency(s));
+                Dependency::new_string(dep, kind)
             },
             Properties => {
-                let dep = unwrap_or_panic!(dep::parse::properties_dep_spec(s));
-                DepSpec::new_string(dep, kind)
+                let dep = unwrap_or_panic!(dep::parse::properties_dependency(s));
+                Dependency::new_string(dep, kind)
             },
             RequiredUse => {
-                let dep = unwrap_or_panic!(dep::parse::required_use_dep_spec(s, eapi));
-                DepSpec::new_string(dep, kind)
+                let dep = unwrap_or_panic!(dep::parse::required_use_dependency(s, eapi));
+                Dependency::new_string(dep, kind)
             },
             Restrict => {
-                let dep = unwrap_or_panic!(dep::parse::restrict_dep_spec(s));
-                DepSpec::new_string(dep, kind)
+                let dep = unwrap_or_panic!(dep::parse::restrict_dependency(s));
+                Dependency::new_string(dep, kind)
             },
         };
 
@@ -635,43 +640,43 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_parse(
     }
 }
 
-/// Create a DepSpec from a Dep.
+/// Create a Dependency from a Dep.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
 /// The argument must be valid Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_from_dep(d: *mut Dep) -> *mut DepSpec {
+pub unsafe extern "C" fn pkgcraft_dependency_from_dep(d: *mut Dep) -> *mut Dependency {
     ffi_catch_panic! {
         let dep = try_ref_from_ptr!(d);
-        let spec = DepSpec::new_dep(dep.clone().into());
+        let spec = Dependency::new_dep(dep.clone().into());
         Box::into_raw(Box::new(spec))
     }
 }
 
-/// Evaluate a DepSet.
+/// Evaluate a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
-    d: *mut DepSet,
+pub unsafe extern "C" fn pkgcraft_dependency_set_evaluate(
+    d: *mut DependencySet,
     options: *mut *mut c_char,
     len: usize,
-) -> *mut DepSet {
+) -> *mut DependencySet {
     let dep = try_ref_from_ptr!(d);
     let options = unsafe { slice::from_raw_parts(options, len) };
     let options = options.iter().map(|p| try_str_from_ptr!(p)).collect();
 
-    use DepSetWrapper::*;
+    use DependencySetWrapper::*;
     let evaluated = match dep.deref() {
         Dep(d) => Dep(d.evaluate(&options).into_owned()),
         String(d) => String(d.evaluate(&options).into_owned()),
         Uri(d) => Uri(d.evaluate(&options).into_owned()),
     };
 
-    let dep = DepSet {
+    let dep = DependencySet {
         set: dep.set,
         dep: Box::into_raw(Box::new(evaluated)),
     };
@@ -679,25 +684,25 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate(
     Box::into_raw(Box::new(dep))
 }
 
-/// Forcibly evaluate a DepSet.
+/// Forcibly evaluate a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_evaluate_force(
-    d: *mut DepSet,
+pub unsafe extern "C" fn pkgcraft_dependency_set_evaluate_force(
+    d: *mut DependencySet,
     force: bool,
-) -> *mut DepSet {
+) -> *mut DependencySet {
     let dep = try_ref_from_ptr!(d);
 
-    use DepSetWrapper::*;
+    use DependencySetWrapper::*;
     let evaluated = match dep.deref() {
         Dep(d) => Dep(d.evaluate_force(force).into_owned()),
         String(d) => String(d.evaluate_force(force).into_owned()),
         Uri(d) => Uri(d.evaluate_force(force).into_owned()),
     };
 
-    let dep = DepSet {
+    let dep = DependencySet {
         set: dep.set,
         dep: Box::into_raw(Box::new(evaluated)),
     };
@@ -705,16 +710,19 @@ pub unsafe extern "C" fn pkgcraft_dep_set_evaluate_force(
     Box::into_raw(Box::new(dep))
 }
 
-/// Returns true if two DepSets have no elements in common.
+/// Returns true if two DependencySets have no elements in common.
 ///
 /// # Safety
-/// The arguments must be a valid DepSet pointers.
+/// The arguments must be a valid DependencySet pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_is_disjoint(d1: *mut DepSet, d2: *mut DepSet) -> bool {
+pub unsafe extern "C" fn pkgcraft_dependency_set_is_disjoint(
+    d1: *mut DependencySet,
+    d2: *mut DependencySet,
+) -> bool {
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
 
-    use DepSetWrapper::*;
+    use DependencySetWrapper::*;
     match (d1.deref(), d2.deref()) {
         (Dep(d1), Dep(d2)) => d1.is_disjoint(d2),
         (String(d1), String(d2)) => d1.is_disjoint(d2),
@@ -723,31 +731,34 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_disjoint(d1: *mut DepSet, d2: *mut 
     }
 }
 
-/// Returns true if a DepSet is empty.
+/// Returns true if a DependencySet is empty.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_is_empty(d: *mut DepSet) -> bool {
+pub unsafe extern "C" fn pkgcraft_dependency_set_is_empty(d: *mut DependencySet) -> bool {
     let deps = try_ref_from_ptr!(d);
 
     match deps.deref() {
-        DepSetWrapper::Dep(d) => d.is_empty(),
-        DepSetWrapper::String(d) => d.is_empty(),
-        DepSetWrapper::Uri(d) => d.is_empty(),
+        DependencySetWrapper::Dep(d) => d.is_empty(),
+        DependencySetWrapper::String(d) => d.is_empty(),
+        DependencySetWrapper::Uri(d) => d.is_empty(),
     }
 }
 
-/// Returns true if all the elements of the first DepSet are contained in the second.
+/// Returns true if all the elements of the first DependencySet are contained in the second.
 ///
 /// # Safety
-/// The arguments must be a valid DepSet pointers.
+/// The arguments must be a valid DependencySet pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_is_subset(d1: *mut DepSet, d2: *mut DepSet) -> bool {
+pub unsafe extern "C" fn pkgcraft_dependency_set_is_subset(
+    d1: *mut DependencySet,
+    d2: *mut DependencySet,
+) -> bool {
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
 
-    use DepSetWrapper::*;
+    use DependencySetWrapper::*;
     match (d1.deref(), d2.deref()) {
         (Dep(d1), Dep(d2)) => d1.is_subset(d2),
         (String(d1), String(d2)) => d1.is_subset(d2),
@@ -756,34 +767,37 @@ pub unsafe extern "C" fn pkgcraft_dep_set_is_subset(d1: *mut DepSet, d2: *mut De
     }
 }
 
-/// Returns the DepSpec element for a given index.
+/// Returns the Dependency element for a given index.
 ///
 /// Returns NULL on index nonexistence.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_get_index(d: *mut DepSet, index: usize) -> *mut DepSpec {
+pub unsafe extern "C" fn pkgcraft_dependency_set_get_index(
+    d: *mut DependencySet,
+    index: usize,
+) -> *mut Dependency {
     ffi_catch_panic! {
         let set = try_ref_from_ptr!(d);
-        let err = || Error::new(format!("failed getting DepSet index: {index}"));
+        let err = || Error::new(format!("failed getting DependencySet index: {index}"));
 
-        use DepSetWrapper::*;
+        use DependencySetWrapper::*;
         let dep = match set.deref() {
             Dep(deps) => {
                 deps.get_index(index)
                     .ok_or_else(err)
-                    .map(|d| DepSpec::new_dep(d.clone()))
+                    .map(|d| Dependency::new_dep(d.clone()))
             }
             String(deps) => {
                 deps.get_index(index)
                     .ok_or_else(err)
-                    .map(|d| DepSpec::new_string(d.clone(), set.set))
+                    .map(|d| Dependency::new_string(d.clone(), set.set))
             }
             Uri(deps) => {
                 deps.get_index(index)
                     .ok_or_else(err)
-                    .map(|d| DepSpec::new_uri(d.clone()))
+                    .map(|d| Dependency::new_uri(d.clone()))
             }
         };
 
@@ -791,15 +805,15 @@ pub unsafe extern "C" fn pkgcraft_dep_set_get_index(d: *mut DepSet, index: usize
     }
 }
 
-/// Recursively sort a DepSet.
+/// Recursively sort a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_sort(d: *mut DepSet) {
+pub unsafe extern "C" fn pkgcraft_dependency_set_sort(d: *mut DependencySet) {
     let set = try_mut_from_ptr!(d);
 
-    use DepSetWrapper::*;
+    use DependencySetWrapper::*;
     match set.deref_mut() {
         Dep(deps) => deps.sort(),
         String(deps) => deps.sort(),
@@ -807,130 +821,139 @@ pub unsafe extern "C" fn pkgcraft_dep_set_sort(d: *mut DepSet) {
     }
 }
 
-/// Clone a DepSet.
+/// Clone a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_clone(d: *mut DepSet) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_dependency_set_clone(
+    d: *mut DependencySet,
+) -> *mut DependencySet {
     let set = try_ref_from_ptr!(d);
     Box::into_raw(Box::new(set.clone()))
 }
 
-/// Insert a DepSpec into a DepSet.
+/// Insert a Dependency into a DependencySet.
 ///
 /// Returns false if an equivalent value already exists, otherwise true.
 ///
 /// # Safety
-/// The arguments must be valid DepSet and DepSpec pointers.
+/// The arguments must be valid DependencySet and Dependency pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_insert(d: *mut DepSet, value: *mut DepSpec) -> bool {
+pub unsafe extern "C" fn pkgcraft_dependency_set_insert(
+    d: *mut DependencySet,
+    value: *mut Dependency,
+) -> bool {
     let set = try_mut_from_ptr!(d);
     let spec = try_ref_from_ptr!(value);
 
     match (set.deref_mut(), spec.deref().clone()) {
-        (DepSetWrapper::Dep(deps), DepSpecWrapper::Dep(dep)) => deps.insert(dep),
-        (DepSetWrapper::String(deps), DepSpecWrapper::String(dep)) => deps.insert(dep),
-        (DepSetWrapper::Uri(deps), DepSpecWrapper::Uri(dep)) => deps.insert(dep),
-        _ => panic!("invalid DepSet and DepSpec type combination"),
+        (DependencySetWrapper::Dep(deps), DependencyWrapper::Dep(dep)) => deps.insert(dep),
+        (DependencySetWrapper::String(deps), DependencyWrapper::String(dep)) => deps.insert(dep),
+        (DependencySetWrapper::Uri(deps), DependencyWrapper::Uri(dep)) => deps.insert(dep),
+        _ => panic!("invalid DependencySet and Dependency type combination"),
     }
 }
 
-/// Remove the last value from a DepSet.
+/// Remove the last value from a DependencySet.
 ///
 /// Returns NULL on nonexistence.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_pop(d: *mut DepSet) -> *mut DepSpec {
+pub unsafe extern "C" fn pkgcraft_dependency_set_pop(d: *mut DependencySet) -> *mut Dependency {
     let set = try_mut_from_ptr!(d);
 
-    use DepSetWrapper::*;
+    use DependencySetWrapper::*;
     let dep = match set.deref_mut() {
-        Dep(deps) => deps.pop().map(DepSpec::new_dep),
-        String(deps) => deps.pop().map(|d| DepSpec::new_string(d, set.set)),
-        Uri(deps) => deps.pop().map(DepSpec::new_uri),
+        Dep(deps) => deps.pop().map(Dependency::new_dep),
+        String(deps) => deps.pop().map(|d| Dependency::new_string(d, set.set)),
+        Uri(deps) => deps.pop().map(Dependency::new_uri),
     };
 
     dep.map(boxed).unwrap_or(ptr::null_mut())
 }
 
-/// Replace a DepSpec for a given index in a DepSet, returning the replaced value.
+/// Replace a Dependency for a given index in a DependencySet, returning the replaced value.
 ///
-/// Returns NULL on index nonexistence or if the DepSet already contains the given DepSpec.
+/// Returns NULL on index nonexistence or if the DependencySet already contains the given Dependency.
 ///
 /// # Safety
-/// The arguments must be valid DepSet and DepSpec pointers.
+/// The arguments must be valid DependencySet and Dependency pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_replace_index(
-    d: *mut DepSet,
+pub unsafe extern "C" fn pkgcraft_dependency_set_replace_index(
+    d: *mut DependencySet,
     index: usize,
-    value: *mut DepSpec,
-) -> *mut DepSpec {
+    value: *mut Dependency,
+) -> *mut Dependency {
     let set = try_mut_from_ptr!(d);
     let spec = try_ref_from_ptr!(value);
 
     let dep = match (set.deref_mut(), spec.deref()) {
-        (DepSetWrapper::Dep(deps), DepSpecWrapper::Dep(dep)) => deps
+        (DependencySetWrapper::Dep(deps), DependencyWrapper::Dep(dep)) => deps
             .shift_replace_index(index, dep.clone())
-            .map(DepSpec::new_dep),
-        (DepSetWrapper::String(deps), DepSpecWrapper::String(dep)) => deps
+            .map(Dependency::new_dep),
+        (DependencySetWrapper::String(deps), DependencyWrapper::String(dep)) => deps
             .shift_replace_index(index, dep.clone())
-            .map(|d| DepSpec::new_string(d, set.set)),
-        (DepSetWrapper::Uri(deps), DepSpecWrapper::Uri(dep)) => deps
+            .map(|d| Dependency::new_string(d, set.set)),
+        (DependencySetWrapper::Uri(deps), DependencyWrapper::Uri(dep)) => deps
             .shift_replace_index(index, dep.clone())
-            .map(DepSpec::new_uri),
-        _ => panic!("invalid DepSet and DepSpec type combination"),
+            .map(Dependency::new_uri),
+        _ => panic!("invalid DependencySet and Dependency type combination"),
     };
 
     dep.map(boxed).unwrap_or(ptr::null_mut())
 }
 
-/// Replace a DepSpec with another DepSpec in a DepSet, returning the replaced value.
+/// Replace a Dependency with another Dependency in a DependencySet, returning the replaced value.
 ///
-/// Returns NULL on nonexistence or if the DepSet already contains the given DepSpec.
+/// Returns NULL on nonexistence or if the DependencySet already contains the given Dependency.
 ///
 /// # Safety
-/// The arguments must be valid DepSet and DepSpec pointers.
+/// The arguments must be valid DependencySet and Dependency pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_replace(
-    d: *mut DepSet,
-    key: *const DepSpec,
-    value: *mut DepSpec,
-) -> *mut DepSpec {
+pub unsafe extern "C" fn pkgcraft_dependency_set_replace(
+    d: *mut DependencySet,
+    key: *const Dependency,
+    value: *mut Dependency,
+) -> *mut Dependency {
     let set = try_mut_from_ptr!(d);
     let key = try_ref_from_ptr!(key);
     let value = try_ref_from_ptr!(value);
 
     let dep = match (set.deref_mut(), key.deref(), value.deref()) {
-        (DepSetWrapper::Dep(deps), DepSpecWrapper::Dep(k), DepSpecWrapper::Dep(v)) => {
-            deps.shift_replace(k, v.clone()).map(DepSpec::new_dep)
+        (DependencySetWrapper::Dep(deps), DependencyWrapper::Dep(k), DependencyWrapper::Dep(v)) => {
+            deps.shift_replace(k, v.clone()).map(Dependency::new_dep)
         }
-        (DepSetWrapper::String(deps), DepSpecWrapper::String(k), DepSpecWrapper::String(v)) => deps
+        (
+            DependencySetWrapper::String(deps),
+            DependencyWrapper::String(k),
+            DependencyWrapper::String(v),
+        ) => deps
             .shift_replace(k, v.clone())
-            .map(|d| DepSpec::new_string(d, set.set)),
-        (DepSetWrapper::Uri(deps), DepSpecWrapper::Uri(k), DepSpecWrapper::Uri(v)) => {
-            deps.shift_replace(k, v.clone()).map(DepSpec::new_uri)
+            .map(|d| Dependency::new_string(d, set.set)),
+        (DependencySetWrapper::Uri(deps), DependencyWrapper::Uri(k), DependencyWrapper::Uri(v)) => {
+            deps.shift_replace(k, v.clone()).map(Dependency::new_uri)
         }
-        _ => panic!("invalid DepSet and DepSpec type combination"),
+        _ => panic!("invalid DependencySet and Dependency type combination"),
     };
 
     dep.map(boxed).unwrap_or(ptr::null_mut())
 }
 
-/// Perform a set operation on two DepSets, assigning to the first.
+/// Perform a set operation on two DependencySets, assigning to the first.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The arguments must be valid DepSet pointers.
+/// The arguments must be valid DependencySet pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_assign_op_set(
+pub unsafe extern "C" fn pkgcraft_dependency_set_assign_op_set(
     op: SetOp,
-    d1: *mut DepSet,
-    d2: *mut DepSet,
-) -> *mut DepSet {
+    d1: *mut DependencySet,
+    d2: *mut DependencySet,
+) -> *mut DependencySet {
     ffi_catch_panic! {
         use SetOp::*;
         let dep1 = try_mut_from_ptr!(d1);
@@ -945,18 +968,18 @@ pub unsafe extern "C" fn pkgcraft_dep_set_assign_op_set(
     }
 }
 
-/// Perform a set operation on two DepSets, creating a new set.
+/// Perform a set operation on two DependencySets, creating a new set.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The arguments must be valid DepSet pointers.
+/// The arguments must be valid DependencySet pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_op_set(
+pub unsafe extern "C" fn pkgcraft_dependency_set_op_set(
     op: SetOp,
-    d1: *mut DepSet,
-    d2: *mut DepSet,
-) -> *mut DepSet {
+    d1: *mut DependencySet,
+    d2: *mut DependencySet,
+) -> *mut DependencySet {
     ffi_catch_panic! {
         use SetOp::*;
         let d1 = try_ref_from_ptr!(d1);
@@ -971,65 +994,68 @@ pub unsafe extern "C" fn pkgcraft_dep_set_op_set(
     }
 }
 
-/// Return the formatted string for a DepSet object.
+/// Return the formatted string for a DependencySet object.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_str(d: *mut DepSet) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dependency_set_str(d: *mut DependencySet) -> *mut c_char {
     let deps = try_ref_from_ptr!(d);
     try_ptr_from_str!(deps.to_string())
 }
 
-/// Determine if two DepSets are equal.
+/// Determine if two DependencySets are equal.
 ///
 /// # Safety
-/// The arguments must be valid DepSet pointers.
+/// The arguments must be valid DependencySet pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_eq(d1: *mut DepSet, d2: *mut DepSet) -> bool {
+pub unsafe extern "C" fn pkgcraft_dependency_set_eq(
+    d1: *mut DependencySet,
+    d2: *mut DependencySet,
+) -> bool {
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
     d1.eq(d2)
 }
 
-/// Determine if a DepSet contains a given DepSpec.
+/// Determine if a DependencySet contains a given Dependency.
 ///
 /// # Safety
-/// The arguments must be valid DepSet and DepSpec pointers.
+/// The arguments must be valid DependencySet and Dependency pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_contains_dep_spec(
-    s: *mut DepSet,
-    d: *mut DepSpec,
+pub unsafe extern "C" fn pkgcraft_dependency_set_contains_dependency(
+    s: *mut DependencySet,
+    d: *mut Dependency,
 ) -> bool {
     let s = try_ref_from_ptr!(s);
     let d = try_ref_from_ptr!(d);
 
     match (s.deref(), d.deref()) {
-        (DepSetWrapper::Dep(s), DepSpecWrapper::Dep(d)) => s.contains(d),
-        (DepSetWrapper::String(s), DepSpecWrapper::String(d)) => s.contains(d),
-        (DepSetWrapper::Uri(s), DepSpecWrapper::Uri(d)) => s.contains(d),
+        (DependencySetWrapper::Dep(s), DependencyWrapper::Dep(d)) => s.contains(d),
+        (DependencySetWrapper::String(s), DependencyWrapper::String(d)) => s.contains(d),
+        (DependencySetWrapper::Uri(s), DependencyWrapper::Uri(d)) => s.contains(d),
         _ => false,
     }
 }
 
-/// Return the hash value for a DepSet.
+/// Return the hash value for a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_hash(d: *mut DepSet) -> u64 {
+pub unsafe extern "C" fn pkgcraft_dependency_set_hash(d: *mut DependencySet) -> u64 {
     let deps = try_ref_from_ptr!(d);
     hash(deps)
 }
 
-/// Return a DepSet's length.
+/// Return a DependencySet's length.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_len(d: *mut DepSet) -> usize {
+pub unsafe extern "C" fn pkgcraft_dependency_set_len(d: *mut DependencySet) -> usize {
     let deps = try_ref_from_ptr!(d);
-    use DepSetWrapper::*;
+    use DependencySetWrapper::*;
     match deps.deref() {
         Dep(d) => d.len(),
         String(d) => d.len(),
@@ -1037,132 +1063,139 @@ pub unsafe extern "C" fn pkgcraft_dep_set_len(d: *mut DepSet) -> usize {
     }
 }
 
-/// Return an iterator for a DepSet.
+/// Return an iterator for a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter(d: *mut DepSet) -> *mut DepSpecIntoIter {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter(
+    d: *mut DependencySet,
+) -> *mut DependencyIntoIter {
     let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
-        DepSetWrapper::Dep(d) => DepSpecIntoIter::Dep(deps.set, d.into_iter()),
-        DepSetWrapper::String(d) => DepSpecIntoIter::String(deps.set, d.into_iter()),
-        DepSetWrapper::Uri(d) => DepSpecIntoIter::Uri(deps.set, d.into_iter()),
+        DependencySetWrapper::Dep(d) => DependencyIntoIter::Dep(deps.set, d.into_iter()),
+        DependencySetWrapper::String(d) => DependencyIntoIter::String(deps.set, d.into_iter()),
+        DependencySetWrapper::Uri(d) => DependencyIntoIter::Uri(deps.set, d.into_iter()),
     };
     Box::into_raw(Box::new(iter))
 }
 
-/// Return the next object from a DepSet iterator.
+/// Return the next object from a DependencySet iterator.
 ///
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIter pointer.
+/// The argument must be a valid DependencyIntoIter pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next(i: *mut DepSpecIntoIter) -> *mut DepSpec {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_next(
+    i: *mut DependencyIntoIter,
+) -> *mut Dependency {
     let iter = try_mut_from_ptr!(i);
     iter.next().map(boxed).unwrap_or(ptr::null_mut())
 }
 
-/// Return the next object from the end of a DepSet iterator.
+/// Return the next object from the end of a DependencySet iterator.
 ///
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIter pointer.
+/// The argument must be a valid DependencyIntoIter pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_next_back(
-    i: *mut DepSpecIntoIter,
-) -> *mut DepSpec {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_next_back(
+    i: *mut DependencyIntoIter,
+) -> *mut Dependency {
     let iter = try_mut_from_ptr!(i);
     iter.next_back().map(boxed).unwrap_or(ptr::null_mut())
 }
 
-/// Free a DepSet iterator.
+/// Free a DependencySet iterator.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIter pointer or NULL.
+/// The argument must be a valid DependencyIntoIter pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_free(i: *mut DepSpecIntoIter) {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_free(i: *mut DependencyIntoIter) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
 }
 
-/// Evaluate a DepSpec.
+/// Evaluate a Dependency.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate(
-    d: *mut DepSpec,
+pub unsafe extern "C" fn pkgcraft_dependency_evaluate(
+    d: *mut Dependency,
     options: *mut *mut c_char,
     len: usize,
     deps_len: *mut usize,
-) -> *mut *mut DepSpec {
+) -> *mut *mut Dependency {
     let dep = try_ref_from_ptr!(d);
     let options = unsafe { slice::from_raw_parts(options, len) };
     let options = options.iter().map(|p| try_str_from_ptr!(p)).collect();
 
-    use DepSpecWrapper::*;
+    use DependencyWrapper::*;
     match dep.deref() {
         Dep(d) => {
             iter_to_array!(d.evaluate(&options).into_iter(), deps_len, |d| {
-                Box::into_raw(Box::new(DepSpec::new_dep(d.into_owned())))
+                Box::into_raw(Box::new(Dependency::new_dep(d.into_owned())))
             })
         }
         String(d) => {
             iter_to_array!(d.evaluate(&options).into_iter(), deps_len, |d| {
-                Box::into_raw(Box::new(DepSpec::new_string(d.into_owned(), dep.set)))
+                Box::into_raw(Box::new(Dependency::new_string(d.into_owned(), dep.set)))
             })
         }
         Uri(d) => {
             iter_to_array!(d.evaluate(&options).into_iter(), deps_len, |d| {
-                Box::into_raw(Box::new(DepSpec::new_uri(d.into_owned())))
+                Box::into_raw(Box::new(Dependency::new_uri(d.into_owned())))
             })
         }
     }
 }
 
-/// Forcibly evaluate a DepSpec.
+/// Forcibly evaluate a Dependency.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_evaluate_force(
-    d: *mut DepSpec,
+pub unsafe extern "C" fn pkgcraft_dependency_evaluate_force(
+    d: *mut Dependency,
     force: bool,
     deps_len: *mut usize,
-) -> *mut *mut DepSpec {
+) -> *mut *mut Dependency {
     let dep = try_ref_from_ptr!(d);
 
-    use DepSpecWrapper::*;
+    use DependencyWrapper::*;
     match dep.deref() {
         Dep(d) => {
             iter_to_array!(d.evaluate_force(force).into_iter(), deps_len, |d| {
-                Box::into_raw(Box::new(DepSpec::new_dep(d.into_owned())))
+                Box::into_raw(Box::new(Dependency::new_dep(d.into_owned())))
             })
         }
         String(d) => {
             iter_to_array!(d.evaluate_force(force).into_iter(), deps_len, |d| {
-                Box::into_raw(Box::new(DepSpec::new_string(d.into_owned(), dep.set)))
+                Box::into_raw(Box::new(Dependency::new_string(d.into_owned(), dep.set)))
             })
         }
         Uri(d) => {
             iter_to_array!(d.evaluate_force(force).into_iter(), deps_len, |d| {
-                Box::into_raw(Box::new(DepSpec::new_uri(d.into_owned())))
+                Box::into_raw(Box::new(Dependency::new_uri(d.into_owned())))
             })
         }
     }
 }
 
-/// Compare two DepSpecs returning -1, 0, or 1 if the first is less than, equal to, or greater
+/// Compare two Dependencys returning -1, 0, or 1 if the first is less than, equal to, or greater
 /// than the second, respectively.
 ///
 /// # Safety
-/// The arguments must be valid DepSpec pointers.
+/// The arguments must be valid Dependency pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpec) -> c_int {
+pub unsafe extern "C" fn pkgcraft_dependency_cmp(
+    d1: *mut Dependency,
+    d2: *mut Dependency,
+) -> c_int {
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
 
@@ -1173,19 +1206,19 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_cmp(d1: *mut DepSpec, d2: *mut DepSpe
     }
 }
 
-/// Determine if a DepSpec contains a given DepSpec.
+/// Determine if a Dependency contains a given Dependency.
 ///
 /// # Safety
-/// The arguments must be valid DepSpec pointers.
+/// The arguments must be valid Dependency pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_contains_dep_spec(
-    d1: *mut DepSpec,
-    d2: *mut DepSpec,
+pub unsafe extern "C" fn pkgcraft_dependency_contains_dependency(
+    d1: *mut Dependency,
+    d2: *mut Dependency,
 ) -> bool {
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
 
-    use DepSpecWrapper::*;
+    use DependencyWrapper::*;
     match (d1.deref(), d2.deref()) {
         (Dep(d1), Dep(d2)) => d1.contains(d2),
         (String(d1), String(d2)) => d1.contains(d2),
@@ -1194,24 +1227,24 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_contains_dep_spec(
     }
 }
 
-/// Return the hash value for a DepSpec.
+/// Return the hash value for a Dependency.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_hash(d: *mut DepSpec) -> u64 {
+pub unsafe extern "C" fn pkgcraft_dependency_hash(d: *mut Dependency) -> u64 {
     let deps = try_ref_from_ptr!(d);
     hash(deps)
 }
 
-/// Return a DepSpec's length.
+/// Return a Dependency's length.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_len(d: *mut DepSpec) -> usize {
+pub unsafe extern "C" fn pkgcraft_dependency_len(d: *mut Dependency) -> usize {
     let deps = try_ref_from_ptr!(d);
-    use DepSpecWrapper::*;
+    use DependencyWrapper::*;
     match deps.deref() {
         Dep(d) => d.len(),
         String(d) => d.len(),
@@ -1219,72 +1252,74 @@ pub unsafe extern "C" fn pkgcraft_dep_spec_len(d: *mut DepSpec) -> usize {
     }
 }
 
-/// Free a DepSpec object.
+/// Free a Dependency object.
 ///
 /// # Safety
-/// The argument must be a DepSpec pointer or NULL.
+/// The argument must be a Dependency pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_free(r: *mut DepSpec) {
+pub unsafe extern "C" fn pkgcraft_dependency_free(r: *mut Dependency) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };
     }
 }
 
-/// Return the formatted string for a DepSpec object.
+/// Return the formatted string for a Dependency object.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_str(d: *mut DepSpec) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dependency_str(d: *mut Dependency) -> *mut c_char {
     let deps = try_ref_from_ptr!(d);
     try_ptr_from_str!(deps.to_string())
 }
 
-/// Return an iterator for a DepSpec.
+/// Return an iterator for a Dependency.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter(d: *mut DepSpec) -> *mut DepSpecIntoIter {
+pub unsafe extern "C" fn pkgcraft_dependency_into_iter(
+    d: *mut Dependency,
+) -> *mut DependencyIntoIter {
     let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
-        DepSpecWrapper::Dep(d) => DepSpecIntoIter::Dep(deps.set, d.into_iter()),
-        DepSpecWrapper::String(d) => DepSpecIntoIter::String(deps.set, d.into_iter()),
-        DepSpecWrapper::Uri(d) => DepSpecIntoIter::Uri(deps.set, d.into_iter()),
+        DependencyWrapper::Dep(d) => DependencyIntoIter::Dep(deps.set, d.into_iter()),
+        DependencyWrapper::String(d) => DependencyIntoIter::String(deps.set, d.into_iter()),
+        DependencyWrapper::Uri(d) => DependencyIntoIter::Uri(deps.set, d.into_iter()),
     };
     Box::into_raw(Box::new(iter))
 }
 
-/// Return a flatten iterator for a DepSpec.
+/// Return a flatten iterator for a Dependency.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_flatten(
-    d: *mut DepSpec,
-) -> *mut DepSpecIntoIterFlatten {
+pub unsafe extern "C" fn pkgcraft_dependency_into_iter_flatten(
+    d: *mut Dependency,
+) -> *mut DependencyIntoIterFlatten {
     let dep = try_ref_from_ptr!(d);
     let iter = match dep.deref().clone() {
-        DepSpecWrapper::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
-        DepSpecWrapper::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
-        DepSpecWrapper::Uri(d) => DepSpecIntoIterFlatten::Uri(d.into_iter_flatten()),
+        DependencyWrapper::Dep(d) => DependencyIntoIterFlatten::Dep(d.into_iter_flatten()),
+        DependencyWrapper::String(d) => DependencyIntoIterFlatten::String(d.into_iter_flatten()),
+        DependencyWrapper::Uri(d) => DependencyIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
 
-/// Return a flatten iterator for a DepSet.
+/// Return a flatten iterator for a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
-    d: *mut DepSet,
-) -> *mut DepSpecIntoIterFlatten {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten(
+    d: *mut DependencySet,
+) -> *mut DependencyIntoIterFlatten {
     let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
-        DepSetWrapper::Dep(d) => DepSpecIntoIterFlatten::Dep(d.into_iter_flatten()),
-        DepSetWrapper::String(d) => DepSpecIntoIterFlatten::String(d.into_iter_flatten()),
-        DepSetWrapper::Uri(d) => DepSpecIntoIterFlatten::Uri(d.into_iter_flatten()),
+        DependencySetWrapper::Dep(d) => DependencyIntoIterFlatten::Dep(d.into_iter_flatten()),
+        DependencySetWrapper::String(d) => DependencyIntoIterFlatten::String(d.into_iter_flatten()),
+        DependencySetWrapper::Uri(d) => DependencyIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
 }
@@ -1294,10 +1329,10 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIterFlatten pointer.
+/// The argument must be a valid DependencyIntoIterFlatten pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_next(
-    i: *mut DepSpecIntoIterFlatten,
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten_next(
+    i: *mut DependencyIntoIterFlatten,
 ) -> *mut c_void {
     let iter = try_mut_from_ptr!(i);
     iter.next().unwrap_or(ptr::null_mut())
@@ -1306,48 +1341,58 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_next(
 /// Free a flatten iterator.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIterFlatten pointer or NULL.
+/// The argument must be a valid DependencyIntoIterFlatten pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_flatten_free(i: *mut DepSpecIntoIterFlatten) {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten_free(
+    i: *mut DependencyIntoIterFlatten,
+) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
 }
 
-/// Return a recursive iterator for a DepSpec.
+/// Return a recursive iterator for a Dependency.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_recursive(
-    d: *mut DepSpec,
-) -> *mut DepSpecIntoIterRecursive {
+pub unsafe extern "C" fn pkgcraft_dependency_into_iter_recursive(
+    d: *mut Dependency,
+) -> *mut DependencyIntoIterRecursive {
     let dep = try_ref_from_ptr!(d);
     let iter = match dep.deref().clone() {
-        DepSpecWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(dep.set, d.into_iter_recursive()),
-        DepSpecWrapper::String(d) => {
-            DepSpecIntoIterRecursive::String(dep.set, d.into_iter_recursive())
+        DependencyWrapper::Dep(d) => {
+            DependencyIntoIterRecursive::Dep(dep.set, d.into_iter_recursive())
         }
-        DepSpecWrapper::Uri(d) => DepSpecIntoIterRecursive::Uri(dep.set, d.into_iter_recursive()),
+        DependencyWrapper::String(d) => {
+            DependencyIntoIterRecursive::String(dep.set, d.into_iter_recursive())
+        }
+        DependencyWrapper::Uri(d) => {
+            DependencyIntoIterRecursive::Uri(dep.set, d.into_iter_recursive())
+        }
     };
     Box::into_raw(Box::new(iter))
 }
 
-/// Return a recursive iterator for a DepSet.
+/// Return a recursive iterator for a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
-    d: *mut DepSet,
-) -> *mut DepSpecIntoIterRecursive {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive(
+    d: *mut DependencySet,
+) -> *mut DependencyIntoIterRecursive {
     let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
-        DepSetWrapper::Dep(d) => DepSpecIntoIterRecursive::Dep(deps.set, d.into_iter_recursive()),
-        DepSetWrapper::String(d) => {
-            DepSpecIntoIterRecursive::String(deps.set, d.into_iter_recursive())
+        DependencySetWrapper::Dep(d) => {
+            DependencyIntoIterRecursive::Dep(deps.set, d.into_iter_recursive())
         }
-        DepSetWrapper::Uri(d) => DepSpecIntoIterRecursive::Uri(deps.set, d.into_iter_recursive()),
+        DependencySetWrapper::String(d) => {
+            DependencyIntoIterRecursive::String(deps.set, d.into_iter_recursive())
+        }
+        DependencySetWrapper::Uri(d) => {
+            DependencyIntoIterRecursive::Uri(deps.set, d.into_iter_recursive())
+        }
     };
     Box::into_raw(Box::new(iter))
 }
@@ -1357,11 +1402,11 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIterRecursive pointer.
+/// The argument must be a valid DependencyIntoIterRecursive pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_next(
-    i: *mut DepSpecIntoIterRecursive,
-) -> *mut DepSpec {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive_next(
+    i: *mut DependencyIntoIterRecursive,
+) -> *mut Dependency {
     let iter = try_mut_from_ptr!(i);
     iter.next().map(boxed).unwrap_or(ptr::null_mut())
 }
@@ -1369,48 +1414,58 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_next(
 /// Free a recursive iterator.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIterRecursive pointer or NULL.
+/// The argument must be a valid DependencyIntoIterRecursive pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_recursive_free(
-    i: *mut DepSpecIntoIterRecursive,
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive_free(
+    i: *mut DependencyIntoIterRecursive,
 ) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
 }
 
-/// Return a conditionals iterator for a DepSpec.
+/// Return a conditionals iterator for a Dependency.
 ///
 /// # Safety
-/// The argument must be a valid DepSpec pointer.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_spec_into_iter_conditionals(
-    d: *mut DepSpec,
-) -> *mut DepSpecIntoIterConditionals {
+pub unsafe extern "C" fn pkgcraft_dependency_into_iter_conditionals(
+    d: *mut Dependency,
+) -> *mut DependencyIntoIterConditionals {
     let dep = try_ref_from_ptr!(d);
     let iter = match dep.deref().clone() {
-        DepSpecWrapper::Dep(d) => DepSpecIntoIterConditionals::Dep(d.into_iter_conditionals()),
-        DepSpecWrapper::String(d) => {
-            DepSpecIntoIterConditionals::String(d.into_iter_conditionals())
+        DependencyWrapper::Dep(d) => {
+            DependencyIntoIterConditionals::Dep(d.into_iter_conditionals())
         }
-        DepSpecWrapper::Uri(d) => DepSpecIntoIterConditionals::Uri(d.into_iter_conditionals()),
+        DependencyWrapper::String(d) => {
+            DependencyIntoIterConditionals::String(d.into_iter_conditionals())
+        }
+        DependencyWrapper::Uri(d) => {
+            DependencyIntoIterConditionals::Uri(d.into_iter_conditionals())
+        }
     };
     Box::into_raw(Box::new(iter))
 }
 
-/// Return a conditionals iterator for a DepSet.
+/// Return a conditionals iterator for a DependencySet.
 ///
 /// # Safety
-/// The argument must be a valid DepSet pointer.
+/// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals(
-    d: *mut DepSet,
-) -> *mut DepSpecIntoIterConditionals {
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals(
+    d: *mut DependencySet,
+) -> *mut DependencyIntoIterConditionals {
     let deps = try_ref_from_ptr!(d);
     let iter = match deps.deref().clone() {
-        DepSetWrapper::Dep(d) => DepSpecIntoIterConditionals::Dep(d.into_iter_conditionals()),
-        DepSetWrapper::String(d) => DepSpecIntoIterConditionals::String(d.into_iter_conditionals()),
-        DepSetWrapper::Uri(d) => DepSpecIntoIterConditionals::Uri(d.into_iter_conditionals()),
+        DependencySetWrapper::Dep(d) => {
+            DependencyIntoIterConditionals::Dep(d.into_iter_conditionals())
+        }
+        DependencySetWrapper::String(d) => {
+            DependencyIntoIterConditionals::String(d.into_iter_conditionals())
+        }
+        DependencySetWrapper::Uri(d) => {
+            DependencyIntoIterConditionals::Uri(d.into_iter_conditionals())
+        }
     };
     Box::into_raw(Box::new(iter))
 }
@@ -1420,10 +1475,10 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals(
 /// Returns NULL when the iterator is empty.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIterConditionals pointer.
+/// The argument must be a valid DependencyIntoIterConditionals pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals_next(
-    i: *mut DepSpecIntoIterConditionals,
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals_next(
+    i: *mut DependencyIntoIterConditionals,
 ) -> *mut c_char {
     let iter = try_mut_from_ptr!(i);
     iter.next()
@@ -1434,22 +1489,22 @@ pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals_next(
 /// Free a conditionals iterator.
 ///
 /// # Safety
-/// The argument must be a valid DepSpecIntoIterConditionals pointer or NULL.
+/// The argument must be a valid DependencyIntoIterConditionals pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_into_iter_conditionals_free(
-    i: *mut DepSpecIntoIterConditionals,
+pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals_free(
+    i: *mut DependencyIntoIterConditionals,
 ) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }
 }
 
-/// Free a DepSet.
+/// Free a DependencySet.
 ///
 /// # Safety
-/// The argument must be a DepSet pointer or NULL.
+/// The argument must be a DependencySet pointer or NULL.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_set_free(d: *mut DepSet) {
+pub unsafe extern "C" fn pkgcraft_dependency_set_free(d: *mut DependencySet) {
     if !d.is_null() {
         unsafe { drop(Box::from_raw(d)) };
     }

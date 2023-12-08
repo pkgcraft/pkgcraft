@@ -5,7 +5,7 @@ use pkgcraft::pkg::ebuild::{metadata, EbuildPackage};
 use pkgcraft::pkg::Pkg;
 use pkgcraft::traits::IntoOwned;
 
-use crate::dep::{DepSet, DepSetKind};
+use crate::dep::{DependencySet, DependencySetKind};
 use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
@@ -175,7 +175,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
     p: *mut Pkg,
     keys: *mut *mut c_char,
     len: usize,
-) -> *mut DepSet {
+) -> *mut DependencySet {
     ffi_catch_panic! {
         let pkg = try_pkg_from_ptr!(p);
         let keys = unsafe { slice::from_raw_parts(keys, len) };
@@ -189,7 +189,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
         }
 
         let deps = pkg.dependencies(&dep_keys).into_owned();
-        Box::into_raw(Box::new(DepSet::new_dep(deps)))
+        Box::into_raw(Box::new(DependencySet::new_dep(deps)))
     }
 }
 
@@ -198,9 +198,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_dep(pkg.depend().clone());
+    let set = DependencySet::new_dep(pkg.depend().clone());
     Box::into_raw(Box::new(set))
 }
 
@@ -209,9 +209,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_depend(p: *mut Pkg) -> *mut DepSet 
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_dep(pkg.bdepend().clone());
+    let set = DependencySet::new_dep(pkg.bdepend().clone());
     Box::into_raw(Box::new(set))
 }
 
@@ -220,9 +220,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_bdepend(p: *mut Pkg) -> *mut DepSet
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_dep(pkg.idepend().clone());
+    let set = DependencySet::new_dep(pkg.idepend().clone());
     Box::into_raw(Box::new(set))
 }
 
@@ -231,9 +231,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_idepend(p: *mut Pkg) -> *mut DepSet
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_dep(pkg.pdepend().clone());
+    let set = DependencySet::new_dep(pkg.pdepend().clone());
     Box::into_raw(Box::new(set))
 }
 
@@ -242,9 +242,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_pdepend(p: *mut Pkg) -> *mut DepSet
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_dep(pkg.rdepend().clone());
+    let set = DependencySet::new_dep(pkg.rdepend().clone());
     Box::into_raw(Box::new(set))
 }
 
@@ -253,9 +253,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_rdepend(p: *mut Pkg) -> *mut DepSet
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_string(pkg.license().clone(), DepSetKind::License);
+    let set = DependencySet::new_string(pkg.license().clone(), DependencySetKind::License);
     Box::into_raw(Box::new(set))
 }
 
@@ -264,9 +264,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut DepSet
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_string(pkg.properties().clone(), DepSetKind::Properties);
+    let set = DependencySet::new_string(pkg.properties().clone(), DependencySetKind::Properties);
     Box::into_raw(Box::new(set))
 }
 
@@ -275,9 +275,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut Dep
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_string(pkg.required_use().clone(), DepSetKind::RequiredUse);
+    let set = DependencySet::new_string(pkg.required_use().clone(), DependencySetKind::RequiredUse);
     Box::into_raw(Box::new(set))
 }
 
@@ -286,9 +286,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut D
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_string(pkg.restrict().clone(), DepSetKind::Restrict);
+    let set = DependencySet::new_string(pkg.restrict().clone(), DependencySetKind::Restrict);
     Box::into_raw(Box::new(set))
 }
 
@@ -297,9 +297,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_restrict(p: *mut Pkg) -> *mut DepSe
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_src_uri(p: *mut Pkg) -> *mut DepSet {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_src_uri(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DepSet::new_uri(pkg.src_uri().clone());
+    let set = DependencySet::new_uri(pkg.src_uri().clone());
     Box::into_raw(Box::new(set))
 }
 
