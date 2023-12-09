@@ -181,6 +181,12 @@ impl<'a> Metadata<'a> {
         key: &Key,
         val: &str,
     ) -> crate::Result<()> {
+        let eclass = |name: &str| -> crate::Result<&Eclass> {
+            repo.eclasses()
+                .get(name)
+                .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {name}")))
+        };
+
         use Key::*;
         match key {
             CHKSUM => self.chksum = val.to_string(),
@@ -215,21 +221,13 @@ impl<'a> Metadata<'a> {
             INHERIT => {
                 self.inherit = val
                     .split_whitespace()
-                    .map(|s| {
-                        repo.eclasses()
-                            .get(s)
-                            .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {s}")))
-                    })
+                    .map(eclass)
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
             INHERITED => {
                 self.inherited = val
                     .split_whitespace()
-                    .map(|s| {
-                        repo.eclasses()
-                            .get(s)
-                            .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {s}")))
-                    })
+                    .map(eclass)
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
             EAPI => {
