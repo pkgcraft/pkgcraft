@@ -264,7 +264,7 @@ impl<'a> Metadata<'a> {
         let mut data = vec![];
         for key in eapi.metadata_keys() {
             match key {
-                CHKSUM => writeln!(&mut data, "_md5_={}", pkg.chksum())?,
+                CHKSUM => writeln!(&mut data, "_md5_={}", meta.chksum)?,
                 DESCRIPTION => writeln!(&mut data, "{key}={}", meta.description)?,
                 SLOT => writeln!(&mut data, "{key}={}", meta.slot)?,
                 BDEPEND => {
@@ -559,7 +559,7 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
         use Key::*;
         for key in eapi.metadata_keys() {
             match key {
-                CHKSUM => required!(eapi, key),
+                CHKSUM => meta.chksum = pkg.chksum().to_string(),
                 DEFINED_PHASES => {
                     let phase_names: OrderedSet<_> = eapi
                         .phases()
