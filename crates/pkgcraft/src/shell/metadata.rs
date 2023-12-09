@@ -172,14 +172,6 @@ pub(crate) struct Metadata<'a> {
     chksum: String,
 }
 
-macro_rules! required {
-    ($eapi:expr, $key:expr) => {
-        if $eapi.mandatory_keys().contains($key) {
-            return Err(Error::InvalidValue(format!("missing required value: {}", $key)));
-        }
-    };
-}
-
 impl<'a> Metadata<'a> {
     /// Deserialize a metadata string value to its field value.
     fn deserialize(
@@ -561,17 +553,12 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
             match key {
                 CHKSUM => meta.chksum = pkg.chksum().to_string(),
                 DEFINED_PHASES => {
-                    let phase_names: OrderedSet<_> = eapi
+                    meta.defined_phases = eapi
                         .phases()
                         .iter()
                         .filter_map(|p| functions::find(p).map(|_| p.short_name().to_string()))
                         .sorted()
                         .collect();
-                    if phase_names.is_empty() {
-                        required!(eapi, key);
-                    } else {
-                        meta.defined_phases = phase_names;
-                    }
                 }
                 INHERIT => meta.inherit = build.inherit.iter().copied().collect(),
                 INHERITED => meta.inherited = build.inherited.iter().copied().collect(),
@@ -582,8 +569,8 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
                     } else if let Some(val) = variables::optional(key) {
                         let s = val.split_whitespace().join(" ");
                         meta.deserialize(eapi, repo, key, &s)?;
-                    } else {
-                        required!(eapi, key);
+                    } else if eapi.mandatory_keys().contains(key) {
+                        return Err(Error::InvalidValue(format!("missing required value: {key}")));
                     }
                 }
             }
