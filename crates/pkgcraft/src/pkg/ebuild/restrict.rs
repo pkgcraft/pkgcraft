@@ -31,8 +31,6 @@ pub enum Restrict {
     Homepage(Option<OrderedSetRestrict<String, StrRestrict>>),
     DefinedPhases(Option<OrderedSetRestrict<String, StrRestrict>>),
     Iuse(Option<OrderedSetRestrict<String, StrRestrict>>),
-    Inherit(Option<OrderedSetRestrict<String, StrRestrict>>),
-    Inherited(Option<OrderedSetRestrict<String, StrRestrict>>),
     LongDescription(Option<StrRestrict>),
     Maintainers(Option<OrderedRestrict<MaintainerRestrict>>),
 }
@@ -179,14 +177,6 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for Restrict {
                 (None, strings) => strings.is_empty(),
             },
             Iuse(r) => match (r, pkg.iuse_effective()) {
-                (Some(r), strings) => r.matches(strings),
-                (None, strings) => strings.is_empty(),
-            },
-            Inherit(r) => match (r, pkg.inherit()) {
-                (Some(r), strings) => r.matches(strings),
-                (None, strings) => strings.is_empty(),
-            },
-            Inherited(r) => match (r, pkg.inherited()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },

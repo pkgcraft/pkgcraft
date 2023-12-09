@@ -57,8 +57,6 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
         "homepage" => Homepage(None),
         "defined_phases" => DefinedPhases(None),
         "iuse" => Iuse(None),
-        "inherited" => Inherited(None),
-        "inherit" => Inherit(None),
         "long_description" => LongDescription(None),
         "maintainers" => Maintainers(None),
         _ => panic!("unknown optional package attribute: {attr}"),
@@ -96,8 +94,6 @@ peg::parser!(grammar restrict() for str {
             / "homepage"
             / "defined_phases"
             / "iuse"
-            / "inherited"
-            / "inherit"
             / "long_description"
             / "maintainers"
             / "upstream"
@@ -259,16 +255,12 @@ peg::parser!(grammar restrict() for str {
                 "homepage"
                 / "defined_phases"
                 / "iuse"
-                / "inherited"
-                / "inherit"
             )) op:set_ops() vals:quoted_string_set()
         {
             use EbuildRestrict::*;
             let func = match attr {
                 "homepage" => Homepage,
                 "iuse" => Iuse,
-                "inherited" => Inherited,
-                "inherit" => Inherit,
                 _ => panic!("unknown package attribute: {attr}"),
             };
             let r = orderedset_restrict(op, &vals);

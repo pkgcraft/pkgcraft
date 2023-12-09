@@ -12,12 +12,12 @@ use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
 use crate::files::atomic_write_file;
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
-use crate::repo::ebuild::Repo;
+use crate::repo::ebuild::{Eclass, Repo};
 use crate::traits::IntoOwned;
 use crate::types::OrderedSet;
 use crate::Error;
 
-use super::{get_build_mut, BuildData};
+use super::get_build_mut;
 
 #[derive(
     AsRefStr, EnumString, Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
@@ -150,7 +150,7 @@ impl<S: fmt::Display> fmt::Display for Keyword<S> {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct Metadata {
+pub(crate) struct Metadata<'a> {
     description: String,
     slot: Slot<String>,
     bdepend: DependencySet<String, Dep>,
@@ -167,8 +167,8 @@ pub(crate) struct Metadata {
     defined_phases: OrderedSet<String>,
     keywords: OrderedSet<Keyword<String>>,
     iuse: OrderedSet<Iuse<String>>,
-    inherit: OrderedSet<String>,
-    inherited: OrderedSet<String>,
+    inherit: OrderedSet<&'a Eclass>,
+    inherited: OrderedSet<&'a Eclass>,
     chksum: String,
 }
 
@@ -180,64 +180,15 @@ macro_rules! required {
     };
 }
 
-impl Metadata {
-    /// Populate a metadata field value using the current build state.
-    fn populate(
-        &mut self,
-        build: &mut BuildData,
-        key: &Key,
-        eapi: &'static Eapi,
-    ) -> crate::Result<()> {
-        use Key::*;
-        match key {
-            CHKSUM => required!(eapi, key),
-            DEFINED_PHASES => {
-                let phase_names: OrderedSet<_> = eapi
-                    .phases()
-                    .iter()
-                    .filter_map(|p| functions::find(p).map(|_| p.short_name().to_string()))
-                    .sorted()
-                    .collect();
-                if phase_names.is_empty() {
-                    required!(eapi, key);
-                } else {
-                    self.defined_phases = phase_names;
-                }
-            }
-            INHERIT => {
-                let eclasses = &build.inherit;
-                if eclasses.is_empty() {
-                    required!(eapi, key);
-                } else {
-                    self.inherit = eclasses.iter().map(|x| x.to_string()).collect();
-                }
-            }
-            INHERITED => {
-                let eclasses = &build.inherited;
-                if eclasses.is_empty() {
-                    required!(eapi, key);
-                } else {
-                    self.inherited = eclasses.iter().map(|x| x.to_string()).collect();
-                }
-            }
-            key => {
-                if let Some(val) = build.incrementals.get(key) {
-                    let s = val.iter().join(" ");
-                    self.deserialize(eapi, key, &s)?;
-                } else if let Some(val) = variables::optional(key) {
-                    let s = val.split_whitespace().join(" ");
-                    self.deserialize(eapi, key, &s)?;
-                } else {
-                    required!(eapi, key);
-                }
-            }
-        }
-
-        Ok(())
-    }
-
+impl<'a> Metadata<'a> {
     /// Deserialize a metadata string value to its field value.
-    fn deserialize(&mut self, eapi: &'static Eapi, key: &Key, val: &str) -> crate::Result<()> {
+    fn deserialize(
+        &mut self,
+        eapi: &'static Eapi,
+        repo: &'a Repo,
+        key: &Key,
+        val: &str,
+    ) -> crate::Result<()> {
         use Key::*;
         match key {
             CHKSUM => self.chksum = val.to_string(),
@@ -269,8 +220,26 @@ impl Metadata {
                     .map(Iuse::new)
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
-            INHERIT => self.inherit = val.split_whitespace().map(String::from).collect(),
-            INHERITED => self.inherited = val.split_whitespace().map(String::from).collect(),
+            INHERIT => {
+                self.inherit = val
+                    .split_whitespace()
+                    .map(|s| {
+                        repo.eclasses()
+                            .get(s)
+                            .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {s}")))
+                    })
+                    .collect::<crate::Result<OrderedSet<_>>>()?
+            }
+            INHERITED => {
+                self.inherited = val
+                    .split_whitespace()
+                    .map(|s| {
+                        repo.eclasses()
+                            .get(s)
+                            .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {s}")))
+                    })
+                    .collect::<crate::Result<OrderedSet<_>>>()?
+            }
             EAPI => {
                 let sourced: &Eapi = val.try_into()?;
                 if sourced != eapi {
@@ -289,15 +258,6 @@ impl Metadata {
         // convert raw pkg into metadata via sourcing
         let meta: Metadata = pkg.try_into()?;
         let eapi = pkg.eapi();
-
-        // return the MD5 checksum for a known eclass
-        let eclass_chksum = |name: &str| -> &str {
-            pkg.repo()
-                .eclasses()
-                .get(name)
-                .expect("missing eclass")
-                .chksum()
-        };
 
         // convert metadata fields to metadata lines
         use Key::*;
@@ -395,7 +355,7 @@ impl Metadata {
                         let val = meta
                             .inherited
                             .iter()
-                            .flat_map(|s| [s.as_str(), eclass_chksum(s)])
+                            .flat_map(|e| [e.as_ref(), e.chksum()])
                             .join("\t");
                         writeln!(&mut data, "_eclasses_={val}")?;
                     }
@@ -425,14 +385,14 @@ impl Metadata {
     }
 
     /// Verify a metadata entry is valid.
-    pub(crate) fn verify(cpv: &Cpv, repo: &Repo) -> bool {
+    pub(crate) fn verify(cpv: &Cpv, repo: &'a Repo) -> bool {
         Pkg::new(cpv.clone(), repo)
             .map(|p| Self::load(&p, false).is_err())
             .unwrap_or_default()
     }
 
     /// Deserialize a metadata entry for a given package into [`Metadata`].
-    pub(crate) fn load(pkg: &Pkg, deserialize: bool) -> crate::Result<Self> {
+    pub(crate) fn load(pkg: &Pkg<'a>, deserialize: bool) -> crate::Result<Self> {
         let eapi = pkg.eapi();
         let repo = pkg.repo();
 
@@ -477,16 +437,16 @@ impl Metadata {
         // verify eclass hashes
         if let Some(val) = data.remove(&Key::INHERITED) {
             for (name, chksum) in val.split_whitespace().tuples() {
-                if !repo
-                    .eclasses()
-                    .get(name)
-                    .map_or(false, |e| e.chksum() == chksum)
-                {
+                let Some(eclass) = repo.eclasses().get(name) else {
+                    return Err(Error::InvalidValue(format!("nonexistent eclass: {name}")));
+                };
+
+                if eclass.chksum() != chksum {
                     return Err(Error::InvalidValue("mismatched eclass checksum".to_string()));
                 }
 
                 if deserialize {
-                    meta.inherited.insert(name.to_string());
+                    meta.inherited.insert(eclass);
                 }
             }
         }
@@ -499,7 +459,7 @@ impl Metadata {
                 }
             }
             for (key, val) in data {
-                meta.deserialize(eapi, &key, val)?;
+                meta.deserialize(eapi, repo, &key, val)?;
             }
         }
 
@@ -570,11 +530,11 @@ impl Metadata {
         &self.iuse
     }
 
-    pub(crate) fn inherit(&self) -> &OrderedSet<String> {
+    pub(crate) fn inherit(&self) -> &OrderedSet<&Eclass> {
         &self.inherit
     }
 
-    pub(crate) fn inherited(&self) -> &OrderedSet<String> {
+    pub(crate) fn inherited(&self) -> &OrderedSet<&Eclass> {
         &self.inherited
     }
 
@@ -583,20 +543,50 @@ impl Metadata {
     }
 }
 
-impl TryFrom<&Pkg<'_>> for Metadata {
+impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
     type Error = Error;
 
-    fn try_from(pkg: &Pkg) -> crate::Result<Self> {
+    fn try_from(pkg: &Pkg<'a>) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 
         let eapi = pkg.eapi();
+        let repo = pkg.repo();
         let build = get_build_mut();
         let mut meta = Self::default();
 
-        // pull metadata values from build state
+        // populate metadata fields using the current build state
+        use Key::*;
         for key in eapi.metadata_keys() {
-            meta.populate(build, key, eapi)?;
+            match key {
+                CHKSUM => required!(eapi, key),
+                DEFINED_PHASES => {
+                    let phase_names: OrderedSet<_> = eapi
+                        .phases()
+                        .iter()
+                        .filter_map(|p| functions::find(p).map(|_| p.short_name().to_string()))
+                        .sorted()
+                        .collect();
+                    if phase_names.is_empty() {
+                        required!(eapi, key);
+                    } else {
+                        meta.defined_phases = phase_names;
+                    }
+                }
+                INHERIT => meta.inherit = build.inherit.iter().copied().collect(),
+                INHERITED => meta.inherited = build.inherited.iter().copied().collect(),
+                key => {
+                    if let Some(val) = build.incrementals.get(key) {
+                        let s = val.iter().join(" ");
+                        meta.deserialize(eapi, repo, key, &s)?;
+                    } else if let Some(val) = variables::optional(key) {
+                        let s = val.split_whitespace().join(" ");
+                        meta.deserialize(eapi, repo, key, &s)?;
+                    } else {
+                        required!(eapi, key);
+                    }
+                }
+            }
         }
 
         Ok(meta)

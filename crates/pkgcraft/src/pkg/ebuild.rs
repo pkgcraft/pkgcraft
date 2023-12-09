@@ -8,7 +8,8 @@ use itertools::Either;
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DependencySet, Uri};
 use crate::eapi::Eapi;
-use crate::repo::{ebuild::Repo, Repository};
+use crate::repo::ebuild::{Eclass, Repo};
+use crate::repo::Repository;
 use crate::shell::metadata::{Iuse, Key, Keyword, Metadata};
 use crate::types::OrderedSet;
 use crate::Error;
@@ -46,7 +47,7 @@ pub struct Pkg<'a> {
     cpv: Cpv,
     eapi: &'static Eapi,
     repo: &'a Repo,
-    meta: Metadata,
+    meta: Metadata<'a>,
     iuse_effective: OnceLock<OrderedSet<String>>,
     xml: OnceLock<Arc<XmlMetadata>>,
     manifest: OnceLock<Arc<Manifest>>,
@@ -194,12 +195,12 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
-    pub fn inherit(&self) -> &OrderedSet<String> {
+    pub fn inherit(&self) -> &OrderedSet<&Eclass> {
         self.meta.inherit()
     }
 
     /// Return the ordered set of inherited eclasses for a package.
-    pub fn inherited(&self) -> &OrderedSet<String> {
+    pub fn inherited(&self) -> &OrderedSet<&Eclass> {
         self.meta.inherited()
     }
 
@@ -681,6 +682,9 @@ mod tests {
         "#};
         t.create_eclass("e2", eclass).unwrap();
 
+        let e1 = t.repo().eclasses().get("e1").unwrap();
+        let e2 = t.repo().eclasses().get("e2").unwrap();
+
         // single inherit
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -689,8 +693,8 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), ["e1"]);
-        assert_ordered_eq(pkg.inherited(), ["e1"]);
+        assert_ordered_eq(pkg.inherit(), [&e1]);
+        assert_ordered_eq(pkg.inherited(), [&e1]);
 
         // eclass with indirect inherit
         let data = indoc::indoc! {r#"
@@ -700,8 +704,8 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), ["e2"]);
-        assert_ordered_eq(pkg.inherited(), ["e2", "e1"]);
+        assert_ordered_eq(pkg.inherit(), [&e2]);
+        assert_ordered_eq(pkg.inherited(), [&e2, &e1]);
 
         // multiple inherits
         let data = indoc::indoc! {r#"
@@ -711,8 +715,8 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), ["e1", "e2"]);
-        assert_ordered_eq(pkg.inherited(), ["e1", "e2"]);
+        assert_ordered_eq(pkg.inherit(), [&e1, &e2]);
+        assert_ordered_eq(pkg.inherited(), [&e1, &e2]);
     }
 
     #[test]
