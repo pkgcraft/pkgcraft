@@ -25,11 +25,11 @@ pub use uri::Uri;
 pub use use_dep::{UseDep, UseDepDefault, UseDepKind};
 pub use version::{Operator, Revision, Version};
 
-pub trait UseFlag:
+pub trait Stringable:
     fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash + AsRef<str>
 {
 }
-impl<T> UseFlag for T where
+impl<T> Stringable for T where
     T: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash + AsRef<str>
 {
 }
@@ -86,7 +86,7 @@ macro_rules! p {
 
 /// Dependency specification variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Dependency<S: UseFlag, T: Ordered> {
+pub enum Dependency<S: Stringable, T: Ordered> {
     /// Enabled dependency.
     Enabled(T),
     /// Disabled dependency (REQUIRED_USE only).
@@ -165,7 +165,7 @@ impl<T: Ordered> IntoOwned for Dependency<&str, &T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Dependency<S, T> {
+impl<S: Stringable, T: Ordered> Dependency<S, T> {
     pub fn is_empty(&self) -> bool {
         use Dependency::*;
         match self {
@@ -228,7 +228,7 @@ impl FromStr for Dependency<String, Dep> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Contains<&Self> for Dependency<S, T> {
+impl<S: Stringable, T: Ordered> Contains<&Self> for Dependency<S, T> {
     fn contains(&self, dep: &Self) -> bool {
         use Dependency::*;
         match self {
@@ -242,13 +242,13 @@ impl<S: UseFlag, T: Ordered> Contains<&Self> for Dependency<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Contains<&T> for Dependency<S, T> {
+impl<S: Stringable, T: Ordered> Contains<&T> for Dependency<S, T> {
     fn contains(&self, obj: &T) -> bool {
         self.iter_flatten().any(|x| x == obj)
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a Dependency<S, T> {
+impl<'a, S: Stringable, T: Ordered> IntoIterator for &'a Dependency<S, T> {
     type Item = &'a Dependency<S, T>;
     type IntoIter = Iter<'a, S, T>;
 
@@ -329,7 +329,7 @@ impl<'a, T: Ordered> EvaluateForce for Dependency<&'a str, &'a T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> IntoIterator for Dependency<S, T> {
+impl<S: Stringable, T: Ordered> IntoIterator for Dependency<S, T> {
     type Item = Dependency<S, T>;
     type IntoIter = IntoIter<S, T>;
 
@@ -346,7 +346,7 @@ impl<S: UseFlag, T: Ordered> IntoIterator for Dependency<S, T> {
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> Flatten for &'a Dependency<S, T> {
+impl<'a, S: Stringable, T: Ordered> Flatten for &'a Dependency<S, T> {
     type Item = &'a T;
     type IntoIterFlatten = IterFlatten<'a, S, T>;
 
@@ -355,7 +355,7 @@ impl<'a, S: UseFlag, T: Ordered> Flatten for &'a Dependency<S, T> {
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> Recursive for &'a Dependency<S, T> {
+impl<'a, S: Stringable, T: Ordered> Recursive for &'a Dependency<S, T> {
     type Item = &'a Dependency<S, T>;
     type IntoIterRecursive = IterRecursive<'a, S, T>;
 
@@ -364,7 +364,7 @@ impl<'a, S: UseFlag, T: Ordered> Recursive for &'a Dependency<S, T> {
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> Conditionals for &'a Dependency<S, T> {
+impl<'a, S: Stringable, T: Ordered> Conditionals for &'a Dependency<S, T> {
     type Item = &'a UseDep<S>;
     type IntoIterConditionals = IterConditionals<'a, S, T>;
 
@@ -373,7 +373,7 @@ impl<'a, S: UseFlag, T: Ordered> Conditionals for &'a Dependency<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Flatten for Dependency<S, T> {
+impl<S: Stringable, T: Ordered> Flatten for Dependency<S, T> {
     type Item = T;
     type IntoIterFlatten = IntoIterFlatten<S, T>;
 
@@ -382,7 +382,7 @@ impl<S: UseFlag, T: Ordered> Flatten for Dependency<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Recursive for Dependency<S, T> {
+impl<S: Stringable, T: Ordered> Recursive for Dependency<S, T> {
     type Item = Dependency<S, T>;
     type IntoIterRecursive = IntoIterRecursive<S, T>;
 
@@ -391,7 +391,7 @@ impl<S: UseFlag, T: Ordered> Recursive for Dependency<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Conditionals for Dependency<S, T> {
+impl<S: Stringable, T: Ordered> Conditionals for Dependency<S, T> {
     type Item = UseDep<S>;
     type IntoIterConditionals = IntoIterConditionals<S, T>;
 
@@ -400,7 +400,7 @@ impl<S: UseFlag, T: Ordered> Conditionals for Dependency<S, T> {
     }
 }
 
-impl<S: UseFlag, T: fmt::Display + Ordered> fmt::Display for Dependency<S, T> {
+impl<S: Stringable, T: fmt::Display + Ordered> fmt::Display for Dependency<S, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Dependency::*;
         match self {
@@ -417,9 +417,9 @@ impl<S: UseFlag, T: fmt::Display + Ordered> fmt::Display for Dependency<S, T> {
 
 /// Set of dependency objects.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DependencySet<S: UseFlag, T: Ordered>(SortedSet<Dependency<S, T>>);
+pub struct DependencySet<S: Stringable, T: Ordered>(SortedSet<Dependency<S, T>>);
 
-impl<S: UseFlag, T: Ordered> DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> DependencySet<S, T> {
     /// Construct a new, empty `DependencySet<S, T>`.
     pub fn new() -> Self {
         Self(SortedSet::new())
@@ -555,19 +555,19 @@ impl<S: UseFlag, T: Ordered> DependencySet<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Default for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> Default for DependencySet<S, T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<S: UseFlag, T: fmt::Display + Ordered> fmt::Display for DependencySet<S, T> {
+impl<S: Stringable, T: fmt::Display + Ordered> fmt::Display for DependencySet<S, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", p!(self))
     }
 }
 
-impl<S: UseFlag, T: Ordered> FromIterator<Dependency<S, T>> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> FromIterator<Dependency<S, T>> for DependencySet<S, T> {
     fn from_iter<I: IntoIterator<Item = Dependency<S, T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().collect())
     }
@@ -590,7 +590,7 @@ impl FromStr for DependencySet<String, Dep> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> BitAnd<&Self> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> BitAnd<&Self> for DependencySet<S, T> {
     type Output = Self;
 
     fn bitand(mut self, other: &Self) -> Self::Output {
@@ -599,13 +599,13 @@ impl<S: UseFlag, T: Ordered> BitAnd<&Self> for DependencySet<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> BitAndAssign<&Self> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> BitAndAssign<&Self> for DependencySet<S, T> {
     fn bitand_assign(&mut self, other: &Self) {
         self.0 &= &other.0;
     }
 }
 
-impl<S: UseFlag, T: Ordered> BitOr<&Self> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> BitOr<&Self> for DependencySet<S, T> {
     type Output = Self;
 
     fn bitor(mut self, other: &Self) -> Self::Output {
@@ -614,13 +614,13 @@ impl<S: UseFlag, T: Ordered> BitOr<&Self> for DependencySet<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> BitOrAssign<&Self> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> BitOrAssign<&Self> for DependencySet<S, T> {
     fn bitor_assign(&mut self, other: &Self) {
         self.0 |= &other.0;
     }
 }
 
-impl<S: UseFlag, T: Ordered> BitXor<&Self> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> BitXor<&Self> for DependencySet<S, T> {
     type Output = Self;
 
     fn bitxor(mut self, other: &Self) -> Self::Output {
@@ -629,13 +629,13 @@ impl<S: UseFlag, T: Ordered> BitXor<&Self> for DependencySet<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> BitXorAssign<&Self> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> BitXorAssign<&Self> for DependencySet<S, T> {
     fn bitxor_assign(&mut self, other: &Self) {
         self.0 ^= &other.0;
     }
 }
 
-impl<S: UseFlag, T: Ordered> Sub<&Self> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> Sub<&Self> for DependencySet<S, T> {
     type Output = Self;
 
     fn sub(mut self, other: &Self) -> Self::Output {
@@ -644,19 +644,19 @@ impl<S: UseFlag, T: Ordered> Sub<&Self> for DependencySet<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> SubAssign<&Self> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> SubAssign<&Self> for DependencySet<S, T> {
     fn sub_assign(&mut self, other: &Self) {
         self.0 -= &other.0;
     }
 }
 
-impl<S: UseFlag, T: Ordered> Contains<&Dependency<S, T>> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> Contains<&Dependency<S, T>> for DependencySet<S, T> {
     fn contains(&self, dep: &Dependency<S, T>) -> bool {
         self.0.contains(dep)
     }
 }
 
-impl<S: UseFlag, T: Ordered> Contains<&T> for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> Contains<&T> for DependencySet<S, T> {
     fn contains(&self, obj: &T) -> bool {
         self.iter_flatten().any(|x| x == obj)
     }
@@ -735,15 +735,15 @@ impl<T: Ordered> IntoOwned for DependencySet<&str, &T> {
 }
 
 #[derive(Debug)]
-pub struct Iter<'a, S: UseFlag, T: Ordered>(Deque<&'a Dependency<S, T>>);
+pub struct Iter<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
 
-impl<'a, S: UseFlag, T: Ordered> FromIterator<&'a Dependency<S, T>> for Iter<'a, S, T> {
+impl<'a, S: Stringable, T: Ordered> FromIterator<&'a Dependency<S, T>> for Iter<'a, S, T> {
     fn from_iter<I: IntoIterator<Item = &'a Dependency<S, T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().collect())
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> Iterator for Iter<'a, S, T> {
+impl<'a, S: Stringable, T: Ordered> Iterator for Iter<'a, S, T> {
     type Item = &'a Dependency<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -751,13 +751,13 @@ impl<'a, S: UseFlag, T: Ordered> Iterator for Iter<'a, S, T> {
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> DoubleEndedIterator for Iter<'a, S, T> {
+impl<'a, S: Stringable, T: Ordered> DoubleEndedIterator for Iter<'a, S, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.pop_back()
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DependencySet<S, T> {
+impl<'a, S: Stringable, T: Ordered> IntoIterator for &'a DependencySet<S, T> {
     type Item = &'a Dependency<S, T>;
     type IntoIter = Iter<'a, S, T>;
 
@@ -766,7 +766,7 @@ impl<'a, S: UseFlag, T: Ordered> IntoIterator for &'a DependencySet<S, T> {
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> Flatten for &'a DependencySet<S, T> {
+impl<'a, S: Stringable, T: Ordered> Flatten for &'a DependencySet<S, T> {
     type Item = &'a T;
     type IntoIterFlatten = IterFlatten<'a, S, T>;
 
@@ -775,7 +775,7 @@ impl<'a, S: UseFlag, T: Ordered> Flatten for &'a DependencySet<S, T> {
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> Recursive for &'a DependencySet<S, T> {
+impl<'a, S: Stringable, T: Ordered> Recursive for &'a DependencySet<S, T> {
     type Item = &'a Dependency<S, T>;
     type IntoIterRecursive = IterRecursive<'a, S, T>;
 
@@ -784,7 +784,7 @@ impl<'a, S: UseFlag, T: Ordered> Recursive for &'a DependencySet<S, T> {
     }
 }
 
-impl<'a, S: UseFlag, T: Ordered> Conditionals for &'a DependencySet<S, T> {
+impl<'a, S: Stringable, T: Ordered> Conditionals for &'a DependencySet<S, T> {
     type Item = &'a UseDep<S>;
     type IntoIterConditionals = IterConditionals<'a, S, T>;
 
@@ -886,9 +886,9 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterEvaluateForce<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct IterFlatten<'a, S: UseFlag, T: Ordered>(Deque<&'a Dependency<S, T>>);
+pub struct IterFlatten<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
 
-impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, S, T> {
+impl<'a, S: Stringable, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, S, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -908,15 +908,15 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, S, T>
 }
 
 #[derive(Debug)]
-pub struct IntoIter<S: UseFlag, T: Ordered>(Deque<Dependency<S, T>>);
+pub struct IntoIter<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
 
-impl<S: UseFlag, T: Ordered> FromIterator<Dependency<S, T>> for IntoIter<S, T> {
+impl<S: Stringable, T: Ordered> FromIterator<Dependency<S, T>> for IntoIter<S, T> {
     fn from_iter<I: IntoIterator<Item = Dependency<S, T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().collect())
     }
 }
 
-impl<S: UseFlag, T: Ordered> Iterator for IntoIter<S, T> {
+impl<S: Stringable, T: Ordered> Iterator for IntoIter<S, T> {
     type Item = Dependency<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -924,13 +924,13 @@ impl<S: UseFlag, T: Ordered> Iterator for IntoIter<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> DoubleEndedIterator for IntoIter<S, T> {
+impl<S: Stringable, T: Ordered> DoubleEndedIterator for IntoIter<S, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.pop_back()
     }
 }
 
-impl<S: UseFlag, T: Ordered> IntoIterator for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> IntoIterator for DependencySet<S, T> {
     type Item = Dependency<S, T>;
     type IntoIter = IntoIter<S, T>;
 
@@ -939,7 +939,7 @@ impl<S: UseFlag, T: Ordered> IntoIterator for DependencySet<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Flatten for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> Flatten for DependencySet<S, T> {
     type Item = T;
     type IntoIterFlatten = IntoIterFlatten<S, T>;
 
@@ -948,7 +948,7 @@ impl<S: UseFlag, T: Ordered> Flatten for DependencySet<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Recursive for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> Recursive for DependencySet<S, T> {
     type Item = Dependency<S, T>;
     type IntoIterRecursive = IntoIterRecursive<S, T>;
 
@@ -957,7 +957,7 @@ impl<S: UseFlag, T: Ordered> Recursive for DependencySet<S, T> {
     }
 }
 
-impl<S: UseFlag, T: Ordered> Conditionals for DependencySet<S, T> {
+impl<S: Stringable, T: Ordered> Conditionals for DependencySet<S, T> {
     type Item = UseDep<S>;
     type IntoIterConditionals = IntoIterConditionals<S, T>;
 
@@ -1027,9 +1027,9 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterFlatten<S: UseFlag, T: Ordered>(Deque<Dependency<S, T>>);
+pub struct IntoIterFlatten<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
 
-impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<S, T> {
+impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<S, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1049,9 +1049,9 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<S, T> {
 }
 
 #[derive(Debug)]
-pub struct IterRecursive<'a, S: UseFlag, T: Ordered>(Deque<&'a Dependency<S, T>>);
+pub struct IterRecursive<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
 
-impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, S, T> {
+impl<'a, S: Stringable, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, S, T> {
     type Item = &'a Dependency<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1073,9 +1073,9 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, S, 
 }
 
 #[derive(Debug)]
-pub struct IntoIterRecursive<S: UseFlag, T: Ordered>(Deque<Dependency<S, T>>);
+pub struct IntoIterRecursive<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
 
-impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
+impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
     type Item = Dependency<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1097,9 +1097,9 @@ impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
 }
 
 #[derive(Debug)]
-pub struct IterConditionals<'a, S: UseFlag, T: Ordered>(Deque<&'a Dependency<S, T>>);
+pub struct IterConditionals<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
 
-impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, S, T> {
+impl<'a, S: Stringable, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, S, T> {
     type Item = &'a UseDep<S>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1122,9 +1122,9 @@ impl<'a, S: UseFlag, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, 
 }
 
 #[derive(Debug)]
-pub struct IntoIterConditionals<S: UseFlag, T: Ordered>(Deque<Dependency<S, T>>);
+pub struct IntoIterConditionals<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
 
-impl<S: UseFlag, T: fmt::Debug + Ordered> Iterator for IntoIterConditionals<S, T> {
+impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterConditionals<S, T> {
     type Item = UseDep<S>;
 
     fn next(&mut self) -> Option<Self::Item> {

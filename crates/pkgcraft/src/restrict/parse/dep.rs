@@ -1,4 +1,4 @@
-use crate::dep::version::{Operator, ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
+use crate::dep::version::{Number, Operator, ParsedVersion, Suffix, SuffixKind};
 use crate::dep::{Blocker, UseDep, UseDepDefault, UseDepKind};
 use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -25,10 +25,10 @@ peg::parser!(grammar restrict() for str {
             (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '*'] / ("-" !version()))*})
         { s }
 
-    rule number() -> ParsedNumber<'input>
+    rule number() -> Number<&'input str>
         = s:$(['0'..='9']+) {?
             let value = s.parse().map_err(|_| "integer overflow")?;
-            Ok(ParsedNumber { raw: s, value })
+            Ok(Number { raw: s, value })
         }
 
     rule suffix() -> SuffixKind
@@ -38,8 +38,8 @@ peg::parser!(grammar restrict() for str {
         / "rc" { SuffixKind::Rc }
         / "p" { SuffixKind::P }
 
-    rule version_suffix() -> ParsedSuffix<'input>
-        = "_" kind:suffix() version:number()? { ParsedSuffix { kind, version } }
+    rule version_suffix() -> Suffix<&'input str>
+        = "_" kind:suffix() version:number()? { Suffix { kind, version } }
 
     // TODO: figure out how to return string slice instead of positions
     // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
@@ -55,9 +55,8 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule revision() -> ParsedNumber<'input>
+    rule revision() -> Number<&'input str>
         = "-r" rev:number() { rev }
-        / expected!("revision")
 
     rule cp_restricts() -> Vec<DepRestrict>
         = cat:category() pkg:(quiet!{"/"} s:package() { s }) {?

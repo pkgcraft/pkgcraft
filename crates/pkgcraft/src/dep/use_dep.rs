@@ -9,7 +9,7 @@ use crate::traits::IntoOwned;
 use crate::types::SortedSet;
 use crate::Error;
 
-use super::{parse, Enabled, UseFlag};
+use super::{parse, Enabled, Stringable};
 
 /// Package USE dependency type.
 #[repr(C)]
@@ -33,7 +33,7 @@ pub enum UseDepDefault {
 
 /// Package USE dependency.
 #[derive(DeserializeFromStr, SerializeDisplay, Debug, PartialEq, Eq, Hash, Clone)]
-pub struct UseDep<S: UseFlag> {
+pub struct UseDep<S: Stringable> {
     pub(crate) kind: UseDepKind,
     pub(crate) flag: S,
     pub(crate) default: Option<UseDepDefault>,
@@ -51,19 +51,19 @@ impl IntoOwned for UseDep<&str> {
     }
 }
 
-impl<S: UseFlag> Ord for UseDep<S> {
+impl<S: Stringable> Ord for UseDep<S> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.flag.cmp(&other.flag)
     }
 }
 
-impl<S: UseFlag> PartialOrd for UseDep<S> {
+impl<S: Stringable> PartialOrd for UseDep<S> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<S: UseFlag> fmt::Display for UseDep<S> {
+impl<S: Stringable> fmt::Display for UseDep<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let default = match &self.default {
             Some(UseDepDefault::Enabled) => "(+)",
@@ -99,7 +99,7 @@ impl FromStr for SortedSet<UseDep<String>> {
     }
 }
 
-impl<S: UseFlag> UseDep<S> {
+impl<S: Stringable> UseDep<S> {
     /// Return the USE dependency type.
     pub fn kind(&self) -> UseDepKind {
         self.kind

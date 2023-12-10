@@ -7,7 +7,7 @@ use std::ops::{
 use std::{fmt, ptr, slice};
 
 use pkgcraft::dep::{
-    self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, Recursive, Uri, UseFlag,
+    self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, Recursive, Stringable, Uri,
 };
 use pkgcraft::eapi::Eapi;
 use pkgcraft::traits::{Contains, IntoOwned};
@@ -312,7 +312,7 @@ pub enum DependencyKind {
     UseConditional,
 }
 
-impl<S: UseFlag, T: Ordered> From<&dep::Dependency<S, T>> for DependencyKind {
+impl<S: Stringable, T: Ordered> From<&dep::Dependency<S, T>> for DependencyKind {
     fn from(d: &dep::Dependency<S, T>) -> Self {
         use dep::Dependency::*;
         match d {

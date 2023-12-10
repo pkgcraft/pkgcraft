@@ -4,7 +4,7 @@ use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::{Blocker, Dep, ParsedDep, Slot, SlotDep, SlotOperator};
 use crate::dep::uri::Uri;
 use crate::dep::use_dep::{UseDep, UseDepDefault, UseDepKind};
-use crate::dep::version::{Operator, ParsedNumber, ParsedSuffix, ParsedVersion, SuffixKind};
+use crate::dep::version::{Number, Operator, ParsedVersion, Suffix, SuffixKind};
 use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
@@ -66,10 +66,10 @@ peg::parser!(grammar depspec() for str {
         } / expected!("package name"))
         { s }
 
-    rule number() -> ParsedNumber<'input>
+    pub(super) rule number() -> Number<&'input str>
         = s:$(['0'..='9']+) {?
             let value = s.parse().map_err(|_| "integer overflow")?;
-            Ok(ParsedNumber { raw: s, value })
+            Ok(Number { raw: s, value })
         }
 
     rule suffix() -> SuffixKind
@@ -79,8 +79,8 @@ peg::parser!(grammar depspec() for str {
         / "rc" { SuffixKind::Rc }
         / "p" { SuffixKind::P }
 
-    rule version_suffix() -> ParsedSuffix<'input>
-        = "_" kind:suffix() version:number()? { ParsedSuffix { kind, version } }
+    rule version_suffix() -> Suffix<&'input str>
+        = "_" kind:suffix() version:number()? { Suffix { kind, version } }
 
     // TODO: figure out how to return string slice instead of positions
     // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
@@ -115,7 +115,7 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    rule revision() -> ParsedNumber<'input>
+    rule revision() -> Number<&'input str>
         = "-r" rev:number() { rev }
 
     // Slot names must not begin with a hyphen, dot, or plus sign.
@@ -379,6 +379,10 @@ pub(crate) fn iuse(s: &str) -> crate::Result<Iuse<&str>> {
 
 pub(crate) fn keyword(s: &str) -> crate::Result<Keyword<&str>> {
     depspec::keyword(s).map_err(|e| peg_error("invalid KEYWORD", s, e))
+}
+
+pub(crate) fn number(s: &str) -> crate::Result<Number<&str>> {
+    depspec::number(s).map_err(|e| peg_error("invalid IUSE", s, e))
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {

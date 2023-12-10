@@ -12,16 +12,16 @@ use crate::macros::cmp_not_equal;
 use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
-use super::parse;
+use super::{parse, Stringable};
 
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct ParsedNumber<'a> {
-    pub(crate) raw: &'a str,
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+pub(crate) struct Number<S: Stringable> {
+    pub(crate) raw: S,
     pub(crate) value: u64,
 }
 
-impl IntoOwned for ParsedNumber<'_> {
-    type Owned = Number;
+impl IntoOwned for Number<&str> {
+    type Owned = Number<String>;
 
     fn into_owned(self) -> Self::Owned {
         Number {
@@ -31,99 +31,82 @@ impl IntoOwned for ParsedNumber<'_> {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
-pub(crate) struct Number {
-    raw: String,
-    value: u64,
-}
-
-impl AsRef<str> for Number {
+impl<S: Stringable> AsRef<str> for Number<S> {
     fn as_ref(&self) -> &str {
-        &self.raw
+        self.raw.as_ref()
     }
 }
 
-impl PartialEq for Number {
+impl<S: Stringable> PartialEq for Number<S> {
     fn eq(&self, other: &Self) -> bool {
         self.value == other.value
     }
 }
 
-impl Eq for Number {}
+impl<S: Stringable> Eq for Number<S> {}
 
-impl PartialEq<u64> for Number {
+impl<S: Stringable> PartialEq<u64> for Number<S> {
     fn eq(&self, other: &u64) -> bool {
         &self.value == other
     }
 }
 
-impl PartialEq<str> for Number {
+impl<S: Stringable> PartialEq<str> for Number<S> {
     fn eq(&self, other: &str) -> bool {
-        self.raw == other
+        self.raw.as_ref() == other
     }
 }
 
-impl PartialEq<&str> for Number {
+impl<S: Stringable> PartialEq<&str> for Number<S> {
     fn eq(&self, other: &&str) -> bool {
-        self.raw == *other
+        self.raw.as_ref() == *other
     }
 }
 
-impl PartialEq<Number> for u64 {
-    fn eq(&self, other: &Number) -> bool {
+impl<S: Stringable> PartialEq<Number<S>> for u64 {
+    fn eq(&self, other: &Number<S>) -> bool {
         other == self
     }
 }
 
-impl PartialEq<Number> for str {
-    fn eq(&self, other: &Number) -> bool {
+impl<S: Stringable> PartialEq<Number<S>> for str {
+    fn eq(&self, other: &Number<S>) -> bool {
         other == self
     }
 }
 
-impl PartialEq<Number> for &str {
-    fn eq(&self, other: &Number) -> bool {
+impl<S: Stringable> PartialEq<Number<S>> for &str {
+    fn eq(&self, other: &Number<S>) -> bool {
         other == *self
     }
 }
 
-impl Hash for Number {
+impl<S: Stringable> Hash for Number<S> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.value.hash(state);
     }
 }
 
-impl Ord for Number {
+impl<S: Stringable> Ord for Number<S> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.value.cmp(&other.value)
     }
 }
 
-impl PartialOrd for Number {
+impl<S: Stringable> PartialOrd for Number<S> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl FromStr for Number {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        let value = s
-            .parse()
-            .map_err(|e| Error::Overflow(format!("invalid number: {e}: {s}")))?;
-        Ok(Self { raw: s.to_string(), value })
-    }
-}
-
-impl fmt::Display for Number {
+impl<S: Stringable> fmt::Display for Number<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.as_ref())
     }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Revision(Number);
+pub struct Revision(Number<String>);
 
 impl Revision {
     /// Create a new Revision from a given string.
@@ -131,7 +114,7 @@ impl Revision {
         if s.is_empty() {
             Ok(Self::default())
         } else {
-            Ok(Self(s.parse()?))
+            Ok(Self(parse::number(s)?.into_owned()))
         }
     }
 }
@@ -204,14 +187,14 @@ pub(crate) enum SuffixKind {
     P,
 }
 
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct ParsedSuffix<'a> {
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub(crate) struct Suffix<S: Stringable> {
     pub(crate) kind: SuffixKind,
-    pub(crate) version: Option<ParsedNumber<'a>>,
+    pub(crate) version: Option<Number<S>>,
 }
 
-impl IntoOwned for ParsedSuffix<'_> {
-    type Owned = Suffix;
+impl IntoOwned for Suffix<&str> {
+    type Owned = Suffix<String>;
 
     fn into_owned(self) -> Self::Owned {
         Suffix {
@@ -221,13 +204,7 @@ impl IntoOwned for ParsedSuffix<'_> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub(crate) struct Suffix {
-    pub(crate) kind: SuffixKind,
-    pub(crate) version: Option<Number>,
-}
-
-impl fmt::Display for Suffix {
+impl<S: Stringable> fmt::Display for Suffix<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.kind)?;
         if let Some(ver) = self.version.as_ref() {
@@ -240,10 +217,10 @@ impl fmt::Display for Suffix {
 #[derive(Debug)]
 pub(crate) struct ParsedVersion<'a> {
     pub(crate) op: Option<Operator>,
-    pub(crate) numbers: Vec<ParsedNumber<'a>>,
+    pub(crate) numbers: Vec<Number<&'a str>>,
     pub(crate) letter: Option<char>,
-    pub(crate) suffixes: Vec<ParsedSuffix<'a>>,
-    pub(crate) revision: Option<ParsedNumber<'a>>,
+    pub(crate) suffixes: Vec<Suffix<&'a str>>,
+    pub(crate) revision: Option<Number<&'a str>>,
 }
 
 impl<'a> ParsedVersion<'a> {
@@ -320,9 +297,9 @@ impl Operator {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Version {
     op: Option<Operator>,
-    numbers: Vec<Number>,
+    numbers: Vec<Number<String>>,
     letter: Option<char>,
-    suffixes: Vec<Suffix>,
+    suffixes: Vec<Suffix<String>>,
     revision: Revision,
 }
 
