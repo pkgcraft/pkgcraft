@@ -248,7 +248,7 @@ impl<'a> BuildData<'a> {
         get_build_mut().state = BuildState::Empty(eapi);
     }
 
-    pub(crate) fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::raw::Pkg<'a>) {
+    fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::raw::Pkg<'a>) {
         // TODO: remove this hack once BuildData is reworked
         let p = unsafe { mem::transmute(pkg) };
         let data = BuildData {
@@ -258,7 +258,7 @@ impl<'a> BuildData<'a> {
         update_build(data);
     }
 
-    pub(crate) fn from_pkg<P: Borrow<crate::pkg::ebuild::Pkg<'a>>>(pkg: P) {
+    fn from_pkg<P: Borrow<crate::pkg::ebuild::Pkg<'a>>>(pkg: P) {
         // TODO: remove this hack once BuildData is reworked
         let p = unsafe { mem::transmute(pkg.borrow()) };
         let data = BuildData {
