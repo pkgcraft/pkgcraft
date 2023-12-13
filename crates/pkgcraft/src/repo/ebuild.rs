@@ -1011,10 +1011,10 @@ mod tests {
     #[test]
     fn test_masters() {
         let mut config = Config::default();
-        let repos_path = TEST_DATA.path.join("repos");
+        let test_path = &TEST_DATA.path;
 
         // none
-        let repo = Repo::from_path("a", 0, repos_path.join("dependent-primary")).unwrap();
+        let repo = Repo::from_path("a", 0, test_path.join("repos/dependent-primary")).unwrap();
         let repo = config
             .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
             .unwrap();
@@ -1024,12 +1024,14 @@ mod tests {
         assert_eq!(trees, ["a"]);
 
         // nonexistent
-        let repo = Repo::from_path("test", 0, repos_path.join("dependent-nonexistent")).unwrap();
+        let repo =
+            Repo::from_path("test", 0, test_path.join("repos-invalid/dependent-nonexistent"))
+                .unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str(), false);
         assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
 
         // single
-        let repo = Repo::from_path("b", 0, repos_path.join("dependent-secondary")).unwrap();
+        let repo = Repo::from_path("b", 0, test_path.join("repos/dependent-secondary")).unwrap();
         let repo = config
             .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
             .unwrap();

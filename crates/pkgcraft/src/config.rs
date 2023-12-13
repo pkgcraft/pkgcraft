@@ -367,6 +367,7 @@ mod tests {
         let conf_path = tmpdir.path().to_str().unwrap();
         let path = tmpdir.path().join("repos.conf");
         let path = path.to_str().unwrap();
+        let test_path = &TEST_DATA.path;
 
         // nonexistent
         let r = config.load_portage_conf(Some("unknown/path"));
@@ -435,12 +436,11 @@ mod tests {
 
         // nonexistent masters causes finalization failure
         let mut config = Config::new("pkgcraft", "");
-        let repos_path = TEST_DATA.path.join("repos");
         let data = indoc::formatdoc! {r#"
             [primary]
-            location = {repos_path}/dependent-primary
+            location = {test_path}/repos/dependent-primary
             [nonexistent]
-            location = {repos_path}/dependent-nonexistent
+            location = {test_path}/repos-invalid/dependent-nonexistent
         "#};
         fs::write(path, data).unwrap();
         let r = config.load_portage_conf(Some(conf_path));
