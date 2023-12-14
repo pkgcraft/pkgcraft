@@ -1280,10 +1280,13 @@ mod tests {
             SLOT=0
         "#};
         t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        t.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
+        t.create_raw_pkg_from_str("other/pkg-1", data).unwrap();
 
         repo.pkg_metadata_regen(Some(1), false, false, true)
             .unwrap();
 
+        // verify metadata entries
         let metadata = indoc::indoc! {r"
             DEFINED_PHASES=-
             DESCRIPTION=testing metadata generation
@@ -1293,6 +1296,22 @@ mod tests {
         "};
         let path = repo.metadata().cache_path().join("cat/pkg-1");
         assert_unordered_eq(fs::read_to_string(path).unwrap().lines(), metadata.lines());
+
+        // outdated metadata files and directories are removed
+        let entries: Vec<_> = WalkDir::new(repo.metadata().cache_path())
+            .min_depth(1)
+            .into_iter()
+            .collect();
+        assert_eq!(entries.len(), 5);
+        fs::remove_dir_all(repo.path().join("other")).unwrap();
+        fs::remove_file(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
+        repo.pkg_metadata_regen(Some(1), false, false, true)
+            .unwrap();
+        let entries: Vec<_> = WalkDir::new(repo.metadata().cache_path())
+            .min_depth(1)
+            .into_iter()
+            .collect();
+        assert_eq!(entries.len(), 2);
     }
 
     #[traced_test]
