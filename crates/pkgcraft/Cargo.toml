@@ -30,7 +30,7 @@ cached = "0.46.1"
 camino = { version = "1.1.6", features = ["serde1"] }
 chic = "1.2.2"
 clap = { version = "4.4.11", features = ["derive"] }
-crossbeam-channel = "0.5.8"
+crossbeam-channel = "0.5.9"
 digest = "0.10.7"
 enum-as-inner = "0.6.0"
 filetime = "0.2.23"
@@ -47,7 +47,7 @@ itertools = "0.12.0"
 md-5 = "0.10.6"
 nix = { version = "0.27.1", features = ["user"] }
 num_cpus = "1.16.0"
-once_cell = "1.18.0"
+once_cell = "1.19.0"
 peg = "0.8.2"
 rayon = "1.8.0"
 regex = "1.10.2"
@@ -62,7 +62,7 @@ strum = { version = "0.25.0", features = ["derive"] }
 tar = { version = "0.4.40", optional = true }
 tempfile = "3.8.1"
 thiserror = "1.0.50"
-tokio = { version = "1.34.0", features = ["full"], optional = true }
+tokio = { version = "1.35.0", features = ["full"], optional = true }
 toml = "0.8.8"
 tracing = "0.1.40"
 walkdir = "2.4.0"
@@ -72,7 +72,7 @@ assert_cmd = "2.0.12"
 
 [dev-dependencies]
 criterion = "0.5"
-ctor = "0.2.5"
+ctor = "0.2.6"
 tracing-test = "0.2.4"
 
 [[bench]]
