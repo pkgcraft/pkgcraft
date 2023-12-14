@@ -214,7 +214,7 @@ fn multiple_repos() {
 
 #[test]
 fn data_content() {
-    let repo = TEST_DATA.ebuild_repo("metadata-gen").unwrap();
+    let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
 
     // determine metadata file content
     let metadata_content = || {
