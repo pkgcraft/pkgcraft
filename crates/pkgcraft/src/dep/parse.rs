@@ -29,11 +29,11 @@ peg::parser!(grammar depspec() for str {
         / "-*" { Keyword { status: KeywordStatus::Disabled, arch: "*" } }
 
     // License names must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule license_name(err: &'static str) -> &'input str
+    pub(super) rule license_name() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!(err)) { s }
+        }) { s }
 
     // Eclass names must not begin with a hyphen or dot and cannot be named "default".
     pub(super) rule eclass_name() -> &'input str
@@ -254,7 +254,7 @@ peg::parser!(grammar depspec() for str {
         = use_cond(<license_dependency()>)
         / any_of(<license_dependency()>)
         / all_of(<license_dependency()>)
-        / s:license_name("license name") { Dependency::Enabled(s.to_string()) }
+        / s:license_name() { Dependency::Enabled(s.to_string()) }
 
     pub(super) rule src_uri_dependency(eapi: &'static Eapi) -> Dependency<String, Uri>
         = use_cond(<src_uri_dependency(eapi)>)
@@ -269,7 +269,7 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule properties_dependency() -> Dependency<String, String>
         = use_cond(<properties_dependency()>)
         / all_of(<properties_dependency()>)
-        / s:license_name("properties name") { Dependency::Enabled(s.to_string()) }
+        / s:license_name() { Dependency::Enabled(s.to_string()) }
 
     pub(super) rule required_use_dependency(eapi: &'static Eapi) -> Dependency<String, String>
         = use_cond(<required_use_dependency(eapi)>)
@@ -285,7 +285,7 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule restrict_dependency() -> Dependency<String, String>
         = use_cond(<restrict_dependency()>)
         / all_of(<restrict_dependency()>)
-        / s:license_name("restrict name") { Dependency::Enabled(s.to_string()) }
+        / s:license_name() { Dependency::Enabled(s.to_string()) }
 
     pub(super) rule package_dependency(eapi: &'static Eapi) -> Dependency<String, Dep>
         = use_cond(<package_dependency(eapi)>)
@@ -329,7 +329,7 @@ pub(super) fn version_with_op(s: &str) -> crate::Result<ParsedVersion> {
 }
 
 pub fn license_name(s: &str) -> crate::Result<&str> {
-    depspec::license_name(s, "license name").map_err(|e| peg_error("invalid license name", s, e))
+    depspec::license_name(s).map_err(|e| peg_error("invalid license name", s, e))
 }
 
 pub fn eclass_name(s: &str) -> crate::Result<&str> {
