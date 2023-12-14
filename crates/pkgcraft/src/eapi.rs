@@ -25,20 +25,26 @@ use crate::Error;
 
 peg::parser!(grammar parse() for str {
     // EAPIs must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule eapi_str() -> &'input str
+    pub(super) rule eapi() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
         } / expected!("EAPI"))
         { s }
 
+    rule single_quotes<T>(expr: rule<T>) -> T
+        = "\'" v:expr() "\'" { v }
+
+    rule double_quotes<T>(expr: rule<T>) -> T
+        = "\"" v:expr() "\"" { v }
+
     rule optionally_quoted<T>(expr: rule<T>) -> T
         = s:expr() { s }
-        / "\"" s:expr() "\"" { s }
-        / "\'" s:expr() "\'" { s }
+        / s:double_quotes(<expr()>) { s }
+        / s:single_quotes(<expr()>) { s }
 
     pub(super) rule eapi_value() -> &'input str
-        = s:optionally_quoted(<eapi_str()>) { s }
+        = s:optionally_quoted(<eapi()>) { s }
 });
 
 pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
@@ -190,7 +196,7 @@ impl Eapi {
     /// Verify a string represents a valid EAPI.
     pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
         let s = s.as_ref();
-        parse::eapi_str(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))?;
+        parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))?;
         Ok(())
     }
 
