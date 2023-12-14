@@ -219,7 +219,7 @@ peg::parser!(grammar depspec() for str {
     rule _ = quiet!{[^ ' ' | '\n' | '\t']+}
     rule __ = quiet!{[' ' | '\n' | '\t']+}
 
-    rule parens<T: Ordered>(expr: rule<T>) -> Vec<T>
+    rule parens<T>(expr: rule<T>) -> Vec<T>
         = "(" __ v:expr() ++ __ __ ")" { v }
 
     rule all_of<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
