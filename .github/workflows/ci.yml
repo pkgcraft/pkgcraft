@@ -7,6 +7,7 @@ on:
       - "Cargo.*"
       - "crates/*/src/**"
       - "crates/*/tests/**"
+      - "testdata"
       - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
