@@ -554,18 +554,21 @@ impl Repo {
                 .into_par_iter()
                 .filter_map(|e| e.ok())
                 .filter(|e| is_file(e) && !is_hidden(e))
-                .try_for_each(|e| {
-                    e.path()
+                .for_each(|e| {
+                    let file = e.path();
+                    if let Some(cpv) = file
                         .strip_prefix(path)
                         .ok()
                         .and_then(|p| Cpv::new(p.to_string_lossy()).ok())
-                        .filter(|cpv| !cpvs.contains(cpv))
-                        .map_or(Ok(()), |_| {
-                            fs::remove_file(e.path()).map_err(|e| {
-                                Error::IO(format!("failed removing metadata cache entry: {e}"))
-                            })
-                        })
-                })?;
+                    {
+                        // Remove an outdated cache file and its potentially, empty parent
+                        // directory while ignoring any I/O errors.
+                        if !cpvs.contains(&cpv) {
+                            fs::remove_file(file).ok();
+                            fs::remove_dir(file.parent().unwrap()).ok();
+                        }
+                    }
+                });
 
             if !force {
                 // run cache validation in a thread pool
