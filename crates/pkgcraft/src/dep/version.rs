@@ -4,7 +4,6 @@ use std::hash::{Hash, Hasher};
 use std::str;
 use std::str::FromStr;
 
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
@@ -521,7 +520,11 @@ impl fmt::Display for Version {
 fn ver_str(f: &mut fmt::Formatter, v: &Version, rev: bool, op: bool) -> fmt::Result {
     let mut s = String::new();
 
-    write!(s, "{}", v.numbers.iter().join("."))?;
+    write!(s, "{}", v.numbers[0])?;
+    for n in &v.numbers[1..] {
+        write!(s, ".{n}")?;
+    }
+
     if let Some(c) = &v.letter {
         write!(s, "{c}")?;
     }
