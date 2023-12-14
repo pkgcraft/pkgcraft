@@ -82,8 +82,6 @@ peg::parser!(grammar depspec() for str {
     rule version_suffix() -> Suffix<&'input str>
         = "_" kind:suffix() version:number()? { Suffix { kind, version } }
 
-    // TODO: figure out how to return string slice instead of positions
-    // Related issue: https://github.com/kevinmehall/rust-peg/issues/283
     pub(super) rule version() -> ParsedVersion<'input>
         = numbers:number() ++ "." letter:['a'..='z']?
                 suffixes:version_suffix()* revision:revision()? {
