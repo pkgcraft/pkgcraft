@@ -4,7 +4,7 @@ use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::{Blocker, Dep, ParsedDep, Slot, SlotDep, SlotOperator};
 use crate::dep::uri::Uri;
 use crate::dep::use_dep::{UseDep, UseDepDefault, UseDepKind};
-use crate::dep::version::{Number, Operator, ParsedVersion, Suffix, SuffixKind};
+use crate::dep::version::{Number, Operator, ParsedVersion, Suffix, SuffixKind, WithOp};
 use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
@@ -95,23 +95,20 @@ peg::parser!(grammar depspec() for str {
         }
 
     pub(super) rule version_with_op() -> ParsedVersion<'input>
-        = "<=" v:version() { v.with_op(Operator::LessOrEqual) }
-        / "<" v:version() { v.with_op(Operator::Less) }
-        / ">=" v:version() { v.with_op(Operator::GreaterOrEqual) }
-        / ">" v:version() { v.with_op(Operator::Greater) }
-        / "=" v:version() glob:"*"? {
+        = v:with_op(<version()>) { v }
+
+    rule with_op<T: WithOp>(expr: rule<T>) -> T::WithOp
+        = "<=" v:expr() {? v.with_op(Operator::LessOrEqual) }
+        / "<" v:expr() {? v.with_op(Operator::Less) }
+        / ">=" v:expr() {? v.with_op(Operator::GreaterOrEqual) }
+        / ">" v:expr() {? v.with_op(Operator::Greater) }
+        / "=" v:expr() glob:"*"? {?
             if glob.is_none() {
                 v.with_op(Operator::Equal)
             } else {
                 v.with_op(Operator::EqualGlob)
             }
-        } / "~" v:version() {?
-            if v.revision.is_some() {
-                Err("~ version operator can't be used with a revision")
-            } else {
-                Ok(v.with_op(Operator::Approximate))
-            }
-        }
+        } / "~" v:expr() {? v.with_op(Operator::Approximate) }
 
     rule revision() -> Number<&'input str>
         = "-r" rev:number() { rev }
@@ -206,23 +203,7 @@ peg::parser!(grammar depspec() for str {
 
     rule dep_pkg() -> ParsedDep<'input>
         = dep:cpn() { dep }
-        / "<=" cpv:cpv() { cpv.with_op(Operator::LessOrEqual) }
-        / "<" cpv:cpv() { cpv.with_op(Operator::Less) }
-        / ">=" cpv:cpv() { cpv.with_op(Operator::GreaterOrEqual) }
-        / ">" cpv:cpv() { cpv.with_op(Operator::Greater) }
-        / "=" cpv:cpv() glob:$("*")? {
-            if glob.is_none() {
-                cpv.with_op(Operator::Equal)
-            } else {
-                cpv.with_op(Operator::EqualGlob)
-            }
-        } / "~" cpv:cpv() {?
-            if cpv.version.revision.is_some() {
-                Err("~ operator can't be used with a revision")
-            } else {
-                Ok(cpv.with_op(Operator::Approximate))
-            }
-        }
+        / dep:with_op(<cpv()>) { dep }
 
     pub(super) rule cpn() -> ParsedDep<'input>
         = category:category() "/" package:package() {

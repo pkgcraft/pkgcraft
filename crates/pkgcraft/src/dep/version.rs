@@ -13,6 +13,12 @@ use crate::Error;
 
 use super::{parse, Stringable};
 
+/// Modify or create a new type by adding a version operator.
+pub(crate) trait WithOp {
+    type WithOp;
+    fn with_op(self, op: Operator) -> Result<Self::WithOp, &'static str>;
+}
+
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub(crate) struct Number<S: Stringable> {
     pub(crate) raw: S,
@@ -222,11 +228,16 @@ pub(crate) struct ParsedVersion<'a> {
     pub(crate) revision: Option<Number<&'a str>>,
 }
 
-impl<'a> ParsedVersion<'a> {
-    /// Used by the parser to inject the version operator.
-    pub(crate) fn with_op(mut self, op: Operator) -> Self {
-        self.op = Some(op);
-        self
+impl<'a> WithOp for ParsedVersion<'a> {
+    type WithOp = ParsedVersion<'a>;
+
+    fn with_op(mut self, op: Operator) -> Result<Self::WithOp, &'static str> {
+        if op == Operator::Approximate && self.revision.is_some() {
+            Err("~ version operator can't be used with a revision")
+        } else {
+            self.op = Some(op);
+            Ok(self)
+        }
     }
 }
 

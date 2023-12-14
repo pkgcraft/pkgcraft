@@ -1,4 +1,4 @@
-use crate::dep::version::{Number, Operator, ParsedVersion, Suffix, SuffixKind};
+use crate::dep::version::{Number, Operator, ParsedVersion, Suffix, SuffixKind, WithOp};
 use crate::dep::{Blocker, UseDep, UseDepDefault, UseDepKind};
 use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -90,22 +90,18 @@ peg::parser!(grammar restrict() for str {
 
     rule pkg_restricts() -> (Vec<DepRestrict>, Option<ParsedVersion<'input>>)
         = r:cp_restricts() { (r, None) }
-        / "<=" r:cp_restricts() "-" v:version() { (r, Some(v.with_op(Operator::LessOrEqual))) }
-        / "<" r:cp_restricts() "-" v:version() { (r, Some(v.with_op(Operator::Less))) }
-        / ">=" r:cp_restricts() "-" v:version() { (r, Some(v.with_op(Operator::GreaterOrEqual))) }
-        / ">" r:cp_restricts() "-" v:version() { (r, Some(v.with_op(Operator::Greater))) }
-        / "=" r:cp_restricts() "-" v:version() glob:$("*")? {
+        / "<=" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::LessOrEqual)?))) }
+        / "<" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::Less)?))) }
+        / ">=" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::GreaterOrEqual)?))) }
+        / ">" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::Greater)?))) }
+        / "=" r:cp_restricts() "-" v:version() glob:$("*")? {?
             if glob.is_none() {
-                (r, Some(v.with_op(Operator::Equal)))
+                Ok((r, Some(v.with_op(Operator::Equal)?)))
             } else {
-                (r, Some(v.with_op(Operator::EqualGlob)))
+                Ok((r, Some(v.with_op(Operator::EqualGlob)?)))
             }
         } / "~" r:cp_restricts() "-" v:version() {?
-            if v.revision.is_some() {
-                Err("~ operator can't be used with a revision")
-            } else {
-                Ok((r, Some(v.with_op(Operator::Approximate))))
-            }
+            Ok((r, Some(v.with_op(Operator::Approximate)?)))
         }
 
     rule slot_glob() -> &'input str

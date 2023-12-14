@@ -10,7 +10,7 @@ use crate::Error;
 
 use super::parse;
 use super::pkg::{Dep, ParsedDep};
-use super::version::{Operator, ParsedVersion, Revision, Version};
+use super::version::{Operator, ParsedVersion, Revision, Version, WithOp};
 
 pub enum CpvOrDep {
     Cpv(Cpv),
@@ -80,15 +80,16 @@ pub(crate) struct ParsedCpv<'a> {
     pub(crate) version: ParsedVersion<'a>,
 }
 
-impl<'a> ParsedCpv<'a> {
-    // Used by the parser to convert ParsedCpv to ParsedDep with a version operator.
-    pub(crate) fn with_op(self, op: Operator) -> ParsedDep<'a> {
-        ParsedDep {
+impl<'a> WithOp for ParsedCpv<'a> {
+    type WithOp = ParsedDep<'a>;
+
+    fn with_op(self, op: Operator) -> Result<Self::WithOp, &'static str> {
+        Ok(ParsedDep {
             category: self.category,
             package: self.package,
-            version: Some(self.version.with_op(op)),
+            version: Some(self.version.with_op(op)?),
             ..Default::default()
-        }
+        })
     }
 }
 
