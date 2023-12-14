@@ -432,7 +432,7 @@ impl<'a> Metadata<'a> {
                 };
 
                 if eclass.chksum() != chksum {
-                    return Err(Error::InvalidValue("mismatched eclass checksum".to_string()));
+                    return Err(Error::InvalidValue(format!("mismatched eclass checksum: {name}")));
                 }
 
                 if deserialize {
