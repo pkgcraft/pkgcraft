@@ -131,12 +131,14 @@ impl UseDep<String> {
     pub fn new(s: &str) -> crate::Result<Self> {
         parse::use_dep(s).into_owned()
     }
+}
 
+impl<S: Stringable> UseDep<S> {
     /// Return the UseDep using internal references.
     pub(crate) fn as_ref(&self) -> UseDep<&str> {
         UseDep {
             kind: self.kind,
-            flag: &self.flag,
+            flag: self.flag.as_ref(),
             default: self.default,
         }
     }

@@ -229,15 +229,15 @@ impl<S: Stringable> fmt::Display for Cpv<S> {
 }
 
 /// Determine if two Cpvs intersect.
-impl<S: Stringable> Intersects<Cpv<S>> for Cpv<S> {
-    fn intersects(&self, other: &Cpv<S>) -> bool {
+impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for Cpv<S2> {
+    fn intersects(&self, other: &Cpv<S1>) -> bool {
         self == other
     }
 }
 
 /// Determine if a Cpv intersects with a package dependency.
-impl<S: Stringable> Intersects<Dep<S>> for Cpv<S> {
-    fn intersects(&self, other: &Dep<S>) -> bool {
+impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Cpv<S2> {
+    fn intersects(&self, other: &Dep<S1>) -> bool {
         other.intersects(self)
     }
 }

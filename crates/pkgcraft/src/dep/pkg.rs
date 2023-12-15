@@ -614,8 +614,8 @@ impl<S: Stringable> fmt::Display for Dep<S> {
 }
 
 /// Determine if a package dependency intersects with a Cpv.
-impl<S: Stringable> Intersects<Cpv<S>> for Dep<S> {
-    fn intersects(&self, other: &Cpv<S>) -> bool {
+impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for Dep<S2> {
+    fn intersects(&self, other: &Cpv<S1>) -> bool {
         bool_not_equal!(&self.category(), &other.category());
         bool_not_equal!(&self.package(), &other.package());
         self.version()
@@ -625,8 +625,8 @@ impl<S: Stringable> Intersects<Cpv<S>> for Dep<S> {
 }
 
 /// Determine if two package dependencies intersect ignoring blockers.
-impl<S: Stringable> Intersects<Dep<S>> for Dep<S> {
-    fn intersects(&self, other: &Dep<S>) -> bool {
+impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Dep<S2> {
+    fn intersects(&self, other: &Dep<S1>) -> bool {
         bool_not_equal!(&self.category(), &other.category());
         bool_not_equal!(&self.package(), &other.package());
 
@@ -638,11 +638,18 @@ impl<S: Stringable> Intersects<Dep<S>> for Dep<S> {
             bool_not_equal!(x, y);
         }
 
-        if let (Some(x), Some(y)) = (self.use_deps(), other.use_deps()) {
+        if let (Some(s1), Some(s2)) = (self.use_deps(), other.use_deps()) {
+            // convert USE dep sets to the same type
+            let s1: HashSet<_> = s1.iter().map(|x| x.as_ref()).collect();
+            let s2: HashSet<_> = s2.iter().map(|x| x.as_ref()).collect();
+
+            // find the differences between the sets
             let mut use_map = HashMap::<_, HashSet<_>>::new();
-            for u in x.symmetric_difference(y) {
+            for u in s1.symmetric_difference(&s2) {
                 use_map.entry(&u.flag).or_default().insert(&u.kind);
             }
+
+            // determine if the set of differences contains a flag both enabled and disabled
             for kinds in use_map.values() {
                 if kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled) {
                     return false;
