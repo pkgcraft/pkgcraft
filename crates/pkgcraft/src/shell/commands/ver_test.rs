@@ -16,8 +16,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         _ => return Err(Error::Base(format!("only accepts 2 or 3 args, got {}", args.len()))),
     };
 
-    let lhs = Version::new_without_op(lhs)?;
-    let rhs = Version::new_without_op(rhs)?;
+    let lhs = Version::parse_without_op(lhs)?;
+    let rhs = Version::parse_without_op(rhs)?;
 
     let ret = match op {
         "-eq" => lhs == rhs,
