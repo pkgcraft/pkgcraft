@@ -14,11 +14,10 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let deps: Result<IndexSet<_>, _> = self
-            .vals
-            .stdin_or_args()
-            .split_whitespace()
-            .map(|s| Dep::new(&s))
+        let deps: Vec<_> = self.vals.stdin_or_args().split_whitespace().collect();
+        let deps: Result<IndexSet<_>, _> = deps
+            .iter()
+            .map(|s| Dep::parse(s, Default::default()))
             .collect();
 
         let mut handle = io::stdout().lock();

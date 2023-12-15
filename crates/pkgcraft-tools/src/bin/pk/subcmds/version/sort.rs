@@ -13,12 +13,8 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let versions: Result<Vec<_>, _> = self
-            .vals
-            .stdin_or_args()
-            .split_whitespace()
-            .map(|s| Version::new(&s))
-            .collect();
+        let versions: Vec<_> = self.vals.stdin_or_args().split_whitespace().collect();
+        let versions: Result<Vec<_>, _> = versions.iter().map(|s| Version::parse(s)).collect();
 
         let mut versions = versions?;
         versions.sort();
