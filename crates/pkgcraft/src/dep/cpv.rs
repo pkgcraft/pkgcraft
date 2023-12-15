@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
@@ -5,6 +6,7 @@ use std::str::FromStr;
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
+use crate::macros::{cmp_not_equal, partial_cmp_not_equal_opt};
 use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
@@ -73,7 +75,7 @@ impl Intersects<Dep<String>> for CpvOrDep {
 }
 
 /// Package identifier.
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Hash)]
 pub struct Cpv<S: Stringable> {
     pub(crate) category: S,
     pub(crate) package: S,
@@ -173,6 +175,32 @@ impl<S: Stringable> Cpv<S> {
     /// Return the relative ebuild file path.
     pub(crate) fn relpath(&self) -> Utf8PathBuf {
         Utf8PathBuf::from(format!("{}/{}/{}.ebuild", self.category(), self.package(), self.pf()))
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> PartialEq<Cpv<S1>> for Cpv<S2> {
+    fn eq(&self, other: &Cpv<S1>) -> bool {
+        self.category() == other.category()
+            && self.package() == other.package()
+            && self.version == other.version
+    }
+}
+
+impl<S: Stringable> Eq for Cpv<S> {}
+
+impl<S: Stringable> Ord for Cpv<S> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        cmp_not_equal!(&self.category, &other.category);
+        cmp_not_equal!(&self.package, &other.package);
+        self.version.cmp(&other.version)
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> PartialOrd<Cpv<S1>> for Cpv<S2> {
+    fn partial_cmp(&self, other: &Cpv<S1>) -> Option<Ordering> {
+        partial_cmp_not_equal_opt!(self.category(), other.category());
+        partial_cmp_not_equal_opt!(self.package(), other.package());
+        self.version.partial_cmp(&other.version)
     }
 }
 

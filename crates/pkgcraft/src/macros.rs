@@ -72,6 +72,21 @@ macro_rules! partial_cmp_not_equal {
 }
 pub(crate) use partial_cmp_not_equal;
 
+// Return Option<Ordering> if the arguments or expression are not equal.
+macro_rules! partial_cmp_not_equal_opt {
+    ($partial_cmp:expr) => {
+        if let Some(cmp) = $partial_cmp {
+            if cmp != ::std::cmp::Ordering::Equal {
+                return Some(cmp);
+            }
+        }
+    };
+    ($x:expr, $y:expr) => {
+        $crate::macros::partial_cmp_not_equal_opt!($x.partial_cmp($y))
+    };
+}
+pub(crate) use partial_cmp_not_equal_opt;
+
 // Return False if the arguments or expression are not equal.
 macro_rules! bool_not_equal {
     ($bool:expr) => {
