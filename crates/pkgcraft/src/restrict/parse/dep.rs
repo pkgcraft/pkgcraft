@@ -1,4 +1,4 @@
-use crate::dep::version::{Number, Operator, ParsedVersion, Suffix, SuffixKind, WithOp};
+use crate::dep::version::{Number, Operator, ParsedVersion, Revision, Suffix, SuffixKind, WithOp};
 use crate::dep::{Blocker, UseDep, UseDepDefault, UseDepKind};
 use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -49,12 +49,12 @@ peg::parser!(grammar restrict() for str {
                 numbers,
                 letter,
                 suffixes,
-                revision,
+                revision: revision.unwrap_or_default(),
             }
         }
 
-    rule revision() -> Number<&'input str>
-        = "-r" rev:number() { rev }
+    rule revision() -> Revision<&'input str>
+        = "-r" rev:number() { Revision(rev) }
 
     rule cp_restricts() -> Vec<DepRestrict>
         = cat:category() pkg:(quiet!{"/"} s:package() { s }) {?

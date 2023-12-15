@@ -36,6 +36,13 @@ impl IntoOwned for Number<&str> {
     }
 }
 
+impl<S: Stringable> Number<S> {
+    /// Determine if a number is represented by an empty string.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.as_ref().is_empty()
+    }
+}
+
 impl<S: Stringable> AsRef<str> for Number<S> {
     fn as_ref(&self) -> &str {
         self.raw.as_ref()
@@ -111,9 +118,17 @@ impl<S: Stringable> fmt::Display for Number<S> {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Revision(Number<String>);
+pub struct Revision<S: Stringable>(pub(crate) Number<S>);
 
-impl Revision {
+impl IntoOwned for Revision<&str> {
+    type Owned = Revision<String>;
+
+    fn into_owned(self) -> Self::Owned {
+        Revision(self.0.into_owned())
+    }
+}
+
+impl Revision<String> {
     /// Create a new Revision from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
         if s.is_empty() {
@@ -124,49 +139,56 @@ impl Revision {
     }
 }
 
-impl AsRef<str> for Revision {
+impl<S: Stringable> Revision<S> {
+    /// Determine if a revision is represented by an empty string.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl<S: Stringable> AsRef<str> for Revision<S> {
     fn as_ref(&self) -> &str {
         self.0.as_ref()
     }
 }
 
-impl PartialEq<u64> for Revision {
+impl<S: Stringable> PartialEq<u64> for Revision<S> {
     fn eq(&self, other: &u64) -> bool {
         &self.0.value == other
     }
 }
 
-impl PartialEq<str> for Revision {
+impl<S: Stringable> PartialEq<str> for Revision<S> {
     fn eq(&self, other: &str) -> bool {
-        self.0.raw == other
+        self.as_ref() == other
     }
 }
 
-impl PartialEq<&str> for Revision {
+impl<S: Stringable> PartialEq<&str> for Revision<S> {
     fn eq(&self, other: &&str) -> bool {
-        self.0.raw == *other
+        self.as_ref() == *other
     }
 }
 
-impl PartialEq<Revision> for u64 {
-    fn eq(&self, other: &Revision) -> bool {
+impl<S: Stringable> PartialEq<Revision<S>> for u64 {
+    fn eq(&self, other: &Revision<S>) -> bool {
         other == self
     }
 }
 
-impl PartialEq<Revision> for str {
-    fn eq(&self, other: &Revision) -> bool {
+impl<S: Stringable> PartialEq<Revision<S>> for str {
+    fn eq(&self, other: &Revision<S>) -> bool {
         other == self
     }
 }
 
-impl PartialEq<Revision> for &str {
-    fn eq(&self, other: &Revision) -> bool {
+impl<S: Stringable> PartialEq<Revision<S>> for &str {
+    fn eq(&self, other: &Revision<S>) -> bool {
         other == *self
     }
 }
 
-impl FromStr for Revision {
+impl FromStr for Revision<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -174,7 +196,7 @@ impl FromStr for Revision {
     }
 }
 
-impl fmt::Display for Revision {
+impl<S: Stringable> fmt::Display for Revision<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -225,14 +247,14 @@ pub(crate) struct ParsedVersion<'a> {
     pub(crate) numbers: Vec<Number<&'a str>>,
     pub(crate) letter: Option<char>,
     pub(crate) suffixes: Vec<Suffix<&'a str>>,
-    pub(crate) revision: Option<Number<&'a str>>,
+    pub(crate) revision: Revision<&'a str>,
 }
 
 impl<'a> WithOp for ParsedVersion<'a> {
     type WithOp = ParsedVersion<'a>;
 
     fn with_op(mut self, op: Operator) -> Result<Self::WithOp, &'static str> {
-        if op == Operator::Approximate && self.revision.is_some() {
+        if op == Operator::Approximate && !self.revision.is_empty() {
             Err("~ version operator can't be used with a revision")
         } else {
             self.op = Some(op);
@@ -250,7 +272,7 @@ impl IntoOwned for ParsedVersion<'_> {
             numbers: self.numbers.into_iter().map(|x| x.into_owned()).collect(),
             letter: self.letter,
             suffixes: self.suffixes.into_iter().map(|x| x.into_owned()).collect(),
-            revision: Revision(self.revision.into_owned().unwrap_or_default()),
+            revision: self.revision.into_owned(),
         }
     }
 }
@@ -310,7 +332,7 @@ pub struct Version {
     numbers: Vec<Number<String>>,
     letter: Option<char>,
     suffixes: Vec<Suffix<String>>,
-    revision: Revision,
+    revision: Revision<String>,
 }
 
 impl Version {
@@ -354,8 +376,8 @@ impl Version {
     }
 
     /// Return a version's revision.
-    pub fn revision(&self) -> Option<&Revision> {
-        if self.revision.0.raw.is_empty() {
+    pub fn revision(&self) -> Option<&Revision<String>> {
+        if self.revision.is_empty() {
             None
         } else {
             Some(&self.revision)
@@ -760,7 +782,7 @@ mod tests {
     fn rev_new_and_parse() {
         // invalid
         for s in ["a", "a1", "1.1", ".1"] {
-            assert!(s.parse::<Revision>().is_err());
+            assert!(s.parse::<Revision<String>>().is_err());
             assert!(Revision::new(s).is_err());
         }
 

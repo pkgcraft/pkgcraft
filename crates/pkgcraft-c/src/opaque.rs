@@ -22,3 +22,6 @@ pub struct RepoSetIter;
 
 /// Opaque wrapper for pkgcraft::restrict::Restrict objects.
 pub struct Restrict;
+
+/// Opaque wrapper for pkgcraft::dep::version::Revision<String> objects.
+pub struct Revision;

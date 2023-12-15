@@ -473,7 +473,7 @@ impl Dep {
     }
 
     /// Return a package dependency's revision.
-    pub fn revision(&self) -> Option<&Revision> {
+    pub fn revision(&self) -> Option<&Revision<String>> {
         self.version().and_then(|v| v.revision())
     }
 

@@ -4,7 +4,7 @@ use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::{Blocker, Dep, ParsedDep, Slot, SlotDep, SlotOperator};
 use crate::dep::uri::Uri;
 use crate::dep::use_dep::{UseDep, UseDepDefault, UseDepKind};
-use crate::dep::version::{Number, Operator, ParsedVersion, Suffix, SuffixKind, WithOp};
+use crate::dep::version::{Number, Operator, ParsedVersion, Revision, Suffix, SuffixKind, WithOp};
 use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
@@ -90,7 +90,7 @@ peg::parser!(grammar depspec() for str {
                 numbers,
                 letter,
                 suffixes,
-                revision,
+                revision: revision.unwrap_or_default(),
             }
         }
 
@@ -110,8 +110,8 @@ peg::parser!(grammar depspec() for str {
             }
         } / "~" v:expr() {? v.with_op(Operator::Approximate) }
 
-    rule revision() -> Number<&'input str>
-        = "-r" rev:number() { rev }
+    rule revision() -> Revision<&'input str>
+        = "-r" rev:number() { Revision(rev) }
 
     // Slot names must not begin with a hyphen, dot, or plus sign.
     pub(super) rule slot_name() -> &'input str

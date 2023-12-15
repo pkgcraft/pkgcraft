@@ -141,7 +141,7 @@ impl Cpv {
     }
 
     /// Return a Cpv's revision.
-    pub fn revision(&self) -> Option<&Revision> {
+    pub fn revision(&self) -> Option<&Revision<String>> {
         self.version.revision()
     }
 
