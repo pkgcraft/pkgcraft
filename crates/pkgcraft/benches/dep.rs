@@ -9,22 +9,22 @@ pub fn bench_pkg_deps(c: &mut Criterion) {
 
     c.bench_function("dep-new", |b| b.iter(|| Dep::new(">=cat/pkg-1.2.3-r4:5/6=[a,-b,c?]")));
 
-    c.bench_function("dep-unversioned", |b| b.iter(|| Dep::new("cat/pkg")));
+    c.bench_function("dep-unversioned", |b| b.iter(|| Dep::parse("cat/pkg", None)));
 
-    c.bench_function("dep-slotdep", |b| b.iter(|| Dep::new("cat/pkg:0")));
+    c.bench_function("dep-slotdep", |b| b.iter(|| Dep::parse("cat/pkg:0", None)));
 
-    c.bench_function("dep-versioned", |b| b.iter(|| Dep::new(">=cat/pkg-4-r1")));
+    c.bench_function("dep-versioned", |b| b.iter(|| Dep::parse(">=cat/pkg-4-r1", None)));
 
-    c.bench_function("dep-versioned-slotdep", |b| b.iter(|| Dep::new(">=cat/pkg-4-r1:0=")));
+    c.bench_function("dep-versioned-slotdep", |b| b.iter(|| Dep::parse(">=cat/pkg-4-r1:0=", None)));
 
     c.bench_function("dep-usedeps", |b| {
-        b.iter(|| Dep::new(">=cat/pkg-4-r1:0=[a,b=,!c=,d?,!e?,-f]"))
+        b.iter(|| Dep::parse(">=cat/pkg-4-r1:0=[a,b=,!c=,d?,!e?,-f]", None))
     });
 
     c.bench_function("dep-long-usedeps", |b| {
         let flags: Vec<String> = (0..100).map(|s| s.to_string()).collect();
         let s = format!("cat/pkg[{}]", &flags.join(","));
-        b.iter(|| Dep::new(&s));
+        b.iter(|| Dep::parse(&s, None));
     });
 
     c.bench_function("dep-cmp-eq", |b| {
