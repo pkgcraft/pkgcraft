@@ -19,17 +19,42 @@ pub enum CpvOrDep<S: Stringable> {
     Dep(Dep<S>),
 }
 
-impl FromStr for CpvOrDep<String> {
-    type Err = Error;
+impl<'a> IntoOwned for CpvOrDep<&'a str> {
+    type Owned = CpvOrDep<String>;
 
-    fn from_str(s: &str) -> crate::Result<Self> {
-        if let Ok(val) = Dep::from_str(s) {
+    fn into_owned(self) -> Self::Owned {
+        match self {
+            CpvOrDep::Cpv(val) => CpvOrDep::Cpv(val.into_owned()),
+            CpvOrDep::Dep(val) => CpvOrDep::Dep(val.into_owned()),
+        }
+    }
+}
+
+impl CpvOrDep<String> {
+    /// Create an owned [`CpvOrDep`] from a given string.
+    pub fn new(s: &str) -> crate::Result<Self> {
+        CpvOrDep::parse(s).into_owned()
+    }
+}
+
+impl<'a> CpvOrDep<&'a str> {
+    /// Create a borrowed [`CpvOrDep`] from a given string.
+    pub fn parse(s: &'a str) -> crate::Result<Self> {
+        if let Ok(val) = Dep::parse(s, None) {
             Ok(CpvOrDep::Dep(val))
-        } else if let Ok(val) = Cpv::from_str(s) {
+        } else if let Ok(val) = Cpv::parse(s) {
             Ok(CpvOrDep::Cpv(val))
         } else {
             Err(Error::InvalidValue(format!("invalid cpv or dep: {s}")))
         }
+    }
+}
+
+impl FromStr for CpvOrDep<String> {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        Self::new(s)
     }
 }
 
