@@ -39,12 +39,8 @@ impl Command {
         };
 
         // convert targets to Cpv or Dep objects
-        let targets: Result<Vec<CpvOrDep<_>>, _> = self
-            .targets
-            .stdin_or_args()
-            .split_whitespace()
-            .map(|s| s.parse())
-            .collect();
+        let targets: Vec<_> = self.targets.stdin_or_args().split_whitespace().collect();
+        let targets: Result<Vec<_>, _> = targets.iter().map(|s| CpvOrDep::parse(s)).collect();
         let targets = targets?;
 
         // TODO: use a revdeps cache for queries (#120)

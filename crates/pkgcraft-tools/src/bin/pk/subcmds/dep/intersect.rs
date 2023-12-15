@@ -12,8 +12,8 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let obj1: CpvOrDep<_> = self.dep1.parse()?;
-        let obj2: CpvOrDep<_> = self.dep2.parse()?;
+        let obj1 = CpvOrDep::parse(&self.dep1)?;
+        let obj2 = CpvOrDep::parse(&self.dep2)?;
         Ok(ExitCode::from(!obj1.intersects(&obj2) as u8))
     }
 }
