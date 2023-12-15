@@ -3,16 +3,16 @@ use std::str::FromStr;
 use aho_corasick::AhoCorasick;
 use strum::IntoEnumIterator;
 
-pub trait EnumVariable: std::fmt::Display + FromStr + IntoEnumIterator {
+pub trait EnumVariable<'a>: std::fmt::Display + FromStr + IntoEnumIterator {
     type Object;
-    fn value(&self, obj: &Self::Object) -> String;
+    fn value(&self, obj: &'a Self::Object) -> String;
 }
 
-pub trait FormatString {
+pub trait FormatString<'a> {
     type Object;
-    type FormatKey: EnumVariable<Object = Self::Object>;
+    type FormatKey: EnumVariable<'a, Object = Self::Object>;
 
-    fn format_str(&self, fmt: &str, obj: &Self::Object) -> anyhow::Result<String> {
+    fn format_str(&self, fmt: &'a str, obj: &'a Self::Object) -> anyhow::Result<String> {
         let patterns: Vec<_> = Self::FormatKey::iter()
             .flat_map(|k| [format!("{{{k}}}"), format!("[{k}]")])
             .collect();

@@ -47,7 +47,7 @@ pub enum Key {
     DEP,
 }
 
-impl EnumVariable for Key {
+impl EnumVariable<'_> for Key {
     type Object = Dep;
 
     fn value(&self, obj: &Self::Object) -> String {
@@ -73,7 +73,7 @@ impl EnumVariable for Key {
     }
 }
 
-impl FormatString for Command {
+impl FormatString<'_> for Command {
     type Object = Dep;
     type FormatKey = Key;
 }

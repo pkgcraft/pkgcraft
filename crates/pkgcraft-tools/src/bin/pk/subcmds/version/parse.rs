@@ -27,8 +27,8 @@ pub enum Key {
     REV,
 }
 
-impl EnumVariable for Key {
-    type Object = Version<String>;
+impl<'a> EnumVariable<'a> for Key {
+    type Object = Version<&'a str>;
 
     fn value(&self, obj: &Self::Object) -> String {
         use Key::*;
@@ -44,14 +44,14 @@ impl EnumVariable for Key {
     }
 }
 
-impl FormatString for Command {
-    type Object = Version<String>;
+impl<'a> FormatString<'a> for Command {
+    type Object = Version<&'a str>;
     type FormatKey = Key;
 }
 
 impl Command {
     fn parse_version(&self, s: &str) -> anyhow::Result<()> {
-        let ver = Version::new(s)?;
+        let ver = Version::parse(s)?;
         if let Some(fmt) = &self.format {
             println!("{}", self.format_str(fmt, &ver)?);
         }
