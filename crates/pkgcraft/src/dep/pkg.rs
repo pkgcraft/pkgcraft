@@ -337,7 +337,7 @@ impl Dep<String> {
         if let Some(op) = dep.version().and_then(|v| v.op()) {
             if op != Operator::Equal {
                 if let Some(ver) = dep.to_mut().version.as_mut() {
-                    ver.with_op(Operator::Equal);
+                    ver.op = Some(Operator::Equal);
                 }
             }
         }

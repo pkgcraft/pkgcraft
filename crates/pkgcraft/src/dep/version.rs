@@ -299,8 +299,8 @@ pub struct Version<S: Stringable> {
     pub(crate) revision: Revision<S>,
 }
 
-impl<'a> WithOp for Version<&'a str> {
-    type WithOp = Version<&'a str>;
+impl<S: Stringable> WithOp for Version<S> {
+    type WithOp = Version<S>;
 
     fn with_op(mut self, op: Operator) -> Result<Self::WithOp, &'static str> {
         if op == Operator::Approximate && !self.revision.is_empty() {
@@ -365,11 +365,6 @@ impl Version<String> {
 }
 
 impl<S: Stringable> Version<S> {
-    /// Modify the version's operator.
-    pub(crate) fn with_op(&mut self, op: Operator) {
-        self.op = Some(op);
-    }
-
     /// Return a version's operator, if one exists.
     pub fn op(&self) -> Option<Operator> {
         self.op
@@ -768,19 +763,28 @@ mod tests {
             assert_eq!(result.unwrap().to_string(), s.as_str());
         }
 
-        // creation forcing with and without operators
+        // forced with and without operators
+        assert!(Version::parse_with_op(">1").is_ok());
         assert!(Version::new_with_op(">1").is_ok());
+        assert!(Version::parse_with_op("1").is_err());
         assert!(Version::new_with_op("1").is_err());
+        assert!(Version::parse_without_op(">1").is_err());
         assert!(Version::new_without_op(">1").is_err());
+        assert!(Version::parse_without_op("1").is_ok());
         assert!(Version::new_without_op("1").is_ok());
     }
 
     #[test]
     fn ver_op() {
-        let mut ver = Version::new("1").unwrap();
+        let ver = Version::new("1").unwrap();
         assert!(ver.op().is_none());
+        let ver = Version::parse("1").unwrap();
+        assert!(ver.op().is_none());
+
         for op in Operator::iter() {
-            ver.with_op(op);
+            let ver = Version::new("1").unwrap().with_op(op).unwrap();
+            assert_eq!(ver.op(), Some(op));
+            let ver = Version::parse("1").unwrap().with_op(op).unwrap();
             assert_eq!(ver.op(), Some(op));
         }
     }
@@ -789,7 +793,7 @@ mod tests {
     fn rev_new_and_parse() {
         // invalid
         for s in ["a", "a1", "1.1", ".1"] {
-            assert!(s.parse::<Revision<String>>().is_err());
+            assert!(s.parse::<Revision<_>>().is_err());
             assert!(Revision::new(s).is_err());
         }
 
