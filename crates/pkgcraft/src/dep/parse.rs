@@ -4,7 +4,7 @@ use crate::dep::cpv::ParsedCpv;
 use crate::dep::pkg::{Blocker, Dep, ParsedDep, Slot, SlotDep, SlotOperator};
 use crate::dep::uri::Uri;
 use crate::dep::use_dep::{UseDep, UseDepDefault, UseDepKind};
-use crate::dep::version::{Number, Operator, ParsedVersion, Revision, Suffix, SuffixKind, WithOp};
+use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
 use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
@@ -82,10 +82,10 @@ peg::parser!(grammar depspec() for str {
     rule version_suffix() -> Suffix<&'input str>
         = "_" kind:suffix() version:number()? { Suffix { kind, version } }
 
-    pub(super) rule version() -> ParsedVersion<'input>
+    pub(super) rule version() -> Version<&'input str>
         = numbers:number() ++ "." letter:['a'..='z']?
                 suffixes:version_suffix()* revision:revision()? {
-            ParsedVersion {
+            Version {
                 op: None,
                 numbers,
                 letter,
@@ -94,7 +94,7 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    pub(super) rule version_with_op() -> ParsedVersion<'input>
+    pub(super) rule version_with_op() -> Version<&'input str>
         = v:with_op(<version()>) { v }
 
     rule with_op<T: WithOp>(expr: rule<T>) -> T::WithOp
@@ -320,11 +320,11 @@ pub fn package(s: &str) -> crate::Result<&str> {
     depspec::package(s).map_err(|e| peg_error("invalid package name", s, e))
 }
 
-pub(super) fn version(s: &str) -> crate::Result<ParsedVersion> {
+pub(super) fn version(s: &str) -> crate::Result<Version<&str>> {
     depspec::version(s).map_err(|e| peg_error("invalid version", s, e))
 }
 
-pub(super) fn version_with_op(s: &str) -> crate::Result<ParsedVersion> {
+pub(super) fn version_with_op(s: &str) -> crate::Result<Version<&str>> {
     depspec::version_with_op(s).map_err(|e| peg_error("invalid version", s, e))
 }
 

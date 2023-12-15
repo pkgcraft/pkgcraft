@@ -238,7 +238,7 @@ impl PkgRepository for Repo {
         self.repo().packages(cat)
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
         self.repo().versions(cat, pkg)
     }
 

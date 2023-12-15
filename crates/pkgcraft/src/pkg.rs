@@ -31,7 +31,7 @@ pub trait Package: fmt::Debug + fmt::Display {
     fn cpv(&self) -> &Cpv;
 
     /// Return a package's version.
-    fn version(&self) -> &Version {
+    fn version(&self) -> &Version<String> {
         self.cpv().version()
     }
 

@@ -87,7 +87,7 @@ impl PkgRepository for Repo {
         IndexSet::new()
     }
 
-    fn versions(&self, _cat: &str, _pkg: &str) -> IndexSet<Version> {
+    fn versions(&self, _cat: &str, _pkg: &str) -> IndexSet<Version<String>> {
         IndexSet::new()
     }
 

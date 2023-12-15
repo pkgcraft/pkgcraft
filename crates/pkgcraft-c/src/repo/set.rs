@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::{ptr, slice};
 
-use pkgcraft::dep::Version;
 use pkgcraft::pkg::Pkg;
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::{PkgRepository, Repo};
@@ -10,7 +9,7 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
-use crate::types::{RepoSetIter, SetOp};
+use crate::types::{RepoSetIter, SetOp, Version};
 use crate::utils::{boxed, str_to_raw};
 
 /// Create a repo set.

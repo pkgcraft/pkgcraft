@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::{Cpv, Version};
+use pkgcraft::dep::Cpv;
 use pkgcraft::pkg::Pkg;
 use pkgcraft::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use pkgcraft::restrict::Restrict;
@@ -11,7 +11,7 @@ use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::{RepoIter, RepoIterCpv, RepoIterRestrict};
+use crate::types::{RepoIter, RepoIterCpv, RepoIterRestrict, Version};
 use crate::utils::{boxed, str_to_raw};
 
 pub mod ebuild;

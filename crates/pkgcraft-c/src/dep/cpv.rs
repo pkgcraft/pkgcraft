@@ -2,13 +2,14 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::{Cpv, Dep, Version};
+use pkgcraft::dep::{Cpv, Dep};
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
+use crate::types::Version;
 
 /// Parse a CPV string into a Cpv object.
 ///

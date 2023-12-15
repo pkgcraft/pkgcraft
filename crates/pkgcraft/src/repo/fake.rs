@@ -14,7 +14,7 @@ use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
-type VersionMap = IndexMap<String, IndexSet<Version>>;
+type VersionMap = IndexMap<String, IndexSet<Version<String>>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
 #[derive(Debug, Default)]
@@ -151,7 +151,7 @@ impl PkgRepository for Repo {
             .unwrap_or_default()
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
         self.pkgmap
             .get(cat)
             .and_then(|pkgs| pkgs.get(pkg))

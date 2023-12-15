@@ -724,7 +724,7 @@ impl PkgRepository for Repo {
             .collect()
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
         let path = build_from_paths!(
             self.path(),
             cat.strip_prefix('/').unwrap_or(cat),

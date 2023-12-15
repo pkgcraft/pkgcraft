@@ -54,7 +54,7 @@ pub struct ValidDep {
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub blocker: Option<Blocker>,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub version: Option<Version>,
+    pub version: Option<Version<String>>,
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub revision: Option<Revision<String>>,
     pub slot: Option<String>,

@@ -10,7 +10,7 @@ use crate::Error;
 
 use super::parse;
 use super::pkg::{Dep, ParsedDep};
-use super::version::{Operator, ParsedVersion, Revision, Version, WithOp};
+use super::version::{Operator, Revision, Version, WithOp};
 
 pub enum CpvOrDep {
     Cpv(Cpv),
@@ -77,7 +77,7 @@ impl Intersects<Dep> for CpvOrDep {
 pub(crate) struct ParsedCpv<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
-    pub(crate) version: ParsedVersion<'a>,
+    pub(crate) version: Version<&'a str>,
 }
 
 impl<'a> WithOp for ParsedCpv<'a> {
@@ -110,7 +110,7 @@ impl IntoOwned for ParsedCpv<'_> {
 pub struct Cpv {
     category: String,
     package: String,
-    version: Version,
+    version: Version<String>,
 }
 
 impl Cpv {
@@ -136,7 +136,7 @@ impl Cpv {
     }
 
     /// Return a Cpv's version.
-    pub fn version(&self) -> &Version {
+    pub fn version(&self) -> &Version<String> {
         &self.version
     }
 

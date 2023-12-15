@@ -70,7 +70,7 @@ impl PkgRepository for Repo {
         self.raw.packages(cat)
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
         self.raw.versions(cat, pkg)
     }
 

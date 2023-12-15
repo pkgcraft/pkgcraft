@@ -68,7 +68,7 @@ impl PkgRepository for RepoSet {
         pkgs
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
         let mut versions: IndexSet<_> = self.0.iter().flat_map(|r| r.versions(cat, pkg)).collect();
         versions.sort();
         versions

@@ -1,4 +1,4 @@
-use crate::dep::version::{Number, Operator, ParsedVersion, Revision, Suffix, SuffixKind, WithOp};
+use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
 use crate::dep::{Blocker, UseDep, UseDepDefault, UseDepKind};
 use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -41,10 +41,10 @@ peg::parser!(grammar restrict() for str {
     rule version_suffix() -> Suffix<&'input str>
         = "_" kind:suffix() version:number()? { Suffix { kind, version } }
 
-    pub(super) rule version() -> ParsedVersion<'input>
+    pub(super) rule version() -> Version<&'input str>
         = numbers:number() ++ "." letter:['a'..='z']?
                 suffixes:version_suffix()* revision:revision()? {
-            ParsedVersion {
+            Version {
                 op: None,
                 numbers,
                 letter,
@@ -88,7 +88,7 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule pkg_restricts() -> (Vec<DepRestrict>, Option<ParsedVersion<'input>>)
+    rule pkg_restricts() -> (Vec<DepRestrict>, Option<Version<&'input str>>)
         = r:cp_restricts() { (r, None) }
         / "<=" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::LessOrEqual)?))) }
         / "<" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::Less)?))) }
@@ -204,7 +204,7 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    pub(super) rule dep() -> (Vec<DepRestrict>, Option<ParsedVersion<'input>>)
+    pub(super) rule dep() -> (Vec<DepRestrict>, Option<Version<&'input str>>)
         = blocker_r:blocker_restrict()? pkg_r:pkg_restricts()
             slot_r:slot_restricts()? use_r:use_restricts()? repo_r:repo_restrict()?
         {

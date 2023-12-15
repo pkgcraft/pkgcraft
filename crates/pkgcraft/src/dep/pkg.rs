@@ -15,7 +15,7 @@ use crate::types::SortedSet;
 use crate::Error;
 
 use super::use_dep::{UseDep, UseDepKind};
-use super::version::{Operator, ParsedVersion, Revision, Version};
+use super::version::{Operator, Revision, Version};
 use super::{parse, Cpv};
 
 #[repr(C)]
@@ -66,7 +66,7 @@ pub(crate) struct ParsedDep<'a> {
     pub(crate) category: &'a str,
     pub(crate) package: &'a str,
     pub(crate) blocker: Option<Blocker>,
-    pub(crate) version: Option<ParsedVersion<'a>>,
+    pub(crate) version: Option<Version<&'a str>>,
     pub(crate) slot: Option<SlotDep<&'a str>>,
     pub(crate) use_deps: Option<Vec<UseDep<&'a str>>>,
     pub(crate) repo: Option<&'a str>,
@@ -256,7 +256,7 @@ pub struct Dep {
     category: String,
     package: String,
     blocker: Option<Blocker>,
-    version: Option<Version>,
+    version: Option<Version<String>>,
     slot: Option<SlotDep<String>>,
     use_deps: Option<SortedSet<UseDep<String>>>,
     repo: Option<String>,
@@ -300,7 +300,7 @@ impl FromStr for Dep {
 type DepKey<'a> = (
     &'a str,                               // category
     &'a str,                               // package
-    Option<&'a Version>,                   // version
+    Option<&'a Version<String>>,           // version
     Option<Blocker>,                       // blocker
     Option<&'a SlotDep<String>>,           // slot
     Option<&'a SortedSet<UseDep<String>>>, // use deps
@@ -468,7 +468,7 @@ impl Dep {
     }
 
     /// Return a package dependency's version.
-    pub fn version(&self) -> Option<&Version> {
+    pub fn version(&self) -> Option<&Version<String>> {
         self.version.as_ref()
     }
 

@@ -25,3 +25,6 @@ pub struct Restrict;
 
 /// Opaque wrapper for pkgcraft::dep::version::Revision<String> objects.
 pub struct Revision;
+
+/// Opaque wrapper for pkgcraft::dep::version::Version<String> objects.
+pub struct Version;

@@ -10,7 +10,7 @@ pub enum Restrict {
     Category(StrRestrict),
     Package(StrRestrict),
     Blocker(Option<Blocker>),
-    Version(Option<Version>),
+    Version(Option<Version<String>>),
     Slot(Option<StrRestrict>),
     Subslot(Option<StrRestrict>),
     UseDeps(Option<SortedSet<UseDep<String>>>),

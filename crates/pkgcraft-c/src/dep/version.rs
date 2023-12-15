@@ -2,13 +2,13 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::{Operator, Version};
+use pkgcraft::dep::Operator;
 use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::Revision;
+use crate::types::{Revision, Version};
 
 /// Parse a string into a revision.
 ///

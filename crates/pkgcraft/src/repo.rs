@@ -351,7 +351,7 @@ pub trait PkgRepository:
 
     fn categories(&self) -> IndexSet<String>;
     fn packages(&self, cat: &str) -> IndexSet<String>;
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version>;
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>>;
     fn len(&self) -> usize {
         let mut count = 0;
         for c in self.categories() {
@@ -398,7 +398,7 @@ where
     fn packages(&self, cat: &str) -> IndexSet<String> {
         (*self).packages(cat)
     }
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
         (*self).versions(cat, pkg)
     }
     fn len(&self) -> usize {
@@ -489,7 +489,7 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
         match self {
             Self::Configured(repo) => repo.versions(cat, pkg),
             Self::Ebuild(repo) => repo.versions(cat, pkg),

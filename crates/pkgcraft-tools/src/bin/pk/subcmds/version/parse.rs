@@ -28,7 +28,7 @@ pub enum Key {
 }
 
 impl EnumVariable for Key {
-    type Object = Version;
+    type Object = Version<String>;
 
     fn value(&self, obj: &Self::Object) -> String {
         use Key::*;
@@ -45,7 +45,7 @@ impl EnumVariable for Key {
 }
 
 impl FormatString for Command {
-    type Object = Version;
+    type Object = Version<String>;
     type FormatKey = Key;
 }
 
