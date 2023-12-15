@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::Operator;
+use pkgcraft::dep::{self, Operator};
 use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
@@ -95,10 +95,10 @@ pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut Version 
 /// # Safety
 /// The argument should point to a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_valid(s: *const c_char) -> *const c_char {
+pub unsafe extern "C" fn pkgcraft_version_parse(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
-        unwrap_or_panic!(Version::valid(val));
+        unwrap_or_panic!(dep::Version::parse(val));
         s
     }
 }

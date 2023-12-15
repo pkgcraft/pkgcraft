@@ -338,7 +338,7 @@ impl<'a> Version<&'a str> {
 }
 
 impl Version<String> {
-    /// Create a new [`Version`] from a given string with or without an [`Operator`].
+    /// Create an owned [`Version`] from a given string with or without an [`Operator`].
     pub fn new(s: &str) -> crate::Result<Self> {
         Version::parse(s).into_owned()
     }
@@ -351,16 +351,6 @@ impl Version<String> {
     /// Create a new [`Version`] without an [`Operator`].
     pub fn new_without_op(s: &str) -> crate::Result<Self> {
         parse::version(s).into_owned()
-    }
-
-    /// Verify a string represents a valid version.
-    pub fn valid(s: &str) -> crate::Result<()> {
-        if s.starts_with(|c| Operator::iter().any(|op| op.as_ref().starts_with(c))) {
-            parse::version_with_op(s)?;
-        } else {
-            parse::version(s)?;
-        }
-        Ok(())
     }
 }
 
@@ -750,10 +740,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ver_new_and_valid() {
+    fn ver_new_and_parse() {
         // invalid
         for s in &TEST_DATA.version_toml.invalid {
-            let result = Version::valid(s);
+            let result = Version::parse(s);
             assert!(result.is_err(), "{s:?} is valid");
             let result = Version::new(s);
             assert!(result.is_err(), "{s:?} didn't fail");
@@ -761,7 +751,7 @@ mod tests {
 
         // valid
         for s in &TEST_DATA.version_toml.valid {
-            let result = Version::valid(s);
+            let result = Version::parse(s);
             assert!(result.is_ok(), "{s:?} is invalid");
             let result = Version::new(s);
             assert!(result.is_ok(), "{s:?} failed");
