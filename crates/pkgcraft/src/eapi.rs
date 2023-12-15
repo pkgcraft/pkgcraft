@@ -194,7 +194,7 @@ impl Eapi {
     }
 
     /// Verify a string represents a valid EAPI.
-    pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
+    pub fn parse<S: AsRef<str>>(s: S) -> crate::Result<()> {
         let s = s.as_ref();
         parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))?;
         Ok(())
@@ -513,7 +513,7 @@ impl FromStr for &'static Eapi {
     fn from_str(s: &str) -> crate::Result<Self> {
         if let Some(eapi) = EAPIS.get(s) {
             Ok(eapi)
-        } else if Eapi::valid(s).is_ok() {
+        } else if Eapi::parse(s).is_ok() {
             Err(Error::InvalidValue(format!("unsupported EAPI: {s}")))
         } else {
             Err(Error::InvalidValue(format!("invalid EAPI: {s}")))
@@ -941,10 +941,10 @@ mod tests {
 
     #[test]
     fn test_valid() {
-        assert!(Eapi::valid("1.2.3").is_ok());
-        assert!(Eapi::valid("_").is_ok());
-        assert!(Eapi::valid("+5").is_err());
-        assert!(Eapi::valid(".1").is_err());
+        assert!(Eapi::parse("1.2.3").is_ok());
+        assert!(Eapi::parse("_").is_ok());
+        assert!(Eapi::parse("+5").is_err());
+        assert!(Eapi::parse(".1").is_err());
     }
 
     #[test]
