@@ -134,7 +134,7 @@ impl FromStr for Keyword<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Keyword::new(s)
+        Self::new(s)
     }
 }
 

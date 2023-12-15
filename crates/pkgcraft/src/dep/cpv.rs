@@ -233,7 +233,7 @@ impl FromStr for Cpv<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Cpv::new(s)
+        Self::new(s)
     }
 }
 

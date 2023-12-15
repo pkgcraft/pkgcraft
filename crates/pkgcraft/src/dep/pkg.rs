@@ -201,7 +201,7 @@ impl FromStr for SlotDep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        SlotDep::new(s)
+        Self::new(s)
     }
 }
 
@@ -282,7 +282,7 @@ impl FromStr for Dep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Dep::new(s)
+        Self::new(s)
     }
 }
 

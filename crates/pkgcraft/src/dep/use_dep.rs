@@ -87,7 +87,7 @@ impl FromStr for UseDep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        UseDep::new(s)
+        Self::new(s)
     }
 }
 
