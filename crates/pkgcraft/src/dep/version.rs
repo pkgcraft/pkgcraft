@@ -326,14 +326,21 @@ impl IntoOwned for Version<&str> {
     }
 }
 
+impl<'a> Version<&'a str> {
+    /// Create a borrowed [`Version`] from a given string with or without an [`Operator`].
+    pub fn parse(s: &'a str) -> crate::Result<Self> {
+        if s.starts_with(|c| Operator::iter().any(|op| op.as_ref().starts_with(c))) {
+            parse::version_with_op(s)
+        } else {
+            parse::version(s)
+        }
+    }
+}
+
 impl Version<String> {
     /// Create a new [`Version`] from a given string with or without an [`Operator`].
     pub fn new(s: &str) -> crate::Result<Self> {
-        if s.starts_with(|c| Operator::iter().any(|op| op.as_ref().starts_with(c))) {
-            parse::version_with_op(s).into_owned()
-        } else {
-            parse::version(s).into_owned()
-        }
+        Version::parse(s).into_owned()
     }
 
     /// Create a new [`Version`] with an [`Operator`].
