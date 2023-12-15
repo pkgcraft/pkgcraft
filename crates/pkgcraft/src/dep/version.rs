@@ -970,18 +970,32 @@ mod tests {
                 .permutations(2)
                 .map(|val| val.into_iter().collect_tuple().unwrap());
             for (s1, s2) in permutations {
-                let v1: Version<_> = s1.parse().unwrap();
-                let v2: Version<_> = s2.parse().unwrap();
+                let v1_owned = Version::new(s1).unwrap();
+                let v1_borrowed = Version::parse(s1).unwrap();
+                let v2_owned = Version::new(s2).unwrap();
+                let v2_borrowed = Version::parse(s2).unwrap();
 
                 // self intersection
-                assert!(v1.intersects(&v1), "{v1} doesn't intersect {v2}");
-                assert!(v2.intersects(&v2), "{v2} doesn't intersect {v2}");
+                assert!(v1_owned.intersects(&v1_owned), "{s1} doesn't intersect {s2}");
+                assert!(v1_borrowed.intersects(&v1_borrowed), "{s1} doesn't intersect {s2}");
+                assert!(v1_owned.intersects(&v1_borrowed), "{s1} doesn't intersect {s2}");
+                assert!(v1_borrowed.intersects(&v1_owned), "{s1} doesn't intersect {s2}");
+                assert!(v2_owned.intersects(&v2_owned), "{s2} doesn't intersect {s2}");
+                assert!(v2_borrowed.intersects(&v2_borrowed), "{s2} doesn't intersect {s2}");
+                assert!(v2_owned.intersects(&v2_borrowed), "{s2} doesn't intersect {s2}");
+                assert!(v2_borrowed.intersects(&v2_owned), "{s2} doesn't intersect {s2}");
 
                 // intersects depending on status
                 if d.status {
-                    assert!(v1.intersects(&v2), "{v1} doesn't intersect {v2}");
+                    assert!(v1_owned.intersects(&v2_owned), "{s1} doesn't intersect {s2}");
+                    assert!(v1_borrowed.intersects(&v2_borrowed), "{s1} doesn't intersect {s2}");
+                    assert!(v1_owned.intersects(&v2_borrowed), "{s1} doesn't intersect {s2}");
+                    assert!(v1_borrowed.intersects(&v2_owned), "{s1} doesn't intersect {s2}");
                 } else {
-                    assert!(!v1.intersects(&v2), "{v1} intersects {v2}");
+                    assert!(!v1_owned.intersects(&v2_owned), "{s1} intersects {s2}");
+                    assert!(!v1_borrowed.intersects(&v2_borrowed), "{s1} intersects {s2}");
+                    assert!(!v1_owned.intersects(&v2_borrowed), "{s1} intersects {s2}");
+                    assert!(!v1_borrowed.intersects(&v2_owned), "{s1} intersects {s2}");
                 }
             }
         }
