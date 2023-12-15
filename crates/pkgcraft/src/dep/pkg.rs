@@ -895,18 +895,35 @@ mod tests {
                 .permutations(2)
                 .map(|val| val.into_iter().collect_tuple().unwrap());
             for (s1, s2) in permutations {
-                let obj1: CpvOrDep<_> = s1.parse().unwrap();
-                let obj2: CpvOrDep<_> = s2.parse().unwrap();
+                let obj1_owned = CpvOrDep::new(s1).unwrap();
+                let obj1_borrowed = CpvOrDep::parse(s1).unwrap();
+                let obj2_owned = CpvOrDep::new(s2).unwrap();
+                let obj2_borrowed = CpvOrDep::parse(s2).unwrap();
 
                 // self intersection
-                assert!(obj1.intersects(&obj1), "{obj1} doesn't intersect {obj1}");
-                assert!(obj2.intersects(&obj2), "{obj2} doesn't intersect {obj2}");
+                assert!(obj1_owned.intersects(&obj1_owned), "{s1} doesn't intersect {s1}");
+                assert!(obj1_borrowed.intersects(&obj1_borrowed), "{s1} doesn't intersect {s1}");
+                assert!(obj1_owned.intersects(&obj1_borrowed), "{s1} doesn't intersect {s1}");
+                assert!(obj1_borrowed.intersects(&obj1_owned), "{s1} doesn't intersect {s1}");
+                assert!(obj2_owned.intersects(&obj2_owned), "{s2} doesn't intersect {s2}");
+                assert!(obj2_borrowed.intersects(&obj2_borrowed), "{s2} doesn't intersect {s2}");
+                assert!(obj2_owned.intersects(&obj2_borrowed), "{s2} doesn't intersect {s2}");
+                assert!(obj2_borrowed.intersects(&obj2_owned), "{s2} doesn't intersect {s2}");
 
                 // intersects depending on status
                 if d.status {
-                    assert!(obj1.intersects(&obj2), "{obj1} doesn't intersect {obj2}");
+                    assert!(obj1_owned.intersects(&obj2_owned), "{s1} doesn't intersect {s2}");
+                    assert!(
+                        obj1_borrowed.intersects(&obj2_borrowed),
+                        "{s1} doesn't intersect {s2}"
+                    );
+                    assert!(obj1_owned.intersects(&obj2_borrowed), "{s1} doesn't intersect {s2}");
+                    assert!(obj1_borrowed.intersects(&obj2_owned), "{s1} doesn't intersect {s2}");
                 } else {
-                    assert!(!obj1.intersects(&obj2), "{obj1} intersects {obj2}");
+                    assert!(!obj1_owned.intersects(&obj2_owned), "{s1} intersects {s2}");
+                    assert!(!obj1_borrowed.intersects(&obj2_borrowed), "{s1} intersects {s2}");
+                    assert!(!obj1_owned.intersects(&obj2_borrowed), "{s1} intersects {s2}");
+                    assert!(!obj1_borrowed.intersects(&obj2_owned), "{s1} intersects {s2}");
                 }
             }
         }
