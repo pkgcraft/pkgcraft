@@ -335,6 +335,16 @@ impl<'a> Version<&'a str> {
             parse::version(s)
         }
     }
+
+    /// Create a borrowed [`Version`] with an [`Operator`].
+    pub fn parse_with_op(s: &'a str) -> crate::Result<Self> {
+        parse::version_with_op(s)
+    }
+
+    /// Create a borrowed [`Version`] without an [`Operator`].
+    pub fn parse_without_op(s: &'a str) -> crate::Result<Self> {
+        parse::version(s)
+    }
 }
 
 impl Version<String> {
@@ -343,14 +353,14 @@ impl Version<String> {
         Version::parse(s).into_owned()
     }
 
-    /// Create a new [`Version`] with an [`Operator`].
+    /// Create an owned [`Version`] with an [`Operator`].
     pub fn new_with_op(s: &str) -> crate::Result<Self> {
-        parse::version_with_op(s).into_owned()
+        Version::parse_with_op(s).into_owned()
     }
 
-    /// Create a new [`Version`] without an [`Operator`].
+    /// Create an owned [`Version`] without an [`Operator`].
     pub fn new_without_op(s: &str) -> crate::Result<Self> {
-        parse::version(s).into_owned()
+        Version::parse_without_op(s).into_owned()
     }
 }
 
