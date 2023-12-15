@@ -499,7 +499,7 @@ impl<S: Stringable> Dep<S> {
     /// For example, the package dependency "=cat/pkg-1-r2" returns "r2".
     pub fn pr(&self) -> String {
         self.version()
-            .map(|v| format!("r{}", v.revision().map(|r| r.as_ref()).unwrap_or("0")))
+            .map(|v| format!("r{}", v.revision().map(|r| r.as_str()).unwrap_or("0")))
             .unwrap_or_default()
     }
 

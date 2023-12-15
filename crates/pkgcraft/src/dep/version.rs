@@ -39,12 +39,11 @@ impl IntoOwned for Number<&str> {
 impl<S: Stringable> Number<S> {
     /// Determine if a number is represented by an empty string.
     pub(crate) fn is_empty(&self) -> bool {
-        self.as_ref().is_empty()
+        self.as_str().is_empty()
     }
-}
 
-impl<S: Stringable> AsRef<str> for Number<S> {
-    fn as_ref(&self) -> &str {
+    /// Return the raw string value for a number.
+    pub(crate) fn as_str(&self) -> &str {
         self.raw.as_ref()
     }
 }
@@ -65,13 +64,13 @@ impl<S: Stringable> PartialEq<u64> for Number<S> {
 
 impl<S: Stringable> PartialEq<str> for Number<S> {
     fn eq(&self, other: &str) -> bool {
-        self.raw.as_ref() == other
+        self.as_str() == other
     }
 }
 
 impl<S: Stringable> PartialEq<&str> for Number<S> {
     fn eq(&self, other: &&str) -> bool {
-        self.raw.as_ref() == *other
+        self.as_str() == *other
     }
 }
 
@@ -113,7 +112,7 @@ impl<S1: Stringable, S2: Stringable> PartialOrd<Number<S1>> for Number<S2> {
 
 impl<S: Stringable> fmt::Display for Number<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_ref())
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -144,11 +143,10 @@ impl<S: Stringable> Revision<S> {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
-}
 
-impl<S: Stringable> AsRef<str> for Revision<S> {
-    fn as_ref(&self) -> &str {
-        self.0.as_ref()
+    /// Return the raw string value for a revision.
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
     }
 }
 
@@ -180,13 +178,13 @@ impl<S: Stringable> PartialEq<u64> for Revision<S> {
 
 impl<S: Stringable> PartialEq<str> for Revision<S> {
     fn eq(&self, other: &str) -> bool {
-        self.as_ref() == other
+        self.as_str() == other
     }
 }
 
 impl<S: Stringable> PartialEq<&str> for Revision<S> {
     fn eq(&self, other: &&str) -> bool {
-        self.as_ref() == *other
+        self.as_str() == *other
     }
 }
 
@@ -459,7 +457,7 @@ impl<S: Stringable> Version<S> {
         loop {
             match (v1_numbers.next(), v2_numbers.next()) {
                 (Some(n1), Some(n2)) => {
-                    if !n1.as_ref().starts_with(n2.as_ref()) {
+                    if !n1.as_str().starts_with(n2.as_str()) {
                         return false;
                     }
                 }
@@ -499,7 +497,7 @@ impl<S: Stringable> Version<S> {
                     // compare suffix versions
                     match (&s1.version, &s2.version) {
                         (Some(v1), Some(v2)) => {
-                            if !v1.as_ref().starts_with(v2.as_ref()) {
+                            if !v1.as_str().starts_with(v2.as_str()) {
                                 return false;
                             }
                         }
@@ -518,7 +516,7 @@ impl<S: Stringable> Version<S> {
         }
 
         // compare revisions
-        match (self.revision().map(|r| r.as_ref()), other.revision().map(|r| r.as_ref())) {
+        match (self.revision().map(|r| r.as_str()), other.revision().map(|r| r.as_str())) {
             (Some(r1), Some(r2)) if unmatched || !r1.starts_with(r2) => false,
             (None, Some(_)) => false,
             _ => true,
@@ -547,7 +545,7 @@ macro_rules! ranged {
 
             // '=*' and '<' or '<=' -- intersects if the other revision is 0 or doesn't
             // exist and glob matches ranged version
-            (Less | LessOrEqual, EqualGlob) => match $other.revision().map(|r| r.as_ref()) {
+            (Less | LessOrEqual, EqualGlob) => match $other.revision().map(|r| r.as_str()) {
                 None | Some("0") => $ranged.starts_with($other),
                 _ => false,
             },
@@ -661,8 +659,8 @@ impl<S: Stringable> Hash for Version<S> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.numbers[0].hash(state);
         for n in &self.numbers[1..] {
-            if n.as_ref().starts_with('0') {
-                n.as_ref().trim_end_matches('0').hash(state);
+            if n.as_str().starts_with('0') {
+                n.as_str().trim_end_matches('0').hash(state);
             } else {
                 n.value.hash(state);
             }
@@ -688,10 +686,10 @@ where
         match (v1_numbers.next(), v2_numbers.next()) {
             // compare as strings if a component starts with "0"
             (Some(n1), Some(n2))
-                if n1.as_ref().starts_with('0') || n2.as_ref().starts_with('0') =>
+                if n1.as_str().starts_with('0') || n2.as_str().starts_with('0') =>
             {
-                let s1 = n1.as_ref().trim_end_matches('0');
-                let s2 = n2.as_ref().trim_end_matches('0');
+                let s1 = n1.as_str().trim_end_matches('0');
+                let s2 = n2.as_str().trim_end_matches('0');
                 partial_cmp_not_equal!(s1, s2);
             }
             // compare as integers
