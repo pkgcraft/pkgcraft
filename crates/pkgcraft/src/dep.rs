@@ -26,11 +26,20 @@ pub use use_dep::{UseDep, UseDepDefault, UseDepKind};
 pub use version::{Operator, Revision, Version};
 
 pub trait Stringable:
-    fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash + AsRef<str>
+    fmt::Debug + fmt::Display + Default + PartialEq + Eq + PartialOrd + Ord + Clone + Hash + AsRef<str>
 {
 }
 impl<T> Stringable for T where
-    T: fmt::Debug + fmt::Display + PartialEq + Eq + PartialOrd + Ord + Clone + Hash + AsRef<str>
+    T: fmt::Debug
+        + fmt::Display
+        + Default
+        + PartialEq
+        + Eq
+        + PartialOrd
+        + Ord
+        + Clone
+        + Hash
+        + AsRef<str>
 {
 }
 
