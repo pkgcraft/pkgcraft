@@ -16,7 +16,7 @@ use crate::Error;
 
 use super::use_dep::{UseDep, UseDepKind};
 use super::version::{Operator, Revision, Version};
-use super::{parse, Cpv};
+use super::{parse, Cpv, Stringable};
 
 #[repr(C)]
 #[derive(
@@ -60,53 +60,6 @@ impl DepField {
     }
 }
 
-/// Parsed package dep from borrowed input string.
-#[derive(Debug, Default)]
-pub(crate) struct ParsedDep<'a> {
-    pub(crate) category: &'a str,
-    pub(crate) package: &'a str,
-    pub(crate) blocker: Option<Blocker>,
-    pub(crate) version: Option<Version<&'a str>>,
-    pub(crate) slot: Option<SlotDep<&'a str>>,
-    pub(crate) use_deps: Option<Vec<UseDep<&'a str>>>,
-    pub(crate) repo: Option<&'a str>,
-}
-
-impl<'a> ParsedDep<'a> {
-    /// Used by the parser to inject attributes.
-    pub(crate) fn with(
-        mut self,
-        blocker: Option<Blocker>,
-        slot: Option<SlotDep<&'a str>>,
-        use_deps: Option<Vec<UseDep<&'a str>>>,
-        repo: Option<&'a str>,
-    ) -> ParsedDep<'a> {
-        self.blocker = blocker;
-        self.slot = slot;
-        self.use_deps = use_deps;
-        self.repo = repo;
-        self
-    }
-}
-
-impl IntoOwned for ParsedDep<'_> {
-    type Owned = Dep;
-
-    fn into_owned(self) -> Self::Owned {
-        Dep {
-            category: self.category.to_string(),
-            package: self.package.to_string(),
-            blocker: self.blocker,
-            version: self.version.into_owned(),
-            slot: self.slot.into_owned(),
-            use_deps: self
-                .use_deps
-                .map(|u| u.into_iter().map(|u| u.into_owned()).collect()),
-            repo: self.repo.map(|s| s.to_string()),
-        }
-    }
-}
-
 /// Package slot.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Slot<S> {
@@ -133,20 +86,22 @@ impl Slot<String> {
         parse::slot(s).into_owned()
     }
 
+    /// Return the Slot using internal references.
+    fn as_ref(&self) -> Slot<&str> {
+        Slot { name: &self.name }
+    }
+}
+
+impl<S: Stringable> Slot<S> {
     /// Return the main slot value.
     pub fn slot(&self) -> &str {
-        let s = self.name.as_str();
+        let s = self.name.as_ref();
         s.split_once('/').map_or(s, |x| x.0)
     }
 
     /// Return the subslot value if it exists.
     pub fn subslot(&self) -> Option<&str> {
-        self.name.split_once('/').map(|x| x.1)
-    }
-
-    /// Return the Slot using internal references.
-    fn as_ref(&self) -> Slot<&str> {
-        Slot { name: &self.name }
+        self.name.as_ref().split_once('/').map(|x| x.1)
     }
 }
 
@@ -251,44 +206,79 @@ impl FromStr for SlotDep<String> {
 }
 
 /// Package dependency.
-#[derive(Debug, Clone)]
-pub struct Dep {
-    category: String,
-    package: String,
-    blocker: Option<Blocker>,
-    version: Option<Version<String>>,
-    slot: Option<SlotDep<String>>,
-    use_deps: Option<SortedSet<UseDep<String>>>,
-    repo: Option<String>,
+#[derive(Debug, Default, Clone)]
+pub struct Dep<S: Stringable> {
+    pub(crate) category: S,
+    pub(crate) package: S,
+    pub(crate) blocker: Option<Blocker>,
+    pub(crate) version: Option<Version<S>>,
+    pub(crate) slot: Option<SlotDep<S>>,
+    pub(crate) use_deps: Option<SortedSet<UseDep<S>>>,
+    pub(crate) repo: Option<S>,
 }
 
-impl PartialEq for Dep {
+impl<'a> Dep<&'a str> {
+    /// Used by the parser to inject attributes.
+    pub(crate) fn with(
+        mut self,
+        blocker: Option<Blocker>,
+        slot: Option<SlotDep<&'a str>>,
+        use_deps: Option<Vec<UseDep<&'a str>>>,
+        repo: Option<&'a str>,
+    ) -> Self {
+        self.blocker = blocker;
+        self.slot = slot;
+        self.use_deps = use_deps.map(|u| u.into_iter().collect());
+        self.repo = repo;
+        self
+    }
+}
+
+impl IntoOwned for Dep<&str> {
+    type Owned = Dep<String>;
+
+    fn into_owned(self) -> Self::Owned {
+        Dep {
+            category: self.category.to_string(),
+            package: self.package.to_string(),
+            blocker: self.blocker,
+            version: self.version.into_owned(),
+            slot: self.slot.into_owned(),
+            use_deps: self
+                .use_deps
+                .map(|u| u.into_iter().map(|u| u.into_owned()).collect()),
+            repo: self.repo.map(|s| s.to_string()),
+        }
+    }
+}
+
+impl<S: Stringable> PartialEq for Dep<S> {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl Eq for Dep {}
+impl<S: Stringable> Eq for Dep<S> {}
 
-impl Hash for Dep {
+impl<S: Stringable> Hash for Dep<S> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.key().hash(state);
     }
 }
 
-impl Ord for Dep {
+impl<S: Stringable> Ord for Dep<S> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.key().cmp(&other.key())
     }
 }
 
-impl PartialOrd for Dep {
+impl<S: Stringable> PartialOrd for Dep<S> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl FromStr for Dep {
+impl FromStr for Dep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -297,17 +287,17 @@ impl FromStr for Dep {
 }
 
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
-type DepKey<'a> = (
-    &'a str,                               // category
-    &'a str,                               // package
-    Option<&'a Version<String>>,           // version
-    Option<Blocker>,                       // blocker
-    Option<&'a SlotDep<String>>,           // slot
-    Option<&'a SortedSet<UseDep<String>>>, // use deps
-    Option<&'a str>,                       // repo
+type DepKey<'a, S> = (
+    &'a str,                          // category
+    &'a str,                          // package
+    Option<&'a Version<S>>,           // version
+    Option<Blocker>,                  // blocker
+    Option<&'a SlotDep<S>>,           // slot
+    Option<&'a SortedSet<UseDep<S>>>, // use deps
+    Option<&'a str>,                  // repo
 );
 
-impl Dep {
+impl Dep<String> {
     /// Create a new Dep from a given string using the default EAPI.
     pub fn new(s: &str) -> crate::Result<Self> {
         parse::dep(s, Default::default())
@@ -440,21 +430,24 @@ impl Dep {
 
         Ok(dep)
     }
+}
 
-    /// Verify a string represents a valid package dependency.
-    pub fn valid(s: &str, eapi: Option<&'static Eapi>) -> crate::Result<()> {
-        parse::dep_str(s, eapi.unwrap_or_default())?;
-        Ok(())
+impl<'a> Dep<&'a str> {
+    /// Create a borrowed [`Dep`] from a given string.
+    pub fn parse(s: &'a str, eapi: Option<&'static Eapi>) -> crate::Result<Self> {
+        parse::dep_str(s, eapi.unwrap_or_default())
     }
+}
 
+impl<S: Stringable> Dep<S> {
     /// Return a package dependency's category.
     pub fn category(&self) -> &str {
-        &self.category
+        self.category.as_ref()
     }
 
     /// Return a package dependency's package.
     pub fn package(&self) -> &str {
-        &self.package
+        self.package.as_ref()
     }
 
     /// Return a package dependency's blocker.
@@ -463,17 +456,17 @@ impl Dep {
     }
 
     /// Return a package dependency's USE flag dependencies.
-    pub fn use_deps(&self) -> Option<&SortedSet<UseDep<String>>> {
+    pub fn use_deps(&self) -> Option<&SortedSet<UseDep<S>>> {
         self.use_deps.as_ref()
     }
 
     /// Return a package dependency's version.
-    pub fn version(&self) -> Option<&Version<String>> {
+    pub fn version(&self) -> Option<&Version<S>> {
         self.version.as_ref()
     }
 
     /// Return a package dependency's revision.
-    pub fn revision(&self) -> Option<&Revision<String>> {
+    pub fn revision(&self) -> Option<&Revision<S>> {
         self.version().and_then(|v| v.revision())
     }
 
@@ -563,11 +556,11 @@ impl Dep {
 
     /// Return a package dependency's repository.
     pub fn repo(&self) -> Option<&str> {
-        self.repo.as_deref()
+        self.repo.as_ref().map(|s| s.as_ref())
     }
 
     /// Return a key value used to implement various traits, e.g. Eq, Hash, etc.
-    fn key(&self) -> DepKey {
+    fn key(&self) -> DepKey<S> {
         (
             self.category(),
             self.package(),
@@ -580,7 +573,7 @@ impl Dep {
     }
 }
 
-impl fmt::Display for Dep {
+impl<S: Stringable> fmt::Display for Dep<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // append blocker
         if let Some(blocker) = self.blocker {
@@ -621,8 +614,8 @@ impl fmt::Display for Dep {
 }
 
 /// Determine if a package dependency intersects with a Cpv.
-impl Intersects<Cpv> for Dep {
-    fn intersects(&self, other: &Cpv) -> bool {
+impl<S: Stringable> Intersects<Cpv<S>> for Dep<S> {
+    fn intersects(&self, other: &Cpv<S>) -> bool {
         bool_not_equal!(&self.category(), &other.category());
         bool_not_equal!(&self.package(), &other.package());
         self.version()
@@ -632,8 +625,8 @@ impl Intersects<Cpv> for Dep {
 }
 
 /// Determine if two package dependencies intersect ignoring blockers.
-impl Intersects<Dep> for Dep {
-    fn intersects(&self, other: &Dep) -> bool {
+impl<S: Stringable> Intersects<Dep<S>> for Dep<S> {
+    fn intersects(&self, other: &Dep<S>) -> bool {
         bool_not_equal!(&self.category(), &other.category());
         bool_not_equal!(&self.package(), &other.package());
 
@@ -681,11 +674,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_and_valid() {
+    fn new_and_parse() {
         // invalid
         for s in &TEST_DATA.dep_toml.invalid {
             for eapi in &*EAPIS {
-                let result = Dep::valid(s, Some(*eapi));
+                let result = Dep::parse(s, Some(*eapi));
                 assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
                 let result = eapi.dep(s);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
@@ -697,7 +690,7 @@ mod tests {
             let s = e.dep.as_str();
             let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
             for eapi in &passing_eapis {
-                let result = Dep::valid(s, Some(*eapi));
+                let result = Dep::parse(s, Some(*eapi));
                 assert!(result.is_ok(), "{s:?} isn't valid for EAPI={eapi}");
                 let result = eapi.dep(s);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
@@ -714,7 +707,7 @@ mod tests {
                 assert_eq!(d.to_string(), s, "{s:?} failed for EAPI={eapi}");
             }
             for eapi in EAPIS.difference(&passing_eapis) {
-                let result = Dep::valid(s, Some(*eapi));
+                let result = Dep::parse(s, Some(*eapi));
                 assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
                 let result = eapi.dep(s);
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
@@ -739,7 +732,7 @@ mod tests {
             "!cat/pkg",
             "!!<cat/pkg-4",
         ] {
-            let dep: Dep = s.parse().unwrap();
+            let dep: Dep<_> = s.parse().unwrap();
             assert_eq!(dep.to_string(), s);
         }
     }
@@ -756,7 +749,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1"),
             (">cat/pkg-4-r1:0=", "cat/pkg"),
         ] {
-            let dep: Dep = s.parse().unwrap();
+            let dep: Dep<_> = s.parse().unwrap();
             assert_eq!(dep.cpn(), key);
         }
     }
@@ -773,7 +766,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(">=2-r3")),
             (">cat/pkg-4-r1:0=", Some(">4-r1")),
         ] {
-            let dep: Dep = s.parse().unwrap();
+            let dep: Dep<_> = s.parse().unwrap();
             let version = version.map(|s| parse::version_with_op(s).into_owned().unwrap());
             assert_eq!(dep.version(), version.as_ref());
         }
@@ -789,7 +782,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some("3")),
             (">cat/pkg-4-r1:0=", Some("1")),
         ] {
-            let dep: Dep = s.parse().unwrap();
+            let dep: Dep<_> = s.parse().unwrap();
             let rev = rev_str.map(|s| s.parse().unwrap());
             assert_eq!(dep.revision(), rev.as_ref(), "{s} failed");
         }
@@ -807,7 +800,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", Some(Operator::GreaterOrEqual)),
             (">cat/pkg-4-r1:0=", Some(Operator::Greater)),
         ] {
-            let dep: Dep = s.parse().unwrap();
+            let dep: Dep<_> = s.parse().unwrap();
             assert_eq!(dep.op(), op);
         }
     }
@@ -824,7 +817,7 @@ mod tests {
             (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
             (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
         ] {
-            let dep: Dep = s.parse().unwrap();
+            let dep: Dep<_> = s.parse().unwrap();
             assert_eq!(dep.cpv(), cpv);
         }
     }
@@ -837,8 +830,8 @@ mod tests {
                 .collect();
 
         for (expr, (s1, op, s2)) in TEST_DATA.dep_toml.compares() {
-            let dep1: Dep = s1.parse().unwrap();
-            let dep2: Dep = s2.parse().unwrap();
+            let dep1: Dep<_> = s1.parse().unwrap();
+            let dep2: Dep<_> = s2.parse().unwrap();
             if op == "!=" {
                 assert_ne!(dep1, dep2, "failed comparing: {expr}");
                 assert_ne!(dep2, dep1, "failed comparing: {expr}");
@@ -1034,7 +1027,7 @@ mod tests {
     #[test]
     fn sorting() {
         for d in &TEST_DATA.dep_toml.sorting {
-            let mut reversed: Vec<Dep> =
+            let mut reversed: Vec<Dep<_>> =
                 d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
             reversed.sort();
             let mut sorted: Vec<_> = reversed.iter().map(|x| x.to_string()).collect();
@@ -1049,7 +1042,7 @@ mod tests {
     #[test]
     fn hashing() {
         for d in &TEST_DATA.version_toml.hashing {
-            let set: HashSet<Dep> = d
+            let set: HashSet<Dep<_>> = d
                 .versions
                 .iter()
                 .map(|s| format!("=cat/pkg-{s}").parse().unwrap())

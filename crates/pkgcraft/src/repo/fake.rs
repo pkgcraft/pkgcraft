@@ -22,7 +22,7 @@ pub struct Repo {
     id: String,
     repo_config: RepoConfig,
     pkgmap: PkgMap,
-    cpvs: OrderedSet<Cpv>,
+    cpvs: OrderedSet<Cpv<String>>,
 }
 
 impl PartialEq for Repo {
@@ -55,8 +55,8 @@ impl Repo {
     pub fn pkgs<I, T>(mut self, iter: I) -> Self
     where
         I: IntoIterator<Item = T>,
-        T: TryInto<Cpv>,
-        <T as TryInto<Cpv>>::Error: std::fmt::Display,
+        T: TryInto<Cpv<String>>,
+        <T as TryInto<Cpv<String>>>::Error: std::fmt::Display,
     {
         self.extend(iter);
         self
@@ -95,8 +95,8 @@ impl Repo {
 
 impl<T> Extend<T> for Repo
 where
-    T: TryInto<Cpv>,
-    <T as TryInto<Cpv>>::Error: std::fmt::Display,
+    T: TryInto<Cpv<String>>,
+    <T as TryInto<Cpv<String>>>::Error: std::fmt::Display,
 {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         let orig_len = self.cpvs.len();
@@ -215,11 +215,11 @@ impl<'a> IntoIterator for &'a Repo {
 
 #[derive(Debug)]
 pub struct IterCpv<'a> {
-    iter: indexmap::set::Iter<'a, Cpv>,
+    iter: indexmap::set::Iter<'a, Cpv<String>>,
 }
 
 impl<'a> Iterator for IterCpv<'a> {
-    type Item = Cpv;
+    type Item = Cpv<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().cloned()
@@ -228,7 +228,7 @@ impl<'a> Iterator for IterCpv<'a> {
 
 #[derive(Debug)]
 pub struct Iter<'a> {
-    iter: indexmap::set::Iter<'a, Cpv>,
+    iter: indexmap::set::Iter<'a, Cpv<String>>,
     repo: &'a Repo,
 }
 

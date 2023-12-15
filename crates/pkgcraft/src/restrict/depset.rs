@@ -9,8 +9,8 @@ pub enum Restrict<T> {
 }
 
 // TODO: combine these Restriction implementations using generics
-impl Restriction<&DependencySet<String, Dep>> for Restrict<DepRestrict> {
-    fn matches(&self, val: &DependencySet<String, Dep>) -> bool {
+impl Restriction<&DependencySet<String, Dep<String>>> for Restrict<DepRestrict> {
+    fn matches(&self, val: &DependencySet<String, Dep<String>>) -> bool {
         match self {
             Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }

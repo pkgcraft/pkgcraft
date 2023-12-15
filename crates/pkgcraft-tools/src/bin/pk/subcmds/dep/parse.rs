@@ -47,8 +47,8 @@ pub enum Key {
     DEP,
 }
 
-impl EnumVariable<'_> for Key {
-    type Object = Dep;
+impl<'a> EnumVariable<'a> for Key {
+    type Object = Dep<&'a str>;
 
     fn value(&self, obj: &Self::Object) -> String {
         use Key::*;
@@ -73,17 +73,14 @@ impl EnumVariable<'_> for Key {
     }
 }
 
-impl FormatString<'_> for Command {
-    type Object = Dep;
+impl<'a> FormatString<'a> for Command {
+    type Object = Dep<&'a str>;
     type FormatKey = Key;
 }
 
 impl Command {
     fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
-        let dep = match self.eapi {
-            Some(eapi) => eapi.dep(s),
-            None => s.parse(),
-        }?;
+        let dep = Dep::parse(s, self.eapi)?;
 
         // output formatted string if specified
         if let Some(fmt) = &self.format {

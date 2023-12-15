@@ -11,8 +11,8 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let v1 = Version::new(&self.ver1)?;
-        let v2 = Version::new(&self.ver2)?;
+        let v1 = Version::parse(&self.ver1)?;
+        let v2 = Version::parse(&self.ver2)?;
         Ok(ExitCode::from(!v1.intersects(&v2) as u8))
     }
 }

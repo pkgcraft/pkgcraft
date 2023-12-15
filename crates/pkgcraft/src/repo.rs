@@ -262,7 +262,7 @@ pub enum IterCpv<'a> {
 }
 
 impl Iterator for IterCpv<'_> {
-    type Item = Cpv;
+    type Item = Cpv<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -331,13 +331,13 @@ impl<'a> Iterator for IterRestrict<'a> {
 }
 
 pub trait PkgRepository:
-    fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a Dep>
+    fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a Dep<String>>
 {
     type Pkg<'a>: Package
     where
         Self: 'a;
 
-    type IterCpv<'a>: Iterator<Item = Cpv>
+    type IterCpv<'a>: Iterator<Item = Cpv<String>>
     where
         Self: 'a;
 
@@ -415,20 +415,20 @@ where
     }
 }
 
-impl<T> Contains<&Cpv> for &T
+impl<T> Contains<&Cpv<String>> for &T
 where
     T: PkgRepository,
 {
-    fn contains(&self, cpv: &Cpv) -> bool {
+    fn contains(&self, cpv: &Cpv<String>) -> bool {
         self.iter_restrict(cpv).next().is_some()
     }
 }
 
-impl<T> Contains<&Dep> for &T
+impl<T> Contains<&Dep<String>> for &T
 where
     T: PkgRepository,
 {
-    fn contains(&self, dep: &Dep) -> bool {
+    fn contains(&self, dep: &Dep<String>) -> bool {
         self.iter_restrict(dep).next().is_some()
     }
 }
@@ -632,14 +632,14 @@ use make_repo_traits;
 
 macro_rules! make_contains_dep {
     ($x:ty) => {
-        impl $crate::traits::Contains<&crate::dep::Cpv> for $x {
-            fn contains(&self, cpv: &crate::dep::Cpv) -> bool {
+        impl $crate::traits::Contains<&crate::dep::Cpv<String>> for $x {
+            fn contains(&self, cpv: &crate::dep::Cpv<String>) -> bool {
                 self.iter_restrict(cpv).next().is_some()
             }
         }
 
-        impl $crate::traits::Contains<&crate::dep::Dep> for $x {
-            fn contains(&self, dep: &crate::dep::Dep) -> bool {
+        impl $crate::traits::Contains<&crate::dep::Dep<String>> for $x {
+            fn contains(&self, dep: &crate::dep::Dep<String>) -> bool {
                 self.iter_restrict(dep).next().is_some()
             }
         }

@@ -1,7 +1,7 @@
 use cached::{proc_macro::cached, SizedCache};
 
-use crate::dep::cpv::ParsedCpv;
-use crate::dep::pkg::{Blocker, Dep, ParsedDep, Slot, SlotDep, SlotOperator};
+use crate::dep::cpv::Cpv;
+use crate::dep::pkg::{Blocker, Dep, Slot, SlotDep, SlotOperator};
 use crate::dep::uri::Uri;
 use crate::dep::use_dep::{UseDep, UseDepDefault, UseDepKind};
 use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
@@ -197,20 +197,20 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    pub(super) rule cpv() -> ParsedCpv<'input>
+    pub(super) rule cpv() -> Cpv<&'input str>
         = category:category() "/" package:package() "-" version:version()
-        { ParsedCpv { category, package, version } }
+        { Cpv { category, package, version } }
 
-    rule dep_pkg() -> ParsedDep<'input>
+    rule dep_pkg() -> Dep<&'input str>
         = dep:cpn() { dep }
         / dep:with_op(<cpv()>) { dep }
 
-    pub(super) rule cpn() -> ParsedDep<'input>
+    pub(super) rule cpn() -> Dep<&'input str>
         = category:category() "/" package:package() {
-            ParsedDep { category, package, ..Default::default() }
+            Dep { category, package, ..Default::default() }
         }
 
-    pub(super) rule dep(eapi: &'static Eapi) -> ParsedDep<'input>
+    pub(super) rule dep(eapi: &'static Eapi) -> Dep<&'input str>
         = blocker:blocker()? dep:dep_pkg() slot:slot_dep_str()?
                 repo:repo_dep(eapi)? use_deps:use_deps()? {
             dep.with(blocker, slot, use_deps, repo)
@@ -287,7 +287,7 @@ peg::parser!(grammar depspec() for str {
         / all_of(<restrict_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
-    pub(super) rule package_dependency(eapi: &'static Eapi) -> Dependency<String, Dep>
+    pub(super) rule package_dependency(eapi: &'static Eapi) -> Dependency<String, Dep<String>>
         = use_cond(<package_dependency(eapi)>)
         / any_of(<package_dependency(eapi)>)
         / all_of(<package_dependency(eapi)>)
@@ -308,7 +308,7 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule restrict_dependency_set() -> DependencySet<String, String>
         = v:restrict_dependency() ** __ { v.into_iter().collect() }
 
-    pub(super) rule package_dependency_set(eapi: &'static Eapi) -> DependencySet<String, Dep>
+    pub(super) rule package_dependency_set(eapi: &'static Eapi) -> DependencySet<String, Dep<String>>
         = v:package_dependency(eapi) ** __ { v.into_iter().collect() }
 });
 
@@ -368,25 +368,25 @@ pub fn repo(s: &str) -> crate::Result<&str> {
     depspec::repo(s).map_err(|e| peg_error("invalid repo name", s, e))
 }
 
-/// Parse a string into a [`ParsedCpv`].
-pub(super) fn cpv(s: &str) -> crate::Result<ParsedCpv> {
+/// Parse a string into a [`Cpv`].
+pub(super) fn cpv(s: &str) -> crate::Result<Cpv<&str>> {
     depspec::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
 }
 
-pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<ParsedDep<'a>> {
+pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Dep<&'a str>> {
     depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))
 }
 
 #[cached(
-    type = "SizedCache<(String, &Eapi), crate::Result<Dep>>",
+    type = "SizedCache<(String, &Eapi), crate::Result<Dep<String>>>",
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
-pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
+pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep<String>> {
     dep_str(s, eapi).into_owned()
 }
 
-pub(super) fn cpn(s: &str) -> crate::Result<ParsedDep> {
+pub(super) fn cpn(s: &str) -> crate::Result<Dep<&str>> {
     depspec::cpn(s).map_err(|e| peg_error("invalid unversioned dep", s, e))
 }
 
@@ -444,11 +444,14 @@ pub fn restrict_dependency(s: &str) -> crate::Result<Dependency<String, String>>
 pub fn package_dependency_set(
     s: &str,
     eapi: &'static Eapi,
-) -> crate::Result<DependencySet<String, Dep>> {
+) -> crate::Result<DependencySet<String, Dep<String>>> {
     depspec::package_dependency_set(s, eapi).map_err(|e| peg_error("invalid dependency", s, e))
 }
 
-pub fn package_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<String, Dep>> {
+pub fn package_dependency(
+    s: &str,
+    eapi: &'static Eapi,
+) -> crate::Result<Dependency<String, Dep<String>>> {
     depspec::package_dependency(s, eapi).map_err(|e| peg_error("invalid package dependency", s, e))
 }
 

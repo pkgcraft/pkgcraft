@@ -125,10 +125,10 @@ impl PkgRepository for RepoSet {
 
 make_contains_dep!(RepoSet);
 
-pub struct IterCpv(indexmap::set::IntoIter<Cpv>);
+pub struct IterCpv(indexmap::set::IntoIter<Cpv<String>>);
 
 impl Iterator for IterCpv {
-    type Item = Cpv;
+    type Item = Cpv<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
@@ -289,7 +289,6 @@ impl SubAssign<&Repo> for RepoSet {
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::dep::Cpv;
     use crate::pkg::RepoPackage;
     use crate::repo::{fake, Contains, Repository};
     use crate::test::assert_ordered_eq;

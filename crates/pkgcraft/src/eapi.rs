@@ -206,7 +206,7 @@ impl Eapi {
     }
 
     /// Parse a package dependency using a specific EAPI.
-    pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<dep::Dep> {
+    pub fn dep<S: AsRef<str>>(&'static self, s: S) -> crate::Result<dep::Dep<String>> {
         dep::parse::dep(s.as_ref(), self)
     }
 

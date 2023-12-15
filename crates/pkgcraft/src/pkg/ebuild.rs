@@ -44,7 +44,7 @@ where
 
 #[derive(Debug)]
 pub struct Pkg<'a> {
-    cpv: Cpv,
+    cpv: Cpv<String>,
     eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata<'a>,
@@ -99,7 +99,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&str, &Dep> {
+    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&str, &Dep<String>> {
         use Key::*;
 
         // default to all dependency types defined by the package EAPI if no keys are passed
@@ -125,27 +125,27 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's BDEPEND.
-    pub fn bdepend(&self) -> &DependencySet<String, Dep> {
+    pub fn bdepend(&self) -> &DependencySet<String, Dep<String>> {
         self.meta.bdepend()
     }
 
     /// Return a package's DEPEND.
-    pub fn depend(&self) -> &DependencySet<String, Dep> {
+    pub fn depend(&self) -> &DependencySet<String, Dep<String>> {
         self.meta.depend()
     }
 
     /// Return a package's IDEPEND.
-    pub fn idepend(&self) -> &DependencySet<String, Dep> {
+    pub fn idepend(&self) -> &DependencySet<String, Dep<String>> {
         self.meta.idepend()
     }
 
     /// Return a package's PDEPEND.
-    pub fn pdepend(&self) -> &DependencySet<String, Dep> {
+    pub fn pdepend(&self) -> &DependencySet<String, Dep<String>> {
         self.meta.pdepend()
     }
 
     /// Return a package's RDEPEND.
-    pub fn rdepend(&self) -> &DependencySet<String, Dep> {
+    pub fn rdepend(&self) -> &DependencySet<String, Dep<String>> {
         self.meta.rdepend()
     }
 
@@ -246,7 +246,7 @@ impl<'a> Package for Pkg<'a> {
         self.eapi
     }
 
-    fn cpv(&self) -> &Cpv {
+    fn cpv(&self) -> &Cpv<String> {
         &self.cpv
     }
 }

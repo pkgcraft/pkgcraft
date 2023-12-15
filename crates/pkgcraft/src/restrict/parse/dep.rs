@@ -283,7 +283,7 @@ mod tests {
         ];
         let deps: Vec<_> = dep_strs.iter().map(|s| Dep::new(s).unwrap()).collect();
 
-        let filter = |r: BaseRestrict, deps: &[Dep]| -> Vec<String> {
+        let filter = |r: BaseRestrict, deps: &[Dep<String>]| -> Vec<String> {
             deps.iter()
                 .filter(|&a| r.matches(a))
                 .map(|a| a.to_string())

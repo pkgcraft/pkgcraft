@@ -280,7 +280,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current CPV if it exists.
-    fn cpv(&'a self) -> scallop::Result<&'a Cpv> {
+    fn cpv(&'a self) -> scallop::Result<&'a Cpv<String>> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(pkg.cpv()),
             BuildState::Build(pkg) => Ok(pkg.cpv()),
@@ -612,7 +612,10 @@ impl Repo<'_> {
         }
     }
 
-    fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Cpv> + '_ {
+    fn iter_cpv_restrict<R: Into<Restrict>>(
+        &self,
+        val: R,
+    ) -> impl Iterator<Item = Cpv<String>> + '_ {
         match self {
             Self::Ebuild(repo) => repo.iter_cpv_restrict(val),
             Self::Binary => todo!(),

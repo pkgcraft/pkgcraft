@@ -133,7 +133,7 @@ where
     }
 
     /// Get the cache data related to a given package Cpv.
-    fn get(&self, cpv: &Cpv) -> Arc<T> {
+    fn get(&self, cpv: &Cpv<String>) -> Arc<T> {
         self.tx
             .send(Msg::Key(cpv.cpn()))
             .expect("failed requesting pkg manifest data");
@@ -382,7 +382,7 @@ impl Repo {
     }
 
     /// Convert a relative ebuild file repo path into a CPV.
-    fn cpv_from_ebuild_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv> {
+    fn cpv_from_ebuild_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv<String>> {
         let path = path.as_ref();
         let err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
@@ -458,23 +458,23 @@ impl Repo {
     }
 
     /// Return the shared XML metadata for a given package.
-    pub(crate) fn pkg_xml(&self, cpv: &Cpv) -> Arc<XmlMetadata> {
+    pub(crate) fn pkg_xml(&self, cpv: &Cpv<String>) -> Arc<XmlMetadata> {
         self.xml_cache
             .get_or_init(|| Cache::<XmlMetadata>::new(self.arc()))
             .get(cpv)
     }
 
     /// Return the shared manifest data for a given package.
-    pub(crate) fn pkg_manifest(&self, cpv: &Cpv) -> Arc<Manifest> {
+    pub(crate) fn pkg_manifest(&self, cpv: &Cpv<String>) -> Arc<Manifest> {
         self.manifest_cache
             .get_or_init(|| Cache::<Manifest>::new(self.arc()))
             .get(cpv)
     }
 
     /// Return the sorted set of Cpvs in a given category.
-    fn category_cpvs(&self, category: &str) -> IndexSet<Cpv> {
+    fn category_cpvs(&self, category: &str) -> IndexSet<Cpv<String>> {
         // filter invalid ebuild paths
-        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv> {
+        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv<String>> {
             match r {
                 Ok(e) => match self.cpv_from_ebuild_path(e.path()) {
                     Ok(cpv) => Some(cpv),
@@ -515,7 +515,7 @@ impl Repo {
         suppress: bool,
     ) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
-        let func = |cpv: Cpv| {
+        let func = |cpv: Cpv<String>| {
             let pkg = ebuild::raw::Pkg::new(cpv, self)?;
             pkg.regen()
         };
@@ -875,7 +875,7 @@ impl<'a> Iterator for IterRaw<'a> {
 }
 
 pub struct IterCpv<'a> {
-    iter: Box<dyn Iterator<Item = Cpv> + 'a>,
+    iter: Box<dyn Iterator<Item = Cpv<String>> + 'a>,
 }
 
 impl<'a> IterCpv<'a> {
@@ -948,7 +948,7 @@ impl<'a> IterCpv<'a> {
 }
 
 impl<'a> Iterator for IterCpv<'a> {
-    type Item = Cpv;
+    type Item = Cpv<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
@@ -974,7 +974,7 @@ pub struct IterCpvRestrict<'a> {
 }
 
 impl<'a> Iterator for IterCpvRestrict<'a> {
-    type Item = Cpv;
+    type Item = Cpv<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|cpv| self.restrict.matches(cpv))

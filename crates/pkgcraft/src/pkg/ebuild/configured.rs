@@ -16,11 +16,11 @@ pub struct Pkg<'a> {
     repo: &'a Repo,
     settings: &'a Settings,
     raw: super::Pkg<'a>,
-    bdepend: OnceLock<DependencySet<&'a str, &'a Dep>>,
-    depend: OnceLock<DependencySet<&'a str, &'a Dep>>,
-    idepend: OnceLock<DependencySet<&'a str, &'a Dep>>,
-    pdepend: OnceLock<DependencySet<&'a str, &'a Dep>>,
-    rdepend: OnceLock<DependencySet<&'a str, &'a Dep>>,
+    bdepend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
+    depend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
+    idepend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
+    pdepend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
+    rdepend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
     license: OnceLock<DependencySet<&'a str, &'a String>>,
     properties: OnceLock<DependencySet<&'a str, &'a String>>,
     required_use: OnceLock<DependencySet<&'a str, &'a String>>,
@@ -58,38 +58,38 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's evaluated dependencies for a given iterable of descriptors.
-    pub fn dependencies(&'a self, keys: &[Key]) -> DependencySet<&'a str, &'a Dep> {
+    pub fn dependencies(&'a self, keys: &[Key]) -> DependencySet<&'a str, &'a Dep<String>> {
         self.raw
             .dependencies(keys)
             .evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated BDEPEND.
-    pub fn bdepend(&'a self) -> &DependencySet<&'a str, &'a Dep> {
+    pub fn bdepend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
         self.bdepend
             .get_or_init(|| self.raw.bdepend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated DEPEND.
-    pub fn depend(&'a self) -> &DependencySet<&'a str, &'a Dep> {
+    pub fn depend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
         self.depend
             .get_or_init(|| self.raw.depend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated IDEPEND.
-    pub fn idepend(&'a self) -> &DependencySet<&'a str, &'a Dep> {
+    pub fn idepend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
         self.idepend
             .get_or_init(|| self.raw.idepend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated PDEPEND.
-    pub fn pdepend(&'a self) -> &DependencySet<&'a str, &'a Dep> {
+    pub fn pdepend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
         self.pdepend
             .get_or_init(|| self.raw.pdepend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated RDEPEND.
-    pub fn rdepend(&'a self) -> &DependencySet<&'a str, &'a Dep> {
+    pub fn rdepend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
         self.rdepend
             .get_or_init(|| self.raw.rdepend().evaluate(self.settings.options()))
     }
@@ -130,7 +130,7 @@ impl<'a> Package for Pkg<'a> {
         self.raw.eapi()
     }
 
-    fn cpv(&self) -> &Cpv {
+    fn cpv(&self) -> &Cpv<String> {
         self.raw.cpv()
     }
 }

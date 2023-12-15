@@ -25,8 +25,8 @@ impl Command {
                 .split_whitespace()
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
-            let d1: Dep = s1.parse()?;
-            let d2: Dep = s2.parse()?;
+            let d1 = Dep::parse(s1, Default::default())?;
+            let d2 = Dep::parse(s2, Default::default())?;
             let result = match op {
                 "<" => d1 < d2,
                 "<=" => d1 <= d2,

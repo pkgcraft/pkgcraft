@@ -159,13 +159,13 @@ impl TestData {
     }
 
     pub fn ebuild_raw_pkg<'a>(&'a self, s: &str) -> Option<crate::pkg::ebuild::raw::Pkg<'a>> {
-        let dep: Dep = s.parse().expect("invalid dep");
+        let dep: Dep<_> = s.parse().expect("invalid dep");
         self.ebuild_repo(dep.repo().expect("dep missing repo id"))
             .and_then(|r| r.iter_raw_restrict(&dep).next())
     }
 
     pub fn ebuild_pkg<'a>(&'a self, s: &str) -> Option<crate::pkg::ebuild::Pkg<'a>> {
-        let dep: Dep = s.parse().expect("invalid dep");
+        let dep: Dep<_> = s.parse().expect("invalid dep");
         self.ebuild_repo(dep.repo().expect("dep missing repo id"))
             .and_then(|r| r.iter_restrict(&dep).next())
     }

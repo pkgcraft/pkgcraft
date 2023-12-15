@@ -2,14 +2,14 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-use pkgcraft::dep::{Cpv, Dep};
+use pkgcraft::dep;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::Version;
+use crate::types::{Cpv, Dep, Version};
 
 /// Parse a CPV string into a Cpv object.
 ///
@@ -33,10 +33,10 @@ pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Cpv {
 /// # Safety
 /// The argument should point to a UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_cpv_valid(s: *const c_char) -> *const c_char {
+pub unsafe extern "C" fn pkgcraft_cpv_parse(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
-        unwrap_or_panic!(Cpv::valid(val));
+        unwrap_or_panic!(dep::Cpv::parse(val));
         s
     }
 }

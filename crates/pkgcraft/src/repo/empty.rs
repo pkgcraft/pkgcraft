@@ -75,7 +75,7 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type IterCpv<'a> = iter::Empty<Cpv> where Self: 'a;
+    type IterCpv<'a> = iter::Empty<Cpv<String>> where Self: 'a;
     type Iter<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
     type IterRestrict<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
 
@@ -96,7 +96,7 @@ impl PkgRepository for Repo {
     }
 
     fn iter_cpv(&self) -> Self::IterCpv<'_> {
-        iter::empty::<Cpv>()
+        iter::empty::<Cpv<String>>()
     }
 
     fn iter(&self) -> Self::Iter<'_> {
@@ -132,7 +132,7 @@ impl Repository for Repo {
 
 #[cfg(test)]
 mod tests {
-    use crate::dep::{Cpv, Dep};
+    use crate::dep::Dep;
     use crate::repo::Contains;
 
     use super::*;

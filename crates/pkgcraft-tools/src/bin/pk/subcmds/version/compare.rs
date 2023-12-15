@@ -25,8 +25,8 @@ impl Command {
                 .split_whitespace()
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
-            let a1 = Version::new(s1)?;
-            let a2 = Version::new(s2)?;
+            let a1 = Version::parse(s1)?;
+            let a2 = Version::parse(s2)?;
             let result = match op {
                 "<" => a1 < a2,
                 "<=" => a1 <= a2,

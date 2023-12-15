@@ -153,11 +153,11 @@ impl<S: fmt::Display> fmt::Display for Keyword<S> {
 pub(crate) struct Metadata<'a> {
     description: String,
     slot: Slot<String>,
-    bdepend: DependencySet<String, Dep>,
-    depend: DependencySet<String, Dep>,
-    idepend: DependencySet<String, Dep>,
-    pdepend: DependencySet<String, Dep>,
-    rdepend: DependencySet<String, Dep>,
+    bdepend: DependencySet<String, Dep<String>>,
+    depend: DependencySet<String, Dep<String>>,
+    idepend: DependencySet<String, Dep<String>>,
+    pdepend: DependencySet<String, Dep<String>>,
+    rdepend: DependencySet<String, Dep<String>>,
     license: DependencySet<String, String>,
     properties: DependencySet<String, String>,
     required_use: DependencySet<String, String>,
@@ -375,7 +375,7 @@ impl<'a> Metadata<'a> {
     }
 
     /// Verify a metadata entry is valid.
-    pub(crate) fn verify(cpv: &Cpv, repo: &'a Repo) -> bool {
+    pub(crate) fn verify(cpv: &Cpv<String>, repo: &'a Repo) -> bool {
         Pkg::new(cpv.clone(), repo)
             .map(|p| Self::load(&p, false).is_err())
             .unwrap_or_default()
@@ -464,23 +464,23 @@ impl<'a> Metadata<'a> {
         &self.slot
     }
 
-    pub(crate) fn bdepend(&self) -> &DependencySet<String, Dep> {
+    pub(crate) fn bdepend(&self) -> &DependencySet<String, Dep<String>> {
         &self.bdepend
     }
 
-    pub(crate) fn depend(&self) -> &DependencySet<String, Dep> {
+    pub(crate) fn depend(&self) -> &DependencySet<String, Dep<String>> {
         &self.depend
     }
 
-    pub(crate) fn idepend(&self) -> &DependencySet<String, Dep> {
+    pub(crate) fn idepend(&self) -> &DependencySet<String, Dep<String>> {
         &self.idepend
     }
 
-    pub(crate) fn pdepend(&self) -> &DependencySet<String, Dep> {
+    pub(crate) fn pdepend(&self) -> &DependencySet<String, Dep<String>> {
         &self.pdepend
     }
 
-    pub(crate) fn rdepend(&self) -> &DependencySet<String, Dep> {
+    pub(crate) fn rdepend(&self) -> &DependencySet<String, Dep<String>> {
         &self.rdepend
     }
 

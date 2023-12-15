@@ -33,7 +33,7 @@ impl Command {
         }
 
         // determine if a given package is a leaf
-        let is_leaf = |cpv: &Cpv| -> bool {
+        let is_leaf = |cpv: &Cpv<String>| -> bool {
             !cache.get(&cpv.cpn()).is_some_and(|deps| {
                 deps.iter()
                     .any(|d| d.intersects(cpv) && d.blocker().is_none())

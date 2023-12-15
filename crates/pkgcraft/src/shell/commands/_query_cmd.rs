@@ -5,7 +5,7 @@ use crate::eapi::Feature::{QueryDeps, QueryHostRoot};
 use crate::shell::get_build_mut;
 
 /// Underlying query support for has_version and best_version.
-pub(crate) fn query_cmd(args: &[&str]) -> scallop::Result<Vec<Cpv>> {
+pub(crate) fn query_cmd(args: &[&str]) -> scallop::Result<Vec<Cpv<String>>> {
     let build = get_build_mut();
     let eapi = build.eapi();
 

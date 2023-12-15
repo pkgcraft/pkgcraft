@@ -219,7 +219,7 @@ impl<S: Stringable, T: Ordered> Dependency<S, T> {
     }
 }
 
-impl FromStr for Dependency<String, Dep> {
+impl FromStr for Dependency<String, Dep<String>> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -581,7 +581,7 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<String, T>>
     }
 }
 
-impl FromStr for DependencySet<String, Dep> {
+impl FromStr for DependencySet<String, Dep<String>> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -1146,16 +1146,16 @@ impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterConditionals<S
     }
 }
 
-impl Restriction<&Dependency<String, Dep>> for BaseRestrict {
-    fn matches(&self, val: &Dependency<String, Dep>) -> bool {
+impl Restriction<&Dependency<String, Dep<String>>> for BaseRestrict {
+    fn matches(&self, val: &Dependency<String, Dep<String>>) -> bool {
         crate::restrict::restrict_match! {self, val,
             Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
 
-impl Restriction<&DependencySet<String, Dep>> for BaseRestrict {
-    fn matches(&self, val: &DependencySet<String, Dep>) -> bool {
+impl Restriction<&DependencySet<String, Dep<String>>> for BaseRestrict {
+    fn matches(&self, val: &DependencySet<String, Dep<String>>) -> bool {
         crate::restrict::restrict_match! {self, val,
             Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
@@ -1171,7 +1171,7 @@ mod tests {
         let dep = Dep::new("cat/pkg").unwrap();
         let spec = Dependency::from_str("cat/pkg").unwrap();
         for s in ["( cat/pkg )", "u? ( cat/pkg )"] {
-            let d: Dependency<String, Dep> = s.parse().unwrap();
+            let d: Dependency<String, Dep<_>> = s.parse().unwrap();
             assert!(d.contains(&dep), "{d} doesn't contain {dep}");
             assert!(!d.contains(&d), "{d} contains itself");
             assert!(d.contains(&spec), "{d} doesn't contain {spec}");
@@ -1188,7 +1188,7 @@ mod tests {
             ("u? ( c/d a/b )", "u? ( a/b c/d )"),
             ("!u? ( c/d a/b )", "!u? ( a/b c/d )"),
         ] {
-            let mut spec: Dependency<String, Dep> = s.parse().unwrap();
+            let mut spec: Dependency<String, Dep<_>> = s.parse().unwrap();
             spec.sort();
             assert_eq!(spec.to_string(), expected);
         }
@@ -1217,7 +1217,7 @@ mod tests {
         let dep = Dep::new("cat/pkg").unwrap();
         let spec = Dependency::from_str("cat/pkg").unwrap();
         for s in ["cat/pkg", "a/b cat/pkg"] {
-            let set: DependencySet<String, Dep> = s.parse().unwrap();
+            let set: DependencySet<String, Dep<_>> = s.parse().unwrap();
             assert!(set.contains(&dep), "{set} doesn't contain {dep}");
             assert!(set.contains(&spec), "{set} doesn't contain {spec}");
         }
@@ -1233,7 +1233,7 @@ mod tests {
             ("u? ( c/d a/b ) z/z", "z/z u? ( a/b c/d )"),
             ("!u? ( c/d a/b ) z/z", "z/z !u? ( a/b c/d )"),
         ] {
-            let mut set: DependencySet<String, Dep> = s.parse().unwrap();
+            let mut set: DependencySet<String, Dep<_>> = s.parse().unwrap();
             set.sort();
             assert_eq!(set.to_string(), expected);
         }

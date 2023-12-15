@@ -8,13 +8,13 @@ use serde::{Deserialize, Serialize};
 use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
-use super::parse;
-use super::pkg::{Dep, ParsedDep};
+use super::pkg::Dep;
 use super::version::{Operator, Revision, Version, WithOp};
+use super::{parse, Stringable};
 
 pub enum CpvOrDep {
-    Cpv(Cpv),
-    Dep(Dep),
+    Cpv(Cpv<String>),
+    Dep(Dep<String>),
 }
 
 impl FromStr for CpvOrDep {
@@ -52,8 +52,8 @@ impl Intersects<CpvOrDep> for CpvOrDep {
     }
 }
 
-impl Intersects<Cpv> for CpvOrDep {
-    fn intersects(&self, other: &Cpv) -> bool {
+impl Intersects<Cpv<String>> for CpvOrDep {
+    fn intersects(&self, other: &Cpv<String>) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), obj2) => obj1.intersects(obj2),
@@ -62,8 +62,8 @@ impl Intersects<Cpv> for CpvOrDep {
     }
 }
 
-impl Intersects<Dep> for CpvOrDep {
-    fn intersects(&self, other: &Dep) -> bool {
+impl Intersects<Dep<String>> for CpvOrDep {
+    fn intersects(&self, other: &Dep<String>) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), obj2) => obj1.intersects(obj2),
@@ -72,19 +72,19 @@ impl Intersects<Dep> for CpvOrDep {
     }
 }
 
-/// Parsed package identifier from borrowed input string.
-#[derive(Debug)]
-pub(crate) struct ParsedCpv<'a> {
-    pub(crate) category: &'a str,
-    pub(crate) package: &'a str,
-    pub(crate) version: Version<&'a str>,
+/// Package identifier.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Cpv<S: Stringable> {
+    pub(crate) category: S,
+    pub(crate) package: S,
+    pub(crate) version: Version<S>,
 }
 
-impl<'a> WithOp for ParsedCpv<'a> {
-    type WithOp = ParsedDep<'a>;
+impl<'a> WithOp for Cpv<&'a str> {
+    type WithOp = Dep<&'a str>;
 
     fn with_op(self, op: Operator) -> Result<Self::WithOp, &'static str> {
-        Ok(ParsedDep {
+        Ok(Dep {
             category: self.category,
             package: self.package,
             version: Some(self.version.with_op(op)?),
@@ -93,8 +93,8 @@ impl<'a> WithOp for ParsedCpv<'a> {
     }
 }
 
-impl IntoOwned for ParsedCpv<'_> {
-    type Owned = Cpv;
+impl<'a> IntoOwned for Cpv<&'a str> {
+    type Owned = Cpv<String>;
 
     fn into_owned(self) -> Self::Owned {
         Cpv {
@@ -105,43 +105,38 @@ impl IntoOwned for ParsedCpv<'_> {
     }
 }
 
-/// Package identifier.
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Cpv {
-    category: String,
-    package: String,
-    version: Version<String>,
+impl Cpv<String> {
+    /// Create an owned [`Cpv`] from a given string.
+    pub fn new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        Cpv::parse(s.as_ref()).into_owned()
+    }
 }
 
-impl Cpv {
-    /// Create a new Cpv from a given string (e.g. cat/pkg-1).
-    pub fn new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        parse::cpv(s.as_ref()).into_owned()
+impl<'a> Cpv<&'a str> {
+    /// Create a borrowed [`Cpv`] from a given string.
+    pub fn parse(s: &'a str) -> crate::Result<Self> {
+        parse::cpv(s)
     }
+}
 
-    /// Verify a string represents a valid CPV.
-    pub fn valid<S: AsRef<str>>(s: S) -> crate::Result<()> {
-        parse::cpv(s.as_ref())?;
-        Ok(())
-    }
-
+impl<S: Stringable> Cpv<S> {
     /// Return a Cpv's category.
     pub fn category(&self) -> &str {
-        &self.category
+        self.category.as_ref()
     }
 
     /// Return a Cpv's package.
     pub fn package(&self) -> &str {
-        &self.package
+        self.package.as_ref()
     }
 
     /// Return a Cpv's version.
-    pub fn version(&self) -> &Version<String> {
+    pub fn version(&self) -> &Version<S> {
         &self.version
     }
 
     /// Return a Cpv's revision.
-    pub fn revision(&self) -> Option<&Revision<String>> {
+    pub fn revision(&self) -> Option<&Revision<S>> {
         self.version.revision()
     }
 
@@ -181,7 +176,7 @@ impl Cpv {
     }
 }
 
-impl FromStr for Cpv {
+impl FromStr for Cpv<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -190,7 +185,7 @@ impl FromStr for Cpv {
 }
 
 /// Try converting a (category, package, version) string tuple into a Cpv.
-impl TryFrom<(&str, &str, &str)> for Cpv {
+impl TryFrom<(&str, &str, &str)> for Cpv<String> {
     type Error = Error;
 
     fn try_from(vals: (&str, &str, &str)) -> Result<Self, Self::Error> {
@@ -199,38 +194,38 @@ impl TryFrom<(&str, &str, &str)> for Cpv {
     }
 }
 
-impl fmt::Display for Cpv {
+impl<S: Stringable> fmt::Display for Cpv<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{}-{}", self.category, self.package, self.version)
     }
 }
 
 /// Determine if two Cpvs intersect.
-impl Intersects<Cpv> for Cpv {
-    fn intersects(&self, other: &Cpv) -> bool {
+impl<S: Stringable> Intersects<Cpv<S>> for Cpv<S> {
+    fn intersects(&self, other: &Cpv<S>) -> bool {
         self == other
     }
 }
 
 /// Determine if a Cpv intersects with a package dependency.
-impl Intersects<Dep> for Cpv {
-    fn intersects(&self, other: &Dep) -> bool {
+impl<S: Stringable> Intersects<Dep<S>> for Cpv<S> {
+    fn intersects(&self, other: &Dep<S>) -> bool {
         other.intersects(self)
     }
 }
 
-impl TryFrom<&str> for Cpv {
+impl TryFrom<&str> for Cpv<String> {
     type Error = Error;
 
-    fn try_from(value: &str) -> crate::Result<Cpv> {
+    fn try_from(value: &str) -> crate::Result<Cpv<String>> {
         value.parse()
     }
 }
 
-impl TryFrom<&Cpv> for Cpv {
+impl TryFrom<&Cpv<String>> for Cpv<String> {
     type Error = Error;
 
-    fn try_from(value: &Cpv) -> crate::Result<Cpv> {
+    fn try_from(value: &Cpv<String>) -> crate::Result<Cpv<String>> {
         Ok(value.clone())
     }
 }
@@ -248,11 +243,11 @@ mod tests {
     }
 
     #[test]
-    fn test_valid() {
-        assert!(Cpv::valid("cat/pkg-1").is_ok());
-        assert!(Cpv::valid("cat/pkg-1a-1").is_err());
-        assert!(Cpv::valid("cat/pkg").is_err());
-        assert!(Cpv::valid(">=cat/pkg-1").is_err());
+    fn test_parse() {
+        assert!(Cpv::parse("cat/pkg-1").is_ok());
+        assert!(Cpv::parse("cat/pkg-1a-1").is_err());
+        assert!(Cpv::parse("cat/pkg").is_err());
+        assert!(Cpv::parse(">=cat/pkg-1").is_err());
     }
 
     #[test]

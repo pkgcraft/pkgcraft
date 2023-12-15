@@ -28,7 +28,7 @@ pub trait Package: fmt::Debug + fmt::Display {
     fn eapi(&self) -> &'static eapi::Eapi;
 
     /// Return a package's CPV.
-    fn cpv(&self) -> &Cpv;
+    fn cpv(&self) -> &Cpv<String>;
 
     /// Return a package's version.
     fn version(&self) -> &Version<String> {
@@ -152,7 +152,7 @@ impl<'a> Package for Pkg<'a> {
         }
     }
 
-    fn cpv(&self) -> &Cpv {
+    fn cpv(&self) -> &Cpv<String> {
         match self {
             Self::Configured(pkg, _) => pkg.cpv(),
             Self::Ebuild(pkg, _) => pkg.cpv(),
@@ -180,7 +180,7 @@ where
     fn eapi(&self) -> &'static eapi::Eapi {
         (*self).eapi()
     }
-    fn cpv(&self) -> &Cpv {
+    fn cpv(&self) -> &Cpv<String> {
         (*self).cpv()
     }
 }

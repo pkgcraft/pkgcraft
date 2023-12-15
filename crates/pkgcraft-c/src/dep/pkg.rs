@@ -4,7 +4,7 @@ use std::ffi::{c_char, c_int, CString};
 use std::ops::Deref;
 use std::{ptr, slice};
 
-use pkgcraft::dep::{self, Blocker, Cpv, Dep, DepField, SlotOperator};
+use pkgcraft::dep::{self, Blocker, DepField, SlotOperator};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::traits::Intersects;
@@ -13,7 +13,7 @@ use pkgcraft::utils::hash;
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::Version;
+use crate::types::{Cpv, Dep, Version};
 use crate::utils::{boxed, obj_to_str};
 
 /// Opaque wrapper for pkgcraft::dep::UseDep.
@@ -86,11 +86,11 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
 /// # Safety
 /// The eapi argument may be NULL to use the default EAPI.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_valid(s: *const c_char, eapi: *const Eapi) -> *const c_char {
+pub unsafe extern "C" fn pkgcraft_dep_parse(s: *const c_char, eapi: *const Eapi) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
         let eapi = option_from_ptr!(eapi);
-        unwrap_or_panic!(Dep::valid(val, eapi));
+        unwrap_or_panic!(dep::Dep::parse(val, eapi));
         s
     }
 }

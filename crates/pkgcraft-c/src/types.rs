@@ -10,6 +10,12 @@ pub type Revision = RevisionOwned<String>;
 use pkgcraft::dep::version::Version as VersionOwned;
 pub type Version = VersionOwned<String>;
 
+use pkgcraft::dep::cpv::Cpv as CpvOwned;
+pub type Cpv = CpvOwned<String>;
+
+use pkgcraft::dep::pkg::Dep as DepOwned;
+pub type Dep = DepOwned<String>;
+
 /// Generic set operations.
 #[repr(C)]
 pub enum SetOp {

@@ -7,7 +7,7 @@ use std::ops::{
 use std::{fmt, ptr, slice};
 
 use pkgcraft::dep::{
-    self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, Recursive, Stringable, Uri,
+    self, Conditionals, Evaluate, EvaluateForce, Flatten, Recursive, Stringable, Uri,
 };
 use pkgcraft::eapi::Eapi;
 use pkgcraft::traits::{Contains, IntoOwned};
@@ -18,7 +18,7 @@ use crate::eapi::eapi_or_default;
 use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::SetOp;
+use crate::types::{Dep, SetOp};
 use crate::utils::boxed;
 
 pub mod cpv;

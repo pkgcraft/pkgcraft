@@ -13,11 +13,11 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let deps: Result<Vec<Dep>, _> = self
+        let deps: Result<Vec<_>, _> = self
             .vals
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| s.parse())
+            .map(|s| Dep::new(&s))
             .collect();
 
         let mut deps = deps?;

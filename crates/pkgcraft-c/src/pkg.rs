@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 
-use pkgcraft::dep::Cpv;
 use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::{Package, Pkg, RepoPackage};
 use pkgcraft::repo::Repo;
@@ -9,7 +8,7 @@ use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
-use crate::types::Version;
+use crate::types::{Cpv, Version};
 
 pub mod ebuild;
 
