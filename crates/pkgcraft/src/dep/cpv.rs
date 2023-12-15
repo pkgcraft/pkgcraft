@@ -14,12 +14,12 @@ use super::pkg::Dep;
 use super::version::{Operator, Revision, Version, WithOp};
 use super::{parse, Stringable};
 
-pub enum CpvOrDep {
-    Cpv(Cpv<String>),
-    Dep(Dep<String>),
+pub enum CpvOrDep<S: Stringable> {
+    Cpv(Cpv<S>),
+    Dep(Dep<S>),
 }
 
-impl FromStr for CpvOrDep {
+impl FromStr for CpvOrDep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -33,7 +33,7 @@ impl FromStr for CpvOrDep {
     }
 }
 
-impl fmt::Display for CpvOrDep {
+impl<S: Stringable> fmt::Display for CpvOrDep<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Cpv(val) => write!(f, "{val}"),
@@ -42,8 +42,8 @@ impl fmt::Display for CpvOrDep {
     }
 }
 
-impl Intersects<CpvOrDep> for CpvOrDep {
-    fn intersects(&self, other: &CpvOrDep) -> bool {
+impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for CpvOrDep<S2> {
+    fn intersects(&self, other: &CpvOrDep<S1>) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), Cpv(obj2)) => obj1.intersects(obj2),
@@ -54,8 +54,8 @@ impl Intersects<CpvOrDep> for CpvOrDep {
     }
 }
 
-impl Intersects<Cpv<String>> for CpvOrDep {
-    fn intersects(&self, other: &Cpv<String>) -> bool {
+impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for CpvOrDep<S2> {
+    fn intersects(&self, other: &Cpv<S1>) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), obj2) => obj1.intersects(obj2),
@@ -64,8 +64,8 @@ impl Intersects<Cpv<String>> for CpvOrDep {
     }
 }
 
-impl Intersects<Dep<String>> for CpvOrDep {
-    fn intersects(&self, other: &Dep<String>) -> bool {
+impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for CpvOrDep<S2> {
+    fn intersects(&self, other: &Dep<S1>) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), obj2) => obj1.intersects(obj2),
@@ -285,7 +285,7 @@ mod tests {
 
         // valid
         for s in ["cat/pkg", "cat/pkg-1", ">=cat/pkg-1"] {
-            let cpv_or_dep: CpvOrDep = s.parse().unwrap();
+            let cpv_or_dep: CpvOrDep<_> = s.parse().unwrap();
             assert_eq!(cpv_or_dep.to_string(), s);
             // intersects
             assert!(cpv_or_dep.intersects(&cpv));

@@ -39,7 +39,7 @@ impl Command {
         };
 
         // convert targets to Cpv or Dep objects
-        let targets: Result<Vec<CpvOrDep>, _> = self
+        let targets: Result<Vec<CpvOrDep<_>>, _> = self
             .targets
             .stdin_or_args()
             .split_whitespace()

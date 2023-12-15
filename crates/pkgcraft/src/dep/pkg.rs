@@ -895,8 +895,8 @@ mod tests {
                 .permutations(2)
                 .map(|val| val.into_iter().collect_tuple().unwrap());
             for (s1, s2) in permutations {
-                let obj1: CpvOrDep = s1.parse().unwrap();
-                let obj2: CpvOrDep = s2.parse().unwrap();
+                let obj1: CpvOrDep<_> = s1.parse().unwrap();
+                let obj2: CpvOrDep<_> = s2.parse().unwrap();
 
                 // self intersection
                 assert!(obj1.intersects(&obj1), "{obj1} doesn't intersect {obj1}");
