@@ -73,6 +73,21 @@ pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char 
     try_ptr_from_str!(eapi.as_ref())
 }
 
+/// Determine if a string is a valid EAPI.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument should point to a UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_eapi_parse(s: *const c_char) -> *const c_char {
+    ffi_catch_panic! {
+        let val = try_str_from_ptr!(s);
+        unwrap_or_panic!(Eapi::parse(val));
+        s
+    }
+}
+
 /// Compare two Eapi objects chronologically returning -1, 0, or 1 if the first is less than, equal
 /// to, or greater than the second, respectively.
 ///
