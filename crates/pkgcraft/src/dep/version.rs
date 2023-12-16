@@ -308,6 +308,7 @@ pub enum Operator {
 }
 
 impl Operator {
+    /// Determine if two versions intersect for an operator.
     fn intersects<S1, S2>(&self, lhs: &Version<S1>, rhs: &Version<S2>) -> bool
     where
         S1: Stringable,
@@ -538,7 +539,6 @@ macro_rules! ranged {
     };
 }
 
-/// Determine if two versions intersect.
 impl<S1: Stringable, S2: Stringable> Intersects<Version<S1>> for Version<S2> {
     fn intersects(&self, other: &Version<S1>) -> bool {
         use Operator::*;
@@ -581,6 +581,7 @@ impl<S: Stringable> fmt::Display for Version<S> {
     }
 }
 
+/// Format a [`Version`] into a [`String`], optionally ignoring the revision and/or operator.
 fn ver_str<S: Stringable>(
     f: &mut fmt::Formatter,
     v: &Version<S>,
@@ -650,6 +651,7 @@ impl<S: Stringable> Hash for Version<S> {
     }
 }
 
+/// Compare two versions, optionally ignoring the revision and/or operator.
 fn ver_cmp<S1, S2>(v1: &Version<S1>, v2: &Version<S2>, rev: bool, op: bool) -> Ordering
 where
     S1: Stringable,
