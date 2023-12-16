@@ -9,15 +9,14 @@ const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let pvr = get_build_mut().cpv()?.pvr();
+    let parse = Version::parse_without_op;
+    let ver = get_build_mut().cpv()?.version();
+
     let (lhs, op, rhs) = match args[..] {
-        [op, rhs] => (pvr.as_str(), op, rhs),
-        [lhs, op, rhs] => (lhs, op, rhs),
+        [op, rhs] => (ver.as_ref(), op, parse(rhs)?),
+        [lhs, op, rhs] => (parse(lhs)?, op, parse(rhs)?),
         _ => return Err(Error::Base(format!("only accepts 2 or 3 args, got {}", args.len()))),
     };
-
-    let lhs = Version::parse_without_op(lhs)?;
-    let rhs = Version::parse_without_op(rhs)?;
 
     let ret = match op {
         "-eq" => lhs == rhs,
