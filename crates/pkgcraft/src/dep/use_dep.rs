@@ -9,7 +9,7 @@ use crate::traits::{IntoOwned, ToRef};
 use crate::types::SortedSet;
 use crate::Error;
 
-use super::{parse, Enabled, Stringable};
+use super::{parse, Stringable};
 
 /// Package USE dependency type.
 #[repr(C)]
@@ -134,7 +134,7 @@ impl<S: Stringable> UseDep<S> {
     }
 
     /// Determine if a USE dependency matches a set of enabled flags.
-    pub(crate) fn matches<F: Enabled>(&self, options: &IndexSet<F>) -> bool {
+    pub(crate) fn matches<F: Stringable>(&self, options: &IndexSet<F>) -> bool {
         use UseDepKind::*;
         match &self.kind {
             EnabledConditional => options.contains(self.flag()),

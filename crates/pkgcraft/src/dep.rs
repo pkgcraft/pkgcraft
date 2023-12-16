@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::fmt;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 use std::str::FromStr;
@@ -26,12 +26,23 @@ pub use use_dep::{UseDep, UseDepDefault, UseDepKind};
 pub use version::{Operator, Revision, Version};
 
 pub trait Stringable:
-    fmt::Debug + fmt::Display + Default + PartialEq + Eq + PartialOrd + Ord + Clone + Hash + AsRef<str>
+    Debug
+    + Display
+    + Default
+    + PartialEq
+    + Eq
+    + PartialOrd
+    + Ord
+    + Clone
+    + Hash
+    + Borrow<str>
+    + AsRef<str>
 {
 }
+
 impl<T> Stringable for T where
-    T: fmt::Debug
-        + fmt::Display
+    T: Debug
+        + Display
         + Default
         + PartialEq
         + Eq
@@ -39,15 +50,13 @@ impl<T> Stringable for T where
         + Ord
         + Clone
         + Hash
+        + Borrow<str>
         + AsRef<str>
 {
 }
 
-pub trait Enabled: Hash + Borrow<str> + PartialEq + Eq {}
-impl<T> Enabled for T where T: Hash + Borrow<str> + PartialEq + Eq {}
-
 /// Evaluation support for dependency objects.
-pub trait Evaluate<'a, S: Enabled + 'a> {
+pub trait Evaluate<'a, S: Stringable + 'a> {
     type Evaluated;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated;
 
@@ -275,7 +284,7 @@ impl<'a, S: Stringable, T: Ordered> IntoIterator for &'a Dependency<S, T> {
     }
 }
 
-impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a Dependency<String, T> {
+impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for &'a Dependency<String, T> {
     type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
@@ -307,7 +316,7 @@ impl<'a, T: Ordered> EvaluateForce for &'a Dependency<String, T> {
     }
 }
 
-impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for Dependency<&'a str, &'a T> {
+impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for Dependency<&'a str, &'a T> {
     type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
@@ -410,8 +419,8 @@ impl<S: Stringable, T: Ordered> Conditionals for Dependency<S, T> {
     }
 }
 
-impl<S: Stringable, T: fmt::Display + Ordered> fmt::Display for Dependency<S, T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl<S: Stringable, T: Display + Ordered> Display for Dependency<S, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use Dependency::*;
         match self {
             Enabled(val) => write!(f, "{val}"),
@@ -571,8 +580,8 @@ impl<S: Stringable, T: Ordered> Default for DependencySet<S, T> {
     }
 }
 
-impl<S: Stringable, T: fmt::Display + Ordered> fmt::Display for DependencySet<S, T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl<S: Stringable, T: Display + Ordered> Display for DependencySet<S, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", p!(self))
     }
 }
@@ -672,7 +681,7 @@ impl<S: Stringable, T: Ordered> Contains<&T> for DependencySet<S, T> {
     }
 }
 
-impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for &'a DependencySet<String, T> {
+impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for &'a DependencySet<String, T> {
     type Evaluated = DependencySet<&'a str, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
@@ -704,7 +713,7 @@ impl<'a, T: Ordered> EvaluateForce for &'a DependencySet<String, T> {
     }
 }
 
-impl<'a, S: Enabled + 'a, T: Ordered> Evaluate<'a, S> for DependencySet<&'a str, &'a T> {
+impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for DependencySet<&'a str, &'a T> {
     type Evaluated = DependencySet<&'a str, &'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
@@ -820,12 +829,12 @@ macro_rules! iter_eval {
 }
 
 #[derive(Debug)]
-pub struct IterEvaluate<'a, S: Enabled, T: Ordered> {
+pub struct IterEvaluate<'a, S: Stringable, T: Ordered> {
     q: Deque<&'a Dependency<String, T>>,
     options: &'a IndexSet<S>,
 }
 
-impl<'a, S: Enabled, T: Ordered> Iterator for IterEvaluate<'a, S, T> {
+impl<'a, S: Stringable, T: Ordered> Iterator for IterEvaluate<'a, S, T> {
     type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -977,12 +986,12 @@ impl<S: Stringable, T: Ordered> Conditionals for DependencySet<S, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterEvaluate<'a, S: Enabled, T: Ordered> {
+pub struct IntoIterEvaluate<'a, S: Stringable, T: Ordered> {
     q: Deque<Dependency<&'a str, &'a T>>,
     options: &'a IndexSet<S>,
 }
 
-impl<'a, S: Enabled, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
+impl<'a, S: Stringable, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
     type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
