@@ -289,6 +289,11 @@ equivalent!(Cpv);
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use crate::test::TEST_DATA;
+    use crate::utils::hash;
+
     use super::*;
 
     #[test]
@@ -306,6 +311,87 @@ mod tests {
             let owned = Cpv::try_new(s);
             assert!(owned.is_ok(), "{s} isn't valid");
             assert_eq!(borrowed.unwrap(), owned.unwrap());
+        }
+    }
+
+    #[test]
+    fn cmp() {
+        let op_map: HashMap<_, _> =
+            [("<", Ordering::Less), ("==", Ordering::Equal), (">", Ordering::Greater)]
+                .into_iter()
+                .collect();
+
+        for (expr, (s1, op, s2)) in TEST_DATA.version_toml.compares() {
+            let cpv1 = format!("a/b-{s1}");
+            let cpv2 = format!("a/b-{s2}");
+            let v1_owned = Cpv::try_new(&cpv1).unwrap();
+            let v1_borrowed = Cpv::parse(&cpv1).unwrap();
+            let v2_owned = Cpv::try_new(&cpv2).unwrap();
+            let v2_borrowed = Cpv::parse(&cpv2).unwrap();
+            if op == "!=" {
+                assert_ne!(v1_owned, v2_owned, "failed comparing: {expr}");
+                assert_ne!(v1_borrowed, v2_borrowed, "failed comparing: {expr}");
+                assert_ne!(v1_owned, v2_borrowed, "failed comparing: {expr}");
+                assert_ne!(v1_borrowed, v2_owned, "failed comparing: {expr}");
+                assert_ne!(v2_owned, v1_owned, "failed comparing: {expr}");
+                assert_ne!(v2_borrowed, v1_borrowed, "failed comparing: {expr}");
+                assert_ne!(v2_owned, v1_borrowed, "failed comparing: {expr}");
+                assert_ne!(v2_borrowed, v1_owned, "failed comparing: {expr}");
+            } else {
+                let op = op_map[op];
+                assert_eq!(v1_owned.cmp(&v2_owned), op, "failed comparing: {expr}");
+                assert_eq!(v1_borrowed.cmp(&v2_borrowed), op, "failed comparing: {expr}");
+                assert_eq!(
+                    v1_owned.partial_cmp(&v2_borrowed),
+                    Some(op),
+                    "failed comparing: {expr}"
+                );
+                assert_eq!(
+                    v1_borrowed.partial_cmp(&v2_owned),
+                    Some(op),
+                    "failed comparing: {expr}"
+                );
+                assert_eq!(
+                    v2_owned.cmp(&v1_owned),
+                    op.reverse(),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    v2_borrowed.cmp(&v1_borrowed),
+                    op.reverse(),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    v2_owned.partial_cmp(&v1_borrowed),
+                    Some(op.reverse()),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    v2_borrowed.partial_cmp(&v1_owned),
+                    Some(op.reverse()),
+                    "failed comparing inverted: {expr}"
+                );
+
+                // package and category names take priority over versions for comparisons
+                let cpv3 = format!("a/z-{s2}");
+                let cpv4 = format!("z/b-{s2}");
+                let v3 = Cpv::try_new(&cpv3).unwrap();
+                let v4 = Cpv::try_new(&cpv4).unwrap();
+                assert!(v3 > v1_owned);
+                assert!(v3 > v1_borrowed);
+                assert!(v3 > v2_owned);
+                assert!(v3 > v2_borrowed);
+                assert!(v4 > v3);
+
+                // verify the following property holds since both Hash and Eq are implemented:
+                // k1 == k2 -> hash(k1) == hash(k2)
+                if op == Ordering::Equal {
+                    assert_eq!(hash(&v1_owned), hash(&v2_owned), "failed hash: {expr}");
+                    assert_eq!(hash(&v1_borrowed), hash(&v2_borrowed), "failed hash: {expr}");
+                    assert_eq!(hash(&v1_owned), hash(&v2_borrowed), "failed hash: {expr}");
+                    assert_eq!(hash(&v1_borrowed), hash(&v2_owned), "failed hash: {expr}");
+                }
+            }
         }
     }
 
