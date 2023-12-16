@@ -825,7 +825,7 @@ pub struct IterEvaluate<'a, S: Enabled, T: Ordered> {
     options: &'a IndexSet<S>,
 }
 
-impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IterEvaluate<'a, S, T> {
+impl<'a, S: Enabled, T: Ordered> Iterator for IterEvaluate<'a, S, T> {
     type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -871,7 +871,7 @@ pub struct IterEvaluateForce<'a, T: Ordered> {
     force: bool,
 }
 
-impl<'a, T: fmt::Debug + Ordered> Iterator for IterEvaluateForce<'a, T> {
+impl<'a, T: Ordered> Iterator for IterEvaluateForce<'a, T> {
     type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -898,7 +898,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IterEvaluateForce<'a, T> {
 #[derive(Debug)]
 pub struct IterFlatten<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
 
-impl<'a, S: Stringable, T: fmt::Debug + Ordered> Iterator for IterFlatten<'a, S, T> {
+impl<'a, S: Stringable, T: Ordered> Iterator for IterFlatten<'a, S, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -982,7 +982,7 @@ pub struct IntoIterEvaluate<'a, S: Enabled, T: Ordered> {
     options: &'a IndexSet<S>,
 }
 
-impl<'a, S: Enabled, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
+impl<'a, S: Enabled, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
     type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1012,7 +1012,7 @@ pub struct IntoIterEvaluateForce<'a, T: Ordered> {
     force: bool,
 }
 
-impl<'a, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
+impl<'a, T: Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
     type Item = Dependency<&'a str, &'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1039,7 +1039,7 @@ impl<'a, T: fmt::Debug + Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
 #[derive(Debug)]
 pub struct IntoIterFlatten<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
 
-impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<S, T> {
+impl<S: Stringable, T: Ordered> Iterator for IntoIterFlatten<S, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1061,7 +1061,7 @@ impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterFlatten<S, T> 
 #[derive(Debug)]
 pub struct IterRecursive<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
 
-impl<'a, S: Stringable, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, S, T> {
+impl<'a, S: Stringable, T: Ordered> Iterator for IterRecursive<'a, S, T> {
     type Item = &'a Dependency<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1085,7 +1085,7 @@ impl<'a, S: Stringable, T: fmt::Debug + Ordered> Iterator for IterRecursive<'a, 
 #[derive(Debug)]
 pub struct IntoIterRecursive<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
 
-impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T> {
+impl<S: Stringable, T: Ordered> Iterator for IntoIterRecursive<S, T> {
     type Item = Dependency<S, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1109,7 +1109,7 @@ impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterRecursive<S, T
 #[derive(Debug)]
 pub struct IterConditionals<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
 
-impl<'a, S: Stringable, T: fmt::Debug + Ordered> Iterator for IterConditionals<'a, S, T> {
+impl<'a, S: Stringable, T: Ordered> Iterator for IterConditionals<'a, S, T> {
     type Item = &'a UseDep<S>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1134,7 +1134,7 @@ impl<'a, S: Stringable, T: fmt::Debug + Ordered> Iterator for IterConditionals<'
 #[derive(Debug)]
 pub struct IntoIterConditionals<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
 
-impl<S: Stringable, T: fmt::Debug + Ordered> Iterator for IntoIterConditionals<S, T> {
+impl<S: Stringable, T: Ordered> Iterator for IntoIterConditionals<S, T> {
     type Item = UseDep<S>;
 
     fn next(&mut self) -> Option<Self::Item> {
