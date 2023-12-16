@@ -671,7 +671,7 @@ where
             {
                 let s1 = n1.as_str().trim_end_matches('0');
                 let s2 = n2.as_str().trim_end_matches('0');
-                partial_cmp_not_equal!(s1, s2);
+                cmp_not_equal!(s1, s2);
             }
             // compare as integers
             (Some(n1), Some(n2)) => partial_cmp_not_equal!(n1, n2),
