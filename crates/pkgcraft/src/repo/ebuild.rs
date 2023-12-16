@@ -531,7 +531,7 @@ impl Repo {
 
         // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
         // pull all package Cpvs from the repo
-        let mut cpvs: HashSet<_> = self
+        let mut cpvs: IndexSet<_> = self
             .categories()
             .into_par_iter()
             .flat_map(|s| self.category_cpvs(&s))
@@ -556,11 +556,11 @@ impl Repo {
                 .filter(|e| is_file(e) && !is_hidden(e))
                 .for_each(|e| {
                     let file = e.path();
-                    if let Some(cpv) = file
+                    let cpv_str = file
                         .strip_prefix(path)
-                        .ok()
-                        .and_then(|p| Cpv::new(p.to_string_lossy()).ok())
-                    {
+                        .expect("invalid metadata entry")
+                        .to_string_lossy();
+                    if let Ok(cpv) = Cpv::parse(&cpv_str) {
                         // Remove an outdated cache file and its potentially, empty parent
                         // directory while ignoring any I/O errors.
                         if !cpvs.contains(&cpv) {
