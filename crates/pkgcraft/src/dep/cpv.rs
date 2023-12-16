@@ -292,19 +292,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new() {
-        assert!(Cpv::try_new("cat/pkg-1").is_ok());
-        assert!(Cpv::try_new("cat/pkg-1a-1").is_err());
-        assert!(Cpv::try_new("cat/pkg").is_err());
-        assert!(Cpv::try_new(">=cat/pkg-1").is_err());
-    }
+    fn new_and_parse() {
+        // invalid
+        for s in ["a/b", "a/b-1a-1", "a/b1", "a/b-1aa", "a/b-1.a", "a/b-1-r2-3-r4"] {
+            assert!(Cpv::parse(s).is_err(), "{s} is valid");
+            assert!(Cpv::try_new(s).is_err(), "{s} is valid");
+        }
 
-    #[test]
-    fn test_parse() {
-        assert!(Cpv::parse("cat/pkg-1").is_ok());
-        assert!(Cpv::parse("cat/pkg-1a-1").is_err());
-        assert!(Cpv::parse("cat/pkg").is_err());
-        assert!(Cpv::parse(">=cat/pkg-1").is_err());
+        // valid
+        for s in ["a/b--1", "a/b-r1-2", "a/b-r0-1-r2", "a/b-3-c-4-r5"] {
+            let borrowed = Cpv::parse(s);
+            assert!(borrowed.is_ok(), "{s} isn't valid");
+            let owned = Cpv::try_new(s);
+            assert!(owned.is_ok(), "{s} isn't valid");
+            assert_eq!(borrowed.unwrap(), owned.unwrap());
+        }
     }
 
     #[test]
