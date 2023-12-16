@@ -6,7 +6,7 @@ use std::str::FromStr;
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
-use crate::macros::{cmp_not_equal, equivalent, partial_cmp_not_equal_opt};
+use crate::macros::{equivalent, partial_cmp_not_equal_opt};
 use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
@@ -100,7 +100,7 @@ impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for CpvOrDep<S2> {
 }
 
 /// Package identifier.
-#[derive(Debug, Serialize, Deserialize, Clone, Hash)]
+#[derive(Debug, Serialize, Deserialize, Eq, Ord, Clone, Hash)]
 pub struct Cpv<S: Stringable> {
     pub(crate) category: S,
     pub(crate) package: S,
@@ -208,16 +208,6 @@ impl<S1: Stringable, S2: Stringable> PartialEq<Cpv<S1>> for Cpv<S2> {
         self.category() == other.category()
             && self.package() == other.package()
             && self.version == other.version
-    }
-}
-
-impl<S: Stringable> Eq for Cpv<S> {}
-
-impl<S: Stringable> Ord for Cpv<S> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(&self.category, &other.category);
-        cmp_not_equal!(&self.package, &other.package);
-        self.version.cmp(&other.version)
     }
 }
 

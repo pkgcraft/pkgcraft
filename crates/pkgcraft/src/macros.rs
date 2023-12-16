@@ -87,7 +87,7 @@ macro_rules! partial_cmp_not_equal_opt {
 }
 pub(crate) use partial_cmp_not_equal_opt;
 
-// Return False if the arguments or expression are not equal.
+// Return false if the arguments or expression are not equal.
 macro_rules! bool_not_equal {
     ($bool:expr) => {
         if !$bool {
@@ -99,6 +99,18 @@ macro_rules! bool_not_equal {
     };
 }
 pub(crate) use bool_not_equal;
+
+// Return true if two Option-wrapped values are equal, false otherwise.
+macro_rules! partial_eq_opt {
+    ($x:expr, $y:expr) => {
+        if let (Some(v1), Some(v2)) = ($x, $y) {
+            v1 == v2
+        } else {
+            false
+        }
+    };
+}
+pub(crate) use partial_eq_opt;
 
 // Implement the Equivalent trait between owned and borrowed types.
 macro_rules! equivalent {

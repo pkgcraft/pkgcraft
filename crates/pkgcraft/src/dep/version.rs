@@ -7,7 +7,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::macros::{cmp_not_equal, equivalent, partial_cmp_not_equal};
+use crate::macros::{cmp_not_equal, equivalent, partial_cmp_not_equal, partial_eq_opt};
 use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
@@ -116,7 +116,7 @@ impl<S: Stringable> fmt::Display for Number<S> {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Hash, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Eq, Ord, Hash, Clone)]
 pub struct Revision<S: Stringable>(pub(crate) Number<S>);
 
 impl IntoOwned for Revision<&str> {
@@ -153,14 +153,6 @@ impl<S: Stringable> Revision<S> {
 impl<S1: Stringable, S2: Stringable> PartialEq<Revision<S1>> for Revision<S2> {
     fn eq(&self, other: &Revision<S1>) -> bool {
         self.0 == other.0
-    }
-}
-
-impl<S: Stringable> Eq for Revision<S> {}
-
-impl<S: Stringable> Ord for Revision<S> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
     }
 }
 
@@ -232,7 +224,7 @@ pub(crate) enum SuffixKind {
     P,
 }
 
-#[derive(Debug, Serialize, Deserialize, Hash, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, Ord, Hash, Clone)]
 pub(crate) struct Suffix<S: Stringable> {
     pub(crate) kind: SuffixKind,
     pub(crate) version: Option<Number<S>>,
@@ -251,20 +243,7 @@ impl IntoOwned for Suffix<&str> {
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Suffix<S1>> for Suffix<S2> {
     fn eq(&self, other: &Suffix<S1>) -> bool {
-        if let (Some(n1), Some(n2)) = (&self.version, &other.version) {
-            self.kind == other.kind && n1 == n2
-        } else {
-            false
-        }
-    }
-}
-
-impl<S: Stringable> Eq for Suffix<S> {}
-
-impl<S: Stringable> Ord for Suffix<S> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(&self.kind, &other.kind);
-        self.version.cmp(&other.version)
+        self.kind == other.kind && partial_eq_opt!(&self.version, &other.version)
     }
 }
 
