@@ -583,7 +583,7 @@ impl<S: Stringable> fmt::Display for Dep<S> {
         // append version operator with cpv
         let cpv = self.cpv();
         use Operator::*;
-        match self.version().and_then(|v| v.op()) {
+        match self.op() {
             None => write!(f, "{cpv}")?,
             Some(Less) => write!(f, "<{cpv}")?,
             Some(LessOrEqual) => write!(f, "<={cpv}")?,
