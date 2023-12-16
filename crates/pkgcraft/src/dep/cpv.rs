@@ -310,7 +310,17 @@ mod tests {
             assert!(borrowed.is_ok(), "{s} isn't valid");
             let owned = Cpv::try_new(s);
             assert!(owned.is_ok(), "{s} isn't valid");
-            assert_eq!(borrowed.unwrap(), owned.unwrap());
+
+            // verify owned and borrowed types are equal
+            let borrowed = borrowed.unwrap();
+            let owned = owned.unwrap();
+            assert_eq!(borrowed, owned);
+            assert_eq!(owned, borrowed);
+
+            // verify string parsing
+            let cpv = s.parse().unwrap();
+            assert_eq!(borrowed, cpv);
+            assert_eq!(owned, cpv);
         }
     }
 
