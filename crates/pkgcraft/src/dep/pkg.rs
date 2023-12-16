@@ -10,7 +10,7 @@ use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
 use crate::macros::{
-    bool_not_equal, cmp_not_equal, partial_cmp_not_equal, partial_cmp_opt_not_equal,
+    bool_not_equal, cmp_not_equal, equivalent, partial_cmp_not_equal, partial_cmp_opt_not_equal,
     partial_cmp_opt_not_equal_opt,
 };
 use crate::traits::{Intersects, IntoOwned};
@@ -697,6 +697,8 @@ impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Dep<S2> {
         }
     }
 }
+
+equivalent!(Dep<&str>, Dep<String>);
 
 #[cfg(test)]
 mod tests {
