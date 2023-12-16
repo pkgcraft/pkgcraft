@@ -665,16 +665,15 @@ where
     let mut v2_numbers = v2.numbers[1..].iter();
     loop {
         match (v1_numbers.next(), v2_numbers.next()) {
-            // compare as strings if a component starts with "0"
-            (Some(n1), Some(n2))
-                if n1.as_str().starts_with('0') || n2.as_str().starts_with('0') =>
-            {
-                let s1 = n1.as_str().trim_end_matches('0');
-                let s2 = n2.as_str().trim_end_matches('0');
-                cmp_not_equal!(s1, s2);
+            (Some(n1), Some(n2)) => {
+                // compare as strings if a component starts with "0", otherwise as integers
+                let (s1, s2) = (n1.as_str(), n2.as_str());
+                if s1.starts_with('0') || s2.starts_with('0') {
+                    cmp_not_equal!(s1.trim_end_matches('0'), s2.trim_end_matches('0'));
+                } else {
+                    partial_cmp_not_equal!(n1, n2);
+                }
             }
-            // compare as integers
-            (Some(n1), Some(n2)) => partial_cmp_not_equal!(n1, n2),
             (Some(_), None) => return Ordering::Greater,
             (None, Some(_)) => return Ordering::Less,
             (None, None) => break,
