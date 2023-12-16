@@ -32,7 +32,7 @@ pub enum UseDepDefault {
 }
 
 /// Package USE dependency.
-#[derive(DeserializeFromStr, SerializeDisplay, Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(DeserializeFromStr, SerializeDisplay, Debug, Eq, Hash, Clone)]
 pub struct UseDep<S: Stringable> {
     pub(crate) kind: UseDepKind,
     pub(crate) flag: S,
@@ -51,15 +51,21 @@ impl IntoOwned for UseDep<&str> {
     }
 }
 
+impl<S1: Stringable, S2: Stringable> PartialEq<UseDep<S1>> for UseDep<S2> {
+    fn eq(&self, other: &UseDep<S1>) -> bool {
+        self.kind == other.kind && self.flag() == other.flag() && self.default == other.default
+    }
+}
+
 impl<S: Stringable> Ord for UseDep<S> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.flag.cmp(&other.flag)
     }
 }
 
-impl<S: Stringable> PartialOrd for UseDep<S> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+impl<S1: Stringable, S2: Stringable> PartialOrd<UseDep<S1>> for UseDep<S2> {
+    fn partial_cmp(&self, other: &UseDep<S1>) -> Option<Ordering> {
+        Some(self.flag().cmp(other.flag()))
     }
 }
 

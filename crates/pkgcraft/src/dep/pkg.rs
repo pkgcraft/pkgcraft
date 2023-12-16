@@ -9,7 +9,10 @@ use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
-use crate::macros::{bool_not_equal, cmp_not_equal};
+use crate::macros::{
+    bool_not_equal, cmp_not_equal, partial_cmp_not_equal, partial_cmp_opt_not_equal,
+    partial_cmp_opt_not_equal_opt,
+};
 use crate::traits::{Intersects, IntoOwned};
 use crate::types::SortedSet;
 use crate::Error;
@@ -61,8 +64,8 @@ impl DepField {
 }
 
 /// Package slot.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Slot<S> {
+#[derive(Debug, Eq, Ord, Hash, Clone)]
+pub struct Slot<S: Stringable> {
     pub(crate) name: S,
 }
 
@@ -85,11 +88,6 @@ impl Slot<String> {
     pub fn new(s: &str) -> crate::Result<Self> {
         parse::slot(s).into_owned()
     }
-
-    /// Return the Slot using internal references.
-    fn as_ref(&self) -> Slot<&str> {
-        Slot { name: &self.name }
-    }
 }
 
 impl<S: Stringable> Slot<S> {
@@ -103,17 +101,22 @@ impl<S: Stringable> Slot<S> {
     pub fn subslot(&self) -> Option<&str> {
         self.name.as_ref().split_once('/').map(|x| x.1)
     }
-}
 
-impl PartialEq<Slot<&str>> for Slot<String> {
-    fn eq(&self, other: &Slot<&str>) -> bool {
-        self.name == other.name
+    /// Return the Slot using internal references.
+    fn as_ref(&self) -> Slot<&str> {
+        Slot { name: self.name.as_ref() }
     }
 }
 
-impl PartialEq<Slot<String>> for Slot<&str> {
-    fn eq(&self, other: &Slot<String>) -> bool {
-        other == self
+impl<S1: Stringable, S2: Stringable> PartialEq<Slot<S1>> for Slot<S2> {
+    fn eq(&self, other: &Slot<S1>) -> bool {
+        self.name.as_ref() == other.name.as_ref()
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> PartialOrd<Slot<S1>> for Slot<S2> {
+    fn partial_cmp(&self, other: &Slot<S1>) -> Option<Ordering> {
+        Some(self.name.as_ref().cmp(other.name.as_ref()))
     }
 }
 
@@ -129,15 +132,15 @@ impl PartialEq<Slot<String>> for &str {
     }
 }
 
-impl<S: fmt::Display> fmt::Display for Slot<S> {
+impl<S: Stringable> fmt::Display for Slot<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
     }
 }
 
 /// Package slot dependency.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct SlotDep<S> {
+#[derive(Debug, Ord, Eq, Hash, Clone)]
+pub struct SlotDep<S: Stringable> {
     pub(crate) slot: Option<Slot<S>>,
     pub(crate) op: Option<SlotOperator>,
 }
@@ -153,32 +156,22 @@ impl IntoOwned for SlotDep<&str> {
     }
 }
 
-impl<S: PartialEq + Eq + Ord> Ord for SlotDep<S> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(&self.slot, &other.slot);
-        self.op.cmp(&other.op)
+impl<S1: Stringable, S2: Stringable> PartialEq<SlotDep<S1>> for SlotDep<S2> {
+    fn eq(&self, other: &SlotDep<S1>) -> bool {
+        let s1 = self.slot.as_ref().map(|v| v.as_ref());
+        let s2 = other.slot.as_ref().map(|v| v.as_ref());
+        s1 == s2 && self.op == other.op
     }
 }
 
-impl<S: PartialEq + Eq + Ord> PartialOrd for SlotDep<S> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+impl<S1: Stringable, S2: Stringable> PartialOrd<SlotDep<S1>> for SlotDep<S2> {
+    fn partial_cmp(&self, other: &SlotDep<S1>) -> Option<Ordering> {
+        partial_cmp_opt_not_equal_opt!(&self.slot, &other.slot);
+        Some(self.op.cmp(&other.op))
     }
 }
 
-impl PartialEq<SlotDep<&str>> for SlotDep<String> {
-    fn eq(&self, other: &SlotDep<&str>) -> bool {
-        self.slot.as_ref().map(|v| v.as_ref()) == other.slot && self.op == other.op
-    }
-}
-
-impl PartialEq<SlotDep<String>> for SlotDep<&str> {
-    fn eq(&self, other: &SlotDep<String>) -> bool {
-        other == self
-    }
-}
-
-impl<S: fmt::Display> fmt::Display for SlotDep<S> {
+impl<S: Stringable> fmt::Display for SlotDep<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match (&self.slot, &self.op) {
             (Some(slot), Some(op)) => write!(f, "{slot}{op}")?,
@@ -252,9 +245,9 @@ impl IntoOwned for Dep<&str> {
     }
 }
 
-impl<S: Stringable> PartialEq for Dep<S> {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
+impl<S1: Stringable, S2: Stringable> PartialEq<Dep<S1>> for Dep<S2> {
+    fn eq(&self, other: &Dep<S1>) -> bool {
+        dep_cmp(self, other) == Ordering::Equal
     }
 }
 
@@ -272,9 +265,9 @@ impl<S: Stringable> Ord for Dep<S> {
     }
 }
 
-impl<S: Stringable> PartialOrd for Dep<S> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+impl<S1: Stringable, S2: Stringable> PartialOrd<Dep<S1>> for Dep<S2> {
+    fn partial_cmp(&self, other: &Dep<S1>) -> Option<Ordering> {
+        Some(dep_cmp(self, other))
     }
 }
 
@@ -573,10 +566,46 @@ impl<S: Stringable> Dep<S> {
     }
 }
 
+/// Compare two package dependencies.
+fn dep_cmp<S1, S2>(d1: &Dep<S1>, d2: &Dep<S2>) -> Ordering
+where
+    S1: Stringable,
+    S2: Stringable,
+{
+    cmp_not_equal!(d1.category(), d2.category());
+    cmp_not_equal!(d1.package(), d2.package());
+    partial_cmp_opt_not_equal!(&d1.version, &d2.version);
+    cmp_not_equal!(&d1.blocker, &d2.blocker);
+    partial_cmp_opt_not_equal!(&d1.slot, &d2.slot);
+
+    // compare USE dependencies
+    match (&d1.use_deps, &d2.use_deps) {
+        (Some(use1), Some(use2)) => {
+            let mut u1_iter = use1.iter().sorted();
+            let mut u2_iter = use2.iter().sorted();
+            loop {
+                match (u1_iter.next(), u2_iter.next()) {
+                    (Some(u1), Some(u2)) => partial_cmp_not_equal!(u1, u2),
+                    (Some(_), None) => return Ordering::Greater,
+                    (None, Some(_)) => return Ordering::Less,
+                    (None, None) => break,
+                }
+            }
+        }
+        (Some(_), None) => return Ordering::Greater,
+        (None, Some(_)) => return Ordering::Less,
+        (None, None) => (),
+    }
+
+    cmp_not_equal!(&d1.repo(), &d2.repo());
+
+    Ordering::Equal
+}
+
 impl<S: Stringable> fmt::Display for Dep<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // append blocker
-        if let Some(blocker) = self.blocker {
+        if let Some(blocker) = &self.blocker {
             write!(f, "{blocker}")?;
         }
 
@@ -837,20 +866,61 @@ mod tests {
                 .collect();
 
         for (expr, (s1, op, s2)) in TEST_DATA.dep_toml.compares() {
-            let dep1: Dep<_> = s1.parse().unwrap();
-            let dep2: Dep<_> = s2.parse().unwrap();
+            let d1_owned = Dep::new(s1).unwrap();
+            let d1_borrowed = Dep::parse(s1, None).unwrap();
+            let d2_owned = Dep::new(s2).unwrap();
+            let d2_borrowed = Dep::parse(s2, None).unwrap();
             if op == "!=" {
-                assert_ne!(dep1, dep2, "failed comparing: {expr}");
-                assert_ne!(dep2, dep1, "failed comparing: {expr}");
+                assert_ne!(d1_owned, d2_owned, "failed comparing: {expr}");
+                assert_ne!(d1_borrowed, d2_borrowed, "failed comparing: {expr}");
+                assert_ne!(d1_owned, d2_borrowed, "failed comparing: {expr}");
+                assert_ne!(d1_borrowed, d2_owned, "failed comparing: {expr}");
+                assert_ne!(d2_owned, d1_owned, "failed comparing: {expr}");
+                assert_ne!(d2_borrowed, d1_borrowed, "failed comparing: {expr}");
+                assert_ne!(d2_owned, d1_borrowed, "failed comparing: {expr}");
+                assert_ne!(d2_borrowed, d1_owned, "failed comparing: {expr}");
             } else {
                 let op = op_map[op];
-                assert_eq!(dep1.cmp(&dep2), op, "failed comparing: {expr}");
-                assert_eq!(dep2.cmp(&dep1), op.reverse(), "failed comparing inverted: {expr}");
+                assert_eq!(d1_owned.cmp(&d2_owned), op, "failed comparing: {expr}");
+                assert_eq!(d1_borrowed.cmp(&d2_borrowed), op, "failed comparing: {expr}");
+                assert_eq!(
+                    d1_owned.partial_cmp(&d2_borrowed),
+                    Some(op),
+                    "failed comparing: {expr}"
+                );
+                assert_eq!(
+                    d1_borrowed.partial_cmp(&d2_owned),
+                    Some(op),
+                    "failed comparing: {expr}"
+                );
+                assert_eq!(
+                    d2_owned.cmp(&d1_owned),
+                    op.reverse(),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    d2_borrowed.cmp(&d1_borrowed),
+                    op.reverse(),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    d2_owned.partial_cmp(&d1_borrowed),
+                    Some(op.reverse()),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    d2_borrowed.partial_cmp(&d1_owned),
+                    Some(op.reverse()),
+                    "failed comparing inverted: {expr}"
+                );
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)
                 if op == Ordering::Equal {
-                    assert_eq!(hash(dep1), hash(dep2), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_owned), hash(&d2_owned), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_borrowed), hash(&d2_borrowed), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_owned), hash(&d2_borrowed), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_borrowed), hash(&d2_owned), "failed hash: {expr}");
                 }
             }
         }
