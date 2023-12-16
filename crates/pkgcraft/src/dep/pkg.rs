@@ -391,7 +391,7 @@ impl Dep<String> {
                 }
                 DepField::Slot => {
                     if let Some(s) = s {
-                        let val: SlotDep<String> = s.parse()?;
+                        let val = SlotDep::try_new(s)?;
                         if !dep.slot.as_ref().map(|v| v == &val).unwrap_or_default() {
                             dep.to_mut().slot = Some(val);
                         }
