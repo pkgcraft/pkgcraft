@@ -179,32 +179,32 @@ impl<S: Stringable> Cpv<S> {
         self.version.revision()
     }
 
-    /// Return the package name and version.
+    /// Return the string of the package name and version without the revision.
     pub fn p(&self) -> String {
         format!("{}-{}", self.package(), self.version.base())
     }
 
-    /// Return the package name, version, and revision.
+    /// Return the string of the package name and version with the revision.
     pub fn pf(&self) -> String {
         format!("{}-{}", self.package(), self.pvr())
     }
 
-    /// Return the revision.
+    /// Return the string of the revision.
     pub fn pr(&self) -> String {
         format!("r{}", self.revision().map(|r| r.as_str()).unwrap_or("0"))
     }
 
-    /// Return the version.
+    /// Return the string of the version without the revision.
     pub fn pv(&self) -> String {
-        self.version.base().to_string()
+        self.version.base()
     }
 
-    /// Return the version and revision.
+    /// Return the string of the version with the revision.
     pub fn pvr(&self) -> String {
         self.version.to_string()
     }
 
-    /// Return the category and package.
+    /// Return the string of the category and package name.
     pub fn cpn(&self) -> String {
         format!("{}/{}", self.category, self.package)
     }
