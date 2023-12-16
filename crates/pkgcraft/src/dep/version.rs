@@ -48,6 +48,16 @@ impl<S: Stringable> Number<S> {
     }
 }
 
+impl Number<String> {
+    /// Converts a Number from an external reference to internal references.
+    pub(crate) fn as_ref(&self) -> Number<&str> {
+        Number {
+            raw: self.raw.as_ref(),
+            value: self.value,
+        }
+    }
+}
+
 impl<S1: Stringable, S2: Stringable> PartialEq<Number<S1>> for Number<S2> {
     fn eq(&self, other: &Number<S1>) -> bool {
         self.value == other.value
@@ -135,6 +145,11 @@ impl Revision<String> {
         } else {
             Ok(Self(parse::number(s)?.into_owned()))
         }
+    }
+
+    /// Converts a Revision from an external reference to internal references.
+    pub(crate) fn as_ref(&self) -> Revision<&str> {
+        Revision(self.0.as_ref())
     }
 }
 
@@ -237,6 +252,16 @@ impl IntoOwned for Suffix<&str> {
         Suffix {
             kind: self.kind,
             version: self.version.into_owned(),
+        }
+    }
+}
+
+impl Suffix<String> {
+    /// Converts a Suffix from an external reference to internal references.
+    pub(crate) fn as_ref(&self) -> Suffix<&str> {
+        Suffix {
+            kind: self.kind,
+            version: self.version.as_ref().map(|x| x.as_ref()),
         }
     }
 }
@@ -398,6 +423,17 @@ impl Version<String> {
     /// Create an owned [`Version`] without an [`Operator`].
     pub fn new_without_op(s: &str) -> crate::Result<Self> {
         Version::parse_without_op(s).into_owned()
+    }
+
+    /// Converts a Version from an external reference to internal references.
+    pub fn as_ref(&self) -> Version<&str> {
+        Version {
+            op: self.op,
+            numbers: self.numbers.iter().map(|x| x.as_ref()).collect(),
+            letter: self.letter,
+            suffixes: self.suffixes.iter().map(|x| x.as_ref()).collect(),
+            revision: self.revision.as_ref(),
+        }
     }
 }
 
