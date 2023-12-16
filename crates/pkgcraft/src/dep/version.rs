@@ -7,7 +7,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::macros::{cmp_not_equal, partial_cmp_not_equal};
+use crate::macros::{cmp_not_equal, equivalent, partial_cmp_not_equal};
 use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
@@ -749,6 +749,8 @@ impl FromStr for Version<String> {
         Self::new(s)
     }
 }
+
+equivalent!(Version<&str>, Version<String>);
 
 /// Version wrapper that ignores revisions and operators during comparisons.
 struct NonRevisionVersion<'a, S: Stringable>(&'a Version<S>);

@@ -6,7 +6,7 @@ use std::str::FromStr;
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
-use crate::macros::{cmp_not_equal, partial_cmp_not_equal_opt};
+use crate::macros::{cmp_not_equal, equivalent, partial_cmp_not_equal_opt};
 use crate::traits::{Intersects, IntoOwned};
 use crate::Error;
 
@@ -282,6 +282,8 @@ impl TryFrom<&Cpv<String>> for Cpv<String> {
         Ok(value.clone())
     }
 }
+
+equivalent!(Cpv<&str>, Cpv<String>);
 
 #[cfg(test)]
 mod tests {

@@ -99,3 +99,21 @@ macro_rules! bool_not_equal {
     };
 }
 pub(crate) use bool_not_equal;
+
+// Implement the Equivalent trait between owned and borrowed types.
+macro_rules! equivalent {
+    ($x:ty, $y:ty) => {
+        impl indexmap::Equivalent<$x> for $y {
+            fn equivalent(&self, key: &$x) -> bool {
+                self == key
+            }
+        }
+
+        impl indexmap::Equivalent<$y> for $x {
+            fn equivalent(&self, key: &$y) -> bool {
+                self == key
+            }
+        }
+    };
+}
+pub(crate) use equivalent;
