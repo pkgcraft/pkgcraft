@@ -150,15 +150,15 @@ pub(crate) use partial_cmp_opt_not_equal_opt;
 
 // Implement the Equivalent trait between owned and borrowed types.
 macro_rules! equivalent {
-    ($x:ty, $y:ty) => {
-        impl indexmap::Equivalent<$x> for $y {
-            fn equivalent(&self, key: &$x) -> bool {
+    ($x:tt) => {
+        impl indexmap::Equivalent<$x<&str>> for $x<String> {
+            fn equivalent(&self, key: &$x<&str>) -> bool {
                 self == key
             }
         }
 
-        impl indexmap::Equivalent<$y> for $x {
-            fn equivalent(&self, key: &$y) -> bool {
+        impl indexmap::Equivalent<$x<String>> for $x<&str> {
+            fn equivalent(&self, key: &$x<String>) -> bool {
                 self == key
             }
         }

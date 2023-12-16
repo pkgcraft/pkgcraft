@@ -273,7 +273,7 @@ impl TryFrom<&Cpv<String>> for Cpv<String> {
     }
 }
 
-equivalent!(Cpv<&str>, Cpv<String>);
+equivalent!(Cpv);
 
 #[cfg(test)]
 mod tests {

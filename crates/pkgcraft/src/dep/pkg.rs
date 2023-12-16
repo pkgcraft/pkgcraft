@@ -698,7 +698,7 @@ impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Dep<S2> {
     }
 }
 
-equivalent!(Dep<&str>, Dep<String>);
+equivalent!(Dep);
 
 #[cfg(test)]
 mod tests {

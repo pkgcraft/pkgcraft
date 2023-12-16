@@ -730,7 +730,7 @@ impl FromStr for Version<String> {
     }
 }
 
-equivalent!(Version<&str>, Version<String>);
+equivalent!(Version);
 
 /// Version wrapper that ignores revisions and operators during comparisons.
 struct NonRevisionVersion<'a, S: Stringable>(&'a Version<S>);
