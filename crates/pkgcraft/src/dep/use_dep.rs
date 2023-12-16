@@ -5,7 +5,7 @@ use std::str::FromStr;
 use indexmap::IndexSet;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::traits::IntoOwned;
+use crate::traits::{IntoOwned, ToRef};
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -46,6 +46,18 @@ impl IntoOwned for UseDep<&str> {
         UseDep {
             kind: self.kind,
             flag: self.flag.to_string(),
+            default: self.default,
+        }
+    }
+}
+
+impl<'a, S: Stringable> ToRef<'a> for UseDep<S> {
+    type Ref = UseDep<&'a str>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        UseDep {
+            kind: self.kind,
+            flag: self.flag.as_ref(),
             default: self.default,
         }
     }
@@ -136,16 +148,5 @@ impl UseDep<String> {
     /// Create a new UseDep from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
         parse::use_dep(s).into_owned()
-    }
-}
-
-impl<S: Stringable> UseDep<S> {
-    /// Return the UseDep using internal references.
-    pub(crate) fn as_ref(&self) -> UseDep<&str> {
-        UseDep {
-            kind: self.kind,
-            flag: self.flag.as_ref(),
-            default: self.default,
-        }
     }
 }

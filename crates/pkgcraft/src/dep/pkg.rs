@@ -13,7 +13,7 @@ use crate::macros::{
     bool_not_equal, cmp_not_equal, equivalent, partial_cmp_not_equal, partial_cmp_opt_not_equal,
     partial_cmp_opt_not_equal_opt,
 };
-use crate::traits::{Intersects, IntoOwned};
+use crate::traits::{Intersects, IntoOwned, ToRef};
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -83,6 +83,14 @@ impl IntoOwned for Slot<&str> {
     }
 }
 
+impl<'a, S: Stringable> ToRef<'a> for Slot<S> {
+    type Ref = Slot<&'a str>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        Slot { name: self.name.as_ref() }
+    }
+}
+
 impl Slot<String> {
     /// Create a new Slot from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
@@ -100,11 +108,6 @@ impl<S: Stringable> Slot<S> {
     /// Return the subslot value if it exists.
     pub fn subslot(&self) -> Option<&str> {
         self.name.as_ref().split_once('/').map(|x| x.1)
-    }
-
-    /// Return the Slot using internal references.
-    fn as_ref(&self) -> Slot<&str> {
-        Slot { name: self.name.as_ref() }
     }
 }
 
@@ -158,9 +161,7 @@ impl IntoOwned for SlotDep<&str> {
 
 impl<S1: Stringable, S2: Stringable> PartialEq<SlotDep<S1>> for SlotDep<S2> {
     fn eq(&self, other: &SlotDep<S1>) -> bool {
-        let s1 = self.slot.as_ref().map(|v| v.as_ref());
-        let s2 = other.slot.as_ref().map(|v| v.as_ref());
-        s1 == s2 && self.op == other.op
+        self.slot.to_ref() == other.slot.to_ref() && self.op == other.op
     }
 }
 
@@ -669,8 +670,8 @@ impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Dep<S2> {
 
         if let (Some(s1), Some(s2)) = (self.use_deps(), other.use_deps()) {
             // convert USE dep sets to the same type
-            let s1: HashSet<_> = s1.iter().map(|x| x.as_ref()).collect();
-            let s2: HashSet<_> = s2.iter().map(|x| x.as_ref()).collect();
+            let s1: HashSet<_> = s1.iter().map(|x| x.to_ref()).collect();
+            let s2: HashSet<_> = s2.iter().map(|x| x.to_ref()).collect();
 
             // find the differences between the sets
             let mut use_map = HashMap::<_, HashSet<_>>::new();

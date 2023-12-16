@@ -7,7 +7,7 @@ use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::macros::{equivalent, partial_cmp_not_equal_opt};
-use crate::traits::{Intersects, IntoOwned};
+use crate::traits::{Intersects, IntoOwned, ToRef};
 use crate::Error;
 
 use super::pkg::Dep;
@@ -128,6 +128,18 @@ impl<'a> IntoOwned for Cpv<&'a str> {
             category: self.category.to_string(),
             package: self.package.to_string(),
             version: self.version.into_owned(),
+        }
+    }
+}
+
+impl<'a> ToRef<'a> for Cpv<String> {
+    type Ref = Cpv<&'a str>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        Cpv {
+            category: self.category.as_ref(),
+            package: self.package.as_ref(),
+            version: self.version.to_ref(),
         }
     }
 }

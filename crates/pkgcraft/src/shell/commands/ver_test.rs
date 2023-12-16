@@ -2,6 +2,7 @@ use scallop::{Error, ExecStatus};
 
 use crate::dep::Version;
 use crate::shell::get_build_mut;
+use crate::traits::ToRef;
 
 use super::make_builtin;
 
@@ -13,7 +14,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let ver = get_build_mut().cpv()?.version();
 
     let (lhs, op, rhs) = match args[..] {
-        [op, rhs] => (ver.as_ref(), op, parse(rhs)?),
+        [op, rhs] => (ver.to_ref(), op, parse(rhs)?),
         [lhs, op, rhs] => (parse(lhs)?, op, parse(rhs)?),
         _ => return Err(Error::Base(format!("only accepts 2 or 3 args, got {}", args.len()))),
     };

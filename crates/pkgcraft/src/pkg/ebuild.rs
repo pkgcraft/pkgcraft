@@ -11,6 +11,7 @@ use crate::eapi::Eapi;
 use crate::repo::ebuild::{Eclass, Repo};
 use crate::repo::Repository;
 use crate::shell::metadata::{Iuse, Key, Keyword, Metadata};
+use crate::traits::ToRef;
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -120,7 +121,7 @@ impl<'a> Pkg<'a> {
                 _ => None,
             })
             .flatten()
-            .map(|d| d.as_ref())
+            .map(|d| d.to_ref())
             .collect()
     }
 

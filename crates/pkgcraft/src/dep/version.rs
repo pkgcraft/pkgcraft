@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::{cmp_not_equal, equivalent, partial_cmp_not_equal, partial_eq_opt};
-use crate::traits::{Intersects, IntoOwned};
+use crate::traits::{Intersects, IntoOwned, ToRef};
 use crate::Error;
 
 use super::{parse, Stringable};
@@ -36,6 +36,17 @@ impl IntoOwned for Number<&str> {
     }
 }
 
+impl<'a> ToRef<'a> for Number<String> {
+    type Ref = Number<&'a str>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        Number {
+            raw: self.raw.as_ref(),
+            value: self.value,
+        }
+    }
+}
+
 impl<S: Stringable> Number<S> {
     /// Determine if a number is represented by an empty string.
     pub(crate) fn is_empty(&self) -> bool {
@@ -45,16 +56,6 @@ impl<S: Stringable> Number<S> {
     /// Return the raw string value for a number.
     pub(crate) fn as_str(&self) -> &str {
         self.raw.as_ref()
-    }
-}
-
-impl Number<String> {
-    /// Converts a Number from an external reference to internal references.
-    pub(crate) fn as_ref(&self) -> Number<&str> {
-        Number {
-            raw: self.raw.as_ref(),
-            value: self.value,
-        }
     }
 }
 
@@ -137,6 +138,14 @@ impl IntoOwned for Revision<&str> {
     }
 }
 
+impl<'a> ToRef<'a> for Revision<String> {
+    type Ref = Revision<&'a str>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        Revision(self.0.to_ref())
+    }
+}
+
 impl Revision<String> {
     /// Create a new Revision from a given string.
     pub fn new(s: &str) -> crate::Result<Self> {
@@ -145,11 +154,6 @@ impl Revision<String> {
         } else {
             Ok(Self(parse::number(s)?.into_owned()))
         }
-    }
-
-    /// Converts a Revision from an external reference to internal references.
-    pub(crate) fn as_ref(&self) -> Revision<&str> {
-        Revision(self.0.as_ref())
     }
 }
 
@@ -256,12 +260,13 @@ impl IntoOwned for Suffix<&str> {
     }
 }
 
-impl Suffix<String> {
-    /// Converts a Suffix from an external reference to internal references.
-    pub(crate) fn as_ref(&self) -> Suffix<&str> {
+impl<'a> ToRef<'a> for Suffix<String> {
+    type Ref = Suffix<&'a str>;
+
+    fn to_ref(&'a self) -> Self::Ref {
         Suffix {
             kind: self.kind,
-            version: self.version.as_ref().map(|x| x.as_ref()),
+            version: self.version.as_ref().map(|x| x.to_ref()),
         }
     }
 }
@@ -388,6 +393,20 @@ impl IntoOwned for Version<&str> {
     }
 }
 
+impl<'a> ToRef<'a> for Version<String> {
+    type Ref = Version<&'a str>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        Version {
+            op: self.op,
+            numbers: self.numbers.iter().map(|x| x.to_ref()).collect(),
+            letter: self.letter,
+            suffixes: self.suffixes.iter().map(|x| x.to_ref()).collect(),
+            revision: self.revision.to_ref(),
+        }
+    }
+}
+
 impl<'a> Version<&'a str> {
     /// Create a borrowed [`Version`] from a given string with or without an [`Operator`].
     pub fn parse(s: &'a str) -> crate::Result<Self> {
@@ -423,17 +442,6 @@ impl Version<String> {
     /// Create an owned [`Version`] without an [`Operator`].
     pub fn new_without_op(s: &str) -> crate::Result<Self> {
         Version::parse_without_op(s).into_owned()
-    }
-
-    /// Converts a Version from an external reference to internal references.
-    pub fn as_ref(&self) -> Version<&str> {
-        Version {
-            op: self.op,
-            numbers: self.numbers.iter().map(|x| x.as_ref()).collect(),
-            letter: self.letter,
-            suffixes: self.suffixes.iter().map(|x| x.as_ref()).collect(),
-            revision: self.revision.as_ref(),
-        }
     }
 }
 

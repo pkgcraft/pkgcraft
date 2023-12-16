@@ -8,7 +8,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
-use crate::traits::{Contains, IntoOwned};
+use crate::traits::{Contains, IntoOwned, ToRef};
 use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
 use crate::Error;
 
@@ -112,31 +112,6 @@ pub enum Dependency<S: Stringable, T: Ordered> {
     UseConditional(UseDep<S>, SortedSet<Box<Dependency<S, T>>>),
 }
 
-macro_rules! box_ref {
-    ($vals:expr) => {
-        $vals
-            .into_iter()
-            .map(|b| Box::new(b.as_ref().as_ref()))
-            .collect()
-    };
-}
-
-impl<'a, T: Ordered> Dependency<String, T> {
-    /// Converts a Dependency from an external reference to internal references.
-    pub fn as_ref(&'a self) -> Dependency<&'a str, &'a T> {
-        use Dependency::*;
-        match self {
-            Enabled(ref val) => Enabled(val),
-            Disabled(ref val) => Disabled(val),
-            AllOf(ref vals) => AllOf(box_ref!(vals)),
-            AnyOf(ref vals) => AnyOf(box_ref!(vals)),
-            ExactlyOneOf(ref vals) => ExactlyOneOf(box_ref!(vals)),
-            AtMostOneOf(ref vals) => AtMostOneOf(box_ref!(vals)),
-            UseConditional(u, ref vals) => UseConditional(u.as_ref(), box_ref!(vals)),
-        }
-    }
-}
-
 macro_rules! box_owned {
     ($vals:expr) => {
         $vals
@@ -170,6 +145,32 @@ impl<T: Ordered> IntoOwned for Dependency<&str, &T> {
             ExactlyOneOf(vals) => ExactlyOneOf(box_owned!(vals)),
             AtMostOneOf(vals) => AtMostOneOf(box_owned!(vals)),
             UseConditional(u, vals) => UseConditional(u.into_owned(), box_owned!(vals)),
+        }
+    }
+}
+
+macro_rules! box_ref {
+    ($vals:expr) => {
+        $vals
+            .into_iter()
+            .map(|b| Box::new(b.as_ref().to_ref()))
+            .collect()
+    };
+}
+
+impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<String, T> {
+    type Ref = Dependency<&'a str, &'a T>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        use Dependency::*;
+        match self {
+            Enabled(ref val) => Enabled(val),
+            Disabled(ref val) => Disabled(val),
+            AllOf(ref vals) => AllOf(box_ref!(vals)),
+            AnyOf(ref vals) => AnyOf(box_ref!(vals)),
+            ExactlyOneOf(ref vals) => ExactlyOneOf(box_ref!(vals)),
+            AtMostOneOf(ref vals) => AtMostOneOf(box_ref!(vals)),
+            UseConditional(u, ref vals) => UseConditional(u.to_ref(), box_ref!(vals)),
         }
     }
 }
@@ -586,7 +587,7 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<String, T>>
     for DependencySet<&'a str, &'a T>
 {
     fn from_iter<I: IntoIterator<Item = &'a Dependency<String, T>>>(iterable: I) -> Self {
-        Self(iterable.into_iter().map(|d| d.as_ref()).collect())
+        Self(iterable.into_iter().map(|d| d.to_ref()).collect())
     }
 }
 
