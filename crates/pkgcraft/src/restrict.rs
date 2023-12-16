@@ -107,7 +107,7 @@ mod tests {
         let r = Restrict::Dep(dep::Restrict::Version(None));
         assert_eq!(filter(r, deps.clone()), ["cat/pkg"]);
 
-        let dep = Dep::new("=cat/pkg-1").unwrap();
+        let dep = Dep::try_new("=cat/pkg-1").unwrap();
         let r = Restrict::from(&dep);
         assert_eq!(filter(r, deps.clone()), [">=cat/pkg-1", "=cat/pkg-1:2/3::repo"]);
 

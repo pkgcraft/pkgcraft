@@ -25,7 +25,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
 
     c.bench_function("repo-ebuild-iter-restrict", |b| {
         let mut pkgs = 0;
-        let cpv = Cpv::new("cat/pkg-50").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-50").unwrap();
         b.iter(|| {
             pkgs = 0;
             for _ in repo.iter_restrict(&cpv) {

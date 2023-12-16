@@ -79,7 +79,7 @@ impl<S: fmt::Display> fmt::Display for Iuse<S> {
 }
 
 impl Iuse<String> {
-    fn new(s: &str) -> crate::Result<Self> {
+    fn try_new(s: &str) -> crate::Result<Self> {
         dep::parse::iuse(s).into_owned()
     }
 
@@ -115,7 +115,7 @@ impl IntoOwned for Keyword<&str> {
 }
 
 impl Keyword<String> {
-    fn new(s: &str) -> crate::Result<Self> {
+    fn try_new(s: &str) -> crate::Result<Self> {
         dep::parse::keyword(s).into_owned()
     }
 
@@ -134,7 +134,7 @@ impl FromStr for Keyword<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Self::new(s)
+        Self::try_new(s)
     }
 }
 
@@ -191,7 +191,7 @@ impl<'a> Metadata<'a> {
         match key {
             CHKSUM => self.chksum = val.to_string(),
             DESCRIPTION => self.description = val.to_string(),
-            SLOT => self.slot = Slot::new(val)?,
+            SLOT => self.slot = Slot::try_new(val)?,
             BDEPEND => self.bdepend = dep::parse::package_dependency_set(val, eapi)?,
             DEPEND => self.depend = dep::parse::package_dependency_set(val, eapi)?,
             IDEPEND => self.idepend = dep::parse::package_dependency_set(val, eapi)?,
@@ -209,13 +209,13 @@ impl<'a> Metadata<'a> {
             KEYWORDS => {
                 self.keywords = val
                     .split_whitespace()
-                    .map(Keyword::new)
+                    .map(Keyword::try_new)
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
             IUSE => {
                 self.iuse = val
                     .split_whitespace()
-                    .map(Iuse::new)
+                    .map(Iuse::try_new)
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
             INHERIT => {
@@ -376,7 +376,7 @@ impl<'a> Metadata<'a> {
 
     /// Verify a metadata entry is valid.
     pub(crate) fn verify(cpv: &Cpv<String>, repo: &'a Repo) -> bool {
-        Pkg::new(cpv.clone(), repo)
+        Pkg::try_new(cpv.clone(), repo)
             .map(|p| Self::load(&p, false).is_err())
             .unwrap_or_default()
     }

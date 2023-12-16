@@ -348,7 +348,7 @@ mod tests {
         let fake_repo = fake::Repo::new("fake", 0);
 
         let f_repo: Repo = fake_repo.into();
-        let cpv = Cpv::new("cat/pkg-1").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
 
         // empty repo set
         let s = RepoSet::new();
@@ -374,7 +374,7 @@ mod tests {
         t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         assert_ordered_eq(s.categories(), ["cat"]);
         assert_ordered_eq(s.packages("cat"), ["pkg"]);
-        assert_ordered_eq(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
+        assert_ordered_eq(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
         assert_eq!(s.len(), 1);
         assert!(!s.is_empty());
         assert_ordered_eq(s.iter_cpv(), [cpv.clone()]);
@@ -388,7 +388,7 @@ mod tests {
         let s = RepoSet::from_iter([&t.repo, &f_repo]);
         assert_ordered_eq(s.categories(), ["cat"]);
         assert_ordered_eq(s.packages("cat"), ["pkg"]);
-        assert_ordered_eq(s.versions("cat", "pkg"), [Version::new("1").unwrap()]);
+        assert_ordered_eq(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
         assert_eq!(s.len(), 2);
         assert!(s.contains(&cpv));
         assert_ordered_eq(s.iter_cpv(), [cpv.clone()]);
@@ -402,10 +402,10 @@ mod tests {
 
     #[test]
     fn test_set_ops() {
-        let cpv1 = Cpv::new("cat/pkg-1").unwrap();
-        let cpv2 = Cpv::new("cat/pkg-2").unwrap();
-        let cpv3 = Cpv::new("cat/pkg-3").unwrap();
-        let cpv4 = Cpv::new("cat/pkg-4").unwrap();
+        let cpv1 = Cpv::try_new("cat/pkg-1").unwrap();
+        let cpv2 = Cpv::try_new("cat/pkg-2").unwrap();
+        let cpv3 = Cpv::try_new("cat/pkg-3").unwrap();
+        let cpv4 = Cpv::try_new("cat/pkg-4").unwrap();
         let r1: Repo = fake::Repo::new("1", 0).pkgs([&cpv1]).into();
         let r2: Repo = fake::Repo::new("2", 0).pkgs([&cpv2]).into();
         let r3: Repo = fake::Repo::new("3", 0).pkgs([&cpv3]).into();

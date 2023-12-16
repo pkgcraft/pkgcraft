@@ -365,7 +365,7 @@ pub struct Checksum {
 }
 
 impl Checksum {
-    pub(super) fn new(kind: &str, value: &str) -> crate::Result<Self> {
+    pub(super) fn try_new(kind: &str, value: &str) -> crate::Result<Self> {
         let kind = kind
             .parse()
             .map_err(|_| Error::InvalidValue(format!("unknown checksum kind: {kind}")))?;
@@ -412,11 +412,11 @@ pub struct ManifestFile {
 }
 
 impl ManifestFile {
-    fn new(kind: ManifestType, name: &str, size: u64, chksums: &[&str]) -> crate::Result<Self> {
+    fn try_new(kind: ManifestType, name: &str, size: u64, chksums: &[&str]) -> crate::Result<Self> {
         let checksums: crate::Result<Vec<_>> = chksums
             .iter()
             .tuples()
-            .map(|(kind, val)| Checksum::new(kind, val))
+            .map(|(kind, val)| Checksum::try_new(kind, val))
             .collect();
 
         Ok(ManifestFile {
@@ -505,7 +505,7 @@ impl CacheData for Manifest {
                 .files
                 .entry(kind)
                 .or_default()
-                .insert(ManifestFile::new(kind, name, size, files)?);
+                .insert(ManifestFile::try_new(kind, name, size, files)?);
         }
 
         if manifest.is_empty() {

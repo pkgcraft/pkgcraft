@@ -260,7 +260,7 @@ peg::parser!(grammar depspec() for str {
         = use_cond(<src_uri_dependency(eapi)>)
         / all_of(<src_uri_dependency(eapi)>)
         / s:$(quiet!{!")" _+}) rename:(__ "->" __ s:$(_+) {s})? {?
-            let uri = Uri::new(s, rename).map_err(|_| "invalid URI")?;
+            let uri = Uri::try_new(s, rename).map_err(|_| "invalid URI")?;
             Ok(Dependency::Enabled(uri))
         }
 

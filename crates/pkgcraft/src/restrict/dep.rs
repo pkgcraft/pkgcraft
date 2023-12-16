@@ -174,10 +174,10 @@ mod tests {
 
     #[test]
     fn test_restrict_methods() {
-        let unversioned = Dep::new("cat/pkg").unwrap();
-        let blocker = Dep::new("!cat/pkg").unwrap();
-        let cpv = Cpv::new("cat/pkg-1").unwrap();
-        let full = Dep::new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
+        let unversioned = Dep::try_new("cat/pkg").unwrap();
+        let blocker = Dep::try_new("!cat/pkg").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        let full = Dep::try_new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
 
         // category
         let r = Restrict::category("cat");
@@ -280,9 +280,9 @@ mod tests {
 
     #[test]
     fn test_restrict_conversion() {
-        let unversioned = Dep::new("cat/pkg").unwrap();
-        let cpv = Cpv::new("cat/pkg-1").unwrap();
-        let full = Dep::new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
+        let unversioned = Dep::try_new("cat/pkg").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        let full = Dep::try_new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
 
         // unversioned restriction
         let r = BaseRestrict::from(&unversioned);
@@ -305,16 +305,16 @@ mod tests {
 
     #[test]
     fn test_restrict_versions() {
-        let lt = Dep::new("<cat/pkg-1-r1").unwrap();
-        let le = Dep::new("<=cat/pkg-1-r1").unwrap();
-        let eq = Dep::new("=cat/pkg-1-r1").unwrap();
-        let eq_glob = Dep::new("=cat/pkg-1*").unwrap();
-        let approx = Dep::new("~cat/pkg-1").unwrap();
-        let ge = Dep::new(">=cat/pkg-1-r1").unwrap();
-        let gt = Dep::new(">cat/pkg-1-r1").unwrap();
+        let lt = Dep::try_new("<cat/pkg-1-r1").unwrap();
+        let le = Dep::try_new("<=cat/pkg-1-r1").unwrap();
+        let eq = Dep::try_new("=cat/pkg-1-r1").unwrap();
+        let eq_glob = Dep::try_new("=cat/pkg-1*").unwrap();
+        let approx = Dep::try_new("~cat/pkg-1").unwrap();
+        let ge = Dep::try_new(">=cat/pkg-1-r1").unwrap();
+        let gt = Dep::try_new(">cat/pkg-1-r1").unwrap();
 
-        let lt_cpv = Cpv::new("cat/pkg-0").unwrap();
-        let gt_cpv = Cpv::new("cat/pkg-2").unwrap();
+        let lt_cpv = Cpv::try_new("cat/pkg-0").unwrap();
+        let gt_cpv = Cpv::try_new("cat/pkg-2").unwrap();
 
         let r = BaseRestrict::from(&lt);
         assert!(r.matches(&lt_cpv));
@@ -335,7 +335,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&eq_glob));
         for s in ["cat/pkg-1-r1", "cat/pkg-10", "cat/pkg-1.0.1"] {
-            let cpv = Cpv::new(s).unwrap();
+            let cpv = Cpv::try_new(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));
@@ -343,7 +343,7 @@ mod tests {
         assert!(!r.matches(&lt_cpv));
         assert!(r.matches(&approx));
         for s in ["cat/pkg-1-r1", "cat/pkg-1-r999"] {
-            let cpv = Cpv::new(s).unwrap();
+            let cpv = Cpv::try_new(s).unwrap();
             assert!(r.matches(&cpv));
         }
         assert!(!r.matches(&gt_cpv));

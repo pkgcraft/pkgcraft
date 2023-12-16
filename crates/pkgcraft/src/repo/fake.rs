@@ -294,7 +294,7 @@ mod tests {
 
     #[test]
     fn test_versions() {
-        let ver = |s: &str| Version::new(s).unwrap();
+        let ver = |s: &str| Version::try_new(s).unwrap();
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", 0);
@@ -341,15 +341,15 @@ mod tests {
         assert!(!repo.contains("cat/pkg"));
 
         // cpv
-        let cpv = Cpv::new("cat/pkg-0").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-0").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = Cpv::new("cat/pkg-1").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let a = Dep::new("cat/pkg").unwrap();
+        let a = Dep::try_new("cat/pkg").unwrap();
         assert!(repo.contains(&a));
-        let a = Dep::new("cat/pkg-a").unwrap();
+        let a = Dep::try_new("cat/pkg-a").unwrap();
         assert!(!repo.contains(&a));
     }
 

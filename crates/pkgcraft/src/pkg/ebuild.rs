@@ -360,8 +360,8 @@ mod tests {
         // temp repo ebuild creation defaults to the latest EAPI
         assert_eq!(pkg1.eapi(), *EAPI_LATEST_OFFICIAL);
         assert_eq!(pkg1.eapi(), &*EAPI8);
-        assert_eq!(pkg1.cpv(), &Cpv::new("cat/pkg-1").unwrap());
-        assert_eq!(pkg2.cpv(), &Cpv::new("cat/pkg-2").unwrap());
+        assert_eq!(pkg1.cpv(), &Cpv::try_new("cat/pkg-1").unwrap());
+        assert_eq!(pkg2.cpv(), &Cpv::try_new("cat/pkg-2").unwrap());
 
         // repo attribute allows recursion
         assert_eq!(pkg1.repo(), pkg2.repo());
@@ -902,8 +902,8 @@ mod tests {
             assert_eq!(dist.len(), 1);
             assert_eq!(dist[0].name(), "a.tar.gz");
             assert_eq!(dist[0].size(), 1);
-            assert_eq!(dist[0].checksums()[0], Checksum::new("BLAKE2B", "a").unwrap());
-            assert_eq!(dist[0].checksums()[1], Checksum::new("SHA512", "b").unwrap());
+            assert_eq!(dist[0].checksums()[0], Checksum::try_new("BLAKE2B", "a").unwrap());
+            assert_eq!(dist[0].checksums()[1], Checksum::try_new("SHA512", "b").unwrap());
         }
 
         // multiple
@@ -931,13 +931,13 @@ mod tests {
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "a.tar.gz");
         assert_eq!(dist[0].size(), 1);
-        assert_eq!(dist[0].checksums()[0], Checksum::new("BLAKE2B", "a").unwrap());
-        assert_eq!(dist[0].checksums()[1], Checksum::new("SHA512", "b").unwrap());
+        assert_eq!(dist[0].checksums()[0], Checksum::try_new("BLAKE2B", "a").unwrap());
+        assert_eq!(dist[0].checksums()[1], Checksum::try_new("SHA512", "b").unwrap());
         let dist = pkg2.distfiles();
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "b.tar.gz");
         assert_eq!(dist[0].size(), 2);
-        assert_eq!(dist[0].checksums()[0], Checksum::new("BLAKE2B", "c").unwrap());
-        assert_eq!(dist[0].checksums()[1], Checksum::new("SHA512", "d").unwrap());
+        assert_eq!(dist[0].checksums()[0], Checksum::try_new("BLAKE2B", "c").unwrap());
+        assert_eq!(dist[0].checksums()[1], Checksum::try_new("SHA512", "d").unwrap());
     }
 }

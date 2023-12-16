@@ -23,7 +23,7 @@ pub struct Pkg<'a> {
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(cpv: Cpv<String>, repo: &'a Repo) -> crate::Result<Self> {
+    pub(crate) fn try_new(cpv: Cpv<String>, repo: &'a Repo) -> crate::Result<Self> {
         let relpath = cpv.relpath();
         let data = fs::read_to_string(repo.path().join(&relpath)).map_err(|e| {
             Error::IO(format!("{}: failed reading ebuild: {relpath}: {e}", repo.id()))

@@ -188,7 +188,7 @@ pub unsafe extern "C" fn pkgcraft_dep_modify(
 pub unsafe extern "C" fn pkgcraft_dep_new_cpn(s: *const c_char) -> *mut Dep {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let dep = unwrap_or_panic!(Dep::new_cpn(s));
+        let dep = unwrap_or_panic!(Dep::try_new_cpn(s));
         Box::into_raw(Box::new(dep))
     }
 }
@@ -393,7 +393,7 @@ pub unsafe extern "C" fn pkgcraft_dep_use_deps(d: *mut Dep, len: *mut usize) -> 
 pub unsafe extern "C" fn pkgcraft_use_dep_new(s: *const c_char) -> *mut UseDep {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let use_dep = unwrap_or_panic!(dep::UseDep::new(s).map(|u| u.into()));
+        let use_dep = unwrap_or_panic!(dep::UseDep::try_new(s).map(|u| u.into()));
         Box::into_raw(Box::new(use_dep))
     }
 }

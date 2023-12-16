@@ -148,7 +148,7 @@ impl<'a> ToRef<'a> for Revision<String> {
 
 impl Revision<String> {
     /// Create a new Revision from a given string.
-    pub fn new(s: &str) -> crate::Result<Self> {
+    pub fn try_new(s: &str) -> crate::Result<Self> {
         if s.is_empty() {
             Ok(Self::default())
         } else {
@@ -221,7 +221,7 @@ impl FromStr for Revision<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Self::new(s)
+        Self::try_new(s)
     }
 }
 
@@ -430,17 +430,17 @@ impl<'a> Version<&'a str> {
 
 impl Version<String> {
     /// Create an owned [`Version`] from a given string with or without an [`Operator`].
-    pub fn new(s: &str) -> crate::Result<Self> {
+    pub fn try_new(s: &str) -> crate::Result<Self> {
         Version::parse(s).into_owned()
     }
 
     /// Create an owned [`Version`] with an [`Operator`].
-    pub fn new_with_op(s: &str) -> crate::Result<Self> {
+    pub fn try_new_with_op(s: &str) -> crate::Result<Self> {
         Version::parse_with_op(s).into_owned()
     }
 
     /// Create an owned [`Version`] without an [`Operator`].
-    pub fn new_without_op(s: &str) -> crate::Result<Self> {
+    pub fn try_new_without_op(s: &str) -> crate::Result<Self> {
         Version::parse_without_op(s).into_owned()
     }
 }
@@ -770,7 +770,7 @@ impl FromStr for Version<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Self::new(s)
+        Self::try_new(s)
     }
 }
 
@@ -841,7 +841,7 @@ mod tests {
         for s in &TEST_DATA.version_toml.invalid {
             let result = Version::parse(s);
             assert!(result.is_err(), "{s:?} is valid");
-            let result = Version::new(s);
+            let result = Version::try_new(s);
             assert!(result.is_err(), "{s:?} didn't fail");
         }
 
@@ -849,31 +849,31 @@ mod tests {
         for s in &TEST_DATA.version_toml.valid {
             let result = Version::parse(s);
             assert!(result.is_ok(), "{s:?} is invalid");
-            let result = Version::new(s);
+            let result = Version::try_new(s);
             assert!(result.is_ok(), "{s:?} failed");
             assert_eq!(result.unwrap().to_string(), s.as_str());
         }
 
         // forced with and without operators
         assert!(Version::parse_with_op(">1").is_ok());
-        assert!(Version::new_with_op(">1").is_ok());
+        assert!(Version::try_new_with_op(">1").is_ok());
         assert!(Version::parse_with_op("1").is_err());
-        assert!(Version::new_with_op("1").is_err());
+        assert!(Version::try_new_with_op("1").is_err());
         assert!(Version::parse_without_op(">1").is_err());
-        assert!(Version::new_without_op(">1").is_err());
+        assert!(Version::try_new_without_op(">1").is_err());
         assert!(Version::parse_without_op("1").is_ok());
-        assert!(Version::new_without_op("1").is_ok());
+        assert!(Version::try_new_without_op("1").is_ok());
     }
 
     #[test]
     fn ver_op() {
-        let ver = Version::new("1").unwrap();
+        let ver = Version::try_new("1").unwrap();
         assert!(ver.op().is_none());
         let ver = Version::parse("1").unwrap();
         assert!(ver.op().is_none());
 
         for op in Operator::iter() {
-            let ver = Version::new("1").unwrap().with_op(op).unwrap();
+            let ver = Version::try_new("1").unwrap().with_op(op).unwrap();
             assert_eq!(ver.op(), Some(op));
             let ver = Version::parse("1").unwrap().with_op(op).unwrap();
             assert_eq!(ver.op(), Some(op));
@@ -885,11 +885,11 @@ mod tests {
         // invalid
         for s in ["a", "a1", "1.1", ".1"] {
             assert!(s.parse::<Revision<_>>().is_err());
-            assert!(Revision::new(s).is_err());
+            assert!(Revision::try_new(s).is_err());
         }
 
         // empty
-        let rev = Revision::new("").unwrap();
+        let rev = Revision::try_new("").unwrap();
         assert_eq!(rev, 0);
         assert_eq!(0, rev);
         assert_eq!(rev, "");
@@ -898,7 +898,7 @@ mod tests {
         assert_eq!(rev.to_string(), "");
 
         // simple integer
-        let rev1 = Revision::new("1").unwrap();
+        let rev1 = Revision::try_new("1").unwrap();
         assert_eq!(rev1, 1);
         assert_eq!(1, rev1);
         assert_eq!(rev1, "1");
@@ -906,7 +906,7 @@ mod tests {
         assert_eq!(rev1.to_string(), "1");
 
         // zero prefixes are technically allowed
-        let rev2 = Revision::new("01").unwrap();
+        let rev2 = Revision::try_new("01").unwrap();
         assert_eq!(rev2, 1);
         assert_eq!(1, rev2);
         assert_eq!(rev2, "01");
@@ -923,9 +923,9 @@ mod tests {
                 .collect();
 
         for (expr, (s1, op, s2)) in TEST_DATA.version_toml.compares() {
-            let v1_owned = Version::new(s1).unwrap();
+            let v1_owned = Version::try_new(s1).unwrap();
             let v1_borrowed = Version::parse(s1).unwrap();
-            let v2_owned = Version::new(s2).unwrap();
+            let v2_owned = Version::try_new(s2).unwrap();
             let v2_borrowed = Version::parse(s2).unwrap();
             if op == "!=" {
                 assert_ne!(v1_owned, v2_owned, "failed comparing: {expr}");
@@ -994,9 +994,9 @@ mod tests {
                 .permutations(2)
                 .map(|val| val.into_iter().collect_tuple().unwrap());
             for (s1, s2) in permutations {
-                let v1_owned = Version::new(s1).unwrap();
+                let v1_owned = Version::try_new(s1).unwrap();
                 let v1_borrowed = Version::parse(s1).unwrap();
-                let v2_owned = Version::new(s2).unwrap();
+                let v2_owned = Version::try_new(s2).unwrap();
                 let v2_borrowed = Version::parse(s2).unwrap();
 
                 // self intersection

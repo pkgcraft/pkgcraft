@@ -93,7 +93,7 @@ impl<'a, S: Stringable> ToRef<'a> for Slot<S> {
 
 impl Slot<String> {
     /// Create a new Slot from a given string.
-    pub fn new(s: &str) -> crate::Result<Self> {
+    pub fn try_new(s: &str) -> crate::Result<Self> {
         parse::slot(s).into_owned()
     }
 }
@@ -186,7 +186,7 @@ impl<S: Stringable> fmt::Display for SlotDep<S> {
 
 impl SlotDep<String> {
     /// Create a new SlotDep from a given string.
-    pub fn new(s: &str) -> crate::Result<Self> {
+    pub fn try_new(s: &str) -> crate::Result<Self> {
         parse::slot_dep(s).into_owned()
     }
 }
@@ -195,7 +195,7 @@ impl FromStr for SlotDep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Self::new(s)
+        Self::try_new(s)
     }
 }
 
@@ -276,7 +276,7 @@ impl FromStr for Dep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Self::new(s)
+        Self::try_new(s)
     }
 }
 
@@ -293,12 +293,12 @@ type DepKey<'a, S> = (
 
 impl Dep<String> {
     /// Create a new Dep from a given string using the default EAPI.
-    pub fn new(s: &str) -> crate::Result<Self> {
+    pub fn try_new(s: &str) -> crate::Result<Self> {
         parse::dep(s, Default::default())
     }
 
     /// Create a new unversioned Dep from a given string.
-    pub fn new_cpn(s: &str) -> crate::Result<Self> {
+    pub fn try_new_cpn(s: &str) -> crate::Result<Self> {
         parse::cpn(s).into_owned()
     }
 
@@ -869,9 +869,9 @@ mod tests {
                 .collect();
 
         for (expr, (s1, op, s2)) in TEST_DATA.dep_toml.compares() {
-            let d1_owned = Dep::new(s1).unwrap();
+            let d1_owned = Dep::try_new(s1).unwrap();
             let d1_borrowed = Dep::parse(s1, None).unwrap();
-            let d2_owned = Dep::new(s2).unwrap();
+            let d2_owned = Dep::try_new(s2).unwrap();
             let d2_borrowed = Dep::parse(s2, None).unwrap();
             if op == "!=" {
                 assert_ne!(d1_owned, d2_owned, "failed comparing: {expr}");
@@ -932,7 +932,7 @@ mod tests {
     #[test]
     fn intersects() {
         // inject version intersects data from version.toml into Dep objects
-        let dep = Dep::new("a/b").unwrap();
+        let dep = Dep::try_new("a/b").unwrap();
         for d in &TEST_DATA.version_toml.intersects {
             // test intersections between all pairs of distinct values
             let permutations = d
@@ -968,9 +968,9 @@ mod tests {
                 .permutations(2)
                 .map(|val| val.into_iter().collect_tuple().unwrap());
             for (s1, s2) in permutations {
-                let obj1_owned = CpvOrDep::new(s1).unwrap();
+                let obj1_owned = CpvOrDep::try_new(s1).unwrap();
                 let obj1_borrowed = CpvOrDep::parse(s1).unwrap();
-                let obj2_owned = CpvOrDep::new(s2).unwrap();
+                let obj2_owned = CpvOrDep::try_new(s2).unwrap();
                 let obj2_borrowed = CpvOrDep::parse(s2).unwrap();
 
                 // self intersection
@@ -1004,7 +1004,7 @@ mod tests {
 
     #[test]
     fn without() {
-        let dep = Dep::new("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]").unwrap();
+        let dep = Dep::try_new("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]").unwrap();
 
         for (field, expected) in [
             (DepField::Blocker, ">=cat/pkg-1.2-r3:4/5=::repo[a,b]"),
@@ -1016,30 +1016,30 @@ mod tests {
             let d = dep.without([field]).unwrap();
             let s = d.to_string();
             assert_eq!(&s, expected);
-            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+            assert_eq!(d.as_ref(), &Dep::try_new(&s).unwrap());
         }
 
         // remove all fields
         let d = dep.without(DepField::optional()).unwrap();
         let s = d.to_string();
         assert_eq!(&s, "cat/pkg");
-        assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+        assert_eq!(d.as_ref(), &Dep::try_new(&s).unwrap());
 
         // verify all combinations of dep fields create valid deps
         for vals in DepField::optional().powerset() {
             let d = dep.without(vals).unwrap();
             let s = d.to_string();
-            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+            assert_eq!(d.as_ref(), &Dep::try_new(&s).unwrap());
         }
 
         // no changes returns a borrowed dep
-        let dep = Dep::new("cat/pkg").unwrap();
+        let dep = Dep::try_new("cat/pkg").unwrap();
         matches!(dep.without([DepField::Version]).unwrap(), Cow::Borrowed(_));
     }
 
     #[test]
     fn modify() {
-        let dep = Dep::new("!!>=cat/pkg-1.2-r3:4::repo[a,b]").unwrap();
+        let dep = Dep::try_new("!!>=cat/pkg-1.2-r3:4::repo[a,b]").unwrap();
 
         // modify single fields
         for (field, val, expected) in [
@@ -1058,7 +1058,7 @@ mod tests {
             let d = dep.modify([(field, Some(val))]).unwrap();
             let s = d.to_string();
             assert_eq!(&s, expected);
-            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+            assert_eq!(d.as_ref(), &Dep::try_new(&s).unwrap());
         }
 
         // remove all optional fields
@@ -1094,14 +1094,14 @@ mod tests {
         for vals in fields.into_iter().powerset() {
             let d = dep.modify(vals).unwrap();
             let s = d.to_string();
-            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+            assert_eq!(d.as_ref(), &Dep::try_new(&s).unwrap());
         }
 
         // verify all combinations of removing optional dep fields create valid deps
         for vals in DepField::optional().powerset() {
             let d = dep.modify(vals.into_iter().map(|f| (f, None))).unwrap();
             let s = d.to_string();
-            assert_eq!(d.as_ref(), &Dep::new(&s).unwrap());
+            assert_eq!(d.as_ref(), &Dep::try_new(&s).unwrap());
         }
 
         // invalid values
@@ -1114,7 +1114,7 @@ mod tests {
         assert!(dep.modify([(DepField::Repo, Some("pkg-1a-1"))]).is_err());
 
         // no changes returns a borrowed dep
-        let dep = Dep::new("cat/pkg").unwrap();
+        let dep = Dep::try_new("cat/pkg").unwrap();
         let d = dep.modify([(DepField::Category, Some("cat"))]).unwrap();
         assert!(matches!(d, Cow::Borrowed(_)));
         let d = dep.modify([(DepField::Version, None)]).unwrap();

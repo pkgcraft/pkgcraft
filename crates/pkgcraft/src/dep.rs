@@ -1187,7 +1187,7 @@ mod tests {
 
     #[test]
     fn dependency_contains() {
-        let dep = Dep::new("cat/pkg").unwrap();
+        let dep = Dep::try_new("cat/pkg").unwrap();
         let spec = Dependency::from_str("cat/pkg").unwrap();
         for s in ["( cat/pkg )", "u? ( cat/pkg )"] {
             let d: Dependency<String, Dep<_>> = s.parse().unwrap();
@@ -1233,7 +1233,7 @@ mod tests {
 
     #[test]
     fn dependency_set_contains() {
-        let dep = Dep::new("cat/pkg").unwrap();
+        let dep = Dep::try_new("cat/pkg").unwrap();
         let spec = Dependency::from_str("cat/pkg").unwrap();
         for s in ["cat/pkg", "a/b cat/pkg"] {
             let set: DependencySet<String, Dep<_>> = s.parse().unwrap();

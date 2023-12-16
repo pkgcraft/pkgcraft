@@ -145,11 +145,11 @@ mod tests {
         assert!(!repo.contains("cat/pkg"));
 
         // versioned dep
-        let cpv = Cpv::new("cat/pkg-0").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-0").unwrap();
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let a = Dep::new("cat/pkg").unwrap();
+        let a = Dep::try_new("cat/pkg").unwrap();
         assert!(!repo.contains(&a));
     }
 

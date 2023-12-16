@@ -19,7 +19,7 @@ pub struct Eclass {
 }
 
 impl Eclass {
-    pub(crate) fn new(path: &Utf8Path) -> crate::Result<Self> {
+    pub(crate) fn try_new(path: &Utf8Path) -> crate::Result<Self> {
         if let (Some(name), Some("eclass")) = (path.file_stem(), path.extension()) {
             let data = fs::read(path)
                 .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;

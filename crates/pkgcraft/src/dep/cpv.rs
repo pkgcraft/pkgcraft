@@ -32,7 +32,7 @@ impl<'a> IntoOwned for CpvOrDep<&'a str> {
 
 impl CpvOrDep<String> {
     /// Create an owned [`CpvOrDep`] from a given string.
-    pub fn new(s: &str) -> crate::Result<Self> {
+    pub fn try_new(s: &str) -> crate::Result<Self> {
         CpvOrDep::parse(s).into_owned()
     }
 }
@@ -54,7 +54,7 @@ impl FromStr for CpvOrDep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Self::new(s)
+        Self::try_new(s)
     }
 }
 
@@ -146,7 +146,7 @@ impl<'a> ToRef<'a> for Cpv<String> {
 
 impl Cpv<String> {
     /// Create an owned [`Cpv`] from a given string.
-    pub fn new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+    pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
         Cpv::parse(s.as_ref()).into_owned()
     }
 }
@@ -235,7 +235,7 @@ impl FromStr for Cpv<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Self::new(s)
+        Self::try_new(s)
     }
 }
 
@@ -245,7 +245,7 @@ impl TryFrom<(&str, &str, &str)> for Cpv<String> {
 
     fn try_from(vals: (&str, &str, &str)) -> Result<Self, Self::Error> {
         let (cat, pn, ver) = vals;
-        Cpv::new(format!("{cat}/{pn}-{ver}"))
+        Cpv::try_new(format!("{cat}/{pn}-{ver}"))
     }
 }
 
@@ -293,10 +293,10 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(Cpv::new("cat/pkg-1").is_ok());
-        assert!(Cpv::new("cat/pkg-1a-1").is_err());
-        assert!(Cpv::new("cat/pkg").is_err());
-        assert!(Cpv::new(">=cat/pkg-1").is_err());
+        assert!(Cpv::try_new("cat/pkg-1").is_ok());
+        assert!(Cpv::try_new("cat/pkg-1a-1").is_err());
+        assert!(Cpv::try_new("cat/pkg").is_err());
+        assert!(Cpv::try_new(">=cat/pkg-1").is_err());
     }
 
     #[test]

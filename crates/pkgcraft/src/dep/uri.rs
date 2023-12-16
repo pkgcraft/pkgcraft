@@ -11,7 +11,7 @@ pub struct Uri {
 }
 
 impl Uri {
-    pub(crate) fn new(uri: &str, rename: Option<&str>) -> crate::Result<Self> {
+    pub(crate) fn try_new(uri: &str, rename: Option<&str>) -> crate::Result<Self> {
         let uri = uri.trim();
         let filename = rename.unwrap_or_else(|| match uri.rsplit_once('/') {
             Some((_, filename)) => filename,

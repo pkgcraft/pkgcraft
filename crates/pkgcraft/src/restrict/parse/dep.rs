@@ -281,7 +281,7 @@ mod tests {
             "cat/pkg::repo",
             "cat/pkg::repo-ed",
         ];
-        let deps: Vec<_> = dep_strs.iter().map(|s| Dep::new(s).unwrap()).collect();
+        let deps: Vec<_> = dep_strs.iter().map(|s| Dep::try_new(s).unwrap()).collect();
 
         let filter = |r: BaseRestrict, deps: &[Dep<String>]| -> Vec<String> {
             deps.iter()

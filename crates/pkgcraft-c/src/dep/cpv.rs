@@ -21,7 +21,7 @@ use crate::types::{Cpv, Dep, Version};
 pub unsafe extern "C" fn pkgcraft_cpv_new(s: *const c_char) -> *mut Cpv {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let cpv = unwrap_or_panic!(Cpv::new(s));
+        let cpv = unwrap_or_panic!(Cpv::try_new(s));
         Box::into_raw(Box::new(cpv))
     }
 }

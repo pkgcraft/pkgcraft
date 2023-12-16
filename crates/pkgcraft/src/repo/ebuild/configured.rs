@@ -189,7 +189,7 @@ mod tests {
         t.create_raw_pkg("cat/pkg-2", &[]).unwrap();
 
         // single match via CPV
-        let cpv = Cpv::new("cat/pkg-1").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         let iter = repo.iter_restrict(&cpv);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, [cpv.to_string()]);

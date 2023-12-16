@@ -294,7 +294,7 @@ mod tests {
 
     #[test]
     fn package_trait_attributes() {
-        let cpv = Cpv::new("cat/pkg-1-r2").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
         let r: Repo = fake::Repo::new("b", 0).pkgs([&cpv]).into();
         let pkg = r.iter_restrict(&cpv).next().unwrap();
         assert_eq!(pkg.p(), "pkg-1");

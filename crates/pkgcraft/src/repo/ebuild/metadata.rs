@@ -82,7 +82,7 @@ macro_rules! ordered_set {
 }
 
 impl Config {
-    fn new(repo_path: &Utf8Path) -> crate::Result<Self> {
+    fn try_new(repo_path: &Utf8Path) -> crate::Result<Self> {
         let path = repo_path.join("metadata/layout.conf");
         let ini = Ini::load(&path)?;
 
@@ -170,8 +170,8 @@ impl FromStr for PkgUpdate {
         let tokens: Vec<_> = s.split_whitespace().collect();
         match &tokens[..] {
             ["move", s1, s2] => {
-                let d1 = Dep::new_cpn(s1)?;
-                let d2 = Dep::new_cpn(s2)?;
+                let d1 = Dep::try_new_cpn(s1)?;
+                let d2 = Dep::try_new_cpn(s2)?;
                 Ok(Self::Move(d1, d2))
             }
             ["slotmove", dep, s1, s2] => {
@@ -228,7 +228,7 @@ impl Hash for UseDesc {
 }
 
 impl UseDesc {
-    fn new(name: &str, desc: &str) -> crate::Result<Self> {
+    fn try_new(name: &str, desc: &str) -> crate::Result<Self> {
         Ok(Self {
             name: parse::use_flag(name).map(|s| s.to_string())?,
             desc: desc.to_string(),
@@ -243,7 +243,7 @@ impl FromStr for UseDesc {
         let (flag, desc) = s
             .split_once(" - ")
             .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
-        UseDesc::new(flag, desc)
+        UseDesc::try_new(flag, desc)
     }
 }
 
@@ -275,7 +275,7 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    pub(super) fn new(id: &str, path: &Utf8Path) -> crate::Result<Self> {
+    pub(super) fn try_new(id: &str, path: &Utf8Path) -> crate::Result<Self> {
         let not_a_repo = |err: String| -> Error {
             Error::NotARepo {
                 kind: RepoFormat::Ebuild,
@@ -303,8 +303,8 @@ impl Metadata {
             .try_into()
             .map_err(|e| invalid_repo(format!("profiles/eapi: {e}")))?;
 
-        let config =
-            Config::new(path).map_err(|e| invalid_repo(format!("metadata/layout.conf: {e}")))?;
+        let config = Config::try_new(path)
+            .map_err(|e| invalid_repo(format!("metadata/layout.conf: {e}")))?;
 
         Ok(Self {
             id: id.to_string(),
@@ -398,7 +398,7 @@ impl Metadata {
                     let mut vals: IndexSet<_> = entries
                         .filter_map(|e| e.ok())
                         .filter(is_eclass)
-                        .filter_map(|entry| match Eclass::new(entry.path()) {
+                        .filter_map(|entry| match Eclass::try_new(entry.path()) {
                             Ok(eclass) => Some(eclass),
                             Err(e) => {
                                 error!("{}: {e}", self.id);
@@ -665,7 +665,7 @@ impl Metadata {
             let (cpn, use_desc) = s
                 .split_once(':')
                 .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
-            let dep = Dep::new_cpn(cpn)?;
+            let dep = Dep::try_new_cpn(cpn)?;
             Ok((dep.to_string(), use_desc.parse()?))
         };
 
@@ -704,12 +704,12 @@ mod tests {
 
         // empty config
         fs::write(repo.path().join("metadata/layout.conf"), "").unwrap();
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.config().is_empty());
 
         // invalid config
         fs::write(repo.path().join("metadata/layout.conf"), "data").unwrap();
-        assert!(Metadata::new("test", repo.path()).is_err());
+        assert!(Metadata::try_new("test", repo.path()).is_err());
     }
 
     #[test]
@@ -718,7 +718,7 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // empty
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.config().properties_allowed().is_empty());
         assert!(metadata.config().restrict_allowed().is_empty());
 
@@ -728,7 +728,7 @@ mod tests {
             restrict-allowed = fetch mirror
         "#};
         fs::write(repo.path().join("metadata/layout.conf"), data).unwrap();
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert_unordered_eq(metadata.config().properties_allowed(), ["live", "interactive"]);
         assert_unordered_eq(metadata.config().restrict_allowed(), ["fetch", "mirror"]);
     }
@@ -739,11 +739,11 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.arches().is_empty());
 
         // empty file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "").unwrap();
         assert!(metadata.arches().is_empty());
 
@@ -753,7 +753,7 @@ mod tests {
             arm64
             amd64-linux
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), data).unwrap();
         assert_ordered_eq(metadata.arches(), ["amd64", "arm64", "amd64-linux"]);
     }
@@ -765,37 +765,37 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.arches_desc().is_empty());
 
         // empty file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "").unwrap();
         assert!(metadata.arches_desc().is_empty());
 
         // invalid line format
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "amd64 stable\narm64").unwrap();
         assert!(!metadata.arches_desc().is_empty());
         assert_logs_re!(".+, line 2: invalid line format: .+$");
 
         // unknown arch
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "arm64 stable").unwrap();
         assert!(metadata.arches_desc().is_empty());
         assert_logs_re!(".+, line 1: unknown arch: arm64$");
 
         // unknown status
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64").unwrap();
         fs::write(metadata.path.join("profiles/arches.desc"), "amd64 test").unwrap();
         assert!(metadata.arches_desc().is_empty());
         assert_logs_re!(".+, line 1: unknown status: test$");
 
         // multiple with ignored 3rd column
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64\nppc64").unwrap();
         fs::write(
             metadata.path.join("profiles/arches.desc"),
@@ -814,16 +814,16 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.categories().is_empty());
 
         // empty file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), "").unwrap();
         assert!(metadata.categories().is_empty());
 
         // multiple with invalid entry
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), "cat\nc@t").unwrap();
         assert_ordered_eq(metadata.categories(), ["cat"]);
         assert_logs_re!(".+, line 2: .* invalid category name: c@t$");
@@ -834,7 +834,7 @@ mod tests {
             cat2
             cat-3
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), data).unwrap();
         assert_ordered_eq(metadata.categories(), ["cat1", "cat2", "cat-3"]);
     }
@@ -854,16 +854,16 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent dir
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.licenses().is_empty());
 
         // empty dir
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::create_dir(metadata.path.join("licenses")).unwrap();
         assert!(metadata.licenses().is_empty());
 
         // multiple
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("licenses/L1"), "").unwrap();
         fs::write(metadata.path.join("licenses/L2"), "").unwrap();
         assert_ordered_eq(metadata.licenses(), ["L1", "L2"]);
@@ -876,11 +876,11 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent dir
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.license_groups().is_empty());
 
         // empty file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), "").unwrap();
         assert!(metadata.license_groups().is_empty());
 
@@ -898,7 +898,7 @@ mod tests {
             # comment 2
             set2 a	z
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
         assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["a", "b"]);
         assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a"]);
@@ -912,7 +912,7 @@ mod tests {
             # comment 2
             set2 a c @set1 @set3
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
         assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["b"]);
         assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a", "b", "c"]);
@@ -926,7 +926,7 @@ mod tests {
             set3 c @set2
             set4 c @set4
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
         assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["a", "b"]);
         assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a", "b"]);
@@ -944,11 +944,11 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.mirrors().is_empty());
 
         // empty file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/thirdpartymirrors"), "").unwrap();
         assert!(metadata.mirrors().is_empty());
 
@@ -960,7 +960,7 @@ mod tests {
             # comment 2
             mirror2	http://yet/another/mirror/
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/thirdpartymirrors"), data).unwrap();
         assert_ordered_eq(
             metadata.mirrors().get("mirror1").unwrap(),
@@ -979,11 +979,11 @@ mod tests {
         let repo = config.temp_repo("test1", 0, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.pkg_deprecated().is_empty());
 
         // empty file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), "").unwrap();
         assert!(metadata.pkg_deprecated().is_empty());
 
@@ -998,11 +998,11 @@ mod tests {
             # invalid
             cat/pkg-1
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_deprecated(),
-            [&Dep::new("cat/pkg-a").unwrap(), &Dep::new("another/pkg").unwrap()],
+            [&Dep::try_new("cat/pkg-a").unwrap(), &Dep::try_new("another/pkg").unwrap()],
         );
         assert_logs_re!(".+, line 8: .* invalid dep: cat/pkg-1$");
 
@@ -1015,11 +1015,11 @@ mod tests {
             cat/slotted:0
             cat/subslot:0/1
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_deprecated(),
-            [&Dep::new("cat/slotted:0").unwrap(), &Dep::new("cat/subslot:0/1").unwrap()],
+            [&Dep::try_new("cat/slotted:0").unwrap(), &Dep::try_new("cat/subslot:0/1").unwrap()],
         );
     }
 
@@ -1030,11 +1030,11 @@ mod tests {
         let repo = config.temp_repo("test1", 0, None).unwrap();
 
         // nonexistent file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.pkg_mask().is_empty());
 
         // empty file
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), "").unwrap();
         assert!(metadata.pkg_mask().is_empty());
 
@@ -1049,11 +1049,11 @@ mod tests {
             # invalid
             cat/pkg-1
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_mask(),
-            [&Dep::new("cat/pkg-a").unwrap(), &Dep::new("another/pkg").unwrap()],
+            [&Dep::try_new("cat/pkg-a").unwrap(), &Dep::try_new("another/pkg").unwrap()],
         );
         assert_logs_re!(".+, line 8: .* invalid dep: cat/pkg-1$");
 
@@ -1066,11 +1066,11 @@ mod tests {
             cat/slotted:0
             cat/subslot:0/1
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
         assert_ordered_eq(
             metadata.pkg_mask(),
-            [&Dep::new("cat/slotted:0").unwrap(), &Dep::new("cat/subslot:0/1").unwrap()],
+            [&Dep::try_new("cat/slotted:0").unwrap(), &Dep::try_new("cat/subslot:0/1").unwrap()],
         );
     }
 
@@ -1081,11 +1081,11 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.updates().is_empty());
 
         // empty
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::create_dir_all(metadata.path.join("profiles/updates")).unwrap();
         fs::write(metadata.path.join("profiles/updates/1Q-9999"), "").unwrap();
         assert!(metadata.updates().is_empty());
@@ -1104,7 +1104,7 @@ mod tests {
             # invalid slot
             slotmove >cat/pkg1-5 @ 1
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/updates/1Q-9999"), data).unwrap();
         let updates = metadata.updates();
         assert_eq!(updates.len(), 2);
@@ -1119,11 +1119,11 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.use_desc().is_empty());
 
         // empty
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), "").unwrap();
         assert!(metadata.use_desc().is_empty());
 
@@ -1138,9 +1138,12 @@ mod tests {
             # invalid USE flag
             @c - c flag description
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), data).unwrap();
-        assert_ordered_eq(metadata.use_desc(), [&UseDesc::new("a", "a flag description").unwrap()]);
+        assert_ordered_eq(
+            metadata.use_desc(),
+            [&UseDesc::try_new("a", "a flag description").unwrap()],
+        );
         assert_logs_re!(".+ line 5: invalid format: b: b flag description$");
         assert_logs_re!(".+ line 8: .+?: invalid USE flag: @c$");
     }
@@ -1152,11 +1155,11 @@ mod tests {
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.use_local_desc().is_empty());
 
         // empty
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.local.desc"), "").unwrap();
         assert!(metadata.use_local_desc().is_empty());
 
@@ -1171,11 +1174,11 @@ mod tests {
             # invalid USE flag
             cat/pkg:@c - c flag description
         "#};
-        let metadata = Metadata::new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.local.desc"), data).unwrap();
         assert_ordered_eq(
             metadata.use_local_desc().get("cat/pkg").unwrap(),
-            [&UseDesc::new("a", "a flag description").unwrap()],
+            [&UseDesc::try_new("a", "a flag description").unwrap()],
         );
         assert_logs_re!(".+ line 5: invalid format: b - b flag description$");
         assert_logs_re!(".+ line 8: .+?: invalid USE flag: @c$");

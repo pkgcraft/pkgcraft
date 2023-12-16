@@ -20,7 +20,7 @@ use crate::types::{Revision, Version};
 pub unsafe extern "C" fn pkgcraft_revision_new(s: *const c_char) -> *mut Revision {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let rev = unwrap_or_panic!(Revision::new(s));
+        let rev = unwrap_or_panic!(Revision::try_new(s));
         Box::into_raw(Box::new(rev))
     }
 }
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn pkgcraft_revision_free(r: *mut Revision) {
 pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut Version {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
-        let ver = unwrap_or_panic!(Version::new(s));
+        let ver = unwrap_or_panic!(Version::try_new(s));
         Box::into_raw(Box::new(ver))
     }
 }

@@ -32,7 +32,7 @@ pub(crate) struct RepoConfig {
 }
 
 impl RepoConfig {
-    fn new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
+    fn try_new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         let data = fs::read_to_string(path)
             .map_err(|e| Error::Config(format!("failed loading repo config {path:?}: {e}")))?;
@@ -96,7 +96,7 @@ impl Config {
                         .filter(|s| !s.starts_with('.'))
                     {
                         // ignore bad configs
-                        match RepoConfig::new(&p) {
+                        match RepoConfig::try_new(&p) {
                             Ok(config) => {
                                 configs.push((name, config));
                             }

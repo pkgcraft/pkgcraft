@@ -15,7 +15,7 @@ const LONG_DOC: &str = "Apply patches to a package's source code.";
 struct PatchFile(Utf8PathBuf);
 
 impl PatchFile {
-    fn new<P: Into<Utf8PathBuf>>(path: P) -> scallop::Result<Self> {
+    fn try_new<P: Into<Utf8PathBuf>>(path: P) -> scallop::Result<Self> {
         let path = path.into();
         if path.file_name().is_some() {
             Ok(Self(path))
@@ -72,7 +72,7 @@ fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec
         let dir_patches: scallop::Result<Vec<_>> = path
             .read_dir_utf8()?
             .filter_map(|e| match e {
-                Ok(e) if is_patch(&e) => Some(PatchFile::new(e.into_path())),
+                Ok(e) if is_patch(&e) => Some(PatchFile::try_new(e.into_path())),
                 Ok(_) => None,
                 Err(e) => Some(Err(Error::Base(format!("failed reading patches: {path}: {e}")))),
             })
@@ -88,7 +88,7 @@ fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec
             Ok((Some(path), dir_patches))
         }
     } else if path.exists() {
-        Ok((None, vec![PatchFile::new(path.to_path_buf())?]))
+        Ok((None, vec![PatchFile::try_new(path.to_path_buf())?]))
     } else {
         Err(Error::Base(format!("nonexistent file: {path}")))
     }

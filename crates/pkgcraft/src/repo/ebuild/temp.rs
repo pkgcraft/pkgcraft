@@ -93,7 +93,7 @@ impl Repo {
         data: &[&str],
     ) -> crate::Result<ebuild::raw::Pkg> {
         use Key::*;
-        let cpv = Cpv::new(cpv.as_ref())?;
+        let cpv = Cpv::try_new(cpv.as_ref())?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
@@ -124,7 +124,7 @@ impl Repo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
-        ebuild::raw::Pkg::new(cpv, self.repo())
+        ebuild::raw::Pkg::try_new(cpv, self.repo())
     }
 
     /// Create a [`ebuild::Pkg`] from ebuild field settings.
@@ -139,13 +139,13 @@ impl Repo {
         cpv: S,
         data: &str,
     ) -> crate::Result<ebuild::raw::Pkg> {
-        let cpv = Cpv::new(cpv)?;
+        let cpv = Cpv::try_new(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        ebuild::raw::Pkg::new(cpv, self.repo())
+        ebuild::raw::Pkg::try_new(cpv, self.repo())
     }
 
     /// Create a [`ebuild::Pkg`] from an ebuild using raw data.

@@ -5,30 +5,30 @@ use pkgcraft::traits::Intersects;
 
 pub fn bench_pkg_versions(c: &mut Criterion) {
     c.bench_function("version-parse", |b| b.iter(|| Version::parse(">=1.2.3a_beta4-r5")));
-    c.bench_function("version-new", |b| b.iter(|| Version::new("1.2.3_alpha4-r5")));
+    c.bench_function("version-new", |b| b.iter(|| Version::try_new("1.2.3_alpha4-r5")));
 
     c.bench_function("version-cmp-eq", |b| {
-        let v1 = Version::new("1.2.3a_beta4-r5").unwrap();
-        let v2 = Version::new("1.2.3a_beta4-r5").unwrap();
+        let v1 = Version::try_new("1.2.3a_beta4-r5").unwrap();
+        let v2 = Version::try_new("1.2.3a_beta4-r5").unwrap();
         b.iter(|| v1 == v2);
     });
 
     c.bench_function("version-cmp-lt", |b| {
-        let v1 = Version::new("1.2.3a_beta4-r4").unwrap();
-        let v2 = Version::new("1.2.3a_beta5-r5").unwrap();
+        let v1 = Version::try_new("1.2.3a_beta4-r4").unwrap();
+        let v2 = Version::try_new("1.2.3a_beta5-r5").unwrap();
         b.iter(|| v1 < v2);
     });
 
     c.bench_function("version-intersects", |b| {
-        let v1 = Version::new(">=1.2.3").unwrap();
-        let v2 = Version::new("=1.2*").unwrap();
+        let v1 = Version::try_new(">=1.2.3").unwrap();
+        let v2 = Version::try_new("=1.2*").unwrap();
         b.iter(|| v1.intersects(&v2));
     });
 
     c.bench_function("version-cmp-sort-simple", |b| {
         let mut versions: Vec<_> = (0..100)
             .rev()
-            .map(|s| Version::new(&format!("{}", s)).unwrap())
+            .map(|s| Version::try_new(&format!("{}", s)).unwrap())
             .collect();
         b.iter(|| versions.sort());
     });
@@ -59,7 +59,7 @@ pub fn bench_pkg_versions(c: &mut Criterion) {
         ]
         .into_iter()
         .rev()
-        .map(|s| Version::new(s).unwrap())
+        .map(|s| Version::try_new(s).unwrap())
         .collect();
         b.iter(|| versions.sort());
     });

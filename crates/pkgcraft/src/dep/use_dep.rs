@@ -105,7 +105,7 @@ impl FromStr for UseDep<String> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        Self::new(s)
+        Self::try_new(s)
     }
 }
 
@@ -113,7 +113,7 @@ impl FromStr for SortedSet<UseDep<String>> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        s.split(',').map(UseDep::new).collect()
+        s.split(',').map(UseDep::try_new).collect()
     }
 }
 
@@ -146,7 +146,7 @@ impl<S: Stringable> UseDep<S> {
 
 impl UseDep<String> {
     /// Create a new UseDep from a given string.
-    pub fn new(s: &str) -> crate::Result<Self> {
+    pub fn try_new(s: &str) -> crate::Result<Self> {
         parse::use_dep(s).into_owned()
     }
 }

@@ -214,7 +214,7 @@ impl Repo {
 
         Ok(Self {
             config,
-            metadata: Metadata::new(id.as_ref(), path)?,
+            metadata: Metadata::try_new(id.as_ref(), path)?,
             ..Default::default()
         })
     }
@@ -401,7 +401,7 @@ impl Repo {
         let p = file
             .strip_suffix(".ebuild")
             .ok_or_else(|| err("missing ebuild ext"))?;
-        Cpv::new(format!("{cat}/{p}"))
+        Cpv::try_new(format!("{cat}/{p}"))
             .map_err(|_| err("invalid CPV"))
             .and_then(|a| {
                 if a.package() == pkg {
@@ -516,7 +516,7 @@ impl Repo {
     ) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv<String>| {
-            let pkg = ebuild::raw::Pkg::new(cpv, self)?;
+            let pkg = ebuild::raw::Pkg::try_new(cpv, self)?;
             pkg.regen()
         };
         let pool = PoolSendIter::new(bounded_jobs(jobs), func, suppress)?;
@@ -749,7 +749,7 @@ impl PkgRepository for Repo {
             let pf = path.file_stem().unwrap().to_str();
             if let (Some(pn), Some(pf)) = (pn, pf) {
                 if pn == &pf[..pn.len()] {
-                    match Version::new(&pf[pn.len() + 1..]) {
+                    match Version::try_new(&pf[pn.len() + 1..]) {
                         Ok(v) => {
                             versions.insert(v);
                         }
@@ -865,7 +865,7 @@ impl<'a> Iterator for IterRaw<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for cpv in &mut self.iter {
-            match ebuild::raw::Pkg::new(cpv, self.repo) {
+            match ebuild::raw::Pkg::try_new(cpv, self.repo) {
                 Ok(pkg) => return Some(pkg),
                 Err(e) => warn!("{}: {e}", self.repo.id()),
             }
@@ -1119,7 +1119,7 @@ mod tests {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
-        let ver = |s: &str| Version::new(s).unwrap();
+        let ver = |s: &str| Version::try_new(s).unwrap();
 
         assert!(repo.versions("cat", "pkg").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
@@ -1158,15 +1158,15 @@ mod tests {
         assert!(!repo.contains("pkg-1.ebuild"));
 
         // cpv
-        let cpv = Cpv::new("cat/pkg-1").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = Cpv::new("cat/pkg-2").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-2").unwrap();
         assert!(!repo.contains(&cpv));
 
         // unversioned dep
-        let d = Dep::new("cat/pkg").unwrap();
+        let d = Dep::try_new("cat/pkg").unwrap();
         assert!(repo.contains(&d));
-        let d = Dep::new("cat/pkg-a").unwrap();
+        let d = Dep::try_new("cat/pkg-a").unwrap();
         assert!(!repo.contains(&d));
     }
 
@@ -1194,7 +1194,7 @@ mod tests {
         t.create_raw_pkg("cat/pkg-2", &[]).unwrap();
 
         // single match via CPV
-        let cpv = Cpv::new("cat/pkg-1").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         let iter = repo.iter_restrict(&cpv);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, [cpv.to_string()]);
