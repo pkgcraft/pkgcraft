@@ -239,7 +239,7 @@ peg::parser!(grammar depspec() for str {
             };
             let use_dep = UseDep { kind, flag: flag.to_string(), default: None };
             let deps = vals.into_iter().map(Box::new).collect();
-            Dependency::UseConditional(use_dep, deps)
+            Dependency::Conditional(use_dep, deps)
         }
 
     rule exactly_one_of<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>

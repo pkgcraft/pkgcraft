@@ -310,7 +310,7 @@ pub enum DependencyKind {
     AnyOf,
     ExactlyOneOf,
     AtMostOneOf,
-    UseConditional,
+    Conditional,
 }
 
 impl<S: Stringable, T: Ordered> From<&dep::Dependency<S, T>> for DependencyKind {
@@ -323,7 +323,7 @@ impl<S: Stringable, T: Ordered> From<&dep::Dependency<S, T>> for DependencyKind 
             AnyOf(_) => Self::AnyOf,
             ExactlyOneOf(_) => Self::ExactlyOneOf,
             AtMostOneOf(_) => Self::AtMostOneOf,
-            UseConditional(_, _) => Self::UseConditional,
+            Conditional(_, _) => Self::Conditional,
         }
     }
 }
@@ -1181,7 +1181,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_evaluate_force(
     }
 }
 
-/// Return the conditional UseDep for a Dependency.
+/// Return the conditional for a Dependency.
 ///
 /// Returns NULL if the Dependency variant isn't conditional.
 ///
@@ -1195,9 +1195,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_conditional(
 
     use DependencyWrapper::*;
     let use_dep = match d.deref() {
-        Dep(dep::Dependency::UseConditional(u, _)) => Some(u.clone().into()),
-        String(dep::Dependency::UseConditional(u, _)) => Some(u.clone().into()),
-        Uri(dep::Dependency::UseConditional(u, _)) => Some(u.clone().into()),
+        Dep(dep::Dependency::Conditional(u, _)) => Some(u.clone().into()),
+        String(dep::Dependency::Conditional(u, _)) => Some(u.clone().into()),
+        Uri(dep::Dependency::Conditional(u, _)) => Some(u.clone().into()),
         _ => None,
     };
 

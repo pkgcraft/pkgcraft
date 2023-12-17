@@ -117,8 +117,8 @@ pub enum Dependency<S: Stringable, T: Ordered> {
     ExactlyOneOf(OrderedSet<Box<Dependency<S, T>>>),
     /// At most one of a given dependency set (REQUIRED_USE only).
     AtMostOneOf(OrderedSet<Box<Dependency<S, T>>>),
-    /// USE conditional dependency.
-    UseConditional(UseDep<S>, SortedSet<Box<Dependency<S, T>>>),
+    /// Conditional dependency.
+    Conditional(UseDep<S>, SortedSet<Box<Dependency<S, T>>>),
 }
 
 macro_rules! box_owned {
@@ -153,7 +153,7 @@ impl<T: Ordered> IntoOwned for Dependency<&str, &T> {
             AnyOf(vals) => AnyOf(box_owned!(vals)),
             ExactlyOneOf(vals) => ExactlyOneOf(box_owned!(vals)),
             AtMostOneOf(vals) => AtMostOneOf(box_owned!(vals)),
-            UseConditional(u, vals) => UseConditional(u.into_owned(), box_owned!(vals)),
+            Conditional(u, vals) => Conditional(u.into_owned(), box_owned!(vals)),
         }
     }
 }
@@ -179,7 +179,7 @@ impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<String, T> {
             AnyOf(ref vals) => AnyOf(box_ref!(vals)),
             ExactlyOneOf(ref vals) => ExactlyOneOf(box_ref!(vals)),
             AtMostOneOf(ref vals) => AtMostOneOf(box_ref!(vals)),
-            UseConditional(u, ref vals) => UseConditional(u.to_ref(), box_ref!(vals)),
+            Conditional(u, ref vals) => Conditional(u.to_ref(), box_ref!(vals)),
         }
     }
 }
@@ -193,7 +193,7 @@ impl<S: Stringable, T: Ordered> Dependency<S, T> {
             AnyOf(vals) => vals.is_empty(),
             ExactlyOneOf(vals) => vals.is_empty(),
             AtMostOneOf(vals) => vals.is_empty(),
-            UseConditional(_, vals) => vals.is_empty(),
+            Conditional(_, vals) => vals.is_empty(),
         }
     }
 
@@ -207,7 +207,7 @@ impl<S: Stringable, T: Ordered> Dependency<S, T> {
             AnyOf(vals) => vals.len(),
             ExactlyOneOf(vals) => vals.len(),
             AtMostOneOf(vals) => vals.len(),
-            UseConditional(_, vals) => vals.len(),
+            Conditional(_, vals) => vals.len(),
         }
     }
 
@@ -232,7 +232,7 @@ impl<S: Stringable, T: Ordered> Dependency<S, T> {
         use Dependency::*;
         match self {
             AllOf(vals) => *vals = sort_set!(vals).collect(),
-            UseConditional(_, vals) => *vals = sort_set!(vals).collect(),
+            Conditional(_, vals) => *vals = sort_set!(vals).collect(),
             _ => (),
         }
     }
@@ -256,7 +256,7 @@ impl<S: Stringable, T: Ordered> Contains<&Self> for Dependency<S, T> {
             AnyOf(vals) => vals.contains(dep),
             ExactlyOneOf(vals) => vals.contains(dep),
             AtMostOneOf(vals) => vals.contains(dep),
-            UseConditional(_, vals) => vals.contains(dep),
+            Conditional(_, vals) => vals.contains(dep),
         }
     }
 }
@@ -279,7 +279,7 @@ impl<'a, S: Stringable, T: Ordered> IntoIterator for &'a Dependency<S, T> {
             AnyOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
             ExactlyOneOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
             AtMostOneOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
-            UseConditional(_, vals) => vals.iter().map(AsRef::as_ref).collect(),
+            Conditional(_, vals) => vals.iter().map(AsRef::as_ref).collect(),
         }
     }
 }
@@ -360,7 +360,7 @@ impl<S: Stringable, T: Ordered> IntoIterator for Dependency<S, T> {
             AnyOf(vals) => vals.into_iter().map(|x| *x).collect(),
             ExactlyOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
             AtMostOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            UseConditional(_, vals) => vals.into_iter().map(|x| *x).collect(),
+            Conditional(_, vals) => vals.into_iter().map(|x| *x).collect(),
         }
     }
 }
@@ -429,7 +429,7 @@ impl<S: Stringable, T: Display + Ordered> Display for Dependency<S, T> {
             AnyOf(vals) => write!(f, "|| ( {} )", p!(vals)),
             ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p!(vals)),
             AtMostOneOf(vals) => write!(f, "?? ( {} )", p!(vals)),
-            UseConditional(u, vals) => write!(f, "{u} ( {} )", p!(vals)),
+            Conditional(u, vals) => write!(f, "{u} ( {} )", p!(vals)),
         }
     }
 }
@@ -847,7 +847,7 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterEvaluate<'a, S, T> {
                 AnyOf(vals) => iter_eval!(AnyOf, vals, self.options),
                 ExactlyOneOf(vals) => iter_eval!(ExactlyOneOf, vals, self.options),
                 AtMostOneOf(vals) => iter_eval!(AtMostOneOf, vals, self.options),
-                UseConditional(u, vals) => {
+                Conditional(u, vals) => {
                     if u.matches(self.options) {
                         self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
                     }
@@ -893,7 +893,7 @@ impl<'a, T: Ordered> Iterator for IterEvaluateForce<'a, T> {
                 AnyOf(vals) => iter_eval_force!(AnyOf, vals, self.force),
                 ExactlyOneOf(vals) => iter_eval_force!(ExactlyOneOf, vals, self.force),
                 AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
-                UseConditional(_, vals) => {
+                Conditional(_, vals) => {
                     if self.force {
                         self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
                     }
@@ -919,7 +919,7 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterFlatten<'a, S, T> {
                 AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseConditional(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                Conditional(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
             }
         }
         None
@@ -1004,7 +1004,7 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
                 AnyOf(vals) => iter_eval!(AnyOf, vals, self.options),
                 ExactlyOneOf(vals) => iter_eval!(ExactlyOneOf, vals, self.options),
                 AtMostOneOf(vals) => iter_eval!(AtMostOneOf, vals, self.options),
-                UseConditional(u, vals) => {
+                Conditional(u, vals) => {
                     if u.matches(self.options) {
                         self.q.extend_left(vals.into_iter().map(|x| *x));
                     }
@@ -1034,7 +1034,7 @@ impl<'a, T: Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
                 AnyOf(vals) => iter_eval_force!(AnyOf, vals, self.force),
                 ExactlyOneOf(vals) => iter_eval_force!(ExactlyOneOf, vals, self.force),
                 AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
-                UseConditional(_, vals) => {
+                Conditional(_, vals) => {
                     if self.force {
                         self.q.extend_left(vals.into_iter().map(|x| *x));
                     }
@@ -1060,7 +1060,7 @@ impl<S: Stringable, T: Ordered> Iterator for IntoIterFlatten<S, T> {
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                UseConditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                Conditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
             }
         }
         None
@@ -1083,7 +1083,7 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterRecursive<'a, S, T> {
                 AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseConditional(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                Conditional(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
             }
         }
 
@@ -1107,7 +1107,7 @@ impl<S: Stringable, T: Ordered> Iterator for IntoIterRecursive<S, T> {
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
-                UseConditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
+                Conditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
             }
         }
 
@@ -1130,7 +1130,7 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterConditionals<'a, S, T> {
                 AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                UseConditional(u, vals) => {
+                Conditional(u, vals) => {
                     self.0.extend_left(vals.iter().map(AsRef::as_ref));
                     return Some(u);
                 }
@@ -1155,7 +1155,7 @@ impl<S: Stringable, T: Ordered> Iterator for IntoIterConditionals<S, T> {
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                UseConditional(u, vals) => {
+                Conditional(u, vals) => {
                     self.0.extend_left(vals.into_iter().map(|x| *x));
                     return Some(u);
                 }
