@@ -230,7 +230,7 @@ peg::parser!(grammar depspec() for str {
         = "||" __ vals:parens(<expr()>)
         { Dependency::AnyOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule use_cond<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
+    rule conditional<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
         = disabled:"!"? flag:use_flag() "?" __ vals:parens(<expr()>) {
             let kind = if disabled.is_none() {
                 UseDepKind::EnabledConditional
@@ -251,13 +251,13 @@ peg::parser!(grammar depspec() for str {
         { Dependency::AtMostOneOf(vals.into_iter().map(Box::new).collect()) }
 
     pub(super) rule license_dependency() -> Dependency<String, String>
-        = use_cond(<license_dependency()>)
+        = conditional(<license_dependency()>)
         / any_of(<license_dependency()>)
         / all_of(<license_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
     pub(super) rule src_uri_dependency(eapi: &'static Eapi) -> Dependency<String, Uri>
-        = use_cond(<src_uri_dependency(eapi)>)
+        = conditional(<src_uri_dependency(eapi)>)
         / all_of(<src_uri_dependency(eapi)>)
         / s:$(quiet!{!")" _+}) rename:(__ "->" __ s:$(_+) {s})? {?
             let uri = Uri::try_new(s, rename).map_err(|_| "invalid URI")?;
@@ -267,12 +267,12 @@ peg::parser!(grammar depspec() for str {
     // Technically RESTRICT tokens have no restrictions, but license
     // restrictions are currently used in order to properly parse use restrictions.
     pub(super) rule properties_dependency() -> Dependency<String, String>
-        = use_cond(<properties_dependency()>)
+        = conditional(<properties_dependency()>)
         / all_of(<properties_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
     pub(super) rule required_use_dependency(eapi: &'static Eapi) -> Dependency<String, String>
-        = use_cond(<required_use_dependency(eapi)>)
+        = conditional(<required_use_dependency(eapi)>)
         / any_of(<required_use_dependency(eapi)>)
         / all_of(<required_use_dependency(eapi)>)
         / exactly_one_of(<required_use_dependency(eapi)>)
@@ -283,12 +283,12 @@ peg::parser!(grammar depspec() for str {
     // Technically RESTRICT tokens have no restrictions, but license
     // restrictions are currently used in order to properly parse use restrictions.
     pub(super) rule restrict_dependency() -> Dependency<String, String>
-        = use_cond(<restrict_dependency()>)
+        = conditional(<restrict_dependency()>)
         / all_of(<restrict_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
     pub(super) rule package_dependency(eapi: &'static Eapi) -> Dependency<String, Dep<String>>
-        = use_cond(<package_dependency(eapi)>)
+        = conditional(<package_dependency(eapi)>)
         / any_of(<package_dependency(eapi)>)
         / all_of(<package_dependency(eapi)>)
         / dep:dep(eapi) { Dependency::Enabled(dep.into_owned()) }
