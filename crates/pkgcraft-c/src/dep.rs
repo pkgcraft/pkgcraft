@@ -24,6 +24,7 @@ use crate::utils::boxed;
 pub mod cpv;
 pub mod pkg;
 pub mod uri;
+pub mod use_dep;
 pub mod version;
 
 /// DependencySet variants.
@@ -1187,7 +1188,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_evaluate_force(
 /// # Safety
 /// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dependency_conditional(d: *mut Dependency) -> *mut pkg::UseDep {
+pub unsafe extern "C" fn pkgcraft_dependency_conditional(
+    d: *mut Dependency,
+) -> *mut use_dep::UseDep {
     let d = try_ref_from_ptr!(d);
 
     use DependencyWrapper::*;
@@ -1494,7 +1497,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals_next(
     i: *mut DependencyIntoIterConditionals,
-) -> *mut pkg::UseDep {
+) -> *mut use_dep::UseDep {
     let iter = try_mut_from_ptr!(i);
     iter.next()
         .map(|x| boxed(x.into()))
