@@ -112,16 +112,23 @@ macro_rules! partial_eq_opt {
 }
 pub(crate) use partial_eq_opt;
 
-// Return Ordering if two Option-wrapped arguments are not equal.
-macro_rules! partial_cmp_opt_not_equal {
+// Return Option<Ordering> for two Option-wrapped arguments.
+macro_rules! partial_cmp_opt {
     ($x:expr, $y:expr) => {
-        let cmp = match ($x, $y) {
+        match ($x, $y) {
             (Some(x), Some(y)) => x.partial_cmp(y),
             (Some(_), None) => Some(Ordering::Greater),
             (None, Some(_)) => Some(Ordering::Less),
             (None, None) => Some(Ordering::Equal),
-        };
-        if let Some(cmp) = cmp {
+        }
+    };
+}
+pub(crate) use partial_cmp_opt;
+
+// Return Ordering if two Option-wrapped arguments are not equal.
+macro_rules! partial_cmp_opt_not_equal {
+    ($x:expr, $y:expr) => {
+        if let Some(cmp) = $crate::macros::partial_cmp_opt!($x, $y) {
             if cmp != Ordering::Equal {
                 return cmp;
             }
@@ -133,13 +140,7 @@ pub(crate) use partial_cmp_opt_not_equal;
 // Return Option<Ordering> if two Option-wrapped arguments are not equal.
 macro_rules! partial_cmp_opt_not_equal_opt {
     ($x:expr, $y:expr) => {
-        let cmp = match ($x, $y) {
-            (Some(x), Some(y)) => x.partial_cmp(y),
-            (Some(_), None) => Some(Ordering::Greater),
-            (None, Some(_)) => Some(Ordering::Less),
-            (None, None) => Some(Ordering::Equal),
-        };
-        if let Some(cmp) = cmp {
+        if let Some(cmp) = $crate::macros::partial_cmp_opt!($x, $y) {
             if cmp != Ordering::Equal {
                 return Some(cmp);
             }

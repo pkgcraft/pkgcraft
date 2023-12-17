@@ -7,7 +7,10 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::macros::{cmp_not_equal, equivalent, partial_cmp_not_equal, partial_eq_opt};
+use crate::macros::{
+    cmp_not_equal, equivalent, partial_cmp_not_equal, partial_cmp_not_equal_opt, partial_cmp_opt,
+    partial_eq_opt,
+};
 use crate::traits::{Intersects, IntoOwned, ToRef};
 use crate::Error;
 
@@ -279,17 +282,8 @@ impl<S1: Stringable, S2: Stringable> PartialEq<Suffix<S1>> for Suffix<S2> {
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<Suffix<S1>> for Suffix<S2> {
     fn partial_cmp(&self, other: &Suffix<S1>) -> Option<Ordering> {
-        if let Some(ord) = self.kind.partial_cmp(&other.kind) {
-            if ord != Ordering::Equal {
-                return Some(ord);
-            }
-        }
-
-        if let (Some(n1), Some(n2)) = (&self.version, &other.version) {
-            n1.partial_cmp(n2)
-        } else {
-            None
-        }
+        partial_cmp_not_equal_opt!(&self.kind, &other.kind);
+        partial_cmp_opt!(&self.version, &other.version)
     }
 }
 
