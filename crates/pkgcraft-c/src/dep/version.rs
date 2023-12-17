@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
+use pkgcraft::dep::version::WithOp;
 use pkgcraft::dep::{self, Operator};
 use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
@@ -113,6 +114,25 @@ pub unsafe extern "C" fn pkgcraft_version_parse(s: *const c_char) -> *const c_ch
 pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> u32 {
     let ver = try_ref_from_ptr!(v);
     ver.op().map(|x| x as u32).unwrap_or_default()
+}
+
+/// Potentially create a new Version by applying an operator.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument must be a non-null Version pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_version_with_op(v: *mut Version, op: Operator) -> *mut Version {
+    ffi_catch_panic! {
+        let ver = try_ref_from_ptr!(v);
+        if ver.op() == Some(op) {
+            v
+        } else {
+            let ver = unwrap_or_panic!(ver.clone().with_op(op));
+            Box::into_raw(Box::new(ver))
+        }
+    }
 }
 
 /// Return a version's base, e.g. the version "1-r2" has a base of "1".
