@@ -64,6 +64,12 @@ impl From<std::ffi::NulError> for Error {
     }
 }
 
+impl From<&str> for Error {
+    fn from(e: &str) -> Self {
+        Error::new(e)
+    }
+}
+
 #[repr(C)]
 pub struct PkgcraftError {
     message: *mut c_char,

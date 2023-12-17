@@ -17,7 +17,7 @@ use crate::Error;
 use super::{parse, Stringable};
 
 /// Modify or create a new type by adding a version operator.
-pub(crate) trait WithOp {
+pub trait WithOp {
     type WithOp;
     fn with_op(self, op: Operator) -> Result<Self::WithOp, &'static str>;
 }

@@ -3,6 +3,7 @@ use std::ffi::{c_char, c_int};
 use std::ptr;
 
 use pkgcraft::dep;
+use pkgcraft::dep::version::{Operator, WithOp};
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
@@ -38,6 +39,21 @@ pub unsafe extern "C" fn pkgcraft_cpv_parse(s: *const c_char) -> *const c_char {
         let val = try_str_from_ptr!(s);
         unwrap_or_panic!(dep::Cpv::parse(val));
         s
+    }
+}
+
+/// Create a Dep from a Cpv by applying a version operator.
+///
+/// Returns NULL on error.
+///
+/// # Safety
+/// The argument must be a non-null Cpv pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_cpv_with_op(c: *mut Cpv, op: Operator) -> *mut Dep {
+    ffi_catch_panic! {
+        let cpv = try_ref_from_ptr!(c);
+        let dep = unwrap_or_panic!(cpv.clone().with_op(op));
+        Box::into_raw(Box::new(dep))
     }
 }
 
