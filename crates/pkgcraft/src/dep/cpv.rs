@@ -14,6 +14,7 @@ use super::pkg::Dep;
 use super::version::{Operator, Revision, Version, WithOp};
 use super::{parse, Stringable};
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub enum CpvOrDep<S: Stringable> {
     Cpv(Cpv<S>),
     Dep(Dep<S>),
@@ -406,22 +407,28 @@ mod tests {
     }
 
     #[test]
-    fn test_cpv_or_dep() {
-        let cpv = Cpv::from_str("cat/pkg-1").unwrap();
-        let dep = Dep::from_str(">=cat/pkg-1").unwrap();
+    fn cpv_or_dep() {
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        let dep = Dep::try_new(">=cat/pkg-1").unwrap();
 
         // valid
         for s in ["cat/pkg", "cat/pkg-1", ">=cat/pkg-1"] {
-            let cpv_or_dep: CpvOrDep<_> = s.parse().unwrap();
-            assert_eq!(cpv_or_dep.to_string(), s);
+            let owned = CpvOrDep::try_new(s).unwrap();
+            let borrowed = CpvOrDep::parse(s).unwrap();
+            assert_eq!(owned.to_string(), s);
+            assert_eq!(borrowed.to_string(), s);
+            assert_eq!(owned, s.parse().unwrap());
             // intersects
-            assert!(cpv_or_dep.intersects(&cpv));
-            assert!(cpv_or_dep.intersects(&dep));
-            assert!(cpv_or_dep.intersects(&cpv_or_dep));
+            assert!(owned.intersects(&cpv));
+            assert!(borrowed.intersects(&cpv));
+            assert!(owned.intersects(&dep));
+            assert!(borrowed.intersects(&dep));
+            assert!(owned.intersects(&owned));
+            assert!(borrowed.intersects(&borrowed));
         }
 
         // invalid
-        assert!(CpvOrDep::from_str("cat/pkg-1a-1").is_err());
-        assert!(CpvOrDep::from_str("cat").is_err());
+        assert!(CpvOrDep::parse("cat/pkg-1a-1").is_err());
+        assert!(CpvOrDep::parse("cat").is_err());
     }
 }
