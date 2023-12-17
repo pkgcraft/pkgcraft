@@ -5,6 +5,7 @@ use std::str::FromStr;
 use indexmap::IndexSet;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
+use crate::macros::{partial_cmp_not_equal_opt, partial_cmp_opt};
 use crate::traits::{IntoOwned, ToRef};
 use crate::types::SortedSet;
 use crate::Error;
@@ -13,7 +14,7 @@ use super::{parse, Stringable};
 
 /// Package USE dependency type.
 #[repr(C)]
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum UseDepKind {
     Enabled,             // cat/pkg[opt]
     Disabled,            // cat/pkg[-opt]
@@ -25,14 +26,14 @@ pub enum UseDepKind {
 
 /// Package USE dependency default when missing.
 #[repr(C)]
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum UseDepDefault {
     Enabled,  // cat/pkg[opt(+)]
     Disabled, // cat/pkg[opt(-)]
 }
 
 /// Package USE dependency.
-#[derive(DeserializeFromStr, SerializeDisplay, Debug, Eq, Hash, Clone)]
+#[derive(DeserializeFromStr, SerializeDisplay, Debug, Eq, Ord, Hash, Clone)]
 pub struct UseDep<S: Stringable> {
     pub(crate) kind: UseDepKind,
     pub(crate) flag: S,
@@ -69,15 +70,11 @@ impl<S1: Stringable, S2: Stringable> PartialEq<UseDep<S1>> for UseDep<S2> {
     }
 }
 
-impl<S: Stringable> Ord for UseDep<S> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.flag.cmp(&other.flag)
-    }
-}
-
 impl<S1: Stringable, S2: Stringable> PartialOrd<UseDep<S1>> for UseDep<S2> {
     fn partial_cmp(&self, other: &UseDep<S1>) -> Option<Ordering> {
-        Some(self.flag().cmp(other.flag()))
+        partial_cmp_not_equal_opt!(self.flag(), other.flag());
+        partial_cmp_not_equal_opt!(&self.kind, &other.kind);
+        partial_cmp_opt!(&self.default, &other.default)
     }
 }
 
