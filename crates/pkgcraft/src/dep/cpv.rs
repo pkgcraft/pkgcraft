@@ -108,8 +108,8 @@ pub struct Cpv<S: Stringable> {
     pub(crate) version: Version<S>,
 }
 
-impl<'a> WithOp for Cpv<&'a str> {
-    type WithOp = Dep<&'a str>;
+impl<S: Stringable> WithOp for Cpv<S> {
+    type WithOp = Dep<S>;
 
     fn with_op(self, op: Operator) -> Result<Self::WithOp, &'static str> {
         Ok(Dep {
