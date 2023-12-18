@@ -705,7 +705,6 @@ equivalent!(Dep);
 mod tests {
     use indexmap::IndexSet;
 
-    use crate::dep::CpvOrDep;
     use crate::eapi::{self, EAPIS};
     use crate::test::TEST_DATA;
     use crate::utils::hash;
@@ -968,10 +967,10 @@ mod tests {
                 .permutations(2)
                 .map(|val| val.into_iter().collect_tuple().unwrap());
             for (s1, s2) in permutations {
-                let obj1_owned = CpvOrDep::try_new(s1).unwrap();
-                let obj1_borrowed = CpvOrDep::parse(s1).unwrap();
-                let obj2_owned = CpvOrDep::try_new(s2).unwrap();
-                let obj2_borrowed = CpvOrDep::parse(s2).unwrap();
+                let obj1_owned = Dep::try_new(s1).unwrap();
+                let obj1_borrowed = Dep::parse(s1, None).unwrap();
+                let obj2_owned = Dep::try_new(s2).unwrap();
+                let obj2_borrowed = Dep::parse(s2, None).unwrap();
 
                 // self intersection
                 assert!(obj1_owned.intersects(&obj1_owned), "{s1} doesn't intersect {s1}");
