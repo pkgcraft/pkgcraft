@@ -3,6 +3,7 @@ use std::io::{self, Write};
 use std::str::FromStr;
 use std::{fmt, fs};
 
+use camino::Utf8Path;
 use itertools::Itertools;
 use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
@@ -244,7 +245,7 @@ impl<'a> Metadata<'a> {
     }
 
     /// Serialize [`Metadata`] to the given package's metadata/md5-cache file in the related repo.
-    pub(crate) fn serialize(pkg: &Pkg) -> crate::Result<()> {
+    pub(crate) fn serialize(pkg: &Pkg, cache_path: &Utf8Path) -> crate::Result<()> {
         // convert raw pkg into metadata via sourcing
         let meta: Metadata = pkg.try_into()?;
         let eapi = pkg.eapi();
@@ -355,11 +356,7 @@ impl<'a> Metadata<'a> {
         }
 
         // determine metadata entry directory
-        let dir = pkg
-            .repo()
-            .metadata()
-            .cache_path()
-            .join(pkg.cpv().category());
+        let dir = cache_path.join(pkg.cpv().category());
 
         // create metadata entry directory
         if !dir.exists() {

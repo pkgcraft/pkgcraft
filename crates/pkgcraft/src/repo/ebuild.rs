@@ -513,11 +513,13 @@ impl Repo {
         force: bool,
         progress: bool,
         suppress: bool,
+        cache_path: Option<&Utf8Path>,
     ) -> crate::Result<()> {
+        let cache_path = cache_path.unwrap_or(self.metadata().cache_path());
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv<String>| {
             let pkg = ebuild::raw::Pkg::try_new(cpv, self)?;
-            pkg.regen()
+            pkg.regen(cache_path)
         };
         let pool = PoolSendIter::new(bounded_jobs(jobs), func, suppress)?;
 
@@ -1283,7 +1285,7 @@ mod tests {
         t.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
         t.create_raw_pkg_from_str("other/pkg-1", data).unwrap();
 
-        repo.pkg_metadata_regen(Some(1), false, false, true)
+        repo.pkg_metadata_regen(Some(1), false, false, true, None)
             .unwrap();
 
         // verify metadata entries
@@ -1305,7 +1307,7 @@ mod tests {
         assert_eq!(entries.len(), 5);
         fs::remove_dir_all(repo.path().join("other")).unwrap();
         fs::remove_file(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
-        repo.pkg_metadata_regen(Some(1), false, false, true)
+        repo.pkg_metadata_regen(Some(1), false, false, true, None)
             .unwrap();
         let entries: Vec<_> = WalkDir::new(repo.metadata().cache_path())
             .min_depth(1)
@@ -1334,7 +1336,7 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = repo.pkg_metadata_regen(None, false, false, true);
+        let r = repo.pkg_metadata_regen(None, false, false, true, None);
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

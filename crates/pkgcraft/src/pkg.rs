@@ -1,5 +1,6 @@
 use std::fmt;
 
+use camino::Utf8Path;
 use enum_as_inner::EnumAsInner;
 use scallop::ExecStatus;
 
@@ -90,7 +91,7 @@ pub trait Source: Package {
 
 pub(crate) trait Regen: Package {
     /// Generate metadata for a package.
-    fn regen(&self) -> scallop::Result<()>;
+    fn regen(&self, cache_path: &Utf8Path) -> scallop::Result<()>;
 }
 
 macro_rules! make_pkg_traits {

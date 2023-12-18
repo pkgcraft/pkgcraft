@@ -1,6 +1,7 @@
 use std::fs;
 use std::os::fd::AsRawFd;
 
+use camino::Utf8Path;
 use scallop::pool::redirect_output;
 use scallop::{functions, Error, ExecStatus};
 use tempfile::NamedTempFile;
@@ -91,8 +92,8 @@ impl<'a> Source for ebuild::Pkg<'a> {
 }
 
 impl<'a> Regen for ebuild::raw::Pkg<'a> {
-    fn regen(&self) -> scallop::Result<()> {
-        Ok(Metadata::serialize(self).map_err(|e| self.invalid_pkg_err(e))?)
+    fn regen(&self, cache_path: &Utf8Path) -> scallop::Result<()> {
+        Ok(Metadata::serialize(self, cache_path).map_err(|e| self.invalid_pkg_err(e))?)
     }
 }
 
