@@ -1,10 +1,12 @@
 use std::{env, fs};
 
+use camino::Utf8Path;
 use indexmap::IndexMap;
 use pkgcraft::repo::{ebuild::temp::Repo as TempRepo, Repository};
 use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
+use tempfile::tempdir;
 use walkdir::WalkDir;
 
 use crate::predicates::lines_contain;
@@ -217,15 +219,15 @@ fn data_content() {
     let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
 
     // determine metadata file content
-    let metadata_content = || {
-        WalkDir::new(repo.metadata().cache_path())
+    let metadata_content = |cache_path: &Utf8Path| {
+        WalkDir::new(cache_path)
             .sort_by_file_name()
             .min_depth(2)
             .max_depth(2)
             .into_iter()
             .filter_map(|e| e.ok())
             .map(|e| {
-                let short_path = e.path().strip_prefix(repo.metadata().cache_path()).unwrap();
+                let short_path = e.path().strip_prefix(cache_path).unwrap();
                 let data = fs::read_to_string(e.path()).unwrap();
                 (short_path.to_path_buf(), data)
             })
@@ -233,21 +235,25 @@ fn data_content() {
     };
 
     // record expected metadata file content
-    let expected: IndexMap<_, _> = metadata_content();
-    // wipe metadata
-    fs::remove_dir_all(repo.metadata().cache_path()).unwrap();
+    let expected: IndexMap<_, _> = metadata_content(repo.metadata().cache_path());
 
     // regenerate metadata
-    cmd("pk repo metadata")
-        .arg(repo.path())
-        .assert()
-        .stdout("")
-        .stderr("")
-        .success();
+    for opt in ["-p", "--path"] {
+        let dir = tempdir().unwrap();
+        let cache_path = Utf8Path::from_path(dir.path()).unwrap();
 
-    // verify new data matches original
-    let new: IndexMap<_, _> = metadata_content();
-    for (cpv, data) in new {
-        assert_unordered_eq(expected.get(&cpv).unwrap().lines(), data.lines());
+        cmd("pk repo metadata")
+            .args([opt, cache_path.as_str()])
+            .arg(repo.path())
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+
+        // verify new data matches original
+        let new: IndexMap<_, _> = metadata_content(cache_path);
+        for (cpv, data) in new {
+            assert_unordered_eq(expected.get(&cpv).unwrap().lines(), data.lines());
+        }
     }
 }
