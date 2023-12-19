@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::Hash;
@@ -90,6 +91,12 @@ impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for CpvOrDep<S2> {
     }
 }
 
+impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for Cpv<S2> {
+    fn intersects(&self, other: &CpvOrDep<S1>) -> bool {
+        other.intersects(self)
+    }
+}
+
 impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for CpvOrDep<S2> {
     fn intersects(&self, other: &Dep<S1>) -> bool {
         use CpvOrDep::*;
@@ -97,6 +104,28 @@ impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for CpvOrDep<S2> {
             (Cpv(obj1), obj2) => obj1.intersects(obj2),
             (Dep(obj1), obj2) => obj1.intersects(obj2),
         }
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for Dep<S2> {
+    fn intersects(&self, other: &CpvOrDep<S1>) -> bool {
+        other.intersects(self)
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> Intersects<Cow<'_, Dep<S1>>> for CpvOrDep<S2> {
+    fn intersects(&self, other: &Cow<'_, Dep<S1>>) -> bool {
+        use CpvOrDep::*;
+        match (self, other) {
+            (Cpv(obj1), obj2) => obj1.intersects(obj2),
+            (Dep(obj1), obj2) => obj1.intersects(obj2),
+        }
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for Cow<'_, Dep<S2>> {
+    fn intersects(&self, other: &CpvOrDep<S1>) -> bool {
+        other.intersects(self)
     }
 }
 
@@ -401,8 +430,11 @@ mod tests {
 
     #[test]
     fn cpv_or_dep() {
-        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
-        let dep = Dep::try_new(">=cat/pkg-1").unwrap();
+        let cpv_owned = Cpv::try_new("cat/pkg-1").unwrap();
+        let cpv_borrowed = Cpv::parse("cat/pkg-1").unwrap();
+        let dep_owned = Dep::try_new(">=cat/pkg-1").unwrap();
+        let dep_borrowed = Dep::parse(">=cat/pkg-1", None).unwrap();
+        let dep_cow = dep_owned.without([]).unwrap();
 
         // valid
         for s in ["cat/pkg", "cat/pkg-1", ">=cat/pkg-1"] {
@@ -411,13 +443,36 @@ mod tests {
             assert_eq!(owned.to_string(), s);
             assert_eq!(borrowed.to_string(), s);
             assert_eq!(owned, s.parse().unwrap());
-            // intersects
-            assert!(owned.intersects(&cpv));
-            assert!(borrowed.intersects(&cpv));
-            assert!(owned.intersects(&dep));
-            assert!(borrowed.intersects(&dep));
+
+            // intersects with itself
             assert!(owned.intersects(&owned));
             assert!(borrowed.intersects(&borrowed));
+            assert!(owned.intersects(&borrowed));
+            assert!(borrowed.intersects(&owned));
+
+            // intersects with Cpv
+            assert!(owned.intersects(&cpv_owned));
+            assert!(owned.intersects(&cpv_borrowed));
+            assert!(borrowed.intersects(&cpv_owned));
+            assert!(borrowed.intersects(&cpv_borrowed));
+            assert!(cpv_owned.intersects(&owned));
+            assert!(cpv_owned.intersects(&borrowed));
+            assert!(cpv_borrowed.intersects(&owned));
+            assert!(cpv_borrowed.intersects(&borrowed));
+
+            // intersects with Dep
+            assert!(owned.intersects(&dep_owned));
+            assert!(owned.intersects(&dep_borrowed));
+            assert!(owned.intersects(&dep_cow));
+            assert!(borrowed.intersects(&dep_owned));
+            assert!(borrowed.intersects(&dep_borrowed));
+            assert!(borrowed.intersects(&dep_cow));
+            assert!(dep_owned.intersects(&owned));
+            assert!(dep_owned.intersects(&borrowed));
+            assert!(dep_borrowed.intersects(&owned));
+            assert!(dep_borrowed.intersects(&borrowed));
+            assert!(dep_cow.intersects(&owned));
+            assert!(dep_cow.intersects(&borrowed));
         }
 
         // invalid
