@@ -16,6 +16,8 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use serde::{Deserialize, Deserializer};
 
+use crate::macros::partial_cmp_not_equal_opt;
+
 pub trait Ordered: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 impl<T> Ordered for T where T: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 
@@ -147,15 +149,32 @@ impl<T: Ordered> Ord for SortedSet<T> {
     }
 }
 
-impl<T: Ordered> PartialOrd for SortedSet<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+impl<T1, T2> PartialOrd<SortedSet<T1>> for SortedSet<T2>
+where
+    T1: Ordered,
+    T2: Ordered + PartialOrd<T1>,
+{
+    fn partial_cmp(&self, other: &SortedSet<T1>) -> Option<Ordering> {
+        let mut self_iter = self.iter().sorted();
+        let mut other_iter = other.iter().sorted();
+        loop {
+            match (self_iter.next(), other_iter.next()) {
+                (Some(v1), Some(v2)) => partial_cmp_not_equal_opt!(v1, v2),
+                (Some(_), None) => return Some(Ordering::Greater),
+                (None, Some(_)) => return Some(Ordering::Less),
+                (None, None) => return Some(Ordering::Equal),
+            }
+        }
     }
 }
 
-impl<T: Ordered> PartialEq for SortedSet<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
+impl<T1, T2> PartialEq<SortedSet<T1>> for SortedSet<T2>
+where
+    T1: Ordered,
+    T2: Ordered + PartialOrd<T1>,
+{
+    fn eq(&self, other: &SortedSet<T1>) -> bool {
+        self.partial_cmp(other) == Some(Ordering::Equal)
     }
 }
 
