@@ -60,6 +60,11 @@ impl<S: Stringable> Number<S> {
     pub(crate) fn as_str(&self) -> &str {
         self.raw.as_ref()
     }
+
+    /// Determine if a Number starts with another Number using string representation.
+    fn starts_with<T: Stringable>(&self, other: &Number<T>) -> bool {
+        self.as_str().starts_with(other.as_str())
+    }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Number<S1>> for Number<S2> {
@@ -169,6 +174,11 @@ impl<S: Stringable> Revision<S> {
     /// Return the raw string value for a revision.
     pub fn as_str(&self) -> &str {
         self.0.as_str()
+    }
+
+    /// Determine if a Revision starts with another Revision using string representation.
+    fn starts_with<T: Stringable>(&self, other: &Revision<T>) -> bool {
+        self.0.starts_with(&other.0)
     }
 }
 
@@ -475,7 +485,7 @@ impl<S: Stringable> Version<S> {
         loop {
             match (v1_numbers.next(), v2_numbers.next()) {
                 (Some(n1), Some(n2)) => {
-                    if !n1.as_str().starts_with(n2.as_str()) {
+                    if !n1.starts_with(n2) {
                         return false;
                     }
                 }
@@ -515,7 +525,7 @@ impl<S: Stringable> Version<S> {
                     // compare suffix versions
                     match (&s1.version, &s2.version) {
                         (Some(v1), Some(v2)) => {
-                            if !v1.as_str().starts_with(v2.as_str()) {
+                            if !v1.starts_with(v2) {
                                 return false;
                             }
                         }
@@ -534,7 +544,7 @@ impl<S: Stringable> Version<S> {
         }
 
         // compare revisions
-        match (self.revision().map(|r| r.as_str()), other.revision().map(|r| r.as_str())) {
+        match (self.revision(), other.revision()) {
             (Some(r1), Some(r2)) if unmatched || !r1.starts_with(r2) => false,
             (None, Some(_)) => false,
             _ => true,
