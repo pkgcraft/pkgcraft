@@ -260,7 +260,7 @@ impl<S1: Stringable, S2: Stringable> PartialEq<Cow<'_, Dep<S1>>> for Dep<S2> {
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Dep<S1>> for Cow<'_, Dep<S2>> {
     fn eq(&self, other: &Dep<S1>) -> bool {
-        other == self
+        dep_cmp(self, other) == Ordering::Equal
     }
 }
 
@@ -292,7 +292,7 @@ impl<S1: Stringable, S2: Stringable> PartialOrd<Cow<'_, Dep<S1>>> for Dep<S2> {
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<Dep<S1>> for Cow<'_, Dep<S2>> {
     fn partial_cmp(&self, other: &Dep<S1>) -> Option<Ordering> {
-        other.partial_cmp(self)
+        Some(dep_cmp(self, other))
     }
 }
 
