@@ -648,13 +648,39 @@ impl<S: Stringable> fmt::Display for Dep<S> {
 }
 
 /// Determine if a package dependency intersects with a Cpv.
+fn dep_intersects_cpv<S1, S2>(dep: &Dep<S1>, cpv: &Cpv<S2>) -> bool
+where
+    S1: Stringable,
+    S2: Stringable,
+{
+    bool_not_equal!(dep.category(), cpv.category());
+    bool_not_equal!(dep.package(), cpv.package());
+    dep.version()
+        .map(|v| v.intersects(cpv.version()))
+        .unwrap_or(true)
+}
+
 impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for Dep<S2> {
     fn intersects(&self, other: &Cpv<S1>) -> bool {
-        bool_not_equal!(&self.category(), &other.category());
-        bool_not_equal!(&self.package(), &other.package());
-        self.version()
-            .map(|v| v.intersects(other.version()))
-            .unwrap_or(true)
+        dep_intersects_cpv(self, other)
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Cpv<S2> {
+    fn intersects(&self, other: &Dep<S1>) -> bool {
+        dep_intersects_cpv(other, self)
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for Cow<'_, Dep<S2>> {
+    fn intersects(&self, other: &Cpv<S1>) -> bool {
+        dep_intersects_cpv(self, other)
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> Intersects<Cow<'_, Dep<S1>>> for Cpv<S2> {
+    fn intersects(&self, other: &Cow<'_, Dep<S1>>) -> bool {
+        dep_intersects_cpv(other, self)
     }
 }
 

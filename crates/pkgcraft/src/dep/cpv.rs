@@ -263,13 +263,6 @@ impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for Cpv<S2> {
     }
 }
 
-/// Determine if a Cpv intersects with a package dependency.
-impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Cpv<S2> {
-    fn intersects(&self, other: &Dep<S1>) -> bool {
-        other.intersects(self)
-    }
-}
-
 impl TryFrom<&str> for Cpv<String> {
     type Error = Error;
 
