@@ -880,50 +880,78 @@ mod tests {
         for (expr, (s1, op, s2)) in TEST_DATA.dep_toml.compares() {
             let d1_owned = Dep::try_new(s1).unwrap();
             let d1_borrowed = Dep::parse(s1, None).unwrap();
+            let d1_cow = d1_owned.without([]).unwrap();
             let d2_owned = Dep::try_new(s2).unwrap();
             let d2_borrowed = Dep::parse(s2, None).unwrap();
+            let d2_cow = d2_owned.without([]).unwrap();
             if op == "!=" {
-                assert_ne!(d1_owned, d2_owned, "failed comparing: {expr}");
-                assert_ne!(d1_borrowed, d2_borrowed, "failed comparing: {expr}");
-                assert_ne!(d1_owned, d2_borrowed, "failed comparing: {expr}");
-                assert_ne!(d1_borrowed, d2_owned, "failed comparing: {expr}");
-                assert_ne!(d2_owned, d1_owned, "failed comparing: {expr}");
-                assert_ne!(d2_borrowed, d1_borrowed, "failed comparing: {expr}");
-                assert_ne!(d2_owned, d1_borrowed, "failed comparing: {expr}");
-                assert_ne!(d2_borrowed, d1_owned, "failed comparing: {expr}");
+                // lhs != rhs
+                assert_ne!(d1_owned, d2_owned, "failed: {expr}");
+                assert_ne!(d1_borrowed, d2_borrowed, "failed: {expr}");
+                assert_ne!(d1_cow, d2_cow, "failed: {expr}");
+                assert_ne!(d1_owned, d2_borrowed, "failed: {expr}");
+                assert_ne!(d1_owned, d2_cow, "failed: {expr}");
+                assert_ne!(d1_borrowed, d2_owned, "failed: {expr}");
+                assert_ne!(d1_borrowed, d2_cow, "failed: {expr}");
+                assert_ne!(d1_cow, d2_owned, "failed: {expr}");
+                assert_ne!(d1_cow, d2_borrowed, "failed: {expr}");
+
+                // rhs != lhs
+                assert_ne!(d2_owned, d1_owned, "failed: {expr}");
+                assert_ne!(d2_borrowed, d1_borrowed, "failed: {expr}");
+                assert_ne!(d2_cow, d1_cow, "failed: {expr}");
+                assert_ne!(d2_owned, d1_borrowed, "failed: {expr}");
+                assert_ne!(d2_owned, d1_cow, "failed: {expr}");
+                assert_ne!(d2_borrowed, d1_owned, "failed: {expr}");
+                assert_ne!(d2_borrowed, d1_cow, "failed: {expr}");
+                assert_ne!(d2_cow, d1_owned, "failed: {expr}");
+                assert_ne!(d2_cow, d1_borrowed, "failed: {expr}");
             } else {
                 let op = op_map[op];
-                assert_eq!(d1_owned.cmp(&d2_owned), op, "failed comparing: {expr}");
-                assert_eq!(d1_borrowed.cmp(&d2_borrowed), op, "failed comparing: {expr}");
-                assert_eq!(
-                    d1_owned.partial_cmp(&d2_borrowed),
-                    Some(op),
-                    "failed comparing: {expr}"
-                );
-                assert_eq!(
-                    d1_borrowed.partial_cmp(&d2_owned),
-                    Some(op),
-                    "failed comparing: {expr}"
-                );
-                assert_eq!(
-                    d2_owned.cmp(&d1_owned),
-                    op.reverse(),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    d2_borrowed.cmp(&d1_borrowed),
-                    op.reverse(),
-                    "failed comparing inverted: {expr}"
-                );
+                // like types
+                assert_eq!(d1_owned.cmp(&d2_owned), op, "failed: {expr}");
+                assert_eq!(d2_owned.cmp(&d1_owned), op.reverse(), "failed inverted: {expr}");
+                assert_eq!(d1_borrowed.cmp(&d2_borrowed), op, "failed: {expr}");
+                assert_eq!(d2_borrowed.cmp(&d1_borrowed), op.reverse(), "failed inverted: {expr}");
+                assert_eq!(d1_cow.cmp(&d2_cow), op, "failed: {expr}");
+                assert_eq!(d2_cow.cmp(&d1_cow), op.reverse(), "failed inverted: {expr}");
+
+                // different types
+                assert_eq!(d1_owned.partial_cmp(&d2_borrowed), Some(op), "failed: {expr}");
+                assert_eq!(d1_owned.partial_cmp(&d2_cow), Some(op), "failed: {expr}");
+                assert_eq!(d1_borrowed.partial_cmp(&d2_owned), Some(op), "failed: {expr}");
+                assert_eq!(d1_borrowed.partial_cmp(&d2_cow), Some(op), "failed: {expr}");
+                assert_eq!(d1_cow.partial_cmp(&d2_owned), Some(op), "failed: {expr}");
+                assert_eq!(d1_cow.partial_cmp(&d2_borrowed), Some(op), "failed: {expr}");
                 assert_eq!(
                     d2_owned.partial_cmp(&d1_borrowed),
                     Some(op.reverse()),
-                    "failed comparing inverted: {expr}"
+                    "failed inverted: {expr}"
+                );
+                assert_eq!(
+                    d2_owned.partial_cmp(&d1_cow),
+                    Some(op.reverse()),
+                    "failed inverted: {expr}"
                 );
                 assert_eq!(
                     d2_borrowed.partial_cmp(&d1_owned),
                     Some(op.reverse()),
-                    "failed comparing inverted: {expr}"
+                    "failed inverted: {expr}"
+                );
+                assert_eq!(
+                    d2_borrowed.partial_cmp(&d1_cow),
+                    Some(op.reverse()),
+                    "failed inverted: {expr}"
+                );
+                assert_eq!(
+                    d2_cow.partial_cmp(&d1_owned),
+                    Some(op.reverse()),
+                    "failed inverted: {expr}"
+                );
+                assert_eq!(
+                    d2_cow.partial_cmp(&d1_borrowed),
+                    Some(op.reverse()),
+                    "failed inverted: {expr}"
                 );
 
                 // verify the following property holds since both Hash and Eq are implemented:
@@ -931,8 +959,13 @@ mod tests {
                 if op == Ordering::Equal {
                     assert_eq!(hash(&d1_owned), hash(&d2_owned), "failed hash: {expr}");
                     assert_eq!(hash(&d1_borrowed), hash(&d2_borrowed), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_cow), hash(&d2_cow), "failed hash: {expr}");
                     assert_eq!(hash(&d1_owned), hash(&d2_borrowed), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_owned), hash(&d2_cow), "failed hash: {expr}");
                     assert_eq!(hash(&d1_borrowed), hash(&d2_owned), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_borrowed), hash(&d2_cow), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_cow), hash(&d2_owned), "failed hash: {expr}");
+                    assert_eq!(hash(&d1_cow), hash(&d2_borrowed), "failed hash: {expr}");
                 }
             }
         }
