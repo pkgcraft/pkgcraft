@@ -252,6 +252,18 @@ impl<S1: Stringable, S2: Stringable> PartialEq<Dep<S1>> for Dep<S2> {
     }
 }
 
+impl<S: Stringable> PartialEq<Cow<'_, Dep<String>>> for Dep<S> {
+    fn eq(&self, other: &Cow<'_, Dep<String>>) -> bool {
+        dep_cmp(self, other) == Ordering::Equal
+    }
+}
+
+impl<S: Stringable> PartialEq<Dep<S>> for Cow<'_, Dep<String>> {
+    fn eq(&self, other: &Dep<S>) -> bool {
+        other == self
+    }
+}
+
 impl<S: Stringable> Eq for Dep<S> {}
 
 impl<S: Stringable> Hash for Dep<S> {
