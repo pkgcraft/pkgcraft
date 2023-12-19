@@ -10,7 +10,7 @@ use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
 use crate::macros::{
-    bool_not_equal, cmp_not_equal, equivalent, partial_cmp_not_equal, partial_cmp_opt_not_equal,
+    bool_not_equal, cmp_not_equal, equivalent, partial_cmp_opt_not_equal,
     partial_cmp_opt_not_equal_opt,
 };
 use crate::traits::{Intersects, IntoOwned, ToRef};
@@ -590,28 +590,8 @@ where
     partial_cmp_opt_not_equal!(&d1.version, &d2.version);
     cmp_not_equal!(&d1.blocker, &d2.blocker);
     partial_cmp_opt_not_equal!(&d1.slot, &d2.slot);
-
-    // compare USE dependencies
-    match (&d1.use_deps, &d2.use_deps) {
-        (Some(use1), Some(use2)) => {
-            let mut u1_iter = use1.iter().sorted();
-            let mut u2_iter = use2.iter().sorted();
-            loop {
-                match (u1_iter.next(), u2_iter.next()) {
-                    (Some(u1), Some(u2)) => partial_cmp_not_equal!(u1, u2),
-                    (Some(_), None) => return Ordering::Greater,
-                    (None, Some(_)) => return Ordering::Less,
-                    (None, None) => break,
-                }
-            }
-        }
-        (Some(_), None) => return Ordering::Greater,
-        (None, Some(_)) => return Ordering::Less,
-        (None, None) => (),
-    }
-
+    partial_cmp_opt_not_equal!(&d1.use_deps, &d2.use_deps);
     cmp_not_equal!(&d1.repo(), &d2.repo());
-
     Ordering::Equal
 }
 
