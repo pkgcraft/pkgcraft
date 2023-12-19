@@ -1064,18 +1064,30 @@ mod tests {
             for (s1, s2) in permutations {
                 let obj1_owned = Dep::try_new(s1).unwrap();
                 let obj1_borrowed = Dep::parse(s1, None).unwrap();
+                let obj1_cow = obj1_owned.without([]).unwrap();
                 let obj2_owned = Dep::try_new(s2).unwrap();
                 let obj2_borrowed = Dep::parse(s2, None).unwrap();
+                let obj2_cow = obj2_owned.without([]).unwrap();
 
                 // self intersection
                 assert!(obj1_owned.intersects(&obj1_owned), "{s1} doesn't intersect {s1}");
                 assert!(obj1_borrowed.intersects(&obj1_borrowed), "{s1} doesn't intersect {s1}");
+                assert!(obj1_cow.intersects(&obj1_cow), "{s1} doesn't intersect {s1}");
                 assert!(obj1_owned.intersects(&obj1_borrowed), "{s1} doesn't intersect {s1}");
+                assert!(obj1_owned.intersects(&obj1_cow), "{s1} doesn't intersect {s1}");
                 assert!(obj1_borrowed.intersects(&obj1_owned), "{s1} doesn't intersect {s1}");
+                assert!(obj1_borrowed.intersects(&obj1_cow), "{s1} doesn't intersect {s1}");
+                assert!(obj1_cow.intersects(&obj1_owned), "{s1} doesn't intersect {s1}");
+                assert!(obj1_cow.intersects(&obj1_borrowed), "{s1} doesn't intersect {s1}");
                 assert!(obj2_owned.intersects(&obj2_owned), "{s2} doesn't intersect {s2}");
                 assert!(obj2_borrowed.intersects(&obj2_borrowed), "{s2} doesn't intersect {s2}");
+                assert!(obj2_cow.intersects(&obj2_cow), "{s2} doesn't intersect {s2}");
                 assert!(obj2_owned.intersects(&obj2_borrowed), "{s2} doesn't intersect {s2}");
+                assert!(obj2_owned.intersects(&obj2_cow), "{s2} doesn't intersect {s2}");
                 assert!(obj2_borrowed.intersects(&obj2_owned), "{s2} doesn't intersect {s2}");
+                assert!(obj2_borrowed.intersects(&obj2_cow), "{s2} doesn't intersect {s2}");
+                assert!(obj2_cow.intersects(&obj2_owned), "{s2} doesn't intersect {s2}");
+                assert!(obj2_cow.intersects(&obj2_borrowed), "{s2} doesn't intersect {s2}");
 
                 // intersects depending on status
                 if d.status {
@@ -1084,13 +1096,23 @@ mod tests {
                         obj1_borrowed.intersects(&obj2_borrowed),
                         "{s1} doesn't intersect {s2}"
                     );
+                    assert!(obj1_cow.intersects(&obj2_cow), "{s1} doesn't intersect {s2}");
                     assert!(obj1_owned.intersects(&obj2_borrowed), "{s1} doesn't intersect {s2}");
+                    assert!(obj1_owned.intersects(&obj2_cow), "{s1} doesn't intersect {s2}");
                     assert!(obj1_borrowed.intersects(&obj2_owned), "{s1} doesn't intersect {s2}");
+                    assert!(obj1_borrowed.intersects(&obj2_cow), "{s1} doesn't intersect {s2}");
+                    assert!(obj1_cow.intersects(&obj2_owned), "{s1} doesn't intersect {s2}");
+                    assert!(obj1_cow.intersects(&obj2_borrowed), "{s1} doesn't intersect {s2}");
                 } else {
                     assert!(!obj1_owned.intersects(&obj2_owned), "{s1} intersects {s2}");
                     assert!(!obj1_borrowed.intersects(&obj2_borrowed), "{s1} intersects {s2}");
+                    assert!(!obj1_cow.intersects(&obj2_cow), "{s1} intersects {s2}");
                     assert!(!obj1_owned.intersects(&obj2_borrowed), "{s1} intersects {s2}");
+                    assert!(!obj1_owned.intersects(&obj2_cow), "{s1} intersects {s2}");
                     assert!(!obj1_borrowed.intersects(&obj2_owned), "{s1} intersects {s2}");
+                    assert!(!obj1_borrowed.intersects(&obj2_cow), "{s1} intersects {s2}");
+                    assert!(!obj1_cow.intersects(&obj2_owned), "{s1} intersects {s2}");
+                    assert!(!obj1_cow.intersects(&obj2_borrowed), "{s1} intersects {s2}");
                 }
             }
         }
