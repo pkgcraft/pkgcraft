@@ -76,7 +76,7 @@ impl PhaseKind {
 }
 
 #[derive(Copy, Clone)]
-pub(crate) struct Phase {
+pub struct Phase {
     kind: PhaseKind,
     func: Option<BuildFn>,
 }
@@ -128,6 +128,12 @@ impl Hash for Phase {
 impl Borrow<PhaseKind> for Phase {
     fn borrow(&self) -> &PhaseKind {
         &self.kind
+    }
+}
+
+impl Borrow<str> for Phase {
+    fn borrow(&self) -> &str {
+        self.short_name()
     }
 }
 

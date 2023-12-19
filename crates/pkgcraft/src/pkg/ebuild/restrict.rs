@@ -29,7 +29,6 @@ pub enum Restrict {
     Restrict(Option<DepSetRestrict<StrRestrict>>),
     SrcUri(Option<DepSetRestrict<StrRestrict>>),
     Homepage(Option<OrderedSetRestrict<String, StrRestrict>>),
-    DefinedPhases(Option<OrderedSetRestrict<String, StrRestrict>>),
     Iuse(Option<OrderedSetRestrict<String, StrRestrict>>),
     LongDescription(Option<StrRestrict>),
     Maintainers(Option<OrderedRestrict<MaintainerRestrict>>),
@@ -169,10 +168,6 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for Restrict {
                 _ => false,
             },
             Homepage(r) => match (r, pkg.homepage()) {
-                (Some(r), strings) => r.matches(strings),
-                (None, strings) => strings.is_empty(),
-            },
-            DefinedPhases(r) => match (r, pkg.defined_phases()) {
                 (Some(r), strings) => r.matches(strings),
                 (None, strings) => strings.is_empty(),
             },

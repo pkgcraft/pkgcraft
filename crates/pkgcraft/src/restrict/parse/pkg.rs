@@ -55,7 +55,6 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
         "restrict" => Restrict(None),
         "src_uri" => SrcUri(None),
         "homepage" => Homepage(None),
-        "defined_phases" => DefinedPhases(None),
         "iuse" => Iuse(None),
         "long_description" => LongDescription(None),
         "maintainers" => Maintainers(None),
@@ -92,7 +91,6 @@ peg::parser!(grammar restrict() for str {
             / "restrict"
             / "src_uri"
             / "homepage"
-            / "defined_phases"
             / "iuse"
             / "long_description"
             / "maintainers"
@@ -253,7 +251,6 @@ peg::parser!(grammar restrict() for str {
     rule attr_orderedset_str() -> BaseRestrict
         = attr:$((
                 "homepage"
-                / "defined_phases"
                 / "iuse"
             )) op:set_ops() vals:quoted_string_set()
         {

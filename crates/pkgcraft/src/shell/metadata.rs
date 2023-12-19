@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{self, Write};
 use std::str::FromStr;
 use std::{fmt, fs};
@@ -19,6 +19,7 @@ use crate::types::OrderedSet;
 use crate::Error;
 
 use super::get_build_mut;
+use super::phase::Phase;
 
 #[derive(
     AsRefStr, EnumString, Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
@@ -165,7 +166,7 @@ pub(crate) struct Metadata<'a> {
     restrict: DependencySet<String, String>,
     src_uri: DependencySet<String, Uri>,
     homepage: OrderedSet<String>,
-    defined_phases: OrderedSet<String>,
+    defined_phases: HashSet<&'a Phase>,
     keywords: OrderedSet<Keyword<String>>,
     iuse: OrderedSet<Iuse<String>>,
     inherit: OrderedSet<&'a Eclass>,
@@ -188,6 +189,12 @@ impl<'a> Metadata<'a> {
                 .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {name}")))
         };
 
+        let phase = |name: &str| -> crate::Result<&Phase> {
+            eapi.phases()
+                .get(name)
+                .ok_or_else(|| Error::InvalidValue(format!("nonexistent phase: {name}")))
+        };
+
         use Key::*;
         match key {
             CHKSUM => self.chksum = val.to_string(),
@@ -205,7 +212,10 @@ impl<'a> Metadata<'a> {
             SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val, eapi)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
             DEFINED_PHASES => {
-                self.defined_phases = val.split_whitespace().map(String::from).sorted().collect()
+                self.defined_phases = val
+                    .split_whitespace()
+                    .map(phase)
+                    .collect::<crate::Result<HashSet<_>>>()?
             }
             KEYWORDS => {
                 self.keywords = val
@@ -319,7 +329,12 @@ impl<'a> Metadata<'a> {
                     if meta.defined_phases.is_empty() {
                         writeln!(&mut data, "{key}=-")?;
                     } else {
-                        let val = meta.defined_phases.iter().join(" ");
+                        let val = meta
+                            .defined_phases
+                            .iter()
+                            .map(|p| p.short_name())
+                            .sorted()
+                            .join(" ");
                         writeln!(&mut data, "{key}={val}")?;
                     }
                 }
@@ -505,7 +520,7 @@ impl<'a> Metadata<'a> {
         &self.homepage
     }
 
-    pub(crate) fn defined_phases(&self) -> &OrderedSet<String> {
+    pub(crate) fn defined_phases(&self) -> &HashSet<&Phase> {
         &self.defined_phases
     }
 
@@ -551,8 +566,7 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
                     meta.defined_phases = eapi
                         .phases()
                         .iter()
-                        .filter_map(|p| functions::find(p).map(|_| p.short_name().to_string()))
-                        .sorted()
+                        .filter(|p| functions::find(p).is_some())
                         .collect();
                 }
                 INHERIT => meta.inherit = build.inherit.iter().copied().collect(),

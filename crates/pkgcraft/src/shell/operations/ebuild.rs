@@ -37,7 +37,7 @@ impl<'a> Pretend for ebuild::Pkg<'a> {
 
         let phase = op.phases[0];
 
-        if !self.defined_phases().contains(phase.short_name()) {
+        if !self.defined_phases().contains(&phase) {
             // phase function is undefined
             return Ok(None);
         }

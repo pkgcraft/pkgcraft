@@ -11,6 +11,7 @@ use crate::eapi::Eapi;
 use crate::repo::ebuild::{Eclass, Repo};
 use crate::repo::Repository;
 use crate::shell::metadata::{Iuse, Key, Keyword, Metadata};
+use crate::shell::phase::Phase;
 use crate::traits::ToRef;
 use crate::types::OrderedSet;
 use crate::Error;
@@ -181,7 +182,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's defined phases
-    pub fn defined_phases(&self) -> &OrderedSet<String> {
+    pub fn defined_phases(&self) -> &HashSet<&Phase> {
         self.meta.defined_phases()
     }
 
@@ -486,7 +487,7 @@ mod tests {
             src_compile() { :; }
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases(), ["compile"]);
+        assert_unordered_eq(pkg.defined_phases().iter().map(|p| p.to_string()), ["src_compile"]);
 
         // multiple
         let data = indoc::indoc! {r#"
@@ -498,7 +499,10 @@ mod tests {
             src_install() { :; }
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases(), ["prepare", "compile", "install"]);
+        assert_unordered_eq(
+            pkg.defined_phases().iter().map(|p| p.to_string()),
+            ["src_prepare", "src_compile", "src_install"],
+        );
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -521,7 +525,7 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases(), ["prepare"]);
+        assert_unordered_eq(pkg.defined_phases().iter().map(|p| p.to_string()), ["src_prepare"]);
 
         // single overlapping from eclass and ebuild
         let data = indoc::indoc! {r#"
@@ -532,7 +536,7 @@ mod tests {
             src_prepare() { :; }
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases(), ["prepare"]);
+        assert_unordered_eq(pkg.defined_phases().iter().map(|p| p.to_string()), ["src_prepare"]);
 
         // multiple from eclasses
         let data = indoc::indoc! {r#"
@@ -542,7 +546,10 @@ mod tests {
             SLOT=0
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases(), ["prepare", "compile", "install"]);
+        assert_unordered_eq(
+            pkg.defined_phases().iter().map(|p| p.to_string()),
+            ["src_prepare", "src_compile", "src_install"],
+        );
 
         // multiple from eclass and ebuild
         let data = indoc::indoc! {r#"
@@ -553,7 +560,10 @@ mod tests {
             src_test() { :; }
         "#};
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases(), ["prepare", "test"]);
+        assert_unordered_eq(
+            pkg.defined_phases().iter().map(|p| p.to_string()),
+            ["src_prepare", "src_test"],
+        );
     }
 
     #[test]
