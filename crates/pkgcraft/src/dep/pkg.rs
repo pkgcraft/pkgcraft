@@ -751,6 +751,12 @@ mod tests {
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
+
+        // unversioned
+        assert!(Dep::try_new_cpn("cat/pkg").is_ok());
+        assert!(Dep::try_new_cpn("cat/pkg-1").is_err());
+        assert!(Dep::try_new_cpn(">=cat/pkg-1").is_err());
+        assert!(Dep::try_new_cpn("cat/pkg:0").is_err());
     }
 
     #[test]
