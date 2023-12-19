@@ -1020,6 +1020,28 @@ mod tests {
     }
 
     #[test]
+    fn versioned() {
+        for (s, expected) in [
+            ("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]", "=cat/pkg-1.2-r3"),
+            ("=cat/pkg-1", "=cat/pkg-1"),
+            ("cat/pkg", "cat/pkg"),
+        ] {
+            let dep = Dep::try_new(s).unwrap();
+            let expected = Dep::try_new(expected).unwrap();
+            assert_eq!(dep.versioned(), expected);
+        }
+    }
+
+    #[test]
+    fn unversioned() {
+        let expected = Dep::try_new_cpn("cat/pkg").unwrap();
+        for s in ["!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]", "=cat/pkg-1", "cat/pkg"] {
+            let dep = Dep::try_new(s).unwrap();
+            assert_eq!(dep.unversioned(), expected);
+        }
+    }
+
+    #[test]
     fn without() {
         let dep = Dep::try_new("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]").unwrap();
 
