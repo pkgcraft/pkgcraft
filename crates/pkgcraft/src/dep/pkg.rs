@@ -685,47 +685,73 @@ impl<S1: Stringable, S2: Stringable> Intersects<Cow<'_, Dep<S1>>> for Cpv<S2> {
 }
 
 /// Determine if two package dependencies intersect ignoring blockers.
+fn dep_intersects<S1, S2>(dep1: &Dep<S1>, dep2: &Dep<S2>) -> bool
+where
+    S1: Stringable,
+    S2: Stringable,
+{
+    bool_not_equal!(&dep1.category(), &dep2.category());
+    bool_not_equal!(&dep1.package(), &dep2.package());
+
+    if let (Some(x), Some(y)) = (dep1.slot(), dep2.slot()) {
+        bool_not_equal!(x, y);
+    }
+
+    if let (Some(x), Some(y)) = (dep1.subslot(), dep2.subslot()) {
+        bool_not_equal!(x, y);
+    }
+
+    if let (Some(s1), Some(s2)) = (dep1.use_deps(), dep2.use_deps()) {
+        // convert USE dep sets to the same type
+        let s1: HashSet<_> = s1.iter().map(|x| x.to_ref()).collect();
+        let s2: HashSet<_> = s2.iter().map(|x| x.to_ref()).collect();
+
+        // find the differences between the sets
+        let mut use_map = HashMap::<_, HashSet<_>>::new();
+        for u in s1.symmetric_difference(&s2) {
+            use_map.entry(&u.flag).or_default().insert(&u.kind);
+        }
+
+        // determine if the set of differences contains a flag both enabled and disabled
+        for kinds in use_map.values() {
+            if kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled) {
+                return false;
+            }
+        }
+    }
+
+    if let (Some(x), Some(y)) = (dep1.repo(), dep2.repo()) {
+        bool_not_equal!(x, y);
+    }
+
+    if let (Some(x), Some(y)) = (dep1.version(), dep2.version()) {
+        x.intersects(y)
+    } else {
+        true
+    }
+}
+
 impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Dep<S2> {
     fn intersects(&self, other: &Dep<S1>) -> bool {
-        bool_not_equal!(&self.category(), &other.category());
-        bool_not_equal!(&self.package(), &other.package());
+        dep_intersects(self, other)
+    }
+}
 
-        if let (Some(x), Some(y)) = (self.slot(), other.slot()) {
-            bool_not_equal!(x, y);
-        }
+impl<S1: Stringable, S2: Stringable> Intersects<Cow<'_, Dep<S1>>> for Cow<'_, Dep<S2>> {
+    fn intersects(&self, other: &Cow<'_, Dep<S1>>) -> bool {
+        dep_intersects(self, other)
+    }
+}
 
-        if let (Some(x), Some(y)) = (self.subslot(), other.subslot()) {
-            bool_not_equal!(x, y);
-        }
+impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for Cow<'_, Dep<S2>> {
+    fn intersects(&self, other: &Dep<S1>) -> bool {
+        dep_intersects(self, other)
+    }
+}
 
-        if let (Some(s1), Some(s2)) = (self.use_deps(), other.use_deps()) {
-            // convert USE dep sets to the same type
-            let s1: HashSet<_> = s1.iter().map(|x| x.to_ref()).collect();
-            let s2: HashSet<_> = s2.iter().map(|x| x.to_ref()).collect();
-
-            // find the differences between the sets
-            let mut use_map = HashMap::<_, HashSet<_>>::new();
-            for u in s1.symmetric_difference(&s2) {
-                use_map.entry(&u.flag).or_default().insert(&u.kind);
-            }
-
-            // determine if the set of differences contains a flag both enabled and disabled
-            for kinds in use_map.values() {
-                if kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled) {
-                    return false;
-                }
-            }
-        }
-
-        if let (Some(x), Some(y)) = (self.repo(), other.repo()) {
-            bool_not_equal!(x, y);
-        }
-
-        if let (Some(x), Some(y)) = (self.version(), other.version()) {
-            x.intersects(y)
-        } else {
-            true
-        }
+impl<S1: Stringable, S2: Stringable> Intersects<Cow<'_, Dep<S1>>> for Dep<S2> {
+    fn intersects(&self, other: &Cow<'_, Dep<S1>>) -> bool {
+        dep_intersects(self, other)
     }
 }
 
