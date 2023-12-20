@@ -596,6 +596,78 @@ mod tests {
     }
 
     #[test]
+    fn properties() {
+        // none
+        let pkg = TEST_DATA
+            .ebuild_pkg("=properties/none-8::metadata")
+            .unwrap();
+        assert!(pkg.properties().is_empty());
+
+        // empty
+        let pkg = TEST_DATA
+            .ebuild_pkg("=properties/empty-8::metadata")
+            .unwrap();
+        assert!(pkg.properties().is_empty());
+
+        // single-line
+        let pkg = TEST_DATA
+            .ebuild_pkg("=properties/single-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.properties().to_string(), "1 2");
+
+        // multi-line
+        let pkg = TEST_DATA
+            .ebuild_pkg("=properties/multi-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.properties().to_string(), "u? ( 1 2 )");
+
+        // non-incremental inherit (EAPI 7)
+        let pkg = TEST_DATA
+            .ebuild_pkg("=properties/inherit-7::metadata")
+            .unwrap();
+        assert_eq!(pkg.properties().to_string(), "global ebuild");
+
+        // incremental inherit (EAPI 8)
+        let pkg = TEST_DATA
+            .ebuild_pkg("=properties/inherit-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.properties().to_string(), "global ebuild eclass a b");
+    }
+
+    #[test]
+    fn restrict() {
+        // none
+        let pkg = TEST_DATA.ebuild_pkg("=restrict/none-8::metadata").unwrap();
+        assert!(pkg.restrict().is_empty());
+
+        // empty
+        let pkg = TEST_DATA.ebuild_pkg("=restrict/empty-8::metadata").unwrap();
+        assert!(pkg.restrict().is_empty());
+
+        // single-line
+        let pkg = TEST_DATA
+            .ebuild_pkg("=restrict/single-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.restrict().to_string(), "1 2");
+
+        // multi-line
+        let pkg = TEST_DATA.ebuild_pkg("=restrict/multi-8::metadata").unwrap();
+        assert_eq!(pkg.restrict().to_string(), "u? ( 1 2 )");
+
+        // non-incremental inherit (EAPI 7)
+        let pkg = TEST_DATA
+            .ebuild_pkg("=restrict/inherit-7::metadata")
+            .unwrap();
+        assert_eq!(pkg.restrict().to_string(), "global ebuild");
+
+        // incremental inherit (EAPI 8)
+        let pkg = TEST_DATA
+            .ebuild_pkg("=restrict/inherit-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.restrict().to_string(), "global ebuild eclass a b");
+    }
+
+    #[test]
     fn test_inherits() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=inherit/none-0::metadata").unwrap();
