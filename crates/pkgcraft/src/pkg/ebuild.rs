@@ -472,97 +472,24 @@ mod tests {
 
     #[test]
     fn test_defined_phases() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
         // none
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=phases/none-0::metadata").unwrap();
         assert!(pkg.defined_phases().is_empty());
 
-        // single
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            DESCRIPTION="testing defined phases"
-            SLOT=0
-            src_compile() { :; }
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases().iter().map(|p| p.to_string()), ["src_compile"]);
-
-        // multiple
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            DESCRIPTION="testing defined phases"
-            SLOT=0
-            src_prepare() { :; }
-            src_compile() { :; }
-            src_install() { :; }
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        // ebuild-defined
+        let pkg = TEST_DATA.ebuild_pkg("=phases/direct-0::metadata").unwrap();
         assert_unordered_eq(
             pkg.defined_phases().iter().map(|p| p.to_string()),
-            ["src_prepare", "src_compile", "src_install"],
+            ["src_compile", "src_install", "src_prepare"],
         );
 
-        // create eclasses
-        let eclass = indoc::indoc! {r#"
-            EXPORT_FUNCTIONS src_prepare
-            e1_src_prepare() { :; }
-        "#};
-        t.create_eclass("e1", eclass).unwrap();
-        let eclass = indoc::indoc! {r#"
-            EXPORT_FUNCTIONS src_compile src_install
-            e2_src_compile() { :; }
-            e2_src_install() { :; }
-        "#};
-        t.create_eclass("e2", eclass).unwrap();
-
-        // single from eclass
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit e1
-            DESCRIPTION="testing defined phases"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases().iter().map(|p| p.to_string()), ["src_prepare"]);
-
-        // single overlapping from eclass and ebuild
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit e1
-            DESCRIPTION="testing defined phases"
-            SLOT=0
-            src_prepare() { :; }
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(pkg.defined_phases().iter().map(|p| p.to_string()), ["src_prepare"]);
-
-        // multiple from eclasses
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit e1 e2
-            DESCRIPTION="testing defined phases"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        // eclass-defined
+        let pkg = TEST_DATA
+            .ebuild_pkg("=phases/indirect-0::metadata")
+            .unwrap();
         assert_unordered_eq(
             pkg.defined_phases().iter().map(|p| p.to_string()),
-            ["src_prepare", "src_compile", "src_install"],
-        );
-
-        // multiple from eclass and ebuild
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit e1
-            DESCRIPTION="testing defined phases"
-            SLOT=0
-            src_test() { :; }
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_unordered_eq(
-            pkg.defined_phases().iter().map(|p| p.to_string()),
-            ["src_prepare", "src_test"],
+            ["src_install", "src_prepare", "src_test"],
         );
     }
 
