@@ -568,27 +568,23 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        fs::write(t.repo().path().join("profiles/arch.list"), "amd64\nx86\n").unwrap();
-
         // none
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=keywords/none-0::metadata").unwrap();
+        assert!(pkg.keywords().is_empty());
+
+        // empty
+        let pkg = TEST_DATA.ebuild_pkg("=keywords/empty-0::metadata").unwrap();
         assert!(pkg.keywords().is_empty());
 
         // single line
-        let pkg = t.create_pkg("cat/pkg-1", &["KEYWORDS=amd64 x86"]).unwrap();
-        assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["amd64", "x86"]);
+        let pkg = TEST_DATA
+            .ebuild_pkg("=keywords/single-0::metadata")
+            .unwrap();
+        assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["amd64", "~arm64"]);
 
         // multiple lines
-        let val = indoc::indoc! {"
-            amd64
-            x86
-        "};
-        let pkg = t
-            .create_pkg("cat/pkg-1", &[&format!("KEYWORDS={val}")])
-            .unwrap();
-        assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["amd64", "x86"]);
+        let pkg = TEST_DATA.ebuild_pkg("=keywords/multi-0::metadata").unwrap();
+        assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["~amd64", "arm64"]);
     }
 
     #[test]
