@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::str::FromStr;
 use std::{fmt, fs};
@@ -166,7 +166,7 @@ pub(crate) struct Metadata<'a> {
     restrict: DependencySet<String, String>,
     src_uri: DependencySet<String, Uri>,
     homepage: OrderedSet<String>,
-    defined_phases: HashSet<&'a Phase>,
+    defined_phases: OrderedSet<&'a Phase>,
     keywords: OrderedSet<Keyword<String>>,
     iuse: OrderedSet<Iuse<String>>,
     inherit: OrderedSet<&'a Eclass>,
@@ -215,7 +215,7 @@ impl<'a> Metadata<'a> {
                 self.defined_phases = val
                     .split_whitespace()
                     .map(phase)
-                    .collect::<crate::Result<HashSet<_>>>()?
+                    .collect::<crate::Result<OrderedSet<_>>>()?
             }
             KEYWORDS => {
                 self.keywords = val
@@ -520,7 +520,7 @@ impl<'a> Metadata<'a> {
         &self.homepage
     }
 
-    pub(crate) fn defined_phases(&self) -> &HashSet<&Phase> {
+    pub(crate) fn defined_phases(&self) -> &OrderedSet<&Phase> {
         &self.defined_phases
     }
 

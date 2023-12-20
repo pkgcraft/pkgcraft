@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -42,6 +43,18 @@ pub(crate) enum PhaseKind {
     SrcPrepare,
     SrcTest,
     SrcUnpack,
+}
+
+impl Ord for PhaseKind {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_ref().cmp(other.as_ref())
+    }
+}
+
+impl PartialOrd for PhaseKind {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl PhaseKind {
@@ -118,6 +131,18 @@ impl PartialEq for Phase {
 }
 
 impl Eq for Phase {}
+
+impl Ord for Phase {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.kind.cmp(&other.kind)
+    }
+}
+
+impl PartialOrd for Phase {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 impl Hash for Phase {
     fn hash<H: Hasher>(&self, state: &mut H) {

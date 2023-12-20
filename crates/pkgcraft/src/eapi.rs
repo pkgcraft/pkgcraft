@@ -99,7 +99,7 @@ pub struct Eapi {
     parent: Option<&'static Self>,
     features: HashSet<Feature>,
     operations: HashSet<Operation>,
-    phases: HashSet<Phase>,
+    phases: IndexSet<Phase>,
     dep_keys: IndexSet<Key>,
     incremental_keys: IndexSet<Key>,
     mandatory_keys: IndexSet<Key>,
@@ -218,7 +218,7 @@ impl Eapi {
     }
 
     /// Return all the known phases for an EAPI.
-    pub(crate) fn phases(&self) -> &HashSet<Phase> {
+    pub(crate) fn phases(&self) -> &IndexSet<Phase> {
         &self.phases
     }
 
@@ -479,6 +479,7 @@ impl Eapi {
     /// Finalize remaining fields that depend on previous fields.
     fn finalize(mut self) -> Self {
         self.phases = self.operations.iter().flatten().copied().collect();
+        self.phases.sort();
         self
     }
 }
