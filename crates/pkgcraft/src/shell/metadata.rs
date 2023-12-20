@@ -381,12 +381,6 @@ impl<'a> Metadata<'a> {
         // determine metadata entry directory
         let dir = cache_path.join(pkg.cpv().category());
 
-        // create metadata entry directory
-        if !dir.exists() {
-            fs::create_dir_all(&dir)
-                .map_err(|e| Error::IO(format!("failed creating metadata dir: {dir}: {e}")))?;
-        }
-
         // atomically create metadata file
         let pf = pkg.pf();
         let path = dir.join(format!(".{pf}"));
