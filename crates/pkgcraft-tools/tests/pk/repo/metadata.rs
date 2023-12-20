@@ -243,7 +243,6 @@ fn data_content() {
         let cache_path = Utf8Path::from_path(dir.path()).unwrap();
 
         cmd("pk repo metadata")
-            .arg("--force")
             .args([opt, cache_path.as_str()])
             .arg(repo.path())
             .assert()
