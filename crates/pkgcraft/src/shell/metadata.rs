@@ -329,12 +329,7 @@ impl<'a> Metadata<'a> {
                     if meta.defined_phases.is_empty() {
                         writeln!(&mut data, "{key}=-")?;
                     } else {
-                        let val = meta
-                            .defined_phases
-                            .iter()
-                            .map(|p| p.short_name())
-                            .sorted()
-                            .join(" ");
+                        let val = meta.defined_phases.iter().map(|p| p.short_name()).join(" ");
                         writeln!(&mut data, "{key}={val}")?;
                     }
                 }
