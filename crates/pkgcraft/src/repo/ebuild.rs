@@ -250,7 +250,7 @@ impl Repo {
             if COLLAPSE_LAZY_FIELDS.load(Relaxed) {
                 // metadata generation requires these fields to be collapsed
                 self.eclasses();
-                self.metadata().arches();
+                self.arches();
             }
 
             Ok(())

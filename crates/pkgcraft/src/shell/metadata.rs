@@ -194,7 +194,7 @@ impl<'a> Metadata<'a> {
         let keyword = |s: &str| -> crate::Result<Keyword<String>> {
             let keyword = Keyword::try_new(s)?;
             let arch = keyword.arch();
-            if arch != "*" && !repo.metadata().arches().contains(arch) {
+            if arch != "*" && !repo.arches().contains(arch) {
                 Err(Error::InvalidValue(format!("nonexistent arch: {arch}")))
             } else {
                 Ok(keyword)
