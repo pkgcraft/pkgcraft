@@ -25,7 +25,20 @@ fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-#[derive(AsRefStr, Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(
+    AsRefStr,
+    Display,
+    EnumIter,
+    EnumString,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
+)]
 #[strum(serialize_all = "snake_case")]
 pub(crate) enum PhaseKind {
     PkgConfig,
@@ -43,18 +56,6 @@ pub(crate) enum PhaseKind {
     SrcPrepare,
     SrcTest,
     SrcUnpack,
-}
-
-impl Ord for PhaseKind {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for PhaseKind {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 impl PhaseKind {
