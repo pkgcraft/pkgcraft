@@ -570,7 +570,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_distfile_verification() {
+    fn distfile_verification() {
         let mut config = crate::config::Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 

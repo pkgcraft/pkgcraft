@@ -262,7 +262,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ordering() {
+    fn ordering() {
         let mut config = Config::default();
 
         // unmatching pkgs sorted by dep attributes

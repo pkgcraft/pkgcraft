@@ -77,7 +77,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ordering() {
+    fn ordering() {
         // unmatching pkgs sorted by dep attributes
         let r1 = Repo::new("b", 0).pkgs(["cat/pkg-1"]);
         let r2 = Repo::new("a", 0).pkgs(["cat/pkg-0"]);

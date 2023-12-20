@@ -289,7 +289,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_eapi() {
+    fn eapi() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -335,7 +335,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pkg_methods() {
+    fn pkg_methods() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -348,7 +348,7 @@ mod tests {
     }
 
     #[test]
-    fn test_package_trait() {
+    fn package_trait() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -372,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn test_slot_and_subslot() {
+    fn slot_and_subslot() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -393,7 +393,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dependencies() {
+    fn dependencies() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -437,7 +437,7 @@ mod tests {
     }
 
     #[test]
-    fn test_description() {
+    fn description() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -446,7 +446,7 @@ mod tests {
     }
 
     #[test]
-    fn test_homepage() {
+    fn homepage() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -471,7 +471,7 @@ mod tests {
     }
 
     #[test]
-    fn test_defined_phases() {
+    fn defined_phases() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=phases/none-0::metadata").unwrap();
         assert!(pkg.defined_phases().is_empty());
@@ -494,7 +494,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keywords() {
+    fn keywords() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=keywords/none-0::metadata").unwrap();
         assert!(pkg.keywords().is_empty());
@@ -515,7 +515,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iuse() {
+    fn iuse() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=iuse/none-8::metadata").unwrap();
         assert!(pkg.iuse().is_empty());
@@ -613,7 +613,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inherits() {
+    fn inherits() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=inherit/none-0::metadata").unwrap();
         assert!(pkg.inherit().is_empty());
@@ -637,7 +637,7 @@ mod tests {
     }
 
     #[test]
-    fn test_maintainers() {
+    fn maintainers() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().maintainers().is_empty());
@@ -664,7 +664,7 @@ mod tests {
     }
 
     #[test]
-    fn test_upstream() {
+    fn upstream() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().upstream().is_none());
@@ -691,7 +691,7 @@ mod tests {
     }
 
     #[test]
-    fn test_local_use() {
+    fn local_use() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
         assert!(pkg.xml().local_use().is_empty());
@@ -713,7 +713,7 @@ mod tests {
     }
 
     #[test]
-    fn test_long_description() {
+    fn long_description() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
@@ -792,7 +792,7 @@ mod tests {
     }
 
     #[test]
-    fn test_distfiles() {
+    fn distfiles() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
