@@ -597,60 +597,26 @@ mod tests {
 
     #[test]
     fn test_inherits() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
         // none
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=inherit/none-0::metadata").unwrap();
         assert!(pkg.inherit().is_empty());
         assert!(pkg.inherited().is_empty());
 
-        // create eclasses
-        let eclass = indoc::indoc! {r#"
-            # e1
-        "#};
-        t.create_eclass("e1", eclass).unwrap();
-        let eclass = indoc::indoc! {r#"
-            # e2
-            inherit e1
-        "#};
-        t.create_eclass("e2", eclass).unwrap();
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let a = repo.eclasses().get("a").unwrap();
+        let b = repo.eclasses().get("b").unwrap();
 
-        let e1 = t.repo().eclasses().get("e1").unwrap();
-        let e2 = t.repo().eclasses().get("e2").unwrap();
+        // direct inherit
+        let pkg = TEST_DATA.ebuild_pkg("=inherit/direct-0::metadata").unwrap();
+        assert_ordered_eq(pkg.inherit(), [&a]);
+        assert_ordered_eq(pkg.inherited(), [&a]);
 
-        // single inherit
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit e1
-            DESCRIPTION="testing inherits"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), [&e1]);
-        assert_ordered_eq(pkg.inherited(), [&e1]);
-
-        // eclass with indirect inherit
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit e2
-            DESCRIPTION="testing inherits"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), [&e2]);
-        assert_ordered_eq(pkg.inherited(), [&e2, &e1]);
-
-        // multiple inherits
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit e1 e2
-            DESCRIPTION="testing inherits"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.inherit(), [&e1, &e2]);
-        assert_ordered_eq(pkg.inherited(), [&e1, &e2]);
+        // indirect inherit
+        let pkg = TEST_DATA
+            .ebuild_pkg("=inherit/indirect-0::metadata")
+            .unwrap();
+        assert_ordered_eq(pkg.inherit(), [&b]);
+        assert_ordered_eq(pkg.inherited(), [&b, &a]);
     }
 
     #[test]
