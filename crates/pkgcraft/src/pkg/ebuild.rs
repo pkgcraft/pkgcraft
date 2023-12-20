@@ -454,11 +454,11 @@ mod tests {
         let pkg = t.create_pkg("cat/pkg-1", &["HOMEPAGE="]).unwrap();
         assert!(pkg.homepage().is_empty());
 
-        // single line
+        // single-line
         let pkg = t.create_pkg("cat/pkg-1", &["HOMEPAGE=home"]).unwrap();
         assert_ordered_eq(pkg.homepage(), ["home"]);
 
-        // multiple lines
+        // multi-line
         let val = indoc::indoc! {"
             a
             b
@@ -503,96 +503,41 @@ mod tests {
         let pkg = TEST_DATA.ebuild_pkg("=keywords/empty-0::metadata").unwrap();
         assert!(pkg.keywords().is_empty());
 
-        // single line
+        // single-line
         let pkg = TEST_DATA
             .ebuild_pkg("=keywords/single-0::metadata")
             .unwrap();
         assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["amd64", "~arm64"]);
 
-        // multiple lines
+        // multi-line
         let pkg = TEST_DATA.ebuild_pkg("=keywords/multi-0::metadata").unwrap();
         assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["~amd64", "arm64"]);
     }
 
     #[test]
     fn test_iuse() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
         // none
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=iuse/none-8::metadata").unwrap();
         assert!(pkg.iuse().is_empty());
 
-        // invalid
-        let r = t.create_pkg("cat/pkg-1", &["IUSE=++"]);
-        assert_err_re!(r, r"invalid IUSE: \+\+");
+        // empty
+        let pkg = TEST_DATA.ebuild_pkg("=iuse/empty-8::metadata").unwrap();
+        assert!(pkg.iuse().is_empty());
 
-        // single line
-        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=a +b"]).unwrap();
-        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b"]);
+        // single-line
+        let pkg = TEST_DATA.ebuild_pkg("=iuse/single-8::metadata").unwrap();
+        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b", "-c"]);
 
-        // multiple lines
-        let val = indoc::indoc! {"
-            a
-            b
-            +c
-        "};
-        let pkg = t
-            .create_pkg("cat/pkg-1", &[&format!("IUSE={val}")])
-            .unwrap();
-        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "b", "+c"]);
+        // multi-line
+        let pkg = TEST_DATA.ebuild_pkg("=iuse/multi-8::metadata").unwrap();
+        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b", "-c"]);
 
-        // create eclasses
-        let eclass = indoc::indoc! {r#"
-            IUSE="use1"
-        "#};
-        t.create_eclass("use1", eclass).unwrap();
-        let eclass = indoc::indoc! {r#"
-            IUSE="use2"
-        "#};
-        t.create_eclass("use2", eclass).unwrap();
-
-        // inherited from single eclass
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit use1
-            DESCRIPTION="testing inherited IUSE"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["use1"]);
-
-        // inherited from multiple eclasses
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit use1 use2
-            DESCRIPTION="testing inherited IUSE"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["use1", "use2"]);
-
-        // accumulated from single eclass
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit use1
-            DESCRIPTION="testing accumulated IUSE"
-            IUSE="a"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "use1"]);
-
-        // accumulated from multiple eclasses
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            inherit use1 use2
-            DESCRIPTION="testing accumulated IUSE"
-            IUSE="a"
-            SLOT=0
-        "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_ordered_eq(pkg.iuse().iter().map(|x| x.to_string()), ["a", "use1", "use2"]);
+        // incremental inherit
+        let pkg = TEST_DATA.ebuild_pkg("=iuse/inherit-8::metadata").unwrap();
+        assert_ordered_eq(
+            pkg.iuse().iter().map(|x| x.to_string()),
+            ["global", "ebuild", "eclass", "a", "b"],
+        );
     }
 
     #[test]
