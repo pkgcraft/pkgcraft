@@ -248,7 +248,9 @@ impl Repo {
                 .unwrap_or_else(|_| panic!("trees already set: {}", self.id()));
 
             if COLLAPSE_LAZY_FIELDS.load(Relaxed) {
+                // metadata generation requires these fields to be collapsed
                 self.eclasses();
+                self.metadata().arches();
             }
 
             Ok(())

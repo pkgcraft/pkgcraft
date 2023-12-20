@@ -183,12 +183,25 @@ impl<'a> Metadata<'a> {
         key: &Key,
         val: &str,
     ) -> crate::Result<()> {
+        // return the Eclass for a given identifier if it exists
         let eclass = |name: &str| -> crate::Result<&Eclass> {
             repo.eclasses()
                 .get(name)
                 .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {name}")))
         };
 
+        // return the Keyword for a given identifier if it exists
+        let keyword = |s: &str| -> crate::Result<Keyword<String>> {
+            let keyword = Keyword::try_new(s)?;
+            let arch = keyword.arch();
+            if arch != "*" && !repo.metadata().arches().contains(arch) {
+                Err(Error::InvalidValue(format!("nonexistent arch: {arch}")))
+            } else {
+                Ok(keyword)
+            }
+        };
+
+        // return the Phase for a given identifier if it exists
         let phase = |name: &str| -> crate::Result<&Phase> {
             eapi.phases()
                 .get(name)
@@ -220,7 +233,7 @@ impl<'a> Metadata<'a> {
             KEYWORDS => {
                 self.keywords = val
                     .split_whitespace()
-                    .map(Keyword::try_new)
+                    .map(keyword)
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
             IUSE => {
