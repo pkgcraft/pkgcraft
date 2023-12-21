@@ -3,6 +3,7 @@ use criterion::Criterion;
 use pkgcraft::config::Config;
 use pkgcraft::dep::Cpv;
 use pkgcraft::repo::PkgRepository;
+use pkgcraft::test::TEST_DATA;
 
 pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "");
@@ -35,13 +36,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
         assert_eq!(pkgs, 1);
     });
 
-    let t = config.temp_repo("regen-repo", 0, None).unwrap();
-    for i in 0..10 {
-        for j in 0..10 {
-            t.create_raw_pkg(&format!("cat{i}/pkg-{j}"), &[]).unwrap();
-        }
-    }
-    let repo = t.repo();
+    let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
 
     c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {
