@@ -1,4 +1,6 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::io::{self, Write};
 use std::str::FromStr;
 use std::{fmt, fs};
@@ -99,7 +101,7 @@ pub enum KeywordStatus {
     Stable,   // arch
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub struct Keyword<S: Stringable> {
     pub(crate) status: KeywordStatus,
     pub(crate) arch: S,
@@ -117,18 +119,54 @@ impl IntoOwned for Keyword<&str> {
 }
 
 impl Keyword<String> {
+    /// Create an owned [`Keyword`] from a given string.
     fn try_new(s: &str) -> crate::Result<Self> {
-        dep::parse::keyword(s).into_owned()
+        Keyword::parse(s).into_owned()
     }
+}
 
+impl<'a> Keyword<&'a str> {
+    /// Create a borrowed [`Keyword`] from a given string.
+    pub fn parse(s: &'a str) -> crate::Result<Self> {
+        dep::parse::keyword(s)
+    }
+}
+
+impl<S: Stringable> Keyword<S> {
     /// Return the architecture for a keyword without its status.
     pub fn arch(&self) -> &str {
-        &self.arch
+        self.arch.as_ref()
     }
 
     /// Return the keyword status.
     pub fn status(&self) -> KeywordStatus {
         self.status
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> PartialEq<Keyword<S1>> for Keyword<S2> {
+    fn eq(&self, other: &Keyword<S1>) -> bool {
+        self.arch() == other.arch()
+    }
+}
+
+impl<S: Stringable> Eq for Keyword<S> {}
+
+impl<S: Stringable> Hash for Keyword<S> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.arch.hash(state);
+    }
+}
+
+impl<S: Stringable> Ord for Keyword<S> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.arch.cmp(&other.arch)
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> PartialOrd<Keyword<S1>> for Keyword<S2> {
+    fn partial_cmp(&self, other: &Keyword<S1>) -> Option<Ordering> {
+        self.arch().partial_cmp(other.arch())
     }
 }
 
