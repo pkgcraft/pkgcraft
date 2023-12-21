@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -167,6 +168,12 @@ impl<S: Stringable> Ord for Keyword<S> {
 impl<S1: Stringable, S2: Stringable> PartialOrd<Keyword<S1>> for Keyword<S2> {
     fn partial_cmp(&self, other: &Keyword<S1>) -> Option<Ordering> {
         self.arch().partial_cmp(other.arch())
+    }
+}
+
+impl<S: Stringable> Borrow<str> for Keyword<S> {
+    fn borrow(&self) -> &str {
+        self.arch()
     }
 }
 
