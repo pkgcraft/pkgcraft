@@ -541,6 +541,35 @@ mod tests {
     }
 
     #[test]
+    fn license() {
+        // none
+        let pkg = TEST_DATA.ebuild_pkg("=license/none-8::metadata").unwrap();
+        assert!(pkg.iuse().is_empty());
+
+        // empty
+        let pkg = TEST_DATA.ebuild_pkg("=license/empty-8::metadata").unwrap();
+        assert!(pkg.iuse().is_empty());
+
+        // single-line
+        let pkg = TEST_DATA.ebuild_pkg("=license/single-8::metadata").unwrap();
+        assert_eq!(pkg.license().to_string(), "l1 l2");
+
+        // multi-line
+        let pkg = TEST_DATA.ebuild_pkg("=license/multi-8::metadata").unwrap();
+        assert_eq!(pkg.license().to_string(), "l1 u? ( l2 )");
+
+        // inherited and overridden
+        let pkg = TEST_DATA
+            .ebuild_pkg("=license/inherit-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.license().to_string(), "l1");
+
+        // inherited and appended
+        let pkg = TEST_DATA.ebuild_pkg("=license/append-8::metadata").unwrap();
+        assert_eq!(pkg.license().to_string(), "l2 l1");
+    }
+
+    #[test]
     fn properties() {
         // none
         let pkg = TEST_DATA
