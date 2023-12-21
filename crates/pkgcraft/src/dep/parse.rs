@@ -163,7 +163,7 @@ peg::parser!(grammar depspec() for str {
                 Some("=") => UseDepKind::Equal,
                 Some("?") => UseDepKind::EnabledConditional,
                 None => UseDepKind::Enabled,
-                _ => panic!("invalid use dep kind"),
+                _ => unreachable!("invalid use dep kind"),
             };
             UseDep { kind, flag, default }
         } / "-" flag:use_flag() default:use_dep_default()? {
@@ -172,7 +172,7 @@ peg::parser!(grammar depspec() for str {
             let kind = match kind {
                 "=" => UseDepKind::NotEqual,
                 "?" => UseDepKind::DisabledConditional,
-                _ => panic!("invalid use dep kind"),
+                _ => unreachable!("invalid use dep kind"),
             };
             UseDep { kind, flag, default }
         } / expected!("use dep")
