@@ -473,7 +473,7 @@ mod tests {
     #[test]
     fn defined_phases() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=phases/none-0::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert!(pkg.defined_phases().is_empty());
 
         // ebuild-defined
@@ -496,11 +496,11 @@ mod tests {
     #[test]
     fn keywords() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=keywords/none-0::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert!(pkg.keywords().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=keywords/empty-0::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
         assert!(pkg.keywords().is_empty());
 
         // single-line
@@ -517,11 +517,11 @@ mod tests {
     #[test]
     fn iuse() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=iuse/none-8::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert!(pkg.iuse().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=iuse/empty-8::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
         assert!(pkg.iuse().is_empty());
 
         // single-line
@@ -543,11 +543,11 @@ mod tests {
     #[test]
     fn license() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=license/none-8::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert!(pkg.iuse().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=license/empty-8::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
         assert!(pkg.iuse().is_empty());
 
         // single-line
@@ -572,15 +572,11 @@ mod tests {
     #[test]
     fn properties() {
         // none
-        let pkg = TEST_DATA
-            .ebuild_pkg("=properties/none-8::metadata")
-            .unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert!(pkg.properties().is_empty());
 
         // empty
-        let pkg = TEST_DATA
-            .ebuild_pkg("=properties/empty-8::metadata")
-            .unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
         assert!(pkg.properties().is_empty());
 
         // single-line
@@ -611,11 +607,11 @@ mod tests {
     #[test]
     fn restrict() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=restrict/none-8::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert!(pkg.restrict().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=restrict/empty-8::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
         assert!(pkg.restrict().is_empty());
 
         // single-line
@@ -644,15 +640,11 @@ mod tests {
     #[test]
     fn required_use() {
         // none
-        let pkg = TEST_DATA
-            .ebuild_pkg("=required_use/none-8::metadata")
-            .unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert!(pkg.required_use().is_empty());
 
         // empty
-        let pkg = TEST_DATA
-            .ebuild_pkg("=required_use/empty-8::metadata")
-            .unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
         assert!(pkg.required_use().is_empty());
 
         // single-line
@@ -677,7 +669,7 @@ mod tests {
     #[test]
     fn inherits() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=inherit/none-0::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert!(pkg.inherit().is_empty());
         assert!(pkg.inherited().is_empty());
 
