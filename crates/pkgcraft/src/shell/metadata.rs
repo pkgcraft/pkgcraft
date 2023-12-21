@@ -9,7 +9,7 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
-use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Uri};
+use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Stringable, Uri};
 use crate::eapi::Eapi;
 use crate::files::atomic_write_file;
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
@@ -53,7 +53,7 @@ pub enum Key {
 
 /// Package IUSE.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Iuse<S> {
+pub struct Iuse<S: Stringable> {
     pub(crate) flag: S,
     pub(crate) default: Option<bool>,
 }
@@ -69,7 +69,7 @@ impl IntoOwned for Iuse<&str> {
     }
 }
 
-impl<S: fmt::Display> fmt::Display for Iuse<S> {
+impl<S: Stringable> fmt::Display for Iuse<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let flag = &self.flag;
         match &self.default {
@@ -100,7 +100,7 @@ pub enum KeywordStatus {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Keyword<S> {
+pub struct Keyword<S: Stringable> {
     pub(crate) status: KeywordStatus,
     pub(crate) arch: S,
 }
@@ -140,7 +140,7 @@ impl FromStr for Keyword<String> {
     }
 }
 
-impl<S: fmt::Display> fmt::Display for Keyword<S> {
+impl<S: Stringable> fmt::Display for Keyword<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let arch = &self.arch;
         match &self.status {
@@ -395,7 +395,7 @@ impl<'a> Metadata<'a> {
         atomic_write_file(&path, data, &new_path)
     }
 
-    /// Verify a metadata entry is valid.
+    /// Verify a metadata entry is valid using its checksum values.
     pub(crate) fn verify(cpv: &Cpv<String>, repo: &'a Repo) -> bool {
         Pkg::try_new(cpv.clone(), repo)
             .map(|p| Self::load(&p, false).is_err())
