@@ -21,6 +21,18 @@ impl Scope {
     }
 }
 
+impl From<&'static Eclass> for Scope {
+    fn from(value: &'static Eclass) -> Self {
+        Self::Eclass(Some(value))
+    }
+}
+
+impl From<PhaseKind> for Scope {
+    fn from(value: PhaseKind) -> Self {
+        Self::Phase(value)
+    }
+}
+
 impl AsRef<str> for Scope {
     fn as_ref(&self) -> &str {
         match self {

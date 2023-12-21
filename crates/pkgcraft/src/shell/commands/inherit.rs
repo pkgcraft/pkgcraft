@@ -45,7 +45,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         // track build scope
-        let _scope = build.inherit(eclass);
+        let _scope = build.scoped(eclass);
 
         // update $ECLASS and $INHERITED variables
         eclass_var.bind(eclass, None, None)?;
