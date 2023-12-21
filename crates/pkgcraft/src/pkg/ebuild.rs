@@ -642,6 +642,39 @@ mod tests {
     }
 
     #[test]
+    fn required_use() {
+        // none
+        let pkg = TEST_DATA
+            .ebuild_pkg("=required_use/none-8::metadata")
+            .unwrap();
+        assert!(pkg.required_use().is_empty());
+
+        // empty
+        let pkg = TEST_DATA
+            .ebuild_pkg("=required_use/empty-8::metadata")
+            .unwrap();
+        assert!(pkg.required_use().is_empty());
+
+        // single-line
+        let pkg = TEST_DATA
+            .ebuild_pkg("=required_use/single-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.required_use().to_string(), "u1 u2");
+
+        // multi-line
+        let pkg = TEST_DATA
+            .ebuild_pkg("=required_use/multi-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.required_use().to_string(), "^^ ( u1 u2 )");
+
+        // incremental inherit
+        let pkg = TEST_DATA
+            .ebuild_pkg("=required_use/inherit-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.required_use().to_string(), "global ebuild eclass a b");
+    }
+
+    #[test]
     fn inherits() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=inherit/none-0::metadata").unwrap();
