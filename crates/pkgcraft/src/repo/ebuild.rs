@@ -251,6 +251,7 @@ impl Repo {
                 // metadata generation requires these fields to be collapsed
                 self.eclasses();
                 self.arches();
+                self.licenses();
             }
 
             Ok(())

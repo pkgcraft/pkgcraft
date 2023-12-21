@@ -218,7 +218,14 @@ impl<'a> Metadata<'a> {
             IDEPEND => self.idepend = dep::parse::package_dependency_set(val, eapi)?,
             PDEPEND => self.pdepend = dep::parse::package_dependency_set(val, eapi)?,
             RDEPEND => self.rdepend = dep::parse::package_dependency_set(val, eapi)?,
-            LICENSE => self.license = dep::parse::license_dependency_set(val)?,
+            LICENSE => {
+                self.license = dep::parse::license_dependency_set(val)?;
+                for l in self.license.iter_flatten() {
+                    if !repo.licenses().contains(l) {
+                        return Err(Error::InvalidValue(format!("nonexistent license: {l}")));
+                    }
+                }
+            }
             PROPERTIES => self.properties = dep::parse::properties_dependency_set(val)?,
             REQUIRED_USE => self.required_use = dep::parse::required_use_dependency_set(val, eapi)?,
             RESTRICT => self.restrict = dep::parse::restrict_dependency_set(val)?,
