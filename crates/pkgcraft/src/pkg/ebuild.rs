@@ -477,7 +477,7 @@ mod tests {
         assert!(pkg.defined_phases().is_empty());
 
         // ebuild-defined
-        let pkg = TEST_DATA.ebuild_pkg("=phases/direct-0::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=phases/direct-8::metadata").unwrap();
         assert_unordered_eq(
             pkg.defined_phases().iter().map(|p| p.to_string()),
             ["src_compile", "src_install", "src_prepare"],
@@ -485,7 +485,7 @@ mod tests {
 
         // eclass-defined
         let pkg = TEST_DATA
-            .ebuild_pkg("=phases/indirect-0::metadata")
+            .ebuild_pkg("=phases/indirect-8::metadata")
             .unwrap();
         assert_unordered_eq(
             pkg.defined_phases().iter().map(|p| p.to_string()),
@@ -505,12 +505,12 @@ mod tests {
 
         // single-line
         let pkg = TEST_DATA
-            .ebuild_pkg("=keywords/single-0::metadata")
+            .ebuild_pkg("=keywords/single-8::metadata")
             .unwrap();
         assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["amd64", "~arm64"]);
 
         // multi-line
-        let pkg = TEST_DATA.ebuild_pkg("=keywords/multi-0::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=keywords/multi-8::metadata").unwrap();
         assert_ordered_eq(pkg.keywords().iter().map(|x| x.to_string()), ["~amd64", "arm64"]);
     }
 
@@ -678,13 +678,13 @@ mod tests {
         let b = repo.eclasses().get("b").unwrap();
 
         // direct inherit
-        let pkg = TEST_DATA.ebuild_pkg("=inherit/direct-0::metadata").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=inherit/direct-8::metadata").unwrap();
         assert_ordered_eq(pkg.inherit(), [&a]);
         assert_ordered_eq(pkg.inherited(), [&a]);
 
         // indirect inherit
         let pkg = TEST_DATA
-            .ebuild_pkg("=inherit/indirect-0::metadata")
+            .ebuild_pkg("=inherit/indirect-8::metadata")
             .unwrap();
         assert_ordered_eq(pkg.inherit(), [&b]);
         assert_ordered_eq(pkg.inherited(), [&b, &a]);
