@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::dep::{self, Stringable};
-use crate::macros::equivalent;
+use crate::macros::{cmp_not_equal, equivalent};
 use crate::traits::IntoOwned;
 
 /// Package keyword type.
@@ -61,15 +61,31 @@ impl<S1: Stringable, S2: Stringable> PartialEq<Keyword<S1>> for Keyword<S2> {
     }
 }
 
+/// Compare two keywords, making unprefixed arches less than prefixed arches.
+fn cmp<S1, S2>(k1: &Keyword<S1>, k2: &Keyword<S2>) -> Ordering
+where
+    S1: Stringable,
+    S2: Stringable,
+{
+    let (arch1, arch2) = (k1.arch(), k2.arch());
+    match (arch1.find('-'), arch2.find('-')) {
+        (None, Some(_)) => return Ordering::Less,
+        (Some(_), None) => return Ordering::Greater,
+        _ => cmp_not_equal!(arch1, arch2),
+    }
+
+    k1.status.cmp(&k2.status)
+}
+
 impl<S: Stringable> Ord for Keyword<S> {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.arch.cmp(&other.arch)
+        cmp(self, other)
     }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<Keyword<S1>> for Keyword<S2> {
     fn partial_cmp(&self, other: &Keyword<S1>) -> Option<Ordering> {
-        self.arch().partial_cmp(other.arch())
+        Some(cmp(self, other))
     }
 }
 
