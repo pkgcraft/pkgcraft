@@ -1,7 +1,5 @@
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 use std::io::{self, Write};
 use std::str::FromStr;
 use std::{fmt, fs};
@@ -15,6 +13,7 @@ use tracing::warn;
 use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Stringable, Uri};
 use crate::eapi::Eapi;
 use crate::files::atomic_write_file;
+use crate::macros::equivalent;
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
 use crate::repo::ebuild::{Eclass, Repo};
 use crate::traits::IntoOwned;
@@ -55,10 +54,10 @@ pub enum Key {
 }
 
 /// Package IUSE.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, Eq, Hash, Clone)]
 pub struct Iuse<S: Stringable> {
-    pub(crate) flag: S,
     pub(crate) default: Option<bool>,
+    pub(crate) flag: S,
 }
 
 impl IntoOwned for Iuse<&str> {
@@ -72,6 +71,52 @@ impl IntoOwned for Iuse<&str> {
     }
 }
 
+impl Iuse<String> {
+    /// Create an owned [`Iuse`] from a given string.
+    fn try_new(s: &str) -> crate::Result<Self> {
+        Iuse::parse(s).into_owned()
+    }
+}
+
+impl<'a> Iuse<&'a str> {
+    /// Create a borrowed [`Iuse`] from a given string.
+    pub fn parse(s: &'a str) -> crate::Result<Self> {
+        dep::parse::iuse(s)
+    }
+}
+
+impl<S: Stringable> Iuse<S> {
+    /// Return the USE flag.
+    pub fn flag(&self) -> &str {
+        self.flag.as_ref()
+    }
+
+    /// Return the default status, if it exists.
+    pub fn default(&self) -> Option<bool> {
+        self.default
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> PartialEq<Iuse<S1>> for Iuse<S2> {
+    fn eq(&self, other: &Iuse<S1>) -> bool {
+        self.default == other.default && self.flag() == other.flag()
+    }
+}
+
+impl<S: Stringable> Ord for Iuse<S> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.flag.cmp(&other.flag)
+    }
+}
+
+impl<S1: Stringable, S2: Stringable> PartialOrd<Iuse<S1>> for Iuse<S2> {
+    fn partial_cmp(&self, other: &Iuse<S1>) -> Option<Ordering> {
+        self.flag().partial_cmp(other.flag())
+    }
+}
+
+equivalent!(Iuse);
+
 impl<S: Stringable> fmt::Display for Iuse<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let flag = &self.flag;
@@ -80,17 +125,6 @@ impl<S: Stringable> fmt::Display for Iuse<S> {
             Some(false) => write!(f, "-{flag}"),
             None => write!(f, "{flag}"),
         }
-    }
-}
-
-impl Iuse<String> {
-    fn try_new(s: &str) -> crate::Result<Self> {
-        dep::parse::iuse(s).into_owned()
-    }
-
-    /// Return an IUSE flag stripping defaults.
-    pub fn flag(&self) -> &str {
-        &self.flag
     }
 }
 
