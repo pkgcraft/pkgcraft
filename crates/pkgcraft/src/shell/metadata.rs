@@ -136,7 +136,7 @@ pub enum KeywordStatus {
     Stable,   // arch
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Eq, Hash, Clone)]
 pub struct Keyword<S: Stringable> {
     pub(crate) status: KeywordStatus,
     pub(crate) arch: S,
@@ -181,15 +181,7 @@ impl<S: Stringable> Keyword<S> {
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Keyword<S1>> for Keyword<S2> {
     fn eq(&self, other: &Keyword<S1>) -> bool {
-        self.arch() == other.arch()
-    }
-}
-
-impl<S: Stringable> Eq for Keyword<S> {}
-
-impl<S: Stringable> Hash for Keyword<S> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.arch.hash(state);
+        self.status == other.status && self.arch() == other.arch()
     }
 }
 
@@ -205,11 +197,7 @@ impl<S1: Stringable, S2: Stringable> PartialOrd<Keyword<S1>> for Keyword<S2> {
     }
 }
 
-impl<S: Stringable> Borrow<str> for Keyword<S> {
-    fn borrow(&self) -> &str {
-        self.arch()
-    }
-}
+equivalent!(Keyword);
 
 impl FromStr for Keyword<String> {
     type Err = Error;
