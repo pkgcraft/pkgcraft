@@ -1,8 +1,6 @@
-use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::fs;
 use std::io::{self, Write};
-use std::str::FromStr;
-use std::{fmt, fs};
 
 use camino::Utf8Path;
 use itertools::Itertools;
@@ -10,13 +8,12 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
-use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Stringable, Uri};
+use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
 use crate::files::atomic_write_file;
-use crate::macros::equivalent;
+use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword};
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
 use crate::repo::ebuild::{Eclass, Repo};
-use crate::traits::IntoOwned;
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -51,171 +48,6 @@ pub enum Key {
     // match ordering of previous implementations (although the cache format is unordered)
     INHERITED,
     CHKSUM,
-}
-
-/// Package IUSE.
-#[derive(Debug, Eq, Hash, Clone)]
-pub struct Iuse<S: Stringable> {
-    pub(crate) default: Option<bool>,
-    pub(crate) flag: S,
-}
-
-impl IntoOwned for Iuse<&str> {
-    type Owned = Iuse<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        Iuse {
-            flag: self.flag.to_string(),
-            default: self.default,
-        }
-    }
-}
-
-impl Iuse<String> {
-    /// Create an owned [`Iuse`] from a given string.
-    fn try_new(s: &str) -> crate::Result<Self> {
-        Iuse::parse(s).into_owned()
-    }
-}
-
-impl<'a> Iuse<&'a str> {
-    /// Create a borrowed [`Iuse`] from a given string.
-    pub fn parse(s: &'a str) -> crate::Result<Self> {
-        dep::parse::iuse(s)
-    }
-}
-
-impl<S: Stringable> Iuse<S> {
-    /// Return the USE flag.
-    pub fn flag(&self) -> &str {
-        self.flag.as_ref()
-    }
-
-    /// Return the default status, if it exists.
-    pub fn default(&self) -> Option<bool> {
-        self.default
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialEq<Iuse<S1>> for Iuse<S2> {
-    fn eq(&self, other: &Iuse<S1>) -> bool {
-        self.default == other.default && self.flag() == other.flag()
-    }
-}
-
-impl<S: Stringable> Ord for Iuse<S> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.flag.cmp(&other.flag)
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialOrd<Iuse<S1>> for Iuse<S2> {
-    fn partial_cmp(&self, other: &Iuse<S1>) -> Option<Ordering> {
-        self.flag().partial_cmp(other.flag())
-    }
-}
-
-equivalent!(Iuse);
-
-impl<S: Stringable> fmt::Display for Iuse<S> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let flag = &self.flag;
-        match &self.default {
-            Some(true) => write!(f, "+{flag}"),
-            Some(false) => write!(f, "-{flag}"),
-            None => write!(f, "{flag}"),
-        }
-    }
-}
-
-/// Package keyword type.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub enum KeywordStatus {
-    Disabled, // -arch
-    Unstable, // ~arch
-    Stable,   // arch
-}
-
-#[derive(Debug, Eq, Hash, Clone)]
-pub struct Keyword<S: Stringable> {
-    pub(crate) status: KeywordStatus,
-    pub(crate) arch: S,
-}
-
-impl IntoOwned for Keyword<&str> {
-    type Owned = Keyword<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        Keyword {
-            status: self.status,
-            arch: self.arch.to_string(),
-        }
-    }
-}
-
-impl Keyword<String> {
-    /// Create an owned [`Keyword`] from a given string.
-    fn try_new(s: &str) -> crate::Result<Self> {
-        Keyword::parse(s).into_owned()
-    }
-}
-
-impl<'a> Keyword<&'a str> {
-    /// Create a borrowed [`Keyword`] from a given string.
-    pub fn parse(s: &'a str) -> crate::Result<Self> {
-        dep::parse::keyword(s)
-    }
-}
-
-impl<S: Stringable> Keyword<S> {
-    /// Return the architecture for a keyword without its status.
-    pub fn arch(&self) -> &str {
-        self.arch.as_ref()
-    }
-
-    /// Return the keyword status.
-    pub fn status(&self) -> KeywordStatus {
-        self.status
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialEq<Keyword<S1>> for Keyword<S2> {
-    fn eq(&self, other: &Keyword<S1>) -> bool {
-        self.status == other.status && self.arch() == other.arch()
-    }
-}
-
-impl<S: Stringable> Ord for Keyword<S> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.arch.cmp(&other.arch)
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialOrd<Keyword<S1>> for Keyword<S2> {
-    fn partial_cmp(&self, other: &Keyword<S1>) -> Option<Ordering> {
-        self.arch().partial_cmp(other.arch())
-    }
-}
-
-equivalent!(Keyword);
-
-impl FromStr for Keyword<String> {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        Self::try_new(s)
-    }
-}
-
-impl<S: Stringable> fmt::Display for Keyword<S> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let arch = &self.arch;
-        match &self.status {
-            KeywordStatus::Stable => write!(f, "{arch}"),
-            KeywordStatus::Unstable => write!(f, "~{arch}"),
-            KeywordStatus::Disabled => write!(f, "-{arch}"),
-        }
-    }
 }
 
 #[derive(Debug, Default)]

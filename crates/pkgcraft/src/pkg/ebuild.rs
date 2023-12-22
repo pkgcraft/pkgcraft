@@ -10,7 +10,7 @@ use crate::dep::{DependencySet, Uri};
 use crate::eapi::Eapi;
 use crate::repo::ebuild::{Eclass, Repo};
 use crate::repo::Repository;
-use crate::shell::metadata::{Iuse, Key, Keyword, Metadata};
+use crate::shell::metadata::{Key, Metadata};
 use crate::shell::phase::Phase;
 use crate::traits::ToRef;
 use crate::types::OrderedSet;
@@ -19,6 +19,8 @@ use crate::Error;
 use super::{make_pkg_traits, Package, RepoPackage};
 
 pub mod configured;
+pub mod iuse;
+pub mod keyword;
 pub mod metadata;
 use metadata::{Manifest, ManifestFile, XmlMetadata};
 pub mod raw;
@@ -187,12 +189,12 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's keywords.
-    pub fn keywords(&self) -> &OrderedSet<Keyword<String>> {
+    pub fn keywords(&self) -> &OrderedSet<keyword::Keyword<String>> {
         self.meta.keywords()
     }
 
     /// Return a package's IUSE.
-    pub fn iuse(&self) -> &OrderedSet<Iuse<String>> {
+    pub fn iuse(&self) -> &OrderedSet<iuse::Iuse<String>> {
         self.meta.iuse()
     }
 

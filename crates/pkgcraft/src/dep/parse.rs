@@ -8,7 +8,8 @@ use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Versio
 use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
-use crate::shell::metadata::{Iuse, Keyword, KeywordStatus};
+use crate::pkg::ebuild::iuse::Iuse;
+use crate::pkg::ebuild::keyword::{Keyword, Status};
 use crate::traits::IntoOwned;
 use crate::types::Ordered;
 
@@ -23,10 +24,10 @@ peg::parser!(grammar depspec() for str {
 
     // The "-*" keyword is allowed in KEYWORDS for package metadata.
     pub(super) rule keyword() -> Keyword<&'input str>
-        = arch:keyword_name() { Keyword { status: KeywordStatus::Stable, arch } }
-        / "~" arch:keyword_name() { Keyword { status: KeywordStatus::Unstable, arch } }
-        / "-" arch:keyword_name() { Keyword { status: KeywordStatus::Disabled, arch } }
-        / "-*" { Keyword { status: KeywordStatus::Disabled, arch: "*" } }
+        = arch:keyword_name() { Keyword { status: Status::Stable, arch } }
+        / "~" arch:keyword_name() { Keyword { status: Status::Unstable, arch } }
+        / "-" arch:keyword_name() { Keyword { status: Status::Disabled, arch } }
+        / "-*" { Keyword { status: Status::Disabled, arch: "*" } }
 
     // License names must not begin with a hyphen, dot, or plus sign.
     pub(super) rule license_name() -> &'input str
