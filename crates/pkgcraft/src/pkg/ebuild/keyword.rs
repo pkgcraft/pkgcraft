@@ -114,6 +114,7 @@ impl<S: Stringable> std::fmt::Display for Keyword<S> {
 mod tests {
     use std::collections::HashMap;
 
+    use indexmap::Equivalent;
     use itertools::Itertools;
 
     use crate::utils::hash;
@@ -134,7 +135,15 @@ mod tests {
             let owned = Keyword::try_new(s);
             assert!(borrowed.is_ok(), "{s} failed");
             assert!(owned.is_ok(), "{s} failed");
-            assert_eq!(borrowed.unwrap(), owned.unwrap());
+            let borrowed = borrowed.unwrap();
+            let owned = owned.unwrap();
+            assert_eq!(borrowed, owned);
+            assert_eq!(owned, borrowed);
+            assert_eq!(owned, s.parse().unwrap());
+            assert!(owned.equivalent(&borrowed));
+            assert!(borrowed.equivalent(&owned));
+            assert_eq!(borrowed.to_string(), s);
+            assert_eq!(owned.to_string(), s);
         }
     }
 
