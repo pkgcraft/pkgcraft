@@ -111,17 +111,23 @@ pub struct Eapi {
     hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
-impl Eq for Eapi {}
-
 impl PartialEq for Eapi {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
+impl Eq for Eapi {}
+
 impl Hash for Eapi {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
+    }
+}
+
+impl Borrow<str> for &'static Eapi {
+    fn borrow(&self) -> &str {
+        &self.id
     }
 }
 
@@ -136,6 +142,38 @@ impl Ord for Eapi {
 impl PartialOrd for Eapi {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl AsRef<str> for Eapi {
+    fn as_ref(&self) -> &str {
+        &self.id
+    }
+}
+
+impl fmt::Display for Eapi {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.id)
+    }
+}
+
+impl fmt::Debug for Eapi {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Eapi {{ id: {} }}", self.id)
+    }
+}
+
+impl FromStr for &'static Eapi {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        if let Some(eapi) = EAPIS.get(s) {
+            Ok(eapi)
+        } else if Eapi::parse(s).is_ok() {
+            Err(Error::InvalidValue(format!("unsupported EAPI: {s}")))
+        } else {
+            Err(Error::InvalidValue(format!("invalid EAPI: {s}")))
+        }
     }
 }
 
@@ -481,44 +519,6 @@ impl Eapi {
         self.phases = self.operations.iter().flatten().copied().collect();
         self.phases.sort();
         self
-    }
-}
-
-impl AsRef<str> for Eapi {
-    fn as_ref(&self) -> &str {
-        &self.id
-    }
-}
-
-impl fmt::Display for Eapi {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.id)
-    }
-}
-
-impl fmt::Debug for Eapi {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Eapi {{ id: {} }}", self.id)
-    }
-}
-
-impl Borrow<str> for &'static Eapi {
-    fn borrow(&self) -> &str {
-        &self.id
-    }
-}
-
-impl FromStr for &'static Eapi {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        if let Some(eapi) = EAPIS.get(s) {
-            Ok(eapi)
-        } else if Eapi::parse(s).is_ok() {
-            Err(Error::InvalidValue(format!("unsupported EAPI: {s}")))
-        } else {
-            Err(Error::InvalidValue(format!("invalid EAPI: {s}")))
-        }
     }
 }
 
