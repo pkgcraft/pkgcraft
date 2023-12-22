@@ -109,3 +109,134 @@ impl<S: Stringable> std::fmt::Display for Keyword<S> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use itertools::Itertools;
+
+    use crate::utils::hash;
+
+    use super::*;
+
+    #[test]
+    fn new_and_parse() {
+        // invalid
+        for s in ["", "-", "-@", "--arch", "-~arch", "~-arch"] {
+            assert!(Keyword::parse(s).is_err(), "{s} didn't fail");
+            assert!(Keyword::try_new(s).is_err(), "{s} didn't fail");
+        }
+
+        // valid
+        for s in ["arch", "-arch", "~arch", "-*", "_", "-_", "~_"] {
+            let borrowed = Keyword::parse(s);
+            let owned = Keyword::try_new(s);
+            assert!(borrowed.is_ok(), "{s} failed");
+            assert!(owned.is_ok(), "{s} failed");
+            assert_eq!(borrowed.unwrap(), owned.unwrap());
+        }
+    }
+
+    #[test]
+    fn arch_and_status() {
+        use Status::*;
+        for (s, arch, status) in [
+            ("arch", "arch", Stable),
+            ("-arch", "arch", Disabled),
+            ("~arch", "arch", Unstable),
+            ("-*", "*", Disabled),
+            ("~_", "_", Unstable),
+            ("~arch-linux", "arch-linux", Unstable),
+        ] {
+            let borrowed = Keyword::parse(s).unwrap();
+            let owned = Keyword::try_new(s).unwrap();
+            assert_eq!(owned.arch(), arch);
+            assert_eq!(owned.status(), status);
+            assert_eq!(borrowed.arch(), arch);
+            assert_eq!(borrowed.status(), status);
+        }
+    }
+
+    #[test]
+    fn cmp() {
+        let exprs = [
+            // lexical arch order
+            "arch1 < arch2",
+            "arch-plat1 < arch-plat2",
+            "-* < -arch",
+            // status order
+            "-arch < ~arch",
+            "~arch < arch",
+            "~arch < arch",
+            // unprefixed vs prefixed
+            "zarch < arch-linux",
+        ];
+
+        let op_map: HashMap<_, _> =
+            [("<", Ordering::Less), ("==", Ordering::Equal), (">", Ordering::Greater)]
+                .into_iter()
+                .collect();
+
+        for expr in exprs {
+            let (s1, op, s2) = expr.split_whitespace().collect_tuple().unwrap();
+            let v1_owned = Keyword::try_new(s1).unwrap();
+            let v1_borrowed = Keyword::parse(s1).unwrap();
+            let v2_owned = Keyword::try_new(s2).unwrap();
+            let v2_borrowed = Keyword::parse(s2).unwrap();
+            if op == "!=" {
+                assert_ne!(v1_owned, v2_owned, "failed comparing: {expr}");
+                assert_ne!(v1_borrowed, v2_borrowed, "failed comparing: {expr}");
+                assert_ne!(v1_owned, v2_borrowed, "failed comparing: {expr}");
+                assert_ne!(v1_borrowed, v2_owned, "failed comparing: {expr}");
+                assert_ne!(v2_owned, v1_owned, "failed comparing: {expr}");
+                assert_ne!(v2_borrowed, v1_borrowed, "failed comparing: {expr}");
+                assert_ne!(v2_owned, v1_borrowed, "failed comparing: {expr}");
+                assert_ne!(v2_borrowed, v1_owned, "failed comparing: {expr}");
+            } else {
+                let op = op_map[op];
+                assert_eq!(v1_owned.cmp(&v2_owned), op, "failed comparing: {expr}");
+                assert_eq!(v1_borrowed.cmp(&v2_borrowed), op, "failed comparing: {expr}");
+                assert_eq!(
+                    v1_owned.partial_cmp(&v2_borrowed),
+                    Some(op),
+                    "failed comparing: {expr}"
+                );
+                assert_eq!(
+                    v1_borrowed.partial_cmp(&v2_owned),
+                    Some(op),
+                    "failed comparing: {expr}"
+                );
+                assert_eq!(
+                    v2_owned.cmp(&v1_owned),
+                    op.reverse(),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    v2_borrowed.cmp(&v1_borrowed),
+                    op.reverse(),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    v2_owned.partial_cmp(&v1_borrowed),
+                    Some(op.reverse()),
+                    "failed comparing inverted: {expr}"
+                );
+                assert_eq!(
+                    v2_borrowed.partial_cmp(&v1_owned),
+                    Some(op.reverse()),
+                    "failed comparing inverted: {expr}"
+                );
+
+                // verify the following property holds since both Hash and Eq are implemented:
+                // k1 == k2 -> hash(k1) == hash(k2)
+                if op == Ordering::Equal {
+                    assert_eq!(hash(&v1_owned), hash(&v2_owned), "failed hash: {expr}");
+                    assert_eq!(hash(&v1_borrowed), hash(&v2_borrowed), "failed hash: {expr}");
+                    assert_eq!(hash(&v1_owned), hash(&v2_borrowed), "failed hash: {expr}");
+                    assert_eq!(hash(&v1_borrowed), hash(&v2_owned), "failed hash: {expr}");
+                }
+            }
+        }
+    }
+}
