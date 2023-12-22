@@ -22,8 +22,8 @@ pub(crate) enum OperationKind {
 }
 
 impl OperationKind {
-    /// Create an operation.
-    pub(crate) fn op<I, P>(self, phases: I) -> Operation
+    /// Create an operation from an iterator of phases.
+    pub(crate) fn phases<I, P>(self, phases: I) -> Operation
     where
         I: IntoIterator<Item = P>,
         P: Into<Phase>,
@@ -33,12 +33,28 @@ impl OperationKind {
             phases: phases.into_iter().map(Into::into).collect(),
         }
     }
+
+    /// Create an operation from a single phase.
+    pub(crate) fn phase<P: Into<Phase>>(self, phase: P) -> Operation {
+        Operation {
+            kind: self,
+            phases: IndexSet::from([phase.into()]),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct Operation {
     kind: OperationKind,
     pub(crate) phases: IndexSet<Phase>,
+}
+
+impl Operation {
+    /// Append a phase to an operation.
+    pub(crate) fn phase<P: Into<Phase>>(mut self, phase: P) -> Self {
+        self.phases.insert(phase.into());
+        self
+    }
 }
 
 impl PartialEq for Operation {

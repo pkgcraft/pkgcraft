@@ -59,9 +59,9 @@ pub(crate) enum PhaseKind {
 }
 
 impl PhaseKind {
-    /// Create a phase function that runs an optional, internal function by default.
-    pub(crate) fn func(self, func: Option<BuildFn>) -> Phase {
-        Phase { kind: self, func }
+    /// Create a phase function that runs an internal function by default.
+    pub(crate) fn func(self, func: BuildFn) -> Phase {
+        Phase { kind: self, func: Some(func) }
     }
 
     /// Create a new pre-phase hook.

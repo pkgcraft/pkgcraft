@@ -646,22 +646,21 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
             Command::new(src_unpack_stub, [All]),
         ])
         .update_operations([
-            Pretend.op([PkgPretend]),
-            Build.op([
-                PkgSetup.func(None),
-                SrcUnpack.func(Some(src_unpack)),
-                SrcPrepare.func(None),
-                SrcConfigure.func(Some(src_configure)),
-                SrcCompile.func(Some(src_compile)),
-                SrcTest.func(Some(src_test)),
-                SrcInstall.func(Some(src_install)),
-            ]),
-            Install.op([PkgPreinst, PkgPostinst]),
-            Uninstall.op([PkgPrerm, PkgPostrm]),
-            Replace.op([PkgPreinst, PkgPrerm, PkgPostrm, PkgPostinst]),
-            Config.op([PkgConfig]),
-            Info.op([PkgInfo]),
-            NoFetch.op([PkgNofetch.func(Some(pkg_nofetch))]),
+            Pretend.phase(PkgPretend),
+            Build
+                .phase(PkgSetup)
+                .phase(SrcUnpack.func(src_unpack))
+                .phase(SrcPrepare)
+                .phase(SrcConfigure.func(src_configure))
+                .phase(SrcCompile.func(src_compile))
+                .phase(SrcTest.func(src_test))
+                .phase(SrcInstall.func(src_install)),
+            Install.phases([PkgPreinst, PkgPostinst]),
+            Uninstall.phases([PkgPrerm, PkgPostrm]),
+            Replace.phases([PkgPreinst, PkgPrerm, PkgPostrm, PkgPostinst]),
+            Config.phase(PkgConfig),
+            Info.phase(PkgInfo),
+            NoFetch.phase(PkgNofetch.func(pkg_nofetch)),
         ])
         .update_dep_keys(&[DEPEND, RDEPEND, PDEPEND])
         .update_incremental_keys(&[IUSE, DEPEND, RDEPEND, PDEPEND, REQUIRED_USE])
@@ -746,7 +745,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
             Command::new(in_iuse, [Phases]),
         ])
         .disable_commands([einstall])
-        .update_phases([SrcPrepare.func(Some(src_prepare)), SrcInstall.func(Some(src_install))])
+        .update_phases([SrcPrepare.func(src_prepare), SrcInstall.func(src_install)])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
