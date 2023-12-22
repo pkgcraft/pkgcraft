@@ -78,6 +78,14 @@ impl<S1: Stringable, S2: Stringable> PartialOrd<Iuse<S1>> for Iuse<S2> {
 
 equivalent!(Iuse);
 
+impl std::str::FromStr for Iuse<String> {
+    type Err = crate::Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        Self::try_new(s)
+    }
+}
+
 impl<S: Stringable> std::fmt::Display for Iuse<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let flag = &self.flag;
