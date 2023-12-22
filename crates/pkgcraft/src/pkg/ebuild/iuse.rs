@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::dep::{self, Stringable};
-use crate::macros::equivalent;
+use crate::macros::{cmp_not_equal, equivalent};
 use crate::traits::IntoOwned;
 
 /// Package IUSE.
@@ -54,15 +54,25 @@ impl<S1: Stringable, S2: Stringable> PartialEq<Iuse<S1>> for Iuse<S2> {
     }
 }
 
+/// Compare two [`Iuse`] where flag name priority comes before defaults.
+fn cmp<S1, S2>(u1: &Iuse<S1>, u2: &Iuse<S2>) -> Ordering
+where
+    S1: Stringable,
+    S2: Stringable,
+{
+    cmp_not_equal!(u1.flag(), u2.flag());
+    u1.default.cmp(&u2.default)
+}
+
 impl<S: Stringable> Ord for Iuse<S> {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.flag.cmp(&other.flag)
+        cmp(self, other)
     }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<Iuse<S1>> for Iuse<S2> {
     fn partial_cmp(&self, other: &Iuse<S1>) -> Option<Ordering> {
-        self.flag().partial_cmp(other.flag())
+        Some(cmp(self, other))
     }
 }
 
