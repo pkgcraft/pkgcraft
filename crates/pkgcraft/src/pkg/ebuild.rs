@@ -712,22 +712,22 @@ mod tests {
     #[test]
     fn maintainers() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
         assert!(pkg.xml().maintainers().is_empty());
 
         // invalid
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
         assert!(pkg.xml().maintainers().is_empty());
 
         // single
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
         let m = pkg.xml().maintainers();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].email(), "a.person@email.com");
         assert_eq!(m[0].name(), Some("A Person"));
 
         // multiple
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
         let m = pkg.xml().maintainers();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].email(), "a.person@email.com");
@@ -739,22 +739,22 @@ mod tests {
     #[test]
     fn upstream() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
         assert!(pkg.xml().upstream().is_none());
 
         // invalid
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
         assert!(pkg.xml().upstream().is_none());
 
         // single
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
         let m = pkg.xml().upstream().unwrap().remote_ids();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].site(), "github");
         assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
 
         // multiple
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
         let m = pkg.xml().upstream().unwrap().remote_ids();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].site(), "github");
@@ -766,20 +766,20 @@ mod tests {
     #[test]
     fn local_use() {
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
         assert!(pkg.xml().local_use().is_empty());
 
         // invalid
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
         assert!(pkg.xml().local_use().is_empty());
 
         // single
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
         assert_eq!(pkg.xml().local_use().len(), 1);
         assert_eq!(pkg.xml().local_use().get("flag").unwrap(), "flag desc");
 
         // multiple
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
         assert_eq!(pkg.xml().local_use().len(), 2);
         assert_eq!(pkg.xml().local_use().get("flag1").unwrap(), "flag1 desc");
         assert_eq!(pkg.xml().local_use().get("flag2").unwrap(), "flag2 desc");
@@ -787,81 +787,31 @@ mod tests {
 
     #[test]
     fn long_description() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
         assert!(pkg.xml().long_description().is_none());
 
         // invalid
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-1::xml").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
         assert!(pkg.xml().long_description().is_none());
 
         // empty
-        let pkg1 = t.create_pkg("empty/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <pkgmetadata>
-                <longdescription>
-                </longdescription>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("empty/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            assert_eq!(pkg.xml().long_description().unwrap(), "");
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/empty-8::xml").unwrap();
+        assert!(pkg.xml().long_description().is_none());
 
         // single
-        let pkg1 = t.create_pkg("cat1/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <longdescription>
-                    A wrapped
-                    sentence.
-                    Another sentence.
-
-                    New paragraph.
-                </longdescription>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("cat1/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            assert_eq!(
-                pkg.xml().long_description().unwrap(),
-                "A wrapped sentence. Another sentence. New paragraph."
-            );
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
+        assert_eq!(
+            pkg.xml().long_description().unwrap(),
+            "A wrapped sentence. Another sentence. New paragraph."
+        );
 
         // multiple
-        let pkg1 = t.create_pkg("cat2/pkg-1", &[]).unwrap();
-        let data = indoc::indoc! {r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
-            <pkgmetadata>
-                <longdescription lang="en">
-                    A wrapped
-                    sentence.
-                    Another sentence.
-
-                    New paragraph.
-                </longdescription>
-                <longdescription lang="zx">
-                    zx
-                </longdescription>
-            </pkgmetadata>
-        "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
-        let pkg2 = t.create_pkg("cat2/pkg-2", &[]).unwrap();
-        for pkg in [pkg1, pkg2] {
-            assert_eq!(
-                pkg.xml().long_description().unwrap(),
-                "A wrapped sentence. Another sentence. New paragraph."
-            );
-        }
+        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
+        assert_eq!(
+            pkg.xml().long_description().unwrap(),
+            "A wrapped sentence. Another sentence. New paragraph."
+        );
     }
 
     #[test]
