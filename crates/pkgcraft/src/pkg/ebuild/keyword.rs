@@ -81,10 +81,7 @@ impl<S: Stringable> Keyword<S> {
             Status::Disabled
         };
 
-        Keyword {
-            status,
-            arch: self.arch(),
-        }
+        Keyword { status, arch: self.arch() }
     }
 
     /// Destabilize a keyword, returning its borrowed form while skipping disabled variants.
@@ -95,10 +92,7 @@ impl<S: Stringable> Keyword<S> {
             Status::Disabled
         };
 
-        Keyword {
-            status,
-            arch: self.arch(),
-        }
+        Keyword { status, arch: self.arch() }
     }
 }
 
