@@ -375,21 +375,13 @@ mod tests {
 
     #[test]
     fn slot_and_subslot() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
-        // default
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
-        assert_eq!(pkg.slot(), "0");
-        assert_eq!(pkg.subslot(), "0");
-
-        // custom lacking subslot
-        let pkg = t.create_pkg("cat/pkg-2", &["SLOT=1"]).unwrap();
+        // without subslot
+        let pkg = TEST_DATA.ebuild_pkg("=slot/slot-8::metadata").unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "1");
 
-        // custom with subslot
-        let pkg = t.create_pkg("cat/pkg-3", &["SLOT=1/2"]).unwrap();
+        // with subslot
+        let pkg = TEST_DATA.ebuild_pkg("=slot/subslot-8::metadata").unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "2");
     }
