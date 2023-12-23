@@ -338,10 +338,10 @@ mod tests {
             let phases = eapi.phases()
                 .iter()
                 .map(|phase| {
-                    let short = phase.short_name();
+                    let name = phase.name();
                     indoc::formatdoc! {r#"
                     {phase}() {{
-                        [[ $EBUILD_PHASE == "{short}" ]] || die "invalid EBUILD_PHASE value: $EBUILD_PHASE"
+                        [[ $EBUILD_PHASE == "{name}" ]] || die "invalid EBUILD_PHASE value: $EBUILD_PHASE"
                         [[ $EBUILD_PHASE_FUNC == "{phase}" ]] || die "invalid EBUILD_PHASE_FUNC value: $EBUILD_PHASE_FUNC"
                     }}
                     "#}

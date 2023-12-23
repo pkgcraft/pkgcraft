@@ -407,7 +407,7 @@ impl<'a> BuildData<'a> {
             DESTTREE => Ok("/usr".to_string()),
             INSDESTTREE | DOCDESTTREE | EXEDESTTREE => Ok("".to_string()),
 
-            EBUILD_PHASE => self.phase().map(|p| p.short_name().to_string()),
+            EBUILD_PHASE => self.phase().map(|p| p.name().to_string()),
             EBUILD_PHASE_FUNC => self.phase().map(|p| p.to_string()),
 
             // TODO: alter for build vs install pkg state variants

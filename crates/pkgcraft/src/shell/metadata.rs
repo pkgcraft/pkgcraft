@@ -100,7 +100,7 @@ impl<'a> Metadata<'a> {
             }
         };
 
-        // return the Phase for a given identifier if it exists
+        // return the Phase for a given name if it exists
         let phase = |name: &str| -> crate::Result<&Phase> {
             eapi.phases()
                 .get(name)
@@ -248,7 +248,7 @@ impl<'a> Metadata<'a> {
                     if meta.defined_phases.is_empty() {
                         writeln!(&mut data, "{key}=-")?;
                     } else {
-                        let val = meta.defined_phases.iter().map(|p| p.short_name()).join(" ");
+                        let val = meta.defined_phases.iter().map(|p| p.name()).join(" ");
                         writeln!(&mut data, "{key}={val}")?;
                     }
                 }

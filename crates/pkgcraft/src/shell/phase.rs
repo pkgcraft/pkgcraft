@@ -25,20 +25,7 @@ fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-#[derive(
-    AsRefStr,
-    Display,
-    EnumIter,
-    EnumString,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Copy,
-    Clone,
-)]
+#[derive(AsRefStr, Display, EnumIter, EnumString, Debug, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub(crate) enum PhaseKind {
     PkgConfig,
@@ -86,6 +73,44 @@ impl PhaseKind {
             priority: 0,
             parallel: false,
         }
+    }
+
+    /// Return the phase name, e.g. src_compile -> compile.
+    pub(crate) fn name(&self) -> &str {
+        let s = self.as_ref();
+        s.split_once('_').map_or(s, |x| x.1)
+    }
+}
+
+impl PartialEq for PhaseKind {
+    fn eq(&self, other: &Self) -> bool {
+        self.name() == other.name()
+    }
+}
+
+impl Eq for PhaseKind {}
+
+impl Hash for PhaseKind {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name().hash(state);
+    }
+}
+
+impl Borrow<str> for PhaseKind {
+    fn borrow(&self) -> &str {
+        self.name()
+    }
+}
+
+impl Ord for PhaseKind {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.name().cmp(other.name())
+    }
+}
+
+impl PartialOrd for PhaseKind {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -159,7 +184,7 @@ impl Borrow<PhaseKind> for Phase {
 
 impl Borrow<str> for Phase {
     fn borrow(&self) -> &str {
-        self.short_name()
+        self.kind.name()
     }
 }
 
@@ -232,8 +257,7 @@ impl Phase {
     }
 
     /// Return the shortened phase function name, e.g. src_compile -> compile.
-    pub(crate) fn short_name(&self) -> &str {
-        let s = self.as_ref();
-        s.split_once('_').map_or(s, |x| x.1)
+    pub(crate) fn name(&self) -> &str {
+        self.kind.name()
     }
 }
