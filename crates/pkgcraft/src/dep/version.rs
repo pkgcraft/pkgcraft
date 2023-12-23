@@ -625,17 +625,12 @@ impl<S1: Stringable, S2: Stringable> Intersects<Version<S1>> for Version<S2> {
 
 impl<S: Stringable> fmt::Display for Version<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        ver_str(f, self, true, true)
+        fmt(f, self, true, true)
     }
 }
 
 /// Format a [`Version`] into a [`String`], optionally ignoring the revision and/or operator.
-fn ver_str<S: Stringable>(
-    f: &mut fmt::Formatter,
-    v: &Version<S>,
-    rev: bool,
-    op: bool,
-) -> fmt::Result {
+fn fmt<S: Stringable>(f: &mut fmt::Formatter, v: &Version<S>, rev: bool, op: bool) -> fmt::Result {
     let mut s = String::new();
 
     write!(s, "{}", v.numbers[0])?;
@@ -795,7 +790,7 @@ impl<S: Stringable> Eq for NonRevisionVersion<'_, S> {}
 
 impl<S: Stringable> fmt::Display for NonRevisionVersion<'_, S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        ver_str(f, self.0, false, false)
+        fmt(f, self.0, false, false)
     }
 }
 
@@ -824,7 +819,7 @@ impl<S1: Stringable, S2: Stringable> PartialOrd<NonOpVersion<'_, S1>> for NonOpV
 
 impl<S: Stringable> fmt::Display for NonOpVersion<'_, S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        ver_str(f, self.0, true, false)
+        fmt(f, self.0, true, false)
     }
 }
 
