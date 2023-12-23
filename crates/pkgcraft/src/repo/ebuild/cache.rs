@@ -145,7 +145,7 @@ impl<'a> CacheBuilder<'a> {
                     .into_par_iter()
                     .filter(|cpv| {
                         pb.inc(1);
-                        MetadataCache::verify(cpv, self.repo)
+                        MetadataCache::verify(cpv, self.repo, &self.cache_path)
                     })
                     .collect();
 

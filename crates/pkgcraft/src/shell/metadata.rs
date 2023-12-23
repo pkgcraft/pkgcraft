@@ -295,18 +295,22 @@ impl<'a> Metadata<'a> {
     }
 
     /// Verify a metadata entry is valid using its checksum values.
-    pub(crate) fn verify(cpv: &Cpv<String>, repo: &'a Repo) -> bool {
+    pub(crate) fn verify(cpv: &Cpv<String>, repo: &'a Repo, cache_path: &Utf8Path) -> bool {
         Pkg::try_new(cpv.clone(), repo)
-            .map(|p| Self::load(&p, false).is_err())
+            .map(|p| Self::load(&p, cache_path, false).is_err())
             .unwrap_or_default()
     }
 
     /// Deserialize a metadata entry for a given package into [`Metadata`].
-    pub(crate) fn load(pkg: &Pkg<'a>, deserialize: bool) -> crate::Result<Self> {
+    pub(crate) fn load(
+        pkg: &Pkg<'a>,
+        cache_path: &Utf8Path,
+        deserialize: bool,
+    ) -> crate::Result<Self> {
         let eapi = pkg.eapi();
         let repo = pkg.repo();
 
-        let path = repo.metadata().cache_path().join(pkg.cpv().to_string());
+        let path = cache_path.join(pkg.cpv().to_string());
         let data = fs::read_to_string(&path).map_err(|e| {
             if e.kind() != io::ErrorKind::NotFound {
                 warn!("error loading ebuild metadata: {path:?}: {e}");

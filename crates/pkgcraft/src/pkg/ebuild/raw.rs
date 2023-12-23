@@ -75,7 +75,8 @@ impl<'a> Pkg<'a> {
 
     /// Load metadata from cache if valid, otherwise source it from the ebuild.
     pub(super) fn load_or_source(&self) -> crate::Result<Metadata<'a>> {
-        Metadata::load(self, true)
+        let cache_path = self.repo.metadata().cache_path();
+        Metadata::load(self, cache_path, true)
             .or_else(|_| self.try_into())
             .map_err(|e| Error::InvalidPkg {
                 id: self.to_string(),
