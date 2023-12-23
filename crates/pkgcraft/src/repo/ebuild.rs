@@ -1030,7 +1030,7 @@ mod tests {
         let test_path = &TEST_DATA.path;
 
         // none
-        let repo = Repo::from_path("a", 0, test_path.join("repos/dependent-primary")).unwrap();
+        let repo = Repo::from_path("a", 0, test_path.join("repos/primary")).unwrap();
         let repo = config
             .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
             .unwrap();
@@ -1040,14 +1040,12 @@ mod tests {
         assert_eq!(trees, ["a"]);
 
         // nonexistent
-        let repo =
-            Repo::from_path("test", 0, test_path.join("repos-invalid/dependent-nonexistent"))
-                .unwrap();
+        let repo = Repo::from_path("test", 0, test_path.join("repos/masters-invalid")).unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str(), false);
         assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
 
         // single
-        let repo = Repo::from_path("b", 0, test_path.join("repos/dependent-secondary")).unwrap();
+        let repo = Repo::from_path("b", 0, test_path.join("repos/secondary")).unwrap();
         let repo = config
             .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
             .unwrap();
@@ -1244,9 +1242,9 @@ mod tests {
 
     #[test]
     fn test_eclasses() {
-        let repo1 = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
+        let repo1 = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_unordered_eq(repo1.eclasses().iter().map(|e| e.as_ref()), ["a", "c"]);
-        let repo2 = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
+        let repo2 = TEST_DATA.ebuild_repo("secondary").unwrap();
         assert_unordered_eq(repo2.eclasses().iter().map(|e| e.as_ref()), ["a", "b", "c"]);
         // verify the overridden eclass is from the secondary repo
         let overridden_eclass = repo2.eclasses().get("c").unwrap();
@@ -1255,17 +1253,17 @@ mod tests {
 
     #[test]
     fn test_arches() {
-        let repo = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
+        let repo = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_unordered_eq(repo.arches(), ["x86"]);
-        let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
+        let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
         assert_unordered_eq(repo.arches(), ["amd64", "x86"]);
     }
 
     #[test]
     fn test_licenses() {
-        let repo = TEST_DATA.ebuild_repo("dependent-primary").unwrap();
+        let repo = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_unordered_eq(repo.licenses(), ["a"]);
-        let repo = TEST_DATA.ebuild_repo("dependent-secondary").unwrap();
+        let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
         assert_unordered_eq(repo.licenses(), ["a", "b"]);
     }
 

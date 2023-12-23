@@ -438,9 +438,9 @@ mod tests {
         let mut config = Config::new("pkgcraft", "");
         let data = indoc::formatdoc! {r#"
             [primary]
-            location = {test_path}/repos/dependent-primary
+            location = {test_path}/repos/primary
             [nonexistent]
-            location = {test_path}/repos-invalid/dependent-nonexistent
+            location = {test_path}/repos/masters-invalid
         "#};
         fs::write(path, data).unwrap();
         let r = config.load_portage_conf(Some(conf_path));
