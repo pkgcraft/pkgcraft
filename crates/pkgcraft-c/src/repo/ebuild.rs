@@ -117,14 +117,17 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_licenses(
 /// # Safety
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_pkg_metadata_regen(
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
     r: *mut Repo,
     jobs: usize,
     force: bool,
+    path: *mut c_char,
 ) -> bool {
     ffi_catch_panic! {
         let repo = try_repo_from_ptr!(r);
-        unwrap_or_panic!(repo.pkg_metadata_regen(Some(jobs), force, false, true, None));
+        let path = try_opt_str_from_ptr!(path).unwrap_or_default();
+        let runner = repo.metadata_regen().jobs(jobs).force(force).cache_path(path);
+        unwrap_or_panic!(runner.run());
         true
     }
 }

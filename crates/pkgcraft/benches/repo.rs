@@ -40,13 +40,13 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
 
     c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {
-            let _ = repo.pkg_metadata_regen(None, true, false, true, None);
+            let _ = repo.metadata_regen().force(true).run();
         });
     });
 
     c.bench_function("repo-ebuild-metadata-regen-verify", |b| {
         b.iter(|| {
-            let _ = repo.pkg_metadata_regen(None, false, false, true, None);
+            let _ = repo.metadata_regen().run();
         });
     });
 }

@@ -1,6 +1,5 @@
 use std::{env, fs};
 
-use camino::Utf8Path;
 use indexmap::IndexMap;
 use pkgcraft::repo::{ebuild::temp::Repo as TempRepo, Repository};
 use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
@@ -219,7 +218,7 @@ fn data_content() {
     let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
 
     // determine metadata file content
-    let metadata_content = |cache_path: &Utf8Path| {
+    let metadata_content = |cache_path: &str| {
         WalkDir::new(cache_path)
             .sort_by_file_name()
             .min_depth(2)
@@ -235,15 +234,15 @@ fn data_content() {
     };
 
     // record expected metadata file content
-    let expected: IndexMap<_, _> = metadata_content(repo.metadata().cache_path());
+    let expected: IndexMap<_, _> = metadata_content(repo.metadata().cache_path().as_str());
 
     // regenerate metadata
     for opt in ["-p", "--path"] {
         let dir = tempdir().unwrap();
-        let cache_path = Utf8Path::from_path(dir.path()).unwrap();
+        let cache_path = dir.path().to_str().unwrap();
 
         cmd("pk repo metadata")
-            .args([opt, cache_path.as_str()])
+            .args([opt, cache_path])
             .arg(repo.path())
             .assert()
             .stdout("")

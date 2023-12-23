@@ -1,7 +1,6 @@
 use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
-use camino::Utf8PathBuf;
 use clap::Args;
 use pkgcraft::config::Config;
 
@@ -19,7 +18,7 @@ pub struct Command {
 
     /// Custom cache path
     #[arg(short, long)]
-    path: Option<Utf8PathBuf>,
+    path: Option<String>,
 
     /// Disable progress bar
     #[arg(short, long)]
@@ -39,14 +38,15 @@ impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // run metadata regeneration displaying a progress bar if stdout is a terminal
         let progress = stdout().is_terminal() && !self.no_progress && !self.output;
+
         for repo in target_ebuild_repos(config, &self.repos)? {
-            repo.pkg_metadata_regen(
-                self.jobs,
-                self.force,
-                progress,
-                !self.output,
-                self.path.as_deref(),
-            )?;
+            repo.metadata_regen()
+                .jobs(self.jobs.unwrap_or_default())
+                .force(self.force)
+                .progress(progress)
+                .suppress(!self.output)
+                .cache_path(self.path.as_deref().unwrap_or_default())
+                .run()?;
         }
 
         Ok(ExitCode::SUCCESS)

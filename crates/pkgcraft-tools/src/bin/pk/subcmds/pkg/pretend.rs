@@ -53,7 +53,7 @@ impl Command {
         };
 
         // loop over targets, tracking overall failure status
-        let jobs = bounded_jobs(self.jobs);
+        let jobs = bounded_jobs(self.jobs.unwrap_or_default());
         let mut status = ExitCode::SUCCESS;
         for target in self.targets.stdin_or_args().split_whitespace() {
             // determine target restriction

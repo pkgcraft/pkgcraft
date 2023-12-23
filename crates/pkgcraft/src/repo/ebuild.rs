@@ -9,13 +9,10 @@ use std::{fmt, fs, io, iter, thread};
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
-use indicatif::{ProgressBar, ProgressStyle};
 use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
-use rayon::prelude::*;
 use roxmltree::Document;
-use scallop::pool::PoolSendIter;
-use tracing::{error, warn};
+use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::config::{RepoConfig, Settings};
@@ -29,12 +26,9 @@ use crate::pkg::ebuild::{
     self,
     metadata::{Manifest, XmlMetadata},
 };
-use crate::pkg::Regen;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
-use crate::shell::metadata::Metadata as MetadataCache;
-use crate::utils::bounded_jobs;
 use crate::{Error, COLLAPSE_LAZY_FIELDS};
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
@@ -509,119 +503,9 @@ impl Repo {
         cpvs
     }
 
-    /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn pkg_metadata_regen(
-        &self,
-        jobs: Option<usize>,
-        force: bool,
-        progress: bool,
-        suppress: bool,
-        cache_path: Option<&Utf8Path>,
-    ) -> crate::Result<()> {
-        let cache_path = cache_path.unwrap_or(self.metadata().cache_path());
-        // initialize pool first to minimize forked process memory pages
-        let func = |cpv: Cpv<String>| {
-            let pkg = ebuild::raw::Pkg::try_new(cpv, self)?;
-            pkg.regen(cache_path)
-        };
-        let pool = PoolSendIter::new(bounded_jobs(jobs), func, suppress)?;
-
-        // use progress bar to show completion progress if enabled
-        let pb = if progress {
-            ProgressBar::new(0)
-        } else {
-            ProgressBar::hidden()
-        };
-        pb.set_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
-
-        // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
-        // pull all package Cpvs from the repo
-        let mut cpvs: IndexSet<_> = self
-            .categories()
-            .into_par_iter()
-            .flat_map(|s| self.category_cpvs(&s))
-            .collect();
-
-        // set progression length encompassing all pkgs
-        pb.set_length(cpvs.len().try_into().unwrap());
-
-        let path = self.metadata().cache_path();
-        if path.exists() {
-            // TODO: replace with parallelized cache iterator
-            let entries: Vec<_> = WalkDir::new(path)
-                .min_depth(2)
-                .max_depth(2)
-                .into_iter()
-                .collect();
-
-            // remove outdated cache entries lacking matching ebuilds in parallel
-            entries
-                .into_par_iter()
-                .filter_map(|e| e.ok())
-                .filter(|e| is_file(e) && !is_hidden(e))
-                .for_each(|e| {
-                    let file = e.path();
-                    let cpv_str = file
-                        .strip_prefix(path)
-                        .expect("invalid metadata entry")
-                        .to_string_lossy();
-                    if let Ok(cpv) = Cpv::parse(&cpv_str) {
-                        // Remove an outdated cache file and its potentially, empty parent
-                        // directory while ignoring any I/O errors.
-                        if !cpvs.contains(&cpv) {
-                            fs::remove_file(file).ok();
-                            fs::remove_dir(file.parent().unwrap()).ok();
-                        }
-                    }
-                });
-
-            if !force {
-                // run cache validation in a thread pool
-                pb.set_message("validating metadata cache:");
-                cpvs = cpvs
-                    .into_par_iter()
-                    .filter(|cpv| {
-                        pb.inc(1);
-                        MetadataCache::verify(cpv, self)
-                    })
-                    .collect();
-
-                // reset progression in case validation decreased cpvs
-                pb.set_position(0);
-                pb.set_length(cpvs.len().try_into().unwrap());
-            }
-        }
-
-        // send Cpvs and iterate over returned results, tracking progress and errors
-        let mut errors = 0;
-        if !cpvs.is_empty() {
-            // create metadata directories in parallel
-            let categories: HashSet<_> = cpvs.par_iter().map(|cpv| cpv.category()).collect();
-            categories.into_par_iter().try_for_each(|cat| {
-                let path = cache_path.join(cat);
-                fs::create_dir_all(&path)
-                    .map_err(|e| Error::IO(format!("failed creating metadata dir: {path}: {e}")))
-            })?;
-
-            pb.set_message("generating metadata cache:");
-            for r in pool.iter(cpvs.into_iter())? {
-                pb.inc(1);
-
-                // log errors
-                if let Err(e) = r {
-                    errors += 1;
-                    error!("{e}");
-                }
-            }
-        }
-
-        if errors > 0 {
-            Err(Error::InvalidValue(
-                "failed generating metadata, check log for package errors".to_string(),
-            ))
-        } else {
-            Ok(())
-        }
+    /// Create a package metadata cache regeneration runner.
+    pub fn metadata_regen(&self) -> cache::CacheBuilder {
+        cache::CacheBuilder::new(self)
     }
 
     /// Return a filtered iterator of Cpvs for the repo.
@@ -1280,7 +1164,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pkg_metadata_regen() {
+    fn test_metadata_regen() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
@@ -1294,8 +1178,7 @@ mod tests {
         t.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
         t.create_raw_pkg_from_str("other/pkg-1", data).unwrap();
 
-        repo.pkg_metadata_regen(Some(1), false, false, true, None)
-            .unwrap();
+        repo.metadata_regen().jobs(1).suppress(true).run().unwrap();
 
         // verify metadata entries
         let metadata = indoc::indoc! {r"
@@ -1316,8 +1199,7 @@ mod tests {
         assert_eq!(entries.len(), 5);
         fs::remove_dir_all(repo.path().join("other")).unwrap();
         fs::remove_file(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
-        repo.pkg_metadata_regen(Some(1), false, false, true, None)
-            .unwrap();
+        repo.metadata_regen().jobs(1).suppress(true).run().unwrap();
         let entries: Vec<_> = WalkDir::new(repo.metadata().cache_path())
             .min_depth(1)
             .into_iter()
@@ -1327,7 +1209,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_pkg_metadata_regen_errors() {
+    fn test_metadata_regen_errors() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
@@ -1345,7 +1227,7 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = repo.pkg_metadata_regen(None, false, false, true, None);
+        let r = repo.metadata_regen().suppress(true).run();
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

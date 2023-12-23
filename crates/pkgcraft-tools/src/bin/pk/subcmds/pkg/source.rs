@@ -225,7 +225,7 @@ impl Command {
         };
 
         // default to running a job on each physical CPU in order to limit contention
-        let jobs = bounded_jobs(self.jobs.or(Some(num_cpus::get_physical())));
+        let jobs = bounded_jobs(self.jobs.unwrap_or(num_cpus::get_physical()));
 
         // loop over targets, tracking overall failure status
         let mut status = ExitCode::SUCCESS;

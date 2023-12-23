@@ -8,13 +8,13 @@ use digest::Digest;
 
 use crate::Error;
 
-/// Limit parallel jobs to the number of logical CPUs on a system. All CPUs are used if
-/// jobs is None or 0.
-pub fn bounded_jobs(jobs: Option<usize>) -> usize {
+/// Limit parallel jobs to the number of logical CPUs on a system. All CPUs are used if jobs is 0.
+pub fn bounded_jobs(jobs: usize) -> usize {
     let cpus = num_cpus::get();
-    match jobs {
-        Some(j) if j > 0 && j <= cpus => j,
-        _ => cpus,
+    if jobs > 0 && jobs <= cpus {
+        jobs
+    } else {
+        cpus
     }
 }
 
