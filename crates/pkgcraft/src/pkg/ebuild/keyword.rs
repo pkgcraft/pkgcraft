@@ -64,6 +64,42 @@ impl<S: Stringable> Keyword<S> {
     pub fn status(&self) -> Status {
         self.status
     }
+
+    /// Disable a keyword, returning its borrowed form.
+    pub fn disable(&self) -> Keyword<&str> {
+        Keyword {
+            status: Status::Disabled,
+            arch: self.arch(),
+        }
+    }
+
+    /// Stabilize a keyword, returning its borrowed form while skipping disabled variants.
+    pub fn stable(&self) -> Keyword<&str> {
+        let status = if self.status != Status::Disabled {
+            Status::Stable
+        } else {
+            Status::Disabled
+        };
+
+        Keyword {
+            status,
+            arch: self.arch(),
+        }
+    }
+
+    /// Destabilize a keyword, returning its borrowed form while skipping disabled variants.
+    pub fn unstable(&self) -> Keyword<&str> {
+        let status = if self.status != Status::Disabled {
+            Status::Unstable
+        } else {
+            Status::Disabled
+        };
+
+        Keyword {
+            status,
+            arch: self.arch(),
+        }
+    }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Keyword<S1>> for Keyword<S2> {
@@ -176,6 +212,27 @@ mod tests {
             assert_eq!(borrowed.arch(), arch);
             assert_eq!(borrowed.status(), status);
         }
+    }
+
+    #[test]
+    fn alter_status() {
+        let disabled = Keyword::parse("-arch").unwrap();
+        let unstable = Keyword::parse("~arch").unwrap();
+        let stable = Keyword::parse("arch").unwrap();
+
+        assert_eq!(disabled.disable(), disabled);
+        assert_eq!(unstable.disable(), disabled);
+        assert_eq!(stable.disable(), disabled);
+
+        // unstable() does not alter keywords with disabled status
+        assert_eq!(disabled.unstable(), disabled);
+        assert_eq!(unstable.unstable(), unstable);
+        assert_eq!(stable.unstable(), unstable);
+
+        // stable() does not alter keywords with disabled status
+        assert_eq!(disabled.stable(), disabled);
+        assert_eq!(unstable.stable(), stable);
+        assert_eq!(stable.stable(), stable);
     }
 
     #[test]
