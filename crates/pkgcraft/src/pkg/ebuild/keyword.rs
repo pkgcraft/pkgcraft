@@ -5,8 +5,9 @@ use crate::macros::{cmp_not_equal, equivalent};
 use crate::traits::{IntoOwned, ToRef};
 
 /// Package keyword type.
+#[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub enum Status {
+pub enum KeywordStatus {
     Disabled, // -arch
     Unstable, // ~arch
     Stable,   // arch
@@ -14,7 +15,7 @@ pub enum Status {
 
 #[derive(Debug, Eq, Hash, Clone)]
 pub struct Keyword<S: Stringable> {
-    pub(crate) status: Status,
+    pub(crate) status: KeywordStatus,
     pub(crate) arch: S,
 }
 
@@ -61,24 +62,24 @@ impl<S: Stringable> Keyword<S> {
     }
 
     /// Return the keyword status.
-    pub fn status(&self) -> Status {
+    pub fn status(&self) -> KeywordStatus {
         self.status
     }
 
     /// Disable a keyword, returning its borrowed form.
     pub fn disable(&self) -> Keyword<&str> {
         Keyword {
-            status: Status::Disabled,
+            status: KeywordStatus::Disabled,
             arch: self.arch(),
         }
     }
 
     /// Stabilize a keyword, returning its borrowed form while skipping disabled variants.
     pub fn stable(&self) -> Keyword<&str> {
-        let status = if self.status != Status::Disabled {
-            Status::Stable
+        let status = if self.status != KeywordStatus::Disabled {
+            KeywordStatus::Stable
         } else {
-            Status::Disabled
+            KeywordStatus::Disabled
         };
 
         Keyword { status, arch: self.arch() }
@@ -86,10 +87,10 @@ impl<S: Stringable> Keyword<S> {
 
     /// Destabilize a keyword, returning its borrowed form while skipping disabled variants.
     pub fn unstable(&self) -> Keyword<&str> {
-        let status = if self.status != Status::Disabled {
-            Status::Unstable
+        let status = if self.status != KeywordStatus::Disabled {
+            KeywordStatus::Unstable
         } else {
-            Status::Disabled
+            KeywordStatus::Disabled
         };
 
         Keyword { status, arch: self.arch() }
@@ -144,9 +145,9 @@ impl<S: Stringable> std::fmt::Display for Keyword<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let arch = &self.arch;
         match &self.status {
-            Status::Stable => write!(f, "{arch}"),
-            Status::Unstable => write!(f, "~{arch}"),
-            Status::Disabled => write!(f, "-{arch}"),
+            KeywordStatus::Stable => write!(f, "{arch}"),
+            KeywordStatus::Unstable => write!(f, "~{arch}"),
+            KeywordStatus::Disabled => write!(f, "-{arch}"),
         }
     }
 }
@@ -190,7 +191,7 @@ mod tests {
 
     #[test]
     fn arch_and_status() {
-        use Status::*;
+        use KeywordStatus::*;
         for (s, arch, status) in [
             ("arch", "arch", Stable),
             ("-arch", "arch", Disabled),

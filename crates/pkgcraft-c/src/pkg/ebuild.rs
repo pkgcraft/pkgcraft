@@ -9,7 +9,10 @@ use crate::dep::{DependencySet, DependencySetKind};
 use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::utils::{obj_to_str, str_to_raw};
+use crate::utils::{boxed, obj_to_str, str_to_raw};
+
+pub mod keyword;
+use keyword::Keyword;
 
 /// Wrapper for package maintainers.
 #[repr(C)]
@@ -335,6 +338,19 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_defined_phases(
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_keywords(
+    p: *mut Pkg,
+    len: *mut usize,
+) -> *mut *mut Keyword {
+    let pkg = try_pkg_from_ptr!(p);
+    iter_to_array!(pkg.keywords().iter(), len, |x| boxed(x.clone().into()))
+}
+
+/// Return a package's keywords as raw strings.
+///
+/// # Safety
+/// The argument must be a non-null Pkg pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_keywords_str(
     p: *mut Pkg,
     len: *mut usize,
 ) -> *mut *mut c_char {
