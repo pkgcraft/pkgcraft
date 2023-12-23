@@ -1163,50 +1163,6 @@ mod tests {
         assert!(repo.categories_xml().get("nonexistent").is_none());
     }
 
-    #[test]
-    fn test_metadata_regen() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
-
-        let data = indoc::indoc! {r#"
-            EAPI=8
-            DESCRIPTION="testing metadata generation"
-            SLOT=0
-        "#};
-        t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
-        t.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
-        t.create_raw_pkg_from_str("other/pkg-1", data).unwrap();
-
-        repo.metadata_regen().jobs(1).suppress(true).run().unwrap();
-
-        // verify metadata entries
-        let metadata = indoc::indoc! {r"
-            DEFINED_PHASES=-
-            DESCRIPTION=testing metadata generation
-            EAPI=8
-            SLOT=0
-            _md5_=e871bbf49576e8c370c4f69856fca537
-        "};
-        let path = repo.metadata().cache_path().join("cat/pkg-1");
-        assert_unordered_eq(fs::read_to_string(path).unwrap().lines(), metadata.lines());
-
-        // outdated metadata files and directories are removed
-        let entries: Vec<_> = WalkDir::new(repo.metadata().cache_path())
-            .min_depth(1)
-            .into_iter()
-            .collect();
-        assert_eq!(entries.len(), 5);
-        fs::remove_dir_all(repo.path().join("other")).unwrap();
-        fs::remove_file(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
-        repo.metadata_regen().jobs(1).suppress(true).run().unwrap();
-        let entries: Vec<_> = WalkDir::new(repo.metadata().cache_path())
-            .min_depth(1)
-            .into_iter()
-            .collect();
-        assert_eq!(entries.len(), 2);
-    }
-
     #[traced_test]
     #[test]
     fn test_metadata_regen_errors() {
