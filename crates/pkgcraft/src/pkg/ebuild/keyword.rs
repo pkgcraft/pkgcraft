@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use crate::dep::{self, Stringable};
 use crate::macros::{cmp_not_equal, equivalent};
-use crate::traits::IntoOwned;
+use crate::traits::{IntoOwned, ToRef};
 
 /// Package keyword type.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
@@ -25,6 +25,17 @@ impl IntoOwned for Keyword<&str> {
         Keyword {
             status: self.status,
             arch: self.arch.to_string(),
+        }
+    }
+}
+
+impl<'a> ToRef<'a> for Keyword<String> {
+    type Ref = Keyword<&'a str>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        Keyword {
+            status: self.status,
+            arch: self.arch.as_ref(),
         }
     }
 }
