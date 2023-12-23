@@ -132,8 +132,9 @@ fn jobs() {
 #[test]
 fn multiple() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("cat/a-1", &["EAPI=7"]).unwrap();
-    t.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
+    t.create_pkg("cat/a-1", &[]).unwrap();
+    t.create_pkg("cat/b-1", &[]).unwrap();
+    t.create_pkg("other/pkg-1", &[]).unwrap();
     cmd("pk repo metadata")
         .arg(t.path())
         .assert()
@@ -144,9 +145,11 @@ fn multiple() {
     let path = t.repo().metadata().cache_path();
     assert!(path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
+    assert!(path.join("other").exists());
 
-    // outdated cache entries lacking ebuilds are removed
+    // outdated cache files and directories are removed
     fs::remove_dir_all(t.repo().path().join("cat/b")).unwrap();
+    fs::remove_dir_all(t.repo().path().join("other")).unwrap();
     cmd("pk repo metadata")
         .arg(t.path())
         .assert()
@@ -156,6 +159,7 @@ fn multiple() {
 
     assert!(path.join("cat/a-1").exists());
     assert!(!path.join("cat/b-1").exists());
+    assert!(!path.join("other").exists());
 }
 
 #[test]
