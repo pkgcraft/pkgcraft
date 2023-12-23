@@ -232,6 +232,8 @@ mod tests {
     #[test]
     fn cmp() {
         let exprs = [
+            "arch == arch",
+            "arch1 != arch2",
             // lexical arch order
             "arch1 < arch2",
             "arch-plat1 < arch-plat2",
@@ -255,7 +257,7 @@ mod tests {
             let v1_borrowed = Keyword::parse(s1).unwrap();
             let v2_owned = Keyword::try_new(s2).unwrap();
             let v2_borrowed = Keyword::parse(s2).unwrap();
-            if op == "!=" {
+            if op != "==" {
                 assert_ne!(v1_owned, v2_owned, "failed comparing: {expr}");
                 assert_ne!(v1_borrowed, v2_borrowed, "failed comparing: {expr}");
                 assert_ne!(v1_owned, v2_borrowed, "failed comparing: {expr}");
@@ -264,7 +266,9 @@ mod tests {
                 assert_ne!(v2_borrowed, v1_borrowed, "failed comparing: {expr}");
                 assert_ne!(v2_owned, v1_borrowed, "failed comparing: {expr}");
                 assert_ne!(v2_borrowed, v1_owned, "failed comparing: {expr}");
-            } else {
+            }
+
+            if op != "!=" {
                 let op = op_map[op];
                 assert_eq!(v1_owned.cmp(&v2_owned), op, "failed comparing: {expr}");
                 assert_eq!(v1_borrowed.cmp(&v2_borrowed), op, "failed comparing: {expr}");
