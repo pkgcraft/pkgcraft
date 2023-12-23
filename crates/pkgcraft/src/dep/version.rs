@@ -677,7 +677,7 @@ fn ver_str<S: Stringable>(
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Version<S1>> for Version<S2> {
     fn eq(&self, other: &Version<S1>) -> bool {
-        ver_cmp(self, other, true, true) == Ordering::Equal
+        cmp(self, other, true, true) == Ordering::Equal
     }
 }
 
@@ -700,7 +700,7 @@ impl<S: Stringable> Hash for Version<S> {
 }
 
 /// Compare two versions, optionally ignoring the revision and/or operator.
-fn ver_cmp<S1, S2>(v1: &Version<S1>, v2: &Version<S2>, rev: bool, op: bool) -> Ordering
+fn cmp<S1, S2>(v1: &Version<S1>, v2: &Version<S2>, rev: bool, op: bool) -> Ordering
 where
     S1: Stringable,
     S2: Stringable,
@@ -760,13 +760,13 @@ where
 
 impl<S: Stringable> Ord for Version<S> {
     fn cmp(&self, other: &Self) -> Ordering {
-        ver_cmp(self, other, true, true)
+        cmp(self, other, true, true)
     }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<Version<S1>> for Version<S2> {
     fn partial_cmp(&self, other: &Version<S1>) -> Option<Ordering> {
-        Some(ver_cmp(self, other, true, true))
+        Some(cmp(self, other, true, true))
     }
 }
 
@@ -787,7 +787,7 @@ impl<S1: Stringable, S2: Stringable> PartialEq<NonRevisionVersion<'_, S1>>
     for NonRevisionVersion<'_, S2>
 {
     fn eq(&self, other: &NonRevisionVersion<'_, S1>) -> bool {
-        ver_cmp(self.0, other.0, false, false) == Ordering::Equal
+        cmp(self.0, other.0, false, false) == Ordering::Equal
     }
 }
 
@@ -804,7 +804,7 @@ struct NonOpVersion<'a, S: Stringable>(&'a Version<S>);
 
 impl<S1: Stringable, S2: Stringable> PartialEq<NonOpVersion<'_, S1>> for NonOpVersion<'_, S2> {
     fn eq(&self, other: &NonOpVersion<'_, S1>) -> bool {
-        ver_cmp(self.0, other.0, true, false) == Ordering::Equal
+        cmp(self.0, other.0, true, false) == Ordering::Equal
     }
 }
 
@@ -812,13 +812,13 @@ impl<S: Stringable> Eq for NonOpVersion<'_, S> {}
 
 impl<S: Stringable> Ord for NonOpVersion<'_, S> {
     fn cmp(&self, other: &Self) -> Ordering {
-        ver_cmp(self.0, other.0, true, false)
+        cmp(self.0, other.0, true, false)
     }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<NonOpVersion<'_, S1>> for NonOpVersion<'_, S2> {
     fn partial_cmp(&self, other: &NonOpVersion<'_, S1>) -> Option<Ordering> {
-        Some(ver_cmp(self.0, other.0, true, false))
+        Some(cmp(self.0, other.0, true, false))
     }
 }
 

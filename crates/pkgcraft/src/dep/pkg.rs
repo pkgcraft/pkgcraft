@@ -248,19 +248,19 @@ impl IntoOwned for Dep<&str> {
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Dep<S1>> for Dep<S2> {
     fn eq(&self, other: &Dep<S1>) -> bool {
-        dep_cmp(self, other) == Ordering::Equal
+        cmp(self, other) == Ordering::Equal
     }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Cow<'_, Dep<S1>>> for Dep<S2> {
     fn eq(&self, other: &Cow<'_, Dep<S1>>) -> bool {
-        dep_cmp(self, other) == Ordering::Equal
+        cmp(self, other) == Ordering::Equal
     }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Dep<S1>> for Cow<'_, Dep<S2>> {
     fn eq(&self, other: &Dep<S1>) -> bool {
-        dep_cmp(self, other) == Ordering::Equal
+        cmp(self, other) == Ordering::Equal
     }
 }
 
@@ -280,19 +280,19 @@ impl<S: Stringable> Ord for Dep<S> {
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<Dep<S1>> for Dep<S2> {
     fn partial_cmp(&self, other: &Dep<S1>) -> Option<Ordering> {
-        Some(dep_cmp(self, other))
+        Some(cmp(self, other))
     }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<Cow<'_, Dep<S1>>> for Dep<S2> {
     fn partial_cmp(&self, other: &Cow<'_, Dep<S1>>) -> Option<Ordering> {
-        Some(dep_cmp(self, other))
+        Some(cmp(self, other))
     }
 }
 
 impl<S1: Stringable, S2: Stringable> PartialOrd<Dep<S1>> for Cow<'_, Dep<S2>> {
     fn partial_cmp(&self, other: &Dep<S1>) -> Option<Ordering> {
-        Some(dep_cmp(self, other))
+        Some(cmp(self, other))
     }
 }
 
@@ -592,7 +592,7 @@ impl<S: Stringable> Dep<S> {
 }
 
 /// Compare two package dependencies.
-fn dep_cmp<S1, S2>(d1: &Dep<S1>, d2: &Dep<S2>) -> Ordering
+fn cmp<S1, S2>(d1: &Dep<S1>, d2: &Dep<S2>) -> Ordering
 where
     S1: Stringable,
     S2: Stringable,
