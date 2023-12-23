@@ -449,27 +449,44 @@ mod tests {
 
     #[test]
     fn homepage() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-
         // none
-        let pkg = t.create_pkg("cat/pkg-1", &["HOMEPAGE="]).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        assert!(pkg.homepage().is_empty());
+
+        // empty
+        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
         assert!(pkg.homepage().is_empty());
 
         // single-line
-        let pkg = t.create_pkg("cat/pkg-1", &["HOMEPAGE=home"]).unwrap();
-        assert_ordered_eq(pkg.homepage(), ["home"]);
+        let pkg = TEST_DATA
+            .ebuild_pkg("=homepage/single-8::metadata")
+            .unwrap();
+        assert_ordered_eq(
+            pkg.homepage(),
+            ["https://github.com/pkgcraft/1", "https://github.com/pkgcraft/2"],
+        );
 
         // multi-line
-        let val = indoc::indoc! {"
-            a
-            b
-            c
-        "};
-        let pkg = t
-            .create_pkg("cat/pkg-1", &[&format!("HOMEPAGE={val}")])
+        let pkg = TEST_DATA.ebuild_pkg("=homepage/multi-8::metadata").unwrap();
+        assert_ordered_eq(
+            pkg.homepage(),
+            ["https://github.com/pkgcraft/1", "https://github.com/pkgcraft/2"],
+        );
+
+        // inherited and overridden
+        let pkg = TEST_DATA
+            .ebuild_pkg("=homepage/inherit-8::metadata")
             .unwrap();
-        assert_ordered_eq(pkg.homepage(), ["a", "b", "c"]);
+        assert_ordered_eq(pkg.homepage(), ["https://github.com/pkgcraft/1"]);
+
+        // inherited and appended
+        let pkg = TEST_DATA
+            .ebuild_pkg("=homepage/append-8::metadata")
+            .unwrap();
+        assert_ordered_eq(
+            pkg.homepage(),
+            ["https://github.com/pkgcraft/a", "https://github.com/pkgcraft/1"],
+        );
     }
 
     #[test]
