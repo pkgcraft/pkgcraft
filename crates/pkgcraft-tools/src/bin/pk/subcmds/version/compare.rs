@@ -21,19 +21,19 @@ impl Command {
 
         let vals = mem::take(&mut self.vals);
         for s in vals.stdin_or_args() {
-            let (s1, op, s2) = s
+            let (lhs, op, rhs) = s
                 .split_whitespace()
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
-            let a1 = Version::parse(s1)?;
-            let a2 = Version::parse(s2)?;
+            let lhs = Version::parse(lhs)?;
+            let rhs = Version::parse(rhs)?;
             let result = match op {
-                "<" => a1 < a2,
-                "<=" => a1 <= a2,
-                "==" => a1 == a2,
-                "!=" => a1 != a2,
-                ">=" => a1 >= a2,
-                ">" => a1 > a2,
+                "<" => lhs < rhs,
+                "<=" => lhs <= rhs,
+                "==" => lhs == rhs,
+                "!=" => lhs != rhs,
+                ">=" => lhs >= rhs,
+                ">" => lhs > rhs,
                 _ => bail!("invalid operator: {op}"),
             };
 
