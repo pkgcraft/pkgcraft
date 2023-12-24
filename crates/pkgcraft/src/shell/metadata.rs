@@ -512,6 +512,15 @@ mod tests {
 
     #[test]
     fn serialize() {
+        // valid
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        for pkg in repo.iter_raw() {
+            BuildData::from_raw_pkg(&pkg);
+            let r = Metadata::serialize(&pkg);
+            assert!(r.is_ok(), "{pkg}: failed metadata serialization: {}", r.unwrap_err());
+        }
+
+        // invalid
         let repo = TEST_DATA.ebuild_repo("bad").unwrap();
         for pkg in repo.iter_raw() {
             BuildData::from_raw_pkg(&pkg);
