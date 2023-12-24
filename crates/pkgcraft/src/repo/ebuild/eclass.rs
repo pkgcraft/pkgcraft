@@ -11,6 +11,7 @@ use crate::traits::SourceBash;
 use crate::utils::digest;
 use crate::Error;
 
+/// An eclass in an ebuild repository.
 #[derive(Debug, Clone)]
 pub struct Eclass {
     name: String,
@@ -19,6 +20,7 @@ pub struct Eclass {
 }
 
 impl Eclass {
+    /// Create a new eclass.
     pub(crate) fn try_new(path: &Utf8Path) -> crate::Result<Self> {
         if let (Some(name), Some("eclass")) = (path.file_stem(), path.extension()) {
             let data = fs::read(path)
@@ -34,15 +36,18 @@ impl Eclass {
         }
     }
 
+    /// Return the name of the eclass.
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Return the full path of the eclass.
     pub fn path(&self) -> &Utf8Path {
         &self.path
     }
 
-    pub fn chksum(&self) -> &str {
+    /// Return the MD5 checksum of the eclass.
+    pub(crate) fn chksum(&self) -> &str {
         &self.chksum
     }
 }
