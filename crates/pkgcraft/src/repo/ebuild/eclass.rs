@@ -95,3 +95,29 @@ impl SourceBash for Eclass {
         source::file(&self.path)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::repo::Repository;
+    use crate::test::TEST_DATA;
+
+    use super::*;
+
+    #[test]
+    fn try_new() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
+        // nonexistent path
+        assert!(Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass")).is_err());
+
+        // non-eclass path
+        assert!(Eclass::try_new(&repo.path().join("licenses/l1")).is_err());
+
+        // valid
+        let path = repo.path().join("eclass/a.eclass");
+        let eclass = Eclass::try_new(&path).unwrap();
+        assert_eq!(eclass.path(), path);
+        assert_eq!(eclass.name(), "a");
+        assert!(!eclass.chksum().is_empty());
+    }
+}
