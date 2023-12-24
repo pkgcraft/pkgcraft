@@ -413,7 +413,6 @@ impl Repo {
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
             self.trees()
-                .rev()
                 .flat_map(|r| r.metadata().arches().clone().into_iter())
                 .collect()
         })
@@ -424,7 +423,6 @@ impl Repo {
         self.licenses.get_or_init(|| {
             let mut licenses: IndexSet<_> = self
                 .trees()
-                .rev()
                 .flat_map(|r| r.metadata().licenses().clone().into_iter())
                 .collect();
             licenses.sort();
