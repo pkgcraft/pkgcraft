@@ -1,6 +1,4 @@
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::OnceLock;
 use std::{fmt, fs, io};
@@ -185,66 +183,13 @@ impl FromStr for PkgUpdate {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct UseDesc {
-    name: String,
-    desc: String,
-}
-
-impl UseDesc {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn desc(&self) -> &str {
-        &self.desc
-    }
-}
-
-impl Ord for UseDesc {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.name.cmp(&other.name)
-    }
-}
-
-impl PartialOrd for UseDesc {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for UseDesc {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-impl Eq for UseDesc {}
-
-impl Hash for UseDesc {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-    }
-}
-
-impl UseDesc {
-    fn try_new(name: &str, desc: &str) -> crate::Result<Self> {
-        Ok(Self {
-            name: parse::use_flag(name).map(|s| s.to_string())?,
-            desc: desc.to_string(),
-        })
-    }
-}
-
-impl FromStr for UseDesc {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        let (flag, desc) = s
-            .split_once(" - ")
-            .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
-        UseDesc::try_new(flag, desc)
-    }
+/// Parse a USE description line into a (name, description) tuple.
+fn parse_use_desc(s: &str) -> crate::Result<(String, String)> {
+    let (flag, desc) = s
+        .split_once(" - ")
+        .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
+    let name = parse::use_flag(flag).map(|s| s.to_string())?;
+    Ok((name, desc.to_string()))
 }
 
 fn is_eclass(e: &Utf8DirEntry) -> bool {
@@ -269,9 +214,9 @@ pub struct Metadata {
     pkg_deprecated: OnceLock<IndexSet<Dep<String>>>,
     pkg_mask: OnceLock<IndexSet<Dep<String>>>,
     updates: OnceLock<IndexSet<PkgUpdate>>,
-    use_desc: OnceLock<IndexSet<UseDesc>>,
-    use_expand_desc: OnceLock<IndexMap<String, IndexSet<UseDesc>>>,
-    use_local_desc: OnceLock<OrderedMap<String, OrderedSet<UseDesc>>>,
+    use_desc: OnceLock<IndexMap<String, String>>,
+    use_expand_desc: OnceLock<IndexMap<String, IndexMap<String, String>>>,
+    use_local_desc: OnceLock<OrderedMap<String, OrderedMap<String, String>>>,
 }
 
 impl Metadata {
@@ -612,12 +557,12 @@ impl Metadata {
     }
 
     /// Return the ordered map of global USE flags.
-    pub fn use_desc(&self) -> &IndexSet<UseDesc> {
+    pub fn use_desc(&self) -> &IndexMap<String, String> {
         self.use_desc.get_or_init(|| {
             self.read_path("profiles/use.desc")
                 .filter_lines()
                 .filter_map(|(i, s)| {
-                    s.parse()
+                    parse_use_desc(s)
                         .map_err(|e| {
                             warn!("{}::profiles/use.desc, line {i}: invalid format: {e}", self.id);
                         })
@@ -628,7 +573,7 @@ impl Metadata {
     }
 
     /// Return the ordered map of USE_EXPAND flags.
-    pub fn use_expand_desc(&self) -> &IndexMap<String, IndexSet<UseDesc>> {
+    pub fn use_expand_desc(&self) -> &IndexMap<String, IndexMap<String, String>> {
         self.use_expand_desc.get_or_init(|| {
             sorted_dir_list(self.path.join("profiles/desc"))
                 .into_iter()
@@ -645,13 +590,13 @@ impl Metadata {
                     let vals = s
                         .filter_lines()
                         .filter_map(|(i, line)| {
-                            line.parse()
+                            parse_use_desc(line)
                                 .map_err(|err| {
                                     warn!("{}::profiles/desc/{file}, line {i}: {err}", self.id)
                                 })
                                 .ok()
                         })
-                        .collect::<IndexSet<_>>();
+                        .collect::<IndexMap<_, _>>();
                     (name.to_string(), vals)
                 })
                 .collect()
@@ -659,14 +604,14 @@ impl Metadata {
     }
 
     /// Return the ordered map of local USE flags.
-    pub fn use_local_desc(&self) -> &OrderedMap<String, OrderedSet<UseDesc>> {
+    pub fn use_local_desc(&self) -> &OrderedMap<String, OrderedMap<String, String>> {
         // parse a use.local.desc line
-        let parse = |s: &str| -> crate::Result<(String, UseDesc)> {
+        let parse = |s: &str| -> crate::Result<(String, (String, String))> {
             let (cpn, use_desc) = s
                 .split_once(':')
                 .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
             let dep = Dep::try_new_cpn(cpn)?;
-            Ok((dep.to_string(), use_desc.parse()?))
+            Ok((dep.to_string(), parse_use_desc(use_desc)?))
         };
 
         self.use_local_desc.get_or_init(|| {
@@ -1140,10 +1085,7 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), data).unwrap();
-        assert_ordered_eq(
-            metadata.use_desc(),
-            [&UseDesc::try_new("a", "a flag description").unwrap()],
-        );
+        assert_eq!(metadata.use_desc().get("a").unwrap(), "a flag description");
         assert_logs_re!(".+ line 5: invalid format: b: b flag description$");
         assert_logs_re!(".+ line 8: .+?: invalid USE flag: @c$");
     }
@@ -1176,9 +1118,14 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.local.desc"), data).unwrap();
-        assert_ordered_eq(
-            metadata.use_local_desc().get("cat/pkg").unwrap(),
-            [&UseDesc::try_new("a", "a flag description").unwrap()],
+        assert_eq!(
+            metadata
+                .use_local_desc()
+                .get("cat/pkg")
+                .unwrap()
+                .get("a")
+                .unwrap(),
+            "a flag description"
         );
         assert_logs_re!(".+ line 5: invalid format: b - b flag description$");
         assert_logs_re!(".+ line 8: .+?: invalid USE flag: @c$");

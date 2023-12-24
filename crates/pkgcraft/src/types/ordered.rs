@@ -359,6 +359,18 @@ impl<K: Ordered, V: Ordered> FromIterator<(K, V)> for OrderedMap<K, OrderedSet<V
     }
 }
 
+impl<K1: Ordered, K2: Ordered, V: Ordered> FromIterator<(K1, (K2, V))>
+    for OrderedMap<K1, OrderedMap<K2, V>>
+{
+    fn from_iter<I: IntoIterator<Item = (K1, (K2, V))>>(iterable: I) -> Self {
+        let mut map = Self::new();
+        for (k1, (k2, v)) in iterable {
+            map.entry(k1).or_default().insert(k2, v);
+        }
+        map
+    }
+}
+
 impl<K: Ordered, V: Ordered, const N: usize> From<[(K, V); N]> for OrderedMap<K, V> {
     fn from(arr: [(K, V); N]) -> Self {
         Self::from_iter(arr)
