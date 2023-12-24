@@ -843,9 +843,9 @@ mod tests {
     fn test_eclasses() {
         let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
         // uninherited eclasses
-        assert_unordered_eq(repo.metadata().eclasses().iter().map(|e| e.name()), ["b", "c"]);
+        assert_ordered_eq(repo.metadata().eclasses().iter().map(|e| e.name()), ["b", "c"]);
         // inherited eclasses
-        assert_unordered_eq(repo.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
+        assert_ordered_eq(repo.eclasses().keys(), ["a", "b", "c"]);
     }
 
     #[test]

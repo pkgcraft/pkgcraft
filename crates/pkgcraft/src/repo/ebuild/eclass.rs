@@ -1,6 +1,3 @@
-use std::borrow::Borrow;
-use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -12,7 +9,7 @@ use crate::utils::digest;
 use crate::Error;
 
 /// An eclass in an ebuild repository.
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Eclass {
     name: String,
     path: Utf8PathBuf,
@@ -55,38 +52,6 @@ impl Eclass {
 impl fmt::Display for Eclass {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
-    }
-}
-
-impl Eq for Eclass {}
-
-impl PartialEq for Eclass {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-    }
-}
-
-impl Ord for Eclass {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.name.cmp(&other.name)
-    }
-}
-
-impl PartialOrd for Eclass {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Hash for Eclass {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-    }
-}
-
-impl Borrow<str> for Eclass {
-    fn borrow(&self) -> &str {
-        &self.name
     }
 }
 
