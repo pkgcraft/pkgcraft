@@ -1127,9 +1127,9 @@ mod tests {
     #[test]
     fn test_eclasses() {
         let repo1 = TEST_DATA.ebuild_repo("primary").unwrap();
-        assert_unordered_eq(repo1.eclasses().iter().map(|e| e.as_ref()), ["a", "c"]);
+        assert_unordered_eq(repo1.eclasses().iter().map(|e| e.name()), ["a", "c"]);
         let repo2 = TEST_DATA.ebuild_repo("secondary").unwrap();
-        assert_unordered_eq(repo2.eclasses().iter().map(|e| e.as_ref()), ["a", "b", "c"]);
+        assert_unordered_eq(repo2.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
         // verify the overridden eclass is from the secondary repo
         let overridden_eclass = repo2.eclasses().get("c").unwrap();
         assert!(overridden_eclass.path().starts_with(repo2.path()));

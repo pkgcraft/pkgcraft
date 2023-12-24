@@ -381,7 +381,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_inherit(
     len: *mut usize,
 ) -> *mut *mut c_char {
     let pkg = try_pkg_from_ptr!(p);
-    iter_to_array!(pkg.inherit().iter(), len, str_to_raw)
+    iter_to_array!(pkg.inherit().iter().map(|e| e.name()), len, str_to_raw)
 }
 
 /// Return a package's inherited eclasses.
@@ -394,7 +394,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_inherited(
     len: *mut usize,
 ) -> *mut *mut c_char {
     let pkg = try_pkg_from_ptr!(p);
-    iter_to_array!(pkg.inherited().iter(), len, str_to_raw)
+    iter_to_array!(pkg.inherited().iter().map(|e| e.name()), len, str_to_raw)
 }
 
 /// Return a package's long description.

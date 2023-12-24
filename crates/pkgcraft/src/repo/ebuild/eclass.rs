@@ -34,6 +34,10 @@ impl Eclass {
         }
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn path(&self) -> &Utf8Path {
         &self.path
     }
@@ -46,12 +50,6 @@ impl Eclass {
 impl fmt::Display for Eclass {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
-    }
-}
-
-impl AsRef<str> for Eclass {
-    fn as_ref(&self) -> &str {
-        &self.name
     }
 }
 

@@ -275,7 +275,7 @@ impl<'a> Metadata<'a> {
                         let val = meta
                             .inherited
                             .iter()
-                            .flat_map(|e| [e.as_ref(), e.chksum()])
+                            .flat_map(|e| [e.name(), e.chksum()])
                             .join("\t");
                         writeln!(&mut data, "_eclasses_={val}")?;
                     }
