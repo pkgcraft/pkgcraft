@@ -500,3 +500,20 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
         Ok(meta)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test::TEST_DATA;
+
+    use super::*;
+
+    #[test]
+    fn load() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let cache_path = repo.metadata().cache_path();
+        for pkg in repo.iter_raw() {
+            let r = Metadata::load(&pkg, cache_path, true);
+            assert!(r.is_ok(), "{pkg}: failed metadata load: {}", r.unwrap_err());
+        }
+    }
+}
