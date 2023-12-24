@@ -256,8 +256,8 @@ impl Phase {
         }
     }
 
-    /// Return the shortened phase function name, e.g. src_compile -> compile.
-    pub(crate) fn name(&self) -> &str {
+    /// Return the phase name, e.g. src_compile -> compile.
+    pub fn name(&self) -> &str {
         self.kind.name()
     }
 }
