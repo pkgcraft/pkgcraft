@@ -7,6 +7,7 @@ use scallop::{functions, Error, ExecStatus};
 use tempfile::NamedTempFile;
 
 use crate::error::PackageError;
+use crate::files::atomic_write_file;
 use crate::pkg::{ebuild, Build, Package, Pretend, Regen, Source};
 use crate::shell::metadata::Metadata;
 use crate::shell::scope::Scope;
@@ -93,7 +94,17 @@ impl<'a> Source for ebuild::Pkg<'a> {
 
 impl<'a> Regen for ebuild::raw::Pkg<'a> {
     fn regen(&self, cache_path: &Utf8Path) -> scallop::Result<()> {
-        Ok(Metadata::serialize(self, cache_path).map_err(|e| self.invalid_pkg_err(e))?)
+        let data = Metadata::serialize(self).map_err(|e| self.invalid_pkg_err(e))?;
+
+        // determine metadata entry directory
+        let dir = cache_path.join(self.cpv().category());
+
+        // atomically create metadata file
+        let pf = self.pf();
+        let path = dir.join(format!(".{pf}"));
+        let new_path = dir.join(pf);
+        atomic_write_file(&path, data, &new_path)?;
+        Ok(())
     }
 }
 

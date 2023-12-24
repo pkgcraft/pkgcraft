@@ -10,7 +10,6 @@ use tracing::warn;
 
 use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
-use crate::files::atomic_write_file;
 use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword};
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
 use crate::repo::ebuild::{Eclass, Repo};
@@ -173,8 +172,8 @@ impl<'a> Metadata<'a> {
         Ok(())
     }
 
-    /// Serialize [`Metadata`] to the given package's metadata/md5-cache file in the related repo.
-    pub(crate) fn serialize(pkg: &Pkg, cache_path: &Utf8Path) -> crate::Result<()> {
+    /// Serialize a ebuild package's metadata to its raw form.
+    pub(crate) fn serialize(pkg: &Pkg) -> crate::Result<Vec<u8>> {
         // convert raw pkg into metadata via sourcing
         let meta: Metadata = pkg.try_into()?;
         let eapi = pkg.eapi();
@@ -284,14 +283,7 @@ impl<'a> Metadata<'a> {
             }
         }
 
-        // determine metadata entry directory
-        let dir = cache_path.join(pkg.cpv().category());
-
-        // atomically create metadata file
-        let pf = pkg.pf();
-        let path = dir.join(format!(".{pf}"));
-        let new_path = dir.join(pf);
-        atomic_write_file(&path, data, &new_path)
+        Ok(data)
     }
 
     /// Verify a metadata entry is valid using its checksum values.
