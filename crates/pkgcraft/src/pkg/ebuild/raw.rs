@@ -1,6 +1,7 @@
-use std::fs;
+use std::{fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use tracing::warn;
 
 use crate::dep::Cpv;
 use crate::eapi::{self, Eapi};
@@ -82,7 +83,15 @@ impl<'a> Pkg<'a> {
 
     /// Load raw metadata and verify its validity.
     pub(crate) fn metadata_raw(&self, cache_path: &Utf8Path) -> crate::Result<MetadataRaw> {
-        let meta = MetadataRaw::load(self, cache_path)?;
+        let path = cache_path.join(self.cpv().to_string());
+        let data = fs::read_to_string(&path).map_err(|e| {
+            if e.kind() != io::ErrorKind::NotFound {
+                warn!("error loading ebuild metadata: {path:?}: {e}");
+            }
+            Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
+        })?;
+
+        let meta = MetadataRaw::load(&data);
         meta.verify(self)?;
         Ok(meta)
     }

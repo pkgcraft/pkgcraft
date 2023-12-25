@@ -1,12 +1,9 @@
 use std::collections::HashMap;
-use std::fs;
-use std::io::{self, Write};
+use std::io::Write;
 
-use camino::Utf8Path;
 use itertools::Itertools;
 use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
-use tracing::warn;
 
 use crate::dep::{self, Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
@@ -55,16 +52,8 @@ pub(crate) struct MetadataRaw(HashMap<Key, String>);
 
 impl MetadataRaw {
     /// Load package metadata.
-    pub(crate) fn load(pkg: &Pkg, cache_path: &Utf8Path) -> crate::Result<Self> {
-        let path = cache_path.join(pkg.cpv().to_string());
-        let data = fs::read_to_string(&path).map_err(|e| {
-            if e.kind() != io::ErrorKind::NotFound {
-                warn!("error loading ebuild metadata: {path:?}: {e}");
-            }
-            Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
-        })?;
-
-        let data = data
+    pub(crate) fn load(s: &str) -> Self {
+        let data = s
             .lines()
             .filter_map(|l| {
                 l.split_once('=').map(|(s, v)| match (s, v) {
@@ -76,10 +65,9 @@ impl MetadataRaw {
                 })
             })
             .filter_map(|(k, v)| k.parse().ok().map(|k| (k, v.to_string())))
-            .filter(|(k, _)| pkg.eapi().metadata_keys().contains(k))
             .collect();
 
-        Ok(Self(data))
+        Self(data)
     }
 
     /// Verify metadata validity via ebuild and eclass checksums.
@@ -118,8 +106,11 @@ impl MetadataRaw {
                 return Err(Error::InvalidValue(format!("missing required value: {key}")));
             }
         }
-        for (key, val) in &self.0 {
-            meta.deserialize(pkg.eapi(), pkg.repo(), key, val)?;
+
+        for key in pkg.eapi().metadata_keys() {
+            if let Some(val) = self.0.get(key) {
+                meta.deserialize(pkg.eapi(), pkg.repo(), key, val)?;
+            }
         }
 
         Ok(meta)
