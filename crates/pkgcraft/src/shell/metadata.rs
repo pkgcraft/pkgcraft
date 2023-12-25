@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::io::Write;
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
@@ -47,8 +47,8 @@ pub enum Key {
 }
 
 /// Serialized package metadata.
-#[derive(Debug)]
-pub(crate) struct MetadataRaw(HashMap<Key, String>);
+#[derive(Debug, Default)]
+pub(crate) struct MetadataRaw(IndexMap<Key, String>);
 
 impl MetadataRaw {
     /// Load package metadata.
