@@ -1,6 +1,5 @@
 use std::fmt;
 
-use camino::Utf8Path;
 use enum_as_inner::EnumAsInner;
 use scallop::ExecStatus;
 
@@ -87,11 +86,6 @@ pub trait Pretend: Package {
 pub trait Source: Package {
     /// Source a package.
     fn source(&self) -> scallop::Result<ExecStatus>;
-}
-
-pub(crate) trait Regen: Package {
-    /// Generate metadata for a package.
-    fn regen(&self, cache_path: &Utf8Path) -> scallop::Result<()>;
 }
 
 macro_rules! make_pkg_traits {

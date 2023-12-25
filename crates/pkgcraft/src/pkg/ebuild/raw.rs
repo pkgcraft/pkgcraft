@@ -91,7 +91,7 @@ impl<'a> Pkg<'a> {
             Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
         })?;
 
-        let meta = MetadataRaw::load(&data);
+        let meta = MetadataRaw::from(&data);
         meta.verify(self)?;
         Ok(meta)
     }

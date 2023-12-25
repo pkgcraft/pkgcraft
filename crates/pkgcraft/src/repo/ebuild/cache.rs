@@ -11,12 +11,12 @@ use tracing::error;
 use walkdir::WalkDir;
 
 use crate::dep::Cpv;
-use crate::files::{is_file, is_hidden};
-use crate::pkg::ebuild::raw::Pkg;
-use crate::pkg::Regen;
+use crate::error::{Error, PackageError};
+use crate::files::{atomic_write_file, is_file, is_hidden};
+use crate::pkg::{ebuild::raw::Pkg, Package};
 use crate::repo::PkgRepository;
+use crate::shell::metadata::Metadata;
 use crate::utils::bounded_jobs;
-use crate::Error;
 
 use super::Repo;
 
@@ -83,9 +83,20 @@ impl<'a> CacheBuilder<'a> {
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
     pub fn run(&self) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
-        let func = |cpv: Cpv<String>| {
-            let pkg = Pkg::try_new(cpv, self.repo)?;
-            pkg.regen(&self.cache_path)
+        let func = |cpv: Cpv<String>| -> scallop::Result<()> {
+            let pkg = &Pkg::try_new(cpv, self.repo)?;
+            // convert raw pkg into metadata via sourcing
+            let meta: Metadata = pkg.try_into().map_err(|e| pkg.invalid_pkg_err(e))?;
+
+            // determine metadata entry directory
+            let dir = self.cache_path.join(pkg.cpv().category());
+
+            // atomically create metadata file
+            let pf = pkg.pf();
+            let path = dir.join(format!(".{pf}"));
+            let new_path = dir.join(pf);
+            atomic_write_file(&path, meta.to_bytes(), &new_path)?;
+            Ok(())
         };
         let pool = PoolSendIter::new(self.jobs, func, self.suppress)?;
 

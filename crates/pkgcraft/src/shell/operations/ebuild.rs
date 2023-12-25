@@ -1,15 +1,12 @@
 use std::fs;
 use std::os::fd::AsRawFd;
 
-use camino::Utf8Path;
 use scallop::pool::redirect_output;
 use scallop::{functions, Error, ExecStatus};
 use tempfile::NamedTempFile;
 
 use crate::error::PackageError;
-use crate::files::atomic_write_file;
-use crate::pkg::{ebuild, Build, Package, Pretend, Regen, Source};
-use crate::shell::metadata::Metadata;
+use crate::pkg::{ebuild, Build, Package, Pretend, Source};
 use crate::shell::scope::Scope;
 use crate::shell::{get_build_mut, BuildData};
 
@@ -89,22 +86,6 @@ impl<'a> Source for ebuild::Pkg<'a> {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_pkg(self);
         get_build_mut().source_ebuild(&self.abspath())
-    }
-}
-
-impl<'a> Regen for ebuild::raw::Pkg<'a> {
-    fn regen(&self, cache_path: &Utf8Path) -> scallop::Result<()> {
-        let data = Metadata::serialize(self).map_err(|e| self.invalid_pkg_err(e))?;
-
-        // determine metadata entry directory
-        let dir = cache_path.join(self.cpv().category());
-
-        // atomically create metadata file
-        let pf = self.pf();
-        let path = dir.join(format!(".{pf}"));
-        let new_path = dir.join(pf);
-        atomic_write_file(&path, data, &new_path)?;
-        Ok(())
     }
 }
 

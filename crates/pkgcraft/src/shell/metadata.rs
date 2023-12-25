@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use indexmap::IndexMap;
 use itertools::Itertools;
 use scallop::{functions, variables};
@@ -46,30 +44,46 @@ pub enum Key {
     CHKSUM,
 }
 
+impl Key {
+    /// Convert a metadata key from its raw, metadata file string value.
+    fn from_meta(s: &str) -> crate::Result<Self> {
+        match s {
+            "_eclasses_" => Ok(Key::INHERITED),
+            "_md5_" => Ok(Key::CHKSUM),
+            s => s
+                .parse()
+                .map_err(|_| Error::InvalidValue(format!("invalid metadata key: {s}"))),
+        }
+    }
+
+    /// Convert a metadata key to its raw, metadata file string value.
+    fn as_meta(&self) -> &str {
+        match self {
+            Key::INHERITED => "_eclasses_",
+            Key::CHKSUM => "_md5_",
+            key => key.as_ref(),
+        }
+    }
+}
+
 /// Serialized package metadata.
 #[derive(Debug, Default)]
 pub(crate) struct MetadataRaw(IndexMap<Key, String>);
 
-impl MetadataRaw {
-    /// Load package metadata.
-    pub(crate) fn load(s: &str) -> Self {
-        let data = s
+impl<S: AsRef<str>> From<S> for MetadataRaw {
+    fn from(value: S) -> Self {
+        let data = value
+            .as_ref()
             .lines()
-            .filter_map(|l| {
-                l.split_once('=').map(|(s, v)| match (s, v) {
-                    ("_eclasses_", v) => ("INHERITED", v),
-                    ("_md5_", v) => ("CHKSUM", v),
-                    // single hyphen means no phases are defined as per PMS
-                    ("DEFINED_PHASES", "-") => ("DEFINED_PHASES", ""),
-                    _ => (s, v),
-                })
-            })
-            .filter_map(|(k, v)| k.parse().ok().map(|k| (k, v.to_string())))
+            .filter_map(|l| l.split_once('='))
+            .filter_map(|(k, v)| Key::from_meta(k).ok().map(|k| (k, v.to_string())))
             .collect();
 
         Self(data)
     }
+}
 
+impl MetadataRaw {
     /// Verify metadata validity via ebuild and eclass checksums.
     pub(crate) fn verify(&self, pkg: &Pkg) -> crate::Result<()> {
         // verify ebuild checksum
@@ -120,6 +134,7 @@ impl MetadataRaw {
 /// Deserialized package metadata.
 #[derive(Debug, Default)]
 pub(crate) struct Metadata<'a> {
+    eapi: &'static Eapi,
     description: String,
     slot: Slot<String>,
     bdepend: DependencySet<String, Dep<String>>,
@@ -199,10 +214,15 @@ impl<'a> Metadata<'a> {
             SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val, eapi)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
             DEFINED_PHASES => {
-                self.defined_phases = val
-                    .split_whitespace()
-                    .map(phase)
-                    .collect::<crate::Result<OrderedSet<_>>>()?
+                // PMS specifies if no phase functions are defined, a single hyphen is used.
+                if val == "-" {
+                    self.defined_phases = Default::default();
+                } else {
+                    self.defined_phases = val
+                        .split_whitespace()
+                        .map(phase)
+                        .collect::<crate::Result<OrderedSet<_>>>()?;
+                }
             }
             KEYWORDS => {
                 self.keywords = val
@@ -236,124 +256,60 @@ impl<'a> Metadata<'a> {
                         "mismatched sourced and parsed EAPIs: {sourced} != {eapi}"
                     )));
                 }
+                self.eapi = eapi;
             }
         }
 
         Ok(())
     }
 
-    /// Serialize a ebuild package's metadata to its raw form.
-    pub(crate) fn serialize(pkg: &Pkg) -> crate::Result<Vec<u8>> {
-        // convert raw pkg into metadata via sourcing
-        let meta: Metadata = pkg.try_into()?;
-        let eapi = pkg.eapi();
-
-        // convert metadata fields to metadata lines
+    /// Serialize a metadata field to its string value.
+    pub(crate) fn serialize(&self, key: &Key) -> String {
         use Key::*;
-        let mut data = vec![];
-        for key in eapi.metadata_keys() {
-            match key {
-                CHKSUM => writeln!(&mut data, "_md5_={}", meta.chksum)?,
-                DESCRIPTION => writeln!(&mut data, "{key}={}", meta.description)?,
-                SLOT => writeln!(&mut data, "{key}={}", meta.slot)?,
-                BDEPEND => {
-                    if !meta.bdepend.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.bdepend)?;
-                    }
+        match key {
+            CHKSUM => self.chksum.clone(),
+            DESCRIPTION => self.description.clone(),
+            SLOT => self.slot.to_string(),
+            BDEPEND => self.bdepend.to_string(),
+            DEPEND => self.depend.to_string(),
+            IDEPEND => self.idepend.to_string(),
+            PDEPEND => self.pdepend.to_string(),
+            RDEPEND => self.rdepend.to_string(),
+            LICENSE => self.license.to_string(),
+            PROPERTIES => self.properties.to_string(),
+            REQUIRED_USE => self.required_use.to_string(),
+            RESTRICT => self.restrict.to_string(),
+            SRC_URI => self.src_uri.to_string(),
+            HOMEPAGE => self.homepage.iter().join(" "),
+            DEFINED_PHASES => {
+                // PMS specifies if no phase functions are defined, a single hyphen is used.
+                if self.defined_phases.is_empty() {
+                    "-".to_string()
+                } else {
+                    self.defined_phases.iter().map(|p| p.name()).join(" ")
                 }
-                DEPEND => {
-                    if !meta.depend.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.depend)?;
-                    }
-                }
-                IDEPEND => {
-                    if !meta.idepend.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.idepend)?;
-                    }
-                }
-                PDEPEND => {
-                    if !meta.pdepend.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.pdepend)?;
-                    }
-                }
-                RDEPEND => {
-                    if !meta.rdepend.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.rdepend)?;
-                    }
-                }
-                LICENSE => {
-                    if !meta.license.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.license)?;
-                    }
-                }
-                PROPERTIES => {
-                    if !meta.properties.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.properties)?;
-                    }
-                }
-                REQUIRED_USE => {
-                    if !meta.required_use.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.required_use)?;
-                    }
-                }
-                RESTRICT => {
-                    if !meta.restrict.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.restrict)?;
-                    }
-                }
-                SRC_URI => {
-                    if !meta.src_uri.is_empty() {
-                        writeln!(&mut data, "{key}={}", meta.src_uri)?;
-                    }
-                }
-                HOMEPAGE => {
-                    if !meta.homepage.is_empty() {
-                        let val = meta.homepage.iter().join(" ");
-                        writeln!(&mut data, "{key}={val}")?;
-                    }
-                }
-                DEFINED_PHASES => {
-                    // PMS specifies if no phase functions are defined, a single hyphen is used.
-                    if meta.defined_phases.is_empty() {
-                        writeln!(&mut data, "{key}=-")?;
-                    } else {
-                        let val = meta.defined_phases.iter().map(|p| p.name()).join(" ");
-                        writeln!(&mut data, "{key}={val}")?;
-                    }
-                }
-                KEYWORDS => {
-                    if !meta.keywords().is_empty() {
-                        let val = meta.keywords.iter().join(" ");
-                        writeln!(&mut data, "{key}={val}")?;
-                    }
-                }
-                IUSE => {
-                    if !meta.iuse().is_empty() {
-                        let val = meta.iuse.iter().join(" ");
-                        writeln!(&mut data, "{key}={val}")?;
-                    }
-                }
-                INHERIT => {
-                    if !meta.inherit().is_empty() {
-                        let val = meta.inherit.iter().join(" ");
-                        writeln!(&mut data, "{key}={val}")?;
-                    }
-                }
-                INHERITED => {
-                    if !meta.inherited.is_empty() {
-                        let val = meta
-                            .inherited
-                            .iter()
-                            .flat_map(|e| [e.name(), e.chksum()])
-                            .join("\t");
-                        writeln!(&mut data, "_eclasses_={val}")?;
-                    }
-                }
-                EAPI => writeln!(&mut data, "{key}={eapi}")?,
             }
+            KEYWORDS => self.keywords.iter().join(" "),
+            IUSE => self.iuse.iter().join(" "),
+            INHERIT => self.inherit.iter().join(" "),
+            INHERITED => self
+                .inherited
+                .iter()
+                .flat_map(|e| [e.name(), e.chksum()])
+                .join("\t"),
+            EAPI => self.eapi.to_string(),
         }
+    }
 
-        Ok(data)
+    /// Serialize metadata to a byte-string for writing to a file.
+    pub(crate) fn to_bytes(&self) -> Vec<u8> {
+        self.eapi
+            .metadata_keys()
+            .iter()
+            .map(|key| (key.as_meta(), self.serialize(key)))
+            .filter(|(_, val)| !val.is_empty())
+            .flat_map(|(k, v)| format!("{k}={v}\n").into_bytes())
+            .collect()
     }
 
     pub(crate) fn description(&self) -> &str {
@@ -502,7 +458,7 @@ mod tests {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
         for pkg in repo.iter_raw() {
             BuildData::from_raw_pkg(&pkg);
-            let r = Metadata::serialize(&pkg);
+            let r = Metadata::try_from(&pkg);
             assert!(r.is_ok(), "{pkg}: failed metadata serialization: {}", r.unwrap_err());
         }
 
@@ -510,7 +466,7 @@ mod tests {
         let repo = TEST_DATA.ebuild_repo("bad").unwrap();
         for pkg in repo.iter_raw() {
             BuildData::from_raw_pkg(&pkg);
-            let r = Metadata::serialize(&pkg);
+            let r = Metadata::try_from(&pkg);
             assert!(r.is_err(), "{pkg}: didn't fail");
         }
     }
