@@ -37,16 +37,17 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
     });
 
     let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+    let regen = &repo.metadata().cache().regen();
 
     c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {
-            let _ = repo.metadata_regen().force(true).run();
+            let _ = regen.clone().force(true).run(repo);
         });
     });
 
     c.bench_function("repo-ebuild-metadata-regen-verify", |b| {
         b.iter(|| {
-            let _ = repo.metadata_regen().run();
+            let _ = regen.run(repo);
         });
     });
 }

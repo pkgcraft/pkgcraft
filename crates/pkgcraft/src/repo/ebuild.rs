@@ -33,7 +33,7 @@ use crate::{Error, COLLAPSE_LAZY_FIELDS};
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
-mod cache;
+pub mod cache;
 pub mod configured;
 mod eclass;
 pub use eclass::Eclass;
@@ -49,15 +49,15 @@ static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 });
 
 /// Shared data cache trait.
-pub(crate) trait CacheData: Default {
+pub(crate) trait ArcCacheData: Default {
     const RELPATH: &'static str;
     fn parse(data: &str) -> crate::Result<Self>;
 }
 
 #[derive(Debug)]
-struct Cache<T>
+struct ArcCache<T>
 where
-    T: CacheData + Send + Sync,
+    T: ArcCacheData + Send + Sync,
 {
     thread: Option<thread::JoinHandle<()>>,
     tx: Sender<Msg>,
@@ -69,17 +69,17 @@ enum Msg {
     Stop,
 }
 
-impl<T> Cache<T>
+impl<T> ArcCache<T>
 where
-    T: CacheData + Send + Sync + 'static,
+    T: ArcCacheData + Send + Sync + 'static,
 {
-    fn new(repo: Arc<Repo>) -> Cache<T> {
+    fn new(repo: Arc<Repo>) -> ArcCache<T> {
         let (path_tx, path_rx) = bounded::<Msg>(10);
         let (meta_tx, meta_rx) = bounded::<Arc<T>>(10);
 
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
-            let mut pkg_cache = HashMap::<_, (_, Arc<T>)>::new();
+            let mut cache = HashMap::<_, (_, Arc<T>)>::new();
             loop {
                 match path_rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
@@ -96,7 +96,7 @@ where
                         // evict cache entries based on file content hash
                         let hash = blake3::hash(data.as_bytes());
 
-                        let val = match pkg_cache.get(&s) {
+                        let val = match cache.get(&s) {
                             Some((cached_hash, val)) if cached_hash == &hash => val.clone(),
                             _ => {
                                 // fallback to default value on parsing failure
@@ -108,7 +108,7 @@ where
 
                                 // insert Arc-wrapped value into the cache and return a copy
                                 let val = Arc::new(val);
-                                pkg_cache.insert(s, (hash, val.clone()));
+                                cache.insert(s, (hash, val.clone()));
                                 val
                             }
                         };
@@ -136,10 +136,10 @@ where
 }
 
 // Note that the thread will currently be killed without joining on exit since
-// Cache is contained in a OnceLock that doesn't call drop().
-impl<T> Drop for Cache<T>
+// ArcCache is contained in a OnceLock that doesn't call drop().
+impl<T> Drop for ArcCache<T>
 where
-    T: CacheData + Send + Sync,
+    T: ArcCacheData + Send + Sync,
 {
     fn drop(&mut self) {
         self.tx.send(Msg::Stop).unwrap();
@@ -161,8 +161,8 @@ pub struct Repo {
     license_groups: OnceLock<HashMap<String, HashSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceLock<IndexMap<String, Eclass>>,
-    xml_cache: OnceLock<Cache<XmlMetadata>>,
-    manifest_cache: OnceLock<Cache<Manifest>>,
+    xml_cache: OnceLock<ArcCache<XmlMetadata>>,
+    manifest_cache: OnceLock<ArcCache<Manifest>>,
     categories_xml: OnceLock<IndexMap<String, String>>,
 }
 
@@ -455,14 +455,14 @@ impl Repo {
     /// Return the shared XML metadata for a given package.
     pub(crate) fn pkg_xml(&self, cpv: &Cpv<String>) -> Arc<XmlMetadata> {
         self.xml_cache
-            .get_or_init(|| Cache::<XmlMetadata>::new(self.arc()))
+            .get_or_init(|| ArcCache::<XmlMetadata>::new(self.arc()))
             .get(cpv)
     }
 
     /// Return the shared manifest data for a given package.
     pub(crate) fn pkg_manifest(&self, cpv: &Cpv<String>) -> Arc<Manifest> {
         self.manifest_cache
-            .get_or_init(|| Cache::<Manifest>::new(self.arc()))
+            .get_or_init(|| ArcCache::<Manifest>::new(self.arc()))
             .get(cpv)
     }
 
@@ -499,11 +499,6 @@ impl Repo {
             .collect();
         cpvs.sort();
         cpvs
-    }
-
-    /// Create a package metadata cache regeneration runner.
-    pub fn metadata_regen(&self) -> cache::CacheBuilder {
-        cache::CacheBuilder::new(self)
     }
 
     /// Return a filtered iterator of Cpvs for the repo.
@@ -1181,7 +1176,7 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = repo.metadata_regen().suppress(true).run();
+        let r = repo.metadata().cache().regen().suppress(true).run(repo);
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

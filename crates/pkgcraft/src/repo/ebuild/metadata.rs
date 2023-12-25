@@ -19,7 +19,7 @@ use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
-use super::cache::CacheFormat;
+use super::cache::{CacheFormat, MetadataCache};
 use super::Eclass;
 
 /// Wrapper for ini format config files.
@@ -73,7 +73,7 @@ macro_rules! ordered_set {
         $ini.iter($key)
             .map(|s| {
                 s.parse()
-                    .map_err(|_| Error::InvalidValue(format!("unsupported {}: {s}", $key)))
+                    .map_err(|_| Error::InvalidValue(format!("{}: unsupported value: {s}", $key)))
             })
             .collect::<crate::Result<OrderedSet<_>>>()
     };
@@ -203,7 +203,7 @@ pub struct Metadata {
     pub(super) eapi: &'static Eapi,
     config: Config,
     path: Utf8PathBuf,
-    cache_path: Utf8PathBuf,
+    cache: OnceLock<MetadataCache>,
     arches: OnceLock<IndexSet<String>>,
     arches_desc: OnceLock<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceLock<IndexSet<String>>,
@@ -257,17 +257,26 @@ impl Metadata {
             eapi,
             config,
             path: Utf8PathBuf::from(path),
-            cache_path: path.join("metadata/md5-cache"),
             ..Default::default()
         })
     }
 
-    pub fn cache_path(&self) -> &Utf8Path {
-        &self.cache_path
-    }
-
     pub fn config(&self) -> &Config {
         &self.config
+    }
+
+    pub fn cache(&self) -> &MetadataCache {
+        self.cache.get_or_init(|| {
+            // TODO: support multiple cache formats?
+            let format = self
+                .config
+                .cache_formats
+                .first()
+                .copied()
+                .unwrap_or(Default::default());
+
+            format.repo(&self.path)
+        })
     }
 
     /// Return a repo's known architectures from `profiles/arch.list`.

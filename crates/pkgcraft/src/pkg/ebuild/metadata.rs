@@ -9,7 +9,7 @@ use roxmltree::{Document, Node};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::{build_from_paths, cmp_not_equal};
-use crate::repo::ebuild::CacheData;
+use crate::repo::ebuild::ArcCacheData;
 use crate::types::OrderedSet;
 use crate::utils::digest;
 use crate::Error;
@@ -261,7 +261,7 @@ pub struct XmlMetadata {
     long_desc: Option<String>,
 }
 
-impl CacheData for XmlMetadata {
+impl ArcCacheData for XmlMetadata {
     const RELPATH: &'static str = "metadata.xml";
 
     fn parse(data: &str) -> crate::Result<Self> {
@@ -473,7 +473,7 @@ impl Default for Manifest {
     }
 }
 
-impl CacheData for Manifest {
+impl ArcCacheData for Manifest {
     const RELPATH: &'static str = "Manifest";
 
     fn parse(data: &str) -> crate::Result<Self> {

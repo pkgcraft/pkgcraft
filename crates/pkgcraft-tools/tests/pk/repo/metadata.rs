@@ -1,6 +1,7 @@
 use std::{env, fs};
 
 use indexmap::IndexMap;
+use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::{ebuild::temp::Repo as TempRepo, Repository};
 use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
 use predicates::prelude::*;
@@ -41,7 +42,7 @@ fn no_pkgs() {
         .stderr("")
         .success();
 
-    assert!(!t.repo().metadata().cache_path().exists());
+    assert!(!t.repo().metadata().cache().path().exists());
 }
 
 #[test]
@@ -56,7 +57,7 @@ fn single() {
         .stdout("")
         .stderr("")
         .success();
-    let path = t.repo().metadata().cache_path().join("cat/pkg-1");
+    let path = t.repo().metadata().cache().path().join("cat/pkg-1");
     assert!(path.exists());
     let prev_modified = fs::metadata(&path).unwrap().modified().unwrap();
 
@@ -142,7 +143,7 @@ fn multiple() {
         .stderr("")
         .success();
 
-    let path = t.repo().metadata().cache_path();
+    let path = t.repo().metadata().cache().path();
     assert!(path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
     assert!(path.join("other").exists());
@@ -175,7 +176,7 @@ fn pkg_with_invalid_eapi() {
         .failure()
         .code(2);
 
-    let path = t.repo().metadata().cache_path();
+    let path = t.repo().metadata().cache().path();
     assert!(!path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
 }
@@ -193,28 +194,9 @@ fn pkg_with_invalid_dep() {
         .failure()
         .code(2);
 
-    let path = t.repo().metadata().cache_path();
+    let path = t.repo().metadata().cache().path();
     assert!(!path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
-}
-
-#[test]
-fn multiple_repos() {
-    let t1 = TempRepo::new("test1", None, 0, None).unwrap();
-    t1.create_raw_pkg("cat/a-1", &["EAPI=7"]).unwrap();
-    let t2 = TempRepo::new("test2", None, 0, None).unwrap();
-    t2.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
-    cmd("pk repo metadata")
-        .args([t1.path(), t2.path()])
-        .assert()
-        .stdout("")
-        .stderr("")
-        .success();
-
-    let cache_path_t1 = t1.repo().metadata().cache_path();
-    assert!(cache_path_t1.join("cat/a-1").exists());
-    let cache_path_t2 = t2.repo().metadata().cache_path();
-    assert!(cache_path_t2.join("cat/b-1").exists());
 }
 
 #[test]
@@ -238,7 +220,7 @@ fn data_content() {
     };
 
     // record expected metadata file content
-    let expected: IndexMap<_, _> = metadata_content(repo.metadata().cache_path().as_str());
+    let expected: IndexMap<_, _> = metadata_content(repo.metadata().cache().path().as_str());
 
     // regenerate metadata
     for opt in ["-p", "--path"] {

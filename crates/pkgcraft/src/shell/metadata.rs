@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use itertools::Itertools;
 use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
@@ -44,96 +43,9 @@ pub enum Key {
     CHKSUM,
 }
 
-impl Key {
-    /// Convert a metadata key from its raw, metadata file string value.
-    fn from_meta(s: &str) -> crate::Result<Self> {
-        match s {
-            "_eclasses_" => Ok(Key::INHERITED),
-            "_md5_" => Ok(Key::CHKSUM),
-            s => s
-                .parse()
-                .map_err(|_| Error::InvalidValue(format!("invalid metadata key: {s}"))),
-        }
-    }
-
-    /// Convert a metadata key to its raw, metadata file string value.
-    fn as_meta(&self) -> &str {
-        match self {
-            Key::INHERITED => "_eclasses_",
-            Key::CHKSUM => "_md5_",
-            key => key.as_ref(),
-        }
-    }
-}
-
-/// Serialized package metadata.
-#[derive(Debug, Default)]
-pub(crate) struct MetadataRaw(IndexMap<Key, String>);
-
-impl<S: AsRef<str>> From<S> for MetadataRaw {
-    fn from(value: S) -> Self {
-        let data = value
-            .as_ref()
-            .lines()
-            .filter_map(|l| l.split_once('='))
-            .filter_map(|(k, v)| Key::from_meta(k).ok().map(|k| (k, v.to_string())))
-            .collect();
-
-        Self(data)
-    }
-}
-
-impl MetadataRaw {
-    /// Verify metadata validity via ebuild and eclass checksums.
-    pub(crate) fn verify(&self, pkg: &Pkg) -> crate::Result<()> {
-        // verify ebuild checksum
-        if let Some(val) = self.0.get(&Key::CHKSUM) {
-            if val != pkg.chksum() {
-                return Err(Error::InvalidValue("mismatched ebuild checksum".to_string()));
-            }
-        } else {
-            return Err(Error::InvalidValue("missing ebuild checksum".to_string()));
-        }
-
-        // verify eclass checksums
-        if let Some(val) = self.0.get(&Key::INHERITED) {
-            for (name, chksum) in val.split_whitespace().tuples() {
-                let Some(eclass) = pkg.repo().eclasses().get(name) else {
-                    return Err(Error::InvalidValue(format!("nonexistent eclass: {name}")));
-                };
-
-                if eclass.chksum() != chksum {
-                    return Err(Error::InvalidValue(format!("mismatched eclass checksum: {name}")));
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Deserialize raw metadata strings into package metadata.
-    pub(crate) fn deserialize<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
-        let mut meta = Metadata::default();
-
-        for key in pkg.eapi().mandatory_keys() {
-            if !self.0.contains_key(key) {
-                return Err(Error::InvalidValue(format!("missing required value: {key}")));
-            }
-        }
-
-        for key in pkg.eapi().metadata_keys() {
-            if let Some(val) = self.0.get(key) {
-                meta.deserialize(pkg.eapi(), pkg.repo(), key, val)?;
-            }
-        }
-
-        Ok(meta)
-    }
-}
-
 /// Deserialized package metadata.
 #[derive(Debug, Default)]
-pub(crate) struct Metadata<'a> {
+pub struct Metadata<'a> {
     eapi: &'static Eapi,
     description: String,
     slot: Slot<String>,
@@ -158,7 +70,7 @@ pub(crate) struct Metadata<'a> {
 
 impl<'a> Metadata<'a> {
     /// Deserialize a metadata string value to its field value.
-    fn deserialize(
+    pub(crate) fn deserialize(
         &mut self,
         eapi: &'static Eapi,
         repo: &'a Repo,
@@ -301,15 +213,8 @@ impl<'a> Metadata<'a> {
         }
     }
 
-    /// Serialize metadata to a byte-string for writing to a file.
-    pub(crate) fn to_bytes(&self) -> Vec<u8> {
+    pub(crate) fn eapi(&self) -> &'static Eapi {
         self.eapi
-            .metadata_keys()
-            .iter()
-            .map(|key| (key.as_meta(), self.serialize(key)))
-            .filter(|(_, val)| !val.is_empty())
-            .flat_map(|(k, v)| format!("{k}={v}\n").into_bytes())
-            .collect()
     }
 
     pub(crate) fn description(&self) -> &str {
@@ -435,6 +340,7 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::repo::ebuild::cache::{Cache, CacheEntry};
     use crate::shell::BuildData;
     use crate::test::TEST_DATA;
 
@@ -443,9 +349,8 @@ mod tests {
     #[test]
     fn deserialize() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
-        let cache_path = repo.metadata().cache_path();
         for pkg in repo.iter_raw() {
-            let r = pkg.metadata_raw(cache_path);
+            let r = repo.metadata().cache().get(&pkg);
             assert!(r.is_ok(), "{pkg}: failed loading metadata: {}", r.unwrap_err());
             let r = r.unwrap().deserialize(&pkg);
             assert!(r.is_ok(), "{pkg}: failed deserializing metadata: {}", r.unwrap_err());

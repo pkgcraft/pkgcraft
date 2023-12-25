@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 
-use camino::Utf8PathBuf;
+use camino::Utf8Path;
 use indexmap::IndexSet;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
@@ -12,41 +12,134 @@ use walkdir::WalkDir;
 
 use crate::dep::Cpv;
 use crate::error::{Error, PackageError};
-use crate::files::{atomic_write_file, is_file, is_hidden};
-use crate::pkg::{ebuild::raw::Pkg, Package};
+use crate::files::{is_file, is_hidden};
+use crate::pkg::ebuild::raw::Pkg;
 use crate::repo::PkgRepository;
 use crate::shell::metadata::Metadata;
 use crate::utils::bounded_jobs;
 
 use super::Repo;
 
-#[derive(Display, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+pub(crate) mod md5_dict;
+
+pub trait CacheEntry {
+    /// Deserialize a cache entry to package metadata.
+    fn deserialize<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>>;
+    /// Verify a cache entry is valid.
+    fn verify(&self, pkg: &Pkg) -> crate::Result<()>;
+}
+
+pub trait Cache {
+    type Entry: CacheEntry;
+    fn format(&self) -> CacheFormat;
+    fn path(&self) -> &Utf8Path;
+    /// Get the cache entry for a given package.
+    fn get(&self, pkg: &Pkg) -> crate::Result<Self::Entry>;
+    /// Update the cache with the given package metadata.
+    fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()>;
+}
+
+#[derive(
+    Display, EnumString, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
 #[strum(serialize_all = "kebab-case")]
 pub enum CacheFormat {
+    #[default]
     Md5Dict,
 }
 
-pub struct CacheBuilder<'a> {
-    repo: &'a Repo,
-    jobs: usize,
-    force: bool,
-    progress: bool,
-    suppress: bool,
-    cache_path: Utf8PathBuf,
+impl CacheFormat {
+    /// Create a metadata cache using a given format at the default repo location.
+    pub fn repo(&self, path: &Utf8Path) -> MetadataCache {
+        match self {
+            Self::Md5Dict => MetadataCache::Md5Dict(md5_dict::Md5Dict::repo(path)),
+        }
+    }
+
+    /// Create a metadata cache using a given format at a custom path.
+    pub fn custom<P: AsRef<Utf8Path>>(&self, path: P) -> MetadataCache {
+        match self {
+            Self::Md5Dict => MetadataCache::Md5Dict(md5_dict::Md5Dict::custom(path)),
+        }
+    }
 }
 
-impl<'a> CacheBuilder<'a> {
-    pub fn new(repo: &'a Repo) -> Self {
-        Self {
-            repo,
+#[derive(Debug)]
+pub enum MetadataCacheEntry {
+    Md5Dict(md5_dict::Md5DictEntry),
+}
+
+impl CacheEntry for MetadataCacheEntry {
+    fn deserialize<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
+        match self {
+            Self::Md5Dict(entry) => entry.deserialize(pkg),
+        }
+    }
+
+    fn verify(&self, pkg: &Pkg) -> crate::Result<()> {
+        match self {
+            Self::Md5Dict(entry) => entry.verify(pkg),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum MetadataCache {
+    Md5Dict(md5_dict::Md5Dict),
+}
+
+impl Cache for MetadataCache {
+    type Entry = MetadataCacheEntry;
+
+    fn format(&self) -> CacheFormat {
+        match self {
+            Self::Md5Dict(cache) => cache.format(),
+        }
+    }
+
+    fn path(&self) -> &Utf8Path {
+        match self {
+            Self::Md5Dict(cache) => cache.path(),
+        }
+    }
+
+    fn get(&self, pkg: &Pkg) -> crate::Result<Self::Entry> {
+        match self {
+            Self::Md5Dict(cache) => cache.get(pkg).map(MetadataCacheEntry::Md5Dict),
+        }
+    }
+
+    /// Update the cache with the given package metadata.
+    fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()> {
+        match self {
+            Self::Md5Dict(cache) => cache.update(pkg, meta),
+        }
+    }
+}
+
+impl MetadataCache {
+    /// Create a regeneration builder for the cache.
+    pub fn regen(&self) -> MetadataCacheRegen {
+        MetadataCacheRegen {
+            cache: self,
             jobs: num_cpus::get(),
             force: false,
             progress: false,
             suppress: true,
-            cache_path: repo.metadata().cache_path().to_path_buf(),
         }
     }
+}
 
+#[derive(Debug, Clone)]
+pub struct MetadataCacheRegen<'a> {
+    cache: &'a MetadataCache,
+    jobs: usize,
+    force: bool,
+    progress: bool,
+    suppress: bool,
+}
+
+impl MetadataCacheRegen<'_> {
     /// Set the number of parallel jobs to run.
     pub fn jobs(mut self, jobs: usize) -> Self {
         self.jobs = bounded_jobs(jobs);
@@ -71,31 +164,13 @@ impl<'a> CacheBuilder<'a> {
         self
     }
 
-    /// Set the cache path to use for file output.
-    pub fn cache_path<S: AsRef<str>>(mut self, value: S) -> Self {
-        let path = value.as_ref();
-        if !path.is_empty() {
-            self.cache_path = Utf8PathBuf::from(path);
-        }
-        self
-    }
-
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn run(&self) -> crate::Result<()> {
+    pub fn run(&self, repo: &Repo) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv<String>| -> scallop::Result<()> {
-            let pkg = &Pkg::try_new(cpv, self.repo)?;
-            // convert raw pkg into metadata via sourcing
-            let meta: Metadata = pkg.try_into().map_err(|e| pkg.invalid_pkg_err(e))?;
-
-            // determine metadata entry directory
-            let dir = self.cache_path.join(pkg.cpv().category());
-
-            // atomically create metadata file
-            let pf = pkg.pf();
-            let path = dir.join(format!(".{pf}"));
-            let new_path = dir.join(pf);
-            atomic_write_file(&path, meta.to_bytes(), &new_path)?;
+            let pkg = Pkg::try_new(cpv, repo)?;
+            let meta = Metadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
+            self.cache.update(&pkg, &meta)?;
             Ok(())
         };
         let pool = PoolSendIter::new(self.jobs, func, self.suppress)?;
@@ -110,19 +185,18 @@ impl<'a> CacheBuilder<'a> {
 
         // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
         // pull all package Cpvs from the repo
-        let mut cpvs: IndexSet<_> = self
-            .repo
+        let mut cpvs: IndexSet<_> = repo
             .categories()
             .into_par_iter()
-            .flat_map(|s| self.repo.category_cpvs(&s))
+            .flat_map(|s| repo.category_cpvs(&s))
             .collect();
 
         // set progression length encompassing all pkgs
         pb.set_length(cpvs.len().try_into().unwrap());
 
-        if self.cache_path.exists() {
+        if self.cache.path().exists() {
             // TODO: replace with parallelized cache iterator
-            let entries: Vec<_> = WalkDir::new(&self.cache_path)
+            let entries: Vec<_> = WalkDir::new(self.cache.path())
                 .min_depth(2)
                 .max_depth(2)
                 .into_iter()
@@ -136,7 +210,7 @@ impl<'a> CacheBuilder<'a> {
                 .for_each(|e| {
                     let file = e.path();
                     let cpv_str = file
-                        .strip_prefix(&self.cache_path)
+                        .strip_prefix(self.cache.path())
                         .expect("invalid metadata entry")
                         .to_string_lossy();
                     if let Ok(cpv) = Cpv::parse(&cpv_str) {
@@ -156,7 +230,9 @@ impl<'a> CacheBuilder<'a> {
                     .into_par_iter()
                     .filter(|cpv| {
                         pb.inc(1);
-                        Pkg::metadata_regen(cpv, self.repo, &self.cache_path)
+                        Pkg::try_new(cpv.clone(), repo)
+                            .and_then(|pkg| self.cache.get(&pkg))
+                            .is_err()
                     })
                     .collect();
 
@@ -172,7 +248,7 @@ impl<'a> CacheBuilder<'a> {
             // create metadata directories in parallel
             let categories: HashSet<_> = cpvs.par_iter().map(|cpv| cpv.category()).collect();
             categories.into_par_iter().try_for_each(|cat| {
-                let path = self.cache_path.join(cat);
+                let path = self.cache.path().join(cat);
                 fs::create_dir_all(&path)
                     .map_err(|e| Error::IO(format!("failed creating metadata dir: {path}: {e}")))
             })?;

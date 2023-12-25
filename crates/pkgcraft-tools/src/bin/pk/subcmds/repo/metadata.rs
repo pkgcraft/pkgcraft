@@ -3,8 +3,10 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::Config;
+use pkgcraft::repo::ebuild::cache::CacheFormat::Md5Dict;
+use pkgcraft::repo::Repository;
 
-use crate::args::target_ebuild_repos;
+use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -29,9 +31,9 @@ pub struct Command {
     output: bool,
 
     // positionals
-    /// Target repositories
-    #[arg(value_name = "REPO", default_value = ".")]
-    repos: Vec<String>,
+    /// Target repository
+    #[arg(default_value = ".")]
+    repo: String,
 }
 
 impl Command {
@@ -39,15 +41,20 @@ impl Command {
         // run metadata regeneration displaying a progress bar if stdout is a terminal
         let progress = stdout().is_terminal() && !self.no_progress && !self.output;
 
-        for repo in target_ebuild_repos(config, &self.repos)? {
-            repo.metadata_regen()
-                .jobs(self.jobs.unwrap_or_default())
-                .force(self.force)
-                .progress(progress)
-                .suppress(!self.output)
-                .cache_path(self.path.as_deref().unwrap_or_default())
-                .run()?;
-        }
+        let repo = target_ebuild_repo(config, &self.repo)?;
+        let cache = if let Some(path) = self.path.as_ref() {
+            Md5Dict.custom(path)
+        } else {
+            Md5Dict.repo(repo.path())
+        };
+
+        cache
+            .regen()
+            .jobs(self.jobs.unwrap_or_default())
+            .force(self.force)
+            .progress(progress)
+            .suppress(!self.output)
+            .run(&repo)?;
 
         Ok(ExitCode::SUCCESS)
     }

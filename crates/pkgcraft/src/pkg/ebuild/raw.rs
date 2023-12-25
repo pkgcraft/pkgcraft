@@ -1,13 +1,13 @@
-use std::{fs, io};
+use std::fs;
 
-use camino::{Utf8Path, Utf8PathBuf};
-use tracing::warn;
+use camino::Utf8PathBuf;
 
 use crate::dep::Cpv;
 use crate::eapi::{self, Eapi};
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
+use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::shell::metadata::{Metadata, MetadataRaw};
+use crate::shell::metadata::Metadata;
 use crate::traits::FilterLines;
 use crate::utils::digest;
 use crate::Error;
@@ -74,31 +74,12 @@ impl<'a> Pkg<'a> {
         &self.chksum
     }
 
-    /// Check if a package's metadata requires regeneration.
-    pub(crate) fn metadata_regen(cpv: &Cpv<String>, repo: &'a Repo, cache_path: &Utf8Path) -> bool {
-        Self::try_new(cpv.clone(), repo)
-            .and_then(|pkg| pkg.metadata_raw(cache_path))
-            .is_err()
-    }
-
-    /// Load raw metadata and verify its validity.
-    pub(crate) fn metadata_raw(&self, cache_path: &Utf8Path) -> crate::Result<MetadataRaw> {
-        let path = cache_path.join(self.cpv().to_string());
-        let data = fs::read_to_string(&path).map_err(|e| {
-            if e.kind() != io::ErrorKind::NotFound {
-                warn!("error loading ebuild metadata: {path:?}: {e}");
-            }
-            Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
-        })?;
-
-        let meta = MetadataRaw::from(&data);
-        meta.verify(self)?;
-        Ok(meta)
-    }
-
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.
-    pub(crate) fn metadata(&self, cache_path: &Utf8Path) -> crate::Result<Metadata<'a>> {
-        self.metadata_raw(cache_path)
+    pub(crate) fn metadata(&self) -> crate::Result<Metadata<'a>> {
+        self.repo
+            .metadata()
+            .cache()
+            .get(self)
             .and_then(|m| m.deserialize(self))
             .or_else(|_| self.try_into())
             .map_err(|e| Error::InvalidPkg {

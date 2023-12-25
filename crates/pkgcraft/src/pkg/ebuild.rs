@@ -49,7 +49,6 @@ where
 #[derive(Debug)]
 pub struct Pkg<'a> {
     cpv: Cpv<String>,
-    eapi: &'static Eapi,
     repo: &'a Repo,
     meta: Metadata<'a>,
     iuse_effective: OnceLock<OrderedSet<String>>,
@@ -63,11 +62,9 @@ impl<'a> TryFrom<raw::Pkg<'a>> for Pkg<'a> {
     type Error = Error;
 
     fn try_from(pkg: raw::Pkg) -> crate::Result<Pkg> {
-        let cache_path = pkg.repo().metadata().cache_path();
-        let meta = pkg.metadata(cache_path)?;
+        let meta = pkg.metadata()?;
         Ok(Pkg {
             cpv: pkg.cpv,
-            eapi: pkg.eapi,
             repo: pkg.repo,
             meta,
             iuse_effective: OnceLock::new(),
@@ -248,7 +245,7 @@ impl<'a> Pkg<'a> {
 
 impl<'a> Package for Pkg<'a> {
     fn eapi(&self) -> &'static Eapi {
-        self.eapi
+        self.meta.eapi()
     }
 
     fn cpv(&self) -> &Cpv<String> {

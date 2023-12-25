@@ -3,8 +3,9 @@ use std::sync::Arc;
 
 use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
+use pkgcraft::repo::ebuild::cache::CacheFormat::Md5Dict;
 use pkgcraft::repo::ebuild::Repo as EbuildRepo;
-use pkgcraft::repo::Repo;
+use pkgcraft::repo::{Repo, Repository};
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
@@ -125,9 +126,14 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
 ) -> bool {
     ffi_catch_panic! {
         let repo = try_repo_from_ptr!(r);
-        let path = try_opt_str_from_ptr!(path).unwrap_or_default();
-        let runner = repo.metadata_regen().jobs(jobs).force(force).cache_path(path);
-        unwrap_or_panic!(runner.run());
+        let cache = if let Some(path) = try_opt_str_from_ptr!(path) {
+            Md5Dict.custom(path)
+        } else {
+            Md5Dict.repo(repo.path())
+        };
+
+        let regen = cache.regen().jobs(jobs).force(force);
+        unwrap_or_panic!(regen.run(repo));
         true
     }
 }
