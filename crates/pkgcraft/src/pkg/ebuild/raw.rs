@@ -1,12 +1,12 @@
 use std::fs;
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::dep::Cpv;
 use crate::eapi::{self, Eapi};
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::shell::metadata::Metadata;
+use crate::shell::metadata::{Metadata, MetadataRaw};
 use crate::traits::FilterLines;
 use crate::utils::digest;
 use crate::Error;
@@ -73,10 +73,22 @@ impl<'a> Pkg<'a> {
         &self.chksum
     }
 
-    /// Load metadata from cache if valid, otherwise source it from the ebuild.
-    pub(super) fn load_or_source(&self) -> crate::Result<Metadata<'a>> {
-        let cache_path = self.repo.metadata().cache_path();
-        Metadata::load(self, cache_path, true)
+    /// Check if a package's metadata requires regeneration.
+    pub(crate) fn metadata_regen(cpv: &Cpv<String>, repo: &'a Repo, cache_path: &Utf8Path) -> bool {
+        Self::try_new(cpv.clone(), repo)
+            .and_then(|pkg| pkg.metadata_raw(cache_path))
+            .is_err()
+    }
+
+    /// Load raw package metadata, checking its validity.
+    pub(crate) fn metadata_raw(&self, cache_path: &Utf8Path) -> crate::Result<MetadataRaw> {
+        MetadataRaw::load(self, cache_path)
+    }
+
+    /// Load metadata from the cache if valid, otherwise source it from the ebuild.
+    pub(crate) fn metadata(&self, cache_path: &Utf8Path) -> crate::Result<Metadata<'a>> {
+        self.metadata_raw(cache_path)
+            .and_then(|m| m.deserialize(self))
             .or_else(|_| self.try_into())
             .map_err(|e| Error::InvalidPkg {
                 id: self.to_string(),

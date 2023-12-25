@@ -8,7 +8,7 @@ use scallop::{functions, variables};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::warn;
 
-use crate::dep::{self, Cpv, Dep, DependencySet, Slot, Uri};
+use crate::dep::{self, Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
 use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword};
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage, Source};
@@ -49,6 +49,79 @@ pub enum Key {
     CHKSUM,
 }
 
+/// Serialized package metadata.
+#[derive(Debug)]
+pub(crate) struct MetadataRaw(HashMap<Key, String>);
+
+impl MetadataRaw {
+    /// Load package metadata, verifying its validity via ebuild and eclass checksums.
+    pub(crate) fn load(pkg: &Pkg, cache_path: &Utf8Path) -> crate::Result<Self> {
+        let path = cache_path.join(pkg.cpv().to_string());
+        let data = fs::read_to_string(&path).map_err(|e| {
+            if e.kind() != io::ErrorKind::NotFound {
+                warn!("error loading ebuild metadata: {path:?}: {e}");
+            }
+            Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
+        })?;
+
+        let data: HashMap<_, _> = data
+            .lines()
+            .filter_map(|l| {
+                l.split_once('=').map(|(s, v)| match (s, v) {
+                    ("_eclasses_", v) => ("INHERITED", v),
+                    ("_md5_", v) => ("CHKSUM", v),
+                    // single hyphen means no phases are defined as per PMS
+                    ("DEFINED_PHASES", "-") => ("DEFINED_PHASES", ""),
+                    _ => (s, v),
+                })
+            })
+            .filter_map(|(k, v)| k.parse().ok().map(|k| (k, v.to_string())))
+            .filter(|(k, _)| pkg.eapi().metadata_keys().contains(k))
+            .collect();
+
+        // verify ebuild checksum
+        if let Some(val) = data.get(&Key::CHKSUM) {
+            if val != pkg.chksum() {
+                return Err(Error::InvalidValue("mismatched ebuild checksum".to_string()));
+            }
+        } else {
+            return Err(Error::InvalidValue("missing ebuild checksum".to_string()));
+        }
+
+        // verify eclass checksums
+        if let Some(val) = data.get(&Key::INHERITED) {
+            for (name, chksum) in val.split_whitespace().tuples() {
+                let Some(eclass) = pkg.repo().eclasses().get(name) else {
+                    return Err(Error::InvalidValue(format!("nonexistent eclass: {name}")));
+                };
+
+                if eclass.chksum() != chksum {
+                    return Err(Error::InvalidValue(format!("mismatched eclass checksum: {name}")));
+                }
+            }
+        }
+
+        Ok(Self(data))
+    }
+
+    /// Deserialize raw metadata strings into package metadata.
+    pub(crate) fn deserialize<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
+        let mut meta = Metadata::default();
+
+        for key in pkg.eapi().mandatory_keys() {
+            if !self.0.contains_key(key) {
+                return Err(Error::InvalidValue(format!("missing required value: {key}")));
+            }
+        }
+        for (key, val) in &self.0 {
+            meta.deserialize(pkg.eapi(), pkg.repo(), key, val)?;
+        }
+
+        Ok(meta)
+    }
+}
+
+/// Deserialized package metadata.
 #[derive(Debug, Default)]
 pub(crate) struct Metadata<'a> {
     description: String,
@@ -156,7 +229,8 @@ impl<'a> Metadata<'a> {
             INHERITED => {
                 self.inherited = val
                     .split_whitespace()
-                    .map(eclass)
+                    .tuples()
+                    .map(|(name, _chksum)| eclass(name))
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
             EAPI => {
@@ -284,92 +358,6 @@ impl<'a> Metadata<'a> {
         }
 
         Ok(data)
-    }
-
-    /// Verify a metadata entry is valid using its checksum values.
-    pub(crate) fn verify(cpv: &Cpv<String>, repo: &'a Repo, cache_path: &Utf8Path) -> bool {
-        Pkg::try_new(cpv.clone(), repo)
-            .map(|p| Self::load(&p, cache_path, false).is_err())
-            .unwrap_or_default()
-    }
-
-    /// Deserialize a metadata entry for a given package into [`Metadata`].
-    pub(crate) fn load(
-        pkg: &Pkg<'a>,
-        cache_path: &Utf8Path,
-        deserialize: bool,
-    ) -> crate::Result<Self> {
-        let eapi = pkg.eapi();
-        let repo = pkg.repo();
-
-        let path = cache_path.join(pkg.cpv().to_string());
-        let data = fs::read_to_string(&path).map_err(|e| {
-            if e.kind() != io::ErrorKind::NotFound {
-                warn!("error loading ebuild metadata: {path:?}: {e}");
-            }
-            Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
-        })?;
-
-        let mut data: HashMap<_, _> = data
-            .lines()
-            .filter_map(|l| {
-                l.split_once('=').map(|(s, v)| match (s, v) {
-                    ("_eclasses_", v) => ("INHERITED", v),
-                    ("_md5_", v) => ("CHKSUM", v),
-                    // single hyphen means no phases are defined as per PMS
-                    ("DEFINED_PHASES", "-") => ("DEFINED_PHASES", ""),
-                    _ => (s, v),
-                })
-            })
-            .filter_map(|(k, v)| k.parse().ok().map(|k| (k, v)))
-            .filter(|(k, _)| eapi.metadata_keys().contains(k))
-            .collect();
-
-        let mut meta = Self::default();
-
-        // verify ebuild hash
-        if let Some(val) = data.remove(&Key::CHKSUM) {
-            if val != pkg.chksum() {
-                return Err(Error::InvalidValue("mismatched ebuild checksum".to_string()));
-            }
-
-            if deserialize {
-                meta.chksum = val.to_string();
-            }
-        } else {
-            return Err(Error::InvalidValue("missing ebuild checksum".to_string()));
-        }
-
-        // verify eclass hashes
-        if let Some(val) = data.remove(&Key::INHERITED) {
-            for (name, chksum) in val.split_whitespace().tuples() {
-                let Some(eclass) = repo.eclasses().get(name) else {
-                    return Err(Error::InvalidValue(format!("nonexistent eclass: {name}")));
-                };
-
-                if eclass.chksum() != chksum {
-                    return Err(Error::InvalidValue(format!("mismatched eclass checksum: {name}")));
-                }
-
-                if deserialize {
-                    meta.inherited.insert(eclass);
-                }
-            }
-        }
-
-        // deserialize values into metadata fields
-        if deserialize {
-            for key in eapi.mandatory_keys() {
-                if !data.contains_key(key) {
-                    return Err(Error::InvalidValue(format!("missing required value: {key}")));
-                }
-            }
-            for (key, val) in data {
-                meta.deserialize(eapi, repo, &key, val)?;
-            }
-        }
-
-        Ok(meta)
     }
 
     pub(crate) fn description(&self) -> &str {
@@ -505,8 +493,10 @@ mod tests {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
         let cache_path = repo.metadata().cache_path();
         for pkg in repo.iter_raw() {
-            let r = Metadata::load(&pkg, cache_path, true);
-            assert!(r.is_ok(), "{pkg}: failed metadata load: {}", r.unwrap_err());
+            let r = pkg.metadata_raw(cache_path);
+            assert!(r.is_ok(), "{pkg}: failed loading metadata: {}", r.unwrap_err());
+            let r = r.unwrap().deserialize(&pkg);
+            assert!(r.is_ok(), "{pkg}: failed deserializing metadata: {}", r.unwrap_err());
         }
     }
 

@@ -63,7 +63,8 @@ impl<'a> TryFrom<raw::Pkg<'a>> for Pkg<'a> {
     type Error = Error;
 
     fn try_from(pkg: raw::Pkg) -> crate::Result<Pkg> {
-        let meta = pkg.load_or_source()?;
+        let cache_path = pkg.repo().metadata().cache_path();
+        let meta = pkg.metadata(cache_path)?;
         Ok(Pkg {
             cpv: pkg.cpv,
             eapi: pkg.eapi,

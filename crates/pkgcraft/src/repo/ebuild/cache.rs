@@ -12,9 +12,9 @@ use walkdir::WalkDir;
 
 use crate::dep::Cpv;
 use crate::files::{is_file, is_hidden};
-use crate::pkg::{ebuild, Regen};
+use crate::pkg::ebuild::raw::Pkg;
+use crate::pkg::Regen;
 use crate::repo::PkgRepository;
-use crate::shell::metadata::Metadata as MetadataCache;
 use crate::utils::bounded_jobs;
 use crate::Error;
 
@@ -84,7 +84,7 @@ impl<'a> CacheBuilder<'a> {
     pub fn run(&self) -> crate::Result<()> {
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv<String>| {
-            let pkg = ebuild::raw::Pkg::try_new(cpv, self.repo)?;
+            let pkg = Pkg::try_new(cpv, self.repo)?;
             pkg.regen(&self.cache_path)
         };
         let pool = PoolSendIter::new(self.jobs, func, self.suppress)?;
@@ -145,7 +145,7 @@ impl<'a> CacheBuilder<'a> {
                     .into_par_iter()
                     .filter(|cpv| {
                         pb.inc(1);
-                        MetadataCache::verify(cpv, self.repo, &self.cache_path)
+                        Pkg::metadata_regen(cpv, self.repo, &self.cache_path)
                     })
                     .collect();
 
