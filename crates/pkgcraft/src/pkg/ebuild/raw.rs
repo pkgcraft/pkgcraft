@@ -80,9 +80,11 @@ impl<'a> Pkg<'a> {
             .is_err()
     }
 
-    /// Load raw package metadata, checking its validity.
+    /// Load raw metadata and verify its validity.
     pub(crate) fn metadata_raw(&self, cache_path: &Utf8Path) -> crate::Result<MetadataRaw> {
-        MetadataRaw::load(self, cache_path)
+        let meta = MetadataRaw::load(self, cache_path)?;
+        meta.verify(self)?;
+        Ok(meta)
     }
 
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.

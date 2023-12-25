@@ -54,7 +54,7 @@ pub enum Key {
 pub(crate) struct MetadataRaw(HashMap<Key, String>);
 
 impl MetadataRaw {
-    /// Load package metadata, verifying its validity via ebuild and eclass checksums.
+    /// Load package metadata.
     pub(crate) fn load(pkg: &Pkg, cache_path: &Utf8Path) -> crate::Result<Self> {
         let path = cache_path.join(pkg.cpv().to_string());
         let data = fs::read_to_string(&path).map_err(|e| {
@@ -64,7 +64,7 @@ impl MetadataRaw {
             Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
         })?;
 
-        let data: HashMap<_, _> = data
+        let data = data
             .lines()
             .filter_map(|l| {
                 l.split_once('=').map(|(s, v)| match (s, v) {
@@ -79,8 +79,13 @@ impl MetadataRaw {
             .filter(|(k, _)| pkg.eapi().metadata_keys().contains(k))
             .collect();
 
+        Ok(Self(data))
+    }
+
+    /// Verify metadata validity via ebuild and eclass checksums.
+    pub(crate) fn verify(&self, pkg: &Pkg) -> crate::Result<()> {
         // verify ebuild checksum
-        if let Some(val) = data.get(&Key::CHKSUM) {
+        if let Some(val) = self.0.get(&Key::CHKSUM) {
             if val != pkg.chksum() {
                 return Err(Error::InvalidValue("mismatched ebuild checksum".to_string()));
             }
@@ -89,7 +94,7 @@ impl MetadataRaw {
         }
 
         // verify eclass checksums
-        if let Some(val) = data.get(&Key::INHERITED) {
+        if let Some(val) = self.0.get(&Key::INHERITED) {
             for (name, chksum) in val.split_whitespace().tuples() {
                 let Some(eclass) = pkg.repo().eclasses().get(name) else {
                     return Err(Error::InvalidValue(format!("nonexistent eclass: {name}")));
@@ -101,7 +106,7 @@ impl MetadataRaw {
             }
         }
 
-        Ok(Self(data))
+        Ok(())
     }
 
     /// Deserialize raw metadata strings into package metadata.
