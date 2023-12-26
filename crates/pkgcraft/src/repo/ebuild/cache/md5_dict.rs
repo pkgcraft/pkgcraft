@@ -7,10 +7,11 @@ use tracing::warn;
 
 use crate::files::atomic_write_file;
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage};
+use crate::repo::Repository;
 use crate::shell::metadata::{Key, Metadata};
 use crate::Error;
 
-use super::{Cache, CacheEntry, CacheFormat};
+use super::{Cache, CacheEntry, CacheFormat, Repo};
 
 /// Convert a metadata key from its raw, metadata file string value.
 fn key_from_meta(s: &str) -> crate::Result<Key> {
@@ -130,15 +131,15 @@ pub struct Md5Dict {
 }
 
 impl Md5Dict {
-    /// Load a metadata cache from the default location.
-    pub(super) fn repo(path: &Utf8Path) -> Self {
+    /// Load a metadata cache from the default repo location.
+    pub(super) fn from_repo(repo: &Repo) -> Self {
         Self {
-            path: path.join("metadata/md5-cache"),
+            path: repo.path().join("metadata/md5-cache"),
         }
     }
 
     /// Load a metadata cache from a custom location.
-    pub(super) fn custom<P: AsRef<Utf8Path>>(path: P) -> Self {
+    pub(super) fn from_path<P: AsRef<Utf8Path>>(path: P) -> Self {
         Self {
             path: path.as_ref().to_path_buf(),
         }

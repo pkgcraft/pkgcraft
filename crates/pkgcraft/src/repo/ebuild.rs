@@ -156,6 +156,7 @@ pub struct Repo {
     metadata: Metadata,
     masters: OnceLock<Vec<Weak<Self>>>,
     trees: OnceLock<Vec<Weak<Self>>>,
+    cache: OnceLock<cache::MetadataCache>,
     arches: OnceLock<IndexSet<String>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<HashMap<String, HashSet<String>>>,
@@ -264,6 +265,21 @@ impl Repo {
 
     pub fn metadata(&self) -> &Metadata {
         &self.metadata
+    }
+
+    pub fn cache(&self) -> &cache::MetadataCache {
+        self.cache.get_or_init(|| {
+            // TODO: support multiple cache formats?
+            let format = self
+                .metadata
+                .config()
+                .cache_formats()
+                .first()
+                .copied()
+                .unwrap_or(Default::default());
+
+            format.from_repo(self)
+        })
     }
 
     pub fn eapi(&self) -> &'static Eapi {
@@ -1176,7 +1192,7 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = repo.metadata().cache().regen().suppress(true).run(repo);
+        let r = repo.cache().regen().suppress(true).run(repo);
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

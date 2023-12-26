@@ -77,7 +77,6 @@ impl<'a> Pkg<'a> {
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.
     pub(crate) fn metadata(&self) -> crate::Result<Metadata<'a>> {
         self.repo
-            .metadata()
             .cache()
             .get(self)
             .and_then(|m| m.deserialize(self))

@@ -350,7 +350,7 @@ mod tests {
     fn deserialize() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
         for pkg in repo.iter_raw() {
-            let r = repo.metadata().cache().get(&pkg);
+            let r = repo.cache().get(&pkg);
             assert!(r.is_ok(), "{pkg}: failed loading metadata: {}", r.unwrap_err());
             let r = r.unwrap().deserialize(&pkg);
             assert!(r.is_ok(), "{pkg}: failed deserializing metadata: {}", r.unwrap_err());

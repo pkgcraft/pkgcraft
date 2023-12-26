@@ -37,7 +37,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
     });
 
     let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
-    let regen = &repo.metadata().cache().regen();
+    let regen = &repo.cache().regen();
 
     c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {

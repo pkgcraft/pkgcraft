@@ -19,7 +19,7 @@ use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
-use super::cache::{CacheFormat, MetadataCache};
+use super::cache::CacheFormat;
 use super::Eclass;
 
 /// Wrapper for ini format config files.
@@ -203,7 +203,6 @@ pub struct Metadata {
     pub(super) eapi: &'static Eapi,
     config: Config,
     path: Utf8PathBuf,
-    cache: OnceLock<MetadataCache>,
     arches: OnceLock<IndexSet<String>>,
     arches_desc: OnceLock<HashMap<ArchStatus, HashSet<String>>>,
     categories: OnceLock<IndexSet<String>>,
@@ -263,20 +262,6 @@ impl Metadata {
 
     pub fn config(&self) -> &Config {
         &self.config
-    }
-
-    pub fn cache(&self) -> &MetadataCache {
-        self.cache.get_or_init(|| {
-            // TODO: support multiple cache formats?
-            let format = self
-                .config
-                .cache_formats
-                .first()
-                .copied()
-                .unwrap_or(Default::default());
-
-            format.repo(&self.path)
-        })
     }
 
     /// Return a repo's known architectures from `profiles/arch.list`.

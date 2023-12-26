@@ -3,8 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::repo::ebuild::cache::CacheFormat::Md5Dict;
-use pkgcraft::repo::Repository;
+use pkgcraft::repo::ebuild::cache::Cache;
 
 use crate::args::target_ebuild_repo;
 
@@ -30,6 +29,10 @@ pub struct Command {
     #[arg(short, long)]
     output: bool,
 
+    /// Custom cache format
+    #[arg(long)]
+    format: Option<String>,
+
     // positionals
     /// Target repository
     #[arg(default_value = ".")]
@@ -40,12 +43,18 @@ impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // run metadata regeneration displaying a progress bar if stdout is a terminal
         let progress = stdout().is_terminal() && !self.no_progress && !self.output;
-
         let repo = target_ebuild_repo(config, &self.repo)?;
-        let cache = if let Some(path) = self.path.as_ref() {
-            Md5Dict.custom(path)
+
+        let format = if let Some(s) = &self.format {
+            s.parse()?
         } else {
-            Md5Dict.repo(repo.path())
+            repo.cache().format()
+        };
+
+        let cache = if let Some(path) = self.path.as_ref() {
+            format.from_path(path)
+        } else {
+            format.from_repo(&repo)
         };
 
         cache
