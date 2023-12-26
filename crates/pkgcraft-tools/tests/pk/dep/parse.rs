@@ -61,7 +61,7 @@ fn format() {
             (["{P}", "=cat/pkg-1-r2"], "pkg-1"),
             (["{PF}", "=cat/pkg-1-r2"], "pkg-1-r2"),
             (["{PN}", "=cat/pkg-1-r2"], "pkg"),
-            (["{PR}", "=cat/pkg-1-r2"], "2"),
+            (["{PR}", "=cat/pkg-1-r2"], "r2"),
             (["{PV}", "=cat/pkg-1-r2"], "1"),
             (["{PVR}", "=cat/pkg-1-r2"], "1-r2"),
             (["{CPN}", "=cat/pkg-1-r2"], "cat/pkg"),
