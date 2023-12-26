@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::repo::ebuild::cache::Cache;
+use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 
 use crate::args::target_ebuild_repo;
 
@@ -31,7 +31,7 @@ pub struct Command {
 
     /// Custom cache format
     #[arg(long)]
-    format: Option<String>,
+    format: Option<CacheFormat>,
 
     // positionals
     /// Target repository
@@ -44,12 +44,7 @@ impl Command {
         // run metadata regeneration displaying a progress bar if stdout is a terminal
         let progress = stdout().is_terminal() && !self.no_progress && !self.output;
         let repo = target_ebuild_repo(config, &self.repo)?;
-
-        let format = if let Some(s) = &self.format {
-            s.parse()?
-        } else {
-            repo.cache().format()
-        };
+        let format = self.format.unwrap_or(repo.cache().format());
 
         let cache = if let Some(path) = self.path.as_ref() {
             format.from_path(path)
