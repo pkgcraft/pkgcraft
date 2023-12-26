@@ -112,22 +112,20 @@ impl Md5DictEntry {
     }
 }
 
+impl FromIterator<(Md5DictKey, String)> for Md5DictEntry {
+    fn from_iter<I: IntoIterator<Item = (Md5DictKey, String)>>(iterable: I) -> Self {
+        Self(iterable.into_iter().collect())
+    }
+}
+
 impl<S: AsRef<str>> From<S> for Md5DictEntry {
     fn from(value: S) -> Self {
-        let data = value
+        value
             .as_ref()
             .lines()
             .filter_map(|l| l.split_once('='))
             .filter_map(|(s, v)| s.parse().ok().map(|k| (k, v.to_string())))
-            .collect();
-
-        Self(data)
-    }
-}
-
-impl FromIterator<(Md5DictKey, String)> for Md5DictEntry {
-    fn from_iter<I: IntoIterator<Item = (Md5DictKey, String)>>(iterable: I) -> Self {
-        Self(iterable.into_iter().collect())
+            .collect()
     }
 }
 
