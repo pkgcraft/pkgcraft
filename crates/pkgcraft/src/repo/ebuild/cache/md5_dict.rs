@@ -1,4 +1,4 @@
-use std::{fmt, fs, io};
+use std::{fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
@@ -85,6 +85,16 @@ impl CacheEntry for Md5DictEntry {
     }
 }
 
+impl Md5DictEntry {
+    /// Serialize a cache entry to raw bytes for writing to a file.
+    fn serialize(&self) -> Vec<u8> {
+        self.0
+            .iter()
+            .flat_map(|(k, v)| format!("{}={v}\n", key_to_meta(k)).into_bytes())
+            .collect()
+    }
+}
+
 impl<S: AsRef<str>> From<S> for Md5DictEntry {
     fn from(value: S) -> Self {
         let data = value
@@ -115,16 +125,6 @@ impl From<&Metadata<'_>> for Md5DictEntry {
             .collect();
 
         Self(data)
-    }
-}
-
-impl fmt::Display for Md5DictEntry {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for (key, val) in &self.0 {
-            writeln!(f, "{}={val}", key_to_meta(key))?;
-        }
-
-        Ok(())
     }
 }
 
@@ -178,14 +178,14 @@ impl Cache for Md5Dict {
         // determine metadata entry directory
         let dir = self.path.join(pkg.cpv().category());
 
-        // convert pkg metadata to cache entry format
-        let entry = Md5DictEntry::from(meta);
+        // convert pkg metadata to serialized cache entry format
+        let data = Md5DictEntry::from(meta).serialize();
 
         // atomically create metadata file
         let pf = pkg.cpv().pf();
         let path = dir.join(format!(".{pf}"));
         let new_path = dir.join(pf);
-        atomic_write_file(&path, entry.to_string(), &new_path)?;
+        atomic_write_file(&path, data, &new_path)?;
 
         Ok(())
     }
