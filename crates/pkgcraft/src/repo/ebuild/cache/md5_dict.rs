@@ -1,4 +1,6 @@
-use std::{fs, io};
+use std::borrow::Borrow;
+use std::str::FromStr;
+use std::{fmt, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
@@ -13,28 +15,43 @@ use crate::Error;
 
 use super::{Cache, CacheEntry, CacheFormat, Repo};
 
-/// Convert a metadata key from its raw, metadata file string value.
-fn key_from_meta(s: &str) -> crate::Result<Key> {
-    match s {
-        "_eclasses_" => Ok(Key::INHERITED),
-        "_md5_" => Ok(Key::CHKSUM),
-        s => s
-            .parse()
-            .map_err(|_| Error::InvalidValue(format!("invalid metadata key: {s}"))),
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+struct Md5DictKey(Key);
+
+impl Borrow<Key> for Md5DictKey {
+    fn borrow(&self) -> &Key {
+        &self.0
     }
 }
 
-/// Convert a metadata key to its raw, metadata file string value.
-fn key_to_meta(key: &Key) -> &str {
-    match key {
-        Key::INHERITED => "_eclasses_",
-        Key::CHKSUM => "_md5_",
-        key => key.as_ref(),
+impl FromStr for Md5DictKey {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let key = match s {
+            "_eclasses_" => Key::INHERITED,
+            "_md5_" => Key::CHKSUM,
+            s => s
+                .parse()
+                .map_err(|_| Error::InvalidValue(format!("invalid md5-dict key: {s}")))?,
+        };
+
+        Ok(Md5DictKey(key))
+    }
+}
+
+impl fmt::Display for Md5DictKey {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self.0 {
+            Key::INHERITED => write!(f, "_eclasses_"),
+            Key::CHKSUM => write!(f, "_md5_"),
+            key => write!(f, "{key}"),
+        }
     }
 }
 
 #[derive(Debug, Default)]
-pub struct Md5DictEntry(IndexMap<Key, String>);
+pub struct Md5DictEntry(IndexMap<Md5DictKey, String>);
 
 impl CacheEntry for Md5DictEntry {
     fn deserialize<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
@@ -90,7 +107,7 @@ impl Md5DictEntry {
     fn serialize(&self) -> Vec<u8> {
         self.0
             .iter()
-            .flat_map(|(k, v)| format!("{}={v}\n", key_to_meta(k)).into_bytes())
+            .flat_map(|(k, v)| format!("{k}={v}\n").into_bytes())
             .collect()
     }
 }
@@ -101,30 +118,34 @@ impl<S: AsRef<str>> From<S> for Md5DictEntry {
             .as_ref()
             .lines()
             .filter_map(|l| l.split_once('='))
-            .filter_map(|(s, v)| key_from_meta(s).ok().map(|k| (k, v.to_string())))
+            .filter_map(|(s, v)| s.parse().ok().map(|k| (k, v.to_string())))
             .collect();
 
         Self(data)
     }
 }
 
+impl FromIterator<(Md5DictKey, String)> for Md5DictEntry {
+    fn from_iter<I: IntoIterator<Item = (Md5DictKey, String)>>(iterable: I) -> Self {
+        Self(iterable.into_iter().collect())
+    }
+}
+
 impl From<&Metadata<'_>> for Md5DictEntry {
     fn from(meta: &Metadata) -> Self {
-        let data = meta
-            .eapi()
+        meta.eapi()
             .metadata_keys()
             .iter()
             .filter_map(|key| {
                 // PMS specifies if no phase functions are defined, a single hyphen is used.
-                if key == &Key::DEFINED_PHASES && meta.defined_phases().is_empty() {
-                    Some((*key, "-".to_string()))
+                let val = if key == &Key::DEFINED_PHASES && meta.defined_phases().is_empty() {
+                    Some("-".to_string())
                 } else {
-                    meta.serialize(key).map(|val| (*key, val))
-                }
+                    meta.serialize(key)
+                };
+                val.map(|v| (Md5DictKey(*key), v))
             })
-            .collect();
-
-        Self(data)
+            .collect()
     }
 }
 
