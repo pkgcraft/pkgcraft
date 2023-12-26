@@ -2,8 +2,6 @@ use itertools::Itertools;
 use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::prelude::*;
 
-use crate::predicates::lines_contain;
-
 #[test]
 fn valid() {
     let deps = TEST_DATA.dep_toml.valid.iter().map(|e| &e.dep).join("\n");
@@ -81,7 +79,7 @@ fn format() {
                 .arg(opt)
                 .args(args)
                 .assert()
-                .stdout(lines_contain([expected]))
+                .stdout(predicate::str::diff(expected).trim())
                 .stderr("")
                 .success();
         }
