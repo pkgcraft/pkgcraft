@@ -2,8 +2,6 @@ use itertools::Itertools;
 use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::prelude::*;
 
-use crate::predicates::lines_contain;
-
 #[test]
 fn valid() {
     let intersects = TEST_DATA
@@ -40,7 +38,7 @@ fn format() {
         for (args, expected) in [
             (["{OP}", ">1-r2"], ">"),
             (["{OP}", "1-r2"], "<unset>"),
-            (["{VER}", "1-r2"], "1"),
+            (["{VER}", "1-r2"], "1-r2"),
             (["{REV}", "1-r2"], "2"),
             (["{REV}", "1"], "<unset>"),
         ] {
@@ -48,7 +46,7 @@ fn format() {
                 .arg(opt)
                 .args(args)
                 .assert()
-                .stdout(lines_contain([expected]))
+                .stdout(predicate::str::diff(expected).trim())
                 .stderr("")
                 .success();
         }
