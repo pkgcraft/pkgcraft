@@ -48,7 +48,10 @@ impl CacheEntry for Md5DictEntry {
 
         for key in pkg.eapi().metadata_keys() {
             if let Some(val) = self.0.get(key) {
-                meta.deserialize(pkg.eapi(), pkg.repo(), key, val)?;
+                // PMS specifies if no phase functions are defined, a single hyphen is used.
+                if !(key == &Key::DEFINED_PHASES && val == "-") {
+                    meta.deserialize(pkg.eapi(), pkg.repo(), key, val)?;
+                }
             }
         }
 
@@ -101,7 +104,14 @@ impl From<&Metadata<'_>> for Md5DictEntry {
             .eapi()
             .metadata_keys()
             .iter()
-            .filter_map(|key| meta.serialize(key).map(|val| (*key, val)))
+            .filter_map(|key| {
+                // PMS specifies if no phase functions are defined, a single hyphen is used.
+                if key == &Key::DEFINED_PHASES && meta.defined_phases().is_empty() {
+                    Some((*key, "-".to_string()))
+                } else {
+                    meta.serialize(key).map(|val| (*key, val))
+                }
+            })
             .collect();
 
         Self(data)

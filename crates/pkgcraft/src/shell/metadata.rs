@@ -126,15 +126,10 @@ impl<'a> Metadata<'a> {
             SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val, eapi)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
             DEFINED_PHASES => {
-                // PMS specifies if no phase functions are defined, a single hyphen is used.
-                if val == "-" {
-                    self.defined_phases = Default::default();
-                } else {
-                    self.defined_phases = val
-                        .split_whitespace()
-                        .map(phase)
-                        .collect::<crate::Result<OrderedSet<_>>>()?;
-                }
+                self.defined_phases = val
+                    .split_whitespace()
+                    .map(phase)
+                    .collect::<crate::Result<OrderedSet<_>>>()?
             }
             KEYWORDS => {
                 self.keywords = val
@@ -193,14 +188,7 @@ impl<'a> Metadata<'a> {
             RESTRICT => self.restrict.to_string(),
             SRC_URI => self.src_uri.to_string(),
             HOMEPAGE => self.homepage.iter().join(" "),
-            DEFINED_PHASES => {
-                // PMS specifies if no phase functions are defined, a single hyphen is used.
-                if self.defined_phases.is_empty() {
-                    "-".to_string()
-                } else {
-                    self.defined_phases.iter().map(|p| p.name()).join(" ")
-                }
-            }
+            DEFINED_PHASES => self.defined_phases.iter().map(|p| p.name()).join(" "),
             KEYWORDS => self.keywords.iter().join(" "),
             IUSE => self.iuse.iter().join(" "),
             INHERIT => self.inherit.iter().join(" "),
