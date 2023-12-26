@@ -2,6 +2,7 @@ use std::mem;
 use std::process::ExitCode;
 
 use clap::Args;
+use itertools::Itertools;
 use pkgcraft::dep::Dep;
 use pkgcraft::eapi::Eapi;
 use strum::{Display, EnumIter, EnumString};
@@ -44,6 +45,7 @@ pub enum Key {
     SUBSLOT,
     SLOT_OP,
     REPO,
+    USE,
     DEP,
 }
 
@@ -68,6 +70,10 @@ impl<'a> EnumVariable<'a> for Key {
             SUBSLOT => obj.subslot().unwrap_or_default().to_string(),
             SLOT_OP => obj.slot_op().map(|x| x.to_string()).unwrap_or_default(),
             REPO => obj.repo().unwrap_or_default().to_string(),
+            USE => obj
+                .use_deps()
+                .map(|x| x.iter().join(","))
+                .unwrap_or_default(),
             DEP => obj.to_string(),
         }
     }

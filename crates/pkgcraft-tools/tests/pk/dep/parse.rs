@@ -82,6 +82,9 @@ fn format() {
             (["{SLOT_OP}", "cat/pkg:0="], "="),
             (["{REPO}", "=cat/pkg-1-r2"], "<unset>"),
             (["{REPO}", "=cat/pkg-1-r2::repo"], "repo"),
+            (["{USE}", "cat/pkg"], "<unset>"),
+            (["{USE}", "cat/pkg[u1,u2]"], "u1,u2"),
+            (["{USE}", "=cat/pkg-1-r2[u1,u2]"], "u1,u2"),
             (["{DEP}", "cat/pkg"], "cat/pkg"),
             (["{DEP}", "=cat/pkg-1-r2"], "=cat/pkg-1-r2"),
         ] {
