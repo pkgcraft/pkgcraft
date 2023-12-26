@@ -10,7 +10,7 @@ use crate::panic::ffi_catch_panic;
 /// Create an empty pkgcraft config.
 #[no_mangle]
 pub extern "C" fn pkgcraft_config_new() -> *mut Config {
-    let config = Config::new("pkgcraft", "").collapse();
+    let config = Config::new("pkgcraft", "");
     Box::into_raw(Box::new(config))
 }
 

@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::path::Path;
-use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
@@ -29,7 +28,7 @@ use crate::pkg::ebuild::{
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
-use crate::{Error, COLLAPSE_LAZY_FIELDS};
+use crate::Error;
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 
@@ -241,14 +240,6 @@ impl Repo {
             self.trees
                 .set(trees)
                 .unwrap_or_else(|_| panic!("trees already set: {}", self.id()));
-
-            if COLLAPSE_LAZY_FIELDS.load(Relaxed) {
-                // metadata generation requires these fields to be collapsed
-                self.eclasses();
-                self.arches();
-                self.licenses();
-            }
-
             Ok(())
         } else {
             let repos = nonexistent.join(", ");
@@ -257,6 +248,15 @@ impl Repo {
                 err: format!("unconfigured repos: {repos}"),
             })
         }
+    }
+
+    /// Collapse required lazy fields for metadata regeneration that leverages process-based
+    /// parallelism. If this is not called beforehand, each spawned process will reinitialize
+    /// all lazy fields they use often slowing down runtime considerably.
+    fn collapse_cache_regen(&self) {
+        self.eclasses();
+        self.arches();
+        self.licenses();
     }
 
     pub(super) fn repo_config(&self) -> &RepoConfig {

@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<ExitCode> {
         .with_writer(stderr)
         .init();
 
-    let mut config = Config::new("pkgcraft", "").collapse();
+    let mut config = Config::new("pkgcraft", "");
     if let Some(path) = args.config {
         config.load_path(&path)?;
     } else {

@@ -1,4 +1,4 @@
-use std::sync::{atomic::Ordering::Relaxed, Arc};
+use std::sync::Arc;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -11,7 +11,7 @@ use crate::macros::build_from_paths;
 use crate::repo::ebuild::temp::Repo as TempRepo;
 use crate::repo::Repo;
 use crate::utils::find_existing_path;
-use crate::{shell, Error, COLLAPSE_LAZY_FIELDS};
+use crate::{shell, Error};
 pub(crate) use repo::RepoConfig;
 
 mod portage;
@@ -148,6 +148,9 @@ impl From<&Config> for Arc<Settings> {
 
 impl Config {
     pub fn new(name: &str, prefix: &str) -> Self {
+        // initialize bash
+        Lazy::force(&shell::BASH);
+
         let path = ConfigPath::new(name, prefix);
         Config { path, ..Default::default() }
     }
@@ -287,19 +290,6 @@ impl Config {
         let temp_repo = self.repos.create_temp(name, priority, eapi)?;
         self.add_repo(&temp_repo.repo, false)?;
         Ok(temp_repo)
-    }
-
-    /// Collapse lazy fields before jobs requiring process-based parallelization. If this is not
-    /// called beforehand, each newly spawned process will reinitialize all lazy fields they
-    /// encounter often slowing down runtime considerably.
-    pub fn collapse(self) -> Self {
-        // initialize bash
-        Lazy::force(&shell::BASH);
-
-        // enable global flag
-        COLLAPSE_LAZY_FIELDS.store(true, Relaxed);
-
-        self
     }
 }
 

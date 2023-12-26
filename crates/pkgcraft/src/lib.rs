@@ -1,7 +1,5 @@
 #![warn(unreachable_pub)]
 
-use std::sync::atomic::AtomicBool;
-
 pub(crate) mod archive;
 pub(crate) mod command;
 pub mod config;
@@ -24,6 +22,3 @@ pub use self::error::Error;
 
 /// A `Result` alias where the `Err` case is `pkgcraft::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
-
-/// Controls if lazy fields are collapsed on initialized for process parallelization efficiency.
-static COLLAPSE_LAZY_FIELDS: AtomicBool = AtomicBool::new(false);
