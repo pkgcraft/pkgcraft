@@ -101,14 +101,7 @@ impl From<&Metadata<'_>> for Md5DictEntry {
             .eapi()
             .metadata_keys()
             .iter()
-            .filter_map(|key| {
-                let value = meta.serialize(key);
-                if !value.is_empty() {
-                    Some((*key, value))
-                } else {
-                    None
-                }
-            })
+            .filter_map(|key| meta.serialize(key).map(|val| (*key, val)))
             .collect();
 
         Self(data)

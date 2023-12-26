@@ -175,10 +175,10 @@ impl<'a> Metadata<'a> {
         Ok(())
     }
 
-    /// Serialize a metadata field to its string value.
-    pub(crate) fn serialize(&self, key: &Key) -> String {
+    /// Serialize a metadata field to its string value, returning None for empty strings.
+    pub(crate) fn serialize(&self, key: &Key) -> Option<String> {
         use Key::*;
-        match key {
+        let value = match key {
             CHKSUM => self.chksum.clone(),
             DESCRIPTION => self.description.clone(),
             SLOT => self.slot.to_string(),
@@ -210,6 +210,12 @@ impl<'a> Metadata<'a> {
                 .flat_map(|e| [e.name(), e.chksum()])
                 .join("\t"),
             EAPI => self.eapi.to_string(),
+        };
+
+        if value.is_empty() {
+            None
+        } else {
+            Some(value)
         }
     }
 
