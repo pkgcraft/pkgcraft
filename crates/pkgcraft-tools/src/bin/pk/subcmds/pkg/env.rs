@@ -8,6 +8,7 @@ use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::utils::bounded_jobs;
+use pkgcraft::Error;
 use scallop::pool::PoolIter;
 use scallop::variables;
 
@@ -53,12 +54,18 @@ impl Command {
         let orig_vars: IndexSet<_> = variables::all_visible().into_iter().collect();
 
         let func = |pkg: Pkg| -> scallop::Result<(String, IndexMap<String, String>)> {
-            pkg.source()?;
+            // TODO: move error mapping into pkgcraft for pkg sourcing
+            pkg.source().map_err(|e| Error::InvalidPkg {
+                id: pkg.to_string(),
+                err: e.to_string(),
+            })?;
+
             let new_vars: IndexSet<_> = variables::all_visible().into_iter().collect();
             let env: IndexMap<_, _> = new_vars
                 .difference(&orig_vars)
                 .filter_map(|var| variables::optional(var).map(|val| (var.to_string(), val)))
                 .collect();
+
             Ok((pkg.to_string(), env))
         };
 
