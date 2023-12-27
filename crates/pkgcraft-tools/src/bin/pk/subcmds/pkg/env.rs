@@ -56,10 +56,9 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        // external variables to remove
-        let orig_vars: IndexSet<_> = variables::all_visible().into_iter().collect();
-        let pms_vars: IndexSet<_> = Variable::iter().map(|v| v.to_string()).collect();
-        let meta_vars: IndexSet<_> = Key::iter().map(|v| v.to_string()).collect();
+        let external: IndexSet<_> = variables::all_visible().into_iter().collect();
+        let pms: IndexSet<_> = Variable::iter().map(|v| v.to_string()).collect();
+        let meta: IndexSet<_> = Key::iter().map(|v| v.to_string()).collect();
 
         // create variable filters
         let (mut hide, mut show) = (IndexSet::new(), IndexSet::new());
@@ -67,16 +66,16 @@ impl Command {
             for var in filter.split(',') {
                 if let Some(v) = var.strip_prefix('-') {
                     match v {
-                        "PMS" => hide.extend(pms_vars.iter().map(|s| s.as_str())),
-                        "META" => hide.extend(meta_vars.iter().map(|s| s.as_str())),
+                        "PMS" => hide.extend(pms.iter().map(|s| s.as_str())),
+                        "META" => hide.extend(meta.iter().map(|s| s.as_str())),
                         _ => {
                             hide.insert(v);
                         }
                     }
                 } else {
                     match var {
-                        "PMS" => show.extend(pms_vars.iter().map(|s| s.as_str())),
-                        "META" => show.extend(meta_vars.iter().map(|s| s.as_str())),
+                        "PMS" => show.extend(pms.iter().map(|s| s.as_str())),
+                        "META" => show.extend(meta.iter().map(|s| s.as_str())),
                         _ => {
                             show.insert(var);
                         }
@@ -87,7 +86,7 @@ impl Command {
 
         let filter_func = |var: &String| -> bool {
             let var = var.as_str();
-            !orig_vars.contains(var)
+            !external.contains(var)
                 && !hide.contains(var)
                 && (show.is_empty() || show.contains(var))
         };
