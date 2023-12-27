@@ -6,7 +6,6 @@ use clap::Args;
 use pkgcraft::config::Config;
 use pkgcraft::dep::{Cpv, Flatten};
 use pkgcraft::pkg::Package;
-use pkgcraft::repo::PkgRepository;
 use pkgcraft::traits::Intersects;
 
 use crate::args::target_ebuild_repo;
@@ -25,7 +24,7 @@ impl Command {
         let mut cpvs = vec![];
         let mut cache = HashMap::<_, HashSet<_>>::new();
 
-        for pkg in repo.iter() {
+        for pkg in repo {
             cpvs.push(pkg.cpv().clone());
             for dep in pkg.dependencies(&[]).into_iter_flatten() {
                 cache.entry(dep.cpn()).or_default().insert(dep.clone());

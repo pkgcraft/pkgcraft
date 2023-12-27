@@ -1,6 +1,5 @@
 use std::io::{stdin, IsTerminal};
 use std::path::Path;
-use std::sync::Arc;
 
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::Repo as EbuildRepo;
@@ -50,29 +49,47 @@ pub(super) trait StdinOrArgs {
 impl StdinOrArgs for Vec<String> {}
 
 /// Convert a target ebuild repo arg into an ebuild repo.
-pub(crate) fn target_ebuild_repo(
-    config: &mut Config,
+pub(crate) fn target_ebuild_repo<'a>(
+    config: &'a mut Config,
     repo: &str,
-) -> anyhow::Result<Arc<EbuildRepo>> {
-    let repo = if let Some(r) = config.repos.get(repo) {
-        Ok(r.clone())
-    } else if Path::new(repo).exists() {
-        config.add_repo_path(repo, 0, repo, true)
+) -> anyhow::Result<&'a EbuildRepo> {
+    if config.repos.get(repo).is_none() && Path::new(repo).exists() {
+        config.add_repo_path(repo, 0, repo, true)?;
     } else {
-        anyhow::bail!("unknown repo: {repo}")
-    }?;
+        anyhow::bail!("unknown repo: {repo}");
+    };
 
-    if let Some(r) = repo.as_ebuild() {
-        Ok(r.clone())
+    if let Some(r) = config.repos.get(repo).and_then(|r| r.as_ebuild()) {
+        Ok(r.as_ref())
     } else {
         anyhow::bail!("non-ebuild repo: {repo}")
     }
 }
 
 /// Convert a list of target ebuild repo args into ebuild repos.
-pub(crate) fn target_ebuild_repos(
-    config: &mut Config,
+pub(crate) fn target_ebuild_repos<'a>(
+    config: &'a mut Config,
     args: &[String],
-) -> anyhow::Result<Vec<Arc<EbuildRepo>>> {
-    args.iter().map(|s| target_ebuild_repo(config, s)).collect()
+) -> anyhow::Result<Vec<&'a EbuildRepo>> {
+    let mut repos = vec![];
+
+    // add path-based repos to config
+    for arg in args {
+        if config.repos.get(arg).is_none() && Path::new(arg).exists() {
+            config.add_repo_path(arg, 0, arg, true)?;
+        } else {
+            anyhow::bail!("unknown repo: {arg}");
+        };
+    }
+
+    // pull repo refs from config
+    for arg in args {
+        if let Some(r) = config.repos.get(arg).and_then(|r| r.as_ebuild()) {
+            repos.push(r.as_ref());
+        } else {
+            anyhow::bail!("non-ebuild repo: {arg}")
+        }
+    }
+
+    Ok(repos)
 }
