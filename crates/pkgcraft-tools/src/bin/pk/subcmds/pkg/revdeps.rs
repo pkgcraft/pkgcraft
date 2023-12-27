@@ -5,7 +5,6 @@ use clap::Args;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::dep::{CpvOrDep, Flatten};
 use pkgcraft::repo::set::RepoSet;
-use pkgcraft::repo::PkgRepository;
 use pkgcraft::traits::Intersects;
 
 use crate::args::StdinOrArgs;
@@ -46,7 +45,7 @@ impl Command {
         // TODO: use a revdeps cache for queries (#120)
         // TODO: parallelize while generating metadata on the fly (#121)
         for repo in repos.ebuild() {
-            for pkg in repo.iter() {
+            for pkg in repo {
                 for dep in pkg.dependencies(&[]).into_iter_flatten() {
                     if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {
                         println!("{pkg}: {dep}");
