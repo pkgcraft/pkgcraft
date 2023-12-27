@@ -32,8 +32,7 @@ pub struct Command {
     targets: Vec<String>,
 }
 
-// TODO: use configured ebuild repos instead of raw ones
-// TODO: support binpkg repos
+// TODO: support other repo types such as configured and binpkg
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
