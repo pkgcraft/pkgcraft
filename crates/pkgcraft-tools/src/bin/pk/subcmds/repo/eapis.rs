@@ -7,7 +7,7 @@ use pkgcraft::config::Config;
 use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::Package;
 
-use crate::args::target_ebuild_repos;
+use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -23,7 +23,8 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        for repo in target_ebuild_repos(config, &self.repos)? {
+        for arg in &self.repos {
+            let repo = target_ebuild_repo(config, arg)?;
             let mut eapis = HashMap::<_, Vec<_>>::new();
             // TODO: use parallel iterator
             for pkg in repo.iter_raw() {

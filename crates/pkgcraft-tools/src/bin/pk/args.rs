@@ -48,7 +48,7 @@ pub(super) trait StdinOrArgs {
 
 impl StdinOrArgs for Vec<String> {}
 
-/// Convert a target ebuild repo arg into an ebuild repo.
+/// Convert a target ebuild repo arg into an ebuild repo reference.
 pub(crate) fn target_ebuild_repo<'a>(
     config: &'a mut Config,
     repo: &str,
@@ -64,32 +64,4 @@ pub(crate) fn target_ebuild_repo<'a>(
     } else {
         anyhow::bail!("non-ebuild repo: {repo}")
     }
-}
-
-/// Convert a list of target ebuild repo args into ebuild repos.
-pub(crate) fn target_ebuild_repos<'a>(
-    config: &'a mut Config,
-    args: &[String],
-) -> anyhow::Result<Vec<&'a EbuildRepo>> {
-    let mut repos = vec![];
-
-    // add path-based repos to config
-    for arg in args {
-        if config.repos.get(arg).is_none() && Path::new(arg).exists() {
-            config.add_repo_path(arg, 0, arg, true)?;
-        } else {
-            anyhow::bail!("unknown repo: {arg}");
-        };
-    }
-
-    // pull repo refs from config
-    for arg in args {
-        if let Some(r) = config.repos.get(arg).and_then(|r| r.as_ebuild()) {
-            repos.push(r.as_ref());
-        } else {
-            anyhow::bail!("non-ebuild repo: {arg}")
-        }
-    }
-
-    Ok(repos)
 }
