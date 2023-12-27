@@ -458,7 +458,7 @@ pub fn package_dependency(
 
 #[cfg(test)]
 mod tests {
-    use crate::eapi::{self, EAPIS, EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL};
+    use crate::eapi::{EAPIS, EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL, EAPI_PKGCRAFT};
 
     use super::*;
 
@@ -478,7 +478,7 @@ mod tests {
 
     #[test]
     fn blockers() {
-        let d = dep("cat/pkg", &eapi::EAPI_LATEST_OFFICIAL).unwrap();
+        let d = dep("cat/pkg", &EAPI_LATEST_OFFICIAL).unwrap();
         assert!(d.blocker().is_none());
 
         for (s, blocker) in [
@@ -582,7 +582,7 @@ mod tests {
                 assert!(dep(&s, eapi).is_err(), "{s:?} didn't fail");
             }
 
-            let result = dep(&s, &eapi::EAPI_PKGCRAFT);
+            let result = dep(&s, &EAPI_PKGCRAFT);
             assert!(result.is_ok(), "{s:?} failed: {}", result.err().unwrap());
             let d = result.unwrap();
             assert_eq!(d.repo(), Some(repo));

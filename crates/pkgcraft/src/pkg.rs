@@ -4,7 +4,7 @@ use enum_as_inner::EnumAsInner;
 use scallop::ExecStatus;
 
 use crate::dep::{Cpv, Version};
-use crate::eapi::{self, Restrict as EapiRestrict};
+use crate::eapi::{Eapi, Restrict as EapiRestrict};
 use crate::repo::{Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -25,7 +25,7 @@ make_pkg_traits!(Pkg<'_>);
 
 pub trait Package: fmt::Debug + fmt::Display {
     /// Return a package's EAPI.
-    fn eapi(&self) -> &'static eapi::Eapi;
+    fn eapi(&self) -> &'static Eapi;
 
     /// Return a package's CPV.
     fn cpv(&self) -> &Cpv<String>;
@@ -139,7 +139,7 @@ macro_rules! make_pkg_traits {
 use make_pkg_traits;
 
 impl<'a> Package for Pkg<'a> {
-    fn eapi(&self) -> &'static eapi::Eapi {
+    fn eapi(&self) -> &'static Eapi {
         match self {
             Self::Configured(pkg, _) => pkg.eapi(),
             Self::Ebuild(pkg, _) => pkg.eapi(),
@@ -172,7 +172,7 @@ impl<T> Package for &T
 where
     T: Package,
 {
-    fn eapi(&self) -> &'static eapi::Eapi {
+    fn eapi(&self) -> &'static Eapi {
         (*self).eapi()
     }
     fn cpv(&self) -> &Cpv<String> {

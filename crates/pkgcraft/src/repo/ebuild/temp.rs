@@ -7,11 +7,12 @@ use indexmap::IndexSet;
 use tempfile::TempDir;
 
 use crate::dep::{Cpv, Version};
+use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::pkg::ebuild;
 use crate::repo::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 use crate::restrict::Restrict;
 use crate::shell::metadata::Key;
-use crate::{eapi, Error};
+use crate::Error;
 
 use super::Repo as EbuildRepo;
 
@@ -45,7 +46,7 @@ impl Repo {
         id: &str,
         path: Option<&Utf8Path>,
         priority: i32,
-        eapi: Option<&eapi::Eapi>,
+        eapi: Option<&Eapi>,
     ) -> crate::Result<Self> {
         let path = match path {
             Some(p) => p.to_path_buf().into_std_path_buf(),
@@ -70,7 +71,7 @@ impl Repo {
         fs::write(temp_path.join("profiles/repo_name"), format!("{id}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
 
-        let eapi = eapi.unwrap_or(&eapi::EAPI_LATEST_OFFICIAL);
+        let eapi = eapi.unwrap_or(&EAPI_LATEST_OFFICIAL);
         fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing repo EAPI: {e}")))?;
 
@@ -102,7 +103,7 @@ impl Repo {
 
         // ebuild defaults
         let mut values = indexmap::IndexMap::from([
-            (EAPI, eapi::EAPI_LATEST_OFFICIAL.as_ref()),
+            (EAPI, EAPI_LATEST_OFFICIAL.as_ref()),
             (SLOT, "0"),
             (DESCRIPTION, "stub package description"),
         ]);
