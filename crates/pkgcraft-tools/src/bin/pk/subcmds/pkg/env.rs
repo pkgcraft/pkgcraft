@@ -67,16 +67,16 @@ impl Command {
             for var in filter.split(',') {
                 if let Some(v) = var.strip_prefix('-') {
                     match v {
-                        "PMS" => hide.extend(pms.iter().map(|s| s.as_str())),
-                        "META" => hide.extend(meta.iter().map(|s| s.as_str())),
+                        "@PMS" => hide.extend(pms.iter().map(|s| s.as_str())),
+                        "@META" => hide.extend(meta.iter().map(|s| s.as_str())),
                         _ => {
                             hide.insert(v);
                         }
                     }
                 } else {
                     match var {
-                        "PMS" => show.extend(pms.iter().map(|s| s.as_str())),
-                        "META" => show.extend(meta.iter().map(|s| s.as_str())),
+                        "@PMS" => show.extend(pms.iter().map(|s| s.as_str())),
+                        "@META" => show.extend(meta.iter().map(|s| s.as_str())),
                         _ => {
                             show.insert(var);
                         }
