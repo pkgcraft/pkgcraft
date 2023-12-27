@@ -41,7 +41,8 @@ impl<'a> Pkg<'a> {
 
     /// Get the parsed EAPI from the given ebuild data content.
     fn parse_eapi(data: &str) -> crate::Result<&'static Eapi> {
-        data.filter_lines()
+        let s = data
+            .filter_lines()
             .next()
             .and_then(|(_, s)| s.strip_prefix("EAPI="))
             .map(|s| {
@@ -49,9 +50,9 @@ impl<'a> Pkg<'a> {
                     .map(|(v, _)| v.trim())
                     .unwrap_or_else(|| s.trim())
             })
-            .ok_or_else(|| Error::InvalidValue("unsupported EAPI: 0".to_string()))
-            .and_then(eapi::parse_value)
-            .and_then(TryInto::try_into)
+            .unwrap_or("0");
+
+        eapi::parse_value(s)?.parse()
     }
 
     /// Return the path of the package's ebuild relative to the repository root.
