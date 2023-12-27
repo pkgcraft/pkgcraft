@@ -73,17 +73,18 @@ impl Command {
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
 
             // source ebuilds and output ebuild-specific environment variables
-            let mut handle = io::stderr().lock();
+            let mut stderr = io::stderr().lock();
+            let mut stdout = io::stdout().lock();
             for result in PoolIter::new(jobs, pkgs, func, true)? {
                 match result {
                     Err(e) => {
                         status = ExitCode::FAILURE;
-                        writeln!(handle, "{e}")?;
+                        writeln!(stderr, "{e}")?;
                     }
                     Ok((pkg, env)) => {
-                        writeln!(handle, "\n{pkg}")?;
+                        writeln!(stdout, "\n{pkg}")?;
                         for (k, v) in env {
-                            writeln!(handle, "{k}={v}")?;
+                            writeln!(stdout, "{k}={v}")?;
                         }
                     }
                 }
