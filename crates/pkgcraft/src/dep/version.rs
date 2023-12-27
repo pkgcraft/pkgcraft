@@ -654,20 +654,18 @@ fn fmt<S: Stringable>(f: &mut fmt::Formatter, v: &Version<S>, rev: bool, op: boo
 
     if op {
         match &v.op {
-            None => write!(f, "{s}")?,
-            Some(Operator::Less) => write!(f, "<{s}")?,
-            Some(Operator::LessOrEqual) => write!(f, "<={s}")?,
-            Some(Operator::Equal) => write!(f, "={s}")?,
-            Some(Operator::EqualGlob) => write!(f, "={s}*")?,
-            Some(Operator::Approximate) => write!(f, "~{s}")?,
-            Some(Operator::GreaterOrEqual) => write!(f, ">={s}")?,
-            Some(Operator::Greater) => write!(f, ">{s}")?,
+            None => write!(f, "{s}"),
+            Some(Operator::Less) => write!(f, "<{s}"),
+            Some(Operator::LessOrEqual) => write!(f, "<={s}"),
+            Some(Operator::Equal) => write!(f, "={s}"),
+            Some(Operator::EqualGlob) => write!(f, "={s}*"),
+            Some(Operator::Approximate) => write!(f, "~{s}"),
+            Some(Operator::GreaterOrEqual) => write!(f, ">={s}"),
+            Some(Operator::Greater) => write!(f, ">{s}"),
         }
     } else {
-        write!(f, "{s}")?;
+        write!(f, "{s}")
     }
-
-    Ok(())
 }
 
 impl<S1: Stringable, S2: Stringable> PartialEq<Version<S1>> for Version<S2> {
