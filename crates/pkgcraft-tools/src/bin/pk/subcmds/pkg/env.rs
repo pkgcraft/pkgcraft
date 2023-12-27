@@ -1,9 +1,10 @@
+use std::collections::HashSet;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::ExitCode;
 
 use clap::Args;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
 use pkgcraft::repo::set::RepoSet;
@@ -56,12 +57,12 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        let external: IndexSet<_> = variables::all_visible().into_iter().collect();
-        let pms: IndexSet<_> = Variable::iter().map(|v| v.to_string()).collect();
-        let meta: IndexSet<_> = Key::iter().map(|v| v.to_string()).collect();
+        let external: HashSet<_> = variables::all_visible().into_iter().collect();
+        let pms: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
+        let meta: HashSet<_> = Key::iter().map(|v| v.to_string()).collect();
 
         // create variable filters
-        let (mut hide, mut show) = (IndexSet::new(), IndexSet::new());
+        let (mut hide, mut show) = (HashSet::new(), HashSet::new());
         if let Some(filter) = &self.filter {
             for var in filter.split(',') {
                 if let Some(v) = var.strip_prefix('-') {
