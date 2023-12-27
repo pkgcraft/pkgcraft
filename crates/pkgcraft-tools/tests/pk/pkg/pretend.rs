@@ -54,8 +54,8 @@ fn pkg_target_from_stdin() {
     cmd(format!("pk pkg pretend -r {} -", repo.path()))
         .write_stdin("pkg-pretend/success-with-output")
         .assert()
-        .stdout("")
-        .stderr(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
+        .stdout(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
+        .stderr("")
         .success();
 }
 
@@ -73,32 +73,32 @@ fn path_targets() {
     cmd("pk pkg pretend")
         .arg(t.path())
         .assert()
-        .stdout("")
-        .stderr(lines_contain(["cat1/a-1", "cat1/b-1", "cat2/c-1", "output123"]))
+        .stdout(lines_contain(["cat1/a-1", "cat1/b-1", "cat2/c-1", "output123"]))
+        .stderr("")
         .success();
 
     // category path
     cmd("pk pkg pretend")
         .arg(t.path().join("cat1"))
         .assert()
-        .stdout("")
-        .stderr(lines_contain(["cat1/a-1", "cat1/b-1", "output123"]))
+        .stdout(lines_contain(["cat1/a-1", "cat1/b-1", "output123"]))
+        .stderr("")
         .success();
 
     // package path
     cmd("pk pkg pretend")
         .arg(t.path().join("cat2/c"))
         .assert()
-        .stdout("")
-        .stderr(lines_contain(["cat2/c-1", "output123"]))
+        .stdout(lines_contain(["cat2/c-1", "output123"]))
+        .stderr("")
         .success();
 
     // default current working dir
     env::set_current_dir(t.path().join("cat2/c")).unwrap();
     cmd("pk pkg pretend")
         .assert()
-        .stdout("")
-        .stderr(lines_contain(["cat2/c-1", "output123"]))
+        .stdout(lines_contain(["cat2/c-1", "output123"]))
+        .stderr("")
         .success();
 }
 
@@ -126,8 +126,8 @@ fn output() {
     cmd("pk pkg pretend")
         .arg(repo.path().join("pkg-pretend/success-with-output"))
         .assert()
-        .stdout("")
-        .stderr(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
+        .stdout(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
+        .stderr("")
         .success();
 
     // pkg_pretend() failure with no output

@@ -63,14 +63,15 @@ impl Command {
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
 
             // run pkg_pretend across selected pkgs
-            let mut handle = io::stderr().lock();
+            let mut stderr = io::stderr().lock();
+            let mut stdout = io::stdout().lock();
             for result in PoolIter::new(jobs, pkgs, func, true)? {
                 match result {
                     Err(e) => {
                         status = ExitCode::FAILURE;
-                        writeln!(handle, "{e}")?;
+                        writeln!(stderr, "{e}")?;
                     }
-                    Ok(Some(s)) => writeln!(handle, "{s}")?,
+                    Ok(Some(s)) => writeln!(stdout, "{s}")?,
                     Ok(None) => (),
                 }
             }
