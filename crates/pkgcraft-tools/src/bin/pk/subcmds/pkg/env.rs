@@ -26,6 +26,10 @@ pub struct Command {
     #[arg(short, long)]
     repo: Option<String>,
 
+    /// Variable filtering
+    #[arg(short, long)]
+    filter: Option<String>,
+
     // positionals
     /// Target packages or directories
     #[arg(value_name = "TARGET", default_value = ".")]
@@ -49,8 +53,27 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        // original bash variables to remove from the returned envs
+        // external variables to remove
         let orig_vars: IndexSet<_> = variables::all_visible().into_iter().collect();
+
+        // create variable filters
+        let (mut hide, mut show) = (IndexSet::new(), IndexSet::new());
+        if let Some(filter) = &self.filter {
+            for var in filter.split(',') {
+                if let Some(v) = var.strip_prefix('-') {
+                    hide.insert(v);
+                } else {
+                    show.insert(var);
+                }
+            }
+        }
+
+        let filter_func = |var: &String| -> bool {
+            let var = var.as_str();
+            !orig_vars.contains(var)
+                && !hide.contains(var)
+                && (show.is_empty() || show.contains(var))
+        };
 
         let func = |pkg: Pkg| -> scallop::Result<(String, IndexMap<String, String>)> {
             // TODO: move error mapping into pkgcraft for pkg sourcing
@@ -59,10 +82,10 @@ impl Command {
                 err: e.to_string(),
             })?;
 
-            let new_vars: IndexSet<_> = variables::all_visible().into_iter().collect();
-            let env: IndexMap<_, _> = new_vars
-                .difference(&orig_vars)
-                .filter_map(|var| variables::optional(var).map(|val| (var.to_string(), val)))
+            let env: IndexMap<_, _> = variables::all_visible()
+                .into_iter()
+                .filter(filter_func)
+                .filter_map(|var| variables::optional(&var).map(|val| (var, val)))
                 .collect();
 
             Ok((pkg.to_string(), env))
