@@ -47,8 +47,8 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        let func = |raw_pkg: ebuild::raw::Pkg| -> scallop::Result<Option<String>> {
-            let pkg: ebuild::Pkg = raw_pkg.try_into()?;
+        let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<Option<String>> {
+            let pkg = ebuild::Pkg::try_from(pkg)?;
             pkg.pretend()
         };
 
