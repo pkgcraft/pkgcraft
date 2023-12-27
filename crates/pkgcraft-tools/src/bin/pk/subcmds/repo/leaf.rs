@@ -39,9 +39,9 @@ impl Command {
             })
         };
 
-        let mut handle = io::stdout().lock();
+        let mut stdout = io::stdout().lock();
         for cpv in cpvs.into_iter().filter(is_leaf) {
-            writeln!(handle, "{cpv}")?;
+            writeln!(stdout, "{cpv}")?;
         }
 
         Ok(ExitCode::SUCCESS)

@@ -31,19 +31,19 @@ impl Command {
                 eapis.entry(pkg.eapi()).or_default().push(pkg.cpv().clone());
             }
 
-            let mut handle = io::stdout().lock();
+            let mut stdout = io::stdout().lock();
             if let Some(eapi) = self.eapi {
                 if let Some(cpvs) = eapis.get_mut(eapi) {
                     cpvs.sort();
                     for cpv in cpvs {
-                        writeln!(handle, "{cpv}")?;
+                        writeln!(stdout, "{cpv}")?;
                     }
                 }
             } else if !eapis.is_empty() {
-                writeln!(handle, "{repo}")?;
+                writeln!(stdout, "{repo}")?;
                 for eapi in &*EAPIS {
                     if let Some(cpvs) = eapis.get(eapi) {
-                        writeln!(handle, "  EAPI {eapi}: {} pkgs", cpvs.len())?;
+                        writeln!(stdout, "  EAPI {eapi}: {} pkgs", cpvs.len())?;
                     }
                 }
             }

@@ -19,9 +19,9 @@ impl Command {
         let mut versions = versions?;
         versions.sort();
 
-        let mut handle = io::stdout().lock();
+        let mut stdout = io::stdout().lock();
         for v in versions {
-            writeln!(handle, "{v}")?;
+            writeln!(stdout, "{v}")?;
         }
 
         Ok(ExitCode::SUCCESS)

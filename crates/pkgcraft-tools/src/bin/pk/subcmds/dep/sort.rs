@@ -22,9 +22,9 @@ impl Command {
         let mut deps = deps?;
         deps.sort();
 
-        let mut handle = io::stdout().lock();
+        let mut stdout = io::stdout().lock();
         for d in deps {
-            writeln!(handle, "{d}")?;
+            writeln!(stdout, "{d}")?;
         }
 
         Ok(ExitCode::SUCCESS)

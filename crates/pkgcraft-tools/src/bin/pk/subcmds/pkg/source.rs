@@ -177,7 +177,7 @@ where
     };
 
     let mut sorted = if sort { Some(vec![]) } else { None };
-    let mut handle = io::stdout().lock();
+    let mut stdout = io::stdout().lock();
 
     for r in PoolIter::new(jobs, pkgs, func, true)? {
         match r {
@@ -186,7 +186,7 @@ where
                     if let Some(values) = sorted.as_mut() {
                         values.push((pkg, elapsed));
                     } else {
-                        writeln!(handle, "{pkg}: {elapsed:?}")?;
+                        writeln!(stdout, "{pkg}: {elapsed:?}")?;
                     }
                 }
             }
@@ -201,7 +201,7 @@ where
     if let Some(values) = sorted.as_mut() {
         values.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
         for (pkg, elapsed) in values {
-            writeln!(handle, "{pkg}: {elapsed:?}")?;
+            writeln!(stdout, "{pkg}: {elapsed:?}")?;
         }
     }
 

@@ -20,9 +20,9 @@ impl Command {
             .map(|s| Dep::parse(s, Default::default()))
             .collect();
 
-        let mut handle = io::stdout().lock();
+        let mut stdout = io::stdout().lock();
         for d in deps? {
-            writeln!(handle, "{d}")?;
+            writeln!(stdout, "{d}")?;
         }
         Ok(ExitCode::SUCCESS)
     }

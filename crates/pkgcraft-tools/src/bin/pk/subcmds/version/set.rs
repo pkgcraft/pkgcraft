@@ -17,9 +17,9 @@ impl Command {
         let versions: Vec<_> = self.vals.stdin_or_args().split_whitespace().collect();
         let versions: Result<IndexSet<_>, _> = versions.iter().map(|s| Version::parse(s)).collect();
 
-        let mut handle = io::stdout().lock();
+        let mut stdout = io::stdout().lock();
         for v in versions? {
-            writeln!(handle, "{v}")?;
+            writeln!(stdout, "{v}")?;
         }
 
         Ok(ExitCode::SUCCESS)
