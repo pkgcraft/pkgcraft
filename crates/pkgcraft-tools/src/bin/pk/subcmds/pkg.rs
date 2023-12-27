@@ -5,6 +5,7 @@ use pkgcraft::config::Config;
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::restrict::{self, Restrict};
 
+mod env;
 mod pretend;
 mod revdeps;
 mod source;
@@ -55,6 +56,8 @@ fn target_restriction(
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
+    /// Output global environment
+    Env(env::Command),
     /// Run the pkg_pretend phase
     Pretend(pretend::Command),
     /// Output reverse dependencies
@@ -67,6 +70,7 @@ impl Subcommand {
     fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
+            Env(cmd) => cmd.run(config),
             Pretend(cmd) => cmd.run(config),
             Revdeps(cmd) => cmd.run(config),
             Source(cmd) => cmd.run(config),
