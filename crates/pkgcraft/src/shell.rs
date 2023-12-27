@@ -25,10 +25,10 @@ use crate::traits::SourceBash;
 use crate::types::Deque;
 
 pub mod commands;
-pub(crate) mod environment;
+pub mod environment;
 pub(crate) mod hooks;
 mod install;
-pub(crate) mod metadata;
+pub mod metadata;
 pub(crate) mod operations;
 pub(crate) mod phase;
 pub mod scope;

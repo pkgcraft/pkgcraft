@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use scallop::{functions, variables};
-use strum::{AsRefStr, Display, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::dep::{self, Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
@@ -14,7 +14,18 @@ use super::get_build_mut;
 use super::phase::Phase;
 
 #[derive(
-    AsRefStr, EnumString, Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr,
+    EnumIter,
+    EnumString,
+    Display,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
 )]
 #[strum(serialize_all = "UPPERCASE")]
 #[allow(non_camel_case_types)]

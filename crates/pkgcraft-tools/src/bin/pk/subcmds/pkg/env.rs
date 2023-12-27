@@ -7,10 +7,13 @@ use indexmap::{IndexMap, IndexSet};
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
 use pkgcraft::repo::set::RepoSet;
+use pkgcraft::shell::environment::Variable;
+use pkgcraft::shell::metadata::Key;
 use pkgcraft::utils::bounded_jobs;
 use pkgcraft::Error;
 use scallop::pool::PoolIter;
 use scallop::variables;
+use strum::IntoEnumIterator;
 
 use crate::args::StdinOrArgs;
 
@@ -55,15 +58,29 @@ impl Command {
 
         // external variables to remove
         let orig_vars: IndexSet<_> = variables::all_visible().into_iter().collect();
+        let pms_vars: IndexSet<_> = Variable::iter().map(|v| v.to_string()).collect();
+        let meta_vars: IndexSet<_> = Key::iter().map(|v| v.to_string()).collect();
 
         // create variable filters
         let (mut hide, mut show) = (IndexSet::new(), IndexSet::new());
         if let Some(filter) = &self.filter {
             for var in filter.split(',') {
                 if let Some(v) = var.strip_prefix('-') {
-                    hide.insert(v);
+                    match v {
+                        "PMS" => hide.extend(pms_vars.iter().map(|s| s.as_str())),
+                        "META" => hide.extend(meta_vars.iter().map(|s| s.as_str())),
+                        _ => {
+                            hide.insert(v);
+                        }
+                    }
                 } else {
-                    show.insert(var);
+                    match var {
+                        "PMS" => show.extend(pms_vars.iter().map(|s| s.as_str())),
+                        "META" => show.extend(meta_vars.iter().map(|s| s.as_str())),
+                        _ => {
+                            show.insert(var);
+                        }
+                    }
                 }
             }
         }

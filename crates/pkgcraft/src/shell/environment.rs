@@ -14,7 +14,7 @@ use super::scope::{Scope, Scopes};
 #[strum(serialize_all = "UPPERCASE")]
 #[allow(non_camel_case_types)]
 #[allow(clippy::upper_case_acronyms)]
-pub(crate) enum Variable {
+pub enum Variable {
     // package specific
     CATEGORY,
     P,
