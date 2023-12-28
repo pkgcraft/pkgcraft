@@ -364,10 +364,25 @@ pub fn visible() -> Vec<String> {
     names
 }
 
+/// Return the names of all exported shell variables.
+pub fn exported() -> Vec<String> {
+    let mut names = vec![];
+    unsafe {
+        let shell_vars = bash::all_exported_variables();
+        if !shell_vars.is_null() {
+            let mut i = 0;
+            while let Some(var) = (*shell_vars.offset(i)).as_ref() {
+                names.push(CStr::from_ptr(var.name).to_string_lossy().into());
+                i += 1;
+            }
+            bash::xfree(shell_vars as *mut c_void);
+        }
+    }
+    names
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::source;
-
     use super::*;
 
     #[test]
@@ -484,7 +499,16 @@ mod tests {
     #[test]
     fn test_visible() {
         assert!(!visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
-        source::string("SCALLOP_VAR_TEST=1").unwrap();
+        bind("SCALLOP_VAR_TEST", "1", None, None).unwrap();
         assert!(visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
+    }
+
+    #[test]
+    fn test_exported() {
+        assert!(!exported().iter().any(|s| s == "SCALLOP_VAR_TEST"));
+        bind("SCALLOP_VAR_TEST", "1", None, None).unwrap();
+        assert!(!exported().iter().any(|s| s == "SCALLOP_VAR_TEST"));
+        bind("SCALLOP_VAR_TEST", "1", None, Some(Attr::EXPORTED)).unwrap();
+        assert!(exported().iter().any(|s| s == "SCALLOP_VAR_TEST"));
     }
 }
