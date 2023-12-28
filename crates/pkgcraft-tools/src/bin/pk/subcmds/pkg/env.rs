@@ -16,7 +16,7 @@ use scallop::pool::PoolIter;
 use scallop::variables;
 use strum::IntoEnumIterator;
 
-use crate::args::StdinOrArgs;
+use crate::args::{multiple_items_iter, StdinOrArgs};
 
 use super::target_restriction;
 
@@ -124,7 +124,7 @@ impl Command {
         let targets = targets?;
 
         // find matching packages from targeted repos
-        let mut pkgs = targets
+        let pkgs = targets
             .iter()
             .flat_map(|(repo_set, restrict)| {
                 repo_set
@@ -134,10 +134,7 @@ impl Command {
             .peekable();
 
         // determine if the iterator contains multiple packages
-        let (multiple_pkgs, pkgs) = match pkgs.next() {
-            Some(pkg) => (pkgs.peek().is_some(), [pkg].into_iter().chain(pkgs)),
-            None => return Ok(status),
-        };
+        let (multiple, pkgs) = multiple_items_iter(pkgs);
 
         // source ebuilds and output ebuild-specific environment variables
         let mut stderr = io::stderr().lock();
@@ -149,7 +146,7 @@ impl Command {
                     writeln!(stderr, "{e}")?;
                 }
                 Ok((pkg, env)) => {
-                    if multiple_pkgs {
+                    if multiple {
                         writeln!(stdout, "\n{pkg}")?;
                     }
                     for (k, v) in env {
