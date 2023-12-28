@@ -32,7 +32,7 @@ pub struct Command {
 
     /// Variable filtering
     #[arg(short, long)]
-    filter: Option<String>,
+    filter: Vec<String>,
 
     // positionals
     /// Target packages or directories
@@ -64,24 +64,20 @@ impl Command {
 
         // create variable filters
         let (mut hide, mut show) = (HashSet::new(), HashSet::new());
-        if let Some(filter) = &self.filter {
-            for var in filter.split(',') {
-                if let Some(v) = var.strip_prefix('-') {
-                    match v {
-                        "@PMS" => hide.extend(pms.iter().map(|s| s.as_str())),
-                        "@META" => hide.extend(meta.iter().map(|s| s.as_str())),
-                        _ => {
-                            hide.insert(v);
-                        }
-                    }
-                } else {
-                    match var {
-                        "@PMS" => show.extend(pms.iter().map(|s| s.as_str())),
-                        "@META" => show.extend(meta.iter().map(|s| s.as_str())),
-                        _ => {
-                            show.insert(var);
-                        }
-                    }
+        let items = self.filter.iter().flat_map(|line| line.split(','));
+        for item in items {
+            // determine filter set
+            let (set, var) = match item.strip_prefix('-') {
+                Some(var) => (&mut hide, var),
+                None => (&mut show, item),
+            };
+
+            // expand variable aliases
+            match var {
+                "@PMS" => set.extend(pms.iter().map(|s| s.as_str())),
+                "@META" => set.extend(meta.iter().map(|s| s.as_str())),
+                _ => {
+                    set.insert(var);
                 }
             }
         }
