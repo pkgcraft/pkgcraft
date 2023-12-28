@@ -177,6 +177,7 @@ pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
     // load valid repos from test data, ignoring purposefully broken ones
     let mut config = Config::new("pkgcraft", "");
     for entry in WalkDir::new(path.join("repos"))
+        .min_depth(1)
         .max_depth(1)
         .sort_by_file_name()
     {
