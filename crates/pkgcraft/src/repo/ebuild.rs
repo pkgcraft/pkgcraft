@@ -944,7 +944,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_masters() {
+    fn masters() {
         let mut config = Config::default();
         let test_path = &TEST_DATA.path;
 
@@ -976,7 +976,7 @@ mod tests {
     }
 
     #[test]
-    fn test_id_and_name() {
+    fn id_and_name() {
         // repo id matches name
         let t = TempRepo::new("test", None, 0, None).unwrap();
         assert_eq!(t.repo().id(), "test");
@@ -990,7 +990,7 @@ mod tests {
     }
 
     #[test]
-    fn test_eapi() {
+    fn eapi() {
         // repos lacking profiles/eapi file use the latest EAPI
         let t = TempRepo::new("test", None, 0, None).unwrap();
         assert_eq!(t.repo().eapi(), *EAPI_LATEST_OFFICIAL);
@@ -1001,7 +1001,7 @@ mod tests {
     }
 
     #[test]
-    fn test_len() {
+    fn len() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
@@ -1017,7 +1017,7 @@ mod tests {
     }
 
     #[test]
-    fn test_categories() {
+    fn categories() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
@@ -1031,7 +1031,7 @@ mod tests {
     }
 
     #[test]
-    fn test_packages() {
+    fn packages() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
@@ -1045,7 +1045,7 @@ mod tests {
     }
 
     #[test]
-    fn test_versions() {
+    fn versions() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
@@ -1148,7 +1148,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_invalid_pkgs() {
+    fn invalid_pkgs() {
         for (data, err) in [
             ("EAPI=-1", "invalid EAPI: \"-1\""),
             ("EAPI=a", "unsupported EAPI: a"),
@@ -1164,7 +1164,7 @@ mod tests {
     }
 
     #[test]
-    fn test_eclasses() {
+    fn eclasses() {
         let repo1 = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_ordered_eq(repo1.eclasses().keys(), ["a", "c"]);
         let repo2 = TEST_DATA.ebuild_repo("secondary").unwrap();
@@ -1175,7 +1175,7 @@ mod tests {
     }
 
     #[test]
-    fn test_arches() {
+    fn arches() {
         let repo = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_unordered_eq(repo.arches(), ["x86"]);
         let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
@@ -1183,7 +1183,7 @@ mod tests {
     }
 
     #[test]
-    fn test_licenses() {
+    fn licenses() {
         let repo = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_unordered_eq(repo.licenses(), ["a"]);
         let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
@@ -1191,7 +1191,7 @@ mod tests {
     }
 
     #[test]
-    fn test_categories_xml() {
+    fn categories_xml() {
         let repo = TEST_DATA.ebuild_repo("xml").unwrap();
         assert_eq!(repo.categories_xml().get("good").unwrap(), "good");
         // categories with invalid XML data don't have entries
