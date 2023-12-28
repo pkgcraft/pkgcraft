@@ -55,24 +55,33 @@ impl Command {
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
         let mut status = ExitCode::SUCCESS;
-        for target in self.targets.stdin_or_args().split_whitespace() {
-            // determine target restriction
-            let (repos, restrict) = target_restriction(config, &repos, &target)?;
 
-            // find matching packages from targeted repos
-            let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
+        // determine target restrictions
+        let targets: Result<Vec<_>, _> = self
+            .targets
+            .stdin_or_args()
+            .split_whitespace()
+            .map(|s| target_restriction(config, &repos, &s))
+            .collect();
+        let targets = targets?;
 
-            // run pkg_pretend across selected pkgs
-            let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
-            for result in PoolIter::new(jobs, pkgs, func, true)? {
-                match result {
-                    Err(e) => {
-                        status = ExitCode::FAILURE;
-                        writeln!(stderr, "{e}")?;
-                    }
-                    Ok(Some(s)) => writeln!(stdout, "{s}")?,
-                    Ok(None) => (),
+        // find matching packages from targeted repos
+        let pkgs = targets.iter().flat_map(|(repo_set, restrict)| {
+            repo_set
+                .ebuild()
+                .flat_map(move |repo| repo.iter_raw_restrict(restrict))
+        });
+
+        // run pkg_pretend across selected pkgs
+        let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
+        for result in PoolIter::new(jobs, pkgs, func, true)? {
+            match result {
+                Err(e) => {
+                    status = ExitCode::FAILURE;
+                    writeln!(stderr, "{e}")?;
                 }
+                Ok(Some(s)) => writeln!(stdout, "{s}")?,
+                Ok(None) => (),
             }
         }
 
