@@ -930,11 +930,12 @@ impl<'a> Iterator for IterRawRestrict<'a> {
 mod tests {
     use std::fs;
 
+    use tempfile::tempdir;
     use tracing_test::traced_test;
 
     use crate::config::Config;
     use crate::dep::Dep;
-    use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
+    use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::repo::ebuild::temp::Repo as TempRepo;
@@ -991,13 +992,21 @@ mod tests {
 
     #[test]
     fn eapi() {
-        // repos lacking profiles/eapi file use the latest EAPI
-        let t = TempRepo::new("test", None, 0, None).unwrap();
-        assert_eq!(t.repo().eapi(), *EAPI_LATEST_OFFICIAL);
+        // nonexistent profiles/eapi file uses EAPI 0 which isn't supported
+        let repo_dir = tempdir().unwrap();
+        fs::create_dir(repo_dir.path().join("profiles")).unwrap();
+        fs::write(repo_dir.path().join("profiles/repo_name"), "test").unwrap();
+        let r = Repo::from_path("test", 0, repo_dir.path().to_str().unwrap());
+        assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: 0$");
 
-        // explicit repo EAPI
-        let t = TempRepo::new("test", None, 0, Some(&*EAPI8)).unwrap();
-        assert_eq!(t.repo().eapi(), &*EAPI8);
+        // unsupported EAPI
+        fs::write(repo_dir.path().join("profiles/eapi"), "unknown").unwrap();
+        let r = Repo::from_path("test", 0, repo_dir.path().to_str().unwrap());
+        assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: unknown$");
+
+        // supported EAPI
+        let t = TempRepo::new("test", None, 0, Some(*EAPI_LATEST_OFFICIAL)).unwrap();
+        assert_eq!(t.repo().eapi(), *EAPI_LATEST_OFFICIAL);
     }
 
     #[test]
