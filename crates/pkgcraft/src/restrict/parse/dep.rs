@@ -59,33 +59,42 @@ peg::parser!(grammar restrict() for str {
     rule cp_restricts() -> Vec<DepRestrict>
         = cat:category() pkg:(quiet!{"/"} s:package() { s }) {?
             let mut restricts = vec![];
+
             match cat.matches('*').count() {
                 0 => restricts.push(DepRestrict::category(cat)),
                 _ => {
-                    let r = str_to_regex_restrict(cat)?;
-                    restricts.push(DepRestrict::Category(r))
+                    if !cat.trim_start_matches('*').is_empty() {
+                        let r = str_to_regex_restrict(cat)?;
+                        restricts.push(DepRestrict::Category(r));
+                    }
                 }
             }
 
             match pkg.matches('*').count() {
                 0 => restricts.push(DepRestrict::package(pkg)),
-                1 if pkg == "*" && restricts.is_empty() => (),
                 _ => {
-                    let r = str_to_regex_restrict(pkg)?;
-                    restricts.push(DepRestrict::Package(r))
+                    if !pkg.trim_start_matches('*').is_empty() {
+                        let r = str_to_regex_restrict(pkg)?;
+                        restricts.push(DepRestrict::Package(r));
+                    }
                 }
             }
 
             Ok(restricts)
-        } / s:package() {?
-            match s.matches('*').count() {
-                0 => Ok(vec![DepRestrict::package(s)]),
-                1 if s == "*" => Ok(vec![]),
+        } / pkg:package() {?
+            let mut restricts = vec![];
+
+            match pkg.matches('*').count() {
+                0 => restricts.push(DepRestrict::package(pkg)),
                 _ => {
-                    let r = str_to_regex_restrict(s)?;
-                    Ok(vec![DepRestrict::Package(r)])
+                    if !pkg.trim_start_matches('*').is_empty() {
+                        let r = str_to_regex_restrict(pkg)?;
+                        restricts.push(DepRestrict::Package(r));
+                    }
                 }
             }
+
+            Ok(restricts)
         }
 
     rule pkg_restricts() -> (Vec<DepRestrict>, Option<Version<&'input str>>)
