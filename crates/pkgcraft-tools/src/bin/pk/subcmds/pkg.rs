@@ -6,6 +6,7 @@ mod env;
 mod metadata;
 mod pretend;
 mod revdeps;
+mod showkw;
 mod source;
 
 #[derive(Debug, clap::Args)]
@@ -30,6 +31,8 @@ pub enum Subcommand {
     Pretend(pretend::Command),
     /// Output reverse dependencies
     Revdeps(revdeps::Command),
+    /// Output package keywords
+    Showkw(showkw::Command),
     /// Source ebuilds and dump elapsed time
     Source(source::Command),
 }
@@ -42,6 +45,7 @@ impl Subcommand {
             Metadata(cmd) => cmd.run(config),
             Pretend(cmd) => cmd.run(config),
             Revdeps(cmd) => cmd.run(config),
+            Showkw(cmd) => cmd.run(config),
             Source(cmd) => cmd.run(config),
         }
     }
