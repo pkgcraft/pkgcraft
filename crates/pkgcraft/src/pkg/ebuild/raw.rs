@@ -65,12 +65,12 @@ impl<'a> Pkg<'a> {
         self.repo.path().join(self.relpath())
     }
 
-    /// Return the package's ebuild as a string.
+    /// Return the package's ebuild file content.
     pub fn data(&self) -> &str {
         &self.data
     }
 
-    /// Return the checksum of the package.
+    /// Return the checksum of the package's ebuild file content.
     pub fn chksum(&self) -> &str {
         &self.chksum
     }
@@ -104,5 +104,57 @@ impl<'a> RepoPackage for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         self.repo
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::Config;
+    use crate::eapi::EAPI8;
+    use crate::test::TEST_DATA;
+
+    use super::*;
+
+    #[test]
+    fn relpath() {
+        let pkg = TEST_DATA
+            .ebuild_raw_pkg("=optional/none-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.relpath(), "optional/none/none-8.ebuild");
+    }
+
+    #[test]
+    fn abspath() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = TEST_DATA
+            .ebuild_raw_pkg("=optional/none-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.abspath(), repo.path().join("optional/none/none-8.ebuild"));
+    }
+
+    #[test]
+    fn data() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing data content"
+            SLOT=0
+        "#};
+        let pkg = t.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        assert_eq!(pkg.data(), data);
+        assert!(!pkg.chksum().is_empty());
+    }
+
+    #[test]
+    fn traits() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = TEST_DATA
+            .ebuild_raw_pkg("=optional/none-8::metadata")
+            .unwrap();
+        assert_eq!(pkg.eapi(), &*EAPI8);
+        assert_eq!(pkg.cpv().to_string(), "optional/none-8");
+        assert_eq!(pkg.repo(), repo);
     }
 }
