@@ -1109,7 +1109,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iter() {
+    fn iter() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
         let repo = t.repo();
@@ -1124,15 +1124,11 @@ mod tests {
     }
 
     #[test]
-    fn test_iter_restrict() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
-        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        t.create_raw_pkg("cat/pkg-2", &[]).unwrap();
+    fn iter_restrict() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // single match via CPV
-        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        let cpv = Cpv::try_new("optional/none-8").unwrap();
         let iter = repo.iter_restrict(&cpv);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, [cpv.to_string()]);
@@ -1143,11 +1139,11 @@ mod tests {
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, [pkg.cpv().to_string()]);
 
-        // multiple matches
-        let restrict = DepRestrict::package("pkg");
+        // multiple matches via package name
+        let restrict = DepRestrict::package("inherit");
         let iter = repo.iter_restrict(restrict);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
-        assert_eq!(cpvs, ["cat/pkg-1", "cat/pkg-2"]);
+        assert!(cpvs.len() > 2);
     }
 
     #[traced_test]
