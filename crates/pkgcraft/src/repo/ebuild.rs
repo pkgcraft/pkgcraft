@@ -1158,17 +1158,10 @@ mod tests {
     #[traced_test]
     #[test]
     fn invalid_pkgs() {
-        for (data, err) in [
-            ("EAPI=-1", "invalid EAPI: \"-1\""),
-            ("EAPI=a", "unsupported EAPI: a"),
-            ("SLOT=", "missing required value: SLOT"),
-        ] {
-            let mut config = Config::default();
-            let t = config.temp_repo("test", 0, None).unwrap();
-            t.create_raw_pkg("cat/pkg-0", &[data]).ok();
-            let mut iter = t.repo().iter();
-            assert!(iter.next().is_none());
-            assert_logs_re!(format!("test: invalid pkg: .+: {err}$"));
+        let repo = TEST_DATA.ebuild_repo("bad").unwrap();
+        for cpv in repo.iter_cpv() {
+            assert!(repo.iter_restrict(&cpv).next().is_none());
+            assert_logs_re!(format!("bad: invalid pkg: {cpv}::bad: "));
         }
     }
 
