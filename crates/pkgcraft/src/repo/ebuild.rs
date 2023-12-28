@@ -830,14 +830,14 @@ impl<'a> IterCpv<'a> {
                 Box::new(iter::once(cpv))
             } else {
                 // special-cased iterators for efficiency
-                match (&cat_restricts[..], &pkg_restricts[..]) {
+                match (&mut *cat_restricts, &mut *pkg_restricts) {
                     ([], []) => Box::new(
                         repo.categories()
                             .into_iter()
                             .flat_map(|s| repo.category_cpvs(&s)),
                     ),
                     ([], [Package(Equal(s))]) => {
-                        let pn = s.clone();
+                        let pn = std::mem::take(s);
                         Box::new(repo.categories().into_iter().flat_map(move |s| {
                             let path = build_from_paths!(repo.path(), &s, &pn);
                             if let Ok(entries) = fs::read_dir(path) {
@@ -852,9 +852,6 @@ impl<'a> IterCpv<'a> {
                         }))
                     }
                     _ => {
-                        let mut cat_restricts = cat_restricts.clone();
-                        let mut pkg_restricts = pkg_restricts.clone();
-
                         // fallback, generic iterator
                         let cat_restrict = match cat_restricts.len() {
                             0 => Restrict::True,
