@@ -840,7 +840,7 @@ impl<'a> IterCpv<'a> {
                         let pn = std::mem::take(s);
                         Box::new(repo.categories().into_iter().flat_map(move |s| {
                             let path = build_from_paths!(repo.path(), &s, &pn);
-                            if let Ok(entries) = fs::read_dir(path) {
+                            if let Ok(entries) = path.read_dir_utf8() {
                                 Either::Left(
                                     entries
                                         .filter_map(|e| e.ok())
