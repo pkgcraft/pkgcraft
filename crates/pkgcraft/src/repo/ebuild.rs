@@ -977,16 +977,16 @@ mod tests {
 
     #[test]
     fn id_and_name() {
+        let repo = TEST_DATA.ebuild_repo("primary").unwrap();
+
         // repo id matches name
-        let t = TempRepo::new("test", None, 0, None).unwrap();
-        assert_eq!(t.repo().id(), "test");
-        assert_eq!(t.repo().name(), "test");
+        assert_eq!(repo.id(), "primary");
+        assert_eq!(repo.name(), "primary");
 
         // repo id differs from name
-        let t = TempRepo::new("name", None, 0, None).unwrap();
-        let repo = Repo::from_path("id", 0, t.path()).unwrap();
-        assert_eq!(repo.id(), "id");
-        assert_eq!(repo.name(), "name");
+        let repo = Repo::from_path("name", 0, repo.path()).unwrap();
+        assert_eq!(repo.id(), "name");
+        assert_eq!(repo.name(), "primary");
     }
 
     #[test]
