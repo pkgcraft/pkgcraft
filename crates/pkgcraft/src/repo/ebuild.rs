@@ -1075,28 +1075,36 @@ mod tests {
     }
 
     #[test]
-    fn test_contains() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
+    fn contains() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // path
-        assert!(!repo.contains("cat/pkg"));
-        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        assert!(repo.contains("cat/pkg"));
-        assert!(repo.contains("cat/pkg/pkg-1.ebuild"));
-        assert!(!repo.contains("pkg-1.ebuild"));
+        assert!(repo.contains(""));
+        assert!(!repo.contains("/"));
+        assert!(repo.contains(repo.path()));
+        assert!(repo.contains("profiles"));
+        assert!(!repo.contains("a/pkg"));
+        assert!(repo.contains("optional"));
+        assert!(repo.contains("optional/none"));
+        assert!(repo.contains("optional/none/none-8.ebuild"));
+        assert!(!repo.contains("none-8.ebuild"));
 
-        // cpv
-        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        // Cpv
+        let cpv = Cpv::try_new("optional/none-8").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = Cpv::try_new("cat/pkg-2").unwrap();
+        let cpv = Cpv::try_new("optional/none-0").unwrap();
+        assert!(!repo.contains(&cpv));
+        let cpv = Cpv::try_new("a/pkg-1").unwrap();
         assert!(!repo.contains(&cpv));
 
-        // unversioned dep
-        let d = Dep::try_new("cat/pkg").unwrap();
+        // Dep
+        let d = Dep::try_new("optional/none").unwrap();
         assert!(repo.contains(&d));
-        let d = Dep::try_new("cat/pkg-a").unwrap();
+        let d = Dep::try_new("=optional/none-8::metadata").unwrap();
+        assert!(repo.contains(&d));
+        let d = Dep::try_new("=optional/none-0::metadata").unwrap();
+        assert!(!repo.contains(&d));
+        let d = Dep::try_new("a/pkg").unwrap();
         assert!(!repo.contains(&d));
     }
 
