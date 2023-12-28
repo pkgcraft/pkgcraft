@@ -114,16 +114,10 @@ impl PartialOrd for PhaseKind {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Phase {
     kind: PhaseKind,
     func: Option<BuildFn>,
-}
-
-impl fmt::Debug for Phase {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Phase {{ {}: {:?} }}", self.kind, self.func)
-    }
 }
 
 impl From<&Phase> for PhaseKind {
