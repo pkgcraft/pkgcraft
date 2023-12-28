@@ -85,23 +85,21 @@ impl Config {
 
         let mut configs = vec![];
         if config_dir.exists() {
-            let entries = fs::read_dir(&config_dir).map_err(|e| Error::Config(e.to_string()))?;
+            let entries = config_dir
+                .read_dir_utf8()
+                .map_err(|e| Error::Config(e.to_string()))?;
 
             for entry in entries {
-                let p = entry.map_err(|e| Error::Config(e.to_string()))?.path();
-                if p.is_file() {
-                    if let Some(name) = p
-                        .file_name()
-                        .and_then(|p| p.to_str().map(|s| s.to_string()))
-                        .filter(|s| !s.starts_with('.'))
-                    {
-                        // ignore bad configs
-                        match RepoConfig::try_new(&p) {
-                            Ok(config) => {
-                                configs.push((name, config));
-                            }
-                            Err(err) => warn!("{err}"),
+                let entry = entry.map_err(|e| Error::Config(e.to_string()))?;
+                if entry.file_type().map(|x| x.is_file()).unwrap_or_default()
+                    && !entry.file_name().starts_with('.')
+                {
+                    // ignore bad configs
+                    match RepoConfig::try_new(entry.path()) {
+                        Ok(config) => {
+                            configs.push((entry.file_name().to_string(), config));
                         }
+                        Err(err) => warn!("{err}"),
                     }
                 }
             }
