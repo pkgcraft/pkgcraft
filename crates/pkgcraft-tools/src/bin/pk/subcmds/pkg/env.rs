@@ -58,6 +58,7 @@ impl Command {
         };
 
         let external: HashSet<_> = variables::visible().into_iter().collect();
+        let bash: HashSet<_> = ["PIPESTATUS"].into_iter().collect();
         let pms: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
         let meta: HashSet<_> = Key::iter().map(|v| v.to_string()).collect();
 
@@ -88,6 +89,7 @@ impl Command {
         let filter_func = |var: &String| -> bool {
             let var = var.as_str();
             !external.contains(var)
+                && !bash.contains(var)
                 && !hide.contains(var)
                 && (show.is_empty() || show.contains(var))
         };
