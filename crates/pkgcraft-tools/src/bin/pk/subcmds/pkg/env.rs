@@ -113,27 +113,47 @@ impl Command {
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
         let mut status = ExitCode::SUCCESS;
-        for target in self.targets.stdin_or_args().split_whitespace() {
-            // determine target restriction
-            let (repos, restrict) = target_restriction(config, &repos, &target)?;
 
-            // find matching packages from targeted repos
-            let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
+        // determine target restrictions
+        let targets: Result<Vec<_>, _> = self
+            .targets
+            .stdin_or_args()
+            .split_whitespace()
+            .map(|s| target_restriction(config, &repos, &s))
+            .collect();
+        let targets = targets?;
 
-            // source ebuilds and output ebuild-specific environment variables
-            let mut stderr = io::stderr().lock();
-            let mut stdout = io::stdout().lock();
-            for result in PoolIter::new(jobs, pkgs, func, true)? {
-                match result {
-                    Err(e) => {
-                        status = ExitCode::FAILURE;
-                        writeln!(stderr, "{e}")?;
-                    }
-                    Ok((pkg, env)) => {
+        // find matching packages from targeted repos
+        let mut pkgs = targets
+            .iter()
+            .flat_map(|(repo_set, restrict)| {
+                repo_set
+                    .ebuild()
+                    .flat_map(move |repo| repo.iter_raw_restrict(restrict))
+            })
+            .peekable();
+
+        // determine if the iterator contains multiple packages
+        let (multiple_pkgs, pkgs) = match pkgs.next() {
+            Some(pkg) => (pkgs.peek().is_some(), [pkg].into_iter().chain(pkgs)),
+            None => return Ok(status),
+        };
+
+        // source ebuilds and output ebuild-specific environment variables
+        let mut stderr = io::stderr().lock();
+        let mut stdout = io::stdout().lock();
+        for result in PoolIter::new(jobs, pkgs, func, true)? {
+            match result {
+                Err(e) => {
+                    status = ExitCode::FAILURE;
+                    writeln!(stderr, "{e}")?;
+                }
+                Ok((pkg, env)) => {
+                    if multiple_pkgs {
                         writeln!(stdout, "\n{pkg}")?;
-                        for (k, v) in env {
-                            writeln!(stdout, "{k}={v}")?;
-                        }
+                    }
+                    for (k, v) in env {
+                        writeln!(stdout, "{k}={v}")?;
                     }
                 }
             }
