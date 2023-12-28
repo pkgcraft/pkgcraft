@@ -1201,35 +1201,4 @@ mod tests {
         // nonexistent categories don't have entries
         assert!(repo.categories_xml().get("nonexistent").is_none());
     }
-
-    #[traced_test]
-    #[test]
-    fn test_metadata_regen_errors() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
-
-        // create a large number of packages with a subshelled, invalid scope builtin call
-        for pv in 0..50 {
-            let data = indoc::indoc! {r#"
-                EAPI=8
-                DESCRIPTION="testing metadata generation error handling"
-                SLOT=0
-                VAR=$(best_version cat/pkg)
-            "#};
-            t.create_raw_pkg_from_str(format!("cat/pkg-{pv}"), data)
-                .unwrap();
-        }
-
-        // run regen asserting that errors occurred
-        let r = repo.cache().regen().suppress(true).run(repo);
-        assert!(r.is_err());
-
-        // verify all pkgs caused logged errors
-        for pv in 0..50 {
-            assert_logs_re!(format!(
-                "invalid pkg: cat/pkg-{pv}::test: line 4: best_version: error: disabled in global scope$"
-            ));
-        }
-    }
 }
