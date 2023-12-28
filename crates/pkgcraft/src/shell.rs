@@ -527,7 +527,7 @@ impl<'a> BuildData<'a> {
         }
 
         // check for functions that override commands
-        functions::all_visible()
+        functions::visible()
             .into_iter()
             .filter(|s| {
                 eapi.commands()

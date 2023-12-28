@@ -57,7 +57,7 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        let external: HashSet<_> = variables::all_visible().into_iter().collect();
+        let external: HashSet<_> = variables::visible().into_iter().collect();
         let pms: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
         let meta: HashSet<_> = Key::iter().map(|v| v.to_string()).collect();
 
@@ -99,7 +99,7 @@ impl Command {
                 err: e.to_string(),
             })?;
 
-            let env: IndexMap<_, _> = variables::all_visible()
+            let env: IndexMap<_, _> = variables::visible()
                 .into_iter()
                 .filter(filter_func)
                 .filter_map(|var| variables::optional(&var).map(|val| (var, val)))

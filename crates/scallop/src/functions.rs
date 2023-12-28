@@ -60,20 +60,20 @@ where
 }
 
 /// Return the names of all visible shell functions.
-pub fn all_visible() -> Vec<String> {
-    let mut vals = vec![];
+pub fn visible() -> Vec<String> {
+    let mut names = vec![];
     unsafe {
         let shell_vars = bash::all_visible_functions();
         if !shell_vars.is_null() {
             let mut i = 0;
             while let Some(var) = (*shell_vars.offset(i)).as_ref() {
-                vals.push(CStr::from_ptr(var.name).to_string_lossy().into());
+                names.push(CStr::from_ptr(var.name).to_string_lossy().into());
                 i += 1;
             }
             bash::xfree(shell_vars as *mut c_void);
         }
     }
-    vals
+    names
 }
 
 #[cfg(test)]
@@ -123,9 +123,9 @@ mod tests {
     }
 
     #[test]
-    fn test_all_visible() {
-        assert!(all_visible().is_empty());
+    fn test_visible() {
+        assert!(visible().is_empty());
         source::string("func() { nonexistent_cmd; }").unwrap();
-        assert_eq!(all_visible(), ["func"]);
+        assert_eq!(visible(), ["func"]);
     }
 }

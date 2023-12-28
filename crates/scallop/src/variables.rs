@@ -348,20 +348,20 @@ impl PipeStatus {
 }
 
 /// Return the names of all visible shell variables.
-pub fn all_visible() -> Vec<String> {
-    let mut vals = vec![];
+pub fn visible() -> Vec<String> {
+    let mut names = vec![];
     unsafe {
         let shell_vars = bash::all_visible_variables();
         if !shell_vars.is_null() {
             let mut i = 0;
             while let Some(var) = (*shell_vars.offset(i)).as_ref() {
-                vals.push(CStr::from_ptr(var.name).to_string_lossy().into());
+                names.push(CStr::from_ptr(var.name).to_string_lossy().into());
                 i += 1;
             }
             bash::xfree(shell_vars as *mut c_void);
         }
     }
-    vals
+    names
 }
 
 #[cfg(test)]
@@ -482,9 +482,9 @@ mod tests {
     }
 
     #[test]
-    fn test_all_visible() {
-        assert!(!all_visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
+    fn test_visible() {
+        assert!(!visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
         source::string("SCALLOP_VAR_TEST=1").unwrap();
-        assert!(all_visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
+        assert!(visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
     }
 }
