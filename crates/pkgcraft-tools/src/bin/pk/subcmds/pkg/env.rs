@@ -137,8 +137,7 @@ impl Command {
         let (multiple, pkgs) = multiple_items_iter(pkgs);
 
         // source ebuilds and output ebuild-specific environment variables
-        let mut stderr = io::stderr().lock();
-        let mut stdout = io::stdout().lock();
+        let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
         for result in PoolIter::new(jobs, pkgs, func, true)? {
             match result {
                 Err(e) => {

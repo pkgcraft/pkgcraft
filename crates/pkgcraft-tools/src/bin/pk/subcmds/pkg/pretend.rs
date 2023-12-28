@@ -63,8 +63,7 @@ impl Command {
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
 
             // run pkg_pretend across selected pkgs
-            let mut stderr = io::stderr().lock();
-            let mut stdout = io::stdout().lock();
+            let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
             for result in PoolIter::new(jobs, pkgs, func, true)? {
                 match result {
                     Err(e) => {
