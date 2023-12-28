@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 
@@ -12,7 +12,6 @@ use crate::traits::FilterLines;
 use crate::utils::digest;
 use crate::Error;
 
-#[derive(Debug)]
 pub struct Pkg<'a> {
     pub(super) cpv: Cpv<String>,
     pub(super) repo: &'a Repo,
@@ -22,6 +21,12 @@ pub struct Pkg<'a> {
 }
 
 make_pkg_traits!(Pkg<'_>);
+
+impl fmt::Debug for Pkg<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Pkg {{ {}::{} }}", self.cpv, self.repo.id())
+    }
+}
 
 impl<'a> Pkg<'a> {
     pub(crate) fn try_new(cpv: Cpv<String>, repo: &'a Repo) -> crate::Result<Self> {
