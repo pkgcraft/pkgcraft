@@ -945,10 +945,10 @@ mod tests {
     #[test]
     fn masters() {
         let mut config = Config::default();
-        let test_path = &TEST_DATA.path;
+        let repos_dir = TEST_DATA.path().join("repos");
 
         // none
-        let repo = Repo::from_path("a", 0, test_path.join("repos/valid/primary")).unwrap();
+        let repo = Repo::from_path("a", 0, repos_dir.join("valid/primary")).unwrap();
         let repo = config
             .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
             .unwrap();
@@ -958,12 +958,12 @@ mod tests {
         assert_eq!(trees, ["a"]);
 
         // nonexistent
-        let repo = Repo::from_path("test", 0, test_path.join("repos/invalid/masters")).unwrap();
+        let repo = Repo::from_path("test", 0, repos_dir.join("invalid/masters")).unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str(), false);
         assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
 
         // single
-        let repo = Repo::from_path("b", 0, test_path.join("repos/valid/secondary")).unwrap();
+        let repo = Repo::from_path("b", 0, repos_dir.join("valid/secondary")).unwrap();
         let repo = config
             .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
             .unwrap();
@@ -991,7 +991,7 @@ mod tests {
     #[test]
     fn eapi() {
         let mut config = Config::default();
-        let repos_dir = TEST_DATA.path.join("repos/invalid");
+        let repos_dir = TEST_DATA.path().join("repos/invalid");
 
         // nonexistent profiles/eapi file uses EAPI 0 which isn't supported
         let r = config.add_repo_path("test", 0, repos_dir.join("unsupported-eapi"), false);

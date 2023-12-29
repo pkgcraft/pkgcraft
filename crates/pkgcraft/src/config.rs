@@ -357,7 +357,7 @@ mod tests {
         let conf_path = tmpdir.path().to_str().unwrap();
         let path = tmpdir.path().join("repos.conf");
         let path = path.to_str().unwrap();
-        let test_path = &TEST_DATA.path;
+        let repos_dir = TEST_DATA.path().join("repos");
 
         // nonexistent
         let r = config.load_portage_conf(Some("unknown/path"));
@@ -428,9 +428,9 @@ mod tests {
         let mut config = Config::new("pkgcraft", "");
         let data = indoc::formatdoc! {r#"
             [primary]
-            location = {test_path}/repos/valid/primary
+            location = {repos_dir}/valid/primary
             [nonexistent]
-            location = {test_path}/repos/invalid/masters
+            location = {repos_dir}/invalid/masters
         "#};
         fs::write(path, data).unwrap();
         let r = config.load_portage_conf(Some(conf_path));

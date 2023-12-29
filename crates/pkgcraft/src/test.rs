@@ -144,13 +144,21 @@ impl<'a> Iterator for ComparesIter<'a> {
 
 #[derive(Debug)]
 pub struct TestData {
-    pub path: Utf8PathBuf,
-    pub config: Config,
+    path: Utf8PathBuf,
+    config: Config,
     pub dep_toml: DepToml,
     pub version_toml: VersionToml,
 }
 
 impl TestData {
+    pub fn path(&self) -> &Utf8Path {
+        &self.path
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
     pub fn ebuild_repo(&self, name: &str) -> Option<&crate::repo::ebuild::Repo> {
         self.config
             .repos
