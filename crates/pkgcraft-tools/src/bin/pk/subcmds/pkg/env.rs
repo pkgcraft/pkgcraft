@@ -13,7 +13,7 @@ use pkgcraft::shell::metadata::Key;
 use pkgcraft::utils::bounded_jobs;
 use pkgcraft::Error;
 use scallop::pool::PoolIter;
-use scallop::variables;
+use scallop::variables::{self, ShellVariable};
 use strum::IntoEnumIterator;
 
 use crate::args::{multiple_items_iter, StdinOrArgs};
@@ -82,12 +82,12 @@ impl Command {
             }
         }
 
-        let filter_func = |var: &String| -> bool {
-            let var = var.as_str();
-            !external.contains(var)
-                && !bash.contains(var)
-                && !hide.contains(var)
-                && (show.is_empty() || show.contains(var))
+        let filter_func = |var: &variables::Variable| -> bool {
+            let name = var.name();
+            !external.contains(name)
+                && !bash.contains(name)
+                && !hide.contains(name)
+                && (show.is_empty() || show.contains(name))
         };
 
         let func = |pkg: Pkg| -> scallop::Result<(String, IndexMap<String, String>)> {
@@ -100,7 +100,7 @@ impl Command {
             let env: IndexMap<_, _> = variables::visible()
                 .into_iter()
                 .filter(filter_func)
-                .filter_map(|var| variables::optional(&var).map(|val| (var, val)))
+                .filter_map(|var| var.optional().map(|val| (var.to_string(), val)))
                 .collect();
 
             Ok((pkg.to_string(), env))

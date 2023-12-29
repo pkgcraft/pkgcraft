@@ -1,4 +1,4 @@
-use scallop::variables::{ScopedVariable, Variable, Variables};
+use scallop::variables::{ScopedVariable, ShellVariable, Variable};
 use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;

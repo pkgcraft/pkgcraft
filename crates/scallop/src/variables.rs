@@ -1,5 +1,6 @@
+use std::borrow::Borrow;
 use std::ffi::{c_void, CStr, CString};
-use std::slice;
+use std::{fmt, slice};
 
 use bitflags::bitflags;
 
@@ -119,18 +120,7 @@ where
     })
 }
 
-#[derive(Debug)]
-pub struct Variable {
-    name: String,
-}
-
-impl Variable {
-    pub fn new<S: ToString>(name: S) -> Self {
-        Variable { name: name.to_string() }
-    }
-}
-
-pub trait Variables: AsRef<str> {
+pub trait ShellVariable: AsRef<str> {
     fn name(&self) -> &str;
 
     fn optional(&self) -> Option<String> {
@@ -195,19 +185,57 @@ pub trait Variables: AsRef<str> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct Variable {
+    name: String,
+}
+
+impl Variable {
+    pub fn new<S: ToString>(name: S) -> Self {
+        Self { name: name.to_string() }
+    }
+}
+
+impl From<&bash::ShellVar> for Variable {
+    fn from(var: &bash::ShellVar) -> Self {
+        let c_str = unsafe { CStr::from_ptr(var.name) };
+        Self {
+            name: c_str.to_string_lossy().to_string(),
+        }
+    }
+}
+
+impl PartialEq<str> for Variable {
+    fn eq(&self, other: &str) -> bool {
+        self.name() == other
+    }
+}
+
 impl AsRef<str> for Variable {
     fn as_ref(&self) -> &str {
         self.name()
     }
 }
 
-impl Variables for Variable {
+impl Borrow<str> for Variable {
+    fn borrow(&self) -> &str {
+        self.name()
+    }
+}
+
+impl fmt::Display for Variable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+impl ShellVariable for Variable {
     fn name(&self) -> &str {
         &self.name
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct ScopedVariable {
     var: Variable,
     orig: Option<String>,
@@ -218,11 +246,11 @@ impl ScopedVariable {
     pub fn new<S: ToString>(name: S) -> Self {
         let var = Variable::new(name);
         let orig = optional(&var.name);
-        ScopedVariable { var, orig }
+        Self { var, orig }
     }
 }
 
-impl Variables for ScopedVariable {
+impl ShellVariable for ScopedVariable {
     fn name(&self) -> &str {
         &self.var.name
     }
@@ -234,9 +262,21 @@ impl AsRef<str> for ScopedVariable {
     }
 }
 
+impl Borrow<str> for ScopedVariable {
+    fn borrow(&self) -> &str {
+        self.name()
+    }
+}
+
+impl fmt::Display for ScopedVariable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
 impl Drop for ScopedVariable {
     fn drop(&mut self) {
-        if optional(&self.var.name) != self.orig {
+        if self.optional() != self.orig {
             let mut reset = || -> crate::Result<ExecStatus> {
                 if let Some(val) = &self.orig {
                     self.var.bind(val, None, None)
@@ -244,7 +284,7 @@ impl Drop for ScopedVariable {
                     self.var.unbind()
                 }
             };
-            reset().unwrap_or_else(|e| panic!("failed resetting variable: {}: {e}", self.var.name));
+            reset().unwrap_or_else(|e| panic!("failed resetting variable: {self}: {e}"));
         }
     }
 }
@@ -347,38 +387,38 @@ impl PipeStatus {
     }
 }
 
-/// Return the names of all visible shell variables.
-pub fn visible() -> Vec<String> {
-    let mut names = vec![];
+/// Return all visible shell variables.
+pub fn visible() -> Vec<Variable> {
+    let mut vars = vec![];
     unsafe {
         let shell_vars = bash::all_visible_variables();
         if !shell_vars.is_null() {
             let mut i = 0;
             while let Some(var) = (*shell_vars.offset(i)).as_ref() {
-                names.push(CStr::from_ptr(var.name).to_string_lossy().into());
+                vars.push(var.into());
                 i += 1;
             }
             bash::xfree(shell_vars as *mut c_void);
         }
     }
-    names
+    vars
 }
 
-/// Return the names of all exported shell variables.
-pub fn exported() -> Vec<String> {
-    let mut names = vec![];
+/// Return all exported shell variables.
+pub fn exported() -> Vec<Variable> {
+    let mut vars = vec![];
     unsafe {
         let shell_vars = bash::all_exported_variables();
         if !shell_vars.is_null() {
             let mut i = 0;
             while let Some(var) = (*shell_vars.offset(i)).as_ref() {
-                names.push(CStr::from_ptr(var.name).to_string_lossy().into());
+                vars.push(var.into());
                 i += 1;
             }
             bash::xfree(shell_vars as *mut c_void);
         }
     }
-    names
+    vars
 }
 
 #[cfg(test)]
@@ -484,7 +524,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scoped_variable() {
+    fn scoped_variable() {
         bind("VAR", "outer", None, None).unwrap();
         assert_eq!(optional("VAR").unwrap(), "outer");
         {

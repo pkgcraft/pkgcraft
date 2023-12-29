@@ -115,7 +115,7 @@ mod tests {
     use std::env;
     use std::fs::File;
 
-    use scallop::variables::{bind, unbind, ScopedVariable, Variables};
+    use scallop::variables::{bind, unbind, ScopedVariable, ShellVariable};
     use tempfile::tempdir;
 
     use crate::command::commands;
