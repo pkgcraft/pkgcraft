@@ -27,6 +27,7 @@ name = "scallop"
 
 [dependencies]
 bitflags = "2.4.1"
+indexmap = { version = "2.1.0", features = ["rayon", "serde"] }
 ipc-channel = "0.18.0"
 libc = "0.2.151"
 nix = { version = "0.27.1", features = ["fs", "mman", "process", "signal"] }

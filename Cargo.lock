@@ -2333,6 +2333,7 @@ dependencies = [
  "bitflags 2.4.1",
  "camino",
  "ctor",
+ "indexmap 2.1.0",
  "ipc-channel",
  "libc",
  "nix",
