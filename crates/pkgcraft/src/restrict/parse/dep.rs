@@ -98,8 +98,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule pkg_restricts() -> (Vec<DepRestrict>, Option<Version<&'input str>>)
-        = r:cp_restricts() "-" v:version() { (r, Some(v)) }
-        / r:cp_restricts() { (r, None) }
+        = r:cp_restricts() ver:("-" v:version() { v })? { (r, ver) }
         / "<=" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::LessOrEqual)?))) }
         / "<" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::Less)?))) }
         / ">=" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::GreaterOrEqual)?))) }
