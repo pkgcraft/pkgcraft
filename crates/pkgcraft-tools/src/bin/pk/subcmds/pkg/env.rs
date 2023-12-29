@@ -82,12 +82,16 @@ impl Command {
             }
         }
 
-        let filter_func = |var: &variables::Variable| -> bool {
+        let filter = |var: &variables::Variable| -> bool {
             let name = var.name();
             !external.contains(name)
                 && !bash.contains(name)
                 && !hide.contains(name)
                 && (show.is_empty() || show.contains(name))
+        };
+
+        let value = |var: variables::Variable| -> Option<(String, String)> {
+            var.to_vec().map(|v| (var.to_string(), v.join(" ")))
         };
 
         let func = |pkg: Pkg| -> scallop::Result<(String, IndexMap<String, String>)> {
@@ -99,8 +103,8 @@ impl Command {
 
             let env: IndexMap<_, _> = variables::visible()
                 .into_iter()
-                .filter(filter_func)
-                .filter_map(|var| var.optional().map(|val| (var.to_string(), val)))
+                .filter(filter)
+                .filter_map(value)
                 .collect();
 
             Ok((pkg.to_string(), env))
