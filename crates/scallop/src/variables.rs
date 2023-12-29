@@ -538,16 +538,13 @@ mod tests {
     }
 
     #[test]
-    fn test_visible() {
+    fn test_sets() {
+        assert!(!all().iter().any(|s| s == "SCALLOP_VAR_TEST"));
         assert!(!visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
-        bind("SCALLOP_VAR_TEST", "1", None, None).unwrap();
-        assert!(visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
-    }
-
-    #[test]
-    fn test_exported() {
         assert!(!exported().iter().any(|s| s == "SCALLOP_VAR_TEST"));
         bind("SCALLOP_VAR_TEST", "1", None, None).unwrap();
+        assert!(all().iter().any(|s| s == "SCALLOP_VAR_TEST"));
+        assert!(visible().iter().any(|s| s == "SCALLOP_VAR_TEST"));
         assert!(!exported().iter().any(|s| s == "SCALLOP_VAR_TEST"));
         bind("SCALLOP_VAR_TEST", "1", None, Some(Attr::EXPORTED)).unwrap();
         assert!(exported().iter().any(|s| s == "SCALLOP_VAR_TEST"));
