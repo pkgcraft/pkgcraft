@@ -387,55 +387,38 @@ impl PipeStatus {
     }
 }
 
+/// Convert an array of bash shell variable pointers into Vec<Variable>.
+macro_rules! shell_variables {
+    ($variables:expr) => {{
+        let mut vars = vec![];
+        unsafe {
+            let shell_vars = $variables;
+            if !shell_vars.is_null() {
+                let mut i = 0;
+                while let Some(var) = (*shell_vars.offset(i)).as_ref() {
+                    vars.push(var.into());
+                    i += 1;
+                }
+                bash::xfree(shell_vars as *mut c_void);
+            }
+        }
+        vars
+    }};
+}
+
 /// Return all shell variables.
 pub fn all() -> Vec<Variable> {
-    let mut vars = vec![];
-    unsafe {
-        let shell_vars = bash::all_shell_variables();
-        if !shell_vars.is_null() {
-            let mut i = 0;
-            while let Some(var) = (*shell_vars.offset(i)).as_ref() {
-                vars.push(var.into());
-                i += 1;
-            }
-            bash::xfree(shell_vars as *mut c_void);
-        }
-    }
-    vars
+    shell_variables!(bash::all_shell_variables())
 }
 
 /// Return all visible shell variables.
 pub fn visible() -> Vec<Variable> {
-    let mut vars = vec![];
-    unsafe {
-        let shell_vars = bash::all_visible_variables();
-        if !shell_vars.is_null() {
-            let mut i = 0;
-            while let Some(var) = (*shell_vars.offset(i)).as_ref() {
-                vars.push(var.into());
-                i += 1;
-            }
-            bash::xfree(shell_vars as *mut c_void);
-        }
-    }
-    vars
+    shell_variables!(bash::all_visible_variables())
 }
 
 /// Return all exported shell variables.
 pub fn exported() -> Vec<Variable> {
-    let mut vars = vec![];
-    unsafe {
-        let shell_vars = bash::all_exported_variables();
-        if !shell_vars.is_null() {
-            let mut i = 0;
-            while let Some(var) = (*shell_vars.offset(i)).as_ref() {
-                vars.push(var.into());
-                i += 1;
-            }
-            bash::xfree(shell_vars as *mut c_void);
-        }
-    }
-    vars
+    shell_variables!(bash::all_exported_variables())
 }
 
 #[cfg(test)]
