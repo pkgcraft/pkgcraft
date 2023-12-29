@@ -67,7 +67,7 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
     };
 
     let (recursive, paths) = match (var_to_vec(var), defaults) {
-        (Ok(v), _) => (true, expand_docs(&v, true)?),
+        (Some(v), _) => (true, expand_docs(&v, true)?),
         (_, Some(v)) => (false, expand_docs(v, false)?),
         _ => (false, vec![]),
     };

@@ -356,13 +356,13 @@ pub fn array_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
 }
 
 /// Get the value of a given variable as Vec<String>.
-pub fn var_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
+pub fn var_to_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
     let name = name.as_ref();
     let var = Variable::new(name);
     if var.is_array() {
-        array_to_vec(name)
+        array_to_vec(name).ok()
     } else {
-        string_vec(name).ok_or_else(|| Error::Base(format!("undefined variable: {name}")))
+        string_vec(name)
     }
 }
 
