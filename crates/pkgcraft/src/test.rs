@@ -176,7 +176,7 @@ pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
 
     // load valid repos from test data, ignoring purposefully broken ones
     let mut config = Config::new("pkgcraft", "");
-    for entry in WalkDir::new(path.join("repos"))
+    for entry in WalkDir::new(path.join("repos/valid"))
         .min_depth(1)
         .max_depth(1)
         .sort_by_file_name()
@@ -184,9 +184,7 @@ pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
         let entry = entry.unwrap();
         let name = entry.file_name().to_str().unwrap();
         let path = entry.path().to_str().unwrap();
-        if !path.ends_with("-invalid") {
-            config.add_repo_path(name, 0, path, false).unwrap();
-        }
+        config.add_repo_path(name, 0, path, false).unwrap();
     }
 
     TestData {
