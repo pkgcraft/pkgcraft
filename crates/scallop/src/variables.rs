@@ -387,6 +387,23 @@ impl PipeStatus {
     }
 }
 
+/// Return all shell variables.
+pub fn all() -> Vec<Variable> {
+    let mut vars = vec![];
+    unsafe {
+        let shell_vars = bash::all_shell_variables();
+        if !shell_vars.is_null() {
+            let mut i = 0;
+            while let Some(var) = (*shell_vars.offset(i)).as_ref() {
+                vars.push(var.into());
+                i += 1;
+            }
+            bash::xfree(shell_vars as *mut c_void);
+        }
+    }
+    vars
+}
+
 /// Return all visible shell variables.
 pub fn visible() -> Vec<Variable> {
     let mut vars = vec![];
