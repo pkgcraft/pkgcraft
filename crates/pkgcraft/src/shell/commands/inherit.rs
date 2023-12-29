@@ -67,7 +67,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
         // append metadata keys that incrementally accumulate
         for (key, var) in &incrementals {
-            if let Some(data) = var.string_vec() {
+            if let Some(data) = var.to_vec() {
                 build.incrementals.entry(*key).or_default().extend(data);
             }
         }

@@ -136,8 +136,8 @@ pub trait ShellVariable: AsRef<str> {
         self.optional().and_then(expand)
     }
 
-    fn string_vec(&self) -> Option<Vec<String>> {
-        string_vec(self.name())
+    fn to_vec(&self) -> Option<Vec<String>> {
+        var_to_vec(self.name())
     }
 
     fn bind<S: AsRef<str>>(
