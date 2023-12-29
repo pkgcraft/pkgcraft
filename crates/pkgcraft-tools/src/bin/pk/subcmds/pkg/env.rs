@@ -145,7 +145,7 @@ impl Command {
                     writeln!(stderr, "{e}")?;
                 }
                 Ok((pkg, env)) => {
-                    if multiple {
+                    if multiple && !env.is_empty() {
                         writeln!(stdout, "\n{pkg}")?;
                     }
                     for (k, v) in env {
