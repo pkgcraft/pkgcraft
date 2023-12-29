@@ -430,7 +430,7 @@ mod tests {
             [primary]
             location = {repos_dir}/valid/primary
             [nonexistent]
-            location = {repos_dir}/invalid/masters
+            location = {repos_dir}/invalid/nonexistent-masters
         "#};
         fs::write(path, data).unwrap();
         let r = config.load_portage_conf(Some(conf_path));

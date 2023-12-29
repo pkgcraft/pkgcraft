@@ -958,7 +958,8 @@ mod tests {
         assert_eq!(trees, ["a"]);
 
         // nonexistent
-        let repo = Repo::from_path("test", 0, repos_dir.join("invalid/masters")).unwrap();
+        let repo =
+            Repo::from_path("test", 0, repos_dir.join("invalid/nonexistent-masters")).unwrap();
         let r = config.add_repo_path(repo.id(), 0, repo.path().as_str(), false);
         assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
 
