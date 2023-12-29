@@ -276,7 +276,7 @@ impl Repo {
                 .cache_formats()
                 .first()
                 .copied()
-                .unwrap_or(Default::default());
+                .unwrap_or_default();
 
             format.from_repo(self)
         })
