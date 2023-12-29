@@ -799,13 +799,13 @@ impl<'a> IterCpv<'a> {
                     Restrict::Dep(Category(r)) => {
                         cat_restricts.push(r.clone());
                         if let Equal(s) = r {
-                            cat = Some(s.to_string());
+                            cat = Some(s.as_str());
                         }
                     }
                     Restrict::Dep(r @ Package(x)) => {
                         pkg_restricts.push(r.clone());
                         if let Equal(s) = x {
-                            pkg = Some(s.to_string());
+                            pkg = Some(s.as_str());
                         }
                     }
                     Restrict::Dep(r @ Version(x)) => {
@@ -821,10 +821,8 @@ impl<'a> IterCpv<'a> {
             }
         }
 
-        let restricts = (cat.as_deref(), pkg.as_deref(), ver.as_deref());
-
         Self {
-            iter: if let (Some(cat), Some(pkg), Some(ver)) = restricts {
+            iter: if let (Some(cat), Some(pkg), Some(ver)) = (cat, pkg, ver.as_deref()) {
                 // specific package restriction
                 let cpv = Cpv::try_from((cat, pkg, ver)).expect("dep restrict failed");
                 Box::new(iter::once(cpv))
