@@ -1,7 +1,6 @@
 use std::io::{stdin, IsTerminal};
 use std::path::Path;
 
-use itertools::Either;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::Repo as EbuildRepo;
 
@@ -64,17 +63,5 @@ pub(crate) fn target_ebuild_repo<'a>(
         Ok(r.as_ref())
     } else {
         anyhow::bail!("non-ebuild repo: {repo}")
-    }
-}
-
-/// Determine if an iterator contains multiple items.
-pub(crate) fn multiple_items_iter<I, T>(iter: I) -> (bool, impl Iterator<Item = T>)
-where
-    I: Iterator<Item = T>,
-{
-    let mut new_iter = iter.peekable();
-    match new_iter.next() {
-        Some(item) => (new_iter.peek().is_some(), Either::Left([item].into_iter().chain(new_iter))),
-        None => (false, Either::Right(std::iter::empty())),
     }
 }

@@ -16,7 +16,7 @@ use scallop::pool::PoolIter;
 use scallop::variables::{self, ShellVariable};
 use strum::IntoEnumIterator;
 
-use crate::args::{multiple_items_iter, StdinOrArgs};
+use crate::args::StdinOrArgs;
 
 use super::target_restriction;
 
@@ -133,23 +133,36 @@ impl Command {
             })
             .peekable();
 
-        // determine if the iterator contains multiple packages
-        let (multiple, pkgs) = multiple_items_iter(pkgs);
-
         // source ebuilds and output ebuild-specific environment variables
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
-        for result in PoolIter::new(jobs, pkgs, func, true)? {
+        let mut iter = PoolIter::new(jobs, pkgs, func, true)?.peekable();
+        let mut multiple = false;
+        while let Some(result) = iter.next() {
             match result {
                 Err(e) => {
                     status = ExitCode::FAILURE;
                     writeln!(stderr, "{e}")?;
                 }
+                Ok((_, env)) if env.is_empty() => continue,
                 Ok((pkg, env)) => {
-                    if multiple && !env.is_empty() {
-                        writeln!(stdout, "\n{pkg}")?;
+                    // determine if the header and footer should be displayed
+                    let (header, footer) = match iter.peek() {
+                        Some(Ok(_)) => {
+                            multiple = true;
+                            (multiple, true)
+                        }
+                        None => (multiple, false),
+                        _ => (multiple, true),
+                    };
+
+                    if header {
+                        writeln!(stdout, "{pkg}")?;
                     }
                     for (k, v) in env {
                         writeln!(stdout, "{k}={v}")?;
+                    }
+                    if footer {
+                        writeln!(stdout)?;
                     }
                 }
             }
