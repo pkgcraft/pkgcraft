@@ -4,7 +4,6 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use clap::Args;
-use indexmap::IndexMap;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
 use pkgcraft::repo::set::RepoSet;
@@ -94,14 +93,14 @@ impl Command {
             var.to_vec().map(|v| (var.to_string(), v.join(" ")))
         };
 
-        let func = |pkg: Pkg| -> scallop::Result<(String, IndexMap<String, String>)> {
+        let func = |pkg: Pkg| -> scallop::Result<(String, Vec<(String, String)>)> {
             // TODO: move error mapping into pkgcraft for pkg sourcing
             pkg.source().map_err(|e| Error::InvalidPkg {
                 id: pkg.to_string(),
                 err: e.to_string(),
             })?;
 
-            let env: IndexMap<_, _> = variables::visible()
+            let env: Vec<(_, _)> = variables::visible()
                 .into_iter()
                 .filter(filter)
                 .filter_map(value)
