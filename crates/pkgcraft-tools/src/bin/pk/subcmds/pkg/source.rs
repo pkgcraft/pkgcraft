@@ -83,7 +83,7 @@ pub struct Command {
     sort: bool,
 
     // positionals
-    /// Target packages or directories
+    /// Target packages or paths
     #[arg(value_name = "TARGET", default_value = ".")]
     targets: Vec<String>,
 }

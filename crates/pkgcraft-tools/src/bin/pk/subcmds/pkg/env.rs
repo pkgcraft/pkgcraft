@@ -34,7 +34,7 @@ pub struct Command {
     filter: Vec<String>,
 
     // positionals
-    /// Target packages or directories
+    /// Target packages or paths
     #[arg(value_name = "TARGET", default_value = ".")]
     targets: Vec<String>,
 }
