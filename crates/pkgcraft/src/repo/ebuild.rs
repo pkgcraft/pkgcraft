@@ -885,25 +885,19 @@ impl<'a> IterCpv<'a> {
                     };
 
                     Box::new(repo.categories().into_iter().flat_map(move |s| {
-                        let path = repo.path().join(s);
-                        let paths = if let Ok(entries) = path.read_dir_utf8() {
-                            Either::Left(
-                                entries
-                                    .filter_map(|e| e.ok())
-                                    .filter(|e| pkg_restrict.matches(e.file_name())),
-                            )
+                        if let Ok(entries) = repo.path().join(s).read_dir_utf8() {
+                            entries
+                                .filter_map(|e| e.ok())
+                                .filter(|e| pkg_restrict.matches(e.file_name()))
+                                .flat_map(|e| repo.cpvs_from_package_path(e.path()))
+                                .filter(|cpv| ver_restrict.matches(cpv))
+                                .collect::<Vec<_>>()
                         } else {
-                            Either::Right(iter::empty())
-                        };
-
-                        paths
-                            .flat_map(|e| repo.cpvs_from_package_path(e.path()))
-                            .filter(|cpv| ver_restrict.matches(cpv))
-                            .collect::<Vec<_>>()
+                            Default::default()
+                        }
                     }))
                 }
                 _ => {
-                    // fallback, generic iterator
                     let cat_restrict = match cat_restricts.len() {
                         0 => Restrict::True,
                         1 => cat_restricts.remove(0).into(),
