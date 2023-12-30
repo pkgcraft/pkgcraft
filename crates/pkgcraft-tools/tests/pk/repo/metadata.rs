@@ -227,6 +227,29 @@ fn remove() {
             .success();
 
         assert!(!path.exists());
+
+        // missing cache removal is ignored
+        cmd("pk repo metadata")
+            .arg(opt)
+            .arg(t.path())
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+
+        let dir = tempdir().unwrap();
+        let cache_path = dir.path().to_str().unwrap();
+
+        // external cache removal isn't supported
+        cmd("pk repo metadata")
+            .args(["-p", cache_path])
+            .arg(opt)
+            .arg(t.path())
+            .assert()
+            .stdout("")
+            .stderr(lines_contain([format!("external cache: {cache_path}")]))
+            .failure()
+            .code(2);
     }
 }
 

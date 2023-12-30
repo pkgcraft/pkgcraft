@@ -14,7 +14,7 @@ use crate::dep::Cpv;
 use crate::error::{Error, PackageError};
 use crate::files::{is_file, is_hidden};
 use crate::pkg::ebuild::raw::Pkg;
-use crate::repo::PkgRepository;
+use crate::repo::{PkgRepository, Repository};
 use crate::shell::metadata::Metadata;
 use crate::utils::bounded_jobs;
 
@@ -40,7 +40,7 @@ pub trait Cache {
     /// Update the cache with the given package metadata.
     fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()>;
     /// Forcibly remove the entire cache.
-    fn remove(&self) -> crate::Result<()>;
+    fn remove(&self, repo: &Repo) -> crate::Result<()>;
 }
 
 #[derive(
@@ -119,9 +119,16 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn remove(&self) -> crate::Result<()> {
+    fn remove(&self, repo: &Repo) -> crate::Result<()> {
+        let path = self.path();
+        if !path.starts_with(repo.path()) {
+            return Err(Error::IO(format!("removal unsupported for external cache: {path}")));
+        } else if !path.exists() {
+            return Ok(());
+        }
+
         match self {
-            Self::Md5Dict(cache) => cache.remove(),
+            Self::Md5Dict(cache) => cache.remove(repo),
         }
     }
 }

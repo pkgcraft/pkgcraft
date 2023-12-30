@@ -56,7 +56,7 @@ impl Command {
 
         if self.remove {
             // remove the metadata cache
-            cache.remove()?;
+            cache.remove(repo)?;
         } else {
             // run metadata regeneration displaying a progress bar if stdout is a terminal
             cache

@@ -209,7 +209,7 @@ impl Cache for Md5Dict {
         Ok(())
     }
 
-    fn remove(&self) -> crate::Result<()> {
+    fn remove(&self, _repo: &Repo) -> crate::Result<()> {
         let path = &self.path;
         fs::remove_dir_all(path)
             .map_err(|e| Error::IO(format!("failed removing metadata cache: {path}: {e}")))
