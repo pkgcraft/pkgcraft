@@ -126,6 +126,8 @@ impl MetadataCache {
             force: false,
             progress: false,
             suppress: true,
+            targeted: false,
+            targets: Default::default(),
         }
     }
 }
@@ -137,6 +139,8 @@ pub struct MetadataCacheRegen<'a> {
     force: bool,
     progress: bool,
     suppress: bool,
+    targeted: bool,
+    targets: IndexSet<Cpv<String>>,
 }
 
 impl MetadataCacheRegen<'_> {
@@ -164,8 +168,18 @@ impl MetadataCacheRegen<'_> {
         self
     }
 
+    /// Specify package targets for cache regeneration.
+    pub fn targets<I>(mut self, value: I) -> Self
+    where
+        I: IntoIterator<Item = Cpv<String>>,
+    {
+        self.targeted = true;
+        self.targets.extend(value);
+        self
+    }
+
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn run(&self, repo: &Repo) -> crate::Result<()> {
+    pub fn run(self, repo: &Repo) -> crate::Result<()> {
         // collapse lazy repo fields used during metadata generation
         repo.collapse_cache_regen();
 
@@ -186,45 +200,50 @@ impl MetadataCacheRegen<'_> {
         };
         pb.set_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
 
-        // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
-        // pull all package Cpvs from the repo
-        let mut cpvs: IndexSet<_> = repo
-            .categories()
-            .into_par_iter()
-            .flat_map(|s| repo.category_cpvs(&s))
-            .collect();
+        let mut cpvs = if !self.targeted {
+            // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
+            // pull all package Cpvs from the repo
+            repo.categories()
+                .into_par_iter()
+                .flat_map(|s| repo.category_cpvs(&s))
+                .collect()
+        } else {
+            self.targets
+        };
 
         // set progression length encompassing all pkgs
         pb.set_length(cpvs.len().try_into().unwrap());
 
         if self.cache.path().exists() {
-            // TODO: replace with parallelized cache iterator
-            let entries: Vec<_> = WalkDir::new(self.cache.path())
-                .min_depth(2)
-                .max_depth(2)
-                .into_iter()
-                .collect();
-
             // remove outdated cache entries lacking matching ebuilds in parallel
-            entries
-                .into_par_iter()
-                .filter_map(|e| e.ok())
-                .filter(|e| is_file(e) && !is_hidden(e))
-                .for_each(|e| {
-                    let file = e.path();
-                    let cpv_str = file
-                        .strip_prefix(self.cache.path())
-                        .expect("invalid metadata entry")
-                        .to_string_lossy();
-                    if let Ok(cpv) = Cpv::parse(&cpv_str) {
-                        // Remove an outdated cache file and its potentially, empty parent
-                        // directory while ignoring any I/O errors.
-                        if !cpvs.contains(&cpv) {
-                            fs::remove_file(file).ok();
-                            fs::remove_dir(file.parent().unwrap()).ok();
+            if !self.targeted {
+                // TODO: replace with parallelized cache iterator
+                let entries: Vec<_> = WalkDir::new(self.cache.path())
+                    .min_depth(2)
+                    .max_depth(2)
+                    .into_iter()
+                    .collect();
+
+                entries
+                    .into_par_iter()
+                    .filter_map(|e| e.ok())
+                    .filter(|e| is_file(e) && !is_hidden(e))
+                    .for_each(|e| {
+                        let file = e.path();
+                        let cpv_str = file
+                            .strip_prefix(self.cache.path())
+                            .expect("invalid metadata entry")
+                            .to_string_lossy();
+                        if let Ok(cpv) = Cpv::parse(&cpv_str) {
+                            // Remove an outdated cache file and its potentially, empty parent
+                            // directory while ignoring any I/O errors.
+                            if !cpvs.contains(&cpv) {
+                                fs::remove_file(file).ok();
+                                fs::remove_dir(file.parent().unwrap()).ok();
+                            }
                         }
-                    }
-                });
+                    });
+            }
 
             if !self.force {
                 // run cache validation in a thread pool
