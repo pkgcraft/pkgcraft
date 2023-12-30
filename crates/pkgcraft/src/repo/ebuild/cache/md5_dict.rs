@@ -183,9 +183,9 @@ impl Cache for Md5Dict {
         let path = self.path.join(pkg.cpv().to_string());
         let data = fs::read_to_string(&path).map_err(|e| {
             if e.kind() != io::ErrorKind::NotFound {
-                warn!("error loading ebuild metadata: {path:?}: {e}");
+                warn!("error loading ebuild metadata: {path}: {e}");
             }
-            Error::IO(format!("failed loading ebuild metadata: {path:?}: {e}"))
+            Error::IO(format!("failed loading ebuild metadata: {path}: {e}"))
         })?;
 
         let meta = Md5DictEntry::from(&data);
@@ -207,5 +207,11 @@ impl Cache for Md5Dict {
         atomic_write_file(&path, data, &new_path)?;
 
         Ok(())
+    }
+
+    fn remove(&self) -> crate::Result<()> {
+        let path = &self.path;
+        fs::remove_dir_all(path)
+            .map_err(|e| Error::IO(format!("failed removing metadata cache: {path}: {e}")))
     }
 }

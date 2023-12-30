@@ -31,12 +31,16 @@ pub trait CacheEntry {
 
 pub trait Cache {
     type Entry: CacheEntry;
+    /// Return the cache's format.
     fn format(&self) -> CacheFormat;
+    /// Return the cache's filesystem path.
     fn path(&self) -> &Utf8Path;
     /// Get the cache entry for a given package.
     fn get(&self, pkg: &Pkg) -> crate::Result<Self::Entry>;
     /// Update the cache with the given package metadata.
     fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()>;
+    /// Forcibly remove the entire cache.
+    fn remove(&self) -> crate::Result<()>;
 }
 
 #[derive(
@@ -109,10 +113,15 @@ impl Cache for MetadataCache {
         }
     }
 
-    /// Update the cache with the given package metadata.
     fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()> {
         match self {
             Self::Md5Dict(cache) => cache.update(pkg, meta),
+        }
+    }
+
+    fn remove(&self) -> crate::Result<()> {
+        match self {
+            Self::Md5Dict(cache) => cache.remove(),
         }
     }
 }
