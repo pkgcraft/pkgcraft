@@ -200,6 +200,37 @@ fn pkg_with_invalid_dep() {
 }
 
 #[test]
+fn remove() {
+    let t = TempRepo::new("test", None, 0, None).unwrap();
+    t.create_pkg("cat/a-1", &[]).unwrap();
+    let path = t.repo().cache().path();
+
+    for opt in ["-r", "--remove"] {
+        // generate cache
+        cmd("pk repo metadata")
+            .arg(t.path())
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+
+        assert!(path.exists());
+        assert!(path.join("cat/a-1").exists());
+
+        // remove cache
+        cmd("pk repo metadata")
+            .arg(opt)
+            .arg(t.path())
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+
+        assert!(!path.exists());
+    }
+}
+
+#[test]
 fn data_content() {
     let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
 

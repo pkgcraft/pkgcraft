@@ -17,6 +17,10 @@ pub struct Command {
     #[arg(short, long)]
     force: bool,
 
+    /// Remove metadata cache
+    #[arg(short, long)]
+    remove: bool,
+
     /// Custom cache path
     #[arg(short, long)]
     path: Option<String>,
@@ -41,8 +45,6 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // run metadata regeneration displaying a progress bar if stdout is a terminal
-        let progress = stdout().is_terminal() && !self.no_progress && !self.output;
         let repo = target_ebuild_repo(config, &self.repo)?;
         let format = self.format.unwrap_or(repo.cache().format());
 
@@ -52,13 +54,19 @@ impl Command {
             format.from_repo(repo)
         };
 
-        cache
-            .regen()
-            .jobs(self.jobs.unwrap_or_default())
-            .force(self.force)
-            .progress(progress)
-            .suppress(!self.output)
-            .run(repo)?;
+        if self.remove {
+            // remove the metadata cache
+            cache.remove()?;
+        } else {
+            // run metadata regeneration displaying a progress bar if stdout is a terminal
+            cache
+                .regen()
+                .jobs(self.jobs.unwrap_or_default())
+                .force(self.force)
+                .progress(stdout().is_terminal() && !self.no_progress && !self.output)
+                .suppress(!self.output)
+                .run(repo)?;
+        }
 
         Ok(ExitCode::SUCCESS)
     }
