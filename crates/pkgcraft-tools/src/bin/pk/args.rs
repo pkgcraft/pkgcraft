@@ -53,11 +53,13 @@ pub(crate) fn target_ebuild_repo<'a>(
     config: &'a mut Config,
     repo: &str,
 ) -> anyhow::Result<&'a EbuildRepo> {
-    if config.repos.get(repo).is_none() && Path::new(repo).exists() {
-        config.add_repo_path(repo, 0, repo, true)?;
-    } else {
-        anyhow::bail!("unknown repo: {repo}");
-    };
+    if config.repos.get(repo).is_none() {
+        if Path::new(repo).exists() {
+            config.add_repo_path(repo, 0, repo, true)?;
+        } else {
+            anyhow::bail!("unknown repo: {repo}");
+        }
+    }
 
     if let Some(r) = config.repos.get(repo).and_then(|r| r.as_ebuild()) {
         Ok(r.as_ref())
