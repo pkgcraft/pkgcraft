@@ -820,8 +820,6 @@ impl<'a> IterCpv<'a> {
                 ([Equal(cat)], [Package(Equal(pn))], [Version(Some(ver))])
                     if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
                 {
-                    let cat = std::mem::take(cat);
-                    let pn = std::mem::take(pn);
                     let cpv = Cpv::try_from((cat, pn, ver.without_op())).expect("invalid Cpv");
                     Box::new(iter::once(cpv))
                 }
