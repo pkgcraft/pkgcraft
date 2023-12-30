@@ -394,7 +394,7 @@ impl Repo {
         })
     }
 
-    /// Convert a relative ebuild file repo path into a CPV.
+    /// Convert an ebuild file path into a Cpv.
     fn cpv_from_ebuild_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv<String>> {
         let path = path.as_ref();
         let err = |s: &str| -> Error {
@@ -415,7 +415,7 @@ impl Repo {
             .strip_suffix(".ebuild")
             .ok_or_else(|| err("missing ebuild ext"))?;
         Cpv::try_new(format!("{cat}/{p}"))
-            .map_err(|_| err("invalid CPV"))
+            .map_err(|_| err("invalid Cpv"))
             .and_then(|a| {
                 if a.package() == pkg {
                     Ok(a)
@@ -423,6 +423,22 @@ impl Repo {
                     Err(err("mismatched package dir"))
                 }
             })
+    }
+
+    /// Convert an ebuild package directory path into an iterator of related Cpvs.
+    fn cpvs_from_package_path<P>(&self, path: P) -> impl Iterator<Item = Cpv<String>> + '_
+    where
+        P: AsRef<Utf8Path>,
+    {
+        if let Ok(entries) = path.as_ref().read_dir_utf8() {
+            Either::Left(
+                entries
+                    .filter_map(|e| e.ok())
+                    .filter_map(|e| self.cpv_from_ebuild_path(e.path()).ok()),
+            )
+        } else {
+            Either::Right(iter::empty())
+        }
     }
 
     /// Return the set of inherited architectures sorted by name.
@@ -831,16 +847,10 @@ impl<'a> IterCpv<'a> {
                     };
 
                     let path = build_from_paths!(repo.path(), cat, pn);
-                    if let Ok(entries) = path.read_dir_utf8() {
-                        Box::new(
-                            entries
-                                .filter_map(|e| e.ok())
-                                .filter_map(|e| repo.cpv_from_ebuild_path(e.path()).ok())
-                                .filter(move |cpv| ver_restrict.matches(cpv)),
-                        )
-                    } else {
-                        Box::new(iter::empty())
-                    }
+                    Box::new(
+                        repo.cpvs_from_package_path(path)
+                            .filter(move |cpv| ver_restrict.matches(cpv)),
+                    )
                 }
                 ([], [Package(Equal(pn))], _) => {
                     let pn = std::mem::take(pn);
@@ -852,16 +862,9 @@ impl<'a> IterCpv<'a> {
 
                     Box::new(repo.categories().into_iter().flat_map(move |s| {
                         let path = build_from_paths!(repo.path(), &s, &pn);
-                        if let Ok(entries) = path.read_dir_utf8() {
-                            let cpvs: Vec<_> = entries
-                                .filter_map(|e| e.ok())
-                                .filter_map(|e| repo.cpv_from_ebuild_path(e.path()).ok())
-                                .filter(|cpv| ver_restrict.matches(cpv))
-                                .collect();
-                            Either::Left(cpvs.into_iter())
-                        } else {
-                            Either::Right(iter::empty())
-                        }
+                        repo.cpvs_from_package_path(path)
+                            .filter(|cpv| ver_restrict.matches(cpv))
+                            .collect::<Vec<_>>()
                     }))
                 }
                 _ => {
@@ -1147,7 +1150,7 @@ mod tests {
     fn iter_restrict() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
 
-        // single match via CPV
+        // single match via Cpv
         let cpv = Cpv::try_new("optional/none-8").unwrap();
         let iter = repo.iter_restrict(&cpv);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
