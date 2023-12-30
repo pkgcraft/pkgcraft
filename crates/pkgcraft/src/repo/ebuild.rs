@@ -790,6 +790,7 @@ impl<'a> IterCpv<'a> {
         use StrRestrict::Equal;
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
+        let mut ver_restricts = vec![];
         let (mut cat, mut pkg, mut ver) = (None, None, None);
 
         // extract restrictions for package filtering
@@ -809,7 +810,7 @@ impl<'a> IterCpv<'a> {
                         }
                     }
                     Restrict::Dep(r @ Version(x)) => {
-                        pkg_restricts.push(r.clone());
+                        ver_restricts.push(r.clone());
                         if let Some(v) = x {
                             if v.op().is_none() || v.op() == Some(Operator::Equal) {
                                 ver = Some(v.without_op());
@@ -828,22 +829,29 @@ impl<'a> IterCpv<'a> {
                 Box::new(iter::once(cpv))
             } else {
                 // special-cased iterators for efficiency
-                match (&mut *cat_restricts, &mut *pkg_restricts) {
-                    ([], []) => Box::new(
+                match (&mut *cat_restricts, &mut *pkg_restricts, &mut *ver_restricts) {
+                    ([], [], []) => Box::new(
                         repo.categories()
                             .into_iter()
                             .flat_map(|s| repo.category_cpvs(&s)),
                     ),
-                    ([], [Package(Equal(s))]) => {
+                    ([], [Package(Equal(s))], _) => {
                         let pn = std::mem::take(s);
+                        let ver_restrict = match ver_restricts.len() {
+                            0 => Restrict::True,
+                            1 => ver_restricts.remove(0).into(),
+                            _ => Restrict::and(ver_restricts),
+                        };
+
                         Box::new(repo.categories().into_iter().flat_map(move |s| {
                             let path = build_from_paths!(repo.path(), &s, &pn);
                             if let Ok(entries) = path.read_dir_utf8() {
-                                Either::Left(
-                                    entries
-                                        .filter_map(|e| e.ok())
-                                        .filter_map(|e| repo.cpv_from_ebuild_path(e.path()).ok()),
-                                )
+                                let cpvs: Vec<_> = entries
+                                    .filter_map(|e| e.ok())
+                                    .filter_map(|e| repo.cpv_from_ebuild_path(e.path()).ok())
+                                    .filter(|cpv| ver_restrict.matches(cpv))
+                                    .collect();
+                                Either::Left(cpvs.into_iter())
                             } else {
                                 Either::Right(std::iter::empty())
                             }
@@ -857,6 +865,7 @@ impl<'a> IterCpv<'a> {
                             _ => Restrict::and(cat_restricts),
                         };
 
+                        pkg_restricts.extend(ver_restricts);
                         let pkg_restrict = match pkg_restricts.len() {
                             0 => Restrict::True,
                             1 => pkg_restricts.remove(0).into(),
