@@ -791,7 +791,6 @@ impl<'a> IterCpv<'a> {
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
         let mut ver_restricts = vec![];
-        let (mut cat, mut pkg, mut ver) = (None, None, None);
 
         // extract restrictions for package filtering
         if let Some(Restrict::And(vals)) = restrict {
@@ -799,23 +798,12 @@ impl<'a> IterCpv<'a> {
                 match r {
                     Restrict::Dep(Category(r)) => {
                         cat_restricts.push(r.clone());
-                        if let Equal(s) = r {
-                            cat = Some(s.as_str());
-                        }
                     }
-                    Restrict::Dep(r @ Package(x)) => {
+                    Restrict::Dep(r @ Package(_)) => {
                         pkg_restricts.push(r.clone());
-                        if let Equal(s) = x {
-                            pkg = Some(s.as_str());
-                        }
                     }
-                    Restrict::Dep(r @ Version(x)) => {
+                    Restrict::Dep(r @ Version(_)) => {
                         ver_restricts.push(r.clone());
-                        if let Some(v) = x {
-                            if v.op().is_none() || v.op() == Some(Operator::Equal) {
-                                ver = Some(v.without_op());
-                            }
-                        }
                     }
                     _ => (),
                 }
@@ -823,63 +811,64 @@ impl<'a> IterCpv<'a> {
         }
 
         Self {
-            iter: if let (Some(cat), Some(pkg), Some(ver)) = (cat, pkg, ver.as_deref()) {
-                // specific package restriction
-                let cpv = Cpv::try_from((cat, pkg, ver)).expect("dep restrict failed");
-                Box::new(iter::once(cpv))
-            } else {
-                // special-cased iterators for efficiency
-                match (&mut *cat_restricts, &mut *pkg_restricts, &mut *ver_restricts) {
-                    ([], [], []) => Box::new(
+            iter: match (&mut *cat_restricts, &mut *pkg_restricts, &mut *ver_restricts) {
+                ([], [], []) => Box::new(
+                    repo.categories()
+                        .into_iter()
+                        .flat_map(|s| repo.category_cpvs(&s)),
+                ),
+                ([Equal(cat)], [Package(Equal(pn))], [Version(Some(ver))])
+                    if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
+                {
+                    let cat = std::mem::take(cat);
+                    let pn = std::mem::take(pn);
+                    let cpv = Cpv::try_from((cat, pn, ver.without_op())).expect("invalid Cpv");
+                    Box::new(iter::once(cpv))
+                }
+                ([], [Package(Equal(pn))], _) => {
+                    let pn = std::mem::take(pn);
+                    let ver_restrict = match ver_restricts.len() {
+                        0 => Restrict::True,
+                        1 => ver_restricts.remove(0).into(),
+                        _ => Restrict::and(ver_restricts),
+                    };
+
+                    Box::new(repo.categories().into_iter().flat_map(move |s| {
+                        let path = build_from_paths!(repo.path(), &s, &pn);
+                        if let Ok(entries) = path.read_dir_utf8() {
+                            let cpvs: Vec<_> = entries
+                                .filter_map(|e| e.ok())
+                                .filter_map(|e| repo.cpv_from_ebuild_path(e.path()).ok())
+                                .filter(|cpv| ver_restrict.matches(cpv))
+                                .collect();
+                            Either::Left(cpvs.into_iter())
+                        } else {
+                            Either::Right(std::iter::empty())
+                        }
+                    }))
+                }
+                _ => {
+                    // fallback, generic iterator
+                    let cat_restrict = match cat_restricts.len() {
+                        0 => Restrict::True,
+                        1 => cat_restricts.remove(0).into(),
+                        _ => Restrict::and(cat_restricts),
+                    };
+
+                    pkg_restricts.extend(ver_restricts);
+                    let pkg_restrict = match pkg_restricts.len() {
+                        0 => Restrict::True,
+                        1 => pkg_restricts.remove(0).into(),
+                        _ => Restrict::and(pkg_restricts),
+                    };
+
+                    Box::new(
                         repo.categories()
                             .into_iter()
-                            .flat_map(|s| repo.category_cpvs(&s)),
-                    ),
-                    ([], [Package(Equal(s))], _) => {
-                        let pn = std::mem::take(s);
-                        let ver_restrict = match ver_restricts.len() {
-                            0 => Restrict::True,
-                            1 => ver_restricts.remove(0).into(),
-                            _ => Restrict::and(ver_restricts),
-                        };
-
-                        Box::new(repo.categories().into_iter().flat_map(move |s| {
-                            let path = build_from_paths!(repo.path(), &s, &pn);
-                            if let Ok(entries) = path.read_dir_utf8() {
-                                let cpvs: Vec<_> = entries
-                                    .filter_map(|e| e.ok())
-                                    .filter_map(|e| repo.cpv_from_ebuild_path(e.path()).ok())
-                                    .filter(|cpv| ver_restrict.matches(cpv))
-                                    .collect();
-                                Either::Left(cpvs.into_iter())
-                            } else {
-                                Either::Right(std::iter::empty())
-                            }
-                        }))
-                    }
-                    _ => {
-                        // fallback, generic iterator
-                        let cat_restrict = match cat_restricts.len() {
-                            0 => Restrict::True,
-                            1 => cat_restricts.remove(0).into(),
-                            _ => Restrict::and(cat_restricts),
-                        };
-
-                        pkg_restricts.extend(ver_restricts);
-                        let pkg_restrict = match pkg_restricts.len() {
-                            0 => Restrict::True,
-                            1 => pkg_restricts.remove(0).into(),
-                            _ => Restrict::and(pkg_restricts),
-                        };
-
-                        Box::new(
-                            repo.categories()
-                                .into_iter()
-                                .filter(move |s| cat_restrict.matches(s.as_str()))
-                                .flat_map(|s| repo.category_cpvs(&s))
-                                .filter(move |cpv| pkg_restrict.matches(cpv)),
-                        )
-                    }
+                            .filter(move |s| cat_restrict.matches(s.as_str()))
+                            .flat_map(|s| repo.category_cpvs(&s))
+                            .filter(move |cpv| pkg_restrict.matches(cpv)),
+                    )
                 }
             },
         }
