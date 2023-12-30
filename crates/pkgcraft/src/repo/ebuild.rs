@@ -558,10 +558,15 @@ impl Repo {
     }
 
     /// Try converting a path to a [`Restrict`], returns None if the path isn't in the repo.
-    pub fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
+    pub fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P, cpv: bool) -> Option<Restrict> {
         let path = path.as_ref().canonicalize_utf8().ok()?;
         if self.contains(&path) {
-            let mut restricts = vec![DepRestrict::repo(Some(self.id()))];
+            let mut restricts = vec![];
+
+            // don't add repo restriction for Cpv-targeted restricts
+            if !cpv {
+                restricts.push(DepRestrict::repo(Some(self.id())));
+            }
 
             let relpath = path.strip_prefix(self.path()).unwrap_or(&path);
             let components: Vec<_> = relpath.components().map(|c| c.as_str()).collect();

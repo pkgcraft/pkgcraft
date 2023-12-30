@@ -118,7 +118,7 @@ impl Command {
             .targets
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| target_restriction(config, &repos, &s))
+            .map(|s| target_restriction(config, &repos, &s, false))
             .collect();
         let targets = targets?;
 

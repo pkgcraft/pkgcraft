@@ -26,19 +26,20 @@ fn target_restriction(
     config: &mut Config,
     repos: &RepoSet,
     target: &str,
+    cpv: bool,
 ) -> anyhow::Result<(RepoSet, Restrict)> {
     let path_target = Utf8Path::new(target).canonicalize_utf8();
 
     if let Ok(path) = &path_target {
         if path.exists() {
-            if let Some(r) = repos.ebuild().find_map(|r| r.restrict_from_path(path)) {
+            if let Some(r) = repos.ebuild().find_map(|r| r.restrict_from_path(path, cpv)) {
                 // target is an configured repo path restrict
                 return Ok((repos.clone(), r));
             } else {
                 // target is an external repo path restrict
                 let repo = config.add_nested_repo_path(path.as_str(), 0, path, true)?;
                 if let Some(r) = repo.as_ebuild() {
-                    let restrict = r.restrict_from_path(path).unwrap();
+                    let restrict = r.restrict_from_path(path, cpv).unwrap();
                     return Ok((RepoSet::from_iter([&repo]), restrict));
                 } else {
                     anyhow::bail!("non-ebuild repo: {repo}")

@@ -231,7 +231,7 @@ impl Command {
         let mut status = ExitCode::SUCCESS;
         for target in self.targets.stdin_or_args().split_whitespace() {
             // determine target restriction
-            let (repos, restrict) = target_restriction(config, &repos, &target)?;
+            let (repos, restrict) = target_restriction(config, &repos, &target, false)?;
 
             // find matching packages from targeted repos
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
