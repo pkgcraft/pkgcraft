@@ -870,6 +870,38 @@ impl<'a> IterCpv<'a> {
                             .collect::<Vec<_>>()
                     }))
                 }
+                ([], [_, ..], _) => {
+                    // convert package restricts into string restrictions
+                    let pkg_restrict =
+                        Restrict::and(pkg_restricts.into_iter().filter_map(|r| match r {
+                            Package(x) => Some(x),
+                            _ => None,
+                        }));
+
+                    let ver_restrict = match ver_restricts.len() {
+                        0 => Restrict::True,
+                        1 => ver_restricts.remove(0).into(),
+                        _ => Restrict::and(ver_restricts),
+                    };
+
+                    Box::new(repo.categories().into_iter().flat_map(move |s| {
+                        let path = repo.path().join(s);
+                        let paths = if let Ok(entries) = path.read_dir_utf8() {
+                            Either::Left(
+                                entries
+                                    .filter_map(|e| e.ok())
+                                    .filter(|e| pkg_restrict.matches(e.file_name())),
+                            )
+                        } else {
+                            Either::Right(iter::empty())
+                        };
+
+                        paths
+                            .flat_map(|e| repo.cpvs_from_package_path(e.path()))
+                            .filter(|cpv| ver_restrict.matches(cpv))
+                            .collect::<Vec<_>>()
+                    }))
+                }
                 _ => {
                     // fallback, generic iterator
                     let cat_restrict = match cat_restricts.len() {
