@@ -29,13 +29,13 @@ blake3 = { version = "1.5.0", features = ["traits-preview"] }
 cached = "0.46.1"
 camino = { version = "1.1.6", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.4.11", features = ["derive"] }
-crossbeam-channel = "0.5.9"
+clap = { version = "4.4.12", features = ["derive"] }
+crossbeam-channel = "0.5.10"
 digest = "0.10.7"
 enum-as-inner = "0.6.0"
 filetime = "0.2.23"
 flate2 = { version = "1.0.28", optional = true }
-futures = "0.3.29"
+futures = "0.3.30"
 git2 = { version = "0.18.1", optional = true }
 glob = "0.3.1"
 hex = "0.4.3"
@@ -60,8 +60,8 @@ serde_with = { version = "3.4.0", default-features = false, features = ["macros"
 sha2 = "0.10.8"
 strum = { version = "0.25.0", features = ["derive"] }
 tar = { version = "0.4.40", optional = true }
-tempfile = "3.8.1"
-thiserror = "1.0.51"
+tempfile = "3.9.0"
+thiserror = "1.0.52"
 tokio = { version = "1.35.1", features = ["full"], optional = true }
 toml = "0.8.8"
 tracing = "0.1.40"

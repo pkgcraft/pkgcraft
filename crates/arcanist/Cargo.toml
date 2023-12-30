@@ -12,16 +12,16 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-anyhow = "1.0.76"
+anyhow = "1.0.77"
 async-stream = "0.3.5"
-clap = { version = "4.4.11", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.4.12", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.13.4", default-features = false, features = ["toml"] }
-futures = "0.3.29"
+futures = "0.3.30"
 pkgcraft = { path = "../pkgcraft", version = "0.0.13" }
 prost = "0.12.3"
 regex = "1.10.2"
 serde = { version = "1.0.193", features = ["derive"] }
-thiserror = "1.0.51"
+thiserror = "1.0.52"
 tokio = { version = "1.35", features = ["full"] }
 tokio-stream = { version = "0.1.14", features = ["net"] }
 tonic = { version = "0.10.2", features = ["tls", "gzip"] }
@@ -39,7 +39,7 @@ tonic-build = "0.10.2"
 [dev-dependencies]
 assert_cmd = "2.0.12"
 regex = "1.10.2"
-tempfile = "3.8.1"
+tempfile = "3.9.0"
 
 [lib]
 name = "arcanist"
