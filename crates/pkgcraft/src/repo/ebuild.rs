@@ -425,19 +425,20 @@ impl Repo {
             })
     }
 
-    /// Convert an ebuild package directory path into an iterator of related Cpvs.
-    fn cpvs_from_package_path<P>(&self, path: P) -> impl Iterator<Item = Cpv<String>> + '_
+    /// Get the ordered set of Cpvs from a given package path.
+    fn cpvs_from_package_path<P>(&self, path: P) -> IndexSet<Cpv<String>>
     where
         P: AsRef<Utf8Path>,
     {
         if let Ok(entries) = path.as_ref().read_dir_utf8() {
-            Either::Left(
-                entries
-                    .filter_map(|e| e.ok())
-                    .filter_map(|e| self.cpv_from_ebuild_path(e.path()).ok()),
-            )
+            let mut cpvs: IndexSet<_> = entries
+                .filter_map(|e| e.ok())
+                .filter_map(|e| self.cpv_from_ebuild_path(e.path()).ok())
+                .collect();
+            cpvs.sort();
+            cpvs
         } else {
-            Either::Right(iter::empty())
+            Default::default()
         }
     }
 
@@ -849,6 +850,7 @@ impl<'a> IterCpv<'a> {
                     let path = build_from_paths!(repo.path(), cat, pn);
                     Box::new(
                         repo.cpvs_from_package_path(path)
+                            .into_iter()
                             .filter(move |cpv| ver_restrict.matches(cpv)),
                     )
                 }
@@ -863,6 +865,7 @@ impl<'a> IterCpv<'a> {
                     Box::new(repo.categories().into_iter().flat_map(move |s| {
                         let path = build_from_paths!(repo.path(), &s, &pn);
                         repo.cpvs_from_package_path(path)
+                            .into_iter()
                             .filter(|cpv| ver_restrict.matches(cpv))
                             .collect::<Vec<_>>()
                     }))
