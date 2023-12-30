@@ -823,6 +823,25 @@ impl<'a> IterCpv<'a> {
                     let cpv = Cpv::try_from((cat, pn, ver.without_op())).expect("invalid Cpv");
                     Box::new(iter::once(cpv))
                 }
+                ([Equal(cat)], [Package(Equal(pn))], _) => {
+                    let ver_restrict = match ver_restricts.len() {
+                        0 => Restrict::True,
+                        1 => ver_restricts.remove(0).into(),
+                        _ => Restrict::and(ver_restricts),
+                    };
+
+                    let path = build_from_paths!(repo.path(), cat, pn);
+                    if let Ok(entries) = path.read_dir_utf8() {
+                        Box::new(
+                            entries
+                                .filter_map(|e| e.ok())
+                                .filter_map(|e| repo.cpv_from_ebuild_path(e.path()).ok())
+                                .filter(move |cpv| ver_restrict.matches(cpv)),
+                        )
+                    } else {
+                        Box::new(iter::empty())
+                    }
+                }
                 ([], [Package(Equal(pn))], _) => {
                     let pn = std::mem::take(pn);
                     let ver_restrict = match ver_restricts.len() {
@@ -841,7 +860,7 @@ impl<'a> IterCpv<'a> {
                                 .collect();
                             Either::Left(cpvs.into_iter())
                         } else {
-                            Either::Right(std::iter::empty())
+                            Either::Right(iter::empty())
                         }
                     }))
                 }
