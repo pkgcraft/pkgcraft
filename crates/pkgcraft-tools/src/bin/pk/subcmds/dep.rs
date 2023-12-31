@@ -29,7 +29,7 @@ pub enum Subcommand {
     Parse(parse::Command),
     /// Collapse input into a set of deps
     Set(set::Command),
-    /// Sort deps
+    /// Sort deps and/or cpvs
     Sort(sort::Command),
 }
 
