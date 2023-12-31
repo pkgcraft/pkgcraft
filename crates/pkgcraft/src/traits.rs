@@ -9,11 +9,12 @@ pub trait Contains<T> {
     fn contains(&self, obj: T) -> bool;
 }
 
-impl<T> Contains<&T> for IndexSet<T>
+impl<T, Q> Contains<&Q> for IndexSet<T>
 where
-    T: Eq + Hash + Equivalent<T>,
+    Q: Eq + Hash + Equivalent<T>,
+    T: Eq + Hash,
 {
-    fn contains(&self, value: &T) -> bool {
+    fn contains(&self, value: &Q) -> bool {
         IndexSet::contains(self, value)
     }
 }
