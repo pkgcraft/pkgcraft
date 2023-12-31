@@ -17,6 +17,10 @@ pub struct Command {
     #[arg(short, long)]
     force: bool,
 
+    /// Prune outdated entries
+    #[arg(short = 'P', long)]
+    prune: bool,
+
     /// Remove metadata cache
     #[arg(short, long)]
     remove: bool,
@@ -51,10 +55,10 @@ impl Command {
         };
 
         if self.remove {
-            // remove the metadata cache
             cache.remove(repo)?;
+        } else if self.prune {
+            cache.prune(repo)?;
         } else {
-            // run metadata regeneration displaying a progress bar if stdout is a terminal
             cache
                 .regen()
                 .jobs(self.jobs.unwrap_or_default())
