@@ -272,7 +272,7 @@ impl MetadataCacheRegen<'_> {
 
             if !self.force {
                 // run cache validation in a thread pool
-                pb.set_message("validating metadata cache:");
+                pb.set_message("validating metadata:");
                 cpvs = cpvs
                     .into_par_iter()
                     .filter(|cpv| {
@@ -292,7 +292,12 @@ impl MetadataCacheRegen<'_> {
         // send Cpvs and iterate over returned results, tracking progress and errors
         let mut errors = 0;
         if !cpvs.is_empty() {
-            pb.set_message("generating metadata cache:");
+            if self.verify {
+                pb.set_message("verifying metadata:");
+            } else {
+                pb.set_message("generating metadata:");
+            }
+
             for r in pool.iter(cpvs.into_iter())? {
                 pb.inc(1);
 
@@ -305,9 +310,7 @@ impl MetadataCacheRegen<'_> {
         }
 
         if errors > 0 {
-            Err(Error::InvalidValue(
-                "failed generating metadata, check log for package errors".to_string(),
-            ))
+            Err(Error::InvalidValue("metadata failures occurred, see log for details".to_string()))
         } else {
             Ok(())
         }

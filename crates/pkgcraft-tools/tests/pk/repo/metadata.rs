@@ -172,7 +172,7 @@ fn pkg_with_invalid_eapi() {
         .arg(t.path())
         .assert()
         .stdout("")
-        .stderr(lines_contain(["invalid pkg: cat/a-1", "failed generating metadata"]))
+        .stderr(lines_contain(["invalid pkg: cat/a-1", "metadata failures occurred"]))
         .failure()
         .code(2);
 
@@ -190,7 +190,7 @@ fn pkg_with_invalid_dep() {
         .arg(t.path())
         .assert()
         .stdout("")
-        .stderr(lines_contain(["invalid pkg: cat/a-1", "failed generating metadata"]))
+        .stderr(lines_contain(["invalid pkg: cat/a-1", "metadata failures occurred"]))
         .failure()
         .code(2);
 
