@@ -141,6 +141,7 @@ impl MetadataCache {
             force: false,
             progress: false,
             suppress: true,
+            verify: false,
             targeted: false,
             targets: Default::default(),
         }
@@ -154,6 +155,7 @@ pub struct MetadataCacheRegen<'a> {
     force: bool,
     progress: bool,
     suppress: bool,
+    verify: bool,
     targeted: bool,
     targets: IndexSet<Cpv<String>>,
 }
@@ -183,6 +185,12 @@ impl MetadataCacheRegen<'_> {
         self
     }
 
+    /// Perform metadata verification without writing to the cache.
+    pub fn verify(mut self, value: bool) -> Self {
+        self.verify = value;
+        self
+    }
+
     /// Specify package targets for cache regeneration.
     pub fn targets<I>(mut self, value: I) -> Self
     where
@@ -202,7 +210,9 @@ impl MetadataCacheRegen<'_> {
         let func = |cpv: Cpv<String>| -> scallop::Result<()> {
             let pkg = Pkg::try_new(cpv, repo)?;
             let meta = Metadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
-            self.cache.update(&pkg, &meta)?;
+            if !self.verify {
+                self.cache.update(&pkg, &meta)?;
+            }
             Ok(())
         };
         let pool = PoolSendIter::new(self.jobs, func, self.suppress)?;
@@ -231,7 +241,7 @@ impl MetadataCacheRegen<'_> {
 
         if self.cache.path().exists() {
             // remove outdated cache entries lacking matching ebuilds in parallel
-            if !self.targeted {
+            if !self.targeted && !self.verify {
                 // TODO: replace with parallelized cache iterator
                 let entries: Vec<_> = WalkDir::new(self.cache.path())
                     .min_depth(2)
