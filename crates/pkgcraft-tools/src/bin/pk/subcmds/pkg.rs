@@ -52,6 +52,9 @@ fn target_restriction(
     match (restrict::parse::dep(target), path_target) {
         (Ok(restrict), _) => Ok((repos.clone(), restrict)),
         (_, Ok(path)) if path.exists() => anyhow::bail!("invalid repo path: {path}"),
+        (_, Err(e)) if target.starts_with(['.', '/']) => {
+            anyhow::bail!("invalid path target: {target}: {e}")
+        }
         (Err(e), _) => anyhow::bail!(e),
     }
 }
