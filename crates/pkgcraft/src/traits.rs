@@ -1,9 +1,30 @@
+use std::hash::Hash;
+
 use camino::{Utf8Path, Utf8PathBuf};
+use indexmap::{Equivalent, IndexSet};
 use scallop::{source, ExecStatus};
 
 /// Return true if a container type contains a given object, otherwise false.
 pub trait Contains<T> {
     fn contains(&self, obj: T) -> bool;
+}
+
+impl<T> Contains<&T> for IndexSet<T>
+where
+    T: Eq + Hash + Equivalent<T>,
+{
+    fn contains(&self, value: &T) -> bool {
+        IndexSet::contains(self, value)
+    }
+}
+
+impl<T, V> Contains<&V> for &T
+where
+    T: for<'a> Contains<&'a V>,
+{
+    fn contains(&self, value: &V) -> bool {
+        (*self).contains(value)
+    }
 }
 
 /// Determine if two objects intersect.

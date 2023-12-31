@@ -422,24 +422,6 @@ where
     }
 }
 
-impl<T> Contains<&Cpv<String>> for &T
-where
-    T: PkgRepository,
-{
-    fn contains(&self, cpv: &Cpv<String>) -> bool {
-        (*self).contains(cpv)
-    }
-}
-
-impl<T> Contains<&Dep<String>> for &T
-where
-    T: PkgRepository,
-{
-    fn contains(&self, dep: &Dep<String>) -> bool {
-        (*self).contains(dep)
-    }
-}
-
 impl<'a, T: Repository + PkgRepository> Repository for &'a T {
     fn format(&self) -> RepoFormat {
         (*self).format()
