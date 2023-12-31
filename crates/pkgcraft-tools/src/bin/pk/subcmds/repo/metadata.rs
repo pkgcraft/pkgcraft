@@ -29,10 +29,6 @@ pub struct Command {
     #[arg(short, long)]
     no_progress: bool,
 
-    /// Allow output to stderr and stdout (suppressed by default)
-    #[arg(short, long)]
-    output: bool,
-
     /// Custom cache format
     #[arg(long)]
     format: Option<CacheFormat>,
@@ -63,8 +59,7 @@ impl Command {
                 .regen()
                 .jobs(self.jobs.unwrap_or_default())
                 .force(self.force)
-                .progress(stdout().is_terminal() && !self.no_progress && !self.output)
-                .suppress(!self.output)
+                .progress(stdout().is_terminal() && !self.no_progress)
                 .run(repo)?;
         }
 
