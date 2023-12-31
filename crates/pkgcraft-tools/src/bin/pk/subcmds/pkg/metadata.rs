@@ -21,6 +21,10 @@ pub struct Command {
     #[arg(short, long)]
     force: bool,
 
+    /// Verify metadata without updating cache
+    #[arg(short = 'V', long)]
+    verify: bool,
+
     /// Custom cache path
     #[arg(short, long)]
     path: Option<String>,
@@ -93,6 +97,7 @@ impl Command {
                     .progress(progress)
                     .suppress(!self.output)
                     .targets(repo.iter_cpv_restrict(&restrict))
+                    .verify(self.verify)
                     .run(repo)?;
             }
         }
