@@ -85,23 +85,16 @@ impl<'a> FormatString<'a> for Command {
 }
 
 impl Command {
-    fn parse_dep(&self, s: &str) -> anyhow::Result<()> {
-        let dep = Dep::parse(s, self.eapi)?;
-
-        // output formatted string if specified
-        if let Some(fmt) = &self.format {
-            println!("{}", self.format_str(fmt, &dep)?);
-        }
-
-        Ok(())
-    }
-
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
         let vals = mem::take(&mut self.vals);
         for s in vals.stdin_or_args().split_whitespace() {
-            if self.parse_dep(&s).is_err() {
+            if let Ok(dep) = Dep::parse(&s, self.eapi) {
+                if let Some(fmt) = &self.format {
+                    println!("{}", self.format_str(fmt, &dep)?);
+                }
+            } else {
                 eprintln!("INVALID DEP: {s}");
                 status = ExitCode::FAILURE;
             }

@@ -50,22 +50,16 @@ impl<'a> FormatString<'a> for Command {
 }
 
 impl Command {
-    fn parse_version(&self, s: &str) -> anyhow::Result<()> {
-        let ver = Version::parse(s)?;
-        if let Some(fmt) = &self.format {
-            println!("{}", self.format_str(fmt, &ver)?);
-        }
-        Ok(())
-    }
-}
-
-impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
         let vals = mem::take(&mut self.vals);
         for s in vals.stdin_or_args().split_whitespace() {
-            if self.parse_version(&s).is_err() {
+            if let Ok(ver) = Version::parse(&s) {
+                if let Some(fmt) = &self.format {
+                    println!("{}", self.format_str(fmt, &ver)?);
+                }
+            } else {
                 eprintln!("INVALID VERSION: {s}");
                 status = ExitCode::FAILURE;
             }
