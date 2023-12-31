@@ -427,7 +427,7 @@ where
     T: PkgRepository,
 {
     fn contains(&self, cpv: &Cpv<String>) -> bool {
-        self.iter_restrict(cpv).next().is_some()
+        (*self).contains(cpv)
     }
 }
 
@@ -436,7 +436,7 @@ where
     T: PkgRepository,
 {
     fn contains(&self, dep: &Dep<String>) -> bool {
-        self.iter_restrict(dep).next().is_some()
+        (*self).contains(dep)
     }
 }
 
