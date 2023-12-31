@@ -53,9 +53,6 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // run metadata regeneration displaying a progress bar if stdout is a terminal
-        let progress = stdout().is_terminal() && !self.no_progress && !self.output;
-
         // determine target repo set
         let repos = if let Some(repo) = self.repo.as_ref() {
             let repo = if let Some(r) = config.repos.get(repo) {
@@ -94,7 +91,7 @@ impl Command {
                     .regen()
                     .jobs(self.jobs.unwrap_or_default())
                     .force(self.force)
-                    .progress(progress)
+                    .progress(stdout().is_terminal() && !self.no_progress && !self.output)
                     .suppress(!self.output)
                     .targets(repo.iter_cpv_restrict(&restrict))
                     .verify(self.verify)
