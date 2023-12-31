@@ -140,7 +140,7 @@ impl MetadataCache {
             jobs: num_cpus::get(),
             force: false,
             progress: false,
-            suppress: true,
+            output: false,
             verify: false,
             targeted: false,
             targets: Default::default(),
@@ -154,7 +154,7 @@ pub struct MetadataCacheRegen<'a> {
     jobs: usize,
     force: bool,
     progress: bool,
-    suppress: bool,
+    output: bool,
     verify: bool,
     targeted: bool,
     targets: IndexSet<Cpv<String>>,
@@ -179,9 +179,9 @@ impl MetadataCacheRegen<'_> {
         self
     }
 
-    /// Suppress output from stdout and stderr during cache regeneration.
-    pub fn suppress(mut self, value: bool) -> Self {
-        self.suppress = value;
+    /// Allow output from stdout and stderr during cache regeneration.
+    pub fn output(mut self, value: bool) -> Self {
+        self.output = value;
         self
     }
 
@@ -215,7 +215,7 @@ impl MetadataCacheRegen<'_> {
             }
             Ok(())
         };
-        let pool = PoolSendIter::new(self.jobs, func, self.suppress)?;
+        let pool = PoolSendIter::new(self.jobs, func, !self.output)?;
 
         // use progress bar to show completion progress if enabled
         let pb = if self.progress {

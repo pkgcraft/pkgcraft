@@ -92,7 +92,7 @@ impl Command {
                     .jobs(self.jobs.unwrap_or_default())
                     .force(self.force)
                     .progress(stdout().is_terminal() && !self.no_progress && !self.output)
-                    .suppress(!self.output)
+                    .output(self.output)
                     .targets(repo.iter_cpv_restrict(&restrict))
                     .verify(self.verify)
                     .run(repo)?;
