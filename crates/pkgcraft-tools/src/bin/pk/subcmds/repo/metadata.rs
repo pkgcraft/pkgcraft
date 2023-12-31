@@ -1,72 +1,40 @@
-use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
-use clap::Args;
 use pkgcraft::config::Config;
-use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 
-use crate::args::target_ebuild_repo;
+mod prune;
+mod regen;
+mod remove;
 
-#[derive(Debug, Args)]
+#[derive(Debug, clap::Args)]
 pub struct Command {
-    /// Parallel jobs to run
-    #[arg(short, long)]
-    jobs: Option<usize>,
-
-    /// Force regeneration to occur
-    #[arg(short, long)]
-    force: bool,
-
-    /// Prune outdated entries
-    #[arg(short = 'P', long)]
-    prune: bool,
-
-    /// Remove metadata cache
-    #[arg(short, long)]
-    remove: bool,
-
-    /// Custom cache path
-    #[arg(short, long)]
-    path: Option<String>,
-
-    /// Disable progress bar
-    #[arg(short, long)]
-    no_progress: bool,
-
-    /// Custom cache format
-    #[arg(long)]
-    format: Option<CacheFormat>,
-
-    // positionals
-    /// Target repository
-    #[arg(default_value = ".")]
-    repo: String,
+    #[command(subcommand)]
+    command: Subcommand,
 }
 
 impl Command {
-    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let repo = target_ebuild_repo(config, &self.repo)?;
-        let format = self.format.unwrap_or(repo.cache().format());
+    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
+        self.command.run(config)
+    }
+}
 
-        let cache = if let Some(path) = self.path.as_ref() {
-            format.from_path(path)
-        } else {
-            format.from_repo(repo)
-        };
+#[derive(Debug, clap::Subcommand)]
+pub enum Subcommand {
+    /// Prune outdated entries
+    Prune(prune::Command),
+    /// Regenerate metadata cache
+    Regen(regen::Command),
+    /// Remove metadata cache
+    Remove(remove::Command),
+}
 
-        if self.remove {
-            cache.remove(repo)?;
-        } else if self.prune {
-            cache.prune(repo)?;
-        } else {
-            cache
-                .regen()
-                .jobs(self.jobs.unwrap_or_default())
-                .force(self.force)
-                .progress(stdout().is_terminal() && !self.no_progress)
-                .run(repo)?;
+impl Subcommand {
+    fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
+        use Subcommand::*;
+        match self {
+            Regen(cmd) => cmd.run(config),
+            Prune(cmd) => cmd.run(config),
+            Remove(cmd) => cmd.run(config),
         }
-
-        Ok(ExitCode::SUCCESS)
     }
 }

@@ -24,12 +24,12 @@ pub enum Subcommand {
     Eapis(eapis::Command),
     /// Output leaf packages
     Leaf(leaf::Command),
-    /// Generate repo metadata
+    /// Manipulate repo metadata
     Metadata(metadata::Command),
 }
 
 impl Subcommand {
-    fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
             Eapis(cmd) => cmd.run(config),
