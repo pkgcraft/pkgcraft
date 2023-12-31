@@ -5,12 +5,16 @@ use std::{fmt, fs, io};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 use itertools::Itertools;
+use rayon::prelude::*;
 use tracing::warn;
+use walkdir::WalkDir;
 
-use crate::files::atomic_write_file;
+use crate::dep::Cpv;
+use crate::files::{atomic_write_file, is_file, is_hidden};
 use crate::pkg::{ebuild::raw::Pkg, Package, RepoPackage};
 use crate::repo::Repository;
 use crate::shell::metadata::{Key, Metadata};
+use crate::traits::Contains;
 use crate::Error;
 
 use super::{Cache, CacheEntry, CacheFormat, Repo};
@@ -208,5 +212,39 @@ impl Cache for Md5Dict {
         let path = &self.path;
         fs::remove_dir_all(path)
             .map_err(|e| Error::IO(format!("failed removing metadata cache: {path}: {e}")))
+    }
+
+    fn prune<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
+        &self,
+        collection: C,
+    ) -> crate::Result<()> {
+        // TODO: replace with parallelized cache iterator
+        let entries: Vec<_> = WalkDir::new(self.path())
+            .min_depth(2)
+            .max_depth(2)
+            .into_iter()
+            .collect();
+
+        entries
+            .into_par_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| is_file(e) && !is_hidden(e))
+            .for_each(|e| {
+                let file = e.path();
+                let s = file
+                    .strip_prefix(self.path())
+                    .expect("invalid metadata entry")
+                    .to_string_lossy();
+                if let Ok(cpv) = s.parse() {
+                    // Remove an outdated cache file and its potentially, empty parent
+                    // directory while ignoring any I/O errors.
+                    if !collection.contains(&cpv) {
+                        fs::remove_file(file).ok();
+                        fs::remove_dir(file.parent().unwrap()).ok();
+                    }
+                }
+            });
+
+        Ok(())
     }
 }

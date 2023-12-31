@@ -1,5 +1,3 @@
-use std::fs;
-
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -7,14 +5,13 @@ use rayon::prelude::*;
 use scallop::pool::PoolSendIter;
 use strum::{Display, EnumString};
 use tracing::error;
-use walkdir::WalkDir;
 
 use crate::dep::Cpv;
 use crate::error::{Error, PackageError};
-use crate::files::{is_file, is_hidden};
 use crate::pkg::ebuild::raw::Pkg;
 use crate::repo::{PkgRepository, Repository};
 use crate::shell::metadata::Metadata;
+use crate::traits::Contains;
 use crate::utils::bounded_jobs;
 
 use super::Repo;
@@ -40,6 +37,11 @@ pub trait Cache {
     fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()>;
     /// Forcibly remove the entire cache.
     fn remove(&self, repo: &Repo) -> crate::Result<()>;
+    /// Prune outdated entries from the cache.
+    fn prune<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
+        &self,
+        collection: C,
+    ) -> crate::Result<()>;
 }
 
 #[derive(
@@ -128,6 +130,15 @@ impl Cache for MetadataCache {
 
         match self {
             Self::Md5Dict(cache) => cache.remove(repo),
+        }
+    }
+
+    fn prune<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
+        &self,
+        collection: C,
+    ) -> crate::Result<()> {
+        match self {
+            Self::Md5Dict(cache) => cache.prune(collection),
         }
     }
 }
@@ -240,34 +251,9 @@ impl MetadataCacheRegen<'_> {
         pb.set_length(cpvs.len().try_into().unwrap());
 
         if self.cache.path().exists() {
-            // remove outdated cache entries lacking matching ebuilds in parallel
+            // prune outdated cache entries
             if !self.targeted && !self.verify {
-                // TODO: replace with parallelized cache iterator
-                let entries: Vec<_> = WalkDir::new(self.cache.path())
-                    .min_depth(2)
-                    .max_depth(2)
-                    .into_iter()
-                    .collect();
-
-                entries
-                    .into_par_iter()
-                    .filter_map(|e| e.ok())
-                    .filter(|e| is_file(e) && !is_hidden(e))
-                    .for_each(|e| {
-                        let file = e.path();
-                        let cpv_str = file
-                            .strip_prefix(self.cache.path())
-                            .expect("invalid metadata entry")
-                            .to_string_lossy();
-                        if let Ok(cpv) = Cpv::parse(&cpv_str) {
-                            // Remove an outdated cache file and its potentially, empty parent
-                            // directory while ignoring any I/O errors.
-                            if !cpvs.contains(&cpv) {
-                                fs::remove_file(file).ok();
-                                fs::remove_dir(file.parent().unwrap()).ok();
-                            }
-                        }
-                    });
+                self.cache.prune(&cpvs)?;
             }
 
             if !self.force {
