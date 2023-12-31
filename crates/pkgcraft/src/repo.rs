@@ -537,6 +537,28 @@ impl PkgRepository for Repo {
     }
 }
 
+impl Contains<&Cpv<String>> for Repo {
+    fn contains(&self, cpv: &Cpv<String>) -> bool {
+        match self {
+            Self::Configured(repo) => repo.contains(cpv),
+            Self::Ebuild(repo) => repo.contains(cpv),
+            Self::Fake(repo) => repo.contains(cpv),
+            Self::Unsynced(repo) => repo.contains(cpv),
+        }
+    }
+}
+
+impl Contains<&Dep<String>> for Repo {
+    fn contains(&self, dep: &Dep<String>) -> bool {
+        match self {
+            Self::Configured(repo) => repo.contains(dep),
+            Self::Ebuild(repo) => repo.contains(dep),
+            Self::Fake(repo) => repo.contains(dep),
+            Self::Unsynced(repo) => repo.contains(dep),
+        }
+    }
+}
+
 impl Repository for Repo {
     fn format(&self) -> RepoFormat {
         match self {
@@ -631,28 +653,10 @@ macro_rules! make_repo_traits {
             }
         }
 
-        $crate::repo::make_contains_dep!($x);
         $crate::repo::make_contains_path!($x);
     )+};
 }
 use make_repo_traits;
-
-macro_rules! make_contains_dep {
-    ($x:ty) => {
-        impl $crate::traits::Contains<&crate::dep::Cpv<String>> for $x {
-            fn contains(&self, cpv: &crate::dep::Cpv<String>) -> bool {
-                self.iter_restrict(cpv).next().is_some()
-            }
-        }
-
-        impl $crate::traits::Contains<&crate::dep::Dep<String>> for $x {
-            fn contains(&self, dep: &crate::dep::Dep<String>) -> bool {
-                self.iter_restrict(dep).next().is_some()
-            }
-        }
-    };
-}
-use make_contains_dep;
 
 macro_rules! make_contains_path {
     ($x:ty) => {

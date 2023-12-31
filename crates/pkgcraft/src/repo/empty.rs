@@ -5,9 +5,10 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 
 use crate::config::RepoConfig;
-use crate::dep::{Cpv, Version};
+use crate::dep::{Cpv, Dep, Version};
 use crate::pkg::Pkg;
 use crate::restrict::Restrict;
+use crate::traits::Contains;
 use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
@@ -105,6 +106,18 @@ impl PkgRepository for Repo {
 
     fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::IterRestrict<'_> {
         iter::empty::<Self::Pkg<'_>>()
+    }
+}
+
+impl Contains<&Cpv<String>> for Repo {
+    fn contains(&self, _cpv: &Cpv<String>) -> bool {
+        false
+    }
+}
+
+impl Contains<&Dep<String>> for Repo {
+    fn contains(&self, _dep: &Dep<String>) -> bool {
+        false
     }
 }
 

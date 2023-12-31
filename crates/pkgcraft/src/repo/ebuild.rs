@@ -15,7 +15,7 @@ use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::config::{RepoConfig, Settings};
-use crate::dep::{self, Cpv, Operator, Version};
+use crate::dep::{self, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
 use crate::files::{
     has_ext, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list, sorted_dir_list_utf8,
@@ -734,6 +734,18 @@ impl Repository for Repo {
 
     fn sync(&self) -> crate::Result<()> {
         self.repo_config().sync()
+    }
+}
+
+impl Contains<&Cpv<String>> for Repo {
+    fn contains(&self, cpv: &Cpv<String>) -> bool {
+        self.path().join(cpv.relpath()).exists()
+    }
+}
+
+impl Contains<&Dep<String>> for Repo {
+    fn contains(&self, dep: &Dep<String>) -> bool {
+        self.iter_restrict(dep).next().is_some()
     }
 }
 

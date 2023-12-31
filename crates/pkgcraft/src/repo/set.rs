@@ -5,14 +5,15 @@ use std::ops::{
 
 use indexmap::IndexSet;
 
-use crate::dep::{Cpv, Version};
+use crate::dep::{Cpv, Dep, Version};
 use crate::pkg::Pkg;
 use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict, Restriction};
+use crate::traits::Contains;
 use crate::types::OrderedSet;
 
-use super::{make_contains_dep, PkgRepository, Repo, Repository};
+use super::{PkgRepository, Repo, Repository};
 
 /// Ordered set of repos
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -124,7 +125,17 @@ impl PkgRepository for RepoSet {
     }
 }
 
-make_contains_dep!(RepoSet);
+impl Contains<&Cpv<String>> for RepoSet {
+    fn contains(&self, cpv: &Cpv<String>) -> bool {
+        self.0.iter().any(|r| r.contains(cpv))
+    }
+}
+
+impl Contains<&Dep<String>> for RepoSet {
+    fn contains(&self, dep: &Dep<String>) -> bool {
+        self.0.iter().any(|r| r.contains(dep))
+    }
+}
 
 pub struct IterCpv(indexmap::set::IntoIter<Cpv<String>>);
 
