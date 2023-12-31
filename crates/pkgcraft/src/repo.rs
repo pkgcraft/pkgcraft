@@ -331,7 +331,14 @@ impl<'a> Iterator for IterRestrict<'a> {
 }
 
 pub trait PkgRepository:
-    fmt::Debug + PartialEq + Eq + PartialOrd + Ord + Hash + for<'a> Contains<&'a Dep<String>>
+    fmt::Debug
+    + PartialEq
+    + Eq
+    + PartialOrd
+    + Ord
+    + Hash
+    + for<'a> Contains<&'a Cpv<String>>
+    + for<'a> Contains<&'a Dep<String>>
 {
     type Pkg<'a>: Package
     where
