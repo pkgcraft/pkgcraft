@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fs;
 
 use camino::Utf8Path;
@@ -283,14 +282,6 @@ impl MetadataCacheRegen<'_> {
         // send Cpvs and iterate over returned results, tracking progress and errors
         let mut errors = 0;
         if !cpvs.is_empty() {
-            // create metadata directories in parallel
-            let categories: HashSet<_> = cpvs.par_iter().map(|cpv| cpv.category()).collect();
-            categories.into_par_iter().try_for_each(|cat| {
-                let path = self.cache.path().join(cat);
-                fs::create_dir_all(&path)
-                    .map_err(|e| Error::IO(format!("failed creating metadata dir: {path}: {e}")))
-            })?;
-
             pb.set_message("generating metadata cache:");
             for r in pool.iter(cpvs.into_iter())? {
                 pb.inc(1);

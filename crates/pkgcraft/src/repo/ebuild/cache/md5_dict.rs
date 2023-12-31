@@ -195,18 +195,13 @@ impl Cache for Md5Dict {
 
     fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()> {
         // determine metadata entry directory
-        let dir = self.path.join(pkg.cpv().category());
+        let path = self.path.join(pkg.cpv().category());
 
         // convert pkg metadata to serialized cache entry format
         let data = Md5DictEntry::from(meta).serialize();
 
         // atomically create metadata file
-        let pf = pkg.cpv().pf();
-        let path = dir.join(format!(".{pf}"));
-        let new_path = dir.join(pf);
-        atomic_write_file(&path, data, &new_path)?;
-
-        Ok(())
+        atomic_write_file(&path, &pkg.cpv().pf(), data)
     }
 
     fn remove(&self, _repo: &Repo) -> crate::Result<()> {

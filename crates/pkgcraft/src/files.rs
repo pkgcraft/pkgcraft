@@ -147,11 +147,24 @@ pub(crate) fn has_ext_utf8(entry: &Utf8DirEntry, ext: &str) -> bool {
 /// Create a file atomically by writing to a temporary path and then renaming it.
 pub(crate) fn atomic_write_file<C: AsRef<[u8]>>(
     path: &Utf8Path,
+    file_name: &str,
     data: C,
-    new_path: &Utf8Path,
 ) -> crate::Result<()> {
-    fs::write(path, data).map_err(|e| Error::IO(format!("failed writing data: {path}: {e}")))?;
-    fs::rename(path, new_path)
-        .map_err(|e| Error::IO(format!("failed renaming file: {path} -> {new_path}: {e}")))?;
+    // create parent dir
+    fs::create_dir_all(path)
+        .map_err(|e| Error::IO(format!("failed creating metadata dir: {path}: {e}")))?;
+
+    // TODO: support custom temporary file path formats
+    let tmp_path = path.join(format!(".{file_name}"));
+    let new_path = path.join(file_name);
+
+    // write file to temp path
+    fs::write(&tmp_path, data)
+        .map_err(|e| Error::IO(format!("failed writing data: {tmp_path}: {e}")))?;
+
+    // move file to final path
+    fs::rename(&tmp_path, &new_path)
+        .map_err(|e| Error::IO(format!("failed renaming file: {tmp_path} -> {new_path}: {e}")))?;
+
     Ok(())
 }
