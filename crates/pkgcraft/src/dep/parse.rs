@@ -1,6 +1,6 @@
 use cached::{proc_macro::cached, SizedCache};
 
-use crate::dep::cpv::Cpv;
+use crate::dep::cpv::{Cpv, CpvOrDep};
 use crate::dep::pkg::{Blocker, Dep, Slot, SlotDep, SlotOperator};
 use crate::dep::uri::Uri;
 use crate::dep::use_dep::{UseDep, UseDepDefault, UseDepKind};
@@ -217,6 +217,10 @@ peg::parser!(grammar depspec() for str {
             dep.with(blocker, slot, use_deps, repo)
         }
 
+    pub(super) rule cpv_or_dep() -> CpvOrDep<&'input str>
+        = cpv:cpv() { CpvOrDep::Cpv(cpv) }
+        / dep:dep(Default::default()) { CpvOrDep::Dep(dep) }
+
     rule _ = quiet!{[^ ' ' | '\n' | '\t']+}
     rule __ = quiet!{[' ' | '\n' | '\t']+}
 
@@ -372,6 +376,11 @@ pub fn repo(s: &str) -> crate::Result<&str> {
 /// Parse a string into a [`Cpv`].
 pub(super) fn cpv(s: &str) -> crate::Result<Cpv<&str>> {
     depspec::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
+}
+
+/// Parse a string into a [`CpvOrDep`].
+pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep<&str>> {
+    depspec::cpv_or_dep(s).map_err(|e| peg_error("invalid cpv or dep", s, e))
 }
 
 pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Dep<&'a str>> {

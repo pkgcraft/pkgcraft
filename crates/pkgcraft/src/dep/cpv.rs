@@ -42,13 +42,7 @@ impl CpvOrDep<String> {
 impl<'a> CpvOrDep<&'a str> {
     /// Create a borrowed [`CpvOrDep`] from a given string.
     pub fn parse(s: &'a str) -> crate::Result<Self> {
-        if let Ok(val) = Dep::parse(s, None) {
-            Ok(CpvOrDep::Dep(val))
-        } else if let Ok(val) = Cpv::parse(s) {
-            Ok(CpvOrDep::Cpv(val))
-        } else {
-            Err(Error::InvalidValue(format!("invalid cpv or dep: {s}")))
-        }
+        parse::cpv_or_dep(s)
     }
 }
 
