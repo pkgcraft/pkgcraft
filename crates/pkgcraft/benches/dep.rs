@@ -1,8 +1,12 @@
 use criterion::Criterion;
 
-use pkgcraft::dep::{Dep, DepField};
+use pkgcraft::dep::{Cpv, Dep, DepField};
 
 pub fn bench_pkg_deps(c: &mut Criterion) {
+    c.bench_function("cpv-parse", |b| b.iter(|| Cpv::parse(">=cat/pkg-1.2.3-r4")));
+
+    c.bench_function("cpv-new", |b| b.iter(|| Cpv::try_new(">=cat/pkg-1.2.3-r4")));
+
     c.bench_function("dep-parse", |b| {
         b.iter(|| Dep::parse(">=cat/pkg-1.2.3-r4:5/6=[a,-b,c?]", None))
     });
