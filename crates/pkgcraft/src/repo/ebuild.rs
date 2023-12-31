@@ -855,7 +855,11 @@ impl<'a> IterCpv<'a> {
                     if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
                 {
                     let cpv = Cpv::try_from((cat, pn, ver.without_op())).expect("invalid Cpv");
-                    Box::new(iter::once(cpv))
+                    if repo.contains(&cpv) {
+                        Box::new(iter::once(cpv))
+                    } else {
+                        Box::new(iter::empty())
+                    }
                 }
                 ([Equal(cat)], [Package(Equal(pn))], _) => {
                     let ver_restrict = match ver_restricts.len() {
