@@ -21,7 +21,7 @@ flaky = []
 
 [dependencies]
 aho-corasick = "1.1.2"
-anyhow = "1.0.77"
+anyhow = "1.0.78"
 camino = "1.1.6"
 clap = { version = "4.4.12", features = ["derive"] }
 clap-verbosity-flag = "2.1.1"
