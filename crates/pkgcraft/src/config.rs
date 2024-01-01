@@ -266,6 +266,17 @@ impl Config {
         self.repos.extend([repo], &self.settings, external)
     }
 
+    /// Return the repo for a given name or path, potentially adding it to the config.
+    pub fn add_target_repo(&mut self, target: &str) -> crate::Result<Repo> {
+        if let Some(repo) = self.repos.get(target) {
+            Ok(repo.clone())
+        } else if Utf8Path::new(target).exists() {
+            Ok(self.add_nested_repo_path(target, 0, target, true)?)
+        } else {
+            Err(Error::InvalidValue(format!("unknown repo: {target}")))
+        }
+    }
+
     /// Create a new repo.
     pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
         let r = self.repos.create(name, priority)?;
