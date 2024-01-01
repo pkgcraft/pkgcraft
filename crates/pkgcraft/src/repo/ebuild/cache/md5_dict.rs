@@ -258,8 +258,9 @@ mod tests {
     #[test]
     fn load_and_convert() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let cache = CacheFormat::Md5Dict.from_repo(repo);
         for pkg in repo.iter_raw() {
-            let r = repo.cache().get(&pkg);
+            let r = cache.get(&pkg);
             assert!(r.is_ok(), "{pkg}: failed loading cache entry: {}", r.unwrap_err());
             let r = r.unwrap().to_metadata(&pkg);
             assert!(r.is_ok(), "{pkg}: failed converting to metadata: {}", r.unwrap_err());
