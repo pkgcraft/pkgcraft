@@ -1,5 +1,6 @@
 use std::process::ExitCode;
 
+mod cpv;
 mod dep;
 mod pkg;
 mod repo;
@@ -9,6 +10,8 @@ use pkgcraft::config::Config;
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
+    /// Perform Cpv-related actions including parsing, intersection, and sorting
+    Cpv(cpv::Command),
     /// Perform dep-related actions including parsing, intersection, and sorting
     Dep(dep::Command),
     /// Perform package-related actions
@@ -23,6 +26,7 @@ impl Subcommand {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
+            Cpv(cmd) => cmd.run(),
             Dep(cmd) => cmd.run(),
             Pkg(cmd) => cmd.run(config),
             Repo(cmd) => cmd.run(config),
