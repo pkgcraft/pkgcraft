@@ -181,43 +181,6 @@ impl<'a> Metadata<'a> {
         Ok(())
     }
 
-    /// Serialize a metadata field to its string value, returning None for empty strings.
-    pub(crate) fn serialize(&self, key: &Key) -> Option<String> {
-        use Key::*;
-        let value = match key {
-            CHKSUM => self.chksum.clone(),
-            DESCRIPTION => self.description.clone(),
-            SLOT => self.slot.to_string(),
-            BDEPEND => self.bdepend.to_string(),
-            DEPEND => self.depend.to_string(),
-            IDEPEND => self.idepend.to_string(),
-            PDEPEND => self.pdepend.to_string(),
-            RDEPEND => self.rdepend.to_string(),
-            LICENSE => self.license.to_string(),
-            PROPERTIES => self.properties.to_string(),
-            REQUIRED_USE => self.required_use.to_string(),
-            RESTRICT => self.restrict.to_string(),
-            SRC_URI => self.src_uri.to_string(),
-            HOMEPAGE => self.homepage.iter().join(" "),
-            DEFINED_PHASES => self.defined_phases.iter().map(|p| p.name()).join(" "),
-            KEYWORDS => self.keywords.iter().join(" "),
-            IUSE => self.iuse.iter().join(" "),
-            INHERIT => self.inherit.iter().join(" "),
-            INHERITED => self
-                .inherited
-                .iter()
-                .flat_map(|e| [e.name(), e.chksum()])
-                .join("\t"),
-            EAPI => self.eapi.to_string(),
-        };
-
-        if value.is_empty() {
-            None
-        } else {
-            Some(value)
-        }
-    }
-
     pub(crate) fn eapi(&self) -> &'static Eapi {
         self.eapi
     }
