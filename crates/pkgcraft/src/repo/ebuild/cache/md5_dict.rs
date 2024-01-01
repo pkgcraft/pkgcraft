@@ -206,11 +206,11 @@ impl Cache for Md5Dict {
         // determine cache entry directory
         let path = self.path.join(pkg.cpv().category());
 
-        // convert metadata to the cache format and then to raw bytes
-        let data = Md5DictEntry::from(meta).to_bytes();
+        // convert metadata to the cache entry format
+        let entry: Self::Entry = meta.into();
 
         // atomically create cache file
-        atomic_write_file(&path, &pkg.cpv().pf(), data)
+        atomic_write_file(&path, &pkg.cpv().pf(), entry.to_bytes())
     }
 
     fn remove(&self, _repo: &Repo) -> crate::Result<()> {
