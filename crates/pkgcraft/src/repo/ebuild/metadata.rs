@@ -19,7 +19,7 @@ use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
-use super::cache::CacheFormat;
+use super::cache::{Cache, CacheFormat, MetadataCache};
 use super::Eclass;
 
 /// Wrapper for ini format config files.
@@ -205,6 +205,7 @@ pub struct Metadata {
     path: Utf8PathBuf,
     arches: OnceLock<IndexSet<String>>,
     arches_desc: OnceLock<HashMap<ArchStatus, HashSet<String>>>,
+    cache: OnceLock<MetadataCache>,
     categories: OnceLock<IndexSet<String>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
     licenses: OnceLock<IndexSet<String>>,
@@ -310,6 +311,20 @@ impl Metadata {
                 });
 
             vals
+        })
+    }
+
+    pub fn cache(&self) -> &MetadataCache {
+        self.cache.get_or_init(|| {
+            // TODO: support multiple cache formats?
+            let format = self
+                .config
+                .cache_formats()
+                .first()
+                .copied()
+                .unwrap_or_default();
+
+            format.from_repo(&self.path)
         })
     }
 

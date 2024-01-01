@@ -126,7 +126,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
 ) -> bool {
     ffi_catch_panic! {
         let repo = try_repo_from_ptr!(r);
-        let format = repo.cache().format();
+        let format = repo.metadata().cache().format();
 
         let cache = if let Some(path) = try_opt_str_from_ptr!(path) {
             format.from_path(path)
