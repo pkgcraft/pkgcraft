@@ -98,26 +98,30 @@ mod tests {
     #[test]
     fn pretend() {
         // no pkg_pretend phase exists
-        let pkg = TEST_DATA.ebuild_pkg("pkg-pretend/none::phases").unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=pkg-pretend/none-1::phases").unwrap();
         assert!(pkg.pretend().is_ok());
 
         // success
-        let pkg = TEST_DATA.ebuild_pkg("pkg-pretend/success::phases").unwrap();
+        let pkg = TEST_DATA
+            .ebuild_pkg("=pkg-pretend/success-1::phases")
+            .unwrap();
         assert!(pkg.pretend().is_ok());
 
         // success with output
         let pkg = TEST_DATA
-            .ebuild_pkg("pkg-pretend/success-with-output::phases")
+            .ebuild_pkg("=pkg-pretend/success-with-output-1::phases")
             .unwrap();
         assert!(pkg.pretend().is_ok());
 
         // failure
-        let pkg = TEST_DATA.ebuild_pkg("pkg-pretend/failure::phases").unwrap();
+        let pkg = TEST_DATA
+            .ebuild_pkg("=pkg-pretend/failure-1::phases")
+            .unwrap();
         assert!(pkg.pretend().is_err());
 
         // failure with output
         let pkg = TEST_DATA
-            .ebuild_pkg("pkg-pretend/failure-with-output::phases")
+            .ebuild_pkg("=pkg-pretend/failure-with-output-1::phases")
             .unwrap();
         assert!(pkg.pretend().is_err());
     }

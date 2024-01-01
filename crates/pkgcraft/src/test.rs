@@ -9,9 +9,8 @@ use serde_with::{serde_as, DisplayFromStr};
 use walkdir::WalkDir;
 
 use crate::config::Config;
-use crate::dep::{Blocker, Dep, Revision, SlotOperator, UseDep, Version};
+use crate::dep::{Blocker, Cpv, Dep, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_from_paths;
-use crate::repo::PkgRepository;
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -159,23 +158,32 @@ impl TestData {
         &self.config
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> Option<&crate::repo::ebuild::Repo> {
-        self.config
-            .repos
-            .get(name)
-            .and_then(|r| r.as_ebuild().map(|r| r.as_ref()))
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::Repo> {
+        if let Some(repo) = self.config.repos.get(name) {
+            repo.as_ebuild()
+                .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
+                .map(|r| r.as_ref())
+        } else {
+            Err(Error::InvalidValue(format!("unknown repo: {name}")))
+        }
     }
 
-    pub fn ebuild_raw_pkg<'a>(&'a self, s: &str) -> Option<crate::pkg::ebuild::raw::Pkg<'a>> {
-        let dep: Dep<_> = s.parse().expect("invalid dep");
-        self.ebuild_repo(dep.repo().expect("dep missing repo id"))
-            .and_then(|r| r.iter_raw_restrict(&dep).next())
+    pub fn ebuild_raw_pkg<'a>(
+        &'a self,
+        s: &str,
+    ) -> crate::Result<crate::pkg::ebuild::raw::Pkg<'a>> {
+        let dep: Dep<_> = s.parse()?;
+        let repo_name = dep
+            .repo()
+            .ok_or_else(|| Error::InvalidValue(format!("dep missing repo: {s}")))?;
+        let repo = self.ebuild_repo(repo_name)?;
+        let cpv = Cpv::try_new(dep.cpv())?;
+        crate::pkg::ebuild::raw::Pkg::try_new(cpv, repo)
     }
 
-    pub fn ebuild_pkg<'a>(&'a self, s: &str) -> Option<crate::pkg::ebuild::Pkg<'a>> {
-        let dep: Dep<_> = s.parse().expect("invalid dep");
-        self.ebuild_repo(dep.repo().expect("dep missing repo id"))
-            .and_then(|r| r.iter_restrict(&dep).next())
+    pub fn ebuild_pkg<'a>(&'a self, s: &str) -> crate::Result<crate::pkg::ebuild::Pkg<'a>> {
+        let raw_pkg = self.ebuild_raw_pkg(s)?;
+        raw_pkg.try_into()
     }
 }
 
