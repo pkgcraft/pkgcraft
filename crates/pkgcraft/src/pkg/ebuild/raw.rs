@@ -85,7 +85,7 @@ impl<'a> Pkg<'a> {
         self.repo
             .cache()
             .get(self)
-            .and_then(|m| m.deserialize(self))
+            .and_then(|c| c.to_metadata(self))
             .or_else(|_| self.try_into())
             .map_err(|e| Error::InvalidPkg {
                 id: self.to_string(),

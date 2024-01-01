@@ -357,7 +357,7 @@ mod tests {
         for pkg in repo.iter_raw() {
             let r = repo.cache().get(&pkg);
             assert!(r.is_ok(), "{pkg}: failed loading metadata: {}", r.unwrap_err());
-            let r = r.unwrap().deserialize(&pkg);
+            let r = r.unwrap().to_metadata(&pkg);
             assert!(r.is_ok(), "{pkg}: failed deserializing metadata: {}", r.unwrap_err());
         }
     }

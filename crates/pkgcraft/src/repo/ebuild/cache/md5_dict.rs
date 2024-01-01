@@ -58,7 +58,7 @@ impl fmt::Display for Md5DictKey {
 pub struct Md5DictEntry(IndexMap<Md5DictKey, String>);
 
 impl CacheEntry for Md5DictEntry {
-    fn deserialize<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
+    fn to_metadata<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
         let mut meta = Metadata::default();
 
         for key in pkg.eapi().mandatory_keys() {

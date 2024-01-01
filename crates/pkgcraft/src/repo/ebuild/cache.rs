@@ -20,7 +20,7 @@ pub(crate) mod md5_dict;
 
 pub trait CacheEntry {
     /// Deserialize a cache entry to package metadata.
-    fn deserialize<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>>;
+    fn to_metadata<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>>;
     /// Verify a cache entry is valid.
     fn verify(&self, pkg: &Pkg) -> crate::Result<()>;
 }
@@ -75,9 +75,9 @@ pub enum MetadataCacheEntry {
 }
 
 impl CacheEntry for MetadataCacheEntry {
-    fn deserialize<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
+    fn to_metadata<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
         match self {
-            Self::Md5Dict(entry) => entry.deserialize(pkg),
+            Self::Md5Dict(entry) => entry.to_metadata(pkg),
         }
     }
 
