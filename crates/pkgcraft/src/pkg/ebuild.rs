@@ -92,12 +92,12 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's description.
     pub fn description(&self) -> &str {
-        self.meta.description()
+        &self.meta.description
     }
 
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
-        self.meta.slot().subslot().unwrap_or_else(|| self.slot())
+        self.meta.slot.subslot().unwrap_or_else(|| self.slot())
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
@@ -128,87 +128,87 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's BDEPEND.
     pub fn bdepend(&self) -> &DependencySet<String, Dep<String>> {
-        self.meta.bdepend()
+        &self.meta.bdepend
     }
 
     /// Return a package's DEPEND.
     pub fn depend(&self) -> &DependencySet<String, Dep<String>> {
-        self.meta.depend()
+        &self.meta.depend
     }
 
     /// Return a package's IDEPEND.
     pub fn idepend(&self) -> &DependencySet<String, Dep<String>> {
-        self.meta.idepend()
+        &self.meta.idepend
     }
 
     /// Return a package's PDEPEND.
     pub fn pdepend(&self) -> &DependencySet<String, Dep<String>> {
-        self.meta.pdepend()
+        &self.meta.pdepend
     }
 
     /// Return a package's RDEPEND.
     pub fn rdepend(&self) -> &DependencySet<String, Dep<String>> {
-        self.meta.rdepend()
+        &self.meta.rdepend
     }
 
     /// Return a package's LICENSE.
     pub fn license(&self) -> &DependencySet<String, String> {
-        self.meta.license()
+        &self.meta.license
     }
 
     /// Return a package's PROPERTIES.
     pub fn properties(&self) -> &DependencySet<String, String> {
-        self.meta.properties()
+        &self.meta.properties
     }
 
     /// Return a package's REQUIRED_USE.
     pub fn required_use(&self) -> &DependencySet<String, String> {
-        self.meta.required_use()
+        &self.meta.required_use
     }
 
     /// Return a package's RESTRICT.
     pub fn restrict(&self) -> &DependencySet<String, String> {
-        self.meta.restrict()
+        &self.meta.restrict
     }
 
     /// Return a package's SRC_URI.
     pub fn src_uri(&self) -> &DependencySet<String, Uri> {
-        self.meta.src_uri()
+        &self.meta.src_uri
     }
 
     /// Return a package's homepage.
     pub fn homepage(&self) -> &OrderedSet<String> {
-        self.meta.homepage()
+        &self.meta.homepage
     }
 
     /// Return a package's defined phases
     pub fn defined_phases(&self) -> &OrderedSet<&Phase> {
-        self.meta.defined_phases()
+        &self.meta.defined_phases
     }
 
     /// Return a package's keywords.
     pub fn keywords(&self) -> &OrderedSet<keyword::Keyword<String>> {
-        self.meta.keywords()
+        &self.meta.keywords
     }
 
     /// Return a package's IUSE.
     pub fn iuse(&self) -> &OrderedSet<iuse::Iuse<String>> {
-        self.meta.iuse()
+        &self.meta.iuse
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
     pub fn inherit(&self) -> &OrderedSet<&Eclass> {
-        self.meta.inherit()
+        &self.meta.inherit
     }
 
     /// Return the ordered set of inherited eclasses for a package.
     pub fn inherited(&self) -> &OrderedSet<&Eclass> {
-        self.meta.inherited()
+        &self.meta.inherited
     }
 
     /// Return the checksum for a package.
     pub fn chksum(&self) -> &str {
-        self.meta.chksum()
+        &self.meta.chksum
     }
 
     /// Return a package's XML metadata.
@@ -245,7 +245,7 @@ impl<'a> Pkg<'a> {
 
 impl<'a> Package for Pkg<'a> {
     fn eapi(&self) -> &'static Eapi {
-        self.meta.eapi()
+        self.meta.eapi
     }
 
     fn cpv(&self) -> &Cpv<String> {
@@ -265,7 +265,7 @@ impl<'a> EbuildPackage for Pkg<'a> {
     fn iuse_effective(&self) -> &OrderedSet<String> {
         self.iuse_effective.get_or_init(|| {
             self.meta
-                .iuse()
+                .iuse
                 .iter()
                 .map(|x| x.flag().to_string())
                 .collect()
@@ -273,7 +273,7 @@ impl<'a> EbuildPackage for Pkg<'a> {
     }
 
     fn slot(&self) -> &str {
-        self.meta.slot().slot()
+        self.meta.slot.slot()
     }
 }
 
