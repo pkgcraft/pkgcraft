@@ -737,6 +737,12 @@ impl Repository for Repo {
     }
 }
 
+impl AsRef<Utf8Path> for Repo {
+    fn as_ref(&self) -> &Utf8Path {
+        self.path()
+    }
+}
+
 impl Contains<&Cpv<String>> for Repo {
     fn contains(&self, cpv: &Cpv<String>) -> bool {
         self.path().join(cpv.relpath()).exists()
