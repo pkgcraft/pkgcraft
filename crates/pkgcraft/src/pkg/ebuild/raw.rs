@@ -9,7 +9,6 @@ use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::{ebuild::Repo, Repository};
 use crate::shell::metadata::Metadata;
 use crate::traits::FilterLines;
-use crate::utils::digest;
 use crate::Error;
 
 pub struct Pkg<'a> {
@@ -40,7 +39,7 @@ impl<'a> Pkg<'a> {
             err: e.to_string(),
         })?;
 
-        let chksum = digest::<md5::Md5>(data.as_bytes());
+        let chksum = repo.metadata().chksum(&data);
         Ok(Self { cpv, repo, eapi, data, chksum })
     }
 

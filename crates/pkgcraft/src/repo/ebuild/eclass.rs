@@ -5,7 +5,6 @@ use scallop::{source, ExecStatus};
 
 use crate::dep::parse;
 use crate::traits::SourceBash;
-use crate::utils::digest;
 use crate::Error;
 
 /// An eclass in an ebuild repository.
@@ -18,7 +17,10 @@ pub struct Eclass {
 
 impl Eclass {
     /// Create a new eclass.
-    pub(crate) fn try_new(path: &Utf8Path) -> crate::Result<Self> {
+    pub(crate) fn try_new<F>(path: &Utf8Path, chksum_func: F) -> crate::Result<Self>
+    where
+        F: Fn(&[u8]) -> String,
+    {
         if let (Some(name), Some("eclass")) = (path.file_stem(), path.extension()) {
             let data = fs::read(path)
                 .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;
@@ -26,7 +28,7 @@ impl Eclass {
             Ok(Self {
                 name: parse::eclass_name(name)?.to_string(),
                 path: path.to_path_buf(),
-                chksum: digest::<md5::Md5>(&data),
+                chksum: chksum_func(&data),
             })
         } else {
             Err(Error::InvalidValue(format!("invalid eclass: {path}")))
@@ -71,16 +73,17 @@ mod tests {
     #[test]
     fn try_new() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let func = |data: &[u8]| repo.metadata().chksum(data);
 
         // nonexistent path
-        assert!(Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass")).is_err());
+        assert!(Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass"), func).is_err());
 
         // non-eclass path
-        assert!(Eclass::try_new(&repo.path().join("licenses/l1")).is_err());
+        assert!(Eclass::try_new(&repo.path().join("licenses/l1"), func).is_err());
 
         // valid
         let path = repo.path().join("eclass/a.eclass");
-        let eclass = Eclass::try_new(&path).unwrap();
+        let eclass = Eclass::try_new(&path, func).unwrap();
         assert_eq!(eclass.path(), path);
         assert_eq!(eclass.name(), "a");
         assert!(!eclass.chksum().is_empty());

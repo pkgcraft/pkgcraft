@@ -17,6 +17,7 @@ use crate::pkg::ebuild::metadata::HashType;
 use crate::repo::RepoFormat;
 use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
+use crate::utils::digest;
 use crate::Error;
 
 use super::cache::{Cache, CacheFormat, MetadataCache};
@@ -314,6 +315,13 @@ impl Metadata {
         })
     }
 
+    /// Return the hex-encoded checksum for the given data.
+    pub(crate) fn chksum<S: AsRef<[u8]>>(&self, data: S) -> String {
+        match self.cache().format() {
+            CacheFormat::Md5Dict => digest::<md5::Md5>(data.as_ref()),
+        }
+    }
+
     pub fn cache(&self) -> &MetadataCache {
         self.cache.get_or_init(|| {
             // TODO: support multiple cache formats?
@@ -352,11 +360,13 @@ impl Metadata {
                     let mut vals: IndexSet<_> = entries
                         .filter_map(|e| e.ok())
                         .filter(is_eclass)
-                        .filter_map(|entry| match Eclass::try_new(entry.path()) {
-                            Ok(eclass) => Some(eclass),
-                            Err(e) => {
-                                error!("{}: {e}", self.id);
-                                None
+                        .filter_map(|entry| {
+                            match Eclass::try_new(entry.path(), |s| self.chksum(s)) {
+                                Ok(eclass) => Some(eclass),
+                                Err(e) => {
+                                    error!("{}: {e}", self.id);
+                                    None
+                                }
                             }
                         })
                         .collect();
