@@ -57,26 +57,26 @@ pub enum Key {
 /// Deserialized package metadata.
 #[derive(Debug, Default)]
 pub struct Metadata<'a> {
-    eapi: &'static Eapi,
-    description: String,
-    slot: Slot<String>,
-    bdepend: DependencySet<String, Dep<String>>,
-    depend: DependencySet<String, Dep<String>>,
-    idepend: DependencySet<String, Dep<String>>,
-    pdepend: DependencySet<String, Dep<String>>,
-    rdepend: DependencySet<String, Dep<String>>,
-    license: DependencySet<String, String>,
-    properties: DependencySet<String, String>,
-    required_use: DependencySet<String, String>,
-    restrict: DependencySet<String, String>,
-    src_uri: DependencySet<String, Uri>,
-    homepage: OrderedSet<String>,
-    defined_phases: OrderedSet<&'a Phase>,
-    keywords: OrderedSet<Keyword<String>>,
-    iuse: OrderedSet<Iuse<String>>,
-    inherit: OrderedSet<&'a Eclass>,
-    inherited: OrderedSet<&'a Eclass>,
-    chksum: String,
+    pub(crate) eapi: &'static Eapi,
+    pub(crate) description: String,
+    pub(crate) slot: Slot<String>,
+    pub(crate) bdepend: DependencySet<String, Dep<String>>,
+    pub(crate) depend: DependencySet<String, Dep<String>>,
+    pub(crate) idepend: DependencySet<String, Dep<String>>,
+    pub(crate) pdepend: DependencySet<String, Dep<String>>,
+    pub(crate) rdepend: DependencySet<String, Dep<String>>,
+    pub(crate) license: DependencySet<String, String>,
+    pub(crate) properties: DependencySet<String, String>,
+    pub(crate) required_use: DependencySet<String, String>,
+    pub(crate) restrict: DependencySet<String, String>,
+    pub(crate) src_uri: DependencySet<String, Uri>,
+    pub(crate) homepage: OrderedSet<String>,
+    pub(crate) defined_phases: OrderedSet<&'a Phase>,
+    pub(crate) keywords: OrderedSet<Keyword<String>>,
+    pub(crate) iuse: OrderedSet<Iuse<String>>,
+    pub(crate) inherit: OrderedSet<&'a Eclass>,
+    pub(crate) inherited: OrderedSet<&'a Eclass>,
+    pub(crate) chksum: String,
 }
 
 impl<'a> Metadata<'a> {
@@ -88,13 +88,6 @@ impl<'a> Metadata<'a> {
         key: &Key,
         val: &str,
     ) -> crate::Result<()> {
-        // return the Eclass for a given identifier if it exists
-        let eclass = |name: &str| -> crate::Result<&Eclass> {
-            repo.eclasses()
-                .get(name)
-                .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {name}")))
-        };
-
         // return the Keyword for a given identifier if it exists
         let keyword = |s: &str| -> crate::Result<Keyword<String>> {
             let keyword = Keyword::try_new(s)?;
@@ -106,16 +99,8 @@ impl<'a> Metadata<'a> {
             }
         };
 
-        // return the Phase for a given name if it exists
-        let phase = |name: &str| -> crate::Result<&Phase> {
-            eapi.phases()
-                .get(name)
-                .ok_or_else(|| Error::InvalidValue(format!("nonexistent phase: {name}")))
-        };
-
         use Key::*;
         match key {
-            CHKSUM => self.chksum = val.to_string(),
             DESCRIPTION => self.description = val.to_string(),
             SLOT => self.slot = Slot::try_new(val)?,
             BDEPEND => self.bdepend = dep::parse::package_dependency_set(val, eapi)?,
@@ -136,12 +121,6 @@ impl<'a> Metadata<'a> {
             RESTRICT => self.restrict = dep::parse::restrict_dependency_set(val)?,
             SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val, eapi)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
-            DEFINED_PHASES => {
-                self.defined_phases = val
-                    .split_whitespace()
-                    .map(phase)
-                    .collect::<crate::Result<OrderedSet<_>>>()?
-            }
             KEYWORDS => {
                 self.keywords = val
                     .split_whitespace()
@@ -154,19 +133,6 @@ impl<'a> Metadata<'a> {
                     .map(Iuse::try_new)
                     .collect::<crate::Result<OrderedSet<_>>>()?
             }
-            INHERIT => {
-                self.inherit = val
-                    .split_whitespace()
-                    .map(eclass)
-                    .collect::<crate::Result<OrderedSet<_>>>()?
-            }
-            INHERITED => {
-                self.inherited = val
-                    .split_whitespace()
-                    .tuples()
-                    .map(|(name, _chksum)| eclass(name))
-                    .collect::<crate::Result<OrderedSet<_>>>()?
-            }
             EAPI => {
                 let sourced: &Eapi = val.try_into()?;
                 if sourced != eapi {
@@ -176,6 +142,7 @@ impl<'a> Metadata<'a> {
                 }
                 self.eapi = eapi;
             }
+            _ => panic!("{key} metadata deserialization should pull from build state"),
         }
 
         Ok(())
