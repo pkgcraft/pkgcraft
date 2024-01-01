@@ -37,7 +37,7 @@ impl FromStr for Md5DictKey {
             "_md5_" => Key::CHKSUM,
             s => s
                 .parse()
-                .map_err(|_| Error::InvalidValue(format!("invalid md5-dict key: {s}")))?,
+                .map_err(|_| Error::InvalidValue(format!("invalid md5-dict cache key: {s}")))?,
         };
 
         Ok(Md5DictKey(key))
@@ -122,14 +122,19 @@ impl FromIterator<(Md5DictKey, String)> for Md5DictEntry {
     }
 }
 
-impl<S: AsRef<str>> From<S> for Md5DictEntry {
-    fn from(value: S) -> Self {
-        value
-            .as_ref()
-            .lines()
-            .filter_map(|l| l.split_once('='))
-            .filter_map(|(s, v)| s.parse().ok().map(|k| (k, v.to_string())))
-            .collect()
+impl FromStr for Md5DictEntry {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let mut data = IndexMap::new();
+        for line in s.lines() {
+            let (k, v) = line.split_once('=').ok_or_else(|| {
+                Error::InvalidValue(format!("invalid md5-dict cache line: {line}"))
+            })?;
+            data.insert(k.parse()?, v.to_string());
+        }
+
+        Ok(Self(data))
     }
 }
 
@@ -192,7 +197,7 @@ impl Cache for Md5Dict {
             Error::IO(format!("failed loading ebuild metadata: {path}: {e}"))
         })?;
 
-        let meta = Md5DictEntry::from(&data);
+        let meta = data.parse::<Self::Entry>()?;
         meta.verify(pkg)?;
         Ok(meta)
     }
