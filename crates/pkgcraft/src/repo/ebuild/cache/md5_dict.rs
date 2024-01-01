@@ -15,7 +15,6 @@ use crate::files::{atomic_write_file, is_file, is_hidden};
 use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword, raw::Pkg};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{Eclass, Repo};
-use crate::repo::Repository;
 use crate::shell::metadata::{Key, Metadata};
 use crate::shell::phase::Phase;
 use crate::traits::Contains;
@@ -305,9 +304,9 @@ pub struct Md5Dict {
 
 impl Md5Dict {
     /// Load a metadata cache from the default repo location.
-    pub(super) fn from_repo(repo: &Repo) -> Self {
+    pub(super) fn from_repo<P: AsRef<Utf8Path>>(path: P) -> Self {
         Self {
-            path: repo.path().join("metadata/md5-cache"),
+            path: path.as_ref().join("metadata/md5-cache"),
         }
     }
 

@@ -55,9 +55,9 @@ pub enum CacheFormat {
 
 impl CacheFormat {
     /// Create a metadata cache using a given format at the default repo location.
-    pub fn from_repo(&self, repo: &Repo) -> MetadataCache {
+    pub fn from_repo<P: AsRef<Utf8Path>>(&self, path: P) -> MetadataCache {
         match self {
-            Self::Md5Dict => MetadataCache::Md5Dict(md5_dict::Md5Dict::from_repo(repo)),
+            Self::Md5Dict => MetadataCache::Md5Dict(md5_dict::Md5Dict::from_repo(path)),
         }
     }
 
