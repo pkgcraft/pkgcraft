@@ -52,6 +52,12 @@ impl<R: Into<Repo>> FromIterator<R> for RepoSet {
     }
 }
 
+impl From<Repo> for RepoSet {
+    fn from(repo: Repo) -> Self {
+        [repo].into_iter().collect()
+    }
+}
+
 impl PkgRepository for RepoSet {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type IterCpv<'a> = IterCpv where Self: 'a;
