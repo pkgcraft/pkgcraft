@@ -1,5 +1,4 @@
 use std::io::{self, Write};
-use std::path::Path;
 use std::process::ExitCode;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
@@ -7,14 +6,13 @@ use std::time::{Duration, Instant};
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::{ebuild, Source};
-use pkgcraft::repo::set::RepoSet;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
 use tracing::error;
 
 use crate::args::StdinOrArgs;
 
-use super::target_restriction;
+use super::{target_repo, target_restriction};
 
 /// Duration bound to apply against elapsed time values.
 #[derive(Debug, Copy, Clone)]
@@ -211,15 +209,8 @@ where
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
-        let repos = if let Some(repo) = self.repo.as_ref() {
-            let repo = if let Some(r) = config.repos.get(repo) {
-                Ok(r.clone())
-            } else if Path::new(repo).exists() {
-                config.add_nested_repo_path(repo, 0, repo, true)
-            } else {
-                anyhow::bail!("unknown repo: {repo}")
-            }?;
-            RepoSet::from_iter([&repo])
+        let repos = if let Some(target) = self.repo.as_ref() {
+            target_repo(config, target)?.into()
         } else {
             config.repos.set(Repos::Ebuild)
         };

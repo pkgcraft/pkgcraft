@@ -1,17 +1,15 @@
 use std::io::{self, Write};
-use std::path::Path;
 use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::{ebuild, Pretend};
-use pkgcraft::repo::set::RepoSet;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
 
 use crate::args::StdinOrArgs;
 
-use super::target_restriction;
+use super::{target_repo, target_restriction};
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -34,15 +32,8 @@ pub struct Command {
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
-        let repos = if let Some(repo) = self.repo.as_ref() {
-            let repo = if let Some(r) = config.repos.get(repo) {
-                Ok(r.clone())
-            } else if Path::new(repo).exists() {
-                config.add_nested_repo_path(repo, 0, repo, true)
-            } else {
-                anyhow::bail!("unknown repo: {repo}")
-            }?;
-            RepoSet::from_iter([&repo])
+        let repos = if let Some(target) = self.repo.as_ref() {
+            target_repo(config, target)?.into()
         } else {
             config.repos.set(Repos::Ebuild)
         };
