@@ -279,9 +279,11 @@ impl<'a> EbuildPackage for Pkg<'a> {
 
 #[cfg(test)]
 mod tests {
+    use tracing_test::traced_test;
+
     use crate::config::Config;
     use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
-    use crate::macros::assert_err_re;
+    use crate::macros::{assert_err_re, assert_logs_re};
     use crate::pkg::ebuild::metadata::Checksum;
     use crate::repo::PkgRepository;
     use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
@@ -371,8 +373,13 @@ mod tests {
         assert_eq!(pkg2, i.next().unwrap());
     }
 
+    #[traced_test]
     #[test]
     fn slot_and_subslot() {
+        // without slot
+        assert!(TEST_DATA.ebuild_pkg("=slot/none-8::bad").is_none());
+        assert_logs_re!(format!("missing required value: SLOT$"));
+
         // without subslot
         let pkg = TEST_DATA.ebuild_pkg("=slot/slot-8::metadata").unwrap();
         assert_eq!(pkg.slot(), "1");
