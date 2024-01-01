@@ -192,6 +192,7 @@ impl Hash for Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
+    /// Create an ebuild repo from a given path.
     pub(crate) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
         S: AsRef<str>,
@@ -258,19 +259,22 @@ impl Repo {
         self.licenses();
     }
 
+    /// Return the repo config.
     pub(super) fn repo_config(&self) -> &RepoConfig {
         &self.config
     }
 
+    /// Return the repo metadata.
     pub fn metadata(&self) -> &Metadata {
         &self.metadata
     }
 
+    /// Return the repo EAPI (set in profiles/eapi).
     pub fn eapi(&self) -> &'static Eapi {
         self.metadata().eapi
     }
 
-    /// Return the inherited repos for the repo.
+    /// Return the repo inheritance sequence.
     pub fn masters(&self) -> impl DoubleEndedIterator<Item = Arc<Self>> + '_ {
         self.masters
             .get()
@@ -279,7 +283,7 @@ impl Repo {
             .map(|p| p.upgrade().expect("unconfigured repo"))
     }
 
-    /// Return the complete, repo inheritance set for the repo.
+    /// Return the complete repo inheritance sequence.
     pub fn trees(&self) -> impl DoubleEndedIterator<Item = Arc<Self>> + '_ {
         self.trees
             .get()
