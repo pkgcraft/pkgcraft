@@ -345,25 +345,13 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::repo::ebuild::cache::{Cache, CacheEntry};
     use crate::shell::BuildData;
     use crate::test::TEST_DATA;
 
     use super::*;
 
     #[test]
-    fn deserialize() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
-        for pkg in repo.iter_raw() {
-            let r = repo.cache().get(&pkg);
-            assert!(r.is_ok(), "{pkg}: failed loading metadata: {}", r.unwrap_err());
-            let r = r.unwrap().to_metadata(&pkg);
-            assert!(r.is_ok(), "{pkg}: failed deserializing metadata: {}", r.unwrap_err());
-        }
-    }
-
-    #[test]
-    fn serialize() {
+    fn try_from_raw_pkg() {
         // valid
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
         for pkg in repo.iter_raw() {
