@@ -108,7 +108,7 @@ impl CacheEntry for Md5DictEntry {
 
 impl Md5DictEntry {
     /// Serialize a cache entry to raw bytes for writing to a file.
-    fn serialize(&self) -> Vec<u8> {
+    fn to_bytes(&self) -> Vec<u8> {
         self.0
             .iter()
             .flat_map(|(k, v)| format!("{k}={v}\n").into_bytes())
@@ -198,13 +198,13 @@ impl Cache for Md5Dict {
     }
 
     fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()> {
-        // determine metadata entry directory
+        // determine cache entry directory
         let path = self.path.join(pkg.cpv().category());
 
-        // convert pkg metadata to serialized cache entry format
-        let data = Md5DictEntry::from(meta).serialize();
+        // convert metadata to the cache format and then to raw bytes
+        let data = Md5DictEntry::from(meta).to_bytes();
 
-        // atomically create metadata file
+        // atomically create cache file
         atomic_write_file(&path, &pkg.cpv().pf(), data)
     }
 
