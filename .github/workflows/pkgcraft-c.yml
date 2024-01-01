@@ -64,7 +64,7 @@ jobs:
         echo "DYLD_LIBRARY_PATH=${pkgcraft_dir}/lib" >> $GITHUB_ENV
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pkgcraft-c-${{ runner.os }}
         path: ${{ env.pkgcraft_dir }}
