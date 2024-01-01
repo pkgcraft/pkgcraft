@@ -19,6 +19,7 @@ use crate::shell::metadata::{Key, Metadata};
 use crate::shell::phase::Phase;
 use crate::traits::Contains;
 use crate::types::OrderedSet;
+use crate::utils::digest;
 use crate::Error;
 
 use super::{Cache, CacheEntry, CacheFormat};
@@ -320,6 +321,10 @@ impl Md5Dict {
 
 impl Cache for Md5Dict {
     type Entry = Md5DictEntry;
+
+    fn chksum<S: AsRef<[u8]>>(&self, data: S) -> String {
+        digest::<md5::Md5>(data.as_ref())
+    }
 
     fn format(&self) -> CacheFormat {
         CacheFormat::Md5Dict

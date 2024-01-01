@@ -39,7 +39,7 @@ impl<'a> Pkg<'a> {
             err: e.to_string(),
         })?;
 
-        let chksum = repo.metadata().chksum(&data);
+        let chksum = repo.metadata().cache().chksum(&data);
         Ok(Self { cpv, repo, eapi, data, chksum })
     }
 

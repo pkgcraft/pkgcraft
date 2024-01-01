@@ -27,6 +27,8 @@ pub trait CacheEntry {
 
 pub trait Cache {
     type Entry: CacheEntry;
+    /// Return the hex-encoded checksum for the given data.
+    fn chksum<S: AsRef<[u8]>>(&self, data: S) -> String;
     /// Return the cache's format.
     fn format(&self) -> CacheFormat;
     /// Return the cache's filesystem path.
@@ -95,6 +97,12 @@ pub enum MetadataCache {
 
 impl Cache for MetadataCache {
     type Entry = MetadataCacheEntry;
+
+    fn chksum<S: AsRef<[u8]>>(&self, data: S) -> String {
+        match self {
+            Self::Md5Dict(cache) => cache.chksum(data),
+        }
+    }
 
     fn format(&self) -> CacheFormat {
         match self {

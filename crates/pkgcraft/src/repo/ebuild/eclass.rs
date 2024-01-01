@@ -7,6 +7,8 @@ use crate::dep::parse;
 use crate::traits::SourceBash;
 use crate::Error;
 
+use super::cache::{Cache, MetadataCache};
+
 /// An eclass in an ebuild repository.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Eclass {
@@ -17,10 +19,7 @@ pub struct Eclass {
 
 impl Eclass {
     /// Create a new eclass.
-    pub(crate) fn try_new<F>(path: &Utf8Path, chksum_func: F) -> crate::Result<Self>
-    where
-        F: Fn(&[u8]) -> String,
-    {
+    pub(crate) fn try_new(path: &Utf8Path, cache: &MetadataCache) -> crate::Result<Self> {
         if let (Some(name), Some("eclass")) = (path.file_stem(), path.extension()) {
             let data = fs::read(path)
                 .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;
@@ -28,7 +27,7 @@ impl Eclass {
             Ok(Self {
                 name: parse::eclass_name(name)?.to_string(),
                 path: path.to_path_buf(),
-                chksum: chksum_func(&data),
+                chksum: cache.chksum(data),
             })
         } else {
             Err(Error::InvalidValue(format!("invalid eclass: {path}")))
@@ -73,17 +72,17 @@ mod tests {
     #[test]
     fn try_new() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
-        let func = |data: &[u8]| repo.metadata().chksum(data);
+        let cache = repo.metadata().cache();
 
         // nonexistent path
-        assert!(Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass"), func).is_err());
+        assert!(Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass"), cache).is_err());
 
         // non-eclass path
-        assert!(Eclass::try_new(&repo.path().join("licenses/l1"), func).is_err());
+        assert!(Eclass::try_new(&repo.path().join("licenses/l1"), cache).is_err());
 
         // valid
         let path = repo.path().join("eclass/a.eclass");
-        let eclass = Eclass::try_new(&path, func).unwrap();
+        let eclass = Eclass::try_new(&path, cache).unwrap();
         assert_eq!(eclass.path(), path);
         assert_eq!(eclass.name(), "a");
         assert!(!eclass.chksum().is_empty());
