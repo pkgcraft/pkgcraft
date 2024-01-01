@@ -9,7 +9,7 @@ use scallop::pool::PoolIter;
 
 use crate::args::StdinOrArgs;
 
-use super::{target_repo, target_restriction};
+use super::target_restriction;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -33,7 +33,7 @@ impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
         let repos = if let Some(target) = self.repo.as_ref() {
-            target_repo(config, target)?.into()
+            config.add_target_repo(target)?.into()
         } else {
             config.repos.set(Repos::Ebuild)
         };

@@ -3,7 +3,6 @@ use std::process::ExitCode;
 use camino::Utf8Path;
 use pkgcraft::config::Config;
 use pkgcraft::repo::set::RepoSet;
-use pkgcraft::repo::Repo;
 use pkgcraft::restrict::{self, Restrict};
 
 mod env;
@@ -21,17 +20,6 @@ pub struct Command {
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         self.command.run(config)
-    }
-}
-
-/// Determine the target repo from a name or path.
-fn target_repo(config: &mut Config, target: &str) -> anyhow::Result<Repo> {
-    if let Some(repo) = config.repos.get(target) {
-        Ok(repo.clone())
-    } else if Utf8Path::new(target).exists() {
-        Ok(config.add_nested_repo_path(target, 0, target, true)?)
-    } else {
-        anyhow::bail!("unknown repo: {target}")
     }
 }
 

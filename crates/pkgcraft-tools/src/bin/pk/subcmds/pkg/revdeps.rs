@@ -7,8 +7,6 @@ use pkgcraft::traits::Intersects;
 
 use crate::args::StdinOrArgs;
 
-use super::target_repo;
-
 #[derive(Debug, Args)]
 pub struct Command {
     /// Target repository
@@ -25,7 +23,7 @@ impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
         let repos = if let Some(target) = self.repo.as_ref() {
-            target_repo(config, target)?.into()
+            config.add_target_repo(target)?.into()
         } else {
             config.repos.set(Repos::Ebuild)
         };
