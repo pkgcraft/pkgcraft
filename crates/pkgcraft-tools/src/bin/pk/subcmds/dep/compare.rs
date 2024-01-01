@@ -12,15 +12,15 @@ use crate::args::StdinOrArgs;
 pub struct Command {
     /// Comparison expressions (uses stdin if "-")
     #[arg(value_name = "EXPR")]
-    exprs: Vec<String>,
+    values: Vec<String>,
 }
 
 impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
-        let exprs = mem::take(&mut self.exprs);
-        for s in exprs.stdin_or_args() {
+        let values = mem::take(&mut self.values);
+        for s in values.stdin_or_args() {
             let (lhs, op, rhs) = s
                 .split_whitespace()
                 .collect_tuple()

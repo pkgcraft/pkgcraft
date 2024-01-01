@@ -21,9 +21,8 @@ pub struct Command {
     format: Option<String>,
 
     // positionals
-    /// Deps to parse (uses stdin if "-")
-    #[arg(value_name = "DEP", required = false)]
-    vals: Vec<String>,
+    /// Values to parse (uses stdin if "-")
+    values: Vec<String>,
 }
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -88,8 +87,8 @@ impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
-        let vals = mem::take(&mut self.vals);
-        for s in vals.stdin_or_args().split_whitespace() {
+        let values = mem::take(&mut self.values);
+        for s in values.stdin_or_args().split_whitespace() {
             if let Ok(dep) = Dep::parse(&s, self.eapi) {
                 if let Some(fmt) = &self.format {
                     println!("{}", self.format_str(fmt, &dep)?);
