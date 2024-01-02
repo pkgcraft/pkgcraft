@@ -25,8 +25,10 @@ impl Command {
                 .split_whitespace()
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
+
             let lhs = Dep::parse(lhs, Default::default())?;
             let rhs = Dep::parse(rhs, Default::default())?;
+
             let result = match op {
                 "<" => lhs < rhs,
                 "<=" => lhs <= rhs,

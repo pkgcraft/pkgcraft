@@ -34,11 +34,22 @@ fn args() {
         .code(2);
 
     // invalid operator
+    for op in ["~=", "=", "+="] {
+        cmd("pk dep compare")
+            .arg(format!("cat/pkg {op} cat/pkg"))
+            .assert()
+            .stdout("")
+            .stderr(lines_contain([format!("invalid operator: {op}")]))
+            .failure()
+            .code(2);
+    }
+
+    // invalid dep
     cmd("pk dep compare")
-        .arg("cat/pkg ~= cat/pkg")
+        .arg("=cat/pkg-1 >= cat/pkg-1")
         .assert()
         .stdout("")
-        .stderr(lines_contain(["invalid operator: ~="]))
+        .stderr(lines_contain(["invalid dep: cat/pkg-1"]))
         .failure()
         .code(2);
 
@@ -48,4 +59,10 @@ fn args() {
         .assert()
         .failure()
         .code(1);
+
+    // true expression
+    cmd("pk dep compare")
+        .arg("cat/pkg == cat/pkg")
+        .assert()
+        .success();
 }
