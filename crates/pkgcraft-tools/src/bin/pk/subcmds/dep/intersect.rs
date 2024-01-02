@@ -1,19 +1,19 @@
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::dep::CpvOrDep;
+use pkgcraft::dep::{CpvOrDep, Dep};
 use pkgcraft::traits::Intersects;
 
 #[derive(Debug, Args)]
 pub struct Command {
-    value1: String,
-    value2: String,
+    dep: String,
+    cpv_or_dep: String,
 }
 
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let obj1 = CpvOrDep::parse(&self.value1)?;
-        let obj2 = CpvOrDep::parse(&self.value2)?;
-        Ok(ExitCode::from(!obj1.intersects(&obj2) as u8))
+        let dep = Dep::parse(&self.dep, Default::default())?;
+        let cpv_or_dep = CpvOrDep::parse(&self.cpv_or_dep)?;
+        Ok(ExitCode::from(!dep.intersects(&cpv_or_dep) as u8))
     }
 }

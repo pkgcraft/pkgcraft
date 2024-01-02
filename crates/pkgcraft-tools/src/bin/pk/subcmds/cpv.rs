@@ -23,7 +23,7 @@ impl Command {
 pub enum Subcommand {
     /// Compare two values
     Compare(compare::Command),
-    /// Determine if two values intersect
+    /// Determine if a cpv intersects another value
     Intersect(intersect::Command),
     /// Parse value and optionally print formatted output
     Parse(parse::Command),
