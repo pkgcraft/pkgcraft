@@ -50,6 +50,52 @@ fn pkg_target_from_stdin() {
 }
 
 #[test]
+fn invalid_pkgs() {
+    let t = TempRepo::new("test", None, 0, None).unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with global die"
+        SLOT=0
+        die
+    "#};
+    t.create_raw_pkg_from_str("a/pkg-1", &data).unwrap();
+    t.create_raw_pkg_from_str("cat/a-1", &data).unwrap();
+    t.create_raw_pkg_from_str("cat/b-1", &data).unwrap();
+
+    // dep restriction
+    cmd(format!("pk pkg source -r {} cat/a-1", t.path()))
+        .assert()
+        .stdout("")
+        .stderr(lines_contain(["invalid pkg: cat/a-1"]))
+        .failure()
+        .code(1);
+
+    // category restriction
+    cmd(format!("pk pkg source -r {} cat/*", t.path()))
+        .assert()
+        .stdout("")
+        .stderr(lines_contain(["cat/a-1", "cat/b-1"]))
+        .failure()
+        .code(1);
+
+    // repo target
+    cmd(format!("pk pkg source {}", t.path()))
+        .assert()
+        .stdout("")
+        .stderr(lines_contain(["a/pkg-1", "cat/a-1", "cat/b-1"]))
+        .failure()
+        .code(1);
+
+    // benchmarking failures
+    cmd(format!("pk pkg source --bench 1s {}", t.path()))
+        .assert()
+        .stdout("")
+        .stderr(lines_contain(["a/pkg-1", "cat/a-1", "cat/b-1"]))
+        .failure()
+        .code(1);
+}
+
+#[test]
 fn path_targets() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_raw_pkg("cat1/a-1", &[]).unwrap();
