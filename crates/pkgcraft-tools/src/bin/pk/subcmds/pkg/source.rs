@@ -7,6 +7,7 @@ use clap::Args;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::pkg::{ebuild, Source};
 use pkgcraft::utils::bounded_jobs;
+use pkgcraft::Error;
 use scallop::pool::PoolIter;
 use tracing::error;
 
@@ -105,7 +106,11 @@ where
         let mut elapsed = Duration::new(0, 0);
         while elapsed < duration {
             let start = Instant::now();
-            pkg.source()?;
+            // TODO: move error mapping into pkgcraft for pkg sourcing
+            pkg.source().map_err(|e| Error::InvalidPkg {
+                id: pkg.to_string(),
+                err: e.to_string(),
+            })?;
             let source_elapsed = micros!(start.elapsed());
             data.push(source_elapsed);
             elapsed += source_elapsed;
@@ -169,7 +174,11 @@ where
     let mut failed = false;
     let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<(String, Duration)> {
         let start = Instant::now();
-        pkg.source()?;
+        // TODO: move error mapping into pkgcraft for pkg sourcing
+        pkg.source().map_err(|e| Error::InvalidPkg {
+            id: pkg.to_string(),
+            err: e.to_string(),
+        })?;
         let elapsed = micros!(start.elapsed());
         Ok((pkg.to_string(), elapsed))
     };
