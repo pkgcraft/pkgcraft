@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use anyhow::{anyhow, bail};
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::dep::CpvOrDep;
+use pkgcraft::dep::Dep;
 
 use crate::args::StdinOrArgs;
 
@@ -25,8 +25,8 @@ impl Command {
                 .split_whitespace()
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
-            let lhs = CpvOrDep::parse(lhs)?;
-            let rhs = CpvOrDep::parse(rhs)?;
+            let lhs = Dep::parse(lhs, Default::default())?;
+            let rhs = Dep::parse(rhs, Default::default())?;
             let result = match op {
                 "<" => lhs < rhs,
                 "<=" => lhs <= rhs,

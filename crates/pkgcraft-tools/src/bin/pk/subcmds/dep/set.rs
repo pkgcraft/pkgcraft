@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcraft::dep::CpvOrDep;
+use pkgcraft::dep::Dep;
 
 use crate::args::StdinOrArgs;
 
@@ -18,7 +18,7 @@ impl Command {
             .values
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| CpvOrDep::try_new(&s))
+            .map(|s| Dep::try_new(&s))
             .collect();
 
         let mut stdout = io::stdout().lock();
