@@ -83,11 +83,11 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
-        path: ${{ github.ref_name }}
+        path: artifacts
         merge-multiple: true
 
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
-        files: ${{ github.ref_name }}/*.tar.xz
+        files: artifacts/*.tar.xz
         fail_on_unmatched_files: true
