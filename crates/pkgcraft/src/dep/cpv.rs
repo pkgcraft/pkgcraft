@@ -15,7 +15,7 @@ use super::pkg::Dep;
 use super::version::{Operator, Revision, Version, WithOp};
 use super::{parse, Stringable};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum CpvOrDep<S: Stringable> {
     Cpv(Cpv<S>),
     Dep(Dep<S>),
