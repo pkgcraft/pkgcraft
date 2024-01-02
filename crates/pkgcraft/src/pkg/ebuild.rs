@@ -417,11 +417,12 @@ mod tests {
 
     #[test]
     fn description() {
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        assert_eq!(pkg.description(), "ebuild with no optional metadata fields");
 
-        let pkg = t.create_pkg("cat/pkg-1", &["DESCRIPTION=desc"]).unwrap();
-        assert_eq!(pkg.description(), "desc");
+        // none
+        let r = TEST_DATA.ebuild_pkg("=description/none-8::bad");
+        assert_err_re!(r, "missing required value: DESCRIPTION$");
     }
 
     #[test]
