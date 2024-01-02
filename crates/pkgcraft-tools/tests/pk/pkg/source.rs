@@ -2,7 +2,7 @@ use std::env;
 
 use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
-use predicates::str::contains;
+use predicates::prelude::*;
 
 use crate::predicates::lines_contain;
 
@@ -11,7 +11,7 @@ fn invalid_cwd_target() {
     cmd("pk pkg source")
         .assert()
         .stdout("")
-        .stderr(contains("non-ebuild repo"))
+        .stderr(predicate::str::contains("non-ebuild repo"))
         .failure()
         .code(2);
 }
@@ -21,7 +21,7 @@ fn nonexistent_path_target() {
     cmd("pk pkg source path/to/nonexistent/repo")
         .assert()
         .stdout("")
-        .stderr(contains("invalid dep restriction"))
+        .stderr(predicate::str::contains("invalid dep restriction"))
         .failure()
         .code(2);
 }
@@ -137,7 +137,7 @@ fn path_targets() {
 
 #[test]
 #[cfg(feature = "flaky")]
-fn bound() {
+fn bound_and_sort() {
     use std::os::fd::AsRawFd;
 
     let t = TempRepo::new("test", None, 0, None).unwrap();
@@ -174,4 +174,19 @@ fn bound() {
                 .success();
         }
     }
+
+    cmd("pk pkg source --sort")
+        .arg(t.path())
+        .assert()
+        .stdout(predicate::function(|s: &str| {
+            let lines: Vec<_> = s
+                .lines()
+                .filter_map(|s| s.split_once("::"))
+                .map(|(x, _)| x)
+                .collect();
+            assert_eq!(lines, ["cat/fast-1", "cat/slow-1"]);
+            true
+        }))
+        .stderr("")
+        .success();
 }
