@@ -58,7 +58,7 @@ jobs:
     - name: Build pkgcraft-tools
       run: cross build --target ${{ matrix.target }} --profile release-strip -p pkgcraft-tools
 
-    - name: Create tarball
+    - name: Create archive
       run: |
         tar -C target/${{ matrix.target }}/release-strip \
           -cv -I "xz -9 -T0" -f ${{ github.ref_name }}-${{ matrix.target }}.tar.xz \
@@ -67,7 +67,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: linux
+        name: ${{ github.ref_name }}-${{ matrix.target }}
         path: ./*.tar.xz
         if-no-files-found: error
         retention-days: 3
@@ -82,11 +82,12 @@ jobs:
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v4
+      with:
+        path: ${{ github.ref_name }}
+        merge-multiple: true
 
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          source/*.tar.xz
-          linux/*.tar.xz
+        files: ${{ github.ref_name }}/*.tar.xz
         fail_on_unmatched_files: true
