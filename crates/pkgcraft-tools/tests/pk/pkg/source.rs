@@ -87,7 +87,7 @@ fn invalid_pkgs() {
         .code(1);
 
     // benchmarking failures
-    cmd(format!("pk pkg source --bench 1s {}", t.path()))
+    cmd(format!("pk pkg source --bench 500ms {}", t.path()))
         .assert()
         .stdout("")
         .stderr(lines_contain(["a/pkg-1", "cat/a-1", "cat/b-1"]))
@@ -175,18 +175,22 @@ fn bound_and_sort() {
         }
     }
 
-    cmd("pk pkg source --sort")
-        .arg(t.path())
-        .assert()
-        .stdout(predicate::function(|s: &str| {
-            let lines: Vec<_> = s
-                .lines()
-                .filter_map(|s| s.split_once("::"))
-                .map(|(x, _)| x)
-                .collect();
-            assert_eq!(lines, ["cat/fast-1", "cat/slow-1"]);
-            true
-        }))
-        .stderr("")
-        .success();
+    // sorting output
+    for opts in [vec![], vec!["--bench", "500ms"]] {
+        cmd("pk pkg source --sort")
+            .args(opts)
+            .arg(t.path())
+            .assert()
+            .stdout(predicate::function(|s: &str| {
+                let lines: Vec<_> = s
+                    .lines()
+                    .filter_map(|s| s.split_once("::"))
+                    .map(|(x, _)| x)
+                    .collect();
+                assert_eq!(lines, ["cat/fast-1", "cat/slow-1"]);
+                true
+            }))
+            .stderr("")
+            .success();
+    }
 }
