@@ -10,15 +10,15 @@ use pkgcraft::config::Config;
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
-    /// Perform Cpv-related actions including parsing, intersection, and sorting
+    /// Cpv commands
     Cpv(cpv::Command),
-    /// Perform dep-related actions including parsing, intersection, and sorting
+    /// Dependency commands
     Dep(dep::Command),
-    /// Perform package-related actions
+    /// Package commands
     Pkg(pkg::Command),
-    /// Perform repo-related actions
+    /// Repository commands
     Repo(repo::Command),
-    /// Perform version-related actions including parsing, intersection, and sorting
+    /// Version commands
     Version(version::Command),
 }
 
