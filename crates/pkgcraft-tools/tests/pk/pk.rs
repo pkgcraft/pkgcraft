@@ -1,3 +1,4 @@
+mod cpv;
 mod dep;
 mod pkg;
 mod predicates;
