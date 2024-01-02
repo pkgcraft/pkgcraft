@@ -158,7 +158,13 @@ fn bound() {
     t.create_raw_pkg_from_str("cat/slow-1", &data).unwrap();
 
     for opt in ["-b", "--bound"] {
-        for (val, pkg) in [("25ms", "cat/slow"), (">25ms", "cat/slow"), ("<25ms", "cat/fast")] {
+        for (val, pkg) in [
+            ("25ms", "cat/slow"),
+            (">25ms", "cat/slow"),
+            (">=25ms", "cat/slow"),
+            ("<25ms", "cat/fast"),
+            ("<=25ms", "cat/fast"),
+        ] {
             cmd("pk pkg source")
                 .args([opt, val])
                 .arg(t.path())
