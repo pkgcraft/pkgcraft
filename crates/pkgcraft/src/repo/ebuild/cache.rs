@@ -160,6 +160,7 @@ impl MetadataCache {
             force: false,
             progress: false,
             output: false,
+            clean: true,
             verify: false,
             targeted: false,
             targets: Default::default(),
@@ -174,6 +175,7 @@ pub struct MetadataCacheRegen<'a> {
     force: bool,
     progress: bool,
     output: bool,
+    clean: bool,
     verify: bool,
     targeted: bool,
     targets: IndexSet<Cpv<String>>,
@@ -207,6 +209,7 @@ impl MetadataCacheRegen<'_> {
     /// Perform metadata verification without writing to the cache.
     pub fn verify(mut self, value: bool) -> Self {
         self.verify = value;
+        self.clean = false;
         self
     }
 
@@ -216,6 +219,7 @@ impl MetadataCacheRegen<'_> {
         I: IntoIterator<Item = Cpv<String>>,
     {
         self.targeted = true;
+        self.clean = false;
         self.targets.extend(value);
         self
     }
@@ -260,7 +264,7 @@ impl MetadataCacheRegen<'_> {
 
         if self.cache.path().exists() {
             // remove outdated cache entries
-            if !self.targeted && !self.verify {
+            if self.clean {
                 self.cache.clean(&cpvs)?;
             }
 
