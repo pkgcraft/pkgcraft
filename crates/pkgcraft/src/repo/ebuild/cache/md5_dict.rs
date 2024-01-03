@@ -365,7 +365,7 @@ impl Cache for Md5Dict {
             .map_err(|e| Error::IO(format!("failed removing metadata cache: {path}: {e}")))
     }
 
-    fn prune<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
+    fn clean<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
         &self,
         collection: C,
     ) -> crate::Result<()> {

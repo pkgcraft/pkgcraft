@@ -39,8 +39,8 @@ pub trait Cache {
     fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()>;
     /// Forcibly remove the entire cache.
     fn remove(&self, repo: &Repo) -> crate::Result<()>;
-    /// Prune outdated entries from the cache.
-    fn prune<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
+    /// Remove outdated entries from the cache.
+    fn clean<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
         &self,
         collection: C,
     ) -> crate::Result<()>;
@@ -141,12 +141,12 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn prune<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
+    fn clean<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
         &self,
         collection: C,
     ) -> crate::Result<()> {
         match self {
-            Self::Md5Dict(cache) => cache.prune(collection),
+            Self::Md5Dict(cache) => cache.clean(collection),
         }
     }
 }
@@ -259,9 +259,9 @@ impl MetadataCacheRegen<'_> {
         pb.set_length(cpvs.len().try_into().unwrap());
 
         if self.cache.path().exists() {
-            // prune outdated cache entries
+            // remove outdated cache entries
             if !self.targeted && !self.verify {
-                self.cache.prune(&cpvs)?;
+                self.cache.clean(&cpvs)?;
             }
 
             if !self.force {

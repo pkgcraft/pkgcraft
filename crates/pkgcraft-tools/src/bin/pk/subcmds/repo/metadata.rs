@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use pkgcraft::config::Config;
 
-mod prune;
+mod clean;
 mod regen;
 mod remove;
 
@@ -20,8 +20,8 @@ impl Command {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
-    /// Prune outdated entries
-    Prune(prune::Command),
+    /// Clean metadata cache
+    Clean(clean::Command),
     /// Regenerate metadata cache
     Regen(regen::Command),
     /// Remove metadata cache
@@ -32,8 +32,8 @@ impl Subcommand {
     fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
+            Clean(cmd) => cmd.run(config),
             Regen(cmd) => cmd.run(config),
-            Prune(cmd) => cmd.run(config),
             Remove(cmd) => cmd.run(config),
         }
     }

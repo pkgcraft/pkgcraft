@@ -28,7 +28,7 @@ fn run() {
     assert!(path.join("cat/b-2").exists());
 
     // no outdated entries removes no files
-    cmd("pk repo metadata prune")
+    cmd("pk repo metadata clean")
         .arg(t.path())
         .assert()
         .stdout("")
@@ -43,7 +43,7 @@ fn run() {
     // outdated cache files and directories are removed
     fs::remove_dir_all(t.repo().path().join("cat/b")).unwrap();
     fs::remove_dir_all(t.repo().path().join("a")).unwrap();
-    cmd("pk repo metadata prune")
+    cmd("pk repo metadata clean")
         .arg(t.path())
         .assert()
         .stdout("")

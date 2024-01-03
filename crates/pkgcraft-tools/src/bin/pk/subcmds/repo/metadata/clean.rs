@@ -33,7 +33,7 @@ impl Command {
             format.from_repo(repo)
         };
 
-        cache.prune(repo)?;
+        cache.clean(repo)?;
 
         Ok(ExitCode::SUCCESS)
     }

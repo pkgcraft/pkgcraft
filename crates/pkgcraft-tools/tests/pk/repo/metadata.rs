@@ -1,3 +1,3 @@
-mod prune;
+mod clean;
 mod regen;
 mod remove;
