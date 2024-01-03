@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 
 use crate::dep::{self, Cpv, Slot};
 use crate::eapi::Eapi;
-use crate::files::{atomic_write_file, is_file, is_hidden};
+use crate::files::atomic_write_file;
 use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword, raw::Pkg};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{Eclass, Repo};
@@ -371,7 +371,7 @@ impl Cache for Md5Dict {
     ) -> crate::Result<()> {
         // TODO: replace with parallelized cache iterator
         let entries: Vec<_> = WalkDir::new(self.path())
-            .min_depth(2)
+            .min_depth(1)
             .max_depth(2)
             .into_iter()
             .collect();
@@ -379,19 +379,26 @@ impl Cache for Md5Dict {
         entries
             .into_par_iter()
             .filter_map(|e| e.ok())
-            .filter(|e| is_file(e) && !is_hidden(e))
             .for_each(|e| {
-                let file = e.path();
-                let s = file
-                    .strip_prefix(self.path())
-                    .expect("invalid metadata entry")
-                    .to_string_lossy();
-                if let Ok(cpv) = s.parse() {
-                    // Remove an outdated cache file and its potentially, empty parent
-                    // directory while ignoring any I/O errors.
-                    if !collection.contains(&cpv) {
-                        fs::remove_file(file).ok();
-                        fs::remove_dir(file.parent().unwrap()).ok();
+                if let Some(path) = Utf8Path::from_path(e.path()) {
+                    if path.is_dir() {
+                        // ignore non-empty dirs
+                        fs::remove_dir(path).ok();
+                    } else {
+                        // determine if a cache file is valid, relating to an existing pkg
+                        let valid = path
+                            .strip_prefix(self.path())
+                            .ok()
+                            .and_then(|relpath| Cpv::try_new(relpath.as_str()).ok())
+                            .map(|cpv| collection.contains(&cpv))
+                            .unwrap_or_default();
+
+                        // Remove invalid or outdated cache file and its potentially,
+                        // empty parent directory while ignoring any I/O errors.
+                        if !valid {
+                            fs::remove_file(path).ok();
+                            fs::remove_dir(path.parent().unwrap()).ok();
+                        }
                     }
                 }
             });
