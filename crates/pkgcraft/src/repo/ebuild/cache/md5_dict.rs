@@ -376,6 +376,8 @@ impl Cache for Md5Dict {
             .into_iter()
             .collect();
 
+        // Remove invalid, extraneous, and outdated files as well as empty directories
+        // while ignoring I/O errors.
         entries
             .into_par_iter()
             .filter_map(|e| e.ok())
@@ -384,17 +386,13 @@ impl Cache for Md5Dict {
                     if path.is_dir() {
                         // ignore non-empty dirs
                         fs::remove_dir(path).ok();
-                    } else {
+                    } else if let Ok(relpath) = path.strip_prefix(self.path()) {
                         // determine if a cache file is valid, relating to an existing pkg
-                        let valid = path
-                            .strip_prefix(self.path())
+                        let valid = Cpv::try_new(relpath.as_str())
                             .ok()
-                            .and_then(|relpath| Cpv::try_new(relpath.as_str()).ok())
                             .map(|cpv| collection.contains(&cpv))
                             .unwrap_or_default();
-
-                        // Remove invalid or outdated cache file and its potentially,
-                        // empty parent directory while ignoring any I/O errors.
+                        // remove all invalid and unrelated files
                         if !valid {
                             fs::remove_file(path).ok();
                             fs::remove_dir(path.parent().unwrap()).ok();
