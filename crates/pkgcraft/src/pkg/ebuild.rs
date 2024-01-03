@@ -21,11 +21,12 @@ use super::{make_pkg_traits, Package, RepoPackage};
 pub mod configured;
 pub mod iuse;
 pub mod keyword;
-pub mod metadata;
-use metadata::{Manifest, ManifestFile, XmlMetadata};
+pub mod manifest;
+use manifest::{Manifest, ManifestFile};
 pub mod raw;
 mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
+pub mod xml;
 
 pub trait EbuildPackage: Package {
     /// Return a package's set of effective USE choices.
@@ -52,7 +53,7 @@ pub struct Pkg<'a> {
     repo: &'a Repo,
     meta: Metadata<'a>,
     iuse_effective: OnceLock<OrderedSet<String>>,
-    xml: OnceLock<Arc<XmlMetadata>>,
+    xml: OnceLock<Arc<xml::Metadata>>,
     manifest: OnceLock<Arc<Manifest>>,
 }
 
@@ -212,7 +213,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's XML metadata.
-    pub fn xml(&self) -> &XmlMetadata {
+    pub fn xml(&self) -> &xml::Metadata {
         self.xml
             .get_or_init(|| self.repo.pkg_xml(self.cpv()))
             .as_ref()
@@ -282,7 +283,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
     use crate::macros::assert_err_re;
-    use crate::pkg::ebuild::metadata::Checksum;
+    use crate::pkg::ebuild::manifest::Checksum;
     use crate::repo::PkgRepository;
     use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
 

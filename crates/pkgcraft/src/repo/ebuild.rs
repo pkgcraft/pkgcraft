@@ -21,10 +21,7 @@ use crate::files::{
     has_ext, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list, sorted_dir_list_utf8,
 };
 use crate::macros::build_from_paths;
-use crate::pkg::ebuild::{
-    self,
-    metadata::{Manifest, XmlMetadata},
-};
+use crate::pkg::ebuild::{self, manifest::Manifest, xml};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -160,7 +157,7 @@ pub struct Repo {
     license_groups: OnceLock<HashMap<String, HashSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceLock<IndexMap<String, Eclass>>,
-    xml_cache: OnceLock<ArcCache<XmlMetadata>>,
+    xml_cache: OnceLock<ArcCache<xml::Metadata>>,
     manifest_cache: OnceLock<ArcCache<Manifest>>,
     categories_xml: OnceLock<IndexMap<String, String>>,
 }
@@ -474,9 +471,9 @@ impl Repo {
     }
 
     /// Return the shared XML metadata for a given package.
-    pub(crate) fn pkg_xml(&self, cpv: &Cpv<String>) -> Arc<XmlMetadata> {
+    pub(crate) fn pkg_xml(&self, cpv: &Cpv<String>) -> Arc<xml::Metadata> {
         self.xml_cache
-            .get_or_init(|| ArcCache::<XmlMetadata>::new(self.arc()))
+            .get_or_init(|| ArcCache::<xml::Metadata>::new(self.arc()))
             .get(cpv)
     }
 

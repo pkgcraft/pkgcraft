@@ -13,7 +13,7 @@ use crate::eapi::Eapi;
 use crate::files::{
     has_ext_utf8, is_file, is_file_utf8, is_hidden, is_hidden_utf8, sorted_dir_list,
 };
-use crate::pkg::ebuild::metadata::HashType;
+use crate::pkg::ebuild::manifest::HashType;
 use crate::repo::RepoFormat;
 use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};

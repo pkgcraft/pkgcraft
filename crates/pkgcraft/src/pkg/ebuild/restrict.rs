@@ -9,7 +9,7 @@ use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
-use super::metadata::Maintainer;
+use super::xml::Maintainer;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict {

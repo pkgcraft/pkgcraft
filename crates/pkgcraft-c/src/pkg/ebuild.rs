@@ -1,7 +1,7 @@
 use std::ffi::{c_char, CString};
 use std::{mem, ptr, slice};
 
-use pkgcraft::pkg::ebuild::{metadata, EbuildPackage};
+use pkgcraft::pkg::ebuild::{xml, EbuildPackage};
 use pkgcraft::pkg::Pkg;
 use pkgcraft::traits::IntoOwned;
 
@@ -476,7 +476,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstream(p: *mut Pkg) -> *mut Upstr
         Some(u) => {
             // convert remote ids to C wrapper objects
             let mut remote_ids_len: usize = 0;
-            let convert = |r: &metadata::RemoteId| {
+            let convert = |r: &xml::RemoteId| {
                 let obj = RemoteId {
                     site: try_ptr_from_str!(r.site()),
                     name: try_ptr_from_str!(r.name()),
@@ -488,7 +488,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstream(p: *mut Pkg) -> *mut Upstr
 
             // convert upstream maintainers to C wrapper objects
             let mut maintainers_len: usize = 0;
-            let convert = |m: &metadata::UpstreamMaintainer| {
+            let convert = |m: &xml::UpstreamMaintainer| {
                 let obj = UpstreamMaintainer {
                     name: try_ptr_from_str!(m.name()),
                     email: char_p_or_null!(m.email()),
