@@ -24,6 +24,7 @@ use crate::Error;
 
 use super::{Cache, CacheEntry, CacheFormat};
 
+/// Wrapper that converts metadata keys to md5-dict compatible keys.
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 struct Md5DictKey(Key);
 
@@ -59,6 +60,7 @@ impl fmt::Display for Md5DictKey {
     }
 }
 
+/// The format for md5-dict metadata cache entries.
 #[derive(Debug, Default)]
 pub struct Md5DictEntry(IndexMap<Md5DictKey, String>);
 
@@ -298,6 +300,7 @@ impl From<&Metadata<'_>> for Md5DictEntry {
     }
 }
 
+/// The md5-dict metadata cache.
 #[derive(Debug)]
 pub struct Md5Dict {
     path: Utf8PathBuf,

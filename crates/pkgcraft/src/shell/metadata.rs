@@ -13,6 +13,11 @@ use crate::Error;
 use super::get_build_mut;
 use super::phase::Phase;
 
+/// Ebuild package metadata variants.
+///
+/// Many of these directly correspond to variables set in ebuilds or eclasses. See the related
+/// metadata key sets in [`Eapi`] for EAPI support relating to incrementals, dependencies, and
+/// mandatory settings.
 #[derive(
     AsRefStr,
     EnumIter,
@@ -54,7 +59,10 @@ pub enum Key {
     CHKSUM,
 }
 
-/// Deserialized package metadata.
+/// Ebuild package metadata.
+///
+/// This is created via deserializing metadata cache entries or pulled directly from the
+/// environment after sourcing an ebuild.
 #[derive(Debug, Default)]
 pub struct Metadata<'a> {
     pub(crate) eapi: &'static Eapi,
