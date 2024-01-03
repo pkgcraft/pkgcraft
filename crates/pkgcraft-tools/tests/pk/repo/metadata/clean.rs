@@ -27,7 +27,11 @@ fn run() {
     assert!(path.join("cat/b-1").exists());
     assert!(path.join("cat/b-2").exists());
 
-    // no outdated entries removes no files
+    // create old and temp files
+    fs::write(path.join("cat/a-0"), "").unwrap();
+    fs::write(path.join("cat/.a-1"), "").unwrap();
+
+    // no outdated entries removes only unrelated files
     cmd("pk repo metadata clean")
         .arg(t.path())
         .assert()
@@ -39,10 +43,16 @@ fn run() {
     assert!(path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
     assert!(path.join("cat/b-2").exists());
+    assert!(!path.join("cat/a-0").exists());
+    assert!(!path.join("cat/.a-1").exists());
 
-    // outdated cache files and directories are removed
+    // remove pkgs and create old and temp files
+    fs::write(path.join("cat/a-0"), "").unwrap();
+    fs::write(path.join("cat/.a-1"), "").unwrap();
     fs::remove_dir_all(t.repo().path().join("cat/b")).unwrap();
     fs::remove_dir_all(t.repo().path().join("a")).unwrap();
+
+    // outdated cache files and directories are removed
     cmd("pk repo metadata clean")
         .arg(t.path())
         .assert()
@@ -54,4 +64,6 @@ fn run() {
     assert!(path.join("cat/a-1").exists());
     assert!(!path.join("cat/b-1").exists());
     assert!(!path.join("cat/b-2").exists());
+    assert!(!path.join("cat/a-0").exists());
+    assert!(!path.join("cat/.a-1").exists());
 }
