@@ -1890,6 +1890,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkgcruft"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "camino",
+ "clap",
+ "clap-verbosity-flag",
+ "crossbeam-channel",
+ "git2",
+ "indexmap 2.1.0",
+ "itertools 0.12.0",
+ "num_cpus",
+ "once_cell",
+ "pkgcraft",
+ "scallop",
+ "strum",
+ "thiserror",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "plotters"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
