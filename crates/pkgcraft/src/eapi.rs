@@ -13,12 +13,12 @@ use strum::EnumString;
 
 use crate::archive::Archive;
 use crate::dep;
+use crate::pkg::ebuild::metadata::Key;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
 use crate::shell::commands::Command;
 use crate::shell::environment::{BuildVariable, Variable};
 use crate::shell::hooks::{Hook, HookKind};
-use crate::shell::metadata::Key;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::{Phase, PhaseKind};
 use crate::Error;
@@ -531,10 +531,10 @@ static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
 });
 
 pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
+    use crate::pkg::ebuild::metadata::Key::*;
     use crate::shell::commands::*;
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks::*;
-    use crate::shell::metadata::Key::*;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{eapi5::*, PhaseKind::*};
     use crate::shell::scope::Scopes::*;
@@ -755,10 +755,10 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
+    use crate::pkg::ebuild::metadata::Key::*;
     use crate::shell::commands::*;
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks::*;
-    use crate::shell::metadata::Key::*;
     use crate::shell::phase::PhaseKind::*;
     use crate::shell::scope::Scopes::*;
     use Feature::*;
@@ -794,8 +794,8 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
 });
 
 pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
+    use crate::pkg::ebuild::metadata::Key::*;
     use crate::shell::commands::*;
-    use crate::shell::metadata::Key::*;
     use Feature::*;
 
     Eapi::new("8", Some(&EAPI7))

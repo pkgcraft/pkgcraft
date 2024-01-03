@@ -4,9 +4,9 @@ use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
+use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
 use pkgcraft::shell::environment::Variable;
-use pkgcraft::shell::metadata::Key;
 use pkgcraft::utils::bounded_jobs;
 use pkgcraft::Error;
 use scallop::pool::PoolIter;

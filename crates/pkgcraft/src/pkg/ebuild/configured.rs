@@ -6,9 +6,9 @@ use crate::eapi::Eapi;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::configured::Repo;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
-use crate::shell::metadata::Key;
 use crate::types::OrderedSet;
 
+use super::metadata::Key;
 use super::EbuildPackage;
 
 #[derive(Debug)]

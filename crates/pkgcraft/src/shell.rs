@@ -16,7 +16,8 @@ use scallop::{functions, Error, ExecStatus};
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_from_paths;
-use crate::pkg::{ebuild::EbuildPackage, Package, RepoPackage};
+use crate::pkg::ebuild::{metadata::Key, EbuildPackage};
+use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::Eclass;
 use crate::repo::Repository;
 use crate::restrict::Restrict;
@@ -28,7 +29,7 @@ pub mod commands;
 pub mod environment;
 pub(crate) mod hooks;
 mod install;
-pub mod metadata;
+mod metadata;
 pub(crate) mod operations;
 pub(crate) mod phase;
 pub mod scope;
@@ -38,8 +39,6 @@ mod utils;
 
 use environment::Variable;
 use scope::Scope;
-
-pub use metadata::Key;
 
 struct Stdin {
     inner: io::Stdin,

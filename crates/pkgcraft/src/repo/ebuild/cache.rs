@@ -8,9 +8,8 @@ use tracing::error;
 
 use crate::dep::Cpv;
 use crate::error::{Error, PackageError};
-use crate::pkg::ebuild::raw::Pkg;
+use crate::pkg::ebuild::{metadata::Metadata, raw::Pkg};
 use crate::repo::{PkgRepository, Repository};
-use crate::shell::metadata::Metadata;
 use crate::traits::Contains;
 use crate::utils::bounded_jobs;
 

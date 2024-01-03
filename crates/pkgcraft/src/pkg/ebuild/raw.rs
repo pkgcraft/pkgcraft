@@ -7,9 +7,10 @@ use crate::eapi::{self, Eapi};
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::shell::metadata::Metadata;
 use crate::traits::FilterLines;
 use crate::Error;
+
+use super::metadata::Metadata;
 
 pub struct Pkg<'a> {
     pub(super) cpv: Cpv<String>,

@@ -8,10 +8,9 @@ use tempfile::TempDir;
 
 use crate::dep::{Cpv, Dep, Version};
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
-use crate::pkg::ebuild;
+use crate::pkg::ebuild::{self, metadata::Key};
 use crate::repo::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
 use crate::restrict::Restrict;
-use crate::shell::metadata::Key;
 use crate::traits::Contains;
 use crate::Error;
 
