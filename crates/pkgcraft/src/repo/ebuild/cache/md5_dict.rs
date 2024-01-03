@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 
 use crate::dep::{self, Cpv, Slot};
 use crate::eapi::Eapi;
-use crate::files::atomic_write_file;
+use crate::files::{atomic_write_file, is_file};
 use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword, raw::Pkg};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{Eclass, Repo};
@@ -371,28 +371,25 @@ impl Cache for Md5Dict {
     ) -> crate::Result<()> {
         // TODO: replace with parallelized cache iterator
         let entries: Vec<_> = WalkDir::new(self.path())
-            .min_depth(1)
+            .min_depth(2)
             .max_depth(2)
             .into_iter()
             .collect();
 
-        // Remove invalid, extraneous, and outdated files as well as empty directories
-        // while ignoring I/O errors.
+        // Remove outdated, invalid, and unrelated files as well as their parent directories if
+        // empty while ignoring I/O errors.
         entries
             .into_par_iter()
             .filter_map(|e| e.ok())
+            .filter(is_file)
             .for_each(|e| {
                 if let Some(path) = Utf8Path::from_path(e.path()) {
-                    if path.is_dir() {
-                        // ignore non-empty dirs
-                        fs::remove_dir(path).ok();
-                    } else if let Ok(relpath) = path.strip_prefix(self.path()) {
+                    if let Ok(relpath) = path.strip_prefix(self.path()) {
                         // determine if a cache file is valid, relating to an existing pkg
                         let valid = Cpv::try_new(relpath.as_str())
                             .ok()
                             .map(|cpv| collection.contains(&cpv))
                             .unwrap_or_default();
-                        // remove all invalid and unrelated files
                         if !valid {
                             fs::remove_file(path).ok();
                             fs::remove_dir(path.parent().unwrap()).ok();
