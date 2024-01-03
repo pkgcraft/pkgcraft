@@ -248,14 +248,14 @@ impl TryFrom<Node<'_, '_>> for Upstream {
 
 /// Package metadata contained in metadata.xml files as defined by GLEP 68.
 #[derive(Debug, Default, Clone)]
-pub struct Metadata {
-    maintainers: Vec<Maintainer>,
-    upstream: Option<Upstream>,
-    slots: HashMap<String, String>,
-    subslots: Option<String>,
-    stabilize_allarches: bool,
-    local_use: HashMap<String, String>,
-    long_desc: Option<String>,
+pub(crate) struct Metadata {
+    pub(super) maintainers: Vec<Maintainer>,
+    pub(super) upstream: Option<Upstream>,
+    pub(super) slots: HashMap<String, String>,
+    pub(super) subslots: Option<String>,
+    pub(super) stabilize_allarches: bool,
+    pub(super) local_use: HashMap<String, String>,
+    pub(super) long_desc: Option<String>,
 }
 
 impl ArcCacheData for Metadata {
@@ -309,40 +309,5 @@ impl Metadata {
 
     fn parse_long_desc(node: Node, data: &mut Self) {
         data.long_desc = node.text().map(|s| s.split_whitespace().join(" "));
-    }
-
-    /// Return a package's maintainers.
-    pub fn maintainers(&self) -> &[Maintainer] {
-        &self.maintainers
-    }
-
-    /// Return a package's upstream info.
-    pub fn upstream(&self) -> Option<&Upstream> {
-        self.upstream.as_ref()
-    }
-
-    /// Return a package's slot descriptions.
-    pub fn slots(&self) -> &HashMap<String, String> {
-        &self.slots
-    }
-
-    /// Return a package's subslots description.
-    pub fn subslots(&self) -> Option<&str> {
-        self.subslots.as_deref()
-    }
-
-    /// Return a package's architecture-independent status.
-    pub fn stabilize_allarches(&self) -> bool {
-        self.stabilize_allarches
-    }
-
-    /// Return a package's local USE flag mapping.
-    pub fn local_use(&self) -> &HashMap<String, String> {
-        &self.local_use
-    }
-
-    /// Return a package's long description.
-    pub fn long_description(&self) -> Option<&str> {
-        self.long_desc.as_deref()
     }
 }

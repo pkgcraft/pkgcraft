@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::sync::{Arc, OnceLock};
 
@@ -214,10 +214,45 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's XML metadata.
-    pub fn xml(&self) -> &xml::Metadata {
+    fn xml(&self) -> &xml::Metadata {
         self.xml
             .get_or_init(|| self.repo.pkg_xml(self.cpv()))
             .as_ref()
+    }
+
+    /// Return a package's maintainers.
+    pub fn maintainers(&self) -> &[xml::Maintainer] {
+        &self.xml().maintainers
+    }
+
+    /// Return a package's upstream info.
+    pub fn upstream(&self) -> Option<&xml::Upstream> {
+        self.xml().upstream.as_ref()
+    }
+
+    /// Return a package's slot descriptions.
+    pub fn slots(&self) -> &HashMap<String, String> {
+        &self.xml().slots
+    }
+
+    /// Return a package's subslots description.
+    pub fn subslots(&self) -> Option<&str> {
+        self.xml().subslots.as_deref()
+    }
+
+    /// Return a package's architecture-independent status.
+    pub fn stabilize_allarches(&self) -> bool {
+        self.xml().stabilize_allarches
+    }
+
+    /// Return a package's local USE flag mapping.
+    pub fn local_use(&self) -> &HashMap<String, String> {
+        &self.xml().local_use
+    }
+
+    /// Return a package's long description.
+    pub fn long_description(&self) -> Option<&str> {
+        self.xml().long_desc.as_deref()
     }
 
     /// Return a package's manifest.
@@ -693,22 +728,22 @@ mod tests {
     fn maintainers() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
-        assert!(pkg.xml().maintainers().is_empty());
+        assert!(pkg.maintainers().is_empty());
 
         // invalid
         let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
-        assert!(pkg.xml().maintainers().is_empty());
+        assert!(pkg.maintainers().is_empty());
 
         // single
         let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
-        let m = pkg.xml().maintainers();
+        let m = pkg.maintainers();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].email(), "a.person@email.com");
         assert_eq!(m[0].name(), Some("A Person"));
 
         // multiple
         let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
-        let m = pkg.xml().maintainers();
+        let m = pkg.maintainers();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].email(), "a.person@email.com");
         assert_eq!(m[0].name(), Some("A Person"));
@@ -720,22 +755,22 @@ mod tests {
     fn upstream() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
-        assert!(pkg.xml().upstream().is_none());
+        assert!(pkg.upstream().is_none());
 
         // invalid
         let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
-        assert!(pkg.xml().upstream().is_none());
+        assert!(pkg.upstream().is_none());
 
         // single
         let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
-        let m = pkg.xml().upstream().unwrap().remote_ids();
+        let m = pkg.upstream().unwrap().remote_ids();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].site(), "github");
         assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
 
         // multiple
         let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
-        let m = pkg.xml().upstream().unwrap().remote_ids();
+        let m = pkg.upstream().unwrap().remote_ids();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].site(), "github");
         assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
@@ -747,49 +782,49 @@ mod tests {
     fn local_use() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
-        assert!(pkg.xml().local_use().is_empty());
+        assert!(pkg.local_use().is_empty());
 
         // invalid
         let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
-        assert!(pkg.xml().local_use().is_empty());
+        assert!(pkg.local_use().is_empty());
 
         // single
         let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
-        assert_eq!(pkg.xml().local_use().len(), 1);
-        assert_eq!(pkg.xml().local_use().get("flag").unwrap(), "flag desc");
+        assert_eq!(pkg.local_use().len(), 1);
+        assert_eq!(pkg.local_use().get("flag").unwrap(), "flag desc");
 
         // multiple
         let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
-        assert_eq!(pkg.xml().local_use().len(), 2);
-        assert_eq!(pkg.xml().local_use().get("flag1").unwrap(), "flag1 desc");
-        assert_eq!(pkg.xml().local_use().get("flag2").unwrap(), "flag2 desc");
+        assert_eq!(pkg.local_use().len(), 2);
+        assert_eq!(pkg.local_use().get("flag1").unwrap(), "flag1 desc");
+        assert_eq!(pkg.local_use().get("flag2").unwrap(), "flag2 desc");
     }
 
     #[test]
     fn long_description() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
-        assert!(pkg.xml().long_description().is_none());
+        assert!(pkg.long_description().is_none());
 
         // invalid
         let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
-        assert!(pkg.xml().long_description().is_none());
+        assert!(pkg.long_description().is_none());
 
         // empty
         let pkg = TEST_DATA.ebuild_pkg("=pkg/empty-8::xml").unwrap();
-        assert!(pkg.xml().long_description().is_none());
+        assert!(pkg.long_description().is_none());
 
         // single
         let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
         assert_eq!(
-            pkg.xml().long_description().unwrap(),
+            pkg.long_description().unwrap(),
             "A wrapped sentence. Another sentence. New paragraph."
         );
 
         // multiple
         let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
         assert_eq!(
-            pkg.xml().long_description().unwrap(),
+            pkg.long_description().unwrap(),
             "A wrapped sentence. Another sentence. New paragraph."
         );
     }
