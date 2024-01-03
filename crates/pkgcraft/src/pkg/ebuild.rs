@@ -214,14 +214,14 @@ impl<'a> Pkg<'a> {
     /// Return a package's XML metadata.
     pub fn xml(&self) -> &XmlMetadata {
         self.xml
-            .get_or_init(|| self.repo().pkg_xml(self.cpv()))
+            .get_or_init(|| self.repo.pkg_xml(self.cpv()))
             .as_ref()
     }
 
     /// Return a package's manifest.
     pub fn manifest(&self) -> &Manifest {
         self.manifest
-            .get_or_init(|| self.repo().pkg_manifest(self.cpv()))
+            .get_or_init(|| self.repo.pkg_manifest(self.cpv()))
             .as_ref()
     }
 
