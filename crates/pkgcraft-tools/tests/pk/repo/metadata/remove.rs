@@ -6,7 +6,7 @@ use tempfile::tempdir;
 use crate::predicates::lines_contain;
 
 #[test]
-fn remove() {
+fn run() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_pkg("cat/a-1", &[]).unwrap();
     let path = t.repo().metadata().cache().path();
