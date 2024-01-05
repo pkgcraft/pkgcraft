@@ -361,13 +361,19 @@ impl Operator {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Version<S: Stringable> {
     pub(crate) op: Option<Operator>,
     pub(crate) numbers: Vec<Number<S>>,
     pub(crate) letter: Option<char>,
     pub(crate) suffixes: Vec<Suffix<S>>,
     pub(crate) revision: Revision<S>,
+}
+
+impl<S: Stringable> fmt::Debug for Version<S> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Version {{ {self} }}")
+    }
 }
 
 impl<S: Stringable> WithOp for Version<S> {
