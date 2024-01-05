@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::OnceLock;
@@ -5,7 +6,7 @@ use std::{fmt, fs, io};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
-use strum::{Display, EnumString};
+use strum::{AsRefStr, Display, EnumString};
 use tracing::{error, warn};
 
 use crate::dep::{parse, Dep};
@@ -146,12 +147,18 @@ impl FileReader for Metadata {
     }
 }
 
-#[derive(Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(AsRefStr, Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum ArchStatus {
     Stable,
     Testing,
     Transitional,
+}
+
+impl Borrow<str> for ArchStatus {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
