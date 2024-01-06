@@ -36,7 +36,7 @@ impl Command {
         // TODO: use a revdeps cache for queries (#120)
         // TODO: parallelize while generating metadata on the fly (#121)
         for repo in repos.ebuild() {
-            for pkg in repo {
+            for pkg in repo.as_ref() {
                 for dep in pkg.dependencies(&[]).into_iter_flatten() {
                     if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {
                         println!("{pkg}: {dep}");

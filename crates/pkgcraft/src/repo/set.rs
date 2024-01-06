@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::ops::{
     BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, Sub, SubAssign,
 };
+use std::sync::Arc;
 
 use indexmap::IndexSet;
 
@@ -31,10 +32,8 @@ impl RepoSet {
     }
 
     /// Iterate over all ebuild repos in the set.
-    pub fn ebuild(&self) -> impl Iterator<Item = &EbuildRepo> {
-        self.0
-            .iter()
-            .filter_map(|r| r.as_ebuild().map(|x| x.as_ref()))
+    pub fn ebuild(&self) -> impl Iterator<Item = &Arc<EbuildRepo>> {
+        self.0.iter().filter_map(|r| r.as_ebuild())
     }
 }
 

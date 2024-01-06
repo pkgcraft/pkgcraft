@@ -74,7 +74,7 @@ impl Command {
                 let cache = if let Some(path) = self.path.as_ref() {
                     format.from_path(path)
                 } else {
-                    format.from_repo(repo)
+                    format.from_repo(repo.as_ref())
                 };
 
                 // TODO: use parallel Cpv restriction iterator
