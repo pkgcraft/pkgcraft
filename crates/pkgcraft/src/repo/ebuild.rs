@@ -485,7 +485,7 @@ impl Repo {
     }
 
     /// Return the sorted set of Cpvs in a given category.
-    fn category_cpvs(&self, category: &str) -> IndexSet<Cpv<String>> {
+    pub fn category_cpvs(&self, category: &str) -> IndexSet<Cpv<String>> {
         // filter invalid ebuild paths
         let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv<String>> {
             match r {
