@@ -8,7 +8,8 @@ use tracing::error;
 
 use crate::dep::Cpv;
 use crate::error::{Error, PackageError};
-use crate::pkg::ebuild::{metadata::Metadata, raw::Pkg};
+use crate::pkg::ebuild::metadata::{Metadata, MetadataRaw};
+use crate::pkg::ebuild::raw::Pkg;
 use crate::repo::{PkgRepository, Repository};
 use crate::traits::Contains;
 use crate::utils::bounded_jobs;
@@ -20,6 +21,8 @@ pub(crate) mod md5_dict;
 pub trait CacheEntry {
     /// Deserialize a cache entry to package metadata.
     fn to_metadata<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>>;
+    /// Convert a cache entry into raw package metadata.
+    fn into_metadata_raw(self) -> MetadataRaw;
     /// Verify a cache entry is valid.
     fn verify(&self, pkg: &Pkg) -> crate::Result<()>;
 }
@@ -79,6 +82,12 @@ impl CacheEntry for MetadataCacheEntry {
     fn to_metadata<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
         match self {
             Self::Md5Dict(entry) => entry.to_metadata(pkg),
+        }
+    }
+
+    fn into_metadata_raw(self) -> MetadataRaw {
+        match self {
+            Self::Md5Dict(entry) => entry.into_metadata_raw(),
         }
     }
 

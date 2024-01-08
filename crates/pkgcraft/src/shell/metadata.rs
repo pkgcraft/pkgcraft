@@ -1,12 +1,36 @@
 use itertools::Itertools;
 use scallop::{functions, variables};
 
-use crate::pkg::ebuild::metadata::{Key, Metadata};
+use crate::pkg::ebuild::metadata::{Key, Metadata, MetadataRaw};
 use crate::pkg::ebuild::raw::Pkg;
 use crate::pkg::{Package, RepoPackage, Source};
 use crate::Error;
 
 use super::get_build_mut;
+
+impl TryFrom<&Pkg<'_>> for MetadataRaw {
+    type Error = Error;
+
+    fn try_from(pkg: &Pkg) -> crate::Result<Self> {
+        // TODO: run sourcing via an external process pool returning the requested variables
+        pkg.source()?;
+
+        // populate metadata fields with raw string values
+        use Key::*;
+        Ok(MetadataRaw(
+            pkg.eapi()
+                .metadata_keys()
+                .iter()
+                .filter_map(|key| match key {
+                    CHKSUM | DEFINED_PHASES | INHERIT | INHERITED => None,
+                    key => {
+                        variables::optional(key).map(|val| (*key, val.split_whitespace().join(" ")))
+                    }
+                })
+                .collect(),
+        ))
+    }
+}
 
 impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
     type Error = Error;

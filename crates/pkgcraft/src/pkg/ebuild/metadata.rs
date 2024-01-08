@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::dep::{self, Dep, DependencySet, Slot, Uri};
@@ -54,6 +55,16 @@ pub enum Key {
     // match ordering of previous implementations (although the cache format is unordered)
     INHERITED,
     CHKSUM,
+}
+
+/// Raw ebuild package metadata.
+#[derive(Debug)]
+pub struct MetadataRaw(pub(crate) IndexMap<Key, String>);
+
+impl MetadataRaw {
+    pub fn get(&self, key: &Key) -> Option<&String> {
+        self.0.get(key)
+    }
 }
 
 /// Ebuild package metadata.

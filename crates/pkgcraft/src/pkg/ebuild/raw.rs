@@ -10,7 +10,7 @@ use crate::repo::{ebuild::Repo, Repository};
 use crate::traits::FilterLines;
 use crate::Error;
 
-use super::metadata::Metadata;
+use super::metadata::{Metadata, MetadataRaw};
 
 pub struct Pkg<'a> {
     pub(super) cpv: Cpv<String>,
@@ -78,6 +78,20 @@ impl<'a> Pkg<'a> {
     /// Return the checksum of the package's ebuild file content.
     pub fn chksum(&self) -> &str {
         &self.chksum
+    }
+
+    /// Load raw metadata from the cache if valid, otherwise source it from the ebuild.
+    pub fn metadata_raw(&self) -> crate::Result<MetadataRaw> {
+        self.repo
+            .metadata()
+            .cache()
+            .get(self)
+            .map(|c| c.into_metadata_raw())
+            .or_else(|_| self.try_into())
+            .map_err(|e| Error::InvalidPkg {
+                id: self.to_string(),
+                err: e.to_string(),
+            })
     }
 
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.
