@@ -183,6 +183,12 @@ impl From<&CheckKind> for &'static Check {
     }
 }
 
+impl std::fmt::Display for Check {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.kind)
+    }
+}
+
 pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
     [dependency::CHECK, dropped_keywords::CHECK, metadata::CHECK, unstable_only::CHECK]
         .into_iter()
