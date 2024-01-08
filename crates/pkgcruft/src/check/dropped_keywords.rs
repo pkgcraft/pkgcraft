@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crossbeam_channel::Sender;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
+use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
@@ -91,7 +91,8 @@ impl<'a> CheckRun<Vec<Pkg<'a>>> for DroppedKeywordsCheck<'a> {
         }
 
         for (pkg, arches) in &dropped {
-            let report = DroppedKeywords.report(pkg, arches.iter().sorted().join(", "));
+            let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
+            let report = DroppedKeywords.report(pkg, arches);
             tx.send(report).unwrap();
         }
 

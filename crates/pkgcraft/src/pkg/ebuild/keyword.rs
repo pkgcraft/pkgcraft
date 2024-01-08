@@ -103,19 +103,32 @@ impl<S1: Stringable, S2: Stringable> PartialEq<Keyword<S1>> for Keyword<S2> {
     }
 }
 
-/// Compare two keywords, making unprefixed arches less than prefixed arches.
-fn cmp<S1, S2>(k1: &Keyword<S1>, k2: &Keyword<S2>) -> Ordering
+/// Compare two arches, making unprefixed arches less than prefixed arches.
+pub fn cmp_arches<S1, S2>(arch1: S1, arch2: S2) -> Ordering
 where
-    S1: Stringable,
-    S2: Stringable,
+    S1: AsRef<str>,
+    S2: AsRef<str>,
 {
-    let (arch1, arch2) = (k1.arch(), k2.arch());
+    let (arch1, arch2) = (arch1.as_ref(), arch2.as_ref());
     match (arch1.find('-'), arch2.find('-')) {
         (None, Some(_)) => return Ordering::Less,
         (Some(_), None) => return Ordering::Greater,
         _ => cmp_not_equal!(arch1, arch2),
     }
 
+    Ordering::Equal
+}
+
+/// Compare two keywords, making unprefixed arches less than prefixed arches.
+fn cmp<S1, S2>(k1: &Keyword<S1>, k2: &Keyword<S2>) -> Ordering
+where
+    S1: Stringable,
+    S2: Stringable,
+{
+    let cmp = cmp_arches(k1.arch(), k2.arch());
+    if cmp != Ordering::Equal {
+        return cmp;
+    }
     k1.status.cmp(&k2.status)
 }
 
