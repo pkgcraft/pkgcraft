@@ -14,6 +14,7 @@ use crate::report::{Report, ReportKind};
 use crate::source::SourceKind;
 
 pub mod dependency;
+pub mod dropped_keywords;
 pub mod metadata;
 pub mod unstable_only;
 
@@ -30,6 +31,7 @@ pub enum Scope {
 )]
 pub enum CheckKind {
     Dependency,
+    DroppedKeywords,
     Metadata,
     UnstableOnly,
 }
@@ -49,6 +51,7 @@ impl std::fmt::Display for CheckKind {
 #[derive(Debug, Clone)]
 pub(crate) enum CheckRunner<'a> {
     Dependency(dependency::DependencyCheck<'a>),
+    DroppedKeywords(dropped_keywords::DroppedKeywordsCheck<'a>),
     Metadata(metadata::MetadataCheck<'a>),
     UnstableOnly(unstable_only::UnstableOnlyCheck<'a>),
 }
@@ -80,6 +83,7 @@ impl<'a> CheckRun<Vec<ebuild::Pkg<'a>>> for CheckRunner<'a> {
     fn run(&self, item: &Vec<ebuild::Pkg<'a>>, tx: &Sender<Report>) -> crate::Result<()> {
         use CheckRunner::*;
         match self {
+            DroppedKeywords(c) => c.run(item, tx),
             UnstableOnly(c) => c.run(item, tx),
             _ => panic!("check not valid for ebuild pkg set runs"),
         }
@@ -125,6 +129,9 @@ impl Check {
         use CheckKind::*;
         match self.kind {
             Dependency => CheckRunner::Dependency(dependency::DependencyCheck::new(repo)),
+            DroppedKeywords => {
+                CheckRunner::DroppedKeywords(dropped_keywords::DroppedKeywordsCheck::new(repo))
+            }
             Metadata => CheckRunner::Metadata(metadata::MetadataCheck::new(repo)),
             UnstableOnly => CheckRunner::UnstableOnly(unstable_only::UnstableOnlyCheck::new(repo)),
         }
@@ -177,7 +184,7 @@ impl From<&CheckKind> for &'static Check {
 }
 
 pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
-    [dependency::CHECK, metadata::CHECK, unstable_only::CHECK]
+    [dependency::CHECK, dropped_keywords::CHECK, metadata::CHECK, unstable_only::CHECK]
         .into_iter()
         .collect()
 });

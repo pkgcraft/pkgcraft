@@ -28,6 +28,7 @@ use crate::Error;
 )]
 pub enum PackageReport {
     DeprecatedDependency,
+    DroppedKeywords,
     InvalidDependency,
     MissingMetadata,
     SourcingError,
