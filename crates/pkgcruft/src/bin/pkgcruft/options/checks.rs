@@ -16,7 +16,7 @@ pub(crate) struct Options {
 }
 
 impl Options {
-    pub(crate) fn checks(&self) -> (Vec<CheckKind>, Vec<ReportKind>) {
+    pub(crate) fn collapse(&self) -> (Vec<CheckKind>, Vec<ReportKind>) {
         let mut checks = self.checks.clone();
         let mut reports = self.keywords.clone();
 

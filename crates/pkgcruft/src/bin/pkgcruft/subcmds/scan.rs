@@ -7,7 +7,7 @@ use pkgcruft::pipeline::Pipeline;
 use pkgcruft::reporter::Reporter;
 
 use crate::args::{target_restriction, StdinOrArgs};
-use crate::options::{arches, checks, profiles};
+use crate::options;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -28,15 +28,8 @@ pub struct Command {
     #[arg(short = 'R', default_value = "simple")]
     reporter: Reporter,
 
-    /// Specific checks to run
     #[clap(flatten)]
-    check_opts: checks::Options,
-
-    #[clap(flatten)]
-    arch_opts: arches::Options,
-
-    #[clap(flatten)]
-    profile_opts: profiles::Options,
+    options: options::Options,
 }
 
 impl Command {
@@ -49,7 +42,7 @@ impl Command {
         };
 
         // determine checks and reports
-        let (checks, reports) = self.check_opts.checks();
+        let (checks, reports) = self.options.checks.collapse();
 
         // determine target restrictions
         let targets: Result<Vec<_>, _> = self
