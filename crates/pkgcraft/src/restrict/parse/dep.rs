@@ -13,6 +13,9 @@ fn str_to_regex_restrict(s: &str) -> Result<StrRestrict, &'static str> {
 }
 
 peg::parser!(grammar restrict() for str {
+    rule _ = quiet!{[^ ' ' | '\n' | '\t']+}
+    rule __ = quiet!{[' ' | '\n' | '\t']+}
+
     rule category() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']
@@ -22,7 +25,8 @@ peg::parser!(grammar restrict() for str {
     rule package() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '*']
-            (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '*'] / ("-" !version()))*})
+            (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '*'] /
+                ("-" !(version() ("-" version())? (__ / "*" / ":" / "[" / ![_]))))*})
         { s }
 
     rule number() -> Number<&'input str>
