@@ -9,11 +9,15 @@ Highly experimental tooling ecosystem for Gentoo comprised of the following:
 - pkgcraft: core library
 - pkgcraft-c: C bindings
 - pkgcraft-tools: command-line tools
+- pkgcruft: QA library and tools
 - arcanist: package-building daemon
+
+More information about the project can be found on its [FAQ][0] and
+[development blog][1].
 
 ## Development
 
-Using [cargo-nextest][0] is required to run tests in separate processes. Running
+Using [cargo-nextest][2] is required to run tests in separate processes. Running
 tests via `cargo test` will break due to its threaded approach since much of
 the pkgcraft ecosystem relies on bash which isn't thread-friendly in any
 fashion.
@@ -22,11 +26,13 @@ In addition, crates with the `test` feature require it to be enabled when
 running tests so use `cargo nextest run --all-features --tests` to run tests
 for the entire workspace.
 
-For bugs or other requests please create an [issue][1].
+For bugs or other requests please create an [issue][3].
 
-For general support or questions use [discussions][2] or the #pkgcraft IRC
+For general support or questions use [discussions][4] or the #pkgcraft IRC
 channel on libera.
 
-[0]: <https://nexte.st/>
-[1]: <https://github.com/pkgcraft/pkgcraft/issues>
-[2]: <https://github.com/pkgcraft/pkgcraft/discussions>
+[0]: <https://pkgcraft.github.io/about/>
+[1]: <https://pkgcraft.github.io/>
+[2]: <https://nexte.st/>
+[3]: <https://github.com/pkgcraft/pkgcraft/issues>
+[4]: <https://github.com/pkgcraft/pkgcraft/discussions>
