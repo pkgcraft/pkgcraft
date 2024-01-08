@@ -298,7 +298,7 @@ impl Eapi {
     }
 
     /// Metadata variables that must exist.
-    pub(crate) fn mandatory_keys(&self) -> &IndexSet<Key> {
+    pub fn mandatory_keys(&self) -> &IndexSet<Key> {
         &self.mandatory_keys
     }
 
