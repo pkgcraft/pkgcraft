@@ -45,6 +45,7 @@ macro_rules! assert_logs_re {
 pub(crate) use assert_logs_re;
 
 // Return Ordering if the arguments or expression are not equal.
+#[macro_export]
 macro_rules! cmp_not_equal {
     ($cmp:expr) => {
         if $cmp != ::std::cmp::Ordering::Equal {
@@ -55,7 +56,7 @@ macro_rules! cmp_not_equal {
         $crate::macros::cmp_not_equal!($x.cmp($y))
     };
 }
-pub(crate) use cmp_not_equal;
+pub use cmp_not_equal;
 
 // Return Ordering if the arguments or expression are not equal.
 macro_rules! partial_cmp_not_equal {
