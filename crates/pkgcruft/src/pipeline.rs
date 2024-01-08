@@ -1,35 +1,51 @@
+use std::collections::HashSet;
 use std::thread;
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use indexmap::IndexSet;
 use pkgcraft::dep::Cpv;
 use pkgcraft::repo::{ebuild, Repo};
 use pkgcraft::restrict::{dep::Restrict as DepRestrict, Restrict};
 
 use crate::check::{Check, CheckKind, Scope, CHECKS};
-use crate::report::Report;
+use crate::report::{Report, ReportKind, REPORTS};
 use crate::runner::CheckRunner;
 use crate::source::{self, SourceKind};
 
 pub struct Pipeline {
     jobs: usize,
     repo: Repo,
-    checks: Vec<Check>,
+    checks: IndexSet<Check>,
+    reports: HashSet<ReportKind>,
     restrict: Restrict,
 }
 
 impl Pipeline {
-    pub fn new(jobs: usize, checks: &[CheckKind], repo: &Repo, restrict: &Restrict) -> Self {
-        let mut checks: Vec<Check> = if checks.is_empty() {
+    pub fn new(
+        jobs: usize,
+        checks: &[CheckKind],
+        reports: &[ReportKind],
+        repo: &Repo,
+        restrict: &Restrict,
+    ) -> Self {
+        let mut checks: IndexSet<Check> = if checks.is_empty() {
             CHECKS.iter().copied().collect()
         } else {
             checks.iter().map(|k| k.into()).copied().collect()
         };
         checks.sort();
 
+        let reports: HashSet<ReportKind> = if reports.is_empty() {
+            REPORTS.iter().copied().collect()
+        } else {
+            reports.iter().copied().collect()
+        };
+
         Self {
             jobs,
             repo: repo.clone(),
             checks,
+            reports,
             restrict: restrict.clone(),
         }
     }
@@ -134,28 +150,45 @@ impl Pipeline {
     }*/
 }
 
-impl IntoIterator for &Pipeline {
+impl<'a> IntoIterator for &'a Pipeline {
     type Item = Report;
-    type IntoIter = Iter;
+    type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         let (tx, rx) = unbounded();
         let (_producer, _workers) = self.create_workers(tx);
 
-        Iter { rx, _producer, _workers }
+        Iter {
+            rx,
+            _producer,
+            _workers,
+            reports: &self.reports,
+        }
     }
 }
 
-pub struct Iter {
+pub struct Iter<'a> {
     rx: Receiver<Report>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
+    reports: &'a HashSet<ReportKind>,
 }
 
-impl Iterator for Iter {
+impl Iterator for Iter<'_> {
     type Item = Report;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.rx.recv().ok()
+        loop {
+            match self.rx.recv() {
+                Ok(r) => {
+                    if self.reports.contains(r.kind()) {
+                        return Some(r);
+                    } else {
+                        continue;
+                    }
+                }
+                Err(_) => return None,
+            }
+        }
     }
 }

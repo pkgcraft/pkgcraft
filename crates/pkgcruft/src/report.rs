@@ -147,7 +147,7 @@ impl PartialOrd for ReportKind {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub(crate) enum ReportScope {
+pub enum ReportScope {
     Version(Cpv<String>),
     Package(String),
 }
@@ -166,6 +166,16 @@ pub struct Report {
     scope: ReportScope,
     kind: ReportKind,
     data: String,
+}
+
+impl Report {
+    pub fn scope(&self) -> &ReportScope {
+        &self.scope
+    }
+
+    pub fn kind(&self) -> &ReportKind {
+        &self.kind
+    }
 }
 
 impl std::fmt::Display for Report {

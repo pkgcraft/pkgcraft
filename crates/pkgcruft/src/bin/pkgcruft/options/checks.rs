@@ -16,8 +16,9 @@ pub(crate) struct Options {
 }
 
 impl Options {
-    pub(crate) fn checks(&self) -> Vec<CheckKind> {
+    pub(crate) fn checks(&self) -> (Vec<CheckKind>, Vec<ReportKind>) {
         let mut checks = self.checks.clone();
+        let mut reports = self.keywords.clone();
 
         // add checks related to report options
         for keyword in &self.keywords {
@@ -28,6 +29,11 @@ impl Options {
             }
         }
 
-        checks
+        // add reports related to check options
+        for check in self.checks.iter().filter_map(|c| CHECKS.get(c)) {
+            reports.extend(check.reports().iter().copied());
+        }
+
+        (checks, reports)
     }
 }

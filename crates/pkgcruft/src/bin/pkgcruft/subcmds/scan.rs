@@ -44,8 +44,8 @@ impl Command {
             config.repos.set(Repos::Ebuild)
         };
 
-        // determine checks
-        let checks = self.check_opts.checks();
+        // determine checks and reports
+        let (checks, reports) = self.check_opts.checks();
 
         // determine target restrictions
         let targets: Result<Vec<_>, _> = self
@@ -61,7 +61,7 @@ impl Command {
 
         for (repo_set, restrict) in targets {
             for repo in repo_set.repos() {
-                let pipeline = Pipeline::new(jobs, &checks, repo, &restrict);
+                let pipeline = Pipeline::new(jobs, &checks, &reports, repo, &restrict);
                 for result in &pipeline {
                     writeln!(stdout, "{result}")?;
                 }
