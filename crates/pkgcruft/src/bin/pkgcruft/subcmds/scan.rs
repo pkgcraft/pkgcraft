@@ -25,7 +25,7 @@ pub struct Command {
     repo: Option<String>,
 
     /// Reporter to use
-    #[arg(short = 'R', default_value = "simple")]
+    #[arg(short = 'R', default_value = "fancy")]
     reporter: Reporter,
 
     #[clap(flatten)]
