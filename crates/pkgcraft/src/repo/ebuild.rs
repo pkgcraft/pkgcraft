@@ -10,6 +10,7 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
+use rayon::prelude::*;
 use roxmltree::Document;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
@@ -841,11 +842,15 @@ impl<'a> IterCpv<'a> {
 
         Self {
             iter: match (&mut *cat_restricts, &mut *pkg_restricts, &mut *ver_restricts) {
-                ([], [], []) => Box::new(
-                    repo.categories()
-                        .into_iter()
-                        .flat_map(|s| repo.category_cpvs(&s)),
-                ),
+                ([], [], []) => {
+                    let mut cpvs = repo
+                        .categories()
+                        .into_par_iter()
+                        .flat_map(|s| repo.category_cpvs(&s))
+                        .collect::<Vec<_>>();
+                    cpvs.par_sort();
+                    Box::new(cpvs.into_iter())
+                }
                 ([Equal(cat)], [Package(Equal(pn))], [Version(Some(ver))])
                     if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
                 {
