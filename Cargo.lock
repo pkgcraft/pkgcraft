@@ -1906,6 +1906,7 @@ dependencies = [
  "pkgcraft",
  "scallop",
  "strum",
+ "termcolor",
  "thiserror",
  "tracing",
  "tracing-log",
@@ -2612,6 +2613,15 @@ dependencies = [
  "redox_syscall",
  "rustix",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "termcolor"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff1bc3d3f05aff0403e8ac0d92ced918ec05b666a43f83297ccef5bea8a3d449"
+dependencies = [
+ "winapi-util",
 ]
 
 [[package]]

@@ -12,6 +12,14 @@ use strum::{AsRefStr, Display, EnumIter, EnumString};
 use crate::check::CHECKS;
 use crate::Error;
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+pub enum ReportLevel {
+    Error,
+    Warning,
+    Style,
+    Info,
+}
+
 #[derive(
     AsRefStr,
     Display,
@@ -35,7 +43,7 @@ pub enum PackageReport {
 }
 
 impl PackageReport {
-    pub(crate) fn report<P, S>(self, pkg: P, data: S) -> Report
+    pub(crate) fn report<P, S>(self, pkg: P, description: S) -> Report
     where
         P: Package,
         S: Into<String>,
@@ -43,7 +51,8 @@ impl PackageReport {
         Report {
             scope: ReportScope::Version(pkg.cpv().clone()),
             kind: ReportKind::Package(self),
-            data: data.into(),
+            level: ReportLevel::Warning,
+            description: description.into(),
         }
     }
 }
@@ -67,7 +76,7 @@ pub enum PackageSetReport {
 }
 
 impl PackageSetReport {
-    pub(crate) fn report<P, S>(self, pkgs: &[P], data: S) -> Report
+    pub(crate) fn report<P, S>(self, pkgs: &[P], description: S) -> Report
     where
         P: Package,
         S: Into<String>,
@@ -75,7 +84,8 @@ impl PackageSetReport {
         Report {
             scope: ReportScope::Package(pkgs[0].cpn()),
             kind: ReportKind::PackageSet(self),
-            data: data.into(),
+            level: ReportLevel::Warning,
+            description: description.into(),
         }
     }
 }
@@ -166,7 +176,8 @@ impl std::fmt::Display for ReportScope {
 pub struct Report {
     scope: ReportScope,
     kind: ReportKind,
-    data: String,
+    level: ReportLevel,
+    description: String,
 }
 
 impl Report {
@@ -177,11 +188,13 @@ impl Report {
     pub fn kind(&self) -> &ReportKind {
         &self.kind
     }
-}
 
-impl std::fmt::Display for Report {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}: {}: {}", self.scope, self.kind, self.data)
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    pub(crate) fn level(&self) -> &ReportLevel {
+        &self.level
     }
 }
 

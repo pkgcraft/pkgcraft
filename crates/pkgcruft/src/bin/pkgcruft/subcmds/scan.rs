@@ -33,7 +33,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(mut self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target repo set
         let repos = if let Some(target) = self.repo.as_ref() {
             config.add_target_repo(target)?.into()
@@ -59,7 +59,7 @@ impl Command {
             for repo in repo_set.repos() {
                 let pipeline = Pipeline::new(jobs, &checks, &reports, repo, &restrict);
                 for result in &pipeline {
-                    self.reporter.report(&result);
+                    self.reporter.report(&result)?;
                 }
             }
         }

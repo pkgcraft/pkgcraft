@@ -40,6 +40,7 @@ once_cell = "1.19.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.13" }
 scallop = { path = "../scallop", version = "0.0.12" }
 strum = { version = "0.25.0", features = ["derive"] }
+termcolor = "1.4.0"
 thiserror = "1.0.53"
 tracing = "0.1.40"
 tracing-log = "0.2.0"
