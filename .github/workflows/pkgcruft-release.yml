@@ -1,0 +1,93 @@
+name: pkgcruft-release
+
+on:
+  push:
+    tags: [pkgcruft-*]
+    branches: ['**']
+    paths:
+      - ".github/workflows/pkgcruft-release.yml"
+  workflow_dispatch:
+
+jobs:
+  source:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout pkgcraft workspace
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Set up rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      id: rust
+
+    - name: Create vendored release tarball
+      run: .ci/vendor-tarball pkgcruft
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: source
+        path: ./*.tar.xz
+        if-no-files-found: error
+        retention-days: 3
+
+  linux:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        target:
+          - aarch64-unknown-linux-gnu
+          - aarch64-unknown-linux-musl
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+
+    steps:
+    - name: Checkout pkgcraft workspace
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Set up rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cross
+      run: cargo install cross --git https://github.com/cross-rs/cross
+
+    - name: Build pkgcruft
+      run: cross build --target ${{ matrix.target }} --all-features --profile release-strip -p pkgcruft
+
+    - name: Create archive
+      run: |
+        tar -C target/${{ matrix.target }}/release-strip \
+          -cv -I "xz -9 -T0" -f ${{ github.ref_name }}-${{ matrix.target }}.tar.xz \
+          pkgcruft pkgcraft-git-pre-push
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.ref_name }}-${{ matrix.target }}
+        path: ./*.tar.xz
+        if-no-files-found: error
+        retention-days: 3
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: ["source", "linux"]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        merge-multiple: true
+
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/*.tar.xz
+        fail_on_unmatched_files: true
