@@ -573,7 +573,11 @@ impl Repo {
                 }
             }
 
-            Some(Restrict::and(restricts))
+            if restricts.is_empty() {
+                Some(Restrict::True)
+            } else {
+                Some(Restrict::and(restricts))
+            }
         } else {
             None
         }
