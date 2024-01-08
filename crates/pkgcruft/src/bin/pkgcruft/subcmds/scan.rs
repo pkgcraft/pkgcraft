@@ -1,10 +1,10 @@
-use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
 use pkgcraft::config::{Config, Repos};
 use pkgcraft::utils::bounded_jobs;
 use pkgcruft::pipeline::Pipeline;
+use pkgcruft::reporter::Reporter;
 
 use crate::args::{target_restriction, StdinOrArgs};
 use crate::options::{arches, checks, profiles};
@@ -23,6 +23,10 @@ pub struct Command {
     /// Target repository
     #[arg(short, long)]
     repo: Option<String>,
+
+    /// Reporter to use
+    #[arg(short = 'R', default_value = "simple")]
+    reporter: Reporter,
 
     /// Specific checks to run
     #[clap(flatten)]
@@ -56,14 +60,13 @@ impl Command {
             .collect();
         let targets = targets?;
 
-        let mut stdout = io::stdout().lock();
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
 
         for (repo_set, restrict) in targets {
             for repo in repo_set.repos() {
                 let pipeline = Pipeline::new(jobs, &checks, &reports, repo, &restrict);
                 for result in &pipeline {
-                    writeln!(stdout, "{result}")?;
+                    self.reporter.report(&result);
                 }
             }
         }
