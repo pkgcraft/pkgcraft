@@ -5,7 +5,7 @@ pub(crate) mod command;
 pub mod config;
 pub mod dep;
 pub mod eapi;
-mod error;
+pub mod error;
 pub(crate) mod files;
 pub mod macros;
 pub mod pkg;
