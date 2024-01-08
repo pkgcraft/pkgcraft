@@ -18,11 +18,11 @@ pub enum Restrict {
 }
 
 impl Restrict {
-    pub fn category(s: &str) -> Self {
+    pub fn category<S: Into<String>>(s: S) -> Self {
         Self::Category(StrRestrict::equal(s))
     }
 
-    pub fn package(s: &str) -> Self {
+    pub fn package<S: Into<String>>(s: S) -> Self {
         Self::Package(StrRestrict::equal(s))
     }
 

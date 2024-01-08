@@ -559,10 +559,10 @@ impl Repo {
             for (i, s) in components.iter().enumerate() {
                 match (i, s) {
                     (0, s) if self.categories().contains(*s) => {
-                        restricts.push(DepRestrict::category(s));
+                        restricts.push(DepRestrict::category(*s));
                     }
                     (1, s) if self.packages(components[0]).contains(*s) => {
-                        restricts.push(DepRestrict::package(s));
+                        restricts.push(DepRestrict::package(*s));
                     }
                     (2, s) if s.ends_with(".ebuild") => {
                         if let Ok(cpv) = self.cpv_from_ebuild_path(&path) {
