@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::sync::{Arc, OnceLock};
+use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 use itertools::Either;
@@ -48,7 +48,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct Pkg<'a> {
     cpv: Cpv<String>,
     repo: &'a Repo,
@@ -56,6 +55,12 @@ pub struct Pkg<'a> {
     iuse_effective: OnceLock<OrderedSet<String>>,
     xml: OnceLock<Arc<xml::Metadata>>,
     manifest: OnceLock<Arc<Manifest>>,
+}
+
+impl fmt::Debug for Pkg<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Pkg {{ {}::{} }}", self.cpv, self.repo)
+    }
 }
 
 make_pkg_traits!(Pkg<'_>);
