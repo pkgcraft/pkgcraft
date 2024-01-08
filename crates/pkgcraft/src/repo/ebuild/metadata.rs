@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::OnceLock;
 use std::{fmt, fs, io};
@@ -147,12 +148,26 @@ impl FileReader for Metadata {
     }
 }
 
-#[derive(AsRefStr, Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(AsRefStr, Display, EnumString, Debug, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum ArchStatus {
     Stable,
     Testing,
     Transitional,
+}
+
+impl PartialEq for ArchStatus {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl Eq for ArchStatus {}
+
+impl Hash for ArchStatus {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref().hash(state);
+    }
 }
 
 impl Borrow<str> for ArchStatus {
