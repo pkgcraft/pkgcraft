@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crossbeam_channel::Sender;
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Stable;
+use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Stable};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
@@ -52,16 +52,15 @@ impl<'a> CheckRun<Vec<Pkg<'a>>> for UnstableOnlyCheck<'a> {
         }
 
         // find arches that only have unstable keywords
-        let unstable: Vec<_> = pkg_keywords
+        let arches: Vec<_> = pkg_keywords
             .iter()
             .filter(|(_, v)| v.iter().all(|k| k.status() != Stable))
             .map(|(k, _)| k)
-            .sorted()
             .collect();
 
-        if !unstable.is_empty() {
-            let data = format!("for arches: {}", unstable.iter().join(", "));
-            let report = UnstableOnly.report(pkgs, data);
+        if !arches.is_empty() {
+            let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
+            let report = UnstableOnly.report(pkgs, arches);
             tx.send(report).unwrap();
         }
 
