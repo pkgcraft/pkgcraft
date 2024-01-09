@@ -5,7 +5,7 @@ use pkgcruft::report::ReportKind;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = Some("Check selection"))]
-pub(crate) struct Options {
+pub(crate) struct Checks {
     /// Specific checks to run
     #[arg(short, long)]
     checks: Vec<CheckKind>,
@@ -15,7 +15,7 @@ pub(crate) struct Options {
     keywords: Vec<ReportKind>,
 }
 
-impl Options {
+impl Checks {
     pub(crate) fn collapse(&self) -> (Vec<CheckKind>, Vec<ReportKind>) {
         let mut checks = self.checks.clone();
         let mut reports = self.keywords.clone();

@@ -8,11 +8,11 @@ pub(crate) mod profiles;
 pub struct Options {
     /// Specific checks to run
     #[clap(flatten)]
-    pub(super) checks: checks::Options,
+    pub(super) checks: checks::Checks,
 
     #[clap(flatten)]
-    pub(super) arches: arches::Options,
+    pub(super) arches: arches::Arches,
 
     #[clap(flatten)]
-    pub(super) profiles: profiles::Options,
+    pub(super) profiles: profiles::Profiles,
 }
