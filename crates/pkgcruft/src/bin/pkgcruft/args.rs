@@ -3,6 +3,7 @@ use std::io::{stdin, IsTerminal};
 use camino::Utf8Path;
 use pkgcraft::config::Config;
 use pkgcraft::repo::set::RepoSet;
+use pkgcraft::repo::Repository;
 use pkgcraft::restrict::{self, Restrict};
 
 pub(super) struct StdinArgs<'a> {

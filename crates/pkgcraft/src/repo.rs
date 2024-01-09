@@ -11,7 +11,7 @@ use tracing::debug;
 use crate::config::RepoConfig;
 use crate::dep::{Cpv, Dep, Version};
 use crate::pkg::{Package, Pkg};
-use crate::restrict::Restrict as BaseRestrict;
+use crate::restrict::Restrict;
 use crate::traits::Contains;
 use crate::Error;
 
@@ -370,7 +370,7 @@ pub trait PkgRepository:
     }
     fn iter_cpv(&self) -> Self::IterCpv<'_>;
     fn iter(&self) -> Self::Iter<'_>;
-    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::IterRestrict<'_>;
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_>;
 
     fn is_empty(&self) -> bool {
         self.iter().next().is_none()
@@ -387,6 +387,10 @@ pub trait Repository: PkgRepository + fmt::Display {
     }
     fn priority(&self) -> i32;
     fn path(&self) -> &Utf8Path;
+    /// Try converting a path to a [`Restrict`], returns None if the path isn't in the repo.
+    fn restrict_from_path<P: AsRef<Utf8Path>>(&self, _path: P, _cpv: bool) -> Option<Restrict> {
+        None
+    }
     fn sync(&self) -> crate::Result<()>;
 }
 
@@ -417,7 +421,7 @@ where
     fn iter(&self) -> Self::Iter<'_> {
         (*self).iter()
     }
-    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
         (*self).iter_restrict(val)
     }
 }
@@ -509,7 +513,7 @@ impl PkgRepository for Repo {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<BaseRestrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
         match self {
             Self::Configured(repo) => IterRestrict::Configured(repo.iter_restrict(val), self),
             Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val), self),

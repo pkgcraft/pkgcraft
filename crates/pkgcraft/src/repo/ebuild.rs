@@ -543,47 +543,6 @@ impl Repo {
         }
     }
 
-    /// Try converting a path to a [`Restrict`], returns None if the path isn't in the repo.
-    pub fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P, cpv: bool) -> Option<Restrict> {
-        let path = path.as_ref().canonicalize_utf8().ok()?;
-        if self.contains(&path) {
-            let mut restricts = vec![];
-
-            // don't add repo restriction for Cpv-targeted restricts
-            if !cpv {
-                restricts.push(DepRestrict::repo(Some(self.id())));
-            }
-
-            let relpath = path.strip_prefix(self.path()).unwrap_or(&path);
-            let components: Vec<_> = relpath.components().map(|c| c.as_str()).collect();
-            for (i, s) in components.iter().enumerate() {
-                match (i, s) {
-                    (0, s) if self.categories().contains(*s) => {
-                        restricts.push(DepRestrict::category(*s));
-                    }
-                    (1, s) if self.packages(components[0]).contains(*s) => {
-                        restricts.push(DepRestrict::package(*s));
-                    }
-                    (2, s) if s.ends_with(".ebuild") => {
-                        if let Ok(cpv) = self.cpv_from_ebuild_path(&path) {
-                            let ver = cpv.version().clone();
-                            restricts.push(DepRestrict::Version(Some(ver)));
-                        }
-                    }
-                    _ => (),
-                }
-            }
-
-            if restricts.is_empty() {
-                Some(Restrict::True)
-            } else {
-                Some(Restrict::and(restricts))
-            }
-        } else {
-            None
-        }
-    }
-
     /// Return a configured repo using the given config settings.
     pub fn configure<T: Into<Arc<Settings>>>(&self, settings: T) -> configured::Repo {
         configured::Repo::new(self.arc(), settings.into())
@@ -720,6 +679,46 @@ impl Repository for Repo {
 
     fn path(&self) -> &Utf8Path {
         &self.repo_config().location
+    }
+
+    fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P, cpv: bool) -> Option<Restrict> {
+        let path = path.as_ref().canonicalize_utf8().ok()?;
+        if self.contains(&path) {
+            let mut restricts = vec![];
+
+            // don't add repo restriction for Cpv-targeted restricts
+            if !cpv {
+                restricts.push(DepRestrict::repo(Some(self.id())));
+            }
+
+            let relpath = path.strip_prefix(self.path()).unwrap_or(&path);
+            let components: Vec<_> = relpath.components().map(|c| c.as_str()).collect();
+            for (i, s) in components.iter().enumerate() {
+                match (i, s) {
+                    (0, s) if self.categories().contains(*s) => {
+                        restricts.push(DepRestrict::category(*s));
+                    }
+                    (1, s) if self.packages(components[0]).contains(*s) => {
+                        restricts.push(DepRestrict::package(*s));
+                    }
+                    (2, s) if s.ends_with(".ebuild") => {
+                        if let Ok(cpv) = self.cpv_from_ebuild_path(&path) {
+                            let ver = cpv.version().clone();
+                            restricts.push(DepRestrict::Version(Some(ver)));
+                        }
+                    }
+                    _ => (),
+                }
+            }
+
+            if restricts.is_empty() {
+                Some(Restrict::True)
+            } else {
+                Some(Restrict::and(restricts))
+            }
+        } else {
+            None
+        }
     }
 
     fn sync(&self) -> crate::Result<()> {
