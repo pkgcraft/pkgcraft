@@ -1,8 +1,8 @@
 use std::ffi::{c_char, c_int};
 
-use pkgcraft::config::{Config, Repos};
+use pkgcraft::config::Config;
 use pkgcraft::repo::set::RepoSet;
-use pkgcraft::repo::Repo;
+use pkgcraft::repo::{Repo, RepoFormat};
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
@@ -110,14 +110,23 @@ pub unsafe extern "C" fn pkgcraft_config_repos(
     iter_to_array!(config.repos.into_iter(), len, |(_, r)| { r as *const _ })
 }
 
-/// Return the RepoSet for a given set type.
+/// Return the RepoSet for a given repo format.
+///
+/// Use a null pointer format argument to return the set of all repos.
 ///
 /// # Safety
 /// The config argument must be a non-null Config pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_config_repos_set(c: *mut Config, kind: Repos) -> *mut RepoSet {
+pub unsafe extern "C" fn pkgcraft_config_repos_set(
+    c: *mut Config,
+    format: *const RepoFormat,
+) -> *mut RepoSet {
     let config = try_ref_from_ptr!(c);
-    Box::into_raw(Box::new(config.repos.set(kind)))
+    let set = match unsafe { format.as_ref() } {
+        Some(f) => config.repos.set(Some(*f)),
+        None => config.repos.set(None),
+    };
+    Box::into_raw(Box::new(set))
 }
 
 /// Free a config.

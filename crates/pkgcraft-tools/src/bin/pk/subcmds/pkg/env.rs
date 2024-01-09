@@ -3,9 +3,10 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::config::{Config, Repos};
+use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
+use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
 use pkgcraft::utils::bounded_jobs;
 use pkgcraft::Error;
@@ -44,7 +45,7 @@ impl Command {
         let repos = if let Some(target) = self.repo.as_ref() {
             config.add_target_repo(target)?.into()
         } else {
-            config.repos.set(Repos::Ebuild)
+            config.repos.set(Some(RepoFormat::Ebuild))
         };
 
         let external: HashSet<_> = variables::visible().into_iter().collect();

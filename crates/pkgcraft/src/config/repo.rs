@@ -19,8 +19,6 @@ use crate::repo::{Repo, RepoFormat, Repository};
 use crate::sync::Syncer;
 use crate::Error;
 
-use super::Repos;
-
 #[serde_as]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct RepoConfig {
@@ -230,12 +228,14 @@ impl Config {
     }
 
     /// RepoSet objects from sets of repos registered in the config object.
-    pub fn set(&self, kind: Repos) -> RepoSet {
+    pub fn set(&self, kind: Option<RepoFormat>) -> RepoSet {
         let repos = self.repos.values();
         match kind {
-            Repos::All => repos.collect(),
-            Repos::Ebuild => repos.filter(|r| matches!(r, Repo::Ebuild(_))).collect(),
-            Repos::Configured => self.configured.iter().collect(),
+            None => repos.collect(),
+            Some(RepoFormat::Ebuild) => repos.filter(|r| matches!(r, Repo::Ebuild(_))).collect(),
+            Some(RepoFormat::Configured) => self.configured.iter().collect(),
+            Some(RepoFormat::Fake) => repos.filter(|r| matches!(r, Repo::Fake(_))).collect(),
+            Some(RepoFormat::Empty) => repos.filter(|r| matches!(r, Repo::Unsynced(_))).collect(),
         }
     }
 

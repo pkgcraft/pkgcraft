@@ -2,8 +2,9 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::config::{Config, Repos};
+use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Pretend};
+use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
 
@@ -35,7 +36,7 @@ impl Command {
         let repos = if let Some(target) = self.repo.as_ref() {
             config.add_target_repo(target)?.into()
         } else {
-            config.repos.set(Repos::Ebuild)
+            config.repos.set(Some(RepoFormat::Ebuild))
         };
 
         let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<Option<String>> {

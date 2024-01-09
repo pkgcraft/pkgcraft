@@ -2,8 +2,9 @@ use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::config::{Config, Repos};
+use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
+use pkgcraft::repo::RepoFormat;
 
 use crate::args::StdinOrArgs;
 
@@ -55,7 +56,7 @@ impl Command {
         let repos = if let Some(target) = self.repo.as_ref() {
             config.add_target_repo(target)?.into()
         } else {
-            config.repos.set(Repos::Ebuild)
+            config.repos.set(Some(RepoFormat::Ebuild))
         };
 
         // determine target restrictions

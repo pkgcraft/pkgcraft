@@ -4,8 +4,9 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::Args;
-use pkgcraft::config::{Config, Repos};
+use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Source};
+use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::bounded_jobs;
 use pkgcraft::Error;
 use scallop::pool::PoolIter;
@@ -221,7 +222,7 @@ impl Command {
         let repos = if let Some(target) = self.repo.as_ref() {
             config.add_target_repo(target)?.into()
         } else {
-            config.repos.set(Repos::Ebuild)
+            config.repos.set(Some(RepoFormat::Ebuild))
         };
 
         // default to running a job on each physical CPU in order to limit contention
