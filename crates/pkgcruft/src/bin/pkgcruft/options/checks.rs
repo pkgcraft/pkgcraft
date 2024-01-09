@@ -8,11 +8,11 @@ use pkgcruft::report::ReportKind;
 pub(crate) struct Options {
     /// Specific checks to run
     #[arg(short, long)]
-    pub(crate) checks: Vec<CheckKind>,
+    checks: Vec<CheckKind>,
 
     /// Limit to specific keywords
     #[arg(short, long)]
-    pub(crate) keywords: Vec<ReportKind>,
+    keywords: Vec<ReportKind>,
 }
 
 impl Options {

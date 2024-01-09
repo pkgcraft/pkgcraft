@@ -11,8 +11,8 @@ pub struct Options {
     pub(super) checks: checks::Options,
 
     #[clap(flatten)]
-    arches: arches::Options,
+    pub(super) arches: arches::Options,
 
     #[clap(flatten)]
-    profiles: profiles::Options,
+    pub(super) profiles: profiles::Options,
 }
