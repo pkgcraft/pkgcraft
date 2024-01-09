@@ -45,4 +45,3 @@ walkdir = "2.4.0"
 
 [[test]]
 name = "pk"
-path = "tests/pk/pk.rs"
