@@ -46,9 +46,9 @@ impl<'a> CheckRun<Vec<Pkg<'a>>> for UnstableOnlyCheck<'a> {
             .filter(|k| self.arches.contains(k.arch()));
 
         // collapse keywords into an arch-keyed mapping
-        let mut pkg_keywords = HashMap::<_, Vec<_>>::new();
+        let mut pkg_keywords = HashMap::<_, HashSet<_>>::new();
         for k in stable_keywords {
-            pkg_keywords.entry(k.arch()).or_default().push(k);
+            pkg_keywords.entry(k.arch()).or_default().insert(k);
         }
 
         // find arches that only have unstable keywords
