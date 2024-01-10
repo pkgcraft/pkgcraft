@@ -152,6 +152,15 @@ impl Iterator for IterCpv {
     }
 }
 
+impl IntoIterator for RepoSet {
+    type Item = Repo;
+    type IntoIter = indexmap::set::IntoIter<Repo>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 // TODO: Use type alias impl trait support for IntoIterator implementation when stable in order to
 // replace boxed type with a generic type.
 //
